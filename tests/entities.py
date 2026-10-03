@@ -30642,6 +30642,327 @@ R.check(
 )
 
 
+
+# --- the GitHub Pages deploy (R9-WEB-2) --------------------------------------
+# `.github/workflows/pages.yml` publishes the product page (docs/index.html),
+# its site folder, the documentation sub-pages tools/site/build_docs.mjs
+# renders, and the images under docs/ -- and never a markdown file, so the
+# development record is not served as web pages. What is pinned, and why:
+#   * the trigger is release.yml's own tag trigger plus a dispatch, so the
+#     served page is the release HACS installs (DESIGN-SITE S6), and nothing a
+#     pull request does runs it;
+#   * the grant is exactly the three permissions a Pages deploy needs, so it
+#     cannot grow past the approval in silence (the #960 precedent);
+#   * every `uses:` is pinned by commit (#960);
+#   * no job produces a required context: the deploy is not a merge gate;
+#   * the upload and the deploy are gated on the Pages probe, so with Pages
+#     off or built from a branch the run is green with a warning naming the
+#     setting, and deploys nothing;
+#   * the deploy runs in the github-pages environment, and the build job,
+#     which runs `npm ci` and the generator, holds no write and no OIDC token;
+#   * no `if:` is made true by always(), and a deploy in flight is never
+#     cancelled.
+# The staging is pinned by RUNNING it, not by reading it: the step named
+# "Stage the site" runs in a scratch repository holding every kind of file
+# docs/ can hold, and what it stages must be exactly the published set; the
+# step named "Refuse a published markdown file" must pass that set and refuse
+# it once a .md is planted. A reader of the script text would pass a staging
+# that copies all of docs/ and deletes nothing; this cannot. Design choice,
+# said out loud (fixer.md step 11): the published set is the design's
+# (docs/index.html, docs/site/** less markdown, every tracked *.png and *.svg
+# under docs/ at its own path), and the steps are keyed by their names.
+_PG_WF = Path(".github/workflows/pages.yml")
+_PG_STAGE, _PG_GUARD = "Stage the site", "Refuse a published markdown file"
+_PG_TREE = {
+    "docs/index.html": "<!doctype html>",
+    "docs/site/docs.css": "body{}",
+    "docs/site/fonts/a.woff2": "w",
+    "docs/site/fonts/OFL-A.txt": "ofl",
+    "docs/site/notes.md": "# a markdown file inside the site folder",
+    "docs/site/fonts/README.MD": "# upper-case extension inside the site folder",
+    "docs/site/notes.markdown": "# the other markdown extension",
+    "docs/img/a.png": "p",
+    "docs/img/card/b-dark.png": "p",
+    "docs/setup/c.svg": "<svg/>",
+    "docs/how-it-works.md": "# reader doc",
+    "docs/HANDOVER.MD": "# record, upper-case extension",
+    "docs/tool.py": "print()",
+    "docs/img/data.json": "{}",  # a tracked file of a kind not published
+    "docs/untracked.png": None,  # on disk, never added: not the release's file
+    "README.md": "# readme",
+    "outside.png": "p",
+}
+_PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
+            "site/fonts/OFL-A.txt", "img/a.png", "img/card/b-dark.png",
+            "setup/c.svg"}
+
+
+def _pg_run(script: str, cwd: Path) -> int:
+    env = dict(os.environ, RUNNER_TEMP=str(cwd.parent),
+               GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull)
+    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail",
+                           "-c", script], cwd=cwd, env=env,
+                          capture_output=True, text=True).returncode
+
+
+def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
+    """Run the staging and guard scripts in a scratch repository."""
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        # No path is ever an argument: a recorded run would attribute a
+        # relative argv path to this repository (tests/closure.py `_rel`).
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        for tracked in (True, False):
+            for rel, body in _PG_TREE.items():
+                if (body is not None) == tracked:
+                    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (repo / rel).write_text(body or "untracked")
+            if tracked:
+                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
+                               check=True)
+        rc = _pg_run(stage, repo)
+        site = repo / "_site"
+        got = {p.relative_to(site).as_posix() for p in site.rglob("*")
+               if p.is_file()} if site.is_dir() else set()
+        if rc != 0 or got != _PG_WANT:
+            out.append(f"staging rc={rc}; extra={sorted(got - _PG_WANT)} "
+                       f"missing={sorted(_PG_WANT - got)}")
+        grc = _pg_run(guard, repo)
+        if grc != 0:
+            out.append(f"the guard refuses the clean staged set (rc={grc})")
+        # Each markdown extension planted alone: the guard is the only
+        # refusal of a `.markdown` file that reaches _site by any route.
+        for planted in ("note.Md", "note.markdown"):
+            (site / "img").mkdir(parents=True, exist_ok=True)
+            (site / "img" / planted).write_text("planted")
+            if _pg_run(guard, repo) == 0:
+                out.append(f"the guard passes a staged set holding {planted}")
+            (site / "img" / planted).unlink()
+    return out
+
+
+def _pg_probe_defects(script: str) -> "list[str]":
+    """Run the probe step against a stub `gh` for each answer the API gives.
+
+    Pages built by this workflow -> enabled=true; Pages off (404) or built
+    from a branch -> enabled=false and exit 0, so the run stays green and the
+    upload and deploy are skipped; any other API error -> a red run.
+    """
+    cases = {"workflow": ("echo workflow", 0, "true"),
+             "404": ("echo 'gh: Not Found (HTTP 404)' >&2; exit 1", 0, "false"),
+             "legacy": ("echo legacy", 0, "false"),
+             "500": ("echo 'gh: Server Error (HTTP 500)' >&2; exit 1", 1, None)}
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        stub, gho = Path(tmp) / "bin", Path(tmp) / "out"
+        stub.mkdir()
+        for case, (body, want_rc, want) in cases.items():
+            (stub / "gh").write_text(f"#!/bin/sh\n{body}\n")
+            (stub / "gh").chmod(0o755)
+            gho.write_text("")
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=str(gho),
+                       GITHUB_STEP_SUMMARY=os.devnull, GITHUB_REPOSITORY="o/r",
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo",
+                                 "pipefail", "-c", script], cwd=tmp, env=env,
+                                capture_output=True, text=True).returncode
+            got = re.findall(r"^enabled=(\w+)$", gho.read_text(), re.M)
+            if (rc != 0) != bool(want_rc) or got != ([want] if want else []):
+                out.append(f"probe on {case}: rc={rc} enabled={got}")
+    return out
+
+
+_PG_STATUS_FN = re.compile(r"\b(?:success|failure|always|cancelled)\s*\(", re.I)
+
+
+def _pg_defects(text: str) -> "list[str]":
+    """Why a Pages workflow text breaks the pinned contract; [] when it holds."""
+    doc = _yaml.safe_load(text) or {}
+    out: "list[str]" = []
+    on = doc.get(True, doc.get("on")) or {}
+    rel = _yaml.safe_load(Path(_REL_WF).read_text()) or {}
+    rel_tags = ((rel.get(True, rel.get("on")) or {}).get("push") or {}).get("tags")
+    if not isinstance(on, dict) or sorted(on) != ["push", "workflow_dispatch"] \
+            or on.get("push") != {"tags": rel_tags} or not rel_tags:
+        out.append(f"triggers {on!r} are not release.yml's push tags "
+                   f"{rel_tags!r} plus workflow_dispatch")
+    if doc.get("permissions") != {"contents": "read", "pages": "write",
+                                  "id-token": "write"}:
+        out.append(f"workflow permissions {doc.get('permissions')!r}")
+    if not (doc.get("concurrency") or {}).get("group"):
+        out.append("no concurrency group")
+    if (doc.get("concurrency") or {}).get("cancel-in-progress") is not False:
+        out.append("cancel-in-progress is not false: a newer run would cancel "
+                   "a deploy in flight")
+    jobs = doc.get("jobs") or {}
+    for jid, job in jobs.items():
+        perms = (job or {}).get("permissions") or {}
+        if not isinstance(perms, dict):
+            out.append(f"job {jid} permissions are {perms!r}, not a mapping "
+                       "of named grants")
+            perms = {}
+        for k, v in perms.items():
+            if v == "write" and k not in ("pages", "id-token"):
+                out.append(f"job {jid} widens {k} to write")
+        label = str((job or {}).get("name") or jid)
+        ifs = [str((job or {}).get("if", ""))] + [
+            str((s or {}).get("if", "")) for s in (job or {}).get("steps") or []]
+        # GitHub adds the implicit success() to an `if:` only when it calls
+        # none of the status functions, so ANY call of one -- always(),
+        # cancelled(), failure(), success() -- replaces the gate this file
+        # relies on. Function names are case-insensitive in expressions.
+        bad_ifs = [i for i in ifs if _PG_STATUS_FN.search(i)]
+        if bad_ifs:
+            out.append(f"job {jid} has an `if:` calling a status function, "
+                       f"which replaces the implicit success() gate: {bad_ifs}")
+        if label in _RC_CONTEXTS or jid in _RC_CONTEXTS:
+            out.append(f"job {jid} produces required context {label!r}")
+    steps = [(jid, s or {}) for jid, j in jobs.items()
+             for s in ((j or {}).get("steps") or [])]
+    for jid, s in steps:
+        u = s.get("uses")
+        if str(u or "").startswith("actions/checkout@") and \
+                (s.get("with") or {}).get("persist-credentials") is not False:
+            out.append(f"{jid}: checkout persists its token in .git/config")
+        if u and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", u):
+            out.append(f"{jid}: `uses: {u}` is not pinned by commit")
+    named = {s.get("name"): (i, s) for i, (_, s) in enumerate(steps)}
+    if _PG_STAGE not in named or _PG_GUARD not in named:
+        return out + [f"no step named {_PG_STAGE!r} or {_PG_GUARD!r}"]
+    gi = named[_PG_GUARD][0]
+    up = [i for i, (_, s) in enumerate(steps)
+          if str(s.get("uses", "")).startswith("actions/upload-pages-artifact@")]
+    writers = [i for i, (_, s) in enumerate(steps)
+               if "_site" in str(s.get("run", "")) and i != gi]
+    if len(up) != 1 or not writers or max(writers) > gi or up[0] < gi:
+        out.append(f"the guard (step {gi}) does not sit after every step "
+                   f"writing _site {writers} and before the upload {up}")
+    elif "enabled" not in str(steps[up[0]][1].get("if", "")):
+        out.append("the upload is not gated on the Pages probe")
+    deploy = [jid for jid, s in steps
+              if str(s.get("uses", "")).startswith("actions/deploy-pages@")]
+    if len(deploy) != 1 or "enabled" not in str(jobs[deploy[0]].get("if", "")):
+        out.append(f"the deploy job {deploy} is not gated on the Pages probe")
+    else:
+        # The environment is the one control that limits a deploy to the refs
+        # tvofi admits (today `main`, and `v*` once the tag rule is added).
+        dsteps = jobs[deploy[0]].get("steps") or []
+        if len(dsteps) != 1:
+            out.append(f"the deploy job runs {len(dsteps)} steps, not only "
+                       "deploy-pages: it holds the write and OIDC grant")
+        env = jobs[deploy[0]].get("environment")
+        if (env.get("name") if isinstance(env, dict) else env) != "github-pages":
+            out.append(f"the deploy job runs outside the github-pages "
+                       f"environment ({env!r})")
+    # The job that checks out, runs `npm ci` and runs the repository's
+    # generator holds no write and no OIDC token: only the deploy job does.
+    build = [jid for jid, s in steps
+             if str(s.get("uses", "")).startswith("actions/upload-pages-artifact@")]
+    if len(build) == 1 and (jobs[build[0]].get("permissions")
+                            != {"contents": "read", "pages": "read"}):
+        out.append(f"the build job's permissions are "
+                   f"{jobs[build[0]].get('permissions')!r}, not exactly "
+                   "contents:read and pages:read")
+    probe = [s for _, s in steps if s.get("id") == "probe"]
+    if len(probe) != 1:
+        out.append("no step with id `probe`")
+    else:
+        out += _pg_probe_defects(str(probe[0].get("run", "")))
+    return out + _pg_staging_defects(str(named[_PG_STAGE][1].get("run", "")),
+                                     str(named[_PG_GUARD][1].get("run", "")))
+
+
+_PG_GOT = _pg_defects(_PG_WF.read_text()) if _PG_WF.is_file() else [
+    f"{_PG_WF} does not exist"]
+R.check(
+    "the Pages workflow deploys on a release tag, is gated on Pages being "
+    "enabled, and stages the published set and never a markdown file",
+    not _PG_GOT,
+    "; ".join(_PG_GOT[:5]),
+)
+# Null controls: the same reader over a staging that copies all of docs/, and
+# over a guard that refuses nothing. Each must be refused, or the check above
+# passes vacuously.
+_PG_NULL_STAGE = _pg_staging_defects(
+    "rm -rf _site; mkdir -p _site; cp -R docs/. _site/",
+    "test -f _site/index.html")
+_PG_NULL_GUARD = _pg_staging_defects(
+    "rm -rf _site; mkdir -p _site; cp docs/index.html _site/", "true")
+R.check(
+    "and a staging that copies docs/ wholesale, or a guard that refuses "
+    "nothing, is refused (null controls)",
+    any("extra=" in d and ".md" in d for d in _PG_NULL_STAGE)
+    and any("holding note.Md" in d for d in _PG_NULL_GUARD),
+    f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
+)
+
+# Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
+# script reads it, so an edit to it selects this script; it sets no gate
+# variable and runs no gate script, so it never forces FULL.
+R.check(
+    "pages.yml is not a gate file, and is classified",
+    (not _closure.is_gate_file(str(_PG_WF)))
+    and (not _closure.is_inert(str(_PG_WF)))
+    and _closure.affected([str(_PG_WF)])["case"] == "scoped"
+    and str(_PG_WF) in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(str(_PG_WF))} "
+    f"inert={_closure.is_inert(str(_PG_WF))} "
+    f"case={_closure.affected([str(_PG_WF)])['case']}",
+)
+
+# The two grants a review found unpinned (#1876 round 1), each driven over the
+# real workflow text with one block removed: the deploy job's environment, and
+# the build job's narrowed permissions (without them it inherits pages:write
+# and id-token:write). Each mutant must be refused for its own reason.
+def _pg_without(block: str) -> "list[str]":
+    text = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    if text.count(block) != 1:
+        return [f"control block not found once: {block!r}"]
+    return _pg_defects(text.replace(block, ""))
+
+
+_PG_NO_ENV = _pg_without(
+    "    environment:\n      name: github-pages\n"
+    "      url: ${{ steps.deployment.outputs.page_url }}\n")
+_PG_NO_PERMS = _pg_without(
+    "    permissions:\n      contents: read\n      pages: read\n")
+R.check(
+    "and a deploy outside the github-pages environment, or a build job that "
+    "inherits the deploy grant, is refused (null controls)",
+    any("github-pages environment" in d for d in _PG_NO_ENV)
+    and any("build job's permissions" in d for d in _PG_NO_PERMS),
+    f"no environment: {_PG_NO_ENV}; no build permissions: {_PG_NO_PERMS}",
+)
+
+# The status-function class (#1876 round 2): one planted `if:` per spelling a
+# review used, on the deploy job, each refused by the one rule above.
+_PG_DEPLOY_IF = "    if: needs.pages-build.outputs.enabled == 'true'\n"
+_PG_STATUS_SPELLINGS = {
+    "always()": "always() && needs.pages-build.outputs.enabled == 'true'",
+    "!cancelled()": "${{ !cancelled() && needs.pages-build.outputs.enabled != 'nope' }}",
+    "cancelled()": "cancelled() || needs.pages-build.outputs.enabled == 'true'",
+    "failure()": "failure() || needs.pages-build.outputs.enabled == 'true'",
+    "success() || failure()": "success() || failure() || needs.pages-build.outputs.enabled",
+}
+_PG_STATUS_GOT = {}
+for _sp, _expr in _PG_STATUS_SPELLINGS.items():
+    _txt = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    _PG_STATUS_GOT[_sp] = (
+        any("status function" in d for d in _pg_defects(
+            _txt.replace(_PG_DEPLOY_IF, f"    if: {_expr}\n")))
+        if _txt.count(_PG_DEPLOY_IF) == 1 else False)
+R.check(
+    "and an `if:` calling any status function is refused, one planted "
+    "spelling each (null controls)",
+    all(_PG_STATUS_GOT.values()),
+    f"refused per spelling: {_PG_STATUS_GOT}",
+)
+
+
 # EG-B3b: the cast is gone, so mypy (the typing job) judges each producer against
 # the slice it returns. What mypy cannot see is pinned here: that the slice IS one
 # Payload inherits (a view typed with a private TypedDict would pass mypy and
