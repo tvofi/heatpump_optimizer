@@ -559,7 +559,7 @@ class QuarantiningStore(Store[_StorePayload]):
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:
-            self._readers.discard(task)
+            pass
             if not self._readers and reading is not None and not reading.done():
                 reading.set_result(None)
 
