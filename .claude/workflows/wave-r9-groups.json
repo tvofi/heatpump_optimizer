@@ -6311,6 +6311,98 @@
         "note": "Re-cut 2026-10-03 by the pre-study's reviewer: arm B moved out of mutation-ledger into mutation-nightly's existing draw, so it adds no runner minutes and no longer waits on a green ledger; arm C moved into R9-F10.12."
       },
       "brief": "Round-9 fix PR F10.13 (gate infrastructure: the mutation lane's instrument findings of 2026-10-03). From the same pre-study and review as R9-F10.12, and after it: both edit tests/mutation_table.py. First rule: before any work, read CLAUDE.md and every rules file it references (.claude/rules, the role contract tools/audit/briefs/fixer.md), and follow them; pass this rule on in every sub-agent brief. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. No arm automates a disposition: .claude/rules/ci-autofix.md forbids automating survivor triage, and a refuted pin is a disposition too. No arm adds a job, a driver run, or runner minutes. (A) The triage self-kill, found by #1867's review in its round 3 and not carried anywhere since: the check at tests/entities.py:28993 \"every mark still names a mutant this tree generates\" reads the mutated working tree, so a mutant on any line a survivor_triage mark names makes that mark stale and fails the check. With tests/entities.py among the drivers, the review measured the payload.py mark reported killed by tests/entities.py (1 of 2086 checks failing, the stale-mark check). Make a mutant unable to kill its own mark, either in tests/entities.py (judge staleness against the unmutated tree, or skip the mutated site's own mark) or in tests/mutation_table.py (a site holding a survivor_triage disposition is reported as triaged and not driven); take the smaller diff, and tests/entities.py has three open pull requests on it. Failing test first: the payload.py GUARD_OFF triage mark (#1867) reads killed by tests/entities.py at the merge base and does not after the fix; null control: a planted stale mark on an unmutated tree still fails the check. (B) Pin re-verification, report only, at no added cost. mutation-nightly draws its sample from every generatable mutant (drawable), pinned sites included, so it already re-drives some killed_by pins every night and discards what it learns. For each sampled site that holds a killed_by pin, report it in the job's output when it LIVES or when its recorded killing script did not kill it, as a pin not reproduced, for a human disposition (re-pin, triage, or a new test). Reserving a share of the nightly's existing draw for pinned sites, walked by date, is allowed; raising the draw is not. The bot never deletes or rewrites a pin. Its first case is measured elsewhere: the one tests/harness_headers.py pin on main (legionella.py, LegionellaGuard.async_track GUARD_OFF) is being re-driven by the orchestrator as an immediate check; do not wait on it. Code-owned files merge on tvofi's approving review at the head. Mutation: pin the sites this change adds (mutation_table.py --scope changed --base origin/main). Carried from R9-F10.12 (handoff/r9-f10-12): in arm B, a pin re-drive that ends SKIP-BUDGET is not re-verified, and one that ends SKIP-TIMED-OUT is not a confirmation. Arm A edits the same pool driver and must keep marking unstarted mutants SKIP-BUDGET, because the helper phase reads an unset verdict as not yet run. Carried from the 2026-10-03 legionella pin check: the killed_by pin for LegionellaGuard.async_track GUARD_OFF 43323b87 names tests/harness_headers.py, but on Linux at 1ccd0b1d that mutant passes all 95 harness_headers checks (Tests runs 37133568644 slow and 37134176348 fast). In the same runs tests/features.py and a legionella DST spring-gap check failed, so the mutant is probably killed by another driver. Arm B's first case: re-drive it on the runner and re-attribute the pin to its real killer, or route it to a human disposition if nothing kills it. Control for the F10.12 carry (re-measure at this group's own merge base, never trust the figure): the drive_pool checks R9-F10.12 adds to tests/entities.py for a too-small budget and for an exclusive driver must still pass, and each must fail when the SKIP-BUDGET marking on unstarted mutants is removed. Noted by R9-F10.12's review: mutation-nightly draws its sample with a constant seed, so under F10.12's budget the same tail of sites can stay unevaluated every night (the ledger rotates its seed by date). Arm B must not read a site the budget never reached as re-verified; consider rotating the nightly seed, measured against the ledger's rotation."
+    },
+    {
+      "group": "R9-UX-8",
+      "lane": "UX",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 11,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "card-only presentation over fields the narrative sensor already publishes",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "tests/card_browser.mjs is code-owned; merges on tvofi's approving review at the head",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-UX-3"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-ux-insight-text",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1: view tvofi's iOS screenshot (card-ios-2026-10-03.jpg), then write the failing test (per-item rows, number column nowrap at 360 px, verbatim fallback)",
+        "note_file": "handoff/round9/fix/resume/UX-8.md on handoff/r9-ux-insight-text",
+        "review_branch": "handoff/r9-ux-insight-text-review",
+        "review_note_file": "handoff/round9/fix/resume/UX-8-review.md on handoff/r9-ux-insight-text-review",
+        "plan": "this roster; PRESTUDY.md of the 2026-10-03 owner-asks seat (origin/wip-sync/orchestrator-scratch:orch/seat-owner-asks/PRESTUDY.md)",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "Added for tvofi's ask of 2026-10-03: 'The insight text in the card in iOS doesn't look neat, design it better ... also looks good in desktop resolution.' Issues stay empty until the orchestrator files the feature issue. Orchestrator decisions 2026-10-03: panel as proposed, two columns at >=720px, no dot colours (owner waived a pre-study review)."
+      },
+      "brief": "Round-9 feature PR UX-8 (lane UX, narrative rows). tvofi asked on 2026-10-03: \"The insight text in the card in iOS doesn't look neat, design it better. ... Make sure it also looks good in desktop resolution.\" First rule: read CLAUDE.md and every rules file it references (.claude/rules, tools/audit/briefs/fixer.md) and pass this rule on to every sub-agent. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. Scope: replace the italic prose list `.hl-narrative` (www/heatpump-optimizer-card.js, markup ~8017, CSS ~3772) with a surface-2 panel of rows built from the narrative sensor's structured `items` (label from the existing reasons.* card strings, kWh and cost in a nowrap tabular right column, idle/pump_mode as a muted status row), falling back to the published `lines` verbatim for any reason without a label or when `items` is absent (UX-1's every-line rule stays). Mobile <=400px: label wraps in its own column, number column never wraps; desktop: wider label, aligned number column, two columns at container >=720px. Card only: no Python, so value-bearing goldens stay byte-identical; moved card states are claimed in tests/golden/card_claimed_drift.txt (stylesheet moves ~every state; markup moves the narrative-bearing states) with claims-for equal to VERSION, never re-recorded. Tests in tests/card.mjs, tests/card_browser.mjs gets .nl in its sweep. Structure ratchet: card JS is outside the Python metrics, still run tests/structure.py and the policy budgets before push."
+    },
+    {
+      "group": "R9-SW-5",
+      "lane": "SW",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "feature",
+      "wave": 15,
+      "fixerModel": "opus",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "opus",
+        "fixer_why": "write safety: a user hold on a duty beside the legionella guard, the tank and comfort floors and the arbiter's idle row",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "high",
+      "fixture": false,
+      "owner_gate": "a structure-budget raise, if any, is asked first and merges only on tvofi's approving review at the head",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-EG-B6"
+      ],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-sw-block",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: read PRESTUDY.md of the 2026-10-03 owner-asks seat and handoff/round9/fix/SW.md section 2.3, then write the failing test (a block never outlives a due anti-legionella cycle)",
+        "note_file": "handoff/round9/fix/resume/SW-5.md on handoff/r9-sw-block",
+        "review_branch": "handoff/r9-sw-block-review",
+        "review_note_file": "handoff/round9/fix/resume/SW-5-review.md on handoff/r9-sw-block-review",
+        "plan": "this roster; PRESTUDY.md of the 2026-10-03 owner-asks seat (origin/wip-sync/orchestrator-scratch:orch/seat-owner-asks/PRESTUDY.md); handoff/audit-r9-fixplan: handoff/round9/fix/SW.md",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "Added for tvofi's ask of 2026-10-03: 'I want switches that are the opposite to boost dhw and boost space heating - block dhw and block space heating for 2h.' Tier A (post-solve overlay mirroring boost.py) ships first; Tier B (the block as a synthetic per-step Off window through SW-1's mask) is a follow-up edit to this group after R9-SW-1 merges. Issues stay empty until the orchestrator files the feature issue. Orchestrator decisions 2026-10-03 under mandate 5951564627 (owner waived a pre-study review): Tier A ships in this group, Tier B is a follow-up edit after R9-SW-1 merges; a due or overdue legionella cycle releases the block with released_by on the switch (never refuses the press silently); the 15 C ECONOMY_ABSOLUTE_FLOOR is the space floor, no frost-protection feature is promised."
+      },
+      "brief": "Round-9 feature PR SW-5 (lane SW, timed block switches). tvofi asked on 2026-10-03: \"I want switches that are the opposite to boost dhw and boost space heating - block dhw and block space heating for 2h.\" First rule: read CLAUDE.md and every rules file it references (.claude/rules, tools/audit/briefs/fixer.md) and pass this rule on to every sub-agent. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. Scope: two switches (Block DHW, Block Space Heating; new unique ids named block-dhw and block-space in the boost ids' style; DHW gated by DHWEntityMixin like dhw_boost) mirroring switch.py's BoostDhwSwitch/BoostSpaceSwitch, backed by boost.py (a block channel per duty, a new 2-hour block constant beside BOOST_HOURS, persisted and restored through the same QuarantiningStore, auto-released), an overlay that zeroes the blocked duty on the COPY of the plan action (boost.apply, coordinator.py ~5174), and pump_arbiter._planned_duty / _share removing the blocked duty so the arbiter serves an idle row (nothing extra written; never the power switch for a single-channel block, see _apply_action's skip_off comment). A block and a boost on one channel exclude each other (the later press wins). Safety floors override a block, release it, and say why on the switch: a due or overdue anti-legionella cycle or a live disinfection hold (legionella.py due_in_hours, _drive_switch; custom_components/heatpump_optimizer/dhw_planner.py hard deadline), the DHW tank at or below dhw_min_temp inside a demand window, indoor at or below ECONOMY_ABSOLUTE_FLOOR plus a margin or the cold-rail cold-lease test (pump_arbiter.py), a system-identification experiment and a stale plan. There is no standalone frost-protection module; do not document one. Null control: with no block set no new key appears on the action or the payload, so every value-bearing golden stays byte-identical and both claim files stay untouched. Tests in tests/entities.py (switch count 4 -> 6, object ids, names, store census, release tests) and tests/features.py. Structure ratchet: collapse the four boost/block switch classes onto one base and keep state in boost.py's weak map (no coordinator attribute) so no raise is needed; if one is, ask tvofi before the branch is pushed. Re-run tests/ha_floor.py (no new Home Assistant name is expected)."
     }
   ]
 }
