@@ -232,26 +232,24 @@ background task, whose exit wakes you; never end a turn on a detached one.
     improve the code: a mechanical split, code moved to an unmeasured path, a
     triage on a killable mutant, or cases enumerated where a structural fix
     exists (#1874: a spelling list, three review rounds, class still open). Cost
-    is no reason to take the worse fix; scope and the ratchet still bind, and a
-    raise is asked for (below), never taken quietly.
+    is no reason to take the worse fix; scope and the ratchet still bind
+    (below).
 
-**When a structural budget blocks the work.** A `tests/structure.py` failure is
-a decision point, not a wall, and it has three answers rather than two: pay for
-the lines elsewhere; re-record because the tree genuinely improved; or, for a
-genuine new production feature, **raise** the budget because the capability is
-worth the structure it costs (`--record --allow-regression="<reason>"`, with
-that reason in the **commit** message: `main`'s history keeps a commit message
-and never a pull-request body — decision 0010, true under either merge method).
+**When a budget blocks the work** (`tests/structure.py`, or a cap
+`policy_lint.mjs --budgets` prints), the answers come in order (tvofi,
+2026-10-03). **First pay** with a change that objectively improves the code: a
+simplification, removed duplication, deleted dead code or spent prose,
+never a step-17 shape. Re-record where the tree genuinely improved. **Raise only
+when no such payment exists** (`--record --allow-regression="<reason>"`, that
+reason in the **commit** message: `main`'s history keeps a commit message and
+never a pull-request body — decision 0010, true under either merge method).
 
 **Ask which class the budget you fear is even measured on.** Some rows come from
 the single class named by `COORDINATOR_CLASS_NAME`; the rest from every parsed
 module. A method added outside that **class** moves none of the first group, so
 the payment question does not arise there. *Class*, not file: `coordinator.py`
 holds several, and adding a method, call and attribute to `CoordinatorContext` moves no row.
-
-**Derive the split, do not carry it.** The coordinator-scoped rows are the ones
-`measure()` selects or keys by `COORDINATOR_CLASS_NAME`. Re-derive at your merge
-base.
+Derive the split (what `measure()` keys by that name) at your merge base; never carry it.
 
 **Read the expression, not the value.** `attrbag_classes_over_30` has the
 coordinator as its only member and a `top_is_coordinator` flag beside it, yet is
@@ -260,12 +258,13 @@ tree-wide: enough attributes on a class in any other module move it.
 **An empty payment pool is a halt only where a payment was owed.** Let
 `python3 tests/structure.py` name what moved at your merge base. Outside the
 coordinator class a split usually moves the maxima *down* -- which the gate still
-refuses until you re-record them, with the reason in the commit.
+refuses until you re-record them.
 
-A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2). Zero
-headroom is no veto on new functionality or the better fix; ask. #398 was refused in
-part because `coordinator_attrs` stood at 176/176 and a new attribute read as
-costing an existing one.
+A raise is the owner's, asked before the push (`CLAUDE.md` rule 2); zero
+headroom is no veto on new functionality or the better fix (#398 was refused
+in part on `coordinator_attrs` at 176/176). **The ask lists every payment you
+considered and why each was not taken**, measured where possible, never a bare
+assertion; the reviewer judges them (`fix-review.md` step 14).
 
 ## Before you hand off: carry what you found forward
 

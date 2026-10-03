@@ -54,10 +54,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer — the analysis is a separate seat, `root-cause.md`.
     **A red `nightly-status` or `delivery-status` is not this pull request's**
-    unless its diff reaches what the reporter reads — its script, its job, the
-    plan, `HANDOVER.md`, or a delivery row other than the pull request's own
-    (`defect-root-cause.md`; the body check voids the exemption then). Both run
-    the head's checkout: deleting a merged row turns `delivery-status` OVERDUE.
+    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
+    merged row turns `delivery-status` OVERDUE.
 
     **The head's runs are not the range's** (#1144: a head naming nothing while
     `record-status` sat one commit back). The body check prints `record`/`skip
@@ -129,7 +127,9 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     splitting a clone read as score gain for three rounds (#1874); a `killed_by`
     its own lane refuted, and a `tests/entities.py` kill that was the staleness
     check firing on the triage itself (#1867); a quiet autofix beside a read
-    `inert_reads` lacked (#1868).
+    `inert_reads` lacked (#1868). On a raise or an ask for one, judge each
+    payment the body refused (`fixer.md` budget section) and hunt one it
+    missed: a missed payment that truly improves the code is `metric-gamed` too.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first

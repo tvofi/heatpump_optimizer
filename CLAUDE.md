@@ -21,12 +21,12 @@ file is.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
    metric in `tests/structure_budgets.json` — **derive the count, do not carry
    one**: it is the budget file's keys less `recorded_at`, which is metadata,
-   and `structure.py`'s own `ok` lines are a third number again because they add
+   and `structure.py`'s own `ok` lines are a third number because they add
    the counting-rule check and the `const.py` symbol checks. Every metric may
    only move down, and several sit at zero headroom, so a change that adds lines
-   to the wrong class fails. Pay for the lines; failing that, re-record
-   deliberately with the reason **in the commit message**; and for a genuine new
-   production feature, **raise the budget with the repository owner's explicit
+   to the wrong class fails. Pay by improving code; failing that, re-record
+   deliberately with the reason **in the commit message**; and where no payment
+   improves the code (`fixer.md`), **raise the budget with the owner's explicit
    confirmation, obtained before the branch is pushed** — never loosen one
    quietly, never delete working functionality merely to fit, and stop and ask
    rather than push and explain. A raise in any `*_budgets.json` merges only on
