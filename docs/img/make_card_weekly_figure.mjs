@@ -9,8 +9,8 @@
 // earlier card design and nothing re-ran it). Only the payload is built here:
 // the solved one-day payload tests/plan_view.py writes, repeated onto a
 // second day shifted to start on a Friday, with the second day's prices
-// marked estimated and its evening tank curve a few degrees under the
-// minimum so the clamp is visible.
+// marked estimated and its evening lower edge 2.5 degrees under the tank curve
+// (which sits at or above the 45 degree minimum) so the clamp is visible.
 //
 //   python3 tests/plan_view.py
 //   node docs/img/make_card_weekly_figure.mjs      # from the repository root
@@ -47,7 +47,12 @@ function extend(rows, evening) {
     const h = new Date(t).getUTCHours() + new Date(t).getUTCMinutes() / 60;
     const o = { ...r, t: iso(t), price_known: false };
     if (evening && h >= 18.5 && h < 21.5) {
-      for (const k of ["dhw_temp", "dhw_temp_lo", "dhw_temp_hi"]) if (k in o) o[k] = o[k] - 3.2;
+      // The tank stays at or above the minimum while the model's lower edge dips
+      // under it: only then does the card floor the edge (a tank already under the
+      // minimum is drawn as it is).
+      o.dhw_temp = Math.max(o.dhw_temp, 46.5);
+      o.dhw_temp_lo = o.dhw_temp - 2.5;
+      o.dhw_temp_hi = Math.max(o.dhw_temp_hi, o.dhw_temp + 0.4);
     }
     return o;
   });
@@ -94,6 +99,23 @@ try {
   }, states);
   await page.waitForTimeout(400);
   await page.evaluate(() => { const a = window.__card.shadowRoot.activeElement; if (a) a.blur(); });
+  if (process.env.HPO_WEEKLY_MEASURE) {
+    // The caption's numbers, read from the card's own built series: the plotted
+    // lower edge against the published one, per window.
+    const pts = await page.evaluate(() => {
+      const sr = window.__card._series.find((x) => x.key === "dhw_temp");
+      return sr.lines.filter((l) => l.field === "dhw_temp_lo").flatMap((l) => l.points);
+    });
+    const pub = new Map(plan.dhw_plan.forecast.map((r) => [toMs(r.t), r.dhw_temp_lo]));
+    console.log("point shape", JSON.stringify(pts[0]));
+    for (const [name, a, b] of [["Fri 07:30-08:30", 7.5, 8.5], ["Fri 19:00-21:00 (outside)", 19, 21],
+      ["Sat 07:30-08:30 (outside)", 31.5, 32.5], ["Sat 19:00-21:00", 43, 45]]) {
+      const rows = pts.filter((q) => { const h = (q.t - friday) / 3600e3; return h >= a && h < b; });
+      console.log(name, "n=" + rows.length, "plotted", Math.min(...rows.map((q) => q.v ?? q.y)).toFixed(2), "..",
+        Math.max(...rows.map((q) => q.v ?? q.y)).toFixed(2),
+        "published", Math.min(...rows.map((q) => pub.get(q.t))).toFixed(2), "..", Math.max(...rows.map((q) => pub.get(q.t))).toFixed(2));
+    }
+  }
   // The picture is the dialog down to the bottom of the chart; the slot editor under it is another figure.
   const box = await page.evaluate(() => {
     const d = window.__card.shadowRoot.querySelector("dialog[open]").getBoundingClientRect();
