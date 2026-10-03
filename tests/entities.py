@@ -3947,6 +3947,9 @@ P6_UPSTREAM_PROBES = {
     "async_start_reauth", "last_update_success", "async_items",
     "register_static_path", "async_update_item", "last_updated", "last_changed",
     "last_reported", "isoformat", "temperature_unit",
+    # helpers.storage from Home Assistant 2026.3.0; absent at the 2025.2.0
+    # floor, so store.py probes for it (#1740).
+    "UnsupportedStorageVersionError",
 }
 #: Home Assistant's own climate presets (climate/const.py PRESET_*), which the
 #: climate component translates and icons itself.
