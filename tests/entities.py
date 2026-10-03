@@ -3351,7 +3351,7 @@ _D801_TEMPERATURE_DEFAULTS = (
     "dhw_temperature",
 )
 #: The entities D8-01 names. The rest of the payload moves with these defaults
-#: too, because `_solve_snapshot` deep-copies the state as the MPC's initial
+#: too, because `_solve_hubs` deep-copies the state as the MPC's initial
 #: condition -- that is a different finding (the optimizer plans against a tank
 #: it has never measured) and it is not what this fix claims to close.
 _D801_IN_SCOPE = {
@@ -4311,14 +4311,15 @@ def _p6_seed_log(cycles=2):
     log = []
     _hass, _entry, coord = _d801_coordinator({**_FLOW_CONFIG, const.CONF_DHW_ENABLED: True})
     coord._opt_config.horizon_hours = 6.0
-    snap = coord._solve_snapshot
+    snap = coord._solve_record
 
-    def recording_snapshot():
-        state, optimizer = snap()
+    def recording_snapshot(*a, **k):
+        record = snap(*a, **k)
+        state = record.inputs.state
         log.append({f.name: getattr(state, f.name) for f in _p6_dc.fields(state)})
-        return state, optimizer
+        return record
 
-    coord._solve_snapshot = recording_snapshot
+    coord._solve_record = recording_snapshot
 
     async def run():
         for cycle in range(cycles):

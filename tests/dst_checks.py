@@ -16,6 +16,7 @@ from types import SimpleNamespace
 from zoneinfo import ZoneInfo
 
 from harness import CapturingOptimizer, FakeEntry, FakeHass, FakeState, Results
+from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
 
@@ -108,9 +109,15 @@ coord._prices = [
     for i in range(48)
 ]
 
-_real_state, _real_opt = coord._solve_snapshot()
-coord._solve_snapshot = lambda: (_real_state, CapturingOptimizer(_real_opt))
-asyncio.run(coord.async_run_optimization())
+# The solve's optimizer, wrapped so the plan echoes the inputs it was handed.
+from heatpump_optimizer import coordinator as _dst_cmod  # noqa: E402
+
+_dst_warm = _dst_cmod._warm_seeded
+_dst_cmod._warm_seeded = lambda c, opt: CapturingOptimizer(_dst_warm(c, opt))
+try:
+    asyncio.run(coord.async_run_optimization())
+finally:
+    _dst_cmod._warm_seeded = _dst_warm
 result = coord._optimization_result
 
 R.check(
@@ -514,15 +521,15 @@ def _plan_on(day: datetime):
         0.6,
         np.where((hours >= 16) & (hours < 20), 2.8, 1.1),
     )
-    res = _opt.optimize(
-        _state,
-        shaped,
-        np.asarray(arrays.outdoor_temps),
-        np.asarray(arrays.wind_speeds),
-        np.asarray(arrays.precipitation),
-        np.asarray(arrays.solar_radiation),
-        _solve_anchor(now),
-    )
+    res = _opt.optimize(inputs=solve_inputs(
+        initial_state=_state,
+        prices=shaped,
+        outdoor_temps=np.asarray(arrays.outdoor_temps),
+        wind_speeds=np.asarray(arrays.wind_speeds),
+        precipitation=np.asarray(arrays.precipitation),
+        solar_radiation=np.asarray(arrays.solar_radiation),
+        start_time=_solve_anchor(now),
+    ))
     dt_util.freeze(None)
     return res
 
