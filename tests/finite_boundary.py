@@ -1694,6 +1694,8 @@ def _version_arm(by_name) -> None:
     stores: dict[str, object] = {}
     noisy: list[str] = []
     unsurfaced: list[str] = []
+    overwritten: list[str] = []
+    unsaved: list[str] = []
     try:
         for name, loader in LOADERS.items():
             key, healthy = by_name[name]
@@ -1719,6 +1721,17 @@ def _version_arm(by_name) -> None:
                     noisy.append(name)
                 elif lag and not (warned and issued):
                     unsurfaced.append(f"{name}@{lag}:warned={warned},issued={issued}")
+                # A save after the load -- the loader's own reset save, then
+                # one more -- must not replace a document this release could
+                # not read; at the store's own version it lands (the control).
+                run_store = next(s for s in reads if s._key == key)
+                asyncio.run(run_store.async_save({"clobber": 1}))
+                landed = _storage._DISK.get(key) == json.dumps({"clobber": 1})
+                if lag and (_storage._DISK.get(key) != json.dumps(healthy)
+                            or _storage._VERSIONS.get(key) != stores[key]._version - lag):
+                    overwritten.append(f"{name}@{lag}")
+                elif not lag and not landed:
+                    unsaved.append(name)
     finally:
         QuarantiningStore.async_load = real_load
         log.removeHandler(tap)
@@ -1737,6 +1750,12 @@ def _version_arm(by_name) -> None:
         not unsurfaced,
         f"unsurfaced={unsurfaced}",
     )
+    R.check(
+        "a document this release could not read is never overwritten by a later save, "
+        "and at the store's own version a save lands (the control) (#1740)",
+        not overwritten and not unsaved,
+        f"overwritten={overwritten} unsaved={unsaved}",
+    )
     default = getattr(QuarantiningStore, "_async_migrate_func", None)
     unmigrated = sorted(
         k for k, s in stores.items()
@@ -1749,11 +1768,12 @@ def _version_arm(by_name) -> None:
         f"unmigrated={unmigrated}",
     )
 
-    # The default hook's two branches, directly: a major mismatch surfaces, and
-    # a minor-only one (same major) does not -- Home Assistant then reads the
-    # document as stored on the NotImplementedError the hook raises either way.
+    # The default hook's branches, directly: an older and a NEWER major surface
+    # (the 2025.2.0 floor hands a downgrade to the hook, where 2026.3+ refuses
+    # it before), and a minor-only one (same major) does not -- Home Assistant
+    # then reads the document as stored on the NotImplementedError raised.
     verdicts = []
-    for major in (1, 2):
+    for major in (1, 2, 3):
         # A fresh hass per call: the registry keeps one issue per id, so a
         # shared one would read a second surfacing as the first.
         probe_hass = FakeHass()
@@ -1767,9 +1787,9 @@ def _version_arm(by_name) -> None:
             verdicts.append(type(exc).__name__)
         verdicts.append(len(getattr(probe_hass, "issues", None) or []))
     R.check(
-        "the default hook raises NotImplementedError and surfaces a major mismatch "
-        "only, not a minor-only one",
-        verdicts == ["not-implemented", 1, "not-implemented", 0],
+        "the default hook raises NotImplementedError and surfaces an older or newer "
+        "major, not a minor-only one",
+        verdicts == ["not-implemented", 1, "not-implemented", 0, "not-implemented", 1],
         f"verdicts={verdicts}",
     )
     # A downgrade leaves the store as Home Assistant's own exception, after the
@@ -1858,7 +1878,128 @@ def _version_arm(by_name) -> None:
         early == 0 and late == 1,
         f"saves before the read landed={early} after={late}",
     )
+    _floor_check()
+    _concurrent_loads_check()
     print(f"RESULT store_version_unsurfaced={len(unsurfaced)} count")
+
+
+# The 2025.2.0 floor (hacs.json): helpers.storage has no
+# UnsupportedStorageVersionError (it first appears in 2026.3.0), and its
+# _async_load_data hands a document of ANY other version to the hook
+# (helpers/storage.py at 2025.2.0, the hook call in _async_load_data). The
+# stub models 2026.3+, so this check reshapes it to the floor in a child
+# interpreter, where the package is imported fresh.
+_FLOOR_PROBE = r"""
+import asyncio, json, sys
+from homeassistant.helpers import storage as s
+del s.UnsupportedStorageVersionError
+async def floor_load(self):
+    if self._key not in s._DISK:
+        return None
+    data = json.loads(s._DISK[self._key])
+    stored = s._VERSIONS.get(self._key, self._version)
+    if stored == self._version:
+        return data
+    try:
+        result = await self._async_migrate_func(stored, 1, data)
+    except NotImplementedError:
+        raise
+    await self.async_save(result)
+    return result
+s.Store.async_load = floor_load
+from heatpump_optimizer.store import QuarantiningStore
+class H:
+    pass
+hass = H()
+s._DISK["floor_key"] = json.dumps({"v": 1.0}); s._VERSIONS["floor_key"] = 3
+store = QuarantiningStore(hass, 2, "floor_key")
+try:
+    asyncio.run(store.async_load()); escaped = "returned"
+except BaseException as exc:
+    escaped = type(exc).__name__
+print("FLOOR", escaped, len(getattr(hass, "issues", []) or []), s._VERSIONS["floor_key"])
+"""
+
+
+def _floor_check() -> None:
+    import subprocess
+    env = dict(os.environ)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(ROOT / "tests" / "hastub"), str(ROOT / "custom_components")])
+    proc = subprocess.run([sys.executable, "-c", _FLOOR_PROBE], capture_output=True,
+                          text=True, env=env, timeout=120)
+    line = next((ln for ln in proc.stdout.splitlines() if ln.startswith("FLOOR ")), "")
+    R.check(
+        "at the 2025.2.0 floor (no UnsupportedStorageVersionError) the store imports, "
+        "and a downgrade reaches the hook, is surfaced once and leaves the document "
+        "as it was (#1740)",
+        line == "FLOOR NotImplementedError 1 3",
+        f"got={line or proc.stderr.strip().splitlines()[-1:]!r}",
+    )
+
+
+def _concurrent_loads_check() -> None:
+    """Two concurrent loads of one migrating store, under upstream's dedupe.
+
+    Home Assistant's ``Store.async_load`` (2025.2.0 onward) parks a second
+    concurrent call on the first's ``_load_future``. The stub has no dedupe,
+    so it is added here around the stub's load, as upstream wraps
+    ``_async_load``. The first load's migration write-back must not wait on
+    the second load's read, which waits on the first.
+    """
+    orig = _storage.Store.async_load
+
+    async def _dedupe(self):
+        fut = getattr(self, "_load_future", None)
+        if fut:
+            return await fut
+        self._load_future = asyncio.get_running_loop().create_future()
+        try:
+            await asyncio.sleep(0.01)  # the executor read
+            result = await orig(self)
+        except BaseException as ex:
+            if not self._load_future.done():
+                self._load_future.set_exception(ex)
+                self._load_future.exception()
+            raise
+        else:
+            self._load_future.set_result(result)
+        finally:
+            self._load_future = None
+        return result
+
+    class _Migrating(QuarantiningStore):
+        async def _async_migrate_func(self, old_major_version, old_minor_version, old_data):
+            await asyncio.sleep(0.01)
+            return {**old_data, "migrated": True}
+
+    key = f"{const.DOMAIN}_{ENTRY_ID}_version_concurrent"
+    _storage._DISK[key] = json.dumps({"v": 1.0})
+    _storage._VERSIONS[key] = 1
+    store = _Migrating(FakeHass(), 2, key)
+
+    async def _two():
+        async def one(delay):
+            await asyncio.sleep(delay)
+            return await store.async_load()
+        return await asyncio.wait_for(asyncio.gather(one(0), one(0.001)), 5)
+
+    _storage.Store.async_load = _dedupe
+    try:
+        got = asyncio.run(_two())
+    except BaseException as exc:  # noqa: BLE001 -- a deadlock is the measurement
+        got = type(exc).__name__
+    finally:
+        _storage.Store.async_load = orig
+        _storage._DISK.clear()
+        _storage._VERSIONS.clear()
+    want = [{"v": 1.0, "migrated": True}] * 2
+    R.check(
+        "two concurrent loads of a migrating store both return the migrated payload "
+        "under upstream's load dedupe (#1740)",
+        got == want,
+        f"got={got!r}",
+    )
 
 
 def _main() -> int:
