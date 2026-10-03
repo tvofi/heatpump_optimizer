@@ -23881,8 +23881,8 @@ def _pt_arm_mutant(edit) -> "set[str]":
     _d = _pt_copy.deepcopy(_PT_DOCS)
     _wf = _d["tests.yml"]
     _job = _wf["jobs"]["graders-head-copy"]
-    edit(_wf, _job, next(_s for _s in _job["steps"]
-                         if _s.get("run") == "node .claude/workflows/policy_lint.mjs"))
+    edit(_wf, _job, next((_s for _s in _job["steps"]
+                          if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), {}))
     return _pt_armed(_d)
 
 
