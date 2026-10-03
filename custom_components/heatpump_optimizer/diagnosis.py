@@ -33,6 +33,7 @@ from typing import Any
 
 import numpy as np
 
+from .payload import DiagnosisReport
 from .thermal_model import ThermalModel, ThermalParameters, ThermalState
 
 _LOGGER = logging.getLogger(__name__)
@@ -77,7 +78,7 @@ def attribute(
     planned: dict[str, Any],
     realised: dict[str, Any],
     actual_temp: float,
-) -> dict[str, Any] | None:
+) -> DiagnosisReport | None:
     """Attribute the interval's temperature residual input by input.
 
     ``planned`` holds the inputs the plan's prediction assumed, ``realised``
@@ -129,7 +130,7 @@ def attribute(
 
 def diagnose_record(
     record: dict[str, Any] | None, params: ThermalParameters
-) -> dict[str, Any] | None:
+) -> DiagnosisReport | None:
     """Picklable diagnosis worker; the coordinator itself is not picklable.
 
     A scratch model, never the live one: ``simulate_step`` writes per-call

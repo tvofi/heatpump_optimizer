@@ -421,7 +421,7 @@ DATA = {
     },
     "contract_comparison": {
         "load_profile_value_per_kwh": -0.031,
-        "months": 2,
+        "month": "2026-02",
     },
     "peak_tariff_enabled": True,
     "billed_peak_kw": 7.2,
@@ -4021,7 +4021,7 @@ def _p6_is_data(node, aliases, accessors):
     return False
 
 
-def _p6_arm_k(walks):
+def _p6_arm_k(walks, declared=None):
     produced = set()
     for name, nodes in walks.items():
         if name in P6_CONSUMER_MODULES:
@@ -4038,6 +4038,8 @@ def _p6_arm_k(walks):
                 if n.func.attr == "setdefault" and n.args:
                     produced.add(_p6_lit(n.args[0]))
                 produced.update(kw.arg for kw in n.keywords if kw.arg)
+    if declared is not None:
+        produced = set(declared)  # the typed contract, not what a literal happens to say
     reads, seams = 0, set()
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
@@ -4720,6 +4722,64 @@ R.check(
     == {"slab"},
     "the tank is modelled only where an answer affirmed it (R9 D12-s3-01): "
     + str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
+)
+
+# ===========================================================================
+# P11: every Home Assistant name production reaches exists at the floor
+# ===========================================================================
+# Class P11 -- the only oracle for Home Assistant is a test double -- shipped
+# twice as a name the 2025.2.0 floor hacs.json declares does not have: v6.3.1
+# forwarded ``Platform.DIAGNOSTICS`` (#210) and #1869 imported
+# ``UnsupportedStorageVersionError`` (2026.3+). tests/hastub defined both, so
+# every PR-gate lane was green; only the nightly floor container could fail
+# them. This arm reads production's reach off the P6 trees, unguarded imports,
+# module attributes and class members alike, and answers each from a snapshot
+# recorded from upstream source at the floor (tests/ha_floor.py, whose
+# docstring states the unit, the guards and the residual). A question the
+# snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
+# being unknown; `python3 tests/ha_floor.py record` re-records it, and the
+# nightly floor container re-asks every answer of Home Assistant itself.
+# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+R.section("P11: every Home Assistant name production reaches exists at the floor")
+
+import ha_floor as _p11  # noqa: E402
+
+_p11_snap = _p11.floor_load()
+# Every production module, subpackages included; P6's trees and walks reused.
+_p11_reach = _p11.floor_reach(_p11.floor_trees(ROOT, reuse=_P6_TREES), _P6_WALKS)
+_p11_r = _p11.floor_check(_p11_reach, _p11_snap["answers"])
+R.check(
+    "the floor snapshot is recorded at the floor hacs.json declares",
+    _p11_snap["tag"] == _hacs_floor,
+    f"snapshot {_p11_snap['tag']}, hacs.json {_hacs_floor}",
+)
+R.check(
+    "every Home Assistant name production reaches unguarded exists at the floor, "
+    "and every one is recorded (P11 floor)",
+    _p11_r["checked"] > 0 and not _p11_r["missing"] and not _p11_r["unrecorded"],
+    f"checked={_p11_r['checked']} missing={_p11_r['missing'][:4]} "
+    f"unrecorded={_p11_r['unrecorded'][:4]}: {_p11.REMEDY}",
+)
+
+# NULL CONTROLS, planted trees answered from the same snapshot: each defect
+# shape (#1869's, v6.3.1's, each spelling of an alias, each guard that is not
+# one, an evaluated annotation) must be named at its line, each legitimate shape
+# must not be, and an unrecorded import, static or dynamic, must fail closed.
+_p11_c = _p11.floor_check(_p11.floor_reach(_p11.floor_control_trees()),
+                          _p11_snap["answers"])
+_p11_c_bad = _p11.floor_control_failures(_p11_c)
+# A module in a subpackage is production too: the reader must reach it.
+with tempfile.TemporaryDirectory() as _p11_tmp:
+    (Path(_p11_tmp) / "sub").mkdir()
+    (Path(_p11_tmp) / "sub" / "m.py").write_text("from homeassistant.helpers.storage "
+                                                 "import UnsupportedStorageVersionError\n")
+    if "sub/m.py" not in _p11.floor_trees(Path(_p11_tmp)):
+        _p11_c_bad.append("floor_trees does not read a subpackage")
+R.check(
+    "and the P11 floor arm names each planted defect, passes each guarded or "
+    "typing-only one, and fails an unrecorded import closed (null controls)",
+    len(_p11.FLOOR_CONTROLS) > 0 and not _p11_c_bad,
+    f"{_p11_c_bad}",
 )
 
 # --- hot water that is not configured is not a zero -------------------------
@@ -11082,7 +11142,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "lifetime", "month", "wear_price_per_start"
     }),
     "ContractComparisonSensor": frozenset({
-        "load_profile_value_per_kwh", "monthly_report", "months",
+        "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
     "CurrentSetpointSensor": frozenset({
@@ -18550,6 +18610,19 @@ R.check(
     and "-r tests/requirements-nightly-ha.txt" in _NHA_STEPS[_NHA_INSTALL[0]]
     and "py-spy==" in Path("tests/requirements-nightly-ha.txt").read_text(),
     "without it the heartbeat dumps only the loop thread's Python stack",
+)
+# The P11 floor arm's snapshot is true only while the floor container keeps
+# re-asking it (tests/ha_floor.py). This pins that step's wiring: it exists,
+# runs on the matrix arm whose image is the floor hacs.json declares, and does
+# not skip when the lane before it went red.
+_NHA_FLOOR = [s for s in _NHA_STEPS if "tests/ha_floor.py verify" in s]
+R.check(
+    "nightly-ha re-asks the floor-names snapshot in the floor's own image",
+    len(_NHA_FLOOR) == 1
+    and f"matrix.image == '{_hacs_floor}'" in _NHA_FLOOR[0]
+    and "!cancelled()" in _NHA_FLOOR[0]
+    and f'"{_hacs_floor}"' in _NHA_JOB.split("image: [", 1)[-1].split("]", 1)[0],
+    f"{len(_NHA_FLOOR)} verify step(s); floor {_hacs_floor}",
 )
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
@@ -28071,10 +28144,10 @@ R.check(
     f"slices) -> {_DP_GOT}",
 )
 
-# The push half. A kill is a measurement of one tree: on the measured head
-# every pin applies once and a second apply writes nothing; on a main that
-# moved, a pin whose killing script read a changed path is dropped, and an
-# unreadable diff applies nothing. The statuses `mutation-ledger` leaves when
+# The push half. On the measured head every pin applies once and a second
+# apply writes nothing; on a main that moved, a pin lands while its killer's
+# closure still holds the mutated module and its line is unchanged, whatever
+# else the merges touched, and an unreadable diff applies nothing. The statuses `mutation-ledger` leaves when
 # there is nothing to apply pass through untouched.
 _AD_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-drained-"))
 _AD_SAVED = (_mut.BUDGETS, _mut.inventory, _mut.load_closures)
@@ -28115,10 +28188,10 @@ try:
     _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", None), _ad_kb(),
                 _mut.apply_drained(str(_ad_m), "H2", ["f.py"]), _ad_kb()]
     _ad_fresh()
-    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["tests/lib/z.py", "tests/x.py"]),
-                _mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
-                _mut.stale_pins(_ad_pins, ["tests/lib/z.py"], _mut.load_closures()),
-                _mut.stale_pins({"k": {"old": "x"}}, [], {})]
+    _mut.load_closures = lambda: {"tests/x.py": ["a.py"], "tests/y.py": ["a.py", "tests/lib/"]}
+    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
+                _mut.stale_pins(_ad_pins, _mut.load_closures()),
+                _mut.stale_pins({"k": {"old": "x"}}, {})]
 except Exception as _ad_exc:  # noqa: BLE001 -- one red check, never a partial run
     _AD_GOT = [f"{type(_ad_exc).__name__}: {_ad_exc}"]
 finally:
@@ -28127,17 +28200,83 @@ finally:
 _AD_BOTH = sorted(_ad_pins)
 R.check(
     "mutation-ledger-push applies a drained slice once, and on a moved main only "
-    "the pins whose killer read nothing that changed",
+    "the pins whose killer still reaches the mutated module",
     _AD_GOT == ["measured", "f.py:9 GUARD_OFF\n", "skip-nothing-killed", "skip-nothing-killed",
                 "skip-no-measurement", "skip-nothing-drivable", "changed", _AD_BOTH,
                 "skip-unchanged",
-                "skip-head-moved", [], "changed", [_ap_c["anchor"]],
-                "skip-head-moved", "changed", _AD_BOTH, [_ap_c["anchor"]], ["k"]],
+                "skip-head-moved", [], "changed", _AD_BOTH,
+                "changed", [_ap_c["anchor"]], [_ap_b["anchor"]], ["k"]],
     "(written, survivors, empty, passed through, absent, status-only passed "
     "through, measured head, rows, "
-    "again; moved+no diff, rows, moved past x's closure, rows; moved past "
-    "both, moved past neither, rows, stale under a closure dir, no killer) "
+    "again; moved+no diff, rows, moved past x's own module, rows; x no longer "
+    "reaching f.py, rows, stale, no killer) "
     f"-> {_AD_GOT}",
+)
+
+# A night's drain meets a main that moved during the round (run 37050037132):
+# the merges in between touched both killing scripts and modules inside their
+# recorded closures, which a closure-wide staleness rule reads as "every pin
+# stale". The ledger's rule for a row is its anchor and `old` text (it keeps a
+# standing row through any change to its killer), so the pins are re-keyed
+# against the moved head's inventory and land. The null controls: a pin whose
+# mutated line changed, a killer gone from the closures, and a killer whose
+# closure no longer holds the mutated module are each dropped.
+_HM_DIR = Path(_tempfile.mkdtemp(prefix="hpo-head-moved-"))
+_HM_SAVED = (_mut.BUDGETS, _mut.inventory, _mut.load_closures)
+_HM_KILLERS = ("tests/features.py", "tests/entities.py")
+
+
+def _hm_site(i: int, old: str) -> dict:
+    return {"anchor": f"{_mut.PKG}p{i}.py:g GUARD_OFF {i:08x}", "old": old,
+            "new": "    if False:", "file": f"{_mut.PKG}p{i}.py", "line": 3,
+            "kind": "GUARD_OFF"}
+
+
+def _hm_apply(pins: dict, sites: list[dict], closures: dict,
+              changed: list[str]) -> tuple[str, list[str]]:
+    (_HM_DIR / "ledger.json").write_text(_HM_SAVED[0].read_text())
+    _mut_shutil.rmtree(_HM_DIR / "mutation_ledger", ignore_errors=True)
+    _mut.inventory = lambda *_a: sites
+    _mut.load_closures = lambda: closures
+    _mut.write_drain(_HM_DIR / "m", pins, "H1", [])
+    got = _mut.apply_drained(str(_HM_DIR / "m"), "H2", changed)
+    return got, sorted(k for k in _mut.load_budgets().get("killed_by", {}) if k in pins)
+
+
+try:
+    _mut.BUDGETS = _HM_DIR / "ledger.json"
+    _hm_sites = [_hm_site(i, f"    if s{i}:") for i in range(42)]
+    _hm_pins = {s["anchor"]: {"killed_by": _HM_KILLERS[i % 2], "old": s["old"],
+                              "reason": "m"} for i, s in enumerate(_hm_sites)}
+    _hm_mods = [s["file"] for s in _hm_sites]
+    _hm_cl = {k: [*_hm_mods, "tests/lib/"] for k in _HM_KILLERS}
+    _hm_changed = [*_HM_KILLERS, *_hm_mods, "tests/lib/z.py"]
+    _hm_39 = dict(list(_hm_pins.items())[:39])
+    _HM_GOT = [_hm_apply(_hm_39, _hm_sites, _hm_cl, _hm_changed)]
+    # p0's line changed at the head; p39's killer left the closures; p40's
+    # killer no longer reaches p40.py; p41 stays the positive arm beside them.
+    _hm_head = [_hm_site(0, "    if s0 and edited:"), *_hm_sites[1:]]
+    _hm_ctl = dict(_hm_pins)
+    _hm_ctl[_hm_sites[39]["anchor"]] = dict(_hm_ctl[_hm_sites[39]["anchor"]],
+                                            killed_by="tests/gone.py")
+    _hm_k40 = _hm_pins[_hm_sites[40]["anchor"]]["killed_by"]
+    _hm_cl2 = dict(_hm_cl, **{_hm_k40: [m for m in _hm_cl[_hm_k40] if m != _hm_mods[40]]})
+    _HM_GOT.append(_hm_apply(_hm_ctl, _hm_head, _hm_cl2, _hm_changed))
+except Exception as _hm_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _HM_GOT = [f"{type(_hm_exc).__name__}: {_hm_exc}"]
+finally:
+    _mut.BUDGETS, _mut.inventory, _mut.load_closures = _HM_SAVED
+    _mut_shutil.rmtree(_HM_DIR, ignore_errors=True)
+_HM_WANT = [("changed", sorted(_hm_39)),
+            ("changed", sorted(k for k in _hm_pins if k not in {
+                _hm_sites[i]["anchor"] for i in (0, 39, 40)}))]
+R.check(
+    "mutation-ledger-push lands a drained slice on a main whose merges touched every "
+    "killer's closure, and drops only the pins whose site or driver the head lost",
+    _HM_GOT == _HM_WANT,
+    "(39 pins, both killers and every mutated module changed -> all 39 land; "
+    "edited line, killer gone, killer no longer reaching the module -> each dropped, "
+    f"the other 39 land) -> {[(g[0], len(g[1])) if isinstance(g, tuple) else g for g in _HM_GOT]}",
 )
 
 # The writer's grant (decision 0011's amendment) is new killed_by rows and
@@ -30111,9 +30250,8 @@ _egb3_resolve = {
     "self._legionella.disinfect.view()": ("disinfection", "view"),
     "self._away_state.as_dict()": ("away", "as_dict"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
-    "plan_views": ("coordinator", "_build_plan_views"),
 }
-_egb3_inline = {"two_tank", "view()", "{k: round(v, 4) for k, v in self._energy_totals.items()}"}
+_egb3_inline = {"two_tank", "view()", "data"}
 
 
 def _egb3_energy():
@@ -30150,10 +30288,32 @@ def _egb3_published():
     return keys, unresolved
 
 
-def _egb3_payload_keys():
+def _egb3_bases(name, _seen=None):
+    seen = set() if _seen is None else _seen
+    cls = next((n for n in _egb3_src["payload"].body
+                if isinstance(n, ast.ClassDef) and n.name == name), None)
+    if cls is not None and name not in seen:
+        seen.add(name)
+        for b in cls.bases:
+            if isinstance(b, ast.Name):
+                _egb3_bases(b.id, seen)
+    return seen
+
+
+def _egb3_fields(name):
     cls = next(n for n in _egb3_src["payload"].body
-               if isinstance(n, ast.ClassDef) and n.name == "Payload")
-    return {a.target.id for a in cls.body if isinstance(a, ast.AnnAssign)}
+               if isinstance(n, ast.ClassDef) and n.name == name)
+    out = {}
+    for b in cls.bases:
+        if isinstance(b, ast.Name) and any(
+                isinstance(n, ast.ClassDef) and n.name == b.id for n in _egb3_src["payload"].body):
+            out.update(_egb3_fields(b.id))
+    out.update({a.target.id: a.annotation for a in cls.body if isinstance(a, ast.AnnAssign)})
+    return out
+
+
+def _egb3_payload_keys():
+    return set(_egb3_fields("Payload"))  # its own, plus every slice it inherits
 
 def _egb3_class(name):
     cls = next(n for n in _egb3_src["payload"].body
@@ -30511,5 +30671,90 @@ R.check(
     f"refused per spelling: {_PG_STATUS_GOT}",
 )
 
+
+# EG-B3b: the cast is gone, so mypy (the typing job) judges each producer against
+# the slice it returns. What mypy cannot see is pinned here: that the slice IS one
+# Payload inherits (a view typed with a private TypedDict would pass mypy and
+# publish keys Payload never declared), that the assembler hands out a ``Payload``
+# rather than a cast dict, and that what the entities read and what DATA carries
+# are keys the contract declares.
+_egb3_slice_producers = [("coordinator", v) for v in (
+    "_thermal_view", "_dhw_view", "_learning_view", "_measurement_view", "_grid_view",
+    "_ecl110_view", "_external_heat_view", "_input_health_view", "_mixing_valve_view",
+    "_plan_settings_view")] + [("away", "as_dict"), ("disinfection", "view"),
+                              ("coordinator", "_energy_totals_view")]
+_egb3_payload_bases = _egb3_bases("Payload")
+_egb3_returns = {
+    f"{m}.{f}": ast.unparse(_egb3_fn(m, f).returns) if _egb3_fn(m, f).returns else None
+    for m, f in _egb3_slice_producers
+}
+R.check(
+    "EG-B3b: every view the assembler merges returns a slice Payload inherits",
+    all(r in _egb3_payload_bases for r in _egb3_returns.values()),
+    repr({k: v for k, v in _egb3_returns.items() if v not in _egb3_payload_bases}),
+)
+_egb3_build = _egb3_fn("coordinator", "_build_data_dict")
+R.check(
+    "EG-B3b: _build_data_dict returns Payload and casts nothing",
+    ast.unparse(_egb3_build.returns) == "Payload"
+    and not any(isinstance(n, ast.Call) and getattr(n.func, "id", getattr(n.func, "attr", "")) == "cast"
+                for n in ast.walk(_egb3_build)),
+    "the assembler casts its dict, which hides every producer from mypy",
+)
+_egb3_reads, _egb3_unproduced = _p6_arm_k(_P6_WALKS, _egb3_pk)
+_egb3_null_reads, _egb3_null_unproduced = _p6_arm_k(_P6_WALKS, set())
+R.check(
+    "EG-B3b: every payload key an entity reads is declared in Payload",
+    _egb3_reads > 0 and not _egb3_unproduced
+    and len(_egb3_null_unproduced) > 0,  # null control: with nothing declared every read is a seam
+    f"{_egb3_unproduced} (reads={_egb3_reads}, null control seams={len(_egb3_null_unproduced)})",
+)
+
+
+def _egb3_undeclared(value, cls_name, path=""):
+    """Keys of ``value`` Payload (or the TypedDict it nests) does not declare."""
+    out, fields = [], _egb3_fields(cls_name)
+    for k, v in value.items():
+        if k not in fields:
+            out.append(path + k)
+            continue
+        ann = ast.unparse(fields[k]).replace(" | None", "")
+        inner = ann[5:-1] if ann.startswith("list[") else ann
+        if inner in _egb3_bases(inner) and any(
+                isinstance(n, ast.ClassDef) and n.name == inner for n in _egb3_src["payload"].body):
+            for i, item in enumerate(v if isinstance(v, list) else [v]):
+                if isinstance(item, dict):
+                    out += _egb3_undeclared(item, inner, f"{path}{k}{'' if not isinstance(v, list) else f'[{i}]'}.")
+    return out
+
+
+R.check(
+    "EG-B3b: DATA, the representative payload, carries only keys Payload declares",
+    not _egb3_undeclared(DATA, "Payload")
+    and _egb3_undeclared({**DATA, "contract_comparison": {"months": 2}}, "Payload")
+    == ["contract_comparison.months"],  # null control: the stale key the check found
+    repr(_egb3_undeclared(DATA, "Payload")),
+)
+
+
+# EG-B3b: payload.py executes with no package around it -- its one package import
+# (the ``SolarDiagnostics`` type, kept in open_meteo.py because tests/open_meteo.py
+# runs that module with const.py alone) sits under ``if TYPE_CHECKING``. A guard
+# that stopped guarding makes this load raise on the relative import.
+import importlib.util as _egb3_ilu
+
+_egb3_spec = _egb3_ilu.spec_from_file_location(
+    "payload_standalone", _egb3_pkg / "payload.py")
+_egb3_mod = _egb3_ilu.module_from_spec(_egb3_spec)
+try:
+    _egb3_spec.loader.exec_module(_egb3_mod)
+    _egb3_standalone = "Payload" in vars(_egb3_mod)
+except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
+    _egb3_standalone = repr(_egb3_err)
+R.check(
+    "EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only",
+    _egb3_standalone is True,
+    str(_egb3_standalone),
+)
 
 sys.exit(R.close("ENTITY CHECKS"))

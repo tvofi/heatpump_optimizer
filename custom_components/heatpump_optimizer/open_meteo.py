@@ -38,7 +38,7 @@ import math
 from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any, Awaitable
+from typing import Any, Awaitable, TypedDict
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -88,6 +88,26 @@ def _ensure_utc(value: datetime) -> datetime:
     # exactly what dt_util.now() means by one, and is a no-op relabelling for
     # an aware one.
     return value.astimezone(timezone.utc)
+
+
+class SolarDiagnostics(TypedDict):
+    """``OpenMeteoClient.diagnostics``: the payload's ``solar_diagnostics``.
+
+    Defined here, not in ``payload.py``: ``tests/open_meteo.py`` executes this
+    module with ``const.py`` alone, so it can import no other package module.
+    """
+
+    latitude: float
+    longitude: float
+    forecast_points: int
+    forecast_resolution_minutes: int | None
+    forecast_until: str | None
+    observed_points: int
+    observed_until: str | None
+    humidity_points: int
+    snowfall_points: int
+    last_success: str | None
+    consecutive_failures: int
 
 
 @dataclass(frozen=True)
@@ -482,7 +502,7 @@ class OpenMeteoSolar:
             return _EMPTY
         return _parse_block(data.get("hourly") or {}, _VARIABLE)
 
-    def diagnostics(self) -> dict[str, Any]:
+    def diagnostics(self) -> SolarDiagnostics:
         """Small summary for sensor attributes and troubleshooting."""
         return {
             "latitude": round(self.latitude, 5),

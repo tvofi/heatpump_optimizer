@@ -26,6 +26,8 @@ from typing import Any
 
 import numpy as np
 
+from .payload import SavingsMonth
+
 _LOGGER = logging.getLogger(__name__)
 
 #: Months kept before pruning. Two years covers a year-over-year comparison
@@ -229,11 +231,11 @@ class MonthlyLedger:
             if isinstance(entry, dict)
         }
 
-    def savings_months(self, now: datetime) -> list[dict[str, Any]]:
+    def savings_months(self, now: datetime) -> list[SavingsMonth]:
         """Published rows: months that booked savings_baseline, oldest first."""
         open_key = month_key(now)
         factor = pro_rata_factor(now)
-        rows: list[dict[str, Any]] = []
+        rows: list[SavingsMonth] = []
         for key in sorted(self.months):
             lines = self.months[key].get("lines") or {}
             if "savings_baseline" not in lines:

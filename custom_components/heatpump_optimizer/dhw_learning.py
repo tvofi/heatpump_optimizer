@@ -44,6 +44,7 @@ from .thermal_model import TANK_ROOM_AMBIENT_TEMP, ThermalParameters
 _LOGGER = logging.getLogger(__name__)
 
 DHW_PROFILE_STORE_VERSION = 1
+DHW_DRAWS_STORE_VERSION = 1
 DHW_PROFILE_EWMA_ALPHA = 0.12
 DHW_PROFILE_MIN_INTENSITY = 0.2
 DHW_PROFILE_MAX_INTENSITY = 3.5
@@ -126,7 +127,7 @@ class DhwProfileLearner:
         self.draw_stats = DrawStats()
         self.draws_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
-            DHW_PROFILE_STORE_VERSION,
+            DHW_DRAWS_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_draws",
         )
         self.draws_dirty: bool = False
