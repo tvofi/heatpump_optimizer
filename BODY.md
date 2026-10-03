@@ -61,8 +61,11 @@ no budget moves.
 
 ## Head
 
-`e61e39f4c880496af72afb76a3731c0018453eb9`, measured on a merge of origin/main at
-`8c6e9a7ef`.
+`9e795ab0b85fb22edffc8ec9a08499c296620d0d`, a merge of origin/main at `2622b31c8` into
+`e61e39f4c`. The only conflict was in `tests/entities.py`, where #1870's py-spy pin and this
+branch's floor-step pin sit side by side; both are kept. Every figure was taken at
+`e61e39f4c`, and those that the merge could move were re-taken at `9e795ab0b`: the
+entities.py and harness_headers.py runs, `check`, and the structure ratchet.
 
 ## Mutation proof
 
@@ -126,6 +129,12 @@ The truth control works in both directions:
 scratch, and the scripts there are cited by sha1. Each count is printed by the command beside
 it and follows `floor_check`'s rule in `tests/ha_floor.py`.
 
+A cleanup seat deleted this seat's scratch after the figures were taken. `mutants.py`,
+`$SCRATCH/mut2/make.py` and `$SCRATCH/chain_census.py` were re-created byte-identical (the same sha1 values),
+and the mutant matrix was re-run at `9e795ab0b` with the same result: 17 of 17 killed.
+`$SCRATCH/cost.py` (`d590b216`) and `$SCRATCH/plants/plants.py` (`51f2d64b`) were not re-created, so their figures
+stand as measured at `e61e39f4c`.
+
 - ef37a5ba1 (the #1869 defect): `MISSING homeassistant.helpers.storage.UnsupportedStorageVersionError at store.py:36`, rc 1 — `python3 tests/ha_floor.py check --package $D/ef37a5ba1/custom_components/heatpump_optimizer`
 - e43ae8dc9 (its fix): `checked=147 missing=0 unrecorded=0`, rc 0 — `python3 tests/ha_floor.py check --package $D/e43ae8dc9/custom_components/heatpump_optimizer`
 - 03ba7f70f (#1869's base): `checked=147 missing=0 unrecorded=0`, rc 0 — `python3 tests/ha_floor.py check --package $D/03ba7f70f/custom_components/heatpump_optimizer`
@@ -137,11 +146,11 @@ it and follows `floor_check`'s rule in `tests/ha_floor.py`.
 - the snapshot: `answers=205 true=182 false=23 undecidable=0`. Recorded from the head alone, it is byte-identical to a record made with `e43ae8dc9` beside it — `python3.13 tests/ha_floor.py record --cache $D/cache --out $D/snap.json`
 - truth against Home Assistant 2025.2.0, in a local virtualenv rather than the image: `asked=205 wrong=0` — `python3 tests/ha_floor.py verify-inside $D/stage/ha_floor_names.json`
 - in-place standing cost, timing the arm's calls on P6's trees and walks: 0.367 to 0.665 s per run over 15 runs. The same arm without walks takes 0.474 to 0.819 s. At 73 runs per round that is at most about 49 s per round; the RCA seat estimated at most about 130 s — `python3 $SCRATCH/cost.py` (sha1 `d590b216`)
-- entities.py at the head: `ALL 2086 ENTITY CHECKS PASSED` — `python3 tests/entities.py`
+- entities.py at the head: `ALL 2102 ENTITY CHECKS PASSED`, the floor-step pin and #1870's py-spy pin both `ok` — `python3 tests/entities.py`
 - harness_headers.py at the head, the other script that reads `tests.yml`: `ALL 95 HARNESS HEADER CHECKS PASSED` — `python3 tests/harness_headers.py`
 - structure ratchet: `STRUCTURE RATCHET PASSED` — `python3 tests/structure.py`
 - the ledger: `0 violation(s)` — `python3 tools/audit/fold_ledger.py check`
-- the scoped gate: `MODE: FULL`, because `tests.yml` is a gate file — `python3 tests/closure.py select --diff 8c6e9a7ef --workdir $D/scope`
+- the scoped gate: `MODE: FULL`, because `tests.yml` is a gate file — `python3 tests/closure.py select --diff 2622b31c8 --workdir $D/scope` (merge base `2622b31c8`)
 
 ## Red checks
 
