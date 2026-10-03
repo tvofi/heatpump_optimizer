@@ -29389,6 +29389,93 @@ R.check(
     not _MUT_BW_MISSING,
     f"missing={_MUT_BW_MISSING!r}",
 )
+# R9-F10.12 round 1 (the review's P1): a budget cut must fall on an anchor
+# boundary. A disposition covers every site under its anchor, so a cut between
+# two twins left the killed one in the drain's survivors.txt as "its anchor
+# also covers a site no run killed" -- false, the other was never started.
+# One 1-site anchor then one 2-site anchor at cost 10 under a deadline of 25:
+# the second anchor needs 20 more at 10, so both its sites are SKIP-BUDGET.
+_MUT_AB_SITE = lambda ln, a: {"file": "x.py", "line": ln, "kind": "CLAMP",  # noqa: E731
+                              "anchor": a, "old": "o", "new": "n",
+                              "drivers": ["tests/a.py"]}
+_MUT_AB_POOL = [_MUT_AB_SITE(0, "x.py:A"), _MUT_AB_SITE(1, "x.py:B"),
+                _MUT_AB_SITE(2, "x.py:B")]
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_ab_drive(w, m, s):
+    _MUT_BG_T[0] += 10
+    return True
+
+
+_MUT_AB_OUT = _mut_pool(_MUT_AB_POOL, 1, {"tests/a.py": 10}, _mut_ab_drive,
+                        deadline=25, clock=lambda: _MUT_BG_T[0])
+_MUT_AB_PINS = _mut.pin_results(
+    _MUT_AB_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
+                  for m, v in _MUT_AB_OUT if v.startswith("killed")},
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL, "r",
+    how="--drain")[0]
+_mut_drain_surv = getattr(_mut, "drain_survivors", None)
+_MUT_AB_SURV = (_mut_drain_surv(_MUT_AB_OUT, _MUT_AB_PINS)
+                if _mut_drain_surv else None)
+R.check(
+    "a budget cut falls on an anchor boundary, so no anchor is split and no "
+    "killed twin is listed for a human verdict",
+    [v for _, v in _MUT_AB_OUT]
+    == ["killed by tests/a.py", "SKIP-BUDGET", "SKIP-BUDGET"]
+    and sorted(_MUT_AB_PINS) == ["x.py:A"] and _MUT_AB_SURV == []
+    and "survivors = drain_survivors(results, entries)" in _MUT_MAIN_DEFER,
+    f"verdicts={[v for _, v in _MUT_AB_OUT]!r} pins={sorted(_MUT_AB_PINS)!r} "
+    f"survivors={_MUT_AB_SURV!r}",
+)
+# A mutant's sweep stops at its first timed-out driver: a hang costs one
+# timeout, not one per driver (the review's P2: three drivers, all hanging).
+_MUT_HG_RAN: list = []
+_MUT_HG_OUT = _mut_pool(
+    [{"file": "x.py", "line": 0, "kind": "K",
+      "drivers": ["tests/a.py", "tests/b.py", "tests/stress.py"]}], 1,
+    {"tests/a.py": 1, "tests/b.py": 2, "tests/stress.py": 3},
+    lambda w, m, s: _MUT_HG_RAN.append(s))
+R.check(
+    "a mutant whose driver timed out runs no further driver",
+    [v for _, v in _MUT_HG_OUT] == ["SKIP-TIMED-OUT in tests/a.py"]
+    and _MUT_HG_RAN == ["tests/a.py"],
+    f"verdicts={[v for _, v in _MUT_HG_OUT]!r} ran={_MUT_HG_RAN!r}",
+)
+# Timeouts are loud in the headline: a run that evaluated nothing because its
+# mutants timed out is refused, the reason names each cause, and a partial
+# run's PASSED suffix counts the timed-out ones too (the review's P4, P5).
+_MUT_TO_RES = [({"file": "x.py", "line": i, "kind": "K"},
+                "SKIP-TIMED-OUT in tests/a.py") for i in range(3)]
+import contextlib as _mut_ctx  # noqa: E402
+import io as _mut_io  # noqa: E402
+_MUT_TO_OUT = []
+for _res in (_MUT_TO_RES,
+             _MUT_TO_RES + [({"file": "x.py", "line": 9, "kind": "K"},
+                             "SKIP-BUDGET")]):
+    _buf = _mut_io.StringIO()
+    with _mut_ctx.redirect_stdout(_buf):
+        _rc = _mut.budget_refusal(_res)
+    _MUT_TO_OUT.append((_rc, [ln.strip() for ln in _buf.getvalue().splitlines()
+                              if "REFUSED" in ln]))
+_mut_pnote = getattr(_mut, "partial_note", None)
+_MUT_TO_NOTE = (_mut_pnote([({}, "LIVES"), ({}, "SKIP-TIMED-OUT in a"),
+                            ({}, "SKIP-BUDGET"), ({}, "SKIP-MOVED")]),
+                _mut_pnote([({}, "LIVES"), ({}, "SKIP-MOVED")])) \
+    if _mut_pnote else None
+R.check(
+    "a run whose mutants all timed out or went unstarted is refused by cause, "
+    "and a partial PASSED counts the timed-out ones",
+    _MUT_TO_OUT == [
+        (1, ["MUTATION TABLE REFUSED -- nothing was measured: 3 mutant(s) "
+             "timed out, 0 not started for --budget-minutes"]),
+        (1, ["MUTATION TABLE REFUSED -- nothing was measured: 3 mutant(s) "
+             "timed out, 1 not started for --budget-minutes"])]
+    and _MUT_TO_NOTE == (" (partial: 1 evaluated, 1 timed out, 1 not started "
+                         "for the budget)", "")
+    and 'PASSED" + partial_note(results)' in _MUT_MAIN_DEFER,
+    f"refusals={_MUT_TO_OUT!r} notes={_MUT_TO_NOTE!r}",
+)
 
 
 # `--scope changed` draws only from lines the diff adds or modifies (tvofi's
