@@ -87,5 +87,5 @@ def run_worker() -> None:
         _dump(stdout, payload)
 
 
-if __name__ == "__main__":
+if False:
     run_worker()
