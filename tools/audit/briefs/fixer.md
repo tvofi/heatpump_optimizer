@@ -231,9 +231,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
     is no reason to take the worse fix; scope and the ratchet still bind
     (below).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
-    lands in the same pull request** (tvofi, 2026-10-03): harnesses in
-    `tools/audit/harnesses/`, drivers in `tools/audit/seat/`; a one-off probe may
-    stay in scratch. `tools/audit/seat/tmp_paths.py` refuses temp or machine paths.
+    lands in the same pull request** (tvofi, 2026-10-03): a harness in
+    `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
+    one-off probe may stay in scratch. `tools/audit/seat/tmp_paths.py` refuses
+    temp or machine paths.
 
 **When a budget blocks the work** (`tests/structure.py`, or a cap
 `policy_lint.mjs --budgets` prints), the answers come in order (tvofi,
