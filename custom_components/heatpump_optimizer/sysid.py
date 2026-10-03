@@ -693,7 +693,7 @@ def _simulate_slab_path(
 #: tau in [0.1, 200] -- so this band only stops the *divergence* the audit
 #: measured (R6 D7-03 #1396/#1397): a candidate whose log-UA walks outward
 #: makes ``np.exp`` overflow to +inf (an OverflowError inside
-#: ``ThermalModel._stability_substeps``' ``int(np.ceil(...))``) or, staying
+#: ``ThermalModel._substeps_and_loss``' ``int(np.ceil(...))``) or, staying
 #: finite at ~1e19 kW/K, drives the rollout's substep count to ~2.6e17 and
 #: hangs the event loop. ``exp`` over this band is finite and keeps the worst
 #: substep count bounded (the loose bound is ~4-5 decades outside the seed on

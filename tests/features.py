@@ -5301,13 +5301,13 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     # masses that did land left the two-zone ratio at 0.746 against the 1.5
     # threshold. Assert the count per step, from the production guard, so
     # the label can never again outrun the configuration.
-    subs = [m._stability_substeps(float(wi[k]), float(ra[k]), 0.25)
+    subs = [m._substeps_and_loss(float(wi[k]), float(ra[k]), 0.25)[0]
             for k in range(n)]
     R.check(
         f"grad-parity cell subdivides as claimed (n_sub >= {min_substeps}): "
         f"{label}",
         min(subs) >= min_substeps,
-        f"_stability_substeps gave min={min(subs)} max={max(subs)} "
+        f"_substeps_and_loss gave min={min(subs)} max={max(subs)} "
         f"over {n} steps, wanted every step >= {min_substeps}",
     )
     batch = m.simulate_trajectory_batch(
@@ -5664,7 +5664,7 @@ _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
 _grad_parity(True, wood=True, valve="manual", label="two-tank")
 # D2-01: the Euler sub-step regime, in both zonings, asserted rather than
-# named. `_stability_substeps` subdivides a step whose worst u*dt/C exceeds
+# named. `_substeps_and_loss` subdivides a step whose worst u*dt/C exceeds
 # EULER_STABILITY_MAX_RATIO, and the batch has to subdivide it the way the
 # scalar path does -- same dt = dt_hours / n_sub, same carried state across
 # sub-steps. Every configuration below sits inside the config flow's own
@@ -10707,7 +10707,7 @@ for _vol, _floor in ((10.0, 15.0), (35.0, 15.0), (750.0, 20.0)):
 # overshoots past it. Past the coldest zone the tank feeds, delivery is already
 # zero, so the discharge bound snaps the tank there -- and the ring that
 # follows makes the trough a chaotic function of the commanded power rather
-# than a monotone one. `_stability_substeps` subdivides the four
+# than a monotone one. `_substeps_and_loss` subdivides the four
 # boundary-floored masses but used to exempt the buffer on the grounds that its
 # energy bound made it safe; that bound is the discontinuity, not the cure.
 #
@@ -11848,7 +11848,7 @@ R.check(
 # --- One capacity per store, above and below the guard (round 7, D2-01) ---
 #
 # `_simulate_step_two_zone` divided the tank's rate by `max(C_buf, 0.01)`
-# while the same step's availability bound and `_stability_substeps` used the
+# while the same step's availability bound and `_substeps_and_loss` used the
 # raw `C_buf`, so below the guard (buffer under 8.62 L) the tank's stored
 # energy became `C_actual / 0.01` of the heat the step was handed and the
 # balance closed by exactly `(C_actual - 0.01) * dT_buf` -- at 5 L, +5.456e-03
@@ -11859,7 +11859,7 @@ R.check(
 # (`volume * WATER_SPECIFIC_HEAT`), which is what makes the divergence visible.
 
 _R7CAP_POWER = 4.0
-_R7CAP_DT = 0.003  # `_stability_substeps` == 1 at every volume here, so the
+_R7CAP_DT = 0.003  # `_substeps_and_loss` == 1 at every volume here, so the
                    # sub-step composition cannot mask the tank's own leak
 
 
@@ -11990,7 +11990,7 @@ R.check(
 )
 
 # The batched twin must read the same capacity as the scalar step: both paths
-# share `_stability_substeps` and one divisor, so repairing one and not the
+# share `_substeps_and_loss` and one divisor, so repairing one and not the
 # other would split them. Before the repair the two agreed only because both
 # used the same guard -- the parity check below pins them to each other, not
 # to a value.
@@ -20894,8 +20894,8 @@ R.check(
 _g_sane = ThermalModel(ThermalParameters(two_zone_enabled=True))
 R.check(
     "no sane configuration ever subdivides a step",
-    _g_sane._stability_substeps(0.0, 0.0, 0.25) == 1
-    and ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25)
+    _g_sane._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
+    and ThermalModel(ThermalParameters())._substeps_and_loss(0.0, 0.0, 0.25)[0]
     == 1,
     "the committed fixtures depend on n == 1 being the universal case",
 )
@@ -20911,7 +20911,7 @@ _g_stiff = ThermalModel(
 )
 R.check(
     "the stiff case genuinely exercises the subdivision",
-    _g_stiff._stability_substeps(0.0, 0.0, 0.25) > 1,
+    _g_stiff._substeps_and_loss(0.0, 0.0, 0.25)[0] > 1,
 )
 _g_room, _g_slab, _g_up, _g_low, *_ = _g_stiff.simulate_trajectory(
     ThermalState(),
@@ -53943,7 +53943,7 @@ def _f23_start(m):
 def _f23_step_matrix(m, n_sub=None):
     """The production sub-step's Jacobian over the stores it integrates."""
     p = m.params
-    h = 0.25 / (n_sub or m._stability_substeps(0.0, 0.0, 0.25))
+    h = 0.25 / (n_sub or m._substeps_and_loss(0.0, 0.0, 0.25)[0])
     if p.two_zone_enabled:
         fields = _F23_STORES if _f23_mv.is_throttling(p.mixing_valve_mode) \
             else _F23_STORES[:3]
@@ -53983,7 +53983,7 @@ for _f23_label, _f23_cfg in _F23_EULER_CASES:
         "passive envelope [T_out, hottest store]",
         _f23_exc <= 1e-9,
         f"left the envelope by {_f23_exc:.4g} K at "
-        f"n_sub={_f23_m._stability_substeps(0.0, 0.0, 0.25)}",
+        f"n_sub={_f23_m._substeps_and_loss(0.0, 0.0, 0.25)[0]}",
     )
     _f23_j = _f23_step_matrix(_f23_m)
     _f23_rho = float(np.max(np.abs(np.linalg.eigvals(_f23_j))))
@@ -53997,12 +53997,12 @@ for _f23_label, _f23_cfg in _F23_EULER_CASES:
 # Null arm: the shipped defaults, single and two-zone, still never subdivide.
 R.check(
     "R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1",
-    ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25) == 1
+    ThermalModel(ThermalParameters())._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
     and ThermalModel(ThermalParameters(two_zone_enabled=True))
-    ._stability_substeps(0.0, 0.0, 0.25) == 1
+    ._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
     and _f23_model({"two_zone_mode": "on", "mixing_valve_mode": "manual",
                     "buffer_tank_volume": 750.0})
-    ._stability_substeps(0.0, 0.0, 0.25) == 1,
+    ._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1,
 )
 # The count reads the step's own clamps: a design delta-T under 1 K, a COP
 # under 1 and an empty buffer are integrated as 1 K, 1 and 0.04 kWh/K, so the
@@ -54022,7 +54022,7 @@ for _f23_label, _f23_cfg, _f23_set, _f23_tight in (
     for _f23_k, _f23_v in _f23_set.items():
         setattr(_f23_m.params, _f23_k, _f23_v)
     try:
-        _f23_n = _f23_m._stability_substeps(0.0, 0.0, 0.25)
+        _f23_n = _f23_m._substeps_and_loss(0.0, 0.0, 0.25)[0]
         _f23_j = _f23_step_matrix(_f23_m)
         _f23_jm = _f23_step_matrix(_f23_m, _f23_n - 1) if _f23_tight else None
         _f23_err = ""
