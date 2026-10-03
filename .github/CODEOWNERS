@@ -79,6 +79,11 @@
 # whole directory is the surface.
 /.claude/hooks/                           @tvofi
 /.claude/settings.json                    @tvofi
+# The documentation sub-page generator (R9-WEB-3). The Pages workflow runs it
+# and `npm ci` over its lockfile at deploy, which puts it on the enforcement
+# surface; owning it here means the workflow's own pull request need not edit
+# this file.
+/tools/site/                              @tvofi
 # The governance scripts the required-check jobs execute, and what they
 # import, carry no owner (decision 0013): every job a pull request reaches
 # restores them from the base before it grades, so an edit cannot change the
@@ -125,3 +130,9 @@
 # The target layout of lane RO (R9-RO-1): a new category, or a retired path
 # dropped, changes what every later pull request may put where.
 /tests/layout.json                        @tvofi
+# The architecture score's frozen weights, its pinned verdicts and the check
+# that pins them (R9-EG-A1): a weight or a verdict that moves is a policy change.
+/tools/audit/archscore/weights.json       @tvofi
+/tools/audit/archscore/weights.sha256     @tvofi
+/tools/audit/archscore/calibration/expected.json  @tvofi
+/tests/arch_score.py                      @tvofi
