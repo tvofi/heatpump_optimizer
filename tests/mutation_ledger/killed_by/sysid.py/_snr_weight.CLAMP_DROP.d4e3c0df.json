@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_snr_weight CLAMP_DROP d4e3c0df",
+  "killed_by": "tests/features.py",
+  "old": "    return float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. CLAMP_DROP (`return float(((snr - 1.0) / 3.0))`) took tests/features.py from rc=1 failed=2 to rc=1 failed=5, newly failing ['#1308: at 0.10 C/h of sensor drift no fit the adoption gate accepts leaves the shipped +-10 % UA band']."
+}
