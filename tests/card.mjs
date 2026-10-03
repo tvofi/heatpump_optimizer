@@ -4691,10 +4691,13 @@ function ctxL(card, key) {
       ru.length === 2 && /a sentence from a newer integration/.test(ru[0]) &&
       !/nl-num/.test(ru[0]) && /nl-num/.test(ru[1]), ru.join("\n"));
     // Lines and items that do not pair up one to one cannot be matched row
-    // by row, so every line is shown as published.
-    const dm = dump(withNarr({ items: unk, lines: [lines[0]] }));
+    // by row, so every line is shown as published. The items here are labelled
+    // and numeric, so a card that paired them anyway would print one reason's
+    // kWh and cost on another reason's sentence (the guard's whole job).
+    const dm = dump(withNarr({ items, lines: [lines[1], lines[2]] }));
     check("narrative: misaligned items and lines fall back to the lines",
-      rows(dm).length === 1 && dm.includes(lines[0]) && !/nl-num/.test(dm), dm.match(/hl-narrative.*/)?.[0]);
+      rows(dm).length === 2 && dm.includes(lines[1]) && !/nl-num/.test(dm),
+      dm);
     const dl = dump(withNarr({ lines }));
     check("narrative: no items means the lines verbatim",
       rows(dl).length === 3 && dl.includes("idle for 23.0 h") && !/nl-num/.test(dl));
@@ -4713,6 +4716,10 @@ function ctxL(card, key) {
     const panel = (cardSrc.match(/^\s*\.hl-narrative\s*\{[^}]*\}/m) || [""])[0];
     check("narrative css: not italic, columns auto-fit from a minimum width",
       !/italic/.test(panel) && /auto-fit/.test(panel), panel);
+    // Textual pin only; the layout itself (2 columns at 1280, not 3) is
+    // measured by the browser lane, which is the real check of the cap.
+    check("narrative css: the column count is capped at two",
+      /calc\(50% - 13px\)/.test(panel), panel);
     check("narrative css: the panel shares the tile surface",
       /\.tile,\s*\.hl-stat,\s*\.hl-narrative\s*\{/.test(cardSrc));
   }
