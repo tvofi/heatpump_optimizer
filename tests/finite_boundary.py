@@ -49,8 +49,12 @@ every store names its own version constant (no literal, none shared); every
 store, seeded at its own version (the control), one below it (a bump: the
 migration hook) and one above it (a downgrade), and read through its real
 loader, surfaces each mismatch as a WARNING and a ``store_version`` repair
-issue; and a store read at a version above 1 overrides the default migration
-hook, so a bump without a migration fails here.
+issue, and no later save replaces the document it could not read; a store
+read at a version above 1 overrides the default migration hook, so a bump
+without a migration fails here. The store imports and surfaces a downgrade at
+the 2025.2.0 floor (a child interpreter, the stub reshaped to that release),
+and two concurrent loads of a migrating store complete under upstream's load
+dedupe.
 
 **I1 pins (round 9, F9.1).** Five guards outside the boundary above, each
 correct already and each invisible to every closure script if deleted: a
@@ -1699,7 +1703,9 @@ def _version_arm(by_name) -> None:
     try:
         for name, loader in LOADERS.items():
             key, healthy = by_name[name]
-            for lag in (0, 1, -1):
+            # The own-version control runs again after a mismatch: a load
+            # that succeeds clears the store's save refusal.
+            for lag in (0, 1, 0, -1):
                 _storage._DISK.clear()
                 _storage._VERSIONS.clear()
                 reads.clear()
