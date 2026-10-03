@@ -20,14 +20,14 @@ file is.
    and the re-derivation trap: `gate-scoping.md`.
 2. **A structural ratchet refuses growth.** `tests/structure.py` measures every
    metric in `tests/structure_budgets.json` — **derive the count, do not carry
-   one**: it is the budget file's keys less `recorded_at`, which is metadata,
-   and `structure.py`'s own `ok` lines are a third number because they add
-   the counting-rule check and the `const.py` symbol checks. Every metric may
-   only move down, and several sit at zero headroom, so a change that adds lines
-   to the wrong class fails. Pay by improving code; failing that, re-record
-   deliberately with the reason **in the commit message**; and where no payment
-   improves the code (`fixer.md`), **raise the budget with the owner's explicit
-   confirmation, obtained before the branch is pushed** — never loosen one
+   one**: it is the budget file's keys less the metadata `recorded_at`, and
+   `structure.py`'s own `ok` lines are a third number because they add the
+   counting-rule check and the `const.py` symbol checks. Every metric may only
+   move down, and several sit at zero headroom, so a change that adds lines to
+   the wrong class fails. Pay by improving code; failing that, re-record
+   deliberately with the reason **in the commit message**; and where only a
+   raise truly improves code (`fixer.md`), **raise the budget with the owner's
+   explicit confirmation, obtained before the branch is pushed** — never loosen one
    quietly, never delete working functionality merely to fit, and stop and ask
    rather than push and explain. A raise in any `*_budgets.json` merges only on
    the owner's approving review at its head: `budget-raise-gate` (0013).

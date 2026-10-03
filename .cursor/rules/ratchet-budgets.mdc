@@ -89,7 +89,7 @@ preference:
 1. **Pay for it.** Cut prose that is spent, duplicated, or now carried by a
    mechanical detector; `writing-for-agents.md`'s uniqueness test
    decides most of it.
-2. **If no payment improves the corpus, stop and ask.** Name the cap, the
+2. **If only the raise truly improves it (`fixer.md`), stop and ask.** Name the cap, the
    measured number `--budgets` prints, what the raise buys, and every payment
    considered with why it was not taken (`fixer.md`'s budget section). Ask before
    the push, not after: a raise discovered in review is a raise made quietly.

@@ -240,7 +240,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 2026-10-03). **First pay** with a change that objectively improves the code: a
 simplification, removed duplication, deleted dead code or spent prose,
 never a step-17 shape. Re-record where the tree genuinely improved. **Raise only
-when no such payment exists** (`--record --allow-regression="<reason>"`, that
+where the raise is the only option that truly improves the code** (`--record --allow-regression="<reason>"`, that
 reason in the **commit** message: `main`'s history keeps a commit message and
 never a pull-request body — decision 0010, true under either merge method).
 
@@ -260,11 +260,10 @@ tree-wide: enough attributes on a class in any other module move it.
 coordinator class a split usually moves the maxima *down* -- which the gate still
 refuses until you re-record them.
 
-A raise is the owner's, asked before the push (`CLAUDE.md` rule 2); zero
-headroom is no veto on new functionality or the better fix (#398 was refused
-in part on `coordinator_attrs` at 176/176). **The ask lists every payment you
-considered and why each was not taken**, measured where possible, never a bare
-assertion; the reviewer judges them (`fix-review.md` step 14).
+A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2); zero
+headroom is no veto on new functionality or the better fix (#398). **The ask and the PR body list every
+payment you considered and why each was not taken**, measured where possible,
+never a bare assertion; the reviewer judges them (`fix-review.md` step 14).
 
 ## Before you hand off: carry what you found forward
 
