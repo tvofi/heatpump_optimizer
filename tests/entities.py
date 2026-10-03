@@ -23691,28 +23691,140 @@ def _pt_seams(docs: dict) -> "set[str]":
     return out
 
 
+# THE ARM IS ONE EXACT JOB (#1863, round 4). Three review rounds each found a
+# new way to keep the arm wired yet unable to report #1721 -- `|| true`, a
+# step's `continue-on-error`, an empty token, then a job-level GH_TOKEN (which
+# `gh` prefers), a job `defaults.run.shell`, a job `if` on 'push' -- and each
+# round's denylist missed the next level up. So the whole `graders-head-copy`
+# job is matched EXACTLY against this literal, and tests.yml may carry no
+# workflow-level `env` or `defaults` and no wider `permissions` than
+# `contents: read`, the only workflow keys that reach a job's steps. Any edit
+# to the job -- intended or not -- is a mismatch until this literal is edited
+# with it, in the same reviewed diff. The intended variation is none.
+_PT_JOB_CANON = _yaml.safe_load(r'''
+needs: [coverage]
+if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+runs-on: ubuntu-latest
+timeout-minutes: 10
+env:
+  HPO_JOB_GRADES: nothing
+steps:
+  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+    with:
+      fetch-depth: 0
+      # policy_lint.mjs's citation resolvers ask git about cited tags.
+      fetch-tags: true
+
+  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+    with:
+      python-version: "3.13"
+
+  - name: Name the pinned graders this pull request changes
+    id: changed
+    env:
+      BASE: ${{ github.event.pull_request.base.sha }}
+      HEAD: ${{ github.event.pull_request.head.sha }}
+    run: |
+      set -euo pipefail
+      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      for g in coverage_ratchet delivery_status; do
+        if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
+          echo "$g=true" >> "$GITHUB_OUTPUT"
+          echo "tests/$g.py changed: its own copy runs below"
+        else
+          echo "$g=false" >> "$GITHUB_OUTPUT"
+        fi
+      done
+      # The pathspec governance.yml's `policy-docs` restores from the base.
+      if git diff --quiet "$BASE"..."$HEAD" -- \
+          '.claude/workflows/*.mjs' \
+          '.claude/workflows/*.py' \
+          '.claude/workflows/vendor' \
+          'tools/audit/*.sh' \
+          'tools/audit/record-predicate' \
+          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+        echo "governance=false" >> "$GITHUB_OUTPUT"
+      else
+        echo "governance=true" >> "$GITHUB_OUTPUT"
+        echo "a pinned governance grader changed: its own copy runs below"
+      fi
+
+  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+    if: steps.changed.outputs.coverage_ratchet == 'true'
+    with:
+      name: coverage-json
+      path: ${{ runner.temp }}/coverage
+
+  - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
+    if: steps.changed.outputs.coverage_ratchet == 'true'
+    run: |
+      python3 tests/coverage_ratchet.py \
+        --coverage "$RUNNER_TEMP/coverage/coverage.json"
+
+  - name: The pull request's delivery_status.py, as `delivery-status` runs it
+    if: always() && steps.changed.outputs.delivery_status == 'true'
+    run: |
+      git fetch --no-tags --quiet origin main
+      python tests/delivery_status.py --check
+
+  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    with:
+      node-version: "22"
+
+  - name: The pull request's policy_lint.mjs, under the Actions token
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: node .claude/workflows/policy_lint.mjs
+
+  - name: The pull request's field_coverage.mjs, under the Actions token
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: node .claude/workflows/field_coverage.mjs
+''')
+_PT_WF_PERMS = {"contents": "read"}
+_PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
 _PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
 
 
-_PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
+def _pt_first_diff(a, b, path: str = "") -> str:
+    """The first path at which two parsed YAML values differ, or ''."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        for _k in sorted(set(a) | set(b), key=str):
+            if _k not in a or _k not in b:
+                return f"{path}.{_k} ({'added' if _k in a else 'missing'})"
+            _d = _pt_first_diff(a[_k], b[_k], f"{path}.{_k}")
+            if _d:
+                return _d
+        return ""
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return f"{path} (length {len(a)} != {len(b)})"
+        return next((_d for _n, (_x, _y) in enumerate(zip(a, b))
+                     if (_d := _pt_first_diff(_x, _y, f"{path}[{_n}]"))), "")
+    return "" if a == b else f"{path} ({a!r} != {b!r})"
+
+
+def _pt_arm_mismatch(docs: dict) -> str:
+    """Where tests.yml's graders-head-copy, or what reaches it, departs from the literal."""
+    _wf = docs["tests.yml"]
+    for _k in ("env", "defaults"):
+        if _k in _wf:
+            return f"workflow.{_k} (reaches every job)"
+    if _wf.get("permissions") != _PT_WF_PERMS:
+        return f"workflow.permissions ({_wf.get('permissions')!r} != {_PT_WF_PERMS!r})"
+    return _pt_first_diff(_wf["jobs"].get("graders-head-copy"), _PT_JOB_CANON, "graders-head-copy")
 
 
 def _pt_armed(docs: dict) -> "set[str]":
-    """The programs an arm step runs so that its red is the job's red, as the Actions token.
-
-    Exact, not a substring (#1863 review: `|| true` on the run line, a step's
-    `continue-on-error`, and `GITHUB_TOKEN: ""` each passed a predicate that
-    found the program anywhere in the run line and took any value under the
-    key). The step carries only name, if, env and run; its run line is exactly
-    `node <grader>`; its env is exactly the Actions token; nor may the job
-    swallow a red."""
-    _job = docs["tests.yml"]["jobs"]["graders-head-copy"]
-    if "continue-on-error" in _job:
+    """The graders the arm runs as the Actions token: the literal's, or none on any mismatch."""
+    if _pt_arm_mismatch(docs):
         return set()
-    return {_m.group(1) for _s in _job.get("steps") or []
-            if set(_s) <= {"name", "if", "env", "run"} and _s.get("env") == _PT_ARM_ENV
-            and str(_s.get("if", "")) == _PT_ARM_IF
-            for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or "").strip())] if _m}
+    return {_m.group(1) for _s in _PT_JOB_CANON["steps"]
+            if _s.get("env") == _PT_ARM_ENV and _s.get("if") == _PT_ARM_IF
+            for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or ""))] if _m}
 
 
 def _pt_trigger(script: str, planted: str) -> str:
@@ -23751,8 +23863,9 @@ R.check(
     {".claude/workflows/policy_lint.mjs", ".claude/workflows/field_coverage.mjs"} <= _PT_SEAMS
     and not _PT_OPEN and set(_PT_EXEMPT) <= _PT_SEAMS,
     f"seams={sorted(_PT_SEAMS)} unarmed={_PT_OPEN} "
-    f"stale exemptions={sorted(set(_PT_EXEMPT) - _PT_SEAMS)}: add a step to "
-    "graders-head-copy keyed on `steps.changed.outputs.governance`, or a reason to _PT_EXEMPT",
+    f"stale exemptions={sorted(set(_PT_EXEMPT) - _PT_SEAMS)} "
+    f"arm mismatch={_pt_arm_mismatch(_PT_DOCS) or 'none'}: arm the grader in graders-head-copy "
+    "and in _PT_JOB_CANON together, or give it a reason in _PT_EXEMPT",
 )
 _PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
 R.check(
@@ -23761,64 +23874,53 @@ R.check(
     == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
     f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
 )
-# Null control: the same workflows with the arm's token removed leave the seam open.
-_PT_NULL = _pt_copy.deepcopy(_PT_DOCS)
-for _s in _PT_NULL["tests.yml"]["jobs"]["graders-head-copy"]["steps"]:
-    if "policy_lint.mjs" in str(_s.get("run") or ""):
-        _s.pop("env", None)
-R.check(
-    "and the arm without its token is refused (null control)",
-    ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
-    "the predicate must read the step's env, not only its run line",
-)
 
 
 def _pt_arm_mutant(edit) -> "set[str]":
-    """The armed set of the workflows with `edit` applied to the policy_lint arm step."""
+    """The armed set of the workflows with `edit(workflow, job, policy_lint step)` applied."""
     _d = _pt_copy.deepcopy(_PT_DOCS)
-    _job = _d["tests.yml"]["jobs"]["graders-head-copy"]
-    for _s in _job["steps"]:
-        if str(_s.get("run") or "").strip() == "node .claude/workflows/policy_lint.mjs":
-            edit(_job, _s)
+    _wf = _d["tests.yml"]
+    _job = _wf["jobs"]["graders-head-copy"]
+    edit(_wf, _job, next(_s for _s in _job["steps"]
+                         if _s.get("run") == "node .claude/workflows/policy_lint.mjs"))
     return _pt_armed(_d)
 
 
-# Null controls, one per way an arm step stays wired yet cannot report #1721:
-# its exit swallowed, its red demoted to a warning, its token emptied or
-# replaced, or the job's red demoted. Each must leave the arm unarmed.
+# Null controls: each way, at each level, that a review round or this seat
+# found to keep the arm wired yet unable to report #1721. Each must disarm it.
 _PT_SILENCERS = {
-    "run || true": lambda _j, _s: _s.update(run=_s["run"] + " || true"),
-    "step continue-on-error": lambda _j, _s: _s.update({"continue-on-error": True}),
-    "empty GITHUB_TOKEN": lambda _j, _s: _s.update(env={"GITHUB_TOKEN": ""}),
-    "a PAT for GITHUB_TOKEN": lambda _j, _s: _s.update(env={"GITHUB_TOKEN": "${{ secrets.PAT }}"}),
-    "job continue-on-error": lambda _j, _s: _j.update({"continue-on-error": True}),
+    "step run || true": lambda _w, _j, _s: _s.update(run=_s["run"] + " || true"),
+    "step continue-on-error": lambda _w, _j, _s: _s.update({"continue-on-error": True}),
+    "step empty GITHUB_TOKEN": lambda _w, _j, _s: _s.update(env={"GITHUB_TOKEN": ""}),
+    "step PAT for GITHUB_TOKEN": lambda _w, _j, _s: _s.update(env={"GITHUB_TOKEN": "${{ secrets.PAT }}"}),
+    "job continue-on-error": lambda _w, _j, _s: _j.update({"continue-on-error": True}),
+    "job env GH_TOKEN (R10b)": lambda _w, _j, _s: _j["env"].update(GH_TOKEN="${{ secrets.HPO_PAT }}"),
+    "job defaults shell (R11)": lambda _w, _j, _s: _j.update(defaults={"run": {"shell": "true {0}"}}),
+    "job if on push (R12)": lambda _w, _j, _s: _j.update({"if": _j["if"].replace("pull_request", "push")}),
+    "workflow defaults shell": lambda _w, _j, _s: _w.update(defaults={"run": {"shell": "true {0}"}}),
+    "workflow env GH_TOKEN": lambda _w, _j, _s: _w.update(env={"GH_TOKEN": "${{ secrets.HPO_PAT }}"}),
+    "workflow permissions write-all": lambda _w, _j, _s: _w.update(permissions="write-all"),
 }
-_PT_SILENT = {_k: ".claude/workflows/policy_lint.mjs" in _pt_arm_mutant(_f)
-              for _k, _f in _PT_SILENCERS.items()}
+_PT_SILENT = {_k: bool(_pt_arm_mutant(_f)) for _k, _f in _PT_SILENCERS.items()}
 R.check(
-    "and an arm step that cannot go red, or runs without the Actions token, is refused (null control)",
-    ".claude/workflows/policy_lint.mjs" in _pt_armed(_PT_DOCS) and not any(_PT_SILENT.values()),
-    f"still counted armed under: {sorted(_k for _k, _v in _PT_SILENT.items() if _v)}; "
-    "the predicate must read the whole step, not find the program in it",
+    "and any edit to the arm's job, or to what reaches it, disarms it (null control)",
+    _pt_armed(_PT_DOCS) == {".claude/workflows/policy_lint.mjs", ".claude/workflows/field_coverage.mjs"}
+    and not any(_PT_SILENT.values()),
+    f"mismatch at head: {_pt_arm_mismatch(_PT_DOCS) or 'none'}; still armed under: "
+    f"{sorted(_k for _k, _v in _PT_SILENT.items() if _v)}",
 )
 # The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
-# `false`, or steps keyed on 'false', passed every check above and reopened
-# #1721). The `changed` step's own script runs on planted diffs: a restored path
-# fires the arm, a path outside the pathspec does not. The job must lead with
-# `!cancelled()`, or a red `coverage` (its `needs`) skips the arm silently.
-_PT_JOB = _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]
-_PT_SCRIPT = next(str(_s.get("run")) for _s in _PT_JOB["steps"] if _s.get("id") == "changed")
+# `false` passed a check that read the pathspec). The literal's `changed`
+# script runs on planted diffs: a restored path fires the arm, a path outside
+# the pathspec does not.
+_PT_SCRIPT = next(str(_s.get("run")) for _s in _PT_JOB_CANON["steps"] if _s.get("id") == "changed")
 _PT_FIRES = {_f: _pt_trigger(_PT_SCRIPT, _f) for _f in (
     ".claude/workflows/x.mjs", "tools/audit/round6/D11/fix/codeowners_gap.py", "README.md")}
 R.check(
     "and the arm's trigger fires on a restored path and only there",
     _PT_FIRES == {".claude/workflows/x.mjs": "true",
-                  "tools/audit/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"}
-    and str(_PT_JOB.get("if", "")).startswith("${{ !cancelled() && ")
-    and all(str(_s.get("if")) == _PT_ARM_IF for _s in _PT_JOB["steps"]
-            if "governance" in str(_s.get("if", ""))),
-    f"planted diff -> governance: {_PT_FIRES}; job if={_PT_JOB.get('if')!r}; arm steps "
-    f"keyed {sorted({str(_s.get('if')) for _s in _PT_JOB['steps'] if 'governance' in str(_s.get('if', ''))})}",
+                  "tools/audit/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"},
+    f"planted diff -> governance: {_PT_FIRES}",
 )
 R.check(
     "and a trigger whose firing branch writes false is refused (null control)",
