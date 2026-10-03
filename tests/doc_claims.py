@@ -25,6 +25,13 @@ sides for seven claim shapes, and fails closed on a contradiction:
     cards equal the README's "What it does" leads and Documentation table, and
     it refuses a stray number, a version, a dead link or image and any
     third-party request)
+  * docs sub-pages build -- R9-WEB-3 (tools/site/build_docs.mjs renders the
+    README and every README Documentation row into one page each over the
+    vendored markdown-it; the arm runs it over the working tree and fails on
+    every FAIL line: a dead anchor, a missing image, a link to an untracked
+    file, a row whose file does not exist, a stale EXCLUDE entry. It also
+    refuses a link from the product page to a page the build does not
+    produce, and a third-party icon, preload or iframe on any page)
 
 The fact set is derived by importing and executing production code; the claim
 set is derived by scanning the reader documents and the shipped blueprints.
@@ -47,6 +54,7 @@ import json
 import os
 import pathlib
 import re
+import subprocess
 import sys
 import tempfile
 
@@ -2014,10 +2022,74 @@ class _SitePage(HTMLParser):
         self.texts.append((data, owner, inert))
 
 
-def site_findings(src: str | None, root: pathlib.Path = ROOT) -> tuple[list[tuple[str, str]], dict[str, int]]:
-    """(kind, message) findings for a page's source against the reader documents under `root`."""
+_SITE_EXT = re.compile(r"[a-z][a-z0-9+.-]*:|//", re.I)
+_SITE_ICON_REL = {"icon", "shortcut", "apple-touch-icon", "mask-icon"}
+_SITE_PRELOAD_REL = {"preload", "modulepreload", "prefetch", "preconnect", "dns-prefetch"}
+
+
+def _site_external(u: str) -> bool:
+    """An origin other than the page's own: a scheme or a protocol-relative URL (data: is the page's own bytes)."""
+    return bool(_SITE_EXT.match(u.strip())) and not u.strip().lower().startswith("data:")
+
+
+def _site_requests(tags: list[tuple]) -> list[tuple[str, str]]:
+    """(label, message) for every tag that asks another origin for something a page may not fetch from one.
+
+    Labels: script, stylesheet, icon, preload, iframe. R9-WEB-1's arm named script and stylesheet only; the design's
+    self-hosting rule names fonts and images too, so a <link rel=icon>, a <link rel=preload> font and an <iframe> are
+    refused here, on the product page and on every page the docs build produces (R9-WEB-3).
+    """
+    out: list[tuple[str, str]] = []
+    for t, a in tags:
+        if t == "script" and _site_external(a.get("src") or ""):
+            out.append(("script", f"external script: {a['src']}"))
+        elif t == "link" and _site_external(a.get("href") or ""):
+            rel = set((a.get("rel") or "").lower().split())
+            for label, names in (("stylesheet", {"stylesheet"}), ("icon", _SITE_ICON_REL), ("preload", _SITE_PRELOAD_REL)):
+                if rel & names:
+                    out.append((label, f"third-party <link rel={a.get('rel')}>: {a['href']}"))
+        elif t == "iframe" and _site_external(a.get("src") or ""):
+            out.append(("iframe", f"third-party <iframe>: {a['src']}"))
+    return out
+
+
+def _site_css_external(css: str) -> list[str]:
+    """Every other-origin URL a stylesheet names: @import (either form), url() in any case, image-set() candidates."""
+    found = [m.group(1) for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", css, re.I)]
+    for m in re.finditer(r"image-set\(([^;{}]*)\)", css, re.I):
+        found += re.findall(r"['\"]((?:[a-z][a-z0-9+.-]*:|//)[^'\"]*)['\"]", m.group(1), re.I)
+    return [u for u in found if _site_external(u)]
+
+
+def subpage_findings(src: str, root: pathlib.Path = ROOT) -> list[tuple[str, str]]:
+    """A page the docs build produced: it may request nothing from another origin (S11), and neither may the
+    stylesheet it links (an @import or a url() in docs/site/docs.css is a font or image from elsewhere)."""
+    p = _SitePage()
+    p.feed(src)
+    out = [("third-party", m) for _, m in _site_requests(p.tags)]
+    for t, a in p.tags:
+        if t in ("img", "source"):
+            cands = [a.get("src") or ""] + [c.split()[0] for c in (a.get("srcset") or "").split(",") if c.split()]
+            out += [("third-party", f"third-party image: {u}") for u in cands if _site_external(u)]
+        if t == "link" and "stylesheet" in (a.get("rel") or "").split() and a.get("href") and not _site_external(a["href"]):
+            css = root / "docs" / a["href"]
+            if not css.is_file():
+                out.append(("third-party", f"linked stylesheet {a['href']} is not in the tree"))
+            else:
+                out += [("third-party", f"third-party resource in {a['href']}: {u}") for u in _site_css_external(css.read_text())]
+    out += [("third-party", f"third-party resource in CSS: {u}") for u in _site_css_external(src)]
+    return out
+
+
+def site_findings(src: str | None, root: pathlib.Path = ROOT,
+                  pages: dict[str, str] | None = None) -> tuple[list[tuple[str, str]], dict[str, int]]:
+    """(kind, message) findings for a page's source against the reader documents under `root`.
+
+    `pages` is the docs build's manifest, source path -> page name; given, a link to a sub-page the build does not
+    produce is refused and each docs card for a built document must link its page.
+    """
     errs: list[tuple[str, str]] = []
-    st = {"claims": 0, "fragments": 0, "numbers": 0, "copy": 0, "features": 0, "docs": 0, "images": 0, "links": 0}
+    st = {"claims": 0, "fragments": 0, "numbers": 0, "copy": 0, "features": 0, "docs": 0, "images": 0, "links": 0, "subpages": 0}
     if src is None:
         return [("anchor", "docs/index.html is absent")], st
     p = _SitePage()
@@ -2113,7 +2185,17 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT) -> tuple[list[tupl
             errs.append(("third-party", f"external script: {a['src']}"))
         if t == "link" and "stylesheet" in (a.get("rel") or ""):
             errs.append(("third-party", f"stylesheet: {a.get('href')}"))
-    for m in re.finditer(r"(?:@import|url\()\s*['\"]?([^'\")\s]+)", src):
+        if pages is not None and t == "a" and re.fullmatch(r"[\w.-]+\.html(#.*)?", href):
+            st["subpages"] += 1
+            if href.split("#")[0] not in {*pages.values(), "index.html"}:
+                errs.append(("subpage", f"link to {href}: not a page the docs build produces"))
+    errs += [("third-party", m) for lab, m in _site_requests(p.tags) if lab in ("icon", "preload", "iframe")]
+    if pages is not None:
+        for _, a in p.tags:
+            doc = a.get("data-doc")
+            if doc in pages and (a.get("href") or "").split("#")[0] != pages[doc]:
+                errs.append(("subpage", f"docs card {doc} links {a.get('href')!r}, not its page {pages[doc]}"))
+    for m in re.finditer(r"(?:@import\s*(?:url\(\s*)?|url\(\s*)['\"]?([^'\")\s]+)", src):
         u = m.group(1)
         if re.match(r"[a-z][a-z0-9+.-]*:|//", u, re.I) and not u.startswith("data:"):
             errs.append(("third-party", f"third-party resource in CSS: {u}"))
@@ -2133,7 +2215,8 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT) -> tuple[list[tupl
 
 def check_product_page() -> None:
     R.section("product page pinned to the reader documents (R9-WEB-1)")
-    errs, st = site_findings(SITE_PAGE.read_text() if SITE_PAGE.is_file() else None)
+    built = docs_build()
+    errs, st = site_findings(SITE_PAGE.read_text() if SITE_PAGE.is_file() else None, pages=built["pages"])
     counts = ", ".join(f"{k} {v}" for k, v in st.items())
     R.check("docs/index.html exists with claims, features and docs rows (anchor)",
             not any(k == "anchor" for k, _ in errs), "; ".join(m for k, m in errs if k == "anchor"))
@@ -2144,7 +2227,8 @@ def check_product_page() -> None:
         ("docs", "the page's docs cards are the README Documentation table, both ways"),
         ("image", "every image resolves, names its path under docs/ and has alt text"),
         ("link", "every repository link resolves to a file and a heading"),
-        ("third-party", "the page requests nothing from a third party"),
+        ("third-party", "the page requests nothing from a third party (script, stylesheet, icon, preload, iframe, image)"),
+        ("subpage", "every link to a sub-page names a page the docs build produces, and each docs card links its page"),
         ("version", "the page states no version"),
     ):
         bad = [m for k, m in errs if k == kind]
@@ -2152,9 +2236,208 @@ def check_product_page() -> None:
     print(f"       ({counts})")
 
 
+# ---------------------------------------------------------------------------
+# Arm 1c -- the documentation sub-pages build is its own check (R9-WEB-3)
+# ---------------------------------------------------------------------------
+#
+# tools/site/build_docs.mjs renders the README and every row of the README
+# Documentation table (less its EXCLUDE list) into one page each. It writes only
+# into the directory it is given, so the arm builds the working tree into a
+# temporary one, handing it `git ls-files`, and fails on every FAIL line the
+# build prints. Anchor: zero pages built is red, so the arm cannot pass by
+# building nothing. The pages are then scanned for a third-party request.
+
+SITE_BUILD = ROOT / "tools" / "site" / "build_docs.mjs"
+_BUILD_CACHE: dict[str, dict] = {}
+
+
+def docs_build(root: pathlib.Path = ROOT) -> dict:
+    """Run the docs build over `root` into a temp dir; its rc, FAIL lines, stats line, pages and manifest.
+
+    `pages` maps a built document's source path to its page name; `html` maps a page name to its source.
+    """
+    key = str(root)
+    if key in _BUILD_CACHE:
+        return _BUILD_CACHE[key]
+    res: dict = {"rc": None, "fails": [], "stats": "", "pages": {}, "html": {}}
+    if not SITE_BUILD.is_file():
+        res["fails"] = [f"{str(SITE_BUILD).removeprefix(str(ROOT) + os.sep)} does not exist"]
+    else:
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = subprocess.run(["git", "ls-files"], cwd=root, capture_output=True, text=True)
+            if tree.returncode != 0 or not tree.stdout.strip():
+                res["fails"] = [f"git ls-files failed in {root}: {tree.stderr.strip()[:120]}"]
+            else:
+                tf, out = pathlib.Path(tmp) / "tree.txt", pathlib.Path(tmp) / "out"
+                tf.write_text(tree.stdout)
+                r = subprocess.run(["node", str(SITE_BUILD), "--root", str(root), "--tree", str(tf), "--out", str(out)],
+                                   capture_output=True, text=True)
+                res["rc"] = r.returncode
+                lines = r.stdout.splitlines()
+                res["fails"] = [l[5:] for l in lines if l.startswith("FAIL ")]
+                res["stats"] = next((l for l in lines if l.startswith("pages ")), "")
+                if r.returncode != 0 and not res["fails"]:
+                    res["fails"] = [f"build exited {r.returncode} with no FAIL line: {r.stderr.strip()[:200]}"]
+                man = out / "docs-manifest.json"
+                if man.is_file():
+                    res["pages"] = {b["src"]: b["out"] for b in json.loads(man.read_text())["built"]}
+                    res["html"] = {b["out"]: (out / b["out"]).read_text() for b in json.loads(man.read_text())["built"]}
+    _BUILD_CACHE[key] = res
+    return res
+
+
+SITE_PKG = ROOT / "tools" / "site" / "package.json"
+SITE_LOCK = ROOT / "tools" / "site" / "package-lock.json"
+
+
+def mermaid_pin_findings(pkg: str, lock: str) -> list[str]:
+    """The deploy installs mermaid by `npm ci`; the pin must be one exact version that the lockfile resolves to."""
+    try:
+        want = json.loads(pkg).get("dependencies", {}).get("mermaid", "")
+        have = json.loads(lock).get("packages", {}).get("node_modules/mermaid", {}).get("version", "")
+    except (ValueError, AttributeError) as exc:
+        return [f"package.json or its lockfile is not JSON: {exc}"]
+    out = []
+    if not re.fullmatch(r"\d+\.\d+\.\d+", want):
+        out.append(f"mermaid is {want!r} in package.json, not one exact version")
+    if want != have:
+        out.append(f"package.json pins mermaid {want!r} but the lockfile resolves {have!r}")
+    return out
+
+
+def check_docs_subpages() -> None:
+    R.section("documentation sub-pages build (R9-WEB-3)")
+    b = docs_build()
+    R.check("the build exists and built at least one page (anchor)", len(b["pages"]) > 0,
+            "; ".join(b["fails"][:2]) or "no pages in the manifest")
+    R.check("the build exits 0 with no FAIL line", b["rc"] == 0 and not b["fails"],
+            "; ".join(b["fails"][:4]) + (f" (+{len(b['fails']) - 4})" if len(b["fails"]) > 4 else ""))
+    # the README row set is derived, so a new row is built and a missing one fails; the product page is not one
+    rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M))
+    missing = sorted((rows | {"README.md"}) - set(b["pages"]) - {"docs/backlog.md"})
+    R.check("every README Documentation row but the archive is a built page", not missing, ", ".join(missing))
+    bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
+    R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
+            "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
+    pin = mermaid_pin_findings(SITE_PKG.read_text() if SITE_PKG.is_file() else "", SITE_LOCK.read_text() if SITE_LOCK.is_file() else "")
+    R.check("mermaid is one exact version in package.json, and the lockfile resolves that version", not pin, "; ".join(pin))
+    lock = SITE_LOCK.read_text() if SITE_LOCK.is_file() else "{}"
+    R.check("the mermaid pin fires on a range and on a lockfile that disagrees (null controls)",
+            any("exact" in f for f in mermaid_pin_findings(
+                '{"dependencies":{"mermaid":"^12.1.0"}}', '{"packages":{"node_modules/mermaid":{"version":"^12.1.0"}}}'))
+            and any("lockfile resolves" in f for f in mermaid_pin_findings('{"dependencies":{"mermaid":"11.0.0"}}', lock)) and not pin)
+    print(f"       ({b['stats']})")
+
+
+def check_site_request_controls() -> None:
+    """Null controls for the third-party and sub-page rules: a planted tag turns the arm red; a same-origin one does not."""
+    R.section("third-party and sub-page rules fire on a planted tag (R9-WEB-3 null controls)")
+    built = docs_build()
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    sub = next(iter(built["html"].values()), "")
+    plants = (
+        ("a third-party icon", '<link rel="icon" href="https://cdn.example.com/f.ico">', "third-party"),
+        ("a third-party preload font", '<link rel="preload" as="font" href="https://fonts.gstatic.com/x.woff2" crossorigin>', "third-party"),
+        ("a third-party iframe", '<iframe src="https://www.youtube.com/embed/x"></iframe>', "third-party"),
+        ("a link to a page the build does not produce", '<a href="tuning.html">t</a>', "subpage"),
+    )
+    built_only = (
+        ("a third-party script", '<script src="https://cdn.example.com/x.js"></script>'),
+        ("a third-party image", '<img src="https://example.com/x.png" alt="x">'),
+    )
+    R.check("the product page and a built page are the unplanted baseline (anchor)", bool(page) and bool(sub))
+    base = [k for k, _ in site_findings(page, pages=built["pages"])[0] if k in ("third-party", "subpage")]
+    R.check("the product page is clean before planting", not base, str(base))
+    for name, tag, kind in plants:
+        errs, _ = site_findings(page.replace("</head>", tag + "</head>", 1), pages=built["pages"])
+        R.check(f"product page: {name} is refused", any(k == kind for k, _ in errs))
+        if kind == "third-party":
+            R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    for name, tag in built_only:
+        R.check(f"built page: {name} is refused", bool(subpage_findings(sub.replace("</head>", tag + "</head>", 1))))
+    card = page.replace('href="how-it-works.html"', f'href="{_SITE_REPO}docs/how-it-works.md"', 1)
+    R.check("product page: a docs card for a built document linked to GitHub is refused",
+            card != page and any(k == "subpage" for k, _ in site_findings(card, pages=built["pages"])[0]))
+    for name, css in (
+        ("a Google Fonts @import", '@import url("https://fonts.googleapis.com/css2?family=Outfit");\n'),
+        ("an uppercase URL() font", '@font-face{font-family:X;src:URL("https://fonts.gstatic.com/x.woff2")}\n'),
+        ("an image-set() string candidate", '.a{background:image-set("https://cdn.example.com/a.png" 1x)}\n'),
+        ("a third-party @font-face src", '@font-face{font-family:X;src:url(https://fonts.gstatic.com/x.woff2)}\n'),
+    ):
+        with tempfile.TemporaryDirectory() as tmp:
+            planted = pathlib.Path(tmp) / "docs" / "site" / "docs.css"
+            planted.parent.mkdir(parents=True)
+            planted.write_text(css + (ROOT / "docs" / "site" / "docs.css").read_text())
+            R.check(f"the stylesheet a built page links: {name} is refused", bool(subpage_findings(sub, pathlib.Path(tmp))))
+    with tempfile.TemporaryDirectory() as tmp:
+        R.check("a linked stylesheet that is not in the tree is refused", any(
+            "not in the tree" in m for _, m in subpage_findings(sub, pathlib.Path(tmp))))
+    R.check("the real docs/site/docs.css is clean (baseline for the stylesheet scan)", not subpage_findings(sub))
+    R.check("a third-party srcset candidate is refused",
+            bool(subpage_findings(sub.replace("</head>", '<img src="a.png" srcset="b.png 1x, https://x.example/c.png 2x"></head>', 1))))
+    own = ('<link rel="icon" href="data:image/svg+xml,%3Csvg%3E%3C/svg%3E">', '<link rel="icon" href="site/favicon.svg">')
+    R.check("a same-origin icon is not refused (the rule is not over-broad)",
+            not [k for k, _ in subpage_findings(sub.replace("</head>", "".join(own) + "</head>", 1))])
+
+
+def check_docs_build_controls() -> None:
+    """Null controls for docs_build itself: a planted tree turns the arm's core red, and a missing build or tree is red."""
+    R.section("docs build arm fires on a planted tree (R9-WEB-3 null controls)")
+
+    def corpus(readme_doc: str | None = "# A\n\nText [self](#a).\n", git: bool = True, readme: bool = True) -> pathlib.Path:
+        d = pathlib.Path(tempfile.mkdtemp())
+        files = {"docs/site/docs.css": "", "docs/a.md": readme_doc or "", "docs/backlog.md": "# Archive\n"}
+        if readme:
+            files["README.md"] = "# T\n\n## Documentation\n\n| Document | What is in it |\n|---|---|\n| [docs/a.md](docs/a.md) | The a page |\n| [docs/backlog.md](docs/backlog.md) | The archive |\n"
+        for name, text in files.items():
+            (d / name).parent.mkdir(parents=True, exist_ok=True)
+            (d / name).write_text(text)
+        if git:
+            subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=d, check=True)
+        return d
+
+    base = docs_build(c := corpus())
+    R.check("a minimal tree builds: its README and its one row, exit 0, no FAIL line (baseline)",
+            base["rc"] == 0 and not base["fails"] and set(base["pages"]) == {"README.md", "docs/a.md"},
+            f"rc {base['rc']}, {base['fails']}, {sorted(base['pages'])}")
+    bad = docs_build(corpus("# A\n\nText [dead](#no-such-heading).\n"))
+    R.check("a dead anchor makes the build red", bad["rc"] == 1 and any("no-such-heading" in f for f in bad["fails"]),
+            f"rc {bad['rc']}, {bad['fails']}")
+    crash = docs_build(corpus(readme=False))
+    R.check("a build that dies without a FAIL line is red, naming its exit", crash["rc"] not in (0, None) and any(
+        "no FAIL line" in f for f in crash["fails"]), f"rc {crash['rc']}, {crash['fails']}")
+    dup = corpus()
+    (dup / "docs" / "x").mkdir()
+    (dup / "docs" / "x" / "a.md").write_text("# A2\n\nNo anchors here.\n")
+    (dup / "docs" / "a.md").write_text("# A\n\nNo anchors here.\n")
+    readme = (dup / "README.md").read_text().replace("| [docs/backlog.md]", "| [docs/x/a.md](docs/x/a.md) | A second a |\n| [docs/backlog.md]")
+    (dup / "README.md").write_text(readme)
+    subprocess.run(["git", "add", "-A"], cwd=dup, check=True)
+    dupb = docs_build(dup)
+    R.check("two anchor-free documents with one page name are red, naming the collision (not only through a dead anchor)",
+            dupb["rc"] == 1 and any("one page name" in f for f in dupb["fails"]), f"rc {dupb['rc']}, {dupb['fails']}")
+    nogit = docs_build(corpus(git=False))
+    R.check("a tree with no tracked-file list is red", nogit["rc"] is None and any("git ls-files" in f for f in nogit["fails"]),
+            f"rc {nogit['rc']}, {nogit['fails']}")
+    global SITE_BUILD
+    real, SITE_BUILD = SITE_BUILD, pathlib.Path(tempfile.gettempdir()) / "no-such-build.mjs"
+    try:
+        gone = docs_build(corpus())
+    finally:
+        SITE_BUILD = real
+    R.check("a missing build script is red with no page built",
+            not gone["pages"] and any("does not exist" in f for f in gone["fails"]), f"{gone['fails']}")
+    again = docs_build(c)
+    R.check("a second run over one root reuses the first result", again is base)
+
+
 def main() -> int:
     check_figures()
     check_product_page()
+    check_docs_subpages()
+    check_site_request_controls()
+    check_docs_build_controls()
     check_ecl110_defaults()
     check_entity_prefix()
     check_requirements_claim()

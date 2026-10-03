@@ -676,7 +676,8 @@
    "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
-   "tools/replay/synthesize.py"
+   "tools/replay/synthesize.py",
+   "tools/site/package-lock.json"
   ],
   "tests/env_drift.py": [
    "VERSION",
@@ -2401,6 +2402,7 @@
    "docs/img/marginal-cop.svg",
    "docs/index.html",
    "docs/setup.md",
+   "docs/site/docs.css",
    "tests/doc_claims.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -2439,7 +2441,10 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
-   "tools/release/stamp.py"
+   "tools/release/stamp.py",
+   "tools/site/build_docs.mjs",
+   "tools/site/package-lock.json",
+   "tools/site/package.json"
   ],
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2770,6 +2775,9 @@
   ],
   "tests/entities.py": [
    "LICENSE"
+  ],
+  "tests/doc_claims.py": [
+   "docs/site/docs.css"
   ]
  }
 }
