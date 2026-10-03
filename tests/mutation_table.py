@@ -2741,7 +2741,7 @@ def main() -> int:
                 continue
             drawn = anchor_sites(path.read_text(),
                                  drawable(path, rel, touched))
-            got = [m for m in drawn if not triaged_site(triage, m)]
+            got = list(drawn)
             held_n += len(drawn) - len(got)
             rng.shuffle(got)
             for mut in got[: args.per_file]:
