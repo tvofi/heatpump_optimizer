@@ -16,7 +16,7 @@ def _bootstrap() -> None:
     # Running this file as a script puts its directory on sys.path[0]. That
     # directory is the integration package, so `import datetime` would bind
     # datetime.py (the HA platform) instead of the stdlib and the worker
-    # cannot unpickle.
+    # cannot unpickle. (null control)
     here = Path(__file__).resolve().parent
     kept: list[str] = []
     for entry in sys.path:
