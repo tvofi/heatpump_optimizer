@@ -28606,7 +28606,7 @@ R.check(
     and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
     and 'how="--drain"' in _MUT_BODY
     and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
-    and "and not (args.pin_killed or args.drain)):" in _MUT_BODY,
+    and "and not (args.pin_killed or args.drain or args.anchor)):" in _MUT_BODY,
     f"drain branch at {_dr_at}",
 )
 
@@ -29849,8 +29849,7 @@ _MUT_TS_OUT = (None if _MUT_TS_SITE is None else (
 R.check(
     "a site holding a survivor_triage mark is triaged and not drawn; a moved "
     "line, an unmarked site and an empty triage are not (R9-F10.13)",
-    _MUT_TS_OUT == (True, False, False, False)
-    and "triaged_site(triage, m)" in _MUT_MAIN_DEFER,
+    _MUT_TS_OUT == (True, False, False, False),
     f"payload mark site={'absent' if _MUT_TS_SITE is None else 'present'}, "
     f"out={_MUT_TS_OUT!r} -- a mutant on the marked line fails the staleness "
     "check above, so it reads killed by tests/entities.py",
@@ -29899,25 +29898,106 @@ R.check(
                                "reproduced, 3 not re-verified"],
     f"lines={_MUT_PV_LINES!r}",
 )
-# Wired: a pinned site's own killer is driven first (so a kill by another
-# driver cannot leave the pin unread), the outcome is recorded where the
-# driver runs, the report is printed, and the nightly draws on a date seed --
-# the constant default seed left the same tail of sites unevaluated each night
-# once the budget bound (R9-F10.12's review).
-_MUT_PV_WIRING = [w for w in (
-    "pin = pinned_script(budgets.get(\"killed_by\", {}), mut)",
-    "mut[\"drivers\"].insert(0, pin)",
-    "outcomes[(id(mut), s)] = hit",
-    "pin_reverification(results, outcomes,",
-) if w not in _MUT_MAIN_DEFER]
+# Behavioural, not text: the pool `main()` samples from, the driver order it
+# hands the sweep, and the whole path through `--anchor` (which shares main()'s
+# drive, kill rule, pin ordering and report) are driven. Text-preserving
+# mutants of each (the triage filter undone after it, the pinned killer not
+# moved first, the report fed no pins) survived the greps these replace.
+import contextlib as _pv_ctx  # noqa: E402
+import copy as _pv_copy  # noqa: E402
+import random as _pv_random  # noqa: E402
+_mut_spool = getattr(_mut, "sampled_pool", None)
+_MUT_SP_FILE = [_mut.PRODUCTION / "payload.py"]
+_MUT_SP_REL = str(_MUT_SP_FILE[0].relative_to(_mut.ROOT))
+_MUT_SP_ARGS = ({"tests/entities.py": [_MUT_SP_REL]}, ["tests/entities.py"], None)
+
+
+def _mut_sp(triage):
+    with _pv_ctx.redirect_stdout(_mut_io.StringIO()):
+        pool, held = _mut_spool(_MUT_SP_FILE, *_MUT_SP_ARGS, triage,
+                                _pv_random.Random(1), 10_000, 10_000)
+    return {m["anchor"] for m in pool}, held
+
+
+_MUT_SP_MARKED, _MUT_SP_NONE = ((None, None), (None, None))
+if _mut_spool is not None:
+    _MUT_SP_MARKED, _MUT_SP_NONE = _mut_sp(_MUT_TRIAGE), _mut_sp({})
+R.check(
+    "the sampled pool never holds a triage-marked site, and holds it again "
+    "once the mark is gone (R9-F10.13)",
+    _MUT_PAYLOAD not in (_MUT_SP_MARKED[0] or ()) and _MUT_SP_MARKED[1] == 1
+    and _MUT_PAYLOAD in (_MUT_SP_NONE[0] or ()) and _MUT_SP_NONE[1] == 0,
+    f"marked: in pool={_MUT_PAYLOAD in (_MUT_SP_MARKED[0] or ())}, "
+    f"held={_MUT_SP_MARKED[1]}; no triage: in pool="
+    f"{_MUT_PAYLOAD in (_MUT_SP_NONE[0] or ())}, held={_MUT_SP_NONE[1]}",
+)
+_mut_ordpool = getattr(_mut, "order_pool_drivers", None)
+_MUT_OP_SITE = _mut_pv_site("x.py:ord K 0")
+
+
+def _mut_op(killed_by):
+    pool = [dict(_MUT_OP_SITE, drivers=["tests/a.py", "tests/features.py"])]
+    _mut_ordpool(pool, {"tests/a.py": 1.0, "tests/features.py": 100.0}, killed_by)
+    return pool[0]["drivers"]
+
+
+_MUT_OP_OUT = (None if _mut_ordpool is None else (
+    _mut_op({}), _mut_op({"x.py:ord K 0": {"killed_by": "tests/features.py", "old": "o"}}),
+    _mut_op({"x.py:ord K 0": {"killed_by": "tests/features.py", "old": "stale"}})))
+R.check(
+    "a pinned site's killer is driven first however dear it is; an unpinned "
+    "site and a stale pin keep the cost order (R9-F10.13)",
+    _MUT_OP_OUT == (["tests/a.py", "tests/features.py"],
+                    ["tests/features.py", "tests/a.py"],
+                    ["tests/a.py", "tests/features.py"]),
+    f"out={_MUT_OP_OUT!r}",
+)
+# End to end through `--anchor`: topology.py's `_tr` RETURN_DEL is pinned to
+# tests/guard_pins.py, which kills it. Planted instead on tests/plan_view.py
+# (which does not, and which the cost order would put second), the run must
+# drive plan_view first, find it did not kill, and say so; the real pin must
+# be reproduced.
+_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN_BUDGETS = _mut.load_budgets()
+
+
+def _mut_anchor(killed_by_script):
+    budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
+    budgets["killed_by"][_MUT_AN]["killed_by"] = killed_by_script
+    _real = _mut.load_budgets
+    _mut.load_budgets = lambda: budgets
+    _log = tempfile.TemporaryFile("w+")
+    _argv = sys.argv
+    try:
+        with _pv_ctx.redirect_stdout(_log):
+            _rc = _mut.main(["--scope", "full", "--anchor", _MUT_AN, "--jobs", "1",
+                             "--scripts", "tests/guard_pins.py,tests/plan_view.py"])
+    finally:
+        _mut.load_budgets = _real
+        sys.argv = _argv
+    _log.seek(0)
+    return _rc, _log.read()
+
+
+_MUT_AN_REAL = _mut_anchor("tests/guard_pins.py") if _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {}) else (None, "")
+_MUT_AN_WRONG = _mut_anchor("tests/plan_view.py") if _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {}) else (None, "")
+R.check(
+    "--anchor re-drives one site: the real pin is reproduced, a pin planted on "
+    "a script that does not kill it is reported NOT REPRODUCED after its own "
+    "run, and nothing is recorded (R9-F10.13)",
+    _MUT_AN_REAL[0] == 0 and _MUT_AN_WRONG[0] == 0
+    and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_REAL[1]
+    and "PIN NOT REPRODUCED" in _MUT_AN_WRONG[1]
+    and "pinned to tests/plan_view.py, killed by tests/guard_pins.py" in _MUT_AN_WRONG[1]
+    and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
+    f"real={_MUT_AN_REAL!r:.600} wrong={_MUT_AN_WRONG!r:.600}",
+)
 _MUT_PV_NIGHT = _workflow_job(_TESTS_YML, "mutation-nightly")
 R.check(
-    "main drives a pin's killer first, records and prints the re-verification, "
-    "and mutation-nightly rotates its seed by date and surfaces the report",
-    not _MUT_PV_WIRING
-    and '--seed "$(date -u +%Y%m%d)"' in _MUT_PV_NIGHT
+    "mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)",
+    '--seed "$(date -u +%Y%m%d)"' in _MUT_PV_NIGHT
     and "PIN NOT REPRODUCED" in _MUT_PV_NIGHT,
-    f"missing={_MUT_PV_WIRING!r}",
+    "the constant default seed drew the same sample every night",
 )
 
 

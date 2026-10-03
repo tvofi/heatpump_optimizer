@@ -1283,10 +1283,22 @@ def self_test() -> int:
         _seen["register"] = all((cwd / r.relative_to(ROOT)).exists() for r in REGISTER_FILES)
         return _Proc(0, "RESULT claims_extracted=1\n")
 
-    _before = VERSION_FILE.read_bytes()
-    dry_run_register("9.9.9", CARD_JS.read_text(), [(c, "NEW-CLM") for c in CLAIM_FILES], _gen)
+    # A small fixture tree stands in for the checkout (`root`, `files`):
+    # copying the real one is thousands of reads, and tests/entities.py runs
+    # this self-test in-process, so its closure would take every one of them.
+    _fx_tmp = tempfile.TemporaryDirectory()
+    _fx = Path(_fx_tmp.name)
+    _fx_files = [str(p.relative_to(ROOT)) for p in
+                 (VERSION_FILE, MANIFEST, CARD_JS, *CLAIM_FILES, *REGISTER_FILES, REGISTER_GENERATOR)]
+    for _rel in _fx_files:
+        (_fx / _rel).parent.mkdir(parents=True, exist_ok=True)
+        (_fx / _rel).write_text('{"version": "1.0.0"}\n' if _rel.endswith("manifest.json") else "1.0.0\n")
+    _card = 'const CARD_VERSION = "1.0.0";\n'
+    _before = (_fx / "VERSION").read_bytes()
+    _dry = lambda *a, **k: dry_run_register("9.9.9", _card, *a, root=_fx, files=_fx_files, **k)  # noqa: E731
+    _dry([(c, "NEW-CLM") for c in CLAIM_FILES], _gen)
     check("register dry run: the generator runs in a copy, not the checkout",
-          _seen.get("cwd") not in (None, ROOT) and VERSION_FILE.read_bytes() == _before)
+          _seen.get("cwd") not in (None, ROOT, _fx) and (_fx / "VERSION").read_bytes() == _before)
     check("register dry run: the copy carries the stamped version and claim files",
           _seen.get("version") == "9.9.9" and _seen.get("manifest") == "9.9.9"
           and _seen.get("claims") == ["NEW-CLM"] * len(CLAIM_FILES)
@@ -1299,17 +1311,18 @@ def self_test() -> int:
         (_cwds.append(kw.get("cwd")), _Proc(0, ""))[1]
         if str(REGISTER_GENERATOR.name) in " ".join(map(str, argv)) else _real_run(argv, **kw))
     try:
-        dry_run_register("9.9.9", CARD_JS.read_text(), [])
+        _dry([])
     finally:
         subprocess.run = _real_run
     check("register dry run: the default runner's working directory is the copy, not the checkout",
-          len(_cwds) == 1 and _cwds[0] is not None and Path(_cwds[0]) != ROOT)
+          len(_cwds) == 1 and _cwds[0] is not None and Path(_cwds[0]) not in (ROOT, _fx))
     try:
-        dry_run_register("9.9.9", CARD_JS.read_text(), [], lambda a, c: _Proc(1, "SyntaxError: f-string"))
+        _dry([], lambda a, c: _Proc(1, "SyntaxError: f-string"))
         _refused = False
     except Refuse as _e:
         _refused = "SyntaxError" in str(_e)
     check("register dry run: a generator that fails refuses, as the real stamp does", _refused)
+    _fx_tmp.cleanup()
     check("register dry run: main calls it before returning from --dry-run",
           -1 < _main_src.find("if args.dry_run:") < _main_src.find("dry_run_register(nxt")
           < _main_src.find('sh("git", "commit"'))
@@ -1400,7 +1413,8 @@ def regenerate_register(runner=None, python: str | None = None,
 
 
 def dry_run_register(nxt: str, card_text: str, claim_edits: list, runner=None,
-                     python: str | None = None) -> None:
+                     python: str | None = None, root: Path = ROOT,
+                     files: list[str] | None = None) -> None:
     """Run the register generator on a temporary copy of the stamped tree.
 
     A dry run writes nothing in the checkout, so the generator -- the step that
@@ -1409,13 +1423,19 @@ def dry_run_register(nxt: str, card_text: str, claim_edits: list, runner=None,
     in it, run through the same `regenerate_register` under the same
     interpreter, so a Python-version or tree-dependent crash of claims.py shows
     in the plan and not first at the real stamp. Raises Refuse("register").
-    `runner(argv, cwd)` is the test seam.
+    `runner(argv, cwd)`, `root` (the tree copied) and `files` (its paths, else
+    `git ls-files` of ROOT) are the test seams: the self-test hands it a small
+    fixture tree, because copying the real one is thousands of reads that
+    tests/entities.py, which runs the self-test in-process, would record into
+    its closure.
     """
-    listing = sh("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    if files is None:
+        files = list(filter(None, sh("git", "ls-files", "-z", "--cached", "--others",
+                                     "--exclude-standard").split("\0")))
     with tempfile.TemporaryDirectory(prefix="stamp-dry-run-") as tmp:
         copy = Path(tmp)
-        for rel in filter(None, listing.split("\0")):
-            src = ROOT / rel
+        for rel in files:
+            src = root / rel
             if src.is_file():
                 (copy / rel).parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(src, copy / rel, follow_symlinks=False)
