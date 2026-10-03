@@ -1221,27 +1221,24 @@ def write_drain(out: Path, entries: dict, head: str,
     return status
 
 
-def _in_closure(path: str, closure: list[str]) -> bool:
-    """True when a changed path is a file of the closure or under one of its
-    directory entries."""
-    return any(path == c or (c.endswith("/") and path.startswith(c))
-               for c in closure)
+def stale_pins(pins: dict, closures: dict) -> list[str]:
+    """The pins whose killing script no longer reaches the module it mutated.
 
+    A kill names the driver `drain_pool` chose because its recorded closure
+    contained the mutated module (`drivers_for`); a pin whose driver has left
+    the closures, or whose closure no longer holds that module, names a check
+    the head cannot run against the site, and is dropped.
 
-def stale_pins(pins: dict, changed: list[str], closures: dict) -> list[str]:
-    """The pins a move of main since the measurement may have invalidated.
-
-    A kill is a measurement of one tree. When main moved between the drive and
-    the push, a pin stays valid only if nothing its killing script reads
-    changed: the script itself and every file of its recorded closure, which
-    includes the mutated module, since that closure is how the driver was
-    chosen. Anything else is dropped and stays unpinned for the next night.
+    Edits elsewhere in the closure are not a reason: the ledger keeps a
+    standing row through any change to its killer, judging it by anchor and
+    `old` text alone (`completeness_problems`), so a row that landed one merge
+    earlier would have survived the same edits. A closure-wide rule dropped all
+    39 pins of run 37050037132, whose killers' closures every merge touches.
     """
     out = []
     for key, entry in pins.items():
         script = entry.get("killed_by", "") if isinstance(entry, dict) else ""
-        reads = [script, *closures.get(script, ())]
-        if not script or any(_in_closure(p, reads) for p in changed):
+        if key.split(":", 1)[0] not in closures.get(script, ()):
             out.append(key)
     return sorted(out)
 
@@ -1249,12 +1246,13 @@ def stale_pins(pins: dict, changed: list[str], closures: dict) -> list[str]:
 def apply_drained(pins_dir: str, head: str, changed: list[str] | None) -> str:
     """Merge a `--drain` measurement into this checkout's ledger.
 
-    `changed` is the paths main changed between the measured head and `head`
-    (None when the diff could not be read, which applies nothing). The pins
-    `stale_pins` names are dropped, and the rest go through `apply_pins`'s own
-    check against this tree's inventory -- same anchor, same `old` text, not
-    already disposed -- so a second apply of the same measurement writes
-    nothing.
+    `changed` is the paths main changed between the measured head and `head`,
+    None when the measured head is not in this clone's history -- a
+    measurement of no tree main has, which applies nothing. On a moved head the
+    pins `stale_pins` names are dropped; every pin then goes through
+    `apply_pins`'s re-key against THIS tree's inventory -- same anchor, same
+    `old` text, not already disposed -- so a pin whose line changed is dropped
+    and a second apply of the same measurement writes nothing.
     """
     d = Path(pins_dir)
     try:
@@ -1271,7 +1269,7 @@ def apply_drained(pins_dir: str, head: str, changed: list[str] | None) -> str:
     if measured_at != head:
         if changed is None:
             return "skip-head-moved"
-        drop = set(stale_pins(pins, changed, load_closures()))
+        drop = set(stale_pins(pins, load_closures()))
         pins = {k: v for k, v in pins.items() if k not in drop}
         if not pins:
             return "skip-head-moved"
