@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_padded_nonneg CMP_BOUND 185d0eef",
+  "old": "    if series.size < n_steps:",
+  "reason": "Equivalent (CMP_BOUND, `<` -> `<=`): the arms differ only when the series already has n_steps entries, where the mutant concatenates np.zeros(0) -- the same float values, shape and dtype -- before the same [:n_steps] slice. Measured by tools/audit/round9/EG/a2/padded_equiv.py (`PYTHONPATH=tests/hastub python3 tools/audit/round9/EG/a2/padded_equiv.py`): head vs the mutant over 15120 inputs (sizes 0..n+3 for n 1..96, three draws each), 288 of them ties, 0 differing; its tie-only control (adds 1 to the last entry at a tie) differs on 288 of 288 ties. Driven through tests/features.py on an export of the branch, 2026-10-03, the mutant also survived.",
+  "verdict": "equivalent"
+}
