@@ -66,6 +66,16 @@ COMMANDS = [
 # One data file per grader that reads one, deleted for the `neither` arm.
 NEITHER = [".claude/workflows/policy_budgets.json", ".claude/workflows/fixtures/required-contexts.json",
            "tools/audit/rotation.json", "tools/audit/bugclasses.json", ".claude/rules/gate-scoping.md"]
+# Rows whose text differs for a reason the arm does not measure; the rc must
+# still agree. Each names why, so a reader can see what was set aside.
+EXPECTED = {
+    ("graders", "preflight"): "its staleness line counts the policy files the planted commit moves as authored "
+                              "on the branch, which a move pull request's are",
+    ("neither", "codeowners_gap --check"): "its surface is HEAD's workflows read by HEAD's graders against the "
+                                           "base's: the data it reads, required-contexts.json, is behind a try "
+                                           "that returns no refusal at either end",
+    ("neither", "agreement"): "its grammar census counts the regexes HEAD's graders add",
+}
 _spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
 CG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(CG)  # the pin reader policy-docs runs: its restore grammar and its execution grammar
@@ -152,8 +162,10 @@ def compare(label: str, a: dict, b: dict, tmp: Path) -> int:
     bad = 0
     for name in a:
         same = a[name] == b[name]
-        bad += not same
-        print(f"  {label} {name}: rc {a[name][0]}/{b[name][0]} {'same' if same else 'DIFFERS'}")
+        why = EXPECTED.get((label, name))
+        bad += not (same or (why and a[name][0] == b[name][0]))
+        print(f"  {label} {name}: rc {a[name][0]}/{b[name][0]} "
+              f"{'same' if same else f'differs, set aside: {why}' if why else 'DIFFERS'}")
         if not same:
             p = tmp / f"{label}-{re.sub(r'[^a-z]+', '_', name)}"
             p.with_suffix(".a").write_text(a[name][1])
@@ -198,7 +210,7 @@ def arm_neither(base: str, tmp: Path) -> int:
         (tree / f).write_bytes(subprocess.run(["git", "show", f"{head}:{f}"], cwd=ROOT,
                                               capture_output=True, check=True).stdout)
     git(tree, "add", "-A")
-    commit(tree, "planted: HEAD's graders")
+    git(tree, "commit", "-q", "--amend", "--no-edit", "--allow-empty", "--no-verify")  # as many commits as the first run saw
     (tmp / "nh").mkdir()
     b = run_all(tree, tmp / "nh", [])
     # The planted commit differs, so HEAD~1 is not the same parent: compare the

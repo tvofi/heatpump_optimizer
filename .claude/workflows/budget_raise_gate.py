@@ -1085,7 +1085,8 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         added = branch("added", {"tests/new_budgets.json": {"y": 1}})
         deleted = branch("deleted", {"tests/zz_budgets.json": None})
         kept = branch("kept-file", {P: {**p0, "files": {"A.md": 10}}})
-        NP = locate(P, lambda _: True)  # where the reorganisation moves it
+        import layout  # RO-1's own reading of the move map, not the lookup under test
+        NP = layout.target(P, layout.load(layout.ROOT)["retired"])
         moved = branch("moved", {P: None, NP: p0})
         moved_up = branch("moved-up", {P: None, NP: {**p0, "always_loaded_tokens": 3350}})
         own = {"login": OWNER_LOGIN, "id": OWNER_ID, "type": OWNER_TYPE}
