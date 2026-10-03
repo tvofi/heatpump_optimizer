@@ -14,7 +14,8 @@ This PR has two arms.
 - `drive_pool` starts a mutant only if it will still end inside the deadline. The estimate is every one of its drivers at measured cost, which is what it costs if it survives, plus the EXCLUSIVE runs still owed by started mutants that no driver has killed yet.
 - That reservation is released when a mutant is killed.
 - The first mutant that does not fit closes the pool. It and every mutant after it become `SKIP-BUDGET` and are printed as `NOT RUN`. What did run is therefore a prefix of the shuffled pool, not a sample biased toward cheap drivers.
-- The cut falls on an anchor boundary (round 1). A mutant is admitted together with every queued site of its anchor, or not at all, because a disposition covers the whole anchor and a split anchor can never be pinned. `drain_survivors` also leaves out any anchor that holds a `SKIP-BUDGET` site.
+- The cut falls on an anchor boundary. A mutant is admitted together with every queued site of its anchor, or not at all, because a disposition covers the whole anchor and a split anchor can never be pinned. Since round 2, a granted twin is started even if a site queued between the twins closes the pool, so the twins need not be adjacent (a `--pin-killed` pool has no adjacency). `drain_survivors` also leaves out any anchor that holds a `SKIP-BUDGET` site, as a second guard.
+- A mutant that is killed or timed out releases its EXCLUSIVE reservation (the timeout half since round 2), because neither runs an EXCLUSIVE driver.
 - The survivor cap is computed over the evaluated mutants. `PASSED` names the run as partial whenever a timeout or the budget left mutants unscored: `(partial: N evaluated, T timed out, K not started for the budget)`.
 - A run that evaluated nothing because its mutants timed out or went unstarted is **refused**, and the reason counts each cause: `MUTATION TABLE REFUSED -- nothing was measured: T mutant(s) timed out, K not started for --budget-minutes`.
 - Under `--drain`, a site that was never started is neither pinned nor listed in `survivors.txt`, and neither is its anchor's twin. Both are left for a later night.
@@ -34,7 +35,7 @@ This PR has two arms.
 
 **How this composes with #1878.**
 - #1878 at `5d6edffec707f9f16485cff9f3773e2c47874dcf` adds `tests/harness_headers.py` to `EXCLUSIVE` (`EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")`) and adds a `LEASED` set.
-- `git merge-tree --write-tree` of this head with 5d6edffe returns rc 0 (tree 5f13fdf0). On that merged tree, `tests/entities.py` gives `ALL 2118 ENTITY CHECKS PASSED`. The reviewer independently measured 2115 against round 0's head.
+- `git merge-tree --write-tree` of this head with 5d6edffe returns rc 0 (tree 158392e5). On that merged tree, `tests/entities.py` gives `ALL 2121 ENTITY CHECKS PASSED`. Round 1's head gave 2118, measured by both this seat and the reviewer.
 - The budget accounts for the move without further change. harness_headers' runs move into the serial EXCLUSIVE phase, and its cost joins every undecided mutant's reservation.
 - Replaying the 2026-10-02 night with that `EXCLUSIVE`:
   - unbudgeted: the pool takes 306-309 model-minutes;
@@ -73,9 +74,11 @@ With `--budget-minutes 270`, the pool deadline is 270 minus the startup and base
 
 ## Head
 
-1dc760ffe69c22f0530ef75aec71fbaa29142377
+563a74ab181e454ed9e0b3ca23a0e90e8aa120b6
 
-This is #1880's head fe446d246ac1c7b556a9f6b79eb8eaf6b5b2fc6c (round 0, beecd43, plus the delivery row) with round 1 merged onto it. Its merge base with `origin/main` is 20f597c6. Main has since moved to 243990abf3f598656756074f46c01430f323de40 (#1863); `git merge-tree --write-tree HEAD origin/main` returns rc 0, and that merge is the orchestrator's. Measured 2026-10-03T17:03:10Z. Round 1's failing-first commit is 4f4ff36ee85b4fda71eea3bbbdafa19610a7f431.
+This is #1880's head `1dc760ff` (round 1) with round 2 on top. Its merge base with `origin/main` is 20f597c6. Main has since moved to `4ead5c97a`; `git merge-tree --write-tree HEAD origin/main` returns rc 0, and that merge is the orchestrator's. Measured 2026-10-03T17:36:48Z.
+- Round 1's failing-first commit is 4f4ff36ee85b4fda71eea3bbbdafa19610a7f431.
+- Round 2's failing-first commit is 8c8c018167f033a738d8e856c25090ee464f5258.
 
 ## Mutation proof
 
@@ -85,6 +88,28 @@ This is #1880's head fe446d246ac1c7b556a9f6b79eb8eaf6b5b2fc6c (round 0, beecd43,
 - `a driver's timeout scales from its own measured seconds over the fixed floor, and main() times every baseline, null and mutant run with it`
 - `a budget too small for its pool starts mutants only while they fit, names the rest SKIP-BUDGET, and reserves the EXCLUSIVE runs it owes`
 - `a run the budget let evaluate no mutant is refused; one that evaluated some, or skipped none for the budget, is not`
+
+**Round 2, failing first.** At 8c8c0181, with the round-2 checks but not the fix, `tests/entities.py` gives rc=1, `2 of 2120 ENTITY CHECKS FAILED`:
+- `a twin granted with its anchor is started even after a dearer site between them closes the pool` (verdicts `['killed by tests/a.py', 'SKIP-BUDGET', 'SKIP-BUDGET']`, pins `[]`: the review's P9)
+- `a timed-out mutant releases the EXCLUSIVE run it reserved` (verdicts `['SKIP-TIMED-OUT in tests/a.py', 'SKIP-BUDGET']`: the review's P10)
+
+The third round-2 check, `the drain lists no site of an anchor the budget split`, pins `drain_survivors` directly. With the fix in, that guard is redundant, so the check passes at both ends; it exists to kill n2.
+
+**Round 2, breaking the fix.** Each mutant ran at 9463700a; its line is unchanged at the head. n8b ran at the head itself.
+
+| mutant | what it breaks | result |
+|---|---|---|
+| n2 | `drain_survivors`' cut filter replaced by round 0's `v != "SKIP-BUDGET"` | rc=1, 2 of 2120 failed, `the drain lists no site of an anchor the budget split` among them |
+| n3 | `granted.update(twins)` deleted | rc=1, `a twin granted with its anchor is started ...` |
+| n7 | the close marks granted twins `SKIP-BUDGET` too | rc=1, the same check |
+| n8b | `return` before the release in the timeout branch | rc=1, `a timed-out mutant releases the EXCLUSIVE run it reserved` |
+
+A once-guard I first wrote for the release (`released`) survived its own mutant. It is gone. A second release can come only from a helper, and helpers run only once nothing is left to admit, so nothing reads `owed` after a second release. The comment at the release says so.
+
+The review's `probe2.py` at the head:
+- P9: `['killed by tests/a.py', 'SKIP-BUDGET', 'killed by tests/a.py']`, pinned `['x.py:T']`, survivors `[]`.
+- P10: `['SKIP-TIMED-OUT in tests/a.py', 'LIVES']`, clock 70.
+- P1 to P8 and P11 are as in round 1.
 
 **Round 1, failing first.** At 4f4ff36e, with the round-1 checks but not the fix, `tests/entities.py` gives rc=1, `3 of 2117 ENTITY CHECKS FAILED`:
 - `a budget cut falls on an anchor boundary, so no anchor is split and no killed twin is listed for a human verdict` (verdicts `['killed by tests/a.py', 'killed by tests/a.py', 'SKIP-BUDGET']`: the review's P1 split)
@@ -146,8 +171,10 @@ The review's `probe/probe.py` at this head:
 - replay model and budget effect: `sim.py LOG <pool deadline min|none> <cost multiple> 3` (sha1 45a27b24ecf22b1d796f00cb7b059684a325d6e7); `SIM_EXCL=tests/stress.py,tests/harness_headers.py` for the EXCLUSIVE composition
 - arm B demonstration: `demo_b.py <tests dir>` (sha1 f42945159be3b9ce0a3d86689a5dfd2b8b912b04), run in a detached worktree at 1ccd0b1d and at the head
 - mutation proof: `mutants.py <name> tests/mutation_table.py` (sha1 0d27660815f7dfd08d49c27cc8c594cde0f786a0), then `PYTHONPATH=tests/hastub python3 tests/entities.py`
-- scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: FULL` (reason: `.github/workflows/tests.yml changes the gate itself`). `tests/closures.json` puts `tests/mutation_table.py` and `tests/entities.py` in the closures of `tests/entities.py` and `tests/harness_headers.py`, and both pass locally at this head: `ALL 2117 ENTITY CHECKS PASSED`, `ALL 95 HARNESS HEADER CHECKS PASSED`. The rest is CI's.
+- scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: FULL` (reason: `.github/workflows/tests.yml changes the gate itself`). `tests/closures.json` puts `tests/mutation_table.py` and `tests/entities.py` in the closures of `tests/entities.py` and `tests/harness_headers.py`, and both pass locally at this head: `ALL 2120 ENTITY CHECKS PASSED`, `ALL 95 HARNESS HEADER CHECKS PASSED`. The rest is CI's.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, no budget moved
+- round-2 probe: the reviewer's `probe2.py`, given the head's `tests` directory (P1-P11)
+- round-2 mutation proof: `mutants3.py <name> tests/mutation_table.py`, then `PYTHONPATH=tests/hastub python3 tests/entities.py`
 - round-1 probe: the reviewer's `probe.py` (sha1 66f1afff81ac24427bf33f62c8be8048311f932b), given the head's `tests` directory (P1-P8)
 - #1878 composition: `git merge-tree --write-tree HEAD 5d6edffec707f9f16485cff9f3773e2c47874dcf`, then `tests/entities.py` in a worktree of that merge
 - round-1 mutation proof: `mutants2.py <name> tests/mutation_table.py`, then `PYTHONPATH=tests/hastub python3 tests/entities.py`
@@ -162,7 +189,7 @@ none
   - `SKIP-BUDGET` is not a re-verification, and `SKIP-TIMED-OUT` is not a confirmation.
   - Arm A keeps `verdict[j] = "SKIP-BUDGET"`.
 - Read back: the brief string contains `SKIP-BUDGET` and `SKIP-TIMED-OUT`. Their control is in this PR's `tests/entities.py`: the `small`, `exclusive` and anchor-boundary drive_pool checks. The roster file is off-tree and owned by the orchestrator.
-- Still to note there, as the reviewer recommended: mutation-nightly passes no `--seed`, so its draw is the constant 20260911. On an unchanged tree a heavy night cuts the same tail. The sample was already fixed before this PR, so this is not a defect here. A date seed would change the sample that `max_survivor_fraction[full]` was recorded on, so it is a separate decision. The 33c2ac12 brief does not contain `seed`.
+- The constant-seed note is also there, at the roster's 396e9ba3, per the round-2 review: mutation-nightly passes no `--seed`, so its draw is the constant 20260911 and a heavy night cuts the same tail. The sample was fixed before this PR too, so this is not a defect here.
 
 ## Friction
 
