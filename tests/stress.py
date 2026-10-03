@@ -1180,7 +1180,6 @@ def build_case(
             precipitation=rain,
             solar_radiation=solar,
             start_time=START,
-            price_known=None,
             pv_surplus=surplus,
             space_pins=space_pins,
             power_caps_extra=caps_extra,

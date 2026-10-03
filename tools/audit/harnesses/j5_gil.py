@@ -46,7 +46,7 @@ sys.path.insert(0, os.path.join(ROOT, "custom_components"))
 
 import numpy as np  # noqa: E402
 
-from profiles import DT, house, prices, weather  # noqa: E402
+from profiles import DT, house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer,
     OptimizationConfig,
@@ -155,32 +155,25 @@ async def submit_optimize(hass: LoopHass, packed) -> None:
     if ROUTE == "thread":
         await hass.loop.run_in_executor(
             hass.pool,
-            lambda: optimizer.optimize(
-                state, price_series, outdoor, wind, rain, solar, START,
-                None, None, None, None, None, None, caps,
-            ),
+            lambda: optimizer.optimize(inputs=solve_inputs(
+                initial_state=state,
+                prices=price_series,
+                outdoor_temps=outdoor,
+                wind_speeds=wind,
+                precipitation=rain,
+                solar_radiation=solar,
+                start_time=START,
+                power_caps_extra=caps,
+            )),
         )
         return
     from heatpump_optimizer.coordinator import _await_optimize
 
-    await _await_optimize(
-        hass,
-        optimizer,
-        state,
-        price_series,
-        outdoor,
-        wind,
-        rain,
-        solar,
-        START,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        caps,
-    )
+    await _await_optimize(hass, optimizer, solve_inputs(
+        initial_state=state, prices=price_series, outdoor_temps=outdoor,
+        wind_speeds=wind, precipitation=rain, solar_radiation=solar,
+        start_time=START, power_caps_extra=caps,
+    ))
 
 
 async def measure_arm(name: str, packed, *, duration: float | None = None) -> dict:

@@ -27609,8 +27609,6 @@ try:
         precipitation=_rb_b["rain"],
         solar_radiation=_rb_b["solar"],
         start_time=_RB_START,
-        price_known=None,
-        pv_surplus=None,
         external_heat_kw=_rb_ext(len(_rb_b["prices"])),
         dhw_blocked=True,
     ))
@@ -29014,8 +29012,6 @@ if _EpPlanner is not None:
             precipitation=_ep_b["rain"],
             solar_radiation=_ep_b["solar"],
             start_time=_EP_START,
-            price_known=None,
-            pv_surplus=None,
             external_heat_kw=_ep_ext(len(_ep_b["prices"])),
         ))
     finally:
