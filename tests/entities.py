@@ -4724,6 +4724,64 @@ R.check(
     + str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
+# ===========================================================================
+# P11: every Home Assistant name production reaches exists at the floor
+# ===========================================================================
+# Class P11 -- the only oracle for Home Assistant is a test double -- shipped
+# twice as a name the 2025.2.0 floor hacs.json declares does not have: v6.3.1
+# forwarded ``Platform.DIAGNOSTICS`` (#210) and #1869 imported
+# ``UnsupportedStorageVersionError`` (2026.3+). tests/hastub defined both, so
+# every PR-gate lane was green; only the nightly floor container could fail
+# them. This arm reads production's reach off the P6 trees, unguarded imports,
+# module attributes and class members alike, and answers each from a snapshot
+# recorded from upstream source at the floor (tests/ha_floor.py, whose
+# docstring states the unit, the guards and the residual). A question the
+# snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
+# being unknown; `python3 tests/ha_floor.py record` re-records it, and the
+# nightly floor container re-asks every answer of Home Assistant itself.
+# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+R.section("P11: every Home Assistant name production reaches exists at the floor")
+
+import ha_floor as _p11  # noqa: E402
+
+_p11_snap = _p11.floor_load()
+# Every production module, subpackages included; P6's trees and walks reused.
+_p11_reach = _p11.floor_reach(_p11.floor_trees(ROOT, reuse=_P6_TREES), _P6_WALKS)
+_p11_r = _p11.floor_check(_p11_reach, _p11_snap["answers"])
+R.check(
+    "the floor snapshot is recorded at the floor hacs.json declares",
+    _p11_snap["tag"] == _hacs_floor,
+    f"snapshot {_p11_snap['tag']}, hacs.json {_hacs_floor}",
+)
+R.check(
+    "every Home Assistant name production reaches unguarded exists at the floor, "
+    "and every one is recorded (P11 floor)",
+    _p11_r["checked"] > 0 and not _p11_r["missing"] and not _p11_r["unrecorded"],
+    f"checked={_p11_r['checked']} missing={_p11_r['missing'][:4]} "
+    f"unrecorded={_p11_r['unrecorded'][:4]}: {_p11.REMEDY}",
+)
+
+# NULL CONTROLS, planted trees answered from the same snapshot: each defect
+# shape (#1869's, v6.3.1's, each spelling of an alias, each guard that is not
+# one, an evaluated annotation) must be named at its line, each legitimate shape
+# must not be, and an unrecorded import, static or dynamic, must fail closed.
+_p11_c = _p11.floor_check(_p11.floor_reach(_p11.floor_control_trees()),
+                          _p11_snap["answers"])
+_p11_c_bad = _p11.floor_control_failures(_p11_c)
+# A module in a subpackage is production too: the reader must reach it.
+with tempfile.TemporaryDirectory() as _p11_tmp:
+    (Path(_p11_tmp) / "sub").mkdir()
+    (Path(_p11_tmp) / "sub" / "m.py").write_text("from homeassistant.helpers.storage "
+                                                 "import UnsupportedStorageVersionError\n")
+    if "sub/m.py" not in _p11.floor_trees(Path(_p11_tmp)):
+        _p11_c_bad.append("floor_trees does not read a subpackage")
+R.check(
+    "and the P11 floor arm names each planted defect, passes each guarded or "
+    "typing-only one, and fails an unrecorded import closed (null controls)",
+    len(_p11.FLOOR_CONTROLS) > 0 and not _p11_c_bad,
+    f"{_p11_c_bad}",
+)
+
 # --- hot water that is not configured is not a zero -------------------------
 R.section("Hot water entities exist only where there is hot water")
 
@@ -18553,6 +18611,19 @@ R.check(
     and "py-spy==" in Path("tests/requirements-nightly-ha.txt").read_text(),
     "without it the heartbeat dumps only the loop thread's Python stack",
 )
+# The P11 floor arm's snapshot is true only while the floor container keeps
+# re-asking it (tests/ha_floor.py). This pins that step's wiring: it exists,
+# runs on the matrix arm whose image is the floor hacs.json declares, and does
+# not skip when the lane before it went red.
+_NHA_FLOOR = [s for s in _NHA_STEPS if "tests/ha_floor.py verify" in s]
+R.check(
+    "nightly-ha re-asks the floor-names snapshot in the floor's own image",
+    len(_NHA_FLOOR) == 1
+    and f"matrix.image == '{_hacs_floor}'" in _NHA_FLOOR[0]
+    and "!cancelled()" in _NHA_FLOOR[0]
+    and f'"{_hacs_floor}"' in _NHA_JOB.split("image: [", 1)[-1].split("]", 1)[0],
+    f"{len(_NHA_FLOOR)} verify step(s); floor {_hacs_floor}",
+)
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
 # child, never every closure (R9-F10.9; this pinned `full` until then).
@@ -23873,6 +23944,297 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
+# the #1721 RCA). A job that restores its check source from the base grades a
+# pull request with the base's copy, so a changed grader first runs on main,
+# and one given a token first reads there as the Actions GITHUB_TOKEN, which a
+# seat's local run never is: #1715's comparator read `bypass_actors`, a field
+# that token cannot see, and main went red. The class is DERIVED: every program
+# a base-restoring job runs, matched against that job's restored pathspec, in a
+# step whose env carries a token. Each has a step in tests.yml's
+# `graders-head-copy` running it with GITHUB_TOKEN, or its reason here.
+import copy as _pt_copy  # noqa: E402
+import fnmatch as _pt_fnmatch  # noqa: E402
+
+_PT_EXEMPT = {
+    ".claude/workflows/policy_lint_envmatrix.mjs":
+        "its one principal-dependent row pins TOKEN_HIDDEN_SKIP_RE, which the arm's policy_lint "
+        "self-test drives; its since-ref shape uses a fixture token and no network",
+    ".claude/workflows/budget_raise_gate.py":
+        "reads reviews and issue comments, and on --rerun-stale POSTs a rerun; it reads no "
+        "ruleset, and needs pull-requests/issues read, which graders-head-copy lacks",
+    ".claude/workflows/contract_rerun.py": "re-requests a run and grades nothing",
+    "tests/nightly_status.py":
+        "needs `actions: read`, which graders-head-copy lacks; `fast` drives its copy",
+}
+_PT_PROG = re.compile(r"(?:^|\s)(?:node|python3?)(?:\s+-\S+)*\s+([\w./-]+\.(?:mjs|py))", re.M)
+
+
+def _pt_quoted_after(run: str, marker: str) -> "list[str]":
+    """The quoted paths on `marker`'s backslash-continued logical line."""
+    blk = []
+    for _ln in run.partition(marker)[2].split("\n"):
+        blk.append(_ln)
+        if not _ln.rstrip().endswith("\\"):
+            break
+    return re.findall(r"'([^'\n]+)'", "\n".join(blk))
+
+
+def _pt_seams(docs: dict) -> "set[str]":
+    out = set()
+    for _doc in docs.values():
+        for _job in ((_doc or {}).get("jobs") or {}).values():
+            _steps = _job.get("steps") or []
+            _pins = [_p for _s in _steps
+                     for _p in _pt_quoted_after(str(_s.get("run") or ""), 'git checkout "$PINNED" --')]
+            for _s in _steps:
+                if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
+                    continue
+                out |= {_g for _g in _PT_PROG.findall(str(_s.get("run") or ""))
+                        if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
+    return out
+
+
+# THE ARM IS ONE EXACT JOB (#1863, round 4). Three review rounds each found a
+# new way to keep the arm wired yet unable to report #1721 -- `|| true`, a
+# step's `continue-on-error`, an empty token, then a job-level GH_TOKEN (which
+# `gh` prefers), a job `defaults.run.shell`, a job `if` on 'push' -- and each
+# round's denylist missed the next level up. So the whole `graders-head-copy`
+# job is matched EXACTLY against this literal, and tests.yml may carry no
+# workflow-level `env` or `defaults` and no wider `permissions` than
+# `contents: read`, the only workflow keys that reach a job's steps. Any edit
+# to the job -- intended or not -- is a mismatch until this literal is edited
+# with it, in the same reviewed diff. The intended variation is none.
+_PT_JOB_CANON = _yaml.safe_load(r'''
+needs: [coverage]
+if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+runs-on: ubuntu-latest
+timeout-minutes: 10
+env:
+  HPO_JOB_GRADES: nothing
+steps:
+  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+    with:
+      fetch-depth: 0
+      # policy_lint.mjs's citation resolvers ask git about cited tags.
+      fetch-tags: true
+
+  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+    with:
+      python-version: "3.13"
+
+  - name: Name the pinned graders this pull request changes
+    id: changed
+    env:
+      BASE: ${{ github.event.pull_request.base.sha }}
+      HEAD: ${{ github.event.pull_request.head.sha }}
+    run: |
+      set -euo pipefail
+      git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+      for g in coverage_ratchet delivery_status; do
+        if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
+          echo "$g=true" >> "$GITHUB_OUTPUT"
+          echo "tests/$g.py changed: its own copy runs below"
+        else
+          echo "$g=false" >> "$GITHUB_OUTPUT"
+        fi
+      done
+      # The pathspec governance.yml's `policy-docs` restores from the base.
+      if git diff --quiet "$BASE"..."$HEAD" -- \
+          '.claude/workflows/*.mjs' \
+          '.claude/workflows/*.py' \
+          '.claude/workflows/vendor' \
+          'tools/audit/*.sh' \
+          'tools/audit/record-predicate' \
+          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+        echo "governance=false" >> "$GITHUB_OUTPUT"
+      else
+        echo "governance=true" >> "$GITHUB_OUTPUT"
+        echo "a pinned governance grader changed: its own copy runs below"
+      fi
+
+  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+    if: steps.changed.outputs.coverage_ratchet == 'true'
+    with:
+      name: coverage-json
+      path: ${{ runner.temp }}/coverage
+
+  - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
+    if: steps.changed.outputs.coverage_ratchet == 'true'
+    run: |
+      python3 tests/coverage_ratchet.py \
+        --coverage "$RUNNER_TEMP/coverage/coverage.json"
+
+  - name: The pull request's delivery_status.py, as `delivery-status` runs it
+    if: always() && steps.changed.outputs.delivery_status == 'true'
+    run: |
+      git fetch --no-tags --quiet origin main
+      python tests/delivery_status.py --check
+
+  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    with:
+      node-version: "22"
+
+  - name: The pull request's policy_lint.mjs, under the Actions token
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: node .claude/workflows/policy_lint.mjs
+
+  - name: The pull request's field_coverage.mjs, under the Actions token
+    if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    run: node .claude/workflows/field_coverage.mjs
+''')
+_PT_WF_PERMS = {"contents": "read"}
+_PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
+_PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
+
+
+def _pt_first_diff(a, b, path: str = "") -> str:
+    """The first path at which two parsed YAML values differ, or ''."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        for _k in sorted(set(a) | set(b), key=str):
+            if _k not in a or _k not in b:
+                return f"{path}.{_k} ({'added' if _k in a else 'missing'})"
+            _d = _pt_first_diff(a[_k], b[_k], f"{path}.{_k}")
+            if _d:
+                return _d
+        return ""
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return f"{path} (length {len(a)} != {len(b)})"
+        return next((_d for _n, (_x, _y) in enumerate(zip(a, b))
+                     if (_d := _pt_first_diff(_x, _y, f"{path}[{_n}]"))), "")
+    return "" if a == b else f"{path} ({a!r} != {b!r})"
+
+
+def _pt_arm_mismatch(docs: dict) -> str:
+    """Where tests.yml's graders-head-copy, or what reaches it, departs from the literal."""
+    _wf = docs["tests.yml"]
+    for _k in ("env", "defaults"):
+        if _k in _wf:
+            return f"workflow.{_k} (reaches every job)"
+    if _wf.get("permissions") != _PT_WF_PERMS:
+        return f"workflow.permissions ({_wf.get('permissions')!r} != {_PT_WF_PERMS!r})"
+    return _pt_first_diff(_wf["jobs"].get("graders-head-copy"), _PT_JOB_CANON, "graders-head-copy")
+
+
+def _pt_armed(docs: dict) -> "set[str]":
+    """The graders the arm runs as the Actions token: the literal's, or none on any mismatch."""
+    if _pt_arm_mismatch(docs):
+        return set()
+    return {_m.group(1) for _s in _PT_JOB_CANON["steps"]
+            if _s.get("env") == _PT_ARM_ENV and _s.get("if") == _PT_ARM_IF
+            for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or ""))] if _m}
+
+
+def _pt_trigger(script: str, planted: str) -> str:
+    """Run the arm's `changed` step on a planted one-file diff; its governance output."""
+    with tempfile.TemporaryDirectory() as _td:
+        _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
+        subprocess.run(["git", "init", "-q", _td], check=True)
+        Path(_td, "seed").write_text("0\n")
+        subprocess.run(_g + ["add", "-A"], check=True)
+        subprocess.run(_g + ["commit", "-qm", "base"], check=True)
+        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        Path(_td, planted).parent.mkdir(parents=True, exist_ok=True)
+        Path(_td, planted).write_text("1\n")
+        subprocess.run(_g + ["add", "-A"], check=True)
+        subprocess.run(_g + ["commit", "-qm", "head"], check=True)
+        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        _out = Path(_td, ".out")
+        subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
+                       env={**os.environ, "BASE": _base, "HEAD": _head,
+                            "RUNNER_TEMP": _td, "GITHUB_OUTPUT": str(_out)})
+        _m = re.findall(r"^governance=(\w+)$", _out.read_text() if _out.exists() else "", re.M)
+        return _m[-1] if len(_m) == 1 else f"outputs={_m}"
+
+
+def _pt_spec(docs: dict, wf: str, job: str, marker: str) -> "list[str]":
+    return [_p for _s in docs[wf]["jobs"][job]["steps"]
+            for _p in _pt_quoted_after(str(_s.get("run") or ""), marker)]
+
+
+_PT_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text())
+            for _wf in Path(".github/workflows").glob("*.yml")}
+_PT_SEAMS = _pt_seams(_PT_DOCS)
+_PT_OPEN = sorted(_PT_SEAMS - _pt_armed(_PT_DOCS) - set(_PT_EXEMPT))
+R.check(
+    "every pinned grader given a token runs its own copy under the Actions token on the pull request",
+    {".claude/workflows/policy_lint.mjs", ".claude/workflows/field_coverage.mjs"} <= _PT_SEAMS
+    and not _PT_OPEN and set(_PT_EXEMPT) <= _PT_SEAMS,
+    f"seams={sorted(_PT_SEAMS)} unarmed={_PT_OPEN} "
+    f"stale exemptions={sorted(set(_PT_EXEMPT) - _PT_SEAMS)} "
+    f"arm mismatch={_pt_arm_mismatch(_PT_DOCS) or 'none'}: arm the grader in graders-head-copy "
+    "and in _PT_JOB_CANON together, or give it a reason in _PT_EXEMPT",
+)
+_PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
+R.check(
+    "and the arm fires on exactly the pathspec policy-docs restores from the base",
+    _pt_spec(_PT_DOCS, "tests.yml", "graders-head-copy", _PT_DIFF)
+    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
+    f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
+)
+
+
+def _pt_arm_mutant(edit) -> "set[str]":
+    """The armed set of the workflows with `edit(workflow, job, policy_lint step)` applied."""
+    _d = _pt_copy.deepcopy(_PT_DOCS)
+    _wf = _d["tests.yml"]
+    _job = _wf["jobs"]["graders-head-copy"]
+    _step = next((_s for _s in _job.get("steps") or []
+                  if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), None)
+    if _step is None:  # no arm step to silence: nothing is armed (the check's first conjunct)
+        return set()
+    edit(_wf, _job, _step)
+    return _pt_armed(_d)
+
+
+# Null controls: each way, at each level, that a review round or this seat
+# found to keep the arm wired yet unable to report #1721. Each must disarm it.
+_PT_SILENCERS = {
+    "step run || true": lambda _w, _j, _s: _s.update(run=_s["run"] + " || true"),
+    "step continue-on-error": lambda _w, _j, _s: _s.update({"continue-on-error": True}),
+    "step empty GITHUB_TOKEN": lambda _w, _j, _s: _s.update(env={"GITHUB_TOKEN": ""}),
+    "step PAT for GITHUB_TOKEN": lambda _w, _j, _s: _s.update(env={"GITHUB_TOKEN": "${{ secrets.PAT }}"}),
+    "job continue-on-error": lambda _w, _j, _s: _j.update({"continue-on-error": True}),
+    "job env GH_TOKEN (R10b)": lambda _w, _j, _s: _j["env"].update(GH_TOKEN="${{ secrets.HPO_PAT }}"),
+    "job defaults shell (R11)": lambda _w, _j, _s: _j.update(defaults={"run": {"shell": "true {0}"}}),
+    "job if on push (R12)": lambda _w, _j, _s: _j.update({"if": _j["if"].replace("pull_request", "push")}),
+    "workflow defaults shell": lambda _w, _j, _s: _w.update(defaults={"run": {"shell": "true {0}"}}),
+    "workflow env GH_TOKEN": lambda _w, _j, _s: _w.update(env={"GH_TOKEN": "${{ secrets.HPO_PAT }}"}),
+    "workflow permissions write-all": lambda _w, _j, _s: _w.update(permissions="write-all"),
+}
+_PT_SILENT = {_k: bool(_pt_arm_mutant(_f)) for _k, _f in _PT_SILENCERS.items()}
+R.check(
+    "and any edit to the arm's job, or to what reaches it, disarms it (null control)",
+    _pt_armed(_PT_DOCS) == {".claude/workflows/policy_lint.mjs", ".claude/workflows/field_coverage.mjs"}
+    and not any(_PT_SILENT.values()),
+    f"mismatch at head: {_pt_arm_mismatch(_PT_DOCS) or 'none'}; still armed under: "
+    f"{sorted(_k for _k, _v in _PT_SILENT.items() if _v)}",
+)
+# The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
+# `false` passed a check that read the pathspec). The literal's `changed`
+# script runs on planted diffs: a restored path fires the arm, a path outside
+# the pathspec does not.
+_PT_SCRIPT = next(str(_s.get("run")) for _s in _PT_JOB_CANON["steps"] if _s.get("id") == "changed")
+_PT_FIRES = {_f: _pt_trigger(_PT_SCRIPT, _f) for _f in (
+    ".claude/workflows/x.mjs", "tools/audit/round6/D11/fix/codeowners_gap.py", "README.md")}
+R.check(
+    "and the arm's trigger fires on a restored path and only there",
+    _PT_FIRES == {".claude/workflows/x.mjs": "true",
+                  "tools/audit/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"},
+    f"planted diff -> governance: {_PT_FIRES}",
+)
+R.check(
+    "and a trigger whose firing branch writes false is refused (null control)",
+    _pt_trigger(_PT_SCRIPT.replace('echo "governance=true"', 'echo "governance=false"'),
+                ".claude/workflows/x.mjs") == "false",
+    "the trigger check must execute the script, not read the pathspec",
+)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -26969,7 +27331,7 @@ R.check(
 )
 # The other drivers' forms, each read as the count it is. validate.py and
 # plan_view.py list issues rather than printing FAIL lines, edge.py counts
-# FAILURES, and a timeout is a mutant noticed.
+# FAILURES, and a timeout names no failing check (R9-F10.12).
 _MUT_FORMS = {
     "validate": ("\n2 ISSUES:\n  [a] x\n  [b] y\n", 2),
     "plan_view": ("PLAN VIEW ISSUES:\n  - one\n  - two\n  - three\n", 3),
@@ -26990,7 +27352,7 @@ R.check(
     "every driver's failing-check form reads as its count",
     _MUT_FORM_GOT == {_k: _n for _k, (_o, _n) in _MUT_FORMS.items()}
     and _mut.failing_count(_mut.ScriptRun(_mut.TIMEOUT_RC, 1, 9.0, "", "t"))
-    == 1
+    == 0
     and _mut.failing_count(_mut.ScriptRun(0, 0, 0.0, "  FAIL a\n  FAIL b\n"))
     == 0,
     f"got={_MUT_FORM_GOT}",
@@ -29198,6 +29560,298 @@ R.check(
     f"{_MUT_V_BAD!r}",
 )
 
+# R9-F10.12 (B): a driver run that overran its timeout noticed nothing. The
+# old rule counted run_script's TIMEOUT_RC as one failing check, so a mutant
+# that only SLOWED tests/features.py past the fixed --timeout read as killed,
+# and --drain pushed that as a killed_by pin. The run below is the real
+# run_script on a planted driver that sleeps past a 1 s timeout; the verdict
+# is the real LazyBaselines that main() judges every mutant run with.
+_MUT_T_DIR = Path(_tempfile.mkdtemp(prefix="mutation-timeout-"))
+(_MUT_T_DIR / "slow.py").write_text("import time\ntime.sleep(1.6)\n")
+_MUT_T_GREEN = _mut.ScriptRun(0, 0, 0.6)
+_MUT_T_RUN = _mut.run_script("slow.py", _MUT_T_DIR, 1)
+_MUT_T_JUDGE = _mut.LazyBaselines({"slow.py": _MUT_T_GREEN}, lambda w, s: None)
+_MUT_T_SITE = {"file": "x.py", "line": 1, "kind": "GUARD_OFF", "anchor": "x.py:a",
+               "old": "if a:", "new": "if False:", "drivers": ["slow.py"]}
+try:
+    _MUT_T_OUT = _mut_pool([_MUT_T_SITE], 1, {"slow.py": 0.6},
+                           lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
+except TypeError:
+    _MUT_T_OUT = []
+_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE], "r")[0]
+               if _MUT_T_OUT else None)
+R.check(
+    "a mutant whose driver only overran its timeout is not killed, not "
+    "LIVES, and never pinned (R9-F10.12)",
+    _MUT_T_RUN.rc == _mut.TIMEOUT_RC
+    and not _mut.killed("slow.py", _MUT_T_RUN, _MUT_T_GREEN)
+    and [v for _, v in _MUT_T_OUT] == ["SKIP-TIMED-OUT in slow.py"]
+    and _MUT_T_PINS == {},
+    f"rc={_MUT_T_RUN.rc} verdicts={[v for _, v in _MUT_T_OUT]!r} "
+    f"pins={_MUT_T_PINS!r} -- a timeout is inconclusive: a hang and a slow "
+    "driver look the same from outside",
+)
+# The null control for the rule above: a timed-out NULL run still refuses the
+# table, since a driver that cannot finish the unmutated tree judges nothing.
+R.check(
+    "and a null control whose driver timed out still refuses the run",
+    _mut.null_control_verdict({"slow.py": _MUT_T_RUN},
+                              {"slow.py": _MUT_T_GREEN}) != "LIVES",
+    f"verdict={_mut.null_control_verdict({'slow.py': _MUT_T_RUN}, {'slow.py': _MUT_T_GREEN})!r}",
+)
+# The scaled timeout: TIMEOUT_SCALE times the driver's own measured seconds,
+# never under the fixed floor, so a driver's growth never reaches its limit
+# while a hang still ends. 0.6 s measured gives 2 s, which the 1.6 s run fits.
+_mut_tmo = getattr(_mut, "driver_timeout", None)
+_MUT_T_SCALED = ((_mut_tmo(1, 0.6), _mut_tmo(1200, 0.0), _mut_tmo(1200, 833.0))
+                 if _mut_tmo else None)
+_MUT_T_FITS = (_mut.run_script("slow.py", _MUT_T_DIR, _MUT_T_SCALED[0])
+               if _MUT_T_SCALED else None)
+_MUT_MAIN_TMO = _MUT_MAIN_DEFER.count("driver_timeout(args.timeout, ")
+R.check(
+    "a driver's timeout scales from its own measured seconds over the fixed "
+    "floor, and main() times every baseline, null and mutant run with it",
+    _MUT_T_SCALED == (2, 1200, 2499)
+    and _MUT_T_FITS is not None and _MUT_T_FITS.rc == 0
+    and _MUT_MAIN_TMO == 3 and "args.timeout, extra" not in _MUT_MAIN_DEFER,
+    f"scaled={_MUT_T_SCALED!r} fits={_MUT_T_FITS and _MUT_T_FITS.rc} "
+    f"call sites={_MUT_MAIN_TMO}",
+)
+_mut_shutil.rmtree(_MUT_T_DIR, ignore_errors=True)
+
+# R9-F10.12 (A): the mutant phase's wall-clock budget. Each pool runs on one
+# worker under a fake clock that each drive advances by the driver's cost, so
+# the admission arithmetic is exact. tests/a.py costs 10, tests/stress.py
+# (EXCLUSIVE, run after the shared phase) 30.
+_MUT_BG_T = [0.0]
+
+
+def _mut_bg_run(pool, deadline, kill_line=None):
+    """drive_pool's verdicts, the lines driven and the final clock."""
+    _MUT_BG_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append(m["line"])
+        _MUT_BG_T[0] += {"tests/a.py": 10, "tests/stress.py": 30}[s]
+        return m["line"] == kill_line and s == "tests/a.py"
+    try:
+        out = _mut_pool(pool, 1, {"tests/a.py": 10, "tests/stress.py": 30},
+                        drive, deadline=deadline, clock=lambda: _MUT_BG_T[0])
+    except TypeError:
+        return None
+    return [v for _, v in out], sorted(set(ran)), _MUT_BG_T[0]
+
+
+_MUT_BG_A = [{"file": "x.py", "line": i, "kind": "CONST",
+              "drivers": ["tests/a.py"]} for i in range(4)]
+_MUT_BG_X = [dict(m, drivers=["tests/a.py", "tests/stress.py"])
+             for m in _MUT_BG_A[:3]]
+_MUT_BG_OUT = {
+    # Two mutants fit 25; the third would end at 30, so it and the fourth
+    # are never started.
+    "small": _mut_bg_run(_MUT_BG_A, 25),
+    # Admission reserves each undecided mutant's EXCLUSIVE run and releases
+    # it on a kill: mutant 0 is killed by tests/a.py, so mutant 1 fits 65
+    # (20 + 30 at 10); mutant 2 would need 20 + 40 + 30 reserved = 90.
+    "exclusive": _mut_bg_run(_MUT_BG_X, 65, kill_line=0),
+    # Nothing fits 5.
+    "none": _mut_bg_run(_MUT_BG_A, 5),
+    # The null control: no deadline drives the whole pool.
+    "unbounded": _mut_bg_run(_MUT_BG_A, None),
+}
+R.check(
+    "a budget too small for its pool starts mutants only while they fit, "
+    "names the rest SKIP-BUDGET, and reserves the EXCLUSIVE runs it owes",
+    _MUT_BG_OUT == {
+        "small": (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"], [0, 1], 20),
+        "exclusive": (["killed by tests/a.py", "LIVES", "SKIP-BUDGET"],
+                      [0, 1], 50),
+        "none": (["SKIP-BUDGET"] * 4, [], 0),
+        "unbounded": (["LIVES"] * 4, [0, 1, 2, 3], 40),
+    },
+    f"out={_MUT_BG_OUT!r}",
+)
+# What main() makes of it: every unstarted mutant named, the cap over the
+# evaluated ones, and a run the budget let evaluate nothing refused -- never
+# PASSED, so a budget cannot read as a measurement of nothing.
+_mut_brep = getattr(_mut, "budget_refusal", None)
+_MUT_BR_RES = [({"file": "x.py", "line": 1, "kind": "CONST"}, v)
+               for v in ("SKIP-BUDGET", "SKIP-MOVED")]
+_MUT_BR_OUT = ((_mut_brep(_MUT_BR_RES), _mut_brep(
+    _MUT_BR_RES + [({"file": "x.py", "line": 2, "kind": "CONST"}, "LIVES")]),
+    _mut_brep(_MUT_BR_RES[1:])) if _mut_brep else None)
+R.check(
+    "a run the budget let evaluate no mutant is refused; one that evaluated "
+    "some, or skipped none for the budget, is not",
+    _MUT_BR_OUT == (1, None, None)
+    and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER,
+    f"out={_MUT_BR_OUT!r}",
+)
+# Wired, against the YAML: each caller passes a budget under its timeout, the
+# pull request's pin step only to a base program that has the flag.
+_MUT_BW_MISSING = [(j, w) for j, w in (
+    ("mutation-nightly", "--budget-minutes 270"),
+    ("mutation-ledger", "--budget-minutes 270"),
+    ("mutation", "&& budget=(--budget-minutes 35)"),
+    ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+) if w not in _workflow_job(_TESTS_YML, j)]
+R.check(
+    "mutation-nightly, mutation-ledger and the pin step each pass a budget",
+    not _MUT_BW_MISSING,
+    f"missing={_MUT_BW_MISSING!r}",
+)
+# R9-F10.12 round 1 (the review's P1): a budget cut must fall on an anchor
+# boundary. A disposition covers every site under its anchor, so a cut between
+# two twins left the killed one in the drain's survivors.txt as "its anchor
+# also covers a site no run killed" -- false, the other was never started.
+# One 1-site anchor then one 2-site anchor at cost 10 under a deadline of 25:
+# the second anchor needs 20 more at 10, so both its sites are SKIP-BUDGET.
+_MUT_AB_SITE = lambda ln, a: {"file": "x.py", "line": ln, "kind": "CLAMP",  # noqa: E731
+                              "anchor": a, "old": "o", "new": "n",
+                              "drivers": ["tests/a.py"]}
+_MUT_AB_POOL = [_MUT_AB_SITE(0, "x.py:A"), _MUT_AB_SITE(1, "x.py:B"),
+                _MUT_AB_SITE(2, "x.py:B")]
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_ab_drive(w, m, s):
+    _MUT_BG_T[0] += 10
+    return True
+
+
+_MUT_AB_OUT = _mut_pool(_MUT_AB_POOL, 1, {"tests/a.py": 10}, _mut_ab_drive,
+                        deadline=25, clock=lambda: _MUT_BG_T[0])
+_MUT_AB_PINS = _mut.pin_results(
+    _MUT_AB_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
+                  for m, v in _MUT_AB_OUT if v.startswith("killed")},
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_AB_POOL, "r",
+    how="--drain")[0]
+_mut_drain_surv = getattr(_mut, "drain_survivors", None)
+_MUT_AB_SURV = (_mut_drain_surv(_MUT_AB_OUT, _MUT_AB_PINS)
+                if _mut_drain_surv else None)
+R.check(
+    "a budget cut falls on an anchor boundary, so no anchor is split and no "
+    "killed twin is listed for a human verdict",
+    [v for _, v in _MUT_AB_OUT]
+    == ["killed by tests/a.py", "SKIP-BUDGET", "SKIP-BUDGET"]
+    and sorted(_MUT_AB_PINS) == ["x.py:A"] and _MUT_AB_SURV == []
+    and "survivors = drain_survivors(results, entries)" in _MUT_MAIN_DEFER,
+    f"verdicts={[v for _, v in _MUT_AB_OUT]!r} pins={sorted(_MUT_AB_PINS)!r} "
+    f"survivors={_MUT_AB_SURV!r}",
+)
+# A mutant's sweep stops at its first timed-out driver: a hang costs one
+# timeout, not one per driver (the review's P2: three drivers, all hanging).
+_MUT_HG_RAN: list = []
+_MUT_HG_OUT = _mut_pool(
+    [{"file": "x.py", "line": 0, "kind": "K",
+      "drivers": ["tests/a.py", "tests/b.py", "tests/stress.py"]}], 1,
+    {"tests/a.py": 1, "tests/b.py": 2, "tests/stress.py": 3},
+    lambda w, m, s: _MUT_HG_RAN.append(s))
+R.check(
+    "a mutant whose driver timed out runs no further driver",
+    [v for _, v in _MUT_HG_OUT] == ["SKIP-TIMED-OUT in tests/a.py"]
+    and _MUT_HG_RAN == ["tests/a.py"],
+    f"verdicts={[v for _, v in _MUT_HG_OUT]!r} ran={_MUT_HG_RAN!r}",
+)
+# Round 2 (the review's P9): twins NOT adjacent in the queue -- a --pin-killed
+# pool has no adjacency -- with a dearer site between them. A granted twin
+# is started even after that site closes the pool, so the anchor is whole.
+_MUT_NA_POOL = [_MUT_AB_SITE(0, "x.py:T"),
+                dict(_MUT_AB_SITE(1, "x.py:U"), drivers=["tests/z.py"]),
+                _MUT_AB_SITE(2, "x.py:T")]
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_na_drive(w, m, s):
+    _MUT_BG_T[0] += {"tests/a.py": 10, "tests/z.py": 100}[s]
+    return True
+
+
+_MUT_NA_OUT = _mut_pool(_MUT_NA_POOL, 1, {"tests/a.py": 10, "tests/z.py": 100},
+                        _mut_na_drive, deadline=40, clock=lambda: _MUT_BG_T[0])
+_MUT_NA_PINS = _mut.pin_results(
+    _MUT_NA_OUT, {(id(m), "tests/a.py"): _mut.ScriptRun(1, 1, 1.0)
+                  for m, v in _MUT_NA_OUT if v.startswith("killed")},
+    {"tests/a.py": _mut.ScriptRun(0, 0, 1.0)}, _MUT_NA_POOL, "r",
+    how="--drain")[0]
+R.check(
+    "a twin granted with its anchor is started even after a dearer site "
+    "between them closes the pool",
+    [v for _, v in _MUT_NA_OUT]
+    == ["killed by tests/a.py", "SKIP-BUDGET", "killed by tests/a.py"]
+    and sorted(_MUT_NA_PINS) == ["x.py:T"],
+    f"verdicts={[v for _, v in _MUT_NA_OUT]!r} pins={sorted(_MUT_NA_PINS)!r}",
+)
+# And the drain's own guard, driven on the split round 1 produced there: a
+# killed site whose twin went unstarted is no human's to judge.
+_MUT_NA_SPLIT = [(_MUT_NA_POOL[0], "killed by tests/a.py"),
+                 (_MUT_NA_POOL[1], "SKIP-BUDGET"),
+                 (_MUT_NA_POOL[2], "SKIP-BUDGET")]
+_MUT_NA_SURV = (_mut_drain_surv(_MUT_NA_SPLIT, {}) if _mut_drain_surv else None)
+R.check(
+    "the drain lists no site of an anchor the budget split",
+    _MUT_NA_SURV == [],
+    f"survivors={_MUT_NA_SURV!r}",
+)
+# Round 2 (the review's P10): a mutant that timed out runs nothing further,
+# so its EXCLUSIVE reservation is released as a kill's is. Mutant 0 times out
+# on tests/a.py at 30; mutant 1 needs 40 and fits 80 only without the stale 30.
+_MUT_BG_T[0] = 0.0
+
+
+def _mut_tr_drive(w, m, s):
+    _MUT_BG_T[0] += 30 if m["line"] == 0 else {"tests/a.py": 10,
+                                                "tests/stress.py": 30}[s]
+    return None if m["line"] == 0 else False
+
+
+_MUT_TR_OUT = _mut_pool(_MUT_BG_X[:2], 1, {"tests/a.py": 10, "tests/stress.py": 30},
+                        _mut_tr_drive, deadline=80, clock=lambda: _MUT_BG_T[0])
+R.check(
+    "a timed-out mutant releases the EXCLUSIVE run it reserved",
+    [v for _, v in _MUT_TR_OUT] == ["SKIP-TIMED-OUT in tests/a.py", "LIVES"]
+    and _MUT_BG_T[0] == 70,
+    f"verdicts={[v for _, v in _MUT_TR_OUT]!r} clock={_MUT_BG_T[0]}",
+)
+# Timeouts are loud in the headline: a run that evaluated nothing because its
+# mutants timed out is refused, the reason names each cause, and a partial
+# run's PASSED suffix counts the timed-out ones too (the review's P4, P5).
+_MUT_TO_RES = [({"file": "x.py", "line": i, "kind": "K"},
+                "SKIP-TIMED-OUT in tests/a.py") for i in range(3)]
+import contextlib as _mut_ctx  # noqa: E402
+import io as _mut_io  # noqa: E402
+_MUT_TO_OUT = []
+for _res in (_MUT_TO_RES,
+             _MUT_TO_RES + [({"file": "x.py", "line": 9, "kind": "K"},
+                             "SKIP-BUDGET")]):
+    _buf = _mut_io.StringIO()
+    with _mut_ctx.redirect_stdout(_buf):
+        _rc = _mut.budget_refusal(_res)
+    _MUT_TO_OUT.append((_rc, [ln.strip() for ln in _buf.getvalue().splitlines()
+                              if "REFUSED" in ln]))
+_mut_pnote = getattr(_mut, "partial_note", None)
+_MUT_TO_NOTE = (_mut_pnote([({}, "LIVES"), ({}, "SKIP-TIMED-OUT in a"),
+                            ({}, "SKIP-BUDGET"), ({}, "SKIP-MOVED")]),
+                _mut_pnote([({}, "LIVES"), ({}, "SKIP-TIMED-OUT in a")]),
+                _mut_pnote([({}, "LIVES"), ({}, "SKIP-MOVED")])) \
+    if _mut_pnote else None
+R.check(
+    "a run whose mutants all timed out or went unstarted is refused by cause, "
+    "and a partial PASSED counts the timed-out ones",
+    _MUT_TO_OUT == [
+        (1, ["MUTATION TABLE REFUSED -- nothing was measured: 3 mutant(s) "
+             "timed out, 0 not started for --budget-minutes"]),
+        (1, ["MUTATION TABLE REFUSED -- nothing was measured: 3 mutant(s) "
+             "timed out, 1 not started for --budget-minutes"])]
+    and _MUT_TO_NOTE == (" (partial: 1 evaluated, 1 timed out, 1 not started "
+                         "for the budget)",
+                         " (partial: 1 evaluated, 1 timed out, 0 not started "
+                         "for the budget)", "")
+    and 'PASSED" + partial_note(results)' in _MUT_MAIN_DEFER,
+    f"refusals={_MUT_TO_OUT!r} notes={_MUT_TO_NOTE!r}",
+)
+
 
 # `--scope changed` draws only from lines the diff adds or modifies (tvofi's
 # ruling on #1565: a survivor on a line the pull request never touched blocked
@@ -30299,6 +30953,327 @@ R.check(
     _egb3_ins == _egb3_class("Insight") and _egb3_cs == _egb3_class("CompressorStarts"),
     f"insight={sorted(_egb3_ins ^ _egb3_class('Insight'))} "
     f"compressor_starts={sorted(_egb3_cs ^ _egb3_class('CompressorStarts'))}",
+)
+
+
+
+# --- the GitHub Pages deploy (R9-WEB-2) --------------------------------------
+# `.github/workflows/pages.yml` publishes the product page (docs/index.html),
+# its site folder, the documentation sub-pages tools/site/build_docs.mjs
+# renders, and the images under docs/ -- and never a markdown file, so the
+# development record is not served as web pages. What is pinned, and why:
+#   * the trigger is release.yml's own tag trigger plus a dispatch, so the
+#     served page is the release HACS installs (DESIGN-SITE S6), and nothing a
+#     pull request does runs it;
+#   * the grant is exactly the three permissions a Pages deploy needs, so it
+#     cannot grow past the approval in silence (the #960 precedent);
+#   * every `uses:` is pinned by commit (#960);
+#   * no job produces a required context: the deploy is not a merge gate;
+#   * the upload and the deploy are gated on the Pages probe, so with Pages
+#     off or built from a branch the run is green with a warning naming the
+#     setting, and deploys nothing;
+#   * the deploy runs in the github-pages environment, and the build job,
+#     which runs `npm ci` and the generator, holds no write and no OIDC token;
+#   * no `if:` is made true by always(), and a deploy in flight is never
+#     cancelled.
+# The staging is pinned by RUNNING it, not by reading it: the step named
+# "Stage the site" runs in a scratch repository holding every kind of file
+# docs/ can hold, and what it stages must be exactly the published set; the
+# step named "Refuse a published markdown file" must pass that set and refuse
+# it once a .md is planted. A reader of the script text would pass a staging
+# that copies all of docs/ and deletes nothing; this cannot. Design choice,
+# said out loud (fixer.md step 11): the published set is the design's
+# (docs/index.html, docs/site/** less markdown, every tracked *.png and *.svg
+# under docs/ at its own path), and the steps are keyed by their names.
+_PG_WF = Path(".github/workflows/pages.yml")
+_PG_STAGE, _PG_GUARD = "Stage the site", "Refuse a published markdown file"
+_PG_TREE = {
+    "docs/index.html": "<!doctype html>",
+    "docs/site/docs.css": "body{}",
+    "docs/site/fonts/a.woff2": "w",
+    "docs/site/fonts/OFL-A.txt": "ofl",
+    "docs/site/notes.md": "# a markdown file inside the site folder",
+    "docs/site/fonts/README.MD": "# upper-case extension inside the site folder",
+    "docs/site/notes.markdown": "# the other markdown extension",
+    "docs/img/a.png": "p",
+    "docs/img/card/b-dark.png": "p",
+    "docs/setup/c.svg": "<svg/>",
+    "docs/how-it-works.md": "# reader doc",
+    "docs/HANDOVER.MD": "# record, upper-case extension",
+    "docs/tool.py": "print()",
+    "docs/img/data.json": "{}",  # a tracked file of a kind not published
+    "docs/untracked.png": None,  # on disk, never added: not the release's file
+    "README.md": "# readme",
+    "outside.png": "p",
+}
+_PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
+            "site/fonts/OFL-A.txt", "img/a.png", "img/card/b-dark.png",
+            "setup/c.svg"}
+
+
+def _pg_run(script: str, cwd: Path) -> int:
+    env = dict(os.environ, RUNNER_TEMP=str(cwd.parent),
+               GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull)
+    return subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail",
+                           "-c", script], cwd=cwd, env=env,
+                          capture_output=True, text=True).returncode
+
+
+def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
+    """Run the staging and guard scripts in a scratch repository."""
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        # No path is ever an argument: a recorded run would attribute a
+        # relative argv path to this repository (tests/closure.py `_rel`).
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        for tracked in (True, False):
+            for rel, body in _PG_TREE.items():
+                if (body is not None) == tracked:
+                    (repo / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (repo / rel).write_text(body or "untracked")
+            if tracked:
+                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
+                               check=True)
+        rc = _pg_run(stage, repo)
+        site = repo / "_site"
+        got = {p.relative_to(site).as_posix() for p in site.rglob("*")
+               if p.is_file()} if site.is_dir() else set()
+        if rc != 0 or got != _PG_WANT:
+            out.append(f"staging rc={rc}; extra={sorted(got - _PG_WANT)} "
+                       f"missing={sorted(_PG_WANT - got)}")
+        grc = _pg_run(guard, repo)
+        if grc != 0:
+            out.append(f"the guard refuses the clean staged set (rc={grc})")
+        # Each markdown extension planted alone: the guard is the only
+        # refusal of a `.markdown` file that reaches _site by any route.
+        for planted in ("note.Md", "note.markdown"):
+            (site / "img").mkdir(parents=True, exist_ok=True)
+            (site / "img" / planted).write_text("planted")
+            if _pg_run(guard, repo) == 0:
+                out.append(f"the guard passes a staged set holding {planted}")
+            (site / "img" / planted).unlink()
+    return out
+
+
+def _pg_probe_defects(script: str) -> "list[str]":
+    """Run the probe step against a stub `gh` for each answer the API gives.
+
+    Pages built by this workflow -> enabled=true; Pages off (404) or built
+    from a branch -> enabled=false and exit 0, so the run stays green and the
+    upload and deploy are skipped; any other API error -> a red run.
+    """
+    cases = {"workflow": ("echo workflow", 0, "true"),
+             "404": ("echo 'gh: Not Found (HTTP 404)' >&2; exit 1", 0, "false"),
+             "legacy": ("echo legacy", 0, "false"),
+             "500": ("echo 'gh: Server Error (HTTP 500)' >&2; exit 1", 1, None)}
+    out: "list[str]" = []
+    with tempfile.TemporaryDirectory() as tmp:
+        stub, gho = Path(tmp) / "bin", Path(tmp) / "out"
+        stub.mkdir()
+        for case, (body, want_rc, want) in cases.items():
+            (stub / "gh").write_text(f"#!/bin/sh\n{body}\n")
+            (stub / "gh").chmod(0o755)
+            gho.write_text("")
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=str(gho),
+                       GITHUB_STEP_SUMMARY=os.devnull, GITHUB_REPOSITORY="o/r",
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo",
+                                 "pipefail", "-c", script], cwd=tmp, env=env,
+                                capture_output=True, text=True).returncode
+            got = re.findall(r"^enabled=(\w+)$", gho.read_text(), re.M)
+            if (rc != 0) != bool(want_rc) or got != ([want] if want else []):
+                out.append(f"probe on {case}: rc={rc} enabled={got}")
+    return out
+
+
+_PG_STATUS_FN = re.compile(r"\b(?:success|failure|always|cancelled)\s*\(", re.I)
+
+
+def _pg_defects(text: str) -> "list[str]":
+    """Why a Pages workflow text breaks the pinned contract; [] when it holds."""
+    doc = _yaml.safe_load(text) or {}
+    out: "list[str]" = []
+    on = doc.get(True, doc.get("on")) or {}
+    rel = _yaml.safe_load(Path(_REL_WF).read_text()) or {}
+    rel_tags = ((rel.get(True, rel.get("on")) or {}).get("push") or {}).get("tags")
+    if not isinstance(on, dict) or sorted(on) != ["push", "workflow_dispatch"] \
+            or on.get("push") != {"tags": rel_tags} or not rel_tags:
+        out.append(f"triggers {on!r} are not release.yml's push tags "
+                   f"{rel_tags!r} plus workflow_dispatch")
+    if doc.get("permissions") != {"contents": "read", "pages": "write",
+                                  "id-token": "write"}:
+        out.append(f"workflow permissions {doc.get('permissions')!r}")
+    if not (doc.get("concurrency") or {}).get("group"):
+        out.append("no concurrency group")
+    if (doc.get("concurrency") or {}).get("cancel-in-progress") is not False:
+        out.append("cancel-in-progress is not false: a newer run would cancel "
+                   "a deploy in flight")
+    jobs = doc.get("jobs") or {}
+    for jid, job in jobs.items():
+        perms = (job or {}).get("permissions") or {}
+        if not isinstance(perms, dict):
+            out.append(f"job {jid} permissions are {perms!r}, not a mapping "
+                       "of named grants")
+            perms = {}
+        for k, v in perms.items():
+            if v == "write" and k not in ("pages", "id-token"):
+                out.append(f"job {jid} widens {k} to write")
+        label = str((job or {}).get("name") or jid)
+        ifs = [str((job or {}).get("if", ""))] + [
+            str((s or {}).get("if", "")) for s in (job or {}).get("steps") or []]
+        # GitHub adds the implicit success() to an `if:` only when it calls
+        # none of the status functions, so ANY call of one -- always(),
+        # cancelled(), failure(), success() -- replaces the gate this file
+        # relies on. Function names are case-insensitive in expressions.
+        bad_ifs = [i for i in ifs if _PG_STATUS_FN.search(i)]
+        if bad_ifs:
+            out.append(f"job {jid} has an `if:` calling a status function, "
+                       f"which replaces the implicit success() gate: {bad_ifs}")
+        if label in _RC_CONTEXTS or jid in _RC_CONTEXTS:
+            out.append(f"job {jid} produces required context {label!r}")
+    steps = [(jid, s or {}) for jid, j in jobs.items()
+             for s in ((j or {}).get("steps") or [])]
+    for jid, s in steps:
+        u = s.get("uses")
+        if str(u or "").startswith("actions/checkout@") and \
+                (s.get("with") or {}).get("persist-credentials") is not False:
+            out.append(f"{jid}: checkout persists its token in .git/config")
+        if u and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", u):
+            out.append(f"{jid}: `uses: {u}` is not pinned by commit")
+    named = {s.get("name"): (i, s) for i, (_, s) in enumerate(steps)}
+    if _PG_STAGE not in named or _PG_GUARD not in named:
+        return out + [f"no step named {_PG_STAGE!r} or {_PG_GUARD!r}"]
+    gi = named[_PG_GUARD][0]
+    up = [i for i, (_, s) in enumerate(steps)
+          if str(s.get("uses", "")).startswith("actions/upload-pages-artifact@")]
+    writers = [i for i, (_, s) in enumerate(steps)
+               if "_site" in str(s.get("run", "")) and i != gi]
+    if len(up) != 1 or not writers or max(writers) > gi or up[0] < gi:
+        out.append(f"the guard (step {gi}) does not sit after every step "
+                   f"writing _site {writers} and before the upload {up}")
+    elif "enabled" not in str(steps[up[0]][1].get("if", "")):
+        out.append("the upload is not gated on the Pages probe")
+    deploy = [jid for jid, s in steps
+              if str(s.get("uses", "")).startswith("actions/deploy-pages@")]
+    if len(deploy) != 1 or "enabled" not in str(jobs[deploy[0]].get("if", "")):
+        out.append(f"the deploy job {deploy} is not gated on the Pages probe")
+    else:
+        # The environment is the one control that limits a deploy to the refs
+        # tvofi admits (today `main`, and `v*` once the tag rule is added).
+        dsteps = jobs[deploy[0]].get("steps") or []
+        if len(dsteps) != 1:
+            out.append(f"the deploy job runs {len(dsteps)} steps, not only "
+                       "deploy-pages: it holds the write and OIDC grant")
+        env = jobs[deploy[0]].get("environment")
+        if (env.get("name") if isinstance(env, dict) else env) != "github-pages":
+            out.append(f"the deploy job runs outside the github-pages "
+                       f"environment ({env!r})")
+    # The job that checks out, runs `npm ci` and runs the repository's
+    # generator holds no write and no OIDC token: only the deploy job does.
+    build = [jid for jid, s in steps
+             if str(s.get("uses", "")).startswith("actions/upload-pages-artifact@")]
+    if len(build) == 1 and (jobs[build[0]].get("permissions")
+                            != {"contents": "read", "pages": "read"}):
+        out.append(f"the build job's permissions are "
+                   f"{jobs[build[0]].get('permissions')!r}, not exactly "
+                   "contents:read and pages:read")
+    probe = [s for _, s in steps if s.get("id") == "probe"]
+    if len(probe) != 1:
+        out.append("no step with id `probe`")
+    else:
+        out += _pg_probe_defects(str(probe[0].get("run", "")))
+    return out + _pg_staging_defects(str(named[_PG_STAGE][1].get("run", "")),
+                                     str(named[_PG_GUARD][1].get("run", "")))
+
+
+_PG_GOT = _pg_defects(_PG_WF.read_text()) if _PG_WF.is_file() else [
+    f"{_PG_WF} does not exist"]
+R.check(
+    "the Pages workflow deploys on a release tag, is gated on Pages being "
+    "enabled, and stages the published set and never a markdown file",
+    not _PG_GOT,
+    "; ".join(_PG_GOT[:5]),
+)
+# Null controls: the same reader over a staging that copies all of docs/, and
+# over a guard that refuses nothing. Each must be refused, or the check above
+# passes vacuously.
+_PG_NULL_STAGE = _pg_staging_defects(
+    "rm -rf _site; mkdir -p _site; cp -R docs/. _site/",
+    "test -f _site/index.html")
+_PG_NULL_GUARD = _pg_staging_defects(
+    "rm -rf _site; mkdir -p _site; cp docs/index.html _site/", "true")
+R.check(
+    "and a staging that copies docs/ wholesale, or a guard that refuses "
+    "nothing, is refused (null controls)",
+    any("extra=" in d and ".md" in d for d in _PG_NULL_STAGE)
+    and any("holding note.Md" in d for d in _PG_NULL_GUARD),
+    f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
+)
+
+# Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
+# script reads it, so an edit to it selects this script; it sets no gate
+# variable and runs no gate script, so it never forces FULL.
+R.check(
+    "pages.yml is not a gate file, and is classified",
+    (not _closure.is_gate_file(str(_PG_WF)))
+    and (not _closure.is_inert(str(_PG_WF)))
+    and _closure.affected([str(_PG_WF)])["case"] == "scoped"
+    and str(_PG_WF) in json.loads(
+        _closure.CLOSURES.read_text())["closures"]["tests/entities.py"],
+    f"gate={_closure.is_gate_file(str(_PG_WF))} "
+    f"inert={_closure.is_inert(str(_PG_WF))} "
+    f"case={_closure.affected([str(_PG_WF)])['case']}",
+)
+
+# The two grants a review found unpinned (#1876 round 1), each driven over the
+# real workflow text with one block removed: the deploy job's environment, and
+# the build job's narrowed permissions (without them it inherits pages:write
+# and id-token:write). Each mutant must be refused for its own reason.
+def _pg_without(block: str) -> "list[str]":
+    text = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    if text.count(block) != 1:
+        return [f"control block not found once: {block!r}"]
+    return _pg_defects(text.replace(block, ""))
+
+
+_PG_NO_ENV = _pg_without(
+    "    environment:\n      name: github-pages\n"
+    "      url: ${{ steps.deployment.outputs.page_url }}\n")
+_PG_NO_PERMS = _pg_without(
+    "    permissions:\n      contents: read\n      pages: read\n")
+R.check(
+    "and a deploy outside the github-pages environment, or a build job that "
+    "inherits the deploy grant, is refused (null controls)",
+    any("github-pages environment" in d for d in _PG_NO_ENV)
+    and any("build job's permissions" in d for d in _PG_NO_PERMS),
+    f"no environment: {_PG_NO_ENV}; no build permissions: {_PG_NO_PERMS}",
+)
+
+# The status-function class (#1876 round 2): one planted `if:` per spelling a
+# review used, on the deploy job, each refused by the one rule above.
+_PG_DEPLOY_IF = "    if: needs.pages-build.outputs.enabled == 'true'\n"
+_PG_STATUS_SPELLINGS = {
+    "always()": "always() && needs.pages-build.outputs.enabled == 'true'",
+    "!cancelled()": "${{ !cancelled() && needs.pages-build.outputs.enabled != 'nope' }}",
+    "cancelled()": "cancelled() || needs.pages-build.outputs.enabled == 'true'",
+    "failure()": "failure() || needs.pages-build.outputs.enabled == 'true'",
+    "success() || failure()": "success() || failure() || needs.pages-build.outputs.enabled",
+}
+_PG_STATUS_GOT = {}
+for _sp, _expr in _PG_STATUS_SPELLINGS.items():
+    _txt = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    _PG_STATUS_GOT[_sp] = (
+        any("status function" in d for d in _pg_defects(
+            _txt.replace(_PG_DEPLOY_IF, f"    if: {_expr}\n")))
+        if _txt.count(_PG_DEPLOY_IF) == 1 else False)
+R.check(
+    "and an `if:` calling any status function is refused, one planted "
+    "spelling each (null controls)",
+    all(_PG_STATUS_GOT.values()),
+    f"refused per spelling: {_PG_STATUS_GOT}",
 )
 
 

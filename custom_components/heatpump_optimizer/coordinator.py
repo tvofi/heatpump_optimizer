@@ -264,6 +264,8 @@ from .const import (
     DEFAULT_COMFORT_LEARNING_ENABLED,
     ACCURACY_STORE_VERSION,
     ENERGY_STORE_VERSION,
+    LEDGER_STORE_VERSION,
+    SNAPSHOT_STORE_VERSION,
     MANUAL_PLAN_STORE_VERSION,
     MANUAL_PLAN_WINDOW_HOURS,
     SIMULATE_MIN_INTERVAL_SECONDS,
@@ -2483,7 +2485,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #42: the weekly ring of learner snapshots.
         self._snapshot_ring = SnapshotRing()
         self._snapshot_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
-            hass, 1, f"{DOMAIN}_{entry.entry_id}_snapshots"
+            hass, SNAPSHOT_STORE_VERSION, f"{DOMAIN}_{entry.entry_id}_snapshots"
         )
         self._rollback_done_for_alarm: bool = False
         # The heartbeat must not act before the persisted ring loads, or
@@ -2748,7 +2750,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._ledger = MonthlyLedger()
         self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
-            1,
+            LEDGER_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_ledger",
         )
 

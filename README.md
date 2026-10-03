@@ -341,21 +341,25 @@ be added later from the options pages.
 
 ```mermaid
 flowchart TD
-    A["1 · Basics<br/>name, Tibber token or price entity,<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, switch, tank probes"]
-    B --> M["3 · Finish setup now? — a menu:<br/>Quick setup (recommended), Continue setup,<br/>or Finish setup now"]
-    M -- "Quick setup (recommended)" --> Q["One page of house questions,<br/>then the heat pump's entities<br/>read automatically"]
-    M -- "Finish setup now" --> J(["Done — first plan<br/>within one interval"])
-    M -- "Continue setup" --> C["4 · Temperatures<br/>targets, day/night comfort, hours"]
-    C --> D{"5 · How do you want to<br/>describe your building?"}
-    D -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
-    E --> F["Heat pump basics<br/>COP, max/min power"]
-    D -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
-    G --> H["Two-zone & solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
-    F --> I["6 · Hot water<br/>tank, setpoint, schedule,<br/>legionella"]
+    A["1 · Basics<br/>name, price source (Tibber token or price entity),<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, on/off switch, solar,<br/>tank probes, pump signals"]
+    B --> M{"3 · Finish setup now? A menu:<br/>Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
+    B -. "only if another entry turned the pre-fill<br/>offer on and a device qualifies" .-> P0["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
+    P0 --> M
+    M -- "Quick setup (recommended)" --> Q["Quick setup<br/>five house toggles and<br/>the building questionnaire"]
+    Q --> P["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
+    P -- "back to the menu,<br/>without Quick setup" --> M
+    M -- "Finish setup now" --> R["Review and confirm<br/>(read-only summary)"]
+    M -- "Continue setup" --> T["4 · Temperatures<br/>target, band, day and night comfort,<br/>day hours"]
+    T --> C{"5 · How do you want to<br/>describe your building?"}
+    C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
+    E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
+    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
+    F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
     H --> I
-    I --> K["7 · Weather sensitivity<br/>wind, rain"]
-    K --> J
-    Q --> J
+    I --> K["7 · Weather sensitivity<br/>wind and rain"]
+    K --> R
+    R --> J(["Confirming creates the entry:<br/>the first plan is solved within<br/>one optimization interval"])
 ```
 
 </details>
@@ -369,15 +373,18 @@ answers in the whole flow.
 that turns the heat pump on and off, a solar irradiance sensor or an
 Open-Meteo location, the floor-heating return temperature, a lower-floor
 thermometer, and the hot-water and buffer tank probes. Every picker here is
-optional — skip any you do not have — and if your heat pump publishes a
-device, the flow offers to pre-fill its entities next.
+optional — skip any you do not have. The flow offers to read the heat pump's
+entities off its device here only when another entry has switched the pre-fill
+offer on (off by default) and a device qualifies; Quick setup reads them in any
+case, in step 3.
 
 **3 · The finish menu: Quick setup, Continue setup or Finish setup now.** After
 those two screens the flow asks **Finish setup now?** — three answers, all of
 which end with a working entry. **Quick setup (recommended)** asks one page of
-questions about the house, then reads the heat pump's entities automatically;
-**Continue setup** walks the wizard screens below; **Finish setup now** creates
-the entry immediately with shipped defaults you refine later in Options. Quick
+questions about the house, reads the heat pump's entities automatically and
+returns to this menu; **Continue setup** walks the wizard screens below;
+**Finish setup now** goes straight to the review with shipped defaults you
+refine later in Options. Quick
 setup arrived in v6.6.5 — an install set up on an earlier version never saw
 the menu, and its entries are complete all the same.
 
@@ -422,6 +429,9 @@ never charged above the limit you set.
 **7 · Weather sensitivity.** How much wind and rain raise your heat loss.
 The defaults (3 % per m/s of wind, 15 % while raining) are a reasonable
 starting point for a detached house.
+
+**Review and confirm.** Every route ends on the same read-only summary of what
+will be created; confirming there creates the entry.
 
 Every field and its range is documented in
 [docs/configuration.md](docs/configuration.md).
