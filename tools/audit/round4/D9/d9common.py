@@ -33,7 +33,7 @@ for _p in (
 
 import numpy as np  # noqa: E402
 
-from profiles import DT, house, prices, weather  # noqa: E402
+from profiles import DT, house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer,
     OptimizationConfig,
@@ -211,22 +211,16 @@ def make_solve(
 
 def run_solve(packed):
     o = packed
-    return o["optimizer"].optimize(
-        o["state"],
-        o["prices"],
-        o["outdoor"],
-        o["wind"],
-        o["rain"],
-        o["solar"],
-        START,
-        None,
-        None,
-        None,
-        None,
-        None,
-        None,
-        o["caps"],
-    )
+    return o["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=o["state"],
+        prices=o["prices"],
+        outdoor_temps=o["outdoor"],
+        wind_speeds=o["wind"],
+        precipitation=o["rain"],
+        solar_radiation=o["solar"],
+        start_time=START,
+        power_caps_extra=o["caps"],
+    ))
 
 
 def reference_solve():
