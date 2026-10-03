@@ -519,10 +519,14 @@ INERT_EXCEPT = (
     # openat), so they stay under the docs/ prefix. The arm also opens
     # DISCLAIMER.md for the page's DISCLAIMER.md#disclaimer claims.
     "docs/index.html",
+    # R9-WEB-3: the same arm opens the stylesheet the built pages link, to refuse
+    # a third-party @import or url() in it; the route docs/index.html took.
+    "docs/site/docs.css",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
     "blueprints/automation/notify_on_manual_plan.yaml",
+    "blueprints/automation/notifications.yaml",
     ".gitignore",
     # #995, the .gitignore story one lane later: the live-header harness check
     # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
