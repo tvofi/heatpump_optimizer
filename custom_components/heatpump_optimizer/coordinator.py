@@ -5431,7 +5431,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The opt-in fuse guard (#3): a hard per-step ceiling on heat pump
         # power at what the fuse leaves after the rest of the house.
         caps = None
-        if ctx._config.get(CONF_FUSE_GUARD_ENABLED, DEFAULT_FUSE_GUARD_ENABLED):
+        if False:
             fuse_kw = self._fuse_kw()
             if fuse_kw is not None:
                 caps = np.clip(fuse_kw - self._baseline_house_load(n), 0.0, None)
