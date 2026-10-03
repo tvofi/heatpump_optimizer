@@ -69,6 +69,9 @@
 # branch that adds one cannot pass, and ownership is what stops a branch that
 # weakens the check and the ledger together (class R-register, #1759).
 /tools/audit/fold_ledger.py               @tvofi
+# The version stamp (tools/release/stamp.py) is release tooling, not an
+# audit instrument: it pushes over the deploy key and assigns versions.
+/tools/release/                           @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset

@@ -340,6 +340,32 @@ jobs:
           python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
           grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
 
+      # A tracked script, workflow or decision record that depends on a temp
+      # or machine path (2026-10-03: a temp cleanup took three seat scripts'
+      # state, a decision's source and the seat interpreter). Here and not in
+      # a grading job: audit instruments carry no owner (tvofi, 2026-10-03;
+      # decision 0013), so an unpinned copy may only run where it grades
+      # nothing, and a pin needs a base that already carries the file. A red
+      # here is still a red at the head, which `pr-contract` makes the body
+      # answer.
+      - name: Refuse a temp or machine path in a tracked script or decision
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/tmp_paths.py --self-test
+          python3 -I tools/audit/seat/tmp_paths.py --check
+
+      # The merge train (tools/audit/seat/merge_train.py, landed from the
+      # round-9 orchestrator's session scratch): each stop -- red or incomplete
+      # CI, no carry, main moved, a policy path or a renamed one, a refusal
+      # that is not app_approve's own code-owned line, a budget file, a failing
+      # git read, a recarry conflict, a preflight REFUSE -- over a stubbed
+      # command runner. The tally line must say 0 failed, as above.
+      - name: Show the merge train refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"
+          grep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"
+
       - name: Show the figure check refusing its own fixtures
         if: always()
         run: node .claude/workflows/figure_lint.mjs --self-test

@@ -2,8 +2,9 @@
 # merge_pr.sh <pr> <sha> <evidence-dir> <owner|app> [issues-to-verify...]
 set -uo pipefail
 PR=$1; S=$2; E=$3; MODE=$4; shift 4
-R=tvofi/heatpump_optimizer; D=/private/tmp/audit-7/orchestrator/r7-resume
-cd /Users/timmalmstrom/heatpump_optimizer
+# For a queue of verdicted PRs, merge_train.py does the same with recarry and the carry check.
+R=tvofi/heatpump_optimizer; D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/merge_pr; mkdir -p "$D/v"
+cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." || exit 1
 live=$(gh pr view $PR --json headRefOid --jq .headRefOid); [ "$live" = "$S" ] || { echo "HEAD MOVED: $live"; exit 1; }
 sed '1s/^# //' "$E/VERDICT.md" > $D/v/verdict-$PR.md; grep -q "$E" $D/v/verdict-$PR.md || printf '\nEvidence: %s/\n' "$E" >> $D/v/verdict-$PR.md
 bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1 | tail -1; [ "${PIPESTATUS[0]}" = 0 ] || exit 1
