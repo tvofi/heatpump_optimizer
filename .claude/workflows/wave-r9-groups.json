@@ -6403,6 +6403,96 @@
         "note": "Added for tvofi's ask of 2026-10-03: 'I want switches that are the opposite to boost dhw and boost space heating - block dhw and block space heating for 2h.' Tier A (post-solve overlay mirroring boost.py) ships first; Tier B (the block as a synthetic per-step Off window through SW-1's mask) is a follow-up edit to this group after R9-SW-1 merges. Issues stay empty until the orchestrator files the feature issue. Orchestrator decisions 2026-10-03 under mandate 5951564627 (owner waived a pre-study review): Tier A ships in this group, Tier B is a follow-up edit after R9-SW-1 merges; a due or overdue legionella cycle releases the block with released_by on the switch (never refuses the press silently); the 15 C ECONOMY_ABSOLUTE_FLOOR is the space floor, no frost-protection feature is promised."
       },
       "brief": "Round-9 feature PR SW-5 (lane SW, timed block switches). tvofi asked on 2026-10-03: \"I want switches that are the opposite to boost dhw and boost space heating - block dhw and block space heating for 2h.\" First rule: read CLAUDE.md and every rules file it references (.claude/rules, tools/audit/briefs/fixer.md) and pass this rule on to every sub-agent. Never call the owner anything but tvofi; the PR attribution line is _Requested by **tvofi**_. Scope: two switches (Block DHW, Block Space Heating; new unique ids named block-dhw and block-space in the boost ids' style; DHW gated by DHWEntityMixin like dhw_boost) mirroring switch.py's BoostDhwSwitch/BoostSpaceSwitch, backed by boost.py (a block channel per duty, a new 2-hour block constant beside BOOST_HOURS, persisted and restored through the same QuarantiningStore, auto-released), an overlay that zeroes the blocked duty on the COPY of the plan action (boost.apply, coordinator.py ~5174), and pump_arbiter._planned_duty / _share removing the blocked duty so the arbiter serves an idle row (nothing extra written; never the power switch for a single-channel block, see _apply_action's skip_off comment). A block and a boost on one channel exclude each other (the later press wins). Safety floors override a block, release it, and say why on the switch: a due or overdue anti-legionella cycle or a live disinfection hold (legionella.py due_in_hours, _drive_switch; custom_components/heatpump_optimizer/dhw_planner.py hard deadline), the DHW tank at or below dhw_min_temp inside a demand window, indoor at or below ECONOMY_ABSOLUTE_FLOOR plus a margin or the cold-rail cold-lease test (pump_arbiter.py), a system-identification experiment and a stale plan. There is no standalone frost-protection module; do not document one. Null control: with no block set no new key appears on the action or the payload, so every value-bearing golden stays byte-identical and both claim files stay untouched. Tests in tests/entities.py (switch count 4 -> 6, object ids, names, store census, release tests) and tests/features.py. Structure ratchet: collapse the four boost/block switch classes onto one base and keep state in boost.py's weak map (no coordinator attribute) so no raise is needed; if one is, ask tvofi before the branch is pushed. Re-run tests/ha_floor.py (no new Home Assistant name is expected)."
+    },
+    {
+      "group": "R9-WEB-4",
+      "lane": "WEB",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "docs",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "specified docs corrections with an oracle (the config flow code and the live card)",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "README.md and docs/ are outside policy; merges on hpo-approver unless a code-owned path is touched",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [
+        "R9-WEB-2"
+      ],
+      "resume": {
+        "stage": "in-progress",
+        "branch": "handoff/r9-web-4",
+        "commit": null,
+        "last_step": "fixer seat dispatched 2026-10-03",
+        "next_step": "fixer.md step 1",
+        "note_file": "handoff/round9/fix/resume/WEB-4.md on handoff/r9-web-4",
+        "review_branch": "handoff/r9-web-4-review",
+        "review_note_file": null,
+        "plan": "this roster",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "Added for tvofi's findings of 2026-10-03 on the live site (v6.7.15): stray ellipses between sentences on the first page; the configuration-flow mermaid diagram in README/first page disagrees with the initial-setup document; old card plan-design screenshots on several pages."
+      },
+      "brief": "Round-9 docs PR WEB-4 (lane WEB). tvofi, 2026-10-03, on the published site: \"The first page on the web page contains many annoying '...' between sentances that should not be there. The configuration flow mermaid diagram on the first page/README and initial setup document does not match, correct one or the other or both to correct the flow. Multiple pages/documents still contains images with the old card plan design screenshots, replace all instances on the repo with updated ones.\" First rule: read CLAUDE.md and every rules file it references and pass it on. Scope: (1) remove the stray ellipses from the site's first page source and anything generating it (the Pages build in .github/workflows/pages.yml), checking whether they are literal text or a build/truncation artefact, and fix at the source; sweep README.md and docs/ for the same. (2) Derive the true configuration flow from config_flow.py (step ids and order, branches), then make the README/first-page mermaid diagram and the initial-setup document both match it. (3) Find every image in the repo showing the old card plan design, regenerate current screenshots from the current card (the tests/card_browser.mjs Playwright harness or an equivalent render of the shipped www card), replace every reference, delete orphaned old images, and classify any new tracked file per CLAUDE.md (closure or INERT). Value-bearing goldens untouched."
+    },
+    {
+      "group": "R9-F10.14",
+      "lane": "F10",
+      "issues": [],
+      "fixes": [],
+      "findings": [],
+      "covers": [],
+      "cap_exception": null,
+      "sweep_instances": [],
+      "class": "P7",
+      "wave": null,
+      "fixerModel": "sonnet",
+      "reviewerModel": "opus",
+      "model": {
+        "fixer": "sonnet",
+        "fixer_why": "one script-list edit with an oracle: coverage.json identical before and after",
+        "reviewer": "opus",
+        "rca": null,
+        "runner": "haiku",
+        "record": "sonnet"
+      },
+      "effort": "medium",
+      "fixture": false,
+      "owner_gate": "tests.yml, run.sh, closure.py and tests/arch_score.py are code-owned or gate files; merges on tvofi approval at head (mandate 5951564627)",
+      "rca": false,
+      "barrier": [],
+      "barrier_prototype": [],
+      "blocked_on": null,
+      "after": [],
+      "resume": {
+        "stage": "not-started",
+        "branch": "handoff/r9-f10-14",
+        "commit": null,
+        "last_step": null,
+        "next_step": "fixer.md step 1: confirm coverage.json is byte-identical with arch_score excluded from tracing",
+        "note_file": null,
+        "review_branch": null,
+        "review_note_file": null,
+        "plan": "this roster; origin/wip-sync/orchestrator-scratch:orch/seat-archscore/REPORT.md",
+        "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
+        "note": "tvofi asked 2026-10-03 whether arch_score's ~30 min in coverage is expected. Measured: tests/arch_score.py is 23.8 min median inside the coverage job (2.5x its 9.4 min untraced in fast), 48% of coverage's script time on main pushes; it executes no package code, so tracing records nothing. Options B-H in the report; D (structure.py ast walk) is high-risk because it defines the ratchet."
+      },
+      "brief": "Round-9 CI-efficiency PR F10.14. Take tests/arch_score.py and tests/arch_score_head.py out of coverage tracing in tools/audit/w5-partition/coverage_tree.sh (they still run untraced in the fast job via tests/run.sh), proving coverage.json byte-identical before and after on the same head and the coverage ratchet (tests/coverage_ratchet.py) green; first check whether coverage_tree.sh is in a measured closure or INERT. Also evaluate, measure and either implement or reject with reasons option H from the report (coverage cache hit rate keyed on the PR base). Fixer options rule applies: list options A-H and why each was taken or rejected."
     }
   ]
 }
