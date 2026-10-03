@@ -1726,6 +1726,10 @@
     "pump_write_ignored": {
       "title": "The heat pump does not hold a setting the optimizer wrote",
       "description": "The optimizer wrote a value to the heat pump and wrote it again, and the pump still reads something else: {detail}. While Optimizer active is on, the optimizer is the pump's only writer: it sends the value again every five minutes, and this notice clears as soon as the pump holds it. To change the pump by hand, turn Optimizer active off first. If nobody changed it, check that the pump's entity accepts the value (its range, the cloud connection, the local key, write permissions)."
+    },
+    "store_version": {
+      "title": "Stored learning could not be read",
+      "description": "The optimizer's stored data {store} cannot be read: {detail}. This release has no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. Nothing needs to be done for the optimizer to keep running. If the data was saved by a newer version, it is left as it is and this version saves nothing over it: reinstall the newer version to get it back, or, to keep this version, delete the file {store} in the .storage folder and restart."
     }
   },
   "entity": {

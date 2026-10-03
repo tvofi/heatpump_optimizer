@@ -70,6 +70,8 @@ from typing import Any, TypeVar
 
 from homeassistant.util import dt as dt_util
 
+from .payload import DefrostBucket
+
 _LOGGER = logging.getLogger(__name__)
 _T = TypeVar("_T")
 
@@ -538,7 +540,7 @@ class DefrostDerate:
             )
         return instance
 
-    def summary(self) -> list[dict[str, Any]]:
+    def summary(self) -> list[DefrostBucket]:
         """Human-readable view for the diagnostics attributes.
 
         ``source`` says which estimator a bucket rests on, and ``events`` how
@@ -547,14 +549,14 @@ class DefrostDerate:
         cloud polls is a much weaker number than the same duty counted from
         MQTT transitions and nothing else on the row would show that.
         """
-        out: list[dict[str, Any]] = []
+        out: list[DefrostBucket] = []
         for t in range(len(TEMP_EDGES) - 1):
             for h in range(len(HUMIDITY_EDGES) - 1):
                 source, value, count = self._decide(t, h)
                 if source is None:
                     continue
                 measured = source == "measured"
-                entry: dict[str, Any] = {
+                entry: DefrostBucket = {
                     "outdoor_range": [TEMP_EDGES[t], TEMP_EDGES[t + 1]],
                     "humidity_range": [
                         HUMIDITY_EDGES[h],

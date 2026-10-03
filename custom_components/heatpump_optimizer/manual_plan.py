@@ -31,6 +31,7 @@ from typing import Any
 
 from .accuracy import utc_shift
 from .const import MANUAL_PLAN_WINDOW_HOURS
+from .payload import ReleasedStep
 
 # Pin encoding shared with the optimizer's bounds construction. The optimizer
 # reads a per-step float array as: NaN -> free to be chosen, 0 -> forced off,
@@ -165,8 +166,8 @@ class ManualOverride:
     created_at: datetime | None = None
     #: Per-channel step indices whose "off" pin was released for safety, with
     #: the reason. Transient: set by the coordinator after each solve.
-    released_space: list[dict[str, Any]] = field(default_factory=list)
-    released_dhw: list[dict[str, Any]] = field(default_factory=list)
+    released_space: list[ReleasedStep] = field(default_factory=list)
+    released_dhw: list[ReleasedStep] = field(default_factory=list)
 
     def slots_for(self, channel: str) -> list[Slot] | None:
         return self.space_slots if channel == CHANNEL_SPACE else self.dhw_slots

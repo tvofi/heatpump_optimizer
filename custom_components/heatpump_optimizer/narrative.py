@@ -26,6 +26,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from .payload import NarrativeItem
+
 #: One sentence per reason code, per language. Placeholders: {kwh} energy
 #: in the group, {cost} its cost, {currency} the instance's currency code,
 #: {hours} total duration in hours. Keys and placeholders MUST stay identical
@@ -109,7 +111,7 @@ def build(
     space: dict[str, list[Any]],
     dhw: dict[str, list[Any]],
     dt_hours: float,
-) -> list[dict[str, Any]]:
+) -> list[NarrativeItem]:
     """The structured narrative: one item per reason, biggest spend first.
 
     ``space``/``dhw`` each carry ``powers``, ``prices`` and ``reasons`` for
@@ -138,7 +140,7 @@ def build(
             # visible on every zero-energy line, which is the only kind of
             # line whose hours are the whole message.
             into["hours"] = max(into["hours"], entry["hours"])
-    items: list[dict[str, Any]] = []
+    items: list[NarrativeItem] = []
     for reason, entry in merged.items():
         # These two carry no energy by definition; every other zero-energy
         # group is noise (a reason that never actually drew) and a line
@@ -166,7 +168,7 @@ def build(
 
 
 def render(
-    items: list[dict[str, Any]], language: str, currency: str
+    items: list[NarrativeItem], language: str, currency: str
 ) -> list[str]:
     """The narrative lines in one language, unknown reasons skipped.
 

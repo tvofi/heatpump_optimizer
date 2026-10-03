@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._build_data_dict RETURN_DEL 54602010",
-  "killed_by": "tests/env_drift.py",
-  "old": "        return cast(Payload, data)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against aa7a81192325614999803e40e3cedc024e22ce2b: RETURN_DEL (`pass`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -85,6 +85,7 @@ from .const import (
 from .batchmath import row_sums
 from .dhw_planner import DhwPlanner
 from .manual_plan import _pin_is_free
+from .payload import CurrentAction
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
@@ -5094,7 +5095,7 @@ class HeatPumpOptimizer:
         """
         return planned_draws_run(space_power_schedule, dhw_power_schedule)
 
-    def _idle_action(self) -> dict[str, Any]:
+    def _idle_action(self) -> CurrentAction:
         """The do-nothing action: shared by the empty-plan branch and the
         pre-horizon clamp so the two fallbacks cannot drift apart."""
         return {
@@ -5110,7 +5111,7 @@ class HeatPumpOptimizer:
 
     def get_current_action(
         self, result: OptimizationResult, current_time: datetime
-    ) -> dict[str, Any]:
+    ) -> CurrentAction:
         """Get the current recommended action from the optimization result."""
         if not result.timestamps:
             return self._idle_action()
@@ -5184,7 +5185,7 @@ class HeatPumpOptimizer:
         else:
             mode = "boost"
 
-        action = {
+        action: CurrentAction = {
             "power": round(power, 2),
             "setpoint": setpoint,
             "mode": mode,
