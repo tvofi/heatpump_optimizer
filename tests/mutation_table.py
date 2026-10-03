@@ -2743,6 +2743,7 @@ def main() -> int:
                                  drawable(path, rel, touched))
             got = [m for m in drawn if not triaged_site(triage, m)]
             held_n += len(drawn) - len(got)
+            got = list(drawn)
             rng.shuffle(got)
             for mut in got[: args.per_file]:
                 mut["drivers"] = drivers
