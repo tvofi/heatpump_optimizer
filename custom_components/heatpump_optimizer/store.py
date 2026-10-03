@@ -68,6 +68,11 @@ except ImportError:  # the 2025.2.0 floor
 else:
     _DOWNGRADE = (UnsupportedStorageVersionError,)
 
+#: Store keys whose last load found a newer release's document. Keyed, not
+#: per instance: a writer may build a fresh store to save (away's does), and
+#: no store of the key may save over it (#1869).
+_NEWER_ON_DISK: set[str] = set()
+
 
 #: No writer stores a number this large (an epoch in ms is 1.8e12), so one that
 #: is -- ``2**64``, ``1e300``, a key of that size -- is a corrupt leaf, and is
@@ -526,6 +531,7 @@ class QuarantiningStore(Store[_StorePayload]):
         #: Where a version mismatch is surfaced (``_surface_version``).
         self._issue_hass = hass
         self._major = version
+        self._store_key = key
         self._lead = lead
         self._naive_zone = naive_zone
         #: Paths of the instants the last load rewrote to the bound.
@@ -535,10 +541,12 @@ class QuarantiningStore(Store[_StorePayload]):
         self._reading = reading = asyncio.get_running_loop().create_future()
         task = asyncio.current_task()
         self._readers = self._readers | {task}
+        _NEWER_ON_DISK.discard(self._store_key)
         try:
             try:
                 data = _sanitize(await super().async_load())
             except _DOWNGRADE:
+                _NEWER_ON_DISK.add(self._store_key)
                 self._surface_version("it was saved by a newer release than this one")
                 raise
             if self._lead is not None:
@@ -567,6 +575,9 @@ class QuarantiningStore(Store[_StorePayload]):
         the base hook's own answer, so the document is not re-saved unmigrated
         and a minor-only mismatch is read as stored, as Home Assistant does.
         """
+        # The 2025.2.0 floor hands a downgrade here rather than refusing it.
+        if old_major_version > self._major:
+            _NEWER_ON_DISK.add(self._store_key)
         if old_major_version != self._major:
             self._surface_version(
                 f"it was saved at version {old_major_version} and this release reads {self._major}"
@@ -593,13 +604,19 @@ class QuarantiningStore(Store[_StorePayload]):
         coordinator writers lost persisted learned state this way; R6's
         mode setter hit it before them). Waiting here, in the store itself,
         is the property rather than a per-writer discipline: no save this
-        type can express clobbers its own pending read. A reading task does
-        not wait: Home Assistant saves a migration's result from inside the
-        load, and waiting there would wait on itself (#1740) -- or on a second
-        load, which Home Assistant parks on the first (#1869).
+        type can express clobbers its own pending read. Nor a newer
+        release's document the last load could not read: the loader starts
+        afresh in memory, and reinstalling that release finds it intact
+        (#1869). A reading task does not wait: Home Assistant saves a
+        migration's result from inside the load, and waiting there would wait
+        on itself (#1740) -- or on a second load, which Home Assistant parks
+        on the first (#1869).
         """
         if asyncio.current_task() not in self._readers:
             await self.async_wait_for_read()
+        if self._store_key in _NEWER_ON_DISK:  # kept for the release that wrote it
+            _LOGGER.debug("%s: a newer release's document is kept; not saved", self._store_key)
+            return
         await super().async_save(data)
 
     async def async_wait_for_read(self) -> None:

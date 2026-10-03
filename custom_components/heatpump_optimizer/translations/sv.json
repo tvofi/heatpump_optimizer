@@ -1729,7 +1729,7 @@
     },
     "store_version": {
       "title": "Sparad inlärning kunde inte läsas",
-      "description": "Optimerarens sparade data {store} kan inte läsas: {detail}. Den här versionen kan inte flytta över den, så den delen av det inlärda börjar om från standardvärden. Det händer när en äldre version installeras över en nyare, eller en nyare som ändrade hur datan sparas. Inget behöver göras för att optimeraren ska fortsätta köras; om du gick tillbaka till en äldre version av misstag, installera den nyare igen innan datan skrivs över."
+      "description": "Optimerarens sparade data {store} kan inte läsas: {detail}. Den här versionen kan inte flytta över den, så den delen av det inlärda börjar om från standardvärden. Det händer när en äldre version installeras över en nyare, eller en nyare som ändrade hur datan sparas. Inget behöver göras för att optimeraren ska fortsätta köras. Om datan sparades av en nyare version lämnas den orörd och den här versionen sparar inget över den: installera den nyare versionen igen för att få tillbaka den, eller, för att behålla den här versionen, radera filen {store} i mappen .storage och starta om."
     }
   },
   "entity": {
