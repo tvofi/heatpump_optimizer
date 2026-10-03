@@ -1,11 +1,11 @@
 Part of #201.
 
-The owner's rulings of 2026-10-03 (tvofi): useful tools belong under `tools/` on `main`, as a permanent repository mechanism, and above all the programme's own instruments (what merges, approves, carries, stamps, gates, watches CI or records state) are tracked, self-tested, code-owned files. That day a temp cleanup deleted `/private/tmp/audit-7`: the seat venv the `~/hpo-seats/bin` shims ran (no recipe anywhere), the state three tracked seat scripts kept there, and the design note decision 0012 cited.
+The owner's rulings of 2026-10-03 (tvofi): useful tools belong under `tools/` on `main`, as a permanent repository mechanism, and above all the programme's own instruments (what merges, approves, carries, stamps, gates, watches CI or records state) are tracked, self-tested files. A later ruling the same day: audit instruments are not code-owned; ownership follows decision 0013, unamended. That day a temp cleanup deleted `/private/tmp/audit-7`: the seat venv the `~/hpo-seats/bin` shims ran (no recipe anywhere), the state three tracked seat scripts kept there, and the design note decision 0012 cited.
 
 This pull request does three things.
 
 1. **Lands the instruments and recipes** that lived only in scratch or `~/hpo-seats/bin`: the merge train (`tools/audit/seat/merge_train.py`), the seat venv recipe and its shims, the PR open/update scripts, and the thermal_model parity harness.
-2. **Makes the rule permanent**: `fixer.md` step 17 states the obligation and the reusability criterion once; `fix-review.md` step 9 and `orchestrator.md` section 13 point to it. A new check, `tools/audit/seat/tmp_paths.py --check`, refuses a tracked script, workflow or decision record tied to a temp or machine path; it runs with its self-test in `governance.yml`'s `wave-script` job (the owned-copy precedent `fold_ledger.py` set, since a new pinned grader cannot pass `field_coverage.mjs` in the pull request that adds it) and in `tools/audit/prepr.sh`. `CODEOWNERS` now owns `tools/audit/seat/` and `tools/release/`.
+2. **Makes the rule permanent**: `fixer.md` step 17 states the obligation and the reusability criterion once; `fix-review.md` step 9 and `orchestrator.md` section 13 point to it. A new check, `tools/audit/seat/tmp_paths.py --check`, refuses a tracked script, workflow or decision record tied to a temp or machine path; it runs with its self-test in `governance.yml`'s `instrument-self-tests` job and in `tools/audit/prepr.sh`. That job grades nothing, which is the only place an unowned, unpinned copy may run (`codeowners_gap.py`, #1515); a red there is still a red at the head that `pr-contract` makes the body answer. Making it a pinned grader in a required job is a two-step follow-up: the base must carry the file before a job can restore it, and pinned `field_coverage.mjs` must declare it. `CODEOWNERS` now owns `tools/release/` (the version stamp, release tooling, not an audit instrument); `tools/audit/seat/` stays unowned.
 3. **Fixes the paths it finds**, and makes `app_approve.sh`'s carry run on macOS bash 3.2.
 
 ### Inventory
@@ -46,13 +46,13 @@ A `## Figures` check that a cited script is tracked or marked one-off. `figure_l
 
 ## Approval
 
-Policy, needing tvofi's own approving review at the head: `tools/audit/briefs/fixer.md`, `tools/audit/briefs/fix-review.md`, `tools/audit/briefs/orchestrator.md` (POLICY_GLOBS). Code-owned too: `.github/CODEOWNERS`, `.github/workflows/governance.yml`, `docs/decisions/0012-process-diet-and-round-cadence.md`. Each policy file pays for its new lines inside its existing cap, by cutting a motivating anecdote the rule does not need; no cap is raised. `tools/audit/README.md` and `tools/audit/harnesses/README.md` are policy and untouched. `harnesses/README.md` still tables four instruments; `d907_kernel_band.py`, `hpo_ci_container_setup.sh` and now `thermal_parity.py` describe themselves in their headers.
+Approved by the orchestrator under mandate 5951564627, on the owner's instruction, after a `Fix review: merge` verdict at the head. The policy files are `tools/audit/briefs/fixer.md`, `tools/audit/briefs/fix-review.md` and `tools/audit/briefs/orchestrator.md` (POLICY_GLOBS). The code-owned files are `.github/CODEOWNERS`, `.github/workflows/governance.yml` and `docs/decisions/0012-process-diet-and-round-cadence.md`. Each policy file pays for its new lines inside its existing cap, by cutting a motivating anecdote the rule does not need; no cap is raised. `tools/audit/README.md` and `tools/audit/harnesses/README.md` are policy and untouched. `harnesses/README.md` still tables four instruments; `d907_kernel_band.py`, `hpo_ci_container_setup.sh` and now `thermal_parity.py` describe themselves in their headers.
 
-Pinned governance scripts (`tools/audit/*.sh`, `.claude/workflows/*`) stay unowned, as decision 0013 rules. The owner's 2026-10-03 directive ("code-owned") may mean owning those too, but that would amend 0013, so it is the owner's call and is not made here.
+Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not added to `CODEOWNERS`, and decision 0013 stands unamended.
 
 ## Head
 
-`1190f1058d95a001e42a98871c28c0e6f24d9e55` merges `origin/main` `20f597c6615b10a5d225497cb13b6d1f2e5cce35` (#1875, fetched 2026-10-03) into `af085331aa76e2f836054ee2b180008f049b8c93`, which merges `origin/main` `1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f` (#1869) into the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`, one commit on `12dbd3a5d01f48f44e6c6344bff22d3d015baf9d`. Both merges are automatic, with no resolution.
+`32251f44c4a443d015bc3b8cef2c9161e919ec3e` is one commit on `1190f1058d95a001e42a98871c28c0e6f24d9e55`: the owner's ownership ruling. That head merges `origin/main` `20f597c6615b10a5d225497cb13b6d1f2e5cce35` (#1875) into `af085331aa76e2f836054ee2b180008f049b8c93`, which merges `origin/main` `1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f` (#1869) into the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`, one commit on `12dbd3a5d01f48f44e6c6344bff22d3d015baf9d`. Both merges are automatic, with no resolution.
 
 ## Mutation proof
 
