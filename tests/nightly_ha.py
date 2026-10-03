@@ -1890,7 +1890,6 @@ async def _async_hb_measure(checks: Checks, name: str, drive) -> tuple[dict, str
 
 async def _async_hb_settle(hass, entry_id: str) -> None:
     """Dwell, then keep measuring until the coordinator has solved, or the bound."""
-    await asyncio.sleep(HB_DWELL_S)
     await hass.async_block_till_done()
     deadline = time.monotonic() + HB_SETTLE_S
     while time.monotonic() < deadline:
