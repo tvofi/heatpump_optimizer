@@ -9,27 +9,30 @@ Screenshots (dark theme, deviceScaleFactor 2): /private/tmp/claude-501/-Users-ti
 
 ## Head
 
-b86c98f04b590b6397a1756ea0e40c96267fe20c
+9cc8bdf73c7f1d3416efc15f399da0c200fe1356
 
 ## Mutation proof
 
-Run from the branch with `node tests/card.mjs` (HPO_PLANDATA set), mutating the predicate:
-- `Array.isArray(items) && items.length === lines.length` replaced by `false` in narrativeRows: 5 checks red ("the label is the card's reason string", "kWh and cost sit in a number column of their own", "an idle item is a muted status row", "an unlabelled reason falls back", "labels follow the card language").
+Run with `node tests/card.mjs` (HPO_PLANDATA set) at 9cc8bdf73c7f1d3416efc15f399da0c200fe1356, mutating the predicate and restoring each time:
+- `items.length === lines.length` replaced by `items.length >= 1` in narrativeRows: "narrative: misaligned items and lines fall back to the lines" red (1 failed). That check now uses the three labelled, numeric fixture items with lines [lines[1], lines[2]], so a card that paired them would print the pre-heating kWh and cost on the tank-charging sentence; round 1's version used an unlabelled item and passed with the guard removed (reviewer's finding).
+- the same predicate replaced by `false`: 5 checks red (label, number column, idle status row, unlabelled-reason fallback, Swedish labels).
 - `white-space: nowrap` deleted from `.nl-num`: "narrative css: the number column is nowrap and tabular" red.
-Both restored (card sha1 prefix a46001f125fe). The layout lane `tests/card_browser.mjs` ("R9-UX-8 narrative at 360/375/640/1280 px") measures the property itself in Chromium: no kWh or cost run wraps, numbers flush right per column, no overflow, one column below 720 and two at 1280.
+- the `calc(50% - 13px)` cap deleted from the grid rule: "narrative css: the column count is capped at two" red. That check is a textual pin; the layout itself (2 columns at 1280 px, not 3) is measured by the browser lane, the right pin for a layout property.
 
 ## Null control
 
-Before the auto-fit cap the same 1280 px check failed with 3 columns (cols:3 against the expected 2), so the check does separate the two layouts. At the merge base (b09e0b912) `tests/card_browser.mjs` fails exactly one check on this machine, "P9 grid: no two text runs share ink" (2 px between chart tick labels "2" and "3"), and the same check fails on this branch: a local-font artefact of running Chromium 1148 under Playwright 1.56, not this change; CI's pinned browser decides. `GOLDEN_MODE=drift` `env_drift.py` against the merge base passes with the claim file's Python list untouched.
+Before the auto-fit cap the 1280 px browser check failed with 3 columns, so the check separates the two layouts (the reviewer reproduced 3 columns with the cap removed). At the merge base the local `tests/card_browser.mjs` fails exactly one check on this machine, "P9 grid: no two text runs share ink" (2 px between chart tick labels), and fails the same way on this branch; it is a local-font artefact of Chromium 1148 under Playwright 1.56, and CI's pinned browser passed it at the round-1 head. `GOLDEN_MODE=drift` `env_drift.py` against the merge base passes with the Python claim list untouched.
 
 ## Figures
 
-- `node tests/card.mjs` : ALL CARD CHECKS PASSED (the 11 new "narrative" checks failed before the implementation, 11 red at the failing-test-first run).
-- `node tests/card_drift.mjs $(git merge-base origin/main HEAD)` : rc 0; 39 of the 40 states move (the stylesheet text, same shape as #1388's claim); only score_open also moves in markup (the one state whose fixture carries a narrative); editor_schema is identical and unclaimed. claims-for stays 6.7.14.
+Origin/main tip merged: ac255c200 (stamped 6.7.15); merge base of this head is `ac255c200`.
+- `node tests/card.mjs` : ALL CARD CHECKS PASSED at 9cc8bdf73c7f1d3416efc15f399da0c200fe1356 (round 1 had 11 new narrative checks red before the implementation; this round adds one pairing check strengthened and one cap pin, 12 new in all).
+- `node tests/card_drift.mjs $(git merge-base origin/main HEAD)` : rc 0, "39 state(s) moved and claimed, 1 identical"; only score_open also moves in markup; editor_schema identical and unclaimed. claims-for is 6.7.15, equal to VERSION (the claimnotes driver re-took it in the merge).
 - `python3 tests/structure.py` : STRUCTURE RATCHET PASSED. `node .claude/workflows/policy_lint.mjs --budgets` : rc 0.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` : MODE: SCOPED, 11 scripts; run locally: doc_claims, arch_score_head, deployment_shape, harness_headers, entities (2118 checks), env_drift, plan_view, card.mjs, card_drift.mjs all rc 0; features.py and golden.py left to CI (no Python moved).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` : MODE: SCOPED, 11 scripts. Run locally, all rc 0: doc_claims, arch_score_head, deployment_shape, harness_headers, entities (2118 checks), env_drift, plan_view, card.mjs, card_drift.mjs. features.py and golden.py are left to CI (no Python moved).
+- `node tests/card_browser.mjs` : the four "R9-UX-8 narrative at 360/375/640/1280 px" checks ok; the one P9 failure above is the only red.
 
-Options considered. (1) Regex the translated sentence into label and number: rejected, language-fragile and breaks on any template edit; items are structured already. (2) Container query on .headline for the two-column switch: rejected, dialog.expanded is sized by its contents and the card's own comment warns that container-type: inline-size removes that sizing; auto-fit grid needs no containment. (3) Media query at 720 px: rejected, it reads the viewport, so a narrow card on a wide desktop would get two cramped columns. (4) Per-row hairline dividers: rejected, they do not align across two columns; row gap is enough. (5) Series-coloured dots: dropped on the orchestrator's decision. (6) Keep prose, just drop italic: rejected, does not fix the buried numbers or the orphaned SEK). (7) Fall back all-or-nothing when any reason is unlabelled: rejected for the per-row fallback, which keeps labelled rows tidy; all-or-nothing is used only when items and lines do not pair, since pairing is then unknown.
+Options considered. (1) Regex the translated sentence into label and number: rejected, language-fragile and breaks on any template edit; items are structured already. (2) Container query on .headline for the two-column switch: rejected, dialog.expanded is sized by its contents and the card's own comment warns that container-type: inline-size removes that sizing; auto-fit grid needs no containment. (3) Media query at 720 px: rejected, it reads the viewport, so a narrow card on a wide desktop would get two cramped columns. (4) Per-row hairline dividers: rejected, they do not align across two columns; row gap is enough. (5) Series-coloured dots: dropped on the orchestrator's decision. (6) Keep prose, just drop italic: rejected, does not fix the buried numbers or the orphaned SEK). (8) Bold the cost instead of the kWh: rejected, the kWh is the quantity the label describes and the first thing the eye lands on in the column, while the cost beneath it is a consequence; bolding money would also make every row compete with the Plan cost and Projected savings tiles above, which already lead with money. A taste call, not a defect. (7) Fall back all-or-nothing when any reason is unlabelled: rejected for the per-row fallback, which keeps labelled rows tidy; all-or-nothing is used only when items and lines do not pair, since pairing is then unknown.
 
 ## Red checks
 
