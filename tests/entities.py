@@ -26969,7 +26969,7 @@ R.check(
 )
 # The other drivers' forms, each read as the count it is. validate.py and
 # plan_view.py list issues rather than printing FAIL lines, edge.py counts
-# FAILURES, and a timeout is a mutant noticed.
+# FAILURES, and a timeout names no failing check (R9-F10.12).
 _MUT_FORMS = {
     "validate": ("\n2 ISSUES:\n  [a] x\n  [b] y\n", 2),
     "plan_view": ("PLAN VIEW ISSUES:\n  - one\n  - two\n  - three\n", 3),
@@ -26990,7 +26990,7 @@ R.check(
     "every driver's failing-check form reads as its count",
     _MUT_FORM_GOT == {_k: _n for _k, (_o, _n) in _MUT_FORMS.items()}
     and _mut.failing_count(_mut.ScriptRun(_mut.TIMEOUT_RC, 1, 9.0, "", "t"))
-    == 1
+    == 0
     and _mut.failing_count(_mut.ScriptRun(0, 0, 0.0, "  FAIL a\n  FAIL b\n"))
     == 0,
     f"got={_MUT_FORM_GOT}",
@@ -29174,6 +29174,136 @@ R.check(
     and any(v != "LIVES" for _, v in _MUT_V_OUT),
     f"{len(_MUT_V_OUT)} verdict(s) of {len(_MUT_V_POOL)}; wrong: "
     f"{_MUT_V_BAD!r}",
+)
+
+# R9-F10.12 (B): a driver run that overran its timeout noticed nothing. The
+# old rule counted run_script's TIMEOUT_RC as one failing check, so a mutant
+# that only SLOWED tests/features.py past the fixed --timeout read as killed,
+# and --drain pushed that as a killed_by pin. The run below is the real
+# run_script on a planted driver that sleeps past a 1 s timeout; the verdict
+# is the real LazyBaselines that main() judges every mutant run with.
+_MUT_T_DIR = Path(_tempfile.mkdtemp(prefix="mutation-timeout-"))
+(_MUT_T_DIR / "slow.py").write_text("import time\ntime.sleep(1.6)\n")
+_MUT_T_GREEN = _mut.ScriptRun(0, 0, 0.6)
+_MUT_T_RUN = _mut.run_script("slow.py", _MUT_T_DIR, 1)
+_MUT_T_JUDGE = _mut.LazyBaselines({"slow.py": _MUT_T_GREEN}, lambda w, s: None)
+_MUT_T_SITE = {"file": "x.py", "line": 1, "kind": "GUARD_OFF", "anchor": "x.py:a",
+               "old": "if a:", "new": "if False:", "drivers": ["slow.py"]}
+try:
+    _MUT_T_OUT = _mut_pool([_MUT_T_SITE], 1, {"slow.py": 0.6},
+                           lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
+except TypeError:
+    _MUT_T_OUT = []
+_MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE], "r")[0]
+               if _MUT_T_OUT else None)
+R.check(
+    "a mutant whose driver only overran its timeout is not killed, not "
+    "LIVES, and never pinned (R9-F10.12)",
+    _MUT_T_RUN.rc == _mut.TIMEOUT_RC
+    and not _mut.killed("slow.py", _MUT_T_RUN, _MUT_T_GREEN)
+    and [v for _, v in _MUT_T_OUT] == ["SKIP-TIMED-OUT in slow.py"]
+    and _MUT_T_PINS == {},
+    f"rc={_MUT_T_RUN.rc} verdicts={[v for _, v in _MUT_T_OUT]!r} "
+    f"pins={_MUT_T_PINS!r} -- a timeout is inconclusive: a hang and a slow "
+    "driver look the same from outside",
+)
+# The null control for the rule above: a timed-out NULL run still refuses the
+# table, since a driver that cannot finish the unmutated tree judges nothing.
+R.check(
+    "and a null control whose driver timed out still refuses the run",
+    _mut.null_control_verdict({"slow.py": _MUT_T_RUN},
+                              {"slow.py": _MUT_T_GREEN}) != "LIVES",
+    f"verdict={_mut.null_control_verdict({'slow.py': _MUT_T_RUN}, {'slow.py': _MUT_T_GREEN})!r}",
+)
+# The scaled timeout: TIMEOUT_SCALE times the driver's own measured seconds,
+# never under the fixed floor, so a driver's growth never reaches its limit
+# while a hang still ends. 0.6 s measured gives 2 s, which the 1.6 s run fits.
+_mut_tmo = getattr(_mut, "driver_timeout", None)
+_MUT_T_SCALED = ((_mut_tmo(1, 0.6), _mut_tmo(1200, 0.0), _mut_tmo(1200, 833.0))
+                 if _mut_tmo else None)
+_MUT_T_FITS = (_mut.run_script("slow.py", _MUT_T_DIR, _MUT_T_SCALED[0])
+               if _MUT_T_SCALED else None)
+_MUT_MAIN_TMO = _MUT_MAIN_DEFER.count("driver_timeout(args.timeout, ")
+R.check(
+    "a driver's timeout scales from its own measured seconds over the fixed "
+    "floor, and main() times every baseline, null and mutant run with it",
+    _MUT_T_SCALED == (2, 1200, 2499)
+    and _MUT_T_FITS is not None and _MUT_T_FITS.rc == 0
+    and _MUT_MAIN_TMO == 3 and "args.timeout, extra" not in _MUT_MAIN_DEFER,
+    f"scaled={_MUT_T_SCALED!r} fits={_MUT_T_FITS and _MUT_T_FITS.rc} "
+    f"call sites={_MUT_MAIN_TMO}",
+)
+_mut_shutil.rmtree(_MUT_T_DIR, ignore_errors=True)
+
+# R9-F10.12 (A): the mutant phase's wall-clock budget. Each pool runs on one
+# worker under a fake clock that each drive advances by the driver's cost, so
+# the admission arithmetic is exact. tests/a.py costs 10, tests/stress.py
+# (EXCLUSIVE, run after the shared phase) 30.
+_MUT_BG_T = [0.0]
+
+
+def _mut_bg_run(pool, deadline, kill_line=None):
+    """drive_pool's verdicts, the lines driven and the final clock."""
+    _MUT_BG_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append(m["line"])
+        _MUT_BG_T[0] += {"tests/a.py": 10, "tests/stress.py": 30}[s]
+        return m["line"] == kill_line and s == "tests/a.py"
+    try:
+        out = _mut_pool(pool, 1, {"tests/a.py": 10, "tests/stress.py": 30},
+                        drive, deadline=deadline, clock=lambda: _MUT_BG_T[0])
+    except TypeError:
+        return None
+    return [v for _, v in out], sorted(set(ran)), _MUT_BG_T[0]
+
+
+_MUT_BG_A = [{"file": "x.py", "line": i, "kind": "CONST",
+              "drivers": ["tests/a.py"]} for i in range(4)]
+_MUT_BG_X = [dict(m, drivers=["tests/a.py", "tests/stress.py"])
+             for m in _MUT_BG_A[:3]]
+_MUT_BG_OUT = {
+    # Two mutants fit 25; the third would end at 30, so it and the fourth
+    # are never started.
+    "small": _mut_bg_run(_MUT_BG_A, 25),
+    # Admission reserves each undecided mutant's EXCLUSIVE run and releases
+    # it on a kill: mutant 0 is killed by tests/a.py, so mutant 1 fits 65
+    # (20 + 30 at 10); mutant 2 would need 20 + 40 + 30 reserved = 90.
+    "exclusive": _mut_bg_run(_MUT_BG_X, 65, kill_line=0),
+    # Nothing fits 5.
+    "none": _mut_bg_run(_MUT_BG_A, 5),
+    # The null control: no deadline drives the whole pool.
+    "unbounded": _mut_bg_run(_MUT_BG_A, None),
+}
+R.check(
+    "a budget too small for its pool starts mutants only while they fit, "
+    "names the rest SKIP-BUDGET, and reserves the EXCLUSIVE runs it owes",
+    _MUT_BG_OUT == {
+        "small": (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"], [0, 1], 20),
+        "exclusive": (["killed by tests/a.py", "LIVES", "SKIP-BUDGET"],
+                      [0, 1], 50),
+        "none": (["SKIP-BUDGET"] * 4, [], 0),
+        "unbounded": (["LIVES"] * 4, [0, 1, 2, 3], 40),
+    },
+    f"out={_MUT_BG_OUT!r}",
+)
+# What main() makes of it: every unstarted mutant named, the cap over the
+# evaluated ones, and a run the budget let evaluate nothing refused -- never
+# PASSED, so a budget cannot read as a measurement of nothing.
+_mut_brep = getattr(_mut, "budget_refusal", None)
+_MUT_BR_RES = [({"file": "x.py", "line": 1, "kind": "CONST"}, v)
+               for v in ("SKIP-BUDGET", "SKIP-MOVED")]
+_MUT_BR_OUT = ((_mut_brep(_MUT_BR_RES), _mut_brep(
+    _MUT_BR_RES + [({"file": "x.py", "line": 2, "kind": "CONST"}, "LIVES")]),
+    _mut_brep(_MUT_BR_RES[1:])) if _mut_brep else None)
+R.check(
+    "a run the budget let evaluate no mutant is refused; one that evaluated "
+    "some, or skipped none for the budget, is not",
+    _MUT_BR_OUT == (1, None, None)
+    and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER
+    and 'v != "SKIP-BUDGET"' in _MUT_MAIN_DEFER,
+    f"out={_MUT_BR_OUT!r}",
 )
 
 
