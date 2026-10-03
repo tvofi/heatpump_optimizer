@@ -33,7 +33,8 @@ from datetime import date, datetime, timedelta, timezone, tzinfo
 from typing import Any, NamedTuple, TypeVar, cast
 
 from homeassistant.helpers import issue_registry as ir
-from homeassistant.helpers.storage import Store, UnsupportedStorageVersionError
+from homeassistant.helpers import storage as ha_storage
+from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from . import const as c
@@ -54,6 +55,15 @@ _LOGGER = logging.getLogger(__name__)
 #: Home Assistant's ``Store`` bounds its payload to a JSON-shaped container
 #: (a mapping or a sequence). The boundary never widens that; it scrubs leaves.
 _StorePayload = TypeVar("_StorePayload", bound=Mapping[str, Any] | Sequence[Any])
+
+#: Home Assistant's refusal of a downgrade, raised before the migration hook,
+#: exists from 2026.3 only; the 2025.2.0 floor has no such class and hands a
+#: newer document to ``_async_migrate_func``, which surfaces it there. Read,
+#: never imported: an import fails every store, and the integration, on the
+#: floor (#1869). Empty, ``except`` catches nothing.
+_DOWNGRADE: tuple[type[Exception], ...] = tuple(
+    filter(None, [getattr(ha_storage, "UnsupportedStorageVersionError", None)])
+)
 
 
 #: No writer stores a number this large (an epoch in ms is 1.8e12), so one that
@@ -486,9 +496,9 @@ class QuarantiningStore(Store[_StorePayload]):
     the live model — whatever store, field or class the poison arrived in.
     """
 
-    #: The read in flight, kept until the next one, and the task reading it.
+    #: The read in flight, kept until the next one, and the tasks reading.
     _reading: asyncio.Future[None] | None = None
-    _reader: asyncio.Task[Any] | None = None
+    _readers: frozenset[asyncio.Task[Any] | None] = frozenset()
 
     def __init__(
         self,
@@ -520,11 +530,12 @@ class QuarantiningStore(Store[_StorePayload]):
 
     async def async_load(self) -> _StorePayload | None:
         self._reading = reading = asyncio.get_running_loop().create_future()
-        self._reader = asyncio.current_task()
+        task = asyncio.current_task()
+        self._readers = self._readers | {task}
         try:
             try:
                 data = _sanitize(await super().async_load())
-            except UnsupportedStorageVersionError:  # a downgrade
+            except _DOWNGRADE:
                 self._surface_version("it was saved by a newer release than this one")
                 raise
             if self._lead is not None:
@@ -536,7 +547,7 @@ class QuarantiningStore(Store[_StorePayload]):
             _log_off_domain(self, data)
             return cast(_StorePayload | None, data)
         finally:
-            self._reader = None
+            self._readers = self._readers - {task}
             reading.set_result(None)
 
     async def _async_migrate_func(
@@ -579,11 +590,12 @@ class QuarantiningStore(Store[_StorePayload]):
         coordinator writers lost persisted learned state this way; R6's
         mode setter hit it before them). Waiting here, in the store itself,
         is the property rather than a per-writer discipline: no save this
-        type can express clobbers its own pending read. The read's own task
-        does not wait: Home Assistant saves a migration's result from inside
-        the load, and waiting there would wait on itself (#1740).
+        type can express clobbers its own pending read. A reading task does
+        not wait: Home Assistant saves a migration's result from inside the
+        load, and waiting there would wait on itself (#1740) -- or on a second
+        load, which Home Assistant parks on the first (#1869).
         """
-        if asyncio.current_task() is not self._reader:
+        if asyncio.current_task() not in self._readers:
             await self.async_wait_for_read()
         await super().async_save(data)
 
