@@ -340,11 +340,6 @@ jobs:
           python3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"
           grep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"
 
-      # The merge train (tools/audit/seat/merge_train.py, landed from the
-      # round-9 orchestrator's session scratch): each stop -- red CI, no carry,
-      # main moved, a policy path, code-owned without a mandate, a budget file,
-      # a recarry conflict, a preflight REFUSE -- over a stubbed command runner.
-      # The tally line must say 0 failed, as above.
       # A tracked script, workflow or decision record that depends on a temp
       # or machine path (2026-10-03: a temp cleanup took three seat scripts'
       # state, a decision's source and the seat interpreter). Here and not in
@@ -359,6 +354,12 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # The merge train (tools/audit/seat/merge_train.py, landed from the
+      # round-9 orchestrator's session scratch): each stop -- red or incomplete
+      # CI, no carry, main moved, a policy path or a renamed one, a refusal
+      # that is not app_approve's own code-owned line, a budget file, a failing
+      # git read, a recarry conflict, a preflight REFUSE -- over a stubbed
+      # command runner. The tally line must say 0 failed, as above.
       - name: Show the merge train refusing its own fixtures
         run: |
           set -o pipefail

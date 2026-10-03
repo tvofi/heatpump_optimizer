@@ -20,18 +20,21 @@ later pull request would be graded against a `main` the refused one never joined
   1. recarry  -- a head that does not contain `origin/main` gets main merged in by
                  `remerge_main.sh` (an automatic merge, no resolution); a conflict
                  or a push that did not land stops the train;
-  2. ci       -- every check run at the head completes; any latest run red,
-                 cancelled or timed out stops it, except the `--ignore-red` names
-                 (default `nightly-status`, which grades `main`, not the head);
+  2. ci       -- every check run at the head completes (all pages, at least
+                 --min-runs); a latest run that is not success, skipped or
+                 neutral stops it, except the `--ignore-red` names (default
+                 `nightly-status`, which grades `main`, not the head);
   3. carry    -- `app_approve.sh --carry <verdict> <head>` must say `CARRY: yes`:
                  the head differs from the verdicted one only by automatic merges;
   4. main     -- `origin/main` is still inside the head after CI (else main moved);
-  5. policy   -- no changed file is policy, as `policy_lint.mjs --corpus-filter`
+  5. policy   -- no changed file (`--no-renames`, so a rename names the path it
+                 left; a failing merge-base or diff stops the train) is policy, as `policy_lint.mjs --corpus-filter`
                  defines it (probed with a sentinel pair first, as preflight.sh
                  does). A POLICY PULL REQUEST IS NEVER APPROVED HERE, by the App
                  or under a mandate: it waits for the owner's own review;
-  6. approve  -- `app_approve.sh` at the head. When it refuses ONLY because the
-                 pull request touches code-owned paths, and `--mandate` was given,
+  6. approve  -- `app_approve.sh` at the head. When its refusal is exactly its own
+                 code-owned line for this pull request (anchored: a blocked
+                 verdict's echoed reason can carry the same words), and `--mandate` was given,
                  the train approves as the account `gh` is logged in as, with a
                  body naming the mandate label, the role, the verdict comment and
                  the carried head. Without `--mandate`, or on any other refusal
@@ -67,7 +70,7 @@ HEX = frozenset("0123456789abcdef")
 
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
-BAD = ("failure", "cancelled", "timed_out")
+GREEN = ("success", "skipped", "neutral")
 
 
 class Stop(Exception):
@@ -104,18 +107,24 @@ class Train:
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
 
     def wait_ci(self, h: str) -> list[str]:
-        """The names whose latest run at <h> failed, once every run completed."""
+        """The names whose latest run at <h> is not green, once every run completed.
+
+        Green is a fixed list -- success, skipped, neutral -- so a conclusion
+        GitHub adds later, or `action_required` and `stale` today, reads red."""
         for _ in range(self.polls):
-            code, raw = self.run(["gh", "api", f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
+            # One JSON object per line across every page: past 100 runs a head
+            # would otherwise read as complete on its first page alone.
+            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
+                                  f"repos/{self.repo}/commits/{h}/check-runs?per_page=100"])
             try:
-                runs = json.loads(raw)["check_runs"] if code == 0 else None
-            except (ValueError, KeyError):
+                runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+            except ValueError:
                 runs = None
-            if runs and len(runs) >= self.min_runs and all(c["status"] == "completed" for c in runs):
+            if runs and len(runs) >= self.min_runs and all(c.get("status") == "completed" for c in runs):
                 last: dict[str, dict] = {}
                 for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
                     last[c["name"]] = c
-                return sorted(n for n, c in last.items() if c["conclusion"] in BAD)
+                return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
             self.sleep(60)
         return ["TIMEOUT"]
 
@@ -130,7 +139,9 @@ class Train:
         code, o = self.run(["bash", "tools/audit/app_approve.sh", self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
             return "app"
-        owned = re.search(r"touches code-owned paths \(([^)]*)\)", o)
+        # Only app_approve.sh's own code-owned refusal line, anchored and for this
+        # pull request: a blocked verdict's echoed reason can carry the same words.
+        owned = re.search(r"(?m)^app_approve: REFUSE: #%d touches code-owned paths \(([^)]*)\);" % pr, o)
         if owned is None:
             raise Stop("approve", "app_approve.sh refused: " + (o.splitlines() or ["(no output)"])[-1][:200])
         if not self.mandate:
@@ -185,8 +196,15 @@ class Train:
             raise Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
         if not self.contains_main(h):
             raise Stop("main", "origin/main moved during CI and is not in the head; run the train again")
-        base = self.out("git", "merge-base", "origin/main", h)
-        files = self.out("git", "diff", "--name-only", base, h).split()
+        code, base = self.run(["git", "merge-base", "origin/main", h])
+        if code or not is_sha(base.strip()):
+            raise Stop("files", "git merge-base failed: " + base.strip()[-160:])
+        # --no-renames: a rename lists both paths, so moving a policy file out of
+        # the corpus still names the policy path it left.
+        code, out = self.run(["git", "diff", "--no-renames", "--name-only", base.strip(), h])
+        if code:
+            raise Stop("files", "git diff failed: " + out.strip()[-160:])
+        files = out.split()
         pol = self.policy_paths(files)
         if pol:
             raise Stop("policy", f"policy paths changed ({', '.join(pol)}): only the owner's own review approves it")
@@ -251,15 +269,22 @@ def _self_test() -> int:
             if "remerge_main.sh" in a:
                 return 0, world.get("remerge", "PUSHED")
             if "check-runs" in a:
-                return 0, json.dumps({"check_runs": world.get("runs", [])})
+                return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
+            if argv[:3] == ["git", "merge-base", "origin/main"]:
+                return world.get("base", (0, "e" * 40 + "\n"))
             if "--carry" in a:
                 return 0, world.get("carry", "CARRY: yes")
             if argv[:2] == ["git", "diff"]:
+                if "diff_fail" in world:
+                    return world["diff_fail"]
+                if "renamed" in world:  # git lists a rename's old path only with --no-renames
+                    old, new = world["renamed"]
+                    return 0, f"{old}\n{new}" if "--no-renames" in argv else new
                 return 0, "\n".join(world.get("files", ["custom_components/x.py"]))
             if "--corpus-filter" in a:
                 if world.get("broken_filter"):
                     return 0, ""
-                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "tools/audit/briefs/fixer.md"))
+                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "tools/audit/briefs/fixer.md"))
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -275,14 +300,14 @@ def _self_test() -> int:
              {"name": "nightly-status", "status": "completed", "conclusion": "failure", "started_at": "1"}]
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
-    def go(world: dict, mandate: str | None = None, q=None) -> tuple[int, list[str], list[list[str]]]:
+    def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         lines: list[str] = []
         run, calls = fake(world)
         with tempfile.TemporaryDirectory() as d:
-            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), 1, run=run,
+            rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
                        sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3).train(q or [dict(item)])
             world["approve_body"] = (Path(d) / "approve7.md").read_text() if (Path(d) / "approve7.md").exists() else ""
         return rc, lines, calls
@@ -352,6 +377,42 @@ def _self_test() -> int:
     rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]},
                           q=[dict(item), dict(item, pr=8)])
     check("the first refusal stops the queue", rc == 1 and not any(c[:4] == ["gh", "pr", "view", "8"] for c in calls))
+    owned7 = (1, "app_approve: REFUSE: #7 touches code-owned paths (tests/run.sh); the owner's GitHub review approves it, not the App")
+    echo = (1, "app_approve: REFUSE: the newest allowlisted verdict on #7 is 'Fix review: blocked aaaa policy: "
+               "#7 touches code-owned paths (tests/run.sh); and ## Approval is missing', not 'Fix review: merge " + H0 + "'")
+    rc, lines, calls = go({"approve": echo}, mandate="m")
+    check("a blocked verdict echoing the code-owned words is not mandate-approved (B1)",
+          rc == 1 and "app_approve.sh refused" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go({"approve": owned7}, mandate="m")
+    check("the anchored code-owned refusal line still takes the mandate path (null control)", rc == 0 and approved(calls))
+    rc, lines, calls = go({"approve": (1, owned7[1].replace("#7 ", "#8 "))}, mandate="m")
+    check("another pull request's code-owned line does not take the mandate path for this one",
+          rc == 1 and "app_approve.sh refused" in lines[-1] and not approved(calls))
+    rc, lines, calls = go({"approve": owned7, "heads": [H0, H0, H1]}, mandate="m")
+    check("a head that moves between the App's refusal and the mandate review stops it",
+          rc == 1 and "head moved before the mandate approval" in lines[-1] and not approved(calls))
+    rc, lines, calls = go({"approve": owned7, "renamed": ("AGENTS.md", "docs-agents.md")}, mandate="m")
+    check("a rename that moves a policy file out of the corpus is refused as policy (B2)",
+          rc == 1 and "policy:" in lines[-1] and "AGENTS.md" in lines[-1] and not approved(calls))
+    rc, lines, calls = go({"approve": owned7, "diff_fail": (128, "fatal: bad object")}, mandate="m")
+    check("a failing git diff stops the train (B3)", rc == 1 and "files:" in lines[-1] and not approved(calls))
+    rc, lines, calls = go({"approve": owned7, "base": (1, "fatal: no merge base")}, mandate="m")
+    check("a failing git merge-base stops the train (B3)", rc == 1 and "files:" in lines[-1] and not approved(calls))
+    rc, lines, calls = go({}, min_runs=3)
+    check("fewer check runs than --min-runs is not complete CI", rc == 1 and "TIMEOUT" in lines[-1] and not merged(calls))
+    for c in ("action_required", "stale"):
+        rc, lines, calls = go({"runs": green + [{"name": "x", "status": "completed", "conclusion": c, "started_at": "1"}]})
+        check(f"{c} is not green", rc == 1 and lines[-1].endswith("red at the head: x") and not merged(calls))
+    rc, lines, calls = go({"runs": green + [{"name": "y", "status": "completed", "conclusion": c, "started_at": "1"}
+                                            for c in ("skipped",)] + [{"name": "z", "status": "completed",
+                                                                        "conclusion": "neutral", "started_at": "1"}]})
+    check("skipped and neutral are green (null control)", rc == 0 and merged(calls))
+    check("the CI read pages past the first 100 runs",
+          any("--paginate" in c and any("check-runs" in x for x in c) for c in calls))
+    rc, lines, calls = go({"contains": [True, True, False]})
+    check("main moving after approval and before the merge stops it", rc == 1 and "merge:" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"preflight": "  ok       policy corpus -- current"})
+    check("a preflight that never says clean stops it", rc == 1 and "preflight:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({}, q=[dict(item, verdict="xyz")])
     check("a queue entry with a malformed verdict sha is refused", rc == 1 and "queue:" in lines[-1])
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")

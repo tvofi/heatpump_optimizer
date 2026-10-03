@@ -30,7 +30,8 @@
 #
 #   tools/audit/seat/seat_venv.sh && tools/audit/seat/seat_venv.sh --install-shims <seat bin dir>
 #
-# Environment: HPO_STATE_DIR, HPO_PYTHON (an interpreter to use instead of uv's).
+# Environment: HPO_STATE_DIR, HPO_PYTHON (an interpreter to use instead of uv's,
+# and the first one tried for reading the census).
 # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
 set -euo pipefail
 
@@ -40,7 +41,17 @@ VENV=$STATE/venv-ci
 die() { printf 'seat_venv: %s\n' "$*" >&2; exit 1; }
 
 pyver() { "$1" -c 'import sys; print("%d.%d.%d" % sys.version_info[:3])' 2>/dev/null; }
-want=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["census"]["environment"]["python"])' \
+# The census is read by an interpreter named by absolute path, never by the
+# first `python3` on PATH: in the state this script exists to repair, that one
+# is a seat shim pointing at the venv that was deleted (#1879 round 1, N4).
+reader() {
+  for c in "${HPO_PYTHON:-}" /usr/bin/python3 /usr/local/bin/python3 /opt/homebrew/bin/python3; do
+    [ -n "$c" ] && [ -x "$c" ] && "$c" -c 'import json' >/dev/null 2>&1 && { printf '%s\n' "$c"; return 0; }
+  done
+  return 1
+}
+R=$(reader) || die "no working interpreter at \$HPO_PYTHON, /usr/bin/python3, /usr/local/bin/python3 or /opt/homebrew/bin/python3 to read the census"
+want=$("$R" -c 'import json, sys; print(json.load(open(sys.argv[1]))["census"]["environment"]["python"])' \
   "$ROOT/tests/typing_budgets.json") || die "cannot read the census python from tests/typing_budgets.json"
 
 check() {
