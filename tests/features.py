@@ -56496,4 +56496,54 @@ R.check(
 )
 
 
+# R9-EG-A2 (#1874): the helpers the one-copy consolidation introduced, held to the contract each
+# docstring states at the boundary a clamp or a comparison exists for. Every caller reaches them, but
+# no scenario above sits on these boundaries, so a dropped clamp or a moved bound survived the suite.
+from heatpump_optimizer import dhw_planner as _eg_dhw, sysid as _eg_sysid  # noqa: E402
+
+_eg_req, _eg_ceil = _eg_dhw._within_ceiling([50.0, 70.0, 64.0], [60.0, 60.0, 65.0])
+R.check(
+    "EG-A2 a DHW requirement above its step's ceiling is held to the ceiling, elementwise",
+    list(_eg_req) == [50.0, 60.0, 64.0] and list(_eg_ceil) == [60.0, 60.0, 65.0],
+    f"{list(_eg_req)} under {list(_eg_ceil)}",
+)
+_eg_decay, _eg_gain = _eg_dhw._tank_decay(ua=2.0, dt=1.0, c_dhw=0.5)
+R.check(
+    "EG-A2 an absurdly leaky tank's decay is clamped at 0, never a negative (unstable) factor",
+    _eg_decay == 0.0 and _eg_dhw._tank_decay(0.0, 1.0, 0.5)[0] == 1.0,
+    f"decay {_eg_decay}",
+)
+_eg_conf, _ = _eg_sysid._r2_confidence(np.array([5.0, -5.0, 5.0]), np.array([1.0, 2.0, 3.0]), 12)
+R.check(
+    "EG-A2 a fit worse than the mean reads confidence 0, not a negative R^2",
+    _eg_conf == 0.0, f"confidence {_eg_conf}",
+)
+# ss_tot of [0, sqrt(2e-9)] is exactly 1e-9 in float64: the floor is strict, so a residual-free fit of
+# data that never moved still reads no confidence.
+_eg_flat = np.array([0.0, float(np.sqrt(2e-9))])
+_eg_conf_flat, _ = _eg_sysid._r2_confidence(np.zeros(2), _eg_flat, 12)
+R.check(
+    "EG-A2 data whose spread is at the 1e-9 floor reads no confidence (the floor is strict)",
+    float(np.sum(np.square(_eg_flat - np.mean(_eg_flat)))) == 1e-9 and _eg_conf_flat == 0.0,
+    f"ss_tot {float(np.sum(np.square(_eg_flat - np.mean(_eg_flat))))!r} confidence {_eg_conf_flat}",
+)
+from heatpump_optimizer.thermal_model import WATER_SPECIFIC_HEAT as _EG_C  # noqa: E402
+
+_eg_p = ThermalParameters()
+_eg_p.two_zone_enabled = True
+_eg_p.mixing_valve_mode = "manual"
+_eg_p.buffer_tank_volume = 1e-6 / _EG_C  # a buffer mass of exactly 1e-6 kWh/K in float64
+_eg_p._layout_cache = None
+_eg_n = ThermalModel(_eg_p)._substeps_and_loss(0.0, 0.0, 0.25)[0]
+_eg_p.buffer_tank_volume = 0.04 / _EG_C
+_eg_n_fallback = ThermalModel(_eg_p)._substeps_and_loss(0.0, 0.0, 0.25)[0]
+_eg_p.buffer_tank_volume = 1e-6 / _EG_C
+R.check(
+    "EG-A2 a buffer of exactly 1e-6 kWh/K is judged at its own mass, not the 0.04 fallback "
+    "(the fallback is for a mass under the floor)",
+    _eg_p.buffer_tank_thermal_mass == 1e-6 and _eg_n > _eg_n_fallback,
+    f"mass {_eg_p.buffer_tank_thermal_mass!r}: n_sub {_eg_n} vs {_eg_n_fallback} at the fallback",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
