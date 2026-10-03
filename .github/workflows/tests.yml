@@ -1457,6 +1457,17 @@ jobs:
   # diff touches its grader.
   # `nightly_status.py` is not here: it needs `actions: read`, and `fast`
   # already drives the pull request's copy through `tests/entities.py`.
+  #
+  # THE GOVERNANCE ARM (#1757, the #1721 RCA). `policy-docs` restores every
+  # `.claude/workflows/*.mjs` from the base, so a changed governance grader
+  # first ran under the Actions GITHUB_TOKEN on the push to main: #1715's
+  # comparator read a ruleset field that token cannot see, and main was red
+  # for 2 h 21 m. A seat's local run cannot see it either, since it reads as
+  # the seat. So when the diff touches what `policy-docs` restores, the pull
+  # request's own `policy_lint.mjs` and `field_coverage.mjs` run here with
+  # this job's read-only token. `tests/entities.py` derives the token-bearing
+  # pinned graders from the workflows and refuses one with neither a step
+  # here nor a recorded reason.
   graders-head-copy:
     needs: [coverage]
     if: ${{ !cancelled() && github.event_name == 'pull_request' }}
@@ -1468,6 +1479,8 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
+          # policy_lint.mjs's citation resolvers ask git about cited tags.
+          fetch-tags: true
 
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
@@ -1489,6 +1502,19 @@ jobs:
               echo "$g=false" >> "$GITHUB_OUTPUT"
             fi
           done
+          # The pathspec governance.yml's `policy-docs` restores from the base.
+          if git diff --quiet "$BASE"..."$HEAD" -- \
+              '.claude/workflows/*.mjs' \
+              '.claude/workflows/*.py' \
+              '.claude/workflows/vendor' \
+              'tools/audit/*.sh' \
+              'tools/audit/record-predicate' \
+              'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+            echo "governance=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "governance=true" >> "$GITHUB_OUTPUT"
+            echo "a pinned governance grader changed: its own copy runs below"
+          fi
 
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         if: steps.changed.outputs.coverage_ratchet == 'true'
@@ -1507,6 +1533,23 @@ jobs:
         run: |
           git fetch --no-tags --quiet origin main
           python tests/delivery_status.py --check
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        with:
+          node-version: "22"
+
+      - name: The pull request's policy_lint.mjs, under the Actions token
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/policy_lint.mjs
+
+      - name: The pull request's field_coverage.mjs, under the Actions token
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .claude/workflows/field_coverage.mjs
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run
