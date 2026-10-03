@@ -34,14 +34,16 @@ from .const import (
     DHW_LEGIONELLA_HOLD_MINUTES,
     DOMAIN,
 )
-from .dhw_learning import DHW_PROFILE_STORE_VERSION
 from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
 from .optimizer import REASON_LEGIONELLA
+from .payload import CurrentAction
 from .setpoint_check import create_issue
 from .thermal_model import ThermalParameters
 
 _LOGGER = logging.getLogger(__name__)
+
+LEGIONELLA_STORE_VERSION = 1
 
 
 class LegionellaGuard:
@@ -54,7 +56,7 @@ class LegionellaGuard:
         params: ThermalParameters,
         config: dict[str, Any],
         *,
-        action: Callable[[], dict[str, Any]],
+        action: Callable[[], CurrentAction],
         disinfect: DisinfectionSwitch,
         dhw_blocked: Callable[[], bool],
     ) -> None:
@@ -81,7 +83,7 @@ class LegionellaGuard:
         self.last_cycle: datetime | None = None
         self.store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
             hass,
-            DHW_PROFILE_STORE_VERSION,
+            LEGIONELLA_STORE_VERSION,
             f"{DOMAIN}_{entry_id}_dhw_legionella",
             naive_zone=dt_util.DEFAULT_TIME_ZONE,  # async_load's zone
         )

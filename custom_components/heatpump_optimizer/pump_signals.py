@@ -86,6 +86,7 @@ from .const import (
     CONF_HEAT_PUMP_ONLINE_ENTITY,
     MODE_LAST_GOOD_MAX_AGE_MINUTES,
 )
+from .payload import ElectricHeatSignals, HeatPumpSignals
 from .pump_mode import FULL_CAPABILITY, ModeCapability
 
 _LOGGER = logging.getLogger(__name__)
@@ -192,7 +193,7 @@ class PumpElectricHeat:
         """
         return self.resistive_heat or self.capacity_limited is True
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> ElectricHeatSignals:
         """The diagnostics view, so a user can see what was read."""
         return {
             "backup_heater": self.backup_heater,
@@ -279,7 +280,7 @@ class PumpSignals:
         """Whether the plan must not promise hot water."""
         return self.mode_observed and not self.mode_owned and not self.mode.dhw
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> HeatPumpSignals:
         """The diagnostics view."""
         return {
             "mode": self.mode.label,

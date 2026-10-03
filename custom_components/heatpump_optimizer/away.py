@@ -30,6 +30,7 @@ from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
+from .payload import AwayView
 from .store import QuarantiningStore, load_mapping
 
 from .const import (
@@ -92,7 +93,7 @@ class AwayState:
     override_return_iso: str | None = None
     migrated_helpers: bool = False
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> AwayView:
         return {
             "away_active": self.active,
             "away_source": self.source,

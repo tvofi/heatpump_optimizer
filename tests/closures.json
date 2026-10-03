@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 70.0,
+   "seconds": 92.3,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 13.5,
+   "seconds": 17.0,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.0,
+   "seconds": 5.1,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 24.5,
+   "seconds": 23.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,11 +22,11 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 16.5,
+   "seconds": 32.3,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 216.3,
+   "seconds": 229.3,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 517.7,
+   "seconds": 501.7,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -50,15 +50,15 @@
    "rc": 0
   },
   "tests/open_meteo.py": {
-   "seconds": 0.2,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 128.2,
+   "seconds": 191.6,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.5,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/solar_alignment.py": {
@@ -66,19 +66,19 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 478.7,
-   "rc": 0
+   "seconds": 639.0,
+   "rc": 1
   },
   "tests/structure.py": {
-   "seconds": 3.1,
+   "seconds": 9.4,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 15.6,
+   "seconds": 31.5,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.3,
+   "seconds": 3.4,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,11 +86,11 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.4,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.7,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/wood_advisor.py": {
@@ -98,15 +98,15 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 213.4,
+   "seconds": 219.5,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 15.9,
+   "seconds": 5.0,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 80.2,
+   "seconds": 81.3,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -140,6 +140,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -460,6 +461,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -651,6 +653,7 @@
    "tests/requirements-build.txt",
    "tests/requirements-ci.txt",
    "tests/requirements-coverage.txt",
+   "tests/requirements-nightly-ha.txt",
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/seam_map.json",
@@ -1292,6 +1295,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1481,6 +1485,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -1592,6 +1597,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1854,6 +1860,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",

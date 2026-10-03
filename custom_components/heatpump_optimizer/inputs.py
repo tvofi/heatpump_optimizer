@@ -55,6 +55,7 @@ from .const import (
     STALENESS_SCALE_MIN,
     TEMPERATURE_UNIT_TO_C,
 )
+from .payload import InputProblem
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -151,9 +152,9 @@ class InputHealth:
             if r.age_minutes is not None
         }
 
-    def details(self) -> list[dict[str, Any]]:
+    def details(self) -> list[InputProblem]:
         """Per-input evidence, so a user can see *why* something is flagged."""
-        out = []
+        out: list[InputProblem] = []
         for key in sorted(self.readings):
             reading = self.readings[key]
             if reading.entity_id is None or reading.ok:
@@ -849,7 +850,7 @@ PROBLEM_WORDS: dict[str, str] = {
 }
 
 
-def describe_problem(entry: dict[str, Any]) -> str:
+def describe_problem(entry: InputProblem) -> str:
     """One line for one :meth:`InputHealth.details` entry.
 
     ``"sensor.indoor: stale (last report 47 min)"`` -- the entity a user

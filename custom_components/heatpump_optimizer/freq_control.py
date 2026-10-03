@@ -31,6 +31,7 @@ from typing import Any, Callable
 import numpy as np
 
 from .inputs import _finite
+from .payload import FreqMapBucket
 
 #: The two stages. Anything unrecognised in config reads as observe.
 FREQ_MODE_OBSERVE = "observe"
@@ -209,10 +210,10 @@ class FrequencyMap:
             predicted < target_kw for _, predicted in candidates
         )
 
-    def summary(self, hz_min: float, hz_max: float) -> dict[str, Any]:
+    def summary(self, hz_min: float, hz_max: float) -> dict[str, FreqMapBucket]:
         """The map as published: per-bucket mid-Hz, ratio and count."""
         span = float(hz_max) - float(hz_min)
-        out = {}
+        out: dict[str, FreqMapBucket] = {}
         for decile, entry in sorted(self.buckets.items()):
             mid = (
                 float(hz_min) + (decile + 0.5) * span / FREQ_DECILES
