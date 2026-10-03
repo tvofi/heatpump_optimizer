@@ -2478,7 +2478,7 @@ try {
       card.setConfig({ type: "custom:heatpump-optimizer-card" });
       card.hass = { states: st, language: "en" };
       window.__card = card;
-    }, [states, HA_LIGHT, heroAt]);
+    }, [pageStates(plan), HA_LIGHT, heroAt]); // the page fixture, so every tile and the headline lines are populated
     await heroPage.waitForTimeout(250);
     const heroBox = await heroPage.evaluate(() => {
       const card = window.__card;
