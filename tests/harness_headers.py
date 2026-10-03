@@ -186,9 +186,23 @@ CPU_LIMIT_S = 240
 WALL_LIMIT_S = 900
 
 
+# RLIMIT_CPU sums the CPU of every thread, so a BLAS pool of N threads spends the
+# limit N times as fast as the work it does: the frontier harness passed in 260 s
+# of wall on one runner and was SIGXCPU'd at 293 s on another (mutation-nightly,
+# run 37050037132). Every child runs single-threaded, here, whatever its caller's
+# env or the workflow step says, so one place owns the pin.
+BLAS_THREAD_PINS = {
+    "OMP_NUM_THREADS": "1",
+    "OPENBLAS_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+}
+
+
 def run_bounded(cmd: list[str], env: dict[str, str], cpu_s: int, wall_s: int):
     """``(returncode, stdout, stderr)``; rc -9/-24 is the kernel's SIGKILL/SIGXCPU
     on the CPU limit, and a wall overrun returns rc 124 and says so on stderr."""
+    env = {**env, **BLAS_THREAD_PINS}
+
     def limit() -> None:
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s + 5))
 
@@ -257,6 +271,16 @@ def main() -> int:
             run_bounded(spin, env, 1, 30)[0] < 0, "hang detection lost")
     R.check("an idle child past the wall cap reports 124",
             run_bounded(idle, env, 30, 1)[0] == 124, "wall cap lost")
+    # The children carry the BLAS thread pins whatever the caller's env says:
+    # RLIMIT_CPU sums every thread, so an unpinned BLAS pool bills N threads'
+    # CPU against the one limit (rc=-24 on the frontier harness, run 37050037132).
+    names = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
+    echo = [sys.executable, "-c",
+            f"import os;print(*(os.environ.get(k, '') for k in {names!r}))"]
+    rc, out, _ = run_bounded(echo, {**env, **dict.fromkeys(names, "8")}, 30, 30)
+    R.check("a bounded child runs with every BLAS pool pinned to one thread",
+            rc == 0 and out.split() == ["1", "1", "1"],
+            f"rc={rc} OMP/OPENBLAS/MKL={out.split()!r}")
     clean, detail = dirty_registers()
     R.check(
         "the executed harnesses leave their committed output byte-identical",
