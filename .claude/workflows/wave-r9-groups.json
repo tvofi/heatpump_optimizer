@@ -6298,11 +6298,11 @@
         "R9-F10.12"
       ],
       "resume": {
-        "stage": "building",
+        "stage": "in-review",
         "branch": "handoff/r9-f10-13",
-        "commit": null,
-        "last_step": "fixer seat dispatched 2026-10-03 on fix/r9-f10-13",
-        "next_step": "fixer.md step 1 at a fresh merge base: re-measure, then write the failing check",
+        "commit": "059d435af73e6c042d47b00781441d8e90eba0ec",
+        "last_step": "PR #1885 opened 2026-10-04; fix-review dispatched",
+        "next_step": "verdict",
         "note_file": null,
         "review_branch": null,
         "review_note_file": null,
@@ -6584,7 +6584,7 @@
         "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md",
         "note": "Measured by the CI-placement sweep seat 2026-10-03; savings 25-45 min wall per nightly/ledger job for (a), 3-6 min per drawn PR table for (b), 30-45 runner-min a night for (c), ~40 for (d)."
       },
-      "brief": "Round-9 CI-efficiency PR F10.16 (mutation driver hygiene), same origin as F10.15. Evaluate and implement or reject with measured reasons: (a) remove stress and harness_headers from the nightly/ledger driver set in tests/mutation_table.py (1 ledger kill each of 595 rows; stress runs exclusive for ~16 min per run; harness_headers flaked a ledger job with SIGXCPU) — proof: replay their killed_by rows with the remaining drivers and show another driver kills each, otherwise it is an unpinned-count raise needing tvofi; (b) make env_drift a lazy driver in the PR mutation table (190-364 s eager per table for 4 kills) — proof identical table output on a diff killed via env_drift and one not; (c) the nightly slow job re-runs the whole suite but only rolling.py and replay.py are unique to it; (d) nightly and ledger pay the same ~35 min baseline at one cron in .github/workflows/tests.yml — share it or stagger. Option (e), skipping a driver on a mutant line it never executes, is recorded as deferred: high risk, needs a 595-row replay. Coordinate with PR #1878 (harness_headers EXCLUSIVE and per-child CPU bounds), which lands first."
+      "brief": "Round-9 CI-efficiency PR F10.16 (mutation driver hygiene), same origin as F10.15. Evaluate and implement or reject with measured reasons: (a) remove stress and harness_headers from the nightly/ledger driver set in tests/mutation_table.py (1 ledger kill each of 595 rows; stress runs exclusive for ~16 min per run; harness_headers flaked a ledger job with SIGXCPU) — proof: replay their killed_by rows with the remaining drivers and show another driver kills each, otherwise it is an unpinned-count raise needing tvofi; (b) make env_drift a lazy driver in the PR mutation table (190-364 s eager per table for 4 kills) — proof identical table output on a diff killed via env_drift and one not; (c) the nightly slow job re-runs the whole suite but only rolling.py and replay.py are unique to it; (d) nightly and ledger pay the same ~35 min baseline at one cron in .github/workflows/tests.yml — share it or stagger. Option (e), skipping a driver on a mutant line it never executes, is recorded as deferred: high risk, needs a 595-row replay. Coordinate with PR #1878 (harness_headers EXCLUSIVE and per-child CPU bounds), which lands first. Carried from #1885 (R9-F10.13): with triaged sites skipped by the sampled pool, the `equivalent` branch of survivor_gaps in tests/mutation_table.py has no sampled caller; decide whether to delete it or give it a caller, with a mutation proof either way."
     }
   ]
 }
