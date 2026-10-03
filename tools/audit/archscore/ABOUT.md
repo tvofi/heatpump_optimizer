@@ -100,6 +100,14 @@ with an effect or without -- leaves the original's pairs intact and the clone jo
 - It replaced the statement-dropping C3 of the first rounds, which each review beat with a spelling
   outside its grammar.
 
+One planted verdict moved with it: `a1_G2_dedupe` (GOOD) reads NULL, not IMPROVES. G2 moves the two
+fabric learners' shared replay block into a helper, but the learners still share 12 ordered statement
+pairs (the guard, the `dt_h` line, the replay call, the finiteness check), so under any gap they stay one
+clone class and the copy count does not fall; the adjacent census lost its only window and read the
+partial dedupe as a whole one. No corpus verdict moved (81 corpus vectors re-measured), and no weight
+sensitivity. The matcher costs 228 s against 208 s for the corpus re-measure (`--measure-corpus --jobs 4`,
+one run each, this machine).
+
 What it does not see: a copy whose statements are reordered or split across blocks. That is a change
 to the copy's logic or structure, not junk, and a reviewer reads it in the diff.
 
