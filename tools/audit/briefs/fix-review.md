@@ -115,21 +115,20 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     a `#` comment, and `merge_claim_defect` refuses when one is lost, so "only
     comment notes conflict" waves a real refusal through.
 
-14. **A number the diff moves is earned by the change, not the instrument.**
-    Where it moves a `tests/structure_budgets.json` metric, the architecture
-    score or its `calibration/expected.json`, the mutation ledger (`killed_by`,
-    `survivor_triage`), `tests/closures.json` or the `INERT` list, or a golden
-    or claim file: remove the mechanism the body names and show the number
-    moves back, and plant at least one gaming attempt of your own against that
-    instrument. A movement the removal leaves standing, or one your plant
-    reproduces without better code, is `blocked <sha> metric-gamed:
-    <instrument>: <how>`. Caught by reviewers planting unasked: junk
-    splitting a clone read as score gain for three rounds (#1874); a `killed_by`
-    its own lane refuted, and a `tests/entities.py` kill that was the staleness
-    check firing on the triage itself (#1867); a quiet autofix beside a read
-    `inert_reads` lacked (#1868). On a raise or an ask for one, judge each
-    payment the body refused (`fixer.md` budget section) and hunt one it
-    missed: a missed payment that truly improves the code is `metric-gamed` too.
+14. **Every number the diff moves is earned by the change, not the instrument**:
+    a structure, policy or mutation budget, the architecture score or its
+    `calibration/expected.json`, the mutation ledger, `tests/closures.json` or
+    `INERT`, a golden or claim file, any figure the body quotes. Remove the
+    mechanism the body names; a movement that survives is not earned:
+    `blocked <sha> metric-gamed: <instrument>: <how>`. Then plant the diff's own
+    kind of move on the same instrument with nothing improved. If it reproduces
+    the movement, block only where the diff's change is that shape; under a sound
+    change it is an instrument finding, carried by `finding-propagation.md`.
+    Reviewers planting unasked caught junk splitting a clone read as score gain
+    (#1874), a `killed_by` its own lane refuted and an `entities.py` self-kill
+    (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
+    body lists and hunt one it missed: one that truly improves the code is
+    `metric-gamed` too.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
