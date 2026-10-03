@@ -1694,6 +1694,7 @@ def _version_arm(by_name) -> None:
     stores: dict[str, object] = {}
     noisy: list[str] = []
     unsurfaced: list[str] = []
+    overwritten: list[str] = []
     try:
         for name, loader in LOADERS.items():
             key, healthy = by_name[name]
@@ -1714,6 +1715,25 @@ def _version_arm(by_name) -> None:
                     continue
                 if not lag:
                     stores[key] = next(s for s in reads if s._key == key)
+                if lag == 1:
+                    # The control: a bump's reset is saved at this release's
+                    # version, so read-only is a downgrade's alone.
+                    st = next(s for s in reads if s._key == key)
+                    asyncio.run(st.async_save(healthy))
+                    if _storage._VERSIONS.get(key) != stores[key]._version:
+                        overwritten.append(f"{name}@bump:unsaved")
+                if lag == -1:
+                    # A downgrade: the newer release's document must survive
+                    # the load (legionella saves inside its own) and the next
+                    # save, so reinstalling that release finds it intact.
+                    newer = stores[key]._version + 1
+                    after_load = (_storage._VERSIONS.get(key), _storage._DISK.get(key))
+                    st = next(s for s in reads if s._key == key)
+                    asyncio.run(st.async_save({"overwritten": True}))
+                    after_save = (_storage._VERSIONS.get(key), _storage._DISK.get(key))
+                    for when, got in (("load", after_load), ("save", after_save)):
+                        if got != (newer, json.dumps(healthy)):
+                            overwritten.append(f"{name}@{when}:version={got[0]}")
                 warned, issued = _surfaced(coord, key)
                 if not lag and (warned or issued):
                     noisy.append(name)
@@ -1736,6 +1756,13 @@ def _version_arm(by_name) -> None:
         "a repair issue naming its key (#1740)",
         not unsurfaced,
         f"unsurfaced={unsurfaced}",
+    )
+    R.check(
+        "a downgraded store keeps the newer release's document through its load and "
+        "the next save, so reinstalling that release finds it intact; a bumped "
+        "store still saves (#1869)",
+        not overwritten,
+        f"overwritten={overwritten}",
     )
     default = getattr(QuarantiningStore, "_async_migrate_func", None)
     unmigrated = sorted(
@@ -1774,6 +1801,25 @@ def _version_arm(by_name) -> None:
         "older or newer, not a minor-only one",
         verdicts == ["not-implemented", 1, "not-implemented", 0, "not-implemented", 1],
         f"verdicts={verdicts}",
+    )
+    # The floor's route: no refusal class, the hook is handed the newer
+    # document. Once it has seen one, the store must not save over it either.
+    fkey = f"{const.DOMAIN}_{ENTRY_ID}_version_floor_save"
+    floor = QuarantiningStore(FakeHass(), 2, fkey)
+    try:
+        asyncio.run(floor._async_migrate_func(3, 1, {}))
+    except NotImplementedError:
+        pass
+    _storage.SAVE_COUNTS.pop(fkey, None)
+    asyncio.run(floor.async_save({"overwritten": True}))
+    floor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
+    _storage._DISK.pop(fkey, None)
+    _storage._VERSIONS.pop(fkey, None)
+    R.check(
+        "a store whose hook was handed a newer document (the 2025.2.0 floor's "
+        "downgrade) does not save over it (#1869)",
+        floor_saves == 0,
+        f"saves after the hook saw a newer major={floor_saves}",
     )
     # A downgrade leaves the store as Home Assistant's own exception, after the
     # surfacing: the loaders catch any exception alike, so only the type tells
