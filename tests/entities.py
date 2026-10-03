@@ -421,7 +421,7 @@ DATA = {
     },
     "contract_comparison": {
         "load_profile_value_per_kwh": -0.031,
-        "months": 2,
+        "month": "2026-02",
     },
     "peak_tariff_enabled": True,
     "billed_peak_kw": 7.2,
@@ -4021,7 +4021,7 @@ def _p6_is_data(node, aliases, accessors):
     return False
 
 
-def _p6_arm_k(walks):
+def _p6_arm_k(walks, declared=None):
     produced = set()
     for name, nodes in walks.items():
         if name in P6_CONSUMER_MODULES:
@@ -4038,6 +4038,8 @@ def _p6_arm_k(walks):
                 if n.func.attr == "setdefault" and n.args:
                     produced.add(_p6_lit(n.args[0]))
                 produced.update(kw.arg for kw in n.keywords if kw.arg)
+    if declared is not None:
+        produced = set(declared)  # the typed contract, not what a literal happens to say
     reads, seams = 0, set()
     for name, nodes in walks.items():
         if name not in P6_CONSUMER_MODULES and name != "__init__.py":
@@ -11082,7 +11084,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "lifetime", "month", "wear_price_per_start"
     }),
     "ContractComparisonSensor": frozenset({
-        "load_profile_value_per_kwh", "monthly_report", "months",
+        "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
     "CurrentSetpointSensor": frozenset({
@@ -30177,9 +30179,8 @@ _egb3_resolve = {
     "self._legionella.disinfect.view()": ("disinfection", "view"),
     "self._away_state.as_dict()": ("away", "as_dict"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
-    "plan_views": ("coordinator", "_build_plan_views"),
 }
-_egb3_inline = {"two_tank", "view()", "{k: round(v, 4) for k, v in self._energy_totals.items()}"}
+_egb3_inline = {"two_tank", "view()", "data"}
 
 
 def _egb3_energy():
@@ -30216,10 +30217,32 @@ def _egb3_published():
     return keys, unresolved
 
 
-def _egb3_payload_keys():
+def _egb3_bases(name, _seen=None):
+    seen = set() if _seen is None else _seen
+    cls = next((n for n in _egb3_src["payload"].body
+                if isinstance(n, ast.ClassDef) and n.name == name), None)
+    if cls is not None and name not in seen:
+        seen.add(name)
+        for b in cls.bases:
+            if isinstance(b, ast.Name):
+                _egb3_bases(b.id, seen)
+    return seen
+
+
+def _egb3_fields(name):
     cls = next(n for n in _egb3_src["payload"].body
-               if isinstance(n, ast.ClassDef) and n.name == "Payload")
-    return {a.target.id for a in cls.body if isinstance(a, ast.AnnAssign)}
+               if isinstance(n, ast.ClassDef) and n.name == name)
+    out = {}
+    for b in cls.bases:
+        if isinstance(b, ast.Name) and any(
+                isinstance(n, ast.ClassDef) and n.name == b.id for n in _egb3_src["payload"].body):
+            out.update(_egb3_fields(b.id))
+    out.update({a.target.id: a.annotation for a in cls.body if isinstance(a, ast.AnnAssign)})
+    return out
+
+
+def _egb3_payload_keys():
+    return set(_egb3_fields("Payload"))  # its own, plus every slice it inherits
 
 def _egb3_class(name):
     cls = next(n for n in _egb3_src["payload"].body
@@ -30256,5 +30279,90 @@ R.check(
     f"compressor_starts={sorted(_egb3_cs ^ _egb3_class('CompressorStarts'))}",
 )
 
+
+# EG-B3b: the cast is gone, so mypy (the typing job) judges each producer against
+# the slice it returns. What mypy cannot see is pinned here: that the slice IS one
+# Payload inherits (a view typed with a private TypedDict would pass mypy and
+# publish keys Payload never declared), that the assembler hands out a ``Payload``
+# rather than a cast dict, and that what the entities read and what DATA carries
+# are keys the contract declares.
+_egb3_slice_producers = [("coordinator", v) for v in (
+    "_thermal_view", "_dhw_view", "_learning_view", "_measurement_view", "_grid_view",
+    "_ecl110_view", "_external_heat_view", "_input_health_view", "_mixing_valve_view",
+    "_plan_settings_view")] + [("away", "as_dict"), ("disinfection", "view"),
+                              ("coordinator", "_energy_totals_view")]
+_egb3_payload_bases = _egb3_bases("Payload")
+_egb3_returns = {
+    f"{m}.{f}": ast.unparse(_egb3_fn(m, f).returns) if _egb3_fn(m, f).returns else None
+    for m, f in _egb3_slice_producers
+}
+R.check(
+    "EG-B3b: every view the assembler merges returns a slice Payload inherits",
+    all(r in _egb3_payload_bases for r in _egb3_returns.values()),
+    repr({k: v for k, v in _egb3_returns.items() if v not in _egb3_payload_bases}),
+)
+_egb3_build = _egb3_fn("coordinator", "_build_data_dict")
+R.check(
+    "EG-B3b: _build_data_dict returns Payload and casts nothing",
+    ast.unparse(_egb3_build.returns) == "Payload"
+    and not any(isinstance(n, ast.Call) and getattr(n.func, "id", getattr(n.func, "attr", "")) == "cast"
+                for n in ast.walk(_egb3_build)),
+    "the assembler casts its dict, which hides every producer from mypy",
+)
+_egb3_reads, _egb3_unproduced = _p6_arm_k(_P6_WALKS, _egb3_pk)
+_egb3_null_reads, _egb3_null_unproduced = _p6_arm_k(_P6_WALKS, set())
+R.check(
+    "EG-B3b: every payload key an entity reads is declared in Payload",
+    _egb3_reads > 0 and not _egb3_unproduced
+    and len(_egb3_null_unproduced) > 0,  # null control: with nothing declared every read is a seam
+    f"{_egb3_unproduced} (reads={_egb3_reads}, null control seams={len(_egb3_null_unproduced)})",
+)
+
+
+def _egb3_undeclared(value, cls_name, path=""):
+    """Keys of ``value`` Payload (or the TypedDict it nests) does not declare."""
+    out, fields = [], _egb3_fields(cls_name)
+    for k, v in value.items():
+        if k not in fields:
+            out.append(path + k)
+            continue
+        ann = ast.unparse(fields[k]).replace(" | None", "")
+        inner = ann[5:-1] if ann.startswith("list[") else ann
+        if inner in _egb3_bases(inner) and any(
+                isinstance(n, ast.ClassDef) and n.name == inner for n in _egb3_src["payload"].body):
+            for i, item in enumerate(v if isinstance(v, list) else [v]):
+                if isinstance(item, dict):
+                    out += _egb3_undeclared(item, inner, f"{path}{k}{'' if not isinstance(v, list) else f'[{i}]'}.")
+    return out
+
+
+R.check(
+    "EG-B3b: DATA, the representative payload, carries only keys Payload declares",
+    not _egb3_undeclared(DATA, "Payload")
+    and _egb3_undeclared({**DATA, "contract_comparison": {"months": 2}}, "Payload")
+    == ["contract_comparison.months"],  # null control: the stale key the check found
+    repr(_egb3_undeclared(DATA, "Payload")),
+)
+
+
+# EG-B3b: payload.py executes with no package around it -- its one package import
+# (the ``SolarDiagnostics`` type, kept in open_meteo.py because tests/open_meteo.py
+# runs that module with const.py alone) sits under ``if TYPE_CHECKING``. A guard
+# that stopped guarding makes this load raise on the relative import.
+import importlib.util as _egb3_ilu
+
+_egb3_spec = _egb3_ilu.spec_from_file_location(
+    "payload_standalone", _egb3_pkg / "payload.py")
+_egb3_mod = _egb3_ilu.module_from_spec(_egb3_spec)
+try:
+    _egb3_spec.loader.exec_module(_egb3_mod)
+    _egb3_standalone = "Payload" in vars(_egb3_mod)
+except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
+    _egb3_standalone = repr(_egb3_err)
+R.check(
+    "EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only",
+    _egb3_standalone is True,
+    str(_egb3_standalone),
+)
 
 sys.exit(R.close("ENTITY CHECKS"))

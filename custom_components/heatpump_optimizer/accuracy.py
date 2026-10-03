@@ -33,6 +33,7 @@ from homeassistant.util import dt as dt_util
 
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
+from .payload import Accuracy
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -334,7 +335,7 @@ class AccuracyTracker:
         # A quarter-degree average error is excellent; two degrees is useless.
         return float(np.clip(1.0 - (mae - 0.25) / 1.75, 0.0, 1.0))
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> Accuracy:
         return {
             "samples": len(self.samples),
             "temperature_mae": self.temperature_mae(),

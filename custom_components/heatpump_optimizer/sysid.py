@@ -37,6 +37,7 @@ import numpy as np
 from .accuracy import utc_elapsed_seconds
 from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
 from .mixing_valve import is_throttling
+from .payload import SysIdResultView, SysIdView
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
     ThermalModel,
@@ -426,7 +427,7 @@ class SysIdResult:
     ua_told_halfwidth: float | None = None
     reason: str = ""
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> SysIdResultView:
         return {
             "completed": self.completed,
             "time_constant_hours": (
@@ -2275,7 +2276,7 @@ class SystemIdentification:
             reason="ok",
         )
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> SysIdView:
         return {
             "phase": self.phase,
             "active": self.active,

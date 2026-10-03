@@ -28,6 +28,7 @@ from typing import Any, Final
 import numpy as np
 
 from . import mixing_valve
+from .payload import SensorAdvisor, SensorAdvisorRow
 from .tariff import metering_windows
 from .wood_fuel import wood_furnace_on
 from .const import (
@@ -987,7 +988,7 @@ def rank_sensor_advisor(
     config: Mapping[str, Any],
     hp_kw: Sequence[float] = (),
     language: str = "en",
-) -> dict[str, Any] | None:
+) -> SensorAdvisor | None:
     """Rank unconfigured optional temperature sensors by model spread (#1269).
 
     The inverse of `rank_sensor_gaps`: that prices what the absence of a
@@ -1046,7 +1047,7 @@ def rank_sensor_advisor(
         key: _tr(label, language)
         for key, _place, label, _domains, _class in _SLOTS
     }
-    rows: list[dict[str, Any]] = []
+    rows: list[SensorAdvisorRow] = []
     for key in candidates:
         lane = lanes.get(key)
         if lane is None:
