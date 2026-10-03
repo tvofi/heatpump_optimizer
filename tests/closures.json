@@ -605,6 +605,8 @@
    "tests/golden/claimed_drift.txt",
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",
+   "tests/ha_floor.py",
+   "tests/ha_floor_names.json",
    "tests/harness.py",
    "tests/harness_headers.py",
    "tests/hastub/homeassistant/__init__.py",
