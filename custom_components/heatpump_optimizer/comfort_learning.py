@@ -33,6 +33,7 @@ import numpy as np
 
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
+from .payload import ComfortLearning
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -189,7 +190,7 @@ class ComfortLearner:
             np.clip(self.learned_weight, COMFORT_WEIGHT_MIN, COMFORT_WEIGHT_MAX)
         )
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> ComfortLearning:
         return {
             "configured": round(self.configured_weight, 2),
             "learned": round(self.learned_weight, 2),

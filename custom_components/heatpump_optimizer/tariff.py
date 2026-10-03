@@ -38,6 +38,7 @@ import numpy as np
 from .accuracy import HISTORY_LENGTH
 from .batchmath import row_sums
 from .dhw_schedule import Window, hour_in_windows
+from .payload import PeakTariff
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,7 +147,7 @@ class CapacityTariff:
             return 1.0
         return float(min(1.0, max(0.0, self.offpeak_factor)))
 
-    def billing_summary(self) -> dict[str, float]:
+    def billing_summary(self) -> PeakTariff:
         """The three figures the peak term is priced with (#1460).
 
         What the sensor-gap advisor reads to price a missing house meter:

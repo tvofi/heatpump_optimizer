@@ -31,6 +31,8 @@ from typing import Any
 
 import numpy as np
 
+from .payload import Pv
+
 # Reference irradiance at which a panel produces its rated output.
 STC_IRRADIANCE = 1000.0  # W/m²
 
@@ -132,7 +134,7 @@ def summarize(
     production_kw: np.ndarray,
     surplus: np.ndarray,
     dt_hours: float,
-) -> dict[str, Any]:
+) -> Pv:
     """Reporting figures for the PV sensor attributes."""
     production = np.asarray(production_kw, dtype=float)
     return {

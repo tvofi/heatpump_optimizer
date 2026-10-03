@@ -1034,9 +1034,10 @@ jobs:
   # (decision 0011's amendment): only NEW rows under
   # tests/mutation_ledger/killed_by/, under the subject `ci: record nightly
   # kills`. No driver runs here. A main that moved since the measurement
-  # keeps only the pins whose killing script read nothing that changed
-  # (`stale_pins`), and every pin is re-checked against main's own inventory
-  # (`apply_drained`), so a second apply of one slice writes nothing. The
+  # keeps only the pins whose killing script's closure still holds the
+  # mutated module (`stale_pins`), and every pin is re-checked against main's
+  # own inventory (`apply_drained`): a changed line is dropped, and a second
+  # apply of one slice writes nothing. The
   # credential lives in the `ledger` environment, whose deployment branches
   # are main alone, so no other ref's job can mint it; absent, the job is red.
   # The commits sent are checked before the push (`drain_push_problems`).
@@ -1342,6 +1343,18 @@ jobs:
         run: |
           python tests/nightly_ha.py \
             --image "homeassistant/home-assistant:${{ matrix.image }}"
+
+      # The PR gate checks every Home Assistant name production reaches
+      # against a snapshot recorded from upstream source at the floor
+      # (tests/entities.py, the P11 floor arm). Here the floor itself answers
+      # every recorded question again, so a wrong recording or a hand edit is
+      # red within a night. After the lane, and whatever it concluded, so
+      # neither hides the other.
+      - name: Verify the floor-names snapshot in Home Assistant itself
+        if: ${{ !cancelled() && matrix.image == '2025.2.0' }}
+        run: >-
+          python tests/ha_floor.py verify
+          --image "homeassistant/home-assistant:${{ matrix.image }}"
 
   # The telling. `nightly-ha` and `slow` run on `schedule` alone, are `skipped`
   # on every push and pull request, and are not required contexts -- so a
