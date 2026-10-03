@@ -1,0 +1,15 @@
+== R0 null: rc=0 ALL 77 FINITE BOUNDARY CHECKS PASSED (167s)
+== M2 predicate always true: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (246s)
+    FAIL the default hook raises NotImplementedError and surfaces a major mismatch only, not a minor-only one  [verdicts=['not-implemented', 1, 'not-implemented', 1]]
+== M4 hook returns old_data: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (273s)
+    FAIL the default hook raises NotImplementedError and surfaces a major mismatch only, not a minor-only one  [verdicts=['returned', 1, 'returned', 0]]
+== M11 every save waits: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (249s)
+    FAIL a store that migrates loads the migrated payload and saves it at its own version, without waiting on its own read (#1740)  [got='TimeoutError' saved_at=1]
+== M12 no save waits: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (231s)
+    FAIL a save from another task waits for the store's read in flight, and lands after it  [saves before the read landed=1 after=1]
+== RAISE_DEL downgrade re-raise: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (139s)
+    FAIL a downgrade leaves the store as UnsupportedStorageVersionError (#1740)  [escaped=UnboundLocalError]
+== V1 predicate '>' (hook surfaces newer only): rc=1 2 of 77 FINITE BOUNDARY CHECKS FAILED (114s)
+    FAIL every store's version mismatch, older or newer, logs a WARNING and raises a repair issue naming its key (#1740)  [unsurfaced=['thermal_learning@1:warned=False,issued=False', 'price_model@1:warned
+    FAIL the default hook raises NotImplementedError and surfaces a major mismatch only, not a minor-only one  [verdicts=['not-implemented', 0, 'not-implemented', 0]]
+== V2 predicate '<' (hook surfaces older only): rc=0 ALL 77 FINITE BOUNDARY CHECKS PASSED (137s)
