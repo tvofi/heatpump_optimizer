@@ -56545,5 +56545,21 @@ R.check(
     f"mass {_eg_p.buffer_tank_thermal_mass!r}: n_sub {_eg_n} vs {_eg_n_fallback} at the fallback",
 )
 
+R.check(
+    "EG-A2 a residual-free fit reads its spread against the 1e-9 noise floor, never a division by zero",
+    _eg_sysid._snr_weight(np.array([0.0, 1.0, 2.0]), 0.0) == 1.0,
+)
+with np.errstate(all="ignore"):
+    _eg_empty = _eg_sysid._slab_confidence(np.array([20.0]), np.array([]))
+R.check("EG-A2 a slab fit with no residuals reads confidence 0, not a division by zero",
+        _eg_empty == 0.0, f"{_eg_empty}")
+# A shortfall of exactly 0.05 K (0.05 - 0.0 is exact in float64) is within tolerance; one just past it is not.
+_eg_short = _eg_dhw.DhwPlanner._dhw_shortfall
+R.check(
+    "EG-A2 a DHW breach is a shortfall of MORE than 0.05 K: exactly 0.05 is met, 0.06 is the first breach",
+    _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.05]), set())[2] is None
+    and _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.06]), set())[2] == 0,
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))

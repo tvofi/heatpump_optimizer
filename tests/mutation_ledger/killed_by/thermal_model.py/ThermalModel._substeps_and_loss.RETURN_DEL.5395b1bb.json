@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._substeps_and_loss RETURN_DEL 5395b1bb",
-  "killed_by": "tests/features.py",
-  "old": "        return max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO))), loss",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9c6b923f2614936aad89e1408dabca8ddd721322: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1. Re-keyed by R9-EG-A2 (#1874): the method is _substeps_and_loss and the line returns the loss too. Re-measured 2026-10-03 on an export of the branch: `pass` takes tests/features.py to 3 failing checks and a crash (AttributeError on a plan that did not solve) against the head's 1."
-}
