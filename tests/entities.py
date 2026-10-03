@@ -29973,9 +29973,13 @@ R.check(
 #     cannot grow past the approval in silence (the #960 precedent);
 #   * every `uses:` is pinned by commit (#960);
 #   * no job produces a required context: the deploy is not a merge gate;
-#   * the upload and the deploy are gated on the Pages probe, so the workflow
-#     is inert -- green, with a warning naming the click -- until tvofi enables
-#     Pages.
+#   * the upload and the deploy are gated on the Pages probe, so with Pages
+#     off or built from a branch the run is green with a warning naming the
+#     setting, and deploys nothing;
+#   * the deploy runs in the github-pages environment, and the build job,
+#     which runs `npm ci` and the generator, holds no write and no OIDC token;
+#   * no `if:` is made true by always(), and a deploy in flight is never
+#     cancelled.
 # The staging is pinned by RUNNING it, not by reading it: the step named
 # "Stage the site" runs in a scratch repository holding every kind of file
 # docs/ can hold, and what it stages must be exactly the published set; the
@@ -30100,12 +30104,20 @@ def _pg_defects(text: str) -> "list[str]":
         out.append(f"workflow permissions {doc.get('permissions')!r}")
     if not (doc.get("concurrency") or {}).get("group"):
         out.append("no concurrency group")
+    if (doc.get("concurrency") or {}).get("cancel-in-progress") is not False:
+        out.append("cancel-in-progress is not false: a newer run would cancel "
+                   "a deploy in flight")
     jobs = doc.get("jobs") or {}
     for jid, job in jobs.items():
         for k, v in ((job or {}).get("permissions") or {}).items():
             if v == "write" and k not in ("pages", "id-token"):
                 out.append(f"job {jid} widens {k} to write")
         label = str((job or {}).get("name") or jid)
+        ifs = [str((job or {}).get("if", ""))] + [
+            str((s or {}).get("if", "")) for s in (job or {}).get("steps") or []]
+        if any("always()" in i for i in ifs):
+            out.append(f"job {jid} has an `if:` that always() makes true, "
+                       "so the probe gate is decorative")
         if label in _RC_CONTEXTS or jid in _RC_CONTEXTS:
             out.append(f"job {jid} produces required context {label!r}")
     steps = [(jid, s or {}) for jid, j in jobs.items()
@@ -30131,6 +30143,22 @@ def _pg_defects(text: str) -> "list[str]":
               if str(s.get("uses", "")).startswith("actions/deploy-pages@")]
     if len(deploy) != 1 or "enabled" not in str(jobs[deploy[0]].get("if", "")):
         out.append(f"the deploy job {deploy} is not gated on the Pages probe")
+    else:
+        # The environment is the one control that limits a deploy to the refs
+        # tvofi admits (today `main`, and `v*` once the tag rule is added).
+        env = jobs[deploy[0]].get("environment")
+        if (env.get("name") if isinstance(env, dict) else env) != "github-pages":
+            out.append(f"the deploy job runs outside the github-pages "
+                       f"environment ({env!r})")
+    # The job that checks out, runs `npm ci` and runs the repository's
+    # generator holds no write and no OIDC token: only the deploy job does.
+    build = [jid for jid, s in steps
+             if str(s.get("uses", "")).startswith("actions/upload-pages-artifact@")]
+    if len(build) == 1 and (jobs[build[0]].get("permissions")
+                            != {"contents": "read", "pages": "read"}):
+        out.append(f"the build job's permissions are "
+                   f"{jobs[build[0]].get('permissions')!r}, not exactly "
+                   "contents:read and pages:read")
     probe = [s for _, s in steps if s.get("id") == "probe"]
     if len(probe) != 1:
         out.append("no step with id `probe`")
@@ -30177,6 +30205,30 @@ R.check(
     f"gate={_closure.is_gate_file(str(_PG_WF))} "
     f"inert={_closure.is_inert(str(_PG_WF))} "
     f"case={_closure.affected([str(_PG_WF)])['case']}",
+)
+
+# The two grants a review found unpinned (#1876 round 1), each driven over the
+# real workflow text with one block removed: the deploy job's environment, and
+# the build job's narrowed permissions (without them it inherits pages:write
+# and id-token:write). Each mutant must be refused for its own reason.
+def _pg_without(block: str) -> "list[str]":
+    text = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    if text.count(block) != 1:
+        return [f"control block not found once: {block!r}"]
+    return _pg_defects(text.replace(block, ""))
+
+
+_PG_NO_ENV = _pg_without(
+    "    environment:\n      name: github-pages\n"
+    "      url: ${{ steps.deployment.outputs.page_url }}\n")
+_PG_NO_PERMS = _pg_without(
+    "    permissions:\n      contents: read\n      pages: read\n")
+R.check(
+    "and a deploy outside the github-pages environment, or a build job that "
+    "inherits the deploy grant, is refused (null controls)",
+    any("github-pages environment" in d for d in _PG_NO_ENV)
+    and any("build job's permissions" in d for d in _PG_NO_PERMS),
+    f"no environment: {_PG_NO_ENV}; no build permissions: {_PG_NO_PERMS}",
 )
 
 

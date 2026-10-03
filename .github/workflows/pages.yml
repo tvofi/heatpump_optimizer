@@ -12,11 +12,13 @@ name: Pages
 #   from the tag's markdown, and mermaid's one UMD file. It never publishes a
 #   markdown file: the development record is not a web page, and the step
 #   before the upload refuses one.
-# * INERT UNTIL PAGES IS ENABLED. The probe asks the API whether Pages is on
-#   and built by GitHub Actions; when it is not, the build still runs (so a
-#   dispatch proves it), the upload and the deploy are skipped, and the run is
-#   green with a warning naming the setting. Enabling Pages is the owner's:
-#   Settings > Pages > Build and deployment > Source: "GitHub Actions".
+# * The probe asks the API whether Pages is on and built by GitHub Actions
+#   (Settings > Pages > Source: "GitHub Actions", an owner setting). When it
+#   is not, the build still runs, the upload and the deploy are skipped, and
+#   the run is green with a warning naming the setting; any other API error
+#   is red. The deploy job runs in the `github-pages` environment, whose
+#   deployment rules (the owner's) decide which refs may deploy: a `v*` tag
+#   deploys only once that environment admits `v*` tags.
 #
 # tests/entities.py pins all of this, and runs the staging and guard steps by
 # their names in a scratch repository.
