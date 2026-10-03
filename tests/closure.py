@@ -156,6 +156,12 @@ NOT_A_TEST = {
     # imports it and drives its counting rule, its threshold and its CLI
     # on a fixture thread, so a change to how it counts selects a script.
     "issue996_count.py",
+    # The P11 floor arm's library and its record/verify tool (R9-RCA-1869):
+    # recording needs `gh` and the network, verifying needs the floor's own
+    # Home Assistant, which the nightly-ha job runs it in. NOT_A_TEST and NOT
+    # inert: `tests/entities.py` imports it and checks production against the
+    # snapshot it reads, so a change to either selects that script.
+    "ha_floor.py",
     # The shared DOM stub (#101) and the rig around it, imported by the three
     # Node harnesses (card.mjs, setup_qa_render.mjs, card_drift.mjs): libraries,
     # never run. dom_stub.mjs was missing from this set from v6.1.2 to v6.2.7,

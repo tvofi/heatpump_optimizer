@@ -4722,6 +4722,61 @@ R.check(
     + str((_d801_indoor_only.get("battery") or {}).get("modelled_components")),
 )
 
+# ===========================================================================
+# P11: every Home Assistant name production reaches exists at the floor
+# ===========================================================================
+# Class P11 -- the only oracle for Home Assistant is a test double -- shipped
+# twice as a name the 2025.2.0 floor hacs.json declares does not have: v6.3.1
+# forwarded ``Platform.DIAGNOSTICS`` (#210) and #1869 imported
+# ``UnsupportedStorageVersionError`` (2026.3+). tests/hastub defined both, so
+# every PR-gate lane was green; only the nightly floor container could fail
+# them. This arm reads production's reach off the P6 trees, unguarded imports,
+# module attributes and class members alike, and answers each from a snapshot
+# recorded from upstream source at the floor (tests/ha_floor.py, whose
+# docstring states the unit, the guards and the residual). A question the
+# snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
+# being unknown; `python3 tests/ha_floor.py record` re-records it, and the
+# nightly floor container re-asks every answer of Home Assistant itself.
+# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+R.section("P11: every Home Assistant name production reaches exists at the floor")
+
+import ha_floor as _p11  # noqa: E402
+
+_p11_snap = _p11.floor_load()
+_p11_reach = _p11.floor_reach(_P6_TREES, _P6_WALKS)
+_p11_r = _p11.floor_check(_p11_reach, _p11_snap["answers"])
+R.check(
+    "the floor snapshot is recorded at the floor hacs.json declares",
+    _p11_snap["tag"] == _hacs_floor,
+    f"snapshot {_p11_snap['tag']}, hacs.json {_hacs_floor}",
+)
+R.check(
+    "every Home Assistant name production reaches unguarded exists at the floor, "
+    "and every one is recorded (P11 floor)",
+    _p11_r["checked"] > 0 and not _p11_r["missing"] and not _p11_r["unrecorded"],
+    f"checked={_p11_r['checked']} missing={_p11_r['missing'][:4]} "
+    f"unrecorded={_p11_r['unrecorded'][:4]}: re-record with "
+    "`python3 tests/ha_floor.py record` or guard the reach",
+)
+
+# NULL CONTROLS, planted trees answered from the same snapshot: each defect
+# shape must be named, each legitimate shape must not, and an unrecorded
+# import must fail closed.
+_p11_c = _p11.floor_check(_p11.floor_reach(_p11.floor_control_trees()),
+                          _p11_snap["answers"])
+_p11_named = " ".join(_p11_c["missing"])
+R.check(
+    "and the P11 floor arm names each planted defect, passes each guarded or "
+    "typing-only one, and fails an unrecorded import closed (null controls)",
+    "UnsupportedStorageVersionError at plant_import.py:1" in _p11_named
+    and "UnsupportedStorageVersionError (attribute) at plant_alias.py:2" in _p11_named
+    and "Platform.DIAGNOSTICS (class member) at plant_member.py:2" in _p11_named
+    and "plant_guarded" not in _p11_named and "plant_typing" not in _p11_named
+    and len(_p11_c["missing"]) == 3
+    and _p11_c["unrecorded"] == ["module:homeassistant.helpers.frame"],
+    f"missing={_p11_c['missing']} unrecorded={_p11_c['unrecorded']}",
+)
+
 # --- hot water that is not configured is not a zero -------------------------
 R.section("Hot water entities exist only where there is hot water")
 
@@ -18298,6 +18353,19 @@ R.check(
     f"install step(s) at {_NHA_INSTALL}, driver step(s) at {_NHA_RUN}: "
     "the driver stages the seed and the roster by importing the package on "
     "the runner, so a bare interpreter cannot reach Docker",
+)
+# The P11 floor arm's snapshot is true only while the floor container keeps
+# re-asking it (tests/ha_floor.py). This pins that step's wiring: it exists,
+# runs on the matrix arm whose image is the floor hacs.json declares, and does
+# not skip when the lane before it went red.
+_NHA_FLOOR = [s for s in _NHA_STEPS if "tests/ha_floor.py verify" in s]
+R.check(
+    "nightly-ha re-asks the floor-names snapshot in the floor's own image",
+    len(_NHA_FLOOR) == 1
+    and f"matrix.image == '{_hacs_floor}'" in _NHA_FLOOR[0]
+    and "!cancelled()" in _NHA_FLOOR[0]
+    and f'"{_hacs_floor}"' in _NHA_JOB.split("image: [", 1)[-1].split("]", 1)[0],
+    f"{len(_NHA_FLOOR)} verify step(s); floor {_hacs_floor}",
 )
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
