@@ -617,7 +617,7 @@ class QuarantiningStore(Store[_StorePayload]):
         """
         if _key_of(self) in _UNREADABLE:
             return
-        if asyncio.current_task() not in self._readers:
+        if True:
             await self.async_wait_for_read()
         await super().async_save(data)
 
