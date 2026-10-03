@@ -184,6 +184,7 @@ def printed_from(stdout: str) -> dict[str, str]:
 # runner under the pool, below mutation_table.py's 1200 s per-driver timeout.
 CPU_LIMIT_S = 240
 WALL_LIMIT_S = 900
+CPU_HEADROOM = 0.5
 
 
 # RLIMIT_CPU sums the CPU of every thread, so a BLAS pool of N threads spends the
@@ -198,34 +199,56 @@ BLAS_THREAD_PINS = {
 }
 
 
+def _children_cpu_s() -> float:
+    ru = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return ru.ru_utime + ru.ru_stime
+
+
 def run_bounded(cmd: list[str], env: dict[str, str], cpu_s: int, wall_s: int):
-    """``(returncode, stdout, stderr)``; rc -9/-24 is the kernel's SIGKILL/SIGXCPU
-    on the CPU limit, and a wall overrun returns rc 124 and says so on stderr."""
+    """``(returncode, stdout, stderr, cpu_used_s)``; rc -9/-24 is the kernel's
+    SIGKILL/SIGXCPU on the CPU limit, and a wall overrun returns rc 124 and says
+    so on stderr. ``cpu_used_s`` is the reaped child's own CPU, killed or not."""
     env = {**env, **BLAS_THREAD_PINS}
 
     def limit() -> None:
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s + 5))
 
+    before = _children_cpu_s()
     try:
         p = subprocess.run(
             cmd, cwd=ROOT, env=env, shell=False, capture_output=True, text=True,
             timeout=wall_s, preexec_fn=limit,
         )
     except subprocess.TimeoutExpired:
-        return 124, "", f"wall limit {wall_s}s exceeded"
-    return p.returncode, p.stdout, p.stderr
+        return 124, "", f"wall limit {wall_s}s exceeded", _children_cpu_s() - before
+    return p.returncode, p.stdout, p.stderr, _children_cpu_s() - before
 
 
 def run_harness(rel: str) -> str:
     env = dict(os.environ)
     env["PYTHONPATH"] = "tests/hastub:custom_components:tests"
-    rc, stdout, stderr = run_bounded(
+    rc, stdout, stderr, cpu = run_bounded(
         [sys.executable, rel], env, CPU_LIMIT_S, WALL_LIMIT_S
     )
+    # A child the kernel kills on RLIMIT_CPU prints nothing of its own (run
+    # 37108891698: `rc=-24 stderr=`), so the bound names itself and the CPU the
+    # child had spent; every child's cost is printed, killed or not.
+    print(f"  {rel}: cpu={cpu:.1f}s of the {CPU_LIMIT_S}s bound")
+    why = {-24: f"SIGXCPU: the {CPU_LIMIT_S} CPU-s bound was spent",
+           -9: f"SIGKILL: past the {CPU_LIMIT_S} CPU-s bound's hard limit"}
     R.check(
         f"{rel} exits 0",
         rc == 0,
-        f"rc={rc} stderr={stderr[-300:]}",
+        f"rc={rc} {why.get(rc, '')} cpu={cpu:.1f}s stderr={stderr[-300:]}",
+    )
+    # The bound is a hang detector, so a harness doing its ordinary work must
+    # sit far below it; this reds on the cost, with the number, before the
+    # kernel kills on it without one.
+    R.check(
+        f"{rel} costs at most {CPU_HEADROOM:.0%} of the CPU bound",
+        cpu <= CPU_LIMIT_S * CPU_HEADROOM,
+        f"cpu={cpu:.1f}s against {CPU_LIMIT_S * CPU_HEADROOM:.0f}s "
+        f"({CPU_HEADROOM:.0%} of the {CPU_LIMIT_S}s bound)",
     )
     return stdout
 
@@ -277,7 +300,7 @@ def main() -> int:
     names = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
     echo = [sys.executable, "-c",
             f"import os;print(*(os.environ.get(k, '') for k in {names!r}))"]
-    rc, out, _ = run_bounded(echo, {**env, **dict.fromkeys(names, "8")}, 30, 30)
+    rc, out, _, _ = run_bounded(echo, {**env, **dict.fromkeys(names, "8")}, 30, 30)
     R.check("a bounded child runs with every BLAS pool pinned to one thread",
             rc == 0 and out.split() == ["1", "1", "1"],
             f"rc={rc} OMP/OPENBLAS/MKL={out.split()!r}")
