@@ -1271,14 +1271,27 @@ def weather_or_calm(
     )
 
 
-def _wood_track(initial_state: ThermalState, n_steps: int) -> np.ndarray | None:
-    """The wood tank's trajectory array seeded with its initial temperature,
-    or ``None`` when the install models no wood tank."""
-    if initial_state.wood_tank_temperature is None:
-        return None
-    track = np.zeros(n_steps + 1)
-    track[0] = initial_state.wood_tank_temperature
-    return track
+def _seeded_tracks(
+    initial_state: ThermalState, n_steps: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
+    """The trajectory arrays of the room, slab, upper and lower floors and
+    buffer tank, ``n_steps + 1`` long and seeded with the initial state, and
+    the wood tank's alike, or ``None`` when the install models no wood tank."""
+    room = np.zeros(n_steps + 1)
+    slab = np.zeros(n_steps + 1)
+    upper = np.zeros(n_steps + 1)
+    lower = np.zeros(n_steps + 1)
+    buffer = np.zeros(n_steps + 1)
+    room[0] = initial_state.room_temperature
+    slab[0] = initial_state.slab_temperature
+    upper[0] = initial_state.upper_floor_temperature
+    lower[0] = initial_state.lower_floor_temperature
+    buffer[0] = initial_state.buffer_tank_temperature
+    wood = None
+    if initial_state.wood_tank_temperature is not None:
+        wood = np.zeros(n_steps + 1)
+        wood[0] = initial_state.wood_tank_temperature
+    return room, slab, upper, lower, buffer, wood
 
 
 def _two_tank_rates(
@@ -2846,19 +2859,9 @@ class ThermalModel:
             n_steps, wind_speeds, precipitation, solar_radiation
         )
 
-        room_temps = np.zeros(n_steps + 1)
-        slab_temps = np.zeros(n_steps + 1)
-        upper_temps = np.zeros(n_steps + 1)
-        lower_temps = np.zeros(n_steps + 1)
-
-        room_temps[0] = initial_state.room_temperature
-        slab_temps[0] = initial_state.slab_temperature
-        upper_temps[0] = initial_state.upper_floor_temperature
-        lower_temps[0] = initial_state.lower_floor_temperature
-        buffer_temps = np.zeros(n_steps + 1)
-        buffer_temps[0] = initial_state.buffer_tank_temperature
+        (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
+         wood_temps) = _seeded_tracks(initial_state, n_steps)
         buffer_refused = np.zeros(n_steps)
-        wood_temps = _wood_track(initial_state, n_steps)
 
         # The hour only matters when a learned gains profile exists (#53);
         # this loop runs thousands of times per solve, so the per-step
@@ -3348,20 +3351,10 @@ class ThermalModel:
             hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
             dhw_draw_rates = self.dhw_draw_rates(hours)
 
-        room_temps = np.zeros(n_steps + 1)
-        slab_temps = np.zeros(n_steps + 1)
-        upper_temps = np.zeros(n_steps + 1)
-        lower_temps = np.zeros(n_steps + 1)
+        (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
+         wood_temps) = _seeded_tracks(initial_state, n_steps)
         dhw_temps = np.zeros(n_steps + 1)
-        buffer_temps = np.zeros(n_steps + 1)
-
-        room_temps[0] = initial_state.room_temperature
-        slab_temps[0] = initial_state.slab_temperature
-        upper_temps[0] = initial_state.upper_floor_temperature
-        lower_temps[0] = initial_state.lower_floor_temperature
         dhw_temps[0] = initial_state.dhw_temperature
-        buffer_temps[0] = initial_state.buffer_tank_temperature
-        wood_temps = _wood_track(initial_state, n_steps)
 
         state = initial_state
         current_hour = start_hour

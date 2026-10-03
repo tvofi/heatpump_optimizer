@@ -1434,6 +1434,33 @@ class DhwPlanner:
                 out[i] = 0.0
         return out
 
+    def _dhw_shortfall(
+        self,
+        temps: np.ndarray | None,
+        plan: np.ndarray,
+        initial_temp: float,
+        outdoor_temps: np.ndarray,
+        draw_rates: np.ndarray,
+        dt: float,
+        humidity: np.ndarray | None,
+        requirement: np.ndarray,
+        unreachable: set[int],
+    ) -> tuple[np.ndarray, np.ndarray, int | None]:
+        """One round of a planner that fills breaches in time order: the tank
+        trajectory under ``plan`` (re-simulated when ``temps`` is ``None``), the
+        shortfall below ``requirement`` at each step, and the first step short
+        by more than 0.05 K that is not already known ``unreachable`` (``None``
+        when there is none). The greedy planner and the floor repair share it."""
+        if temps is None:
+            temps = self._dhw_plan_temps(
+                plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
+            )
+        gaps = requirement - temps[1 : plan.size + 1]
+        for i in np.where(gaps > 0.05)[0]:
+            if int(i) not in unreachable:
+                return temps, gaps, int(i)
+        return temps, gaps, None
+
     def _dhw_plan_temps(
         self,
         plan: np.ndarray,
@@ -1519,19 +1546,12 @@ class DhwPlanner:
         # sized for a multi-degree breach at trickle pace, not for elegance.
         temps: np.ndarray | None = None
         for _ in range(48):
-            if temps is None:
-                temps = self._dhw_plan_temps(
-                    plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
-                )
-            deficit = req - temps[1 : n + 1]
-            breach = [
-                int(i)
-                for i in np.where(deficit > 0.05)[0]
-                if int(i) not in unreachable
-            ]
-            if not breach:
+            temps, deficit, b = self._dhw_shortfall(
+                temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
+                humidity, req, unreachable,
+            )
+            if b is None:
                 return plan
-            b = breach[0]
             # Heat added before a rating-pinned step is refused, so only
             # steps after the last full-tank moment can feed the breach.
             pinned = np.where(temps[: b + 1] >= ceiling[: b + 1] - 0.1)[0]
@@ -1953,22 +1973,16 @@ class DhwPlanner:
             self.model.params.dhw_tank_heat_loss_coefficient / c_dhw
         )
 
-        tolerance = 0.05  # °C
         unreachable: set[int] = set()
         temps: np.ndarray | None = None
         for _ in range(400):
-            if temps is None:
-                temps = self._dhw_plan_temps(
-                    plan, initial_temp, outdoor_temps, draw_rates, dt, humidity
-                )
-            gaps = requirement - temps[1:]
-            violations = [
-                int(i) for i in np.where(gaps > tolerance)[0] if int(i) not in unreachable
-            ]
-            if not violations:
+            temps, gaps, k = self._dhw_shortfall(
+                temps, plan, initial_temp, outdoor_temps, draw_rates, dt,
+                humidity, requirement, unreachable,
+            )
+            if k is None:
                 break
 
-            k = violations[0]
             needed_kwh = float(gaps[k]) * c_dhw
 
             # The tank may not be planned above its ceiling, except that a

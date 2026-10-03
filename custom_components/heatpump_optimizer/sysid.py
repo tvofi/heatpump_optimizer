@@ -828,6 +828,19 @@ def _r2_confidence(residual: np.ndarray, observed: np.ndarray, samples: int) -> 
     return float(np.clip(r2, 0.0, 1.0)) * min(1.0, samples / 12.0), ss_res
 
 
+def _excursion_weight(excursion: float) -> float:
+    """Confidence weight for how far the room actually moved: the design
+    allowance earns 1.0, and no window drops below 0.3 for being small."""
+    return float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
+
+
+def _snr_weight(series: np.ndarray, noise: float) -> float:
+    """Confidence weight for the residual noise against the series' own
+    spread (90th minus 10th percentile): SNR >= 4 earns 1.0, SNR <= 1 none."""
+    snr = float(np.percentile(series, 90) - np.percentile(series, 10)) / max(noise, 1e-9)
+    return float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+
+
 def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     """Confidence for the two-state fit, mirroring identify()'s ingredients.
 
@@ -837,12 +850,8 @@ def _slab_confidence(rooms: np.ndarray, error: np.ndarray) -> float:
     rebuilds that program (a noisy window is discounted, not refused).
     """
     confidence, ss_res = _r2_confidence(error, rooms[1:], len(error))
-    excursion = float(np.max(rooms) - np.min(rooms))
-    confidence *= float(np.clip(excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0))
-    signal = float(np.percentile(rooms, 90) - np.percentile(rooms, 10))
-    noise = float(np.sqrt(ss_res / max(len(error), 1)))
-    snr = signal / max(noise, 1e-9)
-    return confidence * float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+    confidence *= _excursion_weight(float(np.max(rooms) - np.min(rooms)))
+    return confidence * _snr_weight(rooms, float(np.sqrt(ss_res / max(len(error), 1))))
 
 
 _PathError = Callable[[np.ndarray], np.ndarray]
@@ -2011,9 +2020,7 @@ class SystemIdentification:
         if drift_c_per_h is not None and a.shape[1] >= 4:
             deltas = deltas - drift_c_per_h * a[:, 3]
         excursion = float(np.max(deltas) - np.min(deltas)) if len(deltas) else 0.0
-        confidence *= float(np.clip(
-            excursion / DEFAULT_MAX_EXCURSION_C, 0.3, 1.0
-        ))
+        confidence *= _excursion_weight(excursion)
         # D2-03: the correction above is a SHRINKAGE estimate, and its ridge
         # (sensor_drift_prior_c_per_h) pulls the fitted drift short of a real
         # ramp once 0.02 °C of sensor noise is present -- measured: the
@@ -2044,9 +2051,7 @@ class SystemIdentification:
         # can still look self-consistent. SNR ≥ 4 earns full weight; SNR ≤ 1
         # earns none (the EIV-corrected estimator keeps such windows honest,
         # but they still carry little information).
-        signal_spread = float(np.percentile(b, 90) - np.percentile(b, 10))
-        snr = signal_spread / max(s_noise, 1e-9)
-        confidence *= float(np.clip((snr - 1.0) / 3.0, 0.0, 1.0))
+        confidence *= _snr_weight(b, s_noise)
 
         if not (0.1 <= tau <= 200.0) or not (0.01 <= ua <= 5.0):
             return SysIdResult(
