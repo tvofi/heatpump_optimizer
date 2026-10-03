@@ -1,6 +1,7 @@
 """Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | assign | walrus | deadstore
 | lambda | try | method | selfassign | nesteddef | global | annot | reimport | match
-| comp | classdef | isinstance), argv[3] == "uncharged"
+| comp | classdef | isinstance | forrange | ifexp
+| annself | tupleidx | print), argv[3] == "uncharged"
 leaves the coordinator and every footprint-charged function alone so no other metric stops it.
 Game duplication_copies: every duplicated statement window is kept, but in each clone except the
 first a no-op call statement id(<distinct int per function>) is inserted
@@ -25,7 +26,11 @@ JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "Non
         "selfassign": "{arg} = {arg}\n", "nesteddef": "def _junk_{fid}():\n{ind}    pass\n",
         "global": "global _g{fid}\n", "annot": "_a{fid}: int\n", "reimport": "import sys as _s{fid}\n",
         "match": "match {fid}:\n{ind}    case _:\n{ind}        pass\n", "comp": "[{fid} for _ in ()]\n",
-        "classdef": "class _C{fid}:\n{ind}    pass\n", "isinstance": "isinstance({arg}, int)\n"}
+        "classdef": "class _C{fid}:\n{ind}    pass\n", "isinstance": "isinstance({arg}, int)\n",
+        # round 2 of the review: four more no enumeration carried; then an effectful call, which no
+        # statement-dropping rule could ever drop -- the gap-tolerant window (C3) holds all five
+        "forrange": "for _ in range(0):\n{ind}    pass\n", "ifexp": "{arg} = {arg} if True else {arg}\n",
+        "annself": "{arg}: object = {arg}\n", "tupleidx": "({arg},)[0]\n", "print": "print(end='')\n"}
 kind = sys.argv[2] if len(sys.argv) > 2 else "id"
 uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
 CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()

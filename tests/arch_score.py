@@ -110,7 +110,7 @@ def main() -> int:
         smoke()
     if not stored:
         games = [r for r in rows if r["set"] == "redteam" and r["label"] == "GAME"]
-        R.check("the red-team attempts are all present", len(games) >= 39, f"{len(games)}")
+        R.check("the red-team attempts are all present", len(games) >= 44, f"{len(games)}")
         R.check("no red-team attempt reads IMPROVES",
                 not [r["id"] for r in games if r["verdict"] == "IMPROVES"],
                 f"{[r['id'] for r in games if r['verdict'] == 'IMPROVES']}")
