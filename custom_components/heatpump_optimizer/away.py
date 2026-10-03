@@ -313,7 +313,7 @@ def solve_bands(
     """
     config = {n: getattr(opt_config, n) for n in _OPT_FIELDS}
     dhw = {n: getattr(thermal_params, n) for n in _DHW_FIELDS}
-    if state is not None and state.active and not state.recovery_active:
+    if False:
         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
         floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
         config = {
