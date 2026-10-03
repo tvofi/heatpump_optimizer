@@ -29831,6 +29831,93 @@ R.check(
 )
 
 
+# R9-F10.13 arm A: a mutant on a line a survivor_triage mark names makes that
+# mark stale in the mutated tree, so the staleness check above failed the
+# driver and the mutant read KILLED by it (#1867's review: the payload.py mark,
+# 1 of 2086 checks). The sampled pool now leaves triaged sites out
+# (`triaged_site`), judged by the same key and `old` pin as every
+# disposition. Driven on the real payload.py mark, with a moved-text and an
+# unmarked site as the null controls.
+_MUT_PAYLOAD = "custom_components/heatpump_optimizer/payload.py:<module> GUARD_OFF e1433e05"
+_mut_tsite = getattr(_mut, "triaged_site", lambda _t, _m: None)
+_MUT_TS_SITE = _MUT_TRIAGE_SITES.get(_MUT_PAYLOAD)
+_MUT_TS_OUT = (None if _MUT_TS_SITE is None else (
+    _mut_tsite(_MUT_TRIAGE, _MUT_TS_SITE),
+    _mut_tsite(_MUT_TRIAGE, dict(_MUT_TS_SITE, old="    if other:")),
+    _mut_tsite({}, _MUT_TS_SITE),
+    _mut_tsite(_MUT_TRIAGE, dict(_MUT_TS_SITE, anchor=_MUT_PAYLOAD + "x"))))
+R.check(
+    "a site holding a survivor_triage mark is triaged and not drawn; a moved "
+    "line, an unmarked site and an empty triage are not (R9-F10.13)",
+    _MUT_TS_OUT == (True, False, False, False)
+    and "triaged_site(triage, m)" in _MUT_MAIN_DEFER,
+    f"payload mark site={'absent' if _MUT_TS_SITE is None else 'present'}, "
+    f"out={_MUT_TS_OUT!r} -- a mutant on the marked line fails the staleness "
+    "check above, so it reads killed by tests/entities.py",
+)
+
+# Arm B: the nightly re-drives some killed_by pins by chance, and reports each
+# the pinned script did not kill. Six sites, one per way a draw can end,
+# plus a stale pin and an unpinned site that must not be reported at all.
+_mut_pinrep = getattr(_mut, "pin_reverification", lambda *_a: None)
+_MUT_PV_PIN = "tests/features.py"
+_mut_pv_site = lambda a, old="o": {"file": "x.py", "line": 1, "kind": "K",  # noqa: E731
+                                   "anchor": a, "old": old, "new": "n"}
+_MUT_PV_S = {n: _mut_pv_site(f"x.py:{n} K 0") for n in
+             ("ok", "other", "lives", "budget", "timeout", "beaten", "plain")}
+_MUT_PV_KB = {m["anchor"]: {"killed_by": _MUT_PV_PIN, "old": "o"}
+              for n, m in _MUT_PV_S.items() if n != "plain"}
+_MUT_PV_KB["x.py:stale K 0"] = {"killed_by": _MUT_PV_PIN, "old": "was"}
+_MUT_PV_RES = [
+    (_MUT_PV_S["ok"], f"killed by {_MUT_PV_PIN}"),
+    (_MUT_PV_S["other"], "killed by tests/pv.py"),
+    (_MUT_PV_S["lives"], "LIVES"),
+    (_MUT_PV_S["budget"], "SKIP-BUDGET"),
+    (_MUT_PV_S["timeout"], f"SKIP-TIMED-OUT in {_MUT_PV_PIN}"),
+    (_MUT_PV_S["beaten"], "killed by tests/pv.py"),
+    (_MUT_PV_S["plain"], "LIVES"),
+    (_mut_pv_site("x.py:stale K 0"), "LIVES"),
+]
+_MUT_PV_OUT = {id(_MUT_PV_S["ok"]): True, id(_MUT_PV_S["other"]): False,
+               id(_MUT_PV_S["lives"]): False, id(_MUT_PV_S["timeout"]): None}
+_MUT_PV_OUT = {(k, _MUT_PV_PIN): v for k, v in _MUT_PV_OUT.items()}
+_MUT_PV_LINES = _mut_pinrep(_MUT_PV_RES, _MUT_PV_OUT, _MUT_PV_KB) or []
+_MUT_PV_TXT = "\n".join(_MUT_PV_LINES)
+R.check(
+    "the nightly reports a pin its script did not kill, and never reads a site "
+    "the budget, a timeout or another driver left unrun as re-verified "
+    "(R9-F10.13)",
+    _MUT_PV_TXT.count("PIN NOT REPRODUCED") == 2
+    and "x.py:other K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[1]
+    and "x.py:lives K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[2]
+    and _MUT_PV_TXT.count("pin not re-verified") == 3
+    and "x.py:plain" not in _MUT_PV_TXT and "stale" not in _MUT_PV_TXT
+    and _MUT_PV_LINES[-1:] == ["PIN RE-VERIFICATION: 1 reproduced, 2 not "
+                               "reproduced, 3 not re-verified"],
+    f"lines={_MUT_PV_LINES!r}",
+)
+# Wired: a pinned site's own killer is driven first (so a kill by another
+# driver cannot leave the pin unread), the outcome is recorded where the
+# driver runs, the report is printed, and the nightly draws on a date seed --
+# the constant default seed left the same tail of sites unevaluated each night
+# once the budget bound (R9-F10.12's review).
+_MUT_PV_WIRING = [w for w in (
+    "pin = pinned_script(budgets.get(\"killed_by\", {}), mut)",
+    "mut[\"drivers\"].insert(0, pin)",
+    "outcomes[(id(mut), s)] = hit",
+    "pin_reverification(results, outcomes,",
+) if w not in _MUT_MAIN_DEFER]
+_MUT_PV_NIGHT = _workflow_job(_TESTS_YML, "mutation-nightly")
+R.check(
+    "main drives a pin's killer first, records and prints the re-verification, "
+    "and mutation-nightly rotates its seed by date and surfaces the report",
+    not _MUT_PV_WIRING
+    and '--seed "$(date -u +%Y%m%d)"' in _MUT_PV_NIGHT
+    and "PIN NOT REPRODUCED" in _MUT_PV_NIGHT,
+    f"missing={_MUT_PV_WIRING!r}",
+)
+
+
 # `--scope changed` draws only from lines the diff adds or modifies (tvofi's
 # ruling on #1565: a survivor on a line the pull request never touched blocked
 # #1559, #1560 and #1562). Driven against a real throwaway repository, three
