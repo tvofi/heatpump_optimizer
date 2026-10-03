@@ -1,3 +1,5 @@
+_Requested by **tvofi**_
+
 Round-9 docs PR WEB-4 (tvofi's findings of 2026-10-03 on the published site): the first page's stray "..." between sentences, the setup-flow diagram that disagreed between README and the setup documents, and card pictures from an old design. README.md and docs/ are outside policy; `tests/doc_claims.py`, `tests/card_browser.mjs` and `tests/layout.json` are not, and the owner approves those under the mandate.
 
 1. The ellipses were literal text in `docs/index.html` (the served page equals the source; not a build or truncation artefact). They were written because the R9-WEB-1 pin quoted claims as fragments split on an ellipsis. Eleven claims now quote whole verbatim spans (separate spans or lines where the README sentences are not adjacent); the pin no longer splits on an ellipsis and refuses one (`ellipsis` kind, with a planted-ellipsis null control). A sweep of README.md, DISCLAIMER.md and docs/*.md found one other, `docs/dashboard-card.md:661`, a deliberate lead-in continuing the previous heading, left alone.
@@ -40,4 +42,3 @@ none
 
 none
 
-_Requested by **tvofi**_
