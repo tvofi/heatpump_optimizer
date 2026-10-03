@@ -11,7 +11,7 @@ A house with no pyranometer is a second arm: ``_update_current_state`` must
 land a stubbed ``current_irradiance`` on the current state and on the
 optimizer step that state belongs to (#808).
 
-    PYTHONPATH=/tmp/hastub python tests/solar_alignment.py
+    PYTHONPATH=tests/hastub python tests/solar_alignment.py
 """
 from __future__ import annotations
 

@@ -141,10 +141,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
     the read set is still exactly right while the schema accepts anything, so
     the probe is the reader's own null control.
 
-    **Say where a check encodes a design choice.** #546's required every slot
-    place to be accepted, settling which of two artifacts was authoritative;
-    under the other plausible fix it failed 4 of 7, and three were the test's
-    opinion rather than a defect. Prejudging is legitimate — saying so is what
+    **Say where a check encodes a design choice** (#546's settled which of two
+    artifacts was authoritative). Prejudging is legitimate — saying so is what
     stops the next seat reading a legitimate tightening as a bug.
 
 12. **The seam a method belongs to is its entry in `tests/seam_map.json`
@@ -159,9 +157,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     divergent, simplified, unverified, or a holder — and runs its contracts
     against both the stub and, nightly, the real package. **Before asserting
     that a test proves a production property, check whether the stub is what
-    satisfied it.** Four seats hit this in one day: no loop protection, no
-    `section`, no `state` on `SensorEntity`, a `NumberSelector` that
-    validated nothing.
+    satisfied it.**
 
     If your work depends on a symbol's upstream behaviour, add or read its
     contract rather than assuming; if you must extend the stub, argue the
@@ -211,7 +207,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     accumulated plain vector adds against the scalar closure's `sum`:
     1-2 ulp apart, which diverged both of optimality's jac races on CI's
     3.14 runner while every 3.11 seat was green, because 3.11's `sum` is
-    plain accumulation — the seat was structurally blind, not unlucky.
+    plain accumulation.
     Make the twin call the scalar closure's own function per row, and put
     detector rows on the parity grid that separate the two summations
     (measured: ~12% of random three-term sums), so the interpreter class
@@ -234,6 +230,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
     exists (#1874: a spelling list, three review rounds, class still open). Cost
     is no reason to take the worse fix; scope and the ratchet still bind
     (below).
+18. **What a later round or seat reruns, or a body figure needs reproduced,
+    lands in the same pull request** (tvofi, 2026-10-03): a harness in
+    `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
+    one-off probe may stay in scratch. `tools/audit/seat/tmp_paths.py` refuses
+    temp or machine paths.
 
 **When a budget blocks the work** (`tests/structure.py`, or a cap
 `policy_lint.mjs --budgets` prints), the answers come in order (tvofi,
