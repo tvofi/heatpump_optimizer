@@ -56948,7 +56948,11 @@ def _r9egb1_whatifs():
     return coord, reason, card, seen
 
 
-_r9egb1_w_coord, _r9egb1_w_reason, _r9egb1_w_card, _r9egb1_w_seen = _r9egb1_whatifs()
+try:
+    _r9egb1_w_coord, _r9egb1_w_reason, _r9egb1_w_card, _r9egb1_w_seen = _r9egb1_whatifs()
+except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failure
+    _r9egb1_w_coord, _r9egb1_w_reason = _r9egb1_coord(away=True), repr(_r9egb1_err)
+    _r9egb1_w_card, _r9egb1_w_seen = {"error": "raised"}, []
 _r9egb1_w_away = float(_r9egb1_w_coord._away_state.target_temperature or 0.0)
 R.check(
     "#1736 the price tile prices against its solve's record (setback band, "
@@ -56963,5 +56967,66 @@ R.check(
     f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
     f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
 )
+
+# The values the record takes over from the old in-place writes, each at its
+# edge (the mutation drive found these unpinned where they used to sit).
+_r9egb1_v = _solve_coord()
+_r9egb1_v._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
+_r9egb1_v_now = dt_util.now()
+_r9egb1_v_off = _r9egb1_v._solve_hubs(4, banded=True)[0].peak_threshold_kw
+_r9egb1_v._outage_recovery_until = _r9egb1_v_now + timedelta(hours=2)
+_r9egb1_v_on = _r9egb1_v._solve_hubs(4, banded=True)[0].peak_threshold_kw
+R.check(
+    "#1736 post-outage recovery prices a month with no peak reference from "
+    "zero; outside recovery the term stays off (an infinite threshold)",
+    _r9egb1_v_off == float("inf") and _r9egb1_v_on == 0.0,
+    f"outside recovery {_r9egb1_v_off!r}, inside {_r9egb1_v_on!r}",
+)
+_r9egb1_f = _solve_coord()
+_r9egb1_f._config.update({
+    _r9egb1_const.CONF_FUSE_GUARD_ENABLED: True,
+    _r9egb1_const.CONF_MAIN_FUSE_A: 10, _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
+})
+_r9egb1_f._measured_house_power = 9.0  # more than the 2.3 kW fuse leaves
+_r9egb1_f_rec = _solve_record_now(_r9egb1_f)
+_r9egb1_f_caps = _r9egb1_f_rec.inputs.limits.power_caps_extra
+R.check(
+    "#1736 a house already over its fuse caps the pump at 0 kW, never below",
+    _r9egb1_f_caps is not None and float(np.min(_r9egb1_f_caps)) == 0.0,
+    f"{None if _r9egb1_f_caps is None else sorted(set(np.round(_r9egb1_f_caps, 3).tolist()))}",
+)
+_r9egb1_o = _solve_coord()
+_r9egb1_o._thermal_params.dhw_enabled = True
+_r9egb1_o._outage_dhw_until = dt_util.now() + timedelta(hours=2)
+_r9egb1_o_floor = float(_r9egb1_o._thermal_params.dhw_min_temp)
+
+
+def _r9egb1_hold(tank, *floor, dhw=True):
+    """The hold's answer for a tank temperature, or the exception it raised."""
+    _r9egb1_o._thermal_params.dhw_enabled = dhw
+    _r9egb1_o._current_state.dhw_temperature = tank
+    try:
+        return _r9egb1_o._outage_dhw_hold(dt_util.now(), *floor)
+    except Exception as err:  # noqa: BLE001 - a raise is this check's failure
+        return repr(err)
+
+
+_r9egb1_o_got = {
+    "at floor": _r9egb1_hold(_r9egb1_o_floor),
+    "5 K under": _r9egb1_hold(_r9egb1_o_floor - 5.0),
+    "under configured, over set-back": _r9egb1_hold(
+        _r9egb1_o_floor - 5.0, _r9egb1_o_floor - 10.0),
+    "5 K under, no DHW": _r9egb1_hold(_r9egb1_o_floor - 5.0, dhw=False),
+}
+R.check(
+    "#1736 the post-outage DHW queue holds a tank at its floor, releases a "
+    "colder one, judges against the floor the solve passes when it does, and "
+    "holds regardless of the tank when there is no hot water",
+    _r9egb1_o_got == {"at floor": True, "5 K under": False,
+                      "under configured, over set-back": True,
+                      "5 K under, no DHW": True},
+    f"{_r9egb1_o_got}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
