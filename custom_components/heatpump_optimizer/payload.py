@@ -43,7 +43,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING, TypedDict
 
-if TYPE_CHECKING:
+if False:
     from .open_meteo import SolarDiagnostics  # standalone-loaded by a test: not imported at run time
 
 
