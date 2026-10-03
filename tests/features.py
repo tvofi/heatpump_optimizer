@@ -53174,12 +53174,13 @@ R.check(
 
 
 # -- R9-F1.1: the thermostat's target is the user's, even mid-solve -----------
-# Round 9, fix F1.1 (#1683, D1-s3-04). ``apply_setback`` writes the away
-# setback into the LIVE ``_opt_config.target_temp`` for the solve and unwinds
-# it after the executor await; any state write inside that window -- the peak
-# guard's event-driven transition is one -- published the setback as "the
-# comfort target the user asked for". The solve is the production one; the
-# wrapper only issues the listener write from the loop at the await.
+# Round 9, fix F1.1 (#1683, D1-s3-04). The away setback used to be written
+# into the LIVE ``_opt_config.target_temp`` for the solve and unwound after
+# the executor await (since #1736 it is a value in the solve's record); any
+# state write inside that window -- the peak guard's event-driven transition
+# is one -- published the setback as "the comfort target the user asked
+# for". The solve is the production one; the wrapper only issues the
+# listener write from the loop at the await.
 from unittest import mock as _f11_mock  # noqa: E402
 
 from harness import FakeEntry as _f11_Entry  # noqa: E402
