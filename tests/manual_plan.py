@@ -35,6 +35,7 @@ from harness import (
     Results,
     ha_setup_entry,
 )
+from profiles import solve_inputs  # noqa: E402
 
 # #924: the fixed first refresh fetches through the base class, and a token
 # config has no HTTP under the stub. The entity feed is a real production
@@ -146,7 +147,10 @@ def _build_optimizer(price_profile, weather_profile, dhw=True, **state_over):
 
 def _solve(bundle, **kwargs):
     opt_obj, state, p, outdoor, wind, rain, solar = bundle
-    return opt_obj.optimize(state, p, outdoor, wind, rain, solar, START, **kwargs)
+    return opt_obj.optimize(inputs=solve_inputs(
+        initial_state=state, prices=p, outdoor_temps=outdoor, wind_speeds=wind,
+        precipitation=rain, solar_radiation=solar, start_time=START, **kwargs
+    ))
 
 
 def _last_planned_dhw(plan):

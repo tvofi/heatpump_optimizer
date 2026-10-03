@@ -117,3 +117,57 @@ def house(two_zone=False, dhw=True, **over):
                     "inter_zone_heat_transfer": 0.6, "radiator_power_fraction": 0.4})
     cfg.update(over)
     return cfg
+
+
+def solve_inputs(
+    *,
+    initial_state,
+    prices,
+    outdoor_temps,
+    wind_speeds=None,
+    precipitation=None,
+    solar_radiation=None,
+    start_time=None,
+    price_known=None,
+    pv_surplus=None,
+    space_pins=None,
+    dhw_pins=None,
+    external_heat_kw=None,
+    price_sigma=None,
+    power_caps_extra=None,
+    humidity=None,
+    min_temp_margins=None,
+    min_temp_floors=None,
+    space_blocked=False,
+    dhw_blocked=False,
+):
+    """``HeatPumpOptimizer.optimize``'s record from its pre-#1736 argument
+    names, every one by keyword: a test states the inputs it varies and
+    leaves the rest at the record's own defaults."""
+    from heatpump_optimizer.optimizer import ForecastSeries, SolveInputs, SolveLimits
+
+    return SolveInputs(
+        state=initial_state,
+        start_time=start_time,
+        forecast=ForecastSeries(
+            prices=prices,
+            outdoor_temps=outdoor_temps,
+            wind_speeds=wind_speeds,
+            precipitation=precipitation,
+            solar_radiation=solar_radiation,
+            price_known=price_known,
+            pv_surplus=pv_surplus,
+            price_sigma=price_sigma,
+            humidity=humidity,
+            external_heat_kw=external_heat_kw,
+        ),
+        limits=SolveLimits(
+            space_pins=space_pins,
+            dhw_pins=dhw_pins,
+            power_caps_extra=power_caps_extra,
+            min_temp_margins=min_temp_margins,
+            min_temp_floors=min_temp_floors,
+            space_blocked=space_blocked,
+            dhw_blocked=dhw_blocked,
+        ),
+    )

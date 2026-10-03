@@ -46,6 +46,7 @@ import numpy as np
 import voluptuous as vol
 
 from profiles import DT, house, prices, weather
+from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.presets import BuildingPreset, derive
 from heatpump_optimizer.thermal_model import (
@@ -796,22 +797,22 @@ def capture(name: str, spec: dict) -> dict:
         # #54's: a modest flat floor between the config's min and target.
         floors = np.full(n, 18.5)
 
-    result = opt.optimize(
-        built["state"],
-        built["prices"],
-        built["outdoor"],
-        built["wind"],
-        built["rain"],
-        built["solar"],
-        START,
-        price_known,
-        surplus,
+    result = opt.optimize(inputs=solve_inputs(
+        initial_state=built["state"],
+        prices=built["prices"],
+        outdoor_temps=built["outdoor"],
+        wind_speeds=built["wind"],
+        precipitation=built["rain"],
+        solar_radiation=built["solar"],
+        start_time=START,
+        price_known=price_known,
+        pv_surplus=surplus,
         external_heat_kw=ext,
         price_sigma=price_sigma,
         power_caps_extra=caps,
         min_temp_margins=margins,
         min_temp_floors=floors,
-    )
+    ))
 
     # Everything that describes the plan. Trajectories included: a constraint
     # dropped in a rare branch shows up there before it shows up in the cost.
