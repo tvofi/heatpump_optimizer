@@ -1246,7 +1246,7 @@ step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
 rm -f /tmp/prepr-fl.$$
 
 # --- 3f6. no tracked script, workflow or decision record tied to a temp or
-# machine path, which `wave-script` runs on the branch's own owned copy.
+# machine path, which `instrument-self-tests` runs on the branch's own copy.
 python3 -I tools/audit/seat/tmp_paths.py --self-test >/tmp/prepr-tp.$$ 2>&1 \
   && python3 -I tools/audit/seat/tmp_paths.py --check >>/tmp/prepr-tp.$$ 2>&1
 step "temp paths" $? "$(tail -1 /tmp/prepr-tp.$$)"

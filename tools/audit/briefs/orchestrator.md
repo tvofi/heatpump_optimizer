@@ -266,8 +266,8 @@ Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
 You stamp at your discretion, with `stamp.py --push --push-key ~/.zcode/stamp-deploy.key`,
 never by hand or in a branch; rule 4 binds you.
 
-**An instrument the programme runs is a tracked, self-tested, code-owned file;
-a session-local copy is a defect** (tvofi, 2026-10-03). What merges, approves,
+**An instrument the programme runs is a tracked, self-tested file; a
+session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What merges, approves,
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
 Your other reusable scripts land too, by `fixer.md` step 17.
