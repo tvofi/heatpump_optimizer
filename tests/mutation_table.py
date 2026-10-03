@@ -2292,6 +2292,50 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             for m, v, t in zip(pool, verdict, timed)]
 
 
+def sampled_pool(files: list[Path], closures: dict, allow: list[str],
+                 touched: dict[str, set[int]] | None, triage: dict,
+                 rng: random.Random, per_file: int,
+                 cap: int) -> tuple[list[dict], int]:
+    """The sampled pool and how many drawable sites a triage mark held out.
+
+    A site holding a survivor_triage mark is not drawn (`triaged_site`): the
+    mark is judged against the tree it runs in, so a mutant on its line fails
+    the staleness check and reads killed. The count is printed by the caller.
+    """
+    pool: list[dict] = []
+    held = 0
+    for path in files:
+        rel = str(path.relative_to(ROOT))
+        drivers = drivers_for(rel, closures, allow)
+        if not drivers:
+            print(f"  no recorded closure reaches {rel}; skipped")
+            continue
+        drawn = anchor_sites(path.read_text(), drawable(path, rel, touched))
+        got = [m for m in drawn if not triaged_site(triage, m)]
+        held += len(drawn) - len(got)
+        rng.shuffle(got)
+        for mut in got[:per_file]:
+            mut["drivers"] = drivers
+            pool.append(mut)
+    rng.shuffle(pool)
+    return pool[:cap], held
+
+
+def order_pool_drivers(pool: list[dict], seconds: dict[str, float],
+                       killed_by: dict) -> None:
+    """Order every mutant's drivers (`driver_order`), a pinned site's own
+    killer first so a kill by another driver cannot leave the pin unread
+    (`pin_reverification`). A mutant is killed iff some driver kills it, so no
+    verdict moves; only which driver is named, and the order of the cost."""
+    for mut in pool:
+        mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
+                                      killed_by)
+        pin = pinned_script(killed_by, mut)
+        if pin in mut["drivers"]:
+            mut["drivers"].remove(pin)
+            mut["drivers"].insert(0, pin)
+
+
 def pinned_script(killed_by: dict, mut: dict) -> str | None:
     """The driver a `killed_by` pin names for THIS site, or None.
 
@@ -2512,7 +2556,7 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     return 1 if scope == "full" else 0
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--scope", choices=("changed", "full"), default="changed")
     ap.add_argument("--base", default="origin/main")
@@ -2554,6 +2598,13 @@ def main() -> int:
                          "write what it killed to OUT_DIR for "
                          "mutation-ledger-push; the ledger here is untouched "
                          "and survivors are listed in OUT_DIR/survivors.txt")
+    ap.add_argument("--anchor", metavar="ANCHOR",
+                    help="drive every site of ONE ledger anchor (as `PIN NOT "
+                         "REPRODUCED` names it) with --scripts, and report "
+                         "its verdict and its pin's re-verification; records "
+                         "nothing, and drives a triaged or pinned site too -- "
+                         "the step a human takes on that report, which "
+                         "--pin-killed (diff-added sites only) cannot")
     ap.add_argument("--normalize", action="store_true",
                     help="rewrite the ledger into its canonical form -- "
                          "content-anchored keys, sorted maps, no committed "
@@ -2569,7 +2620,11 @@ def main() -> int:
                          "main's ledger and carry the branch's own rows onto "
                          "it (BASE = the old merge base, HEAD = the branch "
                          "before the merge); refuses a row both changed")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
+    if args.anchor and (args.drain or args.pin_killed or args.record):
+        print("--anchor re-drives one site and records nothing: not with "
+              "--drain, --pin-killed or --record")
+        return 2
     if args.drain and (args.scope != "full" or args.pin_killed):
         print("--drain drives the whole package's stock: use it with --scope "
               "full and without --pin-killed")
@@ -2658,14 +2713,14 @@ def main() -> int:
     rbase = ratchet_base(args.scope, args.base)
     base_sites = base_unpinned_sites(rbase, sites)
     base_count = None if base_sites is None else len(base_sites)
-    if base_count is None:
+    if base_count is None and not args.anchor:
         print(f"MUTATION TABLE REFUSED -- the ratchet base {rbase!r} could not "
               f"be read, so {len(unpinned)} unpinned site(s) have nothing to "
               f"be compared with; fetch the base (CI checks out fetch-depth 0)")
         return 1
     added = added_unpinned(unpinned, base_sites or [], diff_sides(rbase))
     if ((ratchet_refusal(base_count, unpinned) == 1 or added)
-            and not (args.pin_killed or args.drain)):
+            and not (args.pin_killed or args.drain or args.anchor)):
         for s in added:
             print(f"    ADDED UNPINNED {triage_key(s)}: {s['old'].strip()[:72]}")
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
@@ -2713,6 +2768,16 @@ def main() -> int:
         if not pool:
             print("\nPIN KILLED: nothing to pin")
             return 0
+    elif args.anchor:
+        pool = [dict(s, drivers=drivers_for(s["file"], closures, allow))
+                for s in sites if s["anchor"] == args.anchor]
+        if not pool or not pool[0]["drivers"]:
+            print(f"ANCHOR REFUSED -- {args.anchor!r} names "
+                  + ("no inventory site" if not pool else
+                     "a file no --scripts closure reaches"))
+            return 2
+        files = [ROOT / pool[0]["file"]]
+        print(f"ANCHOR -- {len(pool)} site(s) of {args.anchor}")
     elif args.drain:
         pool = drain_pool(unpinned, closures, allow, args.seed, args.max)
         print(f"DRAIN -- {len(pool)} of {len(unpinned)} unpinned site(s), "
@@ -2728,27 +2793,11 @@ def main() -> int:
         return 0
 
     rng = random.Random(args.seed)
-    if not (args.pin_killed or args.drain):
-        pool = []
-        held_n = 0
+    if not (args.pin_killed or args.drain or args.anchor):
         # A pull request draws only from the lines it wrote (`changed_lines`).
         touched = changed_lines(args.base) if args.scope == "changed" else None
-        for path in files:
-            rel = str(path.relative_to(ROOT))
-            drivers = drivers_for(rel, closures, allow)
-            if not drivers:
-                print(f"  no recorded closure reaches {rel}; skipped")
-                continue
-            drawn = anchor_sites(path.read_text(),
-                                 drawable(path, rel, touched))
-            got = [m for m in drawn if not triaged_site(triage, m)]
-            held_n += len(drawn) - len(got)
-            rng.shuffle(got)
-            for mut in got[: args.per_file]:
-                mut["drivers"] = drivers
-                pool.append(mut)
-        rng.shuffle(pool)
-        pool = pool[: args.max]
+        pool, held_n = sampled_pool(files, closures, allow, touched, triage,
+                                    rng, args.per_file, args.max)
         if held_n:
             print(f"  {held_n} candidate site(s) hold a survivor_triage mark "
                   f"and are not driven (triaged_site)")
@@ -2863,16 +2912,7 @@ def main() -> int:
         # The baselines' seconds, and the recorded ones for a lazy or deferred
         # driver, which has none yet.
         seconds = dict(own_s)
-        for mut in pool:
-            mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
-                                          budgets.get("killed_by", {}))
-            # A pinned site's own killer goes first, so a kill by another
-            # driver cannot leave the pin unread (pin_reverification); a
-            # mutant is killed iff some driver kills it, so no verdict moves.
-            pin = pinned_script(budgets.get("killed_by", {}), mut)
-            if pin in mut["drivers"]:
-                mut["drivers"].remove(pin)
-                mut["drivers"].insert(0, pin)
+        order_pool_drivers(pool, seconds, budgets.get("killed_by", {}))
         for s in lazy + deferred:
             # Until it settles, its first red run also pays its baseline and
             # null control: the budget's estimate carries all three.
@@ -2971,6 +3011,10 @@ def main() -> int:
         for line in pin_reverification(results, outcomes,
                                        budgets.get("killed_by", {})):
             print(line)
+    if args.anchor:
+        for mut, verdict in results:
+            print(f"  {verdict}: {mut['file']}:{mut['line']} {mut['kind']}")
+        return 0
     survivors = []
     for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
         mark = "LIVES" if verdict == "LIVES" else (
