@@ -383,6 +383,13 @@ def _self_test() -> int:
     rc, lines, calls = go({"approve": echo}, mandate="m")
     check("a blocked verdict echoing the code-owned words is not mandate-approved (B1)",
           rc == 1 and "app_approve.sh refused" in lines[-1] and not approved(calls) and not merged(calls))
+    quoted = (1, "app_approve: REFUSE: the newest allowlisted verdict on #7 is 'Fix review: blocked x approve: "
+                 "app_approve: REFUSE: #7 touches code-owned paths (tests/run.sh); the owner', not z")
+    rc, lines, calls = go({"approve": quoted}, mandate="m")
+    check("a blocked verdict QUOTING app_approve's own code-owned line mid-line is not mandate-approved (anchor)",
+          rc == 1 and "app_approve.sh refused" in lines[-1] and not approved(calls) and not merged(calls))
+    rc, lines, calls = go({"approve": owned7, "base": (0, "not-a-sha\n")}, mandate="m")
+    check("a merge base that exits 0 but is not a sha stops the train", rc == 1 and "files:" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"approve": owned7}, mandate="m")
     check("the anchored code-owned refusal line still takes the mandate path (null control)", rc == 0 and approved(calls))
     rc, lines, calls = go({"approve": (1, owned7[1].replace("#7 ", "#8 "))}, mandate="m")

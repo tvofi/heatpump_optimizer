@@ -22,11 +22,14 @@ rules, skills) is not scanned: it names paths to explain them.
 WHAT IT REFUSES, one line per hit (`path:line: [class] text`); every match is
 judged on its own, never excused by something else on its line:
   private-tmp      `/private/tmp` -- macOS-only and wiped by a cleanup;
-  tmp              `/tmp` with a fixed name: a path under it, or the bare root
-                   joined, concatenated or `${X ?? '/tmp'}/`-suffixed with a
-                   literal, or assigned to a variable;
-  tmpdir-fixed     `$TMPDIR`, `${TMPDIR:-...}`, `os.environ[.get]("TMPDIR")` or
-                   `tempfile.gettempdir()` followed by a fixed name;
+  tmp              `/tmp` with a fixed name: a path under it (an f-string's
+                   `{name}` included), or the bare root joined, concatenated,
+                   pathlib-`/`-ed or `${X ?? '/tmp'}/`-suffixed with a literal,
+                   or assigned to a variable;
+  tmpdir-fixed     `$TMPDIR`, `${TMPDIR:-...}`, `os.environ["TMPDIR"]`,
+                   `os.environ.get("TMPDIR"...)` or `tempfile.gettempdir()`
+                   followed by a fixed name: a path component, `+ "..."`,
+                   `, "..."` (a join) or `) / "..."` (pathlib);
   home-abs         `/Users/<name>/` or `/home/<name>/` -- one machine's home;
   home-instrument  `~/`, `$HOME/` or `${HOME}/` reaching a script or a bin/ dir:
                    an instrument run from outside the tree.
@@ -49,12 +52,13 @@ WHAT IT ALLOWS, each by a stated rule, never silently:
                    a blanket exemption.
 
 WHAT IT DOES NOT CATCH, so a green run is not read as more than it is: a path
-assembled across lines (a root in one variable, its name added later), one built
-from pieces that never spell a root (`"/" + "tmp"`, `chr()`), one read from a
-config file or the environment at run time, and any path in a file outside the
-scope above. It is a detector for the literal shapes that broke on 2026-10-03
-and the gaming shapes #1879's round-1 review measured, not a proof; review owns
-the rest (`fix-review.md` step 9).
+assembled across lines (a root in one variable, its name added later); one
+built from pieces that never spell a root (`"/" + "tmp"`, `chr()`, a `printf`
+format); a temp root reached through a variable not named TMPDIR; one read from
+a config file or the environment at run time; and any path in a file outside
+the scope above. It detects the literal shapes that broke on 2026-10-03 and the
+gaming shapes #1879's two review rounds measured. It is not a proof, and review
+owns the rest (`fix-review.md` step 9).
 """
 
 from __future__ import annotations
@@ -73,8 +77,9 @@ CLASSES = (
     # The temp dir by its variable or its API, followed by a FIXED name: a path
     # component, a concatenation or an os.path.join argument.
     ("tmpdir-fixed", re.compile(
-        r"(?:\$\{TMPDIR(?::-[^}]*)?\}|\$TMPDIR\b|tempfile\.gettempdir\(\)|os\.environ(?:\.get)?\(\s*[\"']TMPDIR[\"'][^)]*\))"
-        r"(?=\s*(?:/|\+\s*[\"']|,\s*[\"']))")),
+        r"(?:\$\{TMPDIR(?::-[^}]*)?\}|\$TMPDIR\b|tempfile\.gettempdir\(\)|os\.environ(?:\.get)?\(\s*[\"']TMPDIR[\"'][^)]*\)"
+        r"|os\.environ\[\s*[\"']TMPDIR[\"']\s*\])"
+        r"(?=\s*(?:/|\+\s*[\"']|,\s*[\"']|\)\s*/\s*[\"']))")),
     ("home-abs", re.compile(r"/(?:Users|home)/[\w.-]+/")),
     ("home-instrument", re.compile(r"(?:~|\$HOME|\$\{HOME\})/[^\s'\"`)]*(?:\.(?:sh|py|mjs|js)\b|/bin\b)")),
 )
@@ -102,6 +107,10 @@ ALLOW = (
     ("tests/entities.py", "`gh api ... | jq ... > /tmp/pr-reds.txt`", "the comment over that pin"),
     ("tests/entities.py", '"HPO_PLANDATA": "/tmp/plandata"', "a fixture environment for the plan-data path check"),
     ("tests/stress.py", "> /tmp/memory-half.json", "a comment showing a one-off command's output file"),
+    ("tests/doc_claims.py", 'pathlib.Path(tempfile.gettempdir()) / "no-such-build.mjs"',
+     "a fixture path that must NOT exist: the check drives a missing site builder"),
+    ("tests/ha_floor.py", 'default=Path(tempfile.gettempdir()) / "ha-floor-cache"',
+     "a disposable download cache, overridable by --cache; losing it costs a re-download, not state"),
     (".claude/workflows/friction_issues.mjs", "process.env.RUNNER_TEMP ?? '/tmp'}/friction-issue-body.md",
      "a workflow program: RUNNER_TEMP is set on the runner; /tmp is a one-shot body's local fallback"),
     ("tests/plan_view.py", '"/tmp", "plandata-%s.json" % hashlib.sha256',
@@ -133,13 +142,14 @@ def bare_root_used(text: str, m: re.Match) -> bool:
     rest = text[m.end():]
     return bool(re.match(r"/?[\"'`]?\s*(?:\+\s*[\"'`]|,\s*[\"'`](?!/))", rest)
                 or re.match(r"[\"'`]\s*\}\s*/[\w.-]", rest)
+                or re.match(r"[\"'`]\s*\)\s*/\s*[\"'`]", rest)
                 or re.search(r"[\w}]=\s*[\"'`]?$", text[:m.start()]))
 
 
 def allowed_by_rule(path: str, cls: str, text: str, m: re.Match) -> bool:
     """Each match is judged on its own, never by what else its line carries."""
     tok = token(text, m)
-    if cls in ("tmp", "private-tmp") and not re.match(r"/[\w.$-]", text[m.end():]) and not bare_root_used(text, m):
+    if cls in ("tmp", "private-tmp") and not re.match(r"/[\w.${-]", text[m.end():]) and not bare_root_used(text, m):
         return True  # the root itself, named in prose or a list of roots, gets no fixed name here
     if cls in TEMP_CLASSES and any(e in tok for e in EPHEMERAL):
         return True
@@ -235,6 +245,10 @@ def self_test() -> int:
             ("$$ in a comment", s, "S=/private/tmp/audit-7/state  # not $$"),
             ("the lease name with a suffix concatenated", "tests/x.py", 'LOCK = "/tmp/hpo-gate.lock" + "/../audit-7"'),
             ("/home/user outside the cloud checkout", s, "S=/home/user/state-that-dies"),
+            ("pathlib's / over Path(\"/tmp\")", "tools/x.py", 'S = Path("/tmp") / "audit-7"'),
+            ("an f-string under /tmp", "tools/x.py", 'S = f"/tmp/{name}"'),
+            ("os.environ[\"TMPDIR\"] plus a fixed name", "tools/x.py", 'S = os.environ["TMPDIR"] + "/audit-7"'),
+            ("pathlib's / over gettempdir()", "tools/x.py", 'S = Path(tempfile.gettempdir()) / "audit-7"'),
             ("a hook command in settings.json", ".claude/settings.json", '"command": "bash /tmp/hook.sh"')):
         check(f"refused: {name}", one(f, t) != [])
     check("an env default with a per-process name passes", one(s, 'mktemp -d "${TMPDIR:-/tmp}/app_approve.XXXXXX"') == [])
