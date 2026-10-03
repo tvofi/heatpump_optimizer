@@ -1,12 +1,51 @@
 Part of #201.
 
-The owner's rulings of 2026-10-03 (tvofi): useful tools belong under `tools/` on `main`, as a permanent repository mechanism, and above all the programme's own instruments (what merges, approves, carries, stamps, gates, watches CI or records state) are tracked, self-tested files. A later ruling the same day: audit instruments are not code-owned; ownership follows decision 0013, unamended. That day a temp cleanup deleted `/private/tmp/audit-7`: the seat venv the `~/hpo-seats/bin` shims ran (no recipe anywhere), the state three tracked seat scripts kept there, and the design note decision 0012 cited.
+The owner's rulings of 2026-10-03 (tvofi):
+- Useful tools belong under `tools/` on `main`, as a permanent repository mechanism.
+- Above all, the programme's own instruments (whatever merges, approves, carries, stamps, gates, watches CI or records state) are tracked, self-tested files.
+- Audit instruments are not code-owned. Ownership follows decision 0013, which stands unamended.
+
+That day a temp cleanup deleted `/private/tmp/audit-7`. It took the seat venv the `~/hpo-seats/bin` shims ran (built by hand, with no recipe anywhere), the state three tracked seat scripts kept there, and the design note decision 0012 cited.
 
 This pull request does three things.
 
-1. **Lands the instruments and recipes** that lived only in scratch or `~/hpo-seats/bin`: the merge train (`tools/audit/seat/merge_train.py`), the seat venv recipe and its shims, the PR open/update scripts, and the thermal_model parity harness.
-2. **Makes the rule permanent**: `fixer.md` step 17 states the obligation and the reusability criterion once; `fix-review.md` step 9 and `orchestrator.md` section 13 point to it. A new check, `tools/audit/seat/tmp_paths.py --check`, refuses a tracked script, workflow or decision record tied to a temp or machine path; it runs with its self-test in `governance.yml`'s `instrument-self-tests` job and in `tools/audit/prepr.sh`. That job grades nothing, which is the only place an unowned, unpinned copy may run (`codeowners_gap.py`, #1515); a red there is still a red at the head that `pr-contract` makes the body answer. Making it a pinned grader in a required job is a two-step follow-up: the base must carry the file before a job can restore it, and pinned `field_coverage.mjs` must declare it. `CODEOWNERS` now owns `tools/release/` (the version stamp, release tooling, not an audit instrument); `tools/audit/seat/` stays unowned.
-3. **Fixes the paths it finds**, and makes `app_approve.sh`'s carry run on macOS bash 3.2.
+1. **Lands the instruments and recipes** that lived only in scratch or in `~/hpo-seats/bin`:
+   - the merge train (`tools/audit/seat/merge_train.py`);
+   - the seat venv recipe (`tools/audit/seat/seat_venv.sh`) and its two shims;
+   - the PR open and update scripts (`open_pr.sh`, `update_pr.sh`);
+   - the thermal_model parity harness (`tools/audit/harnesses/thermal_parity.py`).
+2. **Makes the rule permanent.**
+   - `fixer.md` step 17 states the obligation and the reusability criterion once. `fix-review.md` step 9 and `orchestrator.md` section 13 point to it.
+   - A new detector, `tools/audit/seat/tmp_paths.py --check`, refuses a tracked script, workflow or decision record tied to a temp or machine path.
+   - The detector runs, with its self-test, in `governance.yml`'s `instrument-self-tests` job and in `tools/audit/prepr.sh`. That job grades nothing, and it is the only place an unowned, unpinned copy may run (`codeowners_gap.py`, #1515). A red there is still a red at the head that `pr-contract` makes the body answer. Making it a required pinned grader is owed work (Forward-carry).
+   - `CODEOWNERS` adds only `tools/release/`: the version stamp is release tooling, not an audit instrument. `tools/audit/seat/` stays unowned.
+3. **Fixes the paths the detector finds**, and makes `app_approve.sh`'s carry run on macOS bash 3.2.
+
+### Round 2: what #1879's round-1 review found, and what changed
+
+`merge_train.py`:
+- **B1.** The mandate path was taken on any substring "touches code-owned paths (" in `app_approve.sh`'s output. A blocked verdict's echoed reason carrying those words was mandate-approved and merged. The match is now anchored to `app_approve.sh`'s own line for this pull request: `^app_approve: REFUSE: #<pr> touches code-owned paths (...);`.
+- **B2.** The file list was `git diff --name-only`, whose rename detection lists only a rename's new path. Moving a policy file out of the corpus escaped the policy stop. The list now uses `--no-renames`, so it names both paths.
+- **B3.** A failing `git merge-base` or `git diff` fed its error text in as the file list. Either failure now stops the train.
+- **CI read.** `wait_ci` reads every page (`gh api --paginate`). It treats only success, skipped and neutral as green, so `action_required`, `stale` and any conclusion GitHub adds later stop the train.
+
+`tmp_paths.py`:
+- It now judges each match on its own. A `$$` elsewhere on the line, even in a comment, no longer excuses a fixed name.
+- It catches every gaming shape the review listed:
+  - `${TMPDIR:-/tmp}/<name>`, `$TMPDIR/<name>`, `os.environ("TMPDIR")` plus a name;
+  - a variable holding `/private/tmp`;
+  - `os.path.join("/tmp", ...)`;
+  - concatenation;
+  - `tempfile.gettempdir()` plus a name;
+  - a `?? '/tmp'` fallback with a fixed suffix;
+  - the lease name with a suffix;
+  - `/home/user` outside the cloud image's two roots.
+- `.claude/settings.json` is now in scope.
+- Its docstring states what it does not catch: a path assembled across lines, one built from pieces that never spell a root, one read at run time, and anything outside its scope.
+
+`seat_venv.sh` reads the census with an interpreter named by absolute path (`$HPO_PYTHON`, then `/usr/bin/python3` and two fixed fallbacks). In the incident state (shims first on PATH, venv deleted), the bare `python3` it used before was the dead shim.
+
+`governance.yml`: each comment now sits above its own step.
 
 ### Inventory
 
@@ -34,59 +73,147 @@ Reusable: a later round or seat reruns it, or a body figure needs it to be repro
 | HA floor sweep (`seat-rca-hafloor/sweep.py`, `floor_names.py`, `census_fixer.py`) | RCA seat scratch | leave | the RCA seat's own evidence; it lands with that analysis if reused |
 | `race_probe.py`, `mutants_r3.py`, `census.py` | deleted | lost | not recoverable from report text at a size worth retyping |
 
-Left in place (fixtures and documented conventions, each named by `tmp_paths.py`'s rules or allow list): `gh_comment.py`, `app_comment.sh`, `app_approve.sh` and `prepr.sh` self-test fixtures, `/tmp/hpo-gate.lock`, a workflow runner's `/tmp`, `/home/user/` in the cloud seat image, `tests/card.mjs`'s legacy plan-data path.
+Left in place (fixtures and documented conventions, each named by `tmp_paths.py`'s rules or allow list): `gh_comment.py`, `app_comment.sh`, `app_approve.sh` and `prepr.sh` self-test fixtures, `/tmp/hpo-gate.lock`, a workflow runner's `/tmp`, the cloud seat image's `/home/user/heatpump_optimizer` and `/home/user/wt/`, `tests/card.mjs`'s legacy plan-data path, `tests/plan_view.py`'s per-checkout hashed payload, and `friction_issues.mjs`'s `RUNNER_TEMP` fallback. A bare `/tmp` named in prose or in a list of temp roots is not a hit.
 
 ### The merge train
 
-`merge_train.py run <queue.json> [--mandate LABEL] [--approver-role ROLE]` per pull request: recarry through `remerge_main.sh` when the head lacks `origin/main`; wait for every check run (`--ignore-red`, default `nightly-status`); `app_approve.sh --carry`; `origin/main` still in the head; **refuse any policy path** (`policy_lint.mjs --corpus-filter`, sentinel-probed as `preflight.sh` does); approve by the App, or, only when the App refused for code-owned paths and `--mandate` is given and no `*_budgets.json` changed, by `gh pr review` with a body naming the mandate label, role, paths, verdict comment and head; ready, title preflight, merge with `--match-head-commit` (main re-checked before each try), closing-issue read, `worktree_gc.sh`. It stops the queue at the first refusal. Narrower than `train3.py` on one point: a missing-evidence refusal is no longer overridden by a mandate.
+`merge_train.py run <queue.json> [--mandate LABEL] [--approver-role ROLE]` works through the queue one pull request at a time and stops the whole queue at the first refusal. For each pull request it:
+
+1. **Recarries** through `remerge_main.sh` when the head lacks `origin/main`.
+2. **Waits for CI.** Every check run on every page must complete, with at least `--min-runs` of them. Any latest run that is not success, skipped or neutral stops the train, except names on `--ignore-red` (default `nightly-status`).
+3. **Checks the carry** with `app_approve.sh --carry`.
+4. **Re-checks** that `origin/main` is still in the head.
+5. **Reads the changed files** with `git diff --no-renames` from a checked merge base. Any failure stops the train.
+6. **Refuses any policy path** (`policy_lint.mjs --corpus-filter`, sentinel-probed as `preflight.sh` does).
+7. **Approves.** The App approves when it can. A mandate approval (`gh pr review`, with a body naming the mandate label, role, paths, verdict comment and head) happens only when all three hold:
+   - the App's refusal is exactly its own code-owned line for this pull request;
+   - `--mandate` was given;
+   - no `*_budgets.json` changed.
+8. **Merges**: ready, title preflight (a `REFUSE` or a missing `clean` stops it), then `--match-head-commit` with main re-checked before each try. Afterwards it reads back the closing issues and runs `worktree_gc.sh`.
+
+It is narrower than `train3.py` on one point: a missing-evidence refusal is not overridden by a mandate.
 
 ### What is not built
 
-A `## Figures` check that a cited script is tracked or marked one-off. `figure_lint.mjs` already refuses an in-tree path that does not resolve and reports an out-of-tree one `unverified`. A "one-off" marker would be the seat's own word on the very judgement the rule asks for, so it adds nothing a reviewer does not already see. `fix-review.md` step 9 now makes it the reviewer's.
+A `## Figures` check that a cited script is tracked or marked one-off. `figure_lint.mjs` already refuses an in-tree path that does not resolve, and reports an out-of-tree one `unverified`. A "one-off" marker would be the seat's own word on the very judgement the rule asks for. `fix-review.md` step 9 makes that judgement the reviewer's.
 
 ## Approval
 
-Approved by the orchestrator under mandate 5951564627, on the owner's instruction, after a `Fix review: merge` verdict at the head. The policy files are `tools/audit/briefs/fixer.md`, `tools/audit/briefs/fix-review.md` and `tools/audit/briefs/orchestrator.md` (POLICY_GLOBS). The code-owned files are `.github/CODEOWNERS`, `.github/workflows/governance.yml` and `docs/decisions/0012-process-diet-and-round-cadence.md`. Each policy file pays for its new lines inside its existing cap, by cutting a motivating anecdote the rule does not need; no cap is raised. `tools/audit/README.md` and `tools/audit/harnesses/README.md` are policy and untouched. `harnesses/README.md` still tables four instruments; `d907_kernel_band.py`, `hpo_ci_container_setup.sh` and now `thermal_parity.py` describe themselves in their headers.
+Approval is by the orchestrator under mandate 5951564627 (the owner's instruction), after a `Fix review: merge` verdict at the head.
+
+What the approval covers:
+- **Policy files** (POLICY_GLOBS): `tools/audit/briefs/fixer.md`, `tools/audit/briefs/fix-review.md`, `tools/audit/briefs/orchestrator.md`.
+- **Code-owned files**: `.github/CODEOWNERS`, `.github/workflows/governance.yml`, `docs/decisions/0012-process-diet-and-round-cadence.md`.
+
+Each policy file pays for its new lines inside its existing cap, by cutting a motivating anecdote the rule does not need. No cap is raised.
+
+`tools/audit/README.md` and `tools/audit/harnesses/README.md` are policy and untouched. `harnesses/README.md` still tables four instruments; `d907_kernel_band.py`, `hpo_ci_container_setup.sh` and now `thermal_parity.py` describe themselves in their headers.
 
 Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not added to `CODEOWNERS`, and decision 0013 stands unamended.
 
 ## Head
 
-`32251f44c4a443d015bc3b8cef2c9161e919ec3e` is one commit on `1190f1058d95a001e42a98871c28c0e6f24d9e55`: the owner's ownership ruling. That head merges `origin/main` `20f597c6615b10a5d225497cb13b6d1f2e5cce35` (#1875) into `af085331aa76e2f836054ee2b180008f049b8c93`, which merges `origin/main` `1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f` (#1869) into the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`, one commit on `12dbd3a5d01f48f44e6c6344bff22d3d015baf9d`. Both merges are automatic, with no resolution.
+`44d5a4fe267da7cd4c7b0acc03c23d19386e11c0` is one commit (round 2) on the pull request's head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
+
+That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3e` under the delivery row `d0fd00562`. `32251f44` sits on `1190f1058d95a001e42a98871c28c0e6f24d9e55`, which carries two automatic `origin/main` merges, with no resolution: #1869 `1ccd0b1d5` and #1875 `20f597c66`. They sit on the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`.
+
+`origin/main` is `20f597c6615b10a5d225497cb13b6d1f2e5cce35`, fetched 2026-10-03, and is inside the head.
 
 ## Mutation proof
 
-- `tools/audit/seat/tmp_paths.py`: ten mutants, each one rule disabled in a copy (every class pattern, the per-process, runner, lease, scope, per-file-allow and stale-entry rules). All ten turn its self-test red, each naming the arm it disables. Example: disabling `private-tmp` fails "a state dir under /private/tmp is refused".
-- `tools/audit/seat/merge_train.py`: thirteen mutants, each deleting one stop (policy refusal, filter probe, budget, no-mandate, code-owned-only, CI red, carry, main moved, preflight REFUSE, recarry conflict, superseded red, head moved, queue stop). Twelve fail a named arm. The code-owned-only mutant crashes the self-test (`AttributeError`, rc 1, no tally line), which the governance step's tally grep also refuses.
-- `app_approve.sh`: the base is the mutant. Under macOS `/bin/bash` 3.2.57, `app_approve.sh --self-test` at the merge base prints `141 checks, 2 failed`: "refused as a hand-resolved merge" and "refused by the ci: guard". At the head it prints `141 checks, 0 failed`.
+**`merge_train.py`:** 21 mutants, each killed by a named self-test arm.
+- The set is the round-1 reviewer's 15 (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/../seat-r-tools/attack/mut.py`), re-keyed to this head as `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/mut2.py`, plus 6 for the round-1 findings:
+  - an unanchored code-owned match;
+  - an anchor without the PR number;
+  - renames on;
+  - the diff's rc ignored;
+  - the merge-base's rc ignored;
+  - no pagination.
+- The 3 the review found surviving are now killed, each by its own arm:
+  - M8 (min runs) by "fewer check runs than --min-runs is not complete CI";
+  - M9 (pre-merge main recheck) by "main moving after approval and before the merge stops it";
+  - M15 (`clean` required) by "a preflight that never says clean stops it".
+- M6 (the head check inside the mandate approval) is now killed by its own arm.
+- M7 is re-keyed: `action_required` added to the green list fails "action_required is not green".
+
+**My own 13-mutant set** (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/mut/mut.py`) is all killed. The code-owned-only mutant kills by a crash (no tally line), which the governance step's tally grep also refuses.
+
+**`tmp_paths.py`:** 17 mutants (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/mut_tp2.py`), all killed by named arms. They cover each class, each bare-root clause, per-match `$$`, runner, lease suffix, cloud roots, settings scope, evidence scope, per-file allow and stale entries.
+
+**`app_approve.sh`:** the merge base is the mutant. Under macOS `/bin/bash` 3.2.57, its `--self-test` prints `141 checks, 2 failed` at the base and `141 checks, 0 failed` at the head.
 
 ## Null control
 
-- `tmp_paths.py --check --ref 1ccd0b1d5` (origin/main at the head's merge) refuses 14 lines: `ci-watch.sh`, `handoff_push.sh` (3), `merge_pr.sh` (2), `remerge_main.sh`, decision 0012 (2), `worktree_gc.sh` (2), the two hastub doc lines and a harness comment; its one stale allow entry there is this checker's own, which that tree lacks. At the head it reports `0 refused, 0 stale allow entries`.
-- `thermal_parity.py`: two plain captures of the same tree compare at `base_head_differing=0`, with 0 unequal scalar-vs-batch pairs of 1872. The `--perturb` capture (inter_zone_transfer × (1 + 2⁻⁴⁰)) differs in 1200 arrays, none outside the two-zone cells. A copy with one batch cell moved one ulp reads `base_head_differing=1` and `head_scalar_batch_unequal_pairs=1`.
-- `seat_venv.sh` builds a venv whose `pip freeze --all` (less pip) is byte-identical to the hand-built one: 14 packages.
-- `merge_train.py`'s null arm: a green, carried, non-policy pull request merges, and the train prints `TRAIN DONE`.
+**The round-1 reviewer's harness** `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/../seat-r-tools/attack/attack.py`, run against `merge_train.py` at `6f1699db`:
+- A1 (blocked verdict echo) and A2 (diff fails) print `mandate_approved=True merged=True`.
+- A4 (`action_required`) prints `merged=True`.
+
+**The same harness adapted to this head's CI read** (`/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/r2/attack2.py`: JSON lines and a checked merge base; CI success per arm, with A4 alone `action_required`):
+- A1 stops at approve.
+- A2 stops at `files: git diff failed`.
+- A4 stops at CI.
+- Its control A3 (a policy file listed) stops at policy.
+- None approved, none merged.
+
+**The round-1 reviewer's gaming probe** `/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-heatpump-optimizer-approval-af78f2/0006c636-2941-40c6-b798-638de4efb00a/scratchpad/seat-tools-home/../seat-r-tools/attack/tpgame.py` at the head:
+- G1-G9 and the control C1 are refused.
+- The legitimate L1-L4 pass: `mktemp -d`, a workflow's `/tmp`, `$RUNNER_TEMP`, `tempfile.TemporaryDirectory`.
+- L5 (a fixed `/tmp` name in a `.sh` under `tools/`) is refused deliberately: it is a fixed name.
+
+**`tmp_paths.py --check`:**
+- At `origin/main` `20f597c6` it refuses 14 lines: `ci-watch.sh`, `handoff_push.sh` (3), `merge_pr.sh` (2), `remerge_main.sh`, decision 0012 (2), `worktree_gc.sh` (2), the two hastub doc lines and a harness comment. Its one stale allow entry there is the checker's own, which that tree lacks.
+- At the head it reports `0 refused, 0 stale allow entries`.
+
+**`seat_venv.sh` in the incident state** (shims first on PATH, `HPO_STATE_DIR` with no venv):
+- At `6f1699db`, `--check` died with "cannot read the census python".
+- At the head it reports "no venv at ...", and a full build from that state succeeds (python 3.14.7, numpy 2.4.6, scipy 1.17.1).
+- Its `pip freeze --all` less pip matched the hand-built venv byte for byte (14 packages) in round 1.
+
+**`thermal_parity.py`:**
+- Two plain captures: `base_head_differing=0`, with 0 of 1872 scalar-vs-batch pairs unequal.
+- The `--perturb` capture differs in 1200 arrays, none outside the two-zone cells.
+- A one-ulp copy reads 1 differing array and 1 unequal pair.
+- The round-1 reviewer re-ran all of these and matched them.
 
 ## Figures
 
-- `python3 tools/audit/seat/tmp_paths.py --check --ref 1ccd0b1d5`: 14 refused, 1 stale, rc 1. `python3 tools/audit/seat/tmp_paths.py --check`: 0 refused, rc 0.
-- `python3 tools/audit/seat/tmp_paths.py --self-test`: 18 checks, 0 failed.
-- `python3 tools/audit/seat/merge_train.py --self-test`: 25 checks, 0 failed.
+- `python3 tools/audit/seat/merge_train.py --self-test`: 39 checks, 0 failed.
+- `python3 tools/audit/seat/tmp_paths.py --self-test`: 37 checks, 0 failed.
+- `python3 tools/audit/seat/tmp_paths.py --check --ref 20f597c6`: 14 refused, 1 stale, rc 1.
+- `python3 tools/audit/seat/tmp_paths.py --check`: 0 refused, rc 0.
 - `bash tools/audit/app_approve.sh --self-test` on `/bin/bash` 3.2.57: 141 checks, 2 failed at the merge base; 141 checks, 0 failed at the head.
-- `bash tools/audit/worktree_gc.sh --self-test`: 66 checks, 0 failed.
-- `bash tools/audit/prepr.sh <body>`: every step ok, its own self-test 148 passed, 0 failed.
-- `PYTHONPATH=tests/hastub python3 tools/audit/harnesses/thermal_parity.py capture <out.npz>`, twice, then `--perturb`, then `compare`: the null-control numbers above, on the M1 with numpy 2.4.6 and python 3.14.7. `thread_factor` 1.000.
-- `bash tools/audit/seat/seat_venv.sh` with `HPO_STATE_DIR` set to a scratch dir: python 3.14.7, numpy 2.4.6, scipy 1.17.1, about 20 s wall.
-- `node .claude/workflows/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`. `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`. `python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
-- Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`, namely `entities.py` (2108 passed), `harness_headers.py` (95 passed), `open_meteo.py` and `solar_alignment.py` (passed); `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `bash tools/audit/worktree_gc.sh --self-test`: 66 checks, 0 failed (round 1; this round leaves it unchanged).
+- `python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
+- `node .claude/workflows/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`.
+- `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`.
+- `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
+- Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`.
+  - `entities.py`: 2108 passed.
+  - `harness_headers.py`: 95 passed.
+  - `open_meteo.py` and `solar_alignment.py`: passed.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 
 ## Red checks
 
-none at handoff; CI has not run. One local note: a single `tests/entities.py` run at this tree failed "the lease has one winner ... run.sh runs unleased" (`run_sh_unleased=False`) at load 8-10; the immediate re-run at the same tree passed all 2104, and the diff touches neither `tests/gate_lock.py` nor `tests/run.sh`.
+**`pr-contract` at `1190f105` (run 37136141404).** It refused because `nightly-status` was red and this diff touches `.github/workflows/governance.yml`.
+
+**`nightly-status` at `1190f105` (job 111240949131).** It printed `NIGHTLY FAILED: mutation-ledger failed last night`, naming scheduled Tests run 37108891698 at `main` `2e569748`, 2026-10-03T08:11:57Z.
+
+That is `main`'s own nightly. It ran before this branch was cut from `12dbd3a5`, and on a tree that does not contain this diff. `tests/nightly_status.py` reads the scheduled runs of `tests.yml` (its `DEFAULT_WORKFLOW`). `git diff --name-only <merge base> HEAD | grep -E 'tests.yml|nightly|mutation'` prints nothing, so this diff changes neither that workflow, nor the reporter, nor the mutation lanes. `governance.yml` is what the body check's heuristic keyed on.
+
+No cheaper detector is owed by this pull request: the red is `main`'s own mutation-ledger lane, outside this diff. It goes green on the next scheduled or dispatched Tests run on `main` that passes, and dispatching one is the orchestrator's.
+
+**`pr-contract` at `6f1699db`** (run 37136843240) failed for the same reason, with `nightly-status` (job 111243164480) red on the same scheduled run. This section answers both.
 
 ## Forward-carry
 
-The obligation is carried into the three role contracts this pull request edits: `tools/audit/briefs/fixer.md` step 17, `tools/audit/briefs/fix-review.md` step 9 and `tools/audit/briefs/orchestrator.md` section 13.
+**`.claude/workflows/carry-201.json`**, new last entry. It owes the follow-up that makes `tools/audit/seat/tmp_paths.py` a pinned grader in a required `governance.yml` job:
+1. Declare it in pinned `field_coverage.mjs` first.
+2. Then restore it from the base in a required job, which needs a base that already carries the file.
+
+It must not be made code-owned to get there.
+
+The obligation itself is carried into `tools/audit/briefs/fixer.md` step 17, `tools/audit/briefs/fix-review.md` step 9 and `tools/audit/briefs/orchestrator.md` section 13.
 
 ## Friction
 
