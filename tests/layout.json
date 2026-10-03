@@ -101,7 +101,8 @@
     "tools/devices/**",
     "tools/release/**",
     "tools/merge/**",
-    "tools/replay/**"
+    "tools/replay/**",
+    "tools/site/**"
    ]
   },
   {
