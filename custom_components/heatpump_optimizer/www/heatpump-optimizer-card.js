@@ -3685,7 +3685,7 @@ function cardStyleBlock(darkMode) {
       /* A surface-2 block re-points the text tokens at the ink literals, so
          every descendant that reads --hpo-text or --hpo-text-2 is paired
          with the surface it sits on, whatever the HA theme's own text. */
-      .tile, .hl-stat {
+      .tile, .hl-stat, .hl-narrative {
         --hpo-text: var(--hpo-ink, #212121);
         --hpo-text-2: var(--hpo-ink-2, #727272);
         color: var(--hpo-text, #212121);
@@ -3769,10 +3769,32 @@ function cardStyleBlock(darkMode) {
         display: block; font-size: 0.82em; font-weight: 400;
         color: var(--hpo-text-2, #727272);
       }
+      /* R9-UX-8: the narrative is one surface-2 panel of rows (label left,
+         kWh over cost right), not italic prose. Columns auto-fit, never more
+         than two: one on a phone, two once the card is about 720 px wide.
+         A media query would read the viewport, not the card's own column
+         on a desktop dashboard. */
       .hl-narrative {
-        font-size: 0.82em; font-style: italic;
+        list-style: none; margin: 6px 0 0; font-size: var(--hpo-text-sm, 13px);
+        display: grid; gap: var(--hpo-space-2, 8px) var(--hpo-space-5, 24px);
+        grid-template-columns: repeat(auto-fit,
+          minmax(max(min(100%, 348px), calc(50% - 13px)), 1fr));
+      }
+      .nl {
+        display: grid; grid-template-columns: minmax(0, 1fr) auto;
+        column-gap: var(--hpo-space-3, 12px); align-items: baseline;
+        line-height: 1.35; overflow-wrap: anywhere;
+      }
+      .nl-status { color: var(--hpo-text-2, #727272); }
+      /* nowrap is what keeps "1.22 SEK" whole: only the label wraps. */
+      .nl-num {
+        display: flex; flex-direction: column; align-items: flex-end;
+        white-space: nowrap; font-variant-numeric: tabular-nums;
+      }
+      .nl-kwh { font-weight: 600; }
+      .nl-cost, .nl-status .nl-kwh {
+        font-size: var(--hpo-text-xs, 12px); font-weight: 400;
         color: var(--hpo-text-2, #727272);
-        list-style: none; margin: 0; padding: 0;
       }
       /* R5-D4-02 (#1319): the score is a control (role="button" and tabindex
          arrive after render) and must clear the 24 px target floor. It used
@@ -7920,6 +7942,40 @@ function savingsUnit(plan, statKey) {
   return plan.currency(st && st.attributes && st.attributes.unit_of_measurement);
 }
 
+/** The narrative's rows (R9-UX-8): label left, kWh over cost right.
+ *
+ * Built from the sensor's structured `items`, with the label from the card's
+ * own `reasons.*` strings. The published `lines` remain the source for any
+ * row the card cannot label (a reason a newer integration added) and for the
+ * whole list when `items` is absent or does not pair one to one with
+ * `lines` (the integration skips an item it has no sentence for, so a length
+ * mismatch means the pairing is unknown) -- every line still shows (R9-UX-1).
+ */
+function narrativeRows(plan, narrative, lines) {
+  const items = narrative && narrative.attributes && narrative.attributes.items;
+  const paired = Array.isArray(items) && items.length === lines.length;
+  const unit = savingsUnit(plan, "_plan_predicted_savings");
+  const num = (v, d) => (Number.isFinite(Number(v)) ? Number(v).toFixed(d) : null);
+  return lines
+    .map((line, i) => {
+      const it = paired && items[i] ? items[i] : {};
+      const key = REASON_LABELS[it.reason];
+      const kwh = num(it.kwh, 1), sek = num(it.sek, 2), h = num(it.hours, 1);
+      const zero = it.reason === "idle" || it.reason === "pump_mode";
+      if (!key || (zero ? h === null : kwh === null || sek === null)) {
+        return `<li class="nl"><span class="nl-text">${esc(line)}</span></li>`;
+      }
+      const num2 = zero
+        ? `<span class="nl-kwh">${esc(h)} h</span>`
+        : `<span class="nl-kwh">${esc(kwh)} kWh</span> ` +
+          `<span class="nl-cost">${esc(sek)} ${esc(unit)}</span>`;
+      return `<li class="nl${zero ? " nl-status" : ""}">` +
+        `<span class="nl-text">${esc(L(key))}</span>` +
+        `<span class="nl-num">${num2}</span></li>`;
+    })
+    .join("");
+}
+
 /** The compact stats row under the header, or nothing at all.
  *
  * Every part is optional because every source sensor is: the score sensor
@@ -7993,6 +8049,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
   const lines = Array.isArray(published)
     ? published.filter((l) => typeof l === "string" && l)
     : [];
+  const rows = narrativeRows(plan, narrative, lines);
 
   if (!items.length && !lines.length) return "";
   const stats = items
@@ -8014,11 +8071,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
   return `<div class="headline">
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
       ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
-      ${lines.length
-        ? `<ul class="hl-narrative">${lines
-            .map((l) => `<li>${esc(l)}</li>`)
-            .join("")}</ul>`
-        : ""}
+      ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
     </div>`;
 }
 

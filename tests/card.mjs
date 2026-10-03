@@ -4648,6 +4648,75 @@ function ctxL(card, key) {
       at[0] >= 0 && at[0] < at[1] && at[1] < at[2], at.join(" "));
   }
 
+  // R9-UX-8: the narrative is a panel of rows built from the sensor's
+  // structured items, not italic prose. The number column is its own
+  // element so a narrow card can never orphan "SEK)" onto a line of its own.
+  {
+    const items = [
+      { reason: "preheat_weather", kwh: 4.0, sek: 1.22, hours: 4 },
+      { reason: "dhw_preheat", kwh: 1.3, sek: 0.44, hours: 1 },
+      { reason: "idle", kwh: 0, sek: 0, hours: 23 },
+    ];
+    const lines = ["pre-heating 4.0 kWh before colder weather (1.22 SEK)",
+      "charging the tank while electricity is cheap: 1.3 kWh (0.44 SEK)",
+      "idle for 23.0 h"];
+    const withNarr = (attrs, lang = "en") => ({ ...full,
+      "sensor.heat_pump_optimizer_plan_narrative": {
+        state: "preheat_weather", attributes: { language: lang, ...attrs } } });
+    const rows = (d) => d.match(/<li class="nl[^"]*">.*?<\/li>/g) || [];
+    const dump = (st, cfg) => (collect(build(st, cfg).shadowRoot).join("\n")
+      .match(/<ul class="hl-narrative">.*?<\/ul>/s) || [""])[0];
+
+    const d = dump(withNarr({ items, lines }));
+    const r = rows(d);
+    check("narrative: one row per item", r.length === 3, r.join("\n"));
+    check("narrative: the label is the card's reason string, not the sentence",
+      /Pre-heating before colder weather/.test(r[0] || "") &&
+      /Charging the tank while electricity is cheap/.test(r[1] || "") &&
+      !d.includes("pre-heating 4.0 kWh before colder weather"), r[0]);
+    check("narrative: kWh and cost sit in a number column of their own",
+      /<span class="nl-num"><span class="nl-kwh">4\.0 kWh<\/span>\s*<span class="nl-cost">1\.22 SEK<\/span><\/span>/
+        .test(r[0] || ""), r[0]);
+    check("narrative: an idle item is a muted status row with hours and no cost",
+      /class="nl nl-status"/.test(r[2] || "") && /23\.0 h/.test(r[2] || "") &&
+      !/nl-cost/.test(r[2] || ""), r[2]);
+
+    // A reason the card has no label for shows the sensor's own sentence in
+    // that row (R9-UX-1's every-line rule), still inside the panel.
+    const unk = [{ reason: "future_reason", kwh: 2, sek: 1, hours: 1 }, items[0]];
+    const du = dump(withNarr({ items: unk,
+      lines: ["a sentence from a newer integration", lines[0]] }));
+    const ru = rows(du);
+    check("narrative: an unlabelled reason falls back to its published line",
+      ru.length === 2 && /a sentence from a newer integration/.test(ru[0]) &&
+      !/nl-num/.test(ru[0]) && /nl-num/.test(ru[1]), ru.join("\n"));
+    // Lines and items that do not pair up one to one cannot be matched row
+    // by row, so every line is shown as published.
+    const dm = dump(withNarr({ items: unk, lines: [lines[0]] }));
+    check("narrative: misaligned items and lines fall back to the lines",
+      rows(dm).length === 1 && dm.includes(lines[0]) && !/nl-num/.test(dm), dm.match(/hl-narrative.*/)?.[0]);
+    const dl = dump(withNarr({ lines }));
+    check("narrative: no items means the lines verbatim",
+      rows(dl).length === 3 && dl.includes("idle for 23.0 h") && !/nl-num/.test(dl));
+
+    const dsv = collect(build(withNarr({ items, lines }, "sv"), {}).shadowRoot).join("\n");
+    svHl.hass = { states: withNarr({ items, lines }, "sv"), language: "sv-SE" };
+    check("narrative: labels follow the card language",
+      /Förvärmer inför kallare väder/.test(collect(svHl.shadowRoot).join("\n")));
+    build(full);
+
+    // The stylesheet: the number column never wraps and aligns, the panel is
+    // a surface and the italic prose style is gone.
+    const css = (cardSrc.match(/\.nl-num\s*\{[^}]*\}/) || [""])[0];
+    check("narrative css: the number column is nowrap and tabular",
+      /white-space:\s*nowrap/.test(css) && /tabular-nums/.test(css), css);
+    const panel = (cardSrc.match(/^\s*\.hl-narrative\s*\{[^}]*\}/m) || [""])[0];
+    check("narrative css: not italic, columns auto-fit from a minimum width",
+      !/italic/.test(panel) && /auto-fit/.test(panel), panel);
+    check("narrative css: the panel shares the tile surface",
+      /\.tile,\s*\.hl-stat,\s*\.hl-narrative\s*\{/.test(cardSrc));
+  }
+
   // The row must track its own sensors: a new savings value re-renders even
   // though no plan data changed (the headline is part of _signature).
   const next = { ...full,
