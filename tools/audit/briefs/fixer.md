@@ -8,9 +8,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 1. **Never touch `VERSION`, the manifest version or the `RELEASE_NOTES.md`
    heading.** Versions are assigned by `tools/release/stamp.py` after the
    merge. The rule is keyed on the manifest's `version` field, not the file;
-   the command is `prepr.sh` step 5's.
-   Compare three-dot, never two-dot, which reports `main`'s own newer commits
-   as the branch's (#399, `tests/closures.json`).
+   the command is `prepr.sh` step 5's. Compare three-dot (`CLAUDE.md` rule 3).
 2. **Failing test first**, importing the production symbol (a test that
    re-implements a formula pins nothing; `tests/README.md`). Record the
    mutation proof in the PR body: delete the fix's production line(s), run
@@ -53,30 +51,24 @@ background task, whose exit wakes you; never end a turn on a detached one.
          --diff $(git merge-base origin/main HEAD) --workdir "$D"
        cat "$D/scope.txt"; cat "$D/scope.run"
 
-   Key on the **mode line**, never the count — `MODE: SCOPED -- 0 script(s)
-   run` and `MODE: FULL` both print zero and mean opposite things. Run what
+   Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI. `tests/README.md` ("The scoped gate") is the in-tree source for why
-   that is safe and what it costs: CI runs the same `run.sh` in the same drift
-   mode against the same merge base, and a full run is about forty minutes. So
+   to CI; `tests/README.md` ("The scoped gate") says why that is safe. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
-   the PR as the `hpo-author` App (`docs/decisions/0011-app-authored-identity.md`).
+   the PR (`CLAUDE.md`, decision 0011).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
    A mutation proof leaves `stress.py` to CI's required mutation check: never
    run it locally per mutant.
 
-   `GOLDEN_MODE=drift` against the merge base always: strict mode compares
-   solver floats that do not reproduce across BLAS builds, so it is honest
-   only in the environment that recorded the fixtures. `tests/README.md` has
-   the detail. `python3 tests/structure.py` is seconds and runs before every
-   push regardless.
+   `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
+   `python3 tests/structure.py` is seconds and runs before every push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
@@ -113,8 +105,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    its disposition — closed in this diff, already guarded, or a distinct finding named
    by id. An un-dispositioned returned seam is an open seam, class not closed. If no such instrument
    exists, say so, and say what you did instead. This is step 11 applied to your own instrument: one
-   inherited from the finder is keyed to the instance it demonstrated. A root-cause analysis on **#592**
-   added this step; its figures decay (step 3), and a reviewer refuted all three a draft quoted.
+   inherited from the finder is keyed to the instance it demonstrated (#592's root cause).
    For a P2 finding, the rule step 8 names is a registry entry in `tests/entities.py`'s P2
    owners block (fact, shape, owner, dispositions), landed in the same PR, not a one-shot
    command. Where the fact has no syntactic shape (physics consistency, failure signalling,
@@ -128,9 +119,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
    function, marker or SHA, never a bare line number — and delete only when
    no such correction exists.** Delete on sight, not as a last resort, when
    the claim is only motivation or scaffolding the finished text doesn't
-   need. PR #386 took four repair rounds to correct 17 citations; only its
-   last two survivors — bare-line-number claims a later merge falsified, and
-   by then unneeded — were settled by deletion.
+   need. #386 took four repair rounds to correct 17 citations; only its last
+   two, bare line numbers a later merge falsified, were settled by deletion.
 10. **If the wrong text is generated, fix the generator first, and run it.**
     Correcting prose a script emits leaves the script emitting the old text on
     its next run, so the correction is undone rather than kept — #539 found
@@ -234,6 +224,16 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
+17. **Take the fix that yields the better code, even at more work.** Where one
+    fix satisfies the check and another removes the cause or simplifies the
+    design, take the second; the body names the alternatives and why each lost.
+    An improvement claim names its mechanism, which the reviewer removes as the
+    null control (`fix-review.md` step 14). Never move a metric by a change that
+    does not improve the code: a mechanical split, code moved to an unmeasured
+    path, a triage on a killable mutant, or cases enumerated where a structural
+    fix exists (#1874: a spelling list, three review rounds, class still open).
+    Cost is no reason to take the worse fix; scope and the ratchet still bind,
+    and a raise is asked for (below), never taken quietly.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for
@@ -262,9 +262,8 @@ tree-wide: enough attributes on a class in any other module move it.
 coordinator class a split usually moves the maxima *down* -- which the gate still
 refuses until you re-record them, with the reason in the commit.
 
-A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2), and not
-something a reviewer can wave through. But a metric at zero headroom is not a
-veto on new functionality, and asking is an available move: #398 was refused in
+A raise is the owner's, confirmed before the push (`CLAUDE.md` rule 2). Zero
+headroom is no veto on new functionality or the better fix; ask. #398 was refused in
 part because `coordinator_attrs` stood at 176/176 and a new attribute read as
 costing an existing one.
 

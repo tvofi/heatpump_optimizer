@@ -1,9 +1,8 @@
 # The fix reviewer's contract
 
 You review one fix PR adversarially, in a fresh context, from a worktree at
-the PR's head SHA. You are not checking that the code looks right; four
-implementations on this project looked right and were wrong, one worse than
-its bug. You are checking that the numbers are real.
+the PR's head SHA. You are not checking that the code looks right (four fixes
+here looked right and were wrong); you are checking that the numbers are real.
 **That worktree holds this contract as well as the tree and is frozen by design, so your copy can be arbitrarily old** — and `preflight.sh` warns only before a push a reviewer never makes.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/`; empty is current.
 Before the fixer's handoff message (`fixer.md`: "the handoff freezes the branch"), prepare against the merge base only, no head measurement; steps 2, 12 govern after. Publish it with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head; it carries your brief's `bus-nonce:`) and report its output in your thread to be confirmed; it posts as `hpo-approver` (decision 0013) -- never as the author App (#1233's defect), never the owner's approving review, which code-owned paths still need.
@@ -34,10 +33,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
-9. **When the finding has no committed harness, that is itself a finding.**
-   Twice none existed: #373's
-   instrument was a shell `grep` in the issue's own body, nothing at tag
-   `audit-round2-evidence`; #258's probe only in a judge comment. A fixer who builds their own instrument must
+9. **When the finding has no committed harness, that is itself a finding**
+   (#373's was a `grep` in the issue body, #258's a judge comment). A fixer who builds their own instrument must
    disclose it as their own, not the finder's -- so do you, if you built one.
    Read the judge ruling first: #290's brief prescribes a refused harness.
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
@@ -61,8 +58,6 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     plan, `HANDOVER.md`, or a delivery row other than the pull request's own
     (`defect-root-cause.md`; the body check voids the exemption then). Both run
     the head's checkout: deleting a merged row turns `delivery-status` OVERDUE.
-    The control, re-run at your own base — heads pushed after #713 carry the
-    same red, heads pushed before carry none.
 
     **The head's runs are not the range's** (#1144: a head naming nothing while
     `record-status` sat one commit back). The body check prints `record`/`skip
@@ -81,13 +76,11 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
-    verdict, and check it is still the head when you post it. A branch that
-    moved under you means some of your numbers describe a tree that no longer
-    exists: say which survive and which you re-took, rather than letting the
-    verdict imply all of them were taken at the head it names.
+    verdict, and check it is still the head when you post it; if it moved, say
+    which of your numbers survive and which you re-took.
 
-    Step 7 compares the body's SHA, which a later move passes; this compares
-    the **live head at posting time** against what you measured.
+    Step 7 checks the body's SHA, which a later move passes; this, the **live
+    head at posting time**.
 
     The handoff makes the head yours from then on, so one that moved under you
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
@@ -101,40 +94,45 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
-    (`claim-files.md`), so every open pull request goes `DIRTY` the moment
-    `main` touches a claim file. Confirm before you block:
+    (`claim-files.md`). Confirm before you block:
 
     ```
     git merge-tree --write-tree origin/main <head>
     ```
 
     A non-zero exit names the conflicting paths. A conflict on any path other
-    than `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt`
-    is yours to block on, because you cannot know the merged result is correct.
+    than the two claim files is yours to block on, because you cannot know the
+    merged result is correct.
 
-    **The driver's verdict is in that command's stderr. Read it; do not infer it from the paths.** Unlike
-    GitHub, `merge-tree` *does* invoke the `claimnotes` driver — measured, one
-    invocation per conflicting claim file — but only if you installed it:
-
-    ```
-    python3 tests/env_drift.py --install-merge-driver   # once per clone
-    ```
-
-    Every path through the driver prints one line: `MERGE-CLAIM: resolved
-    <path>` or `MERGE-CLAIM: refused <path>`. Key on that marker, not on the
-    wording after it — several distinct checks supply that wording, so a list
-    of messages goes stale. A `resolved` line settles that claim file, and a
-    non-zero exit alongside it is about some **other** path. A `refused` line
-    is the orchestrator's to resolve by hand, not a defect in the authored
+    **The driver's verdict is in that command's stderr; read it, never infer it
+    from the paths.** `merge-tree` invokes the driver once per conflicting claim
+    file if you installed it (`claim-files.md`). Key on the marker,
+    `MERGE-CLAIM: resolved <path>` or `MERGE-CLAIM: refused <path>`, not on the
+    wording after it, which several checks supply. A `resolved` line settles
+    that file, and a non-zero exit beside it is about another path. A `refused`
+    line is the orchestrator's to resolve by hand, not a defect in the authored
     work — say which file refused and why.
 
     Never classify by line shape: to `_comment_lines` a `may-drift` line **is**
     a `#` comment, and `merge_claim_defect` refuses when one is lost, so "only
-    comment notes conflict" waves a real refusal through (`claim-files.md`).
+    comment notes conflict" waves a real refusal through.
+
+14. **A number the diff moves is earned by the change, not the instrument.**
+    Where it moves a `tests/structure_budgets.json` metric, the architecture
+    score or its `calibration/expected.json`, the mutation ledger (`killed_by`,
+    `survivor_triage`), `tests/closures.json` or the `INERT` list, or a golden
+    or claim file: remove the mechanism the body names and show the number
+    moves back, and plant at least one gaming attempt of your own against that
+    instrument. A movement the removal leaves standing, or one your plant
+    reproduces without better code, is `blocked <sha> metric-gamed:
+    <instrument>: <how>`. Caught by reviewers planting unasked: junk
+    splitting a clone read as score gain for three rounds (#1874); a `killed_by`
+    its own lane refuted, and a `tests/entities.py` kill that was the staleness
+    check firing on the triage itself (#1867); a quiet autofix beside a read
+    `inert_reads` lacked (#1868).
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
 line and routes on it, so one that does not parse is recorded blocked.
 
-**Say which round this is.** From the fourth the fixer owes a re-cut body, not a
-repair (`fixer.md`), and blocking one on `claims` again indicts the fix.
+**Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
