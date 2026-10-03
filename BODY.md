@@ -1,10 +1,16 @@
 tvofi's asks of 2026-10-03, as policy: two in the dispatch, and a third, on budget caps, added mid-task.
 
-**`fix-review.md` step 14.** When a diff moves a measured number (a `tests/structure_budgets.json` metric, the architecture score or `calibration/expected.json`, the mutation ledger, `tests/closures.json` or the `INERT` list, a golden or claim file), the reviewer removes the mechanism the body names and shows the number moves back, and plants at least one gaming attempt of its own. If the removal leaves the movement standing, or the plant reproduces it, the verdict is the new block class `metric-gamed`. Until now the contract said nothing about gaming. The step cites three PRs where a reviewer planted attempts without being asked: #1874, #1867 and #1868.
+**`fix-review.md` step 14.** Every number a diff moves must be earned by the change, not by the instrument. The step names example instruments: structure, policy and mutation budgets, the architecture score or `calibration/expected.json`, the mutation ledger, `tests/closures.json` or `INERT`, a golden or claim file, and any figure the body quotes.
+- **The block test is the null control.** The reviewer removes the mechanism the body names. A movement that survives the removal is `blocked <sha> metric-gamed`.
+- **The plant.** The reviewer then plants the diff's own kind of move on the same instrument, with nothing improved. If the plant reproduces the movement, that blocks only where the diff's change is that shape. Under a sound change it is an instrument finding, carried to the instrument's owner stage by `finding-propagation.md`.
+- **Precedents.** The step cites #1874, #1867 and #1868, where reviewers planted unasked.
 
 **`fixer.md` step 17.** Take the fix that removes the cause or simplifies the design, and name the alternatives considered. An improvement claim names its mechanism, which is what the reviewer's null control removes. Never move a metric by a restructuring that does not improve the code. Cost is not a reason to take the worse fix. A raise is asked for, never taken. The existing raise paragraph now points at the better fix as well as new functionality, so the raise rule is stated once.
 
-**Any budget cap (the third ask).** This covers structure budgets and policy caps alike. First pay with a change that objectively improves the code. Ask for a raise only when no such payment exists. The ask lists every payment considered and why it was not taken, measured where possible. Each duty is stated once. The order and the options-and-reasons duty are in `fixer.md`'s budget section, which now covers both `tests/structure.py` and `policy_lint.mjs --budgets`. The review, which judges each refused payment and hunts for missed ones, is in `fix-review.md` step 14: a missed payment that truly improves the code is `metric-gamed`. `ratchet-budgets.md` step 2 and `CLAUDE.md` rule 2 point at `fixer.md`. **`CLAUDE.md` rule 2 disagreed and is changed.** It allowed a raise only "for a genuine new production feature". It now allows one "where no payment improves the code", and "Pay for the lines" became "Pay by improving code". This is the owner's rule 4, and it widens who may *ask*. Owner confirmation before the push and `budget-raise-gate` are unchanged.
+**Any budget cap (the third ask).** This covers structure budgets and policy caps alike. First pay with a change that objectively improves the code. A raise is asked for only where it is **the only option that truly improves the code**. The ask **and the PR body** list every payment considered and why each was not taken, measured where possible, so the reviewer can judge them.
+- **One statement each.** The condition and the options duty are in `fixer.md`'s budget section, which again says "confirmed before the push". The review, which judges each listed payment and hunts for one the fixer missed, is in `fix-review.md` step 14: a missed payment that truly improves the code is `metric-gamed`. `ratchet-budgets.md` step 2 and `CLAUDE.md` rule 2 point at `fixer.md`.
+- **`CLAUDE.md` rule 2 changes.** It allowed a raise only "for a genuine new production feature", which disagreed with tvofi's rule. It now reads "where only a raise truly improves code (`fixer.md`)", and "Pay for the lines" became "Pay by improving code".
+- **Unchanged:** owner confirmation before the push, and `budget-raise-gate`.
 
 **The verdict parsers.** `VERDICT_CLASSES` in `.claude/workflows/web-fix-wave.js` is the one list. `policy_lint.mjs` (the stats histogram) and `tests/entities.py` derive their sets from it, and `bus.sh` and `app_comment.sh` accept any `[a-z-]+` class. `app_approve.sh` reads only `merge`, and `fold_ledger.py` folds bug classes, not verdicts. So adding the word to the list is the whole parser change. `VERDICT_RE` accepts an untaught class word, which `parseVerdict` then routes to `other`, so the existing "examples parse" check could not see a missing word. `check-wave-script.mjs` now refuses a block class that a brief teaches but `VERDICT_CLASSES` lacks.
 
@@ -16,6 +22,7 @@ tvofi's asks of 2026-10-03, as policy: two in the dispatch, and a third, on budg
 - a separate "derive the split" paragraph, folded into its neighbour;
 - a spent #713 control;
 - the ratchet-budgets.md anecdote about the old raise wording;
+- the #398 detail ("`coordinator_attrs` at 176/176") and the gloss "which is metadata" in `CLAUDE.md` rule 2;
 - two history sentences, shortened (#592, #386).
 
 The decision-0011 citation stays because `policy_lint`'s citation-presence pin requires it.
@@ -24,7 +31,7 @@ The decision-0011 citation stays because `policy_lint`'s citation-presence pin r
 
 ## Head
 
-b4f431622bda9b754512cce5a033c8d1bc38601f (merge base 66d9dc63a78208344a22e7f3534c164c1180d61b)
+d4c9a0b9595dd66e36eb291b878ceb8369e7b581 (merge base 66d9dc63a78208344a22e7f3534c164c1180d61b)
 
 ## Mutation proof
 
