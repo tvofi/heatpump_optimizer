@@ -113,11 +113,11 @@ Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not
 
 ## Head
 
-`44d5a4fe267da7cd4c7b0acc03c23d19386e11c0` is one commit (round 2) on the pull request's head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
+`fa735d6850bb07a7fd76f196935145960de171db` merges `origin/main` `243990abf3f598656756074f46c01430f323de40` (#1863, fetched 2026-10-03; an automatic merge, no resolution) into `44d5a4fe267da7cd4c7b0acc03c23d19386e11c0`. That commit is the authored round-2 change, one commit on the pull request's head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
 
 That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3e` under the delivery row `d0fd00562`. `32251f44` sits on `1190f1058d95a001e42a98871c28c0e6f24d9e55`, which carries two automatic `origin/main` merges, with no resolution: #1869 `1ccd0b1d5` and #1875 `20f597c66`. They sit on the authored code head `e3860e5b6d1da81e0a264ec87b18297a9f99a4ac`.
 
-`origin/main` is `20f597c6615b10a5d225497cb13b6d1f2e5cce35`, fetched 2026-10-03, and is inside the head.
+`origin/main` `243990abf` is inside the head.
 
 ## Mutation proof
 
@@ -188,7 +188,7 @@ That head merges the ownership revision `32251f44c4a443d015bc3b8cef2c9161e919ec3
 - `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`.
 - `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
 - Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`.
-  - `entities.py`: 2108 passed.
+  - `entities.py`: 2113 passed (at `fa735d68`).
   - `harness_headers.py`: 95 passed.
   - `open_meteo.py` and `solar_alignment.py`: passed.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
