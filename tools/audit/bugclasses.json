@@ -1582,10 +1582,10 @@
     },
     "total": 4,
     "max_per_round": 2,
-    "detector": null,
+    "detector": "PYTHONPATH=tests/hastub python3 tests/arch_score_head.py -- hub_solve_writes (tools/audit/archscore/metrics/hub_solve_writes.py) enumerates every write into _opt_config, _thermal_params or _current_state reachable from async_run_optimization and async_simulate through calls, aliases and parameters, in any module",
     "detector_idea": "alt/evidence/m1_hub_writes.py: solve-path hub write sites must be 0 once the per-solve record lands (26 sites / 23 fields at c54b20d2); extend to _current_action and the what-if cache (#1752, #1753)",
-    "barrier": null,
-    "status": "open",
+    "barrier": "R9-EG-B1 (#1736): each solve plans from one SolveRecord built on the loop -- private copies of the hubs with this solve's tariff, learned corrections, DHW plan inputs, burn and peak flags and the away/economy/window bands as values (away.solve_bands); the away envelope is deleted. tests/arch_score_head.py refuses any solve-path hub writer outside SOLVE_PATH_HUB_WRITERS (the two event-driven producers the tail runs), with a planted write as its positive control; tests/entities.py refuses a live hub handed to a thread or the process worker",
+    "status": "barriered",
     "nearest_existing": "P2",
     "mechanism_difference": "P2 is a guard present at a sibling and missing here; this is shared mutable state across the solve boundary (no snapshot), which P2's call-site detector cannot see",
     "aliases": [
@@ -1612,7 +1612,7 @@
     "trigger": {
       "per_round": false,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
