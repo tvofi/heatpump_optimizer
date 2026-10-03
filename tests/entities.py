@@ -16469,6 +16469,230 @@ R.check(
     "A5/A8/A9 passing checks blanked their detail (#533)",
 )
 
+# A15 (#1758): the loop-stall heartbeat. The scenarios need real Home Assistant
+# and run nightly only; what runs here is the instrument itself, on a real
+# asyncio loop, against a deliberate pure-Python CPU spin (one that calls nothing
+# HA's blocking detector wraps -- reasoned from the mechanism, not measured).
+R.section("Nightly A15 loop-stall heartbeat (#1758)")
+R.check(
+    "the nightly demands the heartbeat checks by name",
+    set(_nightly.HB_INSIDE) <= set(_nightly.INSIDE_CHECKS)
+    and set(_nightly.HB_INSIDE) == {
+        "hb:positive_control", "hb:untouched_exit", "hb:changed_save", "hb:menu_saves",
+    },
+    f"HB_INSIDE={_nightly.HB_INSIDE}",
+)
+_hb_hangs: list = []
+
+
+_hb_after_stop: list = []
+
+
+async def _hb_drive(spin: float):
+    loop = asyncio.get_running_loop()
+    hb = _nightly.LoopHeartbeat(
+        loop, dump_after=0.2, hang_after=0.4, on_hang=_hb_hangs.append
+    )
+    hb.start()
+    await asyncio.sleep(0.05)
+    if spin:
+        loop.call_soon(_nightly._hb_spin, spin)
+    await asyncio.sleep(0.1 + spin)
+    summary = hb.stop()
+    # The tick chain must end with stop(): one surviving 1 ms call_later per
+    # scenario would keep running on HA's loop for the rest of the run.
+    ticks = hb.ticks
+    await asyncio.sleep(0.05)
+    _hb_after_stop.append(hb.ticks - ticks)
+    return summary
+
+
+_hb_idle = asyncio.run(_hb_drive(0.0))
+_hb_idle_hangs = len(_hb_hangs)
+_hb_spun = asyncio.run(_hb_drive(_nightly.HB_CONTROL_S))
+R.check(
+    "stop() ends the tick chain: no tick lands after it",
+    _hb_after_stop == [0, 0],
+    f"ticks after stop per run: {_hb_after_stop}",
+)
+R.check(
+    "the heartbeat measures a CPU stall it did not cause and dumps the frame",
+    _hb_spun["max_gap"] >= _nightly.HB_CONTROL_S
+    and any("_hb_spin" in d for d in _hb_spun["dumps"])
+    and _hb_spun["ticks"] > 0,
+    f"spun max_gap={_hb_spun['max_gap']:.3f}s ticks={_hb_spun['ticks']} "
+    f"dumps={[d.splitlines()[0] for d in _hb_spun['dumps']]}",
+)
+R.check(
+    "and on an idle loop it ticks, reports no such gap and dumps nothing",
+    _hb_idle["max_gap"] < _nightly.HB_CONTROL_S
+    and _hb_idle["ticks"] > 10
+    and not any("_hb_spin" in d for d in _hb_idle["dumps"])
+    and _hb_idle_hangs == 0,
+    f"idle max_gap={_hb_idle['max_gap']:.3f}s ticks={_hb_idle['ticks']} "
+    f"dumps={len(_hb_idle['dumps'])} hangs={_hb_idle_hangs}",
+)
+R.check(
+    "a stall past hang_after calls on_hang once, from the watching thread",
+    len(_hb_hangs) == 1 and isinstance(_hb_hangs[0], _nightly.LoopHeartbeat),
+    f"on_hang calls={len(_hb_hangs)}",
+)
+_hb_vals = _nightly.hb_values(21.0, 1 + _nightly.HB_MENU_SAVES)
+R.check(
+    "every heartbeat save changes the value, and the burst ends changed",
+    _hb_vals[0] == 21.0 + _nightly.HB_STEP
+    and all(a != b for a, b in zip(_hb_vals, _hb_vals[1:]))
+    and _hb_vals[-1] != _hb_vals[0]
+    and len(_hb_vals) == 1 + _nightly.HB_MENU_SAVES,
+    f"values={_hb_vals}",
+)
+_hb_seed = _nightly._seed_payload(two_zone_dhw=True)
+_hb_base_seed = _nightly._seed_payload()
+_hb_eff = {**_hb_seed["data"], **_hb_seed["options"]}
+_hb_base_eff = {**_hb_base_seed["data"], **_hb_base_seed["options"]}
+# Read through the production predicates, not the option keys: the A3-A13
+# seed is already two-zone by the presence rule, and lacks only hot water.
+from heatpump_optimizer import thermal_model as _hb_tm  # noqa: E402
+
+R.check(
+    "the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW",
+    _hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled
+    and _hb_tm._dhw_enabled_from_config(_hb_eff)
+    and _hb_eff.get(const.CONF_TWO_ZONE_MODE) == const.TWO_ZONE_MODE_ON
+    and _hb_eff.get("lower_floor_temp_entity") == _nightly.HB_LOWER_FLOOR_ENTITY
+    and not _hb_tm._dhw_enabled_from_config(_hb_base_eff),
+    f"hb two_zone={_hb_tm.ThermalParameters.from_config(_hb_eff).two_zone_enabled} "
+    f"dhw={_hb_tm._dhw_enabled_from_config(_hb_eff)}; "
+    f"base dhw={_hb_tm._dhw_enabled_from_config(_hb_base_eff)}",
+)
+_hb_payload = _nightly.heartbeat_payload(
+    _nightly.HB_PAGE, _hb_eff, _nightly.HB_KEY, 21.5, const.AFTER_SAVE_MENU
+)
+_hb_untouched = _nightly.option_resubmit(_nightly.HB_PAGE, _hb_eff)
+R.check(
+    "a heartbeat save posts the changed key in its section with the after-save choice",
+    _hb_payload.get("band", {}).get(_nightly.HB_KEY) == 21.5
+    and _hb_payload.get(const.CONF_AFTER_SAVE) == const.AFTER_SAVE_MENU
+    and _hb_untouched.get("band", {}).get(_nightly.HB_KEY) == _hb_eff[_nightly.HB_KEY]
+    and {k: v for k, v in _hb_payload.items() if k not in ("band", const.CONF_AFTER_SAVE)}
+    == {k: v for k, v in _hb_untouched.items() if k not in ("band", const.CONF_AFTER_SAVE)},
+    f"payload band={_hb_payload.get('band')} after={_hb_payload.get(const.CONF_AFTER_SAVE)}",
+)
+
+
+def _hb_scn(gap: float, *, ticks: int = 50, reloaded: bool = True,
+            want: bool = True, raised: str | None = None) -> bool:
+    c = _nightly.Checks()
+    _nightly.check_hb_scenario(
+        c, "hb:changed_save",
+        {"max_gap": gap, "ticks": ticks, "dumps": []},
+        reloaded=reloaded, want_reload=want, raised=raised,
+    )
+    return "hb:changed_save" not in c.failures() and bool(c.results["hb:changed_save"][1])
+
+
+_HB_F = _nightly.HB_FREEZE_S
+R.check(
+    "hb scenario passes under the freeze bound and fails at it, on a reload "
+    "mismatch, on no ticks, and on a raise",
+    _hb_scn(_HB_F - 0.001)
+    and not _hb_scn(_HB_F)
+    and not _hb_scn(0.01, reloaded=False)
+    and _hb_scn(0.01, reloaded=False, want=False)
+    and not _hb_scn(0.01, reloaded=True, want=False)
+    and not _hb_scn(0.01, ticks=0)
+    and _hb_scn(0.01, ticks=1)
+    and not _hb_scn(0.01, raised="KeyError: x"),
+    "check_hb_scenario arms",
+)
+
+
+_HB_BOTH = "in _hb_spin\npy-spy rc=0:\nThread 1 (active+gil)\n    _hb_spin (nightly_ha.py:1)\n"
+
+
+def _hb_ctl(gap: float, dump: str = _HB_BOTH) -> bool:
+    c = _nightly.Checks()
+    _nightly.check_hb_positive_control(
+        c, {"max_gap": gap, "ticks": 9, "dumps": [dump]}
+    )
+    return "hb:positive_control" not in c.failures()
+
+
+_HB_C = _nightly.HB_CONTROL_S
+R.check(
+    "hb:positive_control passes at the spin, and fails just under it, "
+    "without the spin's frame, or without py-spy's own rc=0 section naming it",
+    _hb_ctl(_HB_C) and not _hb_ctl(_HB_C - 0.001) and not _hb_ctl(_HB_C, "idle")
+    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=1:\nPermission denied\n")
+    and not _hb_ctl(_HB_C, "in _hb_spin\npy-spy rc=0:\nThread 1 (idle)\n"),
+    "check_hb_positive_control arms",
+)
+_hb_cmd = _nightly.docker_command(
+    "img", Path("/c"), Path("/d"), 9.0, ["--heartbeat-only"], caps=("SYS_PTRACE",)
+)
+_hb_cmd_main = _nightly.docker_command("img", Path("/c"), Path("/d"), 9.0)
+R.check(
+    "the heartbeat container may ptrace itself for py-spy; the A3-A13 one may not",
+    "--cap-add" in _hb_cmd
+    and _hb_cmd[_hb_cmd.index("--cap-add") + 1] == "SYS_PTRACE"
+    and _hb_cmd.index("--cap-add") < _hb_cmd.index("img")
+    and _hb_cmd[-1] == "--heartbeat-only"
+    and "--cap-add" not in _hb_cmd_main,
+    f"heartbeat={_hb_cmd} main={_hb_cmd_main}",
+)
+with tempfile.TemporaryDirectory() as _hb_dir:
+    _hb_src = Path(_hb_dir) / "py-spy-src"
+    _hb_src.write_text("#!/bin/sh\n")
+    _hb_src.chmod(0o755)
+    (Path(_hb_dir) / "drv").mkdir()
+    _hb_staged = _nightly.stage_py_spy(Path(_hb_dir) / "drv", str(_hb_src))
+    _hb_unstaged = _nightly.stage_py_spy(Path(_hb_dir) / "drv2", None)
+    _hb_exec = os.access(Path(_hb_dir) / "drv" / "py-spy", os.X_OK)
+# The wiring, read where it is wired: the unit checks above pass caps and a
+# source by hand, so dropping either from the real calls would pass them.
+_hb_outside_src = _inspect.getsource(_nightly._run_outside)
+_hb_stage_src = _inspect.getsource(_nightly._stage)
+R.check(
+    "the real heartbeat run is staged with py-spy and launched with SYS_PTRACE",
+    'extra=["--heartbeat-only"], caps=("SYS_PTRACE",)' in _hb_outside_src
+    and "_stage(tmp_hb, two_zone_dhw=True)" in _hb_outside_src
+    and "stage_py_spy(driver, _host_py_spy())" in _hb_stage_src
+    and _hb_outside_src.count("caps=") == 1,
+    "the third _docker call or _stage lost its py-spy wiring",
+)
+R.check(
+    "every heartbeat scenario dwells before it settles, and py-spy never pauses the loop",
+    _nightly.HB_DWELL_S >= 1.0
+    and "asyncio.sleep(HB_DWELL_S)" in _inspect.getsource(_nightly._async_hb_settle)
+    and '"--nonblocking"' in _inspect.getsource(_nightly.LoopHeartbeat.dump),
+    f"HB_DWELL_S={_nightly.HB_DWELL_S}",
+)
+R.check(
+    "the host's py-spy is staged executable beside the driver, and none is staged without one",
+    _hb_staged and _hb_exec and not _hb_unstaged,
+    f"staged={_hb_staged} exec={_hb_exec} unstaged={_hb_unstaged}",
+)
+
+
+def _hb_done(results: dict):
+    import types as _t
+
+    return _t.SimpleNamespace(
+        stdout=_nightly.MARKER + json.dumps(results) + "\n", stderr="", returncode=0
+    )
+
+
+_hb_merged = _nightly._merge_completed(
+    _nightly._merge_completed(_hb_done({"a": [True, "x"]}), _hb_done({"b": [True, "y"]})),
+    _hb_done({"hb:menu_saves": [True, "z"]}),
+)
+R.check(
+    "a third run's checks reach the one merged marker",
+    json.loads(_nightly._markers(_hb_merged)[0])
+    == {"a": [True, "x"], "b": [True, "y"], "hb:menu_saves": [True, "z"]},
+    f"markers={_nightly._markers(_hb_merged)}",
+)
+
 # Leftover #533 after #751: A6/A11/A12/A13. Sibling #754 owns the
 # leftover A5/A8/A14 nightly production reds; those pins live there.
 R.section("Nightly leftover A6/A11/A12/A13")
@@ -18319,6 +18543,13 @@ R.check(
     f"install step(s) at {_NHA_INSTALL}, driver step(s) at {_NHA_RUN}: "
     "the driver stages the seed and the roster by importing the package on "
     "the runner, so a bare interpreter cannot reach Docker",
+)
+R.check(
+    "nightly-ha installs the py-spy the A15 heartbeat stages (#1758)",
+    len(_NHA_INSTALL) == 1
+    and "-r tests/requirements-nightly-ha.txt" in _NHA_STEPS[_NHA_INSTALL[0]]
+    and "py-spy==" in Path("tests/requirements-nightly-ha.txt").read_text(),
+    "without it the heartbeat dumps only the loop thread's Python stack",
 )
 # A script another script drives in a subprocess reaches the table only
 # through its driver's fold: a change to it re-derives the driver and the
