@@ -1344,6 +1344,18 @@ jobs:
           python tests/nightly_ha.py \
             --image "homeassistant/home-assistant:${{ matrix.image }}"
 
+      # The PR gate checks every Home Assistant name production reaches
+      # against a snapshot recorded from upstream source at the floor
+      # (tests/entities.py, the P11 floor arm). Here the floor itself answers
+      # every recorded question again, so a wrong recording or a hand edit is
+      # red within a night. After the lane, and whatever it concluded, so
+      # neither hides the other.
+      - name: Verify the floor-names snapshot in Home Assistant itself
+        if: ${{ !cancelled() && matrix.image == '2025.2.0' }}
+        run: >-
+          python tests/ha_floor.py verify
+          --image "homeassistant/home-assistant:${{ matrix.image }}"
+
   # The telling. `nightly-ha` and `slow` run on `schedule` alone, are `skipped`
   # on every push and pull request, and are not required contexts -- so a
   # scheduled run's conclusion attaches to whatever commit was main's head when

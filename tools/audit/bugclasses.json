@@ -1309,7 +1309,7 @@
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/ha_contract.py",
     "detector_idea": "Per seam, an enumerating sweep that drives every production call site through a double whose behaviour is cited to upstream source or measured on the device; tests/entities.py's entity-action sweep (handoff/v6612-root-cause) is the first",
-    "barrier": "tests/ha_contract.py on the PR gate (F10.1, #1649): a contract that reached none of its asserts fails; every expect=both contract of a symbol a test hook feeds (HOOKS: dt_util.freeze) re-runs in each hook state; every parameter a stub accepts and never reads must be declared in DROPPED. Reaches the vacuous-contract, hook and dropped-parameter routes (D1-s1-52's contract, D14-s4-02, D1-s2-71); the naive default clock itself (D1-s1-52) is declared DIVERGENT with an expect=real contract and split into its own PR. Not reached: behaviour inside a method (D1-s1-51, covered per instance by the Store decode contract and probe), an upstream symbol the stub does not model (D10-s1-03), and doubles outside tests/hastub (D6-s1-81); the RCA (round 9, P11) leaves the last to tvofi",
+    "barrier": "tests/ha_contract.py on the PR gate (F10.1, #1649): a contract that reached none of its asserts fails; every expect=both contract of a symbol a test hook feeds (HOOKS: dt_util.freeze) re-runs in each hook state; every parameter a stub accepts and never reads must be declared in DROPPED. Reaches the vacuous-contract, hook and dropped-parameter routes (D1-s1-52's contract, D14-s4-02, D1-s2-71); the naive default clock itself (D1-s1-52) is declared DIVERGENT with an expect=real contract and split into its own PR. Not reached: behaviour inside a method (D1-s1-51, covered per instance by the Store decode contract and probe), an upstream symbol the stub does not model (D10-s1-03), and doubles outside tests/hastub (D6-s1-81); the RCA (round 9, P11) leaves the last to tvofi Floor arm (R9-RCA-1869): tests/entities.py section 'P11: every Home Assistant name production reaches exists at the floor' checks every unguarded import, module attribute and class member production reaches against tests/ha_floor_names.json, recorded from upstream source at the hacs.json floor by tests/ha_floor.py and re-asked of Home Assistant itself in the nightly-ha (2025.2.0) image; an unrecorded question fails closed. Reaches the floor-absent-name route (v6.3.1 Platform.DIAGNOSTICS, #1869 UnsupportedStorageVersionError), which the stub cannot see because it may model a newer release.",
     "status": "barriered",
     "non_round_note": "Incident-derived instances carried in v1; not audit findings, not in register_rows.tsv, not counted in total.",
     "non_round_instances": [
@@ -1322,11 +1322,14 @@
       "v6.6.12 arbiter listener without @callback",
       "v4.0.0 _on_power_event without @callback",
       "#1290 card history repair",
-      "#511 stub import shape"
+      "#511 stub import shape",
+      "v6.3.1 Platform.DIAGNOSTICS, a stub-only member absent at the 2025.2.0 floor (#210)",
+      "#1869 UnsupportedStorageVersionError imported unguarded, absent at the 2025.2.0 floor (R9-RCA-1869)"
     ],
     "rca": [
       "BULK-3-1721",
       "R9-P11",
+      "R9-RCA-1869",
       "V6612-bug1-6-ownership",
       "V6612-bug2-lease",
       "V6612-bug3-4-echo",
@@ -3368,6 +3371,22 @@
         "https://github.com/tvofi/heatpump_optimizer/issues/1736#issuecomment-5877263448"
       ],
       "in_tree_home": "tools/audit/rca/R9-RCA-1736.md"
+    },
+    "R9-RCA-1869": {
+      "class": "P11",
+      "level": "class",
+      "subject": "#1869 production imported a Home Assistant name the 2025.2.0 floor lacks (v6.3.1 the released instance)",
+      "trigger": "2 (nightly-ha (2025.2.0) red on dispatch) + barriered class",
+      "date": "2026-10-03",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "P11 floor arm in tests/entities.py: production's Home Assistant reach against a snapshot recorded at the floor, re-asked nightly in the floor image",
+      "landed": null,
+      "doc": [
+        "https://github.com/tvofi/heatpump_optimizer/pull/1869"
+      ],
+      "in_tree_home": "tools/audit/rca/R9-RCA-1869.md"
     },
     "R9-1728-stamp-invariant": {
       "class": null,
