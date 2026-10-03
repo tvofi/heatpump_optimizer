@@ -56496,4 +56496,292 @@ R.check(
 )
 
 
+# -- #1736 (R9-EG-B1): a solve plans from one record and writes no hub -------
+# The coordinator's three configured hubs (_opt_config, _thermal_params,
+# _current_state) say what the user set and what the sensors read. A solve
+# used to write its own effective values into them in place -- this solve's
+# tariff, the away setback, economy's widened floor, the day's draw blend --
+# and unwind only the setback afterwards, so every reader on the loop saw a
+# solve-scoped meaning for the width of the await (#240, #1517, #1529, #1683).
+# The transport here is the in-process fallback, spelled for either hand-off
+# shape, so these checks drive the real async_run_optimization; the spy reads
+# the hubs and the coordinator's published views WHILE the solve is parked.
+import copy as _r9egb1_copy  # noqa: E402
+from dataclasses import fields as _r9egb1_fields  # noqa: E402
+from unittest import mock as _r9egb1_mock  # noqa: E402
+
+from heatpump_optimizer import coordinator as _r9egb1_cmod  # noqa: E402
+from heatpump_optimizer import optimizer as _r9egb1_opt  # noqa: E402
+from heatpump_optimizer import const as _r9egb1_const  # noqa: E402
+
+
+def _r9egb1_hubs(coord):
+    """Every compared field of the three hubs, as text: a cache field is not
+    a parameter (compare=False), and repr sees list and array contents."""
+    return {
+        name: {
+            f.name: repr(getattr(hub, f.name))
+            for f in _r9egb1_fields(hub)
+            if f.compare
+        }
+        for name, hub in (
+            ("_opt_config", coord._opt_config),
+            ("_thermal_params", coord._thermal_params),
+            ("_current_state", coord._current_state),
+        )
+    }
+
+
+def _r9egb1_diff(before, after):
+    return sorted(
+        f"{hub}.{k}"
+        for hub in before
+        for k in before[hub]
+        if before[hub][k] != after[hub].get(k)
+    )
+
+
+def _r9egb1_run(coord, inside=None):
+    """One real async_run_optimization through an in-process transport.
+
+    Returns (reason, handed): ``handed`` is what the solve was given -- its
+    optimizer's config and params and its initial state -- and ``inside``,
+    when given, runs against the coordinator while the solve is parked.
+    """
+    handed = {}
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        handed["config"] = _r9egb1_copy.deepcopy(optimizer.config)
+        handed["params"] = _r9egb1_copy.deepcopy(optimizer.model.params)
+        handed["state"] = _r9egb1_copy.deepcopy(getattr(first, "state", first))
+        if inside is not None:
+            handed["inside"] = inside(coord)
+        if rest or kw:  # the pre-#1736 positional hand-off
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason = _asyncio.run(coord.async_run_optimization())
+    return reason, handed
+
+
+def _r9egb1_coord(*, away=False, economy=False, learned=False, dhw=False):
+    coord = _solve_coord()
+    if dhw:
+        coord._thermal_params.dhw_enabled = True
+    if learned:
+        coord._config[_r9egb1_const.CONF_SOLAR_APERTURE_LEARNING_ENABLED] = True
+        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+        coord._solar_aperture.update(scale=1.3, n=1.0e6)
+        coord._internal_gains_profile = [0.35] * 24
+        coord._external_heat_active = True
+    if economy:
+        coord._mode = _r9egb1_const.MODE_ECONOMY
+    coord._away_state.override_active = bool(away)
+    return coord
+
+
+def _r9egb1_views(coord):
+    return {
+        "thermal": {k: coord._thermal_view()[k] for k in
+                    ("comfort_temp_day", "comfort_temp_night", "min_temperature")},
+        "dhw_min": coord._dhw_view()["dhw_min_temperature"],
+        "target": coord.target_temperature,
+    }
+
+
+# Probe: away, economy, the learned solar/gains corrections and a live burn,
+# all at once -- every group of writes the old solve made. Null: none of them.
+_r9egb1_p = _r9egb1_coord(away=True, economy=True, learned=True, dhw=True)
+_r9egb1_p_before = _r9egb1_hubs(_r9egb1_p)
+_r9egb1_p_views = _r9egb1_views(_r9egb1_p)
+_r9egb1_p_reason, _r9egb1_p_handed = _r9egb1_run(
+    _r9egb1_p, inside=lambda c: (_r9egb1_hubs(c), _r9egb1_views(c))
+)
+_r9egb1_p_in_hubs, _r9egb1_p_in_views = _r9egb1_p_handed.get("inside", ({}, {}))
+R.check(
+    "#1736 no field of the three hubs moves while a solve is parked on its "
+    "await, with away, economy, the learned corrections and a burn all live",
+    _r9egb1_p_reason is None
+    and _r9egb1_diff(_r9egb1_p_before, _r9egb1_p_in_hubs) == [],
+    f"{_r9egb1_p_reason!r}; moved inside: "
+    f"{_r9egb1_diff(_r9egb1_p_before, _r9egb1_p_in_hubs)}",
+)
+R.check(
+    "#1736 and none has moved after the solve returns: nothing is left to unwind",
+    _r9egb1_diff(_r9egb1_p_before, _r9egb1_hubs(_r9egb1_p)) == [],
+    f"moved after: {_r9egb1_diff(_r9egb1_p_before, _r9egb1_hubs(_r9egb1_p))}",
+)
+R.check(
+    "#1736 H1: the comfort band and DHW floor the views publish during an away "
+    "solve are the configured ones, never the setback",
+    _r9egb1_p_in_views == _r9egb1_p_views,
+    f"inside {_r9egb1_p_in_views} vs configured {_r9egb1_p_views}",
+)
+_r9egb1_away_c = float(_r9egb1_p._away_state.target_temperature or 0.0)
+_r9egb1_cfg = _r9egb1_p_handed.get("config")
+_r9egb1_par = _r9egb1_p_handed.get("params")
+_r9egb1_st = _r9egb1_p_handed.get("state")
+R.check(
+    "#1736 the solve itself still plans with every per-solve value: the setback "
+    "target and DHW floor, economy's floor, the learned corrections, the burn",
+    _r9egb1_cfg is not None
+    and _r9egb1_cfg.target_temp == min(21.0, _r9egb1_away_c)
+    and _r9egb1_cfg.comfort_temp_day == _r9egb1_away_c
+    and _r9egb1_cfg.min_temp
+    == max(_r9egb1_const.ECONOMY_ABSOLUTE_FLOOR,
+           min(_r9egb1_p._opt_config.min_temp, _r9egb1_away_c)
+           - _r9egb1_const.ECONOMY_MIN_TEMP_WIDENING)
+    and _r9egb1_par.dhw_min_temp < _r9egb1_p._thermal_params.dhw_min_temp
+    and _r9egb1_par.solar_aperture_scale == 1.3
+    and _r9egb1_par.internal_gains_profile == [0.35] * 24
+    and _r9egb1_st.external_heat_active is True,
+    f"target {getattr(_r9egb1_cfg, 'target_temp', None)} day "
+    f"{getattr(_r9egb1_cfg, 'comfort_temp_day', None)} min "
+    f"{getattr(_r9egb1_cfg, 'min_temp', None)} (away {_r9egb1_away_c}); "
+    f"dhw_min {getattr(_r9egb1_par, 'dhw_min_temp', None)}; aperture "
+    f"{getattr(_r9egb1_par, 'solar_aperture_scale', None)}; burn "
+    f"{getattr(_r9egb1_st, 'external_heat_active', None)}",
+)
+_r9egb1_n = _r9egb1_coord()
+_r9egb1_n_reason, _r9egb1_n_handed = _r9egb1_run(_r9egb1_n)
+R.check(
+    "#1736 null: with none of them live, the solve plans with the configured "
+    "band and the inert corrections",
+    _r9egb1_n_reason is None
+    and _r9egb1_n_handed["config"].target_temp == _r9egb1_n._opt_config.target_temp
+    and _r9egb1_n_handed["config"].min_temp == _r9egb1_n._opt_config.min_temp
+    and _r9egb1_n_handed["params"].solar_aperture_scale == 1.0
+    and _r9egb1_n_handed["state"].external_heat_active is False,
+    f"{_r9egb1_n_reason!r} {_r9egb1_n_handed.get('config')}",
+)
+
+# H3: the DHW learner owns the parameters' draw pattern; the day-type blend
+# is one solve's input. With day-type evidence the two differ, so a hub left
+# holding the blend -- which the learner's fallback for a corrupt row and the
+# published DHW advisor both read -- is visible; the solve must still plan
+# with the blend.
+_r9egb1_h3 = _r9egb1_coord(dhw=True)
+_r9egb1_h3_l = _r9egb1_h3._dhw_learner
+_r9egb1_h3_spike = [0.3] * 24
+_r9egb1_h3_spike[6], _r9egb1_h3_spike[20] = 5.0, 4.0
+_r9egb1_h3_l.profile_weekday = _r9egb1_h3_l.normalize_profile(_r9egb1_h3_spike)
+_r9egb1_h3_l.profile_weekend = _r9egb1_h3_l.normalize_profile(_r9egb1_h3_spike[::-1])
+_r9egb1_h3_l.daytype_samples = [30, 30]
+_r9egb1_h3_blend = _r9egb1_h3_l.pattern_for(dt_util.now().weekday() >= 5)
+_r9egb1_h3_owned = list(_r9egb1_h3._thermal_params.dhw_hourly_draw_pattern)
+_r9egb1_h3_reason, _r9egb1_h3_handed = _r9egb1_run(_r9egb1_h3)
+_r9egb1_h3_after = list(_r9egb1_h3._thermal_params.dhw_hourly_draw_pattern)
+_r9egb1_h3_fallback = _r9egb1_h3_l.normalize_profile([float("nan")] * 24)
+R.check(
+    "#1736 H3: a solve leaves the learner's draw pattern in the parameters, "
+    "so its corrupt-row fallback is never the day-type blend; the blend "
+    "reached only the solve",
+    _r9egb1_h3_reason is None
+    and _r9egb1_h3_blend != _r9egb1_h3_owned
+    and _r9egb1_h3_after == _r9egb1_h3_owned
+    and list(_r9egb1_h3_fallback) != list(_r9egb1_h3_blend)
+    and list(_r9egb1_h3_handed["params"].dhw_hourly_draw_pattern) == _r9egb1_h3_blend,
+    f"{_r9egb1_h3_reason!r}; hub kept {_r9egb1_h3_after == _r9egb1_h3_owned}; "
+    f"fallback is blend {list(_r9egb1_h3_fallback) == list(_r9egb1_h3_blend)}; "
+    "solve got blend "
+    f"{list(_r9egb1_h3_handed['params'].dhw_hourly_draw_pattern) == _r9egb1_h3_blend}",
+)
+
+# H4: the learner's burn freeze reads the live detector flag. A state copy
+# that says a burn is on while the detector says it is over (what a solve in
+# auto left behind before a switch to comfort) must not freeze it.
+_r9egb1_h4 = _solve_coord()
+_r9egb1_h4._external_heat_active = False
+_r9egb1_h4._current_state.external_heat_active = True
+_r9egb1_h4_seen = bool(_r9egb1_h4._dhw_learner._external_heat_active())
+_r9egb1_h4._external_heat_active = True
+_r9egb1_h4._current_state.external_heat_active = False
+_r9egb1_h4_live = bool(_r9egb1_h4._dhw_learner._external_heat_active())
+R.check(
+    "#1736 H4: the DHW learner's burn freeze follows the live detector, not a "
+    "solve's copy of it",
+    _r9egb1_h4_seen is False and _r9egb1_h4_live is True,
+    f"stale copy on, detector off -> {_r9egb1_h4_seen}; "
+    f"detector on, copy off -> {_r9egb1_h4_live}",
+)
+
+# H2 (decided D12): quiet comfort periods are judged against the CONFIGURED
+# band, not the economy- or away-widened one the solve planned with.
+_r9egb1_bands = []
+
+
+def _r9egb1_h2(**arm):
+    coord = _r9egb1_coord(**arm)
+    coord._config[_r9egb1_const.CONF_COMFORT_LEARNING_ENABLED] = True
+    real = coord._comfort_learner.record_quiet_period
+
+    def _spy(when, span, band, *a, **k):
+        _r9egb1_bands.append((tuple(sorted(arm.items())), band))
+        return real(when, span, band, *a, **k)
+
+    coord._comfort_learner.record_quiet_period = _spy
+    # Read before the solve: a band read off the hubs afterwards would agree
+    # with a solve that had written its widened floor into them.
+    configured = max(
+        0.5, coord._opt_config.comfort_temp_day - coord._opt_config.min_temp
+    )
+    reason, _ = _r9egb1_run(coord)
+    return reason, configured
+
+
+_r9egb1_h2_e = _r9egb1_h2(economy=True)
+_r9egb1_h2_a = _r9egb1_h2(away=True)
+R.check(
+    "#1736 H2: economy and away solves hand the quiet-period learner the "
+    "configured comfort band",
+    _r9egb1_h2_e[0] is None and _r9egb1_h2_a[0] is None
+    and len(_r9egb1_bands) == 2
+    and [b for _, b in _r9egb1_bands] == [_r9egb1_h2_e[1], _r9egb1_h2_a[1]],
+    f"bands {_r9egb1_bands}; configured {_r9egb1_h2_e[1]}, {_r9egb1_h2_a[1]}",
+)
+
+# The what-ifs keep the bases they had: a price tile, run in the solve's tail,
+# prices against the plan it follows -- the setback included -- and its target
+# tiles perturb that plan's target; the card's what-if prices against the
+# configured band. Whether the card should see the setback is the owner's
+# decision (#1736's parity lead), so this pins today's answer at both ends.
+def _r9egb1_whatifs():
+    coord = _r9egb1_coord(away=True)
+    coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
+    seen = []
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        seen.append(_r9egb1_copy.deepcopy(optimizer.config))
+        if rest or kw:
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    async def _go():
+        reason = await coord.async_run_optimization()
+        coord._last_simulation = None
+        card = await coord.async_simulate({})
+        return reason, card
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason, card = _asyncio.run(_go())
+    return coord, reason, card, seen
+
+
+_r9egb1_w_coord, _r9egb1_w_reason, _r9egb1_w_card, _r9egb1_w_seen = _r9egb1_whatifs()
+_r9egb1_w_away = float(_r9egb1_w_coord._away_state.target_temperature or 0.0)
+R.check(
+    "#1736 the price tile prices against its solve's record (setback band, "
+    "target one below the set-back target); the card against the configured band",
+    _r9egb1_w_reason is None
+    and "error" not in _r9egb1_w_card
+    and len(_r9egb1_w_seen) == 3
+    and [c.comfort_temp_day for c in _r9egb1_w_seen]
+    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_coord._opt_config.comfort_temp_day]
+    and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
+    and _r9egb1_w_seen[2].target_temp == _r9egb1_w_coord._opt_config.target_temp,
+    f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
+    f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
