@@ -5614,13 +5614,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # The monthly fuse right-sizing what-if (#3); rate-limited to
             # weekly inside, and never allowed to break the cycle.
             await _best_effort_cycle_step(
-                lambda: self._maybe_run_fuse_advisor(record),
+                functools.partial(self._maybe_run_fuse_advisor, record),
                 "Fuse advisor skipped: %s")
 
             # T6 #39 (gated): one price tile per scheduled solve, and only
             # here — the tiles must never run on demand.
             await _best_effort_cycle_step(
-                lambda: self._maybe_refresh_price_tile(record),
+                functools.partial(self._maybe_refresh_price_tile, record),
                 "Price tile skipped: %s")
 
             # #1644 (D1-s2-51): the quiet learner is the solve's own

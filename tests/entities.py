@@ -22447,6 +22447,67 @@ R.check(
 )
 
 
+# --- #1736: no live hub crosses to a thread --------------------------------
+# A solve plans from one record built on the loop (SolveRecord), and the three
+# hubs -- _opt_config, _thermal_params, _current_state -- are the configured
+# state the loop keeps writing. Every hand-off P12 enumerates, plus the solve's
+# own transports (_await_optimize, _await_off_loop), is refused an argument
+# that IS a hub attribute however it is reached (self., ctx., coord.,
+# self._ctx.); a call wrapping one -- copy.deepcopy(...), replace(...) -- is a
+# copy and passes. The key is the attribute NAME: a same-named attribute of
+# another object is refused too, which is the design choice (no such name
+# exists outside the coordinator's hubs).
+_HUB_NAMES = frozenset({"_opt_config", "_thermal_params", "_current_state"})
+_HUB_THREAD_ARGS = {**_P12_THREAD_ARG, "_await_optimize": 1, "_await_off_loop": 1}
+
+
+def _hub_handoffs(trees):
+    """Every (file:line, hand-off, hub) where a live hub is an argument."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _i = _HUB_THREAD_ARGS.get(_callee_name(_node))
+            if _i is None:
+                continue
+            for _arg in list(_node.args[_i:]) + [_k.value for _k in _node.keywords]:
+                _a = _arg.value if isinstance(_arg, ast.Starred) else _arg
+                if isinstance(_a, ast.Attribute) and _a.attr in _HUB_NAMES:
+                    found.append((f"{_fname}:{_node.lineno}", _callee_name(_node), _a.attr))
+    return found
+
+
+_hub_sites = _hub_handoffs(_PKG_TREES)
+R.check(
+    "no live hub is handed to a thread or the process worker (#1736)",
+    _hub_sites == [],
+    f"{_hub_sites}: hand over the solve's record or a copy built on the loop",
+)
+_hub_ctl = {
+    "probe.py": ast.parse(
+        "async def bad(self, hass, ctx, coord, opt, fn):\n"
+        "    await _await_optimize(hass, opt, ctx._current_state)\n"
+        "    await hass.async_add_executor_job(fn, coord._thermal_params)\n"
+        "    await _await_process(hass, fn, self._ctx._opt_config)\n"
+        "    await _await_off_loop(hass, fn, state=ctx._current_state)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(self, hass, ctx, opt, fn, record):\n"
+        "    await _await_optimize(hass, opt, record.inputs)\n"
+        "    await _await_process(hass, fn, copy.deepcopy(ctx._thermal_params))\n"
+        "    await hass.async_add_executor_job(fn, replace(ctx._current_state))\n"
+        "    ctx._opt_config.target_temp = 21.0\n"
+    ),
+}
+_hub_ctl_found = _hub_handoffs(_hub_ctl)
+R.check(
+    "the hub barrier refuses a live hub in every hand-off and passes its copies",
+    sorted(_s[0] for _s in _hub_ctl_found)
+    == ["probe.py:2", "probe.py:3", "probe.py:4", "probe.py:5"],
+    f"found {_hub_ctl_found}; a barrier that misses its own positive control, "
+    "or refuses a copy, pins nothing",
+)
+
+
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
     for _fn in ast.walk(_tree):

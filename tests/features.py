@@ -17358,8 +17358,8 @@ R.check(
 )
 R.check(
     "the envelope composes through caps_extra, never a second channel",
-    "np.minimum(caps_extra, env_caps)"
-    in inspect.getsource(_Coord.async_run_optimization),
+    "np.minimum(caps, env_caps)"
+    in inspect.getsource(_Coord._solve_record),
 )
 
 # --- #36 the solar aperture -------------------------------------------------------
@@ -17717,11 +17717,15 @@ R.check(
     "hour_of_day=previous_time.hour" in _hl_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
 )
-_run_src2 = inspect.getsource(_Coord.async_run_optimization)
+_run_src2 = inspect.getsource(_Coord._refresh_model_corrections)
+_upd_src2 = inspect.getsource(_Coord._update_current_state)
 R.check(
-    "the apply path writes both learned scales onto the shared params",
-    "solar_aperture_scale" in _run_src2
-    and "internal_gains_profile" in _run_src2,
+    "the apply path writes both learned scales onto the shared params, after "
+    "the learners that replay with them",
+    "params.solar_aperture_scale =" in _run_src2
+    and "params.internal_gains_profile =" in _run_src2
+    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
+    < _upd_src2.find("self._refresh_model_corrections()"),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",
 )
@@ -20493,9 +20497,9 @@ R.check(
 )
 
 # #1512: the coordinator hands the tariff's distinct-days rule to the solver
-# with the rest of the peak settings. Stopped right after that block (the
-# next read raises), so no solve runs: the config's False must be on the
-# optimizer config, and the default install's True likewise.
+# with the rest of the peak settings, in the solve's own configuration copy
+# (#1736): the config's False must be on it, and the default install's True
+# likewise, while the configured hub keeps what it held.
 def _dd_pushed(overrides):
     hass = FakeHass()
     _seed_prices(hass)  # #924
@@ -20505,20 +20509,16 @@ def _dd_pushed(overrides):
     coord = entry.runtime_data
     coord._prices = list(_svc_crash_coord._prices)
 
-    def _stop(_n):
-        raise RuntimeError("stop after the peak settings")
-
-    coord._baseline_house_load = _stop
     coord._opt_config.peak_distinct_days = None
-    _asyncio.run(coord.async_run_optimization())
-    return coord._opt_config.peak_distinct_days
+    solved = coord._solve_hubs(4, banded=True)[0].peak_distinct_days
+    return solved, coord._opt_config.peak_distinct_days
 
 
 _dd_off, _dd_default = _dd_pushed({"peak_tariff_distinct_days": False}), _dd_pushed({})
 R.check(
     "the solver gets the tariff's distinct-days rule from the config (#1512)",
-    _dd_off is False and _dd_default is True,
-    f"config False -> {_dd_off!r}, default -> {_dd_default!r}",
+    _dd_off == (False, None) and _dd_default == (True, None),
+    f"(solve, hub): config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
 _svc_sim_hass = FakeHass()
@@ -33975,7 +33975,7 @@ R.check(
     f"module={_g511_job.__module__}",
 )
 _g511_ha_err, _ = _g511_submit(
-    _g511_coord._run_in_process, _g511_job, (None, None, (), {})
+    _g511_coord._run_in_process, _g511_job, (None, None)
 )
 R.check(
     "and the child resolves that name -- the job runs there (#511)",
@@ -33983,7 +33983,7 @@ R.check(
     f"got {type(_g511_ha_err).__name__}: {_g511_ha_err}",
 )
 _g511_harness_err, _ = _g511_submit(
-    _run_in_process, _g3_opt_job, (None, None, (), {})
+    _run_in_process, _g3_opt_job, (None, None)
 )
 R.check(
     "the harness spelling still round-trips (the import at the top of W3-G3)",
@@ -39939,7 +39939,7 @@ def _t3_tile(answer, **config):
         return answer
 
     c.async_simulate = simulate
-    return _t3_drive(c, "_maybe_refresh_price_tile")
+    return _t3_drive(c, "_maybe_refresh_price_tile", _solve_record_now(c))
 
 
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
@@ -39973,7 +39973,7 @@ R.check(
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
 _t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
-_t3_drive(_t3_tile_off, "_maybe_refresh_price_tile")
+_t3_drive(_t3_tile_off, "_maybe_refresh_price_tile", _solve_record_now(_t3_tile_off))
 R.check(
     "turning the tiles off clears what was published, rather than freezing it",
     dict(_t3_tile_off._price_tiles) == {},
@@ -56148,10 +56148,12 @@ def _r9egb9_borrow_arm(borrower, kind):
         u0_stamp = coord._last_simulation
         if borrower == "tile":
             coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = True
-            call = coord._maybe_refresh_price_tile
+            call = _f25_partial(
+                coord._maybe_refresh_price_tile, _solve_record_now(coord))
         else:
             coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
-            call = coord._maybe_run_fuse_advisor
+            call = _f25_partial(
+                coord._maybe_run_fuse_advisor, _solve_record_now(coord))
         out = {"U0": _r9egb9_ov(u0)}
         if kind == "null":
             await call()
