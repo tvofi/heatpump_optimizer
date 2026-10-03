@@ -24112,8 +24112,11 @@ def _pt_arm_mutant(edit) -> "set[str]":
     _d = _pt_copy.deepcopy(_PT_DOCS)
     _wf = _d["tests.yml"]
     _job = _wf["jobs"]["graders-head-copy"]
-    edit(_wf, _job, next((_s for _s in _job["steps"]
-                          if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), {}))
+    _step = next((_s for _s in _job.get("steps") or []
+                  if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), None)
+    if _step is None:  # no arm step to silence: nothing is armed (the check's first conjunct)
+        return set()
+    edit(_wf, _job, _step)
     return _pt_armed(_d)
 
 
