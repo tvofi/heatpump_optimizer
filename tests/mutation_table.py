@@ -2203,7 +2203,6 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     queue = list(range(len(pool)))
     owed = [0.0]
     granted: set[int] = set()
-    released: set[int] = set()
     own: list[int | None] = [None] * workers
 
     def admit() -> int | None:
@@ -2254,10 +2253,10 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             verdict[i] = f"killed by {script}"
         else:
             return
-        if i not in released:
-            # Killed or timed out, it runs no EXCLUSIVE driver: release.
-            released.add(i)
-            owed[0] -= owes[i]
+        # Killed or timed out, it runs no EXCLUSIVE driver: release. A second
+        # release can come only from a helper, and helpers run only once no
+        # mutant is left to admit, so nothing reads `owed` after it.
+        owed[0] -= owes[i]
 
     def work(w: int) -> None:
         while (task := take(w)) is not None:
