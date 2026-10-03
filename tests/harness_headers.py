@@ -172,25 +172,38 @@ def printed_from(stdout: str) -> dict[str, str]:
     return found
 
 
-# The hang bound is CPU seconds, not wall seconds (F10.11). The harness that
-# runs longest, tools/audit/round4/D7/sysid_estimator_frontier.py, costs about
-# 100 CPU-s on one core; a wall-clock bound of 240 s sat at 2.4x that, and the
-# mutation lane's parallel pool (four trees, four drivers) stretched it past
-# 240 s of wall without it doing any more work: the TimeoutExpired crashed this
-# script and "killed" the comment-only null control, refusing the table on #1808
-# twice. A CPU limit does not move with machine load, and keeps hang detection
-# for a spinning harness at the same 240 s. A harness blocked on I/O spends no
-# CPU, so the wall cap below is what bounds that one, sized for the slowest
-# runner under the pool, below mutation_table.py's 1200 s per-driver timeout.
-CPU_LIMIT_S = 240
+# The hang bound is CPU seconds, not wall seconds (F10.11): the mutation lane's
+# parallel pool stretched the frontier harness past a 240 s WALL bound without it
+# doing any more work, and the TimeoutExpired "killed" the comment-only null
+# control on #1808 twice. A harness blocked on I/O spends no CPU, so the wall cap
+# bounds that one, below mutation_table.py's 1200 s per-driver timeout.
+#
+# A CPU second is not load-independent either: tools/audit/round4/D7/
+# sysid_estimator_frontier.py costs 96.8 CPU-s serially on the CI runner (`slow`,
+# run 37130986490) and was SIGXCPU'd at 240 inside mutation_table.py's --jobs 3
+# pool (mutation-ledger, run 37108891698, BLAS pins in place) -- the same work
+# billed at least 2.48x. So this script is EXCLUSIVE in that pool and is billed
+# what run.sh's serial lane bills it, and each bound below is sized from that
+# serial cost: about 5x the runner's figure for the frontier (whose cost is
+# production sysid's), and a far lower cap for the children that cost seconds,
+# so a spinning cheap harness dies in a minute, not in eight. Every bound stays
+# under the wall cap, so a spinning child dies on CPU first. CPU_HEADROOM reds,
+# with the figure, a harness whose ordinary work costs more than half its bound
+# -- for the frontier 240 s, 2.48x its runner cost -- on the pull request that
+# grows it, before the kernel kills one that prints nothing.
+CPU_LIMIT_S = 60
+CPU_LIMIT_OVERRIDES_S = {
+    "tools/audit/round4/D7/sysid_estimator_frontier.py": 480,
+}
 WALL_LIMIT_S = 900
+CPU_HEADROOM = 0.5
 
 
 # RLIMIT_CPU sums the CPU of every thread, so a BLAS pool of N threads spends the
-# limit N times as fast as the work it does: the frontier harness passed in 260 s
-# of wall on one runner and was SIGXCPU'd at 293 s on another (mutation-nightly,
-# run 37050037132). Every child runs single-threaded, here, whatever its caller's
-# env or the workflow step says, so one place owns the pin.
+# limit N times as fast as the work it does (#1872, after mutation-nightly run
+# 37050037132 SIGXCPU'd the frontier). Every child runs single-threaded, here,
+# whatever its caller's env or the workflow step says, so one place owns the pin.
+# The pin alone did not hold the 240 s bound in the pool: see CPU_LIMIT_S.
 BLAS_THREAD_PINS = {
     "OMP_NUM_THREADS": "1",
     "OPENBLAS_NUM_THREADS": "1",
@@ -198,34 +211,57 @@ BLAS_THREAD_PINS = {
 }
 
 
+def _children_cpu_s() -> float:
+    ru = resource.getrusage(resource.RUSAGE_CHILDREN)
+    return ru.ru_utime + ru.ru_stime
+
+
 def run_bounded(cmd: list[str], env: dict[str, str], cpu_s: int, wall_s: int):
-    """``(returncode, stdout, stderr)``; rc -9/-24 is the kernel's SIGKILL/SIGXCPU
-    on the CPU limit, and a wall overrun returns rc 124 and says so on stderr."""
+    """``(returncode, stdout, stderr, cpu_used_s)``; rc -9/-24 is the kernel's
+    SIGKILL/SIGXCPU on the CPU limit, and a wall overrun returns rc 124 and says
+    so on stderr. ``cpu_used_s`` is the reaped child's own CPU, killed or not."""
     env = {**env, **BLAS_THREAD_PINS}
 
     def limit() -> None:
         resource.setrlimit(resource.RLIMIT_CPU, (cpu_s, cpu_s + 5))
 
+    before = _children_cpu_s()
     try:
         p = subprocess.run(
             cmd, cwd=ROOT, env=env, shell=False, capture_output=True, text=True,
             timeout=wall_s, preexec_fn=limit,
         )
     except subprocess.TimeoutExpired:
-        return 124, "", f"wall limit {wall_s}s exceeded"
-    return p.returncode, p.stdout, p.stderr
+        return 124, "", f"wall limit {wall_s}s exceeded", _children_cpu_s() - before
+    return p.returncode, p.stdout, p.stderr, _children_cpu_s() - before
 
 
 def run_harness(rel: str) -> str:
     env = dict(os.environ)
     env["PYTHONPATH"] = "tests/hastub:custom_components:tests"
-    rc, stdout, stderr = run_bounded(
-        [sys.executable, rel], env, CPU_LIMIT_S, WALL_LIMIT_S
+    bound = CPU_LIMIT_OVERRIDES_S.get(rel, CPU_LIMIT_S)
+    rc, stdout, stderr, cpu = run_bounded(
+        [sys.executable, rel], env, bound, WALL_LIMIT_S
     )
+    # A child the kernel kills on RLIMIT_CPU prints nothing of its own (run
+    # 37108891698: `rc=-24 stderr=`), so the bound names itself and the CPU the
+    # child had spent; every child's cost is printed, killed or not.
+    print(f"  {rel}: cpu={cpu:.1f}s of the {bound}s bound")
+    why = {-24: f"SIGXCPU: the {bound} CPU-s bound was spent",
+           -9: f"SIGKILL: past the {bound} CPU-s bound's hard limit"}
     R.check(
         f"{rel} exits 0",
         rc == 0,
-        f"rc={rc} stderr={stderr[-300:]}",
+        f"rc={rc} {why.get(rc, '')} cpu={cpu:.1f}s stderr={stderr[-300:]}",
+    )
+    # The bound is a hang detector, so a harness doing its ordinary work must
+    # sit far below it; this reds on the cost, with the number, before the
+    # kernel kills on it without one.
+    R.check(
+        f"{rel} costs at most {CPU_HEADROOM:.0%} of its CPU bound",
+        cpu <= bound * CPU_HEADROOM,
+        f"cpu={cpu:.1f}s against {bound * CPU_HEADROOM:.0f}s "
+        f"({CPU_HEADROOM:.0%} of its {bound}s bound)",
     )
     return stdout
 
@@ -241,6 +277,13 @@ def main() -> int:
         set(declared) <= set(EXECUTE),
         "declares the marker and is not executed: "
         + ", ".join(sorted(set(declared) - set(EXECUTE))),
+    )
+    R.check(
+        "every per-harness CPU bound names an executed harness, under the wall cap",
+        set(CPU_LIMIT_OVERRIDES_S) <= set(EXECUTE)
+        and max([CPU_LIMIT_S, *CPU_LIMIT_OVERRIDES_S.values()]) < WALL_LIMIT_S,
+        f"bounds={CPU_LIMIT_OVERRIDES_S!r} not executed: "
+        f"{sorted(set(CPU_LIMIT_OVERRIDES_S) - set(EXECUTE))!r}",
     )
     for rel in EXECUTE:
         path = ROOT / rel
@@ -277,7 +320,7 @@ def main() -> int:
     names = ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS")
     echo = [sys.executable, "-c",
             f"import os;print(*(os.environ.get(k, '') for k in {names!r}))"]
-    rc, out, _ = run_bounded(echo, {**env, **dict.fromkeys(names, "8")}, 30, 30)
+    rc, out, _, _ = run_bounded(echo, {**env, **dict.fromkeys(names, "8")}, 30, 30)
     R.check("a bounded child runs with every BLAS pool pinned to one thread",
             rc == 0 and out.split() == ["1", "1", "1"],
             f"rc={rc} OMP/OPENBLAS/MKL={out.split()!r}")
