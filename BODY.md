@@ -1,26 +1,31 @@
-Round-9 docs PR WEB-4 (tvofi's findings of 2026-10-03 on the published site): the first page's stray "..." between sentences, the setup-flow diagram that disagreed between README and the setup documents, and card pictures from an old design. README.md and docs/ are outside policy; `tests/doc_claims.py` is not.
+Round-9 docs PR WEB-4 (tvofi's findings of 2026-10-03 on the published site): the first page's stray "..." between sentences, the setup-flow diagram that disagreed between README and the setup documents, and card pictures from an old design. README.md and docs/ are outside policy; `tests/doc_claims.py`, `tests/card_browser.mjs` and `tests/layout.json` are not, and the owner approves those under the mandate.
 
-1. The ellipses were literal text in `docs/index.html` (not a build or truncation artefact: the served page equals the source), written because the R9-WEB-1 pin quoted claims by fragments split on an ellipsis. Eleven claims now quote whole verbatim spans (or separate spans/lines where the README sentences are not adjacent); the pin no longer splits on an ellipsis and refuses one (`ellipsis` kind, with a planted-ellipsis null control). A sweep of README.md, DISCLAIMER.md and docs/*.md found one other, `docs/dashboard-card.md:661`, a deliberate bold lead-in continuing the previous heading, left alone.
-2. Setup flow derived from `config_flow.py`: user -> user_sensors -> (device_prefill only when another entry turned the offer on) -> finish_setup menu; Quick setup -> device_prefill (always) -> back to the menu with Quick setup no longer offered; Finish setup now -> setup_overview; Continue -> temperature -> building menu -> (building_describe -> building_extras | thermal -> zones) -> dhw -> weather_sensitivity -> setup_overview -> create. README's diagram had Finish now, Quick setup and the last screen all skipping the review; configuration.md's lacked the pre-fill. One diagram text, with README's step numbers (the existing Quick start numbering check binds them), now in README, `docs/configuration.md` and `docs/setup.md` (which had none); configuration.md's section numbers follow it (new "2 · Optional sensors" split out of Basics, new "3 · The finish menu"). A check pins the three copies identical. Prose that said Finish setup now creates the entry immediately now says it goes through the review.
-3. Pictures: `docs/img/card-plan-chart.png` (README, product page) and `docs/img/card-dhw-band-weekly.png` (dashboard-card.md, product page) were taken from earlier card designs; both re-rendered from the shipped card in real Chromium. The hero via the existing `HPO_HERO_OUT` mode of `tests/card_browser.mjs`; the weekly figure via new `docs/img/make_card_weekly_figure.mjs` (docs/ is INERT; no closure entry). `docs/img/card/*.png` were already current and are untouched. Old images are replaced in place, so no reference changed except the width/height attributes on the two `<img>` in `docs/index.html`.
+1. The ellipses were literal text in `docs/index.html` (the served page equals the source; not a build or truncation artefact). They were written because the R9-WEB-1 pin quoted claims as fragments split on an ellipsis. Eleven claims now quote whole verbatim spans (separate spans or lines where the README sentences are not adjacent); the pin no longer splits on an ellipsis and refuses one (`ellipsis` kind, with a planted-ellipsis null control). A sweep of README.md, DISCLAIMER.md and docs/*.md found one other, `docs/dashboard-card.md:661`, a deliberate lead-in continuing the previous heading, left alone.
+2. Setup flow derived from `config_flow.py`: user -> user_sensors -> (device_prefill only when another entry turned the offer on) -> finish_setup menu; Quick setup -> device_prefill (always) -> back to the menu without Quick setup; Finish setup now -> setup_overview; Continue -> temperature -> building menu -> (building_describe -> building_extras | thermal -> zones) -> dhw -> weather_sensitivity -> setup_overview -> create. README's diagram let Finish setup now, Quick setup and the last screen skip the review; configuration.md's lacked the pre-fill. One diagram text, with README's step numbers (the Quick start numbering check binds them), now in README, `docs/configuration.md` and `docs/setup.md`; configuration.md's section numbers follow it ("2 · Optional sensors" split out of Basics, new "3 · The finish menu"). A check pins the three copies identical. Prose saying Finish setup now creates the entry immediately now says it goes through the review.
+3. Pictures, all re-rendered from the shipped card in Chromium and replaced in place:
+   - `docs/img/card-plan-chart.png` (README first picture, product page): the existing `HPO_HERO_OUT` mode of `tests/card_browser.mjs`, now fed the page fixture (`pageStates`) so all six tiles, the savings sub-line and the headline lines are populated; 1864x1700, no orphan tile.
+   - `docs/img/card-dhw-band-weekly.png` (dashboard-card.md, product page): new `docs/img/make_card_weekly_figure.mjs` (docs/ is INERT, no closure entry). `HPO_WEEKLY_MEASURE=1` prints the card's own plotted-against-published lower edge per window: Friday 07:30-08:30 plotted 45.00-46.47 against published 43.77-46.47 (pinned to 45 where it dipped); Friday evening plotted = published 42.23-42.53 (free); Saturday 19:00-21:00 all eight steps plotted 45.00 against published 44.00. The dashboard-card.md caption states exactly these, so it is unchanged. (A first render of mine had the tank itself under 45, which the card draws unfloored; the fixture now keeps the tank at or above 45 with the edge 2.5 under it, as the script says.)
+   - `docs/img/card-advisor-page.png`, an orphaned old-design picture nothing referenced, is deleted. Its `tests/layout.json` entry becomes `"new": null` (a deletion, live as a refusal in `tests/layout.py`); `python3 tests/layout.py` is green.
+   - `docs/img/card/*.png` were already current and are untouched; `options-hot-water-by-day.png` is an options page, not the card.
+   - The only reference edits are the width/height attributes on two `<img>` in `docs/index.html`.
 
 ## Head
 
-6000dbf8d632985e6b35fbcc392e8c8674c6caea
+75af6b9592a66f26767bbfc4da747be599dc89cf
 
 ## Mutation proof
 
-Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale` in docs/index.html): `python3 tests/doc_claims.py` goes red on "no claim is elided with an ellipsis" and the in-test null control asserts it. The planted ellipsis is what the in-test null control does on every run; the pre-fix page itself was not re-run through the new pin. Change one word in the setup.md diagram: "the three setup-flow diagrams are identical" goes red.
+Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale`): `python3 tests/doc_claims.py` goes red on "no claim is elided with an ellipsis"; the in-test null control does exactly this on every run. Change one word in the setup.md diagram: "the three setup-flow diagrams are identical" goes red. Not run: the pre-fix page through the new pin.
 
 ## Null control
 
-The unmodified tree (origin/main ac255c200) passes `tests/doc_claims.py`, because the old pin quoted by ellipsis-split fragments; the new pin was not run against it.
+`python3 tests/layout.py --self-test` still fires its own dead-entry and reintroduction controls (green). For the picture checks, the unmodified tree's hero was 1864x1402 with an orphan tile, the empty-tile fixture this body replaces.
 
 ## Figures
 
-- Gate: `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh` -> MODE: SCOPED, 4 scripts run, 7 passed, rc 0 (FAIL lines in its log are the scripts' own null controls).
-- `python3 tests/doc_claims.py` -> rc 0.
-- `HPO_HERO_OUT=... HPO_PAGES_OUT=... node tests/card_browser.mjs` -> hero written; the run reports one failure, "P9 grid: no two text runs share ink", which is a raster-dependent grid check unrelated to these files (see Friction).
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh`: MODE: SCOPED, 5 scripts run, 7 passed, rc 0 at the head above.
+- `python3 tests/doc_claims.py`: rc 0. `python3 tests/layout.py`: rc 0.
+- `HPO_PLANDATA=... node tests/card_browser.mjs` on origin/main ac255c200 (a detached checkout) and on this head: both report exactly one failure, "P9 grid: no two text runs share ink". It fails identically on main on this machine, so it is not caused by this change; it is raster-dependent on a Mac and CI's Linux run is the authority.
 - Before/after contact sheet of the two replaced pictures: seat scratch `seat-web-4/contact-sheet-before-after.png`.
 
 ## Red checks
@@ -33,6 +38,6 @@ none
 
 ## Friction
 
-The tests/layout.json reorganisation manifest lists `docs/img/card-advisor-page.png` (an orphaned old-design picture nothing references) as a retired path; deleting it would make `tests/layout.py` report a dead entry in a code-owned file, so it is left for the layout owner.
+none
 
 _Requested by **tvofi**_
