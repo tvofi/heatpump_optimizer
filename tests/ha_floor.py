@@ -2,6 +2,7 @@
 """Every Home Assistant name production reaches, against the release hacs.json
 declares as its floor (class P11's floor arm; tools/audit/rca/R9-RCA-1869.md).
 
+    python3 tests/ha_floor.py check [--package DIR]       # the gate's arm, alone
     python3 tests/ha_floor.py record [--tag 2025.2.0] [--cache DIR] [TREE ...]
     python3 tests/ha_floor.py verify --image homeassistant/home-assistant:2025.2.0
     python3 tests/ha_floor.py verify-inside tests/ha_floor_names.json   # in HA
@@ -540,11 +541,21 @@ def main(argv: list[str] | None = None) -> int:
     rec.add_argument("--out", type=Path, default=SNAPSHOT)
     rec.add_argument("trees", nargs="*", type=Path,
                      help="extra package directories whose reach is recorded too")
+    chk = sub.add_parser("check")
+    chk.add_argument("--package", type=Path, default=PACKAGE)
     ver = sub.add_parser("verify")
     ver.add_argument("--image", required=True)
     ins = sub.add_parser("verify-inside")
     ins.add_argument("snapshot", type=Path)
     args = parser.parse_args(argv)
+    if args.cmd == "check":
+        r = floor_check(floor_reach(floor_trees(args.package)), floor_load()["answers"])
+        print(f"RESULT checked={r['checked']} missing={len(r['missing'])} "
+              f"unrecorded={len(r['unrecorded'])} undecidable={len(r['undecidable'])}")
+        for kind in ("missing", "unrecorded", "undecidable"):
+            for line in r[kind]:
+                print(kind.upper(), line)
+        return 1 if (r["missing"] or r["unrecorded"]) else 0
     if args.cmd == "verify":
         return verify(args.image)
     if args.cmd == "verify-inside":
