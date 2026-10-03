@@ -29878,8 +29878,10 @@ _MUT_PV_RES = [
     (_MUT_PV_S["plain"], "LIVES"),
     (_mut_pv_site("x.py:stale K 0"), "LIVES"),
 ]
+# "lives" has no recorded run of its pin (the script left the closure), so only
+# the LIVES verdict reports it; "other" ran and did not kill.
 _MUT_PV_OUT = {id(_MUT_PV_S["ok"]): True, id(_MUT_PV_S["other"]): False,
-               id(_MUT_PV_S["lives"]): False, id(_MUT_PV_S["timeout"]): None}
+               id(_MUT_PV_S["timeout"]): None}
 _MUT_PV_OUT = {(k, _MUT_PV_PIN): v for k, v in _MUT_PV_OUT.items()}
 _MUT_PV_LINES = _mut_pinrep(_MUT_PV_RES, _MUT_PV_OUT, _MUT_PV_KB) or []
 _MUT_PV_TXT = "\n".join(_MUT_PV_LINES)
@@ -29890,6 +29892,7 @@ R.check(
     _MUT_PV_TXT.count("PIN NOT REPRODUCED") == 2
     and "x.py:other K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[1]
     and "x.py:lives K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[2]
+    and "no longer drives" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[2]
     and _MUT_PV_TXT.count("pin not re-verified") == 3
     and "x.py:plain" not in _MUT_PV_TXT and "stale" not in _MUT_PV_TXT
     and _MUT_PV_LINES[-1:] == ["PIN RE-VERIFICATION: 1 reproduced, 2 not "

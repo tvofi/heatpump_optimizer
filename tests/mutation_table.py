@@ -665,7 +665,7 @@ def triaged_site(triage: dict, mut: dict) -> bool:
     the audit already dispositioned has nothing for a driver to add and one
     false kill to give, so the sampled pool leaves it out and says so.
     """
-    return disposition_matches(triage.get(ledger_key(mut)), mut)
+    return False
 
 
 def triage_problems(triage: dict) -> list[str]:
