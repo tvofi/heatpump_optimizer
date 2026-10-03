@@ -1823,13 +1823,22 @@ def _version_arm(by_name) -> None:
     asyncio.run(floor.async_save({"overwritten": True}))
     floor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
     _store._NEWER_ON_DISK.discard(fkey)
+    # The control: a minor-only mismatch at this store's own major is no
+    # downgrade, so it marks nothing and the save lands.
+    try:
+        asyncio.run(floor._async_migrate_func(2, 2, {}))
+    except NotImplementedError:
+        pass
+    asyncio.run(floor.async_save({"minor": True}))
+    minor_saves = _storage.SAVE_COUNTS.pop(fkey, 0)
     _storage._DISK.pop(fkey, None)
     _storage._VERSIONS.pop(fkey, None)
     R.check(
         "a store whose hook was handed a newer document (the 2025.2.0 floor's "
         "downgrade) does not save over it (#1869)",
-        floor_saves == 0,
-        f"saves after the hook saw a newer major={floor_saves}",
+        floor_saves == 0 and minor_saves == 1,
+        f"saves after the hook saw a newer major={floor_saves}; after a "
+        f"minor-only mismatch={minor_saves} (want 1)",
     )
     # A downgrade leaves the store as Home Assistant's own exception, after the
     # surfacing: the loaders catch any exception alike, so only the type tells
