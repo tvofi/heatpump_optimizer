@@ -60,7 +60,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
    locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
-   the PR (`CLAUDE.md`, decision 0011).
+   the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
    the queue, the wait bound and holding it by hand are `gate-scoping.md`'s.
@@ -224,7 +224,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
-17. **Take the fix that yields the better code, even at more work.** Where one
+17. **Take the fix that yields the better code.** Where one
     fix satisfies the check and another removes the cause or simplifies the
     design, take the second; the body names the alternatives and why each lost.
     An improvement claim names its mechanism, which the reviewer removes as the
