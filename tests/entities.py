@@ -23673,11 +23673,25 @@ def _pt_seams(docs: dict) -> "set[str]":
 _PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
 
 
+_PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
+
+
 def _pt_armed(docs: dict) -> "set[str]":
-    _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
+    """The programs an arm step runs so that its red is the job's red, as the Actions token.
+
+    Exact, not a substring (#1863 review: `|| true` on the run line, a step's
+    `continue-on-error`, and `GITHUB_TOKEN: ""` each passed a predicate that
+    found the program anywhere in the run line and took any value under the
+    key). The step carries only name, if, env and run; its run line is exactly
+    `node <grader>`; its env is exactly the Actions token; nor may the job
+    swallow a red."""
+    _job = docs["tests.yml"]["jobs"]["graders-head-copy"]
+    if "continue-on-error" in _job:
+        return set()
+    return {_m.group(1) for _s in _job.get("steps") or []
+            if set(_s) <= {"name", "if", "env", "run"} and _s.get("env") == _PT_ARM_ENV
             and str(_s.get("if", "")) == _PT_ARM_IF
-            for _g in _PT_PROG.findall(str(_s.get("run") or ""))}
+            for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or "").strip())] if _m}
 
 
 def _pt_trigger(script: str, planted: str) -> str:
@@ -23735,6 +23749,36 @@ R.check(
     "and the arm without its token is refused (null control)",
     ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
     "the predicate must read the step's env, not only its run line",
+)
+
+
+def _pt_arm_mutant(edit) -> "set[str]":
+    """The armed set of the workflows with `edit` applied to the policy_lint arm step."""
+    _d = _pt_copy.deepcopy(_PT_DOCS)
+    _job = _d["tests.yml"]["jobs"]["graders-head-copy"]
+    for _s in _job["steps"]:
+        if str(_s.get("run") or "").strip() == "node .claude/workflows/policy_lint.mjs":
+            edit(_job, _s)
+    return _pt_armed(_d)
+
+
+# Null controls, one per way an arm step stays wired yet cannot report #1721:
+# its exit swallowed, its red demoted to a warning, its token emptied or
+# replaced, or the job's red demoted. Each must leave the arm unarmed.
+_PT_SILENCERS = {
+    "run || true": lambda _j, _s: _s.update(run=_s["run"] + " || true"),
+    "step continue-on-error": lambda _j, _s: _s.update({"continue-on-error": True}),
+    "empty GITHUB_TOKEN": lambda _j, _s: _s.update(env={"GITHUB_TOKEN": ""}),
+    "a PAT for GITHUB_TOKEN": lambda _j, _s: _s.update(env={"GITHUB_TOKEN": "${{ secrets.PAT }}"}),
+    "job continue-on-error": lambda _j, _s: _j.update({"continue-on-error": True}),
+}
+_PT_SILENT = {_k: ".claude/workflows/policy_lint.mjs" in _pt_arm_mutant(_f)
+              for _k, _f in _PT_SILENCERS.items()}
+R.check(
+    "and an arm step that cannot go red, or runs without the Actions token, is refused (null control)",
+    ".claude/workflows/policy_lint.mjs" in _pt_armed(_PT_DOCS) and not any(_PT_SILENT.values()),
+    f"still counted armed under: {sorted(_k for _k, _v in _PT_SILENT.items() if _v)}; "
+    "the predicate must read the whole step, not find the program in it",
 )
 # The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
 # `false`, or steps keyed on 'false', passed every check above and reopened
