@@ -33,7 +33,7 @@ Plant an ellipsis in a claim (`The heat-loss scale … the heat-loss scale`): `p
 
 ## Red checks
 
-none
+- `nightly-status`: red because the scheduled Tests run on `main` of 2026-10-03 (run 37108891698) failed in `mutation-ledger` (`harness_headers` killed by SIGXCPU). This docs diff reaches nothing that check grades; the fix is PR #1878, and R9-F10.16 on the round-9 roster reviews the driver set. Cheaper detector: none exists for a scheduled-run outcome before the schedule fires.
 
 ## Forward-carry
 
