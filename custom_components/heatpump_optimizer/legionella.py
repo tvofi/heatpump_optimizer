@@ -38,6 +38,7 @@ from .dhw_learning import DHW_PROFILE_STORE_VERSION
 from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
 from .optimizer import REASON_LEGIONELLA
+from .payload import CurrentAction
 from .setpoint_check import create_issue
 from .thermal_model import ThermalParameters
 
@@ -54,7 +55,7 @@ class LegionellaGuard:
         params: ThermalParameters,
         config: dict[str, Any],
         *,
-        action: Callable[[], dict[str, Any]],
+        action: Callable[[], CurrentAction],
         disinfect: DisinfectionSwitch,
         dhw_blocked: Callable[[], bool],
     ) -> None:

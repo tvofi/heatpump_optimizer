@@ -48,6 +48,7 @@ from .const import (
     PRICE_SOURCE_ENTITY,
 )
 from .inputs import normalize_price_per_kwh
+from .payload import PricePrior
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -403,7 +404,7 @@ class PriceShapeModel:
         model.quarter_days = _stored_counts(data.get("quarter_days")) or model.quarter_days
         return model
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> PricePrior:
         return {
             "weekday_days": self.days[PROFILE_WEEKDAY],
             "weekend_days": self.days[PROFILE_WEEKEND],
