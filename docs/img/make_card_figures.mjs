@@ -374,13 +374,13 @@ function dashedPair(house, band) {
       .join("");
 
   return `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" role="img"
-     aria-label="Two chart details side by side. Left: the house temperature series, whose dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them. Right: the hot-water tank series, whose dashed pair is one symmetric expected-error band that widens with lead time.">
+     aria-label="Two chart details side by side. Left: the house temperature series, whose dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them. Right: the hot-water tank series, whose dashed pair is one expected-error band that widens with lead time, its lower edge floored at the window minimum inside a demand window.">
 <style>text { font-family: ${FONT}; }</style>
 <rect x="0" y="0" width="100%" height="100%" fill="#ffffff"/>
 <text x="${M}" y="28" font-size="16" font-weight="700" fill="${INK}">The two kinds of dashed line</text>
 <text x="${M}" y="45" font-size="12" fill="#5a5a5a">Each panel is the card with every other series toggled off, so the axis is rescaled to the one that is left.</text>
 ${cap(M, "Two real temperatures", "House temperature, two-zone house")}
-${cap(x2, "One symmetric band", "Hot-water tank temperature")}
+${cap(x2, "One expected-error band", "Hot-water tank temperature")}
 ${panel(house, plotBox(house), M, TOP, PW, PH, "hz")}
 ${panel(band, plotBox(band), x2, TOP, PW, PH, "bd")}
 <rect x="${M}" y="${TOP}" width="${PW}" height="${PH}" fill="none" stroke="#d4d4d4"/>
@@ -393,9 +393,9 @@ ${note(M, [
 ])}
 ${note(x2, [
   "One thing, drawn as two edges: dhw_temp \u2213 the error the model",
-  "has actually made for a promise that far ahead, so it widens the",
-  "further into the plan you look. One tooltip row, one \u00b1 figure.",
-  "Absent entirely until there is history to draw it from.",
+  "has actually made for a promise that far ahead, so it widens with",
+  "lead time; inside a demand window the lower edge is floored at the",
+  "window minimum. One tooltip row, one \u00b1 figure. Absent until history.",
 ])}
 </svg>
 `;
