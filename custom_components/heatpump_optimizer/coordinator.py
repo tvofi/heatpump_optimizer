@@ -61,7 +61,9 @@ from .payload import (
     Ecl110View,
     EnergyTotals,
     ExternalHeatView,
+    DiagnosisReport,
     FreqControl,
+    FuseAdvisor,
     GridView,
     InputHealthView,
     Insight,
@@ -1637,7 +1639,7 @@ def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     return record, copy.deepcopy(coord._thermal_params)
 
 
-def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: dict[str, Any] | None) -> None:
+def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: DiagnosisReport | None) -> None:
     if report is not None:
         coord._last_diagnosis = report
 
@@ -1671,6 +1673,17 @@ class CoordinatorContext:
     hass: HomeAssistant
     _current_state: ThermalState
     _opt_config: OptimizationConfig
+
+
+def _ctx_of(coord: Any) -> CoordinatorContext:
+    """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
+
+    A duck-typed harness without ``_ctx`` still resolves (see ``_hub``), and a
+    read through the result is checked, which ``getattr(self, "_ctx", self)``
+    (``Any``) never was.
+    """
+    ctx: CoordinatorContext = getattr(coord, "_ctx", coord)
+    return ctx
 
 
 def _hub(name: str) -> property:
@@ -1905,7 +1918,7 @@ def _aware_instant_iso(values: list[Any]) -> list[str]:
 
 async def _stored_fuse_advisor(
     store: QuarantiningStore[dict[str, Any]],
-) -> tuple[dict[str, Any], datetime | None] | None:
+) -> tuple[FuseAdvisor, datetime | None] | None:
     """(advisor, stamp) from the ledger store; ``None`` when it holds neither.
 
     The stamp loads through the stored-instant rule (F3.1), aware or dropped,
@@ -1918,7 +1931,8 @@ async def _stored_fuse_advisor(
         stored = await store.async_load() or {}
         if not admitted("ledger", {"fuse_advisor": stored["fuse_advisor"]}):
             return None  # outside its writer's domain (F9.3): absent, not installed
-        return dict(stored["fuse_advisor"]), stored_instant(
+        advisor: FuseAdvisor = stored["fuse_advisor"]
+        return {**advisor}, stored_instant(
             stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
         )
     except Exception:  # noqa: BLE001
@@ -2758,7 +2772,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # triple, and the latest attribution run over one. In memory only:
         # a diagnosis is about the interval that just happened.
         self._last_interval_record: dict[str, Any] | None = None
-        self._last_diagnosis: dict[str, Any] | None = None
+        self._last_diagnosis: DiagnosisReport | None = None
 
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
@@ -2767,7 +2781,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._peak_guard = GuardState()
         self._unsub_peak_guard: Callable[[], None] | None = None
         self._guard_last_fold: datetime | None = None
-        self._fuse_advisor: dict[str, Any] = {}
+        self._fuse_advisor: FuseAdvisor = {}
         self._fuse_advisor_at: datetime | None = None
         self._outage_recovery_until: datetime | None = None
         self._outage_dhw_until: datetime | None = None
@@ -3764,7 +3778,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         full-horizon forecast, which those keys do not group.
         The legacy sensors still publish the raw step list, not the slots.
         """
-        dt_hours = getattr(self, "_ctx", self)._opt_config.dt_hours
+        dt_hours = _ctx_of(self)._opt_config.dt_hours
         timestamps = result.timestamps
         n = len(timestamps)
         if not n:
@@ -7267,7 +7281,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _thermal_view(self) -> ThermalView:
         """Measured and modelled temperatures, and the solar input."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         state = ctx._current_state
         # Conditional keys, not null keys: installs without the two-tank
         # topology publish exactly the attributes they published before
@@ -7307,7 +7321,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         }
     def _dhw_view(self) -> DhwView:
         """Hot water configuration and current demand state."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         result = self._optimization_result
         # The optimizer may derive demand windows from the learned usage
@@ -7360,7 +7374,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         or has moved, which is the difference between "the default is wrong"
         and "the house really is like this".
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         return {
             "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_learner.cooling_samples,
@@ -7487,7 +7501,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # answer (#3), the live guard's state (#7) and the recovery
             # window (#22).
             "power_headroom": self._power_headroom(),
-            "fuse_advisor": dict(self._fuse_advisor),
+            "fuse_advisor": {**self._fuse_advisor},
             "peak_guard_suppressing": self._peak_guard.suppressing,
             "peak_guard_evidence": list(self._peak_guard.evidence),
             "outage_recovery_active": self._outage_recovery_active(
@@ -7499,7 +7513,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
             "peak_month": self._peak_tracker.month,
             "pv_enabled": bool(
-                getattr(self, "_ctx", self)._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
+                _ctx_of(self)._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
             ),
             "pv": self._pv_summary,
             "savings_months": self._ledger.savings_months(dt_util.now()),
@@ -7514,7 +7528,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "displace_value", self._ecl110_current_displace
             ),
             "ecl110_effective_displace": (
-                getattr(self, "_ctx", self)._current_state.ecl110_effective_displace
+                _ctx_of(self)._current_state.ecl110_effective_displace
             ),
             "ecl110_last_payload": self._ecl110_last_payload,
         }
@@ -7564,7 +7578,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ratio feeding it is cheapest over dearest of the currently published
         prices, so the reason can say when storing is not worth much today.
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         mode = params.mixing_valve_mode
         if not mixing_valve.is_throttling(mode):
@@ -10549,13 +10563,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "hour_of_day": now.hour + now.minute / 60.0,
             },
         }
-    async def async_diagnose_interval(self) -> dict[str, Any] | None:
+    async def async_diagnose_interval(self) -> DiagnosisReport | None:
         """Service/button entry for #52; publishes on the insight view.
 
         The last SETTLED interval, from a snapshot on the loop: the worker
         gets copies, never this object (#1529).
         """
-        report: dict[str, Any] | None = await _await_process(
+        report: DiagnosisReport | None = await _await_process(
             self.hass,
             diagnosis.diagnose_record,
             *_diagnose_payload(self),
@@ -11078,7 +11092,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _battery_view(self) -> Battery:
         """Publish the thermal stores as a battery."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         cop = self._thermal_model.compute_cop(
             ctx._current_state.outdoor_temperature

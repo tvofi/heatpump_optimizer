@@ -30027,4 +30027,24 @@ R.check(
 )
 
 
+# EG-B3b: payload.py executes with no package around it -- its one package import
+# (the ``SolarDiagnostics`` type, kept in open_meteo.py because tests/open_meteo.py
+# runs that module with const.py alone) sits under ``if TYPE_CHECKING``. A guard
+# that stopped guarding makes this load raise on the relative import.
+import importlib.util as _egb3_ilu
+
+_egb3_spec = _egb3_ilu.spec_from_file_location(
+    "payload_standalone", _egb3_pkg / "payload.py")
+_egb3_mod = _egb3_ilu.module_from_spec(_egb3_spec)
+try:
+    _egb3_spec.loader.exec_module(_egb3_mod)
+    _egb3_standalone = "Payload" in vars(_egb3_mod)
+except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
+    _egb3_standalone = repr(_egb3_err)
+R.check(
+    "EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only",
+    _egb3_standalone is True,
+    str(_egb3_standalone),
+)
+
 sys.exit(R.close("ENTITY CHECKS"))

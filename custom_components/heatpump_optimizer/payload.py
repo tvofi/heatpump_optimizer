@@ -22,20 +22,20 @@ must narrow it:
 
 * ``predictive_info``: the optimizer's own diagnostics, a dict that gains a
   key per feature and goes through ``_plain_types`` (declared ``-> Any``).
-* ``last_diagnosis``: the report of ``diagnose_record``, which runs in a
-  picklable worker declared ``-> dict[str, Any] | None``.
-* ``fuse_advisor``: the weekly what-if answer, which a restart restores from the
-  ledger store (``_stored_fuse_advisor``), so it holds what the store held.
 * ``monthly_report``: a frozen month receipt, persisted and restored, so one
   written by an older release carries that release's keys.
-* ``ComfortLearning.recent_overrides`` and ``ManualPlan.released_space`` /
-  ``released_dhw``: stored records the loaders keep after an ``isinstance(dict)``
-  check alone, so their keys are whatever the store held.
+* ``ComfortLearning.recent_overrides``: the learner's history, which the comfort
+  store restores keeping any entry that passes an ``isinstance(dict)`` check
+  alone, so its keys are whatever the store held.
 
 Every other report is fixed-shape and typed, including the ones the first draft
-kept open (``solar_diagnostics``, ``ecl110_last_payload``,
-``sensor_advisor``, ``Narrative.items`` and ``FreqControl.map``): each has a
-single producer whose literal mypy now checks.
+kept open (``solar_diagnostics``, ``ecl110_last_payload``, ``sensor_advisor``,
+``Narrative.items``, ``FreqControl.map``, ``last_diagnosis``, ``fuse_advisor``
+and ``ManualPlan.released_space`` / ``released_dhw``): each has a closed shape
+-- ``fuse_advisor`` is admitted from the store only through ``store.admitted``'s
+declared keys, ``released_*`` are never saved -- and a producer whose literal
+mypy now checks. Values read through a coordinator's hubs are checked too:
+``_ctx_of`` types them, where ``getattr(self, "_ctx", self)`` was ``Any``.
 """
 
 from __future__ import annotations
@@ -198,7 +198,35 @@ class Insight(TypedDict, total=False):
     compressor_starts: CompressorStarts
     monthly_report: dict[str, object] | None
     price_tiles: dict[str, PriceTile]
-    last_diagnosis: dict[str, object] | None
+    last_diagnosis: DiagnosisReport | None
+
+
+class ReleasedStep(TypedDict):
+    step: int
+    reason: str
+
+
+class DiagnosisReport(TypedDict, total=False):
+    predicted: float
+    actual: float
+    residual: float
+    contributions: dict[str, float]
+    unexplained: float
+    interval_end: str
+
+
+class FuseAdvisor(TypedDict, total=False):
+    """Two code paths fill it: the rate-limited stub (``error``) and the answer."""
+
+    month: str
+    current_fuse_a: int
+    candidate_fuse_a: int
+    candidate_kw: float
+    feasible: bool
+    comfort_shortfall_c: float
+    worst_margin_kw: float
+    cost_delta_sek_month: float | None
+    error: str
 
 
 class ManualPlan(TypedDict, total=False):
@@ -206,8 +234,8 @@ class ManualPlan(TypedDict, total=False):
     expires_at: str
     space_slots: list[dict[str, str]] | None
     dhw_slots: list[dict[str, str]] | None
-    released_space: list[dict[str, object]]
-    released_dhw: list[dict[str, object]]
+    released_space: list[ReleasedStep]
+    released_dhw: list[ReleasedStep]
 
 
 class MixingValveRecommendation(TypedDict, total=False):
@@ -677,7 +705,7 @@ class GridView(TypedDict, total=False):
     contract_comparison: ContractComparison
     current_grid_fee: float
     power_headroom: PowerHeadroom
-    fuse_advisor: dict[str, object]
+    fuse_advisor: FuseAdvisor
     peak_guard_suppressing: bool
     peak_guard_evidence: list[str]
     outage_recovery_active: bool
