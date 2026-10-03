@@ -110,7 +110,7 @@ how the card used to look.
 Two series draw a dashed pair beside their solid curve, and they mean entirely
 different things.
 
-![Two chart details side by side: the house temperature's dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them; the hot-water tank's dashed pair is one symmetric expected-error band that widens with lead time](img/chart-dashed-lines.svg)
+![Two chart details side by side: the house temperature's dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them; the hot-water tank's dashed pair is one expected-error band that widens with lead time, its lower edge floored at the window minimum inside a demand window](img/chart-dashed-lines.svg)
 
 The **house temperature**'s dashed lines are the **upper and lower floor**: two
 real predicted temperatures, one per zone, drawn whenever the house is
