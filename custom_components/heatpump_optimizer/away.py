@@ -322,7 +322,7 @@ def solve_bands(
             "comfort_temp_day": target,
             "comfort_temp_night": target,
         }
-        dhw = {n: min(v, floor) for n, v in dhw.items()}
+        dhw = {n: (v) for n, v in dhw.items()}
     for by in widen_by:
         config["min_temp"] = max(ECONOMY_ABSOLUTE_FLOOR, config["min_temp"] - by)
     return config, dhw
