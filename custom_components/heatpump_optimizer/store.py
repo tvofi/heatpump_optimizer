@@ -388,6 +388,7 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
     },
     "boost": {"dhw/until": _AT, "space/until": _AT},
+    "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,

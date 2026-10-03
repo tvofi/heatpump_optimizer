@@ -254,6 +254,7 @@ def _healthy_payloads() -> dict[str, dict]:
         run(pump_arbiter._persist(coord))
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: pump_arbiter persist skipped: %r" % (exc,))
+    run(_save_notifier(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     _storage.SAVE_COUNTS.clear()
@@ -382,6 +383,31 @@ def _scan_published(coord):
     return _walk_nonfinite(pub, "data")
 
 
+#: The notifier's live state per coordinator, as the loader below installs it
+#: and the saver writes it back (the notifier itself holds it per entry).
+_NOTIFIERS: "weakref.WeakKeyDictionary[object, object]" = __import__("weakref").WeakKeyDictionary()
+
+
+def _notifier_for(coord):
+    from heatpump_optimizer.notifier import Notifier
+    held = _NOTIFIERS.get(coord)
+    if held is None:
+        held = _NOTIFIERS[coord] = Notifier(
+            coord.hass, coord.entry.entry_id, lambda coro: coro.close())
+    return held
+
+
+async def _load_notifier(coord):
+    await _notifier_for(coord).async_load()
+
+
+async def _save_notifier(coord):
+    held = _notifier_for(coord)
+    if not held._sent:  # a seed: one standing condition and a receipt
+        held._sent = {"plan_stale": "stale", "receipt": "2026-01"}
+    await held._async_save()
+
+
 # The reach arm's wiring: which real loader consumes which store. This is the
 # instrument's configuration, not the seam set — the seam set is Arm 1's AST
 # walk, and the equality check below holds this map to it.
@@ -399,6 +425,7 @@ LOADERS = {
     "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c),
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c),
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
+    "notifier": _load_notifier,
 }
 
 R.check(
@@ -787,6 +814,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     arbiter = importlib.import_module("heatpump_optimizer.pump_arbiter")
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
+    run(_save_notifier(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     return disk
@@ -1047,6 +1075,7 @@ def _with_instants(payload, when):
 #: opts out, fails the arm: an exemption is reviewed, never inferred.
 LEAD_OPT_OUTS = {
     "away": "the user-set return time; no system maximum exists",
+    "notifier": "a manual plan's expiry, the owner's instant, is a key; bounding it rewrites the key",
 }
 
 
@@ -1262,6 +1291,7 @@ def _a6_savers():
         "boost": lambda c: mod("boost").persist(c),
         "away": lambda c: mod("away").persist_override(c),
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
+        "notifier": _save_notifier,
     }
 
 

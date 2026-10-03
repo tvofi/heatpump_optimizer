@@ -32,7 +32,7 @@ from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
 
 import aiohttp
 import numpy as np
@@ -47,7 +47,44 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from .payload import Payload
+from .payload import (
+    Battery,
+    ContractComparison,
+    CurrentAction,
+    DhwAdvisor,
+    DhwCandidate,
+    DhwForecastStep,
+    DhwMixed,
+    DhwScheduleStep,
+    DhwView,
+    Ecl110Payload,
+    Ecl110View,
+    EnergyTotals,
+    ExternalHeatView,
+    DiagnosisReport,
+    FreqControl,
+    FuseAdvisor,
+    GridView,
+    InputHealthView,
+    Insight,
+    LearningView,
+    ManualPlan,
+    MeasurementView,
+    MixingValveView,
+    Narrative,
+    Payload,
+    PlanSettingsView,
+    PlanSlot,
+    PlanViews,
+    PowerHeadroom,
+    PriceTile,
+    Pv,
+    Scores,
+    SolarForecastStep,
+    SpaceForecastStep,
+    SpacePlan,
+    ThermalView,
+)
 from .store import QuarantiningStore, admitted
 from homeassistant.util import dt as dt_util
 
@@ -1535,7 +1572,19 @@ def _warm_seeded(
     return optimizer
 
 
-def _plan_settings_view(opt: OptimizationConfig) -> dict[str, Any]:
+def _energy_totals_view(totals: dict[str, float]) -> EnergyTotals:
+    """The six lifetime accumulators, rounded for the payload."""
+    return {
+        "space_energy_kwh": round(totals["space_energy_kwh"], 4),
+        "dhw_energy_kwh": round(totals["dhw_energy_kwh"], 4),
+        "total_energy_kwh": round(totals["total_energy_kwh"], 4),
+        "space_cost": round(totals["space_cost"], 4),
+        "dhw_cost": round(totals["dhw_cost"], 4),
+        "total_cost": round(totals["total_cost"], 4),
+    }
+
+
+def _plan_settings_view(opt: OptimizationConfig) -> PlanSettingsView:
     """The comfort schedule and horizon the plan was actually made against.
 
     The card's what-if editor pre-fills from these: an editor that started
@@ -1592,7 +1641,7 @@ def _diagnose_payload(coord: "HeatPumpOptimizerCoordinator") -> tuple[Any, ...]:
     return record, copy.deepcopy(coord._thermal_params)
 
 
-def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: dict[str, Any] | None) -> None:
+def _store_diagnosis(coord: "HeatPumpOptimizerCoordinator", report: DiagnosisReport | None) -> None:
     if report is not None:
         coord._last_diagnosis = report
 
@@ -1626,6 +1675,17 @@ class CoordinatorContext:
     hass: HomeAssistant
     _current_state: ThermalState
     _opt_config: OptimizationConfig
+
+
+def _ctx_of(coord: Any) -> CoordinatorContext:
+    """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
+
+    A duck-typed harness without ``_ctx`` still resolves (see ``_hub``), and a
+    read through the result is checked, which ``getattr(self, "_ctx", self)``
+    (``Any``) never was.
+    """
+    ctx: CoordinatorContext = getattr(coord, "_ctx", coord)
+    return ctx
 
 
 def _hub(name: str) -> property:
@@ -1860,7 +1920,7 @@ def _aware_instant_iso(values: list[Any]) -> list[str]:
 
 async def _stored_fuse_advisor(
     store: QuarantiningStore[dict[str, Any]],
-) -> tuple[dict[str, Any], datetime | None] | None:
+) -> tuple[FuseAdvisor, datetime | None] | None:
     """(advisor, stamp) from the ledger store; ``None`` when it holds neither.
 
     The stamp loads through the stored-instant rule (F3.1), aware or dropped,
@@ -1873,7 +1933,8 @@ async def _stored_fuse_advisor(
         stored = await store.async_load() or {}
         if not admitted("ledger", {"fuse_advisor": stored["fuse_advisor"]}):
             return None  # outside its writer's domain (F9.3): absent, not installed
-        return dict(stored["fuse_advisor"]), stored_instant(
+        advisor: FuseAdvisor = stored["fuse_advisor"]
+        return {**advisor}, stored_instant(
             stored["fuse_advisor_at"], dt_util.DEFAULT_TIME_ZONE
         )
     except Exception:  # noqa: BLE001
@@ -1949,10 +2010,10 @@ def _liquid_fraction(
         )
 
 def _apply_result_payload(
-    data: dict[str, Any],
-    result: Any,
-    current_action: dict[str, Any],
-    plan_views: dict[str, Any],
+    data: Payload,
+    result: OptimizationResult,
+    current_action: CurrentAction,
+    plan_views: PlanViews,
 ) -> None:
     """The solved half of the entity payload, merged into ``data``.
 
@@ -1961,7 +2022,7 @@ def _apply_result_payload(
     of the two coordinator values passed in.
     """
     # DHW schedule data
-    dhw_schedule = []
+    dhw_schedule: list[DhwScheduleStep] = []
     if result.dhw_power_schedule:
         for i, (ts, dp, dt_val) in enumerate(zip(
             result.timestamps,
@@ -1996,7 +2057,8 @@ def _apply_result_payload(
             "compressor_starts": result.compressor_starts,
             "pv_self_consumed_kwh": result.pv_self_consumed_kwh,
             "plan_price_known": result.price_known,
-            **plan_views,
+            "space_plan": plan_views["space_plan"],
+            "dhw_plan": plan_views["dhw_plan"],
             "schedule": [
                 {
                     "time": ts.isoformat(),
@@ -2050,7 +2112,7 @@ def _apply_result_payload(
     )
 
 
-def _apply_unsolved_payload(data: dict[str, Any]) -> None:
+def _apply_unsolved_payload(data: Payload) -> None:
     """The not-run half: every solved key present and inert.
 
     The payload keys are frozen, so a solve that never ran publishes the
@@ -2086,8 +2148,8 @@ def _ecl110_legacy_payload(
     reason: str,
     heat_pump_on: bool,
     displace_int: int,
-    current_action: dict[str, Any],
-) -> dict[str, Any]:
+    current_action: CurrentAction,
+) -> Ecl110Payload:
     """The legacy JSON command body, over the action passed in.
 
     Takes ``current_action`` as a value rather than reading it off the
@@ -2137,7 +2199,7 @@ async def _publish_ecl110_topics(
     qos: Any,
     retain: Any,
     displace_int: int,
-    legacy_payload: dict[str, Any],
+    legacy_payload: Ecl110Payload,
 ) -> None:
     """Write the displace command to whichever ECL110 topics are configured.
 
@@ -2496,7 +2558,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # built on stale weather can say so. None means fresh.
         self._weather_stale_since: datetime | None = None
         self._weather_outage_cycles: int = 0
-        self._current_action: dict[str, Any] = {}
+        self._current_action: CurrentAction = {}
         self._unsub_timer: Any = None
         # Fire-and-forget tasks (store saves, listener registrations), held
         # so shutdown can let them finish instead of orphaning them against
@@ -2534,7 +2596,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
         ctx = getattr(self, "_ctx", self)
-        def planned() -> dict[str, Any]:  # the plan's action, one read for both observers
+        def planned() -> CurrentAction:  # the plan's action, one read for both observers
             return self._current_action or {}
         # DHW state
         self._dhw_temperature: float | None = None
@@ -2706,13 +2768,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
         # #39: the price tiles, refreshed one per scheduled solve.
-        self._price_tiles: dict[str, dict[str, Any]] = {}
+        self._price_tiles: dict[str, PriceTile] = {}
         self._price_tile_cursor = 0
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
         # a diagnosis is about the interval that just happened.
         self._last_interval_record: dict[str, Any] | None = None
-        self._last_diagnosis: dict[str, Any] | None = None
+        self._last_diagnosis: DiagnosisReport | None = None
 
         # --- Capacity tariff (item 8) --------------------------------------
         self._peak_tracker = PeakTracker()
@@ -2721,14 +2783,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._peak_guard = GuardState()
         self._unsub_peak_guard: Callable[[], None] | None = None
         self._guard_last_fold: datetime | None = None
-        self._fuse_advisor: dict[str, Any] = {}
+        self._fuse_advisor: FuseAdvisor = {}
         self._fuse_advisor_at: datetime | None = None
         self._outage_recovery_until: datetime | None = None
         self._outage_dhw_until: datetime | None = None
 
         # --- PV self-consumption (item 9) ----------------------------------
         self._pv_surplus: np.ndarray | None = None
-        self._pv_summary: dict[str, Any] = {}
+        self._pv_summary: Pv = {}
         self._pv_production: float | None = None
 
     def _init_frequency(self) -> None:
@@ -2892,7 +2954,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._config.get(CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX)
         )
         self._ecl110_current_displace: float = 0.0
-        self._ecl110_last_payload: dict[str, Any] = {}
+        self._ecl110_last_payload: Ecl110Payload = {}
         self._unsub_ecl110_state: Any = None
     @property
     def mode(self) -> str:
@@ -3103,7 +3165,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                         sorted(set(day_types)), level
                     )
                 )
-    def _dhw_mixed_water(self) -> dict[str, Any]:
+    def _dhw_mixed_water(self) -> DhwMixed:
         """#28: what the tank actually holds, in shower terms.
 
         ``V·(T_tank − T_inlet)/(40 − T_inlet)`` litres of 40 °C water — the
@@ -3122,11 +3184,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             params.dhw_tank_volume * max(0.0, float(tank) - inlet) / (40.0 - inlet)
         )
         flow = _as_float(ctx._config.get(CONF_SHOWER_FLOW_LPM), DEFAULT_SHOWER_FLOW_LPM)
-        out = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
+        out: DhwMixed = {"litres_40c": round(litres, 1), "tank_temperature": round(float(tank), 1)}
         if flow > 0:
             out["shower_minutes"] = round(litres / flow, 1)
         return out
-    def _dhw_setpoint_sweep(self) -> dict[str, Any]:
+    def _dhw_setpoint_sweep(self) -> DhwAdvisor:
         """#9: replay candidate setpoints against everything learned.
 
         Read-only. For each candidate: a day of standby loss at that
@@ -3179,8 +3241,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # the candidate stores at, so the term is candidate-independent and
         # cannot disturb the ranking.
         draw_day_kwh = params.dhw_draw_power * 24.0
-        candidates = []
-        best: dict[str, Any] | None = None
+        candidates: list[DhwCandidate] = []
+        best: DhwCandidate | None = None
         for setpoint in range(48, 61, 2):
             t = float(setpoint)
             standby_kwh = (
@@ -3196,7 +3258,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # its usable band at all?
             usable_kwh = c_dhw * max(t - params.dhw_min_temp, 0.0)
             meets = usable_kwh >= heaviest
-            entry = {
+            entry: DhwCandidate = {
                 "setpoint": setpoint,
                 "cost_per_day": round(cost_day, 2),
                 "meets_heaviest_window": meets,
@@ -3214,7 +3276,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             best = candidates[-1]
         return {
             "current_setpoint": params.dhw_setpoint,
-            "recommended_setpoint": (best or {}).get("setpoint"),
+            "recommended_setpoint": best["setpoint"] if best else None,
             "covers_heaviest_window": covers,
             "heaviest_window_kwh": round(heaviest, 2),
             "candidates": candidates,
@@ -3596,7 +3658,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         threshold: float = 0.05,
         reasons: list[str] | None = None,
         other_powers: list[float] | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[PlanSlot]:
         """Collapse a per-step power schedule into contiguous heating slots.
 
         The step schedule is what the optimizer produces, but what a person
@@ -3615,7 +3677,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         shared steps. Zero-overlap slots carry no key, so captures without
         overlap are unchanged.
         """
-        slots: list[dict[str, Any]] = []
+        slots: list[PlanSlot] = []
         start_idx: int | None = None
 
         def close(end_idx: int) -> None:
@@ -3629,7 +3691,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 else timestamps[-1] + timedelta(hours=dt_hours)
             )
             duration = len(span) * dt_hours
-            slot = {
+            slot: PlanSlot = {
                 "start": timestamps[start_idx].isoformat(),
                 "end": end_ts.isoformat(),
                 "duration_hours": round(duration, 2),
@@ -3710,7 +3772,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             hi.append(round(float(value) + sigma, 2))
         return lo, hi
 
-    def _build_plan_views(self, result: OptimizationResult) -> dict[str, Any]:
+    def _build_plan_views(self, result: OptimizationResult) -> PlanViews:
         """Full-resolution space heating and DHW plans for the plan sensors.
 
         Same horizon as ``schedule`` / ``dhw_schedule`` (those keys used to
@@ -3718,7 +3780,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         full-horizon forecast, which those keys do not group.
         The legacy sensors still publish the raw step list, not the slots.
         """
-        dt_hours = getattr(self, "_ctx", self)._opt_config.dt_hours
+        dt_hours = _ctx_of(self)._opt_config.dt_hours
         timestamps = result.timestamps
         n = len(timestamps)
         if not n:
@@ -3790,7 +3852,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         def surplus_at(index: int) -> float | None:
             return surplus[index] if index < len(surplus) else None
 
-        space_forecast = [
+        space_forecast: list[SpaceForecastStep] = [
             {
                 "t": timestamps[i].isoformat(),
                 "price": prices[i],
@@ -3807,7 +3869,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             }
             for i in range(n)
         ]
-        dhw_forecast = [
+        dhw_forecast: list[DhwForecastStep] = [
             {
                 "t": timestamps[i].isoformat(),
                 "price": prices[i],
@@ -3822,7 +3884,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             for i in range(n)
         ]
 
-        space_plan = {
+        space_plan: SpacePlan = {
             "forecast": space_forecast,
             "slots": space_slots,
             "total_energy_kwh": round(sum(raw_space) * dt_hours, 2),
@@ -4388,7 +4450,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop))
-    def _input_health_view(self) -> dict[str, Any]:
+    def _input_health_view(self) -> InputHealthView:
         """Diagnostics for the input watchdog, published as entity attributes."""
         health = self._input_health
         if health is None:
@@ -6392,7 +6454,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         await self._open_meteo.async_refresh(dt_util.utcnow())
 
-    def _solar_forecast_view(self, hours: int = 48) -> list[dict[str, Any]]:
+    def _solar_forecast_view(self, hours: int = 48) -> list[SolarForecastStep]:
         """Upcoming irradiance as timestamped points, for sensor attributes."""
         if self._open_meteo is None or not self._open_meteo.forecast:
             return []
@@ -6400,7 +6462,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         series = self._open_meteo.forecast
         now = dt_util.utcnow()
         horizon = now + timedelta(hours=hours)
-        points: list[dict[str, Any]] = []
+        points: list[SolarForecastStep] = []
         for t, value in zip(series.times, series.values):
             if t < now or t > horizon:
                 continue
@@ -7219,14 +7281,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         reading = health.readings.get(key)
         return bool(reading is not None and reading.entity_id and reading.ok)
 
-    def _thermal_view(self) -> dict[str, Any]:
+    def _thermal_view(self) -> ThermalView:
         """Measured and modelled temperatures, and the solar input."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         state = ctx._current_state
         # Conditional keys, not null keys: installs without the two-tank
         # topology publish exactly the attributes they published before
         # (issue #40's conditional-key pattern).
-        two_tank: dict[str, Any] = {}
+        two_tank: ThermalView = {}
         if ctx._thermal_params.two_tank_modelled:
             two_tank = {
                 "two_tank_modelled": True,
@@ -7259,9 +7321,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "two_zone_enabled": ctx._thermal_params.two_zone_enabled,
             **_plan_settings_view(ctx._opt_config),
         }
-    def _dhw_view(self) -> dict[str, Any]:
+    def _dhw_view(self) -> DhwView:
         """Hot water configuration and current demand state."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         result = self._optimization_result
         # The optimizer may derive demand windows from the learned usage
@@ -7307,14 +7369,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if params.dhw_enabled
             else {},
         }
-    def _learning_view(self) -> dict[str, Any]:
+    def _learning_view(self) -> LearningView:
         """What the self-learning estimators currently believe.
 
         ``*_learned`` flags say whether a value is still the configured prior
         or has moved, which is the difference between "the default is wrong"
         and "the house really is like this".
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         return {
             "dhw_cooling_rate": round(self._dhw_learner.cooling_rate, 3),
             "dhw_cooling_samples": self._dhw_learner.cooling_samples,
@@ -7405,7 +7467,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 ),
             },
         }
-    def _measurement_view(self) -> dict[str, Any]:
+    def _measurement_view(self) -> MeasurementView:
         """Optional measured inputs. All ``None`` on an install without them."""
         return {
             "measured_power": self._measured_power,
@@ -7414,7 +7476,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_power_available": self._measured_power is not None,
         }
 
-    def _grid_view(self) -> dict[str, Any]:
+    def _grid_view(self) -> GridView:
         """Prices, the capacity tariff and PV, i.e. what a kWh actually costs."""
         tariff = self._capacity_tariff()
         forecast = self._weather_forecast
@@ -7441,7 +7503,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # answer (#3), the live guard's state (#7) and the recovery
             # window (#22).
             "power_headroom": self._power_headroom(),
-            "fuse_advisor": dict(self._fuse_advisor),
+            "fuse_advisor": {**self._fuse_advisor},
             "peak_guard_suppressing": self._peak_guard.suppressing,
             "peak_guard_evidence": list(self._peak_guard.evidence),
             "outage_recovery_active": self._outage_recovery_active(
@@ -7453,13 +7515,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "peak_threshold_kw": round(self._peak_tracker.threshold_kw(tariff), 2),
             "peak_month": self._peak_tracker.month,
             "pv_enabled": bool(
-                getattr(self, "_ctx", self)._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
+                _ctx_of(self)._config.get(CONF_PV_ENABLED, DEFAULT_PV_ENABLED)
             ),
             "pv": self._pv_summary,
             "savings_months": self._ledger.savings_months(dt_util.now()),
         }
 
-    def _ecl110_view(self) -> dict[str, Any]:
+    def _ecl110_view(self) -> Ecl110View:
         """Heat-curve control state for the ECL110 integration."""
         return {
             "ecl110_command_topic": self._ecl110_command_topic,
@@ -7468,12 +7530,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "displace_value", self._ecl110_current_displace
             ),
             "ecl110_effective_displace": (
-                getattr(self, "_ctx", self)._current_state.ecl110_effective_displace
+                _ctx_of(self)._current_state.ecl110_effective_displace
             ),
             "ecl110_last_payload": self._ecl110_last_payload,
         }
 
-    def _external_heat_view(self) -> dict[str, Any]:
+    def _external_heat_view(self) -> ExternalHeatView:
         """Whether something other than the heat pump is charging the tanks."""
         return {
             "external_heat_active": self._external_heat.state.active,
@@ -7510,7 +7572,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         return topology.describe_setup(getattr(self, "_ctx", self)._config, self.hass.config.language)
 
-    def _mixing_valve_view(self) -> dict[str, Any]:
+    def _mixing_valve_view(self) -> MixingValveView:
         """The valve mode in force, and what a dumb valve should be set to.
 
         ``recommend_target`` has existed since v3.7.0 and nothing called it —
@@ -7518,7 +7580,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ratio feeding it is cheapest over dearest of the currently published
         prices, so the reason can say when storing is not worth much today.
         """
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         mode = params.mixing_valve_mode
         if not mixing_valve.is_throttling(mode):
@@ -7550,7 +7612,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Everything the entities read, assembled from the domain views."""
         result = self._optimization_result
 
-        data: dict[str, Any] = {
+        data: Payload = {
             "mode": self._mode,
             "current_action": self._current_action,
             "last_optimization": self._last_optimization,
@@ -7581,10 +7643,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._input_health_view,
             self._mixing_valve_view,
         ):
-            data.update(view())
+            data = {**data, **view()}
         data["heat_pump_power_series"], data["house_power_series"] = _power_windows(self)
-        data.update(self._away_state.as_dict())
-        data.update({k: round(v, 4) for k, v in self._energy_totals.items()})
+        data = {**data, **self._away_state.as_dict()}
+        data = {**data, **_energy_totals_view(self._energy_totals)}
         # The date the lifetime accumulators started: a number that answers
         # to no stated period reads as "very high", and this is the since.
         if self._energy_totals_since is None:
@@ -7615,7 +7677,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         else:
             _apply_unsolved_payload(data)
 
-        return cast(Payload, data)
+        return data
 
     # ==================================================================
     # Persistence for the new learners
@@ -7942,7 +8004,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             {"step": i, "reason": "safety"} for i in result.manual_released_dhw
         ]
 
-    def _manual_plan_state(self) -> dict[str, Any] | None:
+    def _manual_plan_state(self) -> ManualPlan | None:
         """The override state the plan sensors expose, or ``None`` when inactive.
 
         Expiry is judged at the snapped solve anchor, the same clock the
@@ -8371,7 +8433,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         )
         return amps * max(1, phases) * 230.0 / 1000.0
-    def _power_headroom(self) -> dict[str, Any]:
+    def _power_headroom(self) -> PowerHeadroom:
         """How many kW the house can draw right now without new cost (#5).
 
         ``min(fuse, capacity threshold) − current house draw``, clamped at
@@ -8430,7 +8492,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
             source = "planned power only (no meter)"
 
-        out: dict[str, Any] = {
+        out: PowerHeadroom = {
             "available": True,
             "limit_kw": round(limit, 3),
             "headroom_kw": round(max(0.0, limit - house_now), 3),
@@ -9419,7 +9481,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _pv_forecast(
         self, solar_rad: np.ndarray, n_steps: int
-    ) -> tuple[np.ndarray, dict[str, Any]]:
+    ) -> tuple[np.ndarray, Pv]:
         """Forecast PV surplus over the horizon."""
         config = self._pv_config()
         if not config.enabled or config.peak_kw <= 0:
@@ -10083,7 +10145,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         self._schedule_ledger_save()
 
-    def _contract_comparison(self, month: str | None = None) -> dict[str, Any]:
+    def _contract_comparison(self, month: str | None = None) -> ContractComparison:
         """This month's metered consumption settled under each contract (#23).
 
         ``month`` defaults to the current month; the month-freeze receipt
@@ -10105,7 +10167,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         imm_line = self._ledger.line(month, "immersion")
         kwh = spot_line["kwh"] + imm_line["kwh"]
         spot_cost = spot_line["sek"] + imm_line["sek"]
-        out: dict[str, Any] = {
+        out: ContractComparison = {
             "month": month,
             "kwh": round(kwh, 3),
             "hourly_spot_sek": round(spot_cost, 2),
@@ -10384,7 +10446,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._operation_score = sample
         self._schedule_ledger_save()
 
-    def _scores_view(self) -> dict[str, Any]:
+    def _scores_view(self) -> Scores:
         """#65: envelope, machine and operation on one 0–100 scale.
 
         Envelope is the house; it stays in the breakdown. Overall is
@@ -10435,7 +10497,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 round(float(np.mean(available)), 1) if available else None
             ),
         }
-    def _narrative_view(self) -> dict[str, Any]:
+    def _narrative_view(self) -> Narrative:
         """#29: the current plan grouped by reason, with rendered lines."""
         result = self._optimization_result
         if result is None or not result.timestamps:
@@ -10503,13 +10565,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "hour_of_day": now.hour + now.minute / 60.0,
             },
         }
-    async def async_diagnose_interval(self) -> dict[str, Any] | None:
+    async def async_diagnose_interval(self) -> DiagnosisReport | None:
         """Service/button entry for #52; publishes on the insight view.
 
         The last SETTLED interval, from a snapshot on the loop: the worker
         gets copies, never this object (#1529).
         """
-        report: dict[str, Any] | None = await _await_process(
+        report: DiagnosisReport | None = await _await_process(
             self.hass,
             diagnosis.diagnose_record,
             *_diagnose_payload(self),
@@ -10587,7 +10649,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "computed_at": dt_util.now().isoformat(timespec="seconds"),
         }
 
-    def _insight_view(self) -> dict[str, Any]:
+    def _insight_view(self) -> Insight:
         """Everything T6 publishes, in one additive block."""
         reports = self._month_reports
         return {
@@ -10758,7 +10820,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "Commanded compressor frequency %.1f Hz via %s", target, entity_id
         )
 
-    def _freq_view(self) -> dict[str, Any]:
+    def _freq_view(self) -> FreqControl:
         """#61's publication: the map, the stage, and what control WOULD do.
 
         The recommendation publishes in observe mode too — that is the
@@ -10778,7 +10840,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             exhausted = self._freq_map.evidence_exhausted(
                 target, hz_min, hz_max
             )
-        view = {
+        view: FreqControl = {
             "mode": mode,
             "fallback_active": bool(self._freq_fallback),
             "reported_hz": reported,
@@ -11030,9 +11092,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     # Virtual battery view (item 20)
     # ==================================================================
 
-    def _battery_view(self) -> dict[str, Any]:
+    def _battery_view(self) -> Battery:
         """Publish the thermal stores as a battery."""
-        ctx = getattr(self, "_ctx", self)
+        ctx = _ctx_of(self)
         params = ctx._thermal_params
         cop = self._thermal_model.compute_cop(
             ctx._current_state.outdoor_temperature

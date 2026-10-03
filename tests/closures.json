@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 70.0,
+   "seconds": 92.3,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 13.5,
+   "seconds": 17.0,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.0,
+   "seconds": 5.1,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 24.5,
+   "seconds": 23.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,11 +22,11 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 16.5,
+   "seconds": 32.3,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 216.3,
+   "seconds": 229.3,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 517.7,
+   "seconds": 501.7,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -50,15 +50,15 @@
    "rc": 0
   },
   "tests/open_meteo.py": {
-   "seconds": 0.2,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 128.2,
+   "seconds": 191.6,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.5,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/solar_alignment.py": {
@@ -66,19 +66,19 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 478.7,
-   "rc": 0
+   "seconds": 639.0,
+   "rc": 1
   },
   "tests/structure.py": {
-   "seconds": 3.1,
+   "seconds": 9.4,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 15.6,
+   "seconds": 31.5,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.3,
+   "seconds": 3.4,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,11 +86,11 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.4,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 0.7,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/wood_advisor.py": {
@@ -98,15 +98,15 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 213.4,
+   "seconds": 219.5,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 15.9,
+   "seconds": 5.0,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 80.2,
+   "seconds": 81.3,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -140,6 +140,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -374,6 +375,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -459,6 +461,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -502,6 +505,7 @@
    "VERSION",
    "blueprints/automation/charge_ev_from_grid_headroom.yaml",
    "blueprints/automation/economy_mode_on_price_peak.yaml",
+   "blueprints/automation/notifications.yaml",
    "blueprints/automation/notify_on_manual_plan.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
@@ -546,6 +550,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -648,6 +653,7 @@
    "tests/requirements-build.txt",
    "tests/requirements-ci.txt",
    "tests/requirements-coverage.txt",
+   "tests/requirements-nightly-ha.txt",
    "tests/requirements-typing.txt",
    "tests/run.sh",
    "tests/seam_map.json",
@@ -676,7 +682,8 @@
    "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
-   "tools/replay/synthesize.py"
+   "tools/replay/synthesize.py",
+   "tools/site/package-lock.json"
   ],
   "tests/env_drift.py": [
    "VERSION",
@@ -732,6 +739,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -859,6 +867,7 @@
    "tests/hastub/homeassistant/util/dt.py"
   ],
   "tests/features.py": [
+   "blueprints/automation/notifications.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
    "custom_components/heatpump_optimizer/away.py",
@@ -900,6 +909,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -932,6 +942,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "docs/automations.md",
    "tests/dst_checks.py",
    "tests/features.py",
    "tests/fixtures/localtuya_local_dp.json",
@@ -1045,6 +1056,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -1210,6 +1222,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -1282,6 +1295,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1471,6 +1485,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/presets.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -1536,6 +1551,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -1581,6 +1597,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
@@ -1651,6 +1668,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -1788,6 +1806,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -1841,6 +1860,7 @@
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/price_model.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
@@ -2005,6 +2025,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -2311,6 +2332,7 @@
    "VERSION",
    "blueprints/automation/charge_ev_from_grid_headroom.yaml",
    "blueprints/automation/economy_mode_on_price_peak.yaml",
+   "blueprints/automation/notifications.yaml",
    "blueprints/automation/notify_on_manual_plan.yaml",
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
@@ -2355,6 +2377,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -2401,6 +2424,7 @@
    "docs/img/marginal-cop.svg",
    "docs/index.html",
    "docs/setup.md",
+   "docs/site/docs.css",
    "tests/doc_claims.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -2439,7 +2463,10 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
-   "tools/release/stamp.py"
+   "tools/release/stamp.py",
+   "tools/site/build_docs.mjs",
+   "tools/site/package-lock.json",
+   "tools/site/package.json"
   ],
   "tests/finite_boundary.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -2483,6 +2510,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -2704,6 +2732,7 @@
    "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/name_match.py",
    "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/notifier.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
@@ -2770,6 +2799,9 @@
   ],
   "tests/entities.py": [
    "LICENSE"
+  ],
+  "tests/doc_claims.py": [
+   "docs/site/docs.css"
   ]
  }
 }

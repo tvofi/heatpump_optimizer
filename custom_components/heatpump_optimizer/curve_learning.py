@@ -33,6 +33,7 @@ from typing import Any
 import numpy as np
 
 from .drift import stored_instant
+from .payload import HeatCurve
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -123,7 +124,7 @@ class CurveLearner:
         self._last_step_at = now.isoformat()
         _LOGGER.info("Curve bias stepped to %.2f K", self.bias)
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> HeatCurve:
         return {
             "bias_k": round(self.bias, 2),
             "comfortable_days": self.comfortable_days,

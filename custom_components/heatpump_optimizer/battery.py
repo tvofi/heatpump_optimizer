@@ -30,6 +30,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .const import WOOD_TANK_MAX_TEMP
+from .payload import Battery, BatteryComponent
 
 
 @dataclass
@@ -72,7 +73,7 @@ class StorageComponent:
             0.0, self.loss_kw_per_c * (self.temperature - self.ambient_temperature)
         )
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> BatteryComponent:
         return {
             "name": self.name,
             "temperature": round(self.temperature, 2),
@@ -145,7 +146,7 @@ class VirtualBattery:
         lost = self.discharge_rate_kw * hold_hours
         return max(0.0, min(1.0, (stored - lost) / stored))
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> Battery:
         autonomy = self.hours_of_autonomy
         return {
             "stored_energy_kwh": round(self.stored_kwh, 2),
@@ -180,7 +181,7 @@ COMPONENT_READINGS: dict[str, str] = {
 }
 
 
-def label_measured(view: dict[str, Any], reading_ok: Any) -> dict[str, Any]:
+def label_measured(view: Battery, reading_ok: Any) -> Battery:
     """Say which of the battery's stores stand on a thermometer.
 
     Every component temperature comes out of ``ThermalState``, and a field
@@ -201,10 +202,11 @@ def label_measured(view: dict[str, Any], reading_ok: Any) -> dict[str, Any]:
     modelled: list[str] = []
     measured: list[str] = []
     for component in view.get("components") or []:
-        key = COMPONENT_READINGS.get(component.get("name"))
+        name = component.get("name", "")
+        key = COMPONENT_READINGS.get(name)
         ok = bool(flags.get(key)) if key else True
         component["measured"] = ok
-        (measured if ok else modelled).append(component.get("name"))
+        (measured if ok else modelled).append(name)
     view["measured_components"] = measured
     view["modelled_components"] = modelled
     return view
