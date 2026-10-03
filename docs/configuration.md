@@ -28,22 +28,24 @@ thermal model gets its starting values:
 
 ```mermaid
 flowchart TD
-    A["1 · Basics<br/>name, price source (token or entity),<br/>weather entity"] --> B["Optional sensors<br/>indoor/outdoor temperature, on/off switch,<br/>solar, hot water, buffer, pump signals"]
-    B --> M{"Menu: Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
-    M -- "Quick setup (recommended)" --> Q["Five house toggles, the building<br/>questionnaire, then entity pre-fill"]
-    Q --> M
-    M -- "Finish setup now" --> R["Review &amp; confirm<br/>(read-only summary)"]
-    M -- "Continue setup" --> C2["2 · Temperatures<br/>target, minimum, maximum,<br/>day and night comfort, day hours"]
-    C2 --> C{"3 · How do you want to<br/>describe your building?"}
-    C -- "Describe my building<br/>(recommended)" --> D["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
-    D --> E["Your heat pump<br/>nominal COP,<br/>max power, min power"]
-    C -- "Enter thermal values<br/>directly (expert)" --> F["Thermal model<br/>masses, heat loss, COP,<br/>power limits, interval, weights"]
-    F --> G["Two-zone and solar<br/>per-floor masses and losses,<br/>buffer tank, windows, orientation"]
-    E --> H["4 · Hot water<br/>tank, setpoint, minimum,<br/>time frames, anti-legionella"]
-    G --> H
-    H --> I["5 · Weather sensitivity<br/>wind and rain"]
-    I --> R
-    R --> J(["Confirming creates the entry —<br/>the first plan is solved within one optimization interval"])
+    A["1 · Basics<br/>name, price source (Tibber token or price entity),<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, on/off switch, solar,<br/>tank probes, pump signals"]
+    B --> M{"3 · Finish setup now? A menu:<br/>Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
+    B -. "only if another entry turned<br/>the pre-fill offer on" .-> P
+    M -- "Quick setup (recommended)" --> Q["Quick setup<br/>five house toggles and<br/>the building questionnaire"]
+    Q --> P["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
+    P --> M
+    M -- "Finish setup now" --> R["Review and confirm<br/>(read-only summary)"]
+    M -- "Continue setup" --> T["4 · Temperatures<br/>target, band, day and night comfort,<br/>day hours"]
+    T --> C{"5 · How do you want to<br/>describe your building?"}
+    C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
+    E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
+    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
+    F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
+    H --> I
+    I --> K["7 · Weather sensitivity<br/>wind and rain"]
+    K --> R
+    R --> J(["Confirming creates the entry:<br/>the first plan is solved within<br/>one optimization interval"])
 ```
 
 The menu's **Quick setup (recommended)** answers five house toggles plus the
@@ -73,6 +75,13 @@ reported as a connection problem rather than as a bad token.
 | Tibber API token | — (**required with the Tibber source**) | Reads your hourly electricity prices. Create one at developer.tibber.com. The field still shows when the price source is a price entity — not needed then, so leave it empty. |
 | Price entity | — (**required with the price-entity source**) | A `sensor` publishing the current electricity price, read instead of Tibber. |
 | Weather forecast | — (**required**) | A `weather` entity supplying outdoor temperature, wind and rain for the next 24 hours. The optimizer plans ahead, so a forecast is not optional. |
+
+### 2 · Optional sensors
+
+Every picker on this second screen is optional; skip any you do not have. Without a sensor the optimizer uses its model, or leaves the one feature that needs the sensor dormant.
+
+| Setting | Default | What it means |
+|---|---|---|
 | Indoor temperature sensor | none | The real room temperature. Without it the optimizer trusts its own model, which drifts over time — this is the sensor worth finding first. |
 | Outdoor temperature sensor | none | A local thermometer beats the forecast for the current hour. |
 | Heat pump on/off switch | none | A `switch` the optimizer may turn off during expensive hours. Without it — and without the ECL110 or frequency-control paths — the plan is published on sensors for your own automations to act on ([worked examples](automations.md)). |
@@ -95,7 +104,11 @@ nothing is published or subscribed until a topic is set (see
 [ecl110.md](ecl110.md)); an install without an ECL110 never touches the
 topics.
 
-### 2 · Temperatures
+### 3 · The finish menu
+
+After the optional sensors the flow asks **Finish setup now?** with three answers, drawn in the diagram above: **Quick setup (recommended)**, **Continue setup** and **Finish setup now**. Quick setup and its pre-fill return to this menu; Continue setup runs the screens numbered 4 to 7 below; Finish setup now goes to the review. Nothing else on this menu has fields of its own.
+
+### 4 · Temperatures
 
 The gap between your target and your minimum is what makes savings possible:
 the wider it is, the further the house may coast through an expensive hour.
@@ -117,7 +130,7 @@ violation: a minimum above the target, a maximum below it, a night temperature
 above the day temperature, and a day window that never opens (start at or after
 end). The same checks run on the options page later.
 
-### 3 · Your building — two ways to answer
+### 5 · Your building — two ways to answer
 
 **Describe my building (recommended).** Six questions with answers a homeowner
 knows, from which the thermal masses, the heat-loss coefficient and the slab
@@ -183,7 +196,7 @@ Filling in any of the upper mass, lower mass, inter-zone transfer or radiator
 share is what turns the two-zone model on. That is why this page is skipped on
 the questionnaire path.
 
-### 4 · Hot water
+### 6 · Hot water
 
 Tell the optimizer when you actually need hot water. It then guarantees a
 usable tank temperature during those periods and heats in the cheapest hours
@@ -209,7 +222,7 @@ Per-weekday windows are an options-page feature (see
 single field takes the same grammar, including day selectors such as
 `weekdays 06:00-08:30, weekend 08:00-09:30`.
 
-### 5 · Weather sensitivity
+### 7 · Weather sensitivity
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|

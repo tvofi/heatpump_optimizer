@@ -51,7 +51,32 @@ Optimizer** (from HACS or a manual install; see the
 
 The first two screens are the only required answers in the whole flow. After
 them, the flow asks how you want to finish, and each of the three answers
-still ends with a working entry.
+still ends with a working entry. The whole flow, as the integration walks it:
+
+```mermaid
+flowchart TD
+    A["1 · Basics<br/>name, price source (Tibber token or price entity),<br/>weather entity"] --> B["2 · Optional sensors<br/>temperatures, on/off switch, solar,<br/>tank probes, pump signals"]
+    B --> M{"3 · Finish setup now? A menu:<br/>Quick setup (recommended) ·<br/>Continue setup · Finish setup now"}
+    B -. "only if another entry turned<br/>the pre-fill offer on" .-> P
+    M -- "Quick setup (recommended)" --> Q["Quick setup<br/>five house toggles and<br/>the building questionnaire"]
+    Q --> P["Heat pump entities<br/>read from a device<br/>(leave the pick empty to skip)"]
+    P --> M
+    M -- "Finish setup now" --> R["Review and confirm<br/>(read-only summary)"]
+    M -- "Continue setup" --> T["4 · Temperatures<br/>target, band, day and night comfort,<br/>day hours"]
+    T --> C{"5 · How do you want to<br/>describe your building?"}
+    C -- "Describe my building<br/>(recommended)" --> E["Questionnaire<br/>structure, era, foundation,<br/>heated area, emitters"]
+    E --> F["Heat pump basics<br/>nominal COP,<br/>max power, min power"]
+    C -- "Enter thermal values<br/>directly (expert)" --> G["Thermal model<br/>masses, loss coefficient,<br/>COP, power limits"]
+    G --> H["Two-zone and solar<br/>per-floor masses, buffer tank,<br/>windows, orientation"]
+    F --> I["6 · Hot water<br/>tank, setpoint, time frames,<br/>anti-legionella"]
+    H --> I
+    I --> K["7 · Weather sensitivity<br/>wind and rain"]
+    K --> R
+    R --> J(["Confirming creates the entry:<br/>the first plan is solved within<br/>one optimization interval"])
+```
+
+Every route ends on the same read-only review screen, and confirming there is
+what creates the entry.
 
 ## Screen 1 · Price source and weather
 
@@ -95,7 +120,7 @@ with three answers:
 |---|---|
 | **Quick setup (recommended)** | One page of questions about the house, then the heat pump's entities are read automatically. See [below](#quick-setup-recommended). |
 | **Continue setup** | The full wizard: temperatures, the building, the heat pump, hot water, weather sensitivity. See [below](#continue-setup--the-full-wizard). |
-| **Finish setup now** | Create the entry immediately with shipped defaults, and refine everything later in Options. |
+| **Finish setup now** | Go straight to the review screen, then create the entry with shipped defaults; refine everything later in Options. |
 
 Two things worth knowing about this menu:
 
@@ -226,7 +251,7 @@ target, a night above the day temperature, and so on) run here too.
 ## Finish setup now
 
 **Finish setup now** skips the questions and creates the entry with shipped
-defaults, showing one last overview of what will be created:
+defaults once you confirm one last overview of what will be created:
 
 ![The overview: a read-only summary of the system as the flow configured it](setup/08-setup-overview.png)
 

@@ -216,7 +216,7 @@ footer .brand { font-size: 1rem }
     <a class="btn ghost" href="#docs">Read the documentation</a>
   </div>
   <figure>
-    <div class="stage chart"><img src="img/card-plan-chart.png" data-repo="docs/img/card-plan-chart.png" width="1864" height="1280" alt="The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose"></div>
+    <div class="stage chart"><img src="img/card-plan-chart.png" data-repo="docs/img/card-plan-chart.png" width="1864" height="1402" alt="The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose"></div>
     <figcaption data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">The next 24 hours as the optimizer sees them — price, forecast, solar, and the slots it picked for heating and for hot water.</figcaption>
   </figure>
   <div class="tiles" aria-label="At a glance">
@@ -236,25 +236,25 @@ footer .brand { font-size: 1rem }
       <p>A 24-hour model-predictive plan is re-solved on every interval against the full forecast trajectory, not against the weather right now. Space heating and hot water share one compressor, so they are planned against each other rather than one after the other.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/></svg></span>
       <h3 data-feature>Learns your house.</h3>
-      <p>The heat-loss scale, tank cooling rates, the COP curve and its defrost derate, the solar aperture, internal gains … are all estimated from your own house. Every learner is snapshotted weekly (the last eight are kept), and a drift watchdog can roll them back to the last healthy snapshot.</p></article>
+      <p>The heat-loss scale, tank cooling rates, the COP curve and its defrost derate, the solar aperture, internal gains, how the loss splits between floors, your hot-water draw statistics, your revealed comfort preference, and a cool-only heat-curve correction are all estimated from your own house. Every learner is snapshotted weekly (the last eight are kept), and a drift watchdog can roll them back to the last healthy snapshot.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></span>
       <h3 data-feature>Knows what your electricity actually costs.</h3>
-      <p>Tibber spot prices, time-of-use grid transfer fees, the monthly capacity (effekt) tariff and its billing clock, PV self-consumption priced at what consuming actually costs you … a contract comparison settles the month three ways so you can see what your tariff choice is worth.</p></article>
+      <p>Tibber spot prices, time-of-use grid transfer fees, the monthly capacity (effekt) tariff and its billing clock, PV self-consumption priced at what consuming actually costs you, and a learned diurnal price prior for the part of the horizon that has not been published yet. A live peak guard and a main-fuse headroom advisor act inside the metering window the plan never saw, and a contract comparison settles the month three ways so you can see what your tariff choice is worth.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4v6a4 4 0 0 0 4 4h8a4 4 0 0 1 4 4v2"/><circle cx="4" cy="4" r="1.5"/><circle cx="20" cy="20" r="1.5"/></svg></span>
       <h3 data-feature>Handles real plumbing.</h3>
-      <p>A mixing valve is what lets a buffer tank store anything, so it is modelled explicitly. A wood furnace tank is a store of its own, drawn wood-first while it is usable … circulation pumps — the hot-water loop and the space pump — are scheduled instead of left running.</p></article>
+      <p>A mixing valve is what lets a buffer tank store anything, so it is modelled explicitly. A wood furnace tank is a store of its own, drawn wood-first while it is usable, with an optional hot-water inlet coil. Your hydronic layout is picked from a catalog of drawn arrangements rather than described in prose, and circulation pumps — the hot-water loop and the space pump — are scheduled instead of left running.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.5 6 11a6 6 0 0 1-12 0c0-4.5 6-11 6-11z"/></svg></span>
       <h3 data-feature>Hot water that fits your household.</h3>
-      <p>Hot water is guaranteed inside demand time frames rather than kept permanently hot, which is where most of the saving comes from … a heavy-day (90th percentile) target so the second shower is not the one that runs cold.</p></article>
+      <p>Hot water is guaranteed inside demand time frames rather than kept permanently hot, which is where most of the saving comes from. <span>Draw statistics are learned per window, with a heavy-day (90th percentile) target so the second shower is not the one that runs cold.</span></p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16"/><path d="M8 15l3-4 3 2 5-6"/></svg></span>
       <h3 data-feature>Shows its work.</h3>
       <p>The plan is published as sentences grouped by reason, and graded 0–100 across envelope, machine and operation. Energy and cost accumulate into the Energy dashboard split by hot water versus space heating.</p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="3"/><path d="M8 12h8"/><path d="M12 9v6"/></svg></span>
       <h3 data-feature>You stay in charge.</h3>
-      <p>The card's editor pins exact run slots for up to 20 hours and the optimizer plans around them; a what-if simulator prices a comfort change before you commit to it … it observes and advises until you explicitly turn writing on.</p></article>
+      <p>The card's editor pins exact run slots for up to 20 hours and the optimizer plans around them; a what-if simulator prices a comfort change before you commit to it; a climate entity and a switch give you the ordinary Home Assistant controls. <span>Compressor frequency control is deliberately two-stage: it observes and advises until you explicitly turn writing on.</span></p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg></span>
       <h3 data-feature>Stays out of trouble.</h3>
-      <p>A staleness watchdog treats a sensor that stopped updating as missing and pauses learning rather than training on a flatline … Away and holiday mode sets back deeply and buys the recovery heat in the cheapest hours before you get home.</p></article>
+      <p>A staleness watchdog treats a sensor that stopped updating as missing and pauses learning rather than training on a flatline. <span>Away and holiday mode sets back deeply and buys the recovery heat in the cheapest hours before you get home.</span></p></article>
     <article class="feat" data-src="README.md#what-it-does"><span class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
       <h3 data-feature>Fits your Home Assistant.</h3>
       <p>Entity names are translated (English and Swedish) and follow your Home Assistant language, without touching entity ids or history. Monetary units follow your instance currency.</p></article>
@@ -270,9 +270,9 @@ footer .brand { font-size: 1rem }
     </picture>
   </figure>
   <div class="steps">
-    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Read</h3><p>Published hourly prices … temperature, wind, rain, forecast irradiance … indoor/outdoor temps, tank temps, power</p></div>
+    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Read</h3><p>Published hourly prices<br>Temperature, wind, rain, forecast irradiance<br>Indoor/outdoor temps, tank temps, power</p></div>
     <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Plan</h3><p>Solve: minimize cost + comfort penalty subject to comfort floor, tank limits, legionella clock, fuse and peak caps</p></div>
-    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Act, then learn</h3><p>Publish plan sensors, switch the heat pump, ECL110 displace / frequency advice … afterwards: compare prediction against reality, nudge the learned parameters</p></div>
+    <div class="step" data-src="README.md#how-it-works"><h3 data-copy>Act, then learn</h3><p>Publish plan sensors, switch the heat pump, ECL110 displace / frequency advice<br>Afterwards: compare prediction against reality,<br>nudge the learned parameters</p></div>
   </div>
 </section>
 
@@ -300,7 +300,7 @@ footer .brand { font-size: 1rem }
       <figcaption data-src="docs/dashboard-card.md#the-advisor-page">The Advisor tab is an inbox: what the integration would change to make your plan cheaper, ranked by what each change is worth per month.</figcaption>
     </figure>
     <figure role="tabpanel" id="p-dhw" aria-labelledby="t-dhw" hidden style="margin:0">
-      <div class="stage"><img src="img/card-dhw-band-weekly.png" data-repo="docs/img/card-dhw-band-weekly.png" width="2460" height="1280" loading="lazy" alt="The enlarged chart across a Friday and a Saturday, the hot-water tank's lower edge held at the minimum inside each day's own windows"></div>
+      <div class="stage"><img src="img/card-dhw-band-weekly.png" data-repo="docs/img/card-dhw-band-weekly.png" width="2360" height="1442" loading="lazy" alt="The enlarged chart across a Friday and a Saturday, the hot-water tank's lower edge held at the minimum inside each day's own windows"></div>
       <figcaption data-src="docs/dashboard-card.md#the-two-kinds-of-dashed-line">A weekly hot-water schedule — different windows per weekday — resolves to one day's windows at a time, so the floored stretch follows each timestamp's own weekday across midnight.</figcaption>
     </figure>
     <figure role="tabpanel" id="p-opt" aria-labelledby="t-opt" hidden style="margin:0">
@@ -313,7 +313,7 @@ footer .brand { font-size: 1rem }
 <section class="band" id="works-with" aria-labelledby="ww-h">
   <div class="sec-head"><span class="eyebrow">Works with</span><h2 id="ww-h">Ordinary Home Assistant entities, and nothing you have to buy</h2></div>
   <div class="cols3">
-    <div class="panel" data-src="README.md#requirements"><h3 data-copy>Prices</h3><p>A Tibber account with an API token … or a price entity — a Home Assistant price sensor such as Nord Pool exposing raw_today / raw_tomorrow</p></div>
+    <div class="panel" data-src="README.md#requirements"><h3 data-copy>Prices</h3><p>A Tibber account with an API token (developer.tibber.com), or a price entity — a Home Assistant price sensor such as Nord Pool exposing raw_today / raw_tomorrow</p></div>
     <div class="panel" data-src="README.md#requirements"><h3 data-copy>Weather</h3><p>A weather integration with hourly forecasts (Met.no or similar)</p></div>
     <div class="panel" data-src="README.md#requirements"><h3 data-copy>Your sensors</h3><p>Everything else — indoor and outdoor thermometers, tank probes, a power meter — is optional. The optimizer runs without them and gets steadily better with each one you add.</p></div>
   </div>
@@ -366,7 +366,7 @@ footer .brand { font-size: 1rem }
     <div class="lim" data-src="README.md#known-limitations"><h3>No discovery.</h3><p>You add the integration yourself and pick every entity it reads.</p></div>
     <div class="lim" data-src="README.md#known-limitations"><h3>Frequency control needs a number entity and your explicit say-so.</h3><p>The default Observe mode “learns and recommends but never writes”</p></div>
   </div>
-  <div class="note" data-src="DISCLAIMER.md#disclaimer"><h3>Savings figures are estimates.</h3><p>Every cost, saving and percentage this integration reports is the output of a model, computed against forecast prices and forecast weather … Treat the numbers as a guide to relative decisions, not as an accounting record.</p></div>
+  <div class="note" data-src="DISCLAIMER.md#disclaimer"><h3>Savings figures are estimates.</h3><p>Every cost, saving and percentage this integration reports is the output of a model, computed against forecast prices and forecast weather. <span>Treat the numbers as a guide to relative decisions, not as an accounting record.</span></p></div>
 </section>
 
 <section class="band" id="ai" aria-labelledby="ai-h">
@@ -400,8 +400,8 @@ footer .brand { font-size: 1rem }
 <footer><div class="wrap">
   <div class="row"><span class="brand"><svg aria-hidden="true" style="width:26px;height:26px"><use href="#dusk"/></svg>Heat Pump Cost Optimizer</span>
     <a href="https://github.com/tvofi/heatpump_optimizer">GitHub</a><a href="https://github.com/tvofi/heatpump_optimizer/blob/main/LICENSE">MIT License</a><a href="disclaimer.html">Disclaimer</a><a href="readme.html">README</a></div>
-  <p data-src="README.md#acknowledgement">This project began as a fork of strutsfarm/heatpump_optimizer … Both projects are MIT licensed.</p>
-  <p data-src="DISCLAIMER.md#disclaimer">This software controls real heating equipment … They, not this integration, are what protect your home.</p>
+  <p data-src="README.md#acknowledgement">This project began as a fork of strutsfarm/heatpump_optimizer at version 2.2.0. <span>Both projects are MIT licensed.</span></p>
+  <p data-src="DISCLAIMER.md#disclaimer">This software controls real heating equipment and makes claims about money. <span>Keep your heat pump's own thermostats, limits and safety controls active and correctly configured. They, not this integration, are what protect your home.</span></p>
 </div></footer>
 
 <script>
