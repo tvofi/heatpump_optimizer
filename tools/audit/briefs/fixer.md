@@ -126,11 +126,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 9. **A claim should be true; if wrong, correct it — anchored to a lane,
    function, marker or SHA, never a bare line number — and delete only when
-   no such correction exists.** Delete on sight, not as a last resort, when
-   the claim is only motivation or scaffolding the finished text doesn't
-   need. PR #386 took four repair rounds to correct 17 citations; only its
-   last two survivors — bare-line-number claims a later merge falsified, and
-   by then unneeded — were settled by deletion.
+   no such correction exists.** Delete on sight, not as a last resort, when the
+   claim is only motivation or scaffolding the finished text doesn't need.
 10. **If the wrong text is generated, fix the generator first, and run it.**
     Correcting prose a script emits leaves the script emitting the old text on
     its next run, so the correction is undone rather than kept — #539 found
@@ -169,9 +166,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     divergent, simplified, unverified, or a holder — and runs its contracts
     against both the stub and, nightly, the real package. **Before asserting
     that a test proves a production property, check whether the stub is what
-    satisfied it.** Four seats hit this in one day: no loop protection, no
-    `section`, no `state` on `SensorEntity`, a `NumberSelector` that
-    validated nothing.
+    satisfied it.**
 
     If your work depends on a symbol's upstream behaviour, add or read its
     contract rather than assuming; if you must extend the stub, argue the
@@ -221,7 +216,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
     accumulated plain vector adds against the scalar closure's `sum`:
     1-2 ulp apart, which diverged both of optimality's jac races on CI's
     3.14 runner while every 3.11 seat was green, because 3.11's `sum` is
-    plain accumulation — the seat was structurally blind, not unlucky.
+    plain accumulation.
     Make the twin call the scalar closure's own function per row, and put
     detector rows on the parity grid that separate the two summations
     (measured: ~12% of random three-term sums), so the interpreter class
@@ -234,6 +229,11 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
+17. **What a later round or seat reruns, or a body figure needs to be
+    reproduced, lands in this pull request** (tvofi, 2026-10-03): a harness in
+    `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
+    one-off probe may stay in scratch. `tools/audit/seat/tmp_paths.py` refuses
+    a tracked file tied to a temp or machine path.
 
 **When a structural budget blocks the work.** A `tests/structure.py` failure is
 a decision point, not a wall, and it has three answers rather than two: pay for

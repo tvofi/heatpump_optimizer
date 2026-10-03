@@ -36,19 +36,13 @@ cannot answer the second, you have not measured — you have expected.
 
 - **A sample is not a quantifier.** Five runs checked and reported as "every run"
   was false.
-- **Describing another artifact without opening it is the same defect.** A
-  boundary paragraph asserted that earlier work "is recorded" in three named
-  documents. It is not, in the great majority of cases, and none of the three was
-  opened before the sentence was written.
+- **Describing another artifact without opening it is the same defect.**
 - **Never print a conclusion beside a command** (`fixer.md` step 3): the
   `(empty means identical)` form shipped a commit message asserting untouched
   files that carried fourteen changed lines.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
-  not the check refused. Committed one line after the clause above was written:
-  the pre-flight refused a body carrying a closing keyword, printed `REFUSE`, and
-  the pull request was opened anyway, arming it to close the issue a merge
-  message had closed that morning. Use `check && publish` — and for the body
-  and the push, that `&&` is already wired as `tools/audit/push.sh` (#678).
+  not the check refused. Use `check && publish` — and for the body and the
+  push, that `&&` is already wired as `tools/audit/push.sh` (#678).
 
 A claim that turns out wrong is corrected under `fixer.md` step 9, never to a
 bare line number.
@@ -271,6 +265,12 @@ Take it only when `MODE: FULL` or `scope.run` names `tests/stress.py`
 
 You stamp at your discretion, with `stamp.py --push --push-key ~/.zcode/stamp-deploy.key`,
 never by hand or in a branch; rule 4 binds you.
+
+**An instrument the programme runs is a tracked, self-tested, code-owned file;
+a session-local copy is a defect** (tvofi, 2026-10-03). What merges, approves,
+carries, stamps, gates, watches CI or records state runs from the tree, never
+from scratch or `~/` — a merge queue is `tools/audit/seat/merge_train.py`.
+Your other reusable scripts land too, by `fixer.md` step 17.
 
 Two things are the owner's, and both are `CLAUDE.md`'s: a **structural budget
 raise**, confirmed before the push; and **policy**, this file included, approved

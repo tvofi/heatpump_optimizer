@@ -47,7 +47,7 @@
 # that is a NOTICE and rc 0, fail-soft by design, not a refusal.
 #
 # EVIDENCE. Every evidence*/ev-* subdirectory of a seat directory is moved
-# into --keep-dir (default /tmp/hpo-ev) before that seat directory is removed,
+# into --keep-dir (default $HPO_STATE_DIR/ev, outside every temp dir) before that seat directory is removed,
 # because verdicts cite those paths; the move is printed so the log carries
 # the new location. --dry-run prints every removal and every keep, moves
 # nothing, removes nothing. rc is 0 on every fail-soft path; rc 1 only when
@@ -65,7 +65,7 @@ TMP_ROOT="${WORKTREE_GC_TMP_ROOT:-/tmp}"
 MIN_AGE_DETACHED="${WORKTREE_GC_MIN_AGE:-3600}"
 ORPHAN_AGE="${WORKTREE_GC_ORPHAN_AGE:-7200}"
 VENV_AGE="${WORKTREE_GC_VENV_AGE:-86400}"
-KEEP_DIR_DEFAULT=/tmp/hpo-ev
+KEEP_DIR_DEFAULT=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/ev
 
 # --- self-test ---------------------------------------------------------------
 # approve_held_runs.sh's stub style: `git` and `gh` are stubs on PATH, no

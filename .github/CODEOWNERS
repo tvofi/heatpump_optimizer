@@ -69,6 +69,15 @@
 # branch that adds one cannot pass, and ownership is what stops a branch that
 # weakens the check and the ledger together (class R-register, #1759).
 /tools/audit/fold_ledger.py               @tvofi
+# The programme's instruments run from the orchestrator's machine: the merge
+# train, the verdict bus, the PR open/update/re-merge scripts, the seat venv
+# recipe, and the version stamp. They merge, approve, carry, stamp and record
+# state, and no required job restores them from the base, so ownership is what
+# stops a pull request that weakens one and its self-test together (tvofi,
+# 2026-10-03: an instrument the programme runs is tracked, self-tested and
+# code-owned).
+/tools/audit/seat/                        @tvofi
+/tools/release/                           @tvofi
 
 # --- The required-check enforcement surface (R6-D11-01, #1402). ---
 # The workflow files that hold the jobs whose status contexts the ruleset

@@ -35,10 +35,10 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
 9. **When the finding has no committed harness, that is itself a finding.**
-   Twice none existed: #373's
-   instrument was a shell `grep` in the issue's own body, nothing at tag
-   `audit-round2-evidence`; #258's probe only in a judge comment. A fixer who builds their own instrument must
-   disclose it as their own, not the finder's -- so do you, if you built one.
+   A fixer who builds their own instrument must disclose it as their own, not
+   the finder's -- so do you, if you built one. One you rebuilt because an
+   earlier copy lived outside the tree is named in the verdict, and lands
+   in-tree by `fixer.md` step 17.
    Read the judge ruling first: #290's brief prescribes a refused harness.
    A feature's harness is its judge's design: a requirement or on-device measurement it names and neither tests nor tvofi waived is `blocked <sha> harness: design-trace-missing <item>` (#1588).
 
