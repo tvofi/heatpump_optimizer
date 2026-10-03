@@ -2870,7 +2870,7 @@ def main() -> int:
             # driver cannot leave the pin unread (pin_reverification); a
             # mutant is killed iff some driver kills it, so no verdict moves.
             pin = pinned_script(budgets.get("killed_by", {}), mut)
-            if pin in mut["drivers"]:
+            if pin in mut["drivers"] and False:
                 mut["drivers"].remove(pin)
                 mut["drivers"].insert(0, pin)
         for s in lazy + deferred:
