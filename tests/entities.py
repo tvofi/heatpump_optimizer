@@ -29847,7 +29847,7 @@ _MUT_TS_OUT = (None if _MUT_TS_SITE is None else (
     _mut_tsite({}, _MUT_TS_SITE),
     _mut_tsite(_MUT_TRIAGE, dict(_MUT_TS_SITE, anchor=_MUT_PAYLOAD + "x"))))
 R.check(
-    "a site holding a survivor_triage mark is triaged and not drawn; a moved "
+    "a site holding a survivor_triage mark is recognised as triaged; a moved "
     "line, an unmarked site and an empty triage are not (R9-F10.13)",
     _MUT_TS_OUT == (True, False, False, False),
     f"payload mark site={'absent' if _MUT_TS_SITE is None else 'present'}, "
@@ -29909,27 +29909,37 @@ import random as _pv_random  # noqa: E402
 _mut_spool = getattr(_mut, "sampled_pool", None)
 _MUT_SP_FILE = [_mut.PRODUCTION / "payload.py"]
 _MUT_SP_REL = str(_MUT_SP_FILE[0].relative_to(_mut.ROOT))
-_MUT_SP_ARGS = ({"tests/entities.py": [_MUT_SP_REL]}, ["tests/entities.py"], None)
+_MUT_SP_J = _mut.TRIAGE_JUDGE if hasattr(_mut, "TRIAGE_JUDGE") else "tests/entities.py"
 
 
-def _mut_sp(triage):
+def _mut_sp(triage, scripts):
+    """(drivers of the payload mark's site in the pool or None, held count,
+    drivers of every other site in the pool)"""
+    closures = {s: [_MUT_SP_REL] for s in scripts}
     with _pv_ctx.redirect_stdout(_mut_io.StringIO()):
-        pool, held = _mut_spool(_MUT_SP_FILE, *_MUT_SP_ARGS, triage,
-                                _pv_random.Random(1), 10_000, 10_000)
-    return {m["anchor"] for m in pool}, held
+        pool, held = _mut_spool(_MUT_SP_FILE, closures, list(scripts), None,
+                                triage, _pv_random.Random(1), 10_000, 10_000)
+    mine = [m["drivers"] for m in pool if m["anchor"] == _MUT_PAYLOAD]
+    return (mine[0] if mine else None), held, [m["drivers"] for m in pool
+                                               if m["anchor"] != _MUT_PAYLOAD]
 
 
-_MUT_SP_MARKED, _MUT_SP_NONE = ((None, None), (None, None))
+_MUT_SP = None
 if _mut_spool is not None:
-    _MUT_SP_MARKED, _MUT_SP_NONE = _mut_sp(_MUT_TRIAGE), _mut_sp({})
+    _MUT_SP = (_mut_sp(_MUT_TRIAGE, (_MUT_SP_J, "tests/guard_pins.py")),
+               _mut_sp(_MUT_TRIAGE, (_MUT_SP_J,)),
+               _mut_sp({}, (_MUT_SP_J, "tests/guard_pins.py")))
 R.check(
-    "the sampled pool never holds a triage-marked site, and holds it again "
-    "once the mark is gone (R9-F10.13)",
-    _MUT_PAYLOAD not in (_MUT_SP_MARKED[0] or ()) and _MUT_SP_MARKED[1] == 1
-    and _MUT_PAYLOAD in (_MUT_SP_NONE[0] or ()) and _MUT_SP_NONE[1] == 0,
-    f"marked: in pool={_MUT_PAYLOAD in (_MUT_SP_MARKED[0] or ())}, "
-    f"held={_MUT_SP_MARKED[1]}; no triage: in pool="
-    f"{_MUT_PAYLOAD in (_MUT_SP_NONE[0] or ())}, held={_MUT_SP_NONE[1]}",
+    "a triage-marked site is driven by every driver but the one that judges "
+    "the marks, and left out when that is its only driver; an unmarked site "
+    "keeps it (R9-F10.13)",
+    _MUT_SP is not None
+    and _MUT_SP[0][0] == ["tests/guard_pins.py"] and _MUT_SP[0][1] == 1
+    and all(_MUT_SP_J in d for d in _MUT_SP[0][2])
+    and _MUT_SP[1][0] is None and _MUT_SP[1][1] == 1
+    and _MUT_SP[2][0] == [_MUT_SP_J, "tests/guard_pins.py"] and _MUT_SP[2][1] == 0,
+    f"marked, two drivers -> {_MUT_SP and _MUT_SP[0][:2]}; marked, only the "
+    f"judge -> {_MUT_SP and _MUT_SP[1][:2]}; no mark -> {_MUT_SP and _MUT_SP[2][:2]}",
 )
 _mut_ordpool = getattr(_mut, "order_pool_drivers", None)
 _MUT_OP_SITE = _mut_pv_site("x.py:ord K 0")

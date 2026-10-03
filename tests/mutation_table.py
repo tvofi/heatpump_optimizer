@@ -654,17 +654,16 @@ def survivor_gaps(survivors: list[dict], triage: dict):
     return gaps, equivalent
 
 
-def triaged_site(triage: dict, mut: dict) -> bool:
-    """True when a survivor_triage mark covers THIS site, so it is not driven.
+# The one driver whose checks judge a triage mark against the tree it runs in
+# ("every mark still names a mutant this tree generates", tests/entities.py):
+# a mutant on a marked line makes its own mark stale there, so that driver
+# reports it killed for the mark's sake and not for the code's.
+TRIAGE_JUDGE = "tests/entities.py"
 
-    A mark's staleness check (tests/entities.py, "every mark still names a
-    mutant this tree generates") reads the tree it runs in, and a mutant on
-    the marked line makes that mark stale there: the driver fails and the
-    mutant reads KILLED by a check that only saw its own mark's line change
-    (#1867's review: the payload.py mark, 1 of 2086 checks failing). A site
-    the audit already dispositioned has nothing for a driver to add and one
-    false kill to give, so the sampled pool leaves it out and says so.
-    """
+
+def triaged_site(triage: dict, mut: dict) -> bool:
+    """True when a survivor_triage mark covers THIS site, by the key and the
+    `old` pin every disposition uses (`disposition_matches`)."""
     return disposition_matches(triage.get(ledger_key(mut)), mut)
 
 
@@ -2296,11 +2295,11 @@ def sampled_pool(files: list[Path], closures: dict, allow: list[str],
                  touched: dict[str, set[int]] | None, triage: dict,
                  rng: random.Random, per_file: int,
                  cap: int) -> tuple[list[dict], int]:
-    """The sampled pool and how many drawable sites a triage mark held out.
+    """The sampled pool, and how many drawn sites a triage mark constrains.
 
-    A site holding a survivor_triage mark is not drawn (`triaged_site`): the
-    mark is judged against the tree it runs in, so a mutant on its line fails
-    the staleness check and reads killed. The count is printed by the caller.
+    A triaged site is still driven -- by every driver but `TRIAGE_JUDGE` -- so
+    a driver that kills an "equivalent" mutant refutes its mark. A site whose
+    only driver is that one is left out (R9-F10.13).
     """
     pool: list[dict] = []
     held = 0
@@ -2310,13 +2309,15 @@ def sampled_pool(files: list[Path], closures: dict, allow: list[str],
         if not drivers:
             print(f"  no recorded closure reaches {rel}; skipped")
             continue
-        drawn = anchor_sites(path.read_text(), drawable(path, rel, touched))
-        got = [m for m in drawn if not triaged_site(triage, m)]
-        held += len(drawn) - len(got)
+        got = anchor_sites(path.read_text(), drawable(path, rel, touched))
         rng.shuffle(got)
         for mut in got[:per_file]:
             mut["drivers"] = drivers
-            pool.append(mut)
+            if triaged_site(triage, mut):
+                held += 1
+                mut["drivers"] = [d for d in drivers if d != TRIAGE_JUDGE]
+            if mut["drivers"]:
+                pool.append(mut)
     rng.shuffle(pool)
     return pool[:cap], held
 
@@ -2799,8 +2800,9 @@ def main(argv: list[str] | None = None) -> int:
         pool, held_n = sampled_pool(files, closures, allow, touched, triage,
                                     rng, args.per_file, args.max)
         if held_n:
-            print(f"  {held_n} candidate site(s) hold a survivor_triage mark "
-                  f"and are not driven (triaged_site)")
+            print(f"  {held_n} drawn site(s) hold a survivor_triage mark: "
+                  f"{TRIAGE_JUDGE}, which would call them killed for the "
+                  f"mark's sake, is not one of their drivers")
         if not pool:
             print("  no mutant is both generatable and drivable")
             print("\nMUTATION TABLE PASSED (empty pool)")
