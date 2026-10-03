@@ -317,7 +317,7 @@ def solve_bands(
         target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
         floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
         config = {
-            "target_temp": min(config["target_temp"], target),
+            "target_temp": (config["target_temp"]),
             "min_temp": min(config["min_temp"], target),
             "comfort_temp_day": target,
             "comfort_temp_night": target,
