@@ -111,13 +111,15 @@ What the approval covers:
 - **Policy files** (POLICY_GLOBS): `tools/audit/briefs/fixer.md`, `tools/audit/briefs/fix-review.md`, `tools/audit/briefs/orchestrator.md`.
 - **Code-owned files**: `.github/CODEOWNERS`, `.github/workflows/governance.yml`, `docs/decisions/0012-process-diet-and-round-cadence.md`.
 
-Each policy file pays for its new lines inside its existing cap, by cutting a motivating anecdote the rule does not need. No cap is raised.
+Each policy file pays for its new lines inside its existing cap. The measured facts those cuts removed are relocated verbatim, with their sources, into the plan register (`docs/plan-2026-09-open-issues.md`, the #554, #536, #678 and #593 rows), which falls under the same approval. No cap is raised.
 
 `tools/audit/README.md` and `tools/audit/harnesses/README.md` are policy and untouched. `harnesses/README.md` still tables four instruments; `d907_kernel_band.py`, `hpo_ci_container_setup.sh` and now `thermal_parity.py` describe themselves in their headers.
 
 Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not added to `CODEOWNERS`, and decision 0013 stands unamended.
 
 ## Head
+
+`63829f7cf7374d36c10f9803bdba05b9557e5187` is one commit on `5c5f211d` (described below). It moves four measured facts, each verbatim with its source, from the policy cuts into `docs/plan-2026-09-open-issues.md`: #546's 4-of-7 into #554's row, the hastub stub list into #536's row, the ignored pre-flight `REFUSE` into #678's row, and the unopened-documents instance into #593's row. It also restores `fixer.md` step 18's scope to "a harness ... a driver or env recipe".
 
 `5c5f211db6af8963fbd8e511b68d64beecef7a50` merges `origin/main` `4ead5c97aa3cd96a08cc6c55fe386751b1c9b0e0` (#1877) into the round-3 commit `4e5364076bfed82a48d3d9ab17b37b9d1170f4ee`.
 
@@ -213,7 +215,7 @@ The round-3 commit sits on `fa735d6850bb07a7fd76f196935145960de171db`. That comm
 - `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`.
 - `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
 - Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`.
-  - `entities.py`: 2113 passed (at `5c5f211d`).
+  - `entities.py`: 2113 passed (at `63829f7c`).
   - `harness_headers.py`: 95 passed.
   - `open_meteo.py` and `solar_alignment.py`: passed.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
