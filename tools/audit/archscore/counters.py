@@ -123,8 +123,10 @@ def _pure(e: ast.AST | None, dead: set[str]) -> bool:
 
 def _fold(e: ast.AST, dead: set[str]):
     """``(True, value)`` for an effect-free expression reading no name but a PURE builtin, else
-    ``(False, None)``. No ``**`` or ``<<``, so evaluating it is bounded."""
-    if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.NamedExpr, ast.Lambda)) for n in ast.walk(e)) \
+    ``(False, None)``. No ``**``, ``<<`` or ``*``, so the value is no larger than the literals that spell
+    it and evaluating it is bounded (``"x" * 10**10`` and ``[0] * 99999999999`` are refused, not run)."""
+    if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.Mult, ast.MatMult, ast.NamedExpr, ast.Lambda))
+                                 for n in ast.walk(e)) \
             or any(isinstance(n, ast.Name) and n.id not in PURE for n in ast.walk(e)):
         return False, None
     try:
