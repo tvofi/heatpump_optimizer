@@ -23667,13 +23667,21 @@ def _pt_seams(docs: dict) -> "set[str]":
 
 
 _PT_ARM_IF = "${{ !cancelled() && steps.changed.outputs.governance == 'true' }}"
+_PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
 
 
 def _pt_armed(docs: dict) -> "set[str]":
-    _steps = docs["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    return {_g for _s in _steps if "GITHUB_TOKEN" in (_s.get("env") or {})
+    """Programs an arm step runs so that it can go red, as the Actions token (#1863 review:
+    `|| true`, `continue-on-error` or an empty token passed a key-presence read). A design
+    choice: the step carries only name/if/env/run, its run is exactly `node <prog>`."""
+    _job = docs["tests.yml"]["jobs"]["graders-head-copy"]
+    if "continue-on-error" in _job or {"GITHUB_TOKEN", "GH_TOKEN"} & set(_job.get("env") or {}):
+        return set()
+    return {_m.group(1) for _s in _job["steps"]
+            if set(_s) <= {"name", "if", "env", "run"} and _s.get("env") == _PT_ARM_ENV
             and str(_s.get("if", "")) == _PT_ARM_IF
-            for _g in _PT_PROG.findall(str(_s.get("run") or ""))}
+            for _m in [re.fullmatch(r"(?:node|python3) ([\w./-]+\.(?:mjs|py))", str(_s.get("run") or "").strip())]
+            if _m}
 
 
 def _pt_trigger(script: str, planted: str) -> str:
@@ -23731,6 +23739,29 @@ R.check(
     "and the arm without its token is refused (null control)",
     ".claude/workflows/policy_lint.mjs" in _PT_SEAMS - _pt_armed(_PT_NULL),
     "the predicate must read the step's env, not only its run line",
+)
+# Null control: an arm step that cannot go red, or runs as another principal, is unarmed.
+_PT_HIDERS = {
+    "run || true": lambda _j, _s: _s.update(run=_s["run"] + " || true"),
+    "step continue-on-error": lambda _j, _s: _s.update({"continue-on-error": True}),
+    "empty token": lambda _j, _s: _s["env"].update(GITHUB_TOKEN=""),
+    "a GH_TOKEN beside it": lambda _j, _s: _s["env"].update(GH_TOKEN="${{ secrets.OTHER }}"),
+    "job continue-on-error": lambda _j, _s: _j.update({"continue-on-error": True}),
+}
+
+
+def _pt_hidden(edit) -> bool:
+    _d = _pt_copy.deepcopy(_PT_DOCS)
+    _j = _d["tests.yml"]["jobs"]["graders-head-copy"]
+    edit(_j, next(_s for _s in _j["steps"] if "field_coverage.mjs" in str(_s.get("run") or "")))
+    return ".claude/workflows/field_coverage.mjs" not in _pt_armed(_d)
+
+
+_PT_UNHIDDEN = [_k for _k, _f in _PT_HIDERS.items() if not _pt_hidden(_f)]
+R.check(
+    "and an arm step that cannot go red, or runs without the Actions token, is refused (null control)",
+    not _PT_UNHIDDEN,
+    f"still counted as armed under: {_PT_UNHIDDEN}",
 )
 # The trigger's BEHAVIOUR, not its text (#1863 review: an else branch writing
 # `false`, or steps keyed on 'false', passed every check above and reopened
