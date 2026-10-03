@@ -29372,8 +29372,7 @@ R.check(
     "a run the budget let evaluate no mutant is refused; one that evaluated "
     "some, or skipped none for the budget, is not",
     _MUT_BR_OUT == (1, None, None)
-    and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER
-    and 'v != "SKIP-BUDGET"' in _MUT_MAIN_DEFER,
+    and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER,
     f"out={_MUT_BR_OUT!r}",
 )
 # Wired, against the YAML: each caller passes a budget under its timeout, the

@@ -2186,8 +2186,12 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     survives -- plus the EXCLUSIVE runs still owed by started mutants no driver
     has killed, ends by then. The first that does not fit closes the pool:
     it and every later one are SKIP-BUDGET, never started, so what ran is the
-    shuffled pool's prefix and not a sample biased to cheap drivers. A started
-    mutant always finishes, each run bounded by its driver's timeout.
+    shuffled pool's prefix and not a sample biased to cheap drivers. The cut
+    falls on an anchor boundary: a mutant is admitted with every queued site
+    of its anchor or not at all, since a disposition covers the whole anchor
+    and a split one can never be pinned. A started mutant always finishes.
+    Its sweep ends at its first timed-out driver, so a hang costs one
+    timeout over the estimate, not one per driver.
     """
     lock = threading.Lock()
     todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
@@ -2197,18 +2201,24 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     timed: list[list[str]] = [[] for _ in pool]
     queue = list(range(len(pool)))
     owed = [0.0]
+    granted: set[int] = set()
     own: list[int | None] = [None] * workers
 
     def admit() -> int | None:
         """The next mutant to start, under `lock`; None once none is left."""
         while queue:
             i = queue[0]
-            need = sum(cost.get(s, 0.0) for s in todo[i]) + owes[i]
-            if deadline is not None and clock() + need + owed[0] > deadline:
+            twins = [j for j in queue if "anchor" in pool[i]
+                     and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
+            need = sum(sum(cost.get(s, 0.0) for s in todo[j]) + owes[j]
+                       for j in twins)
+            if (i not in granted and deadline is not None
+                    and clock() + need + owed[0] > deadline):
                 for j in queue:
                     verdict[j] = "SKIP-BUDGET"
                 queue.clear()
                 return None
+            granted.update(twins)
             queue.pop(0)
             owed[0] += owes[i]
             if todo[i]:
@@ -2235,6 +2245,7 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
     def judge(i: int, script: str, hit: bool | None) -> None:
         if hit is None:
             timed[i].append(script)
+            todo[i].clear()
         elif verdict[i] is None and hit:
             verdict[i] = f"killed by {script}"
             owed[0] -= owes[i]
@@ -2253,28 +2264,53 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             if verdict[i] is None and settle and script not in settled:
                 settled.add(script)
                 settle(script)
-            if verdict[i] is None:
+            if verdict[i] is None and not timed[i]:
                 judge(i, script, drive(0, mut, script))
     return [(m, v or (f"SKIP-TIMED-OUT in {', '.join(t)}" if t else "LIVES"))
             for m, v, t in zip(pool, verdict, timed)]
 
 
 def budget_refusal(results: list[tuple[dict, str]]) -> int | None:
-    """Name every mutant the budget left unstarted; 1 when none was evaluated.
+    """Name every mutant the budget left unstarted; 1 when none was evaluated
+    for the budget or a timeout.
 
-    A run whose budget admitted no mutant measured nothing, and PASSED would
-    read as a measurement of nothing (R9-F10.12): it is refused instead. One
-    that evaluated some reports its cap over those, named as partial.
+    A run that measured nothing must not read as PASSED (R9-F10.12): when
+    every mutant is a SKIP and any was cut by the budget or timed out, the
+    run is refused, the reason counting each cause. One that evaluated some
+    reports its cap over those, named as partial (`partial_note`).
     """
     left = [m for m, v in results if v == "SKIP-BUDGET"]
+    timed = sum(1 for _, v in results if v.startswith("SKIP-TIMED-OUT"))
     for m in left:
         print(f"  NOT RUN {triage_key(m)} -- not started: it would have "
               f"overrun --budget-minutes")
-    if left and all(v.startswith("SKIP") for _, v in results):
-        print(f"\nMUTATION TABLE REFUSED -- --budget-minutes admitted none of "
-              f"{len(results)} mutant(s); nothing was measured")
+    if (left or timed) and all(v.startswith("SKIP") for _, v in results):
+        print(f"\nMUTATION TABLE REFUSED -- nothing was measured: {timed} "
+              f"mutant(s) timed out, {len(left)} not started for "
+              f"--budget-minutes")
         return 1
     return None
+
+
+def partial_note(results: list[tuple[dict, str]]) -> str:
+    """The PASSED line's suffix when a timeout or the budget left mutants
+    unscored, so a night with hangs never reads as a whole measurement."""
+    timed = sum(1 for _, v in results if v.startswith("SKIP-TIMED-OUT"))
+    unrun = sum(1 for _, v in results if v == "SKIP-BUDGET")
+    if not (timed or unrun):
+        return ""
+    evaluated = sum(1 for _, v in results if not v.startswith("SKIP"))
+    return (f" (partial: {evaluated} evaluated, {timed} timed out, {unrun} "
+            f"not started for the budget)")
+
+
+def drain_survivors(results: list[tuple[dict, str]], entries: dict) -> list[str]:
+    """`survivors.txt`: the sites a human owes a verdict. Never a site the
+    budget left unstarted, nor any site of an anchor holding one -- that
+    anchor goes back to the stock untouched for a later night."""
+    cut = {m["anchor"] for m, v in results if v == "SKIP-BUDGET"}
+    return [triage_key(m) for m, _ in results
+            if m["anchor"] not in entries and m["anchor"] not in cut]
 
 
 def deferred_drivers(needed: list[str], scope: str) -> list[str]:
@@ -2826,9 +2862,7 @@ def main() -> int:
         entries, report, _ = pin_results(results, kill_runs, baseline, sites,
                                          head, how="--drain")
         print("\n".join(report))
-        # A site the budget never started stays untouched for a later night.
-        survivors = [triage_key(m) for m, v in results
-                     if m["anchor"] not in entries and v != "SKIP-BUDGET"]
+        survivors = drain_survivors(results, entries)
         status = write_drain(Path(args.drain), entries, head, survivors)
         print(f"DRAIN: {status}, {len(entries)} anchor(s) to record, "
               f"{len(survivors)} site(s) left for a human verdict")
@@ -2904,10 +2938,7 @@ def main() -> int:
               "equivalent under survivor_triage in tests/mutation_budgets.json "
               "with the reason that says so.")
         return 1
-    unrun = sum(1 for _, v in results if v == "SKIP-BUDGET")
-    print("\nMUTATION TABLE PASSED" + (
-        f" (partial: {evaluated} evaluated, {unrun} not started for the "
-        f"budget)" if unrun else ""))
+    print("\nMUTATION TABLE PASSED" + partial_note(results))
     return 0
 
 
