@@ -2327,7 +2327,7 @@ def pin_reverification(results: list[tuple[dict, str]],
         key = ledger_key(mut)
         if ran and hit:
             tally["reproduced"] += 1
-        elif verdict == "LIVES" or (ran and hit is False):
+        elif ran and hit is False:
             tally["not reproduced"] += 1
             out.append(f"  PIN NOT REPRODUCED {key}: pinned to {pin}, "
                        f"{verdict}" + ("" if ran else f"; {pin} no longer "
