@@ -29,7 +29,10 @@ from .metrics import family_splits as F
 PKG = C.PKG_REL
 BUILTIN_TYPES = {"list", "dict", "set", "object", "frozenset", "bytearray", "deque", "OrderedDict", "defaultdict"}
 DUNDER_WRITES = {"__setattr__", "__delattr__", "__setitem__", "__delitem__"}
-PURE = {"id", "len", "hash", "repr", "type", "str", "bool", "int", "float"}
+# Builtins that neither iterate nor mutate an argument (``list``, ``sum``, ``sorted`` iterate, and iterating
+# an iterator consumes it), so a call of one is no effect outside its own result.
+PURE = {"id", "len", "hash", "repr", "type", "str", "bool", "int", "float", "isinstance", "issubclass", "callable",
+        "abs", "round", "divmod", "ord", "chr", "hex", "oct", "bin", "ascii", "complex"}
 
 
 def trees(root: Path) -> dict[str, ast.Module]:
@@ -105,12 +108,14 @@ def computed_attr_access(ts: dict[str, ast.Module]) -> int:
 
 # ---------------------------------------------------------------- C3
 # An expression is effect-free when every node in it is one of these, every call calls a PURE builtin, a
-# lambda, or a method of a value built from literals, and every name it binds is dead. A class by grammar,
-# closed under composition, not a spelling list.
+# lambda, or a method of a value built from literals, every subscript and comprehension reads a value built
+# from literals, and every name it binds is dead. A class by grammar, closed under composition, not a
+# spelling list.
 _PURE_NODES = (ast.Constant, ast.Name, ast.Load, ast.Store, ast.Attribute, ast.Tuple, ast.List, ast.Set,
                ast.Dict, ast.Starred, ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp, ast.Lambda,
                ast.arguments, ast.arg, ast.NamedExpr, ast.Call, ast.keyword, ast.JoinedStr, ast.FormattedValue,
-               ast.operator, ast.unaryop, ast.boolop, ast.cmpop)
+               ast.operator, ast.unaryop, ast.boolop, ast.cmpop, ast.Subscript, ast.Slice, ast.ListComp,
+               ast.SetComp, ast.DictComp, ast.GeneratorExp, ast.comprehension)
 
 
 def _literal(e: ast.AST) -> bool:
@@ -133,20 +138,24 @@ def _pure_call(n: ast.Call) -> bool:
 
 
 def _pure(e: ast.AST | None, dead: set[str]) -> bool:
+    """Effect-free. A subscript or a comprehension's iterable must be built from literals: indexing or
+    iterating anything else can run code that changes it (a defaultdict, an iterator)."""
     return e is None or all(
         isinstance(n, _PURE_NODES)
         and not (isinstance(n, ast.Call) and not _pure_call(n))
         and not (isinstance(n, ast.NamedExpr) and n.target.id not in dead)
+        and not (isinstance(n, ast.Subscript) and not _literal(n))
+        and not (isinstance(n, ast.comprehension) and (not _literal(n.iter) or n.is_async))
         for n in ast.walk(e))
 
 
 def _fold(e: ast.AST, dead: set[str]):
     """``(True, value)`` for an effect-free expression reading no name but a PURE builtin, else
     ``(False, None)``. No ``**``, ``<<`` or ``*``, so the value is no larger than the literals that spell
-    it and evaluating it is bounded (``"x" * 10**10`` and ``[0] * 99999999999`` are refused, not run), and
-    no attribute, so nothing reachable from a literal's type is evaluated."""
+    it and evaluating it is bounded (``"x" * 10**10`` and ``[0] * 99999999999`` are refused, not run), no
+    attribute, so nothing reachable from a literal's type is evaluated, and no comprehension or subscript."""
     if not _pure(e, dead) or any(isinstance(n, (ast.Pow, ast.LShift, ast.Mult, ast.MatMult, ast.NamedExpr, ast.Lambda,
-                                                ast.Attribute))
+                                                ast.Attribute, ast.Subscript, ast.comprehension))
                                  for n in ast.walk(e)) \
             or any(isinstance(n, ast.Name) and n.id not in PURE for n in ast.walk(e)):
         return False, None
@@ -158,18 +167,117 @@ def _fold(e: ast.AST, dead: set[str]):
         return False, None
 
 
-def _inert(s: ast.stmt, dead: set[str]) -> bool:
+class _Scope:
+    """What C3 knows about one function: the names it binds that nothing reads (``dead``), the names
+    bound in it other than by a self-assignment (``bound``: the parameters and every other store), every
+    name it mentions (``named``), and the modules its file imports at top level (``imported``)."""
+
+    def __init__(self, fn: ast.AST, imported: set[str]):
+        self.imported = imported
+        stored, live, self.named, self.bound = set(), set(), set(), set()
+        for n in ast.walk(fn):
+            if isinstance(n, ast.Name):
+                self.named.add(n.id)
+                (live if isinstance(n.ctx, ast.Load) else stored).add(n.id)
+            elif isinstance(n, ast.arg):
+                self.bound.add(n.arg)
+            elif isinstance(n, (ast.Global, ast.Nonlocal)):
+                live |= set(n.names)
+            elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n is not fn:
+                stored.add(n.name)
+                if isinstance(n, ast.ClassDef):  # a class body's binding is an attribute, read from outside it
+                    live |= {t.id for b in n.body for t in ast.walk(b)
+                             if isinstance(t, ast.Name) and isinstance(t.ctx, ast.Store)
+                             and not isinstance(b, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
+            elif isinstance(n, (ast.Import, ast.ImportFrom)):
+                stored |= {(a.asname or a.name).split(".")[0] for a in n.names}
+        self.dead = stored - live
+        # a store that binds a value: not one inside a self-assignment, and not an annotation alone
+        skip = {id(n) for x in ast.walk(fn) if _self_assign(x) or (isinstance(x, ast.AnnAssign) and x.value is None)
+                for n in ast.walk(x)}
+        self.bound |= {n.id for n in ast.walk(fn)
+                       if isinstance(n, ast.Name) and isinstance(n.ctx, ast.Store) and id(n) not in skip}
+
+
+def _self_assign(s: ast.stmt) -> bool:
+    """``x = x`` or ``a, b = a, b``: every target the same plain name as the value in its place."""
+    def same(t, v):
+        if isinstance(t, ast.Name) and isinstance(v, ast.Name):
+            return t.id == v.id
+        return isinstance(t, (ast.Tuple, ast.List)) and isinstance(v, (ast.Tuple, ast.List)) \
+            and len(t.elts) == len(v.elts) and all(same(a, b) for a, b in zip(t.elts, v.elts))
+    return isinstance(s, ast.Assign) and all(same(t, s.value) for t in s.targets)
+
+
+def _inert_def(s: ast.stmt, sc: _Scope) -> bool:
+    """A nested ``def`` or ``class`` nothing names: no decorator, defaults and annotations effect-free, and
+    for a class no base, no keyword and a body of inert statements (a base's ``__init_subclass__`` or a
+    metaclass would run code)."""
+    if s.decorator_list or s.name not in sc.dead:
+        return False
+    if isinstance(s, ast.ClassDef):
+        return not s.bases and not s.keywords and all(_inert(x, sc) for x in s.body)
+    a = s.args
+    notes = [x.annotation for x in (*a.posonlyargs, *a.args, *a.kwonlyargs, a.vararg, a.kwarg) if x is not None]
+    return all(_pure(x, sc.dead) for x in (*a.defaults, *[d for d in a.kw_defaults if d is not None],
+                                            *notes, s.returns))
+
+
+def _inert_import(s: ast.stmt, sc: _Scope) -> bool:
+    """An import whose names nothing reads, of a module the file already imports at top level: the import
+    is a lookup in ``sys.modules``, its module code ran when the file loaded. A relative or a star import
+    is never inert."""
+    if isinstance(s, ast.ImportFrom) and (s.level or s.module is None or any(a.name == "*" for a in s.names)):
+        return False
+    mods = [s.module] if isinstance(s, ast.ImportFrom) else [a.name for a in s.names]
+    return all(m in sc.imported for m in mods) \
+        and all((a.asname or a.name).split(".")[0] in sc.dead for a in s.names)
+
+
+def _inert_match(s: ast.stmt, sc: _Scope) -> bool:
+    """A ``match`` on an effect-free subject, whose patterns capture only dead names and compare only
+    effect-free values (no class pattern, which calls ``isinstance`` and ``__match_args__``), whose guards
+    are effect-free and whose every case body is inert."""
+    ok = (ast.MatchValue, ast.MatchSingleton, ast.MatchSequence, ast.MatchAs, ast.MatchOr, ast.MatchStar)
+    return _pure(s.subject, sc.dead) and all(
+        all(isinstance(p, ok) or not isinstance(p, ast.pattern) for p in ast.walk(c.pattern))
+        and all(getattr(p, "name", None) in (None, *sc.dead) for p in ast.walk(c.pattern)
+                if isinstance(p, (ast.MatchAs, ast.MatchStar)))
+        and all(_pure(p.value, sc.dead) for p in ast.walk(c.pattern) if isinstance(p, ast.MatchValue))
+        and _pure(c.guard, sc.dead) and all(_inert(x, sc) for x in c.body)
+        for c in s.cases)
+
+
+def _inert(s: ast.stmt, sc: _Scope) -> bool:
     """A statement whose execution changes nothing the function can observe afterwards."""
-    every = lambda body: all(_inert(x, dead) for x in body)  # noqa: E731
+    dead = sc.dead
+    every = lambda body: all(_inert(x, sc) for x in body)  # noqa: E731
     if isinstance(s, ast.Pass):
         return True
     if isinstance(s, ast.Expr):
         return _pure(s.value, dead)
+    if isinstance(s, (ast.Global, ast.Nonlocal)):
+        # a declaration changes only where later uses of its names resolve; with no use there is none
+        return not set(s.names) & sc.named
+    if _self_assign(s):
+        # rebinding a name to its own value; the name must be bound already, by a parameter or another store
+        return all(n.id in sc.bound for t in s.targets for n in ast.walk(t) if isinstance(n, ast.Name))
+    if isinstance(s, ast.AnnAssign) and s.value is None:
+        # a local annotation is never evaluated and binds nothing; it only makes the name local
+        return isinstance(s.target, ast.Name) and (s.target.id in sc.bound or s.target.id in dead)
     if isinstance(s, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete)):
         targets = s.targets if isinstance(s, (ast.Assign, ast.Delete)) else [s.target]
         return all(isinstance(n, (ast.Name, ast.Tuple, ast.List, ast.Starred, ast.Store, ast.Del))
                    and not (isinstance(n, ast.Name) and n.id not in dead)
                    for x in targets for n in ast.walk(x)) and _pure(getattr(s, "value", None), dead)
+    if isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return _inert_def(s, sc)
+    if isinstance(s, (ast.Import, ast.ImportFrom)):
+        return _inert_import(s, sc)
+    if isinstance(s, ast.Match):
+        return _inert_match(s, sc)
+    if type(s).__name__ == "TypeAlias":  # 3.12+: the value is evaluated lazily, so only the binding counts
+        return isinstance(s.name, ast.Name) and s.name.id in dead
     if isinstance(s, ast.Assert):
         ok, v = _fold(s.test, dead)
         return ok and bool(v)
@@ -181,44 +289,44 @@ def _inert(s: ast.stmt, dead: set[str]) -> bool:
     if isinstance(s, ast.For):
         ok, v = _fold(s.iter, dead)
         return ok and not list(v) and every(s.orelse) if ok and hasattr(v, "__iter__") else False
-    if isinstance(s, ast.Try):
+    if isinstance(s, (ast.Try, getattr(ast, "TryStar", ast.Try))):
         return every(s.body) and every(s.orelse) and every(s.finalbody) and all(every(h.body) for h in s.handlers)
     return False
 
 
-def _dead_names(fn: ast.AST) -> set[str]:
-    """Names ``fn`` binds and nothing in it reads: not loaded anywhere in its body, nested scopes
-    included, not declared ``global`` or ``nonlocal``, and not a class body's attribute."""
-    stored, live = set(), set()
-    for n in ast.walk(fn):
-        if isinstance(n, ast.Name):
-            (live if isinstance(n.ctx, ast.Load) else stored).add(n.id)
-        elif isinstance(n, (ast.Global, ast.Nonlocal)):
-            live |= set(n.names)
-        elif isinstance(n, ast.ClassDef):  # a class body's binding is an attribute, read from outside it
-            live |= {t.id for b in n.body for t in ast.walk(b)
-                     if isinstance(t, ast.Name) and isinstance(t.ctx, ast.Store)
-                     and not isinstance(b, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
-    return stored - live
+def _top_imports(tree: ast.AST) -> set[str]:
+    """Modules a file imports at top level (unconditionally): already in ``sys.modules`` once it loaded."""
+    out: set[str] = set()
+    for s in getattr(tree, "body", []):
+        if isinstance(s, ast.Import):
+            for a in s.names:
+                parts = a.name.split(".")
+                out |= {".".join(parts[:i + 1]) for i in range(len(parts))}
+        elif isinstance(s, ast.ImportFrom) and not s.level and s.module:
+            out.add(s.module)
+    return out | {"sys", "builtins"}
 
 
 def inert_statements(trees, all_functions) -> set[int]:
     """``id()`` of every statement dead by data flow in the package's functions, dropped before a clone
     window is cut so junk interleaved in every window does not split the clone (attempt 04: 121 -> 7;
-    04h to 04n are the spellings an enumeration missed). Dead: effect-free by ``_PURE_NODES`` and binding
-    only names nothing reads; an ``assert``, ``if``, ``while`` or ``for`` whose test folds to a constant
-    is judged on the branch that runs, and a ``try`` on its every part. Each function is judged with its
-    own reads; an enclosing function reads a superset, so the union never drops a live statement.
+    04h to 04v are the spellings an enumeration missed). Dead (``_inert``): an effect-free expression; a
+    store, delete or annotation binding only names nothing reads; a self-assignment of a bound name; a
+    ``global`` or ``nonlocal`` of names the function never uses; a nested ``def`` or ``class`` nothing
+    names; an import already done at top level, binding a dead name; a ``match``, ``assert``, ``if``,
+    ``while`` or ``for`` judged on what can run; a ``try`` on its every part. Each function is judged with
+    its own reads; an enclosing function reads a superset, so the union never drops a live statement.
 
     Out of the class, and so still open: a statement with an effect the grammar cannot rule out (a call
-    of anything else, a write through an attribute or a subscript), which is logic in the diff. A gap
-    tolerance in the window would close that too, but it redefines the window tests/structure.py shares,
-    so it is not here (ABOUT.md, "Interleaved junk")."""
+    of anything else, a write through an attribute or a subscript, an ``assert`` that can fail, a ``with``),
+    which is logic in the diff. A gap tolerance in the window would close that too, but it redefines the
+    window tests/structure.py shares, so it is not here (ABOUT.md, "Interleaved junk")."""
     out: set[int] = set()
     for _path, tree in trees:
+        imported = _top_imports(tree)
         for fn in all_functions(tree):
-            dead = _dead_names(fn)
-            out |= {id(s) for s in ast.walk(fn) if isinstance(s, ast.stmt) and s is not fn and _inert(s, dead)}
+            sc = _Scope(fn, imported)
+            out |= {id(s) for s in ast.walk(fn) if isinstance(s, ast.stmt) and s is not fn and _inert(s, sc)}
     return out
 
 

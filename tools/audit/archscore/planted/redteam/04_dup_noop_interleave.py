@@ -1,5 +1,6 @@
 """Variants: argv[2] picks the junk (id | pass | ellipsis | none | str | iffalse | assert | assign | walrus | deadstore
-| lambda | try | method), argv[3] == "uncharged"
+| lambda | try | method | selfassign | nesteddef | global | annot | reimport | match
+| comp | classdef | isinstance), argv[3] == "uncharged"
 leaves the coordinator and every footprint-charged function alone so no other metric stops it.
 Game duplication_copies: every duplicated statement window is kept, but in each clone except the
 first a no-op call statement id(<distinct int per function>) is inserted
@@ -18,13 +19,20 @@ JUNK = {"id": "id({fid})\n", "pass": "pass\n", "ellipsis": "...\n", "none": "Non
         "deadstore": "unused_{fid} = ({fid}, None)\n", "lambda": "(lambda: {fid})()\n",
         "try": "try:\n{ind}    pass\n{ind}except Exception:\n{ind}    pass\n",
         # a method of a value built from literals: no effect outside that value, which nothing keeps
-        "method": "[{fid}].clear()\n"}
+        "method": "[{fid}].clear()\n",
+        # round 1 of the R9-EG-A2 review: a self-assignment of the first parameter, an uncalled nested def,
+        # a global nothing uses; then the siblings probed before the hand-off
+        "selfassign": "{arg} = {arg}\n", "nesteddef": "def _junk_{fid}():\n{ind}    pass\n",
+        "global": "global _g{fid}\n", "annot": "_a{fid}: int\n", "reimport": "import sys as _s{fid}\n",
+        "match": "match {fid}:\n{ind}    case _:\n{ind}        pass\n", "comp": "[{fid} for _ in ()]\n",
+        "classdef": "class _C{fid}:\n{ind}    pass\n", "isinstance": "isinstance({arg}, int)\n"}
 kind = sys.argv[2] if len(sys.argv) > 2 else "id"
 uncharged = len(sys.argv) > 3 and sys.argv[3] == "uncharged"
 CHARGED = {c.rsplit(":", 1)[0] for c in metric("footprint", root)["charged"]} if uncharged else set()
 S = structure(root)
 win = defaultdict(set)
 node_of = {}
+argof = {}  # owner -> its first positional parameter, for "selfassign"
 for path, tree in S.module_trees():
     mname = path.stem
     modalias = S._module_aliases(tree)
@@ -49,6 +57,8 @@ for path, tree in S.module_trees():
                     owner = (mname, fn.name, fn.lineno)
                     win[key].add(owner)
                     node_of[(key, owner)] = w[0]
+                    params = fn.args.posonlyargs + fn.args.args
+                    argof[owner] = params[0].arg if params else None
 fn_ids: dict = {}
 inserts = defaultdict(dict)  # module -> {line_after: (indent, owner)}
 for key, owners in win.items():
@@ -58,14 +68,16 @@ for key, owners in win.items():
             continue  # the footprint gate would stop these: only the counter may hold the line
         s0 = node_of[(key, owner)]
         fid = fn_ids.setdefault(owner, len(fn_ids) + 1)
-        inserts[owner[0]][s0.end_lineno] = (s0.col_offset, fid)
+        inserts[owner[0]][s0.end_lineno] = (s0.col_offset, fid, argof[owner])
 n = 0
 for mname, ins in inserts.items():
     p = pkg(root) / (mname + ".py")
     lines = p.read_text().splitlines(keepends=True)
     for ln in sorted(ins, reverse=True):
-        col, fid = ins[ln]
-        lines.insert(ln, " " * col + JUNK[kind].format(fid=fid, ind=" " * col))
+        col, fid, arg = ins[ln]
+        if "{arg}" in JUNK[kind] and arg is None:
+            continue  # no parameter to self-assign
+        lines.insert(ln, " " * col + JUNK[kind].format(fid=fid, ind=" " * col, arg=arg))
         n += 1
     p.write_text("".join(lines))
 print("functions perturbed", len(fn_ids), "no-ops inserted", n)

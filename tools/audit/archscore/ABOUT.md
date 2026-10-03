@@ -35,7 +35,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 |---|---|---|
 | C1 an `Any` or `object` key is untyped | an all-`Any` TypedDict | 01 |
 | C2 `reflective_writes`, C2b `computed_attr_access` (tripwires) | `object.__setattr__`, `type(x).__setitem__`, a hub handle behind a computed name | 02, 03, 10, 13 |
-| C3 a statement dead by data flow does not split a clone | junk interleaved in every clone window | 04, 04b to 04n |
+| C3 a statement dead by data flow does not split a clone | junk interleaved in every clone window | 04, 04b to 04w |
 | C4 the coordinator is measured as its whole package class hierarchy | a rename plus an empty subclass, a mixin | 05, 05b, 05c, 05d |
 | C5 a passthrough property reads as its private | public `raw_<x>` accessors | 06 |
 | C6 `family_orphan_overrides` | families declared into one-member families | 07 |
@@ -88,16 +88,30 @@ the commit. A new evasion found is a new case in `planted/redteam/` with its cou
 
 Junk interleaved in every clone splits its windows, and without C3 the score reads that as a dedupe
 (IMPROVES, admissible). C3 drops, before a window is cut, every statement dead by data flow
-(`counters.inert_statements`): one whose expressions are effect-free by grammar (constants, names,
-operators, displays, and calls only of a PURE builtin, a lambda, or a non-dunder method of a value built
-from literals) and which binds only names nothing in the function reads; an `assert`, `if`, `while` or
-`for` whose test folds to a constant is judged on the branch that runs, and a `try` on its every part. It is
-a class by grammar, not a list of spellings: the round-3 KNOWN-OPEN three (`assert True`, `_ = None`,
-`(_ := 0)`) and four no list carried (`rt_04k` a dead store, `rt_04l` a called lambda, `rt_04m` an empty
-`try`, `rt_04n` a method of a fresh literal) all read NULL.
+(`counters.inert_statements`, judged per function by `_inert`):
 
-Still open, by design: a statement with an effect the grammar cannot rule out -- a call of anything else,
-a write through an attribute or a subscript. That is logic in the diff, not junk, and a reviewer reads a
+- an expression effect-free by grammar: constants, names, operators, displays, attributes, calls only of a
+  PURE builtin (one that neither iterates nor mutates an argument), a lambda or a non-dunder method of a
+  value built from literals, and subscripts and comprehensions only over such values;
+- a store, delete or bare annotation binding only names nothing in the function reads, and a
+  self-assignment (`x = x`, `a, b = a, b`) of a name already bound;
+- a `global` or `nonlocal` of names the function never uses;
+- a nested `def` or `class` nothing names, with no decorator, effect-free defaults and annotations, and for a
+  class no base or keyword and an inert body;
+- an import of a module the file already imports at top level, binding a dead name;
+- a `match`, `assert`, `if`, `while` or `for` judged on what can run, and a `try` on its every part.
+
+It is a class by grammar, not a list of spellings. Every spelling found so far reads NULL:
+
+- the round-3 KNOWN-OPEN three: `assert True`, `_ = None`, `(_ := 0)`;
+- the first fix's four: `rt_04k` to `rt_04n`;
+- the R9-EG-A2 review's three: `rt_04o` a self-assignment, `rt_04p` a nested def, `rt_04q` a `global`;
+- the siblings probed after it: `rt_04r` to `rt_04w`, an annotation, a re-import, a `match`, a
+  comprehension, a nested class, an `isinstance`.
+
+Still open, by design: a statement with an effect the grammar cannot rule out. That covers a call of
+anything else, a write through an attribute or a subscript, an `assert` on a value that can fail, a
+`with`, a `yield` or an `await`. That is logic in the diff, not junk, and a reviewer reads a
 duplication-driven IMPROVES against the diff, as a report and not as evidence. A gap tolerance inside the
 clone window would close it too, but it redefines the window `tests/structure.py` shares, so it is not
 taken here.
