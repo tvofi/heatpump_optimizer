@@ -15,7 +15,7 @@ This pull request does three things.
    - the PR open and update scripts (`open_pr.sh`, `update_pr.sh`);
    - the thermal_model parity harness (`tools/audit/harnesses/thermal_parity.py`).
 2. **Makes the rule permanent.**
-   - `fixer.md` step 17 states the obligation and the reusability criterion once. `fix-review.md` step 9 and `orchestrator.md` section 13 point to it.
+   - `fixer.md` step 18 states the obligation and the reusability criterion once. `fix-review.md` step 9 and `orchestrator.md` section 13 point to it.
    - A new detector, `tools/audit/seat/tmp_paths.py --check`, refuses a tracked script, workflow or decision record tied to a temp or machine path.
    - The detector runs, with its self-test, in `governance.yml`'s `instrument-self-tests` job and in `tools/audit/prepr.sh`. That job grades nothing, and it is the only place an unowned, unpinned copy may run (`codeowners_gap.py`, #1515). A red there is still a red at the head that `pr-contract` makes the body answer. Making it a required pinned grader is owed work (Forward-carry).
    - `CODEOWNERS` adds only `tools/release/`: the version stamp is release tooling, not an audit instrument. `tools/audit/seat/` stays unowned.
@@ -55,7 +55,7 @@ This pull request does three things.
 
 ### Inventory
 
-Reusable: a later round or seat reruns it, or a body figure needs it to be reproduced (`fixer.md` step 17). A one-off probe may stay in scratch.
+Reusable: a later round or seat reruns it, or a body figure needs it to be reproduced (`fixer.md` step 18). A one-off probe may stay in scratch.
 
 | tool | where it lived | verdict | reason |
 |---|---|---|---|
@@ -119,11 +119,20 @@ Audit instruments carry no owner (tvofi, 2026-10-03): `tools/audit/seat/` is not
 
 ## Head
 
-`4e5364076bfed82a48d3d9ab17b37b9d1170f4ee` is the round-3 commit on `fa735d6850bb07a7fd76f196935145960de171db`.
+`5c5f211db6af8963fbd8e511b68d64beecef7a50` merges `origin/main` `4ead5c97aa3cd96a08cc6c55fe386751b1c9b0e0` (#1877) into the round-3 commit `4e5364076bfed82a48d3d9ab17b37b9d1170f4ee`.
 
-That head merges `origin/main` `243990abf3f598656756074f46c01430f323de40` (#1863, an automatic merge, no resolution) into the round-2 commit `44d5a4fe267da7cd4c7b0acc03c23d19386e11c0`. `44d5a4fe` sits on the pull request's earlier head `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
+**This merge is hand-resolved policy, as the orchestrator approved.** #1877 and this branch both edited two role contracts. Each conflict was resolved by taking #1877's text in the conflicted hunk, then re-adding this branch's clause beside it.
 
-`origin/main` `243990abf` is inside the head.
+- **`tools/audit/briefs/fixer.md`, step 9:** #1877's wording, including its rewrap of the #386 sentence.
+- **`tools/audit/briefs/fixer.md`, step 17 and the budget paragraph:** #1877's step 17 ("Take the fix that yields the better code") and its budget paragraph. This branch's obligation, numbered step 17 before the merge, is now step 18 and follows #1877's step 17.
+- **`tools/audit/briefs/fix-review.md`, step 9:** #1877's step 9 with its #373/#258 examples. This branch's clause is appended to it, now pointing at `fixer.md` 18.
+- **`tools/audit/briefs/orchestrator.md`:** merged cleanly. Section 13 now points at `fixer.md` step 18.
+- **Cap payment:** `fixer.md` pays for step 18 inside its existing cap by shortening step 11's #546 example to the fact the rule needs (which of two artifacts was authoritative). No cap is raised.
+- **Read-back of the merged files:** every #1877 clause named above is present once, this branch's step 18 and pointers are present once, and no conflict marker remains.
+
+The round-3 commit sits on `fa735d6850bb07a7fd76f196935145960de171db`. That commit is the automatic merge of `origin/main` `243990abf` into the round-2 commit `44d5a4fe267da7cd4c7b0acc03c23d19386e11c0`, which sits on `6f1699dbbb4716c04da47b16c0fcf93dadc4887a`.
+
+`origin/main` `4ead5c97a` is inside the head.
 
 ## Mutation proof
 
@@ -200,11 +209,11 @@ That head merges `origin/main` `243990abf3f598656756074f46c01430f323de40` (#1863
 - `bash tools/audit/app_approve.sh --self-test` on `/bin/bash` 3.2.57: 141 checks, 2 failed at the merge base; 141 checks, 0 failed at the head.
 - `bash tools/audit/worktree_gc.sh --self-test`: 66 checks, 0 failed (round 1; this round leaves it unchanged).
 - `python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
-- `node .claude/workflows/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`.
+- `node .claude/workflows/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`. `node .claude/workflows/policy_lint.mjs --budgets`: rc 0, no cap exceeded. `node .claude/workflows/rules_sync.mjs --check`: ok.
 - `node .claude/workflows/field_coverage.mjs`: `FIELD COVERAGE ok`.
 - `node .claude/workflows/brief_lint.mjs`: `TOTAL: 0 error(s) across 45 file(s)`.
 - Scoped gate (`python3 tests/closure.py select --diff <merge base>`): `MODE: SCOPED -- 4 script(s) run`.
-  - `entities.py`: 2113 passed (at `4e536407`).
+  - `entities.py`: 2113 passed (at `5c5f211d`).
   - `harness_headers.py`: 95 passed.
   - `open_meteo.py` and `solar_alignment.py`: passed.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
@@ -229,7 +238,7 @@ No cheaper detector is owed by this pull request: the red is `main`'s own mutati
 
 It must not be made code-owned to get there.
 
-The obligation itself is carried into `tools/audit/briefs/fixer.md` step 17, `tools/audit/briefs/fix-review.md` step 9 and `tools/audit/briefs/orchestrator.md` section 13.
+The obligation itself is carried into `tools/audit/briefs/fixer.md` step 18, `tools/audit/briefs/fix-review.md` step 9 and `tools/audit/briefs/orchestrator.md` section 13.
 
 ## Friction
 
