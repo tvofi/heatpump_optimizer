@@ -20,7 +20,7 @@ Decisions worth a reviewer's eye:
 
 ## Head
 
-fe03e7a8fc3e5d2dc565444d9e6a0f7bf9c765f9 (code head on `handoff/r9-ux-events`; `origin/main` merged in at 165510077)
+650828f9f0ab8ca92d01653711987ee17f3d189b (code head on `handoff/r9-ux-events`; `origin/main` merged in at 165510077)
 
 ## Mutation proof
 
@@ -58,7 +58,7 @@ Round 1 (#1865) re-run: the restart check pinning `lead=None` had a fixed expiry
 
 ## Forward-carry
 
-`.claude/workflows/wave-r9-groups.json` (group R9-UX-5, on `handoff/audit-r9-fixplan`): the comfort event's "why" (the design's "the fuse limit caps heating 02:00-05:00") is carried into that brief by the coordinator, which owns the roster entry; this PR ships `peak_guard_suppressing` only.
+`.claude/workflows/carry-1795.json` (stage R9-UX-5, fourth entry, effect `narrows`, added in this PR): the comfort event's why. The design asks for it ("the fuse limit caps heating 02:00-05:00"); no published field gives a per-step cause, so this PR ships `peak_guard_suppressing` only, and UX-5 extends `EVENT_DATA`, the comfort detector, the docs table and the blueprint message once its sub-codes exist. `node .claude/workflows/brief_lint.mjs` exits 0. The coordinator also carries it into the roster's R9-UX-5 brief.
 
 ## Owner gate
 
