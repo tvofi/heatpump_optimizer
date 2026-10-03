@@ -74,8 +74,11 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      on every push and fails when the committed register is not what it
      produces, so a stamp that moves VERSION and leaves the register behind is
      RED at the stamped head. A generator that fails refuses before the commit,
-     with every file this stamp wrote put back. --dry-run writes nothing, so it
-     never runs.
+     with every file this stamp wrote put back. --dry-run writes nothing in the
+     checkout but still runs the generator, in a temporary copy carrying the
+     stamped files: v6.7.15's dry run passed and the real stamp refused at
+     claims.py, a 3.12+ f-string under 3.11, because only the real run reached
+     the generator.
 
 --push-key PATH pushes the commit and the tag over a deploy key to the SSH URL
 instead of to origin (#954): `main-protect-checks`'s only bypass is that key (decision
@@ -105,6 +108,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import urllib.request
 from pathlib import Path
 
@@ -1265,6 +1269,50 @@ def self_test() -> int:
                 if 'sh("git", "checkout"' in _wrote else "")
     check("register: its failure path restores the stamp's writes and keeps the notes",
           "REGISTER_FILES" in _recover and "NOTES" not in _recover)
+    # Rule "register" under --dry-run (v6.7.15: the dry run passed, the real
+    # stamp refused at claims.py). The generator runs in a COPY holding the
+    # stamped files, never in the checkout, and a generator that fails refuses.
+    _seen: dict = {}
+
+    def _gen(argv, cwd):
+        _seen["cwd"] = cwd
+        _seen["version"] = (cwd / "VERSION").read_text().strip()
+        _seen["manifest"] = json.loads(
+            (cwd / MANIFEST.relative_to(ROOT)).read_text()).get("version")
+        _seen["claims"] = [(cwd / c.relative_to(ROOT)).read_text()[:7] for c in CLAIM_FILES]
+        _seen["register"] = all((cwd / r.relative_to(ROOT)).exists() for r in REGISTER_FILES)
+        return _Proc(0, "RESULT claims_extracted=1\n")
+
+    _before = VERSION_FILE.read_bytes()
+    dry_run_register("9.9.9", CARD_JS.read_text(), [(c, "NEW-CLM") for c in CLAIM_FILES], _gen)
+    check("register dry run: the generator runs in a copy, not the checkout",
+          _seen.get("cwd") not in (None, ROOT) and VERSION_FILE.read_bytes() == _before)
+    check("register dry run: the copy carries the stamped version and claim files",
+          _seen.get("version") == "9.9.9" and _seen.get("manifest") == "9.9.9"
+          and _seen.get("claims") == ["NEW-CLM"] * len(CLAIM_FILES)
+          and _seen.get("register") is True)
+    check("register dry run: the copy is removed after the run", not _seen["cwd"].exists())
+    # The default runner, which the seam above replaces: it must run the
+    # generator in the copy too, or the dry run re-records the real register.
+    _real_run, _cwds = subprocess.run, []
+    subprocess.run = lambda argv, **kw: (
+        (_cwds.append(kw.get("cwd")), _Proc(0, ""))[1]
+        if str(REGISTER_GENERATOR.name) in " ".join(map(str, argv)) else _real_run(argv, **kw))
+    try:
+        dry_run_register("9.9.9", CARD_JS.read_text(), [])
+    finally:
+        subprocess.run = _real_run
+    check("register dry run: the default runner's working directory is the copy, not the checkout",
+          len(_cwds) == 1 and _cwds[0] is not None and Path(_cwds[0]) != ROOT)
+    try:
+        dry_run_register("9.9.9", CARD_JS.read_text(), [], lambda a, c: _Proc(1, "SyntaxError: f-string"))
+        _refused = False
+    except Refuse as _e:
+        _refused = "SyntaxError" in str(_e)
+    check("register dry run: a generator that fails refuses, as the real stamp does", _refused)
+    check("register dry run: main calls it before returning from --dry-run",
+          -1 < _main_src.find("if args.dry_run:") < _main_src.find("dry_run_register(nxt")
+          < _main_src.find('sh("git", "commit"'))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -1325,7 +1373,8 @@ def register_env(environ: dict | None = None) -> dict:
     return env
 
 
-def regenerate_register(runner=None, python: str | None = None) -> None:
+def regenerate_register(runner=None, python: str | None = None,
+                        cwd: Path | None = None) -> None:
     """Re-record the D6 register from the tree this stamp is about to commit.
 
     It runs after VERSION, the manifest and the card are written and before the
@@ -1337,7 +1386,7 @@ def regenerate_register(runner=None, python: str | None = None) -> None:
     not a warning.
     """
     argv = register_argv(python or sys.executable)
-    run = runner or (lambda a: subprocess.run(a, cwd=ROOT, text=True,
+    run = runner or (lambda a: subprocess.run(a, cwd=cwd or ROOT, text=True,
                                              capture_output=True, env=register_env()))
     try:
         proc = run(argv)
@@ -1348,6 +1397,37 @@ def regenerate_register(runner=None, python: str | None = None) -> None:
         raise Refuse("register",
                      f"{REGISTER_GENERATOR.relative_to(ROOT)} failed with exit "
                      f"{proc.returncode}: " + (tail[-1] if tail else "no output"))
+
+
+def dry_run_register(nxt: str, card_text: str, claim_edits: list, runner=None,
+                     python: str | None = None) -> None:
+    """Run the register generator on a temporary copy of the stamped tree.
+
+    A dry run writes nothing in the checkout, so the generator -- the step that
+    refused v6.7.15 -- never ran under it. The copy is the working tree with
+    the stamp's own writes (VERSION, manifest, card, both claim files) made
+    in it, run through the same `regenerate_register` under the same
+    interpreter, so a Python-version or tree-dependent crash of claims.py shows
+    in the plan and not first at the real stamp. Raises Refuse("register").
+    `runner(argv, cwd)` is the test seam.
+    """
+    listing = sh("git", "ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    with tempfile.TemporaryDirectory(prefix="stamp-dry-run-") as tmp:
+        copy = Path(tmp)
+        for rel in filter(None, listing.split("\0")):
+            src = ROOT / rel
+            if src.is_file():
+                (copy / rel).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, copy / rel, follow_symlinks=False)
+        (copy / VERSION_FILE.relative_to(ROOT)).write_text(nxt + "\n")
+        manifest = copy / MANIFEST.relative_to(ROOT)
+        manifest.write_text(re.sub(r'"version":\s*"[^"]+"', f'"version": "{nxt}"',
+                                   manifest.read_text(), count=1))
+        (copy / CARD_JS.relative_to(ROOT)).write_text(card_text)
+        for path, new in claim_edits:
+            (copy / path.relative_to(ROOT)).write_text(new)
+        regenerate_register((lambda a, _c=copy: runner(a, _c)) if runner else None,
+                            python, cwd=copy)
 
 
 # --- after the commit: the claims self-check, then the push ------------------
@@ -1651,7 +1731,7 @@ def main() -> int:
     ap.add_argument("--known-hosts", metavar="PATH", default=DEFAULT_KNOWN_HOSTS,
                     help="the pinned GitHub host key file for --push-key (default: %(default)s)")
     ap.add_argument("--dry-run", action="store_true",
-                    help="run rules 1-6 and print the plan; write nothing, so no commit and no claims check")
+                    help="run rules 1-6, the register generator on a temporary copy, print the plan; write nothing, so no commit and no claims check")
     ap.add_argument("--allow-red", action="store_true", help="stamp even though HEAD's gate is not green")
     ap.add_argument("--allow-rowless", action="store_true",
                     help="stamp even though the window the tag closes holds a merge with no "
@@ -1786,7 +1866,9 @@ def main() -> int:
     for p in plan:
         print(f"  - {p}")
     if args.dry_run:
-        print("dry run: nothing written")
+        card_new, _ = rewrite_card_version(card_before, nxt)
+        dry_run_register(nxt, card_new, claim_edits)
+        print("dry run: the register generator ran on a temporary copy; nothing written")
         return 0
 
     VERSION_FILE.write_text(nxt + "\n")
