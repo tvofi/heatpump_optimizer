@@ -29998,12 +29998,14 @@ _PG_TREE = {
     "docs/site/fonts/OFL-A.txt": "ofl",
     "docs/site/notes.md": "# a markdown file inside the site folder",
     "docs/site/fonts/README.MD": "# upper-case extension inside the site folder",
+    "docs/site/notes.markdown": "# the other markdown extension",
     "docs/img/a.png": "p",
     "docs/img/card/b-dark.png": "p",
     "docs/setup/c.svg": "<svg/>",
     "docs/how-it-works.md": "# reader doc",
     "docs/HANDOVER.MD": "# record, upper-case extension",
     "docs/tool.py": "print()",
+    "docs/img/data.json": "{}",  # a tracked file of a kind not published
     "docs/untracked.png": None,  # on disk, never added: not the release's file
     "README.md": "# readme",
     "outside.png": "p",
@@ -30049,11 +30051,14 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
         grc = _pg_run(guard, repo)
         if grc != 0:
             out.append(f"the guard refuses the clean staged set (rc={grc})")
-        site.mkdir(exist_ok=True)
-        (site / "img" / "note.Md").parent.mkdir(parents=True, exist_ok=True)
-        (site / "img" / "note.Md").write_text("planted")
-        if _pg_run(guard, repo) == 0:
-            out.append("the guard passes a staged set holding a .md")
+        # Each markdown extension planted alone: the guard is the only
+        # refusal of a `.markdown` file that reaches _site by any route.
+        for planted in ("note.Md", "note.markdown"):
+            (site / "img").mkdir(parents=True, exist_ok=True)
+            (site / "img" / planted).write_text("planted")
+            if _pg_run(guard, repo) == 0:
+                out.append(f"the guard passes a staged set holding {planted}")
+            (site / "img" / planted).unlink()
     return out
 
 
@@ -30088,6 +30093,9 @@ def _pg_probe_defects(script: str) -> "list[str]":
     return out
 
 
+_PG_STATUS_FN = re.compile(r"\b(?:success|failure|always|cancelled)\s*\(", re.I)
+
+
 def _pg_defects(text: str) -> "list[str]":
     """Why a Pages workflow text breaks the pinned contract; [] when it holds."""
     doc = _yaml.safe_load(text) or {}
@@ -30109,21 +30117,34 @@ def _pg_defects(text: str) -> "list[str]":
                    "a deploy in flight")
     jobs = doc.get("jobs") or {}
     for jid, job in jobs.items():
-        for k, v in ((job or {}).get("permissions") or {}).items():
+        perms = (job or {}).get("permissions") or {}
+        if not isinstance(perms, dict):
+            out.append(f"job {jid} permissions are {perms!r}, not a mapping "
+                       "of named grants")
+            perms = {}
+        for k, v in perms.items():
             if v == "write" and k not in ("pages", "id-token"):
                 out.append(f"job {jid} widens {k} to write")
         label = str((job or {}).get("name") or jid)
         ifs = [str((job or {}).get("if", ""))] + [
             str((s or {}).get("if", "")) for s in (job or {}).get("steps") or []]
-        if any("always()" in i for i in ifs):
-            out.append(f"job {jid} has an `if:` that always() makes true, "
-                       "so the probe gate is decorative")
+        # GitHub adds the implicit success() to an `if:` only when it calls
+        # none of the status functions, so ANY call of one -- always(),
+        # cancelled(), failure(), success() -- replaces the gate this file
+        # relies on. Function names are case-insensitive in expressions.
+        bad_ifs = [i for i in ifs if _PG_STATUS_FN.search(i)]
+        if bad_ifs:
+            out.append(f"job {jid} has an `if:` calling a status function, "
+                       f"which replaces the implicit success() gate: {bad_ifs}")
         if label in _RC_CONTEXTS or jid in _RC_CONTEXTS:
             out.append(f"job {jid} produces required context {label!r}")
     steps = [(jid, s or {}) for jid, j in jobs.items()
              for s in ((j or {}).get("steps") or [])]
     for jid, s in steps:
         u = s.get("uses")
+        if str(u or "").startswith("actions/checkout@") and \
+                (s.get("with") or {}).get("persist-credentials") is not False:
+            out.append(f"{jid}: checkout persists its token in .git/config")
         if u and not re.fullmatch(r"[\w.-]+/[\w./-]+@[0-9a-f]{40}", u):
             out.append(f"{jid}: `uses: {u}` is not pinned by commit")
     named = {s.get("name"): (i, s) for i, (_, s) in enumerate(steps)}
@@ -30146,6 +30167,10 @@ def _pg_defects(text: str) -> "list[str]":
     else:
         # The environment is the one control that limits a deploy to the refs
         # tvofi admits (today `main`, and `v*` once the tag rule is added).
+        dsteps = jobs[deploy[0]].get("steps") or []
+        if len(dsteps) != 1:
+            out.append(f"the deploy job runs {len(dsteps)} steps, not only "
+                       "deploy-pages: it holds the write and OIDC grant")
         env = jobs[deploy[0]].get("environment")
         if (env.get("name") if isinstance(env, dict) else env) != "github-pages":
             out.append(f"the deploy job runs outside the github-pages "
@@ -30188,7 +30213,7 @@ R.check(
     "and a staging that copies docs/ wholesale, or a guard that refuses "
     "nothing, is refused (null controls)",
     any("extra=" in d and ".md" in d for d in _PG_NULL_STAGE)
-    and any("holding a .md" in d for d in _PG_NULL_GUARD),
+    and any("holding note.Md" in d for d in _PG_NULL_GUARD),
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
 )
 
@@ -30229,6 +30254,30 @@ R.check(
     any("github-pages environment" in d for d in _PG_NO_ENV)
     and any("build job's permissions" in d for d in _PG_NO_PERMS),
     f"no environment: {_PG_NO_ENV}; no build permissions: {_PG_NO_PERMS}",
+)
+
+# The status-function class (#1876 round 2): one planted `if:` per spelling a
+# review used, on the deploy job, each refused by the one rule above.
+_PG_DEPLOY_IF = "    if: needs.pages-build.outputs.enabled == 'true'\n"
+_PG_STATUS_SPELLINGS = {
+    "always()": "always() && needs.pages-build.outputs.enabled == 'true'",
+    "!cancelled()": "${{ !cancelled() && needs.pages-build.outputs.enabled != 'nope' }}",
+    "cancelled()": "cancelled() || needs.pages-build.outputs.enabled == 'true'",
+    "failure()": "failure() || needs.pages-build.outputs.enabled == 'true'",
+    "success() || failure()": "success() || failure() || needs.pages-build.outputs.enabled",
+}
+_PG_STATUS_GOT = {}
+for _sp, _expr in _PG_STATUS_SPELLINGS.items():
+    _txt = _PG_WF.read_text() if _PG_WF.is_file() else ""
+    _PG_STATUS_GOT[_sp] = (
+        any("status function" in d for d in _pg_defects(
+            _txt.replace(_PG_DEPLOY_IF, f"    if: {_expr}\n")))
+        if _txt.count(_PG_DEPLOY_IF) == 1 else False)
+R.check(
+    "and an `if:` calling any status function is refused, one planted "
+    "spelling each (null controls)",
+    all(_PG_STATUS_GOT.values()),
+    f"refused per spelling: {_PG_STATUS_GOT}",
 )
 
 

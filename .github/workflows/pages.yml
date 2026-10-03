@@ -93,7 +93,7 @@ jobs:
           # site folder, and every image. A markdown file is never staged.
           git ls-files -z -- docs/index.html 'docs/site/*' 'docs/*.png' 'docs/*.svg' |
             while IFS= read -r -d '' f; do
-              case "$f" in *.[mM][dD]) continue ;; esac
+              case "$f" in *.[mM][dD]|*.[mM][aA][rR][kK][dD][oO][wW][nN]) continue ;; esac
               rel="${f#docs/}"
               mkdir -p "_site/$(dirname "$rel")"
               cp "$f" "_site/$rel"
