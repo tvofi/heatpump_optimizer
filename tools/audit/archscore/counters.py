@@ -188,20 +188,24 @@ def _inert(s: ast.stmt, dead: set[str]) -> bool:
 
 def _dead_names(fn: ast.AST) -> set[str]:
     """Names ``fn`` binds and nothing in it reads: not loaded anywhere in its body, nested scopes
-    included, and not declared ``global`` or ``nonlocal``."""
+    included, not declared ``global`` or ``nonlocal``, and not a class body's attribute."""
     stored, live = set(), set()
     for n in ast.walk(fn):
         if isinstance(n, ast.Name):
             (live if isinstance(n.ctx, ast.Load) else stored).add(n.id)
         elif isinstance(n, (ast.Global, ast.Nonlocal)):
             live |= set(n.names)
+        elif isinstance(n, ast.ClassDef):  # a class body's binding is an attribute, read from outside it
+            live |= {t.id for b in n.body for t in ast.walk(b)
+                     if isinstance(t, ast.Name) and isinstance(t.ctx, ast.Store)
+                     and not isinstance(b, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))}
     return stored - live
 
 
 def inert_statements(trees, all_functions) -> set[int]:
     """``id()`` of every statement dead by data flow in the package's functions, dropped before a clone
     window is cut so junk interleaved in every window does not split the clone (attempt 04: 121 -> 7;
-    04h to 04m are the spellings an enumeration missed). Dead: effect-free by ``_PURE_NODES`` and binding
+    04h to 04n are the spellings an enumeration missed). Dead: effect-free by ``_PURE_NODES`` and binding
     only names nothing reads; an ``assert``, ``if``, ``while`` or ``for`` whose test folds to a constant
     is judged on the branch that runs, and a ``try`` on its every part. Each function is judged with its
     own reads; an enclosing function reads a superset, so the union never drops a live statement.
