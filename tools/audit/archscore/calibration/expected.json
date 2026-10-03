@@ -686,21 +686,45 @@
  },
  "rt_04h_dup_assert_uncharged": {
   "admissible": true,
-  "label": "KNOWN-OPEN",
+  "label": "GAME",
   "set": "redteam",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
  },
  "rt_04i_dup_assign_uncharged": {
   "admissible": true,
-  "label": "KNOWN-OPEN",
+  "label": "GAME",
   "set": "redteam",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
  },
  "rt_04j_dup_walrus_uncharged": {
   "admissible": true,
-  "label": "KNOWN-OPEN",
+  "label": "GAME",
   "set": "redteam",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
+ },
+ "rt_04k_dup_deadstore_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04l_dup_lambda_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04m_dup_try_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04n_dup_method_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  },
  "rt_05_coord_mixin_relocation": {
   "admissible": true,
