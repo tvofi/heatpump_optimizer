@@ -1952,6 +1952,7 @@ def _version_concurrent_reads() -> None:
         _storage.Store.async_load = orig_load
         _storage._DISK.clear()
         _storage._VERSIONS.clear()
+        _storage.SAVE_COUNTS.pop(key, None)
     want = {"v": 1.0, "migrated": True}
     R.check(
         "two concurrent loads of a migrating store both land: the write-back "
@@ -1969,7 +1970,7 @@ def _version_concurrent_reads() -> None:
             return await orig_load(self)
 
         _storage.Store.async_load = _gated
-        st = QuarantiningStore(FakeHass(), 1, key)
+        st = QuarantiningStore(FakeHass(), 1, wkey)
 
         async def _writer():
             await st.async_load()  # this task's own read lands ...
@@ -1985,11 +1986,13 @@ def _version_concurrent_reads() -> None:
         go.set()
         for _ in range(3):
             await asyncio.sleep(0)
-        early = _storage.SAVE_COUNTS.get(key, 0)
+        early = _storage.SAVE_COUNTS.get(wkey, 0)
         gate.set()
         await asyncio.wait_for(asyncio.gather(writer, other), 5)
-        return early, _storage.SAVE_COUNTS.get(key, 0)
+        return early, _storage.SAVE_COUNTS.get(wkey, 0)
 
+    wkey = f"{key}_writer"
+    _storage.SAVE_COUNTS.pop(wkey, None)
     try:
         early, late = asyncio.run(_landed_reader())
     except BaseException as exc:  # noqa: BLE001 -- a hang is the measurement
@@ -1997,7 +2000,7 @@ def _version_concurrent_reads() -> None:
     finally:
         _storage.Store.async_load = orig_load
         _storage._DISK.clear()
-        _storage.SAVE_COUNTS.pop(key, None)
+        _storage.SAVE_COUNTS.pop(wkey, None)
     R.check(
         "a task whose read has landed saves after another task's read in flight, "
         "not before it (#1869)",
