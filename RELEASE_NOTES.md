@@ -1,5 +1,24 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.15
+
+round 9 continues: the product site gains its documentation sub-pages and a GitHub Pages deploy, published from this tag (WEB-3, WEB-2); events reach Home Assistant through a notifier module, five events and a notifications blueprint (UX-4); the coordinator publishes a typed payload with no cast left, and every store gets one version constant and a migration hook that never saves over newer data after a downgrade (EG-B3a, EG-B3b, EG-B4); an architecture score lands in-tree with its calibration check (EG-A1); a barrier checks that every Home Assistant name the integration reaches exists at the 2025.2.0 floor (P11); the nightly gains a loop-stall heartbeat (F10.7); the gate runs the PR's own pinned graders, the closures autofix goes red when a failure is left for a human, the ledger drain lands only pins still valid at main's head, and harness children pin BLAS to one thread (F11.7); and a policy change: reviewers verify that a moved metric is earned, fixers take the fix that yields better code, and budget caps are paid with real improvements first.
+
+- #1852 — R9-EG-B3a: a typed coordinator payload (Payload TypedDict) wired through DataUpdateCoordinator
+- #1851 — R9-EG-A1: the architecture score in-tree, reading structure.py's censuses, with its calibration check
+- #1872 — fix(tests): harness children run with BLAS pools pinned to one thread (#1819 follow-up)
+- #1864 — feat(site): documentation sub-pages rendered over the vendored markdown-it (R9-WEB-3)
+- #1865 — feat(events): notifier module, five events and a notifications blueprint (R9-UX-4)
+- #1868 — ci: closures-autofix goes red when any closures failure is left for a human (RCA instance 4)
+- #1870 — test(nightly-ha): loop-stall heartbeat with an in-stall dump (R9-F10.7)
+- #1871 — fix(mutation): the ledger drain lands pins still valid at main's head (#1848 follow-up)
+- #1867 — refactor(payload): remove the cast; the producers are typed (R9-EG-B3b)
+- #1869 — fix(stores): one version constant per store and a migration hook (R9-EG-B4)
+- #1875 — test(entities): P11 barrier, every Home Assistant name production reaches exists at the 2025.2.0 floor (R9-RCA-1869)
+- #1863 — ci(governance): graders-head-copy runs the PR's own pinned graders (R9-F11.7)
+- #1877 — policy: reviewers check that a moved metric is earned (metric-gamed), fixers take the better fix and pay budget caps with real improvements
+- #1876 — ci(pages): GitHub Pages deploy of the product page and documentation (R9-WEB-2)
+
 ## v6.7.14
 
 round 9 continues: the merge queue gains a disjoint-closure fast path, every required context on a queue entry and a coverage cache that restores only main's push run (F10.9c, F10.9d); gate infrastructure advances with re-recorded closures, killed mutants drained into the ledger nightly, and cancellable superseded runs (F10.4, F10.5); the governance lane adds the agreement checks and their precursors (F11.4); the coordinator sheds its plan settings view and the dead-property surface and gains one builder for the two solve paths' objective closures (F1.11, EG-B2, EG-B5a); the card gets two-across stat tiles, the advisor inbox ranked by monthly value and an honest unavailable state (UX-1 to UX-3); a product page ships (WEB-1); and delivery rows are trued for the merges that read open (PROC-4); and a policy text for round-9 root causes, a deterministic audit-register fold, an extracted DHW planner, a CMP_BOUND mutation operator and a ledger-job hotfix (F11.5, EG-R1, EG-B5, F10.6).
