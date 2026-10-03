@@ -1292,6 +1292,18 @@ def self_test() -> int:
           and _seen.get("claims") == ["NEW-CLM"] * len(CLAIM_FILES)
           and _seen.get("register") is True)
     check("register dry run: the copy is removed after the run", not _seen["cwd"].exists())
+    # The default runner, which the seam above replaces: it must run the
+    # generator in the copy too, or the dry run re-records the real register.
+    _real_run, _cwds = subprocess.run, []
+    subprocess.run = lambda argv, **kw: (
+        (_cwds.append(kw.get("cwd")), _Proc(0, ""))[1]
+        if str(REGISTER_GENERATOR.name) in " ".join(map(str, argv)) else _real_run(argv, **kw))
+    try:
+        dry_run_register("9.9.9", CARD_JS.read_text(), [])
+    finally:
+        subprocess.run = _real_run
+    check("register dry run: the default runner's working directory is the copy, not the checkout",
+          len(_cwds) == 1 and _cwds[0] is not None and Path(_cwds[0]) != ROOT)
     try:
         dry_run_register("9.9.9", CARD_JS.read_text(), [], lambda a, c: _Proc(1, "SyntaxError: f-string"))
         _refused = False
