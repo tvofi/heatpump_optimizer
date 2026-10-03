@@ -1,0 +1,7 @@
+== V3 _major pinned to 1: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (251s)
+    FAIL the default hook raises NotImplementedError and surfaces a major mismatch only, not a minor-only one  [verdicts=['not-implemented', 0, 'not-implemented', 1]]
+== V4 reader never cleared: rc=0 ALL 77 FINITE BOUNDARY CHECKS PASSED (234s)
+== V5 reader never recorded: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (256s)
+    FAIL a store that migrates loads the migrated payload and saves it at its own version, without waiting on its own read (#1740)  [got='TimeoutError' saved_at=1]
+== V6 legionella built through a subclass: rc=1 1 of 77 FINITE BOUNDARY CHECKS FAILED (123s)
+    FAIL every derived boundary is wired to a loader in the reach sweep  [boundaries=12 loaders=13]
