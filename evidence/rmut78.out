@@ -1,0 +1,13 @@
+RESULT R7 stop() never signals the watcher: rc=1 2 of 2094 ENTITY CHECKS FAILED
+       FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_sour
+       FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+       FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+       FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+       FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]
+RESULT R8 stop() never cancels the tick: rc=0 ALL 2094 ENTITY CHECKS PASSED
+       FAIL a3:roster  [1 registered, 75 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_sour
+       FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+       FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+       FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+       FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]
+done rc=0
