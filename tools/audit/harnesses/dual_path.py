@@ -71,9 +71,6 @@ NEITHER = [".claude/workflows/policy_budgets.json", ".claude/workflows/fixtures/
 EXPECTED = {
     ("graders", "preflight"): "its staleness line counts the policy files the planted commit moves as authored "
                               "on the branch, which a move pull request's are",
-    ("neither", "codeowners_gap --check"): "its surface is HEAD's workflows read by HEAD's graders against the "
-                                           "base's: the data it reads, required-contexts.json, is behind a try "
-                                           "that returns no refusal at either end",
     ("neither", "agreement"): "its grammar census counts the regexes HEAD's graders add",
 }
 _spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
@@ -216,6 +213,12 @@ def arm_neither(base: str, tmp: Path) -> int:
     # The planted commit differs, so HEAD~1 is not the same parent: compare the
     # rows a grader of the data computes, not the budget gate's diff window.
     a.pop("budget_raise_gate"), b.pop("budget_raise_gate")
+    # codeowners_gap's verdict is about the base's .github read by HEAD's
+    # graders, which load tests/layout.py the base's CODEOWNERS does not own;
+    # its one data read, required-contexts.json, sits in a try that returns no
+    # refusal when the file is at neither path, at both ends.
+    print("  neither codeowners_gap --check: not compared (its verdict reads .github, not the deleted data)")
+    a.pop("codeowners_gap --check"), b.pop("codeowners_gap --check")
     bad = compare("neither", a, b, tmp)
     print(f"RESULT neither_differ={bad} of {len(a)}")
     return bad
