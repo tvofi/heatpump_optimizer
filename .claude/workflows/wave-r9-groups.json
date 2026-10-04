@@ -6306,9 +6306,9 @@
       "resume": {
         "stage": "in-review",
         "branch": "handoff/r9-f10-13",
-        "commit": "059d435af73e6c042d47b00781441d8e90eba0ec",
-        "last_step": "PR #1885 opened 2026-10-04; fix-review dispatched",
-        "next_step": "verdict",
+        "commit": "c983b9778924a0eefca57e7bb8fbb221462a7570",
+        "last_step": "round 3 pushed to PR #1885 at session handover (anchor check stubbed: no worktree/subprocess, MA-MD killed, entities 143 s; closures.json lines removed from the diff); round 2 had merge at 7162a2d8 (comment 5977616991)",
+        "next_step": "round-3 review of the stub and the closures removal (CI Linux closures must confirm no UNDER-SCOPED for tests/entities.py), then merge (code-owned: mandate approval)",
         "note_file": null,
         "review_branch": null,
         "review_note_file": null,
