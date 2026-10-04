@@ -77,7 +77,7 @@
   },
   "files_tokens": {
     ".claude/rules/brief-citations.md": 893,
-    ".claude/rules/ci-autofix.md": 1428,
+    ".claude/rules/ci-autofix.md": 1469,
     ".claude/rules/claim-files.md": 681,
     ".claude/rules/comment-readback.md": 883,
     ".claude/rules/defect-root-cause.md": 1887,
