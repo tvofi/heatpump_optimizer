@@ -60,6 +60,11 @@ class AccuracySample:
     #: snapshot tags and #12's health watch both read it). None whenever a
     #: power meter or the model's figure was missing.
     cop_residual: float | None = None
+    #: #1935: a boost overlay (channel or global mode) governed this
+    #: interval. The prediction is suppressed on such intervals; the tag
+    #: stays so a post-drift recommendation can exclude override rows from
+    #: its evidence rather than guessing at windows.
+    boost_space: bool = False
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -73,6 +78,7 @@ class AccuracySample:
             "outdoor_temp": self.outdoor_temp,
             "humidity": self.humidity,
             "cop_residual": self.cop_residual,
+            "boost_space": self.boost_space,
         }
 
     @classmethod
@@ -110,6 +116,7 @@ class AccuracySample:
             outdoor_temp=num("outdoor_temp"),
             humidity=num("humidity"),
             cop_residual=num("cop_residual"),
+            boost_space=bool(data.get("boost_space", False)),
         )
 
 
