@@ -60,14 +60,18 @@ from heatpump_optimizer.thermal_model import (
 )
 
 UTC = timezone.utc
-DT_MIN = 30.0           # optimization interval, minutes (production default)
+DT_MIN = float(__import__("os").environ.get("DIAG_DT_MIN", 30.0))
 STEP_MIN = 30.0         # solver time step, minutes
 DAYS = 16
 START = datetime(2026, 1, 5, 0, 0, tzinfo=UTC)
 
 # Boost days (0-indexed from START): tvofi used boost "a few times over two
-# days" after 1-2 weeks of running.  Days 8-9 of a 16-day run.
-BOOST_DAYS = (8, 9)
+# days" after 1-2 weeks of running.  Days 8-9 of a 16-day run; the heavier
+# variants (DIAG_BOOST_DAYS) stretch the same usage across more days.
+BOOST_DAYS = tuple(
+    int(d) for d in __import__("os").environ.get("DIAG_BOOST_DAYS", "8,9").split(",")
+    if d.strip()
+)
 BOOST_STARTS = (7.0, 12.0, 18.0)   # local hours
 BOOST_HOURS = 2.0
 
@@ -104,6 +108,18 @@ def build_house(true_loss_scale: float) -> ThermalModel:
     return ThermalModel(params)
 
 
+def weather_now(day_index: int, hour: float):
+    """The TRUE outdoor temperature and solar at an instant.
+
+    Same formulas as ``day_arrays``, evaluated continuously, so the sensor
+    readings, the house's experience and the solve's perfect forecast are
+    one weather."""
+    base = -6.0 + 3.0 * np.sin((day_index / 4.0) * np.pi / 2.0)
+    t_out = base + 4.0 * np.sin((hour - 14.0) / 24.0 * 2 * np.pi)
+    solar = float(np.clip(45.0 * np.sin((hour - 8.5) / 7.0 * np.pi), 0.0, None))
+    return float(t_out), solar
+
+
 def build_coord():
     cfg = {
         "tibber_token": "x",
@@ -111,6 +127,7 @@ def build_coord():
         "indoor_temp_entity": "sensor.indoor",
         "outdoor_temp_entity": "sensor.outdoor",
         "heat_pump_power_entity": "sensor.hp_power",
+        "solar_radiation_entity": "sensor.solar",
         "optimization_interval": DT_MIN,
     }
     coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
@@ -144,22 +161,39 @@ def run(arm: str, true_loss_scale: float, boosts: bool, mode_boost: bool = False
         if t.date() != (t - timedelta(minutes=DT_MIN)).date():
             day_index += 1
         dt_mod.freeze(t)
+        h_now = t.hour + t.minute / 60.0
+        outdoor_now, solar_now = weather_now(day_index, h_now)
         # -- the bus carries what the house just did ----------------------
         coord.hass.states.set(
             "sensor.indoor",
-            FakeState(f"{house_state.room_temperature:.3f}", last_updated=t),
+            FakeState(f"{house_state.room_temperature:.3f}", last_updated=t,
+                      unit="°C"),
         )
         coord.hass.states.set(
             "sensor.outdoor",
-            FakeState(f"{house_state.outdoor_temperature:.3f}", last_updated=t),
+            FakeState(f"{outdoor_now:.3f}", last_updated=t, unit="°C"),
         )
         coord.hass.states.set(
-            "sensor.hp_power", FakeState(f"{draw:.3f}", last_updated=t)
+            "sensor.hp_power",
+            FakeState(f"{draw:.3f}", last_updated=t, unit="kW"),
+        )
+        coord.hass.states.set(
+            "sensor.solar",
+            FakeState(f"{solar_now:.2f}", last_updated=t, unit="W/m²"),
         )
         # -- learners replay the elapsed interval --------------------------
         asyncio.run(coord._update_current_state())
         # -- the plan (a real solve on the live model) ----------------------
+        # Two days of arrays, sliced from the current half-hour, so the
+        # horizon starts at now the way the production forecast does.
+        step_idx = int(round(h_now * 60.0 / STEP_MIN))
         p, t_out, solar, wind, rain = day_arrays(day_index)
+        p2, t_out2, solar2, wind2, rain2 = day_arrays(day_index + 1)
+        p = np.concatenate([p, p2])[step_idx:]
+        t_out = np.concatenate([t_out, t_out2])[step_idx:]
+        solar = np.concatenate([solar, solar2])[step_idx:]
+        wind = np.concatenate([wind, wind2])[step_idx:]
+        rain = np.concatenate([rain, rain2])[step_idx:]
         result = optimizer.optimize(
             ctx._current_state,
             prices=p, outdoor_temps=t_out,
@@ -202,13 +236,13 @@ def run(arm: str, true_loss_scale: float, boosts: bool, mode_boost: bool = False
             # modulating near the ceiling rather than fully off
             applied = want * 0.35
         prev_room = house_state.room_temperature
-        h_now = t.hour + t.minute / 60.0
         house_state = house.simulate_step(
-            house_state, applied, float(t_out[0]),
-            wind_speed=float(wind[0]), precipitation=float(rain[0]),
-            solar_radiation=float(solar[0]), dt_hours=DT_MIN / 60.0,
+            house_state, applied, outdoor_now,
+            wind_speed=2.0, precipitation=0.0,
+            solar_radiation=solar_now, dt_hours=DT_MIN / 60.0,
             hour_of_day=h_now,
         )
+        house_state.outdoor_temperature = outdoor_now
         draw = applied
         # -- close the loop on the prediction ------------------------------
         coord._record_accuracy()
@@ -221,6 +255,10 @@ def run(arm: str, true_loss_scale: float, boosts: bool, mode_boost: bool = False
                 "act": sample.actual_temp,
                 "err": round(sample.predicted_temp - sample.actual_temp, 3)
                         if sample.actual_temp is not None else None,
+                "outdoor": sample.outdoor_temp,
+                "pred_kw": sample.predicted_power_kw,
+                "act_kw": sample.actual_power_kw,
+                "room": round(house_state.room_temperature, 3),
             })
         boost_tag = boosting
         # -- the daily heartbeat, once per calendar day --------------------
@@ -235,6 +273,10 @@ def run(arm: str, true_loss_scale: float, boosts: bool, mode_boost: bool = False
                 "cop_scale": round(coord._cop_scale, 4),
                 "alarmed": coord._snapshot_ring.alarmed,
                 "bias_days": coord._snapshot_ring._bias_days,
+                "vent_tripped": coord._vent_cusum.tripped,
+                "vent_stat": round(coord._vent_cusum.stat, 3),
+                "freeze_reason": coord._learner_freeze_reason,
+                "trust": round(coord._accuracy.trust(), 3),
             })
             print(f"[{arm}] day {day_index} bias={daily[-1]['bias']} "
                   f"hh={daily[-1]['hh_scale']} alarmed={daily[-1]['alarmed']}",
