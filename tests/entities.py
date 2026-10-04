@@ -23944,6 +23944,312 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
+#
+# `record` reddens on main after every rowless merge, and the beat that clears
+# it was fully manual: a seat wrote `docs/delivery/<N>.md` from API facts and
+# opened the record pull request by hand. The generator the `record-autofix`
+# job (tests.yml) runs is `tools/audit/seat/record_row.py`, over the
+# branch-to-group lookup `roster_lib.py` carries. What is pinned here is the
+# behaviour the issue's traps name -- rows the tree's own reader reads, a write
+# set that can never touch the plan's table, a body that passes the very
+# programs CI runs and closes nothing, a PR whose row exists writes nothing --
+# each driven through the production symbols, and for the body through the
+# same `policy_lint.mjs --pr-body` / `figure_lint.mjs --pr-body` the contract
+# lane runs.
+import importlib.util as _rr_util  # noqa: E402
+import contextlib as _rr_cx  # noqa: E402
+import io as _rr_io  # noqa: E402
+
+try:
+    _rr_spec = _rr_util.spec_from_file_location(
+        "hpo_record_row",
+        _closure.ROOT / "tools" / "audit" / "seat" / "record_row.py")
+    _rr = _rr_util.module_from_spec(_rr_spec)
+    _rr_spec.loader.exec_module(_rr)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rr_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()):
+        _rr_ok = _rr.self_test() == 0
+    _rr_detail = _rr_out.getvalue()
+except Exception as _rr_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _rr_ok, _rr_detail = False, f"{type(_rr_exc).__name__}: {_rr_exc}"
+R.check(
+    "tools/audit/seat/record_row.py --self-test passes",
+    _rr_ok,
+    "run `python3 tools/audit/seat/record_row.py --self-test` for the "
+    "failing check names:\n" + _rr_detail,
+)
+
+# The branch-to-group lookup is roster_lib's, not the generator's own: a
+# second derivation of the same mapping is the drift `roster_lib` exists to
+# prevent (#1948). Equality on the NORMALIZED tail, never a prefix, so
+# `fix/r9-fr-1` cannot answer for R9-FR-10 -- the one mismatch a startswith
+# rule produces, and the control this arm drives beside the matches.
+try:
+    _rl_spec = _rr_util.spec_from_file_location(
+        "hpo_roster_lib",
+        _closure.ROOT / "tools" / "audit" / "seat" / "roster_lib.py")
+    _rl = _rr_util.module_from_spec(_rl_spec)
+    _rl_spec.loader.exec_module(_rl)
+    _rl_roster = {"groups": [
+        {"group": "R9-FR-4", "resume": {"branch": "handoff/r9-fr-4"}},
+        {"group": "R9-WEB-5", "resume": {"branch": "handoff/r9-web-5"}},
+        {"group": "R9-FR-10", "resume": {}},
+    ]}
+    _rl_got = [
+        _rl.group_for_branch(_rl_roster, b) for b in
+        ("handoff/r9-fr-4", "fix/r9-fr-4", "fix/r9-fr-10",
+         "claude/beautiful-khorana-48e0a0", "policy/0013", "fix/r9-fr-1")]
+    _rl_ok = True
+except Exception as _rl_exc:  # noqa: BLE001
+    _rl_ok, _rl_got = False, [f"{type(_rl_exc).__name__}: {_rl_exc}"]
+R.check(
+    "a merged pull request's branch answers for its roster group, and only its group",
+    _rl_ok and _rl_got == ["R9-FR-4", "R9-FR-4", "R9-FR-10", None, None, None],
+    f"lookups={_rl_got}; exact resume.branch, tail-normalized group id, the "
+    "resume.branch fallback for a group with no explicit branch, and None "
+    "for a branch no group claims -- a prefix rule would answer R9-FR-10 "
+    "for fix/r9-fr-1, and a hotfix branch must row in the neutral phrasing "
+    "a seat edits at approval, not in a group it does not belong to",
+)
+
+# THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
+# readers a row must satisfy (`policy_lint --record` is the other, same
+# anchor), so the generated line is driven through the real reader over a
+# fixture row directory -- not through a copy of the anchor regex. The null
+# control is the table-row SHAPE: `speaksFor` reads a `|`-row in the plan's
+# table, but a row FILE holding one rows nobody through the reader here,
+# which is why the generator emits the anchored bullet and never a table row.
+with _ds_tf.TemporaryDirectory() as _raf_tmp:
+    _raf_root, _ds.ROOT = _ds.ROOT, Path(_raf_tmp)
+    _raf_rows = [
+        _rr.row_line(2052, "fix(R9-FR-4): the pin drive splits its shared "
+                           "work", "3f7ed8161234", "R9-FR-4"),
+        _rr.row_line(2053, "policy: a hotfix with no group | pipes too",
+                     "451a078f9876", None),
+    ]
+    (Path(_raf_tmp) / _ds.ROW_DIR).mkdir(parents=True)
+    for _n, _line in zip((2052, 2053), _raf_rows):
+        (Path(_raf_tmp) / _ds.ROW_DIR / f"{_n}.md").write_text(_line + "\n")
+    _raf_ledger = _ds.classify(
+        _ds_merges((2052, 0), (2053, 0), (2054, 0)), _ds.read_texts())
+    (Path(_raf_tmp) / _ds.ROW_DIR / "2055.md").write_text(
+        "| [#2055](https://github.com/o/r/pull/2055) | merged |\n")
+    _raf_ctrl = _ds.classify(_ds_merges((2055, 0)), _ds.read_texts())
+    _ds.ROOT = _raf_root
+R.check(
+    "the generator's row is read by the tree's own row reader, and a "
+    "table-row shape is not",
+    [r["state"] for r in _raf_ledger["merges"]]
+    == ["rowed", "rowed", "pending"]
+    and _raf_ctrl["merges"][0]["state"] == "pending",
+    f"states {[r['state'] for r in _raf_ledger['merges']]}, table-shape "
+    f"control {_raf_ctrl['merges'][0]['state']!r}; the ledger and `record` "
+    "read the generated file the same way, and the control shows the reader "
+    "distinguishes the anchored bullet from a table row, so the pin is not "
+    "vacuous",
+)
+
+# ROWS NEVER AT A TABLE END. The plan's Delivery-status table is the one
+# surface a row must never be appended to: a row at the table's end conflicts
+# every open branch, and past the freeze `policy_lint` refuses it
+# (delivery-status-tracking.md). The generator's entire write surface is
+# `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any
+# path that is not a row file, and each generated file is exactly one line so
+# it can neither split nor trail a table.
+with _ds_tf.TemporaryDirectory() as _raf_tmp2:
+    _raf_guard = []
+    # Each bad path carries a WELL-FORMED anchored line, so only the path
+    # guard can refuse it -- the M1 mutation proof showed a line-shape refusal
+    # here reads exactly like a passing path guard.
+    _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
+    for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
+                 "docs/delivery/2052.md.bak", "docs/delivery/sub/2052.md"):
+        try:
+            _rr.write_rows([{"number": 2052, "path": _bad,
+                             "line": _raf_line}], Path(_raf_tmp2))
+            _raf_guard.append(f"{_bad}=ACCEPTED")
+        except _rr.Refuse:
+            _raf_guard.append(f"{_bad}=refused")
+    _rr.write_rows([{"number": 2052, "path": "docs/delivery/2052.md",
+                     "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
+                   Path(_raf_tmp2))
+    _raf_text = (Path(_raf_tmp2) / "docs/delivery/2052.md").read_text()
+    _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
+R.check(
+    "the generator's write set is docs/delivery/<N>.md and nothing else",
+    all(g.endswith("=refused") for g in _raf_guard)
+    and _raf_text == _raf_want,
+    f"guard={_raf_guard}, written={_raf_text!r}; a row appended to the "
+    "plan's Delivery-status table conflicts every open branch and past the "
+    "freeze policy_lint refuses it, so the plan and the handover are not in "
+    "the write set, and a one-line file can neither split a table nor trail one",
+)
+
+# A PR WHOSE ROW EXISTS WRITES NOTHING; A MAIN THAT MOVED RE-DERIVES. The
+# plan is recomputed against the tree it is applied to, so a row that landed
+# on main between enumeration and apply drops out of the plan instead of
+# conflicting, and an apply over an already-written row is a no-op.
+with _ds_tf.TemporaryDirectory() as _raf_tmp3:
+    (Path(_raf_tmp3) / _ds.ROW_DIR).mkdir(parents=True)
+    _raf_merges = [
+        {"number": 2052, "title": "fix: one", "state": "merged",
+         "head_ref": "fix/r9-fr-4", "merge_sha": "a" * 40},
+        {"number": 2053, "title": "fix: two", "state": "merged",
+         "head_ref": "claude/beautiful-khorana-48e0a0", "merge_sha": "b" * 40},
+    ]
+    _raf_plan1 = _rr.plan_merges(_raf_merges, Path(_raf_tmp3), roster=None)
+    _rr.write_rows(_raf_plan1, Path(_raf_tmp3))
+    _raf_plan2 = _rr.plan_merges(_raf_merges, Path(_raf_tmp3), roster=None)
+    _raf_again = _rr.write_rows(_raf_plan2, Path(_raf_tmp3))
+R.check(
+    "a pull request whose row already exists plans and writes nothing",
+    [r["number"] for r in _raf_plan1] == [2052, 2053]
+    and _raf_plan2 == [] and _raf_again == [],
+    f"first plan={[r['number'] for r in _raf_plan1]}, re-plan={_raf_plan2}, "
+    f"re-apply wrote {_raf_again}; the plan is recomputed against the tree "
+    "it is applied to, so a row that landed on main between enumeration and "
+    "apply drops out instead of conflicting",
+)
+
+# THE GENERATED BODY, THROUGH THE PROGRAMS CI RUNS. `checkPrBody` refuses a
+# missing or empty section and a bare `n/a`; `figure_lint` refuses a command
+# that does not resolve. And the closing-keyword trap: GitHub closes issues
+# from a pull request's BODY prose, so a generated `Closes #N` anywhere would
+# close an issue the beat never meant to touch -- the record PR closes
+# nothing, disposes itself as record-class, and the generated prose carries
+# no closing keyword before an issue number at all.
+def _raf_body_fixture():
+    import subprocess
+    rows = [{"number": 1893, "path": "docs/delivery/1893.md",
+             "line": "- [#1893](https://github.com/o/r/pull/1893) — "
+                     "**merged `3f7ed816`**, fix(R9-FR-4): the pin drive "
+                     "splits its shared work (R9-FR-4).",
+             "title": "fix(R9-FR-4): the pin drive splits its shared work",
+             "merge_sha": "3f7ed8161234", "group": "R9-FR-4"}]
+    body = _rr.pr_body("a" * 40, "0b9c8d7", rows)
+    comment = _rr.coord_comment(1953, rows)
+    out = {"body": body, "comment": comment}
+    with _ds_tf.TemporaryDirectory() as td:
+        p = Path(td) / "body.md"
+        p.write_text(body)
+        pf = Path(td) / "paths.txt"
+        pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
+        r1 = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+             str(p), "--head", "a" * 40, "--paths-file", str(pf)],
+            capture_output=True, text=True)
+        r2 = subprocess.run(
+            ["node", ".claude/workflows/figure_lint.mjs", "--pr-body",
+             str(p)],
+            capture_output=True, text=True)
+        out["policy_rc"], out["policy_out"] = r1.returncode, r1.stdout
+        out["figures_rc"], out["figures_out"] = r2.returncode, r2.stdout
+    return out
+
+
+_RAF = _raf_body_fixture()
+# The closing-keyword grammar is record_row.py's CLOSING_KEYWORD, driven here
+# as the production symbol -- a second copy in the test would be exactly the
+# shared grammar the agreement lane refuses (and a test re-implementing a
+# formula pins nothing).
+_RAF_CLOSING = _rr.CLOSING_KEYWORD
+_RAF_TABLE_ROW = re.compile(r"(?m)^\s*\|")
+_RAF_BODY_CLEAN = (
+    not _RAF_CLOSING.search(_RAF["body"])
+    and not _RAF_CLOSING.search(_RAF["comment"])
+    and not _RAF_TABLE_ROW.search(_RAF["body"]))
+R.check(
+    "the generated record body passes policy_lint --pr-body and figure_lint",
+    _RAF["policy_rc"] == 0 and _RAF["figures_rc"] == 0,
+    f"policy rc={_RAF['policy_rc']}, figures rc={_RAF['figures_rc']}; "
+    f"policy: {_RAF['policy_out'].strip()[-300:]!r}; figures: "
+    f"{_RAF['figures_out'].strip()[-200:]!r}. These are the two programs "
+    "`body_check` and step 7a run, so a generated body is held to the "
+    "contract it will meet, in the same pull request that adds the generator",
+)
+R.check(
+    "and the generated prose closes nothing and never emits a table row",
+    _RAF_BODY_CLEAN,
+    f"closing keyword in body={bool(_RAF_CLOSING.search(_RAF['body']))}, "
+    f"in comment={bool(_RAF_CLOSING.search(_RAF['comment']))}, "
+    f"table row={bool(_RAF_TABLE_ROW.search(_RAF['body']))}; GitHub closes "
+    "issues from a pull request's body prose, so a generated `Closes #N` "
+    "would close an issue the beat never meant to touch -- the record PR "
+    "closes nothing and disposes itself as record-class",
+)
+R.check(
+    "the record beat's sections: head named, red named, approval kept manual, "
+    "handover untouched",
+    "a" * 40 in _RAF["body"]
+    and "record" in (_rr.sections(_RAF["body"]).get("Red checks") or "")
+    and "hpo-author" in (_rr.sections(_RAF["body"]).get("Approval") or "")
+    and "docs/HANDOVER.md" not in _RAF["body"],
+    f"head={'a' * 40 in _RAF['body']}, red named="
+    f"{'record' in (_rr.sections(_RAF['body']).get('Red checks') or '')}, "
+    "approval manual="
+    f"{'hpo-author' in (_rr.sections(_RAF['body']).get('Approval') or '')}, "
+    "handover untouched="
+    f"{'docs/HANDOVER.md' not in _RAF['body']}; the design keeps the "
+    "approving labelled review and the HANDOVER updated-for line manual "
+    "deliberately -- a job would over-write the handover every beat",
+)
+
+# THE JOB'S WIRING, over tests.yml's record-autofix block read WITHOUT its
+# comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
+# a grant would accept the sentence that explains the grant. Pinned: main
+# only, its own environment, the `ci:` commit subject the loop guard keys on,
+# the guarded `git add docs/delivery` write set, the re-derive loop, the
+# #201 comment, and the report step that reddens a beat owed and not landed.
+# The null controls strip the subject and the ref guard and must both fail.
+_RAF_JOB_RAW = _workflow_job(_TESTS_YML, "record-autofix")
+_RAF_JOB = "\n".join(
+    _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
+_RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
+
+
+def _raf_job_ok(job: str) -> bool:
+    """The wiring record-autofix owes, read over non-comment lines."""
+    adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
+    return (
+        bool(job)
+        and "github.ref == 'refs/heads/main'" in job
+        and "environment: record-writer" in job
+        and 'git commit -q -m "ci: record delivery rows"' in job
+        and adds == ["git add docs/delivery"]
+        and "docs/HANDOVER.md" not in job
+        and "for try in 1 2 3" in job
+        and "issues/201/comments" in job
+        and "if: always()" in job
+        and not re.search(r"(?m)^\s*push .*(--force|-f)\b", job)
+        and not re.search(r"pulls/.*/reviews", job))
+
+
+R.check(
+    "tests.yml's record-autofix job: main-only, its own environment, "
+    "loop-guarded ci: subject, guarded write set",
+    _raf_job_ok(_RAF_JOB),
+    f"job present={_RAF_JOB != ''}, ref guard="
+    f"{'github.ref == ' in _RAF_JOB}, env="
+    f"{'environment: record-writer' in _RAF_JOB}, adds="
+    f"{[a.strip() for a in _RAF_ADDS]}, "
+    "handover mentioned="
+    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
+    "gate after the generator's own guard -- a `git add -A` would commit a "
+    "write the guard refused -- and a moved main is re-derived by the fetch/"
+    "reset loop, never forced",
+)
+R.check(
+    "and the pin reads the job's own lines, not its name (null controls)",
+    not _raf_job_ok(_RAF_JOB.replace(
+        "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'git commit -q -m "ci: record delivery rows"', "", 1))
+    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
+                                         "git add -A", 1)),
+    "stripping the ref guard, the ci: subject, or the guarded add must each "
+    "turn the pin red -- or the pin matched a comment, not the wiring",
+)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
