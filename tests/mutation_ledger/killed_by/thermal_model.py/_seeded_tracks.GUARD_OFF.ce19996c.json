@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:_seeded_tracks GUARD_OFF ce19996c",
+  "killed_by": "tests/features.py",
+  "old": "    if initial_state.wood_tank_temperature is not None:",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. GUARD_OFF (`if False:`) took tests/features.py from rc=1 failed=2 to rc=1 failed=1, newly failing ['batched simulation is bitwise-identical: two-tank']."
+}

@@ -1928,7 +1928,7 @@ def check_py_typed_claim() -> None:
 # claim set is derived from the page (every element carrying data-src="<doc>#<
 # GitHub heading slug>") and its fact set from the reader documents in the
 # working tree, never a hand list or a git ref. Two claim modes: verbatim (the
-# default -- every text node, split on the ellipsis, must be in the section's
+# default -- every text node, whole, with no ellipsis, must be in the section's
 # reader text) and key phrase (data-q: the phrase must be there and every number
 # in the element a number the section states). data-copy marks page copy that
 # states no fact. Refused: a digit outside any claim, an image that does not
@@ -2134,6 +2134,8 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
     for data, owner, inert in p.texts:
         if inert:
             continue
+        if "…" in data or "..." in data:
+            errs.append(("ellipsis", f"an ellipsis in the page text: {_site_norm(data)[:80]!r}"))
         if owner is None:
             if _SITE_NUM.search(data):
                 errs.append(("number", f"a number outside any claim: {_site_norm(data)[:80]!r}"))
@@ -2141,7 +2143,7 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
         if "data-copy" in owner["a"] or "data-q" in owner["a"]:
             continue
         sec = section(owner["a"]["data-src"])
-        for frag in re.split(r"…|\.\.\.", data) if sec is not None else ():
+        for frag in (data,) if sec is not None else ():
             f = _site_norm(frag).strip(" .,;:")
             if f:
                 st["fragments"] += 1
@@ -2222,6 +2224,7 @@ def check_product_page() -> None:
             not any(k == "anchor" for k, _ in errs), "; ".join(m for k, m in errs if k == "anchor"))
     for kind, what in (
         ("claim", "every data-src claim is in its section of the reader documents"),
+        ("ellipsis", "no claim is elided with an ellipsis: each text node is quoted whole"),
         ("number", "no digit sits outside a claim"),
         ("feature", "the page's features are the README 'What it does' leads, both ways"),
         ("docs", "the page's docs cards are the README Documentation table, both ways"),
@@ -2234,6 +2237,21 @@ def check_product_page() -> None:
         bad = [m for k, m in errs if k == kind]
         R.check(what, not bad, "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else ""))
     print(f"       ({counts})")
+    page = SITE_PAGE.read_text() if SITE_PAGE.is_file() else ""
+    planted = page.replace("The heat-loss scale", "The heat-loss scale \u2026 the heat-loss scale", 1)
+    R.check("an ellipsis planted in a claim is refused (null control)",
+            planted != page and any(k == "ellipsis" for k, _ in site_findings(planted, pages=built["pages"])[0]))
+    # One setup flow, three documents: the diagram is the same text in each, so
+    # the three cannot drift into three different flows again (R9-WEB-4).
+    flows = {}
+    for doc in ("README.md", "docs/configuration.md", "docs/setup.md"):
+        text = (ROOT / doc).read_text()
+        blocks = [b for b in re.findall(r"```mermaid\n(flowchart TD\n.*?)```", text, re.S) if "Quick setup" in b]
+        flows[doc] = blocks
+    R.check("each of README, configuration.md and setup.md carries exactly one setup-flow diagram (anchor)",
+            all(len(v) == 1 for v in flows.values()), str({k: len(v) for k, v in flows.items()}))
+    R.check("the three setup-flow diagrams are identical",
+            len({v[0] for v in flows.values() if v}) == 1)
 
 
 # ---------------------------------------------------------------------------

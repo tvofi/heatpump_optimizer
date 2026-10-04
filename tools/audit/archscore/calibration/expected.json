@@ -304,7 +304,7 @@
   "admissible": true,
   "label": "GOOD",
   "set": "planted",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
  },
  "a1_G3_move_cluster_with_state": {
   "admissible": true,
@@ -686,17 +686,131 @@
  },
  "rt_04h_dup_assert_uncharged": {
   "admissible": true,
-  "label": "KNOWN-OPEN",
+  "label": "GAME",
   "set": "redteam",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
  },
  "rt_04i_dup_assign_uncharged": {
   "admissible": true,
-  "label": "KNOWN-OPEN",
+  "label": "GAME",
   "set": "redteam",
-  "verdict": "IMPROVES"
+  "verdict": "NULL"
  },
  "rt_04j_dup_walrus_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04k_dup_deadstore_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04l_dup_lambda_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04m_dup_try_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04n_dup_method_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04o_dup_selfassign_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04p_dup_nesteddef_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04q_dup_global_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04r_dup_annot_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04s_dup_reimport_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04t_dup_match_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04u_dup_comp_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04v_dup_classdef_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04w_dup_isinstance_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04x_dup_forrange_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04y_dup_ifexp_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04z_dup_annself_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04za_dup_tupleidx_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04zb_dup_print_uncharged": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_04zz1_dup_wrapsplit_uncharged": {
   "admissible": true,
   "label": "KNOWN-OPEN",
   "set": "redteam",

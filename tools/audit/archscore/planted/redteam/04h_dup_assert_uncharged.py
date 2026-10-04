@@ -1,4 +1,4 @@
-"""KNOWN-OPEN variant of 04: ``assert`` junk, skipping the coordinator and footprint-charged functions. Reads IMPROVES: see ABOUT.md "Known limit"."""
+"""Variant of 04: ``assert`` junk, skipping the coordinator and footprint-charged functions."""
 import runpy, sys
 from pathlib import Path
 sys.argv = [sys.argv[0], sys.argv[1], "assert", "uncharged"]
