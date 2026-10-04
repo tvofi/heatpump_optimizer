@@ -7372,6 +7372,48 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-FR-10",
+   "lane": "FIX",
+   "issues": [
+    1952
+   ],
+   "fixes": [
+    1952
+   ],
+   "covers": [],
+   "class": "tooling",
+   "wave": 2,
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "specified with an oracle (mutation-ledger-push and closures-autofix are the in-tree precedents to copy); reverts to opus if review round 1 finds real defects",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "high",
+   "blocked_on": [],
+   "after": [
+    "R9-FR-8"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-fr-10",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer.md step 1 at a fresh merge base: re-read issue 1952 and tools/audit/seat/roster_lib.py, then write the failing entities arm",
+    "note_file": "handoff/round9/fix/resume/FR-10.md on handoff/r9-fr-10",
+    "review_branch": "handoff/r9-fr-10-review",
+    "review_note_file": "handoff/round9/fix/resume/FR-10-review.md on handoff/r9-fr-10-review",
+    "plan": "handoff/audit-r9-fixplan: this roster; issue 1952 carries the design",
+    "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+    "note": "Owner-approved direction 2026-10-04. Follow-up to R9-FR-8 (#1948). The seat's resume note on its branch outranks this entry for in-flight state."
+   },
+   "brief": "Round-9 tooling PR FR-10 (lane FIX, record-autofix). Issue #1952 (Fixes). A record-autofix job in tests.yml, on schedule and on a red record check on main, that enumerates rowless merges via the REST API, emits docs/delivery/<N>.md rows from API facts plus the branch-to-group lookup tools/audit/seat/roster_lib.py already provides, opens the record PR as the hpo-author App with a generated pr-contract-passing body, and posts its own #201 coordination comment. Copy mutation-ledger-push's App-token minting from a main-only environment, its guarded write set and loop-guarded ci: subject, and closures-autofix's PR-opening shape. Keep manual: the approving labelled review on the record PR and the HANDOVER updated-for line. Traps to encode in tests: rows never at the table end; no closing keywords in generated prose; the template body passes policy_lint and pr-contract. After R9-FR-8 (roster_lib is its product)."
   }
  ]
 }
