@@ -56687,7 +56687,9 @@ R.check(
 # shape, so these checks drive the real async_run_optimization; the spy reads
 # the hubs and the coordinator's published views WHILE the solve is parked.
 import copy as _r9egb1_copy  # noqa: E402
+import types as _r9egb1_types  # noqa: E402
 from dataclasses import fields as _r9egb1_fields  # noqa: E402
+from enum import Enum as _r9egb1_enum  # noqa: E402
 from unittest import mock as _r9egb1_mock  # noqa: E402
 
 from heatpump_optimizer import coordinator as _r9egb1_cmod  # noqa: E402
@@ -56770,6 +56772,54 @@ def _r9egb1_views(coord):
     }
 
 
+def _r9egb1_mutables(root):
+    """id(obj) -> how it was reached, for every MUTABLE object reachable
+    from ``root``: what the loop or a worker could write into (#1736).
+
+    Immutable atoms are skipped on purpose: ``copy.deepcopy`` shares an
+    int, a string, a datetime or an enum member by identity, and sharing
+    those is harmless. Tuples are descended (they hold) but not collected;
+    objects with a ``__dict__`` -- the hub dataclasses -- are collected and
+    descended, so a shared instance is as visible as a shared list. The
+    walks return ids, so both roots must stay alive while their walks are
+    compared: the id of a garbage-collected object is reused, and a
+    temporary walked on both sides reads as shared when it is not."""
+    out, seen = {}, set()
+    stack = [(root, "root")]
+    while stack:
+        obj, path = stack.pop()
+        if id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        if obj is None or isinstance(obj, (
+                bool, int, float, complex, str, bytes, frozenset, range,
+                type, datetime, _r9egb1_enum, _r9egb1_types.ModuleType,
+                _r9egb1_types.FunctionType, _r9egb1_types.BuiltinFunctionType,
+        )):
+            continue
+        if isinstance(obj, np.ndarray):
+            out[id(obj)] = f"{path}<ndarray>"
+        elif isinstance(obj, tuple):
+            stack.extend((v, path) for v in obj)
+            continue
+        elif isinstance(obj, dict):
+            out[id(obj)] = f"{path}<dict>"
+            stack.extend((v, f"{path}[{k!r}]") for k, v in obj.items())
+            continue
+        elif isinstance(obj, (list, set, bytearray)):
+            out[id(obj)] = f"{path}<{type(obj).__name__}>"
+            if isinstance(obj, list):
+                stack.extend((v, f"{path}[{i}]") for i, v in enumerate(obj))
+            else:
+                stack.extend((v, path) for v in obj)
+            continue
+        elif hasattr(obj, "__dict__"):
+            out[id(obj)] = f"{path}<{type(obj).__name__}>"
+            stack.extend((v, f"{path}.{k}") for k, v in vars(obj).items())
+            continue
+    return out
+
+
 # Probe: away, economy, the learned solar/gains corrections and a live burn,
 # all at once -- every group of writes the old solve made. Null: none of them.
 _r9egb1_p = _r9egb1_coord(away=True, economy=True, learned=True, dhw=True)
@@ -56834,6 +56884,50 @@ R.check(
     and _r9egb1_n_handed["params"].solar_aperture_scale == 1.0
     and _r9egb1_n_handed["state"].external_heat_active is False,
     f"{_r9egb1_n_reason!r} {_r9egb1_n_handed.get('config')}",
+)
+
+# Round 2 (blocked review, #1887 comment 5977790144): not writing the hubs is
+# not the whole barrier. A record that merely SHARES a container with one is
+# #240's race again -- the worker mutates the shared list mid-await -- and
+# `replace()` on a hub copies the dataclass but shares every nested
+# container, so the deep copies are load-bearing. Identity walk over the
+# record (and the what-if's base, the other `_solve_hubs` arm) against the
+# three live hubs; its own control plants one shared list and must name
+# exactly it.
+_r9egb1_ctl_leaf = [1.0, 2.0]
+_r9egb1_ctl_hub = {"a": _r9egb1_ctl_leaf, "b": {"c": [3.0]}}
+_r9egb1_ctl_rec = {"a": _r9egb1_ctl_leaf, "b": {"c": [4.0]}}
+_r9egb1_ctl_shared = sorted(set(_r9egb1_mutables(_r9egb1_ctl_hub))
+                            & set(_r9egb1_mutables(_r9egb1_ctl_rec)))
+_r9egb1_iso = _r9egb1_coord(away=True, economy=True, learned=True, dhw=True)
+_r9egb1_iso_live = {}
+for _r9egb1_iso_n, _r9egb1_iso_h in (
+        ("_opt_config", _r9egb1_iso._opt_config),
+        ("_thermal_params", _r9egb1_iso._thermal_params),
+        ("_current_state", _r9egb1_iso._current_state)):
+    for _i, _p in _r9egb1_mutables(_r9egb1_iso_h).items():
+        _r9egb1_iso_live.setdefault(_i, f"{_r9egb1_iso_n}{_p[4:]}")
+_r9egb1_iso_rec = _solve_record_now(_r9egb1_iso)
+_r9egb1_iso_base = _r9egb1_iso._solve_hubs(4, banded=False)
+_r9egb1_iso_side = {}
+for _r9egb1_iso_n, _r9egb1_iso_o in (
+        ("record.config", _r9egb1_iso_rec.config),
+        ("record.params", _r9egb1_iso_rec.params),
+        ("record.inputs.state", _r9egb1_iso_rec.inputs.state),
+        ("whatif_base.config", _r9egb1_iso_base[0]),
+        ("whatif_base.params", _r9egb1_iso_base[1]),
+        ("whatif_base.state", _r9egb1_iso_base[2])):
+    for _i, _p in _r9egb1_mutables(_r9egb1_iso_o).items():
+        _r9egb1_iso_side.setdefault(_i, f"{_r9egb1_iso_n}{_p[4:]}")
+_r9egb1_iso_shared = sorted(
+    f"{_r9egb1_iso_live[_i]} == {_r9egb1_iso_side[_i]}"
+    for _i in set(_r9egb1_iso_live) & set(_r9egb1_iso_side))
+R.check(
+    "#1736 the record (and the what-if's base) shares no mutable object "
+    "with the three hubs, a nested container included",
+    _r9egb1_ctl_shared == [id(_r9egb1_ctl_leaf)] and not _r9egb1_iso_shared,
+    f"control shared {len(_r9egb1_ctl_shared)} (want exactly the planted "
+    f"list); shared with the hubs: {_r9egb1_iso_shared}",
 )
 
 # H3: the DHW learner owns the parameters' draw pattern; the day-type blend
@@ -56966,6 +57060,77 @@ R.check(
     and _r9egb1_w_seen[2].target_temp == _r9egb1_w_coord._opt_config.target_temp,
     f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
     f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
+)
+
+# Round 2 (blocked review): the card's what-if takes THIS moment's tariff and
+# hot-water inputs, not the last solve's. Before #1736 the solve left its
+# values in the hubs and the card agreed with the solve by construction; now
+# each side rebuilds from the live sources, so freshness needs its own pin:
+# between the solve and the card, the configured peak price and the learner's
+# pooled draw pattern both move, and the card must price with the moved
+# values. `marginal_price_per_kw` divides by the peaks averaged, so the arm
+# compares the ratio (90.0 / 50.0), never the field itself.
+def _r9egb1_fresh():
+    coord = _r9egb1_coord(dhw=True)
+    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
+    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 50.0
+    _r9egb1_fl = coord._dhw_learner
+    # In-range shapes, set directly: ``normalize_profile`` clips to
+    # [0.2, 3.5] mean 1.0, so two spikes past the ceiling project to the
+    # same profile and move nothing. With no day-type evidence
+    # ``pattern_for`` returns ``hourly_profile`` verbatim.
+    _r9egb1_s1 = [1.0] * 24
+    _r9egb1_s2 = [1.0] * 23 + [2.0]
+    _r9egb1_fl.hourly_profile = list(_r9egb1_s1)
+    _r9egb1_at_solve = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+    seen = []
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        seen.append((_r9egb1_copy.deepcopy(optimizer.config),
+                     _r9egb1_copy.deepcopy(optimizer.model.params)))
+        if rest or kw:
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    async def _go():
+        reason = await coord.async_run_optimization()
+        coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 90.0
+        _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
+        now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+        coord._last_simulation = None
+        card = await coord.async_simulate({})
+        return reason, card, now
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason, card, now = _asyncio.run(_go())
+    return coord, reason, card, seen, _r9egb1_at_solve, now
+
+
+try:
+    (_r9egb1_fr_coord, _r9egb1_fr_reason, _r9egb1_fr_card, _r9egb1_fr_seen,
+     _r9egb1_fr_at, _r9egb1_fr_now) = _r9egb1_fresh()
+except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failure
+    _r9egb1_fr_coord, _r9egb1_fr_reason = _r9egb1_coord(dhw=True), repr(_r9egb1_err)
+    _r9egb1_fr_card, _r9egb1_fr_seen = {"error": "raised"}, []
+    _r9egb1_fr_at = _r9egb1_fr_now = None
+R.check(
+    "#1736 the card's what-if prices with this moment's tariff and DHW "
+    "inputs, not the last solve's",
+    _r9egb1_fr_reason is None
+    and "error" not in _r9egb1_fr_card
+    and len(_r9egb1_fr_seen) == 2
+    and _r9egb1_fr_seen[0][0].peak_price_per_kw > 0.0
+    and abs(_r9egb1_fr_seen[1][0].peak_price_per_kw
+            / _r9egb1_fr_seen[0][0].peak_price_per_kw - 1.8) < 1.0e-12
+    and list(_r9egb1_fr_seen[0][1].dhw_hourly_draw_pattern)
+    == list(_r9egb1_fr_at)
+    and list(_r9egb1_fr_seen[1][1].dhw_hourly_draw_pattern)
+    == list(_r9egb1_fr_now)
+    and list(_r9egb1_fr_at) != list(_r9egb1_fr_now),
+    f"{_r9egb1_fr_reason!r} {_r9egb1_fr_card.get('error')}; "
+    f"peak {[c.peak_price_per_kw for c, _ in _r9egb1_fr_seen]}; patterns "
+    f"solve-then-card {[list(p.dhw_hourly_draw_pattern)[:3] for _, p in _r9egb1_fr_seen]}"
+    f" (moved {[None] if _r9egb1_fr_now is None else list(_r9egb1_fr_now)[:3]})",
 )
 
 # The values the record takes over from the old in-place writes, each at its
