@@ -25,29 +25,19 @@ That file is the current state: open PRs, built branches, owed record and traps.
 
 GitHub and git outrank the resume file. Check `gh pr list --state open`, `git ls-remote origin 'refs/heads/handoff/*'` and the verdict refs, and correct the resume file before you act on a disagreement.
 
-## 3. Do these first, in order
-1. The budget-gate mandate branch `handoff/budget-gate-mandate` is at `d741a894` on origin. Open its draft PR once the cloud fixer's prepr/closures result on that head is back (its body goes to `handoff-body/budget-gate-mandate`). It needs tvofi's approving review because it is policy.
-2. **#1842** (`fix/r9-f10-4-pin-precursor`, `b69961d7`) has a merge verdict on `handoff/verdict/1842`. Write its delivery row, mark it ready, approve it (`tools/audit/app_approve.sh`), and merge it with `--match-head-commit` once CI is green. It goes before #1838.
-3. **#1838** (`fix/r9-f10-gate-infra-4`, `e37cefc6`) has a merge verdict at e37cefc6 on `handoff/verdict/1838`. Once #1842 is in, #1838 conflicts with main in `.claude/workflows/brief_lint.mjs`. Merge main in (either side's resolution is fine; verify per orchestrator.md section 6), then get a delta review of that merge from a local reviewer (section 5) before merging. tvofi gives his own approving review, because it carries budget changes. Merge with `--match-head-commit`. features.py R9-F2.1 P3 fails on this Mac with identical numbers at main; that is BLAS, so judge it on CI.
-4. After #1838 merges, the built fixers each merge origin/main, run `tools/audit/prepr.sh` on the merged head, push the body, and hand off:
-   - R9-F10.5 (`handoff/r9-f10-gate-infra-5`)
-   - R9-F11.4 (`handoff/r9-f11-governance-4`, round 2 to the same reviewer)
-   - R9-EG-B5a (`handoff/r9-eg-dhw-closure-dedupe-v2`)
+## 3. Resume where the last session stopped
+The action list that stood here (#1842, #1838, the F10.4 wave) is done. The live list is RESUME-CURRENT.md's "Open PRs", "In-flight seats" and "Ready next" sections. On a resume after a crash:
+1. `gh pr list --state open` and each open PR's newest hpo-approver verdict comment; a `merge` at the live head goes to the merge train, a `blocked` goes back to its fixer (round N+1), a missing verdict gets a review seat.
+2. Recover unpushed seat work from `wip-sync/<slug>` on origin (snapshots every 15 min) and the orchestrator's scripts from `wip-sync/orchestrator-scratch` (`orch/` there holds the merge-train `trainN.py`, `queue.sh`, `push_pr.sh`, `remerge.sh`, `wt_sync.sh`, PR bodies and pre-studies).
+3. Truth the roster against GitHub (a merged PR's group is `done`), then dispatch every group whose `after` edges are all done.
+4. Stamp when the window is rowed: `tests/delivery_status.py --require-rows` must pass (a missing row is a record PR), notes go under `## v<next>` in RELEASE_NOTES.md listing every merged PR, then `tools/release/stamp.py --bump patch --title ... --push --push-key ~/.zcode/stamp-deploy.key` under the 3.14 seat venv. A `v*` tag publishes the Pages site.
 
-   Then start R9-F10.4b, which re-measures first, and WEB-1, EG-A1 and EG-B3.
-5. Write a record PR that truths the `docs/delivery/<N>.md` rows still reading "open" for merged PRs (the list is in RESUME-CURRENT.md). Post #201 a comment saying orchestration is now local.
-6. Stamp 6.7.x on a clean main after the F10.4 wave lands: notes first, then `tools/release/stamp.py --push --push-key ~/.zcode/stamp-deploy.key`.
-
-Then follow the critical path F10.4 -> F10.5 -> F10.6 -> EG-B1 -> SW-1 -> UX-5 -> UX-7 -> RO-9. Each group's `after` edges in the roster gate it. Run independent groups in parallel. These have extra conditions:
-- RO-2 runs after RO-1, F10.7, F11.7, EG-R1, F11.5 and F6.4.
-- SW-3 and SW-4 run after SW-1.
-- RO-9 is last.
-- UX-5 and UX-7 briefs carry `carry-1795.json`.
+Critical path and gates are in RESUME-CURRENT.md; each group's `after` edges in the roster gate it, independent groups run in parallel, RO-9 is last.
 
 ## 4. Identity and the merge path (decisions 0011, 0013)
 - **Authoring.** PRs are authored by the `hpo-author` App via `tools/audit/app_push.sh`. Never use `push.sh`, never `tvofi`'s token, never force-push, never rebase: merge main in. Commits are by `tvofi <70032254+tvofi@users.noreply.github.com>`. PR bodies start with tvofi's attribution, `_Requested by **tvofi**_`, and say "Part of #N" (never a closing keyword; check with `tools/audit/preflight.sh`).
 - **Verdicts.** The first line is exactly `Fix review: merge <sha>` or `Fix review: blocked <40-hex sha> <class>: <summary>`. A verdict lives on `handoff/verdict/<PR>` (append-only; `tools/audit/seat/bus.sh push-verdict`/`confirm`/`post`). Merge only on a verdict for THIS head, or a carry (`app_approve.sh --carry <verdict> <head>`, where the head equals merge-tree(main, code) plus the PR's own delivery row only), plus green CI. `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE is the queue's one bypass.
-- **Approvals.** `hpo-approver` approves non-code-owned PRs via `tools/audit/app_approve.sh <owner/repo> <pr> <sha>`. Under bash 3.2 its `mapfile` at line 120 fails, so run it with Homebrew bash 5. Code-owned paths need tvofi's review. **Temporary codeowners mandate** (tvofi, 2026-10-02T05:36Z): seats may approve code-owned and budget changes as tvofi, labelled openly as agent approvals, never disguised. **Limit:** `budget-raise-gate` (0013) refuses agent-labelled reviews until the budget-gate mandate PR (`handoff/budget-gate-mandate`) lands. Until then a budget-raise PR needs tvofi's own click.
+- **Approvals.** `hpo-approver` approves non-code-owned PRs via `tools/audit/app_approve.sh <owner/repo> <pr> <sha>`. Under bash 3.2 its `mapfile` drops the carry exclusions (stricter, `CARRY: yes` still valid); it refuses code-owned paths, where the orchestrator posts a labelled agent approval under the mandate. Code-owned paths need tvofi's review. **Temporary codeowners mandate** (tvofi, 2026-10-02T05:36Z): seats may approve code-owned and budget changes as tvofi, labelled openly as agent approvals, never disguised. **Limit:** `budget-raise-gate` (0013) refuses agent-labelled reviews until the budget-gate mandate PR (`handoff/budget-gate-mandate`) lands. Until then a budget-raise PR needs tvofi's own click.
 - **Merges.** Use `gh pr merge --merge --match-head-commit <sha>`. A new head on a code-owned PR dismisses its approval, so re-approve at the new head. You cannot `--admin`; only tvofi merges past a red required check. A stuck CI run on a superseded head needs tvofi to force-cancel it.
 - **After each merge.**
   - Write the delivery row and the roster `resume` field (on `handoff/audit-r9-fixplan`, no force).
