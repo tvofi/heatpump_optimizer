@@ -7224,7 +7224,9 @@
   {
    "group": "R9-FR-6",
    "lane": "FIX",
-   "issues": [],
+   "issues": [
+    1943
+   ],
    "fixes": [],
    "findings": [],
    "covers": [],
