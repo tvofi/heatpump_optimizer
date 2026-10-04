@@ -238,9 +238,18 @@ async def restore(coord: Any) -> None:
             held.until[channel] = parsed
 
 
-async def restore_session(coord: Any) -> None:
-    """Away override and boost channels, one spawn from the coordinator."""
-    await away_mode.restore_override(coord)
+async def restore_session(
+    coord: Any,
+    state: away_mode.AwayState,
+    config: Mapping[str, Any],
+    read_entity: away_mode.EntityReader,
+) -> None:
+    """Away override and boost channels, one spawn from the coordinator.
+
+    The away half's inputs pass through to ``away_mode.restore_override``
+    (#1739); the boost half keeps only the coordinator's public surface.
+    """
+    await away_mode.restore_override(coord, state, config, read_entity)
     await restore(coord)
 
 

@@ -2490,7 +2490,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(boost.restore_session(self))
+        self._spawn(boost.restore_session(
+            self, self._away_state, self._config, self._entity_state
+        ))
 
     @callback
     def _release_registrations(self) -> None:
@@ -9643,7 +9645,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._away_state.override_return_iso = (
                 ret.isoformat() if ret else None
             )
-            self._spawn(away_mode.persist_override(self))
+            self._spawn(away_mode.persist_override(self, self._away_state))
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         self._away_state = away_mode.resolve(
             config,
@@ -9686,7 +9688,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._away_state.override_active = on
         self._away_state.override_return_iso = ret.isoformat() if ret else None
-        await away_mode.persist_override(self)
+        await away_mode.persist_override(self, self._away_state)
         if refresh:
             await self.async_request_refresh()
 

@@ -37190,7 +37190,7 @@ async def _rc2_prelude(coord, what, value):
     elif what == "away":
         coord._away_state.override_active = value
         coord._away_state.override_return_iso = None
-        await away_mode.persist_override(coord)
+        await away_mode.persist_override(coord, coord._away_state)
     elif what == "comfort":
         coord._comfort_learner.evidence = value
         await coord._async_save_accuracy()
@@ -37203,7 +37203,9 @@ async def _rc2_boot(entry):
     coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
-    await boost_mod.restore_session(coord)
+    await boost_mod.restore_session(
+        coord, coord._away_state, coord._config, coord._entity_state
+    )
     await coord._async_load_manual_plan()
     return coord
 
@@ -44253,7 +44255,9 @@ try:
     _G8AwayStore.raise_save = True
     _g8_save_coord = _G8AwayCoord()
     _g8_save_coord._away_state.override_active = True
-    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(_g8_save_coord))
+    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(
+        _g8_save_coord, _g8_save_coord._away_state
+    ))
     _g8_save_attempted = list(_G8AwayStore.saved)
     _G8AwayStore.raise_save = False
 
@@ -44264,7 +44268,10 @@ try:
     _g8_load_coord = _G8AwayCoord(config={_G8_AWAY_PRES: "input_boolean.away_mode"},
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
-    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(_g8_load_coord))
+    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord._entity_state,
+    ))
     _g8_load_saved = list(_G8AwayStore.saved)
     _G8AwayStore.raise_load = False
 
@@ -44275,7 +44282,10 @@ try:
         "migrated_helpers": True,
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
-    _t6_call(_asyncio.run, _g8_away.restore_override(_g8_done_coord))
+    _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord._entity_state,
+    ))
     _g8_done_saved = list(_G8AwayStore.saved)
     _G8AwayStore.payload = None
 finally:
