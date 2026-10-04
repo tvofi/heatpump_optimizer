@@ -1,0 +1,19 @@
+{
+  "total_count": 3,
+  "check_runs": [
+    {
+      "name": "pr-contract",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "slow-lane",
+      "status": "in_progress"
+    },
+    {
+      "name": "optional-lint",
+      "status": "completed",
+      "conclusion": "neutral"
+    }
+  ]
+}
