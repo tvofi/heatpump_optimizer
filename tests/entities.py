@@ -31610,7 +31610,7 @@ _egb6_public = ast.parse(
     "x = coord.arbiter_inputs().config\n"
     "y = getattr(coord, 'arbiter_inputs', None)\n"
     "coord.adopt_action({})\n"
-    "coordinator.skip_next_solve()\n"
+    "coordinator.diagnostics_state().solve_failures\n"
 )
 R.check(
     "EG-B6: the collaborator reach scan names a planted reach of each "

@@ -27,11 +27,11 @@ import subprocess
 import sys
 import threading
 from bisect import bisect_right
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
 
 import aiohttp
@@ -1710,6 +1710,25 @@ class CoordinatorContext:
     _opt_config: OptimizationConfig
 
 
+@dataclass(frozen=True)
+class CoordinatorDiagnostics:
+    """The collaborator view ``diagnostics.py`` publishes about this instance.
+
+    The live counters a bug report needs and the learners' own summaries,
+    read here -- inside the class -- so ``diagnostics.py`` names no private
+    member (#1739). Fields default ``None`` where the value has no meaning
+    yet; a member that cannot be read at all reports the same way.
+    """
+
+    tibber_outage_cycles: int | None = None
+    tibber_reauth_started: bool | None = None
+    solve_failures: int | None = None
+    cop_scale: float | None = None
+    cop_samples: int | None = None
+    house_heat_loss_scale: float | None = None
+    learner_summaries: Mapping[str, Any] = field(default_factory=dict)
+
+
 def _ctx_of(coord: Any) -> CoordinatorContext:
     """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
 
@@ -2398,8 +2417,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
 
-    def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
-        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: HeatPumpOptimizerConfigEntry,
+        *,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``.
+
+        ``skip_first_solve`` and ``reload_handover`` are the setup entry's two
+        one-shot writes (#1739): the first refresh must not run the full MPC
+        solve inside ``async_setup_entry``, and a plan stashed by an
+        in-process reload is handed over here rather than patched on after
+        construction -- state arrives initialised, so a
+        ``ConfigEntryNotReady`` retry reconstructs cleanly.
+        """
         self.entry = entry
         config = {**entry.data, **entry.options}
         # The feed's code where it declares one (#1657), adopted per cycle.
@@ -2418,7 +2452,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         thermal_params, opt_config = self._init_model(config)
         current_state = ThermalState()
-        self._init_runtime_state()
+        self._init_runtime_state(skip_first_solve, reload_handover)
         self._ctx = CoordinatorContext(
             config, thermal_params, self.hass, current_state, opt_config)
         self._init_dhw_learning(hass, entry)
@@ -2566,8 +2600,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
         return thermal_params, opt_config
 
-    def _init_runtime_state(self) -> None:
-        """What the current update cycle is working with."""
+    def _init_runtime_state(
+        self,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """What the current update cycle is working with.
+
+        ``skip_first_solve`` and ``reload_handover`` arrive from the setup
+        entry through the constructor (#1739); everything else starts empty.
+        """
         self._mode: str = MODE_AUTO
         # #6: last commanded pump states, so actuation is transitions-only.
         # Initialised here since W5-G9: it is core state and was misplaced in
@@ -2615,16 +2657,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimization_running: bool = False
         # #1754: a mid-solve refresh is recorded, not dropped; the finally re-runs it.
         self._optimization_rerun_requested: bool = False
-        # Set by ``async_setup_entry`` — and by nothing else — just before the
+        # Set by ``async_setup_entry`` -- and by nothing else -- just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
         # so every subsequent refresh (and every direct test call) solves
         # exactly as it always has.
-        self._skip_solve_once: bool = False
+        self._skip_solve_once = skip_first_solve
         # The previous plan, handed over by ``async_unload_entry`` across an
         # in-process reload so the flag-lightened first refresh can republish
         # it instantly, without even a network fetch. Never persisted.
-        self._reload_handover: Payload | None = None
+        self._reload_handover = reload_handover
 
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
@@ -2989,6 +3031,49 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def mode(self) -> str:
         """Return current operation mode."""
         return self._mode
+
+    # -- collaborator interfaces (#1739) --------------------------------------
+    #
+    # The collaborators used to reach these private members directly; each
+    # write now has its one owner here, and what a collaborator reads it
+    # receives as an explicit input or a published view.
+
+    def adopt_action(self, action: CurrentAction) -> None:
+        """Take ``action`` as the running action.
+
+        The one writer of ``_current_action``: the solve, the fixed modes and
+        the sysid override adopt their plans through ``boost.adopt_plan``,
+        and the boost overlay publishes its rebuilt copy here, so no foreign
+        module assigns the slot (#1739).
+        """
+        self._current_action = action
+
+    def diagnostics_state(self) -> CoordinatorDiagnostics:
+        """What diagnostics may read about this instance, as one view.
+
+        The learners' own ``summary()`` dictionaries ride along; a summary
+        that raises reports ``"summary unavailable"`` there, exactly as the
+        per-field fallback in ``diagnostics.py`` did before the view (#1739).
+        """
+        summaries: dict[str, Any] = {}
+        for name in ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model"):
+            obj = getattr(self, name, None)
+            summary = getattr(obj, "summary", None)
+            if not callable(summary):
+                continue
+            try:
+                summaries[name.lstrip("_")] = summary()
+            except Exception:  # noqa: BLE001 - diagnostics never breaks
+                summaries[name.lstrip("_")] = "summary unavailable"
+        return CoordinatorDiagnostics(
+            tibber_outage_cycles=getattr(self, "_tibber_outage_cycles", None),
+            tibber_reauth_started=getattr(self, "_tibber_reauth_started", None),
+            solve_failures=getattr(self, "_solve_failures", None),
+            cop_scale=getattr(self, "_cop_scale", None),
+            cop_samples=getattr(self, "_cop_samples", None),
+            house_heat_loss_scale=getattr(self, "_house_heat_loss_scale", None),
+            learner_summaries=summaries,
+        )
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
