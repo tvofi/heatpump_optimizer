@@ -3558,7 +3558,10 @@ if __name__ == "__main__":
             sample=lambda: None,
         )
 
-    _cleared_kept, _cleared_notes = _budget_row(8.0, [2.6])
+    # varied re-solves, so the median decides and a mutant that judges
+    # any single re-solve is killed: first re-solve 9.0x is over the
+    # budget, the median of [9.0, 2.6, 2.6] is 2.6x, within it
+    _cleared_kept, _cleared_notes = _budget_row(8.0, [9.0, 2.6, 2.6])
     R.check(
         "an over-budget budget-channel reading whose re-solves read "
         "within the budget on their median is reported, not failed "
