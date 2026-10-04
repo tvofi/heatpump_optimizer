@@ -28606,7 +28606,7 @@ R.check(
     and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
     and 'how="--drain"' in _MUT_BODY
     and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
-    and "and not (args.pin_killed or args.drain)):" in _MUT_BODY,
+    and "and not (args.pin_killed or args.drain or args.anchor)):" in _MUT_BODY,
     f"drain branch at {_dr_at}",
 )
 
@@ -29850,6 +29850,213 @@ R.check(
                          "for the budget)", "")
     and 'PASSED" + partial_note(results)' in _MUT_MAIN_DEFER,
     f"refusals={_MUT_TO_OUT!r} notes={_MUT_TO_NOTE!r}",
+)
+
+
+# R9-F10.13 arm A: a mutant on a line a survivor_triage mark names makes that
+# mark stale in the mutated tree, so the staleness check above failed the
+# driver and the mutant read KILLED by it (#1867's review: the payload.py mark,
+# 1 of 2086 checks). The sampled pool now leaves triaged sites out
+# (`triaged_site`), judged by the same key and `old` pin as every
+# disposition. Driven on the real payload.py mark, with a moved-text and an
+# unmarked site as the null controls.
+_MUT_PAYLOAD = "custom_components/heatpump_optimizer/payload.py:<module> GUARD_OFF e1433e05"
+_mut_tsite = getattr(_mut, "triaged_site", lambda _t, _m: None)
+_MUT_TS_SITE = _MUT_TRIAGE_SITES.get(_MUT_PAYLOAD)
+_MUT_TS_OUT = (None if _MUT_TS_SITE is None else (
+    _mut_tsite(_MUT_TRIAGE, _MUT_TS_SITE),
+    _mut_tsite(_MUT_TRIAGE, dict(_MUT_TS_SITE, old="    if other:")),
+    _mut_tsite({}, _MUT_TS_SITE),
+    _mut_tsite(_MUT_TRIAGE, dict(_MUT_TS_SITE, anchor=_MUT_PAYLOAD + "x"))))
+R.check(
+    "a site holding a survivor_triage mark is recognised as triaged; a moved "
+    "line, an unmarked site and an empty triage are not (R9-F10.13)",
+    _MUT_TS_OUT == (True, False, False, False),
+    f"payload mark site={'absent' if _MUT_TS_SITE is None else 'present'}, "
+    f"out={_MUT_TS_OUT!r} -- a mutant on the marked line fails the staleness "
+    "check above, so it reads killed by tests/entities.py",
+)
+
+# Arm B: the nightly re-drives some killed_by pins by chance, and reports each
+# the pinned script did not kill. Six sites, one per way a draw can end,
+# plus a stale pin and an unpinned site that must not be reported at all.
+_mut_pinrep = getattr(_mut, "pin_reverification", lambda *_a: None)
+_MUT_PV_PIN = "tests/features.py"
+_mut_pv_site = lambda a, old="o": {"file": "x.py", "line": 1, "kind": "K",  # noqa: E731
+                                   "anchor": a, "old": old, "new": "n"}
+_MUT_PV_S = {n: _mut_pv_site(f"x.py:{n} K 0") for n in
+             ("ok", "other", "lives", "budget", "timeout", "beaten", "plain")}
+_MUT_PV_KB = {m["anchor"]: {"killed_by": _MUT_PV_PIN, "old": "o"}
+              for n, m in _MUT_PV_S.items() if n != "plain"}
+_MUT_PV_KB["x.py:stale K 0"] = {"killed_by": _MUT_PV_PIN, "old": "was"}
+_MUT_PV_RES = [
+    (_MUT_PV_S["ok"], f"killed by {_MUT_PV_PIN}"),
+    (_MUT_PV_S["other"], "killed by tests/pv.py"),
+    (_MUT_PV_S["lives"], "LIVES"),
+    (_MUT_PV_S["budget"], "SKIP-BUDGET"),
+    (_MUT_PV_S["timeout"], f"SKIP-TIMED-OUT in {_MUT_PV_PIN}"),
+    (_MUT_PV_S["beaten"], "killed by tests/pv.py"),
+    (_MUT_PV_S["plain"], "LIVES"),
+    (_mut_pv_site("x.py:stale K 0"), "LIVES"),
+]
+# "lives" has no recorded run of its pin (the script left the closure), so only
+# the LIVES verdict reports it; "other" ran and did not kill.
+_MUT_PV_OUT = {id(_MUT_PV_S["ok"]): True, id(_MUT_PV_S["other"]): False,
+               id(_MUT_PV_S["timeout"]): None}
+_MUT_PV_OUT = {(k, _MUT_PV_PIN): v for k, v in _MUT_PV_OUT.items()}
+_MUT_PV_LINES = _mut_pinrep(_MUT_PV_RES, _MUT_PV_OUT, _MUT_PV_KB) or []
+_MUT_PV_TXT = "\n".join(_MUT_PV_LINES)
+R.check(
+    "the nightly reports a pin its script did not kill, and never reads a site "
+    "the budget, a timeout or another driver left unrun as re-verified "
+    "(R9-F10.13)",
+    _MUT_PV_TXT.count("PIN NOT REPRODUCED") == 2
+    and "x.py:other K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[1]
+    and "x.py:lives K 0" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[2]
+    and "no longer drives" in _MUT_PV_TXT.split("PIN NOT REPRODUCED")[2]
+    and _MUT_PV_TXT.count("pin not re-verified") == 3
+    and "x.py:plain" not in _MUT_PV_TXT and "stale" not in _MUT_PV_TXT
+    and _MUT_PV_LINES[-1:] == ["PIN RE-VERIFICATION: 1 reproduced, 2 not "
+                               "reproduced, 3 not re-verified"],
+    f"lines={_MUT_PV_LINES!r}",
+)
+# Behavioural, not text: the pool `main()` samples from, the driver order it
+# hands the sweep, and the whole path through `--anchor` (which shares main()'s
+# drive, kill rule, pin ordering and report) are driven. Text-preserving
+# mutants of each (the triage filter undone after it, the pinned killer not
+# moved first, the report fed no pins) survived the greps these replace.
+import contextlib as _pv_ctx  # noqa: E402
+import copy as _pv_copy  # noqa: E402
+import random as _pv_random  # noqa: E402
+_mut_spool = getattr(_mut, "sampled_pool", None)
+_MUT_SP_FILE = [_mut.PRODUCTION / "payload.py"]
+_MUT_SP_REL = str(_MUT_SP_FILE[0].relative_to(_mut.ROOT))
+_MUT_SP_J = _mut.TRIAGE_JUDGE if hasattr(_mut, "TRIAGE_JUDGE") else "tests/entities.py"
+
+
+def _mut_sp(triage, scripts):
+    """(drivers of the payload mark's site in the pool or None, held count,
+    drivers of every other site in the pool)"""
+    closures = {s: [_MUT_SP_REL] for s in scripts}
+    with _pv_ctx.redirect_stdout(_mut_io.StringIO()):
+        pool, held = _mut_spool(_MUT_SP_FILE, closures, list(scripts), None,
+                                triage, _pv_random.Random(1), 10_000, 10_000)
+    mine = [m["drivers"] for m in pool if m["anchor"] == _MUT_PAYLOAD]
+    return (mine[0] if mine else None), held, [m["drivers"] for m in pool
+                                               if m["anchor"] != _MUT_PAYLOAD]
+
+
+_MUT_SP = None
+if _mut_spool is not None:
+    _MUT_SP = (_mut_sp(_MUT_TRIAGE, (_MUT_SP_J, "tests/guard_pins.py")),
+               _mut_sp(_MUT_TRIAGE, (_MUT_SP_J,)),
+               _mut_sp({}, (_MUT_SP_J, "tests/guard_pins.py")))
+R.check(
+    "a triage-marked site is driven by every driver but the one that judges "
+    "the marks, and left out when that is its only driver; an unmarked site "
+    "keeps it (R9-F10.13)",
+    _MUT_SP is not None
+    and _MUT_SP[0][0] == ["tests/guard_pins.py"] and _MUT_SP[0][1] == 1
+    and all(_MUT_SP_J in d for d in _MUT_SP[0][2])
+    and _MUT_SP[1][0] is None and _MUT_SP[1][1] == 1
+    and _MUT_SP[2][0] == [_MUT_SP_J, "tests/guard_pins.py"] and _MUT_SP[2][1] == 0,
+    f"marked, two drivers -> {_MUT_SP and _MUT_SP[0][:2]}; marked, only the "
+    f"judge -> {_MUT_SP and _MUT_SP[1][:2]}; no mark -> {_MUT_SP and _MUT_SP[2][:2]}",
+)
+_mut_ordpool = getattr(_mut, "order_pool_drivers", None)
+_MUT_OP_SITE = _mut_pv_site("x.py:ord K 0")
+
+
+def _mut_op(killed_by):
+    pool = [dict(_MUT_OP_SITE, drivers=["tests/a.py", "tests/features.py"])]
+    _mut_ordpool(pool, {"tests/a.py": 1.0, "tests/features.py": 100.0}, killed_by)
+    return pool[0]["drivers"]
+
+
+_MUT_OP_OUT = (None if _mut_ordpool is None else (
+    _mut_op({}), _mut_op({"x.py:ord K 0": {"killed_by": "tests/features.py", "old": "o"}}),
+    _mut_op({"x.py:ord K 0": {"killed_by": "tests/features.py", "old": "stale"}})))
+R.check(
+    "a pinned site's killer is driven first however dear it is; an unpinned "
+    "site and a stale pin keep the cost order (R9-F10.13)",
+    _MUT_OP_OUT == (["tests/a.py", "tests/features.py"],
+                    ["tests/features.py", "tests/a.py"],
+                    ["tests/a.py", "tests/features.py"]),
+    f"out={_MUT_OP_OUT!r}",
+)
+# Through `--anchor`, the real main(): inventory, anchor lookup, pool, driver
+# order, drive, kill rule, pin report. Only the two things that cost disk and
+# processes are stubbed -- the worktree builder and the driver runner -- so the
+# check builds no checkout and runs no subprocess (a full disk once turned the
+# whole run into a traceback). Two stub drivers stand in for the scripts: one
+# that fails on a mutated file and one that never does. topology.py's `_tr`
+# RETURN_DEL is pinned to the first; planted on the second, which the cost
+# order would put second, the run must drive it first, find it did not kill,
+# and say so. A real end-to-end `--anchor` run belongs to the mutation lane.
+_MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN_REL = _MUT_AN.split(":")[0]
+_MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
+_MUT_AN_BUDGETS = _mut.load_budgets()
+_MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
+
+
+def _mut_an_clone(dest):
+    (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
+    (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    return dest
+
+
+def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
+    text = (cwd / _MUT_AN_REL).read_text()
+    red = (script == _MUT_AN_KILL and text != _MUT_AN_TEXT
+           and "(null control)" not in text)
+    return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
+                          "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
+                          else "ok\n")
+
+
+def _mut_anchor(pinned):
+    budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
+    budgets["killed_by"][_MUT_AN]["killed_by"] = pinned
+    _saved = {n: getattr(_mut, n) for n in
+              ("load_budgets", "load_closures", "clone_tree", "drop_tree", "run_script")}
+    _mut.load_budgets = lambda: budgets
+    _mut.load_closures = lambda: {_MUT_AN_KILL: [_MUT_AN_REL],
+                                  _MUT_AN_PASS: [_MUT_AN_REL]}
+    _mut.clone_tree, _mut.drop_tree = _mut_an_clone, lambda dest: None
+    _mut.run_script = _mut_an_run
+    _log = tempfile.TemporaryFile("w+")
+    try:
+        with _pv_ctx.redirect_stdout(_log):
+            _rc = _mut.main(["--scope", "full", "--anchor", _MUT_AN, "--jobs", "1",
+                             "--scripts", f"{_MUT_AN_KILL},{_MUT_AN_PASS}"])
+    finally:
+        for _n, _v in _saved.items():
+            setattr(_mut, _n, _v)
+    _log.seek(0)
+    return _rc, _log.read()
+
+
+_MUT_AN_HAS = _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {})
+_MUT_AN_REAL = _mut_anchor(_MUT_AN_KILL) if _MUT_AN_HAS else (None, "")
+_MUT_AN_WRONG = _mut_anchor(_MUT_AN_PASS) if _MUT_AN_HAS else (None, "")
+R.check(
+    "--anchor re-drives one site: the real pin is reproduced, a pin planted on "
+    "a script that does not kill it is reported NOT REPRODUCED after its own "
+    "run, and nothing is recorded (R9-F10.13)",
+    _MUT_AN_REAL[0] == 0 and _MUT_AN_WRONG[0] == 0
+    and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_REAL[1]
+    and "PIN NOT REPRODUCED" in _MUT_AN_WRONG[1]
+    and f"pinned to {_MUT_AN_PASS}, killed by {_MUT_AN_KILL}" in _MUT_AN_WRONG[1]
+    and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
+    f"has pin={_MUT_AN_HAS} real={_MUT_AN_REAL!r:.500} wrong={_MUT_AN_WRONG!r:.500}",
+)
+_MUT_PV_NIGHT = _workflow_job(_TESTS_YML, "mutation-nightly")
+R.check(
+    "mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)",
+    '--seed "$(date -u +%Y%m%d)"' in _MUT_PV_NIGHT
+    and "PIN NOT REPRODUCED" in _MUT_PV_NIGHT,
+    "the constant default seed drew the same sample every night",
 )
 
 
