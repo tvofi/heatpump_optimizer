@@ -3244,11 +3244,11 @@
     "R9-EG-B10"
    ],
    "resume": {
-    "stage": "building",
+    "stage": "done",
     "branch": "handoff/r9-eg-solve-inputs",
-    "commit": "6b68bca083735fb3c91a53ef074c29c92b3bcc5f",
-    "last_step": "PR #1887 round 1 blocked (comment 5977790144; evidence scratch review-1887/verdict.md): conflicts with main in tests/arch_score_head.py and tests/features.py (#1874), so 0 CI runs; the entities.py hub barrier refuses only a literal x._opt_config/_thermal_params/_current_state argument and passes a record sharing the live hubs' containers (deep-copy-removal mutant survives) plus six other hand-off shapes",
-    "next_step": "round 2 (fixer at /Users/timmalmstrom/fix-r9-eg-b1): merge origin/main resolving both conflicts; add a check that the solve record shares no object with the three hubs, killed by the deep-copy-removal mutant; cut bugclasses.json barrier text to what is refused; pin the card what-if's fresh tariff/DHW inputs directly; body states the score split (5 correction fields moved into _refresh_model_corrections earn ~7.7 of dS +20.59); then CI (goldens, mutation autofix) and the same review seat",
+    "commit": "82d1f47f20c0557f6898f843960eaa64bb20cbfd",
+    "last_step": "merged",
+    "next_step": null,
     "note_file": "handoff/round9/fix/resume/EG-B1.md on handoff/r9-eg-solve-inputs",
     "review_branch": "handoff/r9-eg-solve-inputs-review",
     "review_note_file": "handoff/round9/fix/resume/EG-B1-review.md on handoff/r9-eg-solve-inputs-review",
