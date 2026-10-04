@@ -17,12 +17,21 @@ restore step restores from a base that holds its graders at either location.
   neither   the merge-base tree with one data file per grader deleted, run
             with the merge base's graders and then with HEAD's: the refusal
             must be unchanged. Expected: every row `same`.
-  restore   each `Restore ...` step of HEAD's workflows, run in a clone whose
+  ci        THIS pull request's own CI: per base-restoring job, HEAD's tree
+            with the job's restore pathspecs checked out from the merge base,
+            then the job's grading commands. Expected: every rc equal to
+            HEAD's graders on HEAD's tree. (#1886 round 1: the base parser and
+            the base layout.py failed on the head, which `graders` cannot see.)
+  shadow    an unowned copy at a new path must not grade in place of the
+            file in use: COMMON.md grown past its cap with a pristine copy at
+            its new path, and the rules grown with copies under dev/. Expected:
+            policy_lint refuses each, as it refuses the growth alone.
+  restore   (on request) each `Restore ...` step of HEAD's workflows, run in a clone whose
             PINNED holds the graders at the old location, at the new one, and
             at neither. Expected: rc 0, 0, non-zero; every file the step's
             pathspecs match in PINNED restored byte-identical.
 
-    python3 tools/audit/harnesses/dual_path.py [--arm graders|neither|restore] [--base REF] [--keep]
+    python3 tools/audit/harnesses/dual_path.py [--arm graders|neither|ci|shadow|restore] [--base REF] [--keep]
 
 Baseline: the merge base with origin/main (`--base`, default `origin/main`).
 Machine: any; node and python3 on PATH, no network (a grader that would reach
@@ -278,9 +287,89 @@ def arm_restore(base: str, tmp: Path) -> int:
     return bad
 
 
+# The grading commands each base-restoring job runs (COMMANDS' names).
+JOBS = {
+    "governance.yml:policy-docs": ["rules_sync --check", "codeowners_gap --check", "policy_lint", "fragments_sync",
+                                   "policy_lint --report", "policy_lint --hooks", "field_coverage"],
+    "governance.yml:wave-script": ["check-wave-script", "agreement_py", "agreement"],
+    "tests.yml:briefs": ["brief_lint"],
+    "budget-raise-gate.yml:budget-raise-gate": ["budget_raise_gate"],
+    "pr-contract.yml:pr-contract": ["policy_lint --pr-body", "figure_lint --pr-body", "preflight"],
+    "governance.yml:delivery-status": ["delivery_status --check"],
+}
+
+
+def arm_ci(base: str, tmp: Path) -> int:
+    import yaml
+
+    tree = clone("HEAD", tmp / "ci")
+    commit(tree, "planted: nothing")
+    (tmp / "ch").mkdir()
+    want = run_all(tree, tmp / "ch", [])
+    bad = 0
+    for job, names in JOBS.items():
+        wf, jid = job.split(":")
+        j = yaml.safe_load((tree / ".github/workflows" / wf).read_text())["jobs"][jid]
+        specs = [p for st in j.get("steps") or [] for p in specs_in(str(st.get("run", "")))]
+        git(tree, "checkout", "-q", "-f", "HEAD")
+        files = [f for f in git(tree, "ls-tree", "-r", "--name-only", base).split("\n")
+                 if f and any(spec_hit(sp, f) for sp in specs)]
+        if files:
+            git(tree, "checkout", "-q", base, "--", *files)
+        d = tmp / f"cb-{jid}"
+        d.mkdir()
+        saved = COMMANDS[:]
+        COMMANDS[:] = [(n, c) for n, c in saved if n in names]
+        got = run_all(tree, d, [])
+        COMMANDS[:] = saved
+        for n in names:
+            ok = got[n][0] == want[n][0]
+            bad += not ok
+            print(f"  ci {job} {n}: base graders rc {got[n][0]}, HEAD's rc {want[n][0]} {'same' if ok else 'DIFFERS'}")
+            if not ok:
+                (tmp / f"ci-{re.sub(r'[^a-z]+', '_', n)}.txt").write_text(got[n][1])
+                print("    " + (got[n][1].strip().splitlines() or [""])[-1][:200])
+    git(tree, "checkout", "-q", "-f", "HEAD")
+    print(f"RESULT ci_differ={bad} of {sum(len(v) for v in JOBS.values())}")
+    return bad
+
+
+def arm_shadow(base: str, tmp: Path) -> int:
+    """The #1886 round-1 plants: a pristine copy at an unowned new path beside
+    a grown file in use. policy_lint must refuse, as it refuses the growth alone."""
+    pairs = moves(json.loads((ROOT / "tests/layout.json").read_text()))
+    plants = {
+        "COMMON.md grown, its copy at the new path": (["tools/audit/briefs/COMMON.md"], 150, True),
+        "COMMON.md grown alone (null control)": (["tools/audit/briefs/COMMON.md"], 150, False),
+        "the rules copied under dev/, claim-files.md grown": (
+            [f for f in git(ROOT, "ls-files", ".claude/rules").split("\n") if f], 120, True),
+    }
+    bad = 0
+    for name, (files, grow, copy) in plants.items():
+        tree = clone("HEAD", tmp / "shadow")
+        for f in files:
+            src = tree / f
+            if copy:
+                rule = next(((o, n) for o, n in pairs if f == o or (o.endswith("/") and f.startswith(o))), None)
+                dst = tree / ((rule[1] + f[len(rule[0]):]) if rule[0].endswith("/") else rule[1])
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(src, dst)
+        grown = tree / ("tools/audit/briefs/COMMON.md" if "COMMON" in name else ".claude/rules/claim-files.md")
+        grown.write_text(grown.read_text() + "".join(f"Planted line {i} of prose that grows the file.\n" for i in range(grow)))
+        git(tree, "add", "-A")
+        commit(tree, f"planted: {name}")
+        r = subprocess.run(["node", ".claude/workflows/policy_lint.mjs"], cwd=tree, capture_output=True, text=True)
+        ok = r.returncode == 1 and "exceeds its cap" in r.stdout
+        bad += not ok
+        print(f"  shadow {name}: policy_lint rc {r.returncode} {'refused' if ok else 'NOT REFUSED'}")
+        shutil.rmtree(tree)
+    print(f"RESULT shadow_unrefused={bad} of {len(plants)}")
+    return bad
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--arm", choices=["graders", "neither", "restore"], action="append")
+    ap.add_argument("--arm", choices=["graders", "neither", "ci", "shadow", "restore"], action="append")
     ap.add_argument("--base", default="origin/main")
     ap.add_argument("--keep", action="store_true")
     a = ap.parse_args()
@@ -288,8 +377,14 @@ def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="dual_path."))
     print(f"# HEAD {git(ROOT, 'rev-parse', 'HEAD').strip()}, merge base {base}, scratch {tmp}")
     bad = 0
-    for arm in a.arm or ["graders", "neither", "restore"]:
-        bad += {"graders": arm_graders, "neither": arm_neither, "restore": arm_restore}[arm](base, tmp)
+    arms = {"graders": arm_graders, "neither": arm_neither, "ci": arm_ci, "shadow": arm_shadow,
+            "restore": arm_restore}
+    for arm in a.arm or ["graders", "neither", "ci", "shadow"]:
+        bad += arms[arm](base, tmp)
+    # The clones are large; the diff files beside them are what a reader needs.
+    for d in tmp.iterdir():
+        if d.is_dir() and not a.keep:
+            shutil.rmtree(d, ignore_errors=True)
     if not a.keep and not bad:
         shutil.rmtree(tmp, ignore_errors=True)
     return 1 if bad else 0

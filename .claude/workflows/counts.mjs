@@ -24,11 +24,14 @@ const ROOT = path.resolve(HERE, '..', '..')
 
 // The reorganisation's move map (lane RO, R9-RO-2): `tests/layout.json`'s
 // `retired` and `lifted` entries. A grader CI restores from the base reads
-// the pull request's data, which a move pull request has put at its new path,
-// so a data read resolves new-first, then old (`locate`), and a path a listing
-// returns is spelt old (`canon`) before it meets this tree's literals. Code
-// still runs code by the path the base holds: the restore puts it there.
-// R9-RO-9 removes both, once nothing reads an old path.
+// the pull request's data, which a move pull request has put at its new path.
+// So a data read finds a FILE at its old path first and only then at its new
+// one (`locate`): new-first would let an unowned copy at a new path shadow the
+// file the harness loads, and grade that instead (#1886 review, round 1). A
+// DIRECTORY moves whole, and the restore leaves the base's code in the old
+// one, so a directory resolves new-first. A path a listing returns is spelt
+// old (`canon`) before it meets this tree's literals. Code still runs code by
+// the path the base holds: the restore puts it there. R9-RO-9 removes both.
 let _moves = null
 export function moves() {
   if (_moves) return _moves
@@ -45,9 +48,11 @@ function swap(p, from, to) {
 }
 const firstSwap = (p, dir) => moves().reduce((q, [o, n]) => q ?? (dir ? swap(p, o, n) : swap(p, n, o)), null)
 export const canon = (p) => firstSwap(p, false) ?? p
-export function locate(rel) {
+const stat = (p) => fs.statSync(path.join(ROOT, p), { throwIfNoEntry: false })
+export function locate(rel, at = stat) {
+  if (at(rel)?.isFile()) return rel
   const to = firstSwap(rel, true)
-  return to != null && fs.existsSync(path.join(ROOT, to)) ? to : rel
+  return to != null && at(to) ? to : rel
 }
 // A directory's entries at both locations, and those of each file moved out
 // of it on its own (`tools/audit/briefs/` splits in two), by their old names.

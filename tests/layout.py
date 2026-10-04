@@ -126,8 +126,10 @@ def target(path: str, retired: list[dict]) -> str | None:
 
 # The reorganisation's dual-path lookup (R9-RO-2), the Python twin of
 # counts.mjs's: a grader CI restores from the base reads the pull request's
-# data where a move pull request put it, so a data read resolves new-first,
-# then old (`locate`), and a path a listing returns is spelt old (`canon`).
+# data where a move pull request put it. A file is read at its old path while
+# it is there, else at its new one, so an unowned copy at a new path cannot
+# shadow the file in use; a directory, moved whole, resolves new-first
+# (`locate`). A path a listing returns is spelt old (`canon`).
 # `lifted` is tvofi's D1: the rule sources move and the generated copy stays.
 # R9-RO-9 removes both, once nothing reads an old path.
 @functools.lru_cache(maxsize=None)
@@ -151,10 +153,30 @@ def canon(p: str, root: Path = ROOT) -> str:
     return next((q for o, n in moves(root) if (q := _swap(p, n, o)) is not None), p)
 
 
-def locate(p: str, exists=None, root: Path = ROOT) -> str:
-    """`p` at its new path when `exists` (the worktree, by default) holds it there, else `p`."""
+def locate(p: str, exists=None, root: Path = ROOT, is_file=None) -> str:
+    """`p` while it is a file there, else its new path when `exists` (the
+    worktree, by default) holds that, else `p`. `exists` alone is a listing,
+    whose entries are files."""
+    if (is_file or exists or (lambda x: (root / x).is_file()))(p):
+        return p
     q = next((q for o, n in moves(root) if (q := _swap(p, o, n)) is not None), None)
     return q if q is not None and (exists or (lambda x: (root / x).exists()))(q) else p
+
+
+def locate_self_test(root: Path) -> int:
+    """`locate` on stub listings: a file is read at its old path beside a copy
+    at its new one (#1886 review, round 1: a copy there shadowed a grown file),
+    a moved file at its new path, and with neither the old path stays named."""
+    m = load(root)
+    old = next(r["old"] for r in m["retired"] if r["new"] and not r["old"].endswith("/"))
+    new = target(old, m["retired"])
+    cases = [({old, new}, old), ({new}, new), (set(), old)]
+    failed = 0
+    for have, want in cases:
+        got = locate(old, have.__contains__, root)
+        failed += got != want
+        print(f"  {'ok  ' if got == want else 'FAIL'} locate {old} with {sorted(have) or 'neither'}: {got}")
+    return failed
 
 
 def check(root: Path, manifest: dict) -> tuple[dict[str, list[str]], int]:
@@ -438,7 +460,7 @@ def main() -> int:
         rc = rc or verdict(found, a.enforce)
         print(f"layout: MODE: {'ENFORCE' if a.enforce else 'REPORT (exit 0 on findings until R9-RO-9)'}")
     if a.self_test or run_all:
-        failed = self_test(ROOT)
+        failed = self_test(ROOT) + locate_self_test(ROOT)
         print(f"layout self-test: {'ok' if not failed else f'{failed} case(s) FAILED'}")
         rc = rc or (1 if failed else 0)
     return rc

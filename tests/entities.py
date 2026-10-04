@@ -24046,18 +24046,7 @@ steps:
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
           'tools/audit/record-predicate' \
-          'tools/audit/round6/D11/fix/codeowners_gap.py' \
-          'tools/policy/*.mjs' \
-          'tools/policy/*.py' \
-          'tools/pr/*.py' \
-          'tools/policy/vendor' \
-          'tools/pr/*.sh' \
-          'tools/seat/*.sh' \
-          'tools/coverage/*.sh' \
-          'dev/audit/*.sh' \
-          'tools/policy/record-predicate' \
-          'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
-          'tests/layout.py'; then
+          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
         echo "governance=false" >> "$GITHUB_OUTPUT"
       else
         echo "governance=true" >> "$GITHUB_OUTPUT"
@@ -25239,7 +25228,8 @@ R.check(
     _BRG_DEFECTS == [],
     f"defects: {_BRG_DEFECTS}",
 )
-_BRG_NULL = _brg_defects(_BRG_TEXT.replace(
+_BRG_NULL = _brg_defects(re.sub(
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n", "true\n", _BRG_TEXT).replace(
     'git checkout "$PINNED" --pathspec-from-file=', 'true "$PINNED" --pathspec-from-file='))
 R.check(
     "and the same file with its restore removed is refused (null control)",

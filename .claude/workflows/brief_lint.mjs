@@ -57,7 +57,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
-import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at } from './counts.mjs'
+import { COUNT_RULES, checkCounts, derivations, canonList, excludeMoved, listDir, at, locate } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 export const ROOT = path.resolve(HERE, '..', '..')
@@ -1077,6 +1077,26 @@ function assertAcceptanceFixture(name, label, opts, required) {
 // created and nothing caught. The floor refuses the deletion of an entry the
 // check needs to mean anything, which is the failure the ceiling cannot see:
 // an empty list passes every "names nothing" test there is.
+// counts.mjs's `locate`, which every pinned Node grader reads data through
+// (R9-RO-2): a FILE is read at its old path while it is there, so a copy at
+// its new path cannot shadow it (#1886 review, round 1, which grew COMMON.md
+// past its cap beside a pristine copy and saw policy_lint pass); a moved file
+// is read at its new path; a directory resolves new-first, since it moves whole.
+function assertLocateOldFirst() {
+  const old = 'tools/audit/briefs/COMMON.md'
+  const neu = locate(old, (p) => (p === old ? undefined : { isFile: () => true }))
+  const st = (have) => (p) => (p in have ? { isFile: () => have[p] } : undefined)
+  const both = locate(old, st({ [old]: true, [neu]: true }))
+  const dirNew = locate('docs/delivery', (p) => (p === 'docs/delivery' ? undefined : { isFile: () => false }))
+  const dirBoth = locate('docs/delivery', () => ({ isFile: () => false }))
+  if (neu !== old && both === old && dirBoth === dirNew && dirNew !== 'docs/delivery') {
+    console.log(`\nLOCATE ok: ${old} is read there beside a copy at ${neu}; a moved file and a directory resolve to the new path`)
+    return 0
+  }
+  console.log(`\nLOCATE VACUOUS: new=${neu} both=${both} dir=${dirBoth}/${dirNew}; a copy at a new path would shadow the file in use`)
+  return 1
+}
+
 function assertGrepExcludeBounded() {
   const tracked = canonList(git(['ls-files']).split('\n').filter(Boolean))
   const dead = SYMBOL_GREP_EXCLUDE.filter((e) => {
@@ -1297,6 +1317,7 @@ function main() {
     acceptanceRc += assertCountDrift()
     acceptanceRc += assertDriverGuard()
     acceptanceRc += assertGrepExcludeBounded()
+    acceptanceRc += assertLocateOldFirst()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
   }

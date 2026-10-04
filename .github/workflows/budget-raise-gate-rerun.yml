@@ -56,17 +56,9 @@ jobs:
           PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
         run: |
           set -euo pipefail
-          # Each program at its path before and after the reorganisation (R9-RO-2):
-          # the diff lists what PINNED holds of them, skipping the half it lacks,
-          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
-          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
-            '.claude/workflows/*.py' \
-            'tools/policy/*.py' \
-            'tools/pr/*.py' \
-            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
-          test -s "$RUNNER_TEMP/pinned.list"
-          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          test -f .claude/workflows/budget_raise_gate.py || test -f tools/policy/budget_raise_gate.py
+          git checkout "$PINNED" -- \
+            '.claude/workflows/*.py'
+          test -f .claude/workflows/budget_raise_gate.py
 
       - name: Re-run the gate's stale pull_request verdict at this head
         env:

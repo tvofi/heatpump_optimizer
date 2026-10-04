@@ -593,13 +593,20 @@ def job_executions(wf: str, job: str, jt: str, have: set[str]) -> list[tuple[str
                 for f in sorted(seen):
                     out.append((wf, job, f,
                                 not tainted and line_ok and any(spec_hit(sp, f) for sp in specs), iso))
-            if r and r.group(0).startswith("git diff"):
-                listed[r.group(2) or ""] = re.findall(r"'([^']+)'", r.group(1))
-            elif r:
-                specs += re.findall(r"'([^']+)'", r.group(1))
+            # A listing counts only when the checkout of it comes next, with
+            # nothing between but its emptiness test: any other line could
+            # rewrite the list (#1886 review, round 1: `echo > list` and a
+            # `printf` naming another file were both credited).
             m = re.search(r'git checkout "\$PINNED" --pathspec-from-file="?(\$RUNNER_TEMP/[\w.-]+)"? --pathspec-file-nul', line)
-            if m:
+            if r and r.group(0).startswith("git diff"):
+                listed = {r.group(2) or "": re.findall(r"'([^']+)'", r.group(1))}
+            elif m:
                 specs += listed.pop(m.group(1), [])
+                listed = {}
+            elif not re.fullmatch(r'\s*test -s "?\$RUNNER_TEMP/[\w.-]+"?\s*', line):
+                listed = {}
+            if r and not r.group(0).startswith("git diff"):
+                specs += re.findall(r"'([^']+)'", r.group(1))
             if not admitted(line, have, specs):
                 tainted = True
     return out
@@ -772,10 +779,10 @@ def _GRADE(cmd: str):
 _CHECKOUT = "git checkout \"$PINNED\" -- \\\n            'tests/coverage_ratchet.py'"
 
 
-def _LISTED(checkout: str = "--pathspec-from-file=\"$RUNNER_TEMP/pinned.list\" --pathspec-file-nul"):
+def _LISTED(checkout: str = "--pathspec-from-file=\"$RUNNER_TEMP/pinned.list\" --pathspec-file-nul", between: str = ""):
     listed = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\\n'
               "            'tests/coverage_ratchet.py' 'tests/moved/coverage_ratchet.py' > \"$RUNNER_TEMP/pinned.list\"\n"
-              '          test -s "$RUNNER_TEMP/pinned.list"')
+              '          test -s "$RUNNER_TEMP/pinned.list"' + (f"\n          {between}" if between else ""))
     return lambda jt: jt.replace(_CHECKOUT, listed + (f'\n          git checkout "$PINNED" {checkout}' if checkout else ""), 1)
 
 
@@ -788,6 +795,10 @@ PROBES = [
     ("a listed restore never checked out", _LISTED("")),
     ("a listed restore checked out from another list",
      _LISTED('--pathspec-from-file="$RUNNER_TEMP/other.list" --pathspec-file-nul')),
+    ("a listed restore whose list is emptied first", _LISTED(between='echo > "$RUNNER_TEMP/pinned.list"')),
+    ("a listed restore whose list names another file",
+     _LISTED(between="printf 'README.md\\0' > \"$RUNNER_TEMP/pinned.list\"")),
+    ("a listed restore whose list is truncated by cat", _LISTED(between='cat /dev/null > "$RUNNER_TEMP/pinned.list"')),
     ("pip install", _run("pip install -r tests/requirements-ci.txt")),
     ("npm ci", _run("npm ci")),
     ("bare tracked path", _run(T + " fast || true")),
