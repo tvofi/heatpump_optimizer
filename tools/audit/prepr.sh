@@ -1628,6 +1628,8 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     say skip "ancestry reds" "no changed-path list, so the body check this arm feeds was not run"
   elif [ -z "$UPREF" ]; then
     say skip "ancestry reds" "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"
+  elif [ -z "$UPSHA" ]; then
+    say skip "ancestry reds" "no $UPREF yet; the push creates it, so no commit of this branch has check runs to read"
   else
     REDS_LINE=$(reds_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$UPREF")
     case $? in
