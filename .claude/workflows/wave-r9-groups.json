@@ -7130,6 +7130,42 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-FR-6",
+   "lane": "FIX",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 1,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "effort": "medium",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "tvofi, 2026-10-04 (tooling batch, precise scope): merge_train.py's recarry step fails on every PR whose head needs an automatic main absorb — three proven instances today (#1893, #1894, #1896 all stopped at recarry; the orchestrator absorbed each manually). Repro: queue a verdicted PR whose branch lacks origin/main; the train's recarry creates a DETACHED worktree, merges origin/main there, then remerge_main.sh's app_push refuses: worktree HEAD (the auto-merge sha) is not the committed tip of the branch. Fix in the recarry path: check out the pull request's BRANCH in the recarry worktree (not detached), or push the auto-merge sha directly to the branch ref — whichever keeps remerge_main.sh's app_push identity flow intact. Add a self-test arm driving an absorbed-branch recarry end to end (fixture repo, verdict + queue entry, the merge lands). The same run: document in the train's header comment that recarry requires the branch checkout, and that verdict comments must cite an absolute evidence path (app_approve's gate reads the comment). Files: tools/audit/seat/merge_train.py + its self-test fixtures only.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-6",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing self-test arm first (absorbed-branch recarry), then the checkout fix",
+    "note_file": "handoff/round9/fix/resume/FR-6.md on fix/r9-fr-6",
+    "review_branch": "fix/r9-fr-6-review",
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
