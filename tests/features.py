@@ -35921,14 +35921,30 @@ _wf_probe_result = _WfNS(
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
 )
-_wf_from_probes = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_probes = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator uses the live wood-tank temperature",
     (_wf_from_probes.get("night_advice") or {}).get("action") == "light",
     repr(_wf_from_probes.get("night_advice")),
 )
 _wf_probe_coord._current_state.wood_tank_temperature = None
-_wf_from_empty = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_empty = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
     "night_advice" not in _wf_from_empty,
