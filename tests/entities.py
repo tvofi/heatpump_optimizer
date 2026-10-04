@@ -29912,7 +29912,8 @@ _MUT_E_DRIVERS = ["tests/a.py", "tests/features.py", "tests/b.py",
 _MUT_E_COST = {"tests/a.py": 10, "tests/features.py": 500, "tests/b.py": 40,
                "tests/env_drift.py": 90}
 _MUT_E_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
-                "anchor": f"m{i}.py:a", "drivers": list(_MUT_E_DRIVERS)}
+                "anchor": f"m{i}.py:a", "old": "o", "new": "n",
+                "drivers": list(_MUT_E_DRIVERS)}
                for i in range(6)]
 _MUT_E_KILLS = {(0, "tests/features.py"), (1, "tests/a.py"),
                 (3, "tests/b.py"), (4, "tests/features.py")}
@@ -29981,10 +29982,11 @@ R.check(
 )
 
 # The budget under the split: admission compares the outstanding work against
-# the workers left to run it, so a pool the serial estimate refuses ENTIRELY
-# -- every mutant's whole-sweep cost over the deadline -- is measured by the
-# split. Four mutants of one 40 s driver each: 80 > 50 refuses the serial
-# schedule's second mutant; 40/4 workers fits all four.
+# the workers left to run it, so the split measures what the serial estimate
+# refuses. Four mutants of one 40 s driver each under a deadline of 100: the
+# serial schedule starts a mutant only if its whole sweep ends by it, so its
+# third mutant needs 80 + 40 and closes the pool; the split's fourth mutant
+# needs 40/4 = 10 of outstanding work, which fits at any interleaving.
 _MUT_BG2_T = [0.0]
 _MUT_BG2_POOL = [{"file": "x.py", "line": i, "kind": "CONST",
                   "drivers": ["tests/a.py"]} for i in range(4)]
@@ -29996,7 +29998,7 @@ def _mut_bg2_run(schedule, workers, deadline):
 
     def drive(w, m, s):
         ran.append(m["line"])
-        _MUT_BG2_T[0] += 40
+        _MUT_BG2_T[0] += 40 / workers
         return False
 
     out = schedule(_MUT_BG2_POOL, workers, {"tests/a.py": 40}, drive,
@@ -30004,15 +30006,15 @@ def _mut_bg2_run(schedule, workers, deadline):
     return [v for _, v in out], sorted(ran)
 
 
-_MUT_BG2_OUT = ((_mut_bg2_run(_mut.drive_pool, 1, 50),
-                 _mut_bg2_run(_mut_pin, 4, 50))
+_MUT_BG2_OUT = ((_mut_bg2_run(_mut.drive_pool, 1, 100),
+                 _mut_bg2_run(_mut_pin, 4, 100))
                 if _mut_pin is not None else None)
 R.check(
     "the split's budget admission divides the outstanding work by the "
-    "workers, measuring a pool the serial estimate starts none of",
+    "workers, measuring a pool the serial estimate closes after two",
     _MUT_BG2_OUT is not None
-    and _MUT_BG2_OUT[0] == (["LIVES", "SKIP-BUDGET", "SKIP-BUDGET",
-                             "SKIP-BUDGET"], [0])
+    and _MUT_BG2_OUT[0] == (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"],
+                            [0, 1])
     and _MUT_BG2_OUT[1] == (["LIVES"] * 4, [0, 1, 2, 3]),
     f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
     if _MUT_BG2_OUT else f"drive_pin_pool="
