@@ -6304,10 +6304,10 @@
         "R9-F10.12"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f10-13",
         "commit": "c983b9778924a0eefca57e7bb8fbb221462a7570",
-        "last_step": "round 3 pushed to PR #1885 at session handover (anchor check stubbed: no worktree/subprocess, MA-MD killed, entities 143 s; closures.json lines removed from the diff); round 2 had merge at 7162a2d8 (comment 5977616991)",
+        "last_step": "none; MERGED as #1885 at c2e84dfa (round-3: honest stub, closures.json untouched, Linux lane no UNDER-SCOPED)",
         "next_step": "round-3 review of the stub and the closures removal (CI Linux closures must confirm no UNDER-SCOPED for tests/entities.py), then merge (code-owned: mandate approval)",
         "note_file": null,
         "review_branch": null,
@@ -6532,10 +6532,10 @@
         "R9-F10.14"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-f10-15",
         "commit": "d6877750729c95dc966c36522a8fe776135908d9",
-        "last_step": "PR #1890 opened 2026-10-04 at session handover; no reviewer dispatched",
+        "last_step": "none; MERGED as #1890 at 9a51f6d7 (fast lanes + probe, coverage split, closures x3; reviewer corrected the dispatch scope: run.sh/derive_closures.sh/coverage_tree.sh, not workflows)",
         "next_step": "review seat; CI proofs named in the body (fast lane count line, coverage-json vs main push run, closures UNDER-SCOPED), read twice; drop commit (b) if fast goes red on a timing-sensitive script",
         "note_file": null,
         "review_branch": null,
