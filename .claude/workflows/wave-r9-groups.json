@@ -4587,11 +4587,11 @@
         "R9-EG-B5"
       ],
       "resume": {
-        "stage": "in-review",
+        "stage": "done",
         "branch": "handoff/r9-eg-one-copy",
-        "commit": "40ccb15307842055b1efa02fc410738a45d7237f",
-        "last_step": "round 4 merge verdict (comment 5973760348); queued in the merge train",
-        "next_step": "merge",
+        "commit": "697b8c68e7fa9d696ffe298b8f413ab9c503bb79",
+        "last_step": "PR #1874 merged 2026-10-04, closes #1775",
+        "next_step": null,
         "note_file": "handoff/round9/fix/resume/EG-A2.md on handoff/r9-eg-one-copy",
         "review_branch": "handoff/r9-eg-one-copy-review",
         "review_note_file": "handoff/round9/fix/resume/EG-A2-review.md on handoff/r9-eg-one-copy-review",
