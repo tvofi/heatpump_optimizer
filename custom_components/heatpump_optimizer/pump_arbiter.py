@@ -142,7 +142,7 @@ from .inputs import state_unit, temperature_c, temperature_from_c
 from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
-from .store import QuarantiningStore
+from .store import QuarantiningStore, load_mapping
 from .thermal_model import on_threshold_kw, planned_draw_runs
 
 _LOGGER = logging.getLogger(__name__)
@@ -740,12 +740,8 @@ async def _load(coord: Any) -> None:
     if held.loaded:
         return
     held.loaded = True
-    try:
-        raw = await _store(coord).async_load()
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not load the pump duty record: %s", err)
-        raw = None
-    if not isinstance(raw, dict):
+    raw = await load_mapping(_store(coord), "the pump duty record")
+    if raw is None:
         return
     if raw.get("manual"):
         _clear(coord, ISSUE_MANUAL)

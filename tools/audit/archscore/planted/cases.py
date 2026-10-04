@@ -25,9 +25,10 @@ sys.path.insert(0, str(HERE))
 
 PINNED = "7952d8f9e4fbe9945bc8742e8dc02be8fbe4582c"
 BASE = "_base"
-# Attempts the counters do not close: C3 enumerates the junk spellings it drops, and these are not on the list.
-# Expected IMPROVES; a class fix flips them, and the check then asks for them to be re-recorded.
-KNOWN_OPEN = {"04h_dup_assert_uncharged", "04i_dup_assign_uncharged", "04j_dup_walrus_uncharged"}
+# Attempts the counters do not close, expected IMPROVES; a fix flips one and the check asks for the re-record.
+# 04h, 04i and 04j left this set in R9-EG-A2 (C3 joins a clone across any gap). 04zz1 splits a copy across
+# blocks, which no window inside one block can join (ABOUT.md, "Interleaved junk").
+KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged"}
 
 
 def extract_pin(into: Path) -> Path:

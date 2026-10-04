@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._substeps_and_loss CLAMP_DROP b9618214",
+  "killed_by": "tests/features.py",
+  "old": "        n_sub = max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. CLAMP_DROP (`n_sub = (1)`) took tests/features.py from rc=1 failed=2 to rc=1 failed=9, newly failing ['a 24 h trajectory on the stiff house stays finite and bounded']."
+}

@@ -5301,13 +5301,13 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
     # masses that did land left the two-zone ratio at 0.746 against the 1.5
     # threshold. Assert the count per step, from the production guard, so
     # the label can never again outrun the configuration.
-    subs = [m._stability_substeps(float(wi[k]), float(ra[k]), 0.25)
+    subs = [m._substeps_and_loss(float(wi[k]), float(ra[k]), 0.25)[0]
             for k in range(n)]
     R.check(
         f"grad-parity cell subdivides as claimed (n_sub >= {min_substeps}): "
         f"{label}",
         min(subs) >= min_substeps,
-        f"_stability_substeps gave min={min(subs)} max={max(subs)} "
+        f"_substeps_and_loss gave min={min(subs)} max={max(subs)} "
         f"over {n} steps, wanted every step >= {min_substeps}",
     )
     batch = m.simulate_trajectory_batch(
@@ -5664,7 +5664,7 @@ _grad_parity(True, label="two-zone")
 _grad_parity(True, valve="manual", label="two-zone with valve")
 _grad_parity(True, wood=True, valve="manual", label="two-tank")
 # D2-01: the Euler sub-step regime, in both zonings, asserted rather than
-# named. `_stability_substeps` subdivides a step whose worst u*dt/C exceeds
+# named. `_substeps_and_loss` subdivides a step whose worst u*dt/C exceeds
 # EULER_STABILITY_MAX_RATIO, and the batch has to subdivide it the way the
 # scalar path does -- same dt = dt_hours / n_sub, same carried state across
 # sub-steps. Every configuration below sits inside the config flow's own
@@ -10707,7 +10707,7 @@ for _vol, _floor in ((10.0, 15.0), (35.0, 15.0), (750.0, 20.0)):
 # overshoots past it. Past the coldest zone the tank feeds, delivery is already
 # zero, so the discharge bound snaps the tank there -- and the ring that
 # follows makes the trough a chaotic function of the commanded power rather
-# than a monotone one. `_stability_substeps` subdivides the four
+# than a monotone one. `_substeps_and_loss` subdivides the four
 # boundary-floored masses but used to exempt the buffer on the grounds that its
 # energy bound made it safe; that bound is the discontinuity, not the cure.
 #
@@ -11848,7 +11848,7 @@ R.check(
 # --- One capacity per store, above and below the guard (round 7, D2-01) ---
 #
 # `_simulate_step_two_zone` divided the tank's rate by `max(C_buf, 0.01)`
-# while the same step's availability bound and `_stability_substeps` used the
+# while the same step's availability bound and `_substeps_and_loss` used the
 # raw `C_buf`, so below the guard (buffer under 8.62 L) the tank's stored
 # energy became `C_actual / 0.01` of the heat the step was handed and the
 # balance closed by exactly `(C_actual - 0.01) * dT_buf` -- at 5 L, +5.456e-03
@@ -11859,7 +11859,7 @@ R.check(
 # (`volume * WATER_SPECIFIC_HEAT`), which is what makes the divergence visible.
 
 _R7CAP_POWER = 4.0
-_R7CAP_DT = 0.003  # `_stability_substeps` == 1 at every volume here, so the
+_R7CAP_DT = 0.003  # `_substeps_and_loss` == 1 at every volume here, so the
                    # sub-step composition cannot mask the tank's own leak
 
 
@@ -11990,7 +11990,7 @@ R.check(
 )
 
 # The batched twin must read the same capacity as the scalar step: both paths
-# share `_stability_substeps` and one divisor, so repairing one and not the
+# share `_substeps_and_loss` and one divisor, so repairing one and not the
 # other would split them. Before the repair the two agreed only because both
 # used the same guard -- the parity check below pins them to each other, not
 # to a value.
@@ -20894,8 +20894,8 @@ R.check(
 _g_sane = ThermalModel(ThermalParameters(two_zone_enabled=True))
 R.check(
     "no sane configuration ever subdivides a step",
-    _g_sane._stability_substeps(0.0, 0.0, 0.25) == 1
-    and ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25)
+    _g_sane._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
+    and ThermalModel(ThermalParameters())._substeps_and_loss(0.0, 0.0, 0.25)[0]
     == 1,
     "the committed fixtures depend on n == 1 being the universal case",
 )
@@ -20911,7 +20911,7 @@ _g_stiff = ThermalModel(
 )
 R.check(
     "the stiff case genuinely exercises the subdivision",
-    _g_stiff._stability_substeps(0.0, 0.0, 0.25) > 1,
+    _g_stiff._substeps_and_loss(0.0, 0.0, 0.25)[0] > 1,
 )
 _g_room, _g_slab, _g_up, _g_low, *_ = _g_stiff.simulate_trajectory(
     ThermalState(),
@@ -53943,7 +53943,7 @@ def _f23_start(m):
 def _f23_step_matrix(m, n_sub=None):
     """The production sub-step's Jacobian over the stores it integrates."""
     p = m.params
-    h = 0.25 / (n_sub or m._stability_substeps(0.0, 0.0, 0.25))
+    h = 0.25 / (n_sub or m._substeps_and_loss(0.0, 0.0, 0.25)[0])
     if p.two_zone_enabled:
         fields = _F23_STORES if _f23_mv.is_throttling(p.mixing_valve_mode) \
             else _F23_STORES[:3]
@@ -53983,7 +53983,7 @@ for _f23_label, _f23_cfg in _F23_EULER_CASES:
         "passive envelope [T_out, hottest store]",
         _f23_exc <= 1e-9,
         f"left the envelope by {_f23_exc:.4g} K at "
-        f"n_sub={_f23_m._stability_substeps(0.0, 0.0, 0.25)}",
+        f"n_sub={_f23_m._substeps_and_loss(0.0, 0.0, 0.25)[0]}",
     )
     _f23_j = _f23_step_matrix(_f23_m)
     _f23_rho = float(np.max(np.abs(np.linalg.eigvals(_f23_j))))
@@ -53997,12 +53997,12 @@ for _f23_label, _f23_cfg in _F23_EULER_CASES:
 # Null arm: the shipped defaults, single and two-zone, still never subdivide.
 R.check(
     "R9-F2.3 D2-s1-01 (null arm): the shipped defaults keep n_sub == 1",
-    ThermalModel(ThermalParameters())._stability_substeps(0.0, 0.0, 0.25) == 1
+    ThermalModel(ThermalParameters())._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
     and ThermalModel(ThermalParameters(two_zone_enabled=True))
-    ._stability_substeps(0.0, 0.0, 0.25) == 1
+    ._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1
     and _f23_model({"two_zone_mode": "on", "mixing_valve_mode": "manual",
                     "buffer_tank_volume": 750.0})
-    ._stability_substeps(0.0, 0.0, 0.25) == 1,
+    ._substeps_and_loss(0.0, 0.0, 0.25)[0] == 1,
 )
 # The count reads the step's own clamps: a design delta-T under 1 K, a COP
 # under 1 and an empty buffer are integrated as 1 K, 1 and 0.04 kWh/K, so the
@@ -54022,7 +54022,7 @@ for _f23_label, _f23_cfg, _f23_set, _f23_tight in (
     for _f23_k, _f23_v in _f23_set.items():
         setattr(_f23_m.params, _f23_k, _f23_v)
     try:
-        _f23_n = _f23_m._stability_substeps(0.0, 0.0, 0.25)
+        _f23_n = _f23_m._substeps_and_loss(0.0, 0.0, 0.25)[0]
         _f23_j = _f23_step_matrix(_f23_m)
         _f23_jm = _f23_step_matrix(_f23_m, _f23_n - 1) if _f23_tight else None
         _f23_err = ""
@@ -56493,6 +56493,72 @@ R.check(
     and "quiet_start:" in _ux4_bp and "quiet_end:" in _ux4_bp
     and _ux4_mod.EVENT_COMFORT_AT_RISK in _ux4_bp,
     "blueprints/automation/notifications.yaml lacks an input",
+)
+
+
+# R9-EG-A2 (#1874): the helpers the one-copy consolidation introduced, held to the contract each
+# docstring states at the boundary a clamp or a comparison exists for. Every caller reaches them, but
+# no scenario above sits on these boundaries, so a dropped clamp or a moved bound survived the suite.
+from heatpump_optimizer import dhw_planner as _eg_dhw, sysid as _eg_sysid  # noqa: E402
+
+_eg_req, _eg_ceil = _eg_dhw._within_ceiling([50.0, 70.0, 64.0], [60.0, 60.0, 65.0])
+R.check(
+    "EG-A2 a DHW requirement above its step's ceiling is held to the ceiling, elementwise",
+    list(_eg_req) == [50.0, 60.0, 64.0] and list(_eg_ceil) == [60.0, 60.0, 65.0],
+    f"{list(_eg_req)} under {list(_eg_ceil)}",
+)
+_eg_decay, _eg_gain = _eg_dhw._tank_decay(ua=2.0, dt=1.0, c_dhw=0.5)
+R.check(
+    "EG-A2 an absurdly leaky tank's decay is clamped at 0, never a negative (unstable) factor",
+    _eg_decay == 0.0 and _eg_dhw._tank_decay(0.0, 1.0, 0.5)[0] == 1.0,
+    f"decay {_eg_decay}",
+)
+_eg_conf, _ = _eg_sysid._r2_confidence(np.array([5.0, -5.0, 5.0]), np.array([1.0, 2.0, 3.0]), 12)
+R.check(
+    "EG-A2 a fit worse than the mean reads confidence 0, not a negative R^2",
+    _eg_conf == 0.0, f"confidence {_eg_conf}",
+)
+# ss_tot of [0, sqrt(2e-9)] is exactly 1e-9 in float64: the floor is strict, so a residual-free fit of
+# data that never moved still reads no confidence.
+_eg_flat = np.array([0.0, float(np.sqrt(2e-9))])
+_eg_conf_flat, _ = _eg_sysid._r2_confidence(np.zeros(2), _eg_flat, 12)
+R.check(
+    "EG-A2 data whose spread is at the 1e-9 floor reads no confidence (the floor is strict)",
+    float(np.sum(np.square(_eg_flat - np.mean(_eg_flat)))) == 1e-9 and _eg_conf_flat == 0.0,
+    f"ss_tot {float(np.sum(np.square(_eg_flat - np.mean(_eg_flat))))!r} confidence {_eg_conf_flat}",
+)
+from heatpump_optimizer.thermal_model import WATER_SPECIFIC_HEAT as _EG_C  # noqa: E402
+
+_eg_p = ThermalParameters()
+_eg_p.two_zone_enabled = True
+_eg_p.mixing_valve_mode = "manual"
+_eg_p.buffer_tank_volume = 1e-6 / _EG_C  # a buffer mass of exactly 1e-6 kWh/K in float64
+_eg_p._layout_cache = None
+_eg_n = ThermalModel(_eg_p)._substeps_and_loss(0.0, 0.0, 0.25)[0]
+_eg_p.buffer_tank_volume = 0.04 / _EG_C
+_eg_n_fallback = ThermalModel(_eg_p)._substeps_and_loss(0.0, 0.0, 0.25)[0]
+_eg_p.buffer_tank_volume = 1e-6 / _EG_C
+R.check(
+    "EG-A2 a buffer of exactly 1e-6 kWh/K is judged at its own mass, not the 0.04 fallback "
+    "(the fallback is for a mass under the floor)",
+    _eg_p.buffer_tank_thermal_mass == 1e-6 and _eg_n > _eg_n_fallback,
+    f"mass {_eg_p.buffer_tank_thermal_mass!r}: n_sub {_eg_n} vs {_eg_n_fallback} at the fallback",
+)
+
+R.check(
+    "EG-A2 a residual-free fit reads its spread against the 1e-9 noise floor, never a division by zero",
+    _eg_sysid._snr_weight(np.array([0.0, 1.0, 2.0]), 0.0) == 1.0,
+)
+with np.errstate(all="ignore"):
+    _eg_empty = _eg_sysid._slab_confidence(np.array([20.0]), np.array([]))
+R.check("EG-A2 a slab fit with no residuals reads confidence 0, not a division by zero",
+        _eg_empty == 0.0, f"{_eg_empty}")
+# A shortfall of exactly 0.05 K (0.05 - 0.0 is exact in float64) is within tolerance; one just past it is not.
+_eg_short = _eg_dhw.DhwPlanner._dhw_shortfall
+R.check(
+    "EG-A2 a DHW breach is a shortfall of MORE than 0.05 K: exactly 0.05 is met, 0.06 is the first breach",
+    _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.05]), set())[2] is None
+    and _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.06]), set())[2] == 0,
 )
 
 
