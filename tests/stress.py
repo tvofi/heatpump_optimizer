@@ -82,6 +82,7 @@ from scipy.optimize import minimize
 
 from profiles import DT, house, prices, weather
 from heatpump_optimizer import optimizer as optimizer_module
+from heatpump_optimizer.thermal_model import WeatherSeries
 from heatpump_optimizer import pv as pv_model
 
 # ===========================================================================
@@ -1425,10 +1426,12 @@ def best_possible_violation(run: dict) -> float:
     room, _, upper, lower, _, _, _ = model.simulate_trajectory(
         initial_state=run["initial"],
         power_schedule=np.full(run["n"], run["params"].max_electrical_power),
-        outdoor_temps=run["outdoor"],
-        wind_speeds=run["wind"],
-        precipitation=run["rain"],
-        solar_radiation=run["solar"],
+        weather=WeatherSeries(
+            outdoor_temps=run["outdoor"],
+            wind_speeds=run["wind"],
+            precipitation=run["rain"],
+            solar_radiation=run["solar"],
+        ),
         dt_hours=DT,
     )
     if run["params"].two_zone_enabled:
@@ -5359,7 +5362,9 @@ if __name__ == "__main__":
     def thermostat_cost(run: dict) -> float:
         """What a plain setpoint-holding thermostat would spend."""
         power, _ = run["optimizer"]._compute_baseline_power(
-            run["initial"], run["outdoor"], run["wind"], run["rain"], run["solar"], DT
+            WeatherSeries(outdoor_temps=run["outdoor"], wind_speeds=run["wind"],
+                          precipitation=run["rain"], solar_radiation=run["solar"]),
+            run["initial"], DT,
         )
         return float(np.sum(run["prices"] * np.asarray(power) * DT))
 

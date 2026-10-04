@@ -115,6 +115,7 @@ import numpy as np
 import heatpump_optimizer.sysid as sysid_module
 from heatpump_optimizer.presets import derive
 from heatpump_optimizer.sysid import (
+    HousePlant,
     SysIdConfig,
     SystemIdentification,
     slab_mode_identifiability,
@@ -192,11 +193,13 @@ def _drive(p: ThermalParameters, sigma: float, seed: int):
             max_power_kw=MAX_POWER_KW,
             cop=COP,
             plan_power_kw=hold_thermal / COP,
-            house_ua=ua,
-            house_capacity=float(p.room_thermal_mass),
-            house_gains=gains,
-            house_slab_mass=float(p.slab_thermal_mass),
-            house_slab_transfer=float(p.slab_heat_transfer),
+            house=HousePlant(
+                ua=ua,
+                capacity=float(p.room_thermal_mass),
+                gains=gains,
+                slab_mass=float(p.slab_thermal_mass),
+                slab_transfer=float(p.slab_heat_transfer),
+            ),
         )
         if not sid.active:
             break
