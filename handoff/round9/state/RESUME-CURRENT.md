@@ -1,6 +1,6 @@
 # Round 9 current state (regenerated; not a log)
 
-updated: 2026-10-04T07:30Z by the Mac orchestrator, measured at main `f4e8d911b`. Regenerate, never append. Budget: under 10 KB (`wc -c`).
+updated: 2026-10-04T07:30Z by the Mac orchestrator, measured at main `4efc5b63e`; session shut down gracefully at tvofi's request. Regenerate, never append. Budget: under 10 KB (`wc -c`).
 History before 2026-10-01T17:00Z: `RESUME-ARCHIVE.md` (frozen). `RESUME.md` is a frozen stub.
 
 ## Orchestration
@@ -14,15 +14,16 @@ A local Claude Code orchestrator on tvofi's Mac drives the programme to completi
 - Plan artifact (swimlane, ETA): https://claude.ai/artifact/7Mdnn5vXzmDoSnmTfPwEHo
 
 ## Main and release
-main `f4e8d911b` (#1878). Last stamp v6.7.15 (`ac255c200`, 2026-10-03; its tag published the GitHub Pages site, https://tvofi.github.io/heatpump_optimizer/). Merged since, unstamped: #1880 #1879 #1882 #1883 #1874 #1884 #1878. v6.7.16 is next, after record PR #1888 (rows for #1882-#1884) merges; it publishes #1883's site fixes and ships #1882's card.
+main `4efc5b63e` (#1888). Last stamp v6.7.15 (`ac255c200`, 2026-10-03; its tag published the GitHub Pages site, https://tvofi.github.io/heatpump_optimizer/). Merged since, unstamped: #1880 #1879 #1882 #1883 #1874 #1884 #1878 #1888. v6.7.16 is next, once #1889 merges (it carries the rows for #1888 and itself; `tests/delivery_status.py --require-rows` must then pass); RELEASE_NOTES `## v6.7.16` is not yet written; it publishes #1883's site fixes and ships #1882's card.
 
-## Open PRs at main f4e8d911b
-- **#1888 record** head `7fd56c49`: rows for #1882-#1884. `merge` (comment 5977627753); in the merge train now.
+## Open PRs at main 4efc5b63e
+- **#1889 record/handover** head `8920402b`: docs/HANDOVER.md round-9 section current, `tools/audit/seat/wt_sync.sh`, rows for #1888 and #1889. Policy (HANDOVER.md): needs a review verdict, then the orchestrator's mandate approval. No reviewer dispatched yet.
 - **#1885 R9-F10.13** head `7162a2d8`: triage sites driven by every driver but entities.py, pin re-verification in the nightly, `--anchor` re-drive, legionella pin re-attributed to features.py (via dst_checks), `stamp.py --dry-run` runs the D6 register. Round 2 `merge` (5977616991); round 3 asked by the orchestrator: stub the worktree in entities.py's `--anchor` check (a full disk crashed the whole run).
 - **#1886 R9-RO-2** head `a607db2a`: dual-path graders and listed restore steps ahead of the reorg. Round 1 `blocked` (5974991221): base copies of codeowners_gap/layout break on the new restore form (policy-docs, wave-script red); shadow copy at a new path passes a grown policy file; pin-list swap still graded PINNED; closures entry owed by hand. Round 2 with the fixer.
 - **#1887 R9-EG-B1** head `6b68bca0`: one frozen SolveRecord per solve, setback as a value, H1-H4, closes #1736; one-line D1.md policy edit. In review.
 
-## In-flight seats
+## Seats at shutdown
+Each was told to stop at a clean point and push code to its handoff branch and RESUME.md to its handoff-body branch; read those refs before acting.
 - Fixers: F10.13 (round 3), RO-2 (round 2), F10.15 (CI lanes: coverage two lanes, fast lanes actually parallel, closures three lanes).
 - Reviewers: #1887.
 - Merge queue: detached `orch/queue.sh` reading `orch/queue.txt`, log `orch/queue.log` (one `trainN.py` per PR; it re-carries onto main, waits CI, checks the verdict carry, approves (App, or tvofi agent approval under the mandate for code-owned paths), merges with `--match-head-commit`).
