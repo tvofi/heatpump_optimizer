@@ -5012,7 +5012,10 @@ for _label, _coord, _want in (
 ):
     _coord._current_action = {}
     _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
-    _boost_mod.apply(_coord)
+    _boost_mod.apply(_coord, _boost_mod.BoostOverlay(
+        float(_coord._thermal_model.params.max_electrical_power),
+        0.0, float(_coord._ecl110_displace_max),
+    ))
     _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
     R.check(
         f"the boost overlay {_label} hot-water power where the plant "

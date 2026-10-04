@@ -5317,7 +5317,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            boost.apply(self)
+            boost.apply(
+                self,
+                boost.BoostOverlay(
+                    max_power=float(
+                        self._thermal_model.params.max_electrical_power),
+                    max_temp=float(ctx._opt_config.max_temp),
+                    ecl_max=float(self._ecl110_displace_max),
+                ),
+            )
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
