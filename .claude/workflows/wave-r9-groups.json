@@ -6709,6 +6709,49 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-FR-1",
+   "lane": "STUDY",
+   "issues": [
+    1807,
+    1825,
+    1826,
+    1855,
+    1860,
+    1881
+   ],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": null,
+   "effort": "high",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "tvofi, 2026-10-04: pre-study that folds in all friction fixes with good benefit vs cost. Input: the six triaged [policy] friction issues (#1807 head-moved, #1825 mutation, #1826 fixer.md, #1855 gate-scoping, #1860 root-cause-unanswered, #1881 harness) with the triage seat's named remedies and stats evidence (/Users/timmalmstrom/hpo-seats/friction-triage/), PLUS a sweep of policy_lint --stats over the last several tag windows for every OTHER class over threshold that no issue filed. For each candidate remedy: benefit (class size per window, rework cost per entry — the v6.7.14 yield 6/25 with 39 repairs is the baseline), cost (build, risk, who it binds: a policy-file change merges only on approval — the labelled mandate covers it until 2026-10-09T12:00Z — versus an instrument in tools/), and a verdict. Fold the winners into the roster as concrete groups (exact brief text, model routing, after-edges) and hand the roster entries to the orchestrator; deliverable is the pre-study document (benefit/cost table, folded set, refused set with reasons) — no fix PRs from this seat.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-friction-study",
+    "commit": null,
+    "last_step": null,
+    "next_step": "stats sweep -> benefit/cost table -> fold set -> roster entries -> pre-study doc",
+    "note_file": "handoff/round9/fix/resume/FR-1.md on handoff/r9-friction-study",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
