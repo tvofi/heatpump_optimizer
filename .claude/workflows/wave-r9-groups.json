@@ -7018,9 +7018,7 @@
   {
    "group": "R9-DBG-1",
    "lane": "FIX",
-   "issues": [
-    28337
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [],
    "covers": [],
@@ -7042,7 +7040,7 @@
     "R9-F5.2",
     "R9-F8.3"
    ],
-   "brief": "Pre-study R9-DBG-0 (doc tools/audit/round9/prestudy/debugger-prestudy.md on handoff/r9-dbg-0 @eae236d66 — read it fully; its section shapes are this brief's source; the bundle format from dbg_bundle_gen.py is the frozen spec, oracle = its synthetic week). Build the collector module: new custom_components/heatpump_optimizer/debugger.py (ring, row builder, bundle assembly), store.py DOMAINS entry + store construction (F1-owned borrow declared), const.py CONF+SERVICE constants, config_flow.py + strings.json + both translations (activation option), services.py + button.py (activate/stop/finalize), coordinator.py one-line tick hook + _spawn (seam-map entry owed per fixer.md step 12), diagnostics.py (unowned). After-edges: F1.11/F3.3/F4.2/F5.2/F8.3 (all merged — startable). HARD reuse constraint carried: per-component reuse naming; the persisted ring lives in the ..._debug store so a reload cannot lose it (reload-mid-week test owed by construction — the options toggle triggers a reload); first real bundle size measured in the PR body (the synthetic week is a floor). ~350-450 production lines, ratchet payments declared.",
+   "brief": "Pre-study R9-DBG-0 (doc tools/audit/round9/prestudy/debugger-prestudy.md on handoff/r9-dbg-0 @eae236d66 - read it fully; its section shapes are this brief's source; the bundle format from the prototype generator is the frozen spec, oracle = its synthetic week). Build the collector module: a new debugger module in the integration package (the ring, the per-cycle row builder and the bundle assembly live there), the store DOMAINS entry and store construction (F1-owned borrow declared), the CONF and SERVICE constants, the activation option in the config flow plus strings and both translations, the activate/stop/finalize service and button, the coordinator one-line tick hook and spawn (seam-map entry owed per fixer.md step 12), and the diagnostics module (unowned). After-edges: F1.11, F3.3, F4.2, F5.2, F8.3 (all merged - startable now). HARD reuse constraint carried from tvofi via the pre-study: per-component reuse naming; the persisted ring lives in the debug-namespaced store so a reload cannot lose it (the reload-mid-week test is owed by construction - the options toggle triggers a reload); the first real bundle size is measured in the PR body (the synthetic week is a floor). ~350-450 production lines, ratchet payments declared.",
    "resume": {
     "stage": "not-started",
     "branch": "fix/r9-dbg-1",
@@ -7080,7 +7078,7 @@
    "after": [
     "R9-DBG-1"
    ],
-   "brief": "Pre-study R9-DBG-0 section: self-tests + the HA-native diagnostics bundle surface. debugger.py self-test orchestration (the priced self-test table in the doc section 4; <=15 min total), diagnostics.py bundle inclusion + the 8 MB inline cap with summary fallback (the nightly_ha-lane size check owed), button.py finalize if not landed in DBG-1, translations. Oracle: the synthetic bundle fixtures + the priced table. After R9-DBG-1. ~200 production lines.",
+   "brief": "Pre-study R9-DBG-0 sections 4 and 7: the debugger module self-test orchestration (the priced self-test table in the doc's section 4; 15 minutes total), the diagnostics bundle inclusion with the 8 MB inline cap and the summary fallback (the nightly-ha-lane size check owed), the finalize button if DBG-1 did not land it, translations. Oracle: the synthetic bundle fixtures and the priced table. After R9-DBG-1. ~200 production lines.",
    "resume": {
     "stage": "not-started",
     "branch": "fix/r9-dbg-2",
@@ -7116,7 +7114,7 @@
    "barrier_prototype": null,
    "blocked_on": [],
    "after": [],
-   "brief": "Pre-study R9-DBG-0 section: the repo-side debugger harness, confined to tools/replay/** (unowned; F11 owns tools/audit/** — harness home decision recorded: tools/replay/, import-only tests/replay.py integration). New tools/replay/debug_ingest.py (generalised dbg_ingest_smoke.py), tools/replay/debug_replay.py (store seeding + tests/replay.py run_fixture driver), dbg_bundle_gen.py promoted to tools/replay/ (synthetic week as a CI-visible artifact). Prefer import-only integration so no F10 edge binds; if tests/replay.py must change, STOP and tell the orchestrator (the F10.18 edge would bind). Oracle: the two prototypes. Disposition the synthetic week's one agreement offender with a targeted replay (doc section 5). Parallel to DBG-1. ~400 tool lines + a tests/ smoke if gate-wired.",
+   "brief": "Pre-study R9-DBG-0 sections 6 and 7: the repo-side debugger harness, confined to tools/replay (unowned; F11 owns tools/audit), importing the existing tests/replay.py run_fixture for replay and reusing the two prototypes that exist on handoff/r9-dbg-0 at eae236d66 (the smoke ingest and the synthetic-week generator - cited here per the tag rule). Deliverables: the ingest tool generalised from the smoke prototype, the replay driver with store seeding, and the generator promoted as a CI-visible artifact. If tests/replay.py itself must change, STOP and tell the orchestrator (the F10 wave-18 edge would bind - prefer the import-only integration). Disposition the synthetic week's single agreement offender with a targeted replay (doc section 5). Parallel to DBG-1. ~400 tool lines plus a tests smoke if gate-wired.",
    "resume": {
     "stage": "not-started",
     "branch": "fix/r9-dbg-3",
