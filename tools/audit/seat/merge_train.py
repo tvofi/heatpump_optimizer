@@ -10,16 +10,20 @@
 The queue is a JSON list, merged in order:
 
     [{"pr": 1869, "verdict": "<40-hex head the merge verdict names>",
-      "verdict_comment": "<the verdict comment's id, quoted in a mandate approval>",
+      "verdict_comment": "<the verdict comment's id, quoted in a mandate approval; the comment itself must cite an absolute evidence path -- app_approve.sh's evidence gate reads the comment and refuses a verdict naming no qualifying absolute directory>",
       "branch": "<optional; read from the pull request>",
-      "worktree": "<optional; a detached one is made under the state directory>",
+      "worktree": "<optional; the recarry makes one under the state directory, holding the pull request's BRANCH (see step 1)>",
       "issues": [<optional; the issues the body intends to close, for preflight>]}]
 
 PER PULL REQUEST, IN ORDER; THE TRAIN STOPS AT THE FIRST REFUSAL, because every
 later pull request would be graded against a `main` the refused one never joined:
   1. recarry  -- a head that does not contain `origin/main` gets main merged in by
                  `remerge_main.sh` (an automatic merge, no resolution); a conflict
-                 or a push that did not land stops the train;
+                 or a push that did not land stops the train. The recarry worktree
+                 is the pull request's BRANCH checked out at `origin/<branch>`
+                 (-B, so an existing local branch is reset), never a detached
+                 HEAD: `app_push.sh` pushes only a committed tip, and a detached
+                 auto-merge sha is not the committed tip of anything (#1943);
   2. ci       -- every check run at the head completes (all pages, at least
                  --min-runs); a latest run that is not success, skipped or
                  neutral stops it, except the `--ignore-red` names (default
@@ -175,7 +179,14 @@ class Train:
             wt = Path(item.get("worktree") or self.state / "wt" / str(pr))
             if not wt.exists():
                 self.run(["git", "fetch", "-q", "origin", br])
-                if not self.ok("git", "worktree", "add", "-q", "--detach", str(wt), f"origin/{br}"):
+                # The worktree must hold the pull request's BRANCH, not a
+                # detached HEAD: remerge_main.sh's app_push pushes only a
+                # committed tip (HEAD == refs/heads/<branch>), and a detached
+                # auto-merge sha is nobody's committed tip -- #1893, #1894,
+                # #1896 all stopped there. -B, not -b: the orchestrator's
+                # checkout often already holds the branch, and the recarry
+                # wants it reset to origin's state before the merge.
+                if not self.ok("git", "worktree", "add", "-q", "-B", br, str(wt), f"origin/{br}"):
                     raise Stop("recarry", f"could not make a worktree at {wt}")
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
@@ -300,12 +311,15 @@ def _self_test() -> int:
              {"name": "nightly-status", "status": "completed", "conclusion": "failure", "started_at": "1"}]
     item = {"pr": 7, "verdict": V, "verdict_comment": "42", "worktree": "/nonexistent-wt", "branch": "fix/x"}
 
-    def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1) -> tuple[int, list[str], list[list[str]]]:
+    def go(world: dict, mandate: str | None = None, q=None, min_runs: int = 1,
+           wrap=None) -> tuple[int, list[str], list[list[str]]]:
         world.setdefault("heads", [H0])
         world.setdefault("contains", [])
         world.setdefault("runs", green)
         lines: list[str] = []
         run, calls = fake(world)
+        if wrap:
+            run = wrap(run)
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs, run=run,
                        sleep=lambda s: None, log=lines.append, polls=2, merge_tries=3).train(q or [dict(item)])
@@ -364,6 +378,64 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    # End-to-end absorbed-branch recarry against a REAL fixture repo (#1943):
+    # the train's `git worktree add` runs for real, the remerge stub performs
+    # remerge_main.sh's actual merge on that worktree, and then applies
+    # app_push.sh's committed-tip gate verbatim (HEAD == refs/heads/<branch>)
+    # -- the gate that stopped #1893, #1894 and #1896 on a DETACHED recarry
+    # worktree, where the auto-merge sha is nobody's committed tip.
+    with tempfile.TemporaryDirectory() as gd:
+        g = Path(gd) / "repo"
+        g.mkdir()
+        def rg(*argv: str, cwd: Path | None = None) -> tuple[int, str]:
+            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True)
+            return r.returncode, (r.stdout + r.stderr).strip()
+        rg("init", "-q", "-b", "main", ".")
+        rg("config", "user.email", "fixture@example.test")
+        rg("config", "user.name", "fixture")
+        (g / "one.txt").write_text("one\n")
+        rg("add", ".")
+        rg("commit", "-qm", "one")
+        c1 = rg("rev-parse", "HEAD")[1]
+        rg("branch", "fix/x", c1)
+        (g / "two.txt").write_text("two\n")
+        rg("add", ".")
+        rg("commit", "-qm", "two")
+        rg("update-ref", "refs/remotes/origin/fix/x", c1)
+        rg("update-ref", "refs/remotes/origin/main", rg("rev-parse", "HEAD")[1])
+        wt = Path(gd) / "wt"
+
+        def gate() -> tuple[bool, str]:
+            if not wt.exists():
+                return False, "no worktree"
+            head = rg("rev-parse", "HEAD", cwd=wt)[1]
+            code, tip = rg("rev-parse", "--verify", "refs/heads/fix/x", cwd=wt)
+            return (code == 0 and head == tip), head if code == 0 else f"no local branch ({tip})"
+
+        def real_remerge() -> str:
+            rg("reset", "-q", "--hard", "origin/fix/x", cwd=wt)
+            if rg("merge", "--no-edit", "-q", "origin/main", cwd=wt)[0]:
+                return "MERGE CONFLICT"
+            good, head = gate()
+            return "app_push: PUSHED" if good else \
+                f"app_push: REFUSE: worktree HEAD ({head}) is not the committed tip of 'fix/x'"
+
+        def wrap(base_run):
+            def run(argv, cwd=ROOT, stdin=None):
+                if argv[:2] == ["git", "worktree"]:
+                    r = subprocess.run(argv, cwd=g, capture_output=True, text=True)
+                    return r.returncode, r.stdout + r.stderr
+                if "remerge_main.sh" in " ".join(argv):
+                    return 0, real_remerge()
+                return base_run(argv, cwd=cwd, stdin=stdin)
+            return run
+
+        it = dict(item, worktree=str(wt))
+        rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[it], wrap=wrap)
+        on_branch = wt.exists() and rg("symbolic-ref", "-q", "HEAD", cwd=wt)[0] == 0
+        gate_ok, why = gate()
+        check("an absorbed-branch recarry lands in a real fixture repo: the worktree is the branch, the tip gate passes, the merge runs",
+              rc == 0 and merged(calls) and on_branch and gate_ok)
     rc, lines, calls = go({"preflight": "  REFUSE   'Closes #12' closes #12"})
     check("a title preflight refusal stops it before the merge", rc == 1 and "preflight:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"preflight": "  REFUSE   'Closes #12' closes #12\n  clean    no refusal"})

@@ -301,6 +301,62 @@ closure_lane() { # script, strace present (1 or 0)
   esac
 }
 
+# The closures recorder's interpreter, resolved deliberately. WHY THIS EXISTS.
+# derive_closures.sh records under `${PYTHON:-python3}`, the first python3 on
+# PATH. On a seat whose PATH still resolves to pyenv 3.11 that interpreter
+# cannot parse the tree -- the nested same-quote f-string in tests/entities.py
+# is 3.12 syntax -- so the recording dies at compile, and step 6b refuses it
+# as "failed while being recorded ... fix the script first": advice pointed at
+# the wrong artifact, and R9-FR-3 and R9-WEB-5 each lost a full prepr pass to
+# exactly that. The interpreter a recording runs under is a property of the
+# recording, not of the shell it inherits (#1091/#1099/#1095 are the same
+# class at the mypy census, where an unpinned interpreter fails rather than
+# measuring), so it is resolved here, in one place, in this order:
+#
+#   1. $HPO_RECORDER_PYTHON -- an override in the style of HPO_TYPING_PYTHON.
+#      CHECKED, never trusted and never skipped past: an override that cannot
+#      parse the tree refuses the run, because a seat that named one asked for
+#      it by name and silently recording under something else is the defect.
+#   2. the seat venv tools/audit/seat/seat_venv.sh builds, whose pins are what
+#      the recorded scripts import, at $HPO_STATE_DIR/venv-ci/bin/python3.
+#   3. the ambient python3 -- the adaptation, not the default: a candidate is
+#      kept only if it parses the tree, so a seat already running under a good
+#      interpreter gets the recording it always got, byte-unchanged.
+#
+# None of those parsing the tree is a refusal naming the build command, before
+# anything is recorded. A recording taken under an interpreter that cannot
+# parse the tree is not a shorter recording but a wrong one, and the refusal
+# a truncated recording produces ("fix the script first") is worse than none.
+recorder_parses() { # candidate interpreter -> rc 0 when it parses every source the recorder may run or import
+  "$1" - <<'PY' 2>/dev/null
+import ast, pathlib, sys
+bad = 0
+for p in [*sorted(pathlib.Path("tests").glob("*.py")),
+          *sorted(pathlib.Path("custom_components").rglob("*.py"))]:
+    try:
+        ast.parse(p.read_text(), filename=str(p))
+    except SyntaxError:
+        bad += 1
+sys.exit(1 if bad else 0)
+PY
+}
+recorder_python() { # -> the interpreter on stdout; rc 1 with the remedy when none parses
+  local c state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  if [ -n "${HPO_RECORDER_PYTHON:-}" ]; then
+    if recorder_parses "$HPO_RECORDER_PYTHON"; then
+      printf '%s\n' "$HPO_RECORDER_PYTHON"; return 0
+    fi
+    echo "\$HPO_RECORDER_PYTHON=$HPO_RECORDER_PYTHON cannot parse the tree -- point it at one that can or unset it, or build the seat venv: tools/audit/seat/seat_venv.sh"
+    return 1
+  fi
+  for c in "$state/venv-ci/bin/python3" "python3"; do
+    command -v "$c" >/dev/null 2>&1 || continue
+    if recorder_parses "$c"; then printf '%s\n' "$c"; return 0; fi
+  done
+  echo "no interpreter that parses the tree was found (tried the seat venv at $state/venv-ci/bin/python3 and the ambient python3) -- build the seat venv: tools/audit/seat/seat_venv.sh"
+  return 1
+}
+
 # The verdict over a directory of `--record-only` recordings. A recording's
 # own `rc` is read from its JSON, as `closure.py merge` reads it for
 # `skip-failed-recording`: derive_closures.sh echoes the recording WRAPPER's
@@ -342,7 +398,7 @@ claims_line() { # rc 0 holds, 1 refused
 # The recorder is `derive_closures.sh` unless PREPR_RECORD names another one
 # taking the same arguments, which only `--self-test` does. rc 3 is a skip.
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
-  local cw kind s v left="" strace=0 r
+  local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
   if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
@@ -355,13 +411,21 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
     full) echo "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden"; r=3 ;;
     scoped)
       command -v strace >/dev/null && strace=1
+      rp=""
       while read -r s; do
         [ -n "$s" ] || continue
         if [ "$(closure_lane "$s" "$strace")" != record ]; then left="$left $s"; continue; fi
-        GOLDEN_REF=origin/main ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
+        # Resolved on the first script this machine will actually record, so a
+        # diff whose recordings are all left to CI owes no interpreter (and
+        # `closure_lane` above still ran on the ambient python3 it always did).
+        if [ -z "$rp" ]; then
+          rp=$(recorder_python) || { echo "$rp"; r=1; break; }
+        fi
+        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
           --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
       done < "$cw/aff/affected.scripts"
-      if [ ! -d "$cw/rec" ]; then
+      if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
+      elif [ ! -d "$cw/rec" ]; then
         echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
       else
         v=$(closures_verdict "$cw/rec"); r=$?
@@ -1121,6 +1185,39 @@ EOS
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
 
+  # R9-FR-5: the closures recorder's interpreter, resolved deliberately.
+  # R9-FR-3 and R9-WEB-5 each lost a full prepr pass to the same defect:
+  # derive_closures.sh records under the first python3 on PATH, and on a seat
+  # whose PATH still resolves to pyenv 3.11 that interpreter cannot parse the
+  # tree (the nested same-quote f-string in tests/entities.py is 3.12 syntax),
+  # so the recording died at compile and step 6b refused it as "failed while
+  # being recorded ... fix the script first" -- advice pointed at the wrong
+  # artifact. The stub interpreters here stand for parse outcomes, so the
+  # resolution logic is hermetic; the live probe's discrimination (this tree's
+  # own 3.11 refused, the seat venv passed) is a body figure, not an arm.
+  FB=$(mktemp -d); mkdir -p "$FB/bin" "$FB/goodbin" "$FB/empty"
+  printf '#!/bin/sh\nexit 0\n' > "$FB/bin/goodpy"; chmod +x "$FB/bin/goodpy"
+  printf '#!/bin/sh\nexit 1\n' > "$FB/bin/python3"; chmod +x "$FB/bin/python3"
+  cp "$FB/bin/goodpy" "$FB/goodbin/python3"
+  mkdir -p "$FB/state/venv-ci/bin"; cp "$FB/bin/goodpy" "$FB/state/venv-ci/bin/python3"
+  mkdir -p "$FB/badstate/venv-ci/bin"; cp "$FB/bin/python3" "$FB/badstate/venv-ci/bin/python3"
+  got=$(HPO_RECORDER_PYTHON=/bin/false PATH="$FB/goodbin:$PATH" recorder_python)
+  st $? 1 "an override that cannot parse the tree is refused, never skipped past"
+  grep -q 'HPO_RECORDER_PYTHON' <<<"$got"
+  st $? 0 "and that refusal names the override, so it is not read as a missing venv"
+  got=$(HPO_RECORDER_PYTHON="$FB/bin/goodpy" HPO_STATE_DIR="$FB/empty" PATH="$FB/bin:$PATH" recorder_python)
+  st "$got" "$FB/bin/goodpy" "an override that parses the tree wins over every candidate behind it"
+  got=$(HPO_STATE_DIR="$FB/state" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "$FB/state/venv-ci/bin/python3" "a parsing seat venv outranks a parsing ambient"
+  got=$(HPO_STATE_DIR="$FB/badstate" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "python3" "a venv that cannot parse is skipped for a parsing ambient: the guard is the parse, not the path"
+  got=$(HPO_STATE_DIR="$FB/empty" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "python3" "a parsing ambient is used as-is, so a recording under it is byte-unchanged (null control)"
+  got=$(HPO_STATE_DIR="$FB/empty" PATH="$FB/bin:$PATH" recorder_python)
+  st $? 1 "no candidate parsing the tree is refused before anything is recorded"
+  grep -q 'seat_venv.sh' <<<"$got"
+  st $? 0 "and that refusal names the venv build command, not the recording"
+
   # Steps 6a and 6b over a throwaway clone, driven through the functions the
   # steps print (`claims_line`, `closures_line`). Main claims a lane AFTER the
   # branches fork. Two fork from that main: one edits the claim file and keeps
@@ -1177,13 +1274,37 @@ rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how
 for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
-  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n[ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
   closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
   got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # R9-FR-5 through the step itself: the resolved interpreter reaches the
+  # recorder as $PYTHON, and a resolution that refuses stops the step before
+  # anything records. `cl` is the branch whose diff makes 6b scoped; the stub
+  # recorder logs the PYTHON it received, since the out-dir it writes is
+  # removed with the verdict. Inlined rather than through `closures_at`,
+  # whose echo truncates at the first colon -- and the remedy text names
+  # "seat venv: tools/audit/seat/seat_venv.sh".
+  : > "$CLM/pylog"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+       HPO_STATE_DIR="$FB/state" closures_line fork 2>&1); rc=$?
+  st "$rc" 0 "6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)"
+  [ "$(tail -1 "$CLM/pylog")" = "$FB/state/venv-ci/bin/python3" ]
+  st $? 0 "and the recorder received that interpreter as \$PYTHON"
+  : > "$CLM/pylog"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+       HPO_RECORDER_PYTHON=/bin/false closures_line fork 2>&1); rc=$?
+  st "$rc" 1 "6b refuses an override that cannot parse the tree instead of recording under it"
+  grep -q 'seat_venv.sh' <<<"$full"
+  st $? 0 "and the step's refusal names the venv build command"
+  [ ! -s "$CLM/pylog" ]
+  st $? 0 "and nothing recorded under the refused interpreter"
   rm -rf "$CLM"
+  rm -rf "$FB"
 
   # Steps 3e-3g, driven through the functions the steps call: the reader and
   # the verdict on this repository's own workflows, on a PR-only pin it must
