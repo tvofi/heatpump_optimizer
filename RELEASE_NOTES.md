@@ -1,5 +1,21 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.16
+
+round 9 continues: per-solve immutable inputs and the solve record that shares no container with the live hubs (EG-A2 closes the duplicated-formula class in the clone counter, #1775); the mutation lane gets a wall-clock mutant budget where a driver timeout is never a kill (F10.12); the programme's reusable instruments move into the tree (merge train, seat venv recipe, parity harness, tmp-path detector) with the fixer/review/orchestrator obligations that follow (#1879); the card states the narrative panel moves and ships with every tile populated, the orphaned plan-design picture is deleted and refused re-introduction, and the weekly figure is measured against its caption (UX-8, WEB-4); arch_score and arch_score_head leave the coverage tracer, measuring coverage 48.8 to 23.1 minutes (F10.14); the nightly mutation ledger reports each child's CPU and size with the CPU bound taken from runner measurements, ending the SIGXCPU refusal (F10.12-nightly); and the delivery rows for the wave land with it.
+
+- #1874 — R9-EG-A2: one definition per formula and helper, close the interleaved-junk class in the clone counter
+- #1878 — tests(harness_headers): report each child's CPU and size the CPU bound from runner measurements (nightly mutation-ledger SIGXCPU)
+- #1879 — tools: programme instruments and reusable harnesses live in the tree (merge train, seat venv recipe, parity harness, tmp-path detector); fixer/review/orchestrator obligation
+- #1880 — tests(mutation): a wall-clock budget for the mutant phase, and a driver timeout is never a kill (R9-F10.12)
+- #1882 — R9-UX-8: claim the card states the narrative panel moves
+- #1883 — docs: delete the orphaned old card picture, hero with every tile populated, weekly figure measured against its caption
+- #1884 — ci: leave arch_score and arch_score_head out of the coverage tracer
+- #1885 — tests(R9-F10.13): the entities `--anchor` re-verification check, stubbed honest at PR scope (fails closed without its pin; MC/MB killed at head)
+- #1888 — record: Delivery-status rows for #1882-#1884
+- #1889 — record: the delivery row for #1888
+- #1890 — tests(R9-F10.15): fast lanes with the lane-count probe, coverage split in two, closures across three lanes (31 records preserved)
+
 ## v6.7.15
 
 round 9 continues: the product site gains its documentation sub-pages and a GitHub Pages deploy, published from this tag (WEB-3, WEB-2); events reach Home Assistant through a notifier module, five events and a notifications blueprint (UX-4); the coordinator publishes a typed payload with no cast left, and every store gets one version constant and a migration hook that never saves over newer data after a downgrade (EG-B3a, EG-B3b, EG-B4); an architecture score lands in-tree with its calibration check (EG-A1); a barrier checks that every Home Assistant name the integration reaches exists at the 2025.2.0 floor (P11); the nightly gains a loop-stall heartbeat (F10.7); the gate runs the PR's own pinned graders, the closures autofix goes red when a failure is left for a human, the ledger drain lands only pins still valid at main's head, and harness children pin BLAS to one thread (F11.7); and a policy change: reviewers verify that a moved metric is earned, fixers take the fix that yields better code, and budget caps are paid with real improvements first.
