@@ -5195,8 +5195,8 @@
         "stage": "in-review",
         "branch": "handoff/r9-ro-2",
         "commit": "a607db2a176655fc171ac6ec15eb1c039c38188e",
-        "last_step": "PR #1886 opened 2026-10-04; carries landed in RO-4/5/6/8/9",
-        "next_step": "verdict",
+        "last_step": "PR #1886 round 1 blocked (comment 5974991221: policy-docs and wave-script red from base copies vs the new restore form; shadow-copy and pin-list holes); round 2 with the fixer",
+        "next_step": "round-2 verdict",
         "note_file": "handoff/round9/fix/resume/RO-2.md on handoff/r9-ro-2",
         "review_branch": "handoff/r9-ro-2-review",
         "review_note_file": "handoff/round9/fix/resume/RO-2-review.md on handoff/r9-ro-2-review",
@@ -6526,10 +6526,10 @@
         "R9-F10.14"
       ],
       "resume": {
-        "stage": "not-started",
+        "stage": "building",
         "branch": "handoff/r9-f10-15",
         "commit": null,
-        "last_step": null,
+        "last_step": "fixer seat dispatched 2026-10-04 on fix/r9-f10-15",
         "next_step": "fixer.md step 1 at a fresh merge base after every after-edge merged",
         "note_file": null,
         "review_branch": null,
