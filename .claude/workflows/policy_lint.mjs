@@ -75,7 +75,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -166,7 +166,7 @@ function symbolElsewhere(symbol, exceptRel) {
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
-    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec],
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...excludeMoved([':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec])],
     { allowFail: true }
   )
   return !!(out && out.trim())
@@ -208,7 +208,7 @@ let _byBase = null
 function candidatesFor(token) {
   if (!_byBase) {
     _byBase = new Map()
-    for (const f of git(['ls-files']).split('\n').filter(Boolean)) {
+    for (const f of canonList(git(['ls-files']).split('\n').filter(Boolean))) {
       const b = path.posix.basename(f)
       if (!_byBase.has(b)) _byBase.set(b, [])
       _byBase.get(b).push(f)
@@ -221,7 +221,7 @@ function candidatesFor(token) {
 
 function read(rel) {
   try {
-    return fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    return fs.readFileSync(at(rel), 'utf8')
   } catch {
     return null
   }
@@ -1469,8 +1469,8 @@ let _printerSource = null
 function printerSource() {
   if (_printerSource == null) {
     const policy = new Set(policyFiles())
-    _printerSource = git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor'])
-      .split('\n').filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/'))
+    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor']).split('\n'))
+      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round'))
       .map((f) => read(f) ?? '').join('\n')
   }
   return _printerSource
@@ -1924,7 +1924,7 @@ const ROW_DIR = 'docs/delivery'
 // `rowFiles` and `recordRegionOverTree` themselves: emptying either, or dropping
 // `rowFiles()` from the region, refuses every row file and survived #1081's review.
 let rowFileSource = () => {
-  try { return fs.readdirSync(path.join(ROOT, ROW_DIR)).map((n) => [n, () => read(`${ROW_DIR}/${n}`) ?? '']) } catch { return [] }
+  return listDir(ROW_DIR).map((n) => [n, () => read(`${ROW_DIR}/${n}`) ?? ''])
 }
 function rowFiles() {
   return Object.fromEntries(rowFileSource().flatMap(([n, text]) => (/^\d+\.md$/.test(n) ? [[n.slice(0, -3), text()]] : [])))
@@ -2309,7 +2309,7 @@ function mergeRecordClass(sha) {
     ? mergeDiffSource(sha)
     : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
   if (!out) return false
-  return recordClassPaths(out.split('\n'))
+  return recordClassPaths(canonList(out.split('\n')))
 }
 
 // The human title of a merged pull request, which is not in its subject: a
@@ -2632,6 +2632,56 @@ const FRICTION_THRESHOLD = 3
 // under either rule. Both counts are kept and both are printed -- the entry
 // count is still the volume of friction -- but only the distinct-PR count is
 // compared against the threshold.
+
+// THE FAMILY MAP (#1825). A blocked class the reviewer vocabulary never taught
+// keys its own raw histogram row, so one recurring friction splits across
+// sibling rows that no single id reaches on its own -- measured in the
+// since-v6.7.14 window: mutation 2, mutation-vacuous 1, mutation-survivor 1,
+// the family at 4 distinct pull requests over the threshold of 3 while every
+// exact id sits below it and the counter opens nothing. The same fragmentation
+// already hid a second family: environment / seat-environment -- and that one
+// lives in the OTHER map: `environment` and `seat-environment` are FRICTION
+// RULE IDS, written in bodies' `## Friction` sections, not verdict classes a
+// reviewer blocked with (the since-v6.7.13 sweep shows no `environment` verdict
+// row and a 4/5 `environment` id row). The map is therefore folded over BOTH
+// histograms, each on its own kind: a family name composes the same sibling
+// friction wherever the words were written. A family folds its members for the
+// THRESHOLD only -- exact-id rows and CENSUS lines are the raw record and stay
+// byte-shape-identical (`friction_issues.mjs` re-measures them); the family
+// rows are additive beside them, keyed `<name> (family)`.
+// Three standing rules a new entry must obey, pinned in assertAcceptance: the
+// members are DISTINCT-PULL-REQUEST unions, never a sum of rows (one pull
+// request blocked by two siblings is one occasion, not two); no family may
+// contain the passing verdict, or the family arm opens rework as friction; and
+// a family must be measured in a real window before it is declared -- the
+// declaration is a claim about where the friction actually split.
+const FRICTION_FAMILIES = [
+  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor'] },
+  { name: 'environment', members: ['environment', 'seat-environment'] },
+]
+
+// The fold itself, pure over any histogram cell map (the verdict classes or
+// the friction rule ids): one row per declared family with at least one member
+// present in the window. A family with no member present produces no row at
+// all, so a window with no family hits prints byte-identically to the
+// pre-fold counter -- the exact-id record is the raw record, and the fold
+// adds to it, never edits it.
+function statsFamilies(hist) {
+  const out = []
+  for (const { name, members } of FRICTION_FAMILIES) {
+    let present = false
+    const cell = { entries: 0, prs: new Set() }
+    for (const m of members) {
+      const c = hist.get(m)
+      if (!c) continue
+      present = true
+      cell.entries += c.entries
+      for (const p of c.prs) cell.prs.add(p)
+    }
+    if (present) out.push({ name, entries: cell.entries, prs: cell.prs })
+  }
+  return out
+}
 const bump = (hist, key, pr) => {
   if (!hist.has(key)) hist.set(key, { entries: 0, prs: new Set() })
   const cell = hist.get(key)
@@ -2911,6 +2961,29 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
         check: 'stats',
         where: '(window)',
         message: `would open "[policy] recurring friction: ${k}" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. Counted as DISTINCT pull requests (${cell.entries} entr${cell.entries === 1 ? 'y' : 'ies'} in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.`,
+      })
+    }
+  }
+  // THE FAMILY ARM (#1825). Keyed on families AS WELL AS ids, over BOTH maps
+  // (see FRICTION_FAMILIES: the mutation siblings are verdict classes, the
+  // environment siblings are friction rule ids). The exact-id arms above stay,
+  // and a family whose distinct-PR union reaches the threshold fires beside
+  // them, keyed `<name> (family)` with the map in the kind, so the filing
+  // lane's exact-title match never collides with an id row. One line per
+  // family per map, whatever its members do alone -- a member already over
+  // threshold fires its own id line above and the family does not double it,
+  // and the count is the union of the member pull requests, so one pull
+  // request blocked by two siblings is one occasion. The message shape is the
+  // one `friction_issues.mjs`'s WOULD_OPEN_RE parses: kind, count, threshold.
+  for (const [kind, hist] of [['verdict family', verdicts], ['friction family', friction]]) {
+    for (const fam of statsFamilies(hist)) {
+      const n = fam.prs.size
+      if (n < FRICTION_THRESHOLD) continue
+      out.push({
+        severity: 'info',
+        check: 'stats',
+        where: '(window)',
+        message: `would open "[policy] recurring friction: ${fam.name} (family)" -- ${kind} at ${n} in this window, threshold ${FRICTION_THRESHOLD}. The family folds the sibling keys the exact ids split across (FRICTION_FAMILIES), counted as DISTINCT pull requests across them (${fam.entries} entr${fam.entries === 1 ? 'y' : 'ies'} in all); it fires once, whatever its members do alone. Not opened here: a seat measures and files, a report does not.`,
       })
     }
   }
@@ -3586,7 +3659,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
 function assertAcceptance(derived) {
-  const dir = path.join(HERE, 'fixtures', 'policy-rot')
+  const dir = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures', 'policy-rot'))
   if (!fs.existsSync(dir)) {
     console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/ is missing; every check above is deletable in silence')
     return 1
@@ -3594,7 +3667,7 @@ function assertAcceptance(derived) {
   const rels = fs
     .readdirSync(dir)
     .filter((f) => f.endsWith('.md'))
-    .map((f) => path.relative(ROOT, path.join(dir, f)))
+    .map((f) => canon(path.relative(ROOT, path.join(dir, f))))
     .sort()
   let found = []
   for (const rel of rels) {
@@ -5398,6 +5471,96 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE OVER-FIRES: check '${cls}' produced ${noisy.length} finding(s) on its HEALTHY fixture, e.g. ${JSON.stringify(noisy[0].message.slice(0, 120))}`)
     rc = 1
   }
+  // THE FAMILY FOLD (#1825). One fixture file, two windows, each pinned by
+  // shape rather than through REQUIRED_ROT, because each pin is an assertion
+  // about one window, not a count over the class. (1) The acceptance window
+  // reproduces both measured holes in miniature: the VERDICT half, mutation 2
+  // / mutation-vacuous 1 / mutation-survivor 1 with the family at 4; and the
+  // FRICTION-ID half, environment 2 + seat-environment 2 with that family at
+  // 4 -- the environment siblings live in the id histogram, not the verdict
+  // histogram, so both arms need their own witness. Exactly one family
+  // would-open line per kind must print, and no exact-id line. (2) The
+  // controls window: the shared pull request counted once (the union, 3,
+  // where a per-member fold reads 4) and exactly one family line even though
+  // two members and the exact id itself all fire; and families whose members
+  // all sit below the threshold stay silent on both kinds.
+  {
+    const famWins = read('.claude/workflows/fixtures/policy-loop/friction-families.json')
+    if (famWins == null) {
+      console.log('\nFIXTURE VACUOUS: fixtures/policy-loop/friction-families.json is missing or unreadable; the family fold is deletable in silence')
+      return 1
+    }
+    const famDrive = (win) => {
+      const fetched = new Map()
+      for (const [k, v] of Object.entries(JSON.parse(famWins)[win])) {
+        if (!k.startsWith('_')) fetched.set(k, v)
+      }
+      const prs = (JSON.parse(famWins)[win]._window ?? []).map((pr) => ({ pr }))
+      return statsFindings({ prs, fetched, fetchError: null, classes: loop.classes })
+        .filter((f) => f.message.startsWith('would open'))
+        .map((f) => f.message)
+    }
+    const famOpen = famDrive('acceptance')
+    const famCtl = famDrive('controls')
+    pins += 1
+    if (
+      famOpen.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
+      !famOpen.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 4 in this window')) ||
+      famOpen.some((m) => /recurring friction: mutation"/.test(m)) ||
+      famOpen.some((m) => /recurring friction: mutation-vacuous"/.test(m)) ||
+      famOpen.some((m) => /recurring friction: mutation-survivor"/.test(m))
+    ) {
+      console.log("\nFIXTURE VACUOUS: the family fold did not fire exactly one `mutation (family)` would-open at 4 distinct pull requests over a window whose exact ids all sit below threshold (2/1/1 -- #1825's measured verdict-class hole), or it leaked an exact-id line beside it")
+      rc = 1
+    }
+    pins += 1
+    if (
+      famOpen.filter((m) => m.includes('recurring friction: environment (family)')).length !== 1 ||
+      !famOpen.some((m) => m.includes('recurring friction: environment (family)" -- friction family at 4 in this window')) ||
+      famOpen.some((m) => /recurring friction: environment"/.test(m)) ||
+      famOpen.some((m) => /recurring friction: seat-environment"/.test(m))
+    ) {
+      console.log('\nFIXTURE VACUOUS: the id half of the fold did not fire exactly one `environment (family)` would-open at 4 distinct pull requests over friction ids at 2/2 (the measured id-fragmentation hole), or it leaked an exact-id line beside it')
+      rc = 1
+    }
+    pins += 1
+    if (
+      famCtl.filter((m) => m.includes('recurring friction: mutation (family)')).length !== 1 ||
+      !famCtl.some((m) => m.includes('recurring friction: mutation (family)" -- verdict family at 3 in this window')) ||
+      !famCtl.some((m) => /recurring friction: mutation"/.test(m)) ||
+      famCtl.some((m) => m.includes('recurring friction: environment (family)'))
+    ) {
+      console.log('\nFIXTURE VACUOUS: with one member over threshold the family line did not fire exactly once on the union count (3, the shared pull request counted once), or a family whose members all sit below threshold (environment + seat-environment at 2, on either kind) fired anyway')
+      rc = 1
+    }
+    pins += 1
+    // The exact-id record is untouched where no family is present: both
+    // existing fixture windows carry no family member on either map, so the
+    // family code must contribute nothing there and the output those windows
+    // pin stays byte-identical. This pin refuses the day a fixture window
+    // grows a family member -- which would silently un-anchor every exact-id
+    // pin above -- rather than the day the fold itself misfires.
+    {
+      const vHist = statsHistogram(loop.prs, loop.fetched, loop.classes)
+      const kHist = statsHistogram(loop.keysPrs, loop.keysFetched, loop.classes)
+      if (
+        statsFamilies(vHist.verdicts).length || statsFamilies(kHist.verdicts).length ||
+        statsFamilies(vHist.friction).length || statsFamilies(kHist.friction).length
+      ) {
+        console.log('\nFIXTURE VACUOUS: a stats fixture window carries a family member; its exact-id pins are no longer the no-family null control they were recorded as')
+        rc = 1
+      }
+    }
+    pins += 1
+    // A family that contains the passing verdict would open rework as
+    // friction -- the one class the histogram withholds from its own row. The
+    // declared set must never do it, and the pin is here so the next declared
+    // family is checked rather than trusted.
+    if (FRICTION_FAMILIES.some((f) => f.members.includes(passingVerdict()))) {
+      console.log('\nFIXTURE VACUOUS: a declared friction family contains the passing verdict; the family arm would open rework as recurring friction')
+      rc = 1
+    }
+  }
   if (!rc) console.log(`\nFIXTURE ok: ${found.length} error(s) hold ${pins} pins across ${Object.keys(REQUIRED_ROT).length} check classes on fixtures/policy-rot/ and fixtures/policy-loop/`)
   return rc
 }
@@ -5494,7 +5657,7 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
   }
   doc.recorded_at = at
   doc.entries = after
-  fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
+  fs.writeFileSync(at(KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
   console.log(`recorded ${after.length} entr(ies), ${total} occurrence(s), to ${KNOWN_BAD_FILE}: +${added.length} -${dropped.length} ~${moved.length}`)
   for (const e of added) console.log(`  + ${e.count}x ${e.key}`)
@@ -5659,7 +5822,7 @@ function pathsFromFile(pathsFile) {
   if (!paths.length) {
     return { error: `--paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.` }
   }
-  return { paths }
+  return { paths: canonList(paths) }
 }
 
 // `## Approval` is keyed on the DIFF, not on the title. It was keyed on
@@ -6150,7 +6313,7 @@ function cmdCorpusFilter() {
   }
   for (const line of raw.split('\n')) {
     const f = line.trim()
-    if (f && POLICY_GLOBS.some((re) => re.test(f))) console.log(f)
+    if (f && POLICY_GLOBS.some((re) => re.test(canon(f)))) console.log(f)
   }
 }
 
@@ -6556,6 +6719,12 @@ function cmdStats(since) {
     console.log(statsRoundsLine({ rounds, coverage }))
     // Both counts in the table, threshold on the left one, because a reader who
     // sees only "4" cannot tell 4 occasions from one body written four times.
+    // THE FAMILY ROWS (#1825), additive beside the id rows: one row per
+    // declared family present in the window, under the same threshold marker,
+    // over BOTH maps (FRICTION_FAMILIES: mutation's siblings are verdict
+    // classes, environment's are friction rule ids). A window with no family
+    // member prints none, and stays byte-identical to the pre-fold counter.
+    const families = { 'verdict class': statsFamilies(verdicts), 'friction rule id': statsFamilies(friction) }
     for (const [label, hist] of [['verdict class', verdicts], ['friction rule id', friction]]) {
       console.log(`\n${label} (PRs / entries):`)
       const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)
@@ -6564,14 +6733,24 @@ function cmdStats(since) {
         const n = cell.prs.size
         console.log(`  ${String(n).padStart(4)} / ${String(cell.entries).padEnd(4)}  ${k}${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
       }
+      for (const fam of families[label]) {
+        const n = fam.prs.size
+        console.log(`  ${String(n).padStart(4)} / ${String(fam.entries).padEnd(4)}  ${fam.name} (family)${n >= FRICTION_THRESHOLD ? '   <- at or over threshold' : ''}`)
+      }
       // The machine-readable census, tab-separated with the key LAST because
       // one key -- the unlabelled bucket -- carries spaces. friction_issues.mjs
       // reads it to re-measure the keys of issues it already filed: the
       // would-open lines alone name only the keys still over the threshold, and
-      // a close path needs the count of the ones that are not.
+      // a close path needs the count of the ones that are not. The family rows
+      // are additive CENSUS rows of their own, kind `verdict family` /
+      // `friction family`, keyed `<name> (family)` -- the exact key the family
+      // arm's would-open line names -- so the close path can re-measure a
+      // family issue against the same fold that filed it. The summary counts
+      // them.
       for (const [k, cell] of rows) console.log(`CENSUS\t${label}\t${cell.prs.size}\t${cell.entries}\t${k}`)
+      for (const fam of families[label]) console.log(`CENSUS\t${label.replace(' class', ' family').replace('rule id', 'family')}\t${fam.prs.size}\t${fam.entries}\t${fam.name} (family)`)
     }
-    console.log(`\nCENSUS: ${verdicts.size + friction.size} key(s)`)
+    console.log(`\nCENSUS: ${verdicts.size + friction.size + families['verdict class'].length + families['friction rule id'].length} key(s)`)
   }
   const found = statsFindings({ prs, fetched, fetchError, classes, blocks })
   console.log(`\nthreshold: ${FRICTION_THRESHOLD} or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.`)

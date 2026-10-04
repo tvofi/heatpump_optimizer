@@ -1,6 +1,6 @@
 # Handover — the open-issues programme
 
-updated-for: 4bcfcf2030eee29edf27ec1ce167d29707751c98
+updated-for: e52da168a224b9e9fbd46bdcc955cfb1cc896169
 
 Taken at this record seat's own merge base off `origin/main`. W1067-G8
 re-pointed this line to `a53fc75` (origin/main's tip) as it closed wave 1067

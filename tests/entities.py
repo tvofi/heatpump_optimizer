@@ -24052,7 +24052,7 @@ def _pt_seams(docs: dict) -> "set[str]":
         for _job in ((_doc or {}).get("jobs") or {}).values():
             _steps = _job.get("steps") or []
             _pins = [_p for _s in _steps
-                     for _p in _pt_quoted_after(str(_s.get("run") or ""), 'git checkout "$PINNED" --')]
+                     for _p in _pt_quoted_after(str(_s.get("run") or ""), '"$PINNED" -- ')]
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
@@ -24241,7 +24241,7 @@ _PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
 R.check(
     "and the arm fires on exactly the pathspec policy-docs restores from the base",
     _pt_spec(_PT_DOCS, "tests.yml", "graders-head-copy", _PT_DIFF)
-    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
+    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", '"$PINNED" -- ') != [],
     f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
 )
 
@@ -25244,6 +25244,16 @@ R.check(
 # approval never turns it green); the gate run before the restore, without it
 # or without `-I` (the pull request grades itself); a write grant. The null
 # control drives the same predicate over a copy with the restore removed.
+def _restores_workflow_py(run: str) -> bool:
+    """The step restores `.claude/workflows/*.py` from PINNED: directly, or
+    listed (R9-RO-2) -- the pathspec on the `git diff` that lists what PINNED
+    holds, and a `--pathspec-from-file` checkout restoring that list."""
+    if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run):
+        return True
+    return bool(re.search(r"\"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run)) and (
+        'git checkout "$PINNED" --pathspec-from-file=' in run)
+
+
 def _brg_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get(True, doc.get("on")) or {}
@@ -25253,7 +25263,7 @@ def _brg_defects(text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if list(jobs) != ["budget-raise-gate"]:
         out.append(f"jobs {list(jobs)}")
@@ -25285,8 +25295,8 @@ R.check(
     f"defects: {_BRG_DEFECTS}",
 )
 _BRG_NULL = _brg_defects(re.sub(
-    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
-    "true\n", _BRG_TEXT))
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n", "true\n", _BRG_TEXT).replace(
+    'git checkout "$PINNED" --pathspec-from-file=', 'true "$PINNED" --pathspec-from-file='))
 R.check(
     "and the same file with its restore removed is refused (null control)",
     any(d.startswith("restore at") for d in _BRG_NULL),
@@ -25313,7 +25323,7 @@ def _brr_defects(text: str, gate_text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
     out = []
     if set(on) != {"workflow_run"}:
@@ -25513,7 +25523,7 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     runs = [str(s.get("run", "")) for s in steps]
     prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if set(on) != {"workflow_run"}:
         out.append(f"triggers {sorted(map(str, on))}")
@@ -29916,6 +29926,175 @@ R.check(
                          "for the budget)", "")
     and 'PASSED" + partial_note(results)' in _MUT_MAIN_DEFER,
     f"refusals={_MUT_TO_OUT!r} notes={_MUT_TO_NOTE!r}",
+)
+
+
+# R9-FR-7 (#1945): the pin-measurement drive, split. `--pin-killed` is the
+# autofix lane's measuring half: every site a diff adds unpinned is driven by
+# every driver whose recorded closure reaches its file, and a kill is the
+# site's `killed_by` pin. drive_pool admits a mutant only if its WHOLE serial
+# sweep -- the sum of every driver's cost, what a survivor costs -- ends by
+# --budget-minutes, so a 13-driver anchor can be refused by an estimate
+# bigger than the whole budget before any run starts (#1887: "34 not started
+# for --budget-minutes", nothing measured), and the workers it does start
+# grind one mutant's drivers back to back (#1779: 8 sites overran the pin
+# step's 60 minutes with no table). The drives are independent -- mutant x
+# driver, no shared state but the worker tree a run mutates -- so the split
+# queues the admitted mutants' shared drivers as individual tasks any worker
+# can take. The oracle is PIN EQUALITY: the split's verdicts, and the pins
+# `pin_results` writes from them, must equal the serial schedule's --
+# `drive_pool` at one worker -- including WHICH driver a kill names.
+_mut_pin = getattr(_mut, "drive_pin_pool", None)
+
+_MUT_S_SEEN: list = []
+_MUT_S_BAR = _mut_threading.Barrier(4)
+_MUT_S_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",
+                "anchor": f"x{i}.py:a", "drivers": ["tests/a.py",
+                                                    "tests/b.py"]}
+               for i in range(2)]
+_MUT_S_OUT = (_mut_pin(_MUT_S_POOL, 4,
+                       {"tests/a.py": 1, "tests/b.py": 2},
+                       lambda w, m, s: not _mut_barrier_run(
+                           _MUT_S_BAR, _MUT_S_SEEN, w, m["line"], s))
+              if _mut_pin is not None else [])
+R.check(
+    "the pin drive holds four (mutant, driver) runs in flight at once -- the "
+    "split exists, and is not drive_pool's one-mutant-at-a-time schedule",
+    _mut_pin is not None
+    and [v for _, v in _MUT_S_OUT] == ["LIVES", "LIVES"]
+    and len(_MUT_S_SEEN) == 4,
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'} "
+    f"runs={_MUT_S_SEEN!r} -- four workers must take four runs together; a "
+    "schedule that sweeps one mutant per worker breaks the barrier",
+)
+
+# Pin equality, on a fixture shaped like the ledger's kills: four drivers,
+# tests/features.py the costliest and the likeliest killer, one mutant a
+# cheap driver kills at once, two survivors. Completion order under the
+# split is the inverse of driver order -- the cheap driver finishes first --
+# and the named killer must still be the serial sweep's first killer.
+_MUT_E_DRIVERS = ["tests/a.py", "tests/features.py", "tests/b.py",
+                  "tests/env_drift.py"]
+_MUT_E_COST = {"tests/a.py": 10, "tests/features.py": 500, "tests/b.py": 40,
+               "tests/env_drift.py": 90}
+_MUT_E_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+                "anchor": f"m{i}.py:a", "old": "o", "new": "n",
+                "drivers": list(_MUT_E_DRIVERS)}
+               for i in range(6)]
+_MUT_E_KILLS = {(0, "tests/features.py"), (1, "tests/a.py"),
+                (3, "tests/b.py"), (4, "tests/features.py")}
+
+
+def _mut_e_run(schedule, workers):
+    """(verdicts, pin JSON) one schedule gives on the equality fixture."""
+    kills: dict = {}
+
+    def drive(w, m, s):
+        hit = (m["line"], s) in _MUT_E_KILLS
+        _time.sleep(_MUT_E_COST[s] / 2000.0)
+        if hit:
+            kills[(id(m), s)] = _mut.ScriptRun(1, 2, _MUT_E_COST[s] / 2000.0)
+        return hit
+
+    out = schedule(_MUT_E_POOL, workers, _MUT_E_COST, drive)
+    entries, _, _ = _mut.pin_results(
+        out, kills, {s: _mut.ScriptRun(0, 0, 1.0) for s in _MUT_E_DRIVERS},
+        _MUT_E_POOL, "r")
+    return [v for _, v in out], json.dumps(entries, sort_keys=True, indent=2)
+
+
+_MUT_E_OUT = ((_mut_e_run(_mut.drive_pool, 1), _mut_e_run(_mut_pin, 4))
+              if _mut_pin is not None else None)
+R.check(
+    "the split's verdicts and pins are byte-identical to the serial "
+    "schedule's, the named killer included",
+    _MUT_E_OUT is not None
+    and _MUT_E_OUT[0] == _MUT_E_OUT[1]
+    and sum(v.startswith("killed by") for v in _MUT_E_OUT[0][0]) == 4
+    and _MUT_E_OUT[0][0][1] == "killed by tests/a.py",
+    f"serial={_MUT_E_OUT[0]!r} split={_MUT_E_OUT[1]!r}"
+    if _MUT_E_OUT else f"drive_pin_pool="
+                       f"{'absent' if _mut_pin is None else 'present'}",
+)
+
+# The honesty guard under the split: a timed-out driver is never a kill
+# (R9-F10.12), and a mutant whose first driver times out runs nothing
+# further and pins nothing -- exactly the serial sweep's stop.
+_MUT_H_RAN: list = []
+
+
+def _mut_h_drive(w, m, s):
+    _MUT_H_RAN.append(s)
+    return None if s == "tests/a.py" else False
+
+
+_MUT_H_SITE = [{"file": "x.py", "line": 0, "kind": "CONST", "anchor": "x.py:a",
+                "drivers": ["tests/a.py", "tests/b.py", "tests/features.py"]}]
+_MUT_H_OUT = (_mut_pin(_MUT_H_SITE, 4,
+                       {"tests/a.py": 1, "tests/b.py": 2,
+                        "tests/features.py": 500}, _mut_h_drive)
+              if _mut_pin is not None else [])
+_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE, "r")[0]
+               if _MUT_H_OUT else None)
+R.check(
+    "under the split a timed-out driver is never a kill: the mutant runs "
+    "nothing further, reads SKIP-TIMED-OUT, and pins nothing",
+    _mut_pin is not None
+    and [v for _, v in _MUT_H_OUT] == ["SKIP-TIMED-OUT in tests/a.py"]
+    and _MUT_H_PINS == {}
+    and _MUT_H_RAN == ["tests/a.py"],
+    f"verdicts={[v for _, v in _MUT_H_OUT]!r} pins={_MUT_H_PINS!r} "
+    f"ran={_MUT_H_RAN!r}",
+)
+
+# The budget under the split: admission compares the outstanding work against
+# the workers left to run it, so the split measures what the serial estimate
+# refuses. Four mutants of one 40 s driver each under a deadline of 100: the
+# serial schedule starts a mutant only if its whole sweep ends by it, so its
+# third mutant needs 80 + 40 and closes the pool; the split's fourth mutant
+# needs 40/4 = 10 of outstanding work, which fits at any interleaving.
+_MUT_BG2_T = [0.0]
+_MUT_BG2_POOL = [{"file": "x.py", "line": i, "kind": "CONST",
+                  "drivers": ["tests/a.py"]} for i in range(4)]
+
+
+def _mut_bg2_run(schedule, workers, deadline):
+    _MUT_BG2_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append(m["line"])
+        _MUT_BG2_T[0] += 40 / workers
+        return False
+
+    out = schedule(_MUT_BG2_POOL, workers, {"tests/a.py": 40}, drive,
+                   deadline=deadline, clock=lambda: _MUT_BG2_T[0])
+    return [v for _, v in out], sorted(ran)
+
+
+_MUT_BG2_OUT = ((_mut_bg2_run(_mut.drive_pool, 1, 100),
+                 _mut_bg2_run(_mut_pin, 4, 100))
+                if _mut_pin is not None else None)
+R.check(
+    "the split's budget admission divides the outstanding work by the "
+    "workers, measuring a pool the serial estimate closes after two",
+    _MUT_BG2_OUT is not None
+    and _MUT_BG2_OUT[0] == (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"],
+                            [0, 1])
+    and _MUT_BG2_OUT[1] == (["LIVES"] * 4, [0, 1, 2, 3]),
+    f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
+    if _MUT_BG2_OUT else f"drive_pin_pool="
+                         f"{'absent' if _mut_pin is None else 'present'}",
+)
+_MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
+               "else drive_pool" in _MUT_MAIN_DEFER)
+R.check(
+    "main() routes the pin-measurement phase through the split and every "
+    "other mode through drive_pool",
+    _mut_pin is not None and _MUT_ROUTED
+    and "results += drive_phase(" in _MUT_MAIN_DEFER,
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'}, "
+    f"routing={'present' if _MUT_ROUTED else 'absent'}",
 )
 
 

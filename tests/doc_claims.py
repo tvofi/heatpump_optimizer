@@ -1944,6 +1944,15 @@ from html.parser import HTMLParser  # noqa: E402
 
 SITE_PAGE = ROOT / "docs" / "index.html"
 _SITE_REPO = "https://github.com/tvofi/heatpump_optimizer/blob/main/"
+# The Pages URL the deploy serves the product page at, derived from the owner/repo
+# _SITE_REPO already names: pages.yml stages docs/index.html at the site root
+# (`cp docs/index.html _site/` -- the step tests/entities.py runs by name), and
+# GitHub Pages serves a project site at https://<owner>.github.io/<repo>/.
+# A README link must use this form: repo-relative docs/index.html opens the raw
+# file on github.com, and the published URL also works from the site itself,
+# where the docs build renders README links verbatim (build_docs.mjs resolveHref
+# keeps every absolute URL).
+SITE_PUBLISHED = "https://" + _SITE_REPO[len("https://github.com/"):].split("/blob/")[0].replace("/", ".github.io/", 1) + "/"
 _SITE_NUM = re.compile(r"\d+(?:[.,]\d+)*")
 _SITE_VOID = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr", "use",
               "path", "circle", "rect"}
@@ -2158,10 +2167,19 @@ def site_findings(src: str | None, root: pathlib.Path = ROOT,
     errs += [("feature", f"README 'What it does' lead missing from the page: {x!r}") for x in sorted(leads - feats)]
     errs += [("feature", f"page feature README 'What it does' does not lead with: {x!r}") for x in sorted(feats - leads)]
     rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)]+)\)", rsec.get("documentation", ""), flags=re.M))
+    # The README may link the product page by its published Pages URL; that is
+    # the same document the page's data-doc names by its source path.
+    rows = {"docs/index.html" if t.startswith(SITE_PUBLISHED) else t for t in rows}
     docs = {a["data-doc"] for _, a in p.tags if a.get("data-doc")}
     st["docs"] = len(docs)
     errs += [("docs", f"README Documentation row missing from the page: {x}") for x in sorted(rows - docs)]
     errs += [("docs", f"page docs entry the README Documentation table does not list: {x}") for x in sorted(docs - rows)]
+    for target in re.findall(r"\]\(([^)\s]+)\)", readme):
+        if target.startswith(SITE_PUBLISHED):
+            continue
+        if re.search(r"(?:^|/)docs/index\.html$", target.split("#")[0]):
+            errs.append(("readme-link", f"README links the product page as {target!r}, which opens the raw file "
+                                       f"on github.com; it must be the published Pages URL {SITE_PUBLISHED}"))
 
     for t, a in p.tags:
         if t in ("img", "source"):
@@ -2228,6 +2246,7 @@ def check_product_page() -> None:
         ("number", "no digit sits outside a claim"),
         ("feature", "the page's features are the README 'What it does' leads, both ways"),
         ("docs", "the page's docs cards are the README Documentation table, both ways"),
+        ("readme-link", "every README link to the product page is the published Pages URL, never a repo-relative path"),
         ("image", "every image resolves, names its path under docs/ and has alt text"),
         ("link", "every repository link resolves to a file and a heading"),
         ("third-party", "the page requests nothing from a third party (script, stylesheet, icon, preload, iframe, image)"),

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_setpoint_sweep GUARD_OFF eaa0ffbe",
+  "killed_by": "tests/features.py",
+  "old": "            if meets and (best is None or cost_day < best[\"cost_per_day\"]):",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+}

@@ -22,6 +22,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { at, listDir } from './counts.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const src = fs.readFileSync(path.join(here, 'web-fix-wave.js'), 'utf8')
@@ -124,11 +125,11 @@ await block('group 5', async () => {
   // A 30% drop in what a check covers must not be invisible in its own output,
   // so the counts are PRINTED as well as asserted: a floor catches the empty
   // case, and the numbers let a reader see a shrinking one.
-  const rosters = fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f))
+  const rosters = listDir('.claude/workflows').filter((f) => /^wave-.*-groups\.json$/.test(f))
   const used = new Map()
   let groupsSeen = 0
   for (const f of rosters) {
-    for (const g of JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')).groups ?? []) {
+    for (const g of JSON.parse(fs.readFileSync(at(`.claude/workflows/${f}`), 'utf8')).groups ?? []) {
       groupsSeen += 1
       const st = g.resume?.stage
       if (st) used.set(st, (used.get(st) ?? 0) + 1)
@@ -379,11 +380,11 @@ await block('the referent a keyed stage must carry', async () => {
   // verdict. All three carry a floor, and all three are PRINTED -- a count that
   // fell from fourteen to thirteen reads exactly like one that was always
   // thirteen, so the misses are ENUMERATED rather than counted.
-  const rosters = fs.readdirSync(here).filter((f) => /^wave-.*-groups\.json$/.test(f)).sort()
+  const rosters = listDir('.claude/workflows').filter((f) => /^wave-.*-groups\.json$/.test(f)).sort()
   const missing = []
   let groupsSeen = 0, keyed = 0
   for (const f of rosters) {
-    for (const g of JSON.parse(fs.readFileSync(path.join(here, f), 'utf8')).groups ?? []) {
+    for (const g of JSON.parse(fs.readFileSync(at(`.claude/workflows/${f}`), 'utf8')).groups ?? []) {
       groupsSeen += 1
       const st = normalise(g?.resume?.stage)
       if (!STAGE_REFERENT[st]) continue
@@ -576,8 +577,7 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const reLiteral = src.match(/const VERDICT_RE = new RegExp\(\n([\s\S]*?)\n\)/)
   t('VERDICT_RE\'s literal is extracted from the wave script\'s own source', !!reLiteral, 'could not locate the VERDICT_RE definition')
   const re = new Function('VERDICT_CLASSES', `return new RegExp(${reLiteral[1]})`)(classes)
-  const briefsDir = path.join(here, '..', '..', 'tools', 'audit', 'briefs')
-  const briefs = fs.readdirSync(briefsDir).filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(path.join(briefsDir, f), 'utf8')])
+  const briefs = listDir('tools/audit/briefs').filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(at(`tools/audit/briefs/${f}`), 'utf8')])
   t('the briefs directory is readable and non-empty', briefs.length > 0, `found ${briefs.length}`)
   // A brief is hard-wrapped, so an example can span a newline; `VERDICT_RE`'s `.+`
   // cannot. Extract across the wrap and collapse the whitespace, or a correct
@@ -673,11 +673,9 @@ console.log('-- The rotation: the coverage ledger every brief must agree with')
 // step records a round that never covers it, silently -- R7-INSTR-01's shape
 // one level down -- so the ledger is held to the briefs here.
 await block('the rotation', async () => {
-  const root = path.join(here, '..', '..')
-  const briefsDir = path.join(root, 'tools', 'audit', 'briefs')
-  const briefSteps = Object.fromEntries(fs.readdirSync(briefsDir).filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
-    f.slice(0, -3), [...fs.readFileSync(path.join(briefsDir, f), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
-  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  const briefSteps = Object.fromEntries(listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
+    f.slice(0, -3), [...fs.readFileSync(at(`tools/audit/briefs/${f}`), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
+  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
   // One predicate, the tree and the synthetic ledgers below both through it.
   const ledgerGaps = (briefs, led) => {
     const gaps = []
@@ -720,8 +718,7 @@ console.log('-- The finder report: scope, class_guess and leads (the round-9 sco
 // measured (`scope`), the finder's class guess the verifier's third lens checks,
 // and the report's `leads`. Read from the file, never restated here.
 await block('the finder report schema', async () => {
-  const root = path.join(here, '..', '..')
-  const S = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'finding.schema.json'), 'utf8'))
+  const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const F = S.definitions?.finding ?? {}
   const need = ['scope', 'class_guess']
   t('a finding must carry its seat (scope) and a class guess', need.every((k) => (F.required ?? []).includes(k) && F.properties?.[k]), J(F.required))
@@ -739,7 +736,7 @@ await block('the finder report schema', async () => {
   // this enum in one pull request -- this check fails until both carry it.
   const classEnum = F.properties?.class_guess?.enum ?? []
   t('class_guess is exactly the tools/audit/bugclasses.json ids plus "new": a well-formed id the ledger lacks (P99) is refused', (() => {
-    const ids = Object.keys(JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'bugclasses.json'), 'utf8'))).filter((k) => !k.startsWith('_'))
+    const ids = Object.keys(JSON.parse(fs.readFileSync(at('tools/audit/bugclasses.json'), 'utf8'))).filter((k) => !k.startsWith('_'))
     return ids.length > 0 && J([...classEnum].sort()) === J([...ids, 'new'].sort()) && !classEnum.includes('P99') && !classEnum.includes('')
   })(), J(classEnum))
 })
@@ -752,10 +749,9 @@ console.log('-- The scopes: every seat a finder is dispatched to, held to the br
 // seat names is never measured (check_scopes.py compares a dimension's seats with
 // the dimension's own `steps`, which is the list that would be stale).
 await block('the scopes', async () => {
-  const root = path.join(here, '..', '..')
-  const scopes = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'scopes.json'), 'utf8'))
-  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
-  const briefs = fs.readdirSync(path.join(root, 'tools', 'audit', 'briefs')).filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3))
+  const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+  const briefs = listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3))
   const scopeGaps = (sc, led, bs) => {
     const gaps = []
     if (!bs.length) gaps.push('no dimension brief found (an empty extraction is a gap)')
@@ -794,19 +790,18 @@ console.log('-- The round driver: seats from the scopes, boxes, and the Prepare 
 // round in Prepare unless tools/audit/check_scopes.py exits 0 at the baseline.
 // Driven, not grepped: the script body runs against stubbed agent()/pipeline().
 await block('the scoped round driver', async () => {
-  const root = path.join(here, '..', '..')
   const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
-  const scopes = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'scopes.json'), 'utf8'))
-  const ledger = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'rotation.json'), 'utf8'))
+  const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
   const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
   const grab = (re) => { const m = re.exec(rd); return m ? dimsIn(m[1]) : [] }
-  const shell = fs.readFileSync(path.join(root, 'tools', 'audit', 'prepare_baseline.sh'), 'utf8')
+  const shell = fs.readFileSync(at('tools/audit/prepare_baseline.sh'), 'utf8')
   const L = {
     dims: grab(/const DIMS = \[([^\]]*)\]/),
     isolated: grab(/const ISOLATED = new Set\(\[([^\]]*)\]/),
     api: grab(/const API_DIMS = new Set\(\[([^\]]*)\]/),
     baseline: ((/^ISOLATED_DIMS="([^"]*)"/m.exec(shell) ?? [, ''])[1]).split(/\s+/).filter(Boolean),
-    briefs: fs.readdirSync(path.join(root, 'tools', 'audit', 'briefs')).filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3)).sort(),
+    briefs: listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3)).sort(),
   }
   // R7-INSTR-01 (#1477): every brief is in DIMS, and the worktree lists agree
   // with prepare_baseline.sh, whose own comment says a seat editing one edits both.
@@ -942,7 +937,7 @@ await block('the scoped round driver', async () => {
     ['D14-s1', 'D14-s5'].every((l) => !walled(p(l)) && /tools\/audit\/bugclasses\.json/.test(p(l)) && /pre-fix commits/.test(p(l))), p('D14-s1').slice(0, 200))
   t('every other finder keeps the earlier-findings wall (null control)', others.length > 0 && others.every((l) => walled(p(l))), others.filter((l) => !walled(p(l))).join(', '))
   // The schema the finder is held to by the runtime carries what the file does.
-  const S = JSON.parse(fs.readFileSync(path.join(root, 'tools', 'audit', 'finding.schema.json'), 'utf8'))
+  const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
   const fs0 = r9.calls.find((c) => isFinder(c.label))?.schema ?? {}
   const missReq = [...S.required.filter((k) => !(fs0.required ?? []).includes(k)), ...S.definitions.finding.required.filter((k) => !(fs0.properties?.findings?.items?.required ?? []).includes(k))]
   t("the finder's return schema requires every field finding.schema.json requires (scope, class_guess and leads among them)", fs0.required && missReq.length === 0, missReq.join(', '))
@@ -1273,7 +1268,7 @@ await block('group 15 -- the readers the agreement lane imports are exported by 
   const pl = await import(pathToFileURL(path.join(here, 'policy_lint.mjs')).href)
   t('rulePaths is exported', typeof pl.rulePaths === 'function', `typeof ${typeof pl.rulePaths}`)
   const rule = '.claude/rules/gate-scoping.md'
-  const raw = fs.readFileSync(path.join(here, '..', '..', rule), 'utf8')
+  const raw = fs.readFileSync(at(rule), 'utf8')
   // The parsed frontmatter, through the other exported reader of the same bytes.
   const want = pl.parseRuleFrontmatter(raw, rule).paths
   const got = typeof pl.rulePaths === 'function' ? pl.rulePaths(rule) : null
