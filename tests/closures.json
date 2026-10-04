@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 92.3,
+   "seconds": 118.0,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 17.0,
+   "seconds": 13.9,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.1,
+   "seconds": 4.2,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 23.5,
+   "seconds": 26.9,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,71 +22,71 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 32.3,
+   "seconds": 35.5,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 182.4,
+   "seconds": 217.4,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 1.0,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 501.7,
+   "seconds": 542.9,
    "rc": 0
   },
   "tests/frontend.py": {
-   "seconds": 0.0,
-   "rc": 0
-  },
-  "tests/golden.py": {
-   "seconds": 1.0,
-   "rc": 0
-  },
-  "tests/manual_plan.py": {
-   "seconds": 6.4,
-   "rc": 0
-  },
-  "tests/open_meteo.py": {
-   "seconds": 0.4,
-   "rc": 0
-  },
-  "tests/optimality.py": {
-   "seconds": 191.6,
-   "rc": 0
-  },
-  "tests/plan_view.py": {
-   "seconds": 1.6,
-   "rc": 0
-  },
-  "tests/solar_alignment.py": {
-   "seconds": 1.3,
-   "rc": 0
-  },
-  "tests/stress.py": {
-   "seconds": 639.0,
-   "rc": 1
-  },
-  "tests/structure.py": {
-   "seconds": 9.4,
-   "rc": 0
-  },
-  "tests/validate.py": {
-   "seconds": 31.5,
-   "rc": 0
-  },
-  "tests/deployment_shape.py": {
-   "seconds": 3.4,
-   "rc": 0
-  },
-  "tests/ha_contract.py": {
    "seconds": 0.1,
    "rc": 0
   },
+  "tests/golden.py": {
+   "seconds": 0.9,
+   "rc": 0
+  },
+  "tests/manual_plan.py": {
+   "seconds": 6.8,
+   "rc": 0
+  },
+  "tests/open_meteo.py": {
+   "seconds": 0.3,
+   "rc": 0
+  },
+  "tests/optimality.py": {
+   "seconds": 130.7,
+   "rc": 0
+  },
+  "tests/plan_view.py": {
+   "seconds": 1.4,
+   "rc": 0
+  },
+  "tests/solar_alignment.py": {
+   "seconds": 1.1,
+   "rc": 0
+  },
+  "tests/stress.py": {
+   "seconds": 616.7,
+   "rc": 0
+  },
+  "tests/structure.py": {
+   "seconds": 8.6,
+   "rc": 0
+  },
+  "tests/validate.py": {
+   "seconds": 36.9,
+   "rc": 0
+  },
+  "tests/deployment_shape.py": {
+   "seconds": 3.0,
+   "rc": 0
+  },
+  "tests/ha_contract.py": {
+   "seconds": 0.3,
+   "rc": 0
+  },
   "tests/typing_ruler.py": {
-   "seconds": 0.5,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/guard_pins.py": {
@@ -94,35 +94,35 @@
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 1.3,
+   "seconds": 1.1,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 219.5,
+   "seconds": 224.6,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 5.0,
+   "seconds": 7.3,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 81.3,
+   "seconds": 85.6,
    "rc": 0
   },
   "tests/md_tables.mjs": {
-   "seconds": 0.2,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/layout.py": {
-   "seconds": 3.4,
+   "seconds": 11.6,
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 169.3,
+   "seconds": 236.2,
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 33.6,
+   "seconds": 23.4,
    "rc": 0
   }
  },
@@ -483,6 +483,7 @@
    ".claude/workflows/brief_lint.mjs",
    ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/counts.mjs",
+   ".claude/workflows/figure_lint.mjs",
    ".claude/workflows/fixtures/required-contexts.json",
    ".claude/workflows/policy_lint.mjs",
    ".claude/workflows/render_md.mjs",
@@ -684,6 +685,8 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+   "tools/audit/seat/record_row.py",
+   "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
    "tools/replay/export.py",
@@ -2826,7 +2829,10 @@
    "docs/site/docs.css"
   ],
   "tests/entities.py": [
-   "LICENSE"
+   ".claude/workflows/figure_lint.mjs",
+   "LICENSE",
+   "tools/audit/seat/record_row.py",
+   "tools/audit/seat/roster_lib.py"
   ]
  }
 }

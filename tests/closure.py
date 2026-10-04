@@ -603,6 +603,18 @@ INERT_EXCEPT = (
     "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
     "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
     "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+    # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
+    # importlib (the record-autofix generator and the branch-to-group lookup)
+    # and drives figure_lint.mjs through node, so each is a dependency of a
+    # gate script. Left inside their prefixes they would be declared unread
+    # while being read -- the #357 contradiction -- and `closures` went red
+    # on exactly that at the round-2 head (INERT READS UNDER-APPROXIMATED;
+    # the CI recording named all three). Each moves to entities.py's
+    # recorded closure, so an edit to one selects that script instead of
+    # skipping it -- the preflight.sh and policy_lint.mjs routes.
+    ".claude/workflows/figure_lint.mjs",
+    "tools/audit/seat/record_row.py",
+    "tools/audit/seat/roster_lib.py",
 )
 
 
