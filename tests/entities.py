@@ -23986,7 +23986,7 @@ def _pt_seams(docs: dict) -> "set[str]":
         for _job in ((_doc or {}).get("jobs") or {}).values():
             _steps = _job.get("steps") or []
             _pins = [_p for _s in _steps
-                     for _p in _pt_quoted_after(str(_s.get("run") or ""), 'git checkout "$PINNED" --')]
+                     for _p in _pt_quoted_after(str(_s.get("run") or ""), '"$PINNED" -- ')]
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
@@ -24175,7 +24175,7 @@ _PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
 R.check(
     "and the arm fires on exactly the pathspec policy-docs restores from the base",
     _pt_spec(_PT_DOCS, "tests.yml", "graders-head-copy", _PT_DIFF)
-    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
+    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", '"$PINNED" -- ') != [],
     f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
 )
 
@@ -25178,6 +25178,16 @@ R.check(
 # approval never turns it green); the gate run before the restore, without it
 # or without `-I` (the pull request grades itself); a write grant. The null
 # control drives the same predicate over a copy with the restore removed.
+def _restores_workflow_py(run: str) -> bool:
+    """The step restores `.claude/workflows/*.py` from PINNED: directly, or
+    listed (R9-RO-2) -- the pathspec on the `git diff` that lists what PINNED
+    holds, and a `--pathspec-from-file` checkout restoring that list."""
+    if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run):
+        return True
+    return bool(re.search(r"\"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run)) and (
+        'git checkout "$PINNED" --pathspec-from-file=' in run)
+
+
 def _brg_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get(True, doc.get("on")) or {}
@@ -25187,7 +25197,7 @@ def _brg_defects(text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if list(jobs) != ["budget-raise-gate"]:
         out.append(f"jobs {list(jobs)}")
@@ -25219,8 +25229,8 @@ R.check(
     f"defects: {_BRG_DEFECTS}",
 )
 _BRG_NULL = _brg_defects(re.sub(
-    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
-    "true\n", _BRG_TEXT))
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n", "true\n", _BRG_TEXT).replace(
+    'git checkout "$PINNED" --pathspec-from-file=', 'true "$PINNED" --pathspec-from-file='))
 R.check(
     "and the same file with its restore removed is refused (null control)",
     any(d.startswith("restore at") for d in _BRG_NULL),
@@ -25247,7 +25257,7 @@ def _brr_defects(text: str, gate_text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
     out = []
     if set(on) != {"workflow_run"}:
@@ -25447,7 +25457,7 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     runs = [str(s.get("run", "")) for s in steps]
     prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if set(on) != {"workflow_run"}:
         out.append(f"triggers {sorted(map(str, on))}")
