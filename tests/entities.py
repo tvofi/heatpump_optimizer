@@ -31550,6 +31550,78 @@ R.check(
 )
 
 
+# --- R9-EG-B6 (#1739 collaborator half): no private reach from a collaborator.
+# The same scan that pins the surfaces pins the collaborator modules, minus
+# the data/options spread rule: a service or the setup entry legitimately
+# reads ``{**entry.data, **entry.options}`` -- that rule is about the
+# platforms' merged COPY, not about a private. What a collaborator may not
+# do is touch a coordinator private: its inputs arrive as explicit
+# parameters (the pump arbiter's snapshot, boost's overlay numbers, away's
+# state and entity reader, wood fuel's parts) or through a view the
+# coordinator publishes (the B2 views, the diagnostics state).
+def _egb6_private_reads(tree: ast.AST) -> list[str]:
+    found = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr.startswith("_")
+            and not node.attr.startswith("__")
+            and _egb2_is_coord(node.value)
+        ):
+            found.append(f"{node.lineno}:.{node.attr}")
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("getattr", "hasattr", "setattr")
+            and len(node.args) >= 2
+            and _egb2_is_coord(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and str(node.args[1].value).startswith("_")
+        ):
+            found.append(f"{node.lineno}:{node.func.id}({node.args[1].value!r})")
+    return found
+
+
+_EGB6_COLLABORATORS = (
+    "pump_arbiter.py", "boost.py", "away.py", "wood_fuel.py",
+    "diagnostics.py", "setpoint_check.py", "services.py", "__init__.py",
+)
+_egb6_trees = {n: ast.parse((ROOT / n).read_text()) for n in _EGB6_COLLABORATORS}
+_egb6_reads = {
+    n: r for n, r in ((n, _egb6_private_reads(t)) for n, t in _egb6_trees.items()) if r
+}
+R.check(
+    "EG-B6: no collaborator module reaches a coordinator private member; "
+    "its inputs arrive as explicit parameters or a published view (#1739)",
+    not _egb6_reads,
+    repr(_egb6_reads),
+)
+# The scan's own null control, keyed to the collaborator spellings the fix
+# removed: the arbiter's snapshot reads, the getattr fallbacks and the
+# three in-place writes each plant a hit, and the public twin of each line
+# plants none.
+_egb6_planted = ast.parse(
+    "x = coord._config\n"
+    "y = getattr(coord, '_optimization_result', None)\n"
+    "coord._current_action = {}\n"
+    "coordinator._skip_solve_once = True\n"
+)
+_egb6_public = ast.parse(
+    "x = coord.arbiter_inputs().config\n"
+    "y = getattr(coord, 'arbiter_inputs', None)\n"
+    "coord.adopt_action({})\n"
+    "coordinator.skip_next_solve()\n"
+)
+R.check(
+    "EG-B6: the collaborator reach scan names a planted reach of each "
+    "spelling and none of their published twins (the scan's null control)",
+    len(_egb6_private_reads(_egb6_planted)) == 4
+    and not _egb6_private_reads(_egb6_public),
+    f"planted={_egb6_private_reads(_egb6_planted)!r} "
+    f"public={_egb6_private_reads(_egb6_public)!r}",
+)
+
+
 # EG-B3: the published key set, enumerated from the producers, equals Payload.
 # Rule: the keys of every dict a producer returns, assigns to what it publishes
 # or passes to ``update``, plus ``data["k"] =`` stores; a ``**x`` / ``update(x)``
