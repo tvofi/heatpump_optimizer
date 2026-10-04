@@ -409,9 +409,6 @@ def dhw_gated(coord: Any, reading: float | None) -> bool:
     return bool(written[0] < configured - SETPOINT_TOLERANCE)
 
 
-setpoint_check.dhw_gated = dhw_gated
-
-
 def _planned_duty(coord: Any, now: datetime) -> str | None:
     """The duty to serve now, or ``None`` for the baseline.
 

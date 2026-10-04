@@ -43892,7 +43892,7 @@ class _G8SpBoom:
     hass = _G8SpHass()
 
     @property
-    def _config(self):
+    def effective_config(self):
         raise RuntimeError("entry is being reloaded")
 
 
@@ -50454,12 +50454,12 @@ _pa_mbs._thermal_params = _PaNS(
     dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
-_p8_sp.evaluate(_pa_mbs)
+_p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
 _pa_mbs_issues = [i for i in getattr(_pa_mbs.hass, "issues", []) if i[1] == _p8_sp.ISSUE_DHW]
 _pa_mbs_null = _PaCoord(_PA_MODBUS, duties="s", duty="observe")
 _pa_mbs_null._thermal_params = _pa_mbs._thermal_params
 _pa_mbs_null.device("number.dhw_set", "40")
-_p8_sp.evaluate(_pa_mbs_null)
+_p8_sp.evaluate(_pa_mbs_null, lambda pump: _pa.dhw_gated(_pa_mbs_null, pump))
 R.check(
     "with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum",
     _pa_mbs.hass.states.get("number.dhw_set").state == "40.0"

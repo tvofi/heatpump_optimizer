@@ -6109,7 +6109,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
         self._check_pump_mode_expired()
-        setpoint_check.evaluate(self)
+        # The arbiter's own gate, wired here: the coordinator owns both
+        # sides of the seam, so setpoint_check needs no import-time hook
+        # back into pump_arbiter (#1739).
+        setpoint_check.evaluate(
+            self, gated=lambda pump: pump_arbiter.dhw_gated(self, pump)
+        )
         # Flag level once per cycle; the listener only sees transitions.
         self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
 
