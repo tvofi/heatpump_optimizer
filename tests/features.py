@@ -29071,6 +29071,11 @@ class _SysIdHost:
     def _get_current_price(self):
         return 0.2
 
+    def adopt_action(self, action):
+        # boost.adopt_plan publishes through the coordinator's one writer
+        # (#1739); the stub holds the same slot the real class does.
+        self._current_action = action
+
 
 _COOLING = pump_signals.PumpSignals(
     mode=pump_mode.capability("Cooling"),
