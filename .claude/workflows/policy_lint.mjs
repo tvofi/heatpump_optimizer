@@ -75,7 +75,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -166,7 +166,7 @@ function symbolElsewhere(symbol, exceptRel) {
   if (!_policySpec) _policySpec = policyFiles().map((f) => `:!${f}`)
   const spec = _policySpec.includes(`:!${exceptRel}`) ? _policySpec : [..._policySpec, `:!${exceptRel}`]
   const out = git(
-    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec],
+    ['grep', '-I', '-l', '-w', '-F', symbol, '--', '.', ...excludeMoved([':!.claude', ':!.cursor', ':!tools/audit/round2', ...spec])],
     { allowFail: true }
   )
   return !!(out && out.trim())
@@ -208,7 +208,7 @@ let _byBase = null
 function candidatesFor(token) {
   if (!_byBase) {
     _byBase = new Map()
-    for (const f of git(['ls-files']).split('\n').filter(Boolean)) {
+    for (const f of canonList(git(['ls-files']).split('\n').filter(Boolean))) {
       const b = path.posix.basename(f)
       if (!_byBase.has(b)) _byBase.set(b, [])
       _byBase.get(b).push(f)
@@ -221,7 +221,7 @@ function candidatesFor(token) {
 
 function read(rel) {
   try {
-    return fs.readFileSync(path.join(ROOT, rel), 'utf8')
+    return fs.readFileSync(at(rel), 'utf8')
   } catch {
     return null
   }
@@ -1469,8 +1469,8 @@ let _printerSource = null
 function printerSource() {
   if (_printerSource == null) {
     const policy = new Set(policyFiles())
-    _printerSource = git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor'])
-      .split('\n').filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/'))
+    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor']).split('\n'))
+      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round'))
       .map((f) => read(f) ?? '').join('\n')
   }
   return _printerSource
@@ -1924,7 +1924,7 @@ const ROW_DIR = 'docs/delivery'
 // `rowFiles` and `recordRegionOverTree` themselves: emptying either, or dropping
 // `rowFiles()` from the region, refuses every row file and survived #1081's review.
 let rowFileSource = () => {
-  try { return fs.readdirSync(path.join(ROOT, ROW_DIR)).map((n) => [n, () => read(`${ROW_DIR}/${n}`) ?? '']) } catch { return [] }
+  return listDir(ROW_DIR).map((n) => [n, () => read(`${ROW_DIR}/${n}`) ?? ''])
 }
 function rowFiles() {
   return Object.fromEntries(rowFileSource().flatMap(([n, text]) => (/^\d+\.md$/.test(n) ? [[n.slice(0, -3), text()]] : [])))
@@ -2309,7 +2309,7 @@ function mergeRecordClass(sha) {
     ? mergeDiffSource(sha)
     : git(['diff', '--name-only', `${sha}^1`, String(sha)], { allowFail: true })
   if (!out) return false
-  return recordClassPaths(out.split('\n'))
+  return recordClassPaths(canonList(out.split('\n')))
 }
 
 // The human title of a merged pull request, which is not in its subject: a
@@ -3659,7 +3659,7 @@ CORPUS_CHECKS.push(checkIndex, checkDuplicates, checkBudgets, coverageOverTree, 
 const REQUIRED_SILENT = ['record', 'stats', 'sunset', 'table', 'caps', 'render']
 
 function assertAcceptance(derived) {
-  const dir = path.join(HERE, 'fixtures', 'policy-rot')
+  const dir = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures', 'policy-rot'))
   if (!fs.existsSync(dir)) {
     console.log('\nFIXTURE VACUOUS: fixtures/policy-rot/ is missing; every check above is deletable in silence')
     return 1
@@ -3667,7 +3667,7 @@ function assertAcceptance(derived) {
   const rels = fs
     .readdirSync(dir)
     .filter((f) => f.endsWith('.md'))
-    .map((f) => path.relative(ROOT, path.join(dir, f)))
+    .map((f) => canon(path.relative(ROOT, path.join(dir, f))))
     .sort()
   let found = []
   for (const rel of rels) {
@@ -5657,7 +5657,7 @@ function cmdRecord(findings, { measuredRecord = false } = {}) {
   }
   doc.recorded_at = at
   doc.entries = after
-  fs.writeFileSync(path.join(ROOT, KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
+  fs.writeFileSync(at(KNOWN_BAD_FILE), JSON.stringify(doc, null, 2) + '\n')
   const total = [...counts.values()].reduce((a, b) => a + b, 0)
   console.log(`recorded ${after.length} entr(ies), ${total} occurrence(s), to ${KNOWN_BAD_FILE}: +${added.length} -${dropped.length} ~${moved.length}`)
   for (const e of added) console.log(`  + ${e.count}x ${e.key}`)
@@ -5822,7 +5822,7 @@ function pathsFromFile(pathsFile) {
   if (!paths.length) {
     return { error: `--paths-file ${pathsFile} is empty. A pull request changes at least one file; an empty list means the derivation failed.` }
   }
-  return { paths }
+  return { paths: canonList(paths) }
 }
 
 // `## Approval` is keyed on the DIFF, not on the title. It was keyed on
@@ -6313,7 +6313,7 @@ function cmdCorpusFilter() {
   }
   for (const line of raw.split('\n')) {
     const f = line.trim()
-    if (f && POLICY_GLOBS.some((re) => re.test(f))) console.log(f)
+    if (f && POLICY_GLOBS.some((re) => re.test(canon(f)))) console.log(f)
   }
 }
 
