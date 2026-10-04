@@ -810,7 +810,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     away = importlib.import_module("heatpump_optimizer.away")
     coord._away_state.override_active = True
     coord._away_state.override_return_iso = (_A4_NOW + _dt.timedelta(hours=20)).isoformat()
-    run(away.persist_override(coord))
+    run(away.persist_override(coord, coord._away_state))
     arbiter = importlib.import_module("heatpump_optimizer.pump_arbiter")
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))

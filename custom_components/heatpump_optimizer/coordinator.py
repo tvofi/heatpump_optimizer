@@ -2491,7 +2491,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             self._spawn(load())
         self._spawn(boost.restore_session(
-            self, self._away_state, self._config, self._entity_state
+            self, self._away_state, config, self._entity_state
         ))
 
     @callback
@@ -3060,16 +3060,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ``_plan_is_stale`` owns; the plan itself rides along because the
         share split and the baseline read it ungated.
         """
+        ctx = _ctx_of(self)
         return pump_arbiter.ArbiterInputs(
             hass=self.hass,
-            config=self._config,
+            config=ctx._config,
             mode=self._mode,
             plan=self._optimization_result,
             plan_stale=self._plan_is_stale(),
             entry_released=self._entry_released,
-            state=self._current_state,
+            state=ctx._current_state,
             thermal=self._thermal_model,
-            params=self._thermal_params,
+            params=ctx._thermal_params,
             action=self._current_action,
             measured_power_kw=self._measured_power,
             disinfecting=getattr(
@@ -7798,13 +7799,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
         data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
+        ctx = _ctx_of(self)
         data["wood_fuel"] = wood_fuel_from_parts(
-            self._config,
+            ctx._config,
             external_heat=self._external_heat,
-            opt_config=self._opt_config,
-            thermal_params=self._thermal_params,
+            opt_config=ctx._opt_config,
+            thermal_params=ctx._thermal_params,
             thermal_model=self._thermal_model,
-            current_state=self._current_state,
+            current_state=ctx._current_state,
             result=result,
         )
         # Only surface the manual-plan key while an override is actually active,
