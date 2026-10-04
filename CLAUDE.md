@@ -142,6 +142,16 @@ individually, because a range reads as complete while covering a fraction:
 | `D13.md` | process yield and cost |
 | `D14.md` | recurring bug classes |
 
+### Instruments
+
+`tools/audit/seat/` is the instrument inventory (merge train, verdict bus, PR
+openers and updaters, crash-safety snapshot, merge and absorb, CI watcher, seat
+venv, tmp-path detector); the gate-check family is in `.claude/workflows/`, the
+architecture score in `tools/audit/archscore/`, per-group harnesses in
+`tools/audit/harnesses/` and `tools/audit/round9/`. Check it before hand-rolling
+any merge, push, body, gate or watch loop; new reusable instruments land here,
+never only in /tmp (decision 0013).
+
 ### The suite, the register, the handover
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a

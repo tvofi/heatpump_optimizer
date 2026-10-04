@@ -26,7 +26,10 @@ and it did not happen. **A red autofix job means there will be no bot commit.** 
 `--single` prohibition above does not survive it: that prohibition assumes
 the autofix holds the recordings *and will merge them*. Read the summary
 line, re-derive the script it names and commit `tests/closures.json`; Python
-lanes record through `sys.addaudithook`, so Darwin is sound for them. On
+lanes record through `sys.addaudithook`, so Darwin is sound for them — except
+the inert dimension, which is Linux-recorded (`strace`-only): repair a missing
+`inert_reads` entry by merging the CI closure-recordings artifact
+(`closure.py merge --in-dir <dir> --partial`, #1886). On
 `skip-failed-recording` the script named in the `closures` log stopped while
 being recorded — fix that script first; re-deriving it would only record the
 same truncation.

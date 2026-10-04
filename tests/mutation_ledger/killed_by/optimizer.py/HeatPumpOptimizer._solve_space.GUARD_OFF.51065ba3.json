@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._solve_space GUARD_OFF 51065ba3",
+  "killed_by": "tests/optimality.py",
+  "old": "        if h.extra_starts:",
+  "reason": "Recorded by `mutation_table.py --drain` against 9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec: GUARD_OFF (`if False:`) took tests/optimality.py from rc=0 failed=0 to rc=1 failed=1."
+}
