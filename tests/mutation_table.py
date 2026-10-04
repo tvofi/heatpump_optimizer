@@ -1777,12 +1777,12 @@ def failed_checks(run: ScriptRun) -> list[str]:
 
 
 def _leased_if_exclusive(fn):
-    """Off CI, an EXCLUSIVE driver runs under `tests/gate_lock.py auto-lease`,
+    """Off CI, a LEASED driver runs under `tests/gate_lock.py auto-lease`,
     the lease held for that run alone. A CI runner is the job's own machine,
     and the scheduler already runs the driver alone there, so the lease buys
     nothing and gate_lock.py stays out of the required job's code."""
     def wrapped(script: str, cwd: Path, timeout: int, extra_args=None, extra_env=None):
-        if script not in EXCLUSIVE or os.environ.get("GITHUB_ACTIONS") == "true":
+        if script not in LEASED or os.environ.get("GITHUB_ACTIONS") == "true":
             return fn(script, cwd, timeout, extra_args, extra_env)
         lease = ["auto-lease", "--label", f"mutation_table-{os.getpid()}", "--",
                  sys.executable, script, *(extra_args or ())]
@@ -2078,7 +2078,7 @@ def drop_tree(dest: Path) -> None:
 # the net and no mutant stops sooner than it did, so every verdict is the one
 # the serial sweep gave; only which driver is NAMED as a mutant's killer can
 # change, as it already could with the measured cheapest-first order.
-# The one driver kept off that sharing is EXCLUSIVE below.
+# The drivers kept off that sharing are EXCLUSIVE below.
 
 
 def _share(workers: int, work) -> None:
@@ -2095,7 +2095,19 @@ def _share(workers: int, work) -> None:
 # run: rc=124, the table INCONCLUSIVE with no mutant scored) where alone it
 # takes 674-960 s. An exclusive driver runs with no other driver in flight, in
 # the baseline and for every mutant alike.
-EXCLUSIVE = ("tests/stress.py",)
+#
+# harness_headers.py bounds each round harness it executes by CPU seconds, and
+# a CPU second billed beside the pool is not one billed alone: the frontier
+# harness costs 96.8 CPU-s serially on the runner (`slow`, run 37130986490) and
+# was SIGXCPU'd at 240 on the null control inside this pool (mutation-ledger,
+# run 37108891698) -- the same work billed at least 2.48x. Alone, it is billed
+# what a pull request's serial run.sh bills it.
+EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")
+
+# The gate lease (`tests/gate_lock.py`, gate-scoping.md) is stress.py's alone:
+# it serialises the one driver that times solves across seats. Off CI an
+# exclusive driver is still alone within this table's pool.
+LEASED = ("tests/stress.py",)
 
 
 def driver_order(rel: str, drivers: list[str], seconds: dict[str, float],

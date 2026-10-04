@@ -1259,6 +1259,57 @@ class ThermalState:
     wood_tank_temperature: float | None = None
 
 
+def weather_or_calm(
+    n_steps: int, wind_speeds: Any, precipitation: Any, solar_radiation: Any
+) -> tuple[Any, Any, Any]:
+    """Wind, precipitation and solar series, each one not given read as calm,
+    dry and dark: a zero series of ``n_steps``."""
+    return (
+        np.zeros(n_steps) if wind_speeds is None else wind_speeds,
+        np.zeros(n_steps) if precipitation is None else precipitation,
+        np.zeros(n_steps) if solar_radiation is None else solar_radiation,
+    )
+
+
+def _seeded_tracks(
+    initial_state: ThermalState, n_steps: int
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray | None]:
+    """The trajectory arrays of the room, slab, upper and lower floors and
+    buffer tank, ``n_steps + 1`` long and seeded with the initial state, and
+    the wood tank's alike, or ``None`` when the install models no wood tank."""
+    room = np.zeros(n_steps + 1)
+    slab = np.zeros(n_steps + 1)
+    upper = np.zeros(n_steps + 1)
+    lower = np.zeros(n_steps + 1)
+    buffer = np.zeros(n_steps + 1)
+    room[0] = initial_state.room_temperature
+    slab[0] = initial_state.slab_temperature
+    upper[0] = initial_state.upper_floor_temperature
+    lower[0] = initial_state.lower_floor_temperature
+    buffer[0] = initial_state.buffer_tank_temperature
+    wood = None
+    if initial_state.wood_tank_temperature is not None:
+        wood = np.zeros(n_steps + 1)
+        wood[0] = initial_state.wood_tank_temperature
+    return room, slab, upper, lower, buffer, wood
+
+
+def _two_tank_rates(
+    thermal_power: Any, q_rad: Any, q_floor: Any, q_buf_loss: Any, wood_draw: Any,
+    ext: Any, q_wood_loss: Any, C_buf: float, C_w: float,
+) -> tuple[Any, Any]:
+    """dT/dt of the buffer and the wood tank with the wood tank modelled, K/h.
+
+    One expression for the scalar step and its batch twin: the wood draw
+    joins the buffer's numerator before the division, never as a separate
+    add of quotients -- that re-association is a different float.
+    """
+    return (
+        (thermal_power - q_rad - q_floor - q_buf_loss + wood_draw) / C_buf,
+        (ext - wood_draw - q_wood_loss) / C_w,
+    )
+
+
 def _copy_state_with(state: ThermalState, **changes: object) -> ThermalState:
     """Shallow-copy ``state`` with ``changes`` applied, field-for-field the
     same result as ``dataclasses.replace(state, **changes)``.
@@ -2229,8 +2280,9 @@ class ThermalModel:
             else _q_solar
         )
 
-        dT_room = (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass
-        dT_slab = (thermal_power - q_slab_to_room) / p.slab_thermal_mass
+        dT_room, dT_slab = self._single_zone_rates(
+            q_slab_to_room, q_loss, q_internal, q_solar, thermal_power
+        )
 
         new_room = state.room_temperature + dT_room * dt_hours
         new_slab = state.slab_temperature + dT_slab * dt_hours
@@ -2267,10 +2319,15 @@ class ThermalModel:
         valve_target: float | None = None,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        _loss: tuple[float, float] | None = None,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
 
         State vector: [T_upper, T_lower, T_slab, T_buffer]
+
+        ``_loss`` is the two floors' ``_zone_loss`` for this step's wind and
+        rain, which :meth:`simulate_step` has already computed for the
+        stability count; ``None`` (a direct caller) computes it here.
         """
         p = self.params
         throttled = mixing_valve.is_throttling(p.mixing_valve_mode)
@@ -2306,28 +2363,10 @@ class ThermalModel:
             cop * electrical_power + (0.0 if two_tank else ext)
         )  # total heat into the buffer
 
-        # Weather-adjusted heat loss using configurable sensitivity
-        u_upper = self.effective_heat_loss_coefficient(
-            p.upper_floor_heat_loss, wind_speed, precipitation
+        u_upper, u_lower = (
+            self._zone_loss(wind_speed, precipitation) if _loss is None else _loss
         )
-        # Lower floor less exposed to wind (partially underground/sheltered)
-        u_lower = self.effective_heat_loss_coefficient(
-            p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
-        )
-
-        # kW, split by solar_upper_fraction -- a different split from the
-        # area-ratio one used for internal gains just below.
-        q_solar_upper, q_solar_lower = self.solar_gain_per_zone(solar_radiation)
-
-        # Internal gains split proportional to area ratio
         area_ratio = p.upper_floor_area_ratio
-        q_internal = (
-            self.internal_gains_at(hour_of_day)
-            if hour_of_day is not None
-            else p.internal_gains
-        )
-        q_internal_upper = q_internal * area_ratio
-        q_internal_lower = q_internal * (1.0 - area_ratio)
 
         T_upper = state.upper_floor_temperature
         T_lower = state.lower_floor_temperature
@@ -2489,12 +2528,11 @@ class ThermalModel:
             # it).
             # One capacity per store, read once per step (D2-01): the raw
             # `C_buf`/`C_w` -- never a floor -- is what the rate, the
-            # availability bounds above and `_stability_substeps` all use.
-            dT_buf = (
-                thermal_power - q_rad_from_buf - q_floor_from_buf
-                - q_buf_loss + wood_draw
-            ) / C_buf
-            dT_wood = (ext - wood_draw - q_wood_loss) / C_w
+            # availability bounds above and `_substeps_and_loss` all use.
+            dT_buf, dT_wood = _two_tank_rates(
+                thermal_power, q_rad_from_buf, q_floor_from_buf, q_buf_loss,
+                wood_draw, ext, q_wood_loss, C_buf, C_w,
+            )
             dT_wood_cap = max(0.0, WOOD_TANK_MAX_TEMP - wood_temp) / max(
                 dt_hours, 1e-6
             )
@@ -2519,24 +2557,10 @@ class ThermalModel:
                 self._step_buffer_refused = (dT_buf - dT_cap) * C_buf
                 dT_buf = dT_cap
 
-        # --- Slab dynamics ---
-        q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
-        dT_slab = (q_floor_from_buf - q_slab_to_lower) / p.slab_thermal_mass
-
-        # --- Inter-zone heat transfer ---
-        q_inter = p.inter_zone_transfer * (T_lower - T_upper)
-
-        # --- Upper floor (radiators) ---
-        q_loss_upper = u_upper * (T_upper - outdoor_temp)
-        dT_upper = (
-            q_rad_from_buf - q_loss_upper + q_inter + q_solar_upper + q_internal_upper
-        ) / p.upper_floor_thermal_mass
-
-        # --- Lower floor (slab heated) ---
-        q_loss_lower = u_lower * (T_lower - outdoor_temp)
-        dT_lower = (
-            q_slab_to_lower - q_loss_lower - q_inter + q_solar_lower + q_internal_lower
-        ) / p.lower_floor_thermal_mass
+        dT_upper, dT_lower, dT_slab = self._two_zone_rates(
+            T_upper, T_lower, T_slab, outdoor_temp, q_rad_from_buf,
+            q_floor_from_buf, u_upper, u_lower, solar_radiation, hour_of_day,
+        )
 
         # Euler integration
         new_upper = T_upper + dT_upper * dt_hours
@@ -2601,13 +2625,20 @@ class ThermalModel:
         # to the smallest n that brings every store's ratio under the
         # margin. n == 1 — the untouched original arithmetic, bit for bit —
         # for every sane configuration; the fixtures prove it.
-        n_sub = self._stability_substeps(wind_speed, precipitation, dt_hours)
+        # The step's loss coefficients depend on its wind and rain alone, so
+        # they are computed once here for both the stability count and every
+        # sub-step (the per-step call count is stress.py's production-call
+        # channel, which a helper called twice per step tripped).
+        n_sub, u_first, u_second = self._substeps_and_loss(
+            wind_speed, precipitation, dt_hours
+        )
         if self.params.two_zone_enabled:
             if n_sub == 1:
                 return self._simulate_step_two_zone(
                     state, electrical_power, outdoor_temp,
                     wind_speed, precipitation, solar_radiation, dt_hours,
                     external_heat_kw, valve_target, humidity, hour_of_day,
+                    _loss=(u_first, u_second),
                 )
             refused = 0.0
             wood_refused = 0.0
@@ -2617,6 +2648,7 @@ class ThermalModel:
                     wind_speed, precipitation, solar_radiation,
                     dt_hours / n_sub,
                     external_heat_kw, valve_target, humidity, hour_of_day,
+                    _loss=(u_first, u_second),
                 )
                 refused += self._step_buffer_refused
                 wood_refused += self._step_wood_refused
@@ -2629,7 +2661,7 @@ class ThermalModel:
             return self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
-                external_heat_kw, humidity, hour_of_day,
+                external_heat_kw, humidity, hour_of_day, _u_eff=u_first,
             )
         # Every sub-step below re-enters with the same outdoor, wind, rain,
         # solar and humidity, so the three per-call environment constants
@@ -2639,23 +2671,84 @@ class ThermalModel:
         # has; recomputing them per sub-step priced the sysid rollout out
         # of its own harness budget (#1723).
         cop = self.compute_cop(outdoor_temp, humidity=humidity)
-        u_eff = self.effective_heat_loss_coefficient(
-            self.params.heat_loss_coefficient, wind_speed, precipitation
-        )
         q_solar = self.compute_solar_gain(solar_radiation)
         for _ in range(n_sub):
             state = self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
-                _cop=cop, _u_eff=u_eff, _q_solar=q_solar,
+                _cop=cop, _u_eff=u_first, _q_solar=q_solar,
             )
         return state
 
-    def _stability_substeps(
+    def _single_zone_rates(
+        self, q_slab_to_room: Any, q_loss: Any, q_internal: Any, q_solar: Any,
+        thermal_power: Any,
+    ) -> tuple[Any, Any]:
+        """dT/dt of the room and the slab in the single-zone model, K/h; one
+        expression for the scalar step and its batch twin."""
+        p = self.params
+        return (
+            (q_slab_to_room - q_loss + q_internal + q_solar) / p.room_thermal_mass,
+            (thermal_power - q_slab_to_room) / p.slab_thermal_mass,
+        )
+
+    def _zone_loss(self, wind_speed: Any, precipitation: Any) -> tuple[Any, Any]:
+        """The two floors' weather-adjusted loss coefficients; the lower floor
+        is half as exposed (partially underground, sheltered). One copy for
+        the scalar step, the batch twin and the stability count."""
+        p = self.params
+        return (
+            self.effective_heat_loss_coefficient(
+                p.upper_floor_heat_loss, wind_speed, precipitation
+            ),
+            self.effective_heat_loss_coefficient(
+                p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+            ),
+        )
+
+    def _two_zone_rates(
+        self, T_upper: Any, T_lower: Any, T_slab: Any, outdoor: Any,
+        q_rad: Any, q_floor: Any, u_upper: Any, u_lower: Any,
+        solar_radiation: float, hour_of_day: float | None,
+    ) -> tuple[Any, Any, Any]:
+        """dT/dt of the upper floor (radiators), the lower floor (slab heated)
+        and the slab, in K/h. Floats for the scalar step, arrays for the batch
+        twin: one expression each, so the two paths cannot drift apart (each
+        sum is kept in its original order, since a re-association is a
+        different float). Solar gains split by ``solar_upper_fraction`` and
+        internal gains by floor area -- two different splits."""
+        p = self.params
+        q_solar_upper, q_solar_lower = self.solar_gain_per_zone(solar_radiation)
+        q_internal = (
+            self.internal_gains_at(hour_of_day)
+            if hour_of_day is not None
+            else p.internal_gains
+        )
+        q_internal_upper = q_internal * p.upper_floor_area_ratio
+        q_internal_lower = q_internal * (1.0 - p.upper_floor_area_ratio)
+        q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
+        dT_slab = (q_floor - q_slab_to_lower) / p.slab_thermal_mass
+        q_inter = p.inter_zone_transfer * (T_lower - T_upper)
+        q_loss_upper = u_upper * (T_upper - outdoor)
+        dT_upper = (
+            q_rad - q_loss_upper + q_inter + q_solar_upper + q_internal_upper
+        ) / p.upper_floor_thermal_mass
+        q_loss_lower = u_lower * (T_lower - outdoor)
+        dT_lower = (
+            q_slab_to_lower - q_loss_lower - q_inter + q_solar_lower + q_internal_lower
+        ) / p.lower_floor_thermal_mass
+        return dT_upper, dT_lower, dT_slab
+
+    def _substeps_and_loss(
         self, wind_speed: float, precipitation: float, dt_hours: float
-    ) -> int:
-        """Sub-steps that keep the coupled Euler step matrix monotone.
+    ) -> tuple[int, float, float]:
+        """Sub-steps that keep the coupled Euler step matrix monotone, and the
+        step's weather-adjusted loss coefficients they were judged with, as
+        ``(n_sub, first, second)``: the upper and lower floors' when two-zone,
+        else the single zone's and ``0.0``. The step integrates with those same
+        coefficients, so one call per step serves both (stress.py's
+        production-call channel prices a second one).
 
         Each store's row of the step matrix is ``1 - h*a_ii`` on the diagonal
         and ``h*c_ij/C_i`` towards every neighbour, where ``a_ii`` is its
@@ -2683,14 +2776,7 @@ class ThermalModel:
         """
         p = self.params
         if p.two_zone_enabled:
-            u_upper = self.effective_heat_loss_coefficient(
-                p.upper_floor_heat_loss, wind_speed, precipitation
-            )
-            u_lower = self.effective_heat_loss_coefficient(
-                p.lower_floor_heat_loss_learned,
-                wind_speed * 0.5,
-                precipitation * 0.5,
-            )
+            u_upper, u_lower = self._zone_loss(wind_speed, precipitation)
             ua_rad = ua_floor = buf_row = 0.0
             if mixing_valve.is_throttling(p.mixing_valve_mode):
                 # The same conductances and C_buf fallback the throttled
@@ -2715,14 +2801,16 @@ class ThermalModel:
                 buf_row,
             )
         else:
-            u_eff = self.effective_heat_loss_coefficient(
+            u_upper = self.effective_heat_loss_coefficient(
                 p.heat_loss_coefficient, wind_speed, precipitation
             )
+            u_lower = 0.0
             worst = max(
-                (u_eff + p.slab_heat_transfer) / p.room_thermal_mass,
+                (u_upper + p.slab_heat_transfer) / p.room_thermal_mass,
                 p.slab_heat_transfer / p.slab_thermal_mass,
             )
-        return max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))
+        n_sub = max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))
+        return n_sub, u_upper, u_lower
 
 
     def simulate_trajectory(
@@ -2767,29 +2855,13 @@ class ThermalModel:
         """
         n_steps = len(power_schedule)
 
-        if wind_speeds is None:
-            wind_speeds = np.zeros(n_steps)
-        if precipitation is None:
-            precipitation = np.zeros(n_steps)
-        if solar_radiation is None:
-            solar_radiation = np.zeros(n_steps)
+        wind_speeds, precipitation, solar_radiation = weather_or_calm(
+            n_steps, wind_speeds, precipitation, solar_radiation
+        )
 
-        room_temps = np.zeros(n_steps + 1)
-        slab_temps = np.zeros(n_steps + 1)
-        upper_temps = np.zeros(n_steps + 1)
-        lower_temps = np.zeros(n_steps + 1)
-
-        room_temps[0] = initial_state.room_temperature
-        slab_temps[0] = initial_state.slab_temperature
-        upper_temps[0] = initial_state.upper_floor_temperature
-        lower_temps[0] = initial_state.lower_floor_temperature
-        buffer_temps = np.zeros(n_steps + 1)
-        buffer_temps[0] = initial_state.buffer_tank_temperature
+        (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
+         wood_temps) = _seeded_tracks(initial_state, n_steps)
         buffer_refused = np.zeros(n_steps)
-        wood_temps = None
-        if initial_state.wood_tank_temperature is not None:
-            wood_temps = np.zeros(n_steps + 1)
-            wood_temps[0] = initial_state.wood_tank_temperature
 
         # The hour only matters when a learned gains profile exists (#53);
         # this loop runs thousands of times per solve, so the per-step
@@ -2958,12 +3030,9 @@ class ThermalModel:
         p = self.params
         power_matrix = np.asarray(power_matrix, dtype=float)
         n_steps = power_matrix.shape[1]
-        if wind_speeds is None:
-            wind_speeds = np.zeros(n_steps)
-        if precipitation is None:
-            precipitation = np.zeros(n_steps)
-        if solar_radiation is None:
-            solar_radiation = np.zeros(n_steps)
+        wind_speeds, precipitation, solar_radiation = weather_or_calm(
+            n_steps, wind_speeds, precipitation, solar_radiation
+        )
 
         room = np.zeros((power_matrix.shape[0], n_steps + 1))
         slab = np.zeros_like(room)
@@ -2998,7 +3067,6 @@ class ThermalModel:
             C_buf = 0.04
         rad_fraction = p.radiator_power_fraction
         area_ratio = p.upper_floor_area_ratio
-        q_internal_upper_base = None
         # Two-zone valve geometry: uniform per batch.
         if p.two_zone_enabled and throttled:
             design_power = p.max_electrical_power * p.cop_nominal_floored
@@ -3040,7 +3108,9 @@ class ThermalModel:
                 else None
             )
 
-            n_sub = self._stability_substeps(wind_i, rain_i, dt_hours)
+            n_sub, u_first, u_second = self._substeps_and_loss(
+                wind_i, rain_i, dt_hours
+            )
             # Uniform across the batch: substeps depend on weather and
             # dt only. The scalar path subdivides the same way; the
             # refused figure averages over substeps exactly as it does.
@@ -3048,20 +3118,7 @@ class ThermalModel:
             for _sub in range(n_sub):
                 dt = dt_hours / n_sub
                 if p.two_zone_enabled:
-                    u_upper = self.effective_heat_loss_coefficient(
-                        p.upper_floor_heat_loss, wind_i, rain_i
-                    )
-                    u_lower = self.effective_heat_loss_coefficient(
-                        p.lower_floor_heat_loss_learned, wind_i * 0.5, rain_i * 0.5
-                    )
-                    q_solar_upper, q_solar_lower = self.solar_gain_per_zone(sol_i)
-                    q_internal = (
-                        self.internal_gains_at(hour_i)
-                        if hour_i is not None
-                        else p.internal_gains
-                    )
-                    q_int_up = q_internal * area_ratio
-                    q_int_lo = q_internal * (1.0 - area_ratio)
+                    u_upper, u_lower = u_first, u_second
                     q_buf_loss = p.buffer_tank_heat_loss_coefficient * (
                         T_buf - TANK_ROOM_AMBIENT_TEMP
                     )
@@ -3150,19 +3207,11 @@ class ThermalModel:
                         q_floor = (1.0 - rad_fraction) * thermal_power
 
                     if two_tank and T_wood is not None:
-                        # One expression, exactly as the scalar step writes it:
-                        # the wood_draw joins the numerator before the division,
-                        # never as a separate add of quotients -- that
-                        # re-association is a different float (the ulp class the
-                        # scalar comment here warns about).
-                        dT_buf = (
-                            thermal_power
-                            - q_rad
-                            - q_floor
-                            - q_buf_loss
-                            + wood_draw
-                        ) / C_buf
-                        dT_wood = (ext - wood_draw - q_wood_loss) / C_w
+                        # The scalar step's own expression (_two_tank_rates).
+                        dT_buf, dT_wood = _two_tank_rates(
+                            thermal_power, q_rad, q_floor, q_buf_loss,
+                            wood_draw, ext, q_wood_loss, C_buf, C_w,
+                        )
                         dT_wood_cap = np.maximum(
                             0.0, WOOD_TANK_MAX_TEMP - T_wood
                         ) / max(dt, 1e-6)
@@ -3173,7 +3222,6 @@ class ThermalModel:
                         dT_buf = (
                             thermal_power - q_rad - q_floor - q_buf_loss
                         ) / C_buf
-                    pass  # refused handled after the substep below
                     if throttled:
                         dT_cap = np.maximum(
                             0.0, p.buffer_max_temp - T_buf
@@ -3186,23 +3234,10 @@ class ThermalModel:
                         )
                         dT_buf = np.where(over, dT_cap, dT_buf)
 
-                    q_slab_to_lower = p.slab_heat_transfer * (T_slab - T_lower)
-                    dT_slab = (
-                        q_floor - q_slab_to_lower
-                    ) / p.slab_thermal_mass
-                    q_inter = p.inter_zone_transfer * (T_lower - T_upper)
-                    q_loss_upper = u_upper * (T_upper - out_i)
-                    dT_upper = (
-                        q_rad - q_loss_upper + q_inter + q_solar_upper + q_int_up
-                    ) / p.upper_floor_thermal_mass
-                    q_loss_lower = u_lower * (T_lower - out_i)
-                    dT_lower = (
-                        q_slab_to_lower
-                        - q_loss_lower
-                        - q_inter
-                        + q_solar_lower
-                        + q_int_lo
-                    ) / p.lower_floor_thermal_mass
+                    dT_upper, dT_lower, dT_slab = self._two_zone_rates(
+                        T_upper, T_lower, T_slab, out_i,
+                        q_rad, q_floor, u_upper, u_lower, sol_i, hour_i,
+                    )
                     T_upper = T_upper + dT_upper * dt
                     T_lower = T_lower + dT_lower * dt
                     T_slab = T_slab + dT_slab * dt
@@ -3229,23 +3264,17 @@ class ThermalModel:
                     # passes no flow temperature.
                     cop = self._batch_cop(out_i, hum_i, T_buf, False)
                     thermal_power = cop * power_i + ext
-                    u_eff = self.effective_heat_loss_coefficient(
-                        p.heat_loss_coefficient, wind_i, rain_i
-                    )
                     q_slab_to_room = p.slab_heat_transfer * (T_slab - T_room)
-                    q_loss = u_eff * (T_room - out_i)
+                    q_loss = u_first * (T_room - out_i)
                     q_internal = (
                         self.internal_gains_at(hour_i)
                         if hour_i is not None
                         else p.internal_gains
                     )
                     q_solar = self.compute_solar_gain(sol_i)
-                    dT_room = (
-                        q_slab_to_room - q_loss + q_internal + q_solar
-                    ) / p.room_thermal_mass
-                    dT_slab = (
-                        thermal_power - q_slab_to_room
-                    ) / p.slab_thermal_mass
+                    dT_room, dT_slab = self._single_zone_rates(
+                        q_slab_to_room, q_loss, q_internal, q_solar, thermal_power
+                    )
                     # dt, not dt_hours: this is one sub-step of the
                     # stability subdivision, exactly as _simulate_step_single
                     # takes it. Integrating n_sub sub-steps at the full step
@@ -3315,33 +3344,17 @@ class ThermalModel:
         """
         n_steps = len(space_power_schedule)
 
-        if wind_speeds is None:
-            wind_speeds = np.zeros(n_steps)
-        if precipitation is None:
-            precipitation = np.zeros(n_steps)
-        if solar_radiation is None:
-            solar_radiation = np.zeros(n_steps)
+        wind_speeds, precipitation, solar_radiation = weather_or_calm(
+            n_steps, wind_speeds, precipitation, solar_radiation
+        )
         if dhw_draw_rates is None:
             hours = (start_hour + np.arange(n_steps) * dt_hours) % 24.0
             dhw_draw_rates = self.dhw_draw_rates(hours)
 
-        room_temps = np.zeros(n_steps + 1)
-        slab_temps = np.zeros(n_steps + 1)
-        upper_temps = np.zeros(n_steps + 1)
-        lower_temps = np.zeros(n_steps + 1)
+        (room_temps, slab_temps, upper_temps, lower_temps, buffer_temps,
+         wood_temps) = _seeded_tracks(initial_state, n_steps)
         dhw_temps = np.zeros(n_steps + 1)
-        buffer_temps = np.zeros(n_steps + 1)
-
-        room_temps[0] = initial_state.room_temperature
-        slab_temps[0] = initial_state.slab_temperature
-        upper_temps[0] = initial_state.upper_floor_temperature
-        lower_temps[0] = initial_state.lower_floor_temperature
         dhw_temps[0] = initial_state.dhw_temperature
-        buffer_temps[0] = initial_state.buffer_tank_temperature
-        wood_temps = None
-        if initial_state.wood_tank_temperature is not None:
-            wood_temps = np.zeros(n_steps + 1)
-            wood_temps[0] = initial_state.wood_tank_temperature
 
         state = initial_state
         current_hour = start_hour

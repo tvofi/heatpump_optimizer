@@ -29286,7 +29286,7 @@ def _mut_x_span(key):
 def _mut_x_overlaps():
     """Every (exclusive, other) pair of recorded runs that shared the clock."""
     return [(k, o) for k, a0, a1 in _MUT_X_SPANS
-            if k[-1] == "tests/stress.py"
+            if k[-1] in getattr(_mut, "EXCLUSIVE", ("tests/stress.py",))
             for o, b0, b1 in _MUT_X_SPANS
             if o != k and b0 < a1 and a0 < b1]
 
@@ -29299,10 +29299,32 @@ if _mut_baselines is not None:
 _MUT_X_BASE = list(_MUT_X_SPANS)
 R.check(
     "the stress.py baseline shares the runner with no other driver",
-    getattr(_mut, "EXCLUSIVE", ()) == ("tests/stress.py",)
+    "tests/stress.py" in getattr(_mut, "EXCLUSIVE", ())
     and any(k == ("base", "tests/stress.py") for k, _, _ in _MUT_X_BASE)
     and not _mut_x_overlaps(),
     f"overlaps={_mut_x_overlaps()!r} runs={[k for k, _, _ in _MUT_X_BASE]!r}",
+)
+_MUT_X_SPANS.clear()
+# harness_headers.py bounds each round harness by CPU seconds, and a CPU second
+# billed beside the pool is not one billed alone: the frontier harness costs
+# 96.8 CPU-s serially on the runner (slow, run 37130986490) and was SIGXCPU'd
+# at 240 inside the --jobs 3 pool (mutation-ledger, run 37108891698). So it
+# shares the runner with no other driver; the gate lease stays stress.py's
+# alone (gate-scoping.md: "every other script runs unleased").
+if _mut_baselines is not None:
+    _mut_baselines(["tests/a.py", "tests/b.py", "tests/harness_headers.py",
+                    "tests/c.py"], 3,
+                   lambda w, s: (_mut_x_span(("base", s)),
+                                 _mut.ScriptRun(0, 0, 0.0))[1])
+R.check(
+    "the harness_headers.py baseline shares the runner with no other driver, "
+    "and only stress.py takes the gate lease",
+    "tests/harness_headers.py" in getattr(_mut, "EXCLUSIVE", ())
+    and getattr(_mut, "LEASED", None) == ("tests/stress.py",)
+    and any(k == ("base", "tests/harness_headers.py") for k, _, _ in _MUT_X_SPANS)
+    and not _mut_x_overlaps(),
+    f"EXCLUSIVE={getattr(_mut, 'EXCLUSIVE', None)!r} "
+    f"LEASED={getattr(_mut, 'LEASED', None)!r} overlaps={_mut_x_overlaps()!r}",
 )
 _MUT_X_SPANS.clear()
 _MUT_X_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",

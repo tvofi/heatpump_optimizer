@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity
 from .payload import Payload
-from .freq_control import _finite
+from .inputs import _finite
 from .const import (
     CONF_MOLD_FLOOR_BREACH_MARGIN,
     DEFAULT_MOLD_FLOOR_BREACH_MARGIN,

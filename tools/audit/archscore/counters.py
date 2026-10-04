@@ -8,8 +8,8 @@ C1  an ``Any`` / ``object`` key is untyped              ``metrics/untyped_payloa
 C2  ``reflective_writes``, C2b ``computed_attr_access``  here; gate-only, weight 0. A write spelled
     reflectively is a write; the role engine does not yet read one as a write, so these
     only stop the count falling by re-spelling. They retire when it does.
-C3  effect-free statements do not split a clone         ``NOOP_PATTERNS``; applied to the shared
-    clone window by ``vector.py``
+C3  a clone window is any two statements of a block in order  ``gapped_clones``; replaces the shared
+    census in the score's copy only (``vector.py``), so nothing interleaved splits a clone
 C4  the coordinator is its whole package class hierarchy  ``flatten``
 C5  a passthrough property is a reach                    ``passthrough_properties``; applied to the
     shared reach census by ``vector.py``
@@ -20,7 +20,10 @@ C11 literal keys read from a function's own ``**kw`` are parameters  ``metrics/f
 from __future__ import annotations
 
 import ast
+import hashlib
+import re
 import shutil
+from collections import defaultdict
 from pathlib import Path
 
 from .metrics import common as C
@@ -29,7 +32,6 @@ from .metrics import family_splits as F
 PKG = C.PKG_REL
 BUILTIN_TYPES = {"list", "dict", "set", "object", "frozenset", "bytearray", "deque", "OrderedDict", "defaultdict"}
 DUNDER_WRITES = {"__setattr__", "__delattr__", "__setitem__", "__delitem__"}
-PURE = {"id", "len", "hash", "repr", "type", "str", "bool", "int", "float"}
 
 
 def trees(root: Path) -> dict[str, ast.Module]:
@@ -104,24 +106,85 @@ def computed_attr_access(ts: dict[str, ast.Module]) -> int:
 
 
 # ---------------------------------------------------------------- C3
-def is_noop(s: ast.AST) -> bool:
-    """A statement with no effect, dropped before a clone window is cut so junk interleaved in every
-    window does not split the clone (attempt 04: 121 -> 7; the reviewer's ``pass`` variant read +14.15).
+_LOCAL = re.compile("\u27e6([^\u27e7]*)\u27e7")
 
-    The class: ``pass``; an expression statement of a constant (``...``, ``None``, a string), a name,
-    an attribute, or a call of a pure builtin on names and constants; and an ``if`` on a constant
-    whose branches are all such statements."""
-    if isinstance(s, ast.Pass):
-        return True
-    if isinstance(s, ast.If) and isinstance(s.test, ast.Constant):
-        return all(is_noop(x) for x in (*s.body, *s.orelse))
-    if not isinstance(s, ast.Expr):
-        return False
-    v = s.value
-    if isinstance(v, (ast.Constant, ast.Name, ast.Attribute)):
-        return True
-    return isinstance(v, ast.Call) and isinstance(v.func, ast.Name) and v.func.id in PURE \
-        and all(isinstance(a, (ast.Constant, ast.Name)) for a in v.args)
+
+def _statement_form(S, s: ast.stmt, local: set[str], modalias: set[str]) -> str:
+    """``S.normalized_window``'s form of one statement with the function's own names left marked, so a
+    window of any two statements renumbers them by first use exactly as ``normalized_window`` does
+    (``ast.dump`` prints in the order ``NodeTransformer`` visits)."""
+    class Normalize(ast.NodeTransformer):
+        def visit_Attribute(self, n):
+            self.generic_visit(n)
+            if isinstance(n.value, ast.Name) and n.value.id in modalias and n.value.id not in local:
+                return ast.copy_location(ast.Name(id=n.attr, ctx=n.ctx), n)
+            return n
+
+        def visit_Name(self, n):
+            if n.id in local:
+                n.id = "\u27e6" + n.id + "\u27e7"
+            return n
+
+        def visit_Constant(self, n):
+            if isinstance(n.value, str):
+                n.value = "S"
+            return n
+    return ast.dump(Normalize().visit(ast.parse(ast.unparse(s)).body[0]))
+
+
+def gapped_clones(S, trees, gap: int | None = None) -> list[list[tuple[str, str, int]]]:
+    """``S.duplicate_clones`` with a window of ANY two statements of a block, in order, instead of two
+    adjacent ones. A copy keeps every statement of its original in order, so whatever is interleaved
+    into it -- any spelling, any count, an effect or none -- leaves the original's pairs intact and the
+    clone joined: the interleaving game (attempt 04 and every variant) fails by construction rather than
+    by an enumeration of junk. Its adjacent pairs are the shared census's windows (the same copies at gap
+    0, pinned by ``tests/arch_score.py``), so the score's count is a superset of the ratchet's. Nested
+    definitions sit outside every window, as in the census. ``gap`` bounds the statements a window skips;
+    ``0`` is the shared census, which ``tests/arch_score_head.py`` holds it to."""
+    windows: dict[str, set] = defaultdict(set)
+    for path, tree in trees:
+        rel, modalias = str(path.relative_to(S.REPO_ROOT)), S._module_aliases(tree)
+        for fn in S.all_functions(tree):
+            local, owner, stack = S._local_names(fn), (rel, fn.name, fn.lineno), [fn]
+            while stack:
+                node = stack.pop()
+                stack += [c for c in ast.iter_child_nodes(node)
+                          if not isinstance(c, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.ClassDef))]
+                blocks = [getattr(node, f) for f in ("body", "orelse", "finalbody")
+                          if isinstance(getattr(node, f, None), list) and getattr(node, f)
+                          and isinstance(getattr(node, f)[0], ast.stmt)]
+                for block in blocks + [h.body for h in getattr(node, "handlers", []) or []]:
+                    block = [s for s in block if not S._is_docstring(s)
+                             and not isinstance(s, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))]
+                    size = [sum(1 for _ in ast.walk(s)) for s in block]
+                    form: dict[int, str] = {}
+                    for i in range(len(block)):
+                        for j in range(i + 1, len(block) if gap is None else min(len(block), i + 2 + gap)):
+                            if size[i] + size[j] < S.DUP_MIN_NODES:
+                                continue
+                            for k in (i, j):
+                                if k not in form:
+                                    form[k] = _statement_form(S, block[k], local, modalias)
+                            names: dict[str, str] = {}
+                            key = _LOCAL.sub(lambda m: names.setdefault(m.group(1), f"v{len(names)}"),
+                                             form[i] + form[j])
+                            windows[hashlib.sha1(key.encode()).hexdigest()].add(owner)
+    parent: dict = {}
+
+    def find(x):
+        while parent.setdefault(x, x) != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    for owners in windows.values():
+        first, *rest = sorted(owners)
+        for other in rest:
+            parent[find(other)] = find(first)
+    groups: dict = defaultdict(list)
+    for member in parent:
+        groups[find(member)].append(member)
+    return sorted(sorted(g) for g in groups.values() if len(g) > 1)
 
 
 # ---------------------------------------------------------------- C5
