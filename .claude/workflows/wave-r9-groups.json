@@ -7262,7 +7262,9 @@
   {
    "group": "R9-FR-7",
    "lane": "FIX",
-   "issues": [],
+   "issues": [
+    1945
+   ],
    "fixes": [],
    "findings": [],
    "covers": [],
@@ -7298,7 +7300,9 @@
   {
    "group": "R9-FR-8",
    "lane": "FIX",
-   "issues": [],
+   "issues": [
+    1946
+   ],
    "fixes": [],
    "findings": [],
    "covers": [],
