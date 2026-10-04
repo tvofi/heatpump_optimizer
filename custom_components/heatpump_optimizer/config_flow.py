@@ -3210,6 +3210,42 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             return await self.async_step_advanced()
         return await self.async_step_init()
 
+    async def _page(
+        self, step_id: str, user_input: dict[str, Any] | None, *, clear: bool = False
+    ) -> ConfigFlowResult:
+        """One registry page (#597): save the submit, or show the form.
+
+        ``clear`` hands the submit to ``_clear_absent`` first, so a stored
+        entity row the user emptied is nulled rather than kept. A page with
+        no ``_STORED`` row passes ``clear=False``: there is nothing to null.
+        """
+        current = self._current
+        if user_input is not None:
+            return await self._save_or_menu(
+                _clear_absent(user_input, step_id, current) if clear else user_input
+            )
+        return self.async_show_form(
+            step_id=step_id, data_schema=_page_schema(step_id, current, self.hass)
+        )
+
+    async def _thermal_model_page(
+        self, step_id: str, user_input: dict[str, Any] | None
+    ) -> ConfigFlowResult:
+        """One of the split thermal_model pages: save through the shared
+        submit path, or show the form with the building-preset warning."""
+        outcome = await self._try_thermal_model_save(user_input)
+        if not isinstance(outcome, tuple):
+            return outcome
+        errors, current = outcome
+        return self.async_show_form(
+            step_id=step_id,
+            errors=errors,
+            description_placeholders={
+                "preset_warning": _building_preset_warning(self.hass, current)
+            },
+            data_schema=_page_schema(step_id, current, self.hass),
+        )
+
     async def _try_thermal_model_save(
         self, user_input: dict[str, Any] | None
     ) -> ConfigFlowResult | tuple[dict[str, str], dict[str, Any]]:
@@ -3429,15 +3465,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """What the heat pump reports about itself."""
-        current = self._current
-        if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "entities_pump", current)
-            )
-        return self.async_show_form(
-            step_id="entities_pump",
-            data_schema=_page_schema("entities_pump", current, self.hass),
-        )
+        return await self._page("entities_pump", user_input, clear=True)
 
     async def async_step_comfort(
         self, user_input: dict[str, Any] | None = None
@@ -3534,15 +3562,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Hot-water circulation pump scheduling."""
-        current = self._current
-        if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "hot_water_pumps", current)
-            )
-        return self.async_show_form(
-            step_id="hot_water_pumps",
-            data_schema=_page_schema("hot_water_pumps", current, self.hass),
-        )
+        return await self._page("hot_water_pumps", user_input, clear=True)
 
     async def async_step_building(
         self, user_input: dict[str, Any] | None = None
@@ -3630,59 +3650,25 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         without one renders empty; an empty box is omitted from
         ``user_input`` and never saved.
         """
-        outcome = await self._try_thermal_model_save(user_input)
-        if not isinstance(outcome, tuple):
-            return outcome
-        errors, current = outcome
-
-        return self.async_show_form(
-            step_id="thermal_model",
-            errors=errors,
-            description_placeholders={
-                "preset_warning": _building_preset_warning(self.hass, current)
-            },
-            data_schema=_page_schema("thermal_model", current, self.hass),
-        )
+        return await self._thermal_model_page("thermal_model", user_input)
 
     async def async_step_thermal_model_zones(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Two-zone split and solar orientation."""
-        outcome = await self._try_thermal_model_save(user_input)
-        if not isinstance(outcome, tuple):
-            return outcome
-        errors, current = outcome
-
-        return self.async_show_form(
-            step_id="thermal_model_zones",
-            errors=errors,
-            description_placeholders={
-                "preset_warning": _building_preset_warning(self.hass, current)
-            },
-            data_schema=_page_schema("thermal_model_zones", current, self.hass),
-        )
+        return await self._thermal_model_page("thermal_model_zones", user_input)
 
     async def async_step_tuning(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Balance between saving money and holding the setpoint."""
-        if user_input is not None:
-            return await self._save_or_menu(user_input)
-        return self.async_show_form(
-            step_id="tuning",
-            data_schema=_page_schema("tuning", self._current, self.hass),
-        )
+        return await self._page("tuning", user_input)
 
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Danfoss ECL110 heat-curve offset control over MQTT."""
-        if user_input is not None:
-            return await self._save_or_menu(user_input)
-        return self.async_show_form(
-            step_id="heat_curve",
-            data_schema=_page_schema("heat_curve", self._current, self.hass),
-        )
+        return await self._page("heat_curve", user_input)
 
     # ------------------------------------------------------------------
     # Option pages added in v2.8.0
@@ -3811,29 +3797,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Photovoltaic array and export economics."""
-        current = self._current
-        if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "solar_pv", current)
-            )
-        return self.async_show_form(
-            step_id="solar_pv",
-            data_schema=_page_schema("solar_pv", current, self.hass),
-        )
+        return await self._page("solar_pv", user_input, clear=True)
 
     async def async_step_away(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Deep setback while the house is empty, with timed recovery."""
-        current = self._current
-        if user_input is not None:
-            return await self._save_or_menu(
-                _clear_absent(user_input, "away", current)
-            )
-        return self.async_show_form(
-            step_id="away",
-            data_schema=_page_schema("away", current, self.hass),
-        )
+        return await self._page("away", user_input, clear=True)
 
     async def async_step_learning(
         self, user_input: dict[str, Any] | None = None
@@ -3847,23 +3817,13 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         wrote ``None`` over whatever that page had stored, on every save
         (#542).
         """
-        if user_input is not None:
-            return await self._save_or_menu(user_input)
-        return self.async_show_form(
-            step_id="learning",
-            data_schema=_page_schema("learning", self._current, self.hass),
-        )
+        return await self._page("learning", user_input)
 
     async def async_step_learning_features(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Plan-affecting learning toggles."""
-        if user_input is not None:
-            return await self._save_or_menu(user_input)
-        return self.async_show_form(
-            step_id="learning_features",
-            data_schema=_page_schema("learning_features", self._current, self.hass),
-        )
+        return await self._page("learning_features", user_input)
 
     #: The preview a first submit of the pre-fill page computed: the prefix to
     #: store with the save (None when it found nothing, so nothing is written),

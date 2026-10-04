@@ -31,7 +31,7 @@ from homeassistant.util import dt as dt_util
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
 from .payload import AwayView
-from .store import QuarantiningStore
+from .store import QuarantiningStore, load_mapping
 
 from .const import (
     CONF_AWAY_DHW_MIN_TEMP,
@@ -360,13 +360,9 @@ async def persist_override(coord: _AwayCoord) -> None:
 
 
 async def restore_override(coord: _AwayCoord) -> None:
-    try:
-        raw = await _away_store(coord).async_load()
-    except Exception as err:  # noqa: BLE001
-        _LOGGER.debug("Could not load away override: %s", err)
-        raw = None
+    raw = await load_mapping(_away_store(coord), "away override")
     payload = empty_override()
-    if isinstance(raw, dict):
+    if raw is not None:
         payload["active"] = bool(raw.get("active"))
         parsed = _parse_return_time(raw.get("return_time"))
         payload["return_time"] = parsed.isoformat() if parsed else None

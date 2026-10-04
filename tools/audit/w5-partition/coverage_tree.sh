@@ -15,6 +15,18 @@
 #                 or the other, never both, so including both double-counts
 #   rolling    -- SLOW=1 only, so it is not in the default gate
 #
+# and a third, for cost and not for double-counting (R9-F10.14):
+#   arch_score, arch_score_head -- they parse custom_components as TEXT (AST,
+#                 from git for the first, from the tree for the second) and
+#                 import none of it, so they execute no package line and add
+#                 nothing to this measurement. They cost the most here: the
+#                 pure-Python AST walk is the tracer's worst case, 23.8 min
+#                 median of a 45-50 min job traced against 9.4 min bare in
+#                 `fast`, where run.sh still runs them. coverage.json is
+#                 byte-identical with and without them (the proof is in the
+#                 pull request body). A future script of that kind that does
+#                 import the package must NOT be added here.
+#
 # THE PATTERN ALSO DROPS ONE SCRIPT SILENTLY, named here so the next reader does
 # not have to re-measure to learn it: tests/run.sh invokes
 #   run_always "$PYTHON" tests/closure.py selftest
@@ -78,7 +90,8 @@ mkdir -p "$OUT/logs" "$OUT/per" "$WORK/site" "$WORK/data"
 export HPO_PLANDATA="$WORK/plandata.json"
 
 DERIVED=$(grep -oE 'run "\$PYTHON" tests/[a-z_]+\.py' tests/run.sh \
-          | sed 's#.*tests/##;s#\.py##' | awk '!seen[$0]++')
+          | sed 's#.*tests/##;s#\.py##' | awk '!seen[$0]++' \
+          | grep -vxE "arch_score|arch_score_head")
 E2E="validate edge backtest optimality"
 case "$STAGE" in
   fast)   SCRIPTS=$(echo "$DERIVED" | grep -vxE "env_drift|rolling|stress|validate|edge|backtest|optimality") ;;

@@ -94,6 +94,13 @@ def main() -> int:
     R.check("the metrics and tests/structure.py key on the same coordinator class",
             common.COORD_CLASS == structure.COORDINATOR_CLASS_NAME,
             f"{common.COORD_CLASS} vs {structure.COORDINATOR_CLASS_NAME}")
+    trees = structure.module_trees()
+    shared, adjacent = structure.duplicate_clones(trees), counters.gapped_clones(structure, trees, gap=0)
+    R.check("the score's clone census with no gap is the ratchet's census (C3 only widens it)",
+            adjacent == shared, f"{len(adjacent)} classes vs {len(shared)}")
+    wide = counters.gapped_clones(structure, trees)
+    R.check("...and with any gap it keeps every class the ratchet finds",
+            all(any(set(g) <= set(w) for w in wide) for g in shared))
     writers = hub_writers(ROOT)
     R.check("nothing the solve reaches writes a hub but its event-driven producers (#1736)",
             writers <= set(SOLVE_PATH_HUB_WRITERS),

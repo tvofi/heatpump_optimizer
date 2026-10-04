@@ -35,7 +35,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 |---|---|---|
 | C1 an `Any` or `object` key is untyped | an all-`Any` TypedDict | 01 |
 | C2 `reflective_writes`, C2b `computed_attr_access` (tripwires) | `object.__setattr__`, `type(x).__setitem__`, a hub handle behind a computed name | 02, 03, 10, 13 |
-| C3 an effect-free statement does not split a clone | `id(N)` in every clone window | 04 |
+| C3 a clone window is any two statements of a block, in order | junk interleaved in every clone window | 04, 04b to 04zb |
 | C4 the coordinator is measured as its whole package class hierarchy | a rename plus an empty subclass, a mixin | 05, 05b, 05c, 05d |
 | C5 a passthrough property reads as its private | public `raw_<x>` accessors | 06 |
 | C6 `family_orphan_overrides` | families declared into one-member families | 07 |
@@ -76,23 +76,47 @@ is the correction the pre-study already recorded (section 7).
 
 Nothing else moved: the corpus holdout, every other planted case, and weight sensitivity (no weight
 perturbation moves a verdict) read as the pre-study recorded them. Every red-team attempt labelled GAME reads
-NULL or inadmissible; the three labelled KNOWN-OPEN (below) read IMPROVES.
+NULL or inadmissible. The three that read IMPROVES as KNOWN-OPEN until R9-EG-A2 (`rt_04h`, `rt_04i`,
+`rt_04j`) are GAMEs since C3 joins clones across any gap, and read NULL.
 
 ## Changing it
 
 A verdict that moves is a diff to `expected.json`: `calibrate.py --record` prints each one. Say why in
 the commit. A new evasion found is a new case in `planted/redteam/` with its counter.
 
-### Known limit: interleaved effect-free statements
+### Interleaved junk: closed by the window, not by a list
 
-Effect-free statements interleaved in every clone split its windows, and the score reads that as a
-dedupe (IMPROVES, admissible; +14.15 for the three below, the figure an uncharged `pass` gave). C3 drops a statement only if it is on
-its enumerated list (`counters.is_noop`), so the class stays open: `assert True`, `_ = None` and
-`(_ := 0)` are not on it and each reads IMPROVES (`rt_04h`, `rt_04i`, `rt_04j`, marked KNOWN-OPEN and
-expected IMPROVES, so a class fix flips them and the check asks for the re-record). Extending the list
-was refused by tvofi (2026-10-02): a sixth spelling beats a fifth widening. A reviewer reads a
-duplication-driven IMPROVES against the diff, as a report and not as evidence. The class fix, a clone
-comparison that tolerates interleaved statements or drops dead ones by data flow, is owed to R9-EG-A2.
+Junk interleaved in every clone splits the shared census's windows of two adjacent statements, and the
+score would read that as a dedupe. C3 replaces the census in the score's copy only
+(`counters.gapped_clones`): a window is any two statements of one block, in order, however far apart.
+A copy keeps its original's statements in order, so whatever is interleaved -- any spelling, any count,
+with an effect or without -- leaves the original's pairs intact and the clone joined.
+
+- Its adjacent pairs are exactly the shared census, and `tests/arch_score_head.py` checks the two agree,
+  so the score's count is a superset of the ratchet's: 59 shared copies read 87 at `origin/main`.
+- Every interleaving attempt reads NULL: 04 and 04b to 04zb, i.e. every spelling an enumeration was
+  shown (the round-3 KNOWN-OPEN three, the two review rounds' seven, the seat's probes), and an
+  effectful `print` that no rule dropping dead statements could ever drop.
+- It replaced the statement-dropping C3 of the first rounds, which each review beat with a spelling
+  outside its grammar.
+
+One planted verdict moved with it: `a1_G2_dedupe` (GOOD) reads NULL, not IMPROVES. G2 moves the two
+fabric learners' shared replay block into a helper, but the learners still share 12 ordered statement
+pairs (the guard, the `dt_h` line, the replay call, the finiteness check), so under any gap they stay one
+clone class and the copy count does not fall; the adjacent census lost its only window and read the
+partial dedupe as a whole one. No corpus verdict moved (81 corpus vectors re-measured), and no weight
+sensitivity. The matcher costs 228 s against 208 s for the corpus re-measure (`--measure-corpus --jobs 4`,
+one run each, this machine).
+
+What it does not see: a copy whose statements are reordered or split across blocks. `rt_04zz1` pins the
+second: it wraps each statement of a copy in its own always-true `if <n>:`, and reads IMPROVES (+12.63,
+admissible), labelled KNOWN-OPEN so a fix that closes it flips the case and asks for the re-record. A
+window that crosses block boundaries would close it, at the cost of joining unrelated code that happens
+to share two statements anywhere in a function. Until then a reviewer reads such a diff as what it is,
+restructuring with no change in logic.
+
+The converse of a known limit below: a count credits a partial repair, but under the gap census a
+partial dedupe that leaves a pair sharing any two statements in order reads NULL (`a1_G2_dedupe`).
 
 Known limits, so a reader does not credit the score with more than it does:
 

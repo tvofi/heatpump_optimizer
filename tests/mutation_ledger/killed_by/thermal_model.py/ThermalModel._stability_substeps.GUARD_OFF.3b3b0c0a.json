@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalModel._stability_substeps GUARD_OFF 3b3b0c0a",
-  "killed_by": "tests/features.py",
-  "old": "            if mixing_valve.is_throttling(p.mixing_valve_mode):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9c6b923f2614936aad89e1408dabca8ddd721322: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
-}

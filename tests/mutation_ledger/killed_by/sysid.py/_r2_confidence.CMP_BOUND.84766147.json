@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_r2_confidence CMP_BOUND 84766147",
+  "killed_by": "tests/features.py",
+  "old": "    r2 = 1.0 - ss_res / ss_tot if ss_tot > 1e-9 else 0.0",
+  "reason": "Recorded by hand for R9-EG-A2 (#1874) on an export of the branch, 2026-10-03, because `mutation_table.py --pin-killed` refuses on this machine (tests/features.py's baseline is red for the environment: R9-F2.1 P3, BLAS): a kill is a red run naming a FAIL line or traceback the unmutated baseline does not. CMP_BOUND (`r2 = 1.0 - ss_res / ss_tot if ss_tot >= 1e-9 else 0.0`) took tests/features.py from rc=1 failed=2 to rc=1 failed=3, newly failing ['EG-A2 data whose spread is at the 1e-9 floor reads no confidence (the floor is strict)']."
+}
