@@ -7414,6 +7414,91 @@
     "note": "Owner-approved direction 2026-10-04. Follow-up to R9-FR-8 (#1948). The seat's resume note on its branch outranks this entry for in-flight state."
    },
    "brief": "Round-9 tooling PR FR-10 (lane FIX, record-autofix). Issue #1952 (Fixes). A record-autofix job in tests.yml, on schedule and on a red record check on main, that enumerates rowless merges via the REST API, emits docs/delivery/<N>.md rows from API facts plus the branch-to-group lookup tools/audit/seat/roster_lib.py already provides, opens the record PR as the hpo-author App with a generated pr-contract-passing body, and posts its own #201 coordination comment. Copy mutation-ledger-push's App-token minting from a main-only environment, its guarded write set and loop-guarded ci: subject, and closures-autofix's PR-opening shape. Keep manual: the approving labelled review on the record PR and the HANDOVER updated-for line. Traps to encode in tests: rows never at the table end; no closing keywords in generated prose; the template body passes policy_lint and pr-contract. After R9-FR-8 (roster_lib is its product)."
+  },
+  {
+   "group": "R9-SW-6",
+   "lane": "SW",
+   "issues": [
+    1955
+   ],
+   "fixes": [
+    1955
+   ],
+   "covers": [],
+   "class": "feature",
+   "wave": 13,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "fixer_why": "solver and arbiter change with goldens that must stay byte-identical on metered installs; adversarial review",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "high",
+   "blocked_on": [],
+   "after": [
+    "R9-EG-B1",
+    "R9-SW-1"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-sw6",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer.md step 1 at a fresh merge base: re-read the issue and its diagnosis evidence, then write the failing test",
+    "note_file": "handoff/round9/fix/resume/SW-6.md",
+    "review_branch": "handoff/r9-sw6-review",
+    "review_note_file": "handoff/round9/fix/resume/SW-6-review.md",
+    "plan": "handoff/audit-r9-fixplan: this roster; the issue carries the diagnosis",
+    "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+    "note": "Owner-approved fold 2026-10-04 (live-install diagnosis). The seat's resume note on its branch outranks this entry."
+   },
+   "brief": "Round-9 feature PR SW-6 (lane SW, planner power semantics on unmetered installs). Issue #1955 (Fixes). Four folded fixes from the owner's 2026-10-04 diagnosis: (a) clamp planned levels to [p_min, p_max] when the install's write surface cannot duty-cycle (switch plus setpoint only), config-gated; (b) vary the flow setpoint with the planned level instead of the constant 55 C (make FLOW_HEAT_C configurable; toward inlet temperature for lower power); (c) freeze or flag the house-heat-loss learner on installs without measured power, symmetric with the boost-freeze gate of R9-DIAG-1F; (d) refuse or gate the duty-cycle reading of sub-minimum levels when no mechanism can realize it. Introduce ONE install-capability probe (writes available; measured power present; frequency present) that (a), (c) and (d) all read -- R9-UX-9 consumes it for the card recommendation. Goldens byte-identical when the probe reports a fully metered install. After R9-EG-B1 and R9-SW-1 (both touch the same solve and plan surface)."
+  },
+  {
+   "group": "R9-UX-9",
+   "lane": "UX",
+   "issues": [
+    1956
+   ],
+   "fixes": [
+    1956
+   ],
+   "covers": [],
+   "class": "feature",
+   "wave": 13,
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "card rendering over an existing probe; specified with the diagnosis as oracle",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "blocked_on": [],
+   "after": [
+    "R9-SW-6"
+   ],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-ux9",
+    "commit": null,
+    "last_step": null,
+    "next_step": "fixer.md step 1 at a fresh merge base: re-read the issue and its diagnosis evidence, then write the failing test",
+    "note_file": "handoff/round9/fix/resume/UX-9.md",
+    "review_branch": "handoff/r9-ux9-review",
+    "review_note_file": "handoff/round9/fix/resume/UX-9-review.md",
+    "plan": "handoff/audit-r9-fixplan: this roster; the issue carries the diagnosis",
+    "log": "handoff/audit-r9-plan:handoff/round9/RESUME.md (append-only mirror)",
+    "note": "Owner-approved fold 2026-10-04 (live-install diagnosis). The seat's resume note on its branch outranks this entry."
+   },
+   "brief": "Round-9 feature PR UX-9 (lane UX, card sensor recommendation). Issue #1956 (Fixes). On installs with none of pump power or energy sensor, compressor frequency entity, or water mass flow, the card surfaces a dismissable concrete recommendation naming the missing sensor class and what it unlocks (planner power feedback; no reliable inference exists without one of the three -- the 2026-10-04 diagnosis). Detection rides the install-capability probe R9-SW-6 introduces, not a second probe. If a flow-meter entity is configurable, the recommendation names it and its config key. Card tests follow the existing card test lane."
   }
  ]
 }
