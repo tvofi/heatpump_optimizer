@@ -100,9 +100,18 @@ GOLDEN_REF="${GOLDEN_REF:-origin/main}"
 # The export is what makes the suite's decision the one that arrives.
 export GOLDEN_MODE GOLDEN_REF
 
+# GNU `nproc` answers OMP_NUM_THREADS (and OMP_THREAD_LIMIT) when either is set,
+# not the core count. The CI `fast` step pins OMP_NUM_THREADS=1 for the solver's
+# CPU-time guards, so `nproc` there said 1 and every sampled `fast` log ended
+# "TOTAL (1 lane(s))": the lanes below never ran in parallel in CI (R9-F10.15).
+# The lane count asks the machine, so it asks with those pins removed; the pins
+# still reach every script, exported as they were.
 JOBS="${GATE_JOBS:-}"
 if [ -z "$JOBS" ]; then
-  if command -v nproc >/dev/null 2>&1; then JOBS=$(nproc); else JOBS=1; fi
+  if command -v nproc >/dev/null 2>&1; then
+    JOBS=$(env -u OMP_NUM_THREADS -u OMP_THREAD_LIMIT nproc)
+    echo "lane count: nproc=$(nproc) as the environment answers it, nproc=$JOBS with OMP_NUM_THREADS and OMP_THREAD_LIMIT unset (OMP_NUM_THREADS='${OMP_NUM_THREADS:-}'); lanes = min(that, 3)"
+  else JOBS=1; fi
   [ "$JOBS" -gt 3 ] && JOBS=3
 fi
 case "$JOBS" in (*[!0-9]*|"") JOBS=1 ;; esac

@@ -106,11 +106,20 @@ p1=$!
 # could not decide anything. Recording it cost 62 minutes under the audit
 # hook -- more than every other script combined -- for an answer nothing
 # reads. See the SLOW_GATED comment in tests/closure.py.
-# Lane 3: everything else, in one sequence. plan_view.py writes the payload
-# card.mjs reads, so that pair keeps its order here exactly as in run.sh.
+# Lane 2: features.py and entities.py, the two longest after stress. Neither
+# reads anything a script of lane 3 writes (run.sh runs them beside the others
+# for the same reason), and the recordings are one file per script under
+# $OUTDIR, so which lane takes a script changes when it is recorded and not
+# what it opens (R9-F10.15). Closures are measured as before; the proof is the
+# `closures` job's UNDER-SCOPED check on this very lane layout.
 (
   rec tests/features.py
   rec tests/entities.py
+) &
+p2=$!
+# Lane 3: everything else, in one sequence. plan_view.py writes the payload
+# card.mjs reads, so that pair keeps its order here exactly as in run.sh.
+(
   # #1413: the doc-claims-vs-code-facts detector. A selectable script the
   # lanes never recorded fails the closures job on main with "NO recording
   # this run" however complete the committed table is -- the same trap
@@ -195,7 +204,7 @@ p1=$!
   rec tests/card_drift.mjs
 ) &
 p3=$!
-wait $p1 $p3
+wait $p1 $p2 $p3
 
 echo
 if [ "$MERGE" -eq 1 ]; then
