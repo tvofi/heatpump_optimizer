@@ -123,3 +123,46 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
     if len(cut) > limit:
         cut = cut[: limit - 3].rstrip() + "..."
     return cut
+
+
+# ------------------------------------------------- the branch-to-group lookup
+#
+# A merged pull request's head branch answers for the roster group its work
+# rode, so the record beat can suffix its `docs/delivery/<N>.md` row with the
+# group id. This is the ONE derivation of that mapping; the record-autofix
+# generator (record_row.py) imports it rather than re-deriving it (#1948's
+# product carrying its own consumer).
+
+def branch_of(group: dict) -> str:
+    """The branch a group's work rides: `resume.branch`, else
+    `handoff/<group id lowercased>`."""
+    return ((group.get("resume") or {}).get("branch")
+            or "handoff/" + str(group.get("group") or "").lower())
+
+
+def _norm_branch(s: str) -> str:
+    return s.replace("_", "-").lower()
+
+
+def group_for_branch(roster: dict, branch: str) -> str | None:
+    """The roster group id `branch` answers for, or None.
+
+    Two passes. First an exact `resume.branch` match (the roster's own
+    record of where the group's work rides). Then the branch's LAST path
+    segment, normalized (lowercased, `_` -> `-`), against each group id
+    normalized the same way: `fix/r9-fr-4` answers for `R9-FR-4` without the
+    roster having to name every branch spelling a seat used. Equality, never
+    a prefix -- `fix/r9-fr-1` must not answer for `R9-FR-10`. None for a
+    branch no group claims: the caller rows it in the neutral phrasing.
+    """
+    if not branch:
+        return None
+    for g in roster.get("groups", []):
+        if branch_of(g) == branch:
+            return g.get("group")
+    tail = _norm_branch(branch.rstrip("/").rsplit("/", 1)[-1])
+    for g in roster.get("groups", []):
+        gid = _norm_branch(str(g.get("group") or ""))
+        if gid and gid == tail:
+            return g.get("group")
+    return None
