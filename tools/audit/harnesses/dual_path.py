@@ -81,6 +81,7 @@ EXPECTED = {
     ("graders", "preflight"): "its staleness line counts the policy files the planted commit moves as authored "
                               "on the branch, which a move pull request's are",
     ("neither", "agreement"): "its grammar census counts the regexes HEAD's graders add",
+    ("neither", "brief_lint"): "HEAD's brief_lint prints its LOCATE acceptance line",
 }
 _spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
 CG = importlib.util.module_from_spec(_spec)
