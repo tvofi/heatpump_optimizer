@@ -17,8 +17,8 @@ dead-member census and one import graph:
     dead_members                   structure's dead_methods + dead_top_level_symbols
 
 Three things are done to that copy and never to ``tests/structure.py`` itself, because each is a
-red-team counter and the ratchet must not move with it (``counters.py``): effect-free statements
-are dropped before a clone window is cut (C3), a passthrough property reads as its private (C5),
+red-team counter and the ratchet must not move with it (``counters.py``): a clone window is any two
+statements of a block in order (C3), a passthrough property reads as its private (C5),
 and the seam cut is stubbed -- it needs a seam-map entry for every coordinator method, which a
 planted or a historic tree does not carry, and no score metric uses it.
 
@@ -98,9 +98,8 @@ def structure_rows(root: Path) -> dict:
     off = ablated()
     S = load_structure(root)
     S.seam_metrics = _stub_seams
-    plain = S._is_docstring
     if "C3" not in off:
-        S._is_docstring = lambda s: plain(s) or K.is_noop(s)
+        S.duplicate_clones = lambda trees, *a, **kw: K.gapped_clones(S, trees)
     sites = S.private_reach_sites
 
     def reach_with_passthrough(roles):
