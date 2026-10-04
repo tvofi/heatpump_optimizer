@@ -32,7 +32,13 @@ if (!src.includes(entry)) {
   console.error('consumer harness: friction_issues.mjs no longer dispatches via run(argv); re-point the strip')
   process.exit(1)
 }
-const tmp = path.join(os.tmpdir(), `r9fr3-consumer-${process.pid}.mjs`)
+// The stripped copy is written inside a directory mkdtemp creates with a
+// random suffix, never directly into the shared temp dir under a predictable
+// name (CodeQL js/insecure-temporary-file on the first cut): the path no
+// other process can guess is what makes the write safe, and the whole
+// directory is removed in the finally below.
+const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'r9fr3-consumer-'))
+const tmp = path.join(workdir, 'friction_issues_stripped.mjs')
 fs.writeFileSync(tmp, src.replace(entry, '// entry stripped for the offline consumer probe'))
 
 // The exact shapes the family fold prints: additive CENSUS rows of kind
@@ -89,6 +95,6 @@ try {
   const q = parseHistogram(broken)
   st(q.ok === false && /declares 5 key\(s\) and 7 row\(s\) parsed/.test(q.why), `a producer that prints the family row without counting it refuses (why: ${JSON.stringify(q.why)})`)
 } finally {
-  fs.rmSync(tmp, { force: true })
+  fs.rmSync(workdir, { recursive: true, force: true })
 }
 process.exit(fail)
