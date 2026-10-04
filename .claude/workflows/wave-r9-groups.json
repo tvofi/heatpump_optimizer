@@ -7401,11 +7401,11 @@
     "R9-FR-8"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-fr-10",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-read issue 1952 and tools/audit/seat/roster_lib.py, then write the failing entities arm",
+    "commit": "31567b71820fe8e3380be30a19b7342360c3b6b8",
+    "last_step": "merged",
+    "next_step": null,
     "note_file": "handoff/round9/fix/resume/FR-10.md on handoff/r9-fr-10",
     "review_branch": "handoff/r9-fr-10-review",
     "review_note_file": "handoff/round9/fix/resume/FR-10-review.md on handoff/r9-fr-10-review",
