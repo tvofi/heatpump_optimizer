@@ -6776,10 +6776,10 @@
    "after": [],
    "brief": "tvofi, 2026-10-04 (pre-study R9-FR-1): #1860 — prepr.sh gains an ancestry red-check arm: the fix reviewer's root-cause trigger, moved to push time. New step after 'pr-body': enumerate the commits in $(git merge-base origin/main HEAD)..$(the branch's own remote head ref, via prepr's pr_head_ref — never @{u}, step 7b's rule), call gh api repos/<repo>/commits/<sha>/check-runs per pushed commit with pr-contract.yml's exact key (status completed, conclusion failure, check-run name != pr-contract, sort -u), and pass each red name to the SAME body check pr-contract uses, one --red per name, so one implementation decides 'does the body answer it', not two. Refuse when any red name is unanswered; say skip (never refuse) when gh is absent, the token is unset, no commits are pushed yet, or no commits have check-runs — the arm covers exactly what it can see and prints that boundary. Do NOT copy the nightly-status/delivery-status exemption: it already lives in policy_lint's --pr-body machinery, which the --red flags feed. Extend --self-test with offline check-runs fixtures under .claude/workflows/fixtures/: red-in-ancestry unanswered refuses (failing first), answered passes, no-reds passes, unpushed-head skips. pr-contract re-executes prepr: the arm must be local-only-deterministic in CI (skip line), like PREPR_SKIP_CLOSURES. No policy-file edit — defect-root-cause.md already prefers this detector. Body closes #1860 with the re-measurement command node .claude/workflows/policy_lint.mjs --stats --since <tag>.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "fix/r9-fr-2",
-    "commit": null,
-    "last_step": null,
+    "commit": "283eb22f",
+    "last_step": "none; MERGED as #1891 at 283eb22f by the merge train (first train landing); closes #1860 (verified CLOSED completed)",
     "next_step": "failing self-test fixture first, then the arm, then the null controls",
     "note_file": "handoff/round9/fix/resume/FR-2.md on fix/r9-fr-2",
     "review_branch": null,
