@@ -29962,35 +29962,62 @@ R.check(
                     ["tests/a.py", "tests/features.py"]),
     f"out={_MUT_OP_OUT!r}",
 )
-# End to end through `--anchor`: topology.py's `_tr` RETURN_DEL is pinned to
-# tests/guard_pins.py, which kills it. Planted instead on tests/plan_view.py
-# (which does not, and which the cost order would put second), the run must
-# drive plan_view first, find it did not kill, and say so; the real pin must
-# be reproduced.
+# Through `--anchor`, the real main(): inventory, anchor lookup, pool, driver
+# order, drive, kill rule, pin report. Only the two things that cost disk and
+# processes are stubbed -- the worktree builder and the driver runner -- so the
+# check builds no checkout and runs no subprocess (a full disk once turned the
+# whole run into a traceback). Two stub drivers stand in for the scripts: one
+# that fails on a mutated file and one that never does. topology.py's `_tr`
+# RETURN_DEL is pinned to the first; planted on the second, which the cost
+# order would put second, the run must drive it first, find it did not kill,
+# and say so. A real end-to-end `--anchor` run belongs to the mutation lane.
 _MUT_AN = "custom_components/heatpump_optimizer/topology.py:_tr RETURN_DEL 25b21b2f"
+_MUT_AN_REL = _MUT_AN.split(":")[0]
+_MUT_AN_KILL, _MUT_AN_PASS = "tests/stub_kills.py", "tests/stub_passes.py"
 _MUT_AN_BUDGETS = _mut.load_budgets()
+_MUT_AN_TEXT = (_mut.ROOT / _MUT_AN_REL).read_text()
 
 
-def _mut_anchor(killed_by_script):
+def _mut_an_clone(dest):
+    (dest / _MUT_AN_REL).parent.mkdir(parents=True, exist_ok=True)
+    (dest / _MUT_AN_REL).write_text(_MUT_AN_TEXT)
+    return dest
+
+
+def _mut_an_run(script, cwd, timeout, extra_args=None, extra_env=None):
+    text = (cwd / _MUT_AN_REL).read_text()
+    red = (script == _MUT_AN_KILL and text != _MUT_AN_TEXT
+           and "(null control)" not in text)
+    return _mut.ScriptRun(1 if red else 0, 1 if red else 0, 0.1,
+                          "  FAIL stub\n1 of 1 STUB CHECKS FAILED\n" if red
+                          else "ok\n")
+
+
+def _mut_anchor(pinned):
     budgets = _pv_copy.deepcopy(_MUT_AN_BUDGETS)
-    budgets["killed_by"][_MUT_AN]["killed_by"] = killed_by_script
-    _real = _mut.load_budgets
+    budgets["killed_by"][_MUT_AN]["killed_by"] = pinned
+    _saved = {n: getattr(_mut, n) for n in
+              ("load_budgets", "load_closures", "clone_tree", "drop_tree", "run_script")}
     _mut.load_budgets = lambda: budgets
+    _mut.load_closures = lambda: {_MUT_AN_KILL: [_MUT_AN_REL],
+                                  _MUT_AN_PASS: [_MUT_AN_REL]}
+    _mut.clone_tree, _mut.drop_tree = _mut_an_clone, lambda dest: None
+    _mut.run_script = _mut_an_run
     _log = tempfile.TemporaryFile("w+")
-    _argv = sys.argv
     try:
         with _pv_ctx.redirect_stdout(_log):
             _rc = _mut.main(["--scope", "full", "--anchor", _MUT_AN, "--jobs", "1",
-                             "--scripts", "tests/guard_pins.py,tests/plan_view.py"])
+                             "--scripts", f"{_MUT_AN_KILL},{_MUT_AN_PASS}"])
     finally:
-        _mut.load_budgets = _real
-        sys.argv = _argv
+        for _n, _v in _saved.items():
+            setattr(_mut, _n, _v)
     _log.seek(0)
     return _rc, _log.read()
 
 
-_MUT_AN_REAL = _mut_anchor("tests/guard_pins.py") if _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {}) else (None, "")
-_MUT_AN_WRONG = _mut_anchor("tests/plan_view.py") if _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {}) else (None, "")
+_MUT_AN_HAS = _MUT_AN in _MUT_AN_BUDGETS.get("killed_by", {})
+_MUT_AN_REAL = _mut_anchor(_MUT_AN_KILL) if _MUT_AN_HAS else (None, "")
+_MUT_AN_WRONG = _mut_anchor(_MUT_AN_PASS) if _MUT_AN_HAS else (None, "")
 R.check(
     "--anchor re-drives one site: the real pin is reproduced, a pin planted on "
     "a script that does not kill it is reported NOT REPRODUCED after its own "
@@ -29998,9 +30025,9 @@ R.check(
     _MUT_AN_REAL[0] == 0 and _MUT_AN_WRONG[0] == 0
     and "PIN RE-VERIFICATION: 1 reproduced, 0 not reproduced, 0 not re-verified" in _MUT_AN_REAL[1]
     and "PIN NOT REPRODUCED" in _MUT_AN_WRONG[1]
-    and "pinned to tests/plan_view.py, killed by tests/guard_pins.py" in _MUT_AN_WRONG[1]
+    and f"pinned to {_MUT_AN_PASS}, killed by {_MUT_AN_KILL}" in _MUT_AN_WRONG[1]
     and "PIN RE-VERIFICATION: 0 reproduced, 1 not reproduced, 0 not re-verified" in _MUT_AN_WRONG[1],
-    f"real={_MUT_AN_REAL!r:.600} wrong={_MUT_AN_WRONG!r:.600}",
+    f"has pin={_MUT_AN_HAS} real={_MUT_AN_REAL!r:.500} wrong={_MUT_AN_WRONG!r:.500}",
 )
 _MUT_PV_NIGHT = _workflow_job(_TESTS_YML, "mutation-nightly")
 R.check(
