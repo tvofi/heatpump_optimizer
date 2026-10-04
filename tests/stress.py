@@ -1763,7 +1763,7 @@ def budget_remeasure_verdicts(
     rows: list[tuple[str, float, str]],
     combos_by_label: dict[str, dict],
     budget_table: dict[str, dict],
-    unit_ms: float,
+    unit,
     rounds: int = BUDGET_REMEASURE_ROUNDS,
     solve=None,
     sample=None,
@@ -1776,18 +1776,26 @@ def budget_remeasure_verdicts(
     against a 7.9x budget, over by the width of one noisy solve, on an
     unchanged plan two same-day runs passed. Each row is (label, ratio,
     message) -- a scenario_verdict ``over`` line from the sweep. Every
-    over-budget scenario is re-solved ``rounds`` times, each re-solve
-    beside a fresh reference sample (the same ruler the sweep loop uses:
-    sample, then solve), and the MEDIAN ratio is judged by the same
-    scenario_verdict. A burst lifts one solve, not a median of three; a
-    scenario genuinely over its budget re-measures over it, so the
-    channel's floor stays where SCENARIO_BUDGET_FACTOR put it. Returns
-    (kept, notes): ``kept`` the over lines that stand (each marked with
-    its confirming median), ``notes`` the scenarios whose median cleared,
-    reported rather than failed. ``solve(combo)`` returns one solve's CPU
-    ms and ``sample()`` takes one reference sample; the stubs are how the
-    decision is pinned without a clock, the shape per_call_cost_rounds's
-    ``solve`` established.
+    over-budget scenario is re-solved ``rounds`` times on the sweep
+    loop's own ruler, in the loop's own order: take a fresh reference
+    sample (``sample`` -- the sweep passes ``calibration.sample``, the
+    same hook it takes before every solve it judges, whose reading is
+    what updates the trailing median), then read the unit as it then
+    stands (``unit()``), then solve, then divide by it. That is the loop
+    comment's own doctrine -- the ruler and the thing being measured see
+    the same machine -- and #1954's review refused the shape where the
+    sample hook was claimed in four places and wired nowhere: without
+    the sample the divisor is a unit frozen before any re-solve ran, a
+    ruler the sweep itself does not use. A burst lifts one solve, not a
+    median of three; a scenario genuinely over its budget re-measures
+    over it, so the channel's floor stays where SCENARIO_BUDGET_FACTOR
+    put it. Returns (kept, notes): ``kept`` the over lines that stand
+    (each marked with its confirming median), ``notes`` the scenarios
+    whose median cleared, reported rather than failed.
+    ``solve(combo)`` returns one solve's CPU ms, ``sample()`` takes one
+    reference sample and ``unit()`` reads the divisor; the stubs are how
+    the decision and its wiring are pinned without a clock, the shape
+    per_call_cost_rounds's ``solve`` established.
     """
     kept: list[str] = []
     notes: list[str] = []
@@ -1800,17 +1808,19 @@ def budget_remeasure_verdicts(
         ratios = []
         for _ in range(rounds):
             take_sample()
-            ratios.append(float(one_solve(combo)) / unit_ms)
+            ratios.append(float(one_solve(combo)) / unit())
         median = float(np.median(ratios))
         re_verdict = scenario_verdict(label, median, budget_table)
         re_over = None if re_verdict is None else re_verdict[0]
         if re_over is None:
             notes.append(
-                f"{label} re-solved {rounds}x beside fresh reference "
-                f"samples: median {median:.1f}x its reference (min "
-                f"{min(ratios):.1f}x, max {max(ratios):.1f}x), within its "
-                f"budget -- the sweep's single reading of {ratio:.1f}x was "
-                f"runner variance, not a regression (#1947)"
+                f"{label} re-solved {rounds}x on the sweep's own ruler -- "
+                f"a fresh reference sample, then the trailing-median unit "
+                f"that sample updates, then the solve -- median {median:.1f}x "
+                f"its reference (min {min(ratios):.1f}x, max "
+                f"{max(ratios):.1f}x), within its budget -- the sweep's "
+                f"single reading of {ratio:.1f}x was runner variance, not a "
+                f"regression (#1947)"
             )
         else:
             kept.append(
@@ -3543,7 +3553,7 @@ if __name__ == "__main__":
     # width of one noisy solve. The over line is re-measured on the median
     # of BUDGET_REMEASURE_ROUNDS re-solves before it fails the run: the
     # noise shape clears, a genuinely over-budget scenario re-measures
-    # over and stands. Stubbed solve/sample -- no clock, no solve.
+    # over and stands. Stubbed solve/unit/sample -- no clock, no solve.
     _BUDGET_LABEL = "summer/1z/dhw/fuse-cap"
     _BUDGET_TABLE = {_BUDGET_LABEL: {"ratio": 2.63}}
     _BUDGET_UNIT = 1000.0  # ms of reference CPU per unit of ratio
@@ -3553,7 +3563,8 @@ if __name__ == "__main__":
         over, _ = scenario_verdict(_BUDGET_LABEL, sweep_ratio, _BUDGET_TABLE)
         return budget_remeasure_verdicts(
             [(_BUDGET_LABEL, sweep_ratio, over)],
-            {_BUDGET_LABEL: {}}, _BUDGET_TABLE, _BUDGET_UNIT,
+            {_BUDGET_LABEL: {}}, _BUDGET_TABLE,
+            unit=lambda: _BUDGET_UNIT,
             solve=lambda combo: float(next(seq)) * _BUDGET_UNIT,
             sample=lambda: None,
         )
@@ -3575,6 +3586,38 @@ if __name__ == "__main__":
         "fails it, its over line naming the confirming median",
         len(_confirmed_kept) == 1 and "median 8.0x" in _confirmed_kept[0],
         f"kept={_confirmed_kept}",
+    )
+
+    # (b3d) the re-measure's ruler is the sweep loop's own ORDERING --
+    # sample, then read the unit as it then stands, then solve -- and
+    # the sample hook is actually invoked, once per re-solve. The sweep
+    # wiring passes calibration.sample and a live unit reader; this arm
+    # pins that wiring on the stub: the unit CHANGES between re-solves,
+    # so a mutant that skips the sample hook (sample count 0) or divides
+    # by a unit frozen at call time (all ratios 8.0x, median over
+    # budget) dies here instead of shipping a ruler the sweep never
+    # used -- the claim-stronger-than-the-check class #1954's review
+    # refused.
+    _wired_samples: list[int] = []
+    _wired_units = iter([1000.0, 2000.0, 4000.0])
+    _wired_solves = iter([8000.0] * BUDGET_REMEASURE_ROUNDS)
+    _wired_over, _ = scenario_verdict(_BUDGET_LABEL, 8.0, _BUDGET_TABLE)
+    _wired_kept, _wired_notes = budget_remeasure_verdicts(
+        [(_BUDGET_LABEL, 8.0, _wired_over)],
+        {_BUDGET_LABEL: {}}, _BUDGET_TABLE,
+        unit=lambda: float(next(_wired_units)),
+        solve=lambda combo: float(next(_wired_solves)),
+        sample=lambda: _wired_samples.append(1),
+    )
+    R.check(
+        "the budget re-measure takes a fresh reference sample before "
+        "each re-solve and divides by the unit as it then stands, not "
+        "one frozen at call time (round-9 #1954)",
+        len(_wired_samples) == BUDGET_REMEASURE_ROUNDS
+        and not _wired_kept
+        and "median 4.0x" in _wired_notes[0],
+        f"samples taken={len(_wired_samples)}, kept={_wired_kept}, "
+        f"notes={_wired_notes}",
     )
 
     # (b4) the per-call-cost arm's round and batch decisions, on stubbed
@@ -4440,10 +4483,14 @@ if __name__ == "__main__":
         # The over-budget readings are re-measured before they fail the
         # run (#1947): one solve's ratio is one reading of the machine,
         # and the median of BUDGET_REMEASURE_ROUNDS re-solves decides.
+        # The re-solves run on the loop's own ruler: calibration.sample
+        # beside each one, the unit read as it then stands (#1954 -- a
+        # unit frozen here would be a ruler the sweep itself never uses).
         if over_budget_rows:
             over_budget, _re_measured = budget_remeasure_verdicts(
                 over_budget_rows, combos_by_label, budget_table,
-                max(calibration.unit_ms, 1e-6),
+                unit=lambda: max(calibration.unit_ms, 1e-6),
+                sample=calibration.sample,
             )
             for _line in _re_measured:
                 print(f"  {_line}")
