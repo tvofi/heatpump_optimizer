@@ -6940,6 +6940,44 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-FR-5",
+   "lane": "FIX",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 1,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "effort": "medium",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [
+    "R9-FR-2"
+   ],
+   "brief": "tvofi, 2026-10-04 (small instrument fix, both FR-3 and WEB-5 hit it): prepr's closures recorder defaults to pyenv python3 (3.11), which cannot parse the tree — the recording fails once, the run refuses, and the seat has to re-run under the seat venv (R9-FR-3 and R9-WEB-5 both lost a full prepr pass to exactly this). Fix in prepr.sh (and its self-test): resolve the recorder's interpreter deliberately — prefer HPO_TYPING_PYTHON / the seat venv when its version parses the tree, adapt (re-exec under it) when a usable one exists, and REFUSE with the install command when none does (mirroring gate-scoping.md's mypy-census rule: an unpinned interpreter fails rather than measuring, #1091/#1099/#1095). Failing fixture first: a recording run under 3.11 refuses with the named command instead of a truncated-recording refusal; under the seat venv the recording is unchanged. After R9-FR-2 (prepr.sh serialised). Include the two incidents as the body's motivating figures.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-5",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing 3.11-refusal fixture first, then the deliberate interpreter resolution",
+    "note_file": "handoff/round9/fix/resume/FR-5.md on fix/r9-fr-5",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
