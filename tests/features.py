@@ -57193,6 +57193,166 @@ R.check(
     f"{_r9egb1_o_got}",
 )
 
+# Round 3 (blocked verdict "mutation-unpinned"): the boundary guards the
+# mutation drive found living through every driver -- edges of the record's
+# builders no scenario above sat on. Each check drives the edge its mutant
+# moves; the drive that found them is in the PR body's mutation section.
+_r9egb1_ap = _r9egb1_coord(learned=True)
+_r9egb1_ap._solar_aperture.update(
+    scale=1.4, n=float(_r9egb1_const.SOLAR_APERTURE_MIN_SAMPLES))
+_r9egb1_ap_at = _solve_record_now(_r9egb1_ap).params.solar_aperture_scale
+_r9egb1_ap._solar_aperture.update(
+    n=float(_r9egb1_const.SOLAR_APERTURE_MIN_SAMPLES - 1))
+_r9egb1_ap_under = _solve_record_now(_r9egb1_ap).params.solar_aperture_scale
+R.check(
+    "#1736 the learned aperture scale applies at exactly its minimum sample "
+    "count (30); one sample under it does not",
+    _r9egb1_ap_at == 1.4 and _r9egb1_ap_under == 1.0,
+    f"at {_r9egb1_ap_at!r}, under {_r9egb1_ap_under!r}",
+)
+
+
+def _r9egb1_gains(on, profile):
+    """The record's gains profile, or the exception building it raised."""
+    coord = _r9egb1_coord()
+    if on:
+        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+    coord._internal_gains_profile = profile
+    try:
+        return _solve_record_now(coord).params.internal_gains_profile
+    except Exception as err:  # noqa: BLE001 - a raise is this check's failure
+        return repr(err)
+
+
+_r9egb1_ga = {
+    "off, stale profile": _r9egb1_gains(False, [0.25] * 24),
+    "on, no profile": _r9egb1_gains(True, None),
+    "on, profile": _r9egb1_gains(True, [0.25] * 24),
+}
+R.check(
+    "#1736 the learned gains profile reaches the record only when learning "
+    "is on AND the learner has one: None in both mixed arms, never a stale "
+    "profile and never a raise over list(None)",
+    _r9egb1_ga == {"off, stale profile": None, "on, no profile": None,
+                   "on, profile": [0.25] * 24},
+    f"{_r9egb1_ga}",
+)
+
+_r9egb1_wk = _r9egb1_coord(dhw=True)
+_r9egb1_wk_l = _r9egb1_wk._dhw_learner
+_r9egb1_wk_l.profile_weekday = [1.0] * 23 + [2.0]
+_r9egb1_wk_l.profile_weekend = [2.0] + [1.0] * 23
+_r9egb1_wk_l.daytype_samples = [30, 30]
+_r9egb1_sat = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)  # a Saturday
+_r9egb1_wk_we = _r9egb1_wk_l.pattern_for(True)
+_r9egb1_wk_wd = _r9egb1_wk_l.pattern_for(False)
+_r9egb1_wk_got = _r9egb1_wk._dhw_plan_fields(_r9egb1_sat)[
+    "dhw_hourly_draw_pattern"]
+R.check(
+    "#1736 the day-type blend a solve plans with follows the calendar day: "
+    "a Saturday takes the weekend pattern",
+    _r9egb1_sat.weekday() == 5 and _r9egb1_wk_we != _r9egb1_wk_wd
+    and _r9egb1_wk_got == _r9egb1_wk_we
+    and _r9egb1_wk_got != _r9egb1_wk_wd,
+    f"weekday {_r9egb1_wk_wd[:3]}, weekend {_r9egb1_wk_we[:3]}, "
+    f"got {_r9egb1_wk_got[:3]}",
+)
+
+_r9egb1_qt = _r9egb1_coord(dhw=True)
+_r9egb1_qt_p = _r9egb1_qt._thermal_params
+_r9egb1_qt_p.dhw_schedule_enabled = True
+_r9egb1_qt_p.dhw_windows = [(6.0, 9.0), (18.0, 22.0)]
+_r9egb1_qt._config[_r9egb1_const.CONF_DHW_QUANTILE_TARGETS_ENABLED] = True
+_r9egb1_qt._dhw_learner.draw_stats.reservoirs = {"06:00-09:00": [2.0, 4.0]}
+_r9egb1_qt_got = _r9egb1_qt._dhw_plan_fields(dt_util.now())[
+    "dhw_window_ready_energy"]
+R.check(
+    "#1736 the learned heavy-day targets carry exactly the demand windows "
+    "with draw evidence: one populated window in, the evidence-free one out",
+    isinstance(_r9egb1_qt_got, dict)
+    and sorted(_r9egb1_qt_got) == ["06:00-09:00"]
+    and _r9egb1_qt_got["06:00-09:00"][1] == 2
+    and 2.0 <= _r9egb1_qt_got["06:00-09:00"][0] <= 4.0,
+    f"{_r9egb1_qt_got}",
+)
+
+_r9egb1_mon = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)  # a Monday
+
+
+def _r9egb1_ceiling(interval_days, total):
+    """The elastic legionella ceiling for one seeded price level."""
+    coord = _r9egb1_coord(dhw=True)
+    coord._thermal_params.dhw_elastic_legionella_enabled = True
+    coord._thermal_params.dhw_legionella_enabled = True
+    coord._thermal_params.dhw_legionella_interval_days = float(interval_days)
+    coord._legionella.last_cycle = _r9egb1_mon
+    coord._prices = [{"total": total}]
+    # A confident price shape whose weekend hours dip under the weekday ones,
+    # so a horizon that gains a Saturday prices a different cheapest hour.
+    coord._price_model.shapes = [[0.5] * 24, [0.2] * 24]
+    coord._price_model.days = [999.0, 999.0]
+    return coord._dhw_plan_fields(_r9egb1_mon)[
+        "dhw_legionella_price_ceiling"]
+
+
+_r9egb1_lg_wide = _r9egb1_ceiling(5.0, 0.20)  # Tue-Sat: gains a Saturday
+_r9egb1_lg_week = _r9egb1_ceiling(3.0, 0.20)  # Tue-Thu: weekdays only
+R.check(
+    "#1736 the elastic legionella ceiling prices the days the remaining "
+    "interval spans, the deadline day included and its weekend bit intact: "
+    "a window that gains a Saturday reads a different ceiling",
+    _r9egb1_mon.weekday() == 0
+    and _r9egb1_lg_wide is not None and _r9egb1_lg_week is not None
+    and _r9egb1_lg_wide != _r9egb1_lg_week,
+    f"with the Saturday {_r9egb1_lg_wide!r}, without {_r9egb1_lg_week!r}",
+)
+_r9egb1_lg_edge = _r9egb1_ceiling(5.0, 1.0e-6)
+_r9egb1_lg_over = _r9egb1_ceiling(5.0, 2.0e-6)
+R.check(
+    "#1736 a mean price exactly at the 1e-6 floor runs on schedule (no "
+    "ceiling); one just over it shops",
+    _r9egb1_lg_edge is None and _r9egb1_lg_over is not None,
+    f"at the floor {_r9egb1_lg_edge!r}, just over {_r9egb1_lg_over!r}",
+)
+
+
+def _r9egb1_caps_rig(*, fuse, curve):
+    """A record's power caps with the fuse guard and/or the learned
+    capacity envelope on: the forecast sits at -5 C, whose bucket carries a
+    confident envelope entry that caps at the floor (0.6 x 5 kW nameplate)."""
+    coord = _solve_coord()
+    coord._config.update({
+        _r9egb1_const.CONF_FUSE_GUARD_ENABLED: fuse,
+        _r9egb1_const.CONF_MAIN_FUSE_A: 16,
+        _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
+        _r9egb1_const.CONF_CAPACITY_CURVE_ENABLED: curve,
+    })
+    coord._measured_house_power = 0.3  # leaves 3.38 kW of the 16 A fuse
+    coord._capacity_envelope = {-2: [0.2, 10]} if curve else {}
+    return _solve_record_now(coord).inputs.limits.power_caps_extra
+
+
+_r9egb1_cv = {
+    "fuse+envelope": _r9egb1_caps_rig(fuse=True, curve=True),
+    "fuse only": _r9egb1_caps_rig(fuse=True, curve=False),
+    "envelope only": _r9egb1_caps_rig(fuse=False, curve=True),
+}
+R.check(
+    "#1736 the learned capacity envelope composes into the record's fuse "
+    "caps through the same channel -- min(fuse, envelope), never the fuse "
+    "caps alone with the envelope dropped",
+    all(v is not None and len(v) == len(_r9egb1_cv["fuse only"])
+        and float(np.min(np.abs(v))) > 0.0
+        for v in _r9egb1_cv.values())
+    and np.allclose(_r9egb1_cv["fuse+envelope"],
+                    np.minimum(_r9egb1_cv["fuse only"],
+                               _r9egb1_cv["envelope only"]))
+    and not np.allclose(_r9egb1_cv["fuse+envelope"], _r9egb1_cv["fuse only"]),
+    f"fuse+envelope {None if _r9egb1_cv['fuse+envelope'] is None else list(np.round(_r9egb1_cv['fuse+envelope'][:3], 3))}"
+    f" vs fuse only {None if _r9egb1_cv['fuse only'] is None else list(np.round(_r9egb1_cv['fuse only'][:3], 3))}"
+    f", envelope only {None if _r9egb1_cv['envelope only'] is None else list(np.round(_r9egb1_cv['envelope only'][:3], 3))}",
+)
+
 # R9-EG-A2 (#1874): the helpers the one-copy consolidation introduced, held to the contract each
 # docstring states at the boundary a clamp or a comparison exists for. Every caller reaches them, but
 # no scenario above sits on these boundaries, so a dropped clamp or a moved bound survived the suite.
