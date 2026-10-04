@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 127.7,
+   "seconds": 182.4,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -2824,6 +2824,9 @@
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
+  ],
+  "tests/entities.py": [
+   "LICENSE"
   ]
  }
 }
