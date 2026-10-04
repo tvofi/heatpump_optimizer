@@ -198,25 +198,21 @@ passing the model explicitly per call.
 
 ### The seat record instruments (#1946)
 
-Four stateless tools under `seat/`, each stdlib-only with a `--self-test`,
-each taking its inputs as flags (`--repo`, `--roster-ref`/`--roster-file`,
-`--out`) and hardcoding no session state; `roster_lib.py` is their one shared
-roster reader, carrying `gen_table_rev3.py`'s wave math and `gen.py`'s
-critical path so no tool re-derives them:
+Four stateless, stdlib-only tools under `seat/`, a `--self-test` each, inputs
+all flags (`--repo`, `--roster-ref`/`--roster-file`, `--out`), no session
+state hardcoded; `roster_lib.py` is their shared roster reader, carrying the
+wave math and the critical-path walk so no tool re-derives them:
 
-- `plan_table.py` -- the plan artifact: swimlane table, a mermaid gantt with
-  the critical path tagged `crit`, per-group detail with a `--live` note
-  overlay, a cadence ETA.
+- `plan_table.py` -- the plan artifact: swimlanes, a mermaid gantt with the
+  critical path tagged `crit`, per-group detail, a cadence ETA.
 - `roster_edit.py` -- the safe roster edit (set-stage, wire-issue,
-  append-group, edit-brief, append-carry): JSON load-modify-dump, written
-  through a checkout -B worktree; `--push` refused unless `brief_lint` run
-  from a fresh origin/main checkout prints `TOTAL: 0 error(s)`.
-- `resume_doc.py` -- the resume markdown regenerated from the roster and
-  `gh pr list`, with the traps file appended verbatim and the 10 KB budget
-  enforced.
+  append-group, edit-brief, append-carry): JSON load-modify-dump through a
+  checkout -B worktree; `--push` refused unless `brief_lint` from a fresh
+  origin/main checkout prints `TOTAL: 0 error(s)`.
+- `resume_doc.py` -- the resume markdown regenerated from the roster and the
+  open pull requests, traps appended verbatim, 10 KB budget enforced.
 - `handover_prompt.py` -- the next-session prompt: rules-first pointer,
-  in-flight pickup commands generated from the roster's resume fields,
-  identity rules, done criteria.
+  pickup commands from the roster's resume fields, done criteria.
 
 ## Resource rules on the audit box
 
