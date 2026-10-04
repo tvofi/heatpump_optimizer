@@ -429,9 +429,135 @@ diff_paths() { # merge base, out file
   return "$rc"
 }
 
-body_check() { # body file, head sha, title, paths file
-  node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$2" \
-    --title "$3" --paths-file "$4"
+body_check() { # body file, head sha, title, paths file, red names...
+  # The red names ride the SAME flags CI's pr-contract job passes: one `--red`
+  # per name, never a comma-joined value, so a check name containing a comma
+  # reaches `## Red checks` whole (policy_lint splits only a LONE `--red`
+  # value). Step 7 passes none; step 7c passes every red the branch's pushed
+  # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
+  # whether the body answers a red in both callers.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  shift 4
+  for n in "$@"; do args+=(--red "$n"); done
+  node .claude/workflows/policy_lint.mjs "${args[@]}"
+}
+
+# --- the ancestry red-check arm (#1860, R9-FR-2) -------------------------------
+# WHY THIS EXISTS. defect-root-cause.md's enforced trigger fires on "a check
+# that went red on a commit in the branch", but the push-time enforcement that
+# existed read only the HEAD: `pr-contract` lists the head's check runs, and a
+# red an earlier push carried and a later push cleared leaves no check-run
+# record at the head at all -- so the fix reviewer was the first reader of it,
+# at the most expensive moment. The round-9 friction sweep measured the class:
+# `root-cause-unanswered` blocked 8 of W14's 14 merges, 6 of the 8 on reds a
+# branch check-run sweep sees (pre-study R9-FR-1, #1860). This arm is that
+# trigger moved to push time -- the cheaper detector the rule itself prefers.
+#
+# THE RED KEY IS pr-contract.yml's OWN ("List the red checks at this head"),
+# reused verbatim rather than re-worded: status completed, conclusion failure,
+# check-run name not `pr-contract` (this repository's only job by that name;
+# an id-keyed exclusion would let its own red back in and deadlock), sorted
+# unique. The refusal is the SAME body check's: step 7c feeds each name to
+# `body_check` above as one `--red`, so one implementation decides whether the
+# body answers a red, not two. The nightly-status/delivery-status exemption is
+# deliberately NOT copied here: it already lives in policy_lint's `--pr-body`
+# machinery, which the `--red` flags feed, and a second copy would drift.
+#
+# THE RANGE IS THE COMMITS THE REMOTE ALREADY HAS, derived through
+# `pr_head_ref` (step 7b's rule, never `@{u}`): the branch's own remote branch
+# is the local mirror of the pull request's head ref, so the arm reads exactly
+# the history a reviewer of the pull request reads. A run before the first
+# push has nothing to read and says so. policy_lint's own red-history
+# derivation (inside `--pr-body`) covers the same range but only when a token
+# sits in the environment -- CI's pr-contract step exports none and a seat's
+# credential usually lives in `gh`'s store, which is exactly the gap this arm
+# closes by asking `gh` itself.
+#
+# SKIP, NEVER REFUSE, AT EVERY BOUNDARY OF WHAT THE ARM CAN SEE: `gh` absent,
+# no credential, origin not a GitHub remote, no merge base, nothing pushed, no
+# pushed commit carrying any check run, or a read that failed. policy_lint's
+# internal derivation REFUSES a failed read because it runs in CI holding a
+# granted token; this arm runs on a seat at push time, where a hung or
+# rate-limited call must not block a push, so it prints what went UNCHECKED
+# instead -- the push-order arm's NO NETWORK argument, relaxed only to reads
+# that print their own skip line. This is the CI determinism bound too: no
+# job that re-executes this script exports a credential to it, so there the
+# arm prints its skip line and stays local-only-deterministic, the position
+# PREPR_SKIP_CLOSURES holds for the closures step.
+REDS_JQ='.check_runs[]
+         | select(.status == "completed" and .conclusion == "failure")
+         | select(.name != "pr-contract")
+         | .name'
+
+gh_credential() { # gh binary -> the token on stdout, rc 1 when none
+  case "${GITHUB_TOKEN:-}" in ?*) printf '%s' "$GITHUB_TOKEN"; return 0 ;; esac
+  case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
+  command -v "$1" >/dev/null 2>&1 || return 1
+  "$1" auth token 2>/dev/null
+}
+
+ancestry_reds() { # the branch's own remote head ref
+  # -> rc 0: the red names, one per line, sorted unique
+  #    rc 3: the skip reason (one line)
+  local ghc tok url repo base shas sha out names any
+  ghc=${PREPR_GH:-gh}   # --self-test replaces the gh binary word, argv identical
+  command -v "$ghc" >/dev/null 2>&1 || { echo "gh is absent, so no branch check run could be read"; return 3; }
+  tok=$(gh_credential "$ghc") || { echo "no token: GITHUB_TOKEN and GH_TOKEN are unset and \`$ghc auth token\` refuses, so no branch check run could be read"; return 3; }
+  url=$(git remote get-url origin 2>/dev/null)
+  case "$url" in
+    *github.com:*) repo=${url##*github.com:} ;;
+    *github.com/*) repo=${url##*github.com/} ;;
+    *) repo="" ;;
+  esac
+  repo=${repo%.git}
+  case "$repo" in */*) ;; *) echo "origin is not a GitHub remote, so no check run could be read"; return 3 ;; esac
+  base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main, so no ancestry could be enumerated"; return 3; }
+  shas=$(git rev-list "$base..$1" 2>/dev/null) || { echo "$1 could not be read, so no ancestry was enumerated"; return 3; }
+  [ -n "$shas" ] || { echo "no commit of this branch is on $1 yet -- the first push has no ancestry to read"; return 3; }
+  names=""; any=""
+  for sha in $shas; do
+    out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
+      echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
+    [ -n "$out" ] && { names="$names$out"$'\n'; any=1; }
+  done
+  if [ -z "$any" ]; then
+    # Nothing failed anywhere: say whether that was MEASURED or merely
+    # unpopulated -- a branch whose commits never ran CI owes no answer and
+    # confirms nothing, and `total_count` is on the first page of the same
+    # endpoint this loop already read. Only the all-green branch pays for
+    # this second pass.
+    for sha in $shas; do
+      out=$("$ghc" api "repos/$repo/commits/$sha/check-runs" --jq '.total_count' 2>/dev/null) || {
+        echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
+      [ "${out:-0}" -gt 0 ] 2>/dev/null && { any=1; break; }
+    done
+    [ -n "$any" ] || { echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3; }
+  fi
+  printf '%s' "$names" | sort -u
+}
+
+# Step 7c's whole body, so `--self-test` drives the code the step runs (the
+# #1591 lesson: a self-test that drove only a helper left the call site
+# unpinned). rc 0 answered or no red, 1 an unanswered red, 3 a skip boundary.
+reds_line() { # body file, head sha, title, paths file, remote head ref
+  local names r n out reds=()
+  names=$(ancestry_reds "$5"); r=$?
+  [ "$r" -eq 3 ] && { printf '%s\n' "$names"; return 3; }
+  if [ -z "$names" ]; then
+    printf 'no red check run stands on any commit this branch pushed'
+    return 0
+  fi
+  while IFS= read -r n; do [ -n "$n" ] && reds+=("$n"); done <<<"$names"
+  out=$(mktemp)
+  body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+  if [ "$r" -eq 0 ]; then
+    printf 'the body answers every red this branch pushed (%s)' "$(echo $names)"
+  else
+    # The refusal printed is the red gate's own sentence, not this wrapper's,
+    # so the row that reads it pins WHICH check refused.
+    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(grep -m1 'does not name it' "$out" || tail -1 "$out")"
+  fi
+  rm -f "$out"; return "$r"
 }
 
 # A BODY IN A SHARED ROOT IS ANOTHER SEAT'S BODY WAITING TO HAPPEN. Seats of one
@@ -738,6 +864,11 @@ if [ "${1:-}" = "--self-test" ]; then
   # (`PREPR_GH`) with identical argv, so the URL and the jq key are built by
   # the production code the step runs, and real `jq` applies that key over the
   # fixture JSON -- no network, in CI's self-test job exactly as here.
+  #
+  # The throwaway repository is reached through GIT_DIR rather than `cd`: the
+  # body check must still run from THIS tree, because policy_lint.mjs's entry
+  # guard compares `process.argv[1]` with the realpath of its own module and a
+  # copy or symlink reached from another directory silently runs nothing.
   DABS=$(cd "$D" && pwd -P)
   RAFIX=$(cd .claude/workflows/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
@@ -754,9 +885,6 @@ if [ "${1:-}" = "--self-test" ]; then
     git update-ref refs/remotes/origin/fix fix
     git update-ref refs/remotes/origin/main main
   ) >/dev/null 2>&1
-  # The `.claude` the body check resolves is symlinked in AFTER the commits, so
-  # the throwaway tree stays two `code` blobs and the SHAs above stay fixed.
-  ln -s "$(pwd -P)/.claude" "$RA/.claude"
   cat >"$RA/gh" <<'EOS'
 #!/bin/bash
 # serves $REDFIX/<sha>.json through the jq filter prepr passed, like gh api
@@ -776,14 +904,14 @@ EOS
   printf '#!/bin/bash\nexit 1\n' >"$RA/ghdead"; chmod +x "$RA/ghdead"
   ra() { # case dir, body file, remote ref -> "<rc>:$line"
     local out r
-    out=$(cd "$RA" && REDFIX="$RAFIX/$1" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+    out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/$1" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
       reds_line "$DABS/$2" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "${3:-origin/fix}")
     r=$?
     echo "$r:$out"
   }
   got=$(ra red unnamed-red.md)
   st "${got%%:*}" 1 "a red an earlier pushed commit carried and the body does not name is refused"
-  case "$got" in *'does not name it'*'fast (3.14)'*) st 1 1 "and the refusal is the red gate's own, naming the check";; *) st 0 1 "and the refusal is the red gate's own, naming the check";; esac
+  case "$got" in *'fast (3.14)'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming the check";; *) st 0 1 "and the refusal is the red gate's own, naming the check";; esac
   got=$(ra red red-answered.md)
   st "${got%%:*}" 0 "the same ancestry with a body that names the red passes (null control)"
   case "$got" in *'answers every red'*) st 1 1 "and the ok line names what was answered";; *) st 0 1 "and the ok line names what was answered";; esac
@@ -797,11 +925,11 @@ EOS
   st "${got%%:*}" 3 "a branch nothing of which is pushed past the merge base skips"
   got=$(ra red red-answered.md origin/never-pushed)
   st "${got%%:*}" 3 "a remote head ref that does not resolve skips"
-  out=$(cd "$RA" && REDFIX="$RAFIX/red" GITHUB_TOKEN= GH_TOKEN= PREPR_GH="$RA/ghdead" \
+  out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN= GH_TOKEN= PREPR_GH="$RA/ghdead" \
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 3 "no credential gh can use skips the arm (never refuses)"
   case "$out" in *no\ token*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
-  out=$(cd "$RA" && REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/no-such-gh" \
+  out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/no-such-gh" \
     reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
   st $? 3 "an absent gh skips the arm (never refuses)"
   case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
@@ -1450,7 +1578,6 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   else
     step "pr-body" 1 "the changed-path list did not derive from $BASE...HEAD, so the \`## Approval\` gate was not run -- an empty list reads as \"touches no policy file\", which is the fail-open it exists to close"
   fi
-  rm -f "$PATHS"
 
   # --- 7a. every figure's command resolves. `pr-contract` runs the same script,
   # so this is the cheaper detector rather than a second opinion: the #715
@@ -1488,6 +1615,27 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     5) step "push order" 1 "$UPREF and HEAD have diverged, $BEHIND commit(s) there against $AHEAD here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge $UPREF, then rewrite \`## Head\` at the merge commit" ;;
     *) step "push order" 1 "$UPREF: unknown push-order verdict" ;;
   esac
+
+  # --- 7c. the ancestry red-check arm (`reds_line` above): the second pass of
+  # pr-body, fed every red a PUSHED commit of this branch carries -- the fix
+  # reviewer's root-cause trigger (defect-root-cause.md), moved to push time,
+  # where repairing it is one body edit instead of a review round (#1860). It
+  # runs after 7b because it reads the same remote head ref 7b derives, and
+  # needs the path list pr-body derived: without one the body check it feeds
+  # was not run, and the arm says so rather than feeding it nothing.
+  if [ ! -f "$PATHS" ]; then
+    say skip "ancestry reds" "no changed-path list, so the body check this arm feeds was not run"
+  elif [ -z "$UPREF" ]; then
+    say skip "ancestry reds" "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"
+  else
+    REDS_LINE=$(reds_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$UPREF")
+    case $? in
+      0) step "ancestry reds" 0 "$REDS_LINE" ;;
+      3) say skip "ancestry reds" "$REDS_LINE" ;;
+      *) step "ancestry reds" 1 "$REDS_LINE" ;;
+    esac
+  fi
+  rm -f "$PATHS"
 else
   say skip "body" "no body passed"
 fi
