@@ -20,6 +20,7 @@ tools/audit/
   briefs/                   every contract and dimension brief, tabled in CLAUDE.md; COMMON.md first
   harnesses/README.md       the instruments kept live, and where rounds 1-3 went
   preflight.sh              executed by tests/entities.py, so it is not INERT
+  seat/                     the stateless seat instruments; each carries --self-test
 tools/release/stamp.py      the only way a version is assigned
 ```
 
@@ -194,6 +195,24 @@ one merge at a time; a reviewer whose tier ranks below its fixer's is refused
 before either agent runs. `/web-stamp` stamps only where the deploy key is. A
 session with no Workflow tool runs the same prompts through the Agent tool,
 passing the model explicitly per call.
+
+### The seat record instruments (#1946)
+
+Four stateless, stdlib-only tools under `seat/`, a `--self-test` each, inputs
+all flags (`--repo`, `--roster-ref`/`--roster-file`, `--out`), no session
+state hardcoded; `roster_lib.py` is their shared roster reader, carrying the
+wave math and the critical-path walk so no tool re-derives them:
+
+- `plan_table.py` -- the plan artifact: swimlanes, a mermaid gantt with the
+  critical path tagged `crit`, per-group detail, a cadence ETA.
+- `roster_edit.py` -- the safe roster edit (set-stage, wire-issue,
+  append-group, edit-brief, append-carry): JSON load-modify-dump through a
+  checkout -B worktree; `--push` refused unless `brief_lint` from a fresh
+  origin/main checkout prints `TOTAL: 0 error(s)`.
+- `resume_doc.py` -- the resume markdown regenerated from the roster and the
+  open pull requests, traps appended verbatim, 10 KB budget enforced.
+- `handover_prompt.py` -- the next-session prompt: rules-first pointer,
+  pickup commands from the roster's resume fields, done criteria.
 
 ## Resource rules on the audit box
 
