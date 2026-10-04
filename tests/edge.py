@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.join(
 import numpy as np, traceback
 from datetime import datetime
 from profiles import prices, weather, house, DT, N
+from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalModel,ThermalParameters,ThermalState
 from heatpump_optimizer.optimizer import HeatPumpOptimizer,OptimizationConfig
 FAIL=[]
@@ -33,7 +34,15 @@ def go(name, *, cfgmod=None, ocmod=None, price_p="winter_typical", weather_p="wi
             dhw_temperature=50.0,dhw_hours_since_legionella=20.0,
             upper_floor_temperature=21.0,lower_floor_temperature=21.0,buffer_tank_temperature=40.0)
         if stmod: stmod(st)
-        r=opt.optimize(st,pr,ot,wi,ra,so,start)
+        r=opt.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=start,
+        ))
         pw=np.asarray(r.power_schedule)
         check(name,len(pw)==n,f"schedule len {len(pw)} != {n}")
         check(name,np.all(np.isfinite(pw)),"non-finite power")
@@ -103,7 +112,15 @@ def _two_tank_run(wood_temp):
                       upper_floor_temperature=21.0, lower_floor_temperature=21.0,
                       buffer_tank_temperature=32.0,
                       wood_tank_temperature=wood_temp)
-    r = opt.optimize(st, pr, ot, wi, ra, so, start)
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=pr,
+        outdoor_temps=ot,
+        wind_speeds=wi,
+        precipitation=ra,
+        solar_radiation=so,
+        start_time=start,
+    ))
     return np.asarray(r.power_schedule)
 
 try:

@@ -3351,7 +3351,7 @@ _D801_TEMPERATURE_DEFAULTS = (
     "dhw_temperature",
 )
 #: The entities D8-01 names. The rest of the payload moves with these defaults
-#: too, because `_solve_snapshot` deep-copies the state as the MPC's initial
+#: too, because `_solve_hubs` deep-copies the state as the MPC's initial
 #: condition -- that is a different finding (the optimizer plans against a tank
 #: it has never measured) and it is not what this fix claims to close.
 _D801_IN_SCOPE = {
@@ -3579,12 +3579,16 @@ _P2_FENCED = {
 
 def _p2_fence_args(source):
     """The callee each ``_best_effort_cycle_step`` call fences, as written:
-    a bound method, or the call inside a lambda."""
+    a bound method, the method a ``partial`` binds (#1736 hands the solve's
+    record to two steps that way), or the call inside a lambda."""
     out = set()
     for n in ast.walk(ast.parse(source)):
         if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_best_effort_cycle_step" \
                 and n.args:
             arg = n.args[0]
+            if isinstance(arg, ast.Call) and arg.args and ast.unparse(arg.func) in (
+                    "partial", "functools.partial"):
+                arg = arg.args[0]
             heads = [arg] if isinstance(arg, ast.Attribute) else [
                 c.func for c in ast.walk(arg) if isinstance(c, ast.Call)]
             out |= {ast.unparse(h) for h in heads}
@@ -4311,14 +4315,15 @@ def _p6_seed_log(cycles=2):
     log = []
     _hass, _entry, coord = _d801_coordinator({**_FLOW_CONFIG, const.CONF_DHW_ENABLED: True})
     coord._opt_config.horizon_hours = 6.0
-    snap = coord._solve_snapshot
+    snap = coord._solve_record
 
-    def recording_snapshot():
-        state, optimizer = snap()
+    def recording_snapshot(*a, **k):
+        record = snap(*a, **k)
+        state = record.inputs.state
         log.append({f.name: getattr(state, f.name) for f in _p6_dc.fields(state)})
-        return state, optimizer
+        return record
 
-    coord._solve_snapshot = recording_snapshot
+    coord._solve_record = recording_snapshot
 
     async def run():
         for cycle in range(cycles):
@@ -22443,6 +22448,67 @@ R.check(
     ],
     f"found {_p12_ctl_found}; a barrier that misses its own positive "
     "control, or refuses a module function, pins nothing",
+)
+
+
+# --- #1736: no live hub crosses to a thread --------------------------------
+# A solve plans from one record built on the loop (SolveRecord), and the three
+# hubs -- _opt_config, _thermal_params, _current_state -- are the configured
+# state the loop keeps writing. Every hand-off P12 enumerates, plus the solve's
+# own transports (_await_optimize, _await_off_loop), is refused an argument
+# that IS a hub attribute however it is reached (self., ctx., coord.,
+# self._ctx.); a call wrapping one -- copy.deepcopy(...), replace(...) -- is a
+# copy and passes. The key is the attribute NAME: a same-named attribute of
+# another object is refused too, which is the design choice (no such name
+# exists outside the coordinator's hubs).
+_HUB_NAMES = frozenset({"_opt_config", "_thermal_params", "_current_state"})
+_HUB_THREAD_ARGS = {**_P12_THREAD_ARG, "_await_optimize": 1, "_await_off_loop": 1}
+
+
+def _hub_handoffs(trees):
+    """Every (file:line, hand-off, hub) where a live hub is an argument."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _i = _HUB_THREAD_ARGS.get(_callee_name(_node))
+            if _i is None:
+                continue
+            for _arg in list(_node.args[_i:]) + [_k.value for _k in _node.keywords]:
+                _a = _arg.value if isinstance(_arg, ast.Starred) else _arg
+                if isinstance(_a, ast.Attribute) and _a.attr in _HUB_NAMES:
+                    found.append((f"{_fname}:{_node.lineno}", _callee_name(_node), _a.attr))
+    return found
+
+
+_hub_sites = _hub_handoffs(_PKG_TREES)
+R.check(
+    "no live hub is handed to a thread or the process worker (#1736)",
+    _hub_sites == [],
+    f"{_hub_sites}: hand over the solve's record or a copy built on the loop",
+)
+_hub_ctl = {
+    "probe.py": ast.parse(
+        "async def bad(self, hass, ctx, coord, opt, fn):\n"
+        "    await _await_optimize(hass, opt, ctx._current_state)\n"
+        "    await hass.async_add_executor_job(fn, coord._thermal_params)\n"
+        "    await _await_process(hass, fn, self._ctx._opt_config)\n"
+        "    await _await_off_loop(hass, fn, state=ctx._current_state)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(self, hass, ctx, opt, fn, record):\n"
+        "    await _await_optimize(hass, opt, record.inputs)\n"
+        "    await _await_process(hass, fn, copy.deepcopy(ctx._thermal_params))\n"
+        "    await hass.async_add_executor_job(fn, replace(ctx._current_state))\n"
+        "    ctx._opt_config.target_temp = 21.0\n"
+    ),
+}
+_hub_ctl_found = _hub_handoffs(_hub_ctl)
+R.check(
+    "the hub barrier refuses a live hub in every hand-off and passes its copies",
+    sorted(_s[0] for _s in _hub_ctl_found)
+    == ["probe.py:2", "probe.py:3", "probe.py:4", "probe.py:5"],
+    f"found {_hub_ctl_found}; a barrier that misses its own positive control, "
+    "or refuses a copy, pins nothing",
 )
 
 

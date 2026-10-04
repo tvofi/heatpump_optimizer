@@ -5358,8 +5358,8 @@ async def _noop_run(coordinator_mod, config, canned, now):
 
     captured = {}
 
-    async def solve(hass, optimizer, state, *positional, **keywords):
-        captured["solve"] = _noop_snap((optimizer, state, positional, keywords))
+    async def solve(hass, optimizer, inputs):
+        captured["solve"] = _noop_snap((optimizer, inputs))
         return copy.deepcopy(canned)
 
     coordinator_mod._await_optimize = solve
@@ -5520,8 +5520,8 @@ async def absent_fallbacks_are_proven():
     try:
         box = {}
 
-        async def solve_once(hass, optimizer, state, *positional, **keywords):
-            box["plan"] = optimize_in_process(optimizer, state, positional, keywords)
+        async def solve_once(hass, optimizer, inputs):
+            box["plan"] = optimize_in_process(optimizer, inputs)
             return box["plan"]
 
         coordinator_mod._await_optimize = solve_once

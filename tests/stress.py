@@ -46,6 +46,7 @@ import tracemalloc
 from datetime import datetime, timedelta
 
 from harness import Results
+from profiles import solve_inputs  # noqa: E402
 # The recorded-number barrier every ratchet shares (#1583's review).
 from structure import cap_problem
 
@@ -1171,10 +1172,18 @@ def build_case(
     _cpu_before = time.process_time()
     _thread_before = time.thread_time()
     with work:
-        result = optimizer.optimize(
-            initial, price_series, outdoor, wind, rain, solar, START, None, surplus,
-            space_pins=space_pins, power_caps_extra=caps_extra,
-        )
+        result = optimizer.optimize(inputs=solve_inputs(
+            initial_state=initial,
+            prices=price_series,
+            outdoor_temps=outdoor,
+            wind_speeds=wind,
+            precipitation=rain,
+            solar_radiation=solar,
+            start_time=START,
+            pv_surplus=surplus,
+            space_pins=space_pins,
+            power_caps_extra=caps_extra,
+        ))
     solve_cpu_ms = (time.process_time() - _cpu_before) * 1000.0
     solve_thread_ms = (time.thread_time() - _thread_before) * 1000.0
     return {
@@ -5415,10 +5424,15 @@ if __name__ == "__main__":
         weighted = copy.copy(run["config"])
         weighted.comfort_weight = weight
         optimizer = HeatPumpOptimizer(run["model"], weighted)
-        result = optimizer.optimize(
-            run["initial"], run["prices"], run["outdoor"], run["wind"],
-            run["rain"], run["solar"], START,
-        )
+        result = optimizer.optimize(inputs=solve_inputs(
+            initial_state=run["initial"],
+            prices=run["prices"],
+            outdoor_temps=run["outdoor"],
+            wind_speeds=run["wind"],
+            precipitation=run["rain"],
+            solar_radiation=run["solar"],
+            start_time=START,
+        ))
         comfort_curve.append(
             (weight, float(np.mean(result.room_temp_trajectory)),
              result.savings_percentage)
@@ -5468,10 +5482,15 @@ if __name__ == "__main__":
         run = case(season="winter", two_zone=False, dhw=False)
         optimizer = HeatPumpOptimizer(run["model"], run["config"])
         wobble = np.where(np.arange(run["n"]) % 2 == 0, 1e-6, -1e-6) * scale
-        result = optimizer.optimize(
-            run["initial"], run["prices"] + wobble, run["outdoor"], run["wind"],
-            run["rain"], run["solar"], START,
-        )
+        result = optimizer.optimize(inputs=solve_inputs(
+            initial_state=run["initial"],
+            prices=run["prices"] + wobble,
+            outdoor_temps=run["outdoor"],
+            wind_speeds=run["wind"],
+            precipitation=run["rain"],
+            solar_radiation=run["solar"],
+            start_time=START,
+        ))
         adjacent.append(result.predicted_cost)
     R.check(
         "solver noise under an economically nil perturbation stays small",

@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.join(
 import numpy as np
 from datetime import datetime
 from harness import Results
+from profiles import solve_inputs  # noqa: E402
 from profiles import prices, weather, house, DT, N
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState)
@@ -82,7 +83,15 @@ def pin_result(label,res,m,st,ot,wi,ra,so,pr,dhw=False):
 for tz in (False,True):
     R.section(f"two_zone={tz}")
     opt,m,pr,ot,wi,ra,so,st,start=setup(tz)
-    r=opt.optimize(st,pr,ot,wi,ra,so,start)
+    r=opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=pr,
+        outdoor_temps=ot,
+        wind_speeds=wi,
+        precipitation=ra,
+        solar_radiation=so,
+        start_time=start,
+    ))
     base=np.asarray(r.power_schedule)
     c0,v0,mn0,mx0=score_plan(m,base,st,ot,wi,ra,so,pr)
     print(f" optimizer : cost {c0:7.2f}  room {mn0:.2f}-{mx0:.2f}  viol {v0:.3f}")
@@ -138,7 +147,15 @@ for tz in (False,True):
             kw["maxiter"] = 3
             return _full_ms(objective, starts, bounds, *a, **kw)
         with mock.patch.object(_opt_mod, "_multi_start_minimize", _starved_ms):
-            r3 = opt.optimize(st,pr,ot,wi,ra,so,start)
+            r3 = opt.optimize(inputs=solve_inputs(
+                initial_state=st,
+                prices=pr,
+                outdoor_temps=ot,
+                wind_speeds=wi,
+                precipitation=ra,
+                solar_radiation=so,
+                start_time=start,
+            ))
         c3,v3,_,_ = score_plan(m,np.asarray(r3.power_schedule),st,ot,wi,ra,so,pr)
         print(f" starved  : cost {c3:7.2f}  viol {v3:.3f}")
         R.check("the production iteration budget buys a materially better plan",
@@ -164,7 +181,15 @@ for tz in (False,True):
         kw.pop("batch_objective", None)
         return _full_ms(objective, starts, bounds, *a, **kw)
     with mock.patch.object(_opt_mod, "_multi_start_minimize", _nobatch_ms):
-        r_fd = opt.optimize(st, pr, ot, wi, ra, so, start)
+        r_fd = opt.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=start,
+        ))
     same = np.array_equal(
         np.round(np.asarray(r_fd.power_schedule), 12),
         np.round(base, 12),
@@ -207,7 +232,15 @@ def _dhw_setup(tz, start=datetime(2026, 1, 15)):
 
 for _tz in (False, True):
     o, m, pr, ot, wi, ra, so, st, start = _dhw_setup(_tz)
-    r_batch = o.optimize(st, pr, ot, wi, ra, so, start)
+    r_batch = o.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=pr,
+        outdoor_temps=ot,
+        wind_speeds=wi,
+        precipitation=ra,
+        solar_radiation=so,
+        start_time=start,
+    ))
     base_dhw = np.asarray(r_batch.power_schedule)
 
     _full_ms_d = _optm_dhw._multi_start_minimize
@@ -218,7 +251,15 @@ for _tz in (False, True):
 
     with _mock_dhw.patch.object(
             _optm_dhw, "_multi_start_minimize", _nobatch_ms_d):
-        r_fd = o.optimize(st, pr, ot, wi, ra, so, start)
+        r_fd = o.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=start,
+        ))
     same_dhw = np.array_equal(
         np.round(np.asarray(r_fd.power_schedule), 12),
         np.round(base_dhw, 12),
@@ -273,7 +314,15 @@ for _tz in (False, True):
 # check fails by construction.
 R.section("stop rule (ftol) on a DHW-enabled two-zone solve (#921)")
 _o7, _m7, _pr7, _ot7, _wi7, _ra7, _so7, _st7, _start7 = _dhw_setup(True)
-_r7 = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
+_r7 = _o7.optimize(inputs=solve_inputs(
+    initial_state=_st7,
+    prices=_pr7,
+    outdoor_temps=_ot7,
+    wind_speeds=_wi7,
+    precipitation=_ra7,
+    solar_radiation=_so7,
+    start_time=_start7,
+))
 _c70, _v70, _, _ = score_plan(_m7, np.asarray(_r7.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
 pin_result("stop-rule production arm",_r7,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
@@ -295,7 +344,15 @@ def _loose_ms_7(objective, starts, bounds, *a, **kw):
 
 
 with _mock_dhw.patch.object(_optm_dhw, "_multi_start_minimize", _loose_ms_7):
-    _r7l = _o7.optimize(_st7, _pr7, _ot7, _wi7, _ra7, _so7, _start7)
+    _r7l = _o7.optimize(inputs=solve_inputs(
+        initial_state=_st7,
+        prices=_pr7,
+        outdoor_temps=_ot7,
+        wind_speeds=_wi7,
+        precipitation=_ra7,
+        solar_radiation=_so7,
+        start_time=_start7,
+    ))
 _c7l, _v7l, _, _ = score_plan(_m7, np.asarray(_r7l.power_schedule),
                               _st7, _ot7, _wi7, _ra7, _so7, _pr7)
 pin_result("stop-rule loosened arm",_r7l,_m7,_st7,_ot7,_wi7,_ra7,_so7,_pr7,dhw=True)
@@ -343,8 +400,16 @@ R.section("solution quality on a zero-range bound (D9-01)")
 _zopt, _zm, _zpr, _zot, _zwi, _zra, _zso, _zst, _zstart = setup(False)
 _pins = np.full(N, float("nan"))
 _pins[90] = 0.0                       # 22:30, one step forced off
-_zr = _zopt.optimize(_zst, _zpr, _zot, _zwi, _zra, _zso, _zstart,
-                     space_pins=_pins)
+_zr = _zopt.optimize(inputs=solve_inputs(
+    initial_state=_zst,
+    prices=_zpr,
+    outdoor_temps=_zot,
+    wind_speeds=_zwi,
+    precipitation=_zra,
+    solar_radiation=_zso,
+    start_time=_zstart,
+    space_pins=_pins,
+))
 _zbase = np.asarray(_zr.power_schedule)
 _zc0, _zv0, _zmn, _zmx = score_plan(_zm, _zbase, _zst, _zot, _zwi, _zra, _zso, _zpr)
 pin_result("zero-range pinned plan",_zr,_zm,_zst,_zot,_zwi,_zra,_zso,_zpr)
@@ -439,7 +504,15 @@ def _kb_capture(o, pr, ot, wi, ra, so, st):
         return res
 
     with _kb_mock.patch.object(_kb_mod, "_multi_start_minimize", rec):
-        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+        r = o.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=_kb_start,
+        ))
     return r, seen
 
 
@@ -521,12 +594,26 @@ R.check(
 _kb15d_o, _kb15d_m, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, \
     _kb15d_st = _kb_inputs(False, "summer_negative", "shoulder", False)
 _kb15d_o._prev_shipped_plan = np.zeros(48)
-_kb15d = _kb15d_o.optimize(
-    _kb15d_st, _kb15d_pr, _kb15d_ot, _kb15d_wi, _kb15d_ra, _kb15d_so, _kb_start)
+_kb15d = _kb15d_o.optimize(inputs=solve_inputs(
+    initial_state=_kb15d_st,
+    prices=_kb15d_pr,
+    outdoor_temps=_kb15d_ot,
+    wind_speeds=_kb15d_wi,
+    precipitation=_kb15d_ra,
+    solar_radiation=_kb15d_so,
+    start_time=_kb_start,
+))
 _kb15e_o, _kb15e_m, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, \
     _kb15e_st = _kb_inputs(False, "summer_negative", "shoulder", False)
-_kb15e = _kb15e_o.optimize(
-    _kb15e_st, _kb15e_pr, _kb15e_ot, _kb15e_wi, _kb15e_ra, _kb15e_so, _kb_start)
+_kb15e = _kb15e_o.optimize(inputs=solve_inputs(
+    initial_state=_kb15e_st,
+    prices=_kb15e_pr,
+    outdoor_temps=_kb15e_ot,
+    wind_speeds=_kb15e_wi,
+    precipitation=_kb15e_ra,
+    solar_radiation=_kb15e_so,
+    start_time=_kb_start,
+))
 print(f" width-null: obj {_kb15d.objective_value:.6f} vs fresh "
       f"{_kb15e.objective_value:.6f}")
 R.check(
@@ -698,7 +785,15 @@ def _cert_capture(o, pr, ot, wi, ra, so, st):
             _kb_mock.patch.object(_kb_mod, "_lbfgsb_restart", rec_restart), \
             _kb_mock.patch.object(HeatPumpOptimizer,
                                   "_compute_baseline_power", base_rec):
-        r = o.optimize(st, pr, ot, wi, ra, so, _kb_start)
+        r = o.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=_kb_start,
+        ))
     cap["n_cand"] = len(cap["candidates"])
     cap["n_restart"] = n_restart[0]
     cap["base_energy"] = base.get("energy", 0.0)

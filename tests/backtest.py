@@ -30,6 +30,7 @@ import sys
 from datetime import datetime
 
 from harness import Results
+from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
 
@@ -165,7 +166,15 @@ for label, two_zone, price_key, weather_key in SCENARIOS:
         lower_floor_temperature=21.0,
     )
 
-    result = optimizer.optimize(state, price_series, outdoor, wind, rain, solar, START)
+    result = optimizer.optimize(inputs=solve_inputs(
+        initial_state=state,
+        prices=price_series,
+        outdoor_temps=outdoor,
+        wind_speeds=wind,
+        precipitation=rain,
+        solar_radiation=solar,
+        start_time=START,
+    ))
     optimized = np.asarray(result.power_schedule, dtype=float)
 
     comfort_targets = np.array(
@@ -317,9 +326,15 @@ def _storage_arm(volume: float, price_profile: str):
         buffer_tank_temperature=_STORE_START,
         outdoor_temperature=float(outdoor[0]),
     )
-    result = optimizer.optimize(
-        state, price_series, outdoor, wind, rain, solar, START
-    )
+    result = optimizer.optimize(inputs=solve_inputs(
+        initial_state=state,
+        prices=price_series,
+        outdoor_temps=outdoor,
+        wind_speeds=wind,
+        precipitation=rain,
+        solar_radiation=solar,
+        start_time=START,
+    ))
     power = np.asarray(result.power_schedule)
     s = score(model, opt_cfg, power, price_series, outdoor, wind, rain,
               solar, state)
@@ -402,10 +417,16 @@ def _furnace_arm(informed: bool, burn: np.ndarray):
         buffer_tank_temperature=30.0,
         outdoor_temperature=float(outdoor[0]),
     )
-    result = optimizer.optimize(
-        state, price_series, outdoor, wind, rain, solar, START,
+    result = optimizer.optimize(inputs=solve_inputs(
+        initial_state=state,
+        prices=price_series,
+        outdoor_temps=outdoor,
+        wind_speeds=wind,
+        precipitation=rain,
+        solar_radiation=solar,
+        start_time=START,
         external_heat_kw=burn if informed else None,
-    )
+    ))
     power = np.asarray(result.power_schedule)
     # Score under the real physics: the fire burns whether or not the plan
     # knew about it.

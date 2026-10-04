@@ -27,6 +27,7 @@ import sys
 from datetime import datetime, timedelta
 
 from harness import Results
+from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
 
@@ -150,15 +151,15 @@ def run_rolling(
         now = START + timedelta(hours=step * DT)
 
         if step % replan_every == 0:
-            plan = optimizer.optimize(
-                state,
-                price_series[step : step + horizon_steps],
-                outdoor[step : step + horizon_steps],
-                wind[step : step + horizon_steps],
-                rain[step : step + horizon_steps],
-                solar[step : step + horizon_steps],
-                now,
-            )
+            plan = optimizer.optimize(inputs=solve_inputs(
+                initial_state=state,
+                prices=price_series[step : step + horizon_steps],
+                outdoor_temps=outdoor[step : step + horizon_steps],
+                wind_speeds=wind[step : step + horizon_steps],
+                precipitation=rain[step : step + horizon_steps],
+                solar_radiation=solar[step : step + horizon_steps],
+                start_time=now,
+            ))
             history["status"].append(plan.status)
             history["replan_first_step"].append(float(plan.power_schedule[0]))
 

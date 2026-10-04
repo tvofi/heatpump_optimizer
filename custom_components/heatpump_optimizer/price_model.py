@@ -657,7 +657,7 @@ def prices_from_tibber_payload(data: dict[str, Any] | None) -> list[dict[str, An
             # R5-D1-06 (#1297): the entity path's own validator (#1090's
             # drop-whole shape). A total that is not a finite float — a
             # numeric string, null, a nested object, NaN — otherwise
-            # landed raw in `_prices`, crashing `_prepare_dhw_inputs`'
+            # landed raw in `_prices`, crashing `_dhw_plan_fields`'
             # np.mean and leaking through the uncovered `_current_spot_
             # price` fallback. One rule for both ingress paths.
             total = _raw_value(row)

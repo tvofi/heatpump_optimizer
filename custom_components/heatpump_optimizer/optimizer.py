@@ -1530,6 +1530,54 @@ class _Horizon:
         return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
 
+@dataclass(frozen=True, kw_only=True)
+class ForecastSeries:
+    """The per-step series one solve plans against, each named (#1736).
+
+    Most are same-shape float arrays, so the positional signature they used
+    to travel in would have taken a transposition silently. ``None`` keeps
+    each one's neutral default: no wind, rain, sun, surplus, free heat or
+    price dispersion, every price published, the ambient humidity.
+    """
+
+    prices: np.ndarray
+    outdoor_temps: np.ndarray
+    wind_speeds: np.ndarray | None = None
+    precipitation: np.ndarray | None = None
+    solar_radiation: np.ndarray | None = None
+    price_known: np.ndarray | None = None
+    pv_surplus: np.ndarray | None = None
+    price_sigma: np.ndarray | None = None
+    humidity: np.ndarray | None = None
+    external_heat_kw: np.ndarray | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SolveLimits:
+    """What bounds one solve beyond its configuration: the manual pins, the
+    electrical ceiling, the comfort floor's two adjustments and the pump's
+    blocked channels. The defaults bound nothing."""
+
+    space_pins: np.ndarray | None = None
+    dhw_pins: np.ndarray | None = None
+    power_caps_extra: np.ndarray | None = None
+    min_temp_margins: np.ndarray | None = None
+    min_temp_floors: np.ndarray | None = None
+    space_blocked: bool = False
+    dhw_blocked: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class SolveInputs:
+    """Everything ``HeatPumpOptimizer.optimize`` plans from besides its own
+    model and configuration, built once per solve and never written."""
+
+    state: ThermalState
+    forecast: ForecastSeries
+    start_time: datetime | None = None
+    limits: SolveLimits = field(default_factory=SolveLimits)
+
+
 def hold_demand_kw(
     params: ThermalParameters,
     target: float,
@@ -2695,32 +2743,7 @@ class HeatPumpOptimizer:
     # Main optimization
     # ------------------------------------------------------------------
 
-    def optimize(
-        self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray | None = None,
-        precipitation: np.ndarray | None = None,
-        solar_radiation: np.ndarray | None = None,
-        start_time: datetime | None = None,
-        price_known: np.ndarray | None = None,
-        pv_surplus: np.ndarray | None = None,
-        space_pins: np.ndarray | None = None,
-        dhw_pins: np.ndarray | None = None,
-        external_heat_kw: np.ndarray | None = None,
-        price_sigma: np.ndarray | None = None,
-        power_caps_extra: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
-        # Keyword-only: both are per-step temperature series, the same shape
-        # and dtype as half the arrays above — a positional transposition
-        # would be silent and plausible-looking.
-        *,
-        min_temp_margins: np.ndarray | None = None,
-        min_temp_floors: np.ndarray | None = None,
-        space_blocked: bool = False,
-        dhw_blocked: bool = False,
-    ) -> OptimizationResult:
+    def optimize(self, *, inputs: SolveInputs) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
         This is the CORE of true MPC: the optimizer uses the FULL 24-hour
@@ -2732,27 +2755,40 @@ class HeatPumpOptimizer:
         - Increases pre-heating before forecasted windy/rainy periods
         - Coordinates DHW heating with space heating and electricity prices
 
-        ``prices`` are the raw import prices. Where ``pv_surplus`` forecasts
-        spare production, the objectives price consumption piecewise — the
-        surplus-covered energy at ``config.pv_export_price``, the rest at the
-        import price — so a step with trivial sun is not repriced wholesale.
-        ``price_known`` marks which steps rest on published market data rather
-        than on the learned diurnal prior.
+        The forecast's ``prices`` are the raw import prices. Where its
+        ``pv_surplus`` forecasts spare production, the objectives price
+        consumption piecewise — the surplus-covered energy at
+        ``config.pv_export_price``, the rest at the import price — so a step
+        with trivial sun is not repriced wholesale. ``price_known`` marks which
+        steps rest on published market data rather than on the learned
+        diurnal prior.
 
-        ``space_blocked`` / ``dhw_blocked`` say that the heat pump's *observed
-        operating mode* cannot serve that channel at all — a unit in ``heat``
-        makes no hot water, a unit in ``DHW`` or ``cool`` heats no rooms. They
-        are not a preference and not a manual pin: the pin-safety loop below
-        releases forced-off pins when a floor would be breached, and doing
-        that here would put back power the hardware refuses to draw. So a
-        blocked channel stays blocked, its floor is left unmet, and the reason
-        codes say ``pump_mode`` rather than ``idle`` so the shortfall is
-        visible instead of looking like the optimizer declining to run. Both
-        default to False, which is byte-for-byte the previous behaviour.
+        The limits' ``space_blocked`` / ``dhw_blocked`` say that the heat
+        pump's *observed operating mode* cannot serve that channel at all — a
+        unit in ``heat`` makes no hot water, a unit in ``DHW`` or ``cool``
+        heats no rooms. They are not a preference and not a manual pin: the
+        pin-safety loop below releases forced-off pins when a floor would be
+        breached, and doing that here would put back power the hardware
+        refuses to draw. So a blocked channel stays blocked, its floor is left
+        unmet, and the reason codes say ``pump_mode`` rather than ``idle`` so
+        the shortfall is visible instead of looking like the optimizer
+        declining to run. Both default to False, which is byte-for-byte the
+        previous behaviour.
         """
         import time
 
         t_start = time.monotonic()
+        initial_state, start_time = inputs.state, inputs.start_time
+        series, limits = inputs.forecast, inputs.limits
+        prices, outdoor_temps = series.prices, series.outdoor_temps
+        wind_speeds, precipitation = series.wind_speeds, series.precipitation
+        solar_radiation, humidity = series.solar_radiation, series.humidity
+        price_known, pv_surplus = series.price_known, series.pv_surplus
+        price_sigma, external_heat_kw = series.price_sigma, series.external_heat_kw
+        space_pins, dhw_pins = limits.space_pins, limits.dhw_pins
+        power_caps_extra = limits.power_caps_extra
+        min_temp_margins, min_temp_floors = limits.min_temp_margins, limits.min_temp_floors
+        space_blocked, dhw_blocked = limits.space_blocked, limits.dhw_blocked
 
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
@@ -5256,10 +5292,7 @@ class HeatPumpOptimizer:
 
 
 def optimize_in_process(
-    optimizer: "HeatPumpOptimizer",
-    state: ThermalState,
-    positional: tuple[Any, ...],
-    keywords: dict[str, Any],
+    optimizer: "HeatPumpOptimizer", inputs: SolveInputs
 ) -> OptimizationResult:
     """Picklable ``optimize`` entry for the worker process; lambdas are not.
 
@@ -5267,4 +5300,4 @@ def optimize_in_process(
     callable. The coordinator's three executor lambdas could not cross
     that boundary (#199 #290).
     """
-    return optimizer.optimize(state, *positional, **keywords)
+    return optimizer.optimize(inputs=inputs)

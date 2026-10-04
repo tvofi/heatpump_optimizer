@@ -296,70 +296,36 @@ _OPT_FIELDS = ("target_temp", "min_temp", "comfort_temp_day", "comfort_temp_nigh
 _DHW_FIELDS = ("dhw_min_temp", "dhw_idle_min_temp")
 
 
-class SetbackRecord(dict[str, float]):
-    """The originals ``apply_setback`` replaced; ``written`` is what it left.
-
-    The unwind needs both (#1517): a field is restored only while it still
-    holds the very object the envelope left there, so a write that landed
-    while the solve was parked on its await survives it -- even one equal
-    to the set-back value, and a NaN target unwinds, as ``==`` could not.
-    """
-
-    written: dict[str, float]
-
-
-def _setback_fields(
-    opt_config: _SetbackConfig, thermal_params: _SetbackThermal
-) -> dict[str, float]:
-    return {
-        **{n: getattr(opt_config, n) for n in _OPT_FIELDS},
-        **{n: getattr(thermal_params, n) for n in _DHW_FIELDS},
-    }
-
-
-def apply_setback(
-    state: AwayState, opt_config: _SetbackConfig, thermal_params: _SetbackThermal
-) -> SetbackRecord:
-    """Temporarily lower comfort targets while away. Returns the originals."""
-    original = SetbackRecord(_setback_fields(opt_config, thermal_params))
-    original.written = dict(original)
-    if not state.active or state.recovery_active:
-        return original
-    target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
-    opt_config.target_temp = min(original["target_temp"], target)
-    opt_config.min_temp = min(original["min_temp"], target)
-    opt_config.comfort_temp_day = target
-    opt_config.comfort_temp_night = target
-    dhw_floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
-    thermal_params.dhw_min_temp = min(original["dhw_min_temp"], dhw_floor)
-    thermal_params.dhw_idle_min_temp = min(
-        original["dhw_idle_min_temp"], dhw_floor
-    )
-    original.written = _setback_fields(opt_config, thermal_params)
-    return original
-
-
-def lower_floor(record: SetbackRecord, opt_config: _SetbackConfig, by: float) -> None:
-    """Widen the comfort floor for this solve only, as the envelope's own write.
-
-    Economy and the open-window relax lower ``min_temp`` inside the envelope
-    and rely on its unwind; recording the value here is what lets the
-    compare-and-restore take it back off.
-    """
-    opt_config.min_temp = max(ECONOMY_ABSOLUTE_FLOOR, opt_config.min_temp - by)
-    record.written["min_temp"] = opt_config.min_temp
-
-
-def restore_setback(
-    original: SetbackRecord,
+def solve_bands(
     opt_config: _SetbackConfig,
     thermal_params: _SetbackThermal,
-) -> None:
-    """Compare-and-restore, by identity: undo what the envelope still holds."""
-    for obj, names in ((opt_config, _OPT_FIELDS), (thermal_params, _DHW_FIELDS)):
-        for name in names:
-            if getattr(obj, name) is original.written[name]:
-                setattr(obj, name, original[name])
+    state: AwayState | None = None,
+    widen_by: tuple[float, ...] = (),
+) -> tuple[dict[str, float], dict[str, float]]:
+    """The comfort fields one solve plans with, as values (#1736).
+
+    The configured ones, set back while away (never during recovery), then
+    the floor widened by each of ``widen_by`` in turn -- economy, an open
+    window -- and never below ``ECONOMY_ABSOLUTE_FLOOR``. Returned as the
+    configuration's fields and the thermal parameters'; nothing is written
+    into the objects they were read from, so nothing is unwound after the
+    solve and a write landing while it runs survives (#1517).
+    """
+    config = {n: getattr(opt_config, n) for n in _OPT_FIELDS}
+    dhw = {n: getattr(thermal_params, n) for n in _DHW_FIELDS}
+    if state is not None and state.active and not state.recovery_active:
+        target = state.target_temperature or DEFAULT_AWAY_TEMPERATURE
+        floor = state.dhw_min_temperature or DEFAULT_AWAY_DHW_MIN_TEMP
+        config = {
+            "target_temp": min(config["target_temp"], target),
+            "min_temp": min(config["min_temp"], target),
+            "comfort_temp_day": target,
+            "comfort_temp_night": target,
+        }
+        dhw = {n: min(v, floor) for n, v in dhw.items()}
+    for by in widen_by:
+        config["min_temp"] = max(ECONOMY_ABSOLUTE_FLOOR, config["min_temp"] - by)
+    return config, dhw
 
 
 def _away_store(coord: _AwayCoord) -> QuarantiningStore[dict[str, Any]]:

@@ -15,6 +15,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 
 from harness import FakeHass, FakeState, Results, UTC, minutes_ago
+from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
 
@@ -82,6 +83,16 @@ from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, Th
 from heatpump_optimizer.dhw_planner import DhwPlanner
 
 R = Results("Feature modules")
+
+
+def _solve_record_now(coord):
+    """The record a solve started now would plan with (#1736): what the
+    solve's tail -- the fuse advisor, the price tiles -- is handed."""
+    from homeassistant.util import dt as _rec_dt
+    from heatpump_optimizer.coordinator import _solve_anchor
+
+    now = _rec_dt.now()
+    return coord._solve_record(_solve_anchor(now), coord._forecast_arrays(now))
 
 
 def _dhw_planner(opt):
@@ -589,7 +600,7 @@ def _fi_fuse_held(stamp, gate):
         _fi_dt.freeze(when)
         before = c._fuse_advisor_at
         try:
-            _fi_aio.run(c._maybe_run_fuse_advisor())
+            _fi_aio.run(c._maybe_run_fuse_advisor(_solve_record_now(c)))
         except Exception:  # noqa: BLE001 -- only whether the cooldown held is read
             pass
     return c._fuse_advisor_at == before
@@ -970,10 +981,10 @@ def _r9f13_make(entry_id: str, extra: dict | None = None):
     return hass, entry, coord
 
 
-async def _r9f13_inline(hass, optimizer, state, *positional, **keywords):
+async def _r9f13_inline(hass, optimizer, inputs):
     """The #511 in-process fallback, forced: a patched optimizer must be
     the one that solves, which the worker process would re-import."""
-    return _r9f13_solve(optimizer, state, positional, keywords)
+    return _r9f13_solve(optimizer, inputs)
 
 
 # D2-s3-01: an entry covers [start, next start) on the step grid already;
@@ -1760,14 +1771,15 @@ def _r9f12_cycles(mapped):
     _r9f12_aio.run(_r9f12_integ.async_setup_entry(hass, entry))
     coord = entry.runtime_data
     seen = []
-    real_snap = coord._solve_snapshot
+    real_snap = coord._solve_record
 
-    def _r9f12_snap():
-        state, optimizer = real_snap()
+    def _r9f12_snap(*a, **k):
+        record = real_snap(*a, **k)
+        state = record.inputs.state
         seen.append((state.dhw_temperature, state.slab_temperature))
-        return state, optimizer
+        return record
 
-    coord._solve_snapshot = _r9f12_snap
+    coord._solve_record = _r9f12_snap
     try:
         plans = []
         for hour in range(4):
@@ -1776,7 +1788,7 @@ def _r9f12_cycles(mapped):
             _r9f12_aio.run(coord.async_refresh())
             plans.append(coord._optimization_result)
     finally:
-        coord._solve_snapshot = real_snap
+        coord._solve_record = real_snap
         _r9f12_dt.freeze(None)
     return seen, plans
 
@@ -4809,7 +4821,15 @@ def _weekly_solve(spec, start):
         outdoor_temperature=float(_ot[0]), dhw_temperature=48.0,
         dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
     )
-    return _o.optimize(_st, _pr, _ot, _wi, _ra, _so, start)
+    return _o.optimize(inputs=solve_inputs(
+        initial_state=_st,
+        prices=_pr,
+        outdoor_temps=_ot,
+        wind_speeds=_wi,
+        precipitation=_ra,
+        solar_radiation=_so,
+        start_time=start,
+    ))
 
 _SPEC = "weekdays 06:00-08:00, weekend 10:00-12:00"
 # The requirement mask is the honest observable: when each step's floor
@@ -5203,15 +5223,18 @@ def _pd_full_solve(house, start):
     _o = _PvOpt(_PvModel(ThermalParameters.from_config(house)), _PvOptCfg(
         horizon_hours=24, time_step_minutes=15,
         target_temp=21.0, min_temp=17.0, max_temp=23.0))
-    return _o.optimize(
-        ThermalState(
+    return _o.optimize(inputs=solve_inputs(
+        initial_state=ThermalState(
             room_temperature=21.0, slab_temperature=22.0,
             outdoor_temperature=-5.0, dhw_temperature=48.0,
             dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
-        _grad_prices("winter_typical", start),
-        np.full(96, -5.0), np.full(96, 3.0), np.full(96, 0.0), np.full(96, 0.0),
-        start,
-    )
+        prices=_grad_prices("winter_typical", start),
+        outdoor_temps=np.full(96, -5.0),
+        wind_speeds=np.full(96, 3.0),
+        precipitation=np.full(96, 0.0),
+        solar_radiation=np.full(96, 0.0),
+        start_time=start,
+    ))
 
 
 _pd_sat_start = _WDT(2026, 1, 17, 0, 0)
@@ -5908,10 +5931,16 @@ def _capture_objectives_948(two_zone, dhw, valve=None, pv_surplus=None,
 
     _grad_optmod._multi_start_minimize = _msm_948
     try:
-        opt.optimize(
-            st, pr, ot, wi, ra, so, start,
+        opt.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=pr,
+            outdoor_temps=ot,
+            wind_speeds=wi,
+            precipitation=ra,
+            solar_radiation=so,
+            start_time=start,
             pv_surplus=None if pv_surplus is None else _fit948(pv_surplus, n),
-        )
+        ))
     finally:
         _grad_optmod._multi_start_minimize = _orig_msm_948
     return captured
@@ -9549,8 +9578,15 @@ def _storage_plan(price_profile):
         lower_floor_temperature=20.0, slab_temperature=21.0,
         buffer_tank_temperature=25.0, outdoor_temperature=-10.0,
     )
-    r = opt.optimize(st, prices, outdoor, zeros, zeros, zeros,
-                     datetime(2026, 1, 15))
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=prices,
+        outdoor_temps=outdoor,
+        wind_speeds=zeros,
+        precipitation=zeros,
+        solar_radiation=zeros,
+        start_time=datetime(2026, 1, 15),
+    ))
     pw = np.asarray(r.power_schedule)
     _, _, _, _, buf, _, _ = m.simulate_trajectory(st, pw, outdoor, zeros, zeros, zeros, 0.25)
     night = float(pw[hours < 5].sum() * 0.25)
@@ -9627,8 +9663,15 @@ def _hold_plan(price_profile, mode=_mv.MODE_SMART_WRITE, volume=750.0):
         lower_floor_temperature=20.0, slab_temperature=21.0,
         buffer_tank_temperature=25.0, outdoor_temperature=-10.0,
     )
-    return opt.optimize(st, prices, outdoor, zeros, zeros, zeros,
-                        datetime(2026, 1, 15)), hours
+    return opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=prices,
+        outdoor_temps=outdoor,
+        wind_speeds=zeros,
+        precipitation=zeros,
+        solar_radiation=zeros,
+        start_time=datetime(2026, 1, 15),
+    )), hours
 
 
 _hold_r, _hold_hours = _hold_plan("spread")
@@ -9837,9 +9880,15 @@ R.check(
 # not charge past the cap. Free power is the adversarial case -- deleted
 # heat costs nothing, so only the hard constraint stands between the solver
 # and a boiled tank.
-_cres = _copt.optimize(
-    _cst, _cprices, _cout, _czeros, _czeros, _czeros, datetime(2026, 1, 15)
-)
+_cres = _copt.optimize(inputs=solve_inputs(
+    initial_state=_cst,
+    prices=_cprices,
+    outdoor_temps=_cout,
+    wind_speeds=_czeros,
+    precipitation=_czeros,
+    solar_radiation=_czeros,
+    start_time=datetime(2026, 1, 15),
+))
 _, _, _, _, _cres_buf, _cres_refused, _ = _cm.simulate_trajectory(
     _cst, np.asarray(_cres.power_schedule), _cout,
     _czeros, _czeros, _czeros, 0.25,
@@ -10004,10 +10053,15 @@ _StoreOpt._optimize_space_only = _space234
 _StoreOpt._tighten_buffer_caps = _tight234
 _got234 = None
 try:
-    _opt234.optimize(
-        _st234, _p234, np.full(_n234, -2.0), _z234, _z234, _z234,
-        datetime(2026, 1, 15),
-    )
+    _opt234.optimize(inputs=solve_inputs(
+        initial_state=_st234,
+        prices=_p234,
+        outdoor_temps=np.full(_n234, -2.0),
+        wind_speeds=_z234,
+        precipitation=_z234,
+        solar_radiation=_z234,
+        start_time=datetime(2026, 1, 15),
+    ))
 except _Got234 as exc:
     _got234 = exc
 finally:
@@ -10093,10 +10147,15 @@ def _tight_keep234(self, result, power_caps, *a, **kw):
 _StoreOpt._optimize_space_only = _space_keep234
 _StoreOpt._tighten_buffer_caps = _tight_keep234
 try:
-    _kept234 = _opt234.optimize(
-        _st234, _p234, np.full(_n234, -2.0), _z234, _z234, _z234,
-        datetime(2026, 1, 15),
-    )
+    _kept234 = _opt234.optimize(inputs=solve_inputs(
+        initial_state=_st234,
+        prices=_p234,
+        outdoor_temps=np.full(_n234, -2.0),
+        wind_speeds=_z234,
+        precipitation=_z234,
+        solar_radiation=_z234,
+        start_time=datetime(2026, 1, 15),
+    ))
 finally:
     _StoreOpt._optimize_space_only = _real_space234
     _StoreOpt._tighten_buffer_caps = _real_tight234
@@ -10450,15 +10509,27 @@ _x_opt = _StoreOpt(_x_m, _StoreCfg(
 _x_prices = np.full(96, 1.2)
 _x_out = np.full(96, -5.0)
 _x_zero = np.zeros(96)
-_x_blind = _x_opt.optimize(
-    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15)
-)
+_x_blind = _x_opt.optimize(inputs=solve_inputs(
+    initial_state=_x_st,
+    prices=_x_prices,
+    outdoor_temps=_x_out,
+    wind_speeds=_x_zero,
+    precipitation=_x_zero,
+    solar_radiation=_x_zero,
+    start_time=datetime(2026, 1, 15),
+))
 _x_fc = np.zeros(96)
 _x_fc[:24] = 6.0
-_x_aware = _x_opt.optimize(
-    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+_x_aware = _x_opt.optimize(inputs=solve_inputs(
+    initial_state=_x_st,
+    prices=_x_prices,
+    outdoor_temps=_x_out,
+    wind_speeds=_x_zero,
+    precipitation=_x_zero,
+    solar_radiation=_x_zero,
+    start_time=datetime(2026, 1, 15),
     external_heat_kw=_x_fc,
-)
+))
 _x_pb = np.asarray(_x_blind.power_schedule)
 _x_pa = np.asarray(_x_aware.power_schedule)
 R.check(
@@ -10467,10 +10538,16 @@ R.check(
     f"first 6 h: blind {_x_pb[:24].sum() * 0.25:.1f} kWh vs "
     f"aware {_x_pa[:24].sum() * 0.25:.1f} kWh",
 )
-_x_zeroed = _x_opt.optimize(
-    _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero, datetime(2026, 1, 15),
+_x_zeroed = _x_opt.optimize(inputs=solve_inputs(
+    initial_state=_x_st,
+    prices=_x_prices,
+    outdoor_temps=_x_out,
+    wind_speeds=_x_zero,
+    precipitation=_x_zero,
+    solar_radiation=_x_zero,
+    start_time=datetime(2026, 1, 15),
     external_heat_kw=np.zeros(96),
-)
+))
 R.check(
     "an all-zero forecast is byte-identical to no forecast",
     np.array_equal(np.asarray(_x_zeroed.power_schedule), _x_pb),
@@ -10480,10 +10557,16 @@ R.check(
 # truncated into a horizon of its own length: the first six hours alone plan
 # exactly as the full forecast whose remainder is zero.
 try:
-    _x_short = np.asarray(_x_opt.optimize(
-        _x_st, _x_prices, _x_out, _x_zero, _x_zero, _x_zero,
-        datetime(2026, 1, 15), external_heat_kw=_x_fc[:24],
-    ).power_schedule)
+    _x_short = np.asarray(_x_opt.optimize(inputs=solve_inputs(
+        initial_state=_x_st,
+        prices=_x_prices,
+        outdoor_temps=_x_out,
+        wind_speeds=_x_zero,
+        precipitation=_x_zero,
+        solar_radiation=_x_zero,
+        start_time=datetime(2026, 1, 15),
+        external_heat_kw=_x_fc[:24],
+    )).power_schedule)
 except Exception as _x_err:  # noqa: BLE001 - a raise is the failure measured
     _x_short = repr(_x_err)
 R.check(
@@ -11080,18 +11163,21 @@ R.check(
     f"the widening stops at {ECONOMY_ABSOLUTE_FLOOR} C whatever the floor is",
 )
 
-# The widening is applied after the away snapshot so the solve's `finally`
-# restore unwinds it. `min_temp` is otherwise written only at `_init_model()`,
-# so a widening that escaped the restore would outlive the mode and quietly
-# lower the floor of every later plan -- including after the user left economy.
-_away_snapshot = away_mode.apply_setback(
-    param_coord._away_state, param_coord._opt_config, param_coord._thermal_params
+# The widening is one solve's band (#1736): written into the configuration it
+# would outlive the mode and quietly lower the floor of every later plan --
+# including after the user left economy.
+_eco_floor = param_coord._opt_config.min_temp
+_eco_bands = away_mode.solve_bands(
+    param_coord._opt_config, param_coord._thermal_params,
+    param_coord._away_state, (ECONOMY_MIN_TEMP_WIDENING,),
 )
 R.check(
-    "the away snapshot carries min_temp, which is what unwinds the widening",
-    "min_temp" in _away_snapshot,
-    "economy writes _opt_config.min_temp and relies on this restore; drop the "
-    "key and the widening leaks into every subsequent solve",
+    "economy widens the solve's band and never the configured floor",
+    _eco_bands[0]["min_temp"]
+    == max(ECONOMY_ABSOLUTE_FLOOR, _eco_floor - ECONOMY_MIN_TEMP_WIDENING)
+    and param_coord._opt_config.min_temp == _eco_floor,
+    f"band {_eco_bands[0]['min_temp']!r}, configured "
+    f"{param_coord._opt_config.min_temp!r} (was {_eco_floor!r})",
 )
 R.check(
     "every mode the service accepts can be persisted and restored",
@@ -12448,10 +12534,16 @@ _wf_tm.dhw_coil_draw_reduction = _wf_red_spy
 DhwPlanner._dhw_planner_draws = _wf_pd_spy
 DhwPlanner._build_dhw_requirements = _wf_build_spy
 try:
-    _wf_res = _wf_b["optimizer"].optimize(
-        _wf_b["state"], _wf_b["prices"], _wf_b["outdoor"], _wf_b["wind"],
-        _wf_b["rain"], _wf_b["solar"], _WF_START, external_heat_kw=_wf_ext,
-    )
+    _wf_res = _wf_b["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=_wf_b["state"],
+        prices=_wf_b["prices"],
+        outdoor_temps=_wf_b["outdoor"],
+        wind_speeds=_wf_b["wind"],
+        precipitation=_wf_b["rain"],
+        solar_radiation=_wf_b["solar"],
+        start_time=_WF_START,
+        external_heat_kw=_wf_ext,
+    ))
 finally:
     DhwPlanner._dhw_coil_wood_forecast = _wf_real
     _WfModel.simulate_trajectory_with_dhw = _wf_real_sim
@@ -12519,11 +12611,16 @@ def _coil_plan(*, enabled, wood, cop_scale=None):
     ext = np.zeros(n)
     for i in range(steps):
         ext[i] = 8.0 * (1.0 - i / max(steps, 1))
-    return built["optimizer"].optimize(
-        built["state"], built["prices"], built["outdoor"], built["wind"],
-        built["rain"], built["solar"], _COIL_START,
+    return built["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=built["state"],
+        prices=built["prices"],
+        outdoor_temps=built["outdoor"],
+        wind_speeds=built["wind"],
+        precipitation=built["rain"],
+        solar_radiation=built["solar"],
+        start_time=_COIL_START,
         external_heat_kw=ext,
-    ), built["optimizer"].model.params
+    )), built["optimizer"].model.params
 
 # The planner's floor is the demand windows' (outside them the requirement is
 # the idle floor), so the in-window steps are read off the plan it built.
@@ -14243,11 +14340,17 @@ _rk_sigma = np.where(_rk_known, 0.0, 1.0)
 
 def _rk_solve(lam, sigma):
     _rk["optimizer"].config.price_risk_lambda = lam
-    return _rk["optimizer"].optimize(
-        _rk["state"], _rk["prices"], _rk["outdoor"], _rk["wind"],
-        _rk["rain"], _rk["solar"], _G_START,
-        price_known=_rk_known, price_sigma=sigma,
-    )
+    return _rk["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=_rk["state"],
+        prices=_rk["prices"],
+        outdoor_temps=_rk["outdoor"],
+        wind_speeds=_rk["wind"],
+        precipitation=_rk["rain"],
+        solar_radiation=_rk["solar"],
+        start_time=_G_START,
+        price_known=_rk_known,
+        price_sigma=sigma,
+    ))
 
 _rk_none = _rk_solve(0.0, None)
 _rk_zero = _rk_solve(0.0, _rk_sigma)
@@ -14296,10 +14399,15 @@ R.check(
 # that, by a wide margin.
 def _fee_plan(prices_add):
     _sc = _mk_golden(price_profile="flat")
-    _res = _sc["optimizer"].optimize(
-        _sc["state"], _sc["prices"] + prices_add, _sc["outdoor"], _sc["wind"],
-        _sc["rain"], _sc["solar"], _G_START,
-    )
+    _res = _sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=_sc["state"],
+        prices=_sc["prices"] + prices_add,
+        outdoor_temps=_sc["outdoor"],
+        wind_speeds=_sc["wind"],
+        precipitation=_sc["rain"],
+        solar_radiation=_sc["solar"],
+        start_time=_G_START,
+    ))
     _tot = np.asarray(_res.power_schedule) + np.asarray(_res.dhw_power_schedule)
     _dhw = np.asarray(_res.dhw_power_schedule)
     _day = float(_tot[24:88].sum()) * 0.25  # 06:00-22:00 on the 15-min grid
@@ -14520,10 +14628,16 @@ def _cap_solve(cap_kw):
     sc = _mk_golden(dhw=True)
     n = len(sc["prices"])
     caps = None if cap_kw is None else np.full(n, cap_kw)
-    res = sc["optimizer"].optimize(
-        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
-        sc["solar"], _G_START, power_caps_extra=caps,
-    )
+    res = sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=sc["outdoor"],
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+        power_caps_extra=caps,
+    ))
     total = np.asarray(res.power_schedule) + np.asarray(res.dhw_power_schedule)
     return res, total
 
@@ -14561,10 +14675,15 @@ R.check(
 # ``external_heat_active`` (with no burn forecast) IS that statement.
 def _flag_solve(**state_overrides):
     sc = _mk_golden(dhw=True, state_overrides=state_overrides)
-    return sc["optimizer"].optimize(
-        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
-        sc["solar"], _G_START,
-    )
+    return sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=sc["outdoor"],
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+    ))
 
 # A tank hot enough that the daily requirement is already covered, but still
 # under the charge limit — otherwise the unflagged plan does no discretionary
@@ -14895,7 +15014,7 @@ _adv_calls = []
 def _advisor_coord(payload_extra=None, **cfg):
     c = _t2_coord(main_fuse_amperes=20.0, main_fuse_phases=3, **cfg)
 
-    async def _fake_simulate(overrides, limited=True):
+    async def _fake_simulate(overrides, limited=True, base=None):
         _adv_calls.append(overrides)
         return {
             "overrides": overrides,
@@ -14915,7 +15034,7 @@ _adv_calls.clear()
 _cad = _advisor_coord()
 _cad._simulation_cache = {"marker": "card"}
 _cad._last_simulation = None
-_asyncio.run(_cad._maybe_run_fuse_advisor())
+_asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 _adv = _cad._fuse_advisor
 R.check(
     "the advisor publishes a verdict for the next-smaller fuse",
@@ -14936,7 +15055,7 @@ R.check(
     _cad._simulation_cache == {"marker": "card"}
     and _cad._last_simulation is None,
 )
-_asyncio.run(_cad._maybe_run_fuse_advisor())
+_asyncio.run(_cad._maybe_run_fuse_advisor(_solve_record_now(_cad)))
 R.check(
     "a second run inside the week is skipped",
     len(_adv_calls) == 1,
@@ -14951,7 +15070,7 @@ _cad2 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
-_asyncio.run(_cad2._maybe_run_fuse_advisor())
+_asyncio.run(_cad2._maybe_run_fuse_advisor(_solve_record_now(_cad2)))
 R.check(
     "a shortfall the baseline plan shares is not blamed on the fuse",
     _cad2._fuse_advisor.get("feasible") is True
@@ -14966,7 +15085,7 @@ _cad3 = _advisor_coord(
         "min_room_temperature": 19.5,
     }
 )
-_asyncio.run(_cad3._maybe_run_fuse_advisor())
+_asyncio.run(_cad3._maybe_run_fuse_advisor(_solve_record_now(_cad3)))
 R.check(
     "a shortfall the cap itself forces still fails the candidate",
     _cad3._fuse_advisor.get("feasible") is False
@@ -14981,7 +15100,7 @@ R.check(
 _adv_calls.clear()
 _cad4 = _advisor_coord(payload_extra={"error": "no_prices"})
 _cad4._fuse_advisor = {"candidate_kw": 11.04, "feasible": True}
-_asyncio.run(_cad4._maybe_run_fuse_advisor())
+_asyncio.run(_cad4._maybe_run_fuse_advisor(_solve_record_now(_cad4)))
 R.check(
     "an errored what-if keeps last month's real verdict",
     _cad4._fuse_advisor == {"candidate_kw": 11.04, "feasible": True}
@@ -14992,7 +15111,7 @@ R.check(
 # --- #782 the weekly guard survives a store round-trip ----------------------
 _adv_calls.clear()
 _cad_persist = _advisor_coord()
-_asyncio.run(_cad_persist._maybe_run_fuse_advisor())
+_asyncio.run(_cad_persist._maybe_run_fuse_advisor(_solve_record_now(_cad_persist)))
 _persist_payload = {}
 
 
@@ -15020,7 +15139,7 @@ R.check(
 _cad_restore = _advisor_coord()
 _cad_restore._ledger_store = _FuseStore()
 _adv_calls.clear()
-_asyncio.run(_cad_restore._maybe_run_fuse_advisor())
+_asyncio.run(_cad_restore._maybe_run_fuse_advisor(_solve_record_now(_cad_restore)))
 R.check(
     "a restored advisor timestamp still skips a second run inside the week",
     _cad_restore._fuse_advisor_at is not None
@@ -15039,7 +15158,7 @@ class _OldLed:
 _cad_old = _advisor_coord()
 _cad_old._ledger_store = _OldLed()
 _adv_before = list(_adv_calls)
-_asyncio.run(_cad_old._maybe_run_fuse_advisor())
+_asyncio.run(_cad_old._maybe_run_fuse_advisor(_solve_record_now(_cad_old)))
 R.check(
     "an older ledger store without advisor keys still runs the what-if",
     _cad_old._fuse_advisor_at is not None and len(_adv_calls) == len(_adv_before) + 1,
@@ -15204,10 +15323,15 @@ def _q_solve(table):
             {"dhw_window_ready_energy": table} if table is not None else {}
         ),
     )
-    return sc["optimizer"].optimize(
-        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
-        sc["solar"], _G_START,
-    )
+    return sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=sc["outdoor"],
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+    ))
 
 _q_base = _q_solve(None)
 _q_heavy = _q_solve({"06:00-08:30": (15.0, DHW_QUANTILE_MIN_EVENTS)})
@@ -15322,10 +15446,15 @@ def _el_solve(**param_overrides):
         state_overrides={"dhw_hours_since_legionella": 130.0},
         param_overrides=param_overrides,
     )
-    return sc["optimizer"].optimize(
-        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
-        sc["solar"], _G_START,
-    )
+    return sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=sc["outdoor"],
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+    ))
 
 _el_off = _el_solve()
 _el_inert = _el_solve(dhw_elastic_legionella_enabled=True)
@@ -15808,16 +15937,14 @@ _c47._thermal_params.dhw_elastic_legionella_enabled = True
 _c47._thermal_params.dhw_legionella_enabled = True
 _c47._legionella.last_cycle = dt_util.now() - timedelta(days=5)
 _c47._prices = [{"total": 1.0}] * 24
-_c47._prepare_dhw_inputs(dt_util.now())
 R.check(
     "elastic opted in with a fresh prior sets NO ceiling",
-    _c47._thermal_params.dhw_legionella_price_ceiling is None,
+    _c47._dhw_plan_fields(dt_util.now())["dhw_legionella_price_ceiling"] is None,
     "the young-prior 'ceiling = mean' fired the cycle at the minimum "
     "interval every time — the opposite of deferring",
 )
 _c47._price_model.days = [30, 30]
-_c47._prepare_dhw_inputs(dt_util.now())
-_ceiling = _c47._thermal_params.dhw_legionella_price_ceiling
+_ceiling = _c47._dhw_plan_fields(dt_util.now())["dhw_legionella_price_ceiling"]
 R.check(
     "a fully trained prior sets a real ceiling at or below the level",
     _ceiling is not None and _ceiling <= 1.0 + 1e-9,
@@ -16201,15 +16328,18 @@ R.check(
     "must not stop every learner on every install that lacks it",
 )
 
-# The gated relax rides the same snapshot-and-unwind envelope as the away
-# setback and economy mode; the envelope carrying min_temp is what makes
-# all three unwindable. Default-off byte-inertness is the goldens' job.
+# The gated relax is one solve's band, like the away setback and economy
+# mode (#1736): nothing is written into the configuration, so nothing has to
+# be unwound. Default-off byte-inertness is the goldens' job.
 _ce = _vent_coord()
+_ce_floor = _ce._opt_config.min_temp
 R.check(
-    "the away snapshot carries min_temp, which is what unwinds the relax",
-    "min_temp" in away_mode.apply_setback(
-        _ce._away_state, _ce._opt_config, _ce._thermal_params
-    ),
+    "the relax lowers the solve's band, never the configured floor",
+    away_mode.solve_bands(
+        _ce._opt_config, _ce._thermal_params, _ce._away_state,
+        (OPEN_WINDOW_RELAX_C,),
+    )[0]["min_temp"] == _ce_floor - OPEN_WINDOW_RELAX_C
+    and _ce._opt_config.min_temp == _ce_floor,
 )
 R.check(
     "the relax is one degree and can never pierce the absolute floor",
@@ -16217,17 +16347,18 @@ R.check(
     and ECONOMY_ABSOLUTE_FLOOR >= 12.0,
 )
 # Wiring, pinned at the source level like the learner-ordering checks:
-# the relax must be gated on its flag AND applied after the away
-# snapshot, inside the same method, so the finally-restore unwinds it.
-_run_src = inspect.getsource(_Coord.async_run_optimization)
+# the relax must be gated on its flag, and the widenings reach a solve only
+# through its banded hubs.
+_run_src = inspect.getsource(_Coord._floor_widening)
+_hubs_src = inspect.getsource(_Coord._solve_hubs)
 R.check(
-    "the relax sits behind its flag, after the away snapshot",
+    "the relax sits behind its flag, inside the solve's bands",
     0
-    < _run_src.find("apply_setback")
     < _run_src.find("CONF_OPEN_WINDOW_RELAX_ENABLED")
     < _run_src.find("OPEN_WINDOW_RELAX_C")
-    and "_vent_cusum.tripped" in _run_src,
-    "dropping the config gate or moving the relax outside the envelope "
+    and "_vent_cusum.tripped" in _run_src
+    and 0 < _hubs_src.find("if banded:") < _hubs_src.find("self._floor_widening()"),
+    "dropping the config gate or applying the relax outside a solve's bands "
     "must fail here, not in a February install",
 )
 
@@ -16340,10 +16471,15 @@ def _m_solve(margin):
         state_overrides={"dhw_temperature": 46.0},
         param_overrides={"dhw_ready_margin_c": margin},
     )
-    return sc["optimizer"].optimize(
-        sc["state"], sc["prices"], sc["outdoor"], sc["wind"], sc["rain"],
-        sc["solar"], _G_START,
-    )
+    return sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=sc["outdoor"],
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+    ))
 
 
 R.check(
@@ -17034,15 +17170,26 @@ R.check(
 # the same solve, with and without a full humidity array, byte for byte.
 _h21 = _mk_golden(dhw=True)
 _hum_arr = np.full(len(_h21["prices"]), 85.0)
-_r_dry = _h21["optimizer"].optimize(
-    _h21["state"], _h21["prices"], _h21["outdoor"], _h21["wind"], _h21["rain"],
-    _h21["solar"], _G_START,
-)
+_r_dry = _h21["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_h21["state"],
+    prices=_h21["prices"],
+    outdoor_temps=_h21["outdoor"],
+    wind_speeds=_h21["wind"],
+    precipitation=_h21["rain"],
+    solar_radiation=_h21["solar"],
+    start_time=_G_START,
+))
 _h21b = _mk_golden(dhw=True)
-_r_hum = _h21b["optimizer"].optimize(
-    _h21b["state"], _h21b["prices"], _h21b["outdoor"], _h21b["wind"],
-    _h21b["rain"], _h21b["solar"], _G_START, humidity=_hum_arr,
-)
+_r_hum = _h21b["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_h21b["state"],
+    prices=_h21b["prices"],
+    outdoor_temps=_h21b["outdoor"],
+    wind_speeds=_h21b["wind"],
+    precipitation=_h21b["rain"],
+    solar_radiation=_h21b["solar"],
+    start_time=_G_START,
+    humidity=_hum_arr,
+))
 R.check(
     "with zero defrost samples the humidity series changes nothing",
     np.array_equal(
@@ -17058,18 +17205,29 @@ _h21c = _mk_golden(
     dhw=True,
     param_overrides={"defrost_derate": _dr, "ambient_humidity": 40.0},
 )
-_r_derate = _h21c["optimizer"].optimize(
-    _h21c["state"], _h21c["prices"], _h21c["outdoor"], _h21c["wind"],
-    _h21c["rain"], _h21c["solar"], _G_START, humidity=_hum_arr,
-)
+_r_derate = _h21c["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_h21c["state"],
+    prices=_h21c["prices"],
+    outdoor_temps=_h21c["outdoor"],
+    wind_speeds=_h21c["wind"],
+    precipitation=_h21c["rain"],
+    solar_radiation=_h21c["solar"],
+    start_time=_G_START,
+    humidity=_hum_arr,
+))
 _h21d = _mk_golden(
     dhw=True,
     param_overrides={"defrost_derate": _dr, "ambient_humidity": 40.0},
 )
-_r_ambient = _h21d["optimizer"].optimize(
-    _h21d["state"], _h21d["prices"], _h21d["outdoor"], _h21d["wind"],
-    _h21d["rain"], _h21d["solar"], _G_START,
-)
+_r_ambient = _h21d["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_h21d["state"],
+    prices=_h21d["prices"],
+    outdoor_temps=_h21d["outdoor"],
+    wind_speeds=_h21d["wind"],
+    precipitation=_h21d["rain"],
+    solar_radiation=_h21d["solar"],
+    start_time=_G_START,
+))
 R.check(
     "with real defrost evidence a humid forecast reshapes the plan",
     not np.array_equal(
@@ -17200,8 +17358,8 @@ R.check(
 )
 R.check(
     "the envelope composes through caps_extra, never a second channel",
-    "np.minimum(caps_extra, env_caps)"
-    in inspect.getsource(_Coord.async_run_optimization),
+    "np.minimum(caps, env_caps)"
+    in inspect.getsource(_Coord._solve_record),
 )
 
 # --- #36 the solar aperture -------------------------------------------------------
@@ -17559,11 +17717,15 @@ R.check(
     "hour_of_day=previous_time.hour" in _hl_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
 )
-_run_src2 = inspect.getsource(_Coord.async_run_optimization)
+_run_src2 = inspect.getsource(_Coord._refresh_model_corrections)
+_upd_src2 = inspect.getsource(_Coord._update_current_state)
 R.check(
-    "the apply path writes both learned scales onto the shared params",
-    "solar_aperture_scale" in _run_src2
-    and "internal_gains_profile" in _run_src2,
+    "the apply path writes both learned scales onto the shared params, after "
+    "the learners that replay with them",
+    "params.solar_aperture_scale =" in _run_src2
+    and "params.internal_gains_profile =" in _run_src2
+    and 0 < _upd_src2.find("_async_learn_house_heat_loss()")
+    < _upd_src2.find("self._refresh_model_corrections()"),
     "the replay closes its loop through these params — a scale that "
     "never lands there is learned but never applied OR re-centred",
 )
@@ -17786,17 +17948,27 @@ R.check(
 
 # --- the optimizer's floor channel ---------------------------------------------------
 _g5 = _mk_golden(dhw=False)
-_r5_base = _g5["optimizer"].optimize(
-    _g5["state"], _g5["prices"], _g5["outdoor"], _g5["wind"], _g5["rain"],
-    _g5["solar"], _G_START,
-)
+_r5_base = _g5["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5["state"],
+    prices=_g5["prices"],
+    outdoor_temps=_g5["outdoor"],
+    wind_speeds=_g5["wind"],
+    precipitation=_g5["rain"],
+    solar_radiation=_g5["solar"],
+    start_time=_G_START,
+))
 _g5b = _mk_golden(dhw=False)
-_r5_zero = _g5b["optimizer"].optimize(
-    _g5b["state"], _g5b["prices"], _g5b["outdoor"], _g5b["wind"], _g5b["rain"],
-    _g5b["solar"], _G_START,
+_r5_zero = _g5b["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5b["state"],
+    prices=_g5b["prices"],
+    outdoor_temps=_g5b["outdoor"],
+    wind_speeds=_g5b["wind"],
+    precipitation=_g5b["rain"],
+    solar_radiation=_g5b["solar"],
+    start_time=_G_START,
     min_temp_margins=np.zeros(len(_g5b["prices"])),
     min_temp_floors=np.full(len(_g5b["prices"]), -100.0),
-)
+))
 R.check(
     "zero margins and a bottomless floor are byte-identical to none at all",
     np.array_equal(
@@ -17804,11 +17976,16 @@ R.check(
     ),
 )
 _g5c = _mk_golden(dhw=False)
-_r5_m = _g5c["optimizer"].optimize(
-    _g5c["state"], _g5c["prices"], _g5c["outdoor"], _g5c["wind"], _g5c["rain"],
-    _g5c["solar"], _G_START,
+_r5_m = _g5c["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5c["state"],
+    prices=_g5c["prices"],
+    outdoor_temps=_g5c["outdoor"],
+    wind_speeds=_g5c["wind"],
+    precipitation=_g5c["rain"],
+    solar_radiation=_g5c["solar"],
+    start_time=_G_START,
     min_temp_margins=np.full(len(_g5c["prices"]), 0.8),
-)
+))
 R.check(
     "a real margin lifts the coldest hour of the plan",
     min(_r5_m.room_temp_trajectory) > min(_r5_base.room_temp_trajectory) + 0.3,
@@ -17816,22 +17993,32 @@ R.check(
     f"{min(_r5_m.room_temp_trajectory):.2f}",
 )
 _g5d = _mk_golden(dhw=False)
-_r5_f = _g5d["optimizer"].optimize(
-    _g5d["state"], _g5d["prices"], _g5d["outdoor"], _g5d["wind"], _g5d["rain"],
-    _g5d["solar"], _G_START,
+_r5_f = _g5d["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5d["state"],
+    prices=_g5d["prices"],
+    outdoor_temps=_g5d["outdoor"],
+    wind_speeds=_g5d["wind"],
+    precipitation=_g5d["rain"],
+    solar_radiation=_g5d["solar"],
+    start_time=_G_START,
     min_temp_floors=np.full(len(_g5d["prices"]), 19.5),
-)
+))
 R.check(
     "a mold floor holds the coldest hour above it",
     min(_r5_f.room_temp_trajectory) > 19.0,
     f"coldest {min(_r5_f.room_temp_trajectory):.2f} against a 19.5 floor",
 )
 _g5e = _mk_golden(dhw=False)
-_r5_wild = _g5e["optimizer"].optimize(
-    _g5e["state"], _g5e["prices"], _g5e["outdoor"], _g5e["wind"], _g5e["rain"],
-    _g5e["solar"], _G_START,
+_r5_wild = _g5e["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5e["state"],
+    prices=_g5e["prices"],
+    outdoor_temps=_g5e["outdoor"],
+    wind_speeds=_g5e["wind"],
+    precipitation=_g5e["rain"],
+    solar_radiation=_g5e["solar"],
+    start_time=_G_START,
     min_temp_margins=np.full(len(_g5e["prices"]), 10.0),
-)
+))
 R.check(
     "an absurd margin cannot squeeze the band shut",
     max(_r5_wild.room_temp_trajectory) < 30.0
@@ -18038,24 +18225,32 @@ R.check(
     "the promise waits through the freeze instead of being mis-scored",
 )
 
-# The floor channel is keyword-only: both arguments are per-step temperature
-# series the same shape as half the solver's inputs, so a positional
-# transposition would be silent and plausible-looking.
+# Every solve input travels by name (#1736): most are per-step series the
+# same shape as the floor channel's two, so a positional transposition would
+# be silent and plausible-looking. The old positional call, and the record's
+# own parts given positionally, must each be a loud TypeError.
 _g5f = _mk_golden(dhw=False)
-try:
-    _g5f["optimizer"].optimize(
+_f5_refused = []
+for _f5_call in (
+    lambda: _g5f["optimizer"].optimize(
         _g5f["state"], _g5f["prices"], _g5f["outdoor"], _g5f["wind"],
         _g5f["rain"], _g5f["solar"], _G_START,
         None, None, None, None, None, None, None, None,
         np.zeros(len(_g5f["prices"])),
-    )
-    _f5_raised = False
-except TypeError:
-    _f5_raised = True
+    ),
+    lambda: _optmod.ForecastSeries(_g5f["prices"], _g5f["outdoor"]),
+    lambda: _optmod.SolveLimits(None, None, None, np.zeros(3)),
+):
+    try:
+        _f5_call()
+        _f5_refused.append(False)
+    except TypeError:
+        _f5_refused.append(True)
 R.check(
-    "the comfort-floor arguments cannot be passed positionally",
-    _f5_raised,
-    "a transposed margins/floors pair must be a loud TypeError, not a plan",
+    "no solve input can be passed positionally: optimize, its forecast and its limits",
+    _f5_refused == [True, True, True],
+    f"refused {_f5_refused}: a transposed margins/floors pair must be a loud "
+    "TypeError, not a plan",
 )
 
 # The mold cap is the CONFIGURED target, never the live one: the away
@@ -18193,10 +18388,15 @@ R.check(
 )
 
 # --- reason-tagged settlement ----------------------------------------------------
-_r6 = _g5["optimizer"].optimize(
-    _g5["state"], _g5["prices"], _g5["outdoor"], _g5["wind"], _g5["rain"],
-    _g5["solar"], _G_START,
-)
+_r6 = _g5["optimizer"].optimize(inputs=solve_inputs(
+    initial_state=_g5["state"],
+    prices=_g5["prices"],
+    outdoor_temps=_g5["outdoor"],
+    wind_speeds=_g5["wind"],
+    precipitation=_g5["rain"],
+    solar_radiation=_g5["solar"],
+    start_time=_G_START,
+))
 _act6 = _g5["optimizer"].get_current_action(_r6, _r6.timestamps[2])
 R.check(
     "the current action carries this step's reason codes",
@@ -18886,7 +19086,7 @@ R.check(
 _ctile = _t2_coord()
 
 
-async def _fake_sim(overrides, limited=True):
+async def _fake_sim(overrides, limited=True, base=None):
     return {
         "monthly_cost_delta": -42.0,
         "min_room_temperature": 19.1,
@@ -18895,14 +19095,14 @@ async def _fake_sim(overrides, limited=True):
 
 
 _ctile.async_simulate = _fake_sim
-_asyncio.run(_ctile._maybe_refresh_price_tile())
+_asyncio.run(_ctile._maybe_refresh_price_tile(_solve_record_now(_ctile)))
 R.check(
     "with the flag off no tile ever computes, whatever solves happen",
     not _ctile._price_tiles,
 )
 _ctile2 = _t2_coord(price_tiles_enabled=True)
 _ctile2.async_simulate = _fake_sim
-_asyncio.run(_ctile2._maybe_refresh_price_tile())
+_asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "one solve refreshes exactly one tile, in rotation",
     list(_ctile2._price_tiles) == ["target_minus_1"]
@@ -18919,13 +19119,13 @@ R.check(
 _ctile2_limited_seen = {}
 
 
-async def _fake_sim_route(overrides, limited=True):
+async def _fake_sim_route(overrides, limited=True, base=None):
     _ctile2_limited_seen["limited"] = limited
     return {"rate_limited": False}
 
 
 _ctile2.async_simulate = _fake_sim_route
-_asyncio.run(_ctile2._maybe_refresh_price_tile())
+_asyncio.run(_ctile2._maybe_refresh_price_tile(_solve_record_now(_ctile2)))
 R.check(
     "#1753: the tile solves through the user-limit-free path, so its turn "
     "is always spent",
@@ -18935,7 +19135,7 @@ R.check(
 )
 R.check(
     "the tile set is fixed at three perturbations",
-    len(_ctile2._price_tile_specs()) == 3,
+    len(_ctile2._price_tile_specs(_solve_record_now(_ctile2))) == 3,
 )
 
 # --- the insight view and its persistence ----------------------------------------
@@ -19110,7 +19310,7 @@ _ctile3._last_simulation = _stamp3
 _ctile3_route = {}
 
 
-async def _fake_sim_poison(overrides, limited=True, _c=_ctile3):
+async def _fake_sim_poison(overrides, limited=True, _c=_ctile3, base=None):
     _ctile3_route["limited"] = limited
     return {
         "monthly_cost_delta": -1.0,
@@ -19120,7 +19320,7 @@ async def _fake_sim_poison(overrides, limited=True, _c=_ctile3):
 
 
 _ctile3.async_simulate = _fake_sim_poison
-_asyncio.run(_ctile3._maybe_refresh_price_tile())
+_asyncio.run(_ctile3._maybe_refresh_price_tile(_solve_record_now(_ctile3)))
 R.check(
     "#1753: the tile takes the limited=False path -- no borrow to restore",
     _ctile3_route.get("limited") is False
@@ -19136,8 +19336,8 @@ _ctile6 = _t2_coord(price_tiles_enabled=True)
 _ctile6._opt_config.target_temp = 17.0
 R.check(
     "the target tiles follow the live target through an away setback",
-    _ctile6._price_tile_specs()[0][1]["target_temp"] == 16.0
-    and _ctile6._price_tile_specs()[1][1]["target_temp"] == 18.0,
+    _ctile6._price_tile_specs(_solve_record_now(_ctile6))[0][1]["target_temp"] == 16.0
+    and _ctile6._price_tile_specs(_solve_record_now(_ctile6))[1][1]["target_temp"] == 18.0,
     "'one degree lower' must be lower than the plan being compared against",
 )
 
@@ -19145,12 +19345,12 @@ R.check(
 _ctile4 = _t2_coord(price_tiles_enabled=True)
 
 
-async def _fake_sim_err(overrides, limited=True):
+async def _fake_sim_err(overrides, limited=True, base=None):
     return {"error": "boom", "rate_limited": False}
 
 
 _ctile4.async_simulate = _fake_sim_err
-_asyncio.run(_ctile4._maybe_refresh_price_tile())
+_asyncio.run(_ctile4._maybe_refresh_price_tile(_solve_record_now(_ctile4)))
 R.check(
     "an erroring tile spec advances the rotation instead of stalling it",
     _ctile4._price_tile_cursor == 1 and not _ctile4._price_tiles,
@@ -19159,7 +19359,7 @@ R.check(
 # Turning the flag off retires the published tiles too.
 _ctile5 = _t2_coord()
 _ctile5._price_tiles["stale"] = {"monthly_cost_delta": 1.0}
-_asyncio.run(_ctile5._maybe_refresh_price_tile())
+_asyncio.run(_ctile5._maybe_refresh_price_tile(_solve_record_now(_ctile5)))
 R.check(
     "gate off means gone: no stale what-if money outlives the flag",
     not _ctile5._price_tiles,
@@ -19896,7 +20096,8 @@ R.check(
 # and the climate entity keep writing on the event loop. The snapshot is the
 # boundary: nothing it returns may alias the coordinator's live objects.
 _ss_coord = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=_LC_DATA))
-_ss_state, _ss_opt = _ss_coord._solve_snapshot()
+_ss_record = _solve_record_now(_ss_coord)
+_ss_state, _ss_opt = _ss_record.inputs.state, _ss_record.optimizer()
 R.check(
     "the snapshot state is a copy, not the live state",
     _ss_state is not _ss_coord._current_state,
@@ -20296,9 +20497,9 @@ R.check(
 )
 
 # #1512: the coordinator hands the tariff's distinct-days rule to the solver
-# with the rest of the peak settings. Stopped right after that block (the
-# next read raises), so no solve runs: the config's False must be on the
-# optimizer config, and the default install's True likewise.
+# with the rest of the peak settings, in the solve's own configuration copy
+# (#1736): the config's False must be on it, and the default install's True
+# likewise, while the configured hub keeps what it held.
 def _dd_pushed(overrides):
     hass = FakeHass()
     _seed_prices(hass)  # #924
@@ -20308,20 +20509,16 @@ def _dd_pushed(overrides):
     coord = entry.runtime_data
     coord._prices = list(_svc_crash_coord._prices)
 
-    def _stop(_n):
-        raise RuntimeError("stop after the peak settings")
-
-    coord._baseline_house_load = _stop
     coord._opt_config.peak_distinct_days = None
-    _asyncio.run(coord.async_run_optimization())
-    return coord._opt_config.peak_distinct_days
+    solved = coord._solve_hubs(4, banded=True)[0].peak_distinct_days
+    return solved, coord._opt_config.peak_distinct_days
 
 
 _dd_off, _dd_default = _dd_pushed({"peak_tariff_distinct_days": False}), _dd_pushed({})
 R.check(
     "the solver gets the tariff's distinct-days rule from the config (#1512)",
-    _dd_off is False and _dd_default is True,
-    f"config False -> {_dd_off!r}, default -> {_dd_default!r}",
+    _dd_off == (False, None) and _dd_default == (True, None),
+    f"(solve, hub): config False -> {_dd_off!r}, default -> {_dd_default!r}",
 )
 
 _svc_sim_hass = FakeHass()
@@ -20967,10 +21164,9 @@ _g_ifresh = HeatPumpOptimizerCoordinator(
     FakeHass({"sensor.inlet": FakeState("12.0", last_updated=minutes_ago(30))}),
     FakeEntry(data={**_LC_DATA, "dhw_inlet_entity": "sensor.inlet"}),
 )
-_g_ifresh._prepare_dhw_inputs(_g_now43)
 R.check(
     "a live inlet probe still wins",
-    _g_ifresh._thermal_params.dhw_inlet_current == 12.0,
+    _g_ifresh._model_corrections(_g_now43)["dhw_inlet_current"] == 12.0,
 )
 _g_istale = HeatPumpOptimizerCoordinator(
     FakeHass(
@@ -20978,10 +21174,9 @@ _g_istale = HeatPumpOptimizerCoordinator(
     ),
     FakeEntry(data={**_LC_DATA, "dhw_inlet_entity": "sensor.inlet"}),
 )
-_g_istale._prepare_dhw_inputs(_g_now43)
 R.check(
     "a probe frozen for two days degrades to the seasonal model",
-    _g_istale._thermal_params.dhw_inlet_current
+    _g_istale._model_corrections(_g_now43)["dhw_inlet_current"]
     == _g_istale._thermal_params.seasonal_inlet_temp(
         _g_now43.timetuple().tm_yday
     ),
@@ -22614,10 +22809,15 @@ _fl_opt = _fl_built["optimizer"]
 _fl_params = _fl_opt.model.params
 
 def _fl_worst(opt):
-    r = opt.optimize(
-        _fl_built["state"], _fl_built["prices"], _fl_built["outdoor"],
-        _fl_built["wind"], _fl_built["rain"], _fl_built["solar"], _G_START,
-    )
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=_fl_built["state"],
+        prices=_fl_built["prices"],
+        outdoor_temps=_fl_built["outdoor"],
+        wind_speeds=_fl_built["wind"],
+        precipitation=_fl_built["rain"],
+        solar_radiation=_fl_built["solar"],
+        start_time=_G_START,
+    ))
     T = np.asarray(r.dhw_temp_trajectory[1:])
     wins = _fl_parse(_fl_cfg.get("dhw_windows", "") or "")
     hours = [(_G_START.hour + i * 0.25) % 24 for i in range(len(T))]
@@ -26247,8 +26447,15 @@ def _g3_plan_cost(on, bias, **cfg):
     st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
                       outdoor_temperature=-10.0, upper_floor_temperature=21.0,
                       lower_floor_temperature=21.0, buffer_tank_temperature=35.0)
-    r = opt.optimize(st, np.full(n, 1.0), outdoor, zeros, zeros, zeros,
-                     datetime(2026, 1, 15))
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=np.full(n, 1.0),
+        outdoor_temps=outdoor,
+        wind_speeds=zeros,
+        precipitation=zeros,
+        solar_radiation=zeros,
+        start_time=datetime(2026, 1, 15),
+    ))
     return float(r.predicted_cost)
 
 
@@ -26398,9 +26605,9 @@ R.check(
 _g3_wire = _t2_coord(target_temperature=22.5)  # off the 21.0 field default
 _g3_wire._thermal_params.flow_curve_cop = True
 _g3_wire._flow_bias.observe(40.0, 34.0)  # one sample: bias exactly 6.0 K
-_g3_wire._prepare_dhw_inputs(dt_util.now())
+_g3_wire._refresh_model_corrections()
 R.check(
-    "the parameter build pushes the learned bias and the comfort target into the priced flow",
+    "the cycle's refresh pushes the learned bias and the comfort target into the priced flow",
     _g3_wire._thermal_params.flow_curve_bias == 6.0
     and _g3_wire._thermal_params.flow_curve_indoor_target == 22.5
     and _g3_wire._thermal_model.curve_flow_temp(-10.0)
@@ -26464,14 +26671,12 @@ R.check(
 
 
 R.section("#1067 W1067-G4 — the pump's silent-mode window derates the plan")
-import inspect as _g4_inspect  # noqa: E402
 from zoneinfo import ZoneInfo as _G4Zone  # noqa: E402
 
 from heatpump_optimizer import const as _g4_const  # noqa: E402
 from heatpump_optimizer import silent_mode as _g4_sm  # noqa: E402
 from heatpump_optimizer.dhw_schedule import parse_windows as _g4_parse  # noqa: E402
 from heatpump_optimizer.dhw_schedule import parse_weekly_windows as _g4_weekly  # noqa: E402
-from heatpump_optimizer.optimizer import HeatPumpOptimizer as _G4Opt  # noqa: E402
 
 _G4_WIN = _g4_const.CONF_SILENT_MODE_WINDOWS
 _G4_FRAC = _g4_const.CONF_SILENT_MODE_FRACTION
@@ -26605,19 +26810,15 @@ R.check(
 
 
 # The production wiring, driven. The coordinator's planning solve and its
-# what-if solve both reach optimizer.optimize(power_caps_extra=...) through
-# _await_optimize; the spy binds what each call handed over to optimize's
-# own signature and then runs the real solve.
-_g4_sig = _g4_inspect.signature(_G4Opt.optimize)
-
-
+# what-if solve both reach optimizer.optimize(inputs=...) through
+# _await_optimize; the spy reads the cap and the anchor off the record each
+# call handed over and then runs the real solve.
 def _g4_spy(sink):
     real = _coord_mod._await_optimize
 
-    async def _spy(hass, optimizer, state, *positional, **keywords):
-        bound = _g4_sig.bind(None, state, *positional, **keywords)
-        sink.append((bound.arguments.get("power_caps_extra"), bound.arguments.get("start_time")))
-        return await real(hass, optimizer, state, *positional, **keywords)
+    async def _spy(hass, optimizer, inputs):
+        sink.append((inputs.limits.power_caps_extra, inputs.start_time))
+        return await real(hass, optimizer, inputs)
 
     return real, _spy
 
@@ -27287,10 +27488,11 @@ _mb_state = ThermalState(
 
 
 def _mb_run(**kw):
-    return _mb_opt.optimize(
-        _mb_state, _mb_prices, _mb_t[:_mb_n], _mb_wind[:_mb_n], _mb_rain[:_mb_n],
-        _mb_solar[:_mb_n], _MB_START, **kw
-    )
+    return _mb_opt.optimize(inputs=solve_inputs(
+        initial_state=_mb_state, prices=_mb_prices, outdoor_temps=_mb_t[:_mb_n],
+        wind_speeds=_mb_wind[:_mb_n], precipitation=_mb_rain[:_mb_n],
+        solar_radiation=_mb_solar[:_mb_n], start_time=_MB_START, **kw
+    ))
 
 
 _mb_base = _mb_run()
@@ -27399,12 +27601,17 @@ def _rb_build_spy(self, *a, **k):
 _rb_b = _rb_mk(**_RB_SC["wood_coil"])
 DhwPlanner._build_dhw_requirements = _rb_build_spy
 try:
-    _rb_res = _rb_b["optimizer"].optimize(
-        _rb_b["state"], np.asarray(_rb_b["prices"], dtype=float) - 2.0,
-        _rb_b["outdoor"], _rb_b["wind"], _rb_b["rain"], _rb_b["solar"],
-        _RB_START, None, None,
-        external_heat_kw=_rb_ext(len(_rb_b["prices"])), dhw_blocked=True,
-    )
+    _rb_res = _rb_b["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=_rb_b["state"],
+        prices=np.asarray(_rb_b["prices"], dtype=float) - 2.0,
+        outdoor_temps=_rb_b["outdoor"],
+        wind_speeds=_rb_b["wind"],
+        precipitation=_rb_b["rain"],
+        solar_radiation=_rb_b["solar"],
+        start_time=_RB_START,
+        external_heat_kw=_rb_ext(len(_rb_b["prices"])),
+        dhw_blocked=True,
+    ))
 finally:
     DhwPlanner._build_dhw_requirements = _rb_real_build
 _rb_breach = _rb_res.predictive_info.get("dhw_floor_breach_c") or 0.0
@@ -28797,12 +29004,16 @@ if _EpPlanner is not None:
     _EpPlanner.__init__ = _ep_init_spy
     _EpPlanner._build_dhw_requirements = _ep_build_spy
     try:
-        _ep_b["optimizer"].optimize(
-            _ep_b["state"], np.asarray(_ep_b["prices"], dtype=float) - 2.0,
-            _ep_b["outdoor"], _ep_b["wind"], _ep_b["rain"], _ep_b["solar"],
-            _EP_START, None, None,
+        _ep_b["optimizer"].optimize(inputs=solve_inputs(
+            initial_state=_ep_b["state"],
+            prices=np.asarray(_ep_b["prices"], dtype=float) - 2.0,
+            outdoor_temps=_ep_b["outdoor"],
+            wind_speeds=_ep_b["wind"],
+            precipitation=_ep_b["rain"],
+            solar_radiation=_ep_b["solar"],
+            start_time=_EP_START,
             external_heat_kw=_ep_ext(len(_ep_b["prices"])),
-        )
+        ))
     finally:
         _EpPlanner.__init__ = _ep_real_init
         _EpPlanner._build_dhw_requirements = _ep_real_build
@@ -30488,10 +30699,15 @@ def _lg_plan(setpoint, *, leg_temp=60.0, enabled=True, hours_since=20.0):
         param_overrides={"dhw_legionella_temp": leg_temp},
         state_overrides={"dhw_hours_since_legionella": hours_since},
     )
-    res = built["optimizer"].optimize(
-        built["state"], built["prices"], built["outdoor"], built["wind"],
-        built["rain"], built["solar"], _G_START,
-    )
+    res = built["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=built["state"],
+        prices=built["prices"],
+        outdoor_temps=built["outdoor"],
+        wind_speeds=built["wind"],
+        precipitation=built["rain"],
+        solar_radiation=built["solar"],
+        start_time=_G_START,
+    ))
     return built, res, np.asarray(res.dhw_temp_trajectory, dtype=float)
 
 
@@ -30840,10 +31056,15 @@ def _lg_band(setpoint, *, hours_since=150.0, tank=37.0, volume=300.0, pump=6.0):
         price_profile="summer_typical",
         weather_profile="summer_warm",
     )
-    res = built["optimizer"].optimize(
-        built["state"], built["prices"], built["outdoor"], built["wind"],
-        built["rain"], built["solar"], _G_START,
-    )
+    res = built["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=built["state"],
+        prices=built["prices"],
+        outdoor_temps=built["outdoor"],
+        wind_speeds=built["wind"],
+        precipitation=built["rain"],
+        solar_radiation=built["solar"],
+        start_time=_G_START,
+    ))
     return built, res, np.asarray(res.dhw_temp_trajectory, dtype=float)
 
 
@@ -31085,7 +31306,15 @@ def _lg_e2e(start_hour, hours_since, price_p, weather_p):
         dhw_hours_since_legionella=hours_since, buffer_tank_temperature=40.0,
     )
     opt = _LgOpt(ThermalModel(params), ocfg)
-    res = opt.optimize(st, ps, o, w, rn, sol, start)
+    res = opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=ps,
+        outdoor_temps=o,
+        wind_speeds=w,
+        precipitation=rn,
+        solar_radiation=sol,
+        start_time=start,
+    ))
     traj = np.asarray(res.dhw_temp_trajectory, dtype=float)
     req = np.asarray(opt._dhw_requirement, dtype=float)
     n = len(req)
@@ -31157,10 +31386,15 @@ def _lg_big(hours, volume, pump, tank=35.0, hours_since=300.0):
             "dhw_hours_since_legionella": hours_since, "dhw_temperature": tank,
         },
     )
-    res = built["optimizer"].optimize(
-        built["state"], built["prices"], built["outdoor"], built["wind"],
-        built["rain"], built["solar"], _G_START,
-    )
+    res = built["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=built["state"],
+        prices=built["prices"],
+        outdoor_temps=built["outdoor"],
+        wind_speeds=built["wind"],
+        precipitation=built["rain"],
+        solar_radiation=built["solar"],
+        start_time=_G_START,
+    ))
     opt = built["optimizer"]
     n = int(hours * 4)
     # What the tank could do charging flat out for the whole horizon: the
@@ -33737,7 +33971,7 @@ R.check(
     f"module={_g511_job.__module__}",
 )
 _g511_ha_err, _ = _g511_submit(
-    _g511_coord._run_in_process, _g511_job, (None, None, (), {})
+    _g511_coord._run_in_process, _g511_job, (None, None)
 )
 R.check(
     "and the child resolves that name -- the job runs there (#511)",
@@ -33745,7 +33979,7 @@ R.check(
     f"got {type(_g511_ha_err).__name__}: {_g511_ha_err}",
 )
 _g511_harness_err, _ = _g511_submit(
-    _run_in_process, _g3_opt_job, (None, None, (), {})
+    _run_in_process, _g3_opt_job, (None, None)
 )
 R.check(
     "the harness spelling still round-trips (the import at the top of W3-G3)",
@@ -33814,8 +34048,8 @@ class _G511LocalOptimizer:
     """Lives in ``__main__``, which the child cannot resolve: the worker route
     must fail and the in-process fallback must carry the solve."""
 
-    def optimize(self, state, *positional, **keywords):
-        return ("in-process", _os.getpid(), state)
+    def optimize(self, *, inputs):
+        return ("in-process", _os.getpid(), inputs)
 
 
 class _G511LogSink(_g511_logging.Handler):
@@ -34653,8 +34887,8 @@ R.check(
 class _F15Optimizer:
     """Carries the solve in this process, reporting where it ran."""
 
-    def optimize(self, state, *_a, **_k):
-        return ("in-process", _os.getpid(), state)
+    def optimize(self, *, inputs):
+        return ("in-process", _os.getpid(), inputs)
 
 
 def _f15_spawn_fallback():
@@ -35759,8 +35993,8 @@ _g9_captured = []
 _g9_real_await = _coord_mod._await_optimize
 
 
-async def _g9_fake_await(hass, optimizer, state, *positional, **keywords):
-    _g9_captured.append(keywords)
+async def _g9_fake_await(hass, optimizer, inputs):
+    _g9_captured.append(inputs)
     return _g9_live
 
 
@@ -35783,7 +36017,7 @@ finally:
     _coord_mod._await_optimize = _g9_real_await
     _dt_wf.now = _g9_real_now
 
-_g9_ext = _g9_captured[0].get("external_heat_kw") if _g9_captured else None
+_g9_ext = _g9_captured[0].forecast.external_heat_kw if _g9_captured else None
 R.check(
     "what-if wood injects external_heat_kw on the shadow solve",
     _g9_ext is not None
@@ -39695,13 +39929,13 @@ def _t3_tile(answer, **config):
     """Run one tile refresh against a stubbed simulation."""
     c = _t3_coord(price_tiles_enabled=True, **config)
 
-    async def simulate(overrides, limited=True):
+    async def simulate(overrides, limited=True, base=None):
         if isinstance(answer, Exception):
             raise answer
         return answer
 
     c.async_simulate = simulate
-    return _t3_drive(c, "_maybe_refresh_price_tile")
+    return _t3_drive(c, "_maybe_refresh_price_tile", _solve_record_now(c))
 
 
 _t3_tile_boom = _t3_tile(RuntimeError("spec exploded"))
@@ -39735,7 +39969,7 @@ R.check(
 )
 _t3_tile_off = _t3_coord(price_tiles_enabled=False)
 _t3_tile_off._price_tiles["target_minus_1"] = {"monthly_cost_delta": 1.0}
-_t3_drive(_t3_tile_off, "_maybe_refresh_price_tile")
+_t3_drive(_t3_tile_off, "_maybe_refresh_price_tile", _solve_record_now(_t3_tile_off))
 R.check(
     "turning the tiles off clears what was published, rather than freezing it",
     dict(_t3_tile_off._price_tiles) == {},
@@ -41969,13 +42203,14 @@ def _t5_solve_spy(**config):
         for h in range(48)
     ]
     c._t5_floor_at_solve = []
-    inner = c._solve_snapshot
+    inner = c._solve_record
 
     def spy(*args, **kwargs):
-        c._t5_floor_at_solve.append(c._opt_config.min_temp)
-        return inner(*args, **kwargs)
+        record = inner(*args, **kwargs)
+        c._t5_floor_at_solve.append(record.config.min_temp)
+        return record
 
-    c._solve_snapshot = spy
+    c._solve_record = spy
     return c
 
 
@@ -43797,7 +44032,7 @@ R.check(
 )
 
 
-# -- away.apply_setback: the comfort floor while the house is empty ---------
+# -- away.solve_bands: the comfort floor while the house is empty ----------
 class _G8Opt:
     def __init__(self):
         self.target_temp = 21.0
@@ -43812,147 +44047,71 @@ class _G8Therm:
         self.dhw_idle_min_temp = 42.0
 
 
-def _g8_setback(**state_kw):
-    st = _g8_away.AwayState(**state_kw)
+def _g8_setback(widen_by=(), **state_kw):
+    """The bands one solve plans with, and the configured objects after."""
     opt, th = _G8Opt(), _G8Therm()
-    original = _g8_away.apply_setback(st, opt, th)
-    return original, opt, th
+    config, dhw = _g8_away.solve_bands(
+        opt, th, _g8_away.AwayState(**state_kw), widen_by
+    )
+    return config, dhw, opt, th
 
 
-_g8_sb_orig, _g8_sb_opt, _g8_sb_th = _g8_setback(active=True, target_temperature=16.0,
-                                                 dhw_min_temperature=35.0)
-_g8_sb_off_o, _g8_sb_off_c, _g8_sb_off_t = _g8_setback(active=False)
-_g8_sb_rec_o, _g8_sb_rec_c, _g8_sb_rec_t = _g8_setback(
-    active=True, recovery_active=True, target_temperature=16.0)
-_g8_sb_dflt_o, _g8_sb_dflt_c, _g8_sb_dflt_t = _g8_setback(active=True)
+_g8_sb_c, _g8_sb_d, _g8_sb_opt, _g8_sb_th = _g8_setback(
+    active=True, target_temperature=16.0, dhw_min_temperature=35.0)
+_g8_sb_off = _g8_setback(active=False)
+_g8_sb_rec = _g8_setback(active=True, recovery_active=True, target_temperature=16.0)
+_g8_sb_dflt = _g8_setback(active=True)
 R.check(
     "the away set-back lowers all four comfort numbers and both DHW floors",
-    (_g8_sb_opt.target_temp, _g8_sb_opt.min_temp, _g8_sb_opt.comfort_temp_day,
-     _g8_sb_opt.comfort_temp_night) == (16.0, 16.0, 16.0, 16.0)
-    and (_g8_sb_th.dhw_min_temp, _g8_sb_th.dhw_idle_min_temp) == (35.0, 35.0)
-    and _g8_sb_orig["target_temp"] == 21.0
-    and _g8_sb_orig["dhw_idle_min_temp"] == 42.0,
-    f"config now target {_g8_sb_opt.target_temp!r} min {_g8_sb_opt.min_temp!r} "
-    f"day {_g8_sb_opt.comfort_temp_day!r} night "
-    f"{_g8_sb_opt.comfort_temp_night!r}, DHW {_g8_sb_th.dhw_min_temp!r}/"
-    f"{_g8_sb_th.dhw_idle_min_temp!r}; originals returned "
-    f"{_g8_sb_orig!r}. The originals are the whole contract: the caller "
-    "restores from this dict, so a key missing here is a set-back that never "
-    "comes back off",
+    (_g8_sb_c["target_temp"], _g8_sb_c["min_temp"], _g8_sb_c["comfort_temp_day"],
+     _g8_sb_c["comfort_temp_night"]) == (16.0, 16.0, 16.0, 16.0)
+    and (_g8_sb_d["dhw_min_temp"], _g8_sb_d["dhw_idle_min_temp"]) == (35.0, 35.0),
+    f"bands {_g8_sb_c!r} {_g8_sb_d!r}",
+)
+R.check(
+    "and the configured objects it read are never written (#1736): there is "
+    "nothing to unwind, so a write landing while the solve runs survives (#1517)",
+    vars(_g8_sb_opt) == vars(_G8Opt()) and vars(_g8_sb_th) == vars(_G8Therm()),
+    f"config now {vars(_g8_sb_opt)!r}, DHW {vars(_g8_sb_th)!r}",
 )
 R.check(
     "and RECOVERY ends it, because recovery is the plan buying heat back",
-    (_g8_sb_rec_c.target_temp, _g8_sb_rec_c.comfort_temp_day) == (21.0, 21.0)
-    and (_g8_sb_off_c.target_temp, _g8_sb_off_c.comfort_temp_day) == (21.0, 21.0)
-    and _g8_sb_rec_o == _g8_sb_off_o,
-    f"recovering -> target {_g8_sb_rec_c.target_temp!r}; not away -> "
-    f"{_g8_sb_off_c.target_temp!r}. Both arms leave the config untouched and "
-    "both still return the originals, so a caller that restores "
-    "unconditionally is safe -- and holding the set-back through recovery "
-    "would fight the very warm-up it was scheduled for",
+    _g8_sb_rec[:2] == _g8_sb_off[:2]
+    == ({"target_temp": 21.0, "min_temp": 19.0, "comfort_temp_day": 21.0,
+         "comfort_temp_night": 19.5},
+        {"dhw_min_temp": 45.0, "dhw_idle_min_temp": 42.0}),
+    f"recovering -> {_g8_sb_rec[:2]!r}; not away -> {_g8_sb_off[:2]!r}. Holding "
+    "the set-back through recovery would fight the very warm-up it was "
+    "scheduled for",
 )
 R.check(
     "an away state with no temperatures of its own falls back to the defaults",
-    _g8_sb_dflt_c.comfort_temp_day == _G8_AWAY_T
-    and _g8_sb_dflt_t.dhw_min_temp == min(45.0, _G8_AWAY_DHW),
-    f"day {_g8_sb_dflt_c.comfort_temp_day!r} against the default "
-    f"{_G8_AWAY_T!r}; DHW {_g8_sb_dflt_t.dhw_min_temp!r} -- `or` on a float is "
-    "the tell here: a configured 0.0 would take the default too, which is "
+    _g8_sb_dflt[0]["comfort_temp_day"] == _G8_AWAY_T
+    and _g8_sb_dflt[1]["dhw_min_temp"] == min(45.0, _G8_AWAY_DHW),
+    f"day {_g8_sb_dflt[0]['comfort_temp_day']!r} against the default "
+    f"{_G8_AWAY_T!r}; DHW {_g8_sb_dflt[1]['dhw_min_temp']!r} -- `or` on a float "
+    "is the tell here: a configured 0.0 would take the default too, which is "
     "right for a temperature nobody sets to zero and worth pinning as the "
     "behaviour rather than the accident",
 )
-
-
-# -- #1517 (P12): the set-back unwind is compare-and-restore ---------------
-# The solve's `finally` restores the set-back. A service or climate write that
-# lands while the cycle is parked on its solve await is newer than the
-# snapshot, so an unconditional restore reverted it: the DHW minimums a
-# set_thermal_parameters call wrote came back at their pre-solve values, live
-# and published. A field is restored only while it still holds what the
-# envelope itself left there.
-def _g8_race(**state_kw):
-    opt, th = _G8Opt(), _G8Therm()
-    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
-    th.dhw_min_temp, th.dhw_idle_min_temp = 38.0, 31.0  # the mid-solve write
-    opt.target_temp = 19.5  # a climate set_temperature, same window
-    _g8_away.restore_setback(rec, opt, th)
-    return opt, th
-
-
-_g8_race_home = _g8_race(active=False)
-_g8_race_away = _g8_race(active=True, target_temperature=16.0,
-                         dhw_min_temperature=35.0)
+_g8_nan = _g8_setback(active=True, target_temperature=float("nan"))
 R.check(
-    "a write landing inside the set-back envelope survives its unwind (#1517)",
-    all(
-        (th.dhw_min_temp, th.dhw_idle_min_temp, opt.target_temp)
-        == (38.0, 31.0, 19.5)
-        for opt, th in (_g8_race_home, _g8_race_away)
-    )
-    and (_g8_race_away[0].min_temp, _g8_race_away[0].comfort_temp_day)
-    == (19.0, 21.0),
-    f"home {vars(_g8_race_home[1])} target {_g8_race_home[0].target_temp}; "
-    f"away {vars(_g8_race_away[1])} {vars(_g8_race_away[0])}. The fields "
-    "nobody else wrote still come back off; the ones a service wrote keep "
-    "the service's value",
+    "a NaN away target leaves the configured comfort numbers as they were",
+    (_g8_nan[2].target_temp, _g8_nan[2].min_temp, _g8_nan[2].comfort_temp_day,
+     _g8_nan[2].comfort_temp_night) == (21.0, 19.0, 21.0, 19.5),
+    f"{vars(_g8_nan[2])}: under the old in-place envelope NaN != NaN left two "
+    "comfort temperatures NaN after away ended",
 )
-# Round-1 review of #1563: two shapes a value compare gets wrong. A mid-solve
-# write EQUAL to what the set-back left is still a newer write (a service call
-# carries its own float, never the envelope's), and a NaN away target is never
-# == itself, so a value compare left both comfort numbers NaN after away ended.
-def _g8_equal_write():
-    opt, th = _G8Opt(), _G8Therm()
-    rec = _g8_away.apply_setback(
-        _g8_away.AwayState(active=True, target_temperature=16.0,
-                           dhw_min_temperature=35.0), opt, th)
-    th.dhw_min_temp, opt.target_temp = float("35.0"), float("16.0")
-    _g8_away.restore_setback(rec, opt, th)
-    return th.dhw_min_temp, opt.target_temp, th.dhw_idle_min_temp
-
-
-def _g8_nan_target():
-    opt, th = _G8Opt(), _G8Therm()
-    rec = _g8_away.apply_setback(
-        _g8_away.AwayState(active=True, target_temperature=float("nan")), opt, th)
-    _g8_away.restore_setback(rec, opt, th)
-    return opt.target_temp, opt.min_temp, opt.comfort_temp_day, opt.comfort_temp_night
-
-
-R.check(
-    "a mid-solve write equal to the set-back value still survives the unwind",
-    _g8_equal_write() == (35.0, 16.0, 42.0),
-    f"(dhw_min, target, dhw_idle untouched) {_g8_equal_write()}: the service "
-    "wrote 35.0 and 16.0 during the solve; comparing by value read them as "
-    "the envelope's own and put back 45.0 and 21.0",
-)
-R.check(
-    "a NaN away target still unwinds every comfort number",
-    _g8_nan_target() == (21.0, 19.0, 21.0, 19.5),
-    f"{_g8_nan_target()}: NaN != NaN, so a value compare never restored the "
-    "two comfort temperatures the set-back had written NaN into",
-)
-
-
-def _g8_widen(**state_kw):
-    opt, th = _G8Opt(), _G8Therm()
-    rec = _g8_away.apply_setback(_g8_away.AwayState(**state_kw), opt, th)
-    _g8_away.lower_floor(rec, opt, 1.5)
-    low = opt.min_temp
-    _g8_away.restore_setback(rec, opt, th)
-    return low, opt.min_temp
-
-
 _g8_env = {
-    "home": _g8_widen(active=False),
-    "away": _g8_widen(active=True, target_temperature=16.0),
+    "home": _g8_setback((1.5,), active=False)[0]["min_temp"],
+    "away": _g8_setback((1.5,), active=True, target_temperature=16.0)[0]["min_temp"],
+    "both": _g8_setback((1.5, 1.0), active=False)[0]["min_temp"],
 }
 R.check(
-    "the envelope's own floor widening is recorded, so it still unwinds",
-    _g8_env == {"home": (17.5, 19.0), "away": (15.0, 19.0)},
-    f"(widened, restored) {_g8_env}: economy and the open-window relax lower "
-    "min_temp inside the envelope, never below the absolute floor, and a "
-    "compare-and-restore that did not know about them would leak the "
-    "widening into every later solve",
+    "economy and the open-window relax widen the solve's floor in turn, never "
+    "below the absolute floor",
+    _g8_env == {"home": 17.5, "away": 15.0, "both": 16.5},
+    f"widened floors {_g8_env}",
 )
 
 # The same race through the production cycle: the writes are injected at the
@@ -51318,7 +51477,7 @@ try:
         {"fuse_advisor": {"month": "2026-06"},
          "fuse_advisor_at": "2026-06-20T11:00:00"}
     )
-    _si_fuse_err = _si_raises(lambda: _si_aio.run(_si_f._maybe_run_fuse_advisor()))
+    _si_fuse_err = _si_raises(lambda: _si_aio.run(_si_f._maybe_run_fuse_advisor(_solve_record_now(_si_f))))
     _si_f_at, _si_f_month = _si_f._fuse_advisor_at, _si_f._fuse_advisor.get("month")
 finally:
     dt_util.DEFAULT_TIME_ZONE = _si_zone1
@@ -52697,10 +52856,16 @@ def _p3_solve(ambient, forecast):
                                          ambient_humidity=ambient))
     n = len(sc["prices"])
     outdoor = np.clip(np.asarray(sc["outdoor"], dtype=float), -1.0, 4.5)
-    res = sc["optimizer"].optimize(
-        sc["state"], sc["prices"], outdoor, sc["wind"], sc["rain"], sc["solar"],
-        _G_START, humidity=None if forecast is None else forecast(n),
-    )
+    res = sc["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=sc["state"],
+        prices=sc["prices"],
+        outdoor_temps=outdoor,
+        wind_speeds=sc["wind"],
+        precipitation=sc["rain"],
+        solar_radiation=sc["solar"],
+        start_time=_G_START,
+        humidity=None if forecast is None else forecast(n),
+    ))
     return (np.asarray(res.dhw_power_schedule, dtype=float),
             np.asarray(res.dhw_temp_trajectory, dtype=float),
             np.asarray(res.power_schedule, dtype=float))
@@ -53009,12 +53174,13 @@ R.check(
 
 
 # -- R9-F1.1: the thermostat's target is the user's, even mid-solve -----------
-# Round 9, fix F1.1 (#1683, D1-s3-04). ``apply_setback`` writes the away
-# setback into the LIVE ``_opt_config.target_temp`` for the solve and unwinds
-# it after the executor await; any state write inside that window -- the peak
-# guard's event-driven transition is one -- published the setback as "the
-# comfort target the user asked for". The solve is the production one; the
-# wrapper only issues the listener write from the loop at the await.
+# Round 9, fix F1.1 (#1683, D1-s3-04). The away setback used to be written
+# into the LIVE ``_opt_config.target_temp`` for the solve and unwound after
+# the executor await (since #1736 it is a value in the solve's record); any
+# state write inside that window -- the peak guard's event-driven transition
+# is one -- published the setback as "the comfort target the user asked
+# for". The solve is the production one; the wrapper only issues the
+# listener write from the loop at the await.
 from unittest import mock as _f11_mock  # noqa: E402
 
 from harness import FakeEntry as _f11_Entry  # noqa: E402
@@ -53344,9 +53510,15 @@ def _f21_storage_solve(two_zone, seed=None, l1=None):
     if l1 is not None:
         _f21_optmod._COMFORT_FLOOR_L1 = l1
     try:
-        res = opt.optimize(
-            state, _f21_prices("winter_typical", t0), out, wind, rain, sun, t0
-        )
+        res = opt.optimize(inputs=solve_inputs(
+            initial_state=state,
+            prices=_f21_prices("winter_typical", t0),
+            outdoor_temps=out,
+            wind_speeds=wind,
+            precipitation=rain,
+            solar_radiation=sun,
+            start_time=t0,
+        ))
     finally:
         _f21_optmod._COMFORT_FLOOR_L1 = saved
     return np.asarray(res.power_schedule), float(res.objective_value), opt
@@ -54155,11 +54327,16 @@ def _f23_base(self, *a, **k):
 _F23Opt._deferred_energy_cost = _f23_def
 _F23Opt._compute_baseline_power = _f23_base
 try:
-    _f23_res = _f23_opt.optimize(
-        _f23_built["state"], _f23_built["prices"], _f23_built["outdoor"],
-        _f23_built["wind"], _f23_built["rain"], _f23_built["solar"],
-        _F23_START, external_heat_kw=np.zeros(len(_f23_built["prices"])),
-    )
+    _f23_res = _f23_opt.optimize(inputs=solve_inputs(
+        initial_state=_f23_built["state"],
+        prices=_f23_built["prices"],
+        outdoor_temps=_f23_built["outdoor"],
+        wind_speeds=_f23_built["wind"],
+        precipitation=_f23_built["rain"],
+        solar_radiation=_f23_built["solar"],
+        start_time=_F23_START,
+        external_heat_kw=np.zeros(len(_f23_built["prices"])),
+    ))
 finally:
     _F23Opt._deferred_energy_cost = _f23_real_def
     _F23Opt._compute_baseline_power = _f23_real_base
@@ -55688,7 +55865,7 @@ class _R9EGB9Gate:
         cls.fail = False
 
 
-async def _r9egb9_transport(hass, optimizer, state, *positional, **keywords):
+async def _r9egb9_transport(hass, optimizer, inputs):
     _R9EGB9Gate.calls += 1
     if _R9EGB9Gate.fail:
         raise RuntimeError("r9egb9-injected solve failure")
@@ -55696,7 +55873,7 @@ async def _r9egb9_transport(hass, optimizer, state, *positional, **keywords):
         _R9EGB9Gate.hold -= 1
         _R9EGB9Gate.entered.set()
         await _R9EGB9Gate.release.wait()
-    return _r9egb9_solve(optimizer, state, positional, keywords)
+    return _r9egb9_solve(optimizer, inputs)
 
 
 def _r9egb9_series(anchor):
@@ -55968,10 +56145,12 @@ def _r9egb9_borrow_arm(borrower, kind):
         u0_stamp = coord._last_simulation
         if borrower == "tile":
             coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = True
-            call = coord._maybe_refresh_price_tile
+            call = _f25_partial(
+                coord._maybe_refresh_price_tile, _solve_record_now(coord))
         else:
             coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
-            call = coord._maybe_run_fuse_advisor
+            call = _f25_partial(
+                coord._maybe_run_fuse_advisor, _solve_record_now(coord))
         out = {"U0": _r9egb9_ov(u0)}
         if kind == "null":
             await call()
@@ -56495,6 +56674,684 @@ R.check(
     "blueprints/automation/notifications.yaml lacks an input",
 )
 
+
+
+# -- #1736 (R9-EG-B1): a solve plans from one record and writes no hub -------
+# The coordinator's three configured hubs (_opt_config, _thermal_params,
+# _current_state) say what the user set and what the sensors read. A solve
+# used to write its own effective values into them in place -- this solve's
+# tariff, the away setback, economy's widened floor, the day's draw blend --
+# and unwind only the setback afterwards, so every reader on the loop saw a
+# solve-scoped meaning for the width of the await (#240, #1517, #1529, #1683).
+# The transport here is the in-process fallback, spelled for either hand-off
+# shape, so these checks drive the real async_run_optimization; the spy reads
+# the hubs and the coordinator's published views WHILE the solve is parked.
+import copy as _r9egb1_copy  # noqa: E402
+import types as _r9egb1_types  # noqa: E402
+from dataclasses import fields as _r9egb1_fields  # noqa: E402
+from enum import Enum as _r9egb1_enum  # noqa: E402
+from unittest import mock as _r9egb1_mock  # noqa: E402
+
+from heatpump_optimizer import coordinator as _r9egb1_cmod  # noqa: E402
+from heatpump_optimizer import optimizer as _r9egb1_opt  # noqa: E402
+from heatpump_optimizer import const as _r9egb1_const  # noqa: E402
+
+
+def _r9egb1_hubs(coord):
+    """Every compared field of the three hubs, as text: a cache field is not
+    a parameter (compare=False), and repr sees list and array contents."""
+    return {
+        name: {
+            f.name: repr(getattr(hub, f.name))
+            for f in _r9egb1_fields(hub)
+            if f.compare
+        }
+        for name, hub in (
+            ("_opt_config", coord._opt_config),
+            ("_thermal_params", coord._thermal_params),
+            ("_current_state", coord._current_state),
+        )
+    }
+
+
+def _r9egb1_diff(before, after):
+    return sorted(
+        f"{hub}.{k}"
+        for hub in before
+        for k in before[hub]
+        if before[hub][k] != after[hub].get(k)
+    )
+
+
+def _r9egb1_run(coord, inside=None):
+    """One real async_run_optimization through an in-process transport.
+
+    Returns (reason, handed): ``handed`` is what the solve was given -- its
+    optimizer's config and params and its initial state -- and ``inside``,
+    when given, runs against the coordinator while the solve is parked.
+    """
+    handed = {}
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        handed["config"] = _r9egb1_copy.deepcopy(optimizer.config)
+        handed["params"] = _r9egb1_copy.deepcopy(optimizer.model.params)
+        handed["state"] = _r9egb1_copy.deepcopy(getattr(first, "state", first))
+        if inside is not None:
+            handed["inside"] = inside(coord)
+        if rest or kw:  # the pre-#1736 positional hand-off
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason = _asyncio.run(coord.async_run_optimization())
+    return reason, handed
+
+
+def _r9egb1_coord(*, away=False, economy=False, learned=False, dhw=False):
+    coord = _solve_coord()
+    if dhw:
+        coord._thermal_params.dhw_enabled = True
+    if learned:
+        coord._config[_r9egb1_const.CONF_SOLAR_APERTURE_LEARNING_ENABLED] = True
+        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+        coord._solar_aperture.update(scale=1.3, n=1.0e6)
+        coord._internal_gains_profile = [0.35] * 24
+        coord._external_heat_active = True
+    if economy:
+        coord._mode = _r9egb1_const.MODE_ECONOMY
+    coord._away_state.override_active = bool(away)
+    return coord
+
+
+def _r9egb1_views(coord):
+    return {
+        "thermal": {k: coord._thermal_view()[k] for k in
+                    ("comfort_temp_day", "comfort_temp_night", "min_temperature")},
+        "dhw_min": coord._dhw_view()["dhw_min_temperature"],
+        "target": coord.target_temperature,
+    }
+
+
+def _r9egb1_mutables(root):
+    """id(obj) -> how it was reached, for every MUTABLE object reachable
+    from ``root``: what the loop or a worker could write into (#1736).
+
+    Immutable atoms are skipped on purpose: ``copy.deepcopy`` shares an
+    int, a string, a datetime or an enum member by identity, and sharing
+    those is harmless. Tuples are descended (they hold) but not collected;
+    objects with a ``__dict__`` -- the hub dataclasses -- are collected and
+    descended, so a shared instance is as visible as a shared list. The
+    walks return ids, so both roots must stay alive while their walks are
+    compared: the id of a garbage-collected object is reused, and a
+    temporary walked on both sides reads as shared when it is not."""
+    out, seen = {}, set()
+    stack = [(root, "root")]
+    while stack:
+        obj, path = stack.pop()
+        if id(obj) in seen:
+            continue
+        seen.add(id(obj))
+        if obj is None or isinstance(obj, (
+                bool, int, float, complex, str, bytes, frozenset, range,
+                type, datetime, _r9egb1_enum, _r9egb1_types.ModuleType,
+                _r9egb1_types.FunctionType, _r9egb1_types.BuiltinFunctionType,
+        )):
+            continue
+        if isinstance(obj, np.ndarray):
+            out[id(obj)] = f"{path}<ndarray>"
+        elif isinstance(obj, tuple):
+            stack.extend((v, path) for v in obj)
+            continue
+        elif isinstance(obj, dict):
+            out[id(obj)] = f"{path}<dict>"
+            stack.extend((v, f"{path}[{k!r}]") for k, v in obj.items())
+            continue
+        elif isinstance(obj, (list, set, bytearray)):
+            out[id(obj)] = f"{path}<{type(obj).__name__}>"
+            if isinstance(obj, list):
+                stack.extend((v, f"{path}[{i}]") for i, v in enumerate(obj))
+            else:
+                stack.extend((v, path) for v in obj)
+            continue
+        elif hasattr(obj, "__dict__"):
+            out[id(obj)] = f"{path}<{type(obj).__name__}>"
+            stack.extend((v, f"{path}.{k}") for k, v in vars(obj).items())
+            continue
+    return out
+
+
+# Probe: away, economy, the learned solar/gains corrections and a live burn,
+# all at once -- every group of writes the old solve made. Null: none of them.
+_r9egb1_p = _r9egb1_coord(away=True, economy=True, learned=True, dhw=True)
+_r9egb1_p_before = _r9egb1_hubs(_r9egb1_p)
+_r9egb1_p_views = _r9egb1_views(_r9egb1_p)
+_r9egb1_p_reason, _r9egb1_p_handed = _r9egb1_run(
+    _r9egb1_p, inside=lambda c: (_r9egb1_hubs(c), _r9egb1_views(c))
+)
+_r9egb1_p_in_hubs, _r9egb1_p_in_views = _r9egb1_p_handed.get("inside", ({}, {}))
+R.check(
+    "#1736 no field of the three hubs moves while a solve is parked on its "
+    "await, with away, economy, the learned corrections and a burn all live",
+    _r9egb1_p_reason is None
+    and _r9egb1_diff(_r9egb1_p_before, _r9egb1_p_in_hubs) == [],
+    f"{_r9egb1_p_reason!r}; moved inside: "
+    f"{_r9egb1_diff(_r9egb1_p_before, _r9egb1_p_in_hubs)}",
+)
+R.check(
+    "#1736 and none has moved after the solve returns: nothing is left to unwind",
+    _r9egb1_diff(_r9egb1_p_before, _r9egb1_hubs(_r9egb1_p)) == [],
+    f"moved after: {_r9egb1_diff(_r9egb1_p_before, _r9egb1_hubs(_r9egb1_p))}",
+)
+R.check(
+    "#1736 H1: the comfort band and DHW floor the views publish during an away "
+    "solve are the configured ones, never the setback",
+    _r9egb1_p_in_views == _r9egb1_p_views,
+    f"inside {_r9egb1_p_in_views} vs configured {_r9egb1_p_views}",
+)
+_r9egb1_away_c = float(_r9egb1_p._away_state.target_temperature or 0.0)
+_r9egb1_cfg = _r9egb1_p_handed.get("config")
+_r9egb1_par = _r9egb1_p_handed.get("params")
+_r9egb1_st = _r9egb1_p_handed.get("state")
+R.check(
+    "#1736 the solve itself still plans with every per-solve value: the setback "
+    "target and DHW floor, economy's floor, the learned corrections, the burn",
+    _r9egb1_cfg is not None
+    and _r9egb1_cfg.target_temp == min(21.0, _r9egb1_away_c)
+    and _r9egb1_cfg.comfort_temp_day == _r9egb1_away_c
+    and _r9egb1_cfg.min_temp
+    == max(_r9egb1_const.ECONOMY_ABSOLUTE_FLOOR,
+           min(_r9egb1_p._opt_config.min_temp, _r9egb1_away_c)
+           - _r9egb1_const.ECONOMY_MIN_TEMP_WIDENING)
+    and _r9egb1_par.dhw_min_temp < _r9egb1_p._thermal_params.dhw_min_temp
+    and _r9egb1_par.solar_aperture_scale == 1.3
+    and _r9egb1_par.internal_gains_profile == [0.35] * 24
+    and _r9egb1_st.external_heat_active is True,
+    f"target {getattr(_r9egb1_cfg, 'target_temp', None)} day "
+    f"{getattr(_r9egb1_cfg, 'comfort_temp_day', None)} min "
+    f"{getattr(_r9egb1_cfg, 'min_temp', None)} (away {_r9egb1_away_c}); "
+    f"dhw_min {getattr(_r9egb1_par, 'dhw_min_temp', None)}; aperture "
+    f"{getattr(_r9egb1_par, 'solar_aperture_scale', None)}; burn "
+    f"{getattr(_r9egb1_st, 'external_heat_active', None)}",
+)
+_r9egb1_n = _r9egb1_coord()
+_r9egb1_n_reason, _r9egb1_n_handed = _r9egb1_run(_r9egb1_n)
+R.check(
+    "#1736 null: with none of them live, the solve plans with the configured "
+    "band and the inert corrections",
+    _r9egb1_n_reason is None
+    and _r9egb1_n_handed["config"].target_temp == _r9egb1_n._opt_config.target_temp
+    and _r9egb1_n_handed["config"].min_temp == _r9egb1_n._opt_config.min_temp
+    and _r9egb1_n_handed["params"].solar_aperture_scale == 1.0
+    and _r9egb1_n_handed["state"].external_heat_active is False,
+    f"{_r9egb1_n_reason!r} {_r9egb1_n_handed.get('config')}",
+)
+
+# Round 2 (blocked review, #1887 comment 5977790144): not writing the hubs is
+# not the whole barrier. A record that merely SHARES a container with one is
+# #240's race again -- the worker mutates the shared list mid-await -- and
+# `replace()` on a hub copies the dataclass but shares every nested
+# container, so the deep copies are load-bearing. Identity walk over the
+# record (and the what-if's base, the other `_solve_hubs` arm) against the
+# three live hubs; its own control plants one shared list and must name
+# exactly it.
+_r9egb1_ctl_leaf = [1.0, 2.0]
+_r9egb1_ctl_hub = {"a": _r9egb1_ctl_leaf, "b": {"c": [3.0]}}
+_r9egb1_ctl_rec = {"a": _r9egb1_ctl_leaf, "b": {"c": [4.0]}}
+_r9egb1_ctl_shared = sorted(set(_r9egb1_mutables(_r9egb1_ctl_hub))
+                            & set(_r9egb1_mutables(_r9egb1_ctl_rec)))
+_r9egb1_iso = _r9egb1_coord(away=True, economy=True, learned=True, dhw=True)
+_r9egb1_iso_live = {}
+for _r9egb1_iso_n, _r9egb1_iso_h in (
+        ("_opt_config", _r9egb1_iso._opt_config),
+        ("_thermal_params", _r9egb1_iso._thermal_params),
+        ("_current_state", _r9egb1_iso._current_state)):
+    for _i, _p in _r9egb1_mutables(_r9egb1_iso_h).items():
+        _r9egb1_iso_live.setdefault(_i, f"{_r9egb1_iso_n}{_p[4:]}")
+_r9egb1_iso_rec = _solve_record_now(_r9egb1_iso)
+_r9egb1_iso_base = _r9egb1_iso._solve_hubs(4, banded=False)
+_r9egb1_iso_side = {}
+for _r9egb1_iso_n, _r9egb1_iso_o in (
+        ("record.config", _r9egb1_iso_rec.config),
+        ("record.params", _r9egb1_iso_rec.params),
+        ("record.inputs.state", _r9egb1_iso_rec.inputs.state),
+        ("whatif_base.config", _r9egb1_iso_base[0]),
+        ("whatif_base.params", _r9egb1_iso_base[1]),
+        ("whatif_base.state", _r9egb1_iso_base[2])):
+    for _i, _p in _r9egb1_mutables(_r9egb1_iso_o).items():
+        _r9egb1_iso_side.setdefault(_i, f"{_r9egb1_iso_n}{_p[4:]}")
+_r9egb1_iso_shared = sorted(
+    f"{_r9egb1_iso_live[_i]} == {_r9egb1_iso_side[_i]}"
+    for _i in set(_r9egb1_iso_live) & set(_r9egb1_iso_side))
+R.check(
+    "#1736 the record (and the what-if's base) shares no mutable object "
+    "with the three hubs, a nested container included",
+    _r9egb1_ctl_shared == [id(_r9egb1_ctl_leaf)] and not _r9egb1_iso_shared,
+    f"control shared {len(_r9egb1_ctl_shared)} (want exactly the planted "
+    f"list); shared with the hubs: {_r9egb1_iso_shared}",
+)
+
+# H3: the DHW learner owns the parameters' draw pattern; the day-type blend
+# is one solve's input. With day-type evidence the two differ, so a hub left
+# holding the blend -- which the learner's fallback for a corrupt row and the
+# published DHW advisor both read -- is visible; the solve must still plan
+# with the blend.
+_r9egb1_h3 = _r9egb1_coord(dhw=True)
+_r9egb1_h3_l = _r9egb1_h3._dhw_learner
+_r9egb1_h3_spike = [0.3] * 24
+_r9egb1_h3_spike[6], _r9egb1_h3_spike[20] = 5.0, 4.0
+_r9egb1_h3_l.profile_weekday = _r9egb1_h3_l.normalize_profile(_r9egb1_h3_spike)
+_r9egb1_h3_l.profile_weekend = _r9egb1_h3_l.normalize_profile(_r9egb1_h3_spike[::-1])
+_r9egb1_h3_l.daytype_samples = [30, 30]
+_r9egb1_h3_blend = _r9egb1_h3_l.pattern_for(dt_util.now().weekday() >= 5)
+_r9egb1_h3_owned = list(_r9egb1_h3._thermal_params.dhw_hourly_draw_pattern)
+_r9egb1_h3_reason, _r9egb1_h3_handed = _r9egb1_run(_r9egb1_h3)
+_r9egb1_h3_after = list(_r9egb1_h3._thermal_params.dhw_hourly_draw_pattern)
+_r9egb1_h3_fallback = _r9egb1_h3_l.normalize_profile([float("nan")] * 24)
+R.check(
+    "#1736 H3: a solve leaves the learner's draw pattern in the parameters, "
+    "so its corrupt-row fallback is never the day-type blend; the blend "
+    "reached only the solve",
+    _r9egb1_h3_reason is None
+    and _r9egb1_h3_blend != _r9egb1_h3_owned
+    and _r9egb1_h3_after == _r9egb1_h3_owned
+    and list(_r9egb1_h3_fallback) != list(_r9egb1_h3_blend)
+    and list(_r9egb1_h3_handed["params"].dhw_hourly_draw_pattern) == _r9egb1_h3_blend,
+    f"{_r9egb1_h3_reason!r}; hub kept {_r9egb1_h3_after == _r9egb1_h3_owned}; "
+    f"fallback is blend {list(_r9egb1_h3_fallback) == list(_r9egb1_h3_blend)}; "
+    "solve got blend "
+    f"{list(_r9egb1_h3_handed['params'].dhw_hourly_draw_pattern) == _r9egb1_h3_blend}",
+)
+
+# H4: the learner's burn freeze reads the live detector flag. A state copy
+# that says a burn is on while the detector says it is over (what a solve in
+# auto left behind before a switch to comfort) must not freeze it.
+_r9egb1_h4 = _solve_coord()
+_r9egb1_h4._external_heat_active = False
+_r9egb1_h4._current_state.external_heat_active = True
+_r9egb1_h4_seen = bool(_r9egb1_h4._dhw_learner._external_heat_active())
+_r9egb1_h4._external_heat_active = True
+_r9egb1_h4._current_state.external_heat_active = False
+_r9egb1_h4_live = bool(_r9egb1_h4._dhw_learner._external_heat_active())
+R.check(
+    "#1736 H4: the DHW learner's burn freeze follows the live detector, not a "
+    "solve's copy of it",
+    _r9egb1_h4_seen is False and _r9egb1_h4_live is True,
+    f"stale copy on, detector off -> {_r9egb1_h4_seen}; "
+    f"detector on, copy off -> {_r9egb1_h4_live}",
+)
+
+# H2 (decided D12): quiet comfort periods are judged against the CONFIGURED
+# band, not the economy- or away-widened one the solve planned with.
+_r9egb1_bands = []
+
+
+def _r9egb1_h2(**arm):
+    coord = _r9egb1_coord(**arm)
+    coord._config[_r9egb1_const.CONF_COMFORT_LEARNING_ENABLED] = True
+    real = coord._comfort_learner.record_quiet_period
+
+    def _spy(when, span, band, *a, **k):
+        _r9egb1_bands.append((tuple(sorted(arm.items())), band))
+        return real(when, span, band, *a, **k)
+
+    coord._comfort_learner.record_quiet_period = _spy
+    # Read before the solve: a band read off the hubs afterwards would agree
+    # with a solve that had written its widened floor into them.
+    configured = max(
+        0.5, coord._opt_config.comfort_temp_day - coord._opt_config.min_temp
+    )
+    reason, _ = _r9egb1_run(coord)
+    return reason, configured
+
+
+_r9egb1_h2_e = _r9egb1_h2(economy=True)
+_r9egb1_h2_a = _r9egb1_h2(away=True)
+R.check(
+    "#1736 H2: economy and away solves hand the quiet-period learner the "
+    "configured comfort band",
+    _r9egb1_h2_e[0] is None and _r9egb1_h2_a[0] is None
+    and len(_r9egb1_bands) == 2
+    and [b for _, b in _r9egb1_bands] == [_r9egb1_h2_e[1], _r9egb1_h2_a[1]],
+    f"bands {_r9egb1_bands}; configured {_r9egb1_h2_e[1]}, {_r9egb1_h2_a[1]}",
+)
+
+# The what-ifs keep the bases they had: a price tile, run in the solve's tail,
+# prices against the plan it follows -- the setback included -- and its target
+# tiles perturb that plan's target; the card's what-if prices against the
+# configured band. Whether the card should see the setback is the owner's
+# decision (#1736's parity lead), so this pins today's answer at both ends.
+def _r9egb1_whatifs():
+    coord = _r9egb1_coord(away=True)
+    coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
+    seen = []
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        seen.append(_r9egb1_copy.deepcopy(optimizer.config))
+        if rest or kw:
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    async def _go():
+        reason = await coord.async_run_optimization()
+        coord._last_simulation = None
+        card = await coord.async_simulate({})
+        return reason, card
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason, card = _asyncio.run(_go())
+    return coord, reason, card, seen
+
+
+try:
+    _r9egb1_w_coord, _r9egb1_w_reason, _r9egb1_w_card, _r9egb1_w_seen = _r9egb1_whatifs()
+except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failure
+    _r9egb1_w_coord, _r9egb1_w_reason = _r9egb1_coord(away=True), repr(_r9egb1_err)
+    _r9egb1_w_card, _r9egb1_w_seen = {"error": "raised"}, []
+_r9egb1_w_away = float(_r9egb1_w_coord._away_state.target_temperature or 0.0)
+R.check(
+    "#1736 the price tile prices against its solve's record (setback band, "
+    "target one below the set-back target); the card against the configured band",
+    _r9egb1_w_reason is None
+    and "error" not in _r9egb1_w_card
+    and len(_r9egb1_w_seen) == 3
+    and [c.comfort_temp_day for c in _r9egb1_w_seen]
+    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_coord._opt_config.comfort_temp_day]
+    and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
+    and _r9egb1_w_seen[2].target_temp == _r9egb1_w_coord._opt_config.target_temp,
+    f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
+    f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
+)
+
+# Round 2 (blocked review): the card's what-if takes THIS moment's tariff and
+# hot-water inputs, not the last solve's. Before #1736 the solve left its
+# values in the hubs and the card agreed with the solve by construction; now
+# each side rebuilds from the live sources, so freshness needs its own pin:
+# between the solve and the card, the configured peak price and the learner's
+# pooled draw pattern both move, and the card must price with the moved
+# values. `marginal_price_per_kw` divides by the peaks averaged, so the arm
+# compares the ratio (90.0 / 50.0), never the field itself.
+def _r9egb1_fresh():
+    coord = _r9egb1_coord(dhw=True)
+    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
+    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 50.0
+    _r9egb1_fl = coord._dhw_learner
+    # In-range shapes, set directly: ``normalize_profile`` clips to
+    # [0.2, 3.5] mean 1.0, so two spikes past the ceiling project to the
+    # same profile and move nothing. With no day-type evidence
+    # ``pattern_for`` returns ``hourly_profile`` verbatim.
+    _r9egb1_s1 = [1.0] * 24
+    _r9egb1_s2 = [1.0] * 23 + [2.0]
+    _r9egb1_fl.hourly_profile = list(_r9egb1_s1)
+    _r9egb1_at_solve = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+    seen = []
+
+    async def _transport(hass, optimizer, first, *rest, **kw):
+        seen.append((_r9egb1_copy.deepcopy(optimizer.config),
+                     _r9egb1_copy.deepcopy(optimizer.model.params)))
+        if rest or kw:
+            return _r9egb1_opt.optimize_in_process(optimizer, first, rest, kw)
+        return _r9egb1_opt.optimize_in_process(optimizer, first)
+
+    async def _go():
+        reason = await coord.async_run_optimization()
+        coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 90.0
+        _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
+        now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
+        coord._last_simulation = None
+        card = await coord.async_simulate({})
+        return reason, card, now
+
+    with _r9egb1_mock.patch.object(_r9egb1_cmod, "_await_optimize", _transport):
+        reason, card, now = _asyncio.run(_go())
+    return coord, reason, card, seen, _r9egb1_at_solve, now
+
+
+try:
+    (_r9egb1_fr_coord, _r9egb1_fr_reason, _r9egb1_fr_card, _r9egb1_fr_seen,
+     _r9egb1_fr_at, _r9egb1_fr_now) = _r9egb1_fresh()
+except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failure
+    _r9egb1_fr_coord, _r9egb1_fr_reason = _r9egb1_coord(dhw=True), repr(_r9egb1_err)
+    _r9egb1_fr_card, _r9egb1_fr_seen = {"error": "raised"}, []
+    _r9egb1_fr_at = _r9egb1_fr_now = None
+R.check(
+    "#1736 the card's what-if prices with this moment's tariff and DHW "
+    "inputs, not the last solve's",
+    _r9egb1_fr_reason is None
+    and "error" not in _r9egb1_fr_card
+    and len(_r9egb1_fr_seen) == 2
+    and _r9egb1_fr_seen[0][0].peak_price_per_kw > 0.0
+    and abs(_r9egb1_fr_seen[1][0].peak_price_per_kw
+            / _r9egb1_fr_seen[0][0].peak_price_per_kw - 1.8) < 1.0e-12
+    and list(_r9egb1_fr_seen[0][1].dhw_hourly_draw_pattern)
+    == list(_r9egb1_fr_at)
+    and list(_r9egb1_fr_seen[1][1].dhw_hourly_draw_pattern)
+    == list(_r9egb1_fr_now)
+    and list(_r9egb1_fr_at) != list(_r9egb1_fr_now),
+    f"{_r9egb1_fr_reason!r} {_r9egb1_fr_card.get('error')}; "
+    f"peak {[c.peak_price_per_kw for c, _ in _r9egb1_fr_seen]}; patterns "
+    f"solve-then-card {[list(p.dhw_hourly_draw_pattern)[:3] for _, p in _r9egb1_fr_seen]}"
+    f" (moved {[None] if _r9egb1_fr_now is None else list(_r9egb1_fr_now)[:3]})",
+)
+
+# The values the record takes over from the old in-place writes, each at its
+# edge (the mutation drive found these unpinned where they used to sit).
+_r9egb1_v = _solve_coord()
+_r9egb1_v._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
+_r9egb1_v_now = dt_util.now()
+_r9egb1_v_off = _r9egb1_v._solve_hubs(4, banded=True)[0].peak_threshold_kw
+_r9egb1_v._outage_recovery_until = _r9egb1_v_now + timedelta(hours=2)
+_r9egb1_v_on = _r9egb1_v._solve_hubs(4, banded=True)[0].peak_threshold_kw
+R.check(
+    "#1736 post-outage recovery prices a month with no peak reference from "
+    "zero; outside recovery the term stays off (an infinite threshold)",
+    _r9egb1_v_off == float("inf") and _r9egb1_v_on == 0.0,
+    f"outside recovery {_r9egb1_v_off!r}, inside {_r9egb1_v_on!r}",
+)
+_r9egb1_f = _solve_coord()
+_r9egb1_f._config.update({
+    _r9egb1_const.CONF_FUSE_GUARD_ENABLED: True,
+    _r9egb1_const.CONF_MAIN_FUSE_A: 10, _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
+})
+_r9egb1_f._measured_house_power = 9.0  # more than the 2.3 kW fuse leaves
+_r9egb1_f_rec = _solve_record_now(_r9egb1_f)
+_r9egb1_f_caps = _r9egb1_f_rec.inputs.limits.power_caps_extra
+R.check(
+    "#1736 a house already over its fuse caps the pump at 0 kW, never below",
+    _r9egb1_f_caps is not None and float(np.min(_r9egb1_f_caps)) == 0.0,
+    f"{None if _r9egb1_f_caps is None else sorted(set(np.round(_r9egb1_f_caps, 3).tolist()))}",
+)
+_r9egb1_o = _solve_coord()
+_r9egb1_o._thermal_params.dhw_enabled = True
+_r9egb1_o._outage_dhw_until = dt_util.now() + timedelta(hours=2)
+_r9egb1_o_floor = float(_r9egb1_o._thermal_params.dhw_min_temp)
+
+
+def _r9egb1_hold(tank, *floor, dhw=True):
+    """The hold's answer for a tank temperature, or the exception it raised."""
+    _r9egb1_o._thermal_params.dhw_enabled = dhw
+    _r9egb1_o._current_state.dhw_temperature = tank
+    try:
+        return _r9egb1_o._outage_dhw_hold(dt_util.now(), *floor)
+    except Exception as err:  # noqa: BLE001 - a raise is this check's failure
+        return repr(err)
+
+
+_r9egb1_o_got = {
+    "at floor": _r9egb1_hold(_r9egb1_o_floor),
+    "5 K under": _r9egb1_hold(_r9egb1_o_floor - 5.0),
+    "under configured, over set-back": _r9egb1_hold(
+        _r9egb1_o_floor - 5.0, _r9egb1_o_floor - 10.0),
+    "5 K under, no DHW": _r9egb1_hold(_r9egb1_o_floor - 5.0, dhw=False),
+}
+R.check(
+    "#1736 the post-outage DHW queue holds a tank at its floor, releases a "
+    "colder one, judges against the floor the solve passes when it does, and "
+    "holds regardless of the tank when there is no hot water",
+    _r9egb1_o_got == {"at floor": True, "5 K under": False,
+                      "under configured, over set-back": True,
+                      "5 K under, no DHW": True},
+    f"{_r9egb1_o_got}",
+)
+
+# Round 3 (blocked verdict "mutation-unpinned"): the boundary guards the
+# mutation drive found living through every driver -- edges of the record's
+# builders no scenario above sat on. Each check drives the edge its mutant
+# moves; the drive that found them is in the PR body's mutation section.
+_r9egb1_ap = _r9egb1_coord(learned=True)
+_r9egb1_ap._solar_aperture.update(
+    scale=1.4, n=float(_r9egb1_const.SOLAR_APERTURE_MIN_SAMPLES))
+_r9egb1_ap_at = _solve_record_now(_r9egb1_ap).params.solar_aperture_scale
+_r9egb1_ap._solar_aperture.update(
+    n=float(_r9egb1_const.SOLAR_APERTURE_MIN_SAMPLES - 1))
+_r9egb1_ap_under = _solve_record_now(_r9egb1_ap).params.solar_aperture_scale
+R.check(
+    "#1736 the learned aperture scale applies at exactly its minimum sample "
+    "count (30); one sample under it does not",
+    _r9egb1_ap_at == 1.4 and _r9egb1_ap_under == 1.0,
+    f"at {_r9egb1_ap_at!r}, under {_r9egb1_ap_under!r}",
+)
+
+
+def _r9egb1_gains(on, profile):
+    """The record's gains profile, or the exception building it raised."""
+    coord = _r9egb1_coord()
+    if on:
+        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+    coord._internal_gains_profile = profile
+    try:
+        return _solve_record_now(coord).params.internal_gains_profile
+    except Exception as err:  # noqa: BLE001 - a raise is this check's failure
+        return repr(err)
+
+
+_r9egb1_ga = {
+    "off, stale profile": _r9egb1_gains(False, [0.25] * 24),
+    "on, no profile": _r9egb1_gains(True, None),
+    "on, profile": _r9egb1_gains(True, [0.25] * 24),
+}
+R.check(
+    "#1736 the learned gains profile reaches the record only when learning "
+    "is on AND the learner has one: None in both mixed arms, never a stale "
+    "profile and never a raise over list(None)",
+    _r9egb1_ga == {"off, stale profile": None, "on, no profile": None,
+                   "on, profile": [0.25] * 24},
+    f"{_r9egb1_ga}",
+)
+
+_r9egb1_wk = _r9egb1_coord(dhw=True)
+_r9egb1_wk_l = _r9egb1_wk._dhw_learner
+_r9egb1_wk_l.profile_weekday = [1.0] * 23 + [2.0]
+_r9egb1_wk_l.profile_weekend = [2.0] + [1.0] * 23
+_r9egb1_wk_l.daytype_samples = [30, 30]
+_r9egb1_sat = datetime(2026, 10, 10, 12, 0, tzinfo=timezone.utc)  # a Saturday
+_r9egb1_wk_we = _r9egb1_wk_l.pattern_for(True)
+_r9egb1_wk_wd = _r9egb1_wk_l.pattern_for(False)
+_r9egb1_wk_got = _r9egb1_wk._dhw_plan_fields(_r9egb1_sat)[
+    "dhw_hourly_draw_pattern"]
+R.check(
+    "#1736 the day-type blend a solve plans with follows the calendar day: "
+    "a Saturday takes the weekend pattern",
+    _r9egb1_sat.weekday() == 5 and _r9egb1_wk_we != _r9egb1_wk_wd
+    and _r9egb1_wk_got == _r9egb1_wk_we
+    and _r9egb1_wk_got != _r9egb1_wk_wd,
+    f"weekday {_r9egb1_wk_wd[:3]}, weekend {_r9egb1_wk_we[:3]}, "
+    f"got {_r9egb1_wk_got[:3]}",
+)
+
+_r9egb1_qt = _r9egb1_coord(dhw=True)
+_r9egb1_qt_p = _r9egb1_qt._thermal_params
+_r9egb1_qt_p.dhw_schedule_enabled = True
+_r9egb1_qt_p.dhw_windows = [(6.0, 9.0), (18.0, 22.0)]
+_r9egb1_qt._config[_r9egb1_const.CONF_DHW_QUANTILE_TARGETS_ENABLED] = True
+_r9egb1_qt._dhw_learner.draw_stats.reservoirs = {"06:00-09:00": [2.0, 4.0]}
+_r9egb1_qt_got = _r9egb1_qt._dhw_plan_fields(dt_util.now())[
+    "dhw_window_ready_energy"]
+R.check(
+    "#1736 the learned heavy-day targets carry exactly the demand windows "
+    "with draw evidence: one populated window in, the evidence-free one out",
+    isinstance(_r9egb1_qt_got, dict)
+    and sorted(_r9egb1_qt_got) == ["06:00-09:00"]
+    and _r9egb1_qt_got["06:00-09:00"][1] == 2
+    and 2.0 <= _r9egb1_qt_got["06:00-09:00"][0] <= 4.0,
+    f"{_r9egb1_qt_got}",
+)
+
+_r9egb1_mon = datetime(2026, 10, 5, 12, 0, tzinfo=timezone.utc)  # a Monday
+
+
+def _r9egb1_ceiling(interval_days, total):
+    """The elastic legionella ceiling for one seeded price level."""
+    coord = _r9egb1_coord(dhw=True)
+    coord._thermal_params.dhw_elastic_legionella_enabled = True
+    coord._thermal_params.dhw_legionella_enabled = True
+    coord._thermal_params.dhw_legionella_interval_days = float(interval_days)
+    coord._legionella.last_cycle = _r9egb1_mon
+    coord._prices = [{"total": total}]
+    # A confident price shape whose weekend hours dip under the weekday ones,
+    # so a horizon that gains a Saturday prices a different cheapest hour.
+    coord._price_model.shapes = [[0.5] * 24, [0.2] * 24]
+    coord._price_model.days = [999.0, 999.0]
+    return coord._dhw_plan_fields(_r9egb1_mon)[
+        "dhw_legionella_price_ceiling"]
+
+
+_r9egb1_lg_wide = _r9egb1_ceiling(5.0, 0.20)  # Tue-Sat: gains a Saturday
+_r9egb1_lg_week = _r9egb1_ceiling(3.0, 0.20)  # Tue-Thu: weekdays only
+R.check(
+    "#1736 the elastic legionella ceiling prices the days the remaining "
+    "interval spans, the deadline day included and its weekend bit intact: "
+    "a window that gains a Saturday reads a different ceiling",
+    _r9egb1_mon.weekday() == 0
+    and _r9egb1_lg_wide is not None and _r9egb1_lg_week is not None
+    and _r9egb1_lg_wide != _r9egb1_lg_week,
+    f"with the Saturday {_r9egb1_lg_wide!r}, without {_r9egb1_lg_week!r}",
+)
+_r9egb1_lg_edge = _r9egb1_ceiling(5.0, 1.0e-6)
+_r9egb1_lg_over = _r9egb1_ceiling(5.0, 2.0e-6)
+R.check(
+    "#1736 a mean price exactly at the 1e-6 floor runs on schedule (no "
+    "ceiling); one just over it shops",
+    _r9egb1_lg_edge is None and _r9egb1_lg_over is not None,
+    f"at the floor {_r9egb1_lg_edge!r}, just over {_r9egb1_lg_over!r}",
+)
+
+
+def _r9egb1_caps_rig(*, fuse, curve):
+    """A record's power caps with the fuse guard and/or the learned
+    capacity envelope on: the forecast sits at -5 C, whose bucket carries a
+    confident envelope entry that caps at the floor (0.6 x 5 kW nameplate)."""
+    coord = _solve_coord()
+    coord._config.update({
+        _r9egb1_const.CONF_FUSE_GUARD_ENABLED: fuse,
+        _r9egb1_const.CONF_MAIN_FUSE_A: 16,
+        _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
+        _r9egb1_const.CONF_CAPACITY_CURVE_ENABLED: curve,
+    })
+    coord._measured_house_power = 0.3  # leaves 3.38 kW of the 16 A fuse
+    coord._capacity_envelope = {-2: [0.2, 10]} if curve else {}
+    return _solve_record_now(coord).inputs.limits.power_caps_extra
+
+
+_r9egb1_cv = {
+    "fuse+envelope": _r9egb1_caps_rig(fuse=True, curve=True),
+    "fuse only": _r9egb1_caps_rig(fuse=True, curve=False),
+    "envelope only": _r9egb1_caps_rig(fuse=False, curve=True),
+}
+R.check(
+    "#1736 the learned capacity envelope composes into the record's fuse "
+    "caps through the same channel -- min(fuse, envelope), never the fuse "
+    "caps alone with the envelope dropped",
+    all(v is not None and len(v) == len(_r9egb1_cv["fuse only"])
+        and float(np.min(np.abs(v))) > 0.0
+        for v in _r9egb1_cv.values())
+    and np.allclose(_r9egb1_cv["fuse+envelope"],
+                    np.minimum(_r9egb1_cv["fuse only"],
+                               _r9egb1_cv["envelope only"]))
+    and not np.allclose(_r9egb1_cv["fuse+envelope"], _r9egb1_cv["fuse only"]),
+    f"fuse+envelope {None if _r9egb1_cv['fuse+envelope'] is None else list(np.round(_r9egb1_cv['fuse+envelope'][:3], 3))}"
+    f" vs fuse only {None if _r9egb1_cv['fuse only'] is None else list(np.round(_r9egb1_cv['fuse only'][:3], 3))}"
+    f", envelope only {None if _r9egb1_cv['envelope only'] is None else list(np.round(_r9egb1_cv['envelope only'][:3], 3))}",
+)
 
 # R9-EG-A2 (#1874): the helpers the one-copy consolidation introduced, held to the contract each
 # docstring states at the boundary a clamp or a comparison exists for. Every caller reaches them, but
