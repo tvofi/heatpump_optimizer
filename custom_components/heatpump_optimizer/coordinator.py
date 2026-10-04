@@ -452,7 +452,7 @@ from .open_meteo import OpenMeteoSolar
 from .wood_fuel import (
     simulate_wood_slots,
     wood_furnace_on,
-    wood_fuel_from_coordinator,
+    wood_fuel_from_parts,
 )
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -7765,7 +7765,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
         data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
-        data["wood_fuel"] = wood_fuel_from_coordinator(self, result)
+        data["wood_fuel"] = wood_fuel_from_parts(
+            self._config,
+            external_heat=self._external_heat,
+            opt_config=self._opt_config,
+            thermal_params=self._thermal_params,
+            thermal_model=self._thermal_model,
+            current_state=self._current_state,
+            result=result,
+        )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
         # unchanged from before this feature existed.

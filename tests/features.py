@@ -35688,7 +35688,7 @@ R.check(
 from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP
 from heatpump_optimizer.wood_fuel import (
     build_wood_fuel_view as _wf_view,
-    wood_fuel_from_coordinator as _wf_from_coord,
+    wood_fuel_from_parts as _wf_from_coord,
     wood_tank_soc_from_probes as _wf_soc,
 )
 
@@ -35824,7 +35824,7 @@ R.check(
     repr(_wf_idle_pub.get("wood_fuel")),
 )
 R.check(
-    "wood_fuel_from_coordinator is the publish helper",
+    "wood_fuel_from_parts is the publish helper",
     _wf_from_coord is not None,
 )
 
