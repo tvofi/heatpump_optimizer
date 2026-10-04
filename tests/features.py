@@ -49990,6 +49990,22 @@ class _PaCoord:
     def _plan_is_stale(self):
         return self.stale
 
+    def arbiter_inputs(self):
+        return _pa.ArbiterInputs(
+            hass=self.hass,
+            config=self._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self.stale,
+            entry_released=False,
+            state=self._current_state,
+            thermal=self._thermal_model,
+            params=self._thermal_params,
+            action=self._current_action,
+            measured_power_kw=None,
+            disinfecting=False,
+        )
+
     async def async_set_mode(self, mode):
         self.set_modes.append(mode)
         self._mode = mode

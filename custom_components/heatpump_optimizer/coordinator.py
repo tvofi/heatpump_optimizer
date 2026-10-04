@@ -3050,6 +3050,34 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         self._current_action = action
 
+    def arbiter_inputs(self) -> pump_arbiter.ArbiterInputs:
+        """One pass's read-only inputs for the pump arbiter (#1739).
+
+        Built at each arbitration pass -- the cycle, the one-minute tick and
+        the entity-change listener all enter through ``pump_arbiter.apply``,
+        which asks for a fresh snapshot, so a boost set or a mode change
+        between passes is seen by the next one. ``plan_stale`` is the gate
+        ``_plan_is_stale`` owns; the plan itself rides along because the
+        share split and the baseline read it ungated.
+        """
+        return pump_arbiter.ArbiterInputs(
+            hass=self.hass,
+            config=self._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self._plan_is_stale(),
+            entry_released=self._entry_released,
+            state=self._current_state,
+            thermal=self._thermal_model,
+            params=self._thermal_params,
+            action=self._current_action,
+            measured_power_kw=self._measured_power,
+            disinfecting=getattr(
+                getattr(self._legionella, "disinfect", None), "memo", None
+            )
+            is True,
+        )
+
     def diagnostics_state(self) -> CoordinatorDiagnostics:
         """What diagnostics may read about this instance, as one view.
 
