@@ -728,6 +728,85 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
   rm -f /tmp/prepr-bodyst.$$
 
+  # Step 7c, driven through `reds_line` -- the function the step calls -- over
+  # a throwaway repository whose two pushed commits carry OFFLINE check-run
+  # fixtures under .claude/workflows/fixtures/red-ancestry/, one per way the
+  # ancestry can look. The commits are built with fixed dates so their SHAs are
+  # deterministic and the fixtures are keyed by them: a later edit to this
+  # construction changes the SHAs, the stub finds no fixture, and these rows
+  # FAIL rather than pass vacuously. The stub replaces the `gh` binary word
+  # (`PREPR_GH`) with identical argv, so the URL and the jq key are built by
+  # the production code the step runs, and real `jq` applies that key over the
+  # fixture JSON -- no network, in CI's self-test job exactly as here.
+  DABS=$(cd "$D" && pwd -P)
+  RAFIX=$(cd .claude/workflows/fixtures/red-ancestry && pwd -P)
+  RA=$(mktemp -d)
+  (
+    set -e; cd "$RA"; git init -q -b main .
+    git config user.name st; git config user.email st@st
+    git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000'
+    export GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
+    echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
+    git -c commit.gpgsign=false checkout -q -b fix
+    echo b > code; git -c commit.gpgsign=false commit -qam one
+    echo c > code; git -c commit.gpgsign=false commit -qam two
+    git update-ref refs/remotes/origin/fix fix
+    git update-ref refs/remotes/origin/main main
+  ) >/dev/null 2>&1
+  # The `.claude` the body check resolves is symlinked in AFTER the commits, so
+  # the throwaway tree stays two `code` blobs and the SHAs above stay fixed.
+  ln -s "$(pwd -P)/.claude" "$RA/.claude"
+  cat >"$RA/gh" <<'EOS'
+#!/bin/bash
+# serves $REDFIX/<sha>.json through the jq filter prepr passed, like gh api
+set -u
+filter=""; url=""; prev=""
+for a in "$@"; do
+  [ "$prev" = "--jq" ] && filter=$a
+  case "$a" in repos/*/commits/*/check-runs) url=$a ;; esac
+  prev=$a
+done
+[ -n "$filter" ] && [ -n "$url" ] || exit 5
+sha=${url#*/commits/}; sha=${sha%/check-runs}
+[ -f "$REDFIX/$sha.json" ] || exit 1
+exec jq -r "$filter" "$REDFIX/$sha.json"
+EOS
+  chmod +x "$RA/gh"
+  printf '#!/bin/bash\nexit 1\n' >"$RA/ghdead"; chmod +x "$RA/ghdead"
+  ra() { # case dir, body file, remote ref -> "<rc>:$line"
+    local out r
+    out=$(cd "$RA" && REDFIX="$RAFIX/$1" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+      reds_line "$DABS/$2" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "${3:-origin/fix}")
+    r=$?
+    echo "$r:$out"
+  }
+  got=$(ra red unnamed-red.md)
+  st "${got%%:*}" 1 "a red an earlier pushed commit carried and the body does not name is refused"
+  case "$got" in *'does not name it'*'fast (3.14)'*) st 1 1 "and the refusal is the red gate's own, naming the check";; *) st 0 1 "and the refusal is the red gate's own, naming the check";; esac
+  got=$(ra red red-answered.md)
+  st "${got%%:*}" 0 "the same ancestry with a body that names the red passes (null control)"
+  case "$got" in *'answers every red'*) st 1 1 "and the ok line names what was answered";; *) st 0 1 "and the ok line names what was answered";; esac
+  got=$(ra green red-answered.md)
+  st "${got%%:*}" 0 "an ancestry whose only failure is pr-contract's own run passes (the exclusion key)"
+  case "$got" in *'no red check run stands'*) st 1 1 "and the ok line says no red stands, so green was measured, not assumed";; *) st 0 1 "and the ok line says no red stands, so green was measured, not assumed";; esac
+  got=$(ra bare red-answered.md)
+  st "${got%%:*}" 3 "an ancestry no commit of which carries any check run skips, never refuses"
+  case "$got" in *'no pushed commit carries any check run'*) st 1 1 "and the skip line names the boundary";; *) st 0 1 "and the skip line names the boundary";; esac
+  got=$(ra red red-answered.md origin/main)
+  st "${got%%:*}" 3 "a branch nothing of which is pushed past the merge base skips"
+  got=$(ra red red-answered.md origin/never-pushed)
+  st "${got%%:*}" 3 "a remote head ref that does not resolve skips"
+  out=$(cd "$RA" && REDFIX="$RAFIX/red" GITHUB_TOKEN= GH_TOKEN= PREPR_GH="$RA/ghdead" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 3 "no credential gh can use skips the arm (never refuses)"
+  case "$out" in *no\ token*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  out=$(cd "$RA" && REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/no-such-gh" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 3 "an absent gh skips the arm (never refuses)"
+  case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  rm -rf "${RA:?}"
+
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
   # make the DERIVATION fail, so the step refuses rather than handing the check a
