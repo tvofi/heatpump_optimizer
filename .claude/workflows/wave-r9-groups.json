@@ -6673,6 +6673,42 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-DIAG-1",
+   "lane": "STUDY",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": null,
+   "effort": "high",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "Owner field report + study ask (tvofi, 2026-10-04): after 1-2 weeks running the integration, two days of repeated boost space-heating produce a warning that the model drifts faster than the learner can catch up. TWO deliverables, study only, no fix PR: (1) DIAGNOSE whether the learner and model handle boost usage correctly — find the warning's emitter (accuracy.py's drift monitor, _LOGGER.warning at :398; module docstring names drift beyond the learners' own guard thresholds), its exact trigger and thresholds, what boost (boost.py, EG-B9's copy-before-overlay) does to the inputs the learner sees (target steps, aggressive flow, preheat), whether boost windows are excluded from learning or chased, and whether the warning is the honest signal or a defect (double-counting, wrong time-constant handling, transient-chasing) — decided on measurement (replay/simulation with the in-tree round-9 harnesses; accuracy/drift/comfort_learning/curve_learning tests in tests/features.py), never impression. (2) FEASIBILITY of recommending new house parameters when the warning fires, to restart learning from: what the drift evidence itself supports estimating at warning time, estimator stability on boosted data, the UI surface (card advisor inbox), and the safety shape (recommend-only, never auto-apply; explicit user restart). Deliverable: a pre-study document (state/ on handoff/audit-r9-plan pattern or handoff-body/r9-diag-1) with a roster-ready group proposal for the fix if (1) finds a defect or (2) is feasible.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-diag-1",
+    "commit": null,
+    "last_step": null,
+    "next_step": "study seat: emitter -> trigger -> boost interaction -> measurements -> feasibility -> pre-study doc",
+    "note_file": "handoff/round9/fix/resume/DIAG-1.md on handoff/r9-diag-1",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
