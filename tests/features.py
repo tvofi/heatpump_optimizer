@@ -26916,6 +26916,403 @@ R.check(
 )
 
 
+R.section("#1910 SW-1 — the user's quiet windows: silent caps, an off mask")
+from heatpump_optimizer import quiet_windows as _qw  # noqa: E402
+
+_QW_SILENT = _g4_const.CONF_QUIET_SILENT_WINDOWS
+_QW_OFF = _g4_const.CONF_QUIET_OFF_WINDOWS
+_QW_FRAC = _g4_const.CONF_SILENT_MODE_FRACTION
+_QW_LIMITED = _g4_const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY
+_QW_POWER = _g4_const.CONF_POWER_ENTITY
+_QW_FLOOR = _g4_const.CAPACITY_FLOOR_FRACTION
+_QW_NONE, _QW_S, _QW_O = _qw.ACTION_NONE, _qw.ACTION_SILENT, _qw.ACTION_OFF
+
+# The actions. Same clock discipline as the pump's own schedule: a window
+# binds the steps whose OWN start falls in it, per that step's weekday.
+_qw_acts = _qw.step_actions(_g4_eve, 96, 0.25, "22:00-06:00", "09:00-09:30")
+R.check(
+    "a midnight-wrapping silent window and a morning off window mark exactly their own steps",
+    _qw_acts is not None
+    and [i for i, a in enumerate(_qw_acts) if a == _QW_S] == list(range(8, 40))
+    and [i for i, a in enumerate(_qw_acts) if a == _QW_O] == list(range(52, 54)),
+    f"silent {[i for i, a in enumerate(_qw_acts if _qw_acts is not None else []) if a == _QW_S][:3]}.., "
+    f"off {[i for i, a in enumerate(_qw_acts if _qw_acts is not None else []) if a == _QW_O]}",
+)
+R.check(
+    "no rows is None, and a spec the horizon never reaches is None too",
+    _qw.step_actions(_g4_eve, 96, 0.25, "", "") is None
+    and _qw.step_actions(_g4_eve, 4, 0.25, "02:00-03:00", "") is None,
+)
+# DST: the off mask counts the real hours on the transition nights, exactly
+# as the pump's own schedule does -- wall-clock counting gives 12 each time.
+_qw_dst = {
+    label: int(np.sum(_qw.step_actions(
+        datetime(2026, month, day, 0, 0, tzinfo=_G4Zone("Europe/Stockholm")),
+        96, 0.25, "", "01:00-04:00",
+    ) == _QW_O))
+    for label, month, day in (("spring", 3, 29), ("plain", 3, 30), ("autumn", 10, 25))
+}
+R.check(
+    "on the DST nights the off window marks the real hours: 8 spring, 12 plain, 16 autumn",
+    _qw_dst == {"spring": 8, "plain": 12, "autumn": 16},
+    f"{_qw_dst}",
+)
+# Day selectors follow the step's own weekday (an off row that would
+# collide with a hot-water row is refused at save, not here).
+_qw_sat2 = datetime(2026, 1, 17, 0, 0, tzinfo=_G4Zone("Europe/Stockholm"))
+R.check(
+    "a weekend-only off window marks Saturday and not Monday",
+    int(np.sum(_qw.step_actions(_qw_sat2, 96, 0.25, "", "weekend 01:00-02:00") == _QW_O)) == 4
+    and _qw.step_actions(
+        datetime(2026, 1, 19, 0, 0, tzinfo=_G4Zone("Europe/Stockholm")),
+        96, 0.25, "", "weekend 01:00-02:00",
+    ) is None,
+)
+
+# The gate and the caps. A usable silent control is the capacity-limited
+# slot being a switch -- decided from the entity ID, never the state, so
+# the unknown-at-start arm below is the same configuration as a reporting
+# one. The get_state here serves the MEASURED figure only.
+def _qw_states(mapping):
+    return lambda entity_id: mapping.get(entity_id)
+
+_qw_switch = {_QW_LIMITED: "switch.pump_night_mode", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7}
+_qw_comp = _qw.compose(
+    None, _qw_switch, _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+    optimizer_active=True,
+)
+R.check(
+    "a silent row with a switch control caps the window at the fraction of nameplate",
+    _qw_comp.caps is not None
+    and _g4_capped(_qw_comp.caps) == list(range(8, 40))
+    and abs(float(_qw_comp.caps[8]) - 3.5) < 1e-9
+    and _qw_comp.off_steps is None
+    and _qw_comp.silent_dropped is False,
+    f"caps {None if _qw_comp.caps is None else sorted(set(np.round(_qw_comp.caps, 4).tolist()))}, "
+    f"dropped {_qw_comp.silent_dropped}",
+)
+# The Rotenso arm (tvofi, 2026-10-04): a night-mode switch that transmits
+# on change only reads unknown until its first report. Unknown is not off:
+# the domain is the verdict, the state never enters it.
+_qw_unknown = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.rotenso_night_mode", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7},
+    _qw_states({"switch.rotenso_night_mode": FakeState("unknown")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a switch still unknown at solve time enforces the window (unknown is not off)",
+    _qw_unknown.caps is not None
+    and _g4_capped(_qw_unknown.caps) == list(range(8, 40))
+    and _qw_unknown.silent_dropped is False,
+    f"capped {None if _qw_unknown.caps is None else len(_g4_capped(_qw_unknown.caps))} steps, "
+    f"dropped {_qw_unknown.silent_dropped}",
+)
+# A read-only flag cannot be held: silent rows drop (with the marker for
+# the card and the repair), off rows do not need a control and stay.
+_qw_sensor = _qw.compose(
+    None,
+    {_QW_LIMITED: "binary_sensor.gchv_night", _QW_SILENT: "22:00-06:00",
+     _QW_OFF: "09:00-09:30", _QW_FRAC: 0.7},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a read-only capacity-limited slot drops the silent cap and keeps the off mask",
+    _qw_sensor.caps is None
+    and _qw_sensor.silent_dropped is True
+    and _qw_sensor.off_steps is not None
+    and [i for i, v in enumerate(_qw_sensor.off_steps) if v] == [52, 53],
+    f"caps {_qw_sensor.caps}, dropped {_qw_sensor.silent_dropped}, "
+    f"off {[i for i, v in enumerate(_qw_sensor.off_steps if _qw_sensor.off_steps is not None else []) if v]}",
+)
+# D2: while the optimizer is off, quiet windows plan nothing at all.
+_qw_modeoff = _qw.compose(
+    None, _qw_switch, _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+    optimizer_active=False,
+)
+R.check(
+    "while the optimizer is off no window plans anything (D2)",
+    _qw_modeoff.caps is None and _qw_modeoff.off_steps is None
+    and _qw_modeoff.actions is None and _qw_modeoff.silent_dropped is True,
+    f"caps {_qw_modeoff.caps}, off {_qw_modeoff.off_steps}, "
+    f"dropped {_qw_modeoff.silent_dropped}",
+)
+# Inert when unset: the caller's array comes back as the SAME object.
+_qw_other_cap = np.array([4.0] * 96)
+R.check(
+    "unset, compose hands the other cap back untouched, the same object",
+    _qw.compose(_qw_other_cap, {}, _qw_states({}), _g4_eve, 96, 0.25, 5.0).caps
+    is _qw_other_cap
+    and _qw.compose(None, {}, _qw_states({}), _g4_eve, 96, 0.25, 5.0).caps is None,
+)
+R.check(
+    "a stored spec this version cannot read caps nothing rather than raising",
+    _qw.compose(None, {_QW_SILENT: "garbage", _QW_FRAC: 0.7}, _qw_states({}),
+                _g4_eve, 96, 0.25, 5.0).caps is None,
+)
+# The floor, and the fraction taken exactly as configured (tvofi 2026-10-04
+# ask 2): 1.0 shows rows but caps nothing; below the floor it floors.
+_qw_floor = _qw.compose(
+    None, {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+_qw_one = _qw.compose(
+    None, {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 1.0},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a fraction below the floor floors at CAPACITY_FLOOR_FRACTION; 1.0 caps nothing but the rows still resolve",
+    _qw_floor.caps is not None
+    and abs(float(np.min(_qw_floor.caps)) - _QW_FLOOR * 5.0) < 1e-9
+    and _qw_one.caps is None
+    and _qw_one.actions is not None
+    and int(np.sum(_qw_one.actions == _QW_S)) == 32,
+    f"floor {None if _qw_floor.caps is None else float(np.min(_qw_floor.caps))}, "
+    f"at 1.0 caps {_qw_one.caps}, silent steps "
+    f"{0 if _qw_one.actions is None else int(np.sum(_qw_one.actions == _QW_S))}",
+)
+# Measured power preferred (ask 3): a power entity in W, a frequency
+# reading scaled by its range -- each INSTEAD of the configured fraction.
+# Figures sit above the floor (0.6 of the 5 kW nameplate here), because
+# the floor holds for a measured figure exactly as for a configured one.
+_qw_meas_w = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+     _QW_POWER: "sensor.hp_power"},
+    _qw_states({"sensor.hp_power": FakeState("3500", unit="W")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+_qw_meas_hz = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+     _g4_const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hp_hz",
+     _g4_const.CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0},
+    _qw_states({"sensor.hp_hz": FakeState("90")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a measured power figure replaces the configured reduction: 3500 W reads 3.5 kW, 90 of 120 Hz reads 3.75 kW",
+    _qw_meas_w.caps is not None and abs(float(_qw_meas_w.caps[8]) - 3.5) < 1e-9
+    and _qw_meas_hz.caps is not None
+    and abs(float(_qw_meas_hz.caps[8]) - 3.75) < 1e-9,
+    f"W arm {None if _qw_meas_w.caps is None else float(_qw_meas_w.caps[8])}, "
+    f"Hz arm {None if _qw_meas_hz.caps is None else float(_qw_meas_hz.caps[8])}",
+)
+R.check(
+    "a measured figure below the floor still floors -- the floor is the envelope's, not the fraction's",
+    _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+         _QW_POWER: "sensor.hp_power"},
+        _qw_states({"sensor.hp_power": FakeState("1400", unit="W")}),
+        _g4_eve, 96, 0.25, 5.0,
+    ).caps is not None,
+    "a 1.4 kW reading on a 5 kW nameplate must cap at the 3.0 kW floor",
+)
+R.check(
+    "an unreadable unit is no reading rather than a guess: 3500 with no unit falls back to the fraction",
+    _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7,
+         _QW_POWER: "sensor.hp_power"},
+        _qw_states({"sensor.hp_power": FakeState("3500")}),
+        _g4_eve, 96, 0.25, 5.0,
+    ).caps is not None,
+    "the fallback arm must cap at the fraction (3.5 kW), not at 3500 kW",
+)
+
+# The save-time refusals (plan section 2.1).
+R.check(
+    "an off window overlapping a hot-water window is refused with the overlap named",
+    _qw.overlap_problem("", "05:00-07:00", "06:00-08:30")
+    is not None
+    and "05:00" in _qw.overlap_problem("", "05:00-07:00", "06:00-08:30"),
+    f"{_qw.overlap_problem('', '05:00-07:00', '06:00-08:30')!r}",
+)
+R.check(
+    "a silent window may overlap a hot-water one; a silent/off overlap is refused",
+    _qw.overlap_problem("05:00-07:00", "", "06:00-08:30") is None
+    and _qw.overlap_problem("05:00-07:00", "06:00-07:30", "") is not None,
+    f"silent/dhw {_qw.overlap_problem('05:00-07:00', '', '06:00-08:30')!r}, "
+    f"silent/off {_qw.overlap_problem('05:00-07:00', '06:00-07:30', '')!r}",
+)
+R.check(
+    "the overlap rule reads day selectors: disjoint days pass, the same named day refuses",
+    _qw.overlap_problem("", "weekend 08:00-09:00", "weekdays 08:00-08:30") is None
+    and _qw.overlap_problem("", "weekend 08:00-09:00", "weekend 08:30-08:45") is not None,
+    f"disjoint {_qw.overlap_problem('', 'weekend 08:00-09:00', 'weekdays 08:00-08:30')!r}, "
+    f"same day {_qw.overlap_problem('', 'weekend 08:00-09:00', 'weekend 08:30-08:45')!r}",
+)
+
+# End to end. An off window in a cold horizon: nothing planned inside it,
+# the plan pre-heats before it, and the shortfall the window prices is
+# published rather than hidden.
+def _qw_solve(off_spec, silent_spec=None, fraction=None, **over):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg.update(over)
+    _p = ThermalParameters.from_config(_cfg)
+    _o = _PvOpt(ThermalModel(_p), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    _start = datetime(2026, 1, 15, 4, 0, tzinfo=_G4Zone("Europe/Stockholm"))
+    _pr = _grad_prices("winter_typical", _start)
+    _ot, _wi, _ra, _so = _grad_weather("winter_cold", _start)
+    _st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(_ot[0]), dhw_temperature=48.0,
+        dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
+    )
+    _quiet = _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: silent_spec or "",
+         _QW_OFF: off_spec, _QW_FRAC: fraction if fraction is not None else 0.6},
+        _qw_states({}), _start, 96, 0.25, float(_p.max_electrical_power),
+    )
+    return _o.optimize(inputs=solve_inputs(
+        initial_state=_st, prices=_pr, outdoor_temps=_ot,
+        wind_speeds=_wi, precipitation=_ra, solar_radiation=_so,
+        start_time=_start,
+        power_caps_extra=_quiet.caps,
+        off_steps=_quiet.off_steps,
+        quiet_actions=_quiet.actions,
+    )), _quiet
+
+# 04:00 start, off 06:00-08:00: steps 8 through 15. Hot water only in the
+# evening, so the off window crosses no demand window.
+_qw_off_res, _qw_off_quiet = _qw_solve("06:00-08:00", dhw_windows="17:00-22:00")
+_qw_off_idx = list(range(8, 16))
+_qw_space = np.asarray(_qw_off_res.power_schedule, dtype=float)
+_qw_dhw = np.asarray(_qw_off_res.dhw_power_schedule, dtype=float)
+R.check(
+    "an off window plans no space heat and no hot water in exactly its steps",
+    float(np.max(_qw_space[_qw_off_idx])) == 0.0
+    and float(np.max(_qw_dhw[_qw_off_idx])) == 0.0
+    and float(np.max(_qw_space[:8])) > 0.0,
+    f"in-window space {float(np.max(_qw_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_dhw[_qw_off_idx]))}, "
+    f"pre-window space {float(np.max(_qw_space[:8]))}",
+)
+R.check(
+    "the off window's shortfall is published and the resolved actions ride the payload",
+    "power_cap_breach_c" in _qw_off_res.predictive_info
+    and _qw_off_res.predictive_info.get("quiet_actions") is not None
+    and [a for a in _qw_off_res.predictive_info["quiet_actions"][8:12]] == [_QW_O] * 4,
+    f"breach {_qw_off_res.predictive_info.get('power_cap_breach_c')}, "
+    f"actions[8:12] {_qw_off_res.predictive_info.get('quiet_actions', [None])[8:12]}",
+)
+# The null control: the same solve with no windows at all must be free to
+# plan inside those steps -- the zeros above are the window's, not the
+# weather's or the price profile's.
+_qw_free_res, _ = _qw_solve("", dhw_windows="17:00-22:00")
+_qw_free_space = np.asarray(_qw_free_res.power_schedule, dtype=float)
+_qw_free_dhw = np.asarray(_qw_free_res.dhw_power_schedule, dtype=float)
+R.check(
+    "with no window configured the same steps carry heat (the null control)",
+    float(np.max(_qw_free_space[_qw_off_idx])) > 0.0
+    or float(np.max(_qw_free_dhw[_qw_off_idx])) > 0.0,
+    f"space {float(np.max(_qw_free_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_free_dhw[_qw_off_idx]))}",
+)
+R.check(
+    "and the null solve carries neither the breach key nor the quiet actions",
+    "quiet_actions" not in _qw_free_res.predictive_info,
+    f"keys {sorted(_qw_free_res.predictive_info)}",
+)
+# A silent window end to end: both channels stay under the cap in the
+# window's steps -- the DHW block included, which today is bounded only
+# through the planner's horizon-minimum run cap.
+_qw_sil_res, _qw_sil_quiet = _qw_solve("", silent_spec="06:00-08:00", fraction=0.6)
+_qw_sil_space = np.asarray(_qw_sil_res.power_schedule, dtype=float)
+_qw_sil_dhw = np.asarray(_qw_sil_res.dhw_power_schedule, dtype=float)
+R.check(
+    "a silent window keeps space heating and hot water under the cap in its steps",
+    _qw_sil_quiet.caps is not None
+    and float(np.max(_qw_sil_space[_qw_off_idx])) <= float(np.min(_qw_sil_quiet.caps[_qw_off_idx])) + 1e-6
+    and float(np.max(_qw_sil_dhw[_qw_off_idx])) <= float(np.min(_qw_sil_quiet.caps[_qw_off_idx])) + 1e-6,
+    f"space {float(np.max(_qw_sil_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_sil_dhw[_qw_off_idx]))}, "
+    f"cap {float(np.min(_qw_sil_quiet.caps[_qw_off_idx]))}",
+)
+
+# The production wiring, driven through the coordinator the way the #1067
+# leg above drives it: the plan's solve and the what-if both receive the
+# composed limits.
+def _qw_plan(config, simulate=None):
+    coord = _solve_coord()
+    coord._config.update(config)
+    sink = []
+    real = _coord_mod._await_optimize
+
+    async def _spy(hass, optimizer, inputs):
+        sink.append((inputs.limits, inputs.start_time))
+        return await real(hass, optimizer, inputs)
+
+    _coord_mod._await_optimize = _spy
+    try:
+        _asyncio.run(coord.async_run_optimization())
+        if simulate is not None:
+            coord._last_simulation = None
+            _asyncio.run(coord.async_simulate(simulate))
+    finally:
+        _coord_mod._await_optimize = real
+    return coord, sink
+
+
+def _qw_steps_where(start, n, pred):
+    """Steps whose local start satisfies ``pred``, walked in UTC."""
+    if start is None:
+        return []
+    utc = start.astimezone(timezone.utc)
+    return [
+        i for i in range(n)
+        if pred((utc + timedelta(minutes=15 * i)).astimezone(start.tzinfo))
+    ]
+
+
+_qw_w_cfg = {
+    _QW_LIMITED: "switch.pump_night_mode",
+    _QW_SILENT: "00:00-06:00", _QW_OFF: "22:00-23:00", _QW_FRAC: 0.6,
+}
+_qw_wc, _qw_runs = _qw_plan(_qw_w_cfg, simulate={"quiet_off_windows": "23:30-23:45"})
+_qw_wpmax = float(_qw_wc._thermal_params.max_electrical_power)
+_qw_w0_limits, _qw_w0_start = _qw_runs[0]
+_qw_w1_limits, _qw_w1_start = _qw_runs[1]
+_qw_w0_n = len(_qw_w0_limits.power_caps_extra)
+_qw_w0_night = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour < 6)
+_qw_w0_off = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour == 22)
+_qw_w1_off = _qw_steps_where(
+    _qw_w1_start,
+    len(_qw_runs[1][0].quiet_actions)
+    if _qw_runs[1][0].quiet_actions is not None
+    else len(_qw_runs[1][0].power_caps_extra),
+    lambda d: (d.hour, d.minute) == (23, 30),
+)
+R.check(
+    "the plan's solve carries the silent cap and the off mask; the what-if honours its own off override",
+    len(_qw_runs) == 2
+    and _qw_w0_limits.power_caps_extra is not None
+    and _qw_w0_limits.off_steps is not None
+    and _qw_w0_limits.quiet_actions is not None
+    and _g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax) == _qw_w0_night
+    and sorted(i for i, v in enumerate(_qw_w0_limits.off_steps) if v) == _qw_w0_off
+    and sorted(i for i, v in enumerate(_qw_runs[1][0].off_steps) if v) == _qw_w1_off,
+    f"plan capped {len(_g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax))} (want {len(_qw_w0_night)}), "
+    f"plan off {int(np.sum(_qw_w0_limits.off_steps))} (want {len(_qw_w0_off)}), "
+    f"what-if off {int(np.sum(_qw_runs[1][0].off_steps))} (want {len(_qw_w1_off)})",
+)
+# And the wiring's null: with nothing configured, both solves carry no
+# off mask and no actions, whatever else caps them.
+_qw_wc2, _qw_runs2 = _qw_plan({}, simulate={"target_temp": 20.5})
+R.check(
+    "with no quiet windows configured neither solve carries an off mask or resolved actions",
+    len(_qw_runs2) == 2
+    and all(limits.off_steps is None and limits.quiet_actions is None
+            for limits, _ in _qw_runs2),
+    f"{[(l.off_steps is None, l.quiet_actions is None) for l, _ in _qw_runs2]}",
+)
+
+
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it
@@ -31870,6 +32267,12 @@ _ET_KEYS = {
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
     "apply_schedule_invalid_dhw_windows": {"windows", "error"},
+    # #1910 (SW-1): the quiet-window refusals, one per accepting service
+    # plus the shared overlap key.
+    "apply_schedule_invalid_quiet_windows": {"error"},
+    "set_thermal_params_invalid_quiet_windows": {"error"},
+    "simulate_plan_invalid_quiet_windows": {"error"},
+    "quiet_windows_overlap": {"overlap"},
     "apply_schedule_comfort_band_violation": {"violations"},
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
@@ -37447,6 +37850,12 @@ _F14_PARAM_VALUES = {
     "ecl110_pid_time_constant_hours": 0.6,
     "ecl110_displace_min": -3.0,
     "ecl110_displace_max": 5.0,
+    # #1910 (SW-1): the quiet fields, one per schema key like the rest.
+    # Flat on this rig by design -- they are configuration, not physics,
+    # and land in the config mapping rather than a params attribute.
+    "quiet_silent_windows": "22:00-06:00",
+    "quiet_off_windows": "09:00-09:30",
+    "silent_mode_power_fraction": 0.7,
 }
 
 

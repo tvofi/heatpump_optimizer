@@ -106,6 +106,26 @@ def _within_ceiling(requirement: Any, max_temp: Any) -> tuple[np.ndarray, np.nda
     return np.minimum(np.asarray(requirement, dtype=float), ceiling), ceiling
 
 
+def _forced_off_with(
+    forced_off: np.ndarray | None, off_steps: Any, n_steps: int
+) -> np.ndarray:
+    """``forced_off`` with the quiet Off window's steps OR'd in (#1910).
+
+    The one place the off mask is fitted to the horizon: cut to
+    ``n_steps``, padded False, and merged with whatever pins and blocks
+    already forced off. All-zero on no off steps is fine — the callers
+    gate on ``off_steps is not None`` for the semantics, not the mask.
+    """
+    mask = np.asarray(off_steps, dtype=bool)[:n_steps]
+    if mask.size < n_steps:
+        mask = np.concatenate(
+            [mask, np.zeros(n_steps - mask.size, dtype=bool)]
+        )
+    if forced_off is None:
+        return mask
+    return forced_off | mask
+
+
 class _DhwLegionellaPlan(NamedTuple):
     """What the anti-legionella stage decides, and the ceilings it sets."""
 
@@ -848,6 +868,7 @@ class DhwPlanner:
         dhw_pins: np.ndarray | None = None,
         p_run_cap: float | None = None,
         blocked: bool = False,
+        off_steps: np.ndarray | None = None,
         step_weekdays: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
         holiday_flags: np.ndarray | None = None,
@@ -964,6 +985,14 @@ class DhwPlanner:
             # unusable. The difference from a pin is that this one is never
             # released — see ``optimize``'s docstring.
             forced_off = np.ones(n_steps, dtype=bool)
+        if off_steps is not None:
+            # #1910 (D1): a quiet Off window plans no hot-water slots in
+            # exactly its steps, through that same door — the anti-legionella
+            # run and every window's pre-heat are planned around it like any
+            # other unusable step, buying their energy in the steps that
+            # remain. Not a pin: the window is a scheduled decision, so the
+            # pin-safety release loop in ``optimize`` never frees these.
+            forced_off = _forced_off_with(forced_off, off_steps, n_steps)
 
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when
@@ -1160,6 +1189,14 @@ class DhwPlanner:
             # hardware. Cheap, and it means no future addition to this method
             # can quietly reopen a channel the pump refuses to serve.
             schedule = np.zeros_like(schedule)
+        if off_steps is not None:
+            # #1910: the same invariant for the Off window's steps, restated
+            # for the same reason — a manual force-on pin inside a window
+            # must not reopen what the schedule refuses to plan (D1: the
+            # window means no slots there, nothing else).
+            schedule = np.where(
+                _forced_off_with(None, off_steps, n_steps), 0.0, schedule
+            )
         return DhwPlan(
             floor_temps=floor_temps,
             ready_temps=ready_temps,

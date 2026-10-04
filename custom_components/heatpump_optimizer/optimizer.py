@@ -121,6 +121,59 @@ def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
     return np.pad(head, (0, n_steps - head.size))
 
 
+def _padded_mask(mask: Any, n_steps: int) -> np.ndarray | None:
+    """A per-step boolean mask fitted to the horizon, or ``None`` when empty.
+
+    ``None`` when the input is ``None`` or marks no step at all, so a caller
+    gating on it ("an off window in force") reads the absence of the window
+    rather than an all-False array (#1910). Cut to ``n_steps`` like the
+    series above; a short mask pads False — steps the caller never named
+    are not in any window.
+    """
+    if mask is None:
+        return None
+    head = np.asarray(mask, dtype=bool)[:n_steps]
+    head = np.pad(head, (0, n_steps - head.size))
+    return head if bool(np.any(head)) else None
+
+
+def _space_breach_due(
+    power_caps_extra: np.ndarray | None,
+    space_blocked: bool,
+    off_steps: np.ndarray | None,
+    n_steps: int,
+) -> bool:
+    """Whether the plan must publish the space floor-breach figure (#1910).
+
+    True for an external cap, a blocked mode channel, or a quiet Off
+    window: all three are the same question — how far below its floor did
+    a bound the plan accepted push the house.
+    """
+    return (
+        power_caps_extra is not None
+        or space_blocked
+        or _padded_mask(off_steps, n_steps) is not None
+    )
+
+
+def _publish_quiet_actions(
+    result: OptimizationResult,
+    quiet_actions: np.ndarray | None,
+    n_steps: int,
+) -> None:
+    """The resolved per-step quiet action onto ``predictive_info`` (#1910).
+
+    One int per step (0 none, 1 silent, 2 off), published only when a
+    window was in force — absent entirely otherwise, which keeps every
+    other install's payload byte-identical.
+    """
+    if quiet_actions is None:
+        return
+    result.predictive_info["quiet_actions"] = [
+        int(a) for a in np.asarray(quiet_actions)[:n_steps]
+    ]
+
+
 def _holiday_flags_for(
     step_datetimes: list[datetime], holiday_dates: frozenset[date]
 ) -> np.ndarray | None:
@@ -1520,6 +1573,18 @@ class _Horizon:
     #: already in ``power_caps`` (space) and the DHW forced-off mask.
     space_blocked: bool = False
     dhw_blocked: bool = False
+    #: #1910 (SW-1): steps inside a quiet Off window — no space heat and no
+    #: hot-water charge there (decision D1). Space rides a deliberate,
+    #: unfloored zero entry in the caps array; hot water enters the planner's
+    #: forced-off door, the same one manual pins and a blocked mode use, so
+    #: the energy those steps would have carried is re-bought in the steps
+    #: that remain (pre-heating) rather than deleted. ``None`` is
+    #: byte-for-byte the previous behaviour.
+    off_steps: np.ndarray | None = None
+    #: #1910: the resolved quiet-window action per step (0 none, 1 silent,
+    #: 2 off), carried for publication only — the caps and the mask above
+    #: are what the solve itself reads. ``None`` when no window is in force.
+    quiet_actions: np.ndarray | None = None
     #: Extra L-BFGS-B starting points for a cap-tightened re-solve (#234).
     #: Prepended ahead of the usual candidates so the solver can escape the
     #: kink at a lowered ceiling instead of re-descending onto it.
@@ -1565,6 +1630,8 @@ class SolveLimits:
     min_temp_floors: np.ndarray | None = None
     space_blocked: bool = False
     dhw_blocked: bool = False
+    off_steps: np.ndarray | None = None
+    quiet_actions: np.ndarray | None = None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -2424,6 +2491,7 @@ class HeatPumpOptimizer:
                 # The first build's block (#1747): a replan without it plans
                 # hot water the mode cannot make, and masks the breach.
                 blocked=h.dhw_blocked,
+                off_steps=h.off_steps,
                 step_weekdays=h.step_weekdays,
                 holiday_flags=h.holiday_flags,
                 wood_temps=wood_temps,
@@ -2789,6 +2857,7 @@ class HeatPumpOptimizer:
         power_caps_extra = limits.power_caps_extra
         min_temp_margins, min_temp_floors = limits.min_temp_margins, limits.min_temp_floors
         space_blocked, dhw_blocked = limits.space_blocked, limits.dhw_blocked
+        off_steps, quiet_actions = limits.off_steps, limits.quiet_actions
 
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
@@ -2909,7 +2978,7 @@ class HeatPumpOptimizer:
         released_dhw: set[int] = set()
 
         throttling, power_caps, caps_extra_arr = self._build_space_power_caps(
-            n_steps, power_caps_extra, space_blocked
+            n_steps, power_caps_extra, space_blocked, off_steps
         )
 
         # Per-step valve target schedule, set by the hold-candidate pass below
@@ -2953,6 +3022,7 @@ class HeatPumpOptimizer:
                 humidity=humidity,
                 space_blocked=space_blocked,
                 dhw_blocked=dhw_blocked,
+                off_steps=off_steps,
                 extra_starts=extra_starts,
             )
             if dhw_enabled:
@@ -3101,7 +3171,7 @@ class HeatPumpOptimizer:
 
         self._publish_breach_reports(
             result, power_caps_extra, space_blocked, dhw_blocked, n_steps,
-            temp_min_bounds,
+            temp_min_bounds, off_steps, quiet_actions,
         )
         return result
 
@@ -3237,6 +3307,7 @@ class HeatPumpOptimizer:
         n_steps: int,
         power_caps_extra: np.ndarray | None,
         space_blocked: bool,
+        off_steps: np.ndarray | None = None,
     ) -> tuple[bool, np.ndarray | None, np.ndarray | None]:
         """The per-step space-power ceiling, and whether the valve throttles."""
         # Per-step ceiling on space power, lowered by the buffer-cap loop
@@ -3260,6 +3331,18 @@ class HeatPumpOptimizer:
             # the fuse guard and the buffer cap by minimum, and — unlike a
             # pin — nothing in this function can relax it.
             power_caps = np.zeros(n_steps, dtype=float)
+        off_mask = _padded_mask(off_steps, n_steps)
+        if off_mask is not None:
+            # #1910 (D1): a quiet Off window's space half rides the SAME
+            # array, as a deliberate zero at exactly its own steps. The zero
+            # is not floored — refusing to plan is the point of the window —
+            # and it survives the elementwise minimum below because the
+            # extra caps are clipped to >= 0.
+            if power_caps is None:
+                power_caps = np.full(
+                    n_steps, self.model.params.max_electrical_power
+                )
+            power_caps = np.where(off_mask, 0.0, power_caps)
         if power_caps_extra is not None:
             # The branch above ran for this same condition, so the ceiling
             # exists; the minimum below is against a real array.
@@ -3289,22 +3372,23 @@ class HeatPumpOptimizer:
         dhw_blocked: bool,
         n_steps: int,
         temp_min_bounds: np.ndarray,
+        off_steps: np.ndarray | None = None,
+        quiet_actions: np.ndarray | None = None,
     ) -> None:
         """Publish the cap and mode-block breach figures onto ``result``.
 
         Runs once, after the solve, so nothing here is in a per-solve hot
         loop. Each key is added only when its cap or block is actually in
         force, which is what leaves an ordinary install — and every golden
-        fixture — with byte-identical ``predictive_info``.
+        fixture — with byte-identical ``predictive_info``. A quiet Off
+        window (#1910) reports through the same space figure — its floor
+        shortfall is the price the plan knowingly paid for the window — and
+        carries the resolved per-step quiet actions beside it, for the plan
+        sensor to draw.
         """
-        if power_caps_extra is not None or space_blocked:
-            # An externally capped plan must say when the cap made the floor
-            # unreachable — a fuse guard that silently plans a cold house is
-            # the program's worst failure mode. Zero when the cap is
-            # feasible; the worst floor shortfall in °C when it is not. A
-            # mode-blocked channel reports through the same figure: it is the
-            # same question (how far below its floor did the cap push the
-            # house) and the user is owed the same answer.
+        if _space_breach_due(
+            power_caps_extra, space_blocked, off_steps, n_steps
+        ):
             trajectory = np.asarray(
                 result.upper_temp_trajectory
                 if self.model.params.two_zone_enabled
@@ -3361,6 +3445,8 @@ class HeatPumpOptimizer:
                         np.max(np.clip(req[:steps] - planned[:steps], 0.0, None))
                     )
             result.predictive_info["dhw_floor_breach_c"] = round(shortfall, 3)
+
+        _publish_quiet_actions(result, quiet_actions, n_steps)
 
     def _solve_space(
         self,
@@ -4238,12 +4324,19 @@ class HeatPumpOptimizer:
             dt=dt,
             p_max=p_max,
             dhw_pins=h.dhw_pins,
+            # The DHW block honours an external ceiling through this scalar,
+            # the horizon's minimum — the same conservative, never-over-the-
+            # line approximation the fuse guard's cap already makes here. A
+            # quiet silent window's cap therefore bounds every DHW block the
+            # same way (#1910); its OFF steps are per-step, below, through
+            # the forced-off door where the energy is re-bought elsewhere.
             p_run_cap=(
                 float(np.min(h.power_caps_extra))
                 if h.power_caps_extra is not None
                 else None
             ),
             blocked=h.dhw_blocked,
+            off_steps=h.off_steps,
             step_weekdays=h.step_weekdays,
             holiday_flags=h.holiday_flags,
             wood_temps=planner._dhw_coil_wood_forecast(h),

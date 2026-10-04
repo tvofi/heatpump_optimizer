@@ -391,7 +391,8 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "quiet_window_too_short": "A quiet window is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect."
     },
     "abort": {
       "already_configured": "This integration is already set up.",
@@ -474,6 +475,18 @@
     },
     "tibber_fetch_failed": {
       "message": "Electricity prices could not be fetched: {error}"
+    },
+    "apply_schedule_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "set_thermal_params_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "simulate_plan_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "quiet_windows_overlap": {
+      "message": "Overlapping quiet windows: {overlap}"
     }
   },
   "options": {
@@ -1288,7 +1301,9 @@
           "peak_guard_margin_kw": "Peak guard margin",
           "silent_mode_windows": "Heat pump silent mode schedule",
           "silent_mode_power_fraction": "Power kept in silent mode",
-          "after_save": "After saving"
+          "after_save": "After saving",
+          "quiet_silent_windows": "Silent windows",
+          "quiet_off_windows": "Off windows"
         },
         "data_description": {
           "main_fuse_amperes": "The house's main fuse in amperes, from your grid contract. 0 leaves it unconfigured, which keeps the fuse advisor, the fuse guard and the headroom sensor dormant — there is no safe default to guess, and a wrong one would cap a bigger house.",
@@ -1298,7 +1313,9 @@
           "peak_guard_margin_kw": "How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often.",
           "silent_mode_windows": "When the heat pump's own silent or night mode caps the compressor, written like the hot water time frames, for example \"22:00-06:00\". The schedule lives in the pump, where the plan cannot read it: without it, the plan counts on full power in those hours. Leave empty to plan without it.",
           "silent_mode_power_fraction": "The share of the heat pump's maximum electrical power it still runs at inside the silent mode schedule. 1.0 caps nothing. The slider stops at the same floor as the measured capacity limit, so this can trim the plan but never leave the house without heat.",
-          "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
+          "after_save": "Saving writes through immediately; this chooses where the dialog goes next.",
+          "quiet_silent_windows": "Your own quiet hours: inside them the plan caps the heat pump at the silent power fraction. Same grammar as the hot water windows. The pump's own night-mode schedule above is a different thing: that one the pump keeps by itself.",
+          "quiet_off_windows": "Hours in which nothing is planned: no space heating and no hot-water slots. The plan pre-heats before them and prices any shortfall. Same grammar as the hot water windows; an off window may not overlap one."
         }
       },
       "grid_fees": {
@@ -1498,7 +1515,8 @@
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
-      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
+      "quiet_window_too_short": "A quiet window is shorter than {min_window_minutes} minutes. The plan is made in {min_window_minutes}-minute steps, so a shorter frame can fall between two steps and never take effect."
     }
   },
   "selector": {
@@ -1730,6 +1748,10 @@
     "store_version": {
       "title": "Stored learning could not be read",
       "description": "The optimizer's stored data {store} cannot be read: {detail}. This release has no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. Nothing needs to be done for the optimizer to keep running. If the data was saved by a newer version, it is left as it is and this version saves nothing over it: reinstall the newer version to get it back, or, to keep this version, delete the file {store} in the .storage folder and restart."
+    },
+    "quiet_silent_not_enforced": {
+      "title": "Silent windows are not enforced",
+      "description": "Silent windows are configured, but the capacity-limited slot ({entity}) is not a switch this integration can hold on, so the plan is not capped for them and the heat pump is never asked to run silently. Assign the heat pump's own night/silent-mode switch as the capacity-limited entity, or remove the silent rows."
     }
   },
   "entity": {
@@ -2159,6 +2181,18 @@
         "ecl110_displace_max": {
           "name": "ECL110 displace maximum",
           "description": "Highest parallel shift the optimizer may command, in °C."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2229,6 +2263,18 @@
         "wood_furnace_efficiency": {
           "name": "Wood furnace efficiency",
           "description": "What-if furnace efficiency in percent."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2307,6 +2353,18 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the change to one config entry. Leave empty to apply to every configured heat pump, which is what a single-heat-pump install wants."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },

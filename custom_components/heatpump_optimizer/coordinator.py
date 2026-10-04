@@ -91,6 +91,9 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
+    CONF_QUIET_OFF_WINDOWS,
+    CONF_QUIET_SILENT_WINDOWS,
+    CONF_SILENT_MODE_FRACTION,
     CONF_PRICE_ENTITY,
     CONF_PRICE_SOURCE,
     DEFAULT_PRICE_SOURCE,
@@ -394,7 +397,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_arbiter, pump_signals
 from . import setpoint_check
-from . import silent_mode
+from . import quiet_windows, silent_mode
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -5448,6 +5451,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             caps, ctx._config, solve_now, n, config.dt_hours,
             params.max_electrical_power,
         )
+        # #1910 (SW-1): the user's quiet windows, composed on the loop
+        # because the measured figure reads hass state. Silent rows cap
+        # through the same power_caps_extra channel; off rows come back as
+        # the per-step mask the solver zeroes space with and the planner
+        # forces hot water off with. The gate is here, not in the solver:
+        # D2 says nothing is planned for a window while the optimizer is
+        # off, and a silent row needs a control that can be held.
+        quiet = quiet_windows.compose(
+            caps, ctx._config, ctx.hass.states.get, solve_now, n,
+            config.dt_hours, params.max_electrical_power,
+            optimizer_active=self._mode != MODE_OFF,
+        )
+        caps = quiet.caps
         humidity = horizon.humidity
         return SolveRecord(config, params, SolveInputs(
             state=state,
@@ -5482,6 +5498,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # with no mode entity plans exactly as before.
                 space_blocked=self._pump_signals.space_blocked,
                 dhw_blocked=self._pump_signals.dhw_blocked,
+                off_steps=quiet.off_steps,
+                quiet_actions=quiet.actions,
             ),
         ))
 
@@ -5749,6 +5767,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
             )
+        quiet_windows.apply_config_keys(ctx._config, params)  # #1910
         if CONF_DHW_WINDOWS in params:
             try:
                 ctx._thermal_params.dhw_windows = parse_windows(
@@ -7569,6 +7588,32 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if weekly is not None:
             return format_weekly_windows(weekly)
         return format_windows(params.dhw_windows)
+
+    def configured_quiet_windows(self) -> dict[str, str]:
+        """The quiet-window specs as CONFIGURED, one per action (#1910).
+
+        The silent-windows counterpart of ``configured_dhw_windows``: the
+        card's editor edits the configuration, so it needs the
+        configuration -- in the shared grammar, empty string for "no rows"
+        -- not the plan's reading of it. The specs are stored canonical by
+        the services that write them, so they are handed back as stored.
+        A silent spec with no control that can hold it carries the
+        not-enforced marker beside it, decided from the entity ID's domain
+        and never the state, so a switch that has not reported yet (state
+        ``unknown``) is not dropped: unknown is not off.
+        """
+        cfg = getattr(self, "_ctx", self)._config
+        out: dict[str, str] = {
+            "quiet_silent_windows_spec": str(
+                cfg.get(CONF_QUIET_SILENT_WINDOWS) or ""
+            ),
+            "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
+        }
+        if out["quiet_silent_windows_spec"] and not quiet_windows.silent_control_usable(
+            cfg.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+        ):
+            out["quiet_silent_not_enforced"] = "true"
+        return out
 
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.
@@ -11245,6 +11290,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             cap_extra, ctx._config, solve_at, len(horizon.prices),
             scratch_config.dt_hours, scratch_params.max_electrical_power,
         )
+        # #1910: and the same quiet windows, with the call's own spec and
+        # fraction overrides folded onto the configuration first.
+        _quiet = quiet_windows.compose(
+            cap_extra, quiet_windows.overridden_config(ctx._config, overrides),
+            ctx.hass.states.get, solve_at, len(horizon.prices),
+            scratch_config.dt_hours, scratch_params.max_electrical_power,
+            optimizer_active=self._mode != MODE_OFF,
+        )
+        cap_extra = _quiet.caps
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,
@@ -11312,6 +11366,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     # smaller main fuse.
                     space_blocked=self._pump_signals.space_blocked,
                     dhw_blocked=self._pump_signals.dhw_blocked,
+                    # #1910: the what-if inherits the quiet windows the live
+                    # plan assumed — same reason as the mode block above.
+                    off_steps=_quiet.off_steps,
+                    quiet_actions=_quiet.actions,
                 ),
             ))
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops

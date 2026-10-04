@@ -97,6 +97,31 @@ def _resolved_dhw_attribute(resolved_spec: Any) -> dict[str, str]:
     return {"dhw_windows_resolved": resolved_spec} if resolved_spec else {}
 
 
+def _quiet_windows_attributes(coordinator: Any, data: Any) -> dict[str, Any]:
+    """The #1910 quiet-window attributes, published only when rows exist.
+
+    The two configured specs (with their not-enforced marker when a silent
+    spec has no control that can hold it), so the card's editor works
+    before a solve; and the resolved per-step action the last solve
+    actually assumed, out of the plan's predictive info. Absent -- not
+    null -- whenever no row is configured, so an unchanged install
+    publishes exactly the attributes it did before the feature.
+    """
+    specs = coordinator.configured_quiet_windows()
+    if not (
+        specs.get("quiet_silent_windows_spec")
+        or specs.get("quiet_off_windows_spec")
+    ):
+        return {}
+    out: dict[str, Any] = dict(specs)
+    if specs.get("quiet_silent_not_enforced"):
+        out["quiet_silent_not_enforced"] = True
+    actions = (data.get("predictive_info") or {}).get("quiet_actions")
+    if actions:
+        out["quiet_actions"] = actions
+    return out
+
+
 def _sensor_advisor_attribute(coordinator: Any) -> dict[str, Any]:
     """The #1269 ranking attribute, published only when something ranks.
 
@@ -1507,6 +1532,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     if dhw_configured
                     else {}
                 ),
+                **_quiet_windows_attributes(self.coordinator, self._data()),  # #1910
                 # The currency every cost figure on this device is priced in,
                 # published so the dashboard card labels its axis from the
                 # integration's own answer rather than guessing from the
@@ -1583,6 +1609,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     # editor above keeps `dhw_windows_spec`, the
                     # configuration it writes back; this one is read-only.
                     **_resolved_dhw_attribute(resolved_spec),
+                    **_quiet_windows_attributes(self.coordinator, data),  # #1910
                     "dhw_min_temperature": data.get("dhw_min_temperature"),
                     "dhw_setpoint": data.get("dhw_setpoint"),
                     # The ceiling the hot water minimum has to stay under,
