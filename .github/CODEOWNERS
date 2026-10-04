@@ -50,6 +50,16 @@
 /tests/README.md                          @tvofi
 /docs/decisions/                          @tvofi
 /.github/PULL_REQUEST_TEMPLATE.md         @tvofi
+# Where lane RO moves the owned paths above (tests/layout.json), owned before
+# anything moves (R9-RO-2): a copy put there early is reviewed like the file
+# it would replace. COMMON.md stays unowned at its new path too.
+/dev/governance/rules/                    @tvofi
+/dev/governance/roles/                    @tvofi
+/dev/governance/roles/COMMON.md
+/dev/governance/dimensions/               @tvofi
+/dev/governance/decisions/                @tvofi
+/dev/audit/README.md                      @tvofi
+/dev/audit/harnesses/README.md            @tvofi
 /.github/CODEOWNERS                       @tvofi
 # The ratchet caps (`*_budgets.json`) carry no owner (decision 0013 as amended
 # 2026-09-24): a raise is the owner's, a routine edit is not, and a path pattern
@@ -59,6 +69,8 @@
 # self-test, and only ownership stops that (#1583 review, the tally-forgery gap).
 /.claude/workflows/budget_raise_gate.py   @tvofi
 /.claude/workflows/contract_rerun.py      @tvofi
+/tools/policy/budget_raise_gate.py        @tvofi
+/tools/pr/contract_rerun.py               @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
 # its self-test cannot stop a pull request that weakens a class and its fixture
@@ -131,8 +143,10 @@
 /tests/stress.py                          @tvofi
 /tests/typing_ruler.py                    @tvofi
 # The target layout of lane RO (R9-RO-1): a new category, or a retired path
-# dropped, changes what every later pull request may put where.
+# dropped, changes what every later pull request may put where. Its reader
+# is the Python graders' move-map lookup (R9-RO-2): a grader the base pins loads it.
 /tests/layout.json                        @tvofi
+/tests/layout.py                          @tvofi
 # The architecture score's frozen weights, its pinned verdicts and the check
 # that pins them (R9-EG-A1): a weight or a verdict that moves is a policy change.
 /tools/audit/archscore/weights.json       @tvofi

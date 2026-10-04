@@ -25,6 +25,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { at, lsFiles } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
@@ -32,7 +33,7 @@ const CANON = '.claude/workflows/web-fragments.md'
 const COPIES = /^web-.*\.js$/
 
 const read = (rel) => {
-  try { return fs.readFileSync(path.join(ROOT, rel), 'utf8') } catch { return null }
+  try { return fs.readFileSync(at(rel), 'utf8') } catch { return null }
 }
 
 const DECL = /^const ([A-Za-z_][A-Za-z0-9_]*)\b/
@@ -116,9 +117,7 @@ function keylessStampPushes(texts) {
   }
   return out
 }
-const trackedTexts = () =>
-  execFileSync('git', ['ls-files', '-z', '.claude/workflows', 'tools'], { cwd: ROOT, encoding: 'utf8' })
-    .split('\0').filter(Boolean).map((rel) => [rel, read(rel) ?? ''])
+const trackedTexts = () => [...lsFiles('.claude/workflows/*'), ...lsFiles('tools/*')].map((rel) => [rel, read(rel) ?? ''])
 
 const copyFiles = () =>
   fs.readdirSync(path.join(ROOT, '.claude', 'workflows'))

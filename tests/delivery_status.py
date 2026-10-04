@@ -100,6 +100,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "tests"))  # `-I` drops the script's own directory
+from layout import locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
 
 #: Commits that may land on main after a rowless merge before it is OVERDUE.
 #: Set from the measurement in the docstring: longest observed batch 8 commits,
@@ -484,12 +486,12 @@ ROW_ANCHOR = re.compile(r"^\s*[-*]\s+\[#(\d+)\]\((?:[^()\s]*/pull/)(\d+)\)")
 def read_texts() -> list[str]:
     rows = [
         line
-        for path in sorted((ROOT / ROW_DIR).glob("*.md")) if path.stem.isdigit()
+        for path in sorted((ROOT / locate(ROW_DIR)).glob("*.md")) if path.stem.isdigit()
         for line in path.read_text().splitlines()
         if (m := ROW_ANCHOR.match(line)) and m[1] == m[2] == path.stem
     ]
     return [
-        (ROOT / name).read_text() for name in DISPOSITION_FILES
+        (ROOT / locate(name)).read_text() for name in DISPOSITION_FILES
         if (ROOT / name).exists()
     ] + ["\n".join(rows)]
 
