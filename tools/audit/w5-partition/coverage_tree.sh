@@ -131,38 +131,70 @@ if [ -n "${W5P_SCOPE:-}" ] && [ -n "${W5P_REUSE:-}" ]; then
 fi
 [ -n "${PLAN:-}" ] || PLAN=$(echo "$SCRIPTS" | sed 's/^/measure\t/')
 
+# One lane: measure the plan lines it is given, in order. A script's processes
+# write under their own data directory and combine into their own per/ file, and
+# the appends to scripts.tsv and combine.log are single lines, so two lanes share
+# no file they write -- which is what lets the lanes below run side by side.
+measure() {
+  while IFS=$'\t' read -r verb s; do
+    [ -n "$s" ] || continue
+    rm -f "$OUT/per/.coverage.$s" "$OUT/per/$s.nodata"
+    if [ "$verb" = "reuse" ]; then
+      for f in ".coverage.$s" "$s.nodata"; do
+        [ -f "$W5P_REUSE/$f" ] && cp "$W5P_REUSE/$f" "$OUT/per/$f"
+      done
+      printf '%s\treused\t0\n' "$s" >> "$OUT/scripts.tsv"
+      echo "reused tests/$s.py's coverage from the base: no changed file is in its closure"
+      continue
+    fi
+    sed "s#^data_file = .*#data_file = $WORK/data/$s/.coverage#" "$WORK/coveragerc" > "$WORK/coveragerc.$s"
+    mkdir -p "$WORK/data/$s"
+    a=$(date +%s)
+    if [ "$s" = "golden" ]; then
+      COVERAGE_PROCESS_START="$WORK/coveragerc.$s" GOLDEN_MODE=strict "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
+    else
+      COVERAGE_PROCESS_START="$WORK/coveragerc.$s" "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
+    fi
+    rc=$?; b=$(date +%s)
+    printf '%s\t%s\t%s\n' "$s" "$rc" "$((b-a))" >> "$OUT/scripts.tsv"
+    echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
+    if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
+      COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
+        >> "$OUT/logs/combine.log" 2>&1 \
+        && mv "$WORK/data/$s/.coverage" "$OUT/per/.coverage.$s" \
+        || { echo "could not combine tests/$s.py's data; see $OUT/logs/combine.log" >&2; return 1; }
+    else
+      : > "$OUT/per/$s.nodata"
+    fi
+  done <<< "$1"
+}
+
+# TWO LANES (R9-F10.15). tests/features.py is the longest script by a wide margin
+# (822 s traced in the CI sweep of 2026-10-03, against about 570 s for every other
+# script of the stage together); run beside each other the stage costs the longer
+# lane and not the sum. The lanes only decide WHEN a script runs: every script still runs
+# with the same arguments under its own coveragerc, and the final combine below
+# reads the same per/ directory whichever order its files were written in, so
+# coverage.json is the union it was serially. W5P_LANES=1 is that serial run, kept
+# as the reference the byte-identity proof compares against.
+# plan_view.py writes the payload doc_claims.py reads (HPO_PLANDATA, one file for
+# the stage), so those two stay in one lane in plan order; features.py does not use
+# it, and goes alone.
 [ -f "$OUT/scripts.tsv" ] || printf 'script\texit\twall_s\n' > "$OUT/scripts.tsv"
-while IFS=$'\t' read -r verb s; do
-  [ -n "$s" ] || continue
-  rm -f "$OUT/per/.coverage.$s" "$OUT/per/$s.nodata"
-  if [ "$verb" = "reuse" ]; then
-    for f in ".coverage.$s" "$s.nodata"; do
-      [ -f "$W5P_REUSE/$f" ] && cp "$W5P_REUSE/$f" "$OUT/per/$f"
-    done
-    printf '%s\treused\t0\n' "$s" >> "$OUT/scripts.tsv"
-    echo "reused tests/$s.py's coverage from the base: no changed file is in its closure"
-    continue
-  fi
-  sed "s#^data_file = .*#data_file = $WORK/data/$s/.coverage#" "$WORK/coveragerc" > "$WORK/coveragerc.$s"
-  mkdir -p "$WORK/data/$s"
-  a=$(date +%s)
-  if [ "$s" = "golden" ]; then
-    COVERAGE_PROCESS_START="$WORK/coveragerc.$s" GOLDEN_MODE=strict "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
-  else
-    COVERAGE_PROCESS_START="$WORK/coveragerc.$s" "$PY" "tests/$s.py" > "$OUT/logs/$s.log" 2>&1
-  fi
-  rc=$?; b=$(date +%s)
-  printf '%s\t%s\t%s\n' "$s" "$rc" "$((b-a))" >> "$OUT/scripts.tsv"
-  echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
-  if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
-    COVERAGE_PROCESS_START= "$PY" -m coverage combine --rcfile="$WORK/coveragerc.$s" \
-      >> "$OUT/logs/combine.log" 2>&1 \
-      && mv "$WORK/data/$s/.coverage" "$OUT/per/.coverage.$s" \
-      || { echo "could not combine tests/$s.py's data; see $OUT/logs/combine.log" >&2; exit 1; }
-  else
-    : > "$OUT/per/$s.nodata"
-  fi
-done <<< "$PLAN"
+case "${W5P_LANES:-2}" in
+  1) measure "$PLAN" || exit 1 ;;
+  2)
+    FEAT=$(echo "$PLAN" | awk -F'\t' '$2=="features"')
+    REST=$(echo "$PLAN" | awk -F'\t' '$2!="features"')
+    measure "$FEAT" & lane_a=$!
+    measure "$REST" & lane_b=$!
+    rc=0
+    wait "$lane_a" || rc=1
+    wait "$lane_b" || rc=1
+    [ "$rc" -eq 0 ] || exit 1
+    ;;
+  *) echo "W5P_LANES must be 1 or 2" >&2; exit 2 ;;
+esac
 
 "$PY" -m coverage combine --rcfile="$WORK/coveragerc" --append --keep "$OUT/per" >> "$OUT/logs/combine.log" 2>&1
 unset COVERAGE_PROCESS_START

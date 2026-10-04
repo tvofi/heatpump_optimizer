@@ -958,13 +958,37 @@ jobs:
       # night's sample, named as partial, instead of timing the job out. The
       # 60 minutes left cover the runs in flight, each under its scaled
       # timeout. mutation-ledger below is sized the same way.
+      # The seed rotates by date, as mutation-ledger's does (R9-F10.13): the
+      # constant default drew the same sample every night, so the tail the
+      # budget cuts would stay unevaluated for good. The draw is the same
+      # size; a killed_by pin it happens to draw is re-driven with its own
+      # killer first, and the report below names each one that was not
+      # reproduced, for a human to re-pin, triage or cover with a test. The
+      # job never edits a pin, and stays green on one (ci-autofix.md).
       - name: Drive the table over the whole package
         shell: bash
         run: |
           set -o pipefail
           python3 tests/mutation_table.py \
             --scope full --max 40 --jobs 3 --budget-minutes 270 \
+            --seed "$(date -u +%Y%m%d)" \
             | tee "$RUNNER_TEMP/mutation-table-full.txt"
+
+      - name: Report the pins the draw did not reproduce
+        if: always()
+        shell: bash
+        run: |
+          f="$RUNNER_TEMP/mutation-table-full.txt"
+          test -s "$f" || exit 0
+          {
+            echo "### mutation-nightly: pin re-verification"
+            echo '```'
+            grep -E 'PIN NOT REPRODUCED|pin not re-verified|PIN RE-VERIFICATION' "$f" || echo "no pinned site drawn"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E 'PIN NOT REPRODUCED' "$f" | while IFS= read -r line; do
+            echo "::warning title=pin not reproduced::${line}"
+          done || true
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()

@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.15
+# claims-for: 6.7.16
 #
-# v6.7.15: Round 9 batch: web page, merge train, policy. The stamp empties the list; the
+# v6.7.16: EG-A2 one-formula class closure; mutation wall-clock budget; instruments into the tree; card and site polish; coverage tracer diet; nightly ledger CPU bounds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

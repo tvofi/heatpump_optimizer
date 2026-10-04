@@ -16,37 +16,35 @@ request (#1081), linked from here and never restated.
 ## Round 9 in flight — the audit fix programme
 
 Round 9 (the audit fix programme, tracking issue #201) runs off `main` and keeps
-its live state on three branches, so any session resumes from the tree alone:
+its live state on two branches, so any session resumes from the tree alone:
 
 - **`handoff/audit-r9-fixplan`** — the fix plan: `handoff/round9/FIX-PLAN.md`,
   the roster `.claude/workflows/wave-r9-groups.json` (per-PR briefs with
   `resume` and model fields), the per-lane briefs `handoff/round9/fix/F*.md`,
   and the standing template `handoff/round9/fix/src/standing.md`, which binds
   every fixer and reviewer seat this round.
-- **`handoff/audit-r9-plan`** — `handoff/round9/RESUME-CURRENT.md`, the regenerated
-  state file (under 10 KB) a crashed seat resumes from, `RESUME-ARCHIVE.md`, the
-  frozen pre-2026-10-01 log, and the `handoff/round9/state/` mirror of the
-  orchestrator's shared folder.
-- **`handoff/mac-merge-seat-resume`** — `RESUME-mac-merge-seat.md`, the merge
-  seat's standing rules, with its scripts `merge_pr.sh`, `remerge_main.sh` and
-  `handoff_push.sh`.
+- **`handoff/audit-r9-plan`** — `handoff/round9/state/RESUME-CURRENT.md`, the
+  regenerated state file (under 10 KB) a crashed session resumes from, beside
+  `LOCAL-ORCHESTRATOR-PROMPT.md`, the startup prompt, and `RESUME-ARCHIVE.md`,
+  the frozen pre-2026-10-01 log.
 
-Fixer and reviewer seats are dispatched by the Mac merge seat; the standing
-template supersedes the roster's own dispatch wording. The
-hpo-ci container standing rule — the typing, mutation/pin and closure lanes run
-inside that container in every session — lives on the mac-merge-seat branch and
-in the standing template. Reviewer seats work detached at the head SHA and
-return verdicts to the merge seat, which merges one pull request at a time on
-`Fix review: merge <sha>` with green CI.
+A local orchestrator on tvofi's Mac dispatches the fixer and reviewer seats and
+merges; the seat scripts it uses (`merge_train.py`, `remerge_main.sh`,
+`handoff_push.sh`, `seat_venv.sh`) live in `tools/audit/seat/` (decision 0013,
+#1879). Reviewer seats work detached at the head SHA, post `Fix review: merge
+<sha>` or `blocked` as hpo-approver, and the train merges one pull request at a
+time on a merge verdict carried to the live head with green CI.
 
-- **Owed from R9-F10.9d (the merge fast path has no ELIGIBLE pair yet):**
-  `N=120 INJECT=1 python3 tools/audit/fastpath_census.py` counts 0 ELIGIBLE
-  pairs in main's last 120 merges at `3bd6f122`, with F10.9d's `inert_reads`
-  applied. No docs/delivery row is left among the `unrecorded` causes; every
-  moved pair also carries `full`, `claim`, `grader`, `workflow` or `overlap`,
-  `full` first because the pull request itself edits a gate file. The next
-  owner of `merge_fastpath.py` prices those classes before expecting the path
-  to fire.
+- **Crash recovery.** Every worktree with unpushed or uncommitted work is
+  snapshotted every 15 minutes to `wip-sync/<slug>` on origin, and the
+  orchestrator's scratch (train scripts, PR bodies, pre-studies, sweep reports)
+  to `wip-sync/orchestrator-scratch`, by `tools/audit/seat/wt_sync.sh` in a
+  detached loop (`--scratch <dir>` adds the orchestrator's folder). A seat's lost work is recovered from its
+  `wip-sync/` branch, never re-derived.
+- **The merge fast path can fire.** `tools/audit/merge_fastpath.py` printed
+  `FASTPATH ELIGIBLE` for record PR #1888 (three delivery rows, 2026-10-04); a
+  pull request that edits a gate file is still never eligible, because `full`
+  comes first.
 
 ## Decisions taken — do not relitigate
 
