@@ -3240,9 +3240,9 @@
       "resume": {
         "stage": "in-review",
         "branch": "handoff/r9-eg-solve-inputs",
-        "commit": "a251632a468080207827f674e89add1e4ce987ad",
-        "last_step": "handed off 2026-10-04; asked to update tools/audit/briefs/D1.md (cites deleted _solve_snapshot) in the same PR before it opens",
-        "next_step": "open PR, review",
+        "commit": "6b68bca083735fb3c91a53ef074c29c92b3bcc5f",
+        "last_step": "PR #1887 opened 2026-10-04 (closes #1736; D1.md citation updated in-PR); fix-review dispatched",
+        "next_step": "verdict",
         "note_file": "handoff/round9/fix/resume/EG-B1.md on handoff/r9-eg-solve-inputs",
         "review_branch": "handoff/r9-eg-solve-inputs-review",
         "review_note_file": "handoff/round9/fix/resume/EG-B1-review.md on handoff/r9-eg-solve-inputs-review",
