@@ -2303,6 +2303,176 @@ def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
             for m, v, t in zip(pool, verdict, timed)]
 
 
+# The pin drive's own schedule (R9-FR-7, #1945). --pin-killed's pool is not
+# the sampled lane's: every site the diff added must be driven to a verdict,
+# there is no --max cap, and the autofix lane caps the wall clock
+# (--budget-minutes, #1880). drive_pool admits a mutant only if its WHOLE
+# serial sweep -- the sum of every driver's cost, what a survivor costs --
+# ends by the deadline, so a 13-driver anchor whose estimate alone outgrows
+# the budget is never started (#1887 measured 34 sites refused with nothing
+# driven: "34 not started for --budget-minutes"), and each worker it does
+# start grinds one mutant's drivers back to back, so the ~500 s features.py
+# kill a diff of N sites needs is paid N times over, a sweep at a time
+# (#1779: 8 sites overran the pin step's 60 minutes with no table). The
+# drives are independent -- mutant x driver, no shared state but the worker
+# tree a run mutates -- so the pin drive queues the admitted mutants' shared
+# drivers as individual tasks any worker can take. The cap is worker trees:
+# each is a checkout, and past the runner's cores the drivers only slow one
+# another down.
+MAX_PIN_JOBS = 8
+
+
+def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
+                   drive, settle=None, deadline: float | None = None,
+                   clock=time.monotonic) -> list[tuple[dict, str]]:
+    """Each pin-drive mutant's verdict, its shared drivers run N-way.
+
+    The tasks are (mutant, driver) pairs, not whole mutants: a worker takes
+    the next dispatchable driver of the earliest admitted mutant, so one
+    mutant's drivers run concurrently on different trees and the phase's
+    wall clock is the outstanding work over `workers`, not a mutant's serial
+    sweep. Everything the verdicts depend on is drive_pool's, unchanged: the
+    verdict strings, the anchor-twin admission (a disposition covers the
+    whole anchor, so the budget cut falls on an anchor boundary and a
+    granted twin is started even after a dearer site closed the pool), a
+    started mutant always finishes, the EXCLUSIVE drivers run alone at the
+    tail for the mutants no shared driver killed, `settle` pays such a
+    driver's baseline once before its first mutant, and a driver timeout is
+    never a kill (#1880): a mutant whose driver timed out runs nothing
+    further and pins nothing, whatever an in-flight run then reports.
+
+    Pin equality constrains the rest. A kill names the driver the SERIAL
+    sweep would name -- the earliest in the mutant's own order
+    (`driver_order`'s) -- and is read only once every earlier-ordered shared
+    driver has completed green; drivers ordered after the earliest observed
+    kill are never dispatched, because no verdict can need them. `--jobs 1`
+    therefore reproduces the serial schedule exactly, which is the
+    pin-equality oracle (tests/entities.py drives both on one fixture).
+
+    `deadline` still governs the whole phase. Its admission compares the
+    work outstanding against the workers left to run it -- the split's own
+    wall-clock model -- plus the EXCLUSIVE runs owed, which run alone at the
+    tail and so never divide. At one worker the arithmetic is drive_pool's.
+    """
+    k = max(1, workers)
+    lock = threading.Lock()
+    order = [{s: i for i, s in enumerate(m["drivers"])} for m in pool]
+    shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE]
+               for m in pool]
+    todo = [list(s) for s in shared0]
+    owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
+            for m in pool]
+    verdict: list[str | None] = [None] * len(pool)
+    timed: list[list[str]] = [[] for _ in pool]
+    kill_at: list[str | None] = [None] * len(pool)
+    stop_at: list[int | None] = [None] * len(pool)
+    done: list[set[str]] = [set() for _ in pool]
+    inflight = [0] * len(pool)
+    queue = list(range(len(pool)))
+    active: list[int] = []
+    granted: set[int] = set()
+    outstanding = [0.0]
+    owed = [0.0]
+
+    def admit() -> bool:
+        """Grant the next anchor group under `lock`; False once none is left."""
+        while queue:
+            i = queue[0]
+            twins = [j for j in queue if "anchor" in pool[i]
+                     and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
+            need = sum(sum(cost.get(s, 0.0) for s in todo[j]) for j in twins)
+            owe = sum(owes[j] for j in twins)
+            if (i not in granted and deadline is not None
+                    and (outstanding[0] + need) / k + owed[0] + owe
+                    > deadline - clock()):
+                # Closed: every site not granted with an admitted twin.
+                for j in queue:
+                    if j not in granted:
+                        verdict[j] = "SKIP-BUDGET"
+                queue[:] = [j for j in queue if j in granted]
+                continue
+            granted.update(twins)
+            queue.pop(0)
+            owed[0] += owe
+            outstanding[0] += sum(cost.get(s, 0.0) for s in todo[i])
+            active.append(i)
+            return True
+        return False
+
+    def take(w: int) -> tuple[int, str] | None:
+        with lock:
+            while True:
+                got = None
+                for i in active:
+                    while todo[i]:
+                        s = todo[i][0]
+                        if (kill_at[i] is not None
+                                and order[i][s] >= order[i][kill_at[i]]):
+                            todo[i].pop(0)
+                            continue
+                        if stop_at[i] is not None and kill_at[i] is None:
+                            todo[i] = []
+                            break
+                        got = (i, s)
+                        break
+                    if got is not None:
+                        break
+                if got is not None:
+                    i, s = got
+                    todo[i].pop(0)
+                    inflight[i] += 1
+                    outstanding[0] -= cost.get(s, 0.0)
+                    return i, s
+                if not queue:
+                    return None
+                admit()
+
+    def _resolve(i: int) -> None:
+        """Read the kill once the serial sweep's evidence is complete."""
+        if verdict[i] is not None or kill_at[i] is None:
+            return
+        ko = order[i][kill_at[i]]
+        if (all(s in done[i] for s in shared0[i] if order[i][s] < ko)
+                and not any(order[i][s] < ko for s in timed[i])):
+            verdict[i] = f"killed by {kill_at[i]}"
+            todo[i] = []
+            owed[0] -= owes[i]
+            owes[i] = 0.0
+
+    def judge(i: int, script: str, hit: bool | None) -> None:
+        with lock:
+            inflight[i] -= 1
+            done[i].add(script)
+            if hit is None:
+                timed[i].append(script)
+                if stop_at[i] is None:
+                    stop_at[i] = order[i][script]
+                    owed[0] -= owes[i]
+                    owes[i] = 0.0
+            elif hit and (kill_at[i] is None
+                          or order[i][script] < order[i][kill_at[i]]):
+                kill_at[i] = script
+            _resolve(i)
+
+    def work(w: int) -> None:
+        while (task := take(w)) is not None:
+            i, script = task
+            hit = drive(w, pool[i], script)
+            judge(i, script, hit)
+
+    _share(k, work)
+    settled: set[str] = set()
+    for i, mut in enumerate(pool):
+        for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if verdict[i] is None and settle and script not in settled:
+                settled.add(script)
+                settle(script)
+            if verdict[i] is None and not timed[i]:
+                judge(i, script, drive(0, mut, script))
+    return [(m, v or (f"SKIP-TIMED-OUT in {', '.join(t)}" if t else "LIVES"))
+            for m, v, t in zip(pool, verdict, timed)]
+
+
 def sampled_pool(files: list[Path], closures: dict, allow: list[str],
                  touched: dict[str, set[int]] | None, triage: dict,
                  rng: random.Random, per_file: int,
@@ -2529,6 +2699,79 @@ class Deferred(Exception):
         self.rc = rc
 
 
+# The pin drive's fixture: the driver seconds the two overrun incidents paid
+# (tests.yml's baseline lines on #1779 and #1887: features.py 563 s,
+# env_drift.py 484 s, entities.py 108 s), and the ledger's kill pattern --
+# features.py holds 197 of the ledger's 232 kills, so every site's likeliest
+# killer is its costliest driver.
+SELFTEST_COST = {"tests/features.py": 563.0, "tests/env_drift.py": 484.0,
+                 "tests/entities.py": 108.0, "tests/finite_boundary.py": 42.0,
+                 "tests/doc_claims.py": 5.0}
+
+
+def selftest_pin_drive(sites: int = 8, jobs: int = 4,
+                       scale: float = 300.0) -> int:
+    """The pin-equality oracle and the split's timing pair, on a fixture.
+
+    No tree, no clone, no driver: the drives are fakes that sleep each
+    driver's recorded seconds divided by `scale`, so the wall-clock pair
+    below is the SCHEDULES' difference and not a driver measurement. The
+    fixture is `sites` mutants of the ledger's shape -- one survives, the
+    rest features.py or env_drift.py kills. Equality is the oracle: the
+    split's verdicts and `pin_results` entries must equal the serial
+    schedule's (`drive_pool` at one worker), byte for byte, and the exit
+    status says whether they do.
+    """
+    cost = SELFTEST_COST
+    drivers = list(cost)
+    pool = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+             "anchor": f"m{i}.py:a", "old": "o", "new": "n",
+             "drivers": list(drivers)} for i in range(sites)]
+    kills = ({(i, "tests/features.py") for i in range(sites - 2)}
+             | {(sites - 1, "tests/env_drift.py")})
+
+    def run(schedule, workers):
+        kill_runs: dict = {}
+
+        def drive(w, m, s):
+            hit = (m["line"], s) in kills
+            time.sleep(cost[s] / scale)
+            if hit:
+                kill_runs[(id(m), s)] = ScriptRun(1, 2, cost[s] / scale)
+            return hit
+
+        out = schedule(pool, workers, cost, drive)
+        entries, _, _ = pin_results(
+            out, kill_runs, {s: ScriptRun(0, 0, 1.0) for s in drivers},
+            pool, "r")
+        return ([v for _, v in out],
+                json.dumps(entries, sort_keys=True, indent=2))
+
+    t0 = time.monotonic()
+    serial = run(drive_pool, 1)
+    serial_s = time.monotonic() - t0
+    t0 = time.monotonic()
+    split = run(drive_pin_pool, jobs)
+    split_s = time.monotonic() - t0
+    same = serial == split
+    print(f"PIN EQUALITY: {'identical' if same else 'DIFFER'} -- "
+          f"{sum(v.startswith('killed by') for v in serial[0])} pin(s) of "
+          f"{sites} site(s)")
+    print(f"WALL CLOCK serial drive_pool(1) {serial_s:.1f}s, "
+          f"drive_pin_pool({jobs}) {split_s:.1f}s -- sleeps at 1/{scale:.0f} "
+          f"of the recorded seconds, so the RATIO is the schedules' and the "
+          f"seconds are not")
+    kill_s = cost["tests/features.py"]
+    for n in (sites, 21):
+        total = n * kill_s
+        print(f"COST MODEL {n} site(s) x {kill_s:.0f} s features.py kill = "
+              f"{total:.0f} s of driver work; at --jobs 3 that is "
+              f"{total / 3:.0f} s of wall clock, at --jobs {jobs} "
+              f"{total / jobs:.0f} s (arithmetic over the recorded seconds, "
+              f"not a measurement)")
+    return 0 if same else 1
+
+
 def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     """The verdict on a red baseline, or ``None`` when it is green.
 
@@ -2594,9 +2837,10 @@ def main(argv: list[str] | None = None) -> int:
                          "(driver_timeout)")
     ap.add_argument("--budget-minutes", type=float, metavar="M",
                     help="the run's wall clock from start: no mutant is "
-                         "started that would end past it (drive_pool); the "
-                         "rest are named NOT RUN and the cap is over the "
-                         "evaluated ones")
+                         "started that would end past it (drive_pool; the "
+                         "pin drive's split divides the work it admits by "
+                         "the workers); the rest are named NOT RUN and the "
+                         "cap is over the evaluated ones")
     ap.add_argument("--record", action="store_true")
     ap.add_argument("--reason", default="",
                     help="with --record: echoed for the commit message; the "
@@ -2633,7 +2877,15 @@ def main(argv: list[str] | None = None) -> int:
                          "main's ledger and carry the branch's own rows onto "
                          "it (BASE = the old merge base, HEAD = the branch "
                          "before the merge); refuses a row both changed")
+    ap.add_argument("--selftest-pin-drive", action="store_true",
+                    help="run the pin-equality oracle and the split's "
+                         "timing pair on a synthetic fixture "
+                         "(selftest_pin_drive) and exit: no tree, no "
+                         "driver -- the drives are fakes sleeping the "
+                         "recorded seconds, scaled")
     args = ap.parse_args(argv)
+    if args.selftest_pin_drive:
+        return selftest_pin_drive(jobs=max(1, min(args.jobs, MAX_PIN_JOBS)))
     if args.anchor and (args.drain or args.pin_killed or args.record):
         print("--anchor re-drives one site and records nothing: not with "
               "--drain, --pin-killed or --record")
@@ -2852,8 +3104,11 @@ def main(argv: list[str] | None = None) -> int:
     made: list[Path] = []
     try:
         # One tree per worker, cloned before the baseline: the baseline and
-        # the null control run in them too, each on an unmutated tree.
-        jobs = max(1, args.jobs)
+        # the null control run in them too, each on an unmutated tree. The
+        # pin drive's split caps its worker trees at MAX_PIN_JOBS; the
+        # sampled lane takes --jobs as given.
+        jobs = max(1, min(args.jobs, MAX_PIN_JOBS) if args.pin_killed
+                   else args.jobs)
         trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
         made.extend(trees)
 
@@ -2975,8 +3230,12 @@ def main(argv: list[str] | None = None) -> int:
                 kill_runs[(id(mut), s)] = run
             return hit
 
+        # --pin-killed is the one mode that must drive EVERY site the diff
+        # added inside a wall-clock budget: it gets the split
+        # (drive_pin_pool). Every other mode keeps drive_pool's schedule.
+        drive_phase = drive_pin_pool if args.pin_killed else drive_pool
         try:
-            results += drive_pool(
+            results += drive_phase(
                 [m for m in pool if id(m) in mutated], jobs, seconds, drive,
                 settle=lambda s: (s in deferred and verdicts.stop is None
                                   and settle(s)), deadline=deadline)
