@@ -153,7 +153,8 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # a `merge_group` run has no pull request and grades like one, never like main.
   if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \}\}[[:space:]]*$/) expr = "pr"
-  if ($0 ~ /git checkout "\$PINNED" --/) { if (expr != "") pinstyle = expr; inpin = 1; next }
+  # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
+  if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
     s = $0
     while (match(s, q "[^" q "]+" q)) {
