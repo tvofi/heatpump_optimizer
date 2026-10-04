@@ -110,13 +110,14 @@ def main() -> int:
         smoke()
     if not stored:
         games = [r for r in rows if r["set"] == "redteam" and r["label"] == "GAME"]
-        R.check("the red-team attempts are all present", len(games) >= 23, f"{len(games)}")
+        R.check("the red-team attempts are all present", len(games) >= 44, f"{len(games)}")
         R.check("no red-team attempt reads IMPROVES",
                 not [r["id"] for r in games if r["verdict"] == "IMPROVES"],
                 f"{[r['id'] for r in games if r['verdict'] == 'IMPROVES']}")
+        import cases
         known = [r for r in rows if r["label"] == "KNOWN-OPEN"]
         R.check("the known-open attempts are present and still read IMPROVES (a class fix flips them: re-record)",
-                len(known) == 3 and all(r["verdict"] == "IMPROVES" for r in known),
+                len(known) == len(cases.KNOWN_OPEN) and all(r["verdict"] == "IMPROVES" for r in known),
                 f"{[(r['id'], r['verdict']) for r in known]}")
         R.check("the rename null reads NULL",
                 next(r for r in rows if r["id"] == "rt_00_null_rename")["verdict"] == "NULL")

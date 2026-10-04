@@ -495,6 +495,19 @@ def _log_off_domain(store: Any, data: Any) -> None:
         _LOGGER.debug("%s: %d stored field(s) off their declared domain: %s", where, len(off), off[:5])
 
 
+async def load_mapping(store: Any, what: str) -> dict[str, Any] | None:
+    """``store``'s payload when it is a dict, else ``None``; a failed load is logged and reads as none.
+
+    The one prelude of every restore that starts from nothing on a bad read (boost, away, the pump arbiter).
+    """
+    try:
+        raw = await store.async_load()
+    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("Could not load %s: %s", what, err)
+        return None
+    return raw if isinstance(raw, dict) else None
+
+
 class QuarantiningStore(Store[_StorePayload]):
     """A ``Store`` whose ``async_load`` scrubs poisoned numeric leaves.
 
