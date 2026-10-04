@@ -1,29 +1,29 @@
 {
   "_comment": "THE FAMILY FOLD (#1825). Two stats windows beside pr-payloads.json and friction-keys.json, driven by assertAcceptance directly (statsFindings is pure over injected inputs) because their pins are shape assertions on one window each, not counts over the whole class. Every verdict comment carries the full 40-hex head the wave grammar requires and names its own pull request's number padded to 40 hex, so no rework row (head-moved, repair) is in play -- the class words are what these windows are about, and they are words VERDICT_CLASSES never taught, which is exactly why the histogram keys them raw as their own rows.",
-  "_acceptance_comment": "The acceptance window reproduces the measured since-v6.7.14 hole in miniature: mutation 2, mutation-vacuous 1, mutation-survivor 1 -- every exact id below the threshold of 3 -- while the family the four pull requests compose sits at 4 distinct pull requests, over it. The histogram that keys exact ids only prints quiet here; the family fold must print exactly one `mutation (family)` would-open line at 4, and no exact-id line.",
-  "_controls_comment": "The controls window carries the three null controls in one window. (1) NO DOUBLE-COUNT: 9305 carries both a mutation and a mutation-vacuous verdict, so the naive fold reads 4 over three pull requests -- the family must fire on the UNION, exactly one line, at 3; and mutation's own exact id is at 3 here (over threshold), so the window also pins that the id line and the family line each fire once, not one per member. (2) QUIET STAYS QUIET: environment (9308) + seat-environment (9309) compose a family at 2 distinct pull requests, below threshold, which must print no family line.",
+  "_acceptance_comment": "The acceptance window reproduces both measured holes in miniature. VERDICT half: mutation 2, mutation-vacuous 1, mutation-survivor 1 -- every exact id below the threshold of 3 -- while the family the four pull requests compose sits at 4 distinct pull requests, over it. FRICTION-ID half: the environment family lives in the id histogram, not the verdict histogram (measured: the since-v6.7.13 sweep shows no `environment` verdict row and a 4/5 `environment` id row), so the same shape is composed with friction ids -- environment 2, seat-environment 2, the family at 4, each id below. Each half must print exactly one family would-open line and no exact-id line.",
+  "_controls_comment": "The controls window carries the null controls in one window. (1) NO DOUBLE-COUNT: 9305 carries both a mutation and a mutation-vacuous verdict, so the naive fold reads 4 over three pull requests -- the family must fire on the UNION, exactly one line, at 3; and mutation's own exact id is at 3 here (over threshold), so the window also pins that the id line and the family line each fire once, not one per member. (2) QUIET STAYS QUIET, both maps: environment (9308, verdict and id) + seat-environment (9309) compose families at 2 distinct pull requests, below threshold, which must print no family line on either kind.",
   "acceptance": {
     "_window": ["9301", "9302", "9303", "9304"],
     "9301": {
-      "body": "Closes #9301.",
+      "body": "Closes #9301.\n\n## Friction\n\n- `environment`: `cost`: the id half of the measured hole -- disk filled mid-run.\n",
       "comments": [
         { "body": "Fix review: blocked 9301000000000000000000000000000000000000 mutation: the mutation proof was not re-run at the repaired head." }
       ]
     },
     "9302": {
-      "body": "Closes #9302.",
+      "body": "Closes #9302.\n\n## Friction\n\n- `environment`: `cost`: second pull request for the id -- the seat venv could not import numpy.\n",
       "comments": [
         { "body": "Fix review: blocked 9302000000000000000000000000000000000000 mutation: the mutant survived because the assertion read the value it supplied." }
       ]
     },
     "9303": {
-      "body": "Closes #9303.",
+      "body": "Closes #9303.\n\n## Friction\n\n- `seat-environment`: `cost`: the sibling id -- no Docker daemon on the seat host.\n",
       "comments": [
         { "body": "Fix review: blocked 9303000000000000000000000000000000000000 mutation-vacuous: the proof mutated past the script's own return." }
       ]
     },
     "9304": {
-      "body": "Closes #9304.",
+      "body": "Closes #9304.\n\n## Friction\n\n- `seat-environment`: `cost`: second pull request for the sibling id -- worktree clone carried the worktree path as origin.\n",
       "comments": [
         { "body": "Fix review: blocked 9304000000000000000000000000000000000000 mutation-survivor: one mutant lived and carries only a written triage." }
       ]
@@ -51,13 +51,13 @@
       ]
     },
     "9308": {
-      "body": "Closes #9308.",
+      "body": "Closes #9308.\n\n## Friction\n\n- `environment`: `cost`: one pull request, below threshold on the id and on the family.\n",
       "comments": [
         { "body": "Fix review: blocked 9308000000000000000000000000000000000000 environment: the seat venv could not import numpy." }
       ]
     },
     "9309": {
-      "body": "Closes #9309.",
+      "body": "Closes #9309.\n\n## Friction\n\n- `seat-environment`: `cost`: the second and last pull request -- the family stays at 2.\n",
       "comments": [
         { "body": "Fix review: blocked 9309000000000000000000000000000000000000 seat-environment: the seat host had no Docker daemon." }
       ]
