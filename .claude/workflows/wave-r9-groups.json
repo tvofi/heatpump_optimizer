@@ -6828,6 +6828,42 @@
     "pickup_local": null,
     "note": null
    }
+  },
+  {
+   "group": "R9-FR-4",
+   "lane": "FIX",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 1,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "fixture": null,
+   "owner_gate": "tests/closure.py is @tvofi code-owned; ci-autofix.md is policy — both merge on the labelled agent approval (mandate 5951564627) after the merge verdict",
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "Carry from R9-RO-2's round 2 (#1886, reviewer-verified): a Darwin `--single` recording of any script whose Linux recording carries inert_reads DROPS them (closure.py `_fold_inert_reads` replaces the list with an empty one — the Darwin audithook cannot see strace-only INERT opens), reddening CI as INERT READS UNDER-APPROXIMATED; ci-autofix.md's 'Darwin is sound for Python lanes' does not hold for the inert dimension. TWO deliverables, one PR: (1) FIX the instrument — `_fold_inert_reads` must be grow-only against the EXISTING committed recording's inert_reads (union, never replace; the safe over-approximation direction is keeping entries the local run cannot see), so a Darwin `--single` can no longer under-approximate; replay the #1886 failure as the harness: at base, a Darwin `--single tests/entities.py` drops ['LICENSE'] and the pin arm goes red; at head it keeps the entry and the recording is unchanged; (2) the one-clause policy edit in ci-autofix.md stating the inert dimension is Linux-recorded and the repair route is `closure.py merge --in-dir --partial` over the CI closure-recordings artifact (the route #1886's seat proved). Self-test fixtures for the union arm; steps 2-8; delivery row is the orchestrator's.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-4",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing replay harness first (Darwin --single drops inert_reads at base), then the grow-only union, then the ci-autofix.md clause",
+    "note_file": "handoff/round9/fix/resume/FR-4.md on fix/r9-fr-4",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
