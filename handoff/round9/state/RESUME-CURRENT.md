@@ -16,17 +16,15 @@ A local Claude Code orchestrator on tvofi's Mac drives the programme to completi
 ## Main and release
 main `4efc5b63e` (#1888). Last stamp v6.7.15 (`ac255c200`, 2026-10-03; its tag published the GitHub Pages site, https://tvofi.github.io/heatpump_optimizer/). Merged since, unstamped: #1880 #1879 #1882 #1883 #1874 #1884 #1878 #1888. v6.7.16 is next, once #1889 merges (it carries the rows for #1888 and itself; `tests/delivery_status.py --require-rows` must then pass); RELEASE_NOTES `## v6.7.16` is not yet written; it publishes #1883's site fixes and ships #1882's card.
 
-## Open PRs at main 4efc5b63e
-- **#1889 record/handover** head `8920402b`: docs/HANDOVER.md round-9 section current, `tools/audit/seat/wt_sync.sh`, rows for #1888 and #1889. Policy (HANDOVER.md): needs a review verdict, then the orchestrator's mandate approval. No reviewer dispatched yet.
-- **#1885 R9-F10.13** head `7162a2d8`: triage sites driven by every driver but entities.py, pin re-verification in the nightly, `--anchor` re-drive, legionella pin re-attributed to features.py (via dst_checks), `stamp.py --dry-run` runs the D6 register. Round 2 `merge` (5977616991); round 3 asked by the orchestrator: stub the worktree in entities.py's `--anchor` check (a full disk crashed the whole run).
-- **#1886 R9-RO-2** head `a607db2a`: dual-path graders and listed restore steps ahead of the reorg. Round 1 `blocked` (5974991221): base copies of codeowners_gap/layout break on the new restore form (policy-docs, wave-script red); shadow copy at a new path passes a grown policy file; pin-list swap still graded PINNED; closures entry owed by hand. Round 2 with the fixer.
-- **#1887 R9-EG-B1** head `6b68bca0`: one frozen SolveRecord per solve, setback as a value, H1-H4, closes #1736; one-line D1.md policy edit. In review.
+## Open PRs at main 4efc5b63e (nothing is in flight; every seat stopped and pushed)
+- **#1889 record/handover** head `8920402b`: docs/HANDOVER.md round-9 section, `tools/audit/seat/wt_sync.sh`, rows for #1888 and #1889. Policy: needs a review verdict, then mandate approval. Merging it unblocks stamp v6.7.16.
+- **#1885 R9-F10.13** head `c983b977`: round 3 (entities.py `--anchor` check stubbed, no worktree; closures.json lines dropped). Needs a round-3 review; round 2 had `merge` at `7162a2d8`. Linux `closures` must show no UNDER-SCOPED for tests/entities.py.
+- **#1890 R9-F10.15** head `d6877750`: CI lanes (coverage two lanes, `fast` lane count fix with a `lane count:` probe line, closures three lanes). Needs a review; the body names which job log proves each claim; drop commit (b) if `fast` goes red on a timing-sensitive script.
+- **#1887 R9-EG-B1** head `6b68bca0`: round 1 `blocked` (5977790144): conflicts with main (#1874) so no CI ran; the hub barrier misses a record sharing the hubs' containers. Round-2 list in the roster's R9-EG-B1 resume. Fixer worktree `/Users/timmalmstrom/fix-r9-eg-b1`.
+- **#1886 R9-RO-2** PR head `a607db2a`, branch head `c0ae0371` not yet pushed to the PR: round 2 three of four items done and split (new group R9-RO-2b); owed: closures repair for tests/entities.py, entities/prepr self-tests, prepr on the body, push. Exact steps in RESUME.md on `handoff-body/r9-ro-2`.
 
 ## Seats at shutdown
-Each was told to stop at a clean point and push code to its handoff branch and RESUME.md to its handoff-body branch; read those refs before acting.
-- Fixers: F10.13 (round 3), RO-2 (round 2), F10.15 (CI lanes: coverage two lanes, fast lanes actually parallel, closures three lanes).
-- Reviewers: #1887.
-- Merge queue: detached `orch/queue.sh` reading `orch/queue.txt`, log `orch/queue.log` (one `trainN.py` per PR; it re-carries onto main, waits CI, checks the verdict carry, approves (App, or tvofi agent approval under the mandate for code-owned paths), merges with `--match-head-commit`).
+None running. Each pushed code to `handoff/<topic>` and its stop state to `handoff-body/<topic>:RESUME.md`. Detached loops (worktree sync, merge queue) are stopped; restart `tools/audit/seat/wt_sync.sh` in the new session.
 
 ## Ready next (after-edges done)
 After #1887 merges: R9-EG-B6, R9-EG-A3, R9-SW-1 become ready; R9-SW-5 (tvofi's block DHW / block space heating 2 h switches) follows R9-EG-B6. After #1885: R9-F10.16. RO-3..RO-8 wait on RO-2.
