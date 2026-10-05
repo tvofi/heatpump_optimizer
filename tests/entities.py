@@ -25349,15 +25349,20 @@ R.check(
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
-# --- round-9 process review item 3: a superseded pull-request run is cancelled,
-# and nothing else is. Every workflow a pull request starts declares one
-# top-level `concurrency:`; each `${{ }}` in it is evaluated here under the
-# events the file lists. Two `pull_request` runs of one pull request share a
-# group and cancel; two runs of any other event -- a push to main, a merge
-# queue entry, the nightly, an autofix push or dispatch, a review -- get
-# groups of their own, because a group they shared would queue them, and a newer
-# pending run cancels the older pending one whatever `cancel-in-progress`
-# says. Main's FULL push gate must never be the run that is dropped.
+# --- round-9 process review item 3, shrunk: a superseded long-job
+# pull-request run is cancelled; two events at one SHA of the required
+# short contract job are not (R9-RC-PRCONTRACT). Every workflow a pull
+# request starts declares one top-level `concurrency:`; each `${{ }}` in
+# it is evaluated here under the events the file lists. Two
+# `pull_request` runs of one pull request share a group. `tests.yml` and
+# the other long `on: pull_request` workflows cancel; `pr-contract.yml`
+# shares the group and does not cancel, so an `edited` twin at the live
+# SHA finishes instead of writing a cancelled required context. Two runs
+# of any other event -- a push to main, a merge queue entry, the
+# nightly, an autofix push or dispatch, a review -- get groups of their
+# own, because a group they shared would queue them, and a newer pending
+# run cancels the older pending one whatever `cancel-in-progress` says.
+# Main's FULL push gate must never be the run that is dropped.
 def _cc_value(expr, event: "dict[str, object]"):
     """A `${{ }}`-bearing string under `event`, each expression replaced by its
     value; None when one cannot be decided (literals, `==`, `&&`, `||` only)."""
@@ -25394,22 +25399,27 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
             def at(run_id, ev=ev, who=who):
                 return {"github.event_name": ev, "github.workflow": doc.get("name"),
                         "github.run_id": run_id, "github.event.sender.login": who,
+                        "github.sha": "same-sha",
                         "github.event.pull_request.number":
                             7 if ev.startswith("pull_request") else None}
-            # Only a pull request's own push supersedes; an autofix push does not.
-            want = ev == "pull_request" and who != "github-actions[bot]"
+            # A superseded long-job run cancels. Two events at one SHA of
+            # pr-contract.yml must not: they share a group (queue) but
+            # cancel-in-progress is false. An autofix push never cancels.
+            share = ev == "pull_request" and who != "github-actions[bot]"
+            cancel_want = share and name != "pr-contract.yml"
             cancel = _cc_value(cc.get("cancel-in-progress"), at(1))
             a, b = _cc_value(cc.get("group"), at(1)), _cc_value(cc.get("group"), at(2))
-            if cancel != str(want):
+            if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != want:
+            if None in (a, b) or (a == b) != share:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
     return out
 
 
 _CC_FOUND = [p for n, d in _RC_DOCS.items() for p in _cc_problems(n, d)]
 R.check(
-    "only a pull request's superseded run is cancelled (process review item 3)",
+    "a superseded long-job pull-request run is cancelled; "
+    "pr-contract same-SHA twins are not",
     not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
                           for n, d in _RC_DOCS.items()),
     f"{_CC_FOUND or 'none'}",
@@ -25421,6 +25431,35 @@ R.check(
     "and a group keyed on the ref, cancelling everything, is refused (null control)",
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
+)
+_PC_DOC = _RC_DOCS["pr-contract.yml"]
+_TS_DOC = _RC_DOCS["tests.yml"]
+_CC_SAME_SHA = {
+    "github.event_name": "pull_request",
+    "github.event.sender.login": "hpo-author[bot]",
+    "github.event.pull_request.number": 7,
+    "github.sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "github.run_id": 1,
+}
+_CC_PC_SAME = _cc_value((_PC_DOC.get("concurrency") or {}).get("cancel-in-progress"),
+                        {**_CC_SAME_SHA, "github.workflow": _PC_DOC.get("name")})
+_CC_TS_SAME = _cc_value((_TS_DOC.get("concurrency") or {}).get("cancel-in-progress"),
+                        {**_CC_SAME_SHA, "github.workflow": _TS_DOC.get("name")})
+R.check(
+    "two author-app pull_request events at one SHA: pr-contract does not "
+    "cancel, tests.yml still does",
+    _CC_PC_SAME == "False" and _CC_TS_SAME == "True",
+    f"pr-contract={_CC_PC_SAME!r} tests.yml={_CC_TS_SAME!r}",
+)
+_PC_CANCEL_TRUE = {**_PC_DOC, "concurrency": {
+    **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": True}}
+R.check(
+    "and a pr-contract.yml that cancels same-SHA twins is refused (null control)",
+    any("cancel-in-progress" in p for p in _cc_problems("pr-contract.yml",
+                                                       _PC_CANCEL_TRUE))
+    and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
+        **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
+    f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
