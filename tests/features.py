@@ -27406,8 +27406,10 @@ R.check(
     and sorted(i for i, v in enumerate(_qw_w0_limits.off_steps) if v) == _qw_w0_off
     and sorted(i for i, v in enumerate(_qw_runs[1][0].off_steps) if v) == _qw_w1_off,
     f"plan capped {len(_g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax))} (want {len(_qw_w0_night)}), "
-    f"plan off {int(np.sum(_qw_w0_limits.off_steps))} (want {len(_qw_w0_off)}), "
-    f"what-if off {int(np.sum(_qw_runs[1][0].off_steps))} (want {len(_qw_w1_off)})",
+    f"plan off {0 if _qw_w0_limits.off_steps is None else int(np.sum(_qw_w0_limits.off_steps))} "
+    f"(want {len(_qw_w0_off)}), what-if off "
+    f"{0 if _qw_runs[1][0].off_steps is None else int(np.sum(_qw_runs[1][0].off_steps))} "
+    f"(want {len(_qw_w1_off)})",
 )
 # And the wiring's null: with nothing configured, both solves carry no
 # off mask and no actions, whatever else caps them.
