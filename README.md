@@ -470,7 +470,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (59 total)
+### Sensors (60 total)
 
 `CUR` is your Home Assistant instance currency. The code's own fallback is SEK,
 used only where no currency is readable — a normal Home Assistant instance always
@@ -577,6 +577,7 @@ every sensor is created on every install regardless of which group it is in.
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default and unavailable until a throttling mixing-valve mode is configured (manual, smart read or smart write) — a valve-less install gets neither a hidden sensor nor one stuck at unknown |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
+| Model Restart Advisor | — | A refitted house heat-loss scale, and the last known-good snapshot, while predictions are drifting | Diagnostic; the Advisor tab offers both; nothing is applied until you accept one; the refit's own uncertainty is about ±7-10 % |
 
 Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,

@@ -10492,6 +10492,9 @@ _expected_diagnostic = {
     "frequency_advisor",
     "sensor_gap_advisor",
     "wood_burn_advisor",
+    # #1936: the drift alarm's restart points. Enabled — an ordinary install
+    # always has a heat-loss scale — and Diagnostic, like the other advisors.
+    "model_restart_advisor",
 }
 _actually_diagnostic = {
     s._key
@@ -12177,8 +12180,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 59 sensors after the merge",
-    len(sensors) == 59,
+    "the sensor platform builds 60 entities, the model restart advisor included",
+    len(sensors) == 60,
     str(len(sensors)),
 )
 R.check(

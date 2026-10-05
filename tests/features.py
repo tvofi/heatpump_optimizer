@@ -17133,6 +17133,300 @@ R.check(
     "weekly save",
 )
 
+# --- R9-DIAG-2S (#1936): the restart recommendation at drift-warning time ----
+#
+# At the accuracy_drift alarm the advisor offers up to two restart points:
+# the last known-good snapshot, and a batch refit of house_heat_loss_scale
+# from settled evidence -- the interval learner's own Newton relation pooled
+# over the tracker's pairs instead of 2 % a sample for days. Recommend-only:
+# the refit applies through _apply_learner_payloads on an explicit accept.
+# The oracle below is the learner's own per-sample step
+# (``learner_newton_step``) with its walk and trust region opened wide: a
+# batch of identical pairs must land exactly on that step's target.
+from heatpump_optimizer import accuracy as _rs_acc  # noqa: E402
+from heatpump_optimizer import sensor as _rs_sensor  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HOUSE_LOSS_MAX_RESIDUAL as _RS_MAX_RES,
+    HOUSE_LOSS_MIN_DELTA as _RS_MIN_DT,
+    async_adopt_heat_loss_refit as _rs_adopt,
+    model_restart_advice as _rs_advice,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    learner_newton_step as _rs_newton,
+)
+
+_RS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
+
+
+def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
+             boosted=None):
+    """``days`` of pairs after ``start``, one per ``dt_h``: observed minus
+    predicted is ``residual`` at a constant outdoor. ``boosted`` is a
+    (from, to) span whose rows carry the #1935 tag and no prediction, as
+    ``_record_accuracy`` writes them."""
+    out = []
+    for i in range(1, int(round(days * 24 / dt_h)) + 1):
+        when = start + timedelta(hours=dt_h * i)
+        tag = boosted is not None and boosted[0] <= when < boosted[1]
+        out.append(AccuracySample(
+            when=when, predicted_temp=None if tag else pred,
+            actual_temp=pred + residual, outdoor_temp=outdoor,
+            boost_space=tag,
+        ))
+    return out
+
+
+def _rs_target(current, base_u, capacity, residual, *, dt_h=0.5, pred=21.0,
+               outdoor=-4.0):
+    """The learner's one-sample Newton target for such a pair, about the
+    pair's mean indoor temperature."""
+    delta_t = pred + residual / 2.0 - outdoor
+    return _rs_newton(
+        current, base_u, capacity, residual, delta_t, dt_h,
+        trust_region=1e9, alpha=1.0, max_step_fraction=1e9,
+    )[0]
+
+
+def _rs_fit(rows, *, since=None, current=1.0, base_u=0.15, capacity=10.0,
+            dt_h=0.5, settle=boost_mod.SPACE_SETTLE_TAIL):
+    return _rs_acc.heat_loss_refit(
+        rows, current_scale=current, base_u=base_u, capacity=capacity,
+        dt_hours=dt_h, min_delta=_RS_MIN_DT, max_residual=_RS_MAX_RES,
+        settle=settle, since=since,
+    )
+
+
+_rs_one = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03))
+R.check(
+    "#1936: a batch of identical settled pairs lands on the learner's own "
+    "Newton target for one of them",
+    _rs_one["scale"] is not None
+    and abs(_rs_one["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9,
+    f"refit={_rs_one} target={_rs_target(1.0, 0.15, 10.0, -0.03):.4f}",
+)
+R.check(
+    "#1936: the refit states its own band and the evidence behind it",
+    _rs_one["band_percent"] == _rs_acc.REFIT_BAND_PERCENT
+    and _rs_one["pairs"] == 192
+    and _rs_one["required_days"] == _rs_acc.REFIT_SETTLED_DAYS
+    and abs(_rs_one["settled_days"] - 4.0) < 0.05,
+    f"{_rs_one}",
+)
+_rs_lo = _rs_target(1.0, 0.15, 10.0, -0.03)
+_rs_hi = _rs_target(1.0, 0.15, 10.0, -0.06)
+_rs_mix = _rs_fit(
+    _rs_rows(_RS_T0, 2.0, -0.03)
+    + _rs_rows(_RS_T0 + timedelta(days=2), 2.0, -0.06)
+)
+R.check(
+    "#1936: two kinds of pair pool to a value strictly between their targets",
+    _rs_mix["scale"] is not None and _rs_lo < _rs_mix["scale"] < _rs_hi,
+    f"{_rs_lo:.4f} < {_rs_mix['scale']} < {_rs_hi:.4f}",
+)
+_rs_short = _rs_fit(_rs_rows(_RS_T0, 2.5, -0.03))
+R.check(
+    "#1936: under three settled days there is no refit, only the progress",
+    _rs_short["scale"] is None and abs(_rs_short["settled_days"] - 2.5) < 0.05,
+    f"{_rs_short}",
+)
+# A boost window on day 1, then 12 h of diverged plant state: the rows
+# before the window's end plus the tail carry a large cold residual, the
+# settled rows after it a small one. Only the settled rows may answer.
+_rs_boost_from = _RS_T0 + timedelta(days=1)
+_rs_boost_to = _rs_boost_from + timedelta(hours=boost_mod.BOOST_HOURS)
+# A row's stamp is its interval's END, so the last tagged row is the one
+# settling half an hour before the window's own end.
+_rs_settled = (_rs_boost_to - timedelta(minutes=30)
+               + boost_mod.SPACE_SETTLE_TAIL)
+_rs_pre = [
+    r for r in _rs_rows(_RS_T0, 5.0, -0.3,
+                        boosted=(_rs_boost_from, _rs_boost_to))
+    if r.when <= _rs_settled
+]
+_rs_post = [r for r in _rs_rows(_RS_T0, 5.0, -0.03) if r.when > _rs_settled]
+_rs_b = _rs_fit(_rs_pre + _rs_post)
+R.check(
+    "#1936: evidence starts after the last boost-tagged row plus the settling "
+    "tail -- the window and its diverged tail answer nothing",
+    _rs_b["scale"] is not None
+    and abs(_rs_b["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9
+    and _rs_b["settled_since"] == _rs_settled.isoformat(),
+    f"{_rs_b}",
+)
+_rs_b_short = _rs_fit(_rs_pre + [r for r in _rs_post
+                                 if r.when < _rs_settled + timedelta(days=2)])
+R.check(
+    "#1936: and the three days are counted from there, not from the oldest row",
+    _rs_b_short["scale"] is None,
+    f"{_rs_b_short}",
+)
+_rs_since = _RS_T0 + timedelta(days=1)
+_rs_s = _rs_fit(
+    _rs_rows(_RS_T0, 1.0, -0.3) + _rs_rows(_rs_since, 3.5, -0.03),
+    since=_rs_since,
+)
+R.check(
+    "#1936: a restore boundary excludes every pair before it",
+    _rs_s["scale"] is not None
+    and abs(_rs_s["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9,
+    f"{_rs_s}",
+)
+_rs_g = _rs_fit(
+    _rs_rows(_RS_T0, 4.0, -0.03)
+    + _rs_rows(_RS_T0, 1.0, -0.5, outdoor=18.0)
+    + _rs_rows(_RS_T0, 1.0, -1.5)
+)
+R.check(
+    "#1936: the learner's own admission guards hold -- a pair under the "
+    "minimum indoor/outdoor difference, or past the residual cap, is refused",
+    _rs_g["pairs"] == 192
+    and _rs_g["scale"] == _rs_one["scale"],
+    f"{_rs_g}",
+)
+_rs_thin = _rs_fit(
+    _rs_rows(_RS_T0, 4.0, -0.03, outdoor=18.0)
+    + _rs_rows(_RS_T0 + timedelta(days=3.6), 0.4, -0.03)
+)
+R.check(
+    "#1936: three settled days with under a day of admitted pairs is not "
+    "evidence",
+    _rs_thin["scale"] is None and 0 < _rs_thin["pairs"] < 48,
+    f"{_rs_thin}",
+)
+_rs_tr = _rs_acc.AccuracyTracker()
+_rs_tr.restart_evidence(_rs_since)
+R.check(
+    "#1936: the restore boundary survives the store round trip",
+    _rs_acc.AccuracyTracker.from_dict(_rs_tr.as_dict()).evidence_since
+    == _rs_since
+    and _rs_acc.AccuracyTracker.from_dict({}).evidence_since is None,
+    f"{_rs_tr.as_dict().get('evidence_since')!r}",
+)
+
+# The coordinator: nothing to say until the alarm; at the alarm, both
+# restart points, and a refit only from evidence after the rollback.
+_rs_quiet = _t2_coord()
+_rs_qa = _rs_advice(_rs_quiet)
+R.check(
+    "#1936: with no drift alarm the advisor offers nothing",
+    _rs_qa["drift_alarm"] is False
+    and _rs_qa["refit"] is None and _rs_qa["restore"] is None
+    and _rs_qa["current_scale"] == round(_rs_quiet._house_heat_loss_scale, 3),
+    f"{_rs_qa}",
+)
+_rs_c = _drift_run()
+_rs_rolled_at = datetime(2026, 3, 1, 3, 0, tzinfo=UTC) + timedelta(days=5)
+_rs_p = _rs_c._thermal_params
+_rs_dt = 30 / 60.0
+for _rs_row in (
+    _rs_rows(_rs_rolled_at - timedelta(days=2), 2.0, -0.3, dt_h=_rs_dt)
+    + _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt)
+):
+    _rs_c._accuracy.record(_rs_row)
+_rs_want = round(_rs_target(
+    _rs_c._house_heat_loss_scale, _rs_p.heat_loss_coefficient,
+    _rs_p.room_thermal_mass, -0.03, dt_h=_rs_dt,
+), 3)
+_rs_ca = _rs_advice(_rs_c)
+R.check(
+    "#1936: at the alarm the advisor offers the last known-good snapshot",
+    _rs_ca["drift_alarm"] is True
+    and _rs_ca["restore"] is not None
+    and _rs_ca["restore"]["taken_at"]
+    == _rs_c._snapshot_ring.best_restore()["taken_at"],
+    f"{_rs_ca}",
+)
+R.check(
+    "#1936: and a refit from the pairs after the auto-rollback only -- the "
+    "rollback restarted the evidence",
+    _rs_ca["refit"] is not None and _rs_ca["refit"]["scale"] == _rs_want,
+    f"refit={_rs_ca['refit']} want={_rs_want}",
+)
+_rs_p.two_zone_enabled = True
+_rs_want2 = round(_rs_target(
+    _rs_c._house_heat_loss_scale, _rs_p.upper_floor_heat_loss,
+    _rs_p.upper_floor_thermal_mass, -0.03, dt_h=_rs_dt,
+), 3)
+_rs_ca2 = _rs_advice(_rs_c)
+_rs_p.two_zone_enabled = False
+R.check(
+    "#1936: two-zone refits about the upper zone, as the learner does",
+    _rs_ca2["refit"]["scale"] == _rs_want2 and _rs_want2 != _rs_want,
+    f"refit={_rs_ca2['refit']} want={_rs_want2}",
+)
+_rs_sensor_entity = _rs_sensor.ModelRestartAdvisorSensor(_rs_c, _FakeEntry(data={}))
+R.check(
+    "#1936: the advisor sensor reads the recommended scale and both options",
+    _rs_sensor_entity.native_value == _rs_want
+    and _rs_sensor_entity.extra_state_attributes["refit"]["scale"] == _rs_want
+    and _rs_sensor_entity.extra_state_attributes["restore"] is not None
+    and _rs_sensor_entity.entity_category == _rs_sensor.EntityCategory.DIAGNOSTIC,
+    f"{_rs_sensor_entity.native_value} {_rs_sensor_entity.extra_state_attributes}",
+)
+R.check(
+    "#1936: with no alarm the sensor reads the scale in use (nothing to change)",
+    _rs_sensor.ModelRestartAdvisorSensor(_rs_quiet, _FakeEntry(data={}))
+    .native_value == round(_rs_quiet._house_heat_loss_scale, 3),
+)
+_rs_before = _rs_c._house_heat_loss_scale
+_real_now_rs = _dt_mod_t4b.now
+try:
+    _dt_mod_t4b.now = lambda: _rs_rolled_at + timedelta(days=3, hours=13)
+    _asyncio.run(_rs_c._async_watch_learning_drift())
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+R.check(
+    "#1936: recommend-only -- a heartbeat with a refit on offer applies nothing",
+    _rs_c._house_heat_loss_scale == _rs_before
+    and _rs_advice(_rs_c)["refit"]["scale"] == _rs_want,
+    f"scale {_rs_c._house_heat_loss_scale}",
+)
+_rs_payload_before = _rs_c._thermal_learning_payload()
+_rs_accept_at = _rs_rolled_at + timedelta(days=3, hours=14)
+try:
+    _dt_mod_t4b.now = lambda: _rs_accept_at
+    _rs_ok = _asyncio.run(_rs_adopt(_rs_c))
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+_rs_payload_after = _rs_c._thermal_learning_payload()
+R.check(
+    "#1936: accepting applies the refit through the restore path",
+    _rs_ok is True and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
+    f"ok={_rs_ok} scale={_rs_c._house_heat_loss_scale}",
+)
+# ``updated_at`` is the payload's own write stamp, not learned state.
+_rs_moved = sorted(
+    k for k in set(_rs_payload_before) | set(_rs_payload_after)
+    if _rs_payload_after.get(k) != _rs_payload_before.get(k)
+)
+R.check(
+    "#1936: and moves nothing else the thermal store carries",
+    _rs_moved == ["house_heat_loss_scale", "updated_at"],
+    f"moved {_rs_moved}",
+)
+_rs_after_adv = _rs_advice(_rs_c)
+R.check(
+    "#1936: an accepted refit restarts the evidence -- the pairs it was fitted "
+    "from cannot be applied a second time",
+    _rs_c._accuracy.evidence_since == _rs_accept_at
+    and _rs_after_adv["refit"]["scale"] is None,
+    f"since={_rs_c._accuracy.evidence_since} refit={_rs_after_adv['refit']}",
+)
+R.check(
+    "#1936: with no refit on offer, accepting refuses and changes nothing",
+    _asyncio.run(_rs_adopt(_rs_c)) is False
+    and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
+)
+_rs_quiet_scale = _rs_quiet._house_heat_loss_scale
+R.check(
+    "#1936: and with no alarm there is nothing to accept",
+    _asyncio.run(_rs_adopt(_rs_quiet)) is False
+    and _rs_quiet._house_heat_loss_scale == _rs_quiet_scale,
+)
+
 # --- persistence: the detectors' memory rides the thermal store ----------------------
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
@@ -20288,6 +20582,7 @@ _SVC_KEYS = {
     "simulate_plan_invalid_windows": ({"windows", "error"}, "sve"),
     "simulate_plan_failed": ({"entry_ids", "error"}, "hae"),
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
+    "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
 }
 
@@ -20453,6 +20748,26 @@ _svc_check(
     "operational error",
     _svc_call(_svc_hass, "restore_learned_snapshot", {}),
     "restore_learned_snapshot_no_snapshot",
+)
+_svc_check(
+    "#1936: restore_learned_snapshot from the refit with none on offer raises "
+    "a translated operational error",
+    _svc_call(_svc_hass, "restore_learned_snapshot", {"source": "refit"}),
+    "restore_learned_snapshot_no_refit",
+)
+from heatpump_optimizer import services as _svc_mod_rs  # noqa: E402
+import voluptuous as _svc_vol_rs  # noqa: E402
+
+try:
+    _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "bogus"})
+    _svc_rs_refused = False
+except _svc_vol_rs.Invalid:
+    _svc_rs_refused = True
+R.check(
+    "#1936: the restore source is one of the two restart points, nothing else",
+    _svc_rs_refused
+    and _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "snapshot"})
+    and _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "refit"}),
 )
 _svc_check(
     "set_thermal_parameters with unparseable windows refuses the call "
@@ -31961,6 +32276,7 @@ _ET_KEYS = {
     "simulate_plan_invalid_windows": {"error", "windows"},
     "simulate_plan_failed": {"error", "entry_ids"},
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
+    "restore_learned_snapshot_no_refit": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
     # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
