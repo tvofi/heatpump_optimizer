@@ -221,6 +221,7 @@
   "coordinator._note_solve_failure": "core",
   "coordinator._power_windows": "views",
   "coordinator._republish_handover_ages": "core",
+  "coordinator._settle_interval_diag": "core",
   "coordinator._space_pump_to_drive": "core",
   "coordinator._store_diagnosis": "core",
   "coordinator._warm_seeded": "core",
