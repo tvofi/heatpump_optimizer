@@ -26,7 +26,7 @@ from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
 from .accuracy import utc_elapsed_seconds, utc_shift
-from .const import DOMAIN
+from .const import DOMAIN, MODE_BOOST
 from .drift import stored_instant
 from .entity import has_hot_water
 from .payload import CurrentAction
@@ -35,6 +35,19 @@ _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
 BOOST_HOURS = 2
 _MAX_LEAD = timedelta(hours=BOOST_HOURS)
+#: #1935: how long after a space overlay ends the interval learners stay
+#: frozen. The replay integrates from a plant state propagated open-loop
+#: from the PLAN's trajectory, so the slab heat the overlay added -- real in
+#: the house, absent from the model's -- keeps every replay residual
+#: warm-side until the slab coupling re-equilibrates. The slab's own time
+#: constant at the default parameters is C/H = 5.0/0.8 = 6.25 h, and the
+#: gate arm measured the pre-study's 2 h guess insufficient on its own
+#: (-34 % on the scale across two boost days, with the window freeze
+#: already holding); two time constants clear ~86 % of the divergence.
+SPACE_SETTLE_TAIL = timedelta(hours=12)
+#: The freeze reason ``_learning_frozen`` reports while the space overlay
+#: (channel or global mode) is live or settling (#1935).
+FREEZE_REASON = "boost_space"
 CHANNEL_DHW = "dhw"
 CHANNEL_SPACE = "space"
 CHANNELS = (CHANNEL_DHW, CHANNEL_SPACE)
@@ -67,6 +80,12 @@ class BoostState:
     """Per-channel expiry. A missing key is off."""
 
     until: dict[str, datetime] = field(default_factory=dict)
+    #: #1935: when the space overlay's settling tail ends -- set when the
+    #: overlay ends (expiry or cancel) and when the global boost mode is
+    #: left. In-memory only: a restart mid-tail also loses
+    #: ``_last_house_sample``, so the first replay after it is skipped
+    #: anyway and no tail is owed.
+    space_settle_until: datetime | None = None
 
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
@@ -76,6 +95,11 @@ class BoostState:
         for channel, end in list(self.until.items()):
             if utc_elapsed_seconds(end, now) <= 0:
                 self.until.pop(channel, None)
+                if channel == CHANNEL_SPACE:
+                    # Anchored to the window's own end, not to when this
+                    # expiry was observed: re-equilibration starts when the
+                    # heat stopped (#1935).
+                    self.space_settle_until = utc_shift(end, SPACE_SETTLE_TAIL)
             elif utc_elapsed_seconds(end, now) > _MAX_LEAD.total_seconds():
                 # The clock stepped back since the boost was set: the two-hour
                 # maximum is a duration, not an instant (D1-s3-05), so it is
@@ -88,7 +112,12 @@ class BoostState:
         if active:
             self.until[channel] = utc_shift(now, _MAX_LEAD)
         else:
+            was_live = self.active(channel, now)
             self.until.pop(channel, None)
+            if channel == CHANNEL_SPACE and was_live:
+                # A cancel leaves the same diverged plant state an expiry
+                # does (#1935), so it owes the same settling tail.
+                self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
 
     def as_dict(self) -> dict[str, Any]:
         self.expire(dt_util.now())
@@ -134,6 +163,79 @@ def held_for(coord: Any) -> BoostState:
         held = BoostState()
         _STATES[coord] = held
     return held
+
+
+def space_boost_active(coord: Any, now: datetime | None = None) -> bool:
+    """#1935: is boost space heating governing the action right now?
+
+    Either surface — the channel overlay live, or the global boost mode
+    selected. The live window only, not the settling tail: prediction
+    suppression and the accuracy tag ask exactly "is the plan being
+    overridden this interval". The learners' question
+    (``space_learning_frozen``) additionally covers the plant-state
+    divergence the overlay leaves behind.
+    """
+    if getattr(coord, "mode", None) == MODE_BOOST:
+        return True
+    return held_for(coord).active(CHANNEL_SPACE, now or dt_util.now())
+
+
+def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
+    """#1935: boost space heating live, plus its settling tail.
+
+    ``True`` from the moment either surface goes live until the plant state
+    it diverged has re-equilibrated. The interval learners replay from a
+    plant state propagated open-loop from the PLAN's trajectory, so heat the
+    overlay added -- real in the house's slab, absent from the model's --
+    leaves every replay residual warm-side until the slab coupling catches
+    up: two boost days walked a converged, persisted
+    ``house_heat_loss_scale`` from 1.04 to the 0.5 trust-region floor
+    (R9-DIAG-1, #1935). Freezing through the tail is fail-closed -- a
+    skipped interval loses convergence, a folded one corrupts a parameter
+    that is persisted to disk.
+
+    The channel check is PRESENCE in ``until``, not activity: the learners
+    run before ``apply`` expires a window, so at the cycle that ends it the
+    elapsed time reads zero and an activity test would fold the very
+    interval the overlay governed for its whole span -- measured as a leak
+    of one boosted sample per window on top of the tail below.
+    """
+    now = now or dt_util.now()
+    held = held_for(coord)
+    if space_boost_active(coord, now) or CHANNEL_SPACE in held.until:
+        return True
+    tail = held.space_settle_until
+    return tail is not None and utc_elapsed_seconds(tail, now) > 0
+
+
+def interval_boosted(pending: Mapping[str, Any], coord: Any) -> bool:
+    """#1935: did a boost overlay govern the interval ``pending`` describes?
+
+    The flag captured when the interval began, or an overlay live at
+    settlement -- a boost switched on mid-interval contaminates the pair
+    even though the prediction was made clean. An overlay that begins
+    exactly AT settlement governs only the next interval, not the one
+    closing, so it does not tag this one.
+    """
+    if pending.get("boost_space"):
+        return True
+    now = dt_util.now()
+    end = held_for(coord).until.get(CHANNEL_SPACE)
+    if end is None or utc_elapsed_seconds(end, now) <= 0:
+        return False
+    return utc_elapsed_seconds(utc_shift(end, -_MAX_LEAD), now) < 0
+
+
+def note_mode_boost_ended(coord: Any, now: datetime | None = None) -> None:
+    """#1935: the global boost mode was left; its settling tail begins.
+
+    The mode surface diverges the replayed plant state exactly as the
+    channel overlay does -- same actuation, same mechanism -- so it owes
+    the same tail.
+    """
+    held_for(coord).space_settle_until = utc_shift(
+        now or dt_util.now(), SPACE_SETTLE_TAIL
+    )
 
 
 def overlay(

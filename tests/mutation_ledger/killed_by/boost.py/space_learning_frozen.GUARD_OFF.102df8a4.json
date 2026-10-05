@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:space_learning_frozen GUARD_OFF 102df8a4",
+  "killed_by": "tests/boost_drift_replay.py",
+  "old": "    if space_boost_active(coord, now) or CHANNEL_SPACE in held.until:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: GUARD_OFF (`if False:`) took tests/boost_drift_replay.py from rc=0 failed=0 to rc=1 failed=4."
+}

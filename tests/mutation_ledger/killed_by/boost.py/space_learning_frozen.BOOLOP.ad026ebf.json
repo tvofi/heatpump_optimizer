@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:space_learning_frozen BOOLOP ad026ebf",
+  "killed_by": "tests/harness_headers.py",
+  "old": "    return tail is not None and utc_elapsed_seconds(tail, now) > 0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: BOOLOP (`return tail is not None or utc_elapsed_seconds(tail, now) > 0`) took tests/harness_headers.py from rc=0 failed=0 to rc=1 failed=15."
+}
