@@ -23,6 +23,8 @@ sys.path.insert(0, "custom_components")
 import heatpump_optimizer.legionella as legionella_mod
 from harness import FakeHass, Results
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
+from heatpump_optimizer.optimizer import _Horizon
+from heatpump_optimizer.thermal_model import ThermalState
 from heatpump_optimizer.disinfection import DisinfectionSwitch
 from heatpump_optimizer.legionella import LegionellaGuard
 from heatpump_optimizer.dhw_planner import DhwPlanner
@@ -133,13 +135,22 @@ def _runup_stops_at_the_ordinary_floor() -> bool:
     n_steps = 12
     floor_temps = np.full(n_steps, 50.0)
     plan = DhwPlanner(opt.model, opt.config)._dhw_legionella_ceilings(
+        _Horizon(
+            initial_state=ThermalState(room_temperature=21.0),
+            prices=np.zeros(n_steps), outdoor_temps=np.zeros(n_steps),
+            wind_speeds=np.zeros(n_steps), precipitation=np.zeros(n_steps),
+            solar_radiation=np.zeros(n_steps), start_time=None,
+            n_steps=n_steps, dt=1.0, comfort_targets=np.full(n_steps, 21.0),
+            temp_min_bounds=np.full(n_steps, 17.0),
+            temp_max_bounds=np.full(n_steps, 23.0),
+            step_hours=np.arange(n_steps) * 1.0,
+            solar_gains=np.zeros(n_steps),
+            heat_loss_factors=np.ones(n_steps), forecast={}, t_start=0.0,
+        ),
         params=params,
-        n_steps=n_steps,
-        dt=1.0,
         c_dhw=max(params.dhw_tank_thermal_mass, 0.05),
         draw_rates=np.zeros(n_steps),
         floor_temps=floor_temps,
-        outdoor_temps=np.zeros(n_steps),
         p_dhw_run=3.0,
         legionella_due=True,
         legionella_hour=11.0,

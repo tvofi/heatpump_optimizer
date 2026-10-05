@@ -2762,11 +2762,23 @@ jobs:
           echo "token=$tok" >> "$GITHUB_OUTPUT"
 
       # Apply, check the write set, commit and push, re-applied onto a main
-      # that moved under the push (three tries; never a force). Every try
-      # re-plans against the freshly fetched tree, so a row that landed on
-      # main between enumeration and apply drops out of the plan instead of
-      # conflicting. The roster is fail-soft: a ref it cannot be read from
-      # rows every merge in the neutral phrasing a seat edits at approval.
+      # that moved under the push (three tries). Every try re-plans against
+      # the freshly fetched tree, so a row that landed on main between
+      # enumeration and apply drops out of the plan instead of conflicting.
+      # The one force on this branch is a LEASE, never a bare --force: the
+      # record branch is job-owned (generated rows and nothing else), and a
+      # re-run after a later step failed re-plans the same main into a
+      # SIBLING commit -- same parent, fresh committer timestamp -- which a
+      # fast-forward-only push refuses forever (run 37261904851, attempt
+      # 06:14: three `! [rejected] ... (non-fast-forward)`). The push
+      # anchors --force-with-lease on the tip this very try fetched, so the
+      # only tip it ever replaces is the one it observed -- the job's own
+      # stale sibling -- while a remote that moved after that fetch, to a
+      # job commit or a foreign one alike, refuses as stale info; an
+      # unreadable fetch leaves the expectation empty, which refuses
+      # anywhere the branch already exists. The roster is fail-soft: a ref
+      # it cannot be read from rows every merge in the neutral phrasing a
+      # seat edits at approval.
       - name: Write the rows and push the record branch
         id: record
         env:
@@ -2780,6 +2792,11 @@ jobs:
           else
             AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
             echo "::add-mask::$AUTH"
+            # Contrast for the PR step's length line: the SAME attempt's
+            # token drives this basic-auth push successfully, so a length
+            # that agrees here and there pins the value as live in both
+            # steps. A length, never a value.
+            echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
             git config user.name "hpo-author[bot]"
             git config user.email "hpo-author[bot]@users.noreply.github.com"
             # The explicit refspec, so the roster is readable at
@@ -2791,6 +2808,14 @@ jobs:
             for try in 1 2 3; do
               git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
                 fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              # The job's own previous run may have left its rows commit on
+              # record/autofix; fetch that tip, per try, so the lease below
+              # is anchored on the freshest observation. Fail-soft with no
+              # annotation: absent (the ordinary state between beats) and
+              # unreadable both leave the expectation empty, and the empty
+              # lease then requires the branch not to exist -- so a branch
+              # that is present but was not observed refuses, fail-closed.
+              git fetch -q origin "+refs/heads/record/autofix:refs/remotes/origin/record/autofix" || true
               python3 -I tools/audit/seat/record_row.py \
                 --plan --merges-file "$RUNNER_TEMP/merges.json" \
                 --roster-ref "origin/$ROSTER_REF" \
@@ -2804,12 +2829,14 @@ jobs:
               git add docs/delivery
               if git diff --cached --quiet; then status="nothing-owed"; break; fi
               git commit -q -m "ci: record delivery rows" || { status="nothing-owed"; break; }
+              expect=$(git rev-parse -q --verify refs/remotes/origin/record/autofix || :)
               if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
-                   push origin HEAD:refs/heads/record/autofix; then
+                   push --force-with-lease=refs/heads/record/autofix:"$expect" \
+                   origin HEAD:refs/heads/record/autofix; then
                 status="pushed"
                 break
               fi
-              status="skip-push-refused"  # main moved under the push; loop re-derives
+              status="skip-push-refused"  # main or the record tip moved under the push; loop re-derives
             done
           fi
           echo "RECORD AUTOFIX: $status"
@@ -2824,15 +2851,58 @@ jobs:
           BASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          AUTH=$(printf 'Bearer %s' "$TOKEN")
+          # The header carries its NAME, not just its value: run 37281783211
+          # self-reported the 401 as `{"message": "Requires authentication"}`
+          # -- GitHub saw no Authorization header at all -- because curl
+          # SILENTLY DROPS an -H argument without a colon (measured:
+          # `curl -H "Bearer <token>"` sends no header, `curl -H
+          # "Authorization: Bearer <token>"` sends it), and every 401 before
+          # it, run 37261904851 included, was the same nameless header. The
+          # lengths below pin this in the log without ever printing a value:
+          # TOKEN and AUTH are both non-empty here, and the request still
+          # carried no header -- an empty-variable explanation is refuted by
+          # the same run that prints them.
+          AUTH=$(printf 'Authorization: Bearer %s' "$TOKEN")
           echo "::add-mask::$TOKEN"
+          echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
           API=https://api.github.com
           ACCEPT='Accept: application/vnd.github+json'
           HEAD_SHA=$(git rev-parse HEAD)
+          # Every write below reports its own evidence: URL, HTTP status and,
+          # on any non-2xx, the response body -- deliberately without curl's
+          # -f, which discarded all three. This is what turned the 401s from
+          # run 37261904851 (attempts 06:08 and 06:17, `curl: (22) ... 401`
+          # and nothing else) into run 37281783211's self-describing refusal
+          # and so into the header fix above. The token stays masked and the
+          # Authorization header value is never printed, so a future red
+          # self-explains without leaking the credential. The body file is
+          # shared, so no call runs inside a command substitution (a subshell
+          # would swallow the diagnostics).
+          curl_json() { # curl_json LABEL METHOD DATA_FILE URL; body lands in $RUNNER_TEMP/resp.json
+            label=$1 method=$2 data=$3 url=$4
+            code=$(curl -sS -o "$RUNNER_TEMP/resp.json" -w '%{http_code}' \
+              -X "$method" -H "$AUTH" -H "$ACCEPT" -d @"$data" "$url") || {
+              echo "::error::$label: transport failure against $url"
+              return 1
+            }
+            case "$code" in
+              2*) echo "$label: $method $url -> HTTP $code" ;;
+              *)
+                echo "::error::$label: $method $url returned HTTP $code; response body follows"
+                cat "$RUNNER_TEMP/resp.json"
+                return 1
+                ;;
+            esac
+          }
           # The payload the pull request carries: title, body. The generator
           # refuses a body with a closing keyword before an issue number, so
-          # the generation is the guard, not this step's prose.
-          python3 -I - "$HEAD_SHA" "$BASE_SHA" <<'PY' > "$RUNNER_TEMP/payload.json"
+          # the generation is the guard, not this step's prose. POST /pulls
+          # also REQUIRES head and base -- a title-and-body payload is
+          # refused 422 "Invalid request ... weren't supplied" (verified
+          # from the orchestrator's box; the CI 401s masked it) -- so the
+          # create payload adds them: head is the branch the lookup below
+          # keys on, base is main. PATCH takes title and body only.
+          python3 -I - "$HEAD_SHA" "$BASE_SHA" <<'PY' > /dev/null
           import json, os, subprocess, sys
           head, base = sys.argv[1], sys.argv[2]
           plan = os.environ["RUNNER_TEMP"] + "/plan.json"
@@ -2840,10 +2910,14 @@ jobs:
           def gen(*flags):
               return subprocess.run(["python3", "-I", row, *flags], check=True,
                                     capture_output=True, text=True).stdout
-          json.dump({"title": gen("--print-title", "--plan-file", plan).strip(),
-                     "body": gen("--print-body", "--plan-file", plan,
-                                 "--head", head, "--base", base)},
+          title = gen("--print-title", "--plan-file", plan).strip()
+          body = gen("--print-body", "--plan-file", plan,
+                     "--head", head, "--base", base)
+          json.dump({"title": title, "body": body},
                     open(os.environ["RUNNER_TEMP"] + "/payload.json", "w"))
+          json.dump({"title": title, "body": body,
+                     "head": "record/autofix", "base": "main"},
+                    open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
           PY
           # Open or update: the beat's own open pull request from a previous
           # unmerged beat is updated in place (fresh rows commit, regenerated
@@ -2852,12 +2926,12 @@ jobs:
             "$API/repos/$REPO/pulls?head=$REPO:record/autofix&state=open" \
             | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
           if [ -n "$NUM" ]; then
-            curl -fsS -X PATCH -H "$AUTH" -H "$ACCEPT" \
-              -d @"$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM" > /dev/null
+            curl_json "record-pr update" PATCH \
+              "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
           else
-            NUM=$(curl -fsS -X POST -H "$AUTH" -H "$ACCEPT" \
-              -d @"$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls" \
-              | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["number"])')
+            curl_json "record-pr open" POST \
+              "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
+            NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
           fi
           # The beat's #201 coordination comment, naming the pull request it
           # opened (delivery-status-tracking item 3); one per beat.
@@ -2866,9 +2940,8 @@ jobs:
             > "$RUNNER_TEMP/comment.md"
           python3 -I -c 'import json,os; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/comment.md").read()}))' \
             > "$RUNNER_TEMP/comment.json"
-          curl -fsS -X POST -H "$AUTH" -H "$ACCEPT" \
-            -d @"$RUNNER_TEMP/comment.json" \
-            "$API/repos/$REPO/issues/201/comments" > /dev/null
+          curl_json "record-pr comment" POST \
+            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
           echo "pr=$NUM" >> "$GITHUB_OUTPUT"
 
       # As in mutation-ledger-push and the other autofix lanes (#523): the

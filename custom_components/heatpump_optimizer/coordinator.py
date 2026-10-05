@@ -412,7 +412,7 @@ from .price_model import (
     pull_prices,
     quarters_from_entries,
 )
-from .sysid import SysIdConfig, SystemIdentification, adoption_decision, step_detached
+from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .tariff import CapacityTariff, PeakTracker
 from .grid_fee import (
     GridFeeError,
@@ -11086,11 +11086,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             cop=self._thermal_model.compute_cop(state.outdoor_temperature),
             plan_power_kw=float(self._current_action.get("power", 0.0)),
             # The slab pair must be the configured house's own (#943).
-            house_ua=params.heat_loss_coefficient * params.house_heat_loss_scale,
-            house_capacity=params.room_thermal_mass,
-            house_gains=params.internal_gains,
-            house_slab_mass=params.slab_thermal_mass,
-            house_slab_transfer=params.slab_heat_transfer,
+            house=HousePlant.of_params(params),
         )
         if override is None:
             return
