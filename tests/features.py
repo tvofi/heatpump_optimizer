@@ -27342,6 +27342,69 @@ R.check(
             for limits, _ in _qw_runs2),
     f"{[(l.off_steps is None, l.quiet_actions is None) for l, _ in _qw_runs2]}",
 )
+# The REAL coordinator accessor, driven directly (#1960 round 2): the
+# harness stub answers for the entity classes, so the first proof never
+# executed the production method -- and an unresolved name in it reached
+# CI before any local lane caught it. This check is the cheap detector:
+# it calls the method on a real coordinator, where a NameError is a red
+# check and not a typing job.
+_qw_acc = _solve_coord()
+_qw_acc._config.update({
+    _QW_LIMITED: "switch.pump_night_mode",
+    _QW_SILENT: "22:00-06:00", _QW_OFF: "09:00-09:30",
+})
+_qw_acc_specs = _qw_acc.configured_quiet_windows()
+R.check(
+    "the real coordinator's configured_quiet_windows answers both specs and the not-enforced marker by domain",
+    _qw_acc_specs == {
+        "quiet_silent_windows_spec": "22:00-06:00",
+        "quiet_off_windows_spec": "09:00-09:30",
+    },
+    f"{_qw_acc_specs}",
+)
+_qw_acc._config[_QW_LIMITED] = "binary_sensor.gchv_night"
+R.check(
+    "a read-only capacity-limited slot marks the silent rows not enforced",
+    _qw_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
+    f"{_qw_acc.configured_quiet_windows()}",
+)
+# The remaining module arms, each pinned so the coverage floor and the
+# mutation table have a driver through it.
+R.check(
+    "a power entity with no state and a non-string control are no readings, never guesses",
+    _qw.measured_ceiling_kw(
+        {_QW_POWER: "sensor.gone"}, _qw_states({}), 5.0,
+    ) is None
+    and _qw.silent_control_usable(None) is False
+    and _qw.silent_control_usable("not-an-entity") is False
+    and _qw.silent_control_usable("Switch.Upper") is True,
+    "domain-only verdicts; a missing state falls through to frequency and then to the fraction",
+)
+R.check(
+    "a non-numeric power state and a zero horizon are inert, not errors",
+    _qw._power_entity_kw(
+        "sensor.hp", _qw_states({"sensor.hp": FakeState("offline", unit="W")}),
+    ) is None
+    and _qw.step_actions(_g4_eve, 0, 0.25, "22:00-06:00", "") is None
+    and _qw.silent_cap_kw({}, None, 0.0) is None,
+    "each degenerate input reads as nothing rather than raising",
+)
+R.check(
+    "an unparseable stored hot-water spec is no overlap judgement, and config folds only named keys",
+    _qw.overlap_problem("", "05:00-07:00", "garbage") is None
+    and _qw.overridden_config({"a": 1}, {"b": 2}) == {"a": 1}
+    and _qw.overridden_config({"a": 1}, {"quiet_silent_windows": "x"}) == {
+        "a": 1, "quiet_silent_windows": "x",
+    },
+    "the what-if fold touches only the three quiet keys",
+)
+_qw_cfg_fold: dict = {"keep": 1}
+_qw.apply_config_keys(_qw_cfg_fold, {"quiet_off_windows": "09:00-09:30"})
+R.check(
+    "apply_config_keys writes the named quiet keys and nothing else",
+    _qw_cfg_fold == {"keep": 1, "quiet_off_windows": "09:00-09:30"},
+    f"{_qw_cfg_fold}",
+)
 
 
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
@@ -32437,6 +32500,88 @@ _et_check(
     "apply_schedule with a deadband-less hot water minimum raises a translatable error",
     _et_call(_et_hass, "apply_schedule", {"dhw_min_temperature": 51}),
     "apply_schedule_dhw_min_no_deadband",
+)
+# #1910 (SW-1): the quiet-window service arms. The refusals on the shared
+# rig (a refused call writes nothing); the accepted writes on a fresh entry
+# so no later check reads them.
+_et_check(
+    "apply_schedule with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "apply_schedule", {"quiet_silent_windows": "25-99"}),
+    "apply_schedule_invalid_quiet_windows",
+)
+_et_check(
+    "set_thermal_parameters with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "set_thermal_parameters", {"quiet_off_windows": "25-99"}),
+    "set_thermal_params_invalid_quiet_windows",
+)
+_et_check(
+    "simulate_plan with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "simulate_plan", {"quiet_silent_windows": "25-99"}),
+    "simulate_plan_invalid_quiet_windows",
+)
+_et_quiet_hass = FakeHass()
+_seed_prices(_et_quiet_hass)
+_et_quiet_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _et_quiet_hass, _et_quiet_entry))
+_et_check(
+    "apply_schedule whose off window overlaps the hot-water windows the same call stores raises a translatable error",
+    _et_call(
+        _et_quiet_hass,
+        "apply_schedule",
+        {"dhw_windows": "06:00-08:30", "quiet_off_windows": "05:00-07:00"},
+    ),
+    "quiet_windows_overlap",
+)
+
+
+async def _qw_et_no_refresh(*_a, **_k):
+    return None
+
+
+_et_quiet_coord = _et_quiet_entry.runtime_data
+_et_quiet_coord.async_request_refresh = _qw_et_no_refresh
+_et_quiet_applied = _et_call(
+    _et_quiet_hass,
+    "apply_schedule",
+    {
+        "quiet_silent_windows": "22:00-06:00",
+        "quiet_off_windows": "weekend 14:00-15:00",
+        "silent_mode_power_fraction": 0.7,
+    },
+)
+R.check(
+    "apply_schedule accepts valid quiet rows and the fraction, canonicalised into the entry's options",
+    _et_quiet_applied is None
+    and _et_quiet_entry.options.get("quiet_silent_windows")
+    == "00:00-06:00, 22:00-24:00"
+    and _et_quiet_entry.options.get("quiet_off_windows")
+    == "weekend 14:00-15:00"
+    and _et_quiet_entry.options.get("silent_mode_power_fraction") == 0.7,
+    f"raised {_et_quiet_applied!r}, stored {dict(_et_quiet_entry.options)}",
+)
+_et_quiet_set = _et_call(
+    _et_quiet_hass,
+    "set_thermal_parameters",
+    {"quiet_off_windows": "09:00-09:30", "silent_mode_power_fraction": 0.8},
+)
+R.check(
+    "set_thermal_parameters routes the quiet keys into the live config and the options",
+    _et_quiet_set is None
+    and _et_quiet_coord._config.get("quiet_off_windows") == "09:00-09:30"
+    and _et_quiet_coord._config.get("silent_mode_power_fraction") == 0.8
+    and _et_quiet_entry.options.get("quiet_off_windows") == "09:00-09:30",
+    f"raised {_et_quiet_set!r}, config "
+    f"{_et_quiet_coord._config.get('quiet_off_windows')!r}, "
+    f"options {dict(_et_quiet_entry.options)}",
+)
+_et_quiet_sim = _et_call(
+    _et_quiet_hass, "simulate_plan", {"quiet_silent_windows": "23:00-23:30"},
+)
+R.check(
+    "simulate_plan with valid quiet rows runs past quiet validation and refuses on the missing plan, its own next lane",
+    getattr(_et_quiet_sim, "translation_key", None) == "simulate_plan_no_plan",
+    f"{_et_quiet_sim!r} -- a quiet-validation refusal here would name "
+    "quiet_windows_overlap or simulate_plan_invalid_quiet_windows instead",
 )
 _et_check(
     "apply_manual_plan with an unparseable expires_at raises a translatable error",

@@ -318,10 +318,6 @@ from .const import (
     DEFAULT_SILENT_MODE_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
     DEFAULT_SILENT_MODE_FRACTION,
-    CONF_QUIET_SILENT_WINDOWS,
-    DEFAULT_QUIET_SILENT_WINDOWS,
-    CONF_QUIET_OFF_WINDOWS,
-    DEFAULT_QUIET_OFF_WINDOWS,
     CONF_OUTAGE_RECOVERY_ENABLED,
     DEFAULT_OUTAGE_RECOVERY_ENABLED,
     CONF_OPEN_WINDOW_RELAX_ENABLED,
@@ -1775,12 +1771,6 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("grid_connection", CONF_PEAK_GUARD_MARGIN_KW, DEFAULT_PEAK_GUARD_MARGIN_KW, _number(0.0, 3.0, 0.1, 'kW', slider=True)),
     _F("grid_connection", CONF_SILENT_MODE_WINDOWS, DEFAULT_SILENT_MODE_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
     _F("grid_connection", CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION, _number(CAPACITY_FLOOR_FRACTION, 1.0, 0.05, slider=True)),
-    # #1910 (SW-1): the user's quiet windows, one spec per action, on the
-    # page the pump's own silent schedule already lives on. Normally edited
-    # on the card (SW-3) through apply_schedule; here so the keys are
-    # reachable without it.
-    _F("grid_connection", CONF_QUIET_SILENT_WINDOWS, DEFAULT_QUIET_SILENT_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
-    _F("grid_connection", CONF_QUIET_OFF_WINDOWS, DEFAULT_QUIET_OFF_WINDOWS, selector.TextSelector(selector.TextSelectorConfig(type=selector.TextSelectorType.TEXT))),
     # -- grid_fees
     _F("grid_fees", CONF_DSO_PRODUCT, DEFAULT_DSO_PRODUCT, _select(grid_fee.catalog_choices(), 'dso_product')),
     _F("grid_fees", CONF_GRID_FEE_MODE, DEFAULT_GRID_FEE_MODE, _select(list(grid_fee.MODES), 'grid_fee_mode')),
@@ -2106,17 +2096,10 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
         and not ThermalParameters.from_config({**current, **saved}).two_zone_enabled
     ):
         errors[CONF_MIXING_VALVE_WRITE_TARGET_KIND] = "flow_target_needs_two_zone"
-    for key in (
-        CONF_DHW_WINDOWS, CONF_SILENT_MODE_WINDOWS,
-        CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS,
-    ):
+    for key in (CONF_DHW_WINDOWS, CONF_SILENT_MODE_WINDOWS):
         problem = dhw_spec_problem(saved[key]) if key in saved else None
         if problem == DHW_ERROR_TOO_SHORT and key == CONF_SILENT_MODE_WINDOWS:
             problem = "silent_mode_window_too_short"
-        if problem == DHW_ERROR_TOO_SHORT and key in (
-            CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS
-        ):
-            problem = "quiet_window_too_short"
         if problem is not None:
             errors[key] = problem
     if {CONF_DHW_SETPOINT, CONF_DHW_MIN_TEMP} & saved.keys() and _dhw_min_too_close(

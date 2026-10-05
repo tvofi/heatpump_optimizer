@@ -328,12 +328,17 @@ def overridden_config(
     reads ``overrides``.
     """
     out = config
-    for key in (
-        CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS,
-        CONF_SILENT_MODE_FRACTION,
-    ):
+    for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
         if key in overrides:
             out = {**out, key: overrides[key]}
+    # The fraction folds only when the call moved it off its default, which
+    # is also exactly when folding changes anything: absent and an explicit
+    # 1.0 are the same setting.
+    fraction = overrides.get(
+        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+    )
+    if fraction != DEFAULT_SILENT_MODE_FRACTION:
+        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
     return out
 
 
@@ -345,12 +350,14 @@ def apply_config_keys(config: dict[str, Any], params: Mapping[str, Any]) -> None
     the next solve composes from, with the persistence itself done by the
     options write the caller already makes.
     """
-    for key in (
-        CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS,
-        CONF_SILENT_MODE_FRACTION,
-    ):
+    for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
         if key in params:
             config[key] = params[key]
+    fraction = params.get(
+        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+    )
+    if fraction != DEFAULT_SILENT_MODE_FRACTION:
+        config.update({CONF_SILENT_MODE_FRACTION: fraction})
 
 
 def _parse_spec_pair(

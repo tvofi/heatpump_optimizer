@@ -513,9 +513,7 @@ DEFAULT_SILENT_MODE_FRACTION: Final = 1.0
 # existing CONF_SILENT_MODE_FRACTION above -- one knob, not two. Both
 # defaults are empty: no rows, and the module is inert (quiet_windows.py).
 CONF_QUIET_SILENT_WINDOWS: Final = "quiet_silent_windows"
-DEFAULT_QUIET_SILENT_WINDOWS: Final = ""
 CONF_QUIET_OFF_WINDOWS: Final = "quiet_off_windows"
-DEFAULT_QUIET_OFF_WINDOWS: Final = ""
 # #1067 (W1067-G7): the entity-id prefix of a GCHV Modbus package the options
 # flow reads suggestions from (modbus_prefill.py). "hp" is the package
 # generator's own; the key is read only by that page, never by the plan.

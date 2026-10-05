@@ -46,6 +46,7 @@ from .const import (
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
+    DEFAULT_SILENT_MODE_FRACTION,
     CONF_WOOD_FURNACE_ENABLED,
     DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -322,8 +323,12 @@ def _quiet_schedule_fields(data: dict[str, Any]) -> dict[str, Any]:
     out: dict[str, Any] = _refuse_quiet(
         data, "apply_schedule_invalid_quiet_windows", "", "", ""
     )
-    if data.get(CONF_SILENT_MODE_FRACTION) is not None:
-        out[CONF_SILENT_MODE_FRACTION] = data[CONF_SILENT_MODE_FRACTION]
+    # The fraction stores only when the call moved it off its default --
+    # absent and an explicit 1.0 are the same setting, so an untouched
+    # page's default post changes nothing.
+    fraction = data.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+    if fraction != DEFAULT_SILENT_MODE_FRACTION:
+        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
     return out
 
 
