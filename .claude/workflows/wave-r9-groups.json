@@ -7513,9 +7513,10 @@
    ],
    "brief": "Root-cause seat (root-cause.md + defect-root-cause.md), dispatched 2026-10-05 after three same-day instances of the pr-contract friction class. The phenomena, all measured this day: (1) a body re-take after an orchestrator head move (carry merges under fix-review.md step 12, record-beat re-derives) leaves the old red pr-contract run at the live head; steward SKILL.md section 10 documents one expected failure per push and assumes one body per push, which the head-move workflow violates. An edited event re-measured it once (PR #1959, green 14:15Z) and fired nothing once (PR #1969, needing a manual job re-run). (2) A CANCELLED required-check run blocks the ruleset merge even beside a newer green run: PR #1969's merge was refused with 'Required status check pr-contract is cancelled' until the cancelled job was re-run; the bot pushes that cancel superseded in-flight runs are GITHUB_TOKEN pushes under .github/workflows/tests.yml. The seat owes: a named cause and process state (the dispatching orchestrator reads it as (c)/(d) -- the process was followed and its one-body-per-push precondition changed underneath it; verify, do not inherit), the class reach (every future carry merge and record beat), a cost test with numbers (minutes per merge lost to manual re-runs, measured over the round-9 window), and a countermeasure or a recorded refusal. Countermeasure candidates to price: an edited-triggered re-runner workflow on the pattern of .github/workflows/budget-raise-gate-rerun.yml for the newest red pr-contract run at the same head; and re-examining the concurrency/cancel behavior for bot pushes in .github/workflows/tests.yml. Both land in owned paths (.github/workflows/) and ride owner review; policy changes need the owner. The interim standing practice (re-run the red job after every re-body; check for cancelled runs before every merge) is already in the state RESUME and is not the fix -- it is what the countermeasure would replace.",
    "resume": {
-    "stage": "in-flight",
+    "stage": "rca-done",
     "next_step": "dispatch when usage resets; the three instances are PRs #1968/#1969 merges and #1959 carries, all 2026-10-05",
-    "branch": "handoff/r9-rc-prcontract"
+    "branch": "handoff/r9-rc-prcontract",
+    "commit": "50e9dd193306a714ea020c410bc33ce8cd5b9ff8"
    },
    "fixes": []
   },
