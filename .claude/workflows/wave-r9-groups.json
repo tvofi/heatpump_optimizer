@@ -3297,7 +3297,7 @@
     "stage": "in-flight",
     "branch": "handoff/r9-eg-collaborator-interfaces",
     "commit": "57b96d728835e3b762b3e6dc55ee502e433bcee8",
-    "last_step": "PR #1966 head 374ec101 = round-4 repair 49d2c1a3 + origin/main 077f53af (orchestrator merge); fix-review round 5 returned merge at 49d2c1a3 (review/1966 69da5789); hpo-approver APPROVED; required checks queued at 374ec101 (2026-10-05T21:00Z)",
+    "last_step": "PR #1966 head 57b96d72 = 374ec101 + origin/main 86dbf0ca (record files only); 374ec101 = round-4 repair 49d2c1a3 + origin/main 077f53af; fix-review round 5 returned merge at 49d2c1a3 (review/1966 69da5789); hpo-approver APPROVED; CI restarted at 57b96d72 (2026-10-05T21:13Z)",
     "next_step": "owed before merge: (1) the EG-B7 brief carry, landed on this roster at 9f08b916; (2) the #1686 instrument carry (diagnostics builder unmetered by coordinator_private_reach, max_class_loc, seam_cut_total) into .claude/workflows/carry-1686.json on main, not landed; (3) budget-raise-gate wants a decisive approving review at the merge head for max_class_loc 8972->9068 and seam_cut_total 758->772, the owner's review sits at 60ff20ac; (4) carry the 49d2c1a3 verdict to the head (app_approve.sh --carry), CI green at a head containing origin/main (main moved to 86dbf0ca), merge; the merge closes #1739",
     "note_file": "handoff/round9/fix/resume/EG-B6.md on handoff/r9-eg-collaborator-interfaces",
     "review_branch": "handoff/r9-eg-collaborator-interfaces-review",
