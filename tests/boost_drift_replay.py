@@ -67,19 +67,25 @@ DAYS = 9               # 5 to converge, 2 boost days, 2 recovery
 START = dt_mod.parse_datetime("2026-01-05T00:00:00+00:00")
 BOOST_DAYS = (5, 6)    # tvofi's report: "a few times over two days"
 BOOST_STARTS = (7.0, 12.0, 18.0)   # local hours
-BOOST_HOURS = 2.0
-#: ``getattr`` fallbacks keep this script runnable at the fix's merge base,
-#: so the failing-first arm reports the crash's figures instead of an import
-#: error (the field and the constants are what the fix adds).
-SETTLE_TAIL = getattr(boost_mod, "SPACE_SETTLE_TAIL", timedelta(hours=2))
-FREEZE_REASON = getattr(boost_mod, "FREEZE_REASON", "boost_space")
+#: The settling tail, read from production (under a name of this script's
+#: own, so closure.py's no-copies sees a reference, not a re-implementation:
+#: a test symbol named like production's is refused however it gets its
+#: value). The window length and the freeze reason are used as
+#: ``boost_mod.BOOST_HOURS`` / ``boost_mod.FREEZE_REASON`` at their sites
+#: for the same reason, with no fallbacks: a fallback the check itself
+#: supplies would pass silently if production renamed one. The
+#: failing-first run at the merge base used fallback forms (that run
+#: predates the fix's symbols); it is recorded in the PR body's
+#: ## Mutation proof / ## Figures.
+SETTLE_TAIL = boost_mod.SPACE_SETTLE_TAIL
 #: The band the frozen scale must stay inside across the boost days and
 #: the two days after. Unfixed, the scale leaves it by an order of
 #: magnitude (-50 %, the trust-region floor); the fix holds it exactly.
 BAND = 0.05
 #: Window plus settling tail, in local hours from each window start: the
 #: cycles whose folds the freeze reason must suppress.
-FROZEN_SPAN = BOOST_HOURS + SETTLE_TAIL.total_seconds() / 3600.0
+FROZEN_SPAN = (boost_mod.BOOST_HOURS
+               + SETTLE_TAIL.total_seconds() / 3600.0)
 
 
 def day_arrays(day_index: int):
@@ -241,7 +247,7 @@ def run(arm: str, surface: str, two_zone: bool = False):
         # -- the boost surface, as its own switch leaves it -----------------
         boosting = (
             day_index in BOOST_DAYS
-            and any(s <= h_now < s + BOOST_HOURS for s in BOOST_STARTS)
+            and any(s <= h_now < s + boost_mod.BOOST_HOURS for s in BOOST_STARTS)
         )
         if surface == "mode" and boosting:
             # What ``_async_update_data``'s MODE_BOOST branch adopts:
@@ -431,7 +437,7 @@ def check_freeze_units() -> None:
         coord, boost_mod.CHANNEL_SPACE, True, refresh=False))
     R.check(
         "a live space overlay freezes learning (#1935)",
-        coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+        coord._learning_frozen("sensor.indoor") == boost_mod.FREEZE_REASON,
     )
     R.check(
         "the prediction is suppressed while the overlay is live, with the "
@@ -454,7 +460,7 @@ def check_freeze_units() -> None:
     R.check(
         "the settling tail freezes learning after the overlay ends, and a "
         "DHW-only overlay does not (the freeze is scoped to space heat)",
-        coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+        coord._learning_frozen("sensor.indoor") == boost_mod.FREEZE_REASON,
     )
     dt_mod.freeze(now + timedelta(hours=3))
     R.check(
@@ -470,7 +476,7 @@ def check_freeze_units() -> None:
         coord3, boost_mod.CHANNEL_SPACE, False, refresh=False))
     R.check(
         "cancelling a live space overlay starts the settling tail",
-        coord3._learning_frozen("sensor.indoor") == FREEZE_REASON,
+        coord3._learning_frozen("sensor.indoor") == boost_mod.FREEZE_REASON,
     )
     coord4 = build_coord()
     asyncio.run(boost_mod.set_channel(
@@ -525,7 +531,7 @@ def check_freeze_units() -> None:
     asyncio.run(coord.async_set_mode("boost", refresh=False))
     R.check(
         "the global boost mode freezes learning through the same reason",
-        coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+        coord._learning_frozen("sensor.indoor") == boost_mod.FREEZE_REASON,
     )
     _tail_before = boost_mod.held_for(coord).space_settle_until
     asyncio.run(coord.async_set_mode("boost", refresh=False))
@@ -538,7 +544,7 @@ def check_freeze_units() -> None:
     R.check(
         "leaving boost mode starts the settling tail (same mechanism, "
         "same owed tail)",
-        coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+        coord._learning_frozen("sensor.indoor") == boost_mod.FREEZE_REASON,
     )
     coord2 = build_coord()
     asyncio.run(coord2.async_set_mode("comfort", refresh=False))
