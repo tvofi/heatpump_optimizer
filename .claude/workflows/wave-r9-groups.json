@@ -6650,7 +6650,7 @@
     "branch": "handoff/r9-f10-16",
     "commit": "7eb31bd2c13004c4ca437b8880686ef71d64c8c5",
     "last_step": "round-2 repair 7eb31bd2 on handoff/r9-f10-16, body on handoff-body/r9-f10-16 at ce2b1962; fix-review round 2 returned merge at 7eb31bd2 (unpublished: no PR, no nonce); open_pr.sh running at 2026-10-05T21:05Z",
-    "next_step": "PR #1975 open (draft) at 431573d2 = 7eb31bd2 + origin/main 86dbf0ca; carry the r2 verdict to that head (app_approve.sh --carry), CI green, tvofi's review for .github/workflows/tests.yml (code-owned; mandate to 2026-10-09), merge",
+    "next_step": "PR #1975 open (draft) at 3c0e3324 = 7eb31bd2 + origin/main 86dbf0ca + its own delivery row; carry the r2 verdict to that head (app_approve.sh --carry), CI green, tvofi's review for .github/workflows/tests.yml (code-owned; mandate to 2026-10-09), merge",
     "note_file": null,
     "review_branch": null,
     "review_note_file": null,
