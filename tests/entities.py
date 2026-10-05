@@ -31174,6 +31174,18 @@ R.check(
 for _rp_name, _rp_ok, _rp_detail in _replay.kernel_checks():
     R.check(_rp_name, _rp_ok, _rp_detail)
 
+# R9-DBG-3: repo-side debugger harness, gated here like the replay cheap half
+# so a change under tools/replay selects this script without a new selectable
+# lane (run.sh / derive_closures.sh / closure.py are owned).
+import debug_ingest as _dbg_ingest  # noqa: E402
+import debug_replay as _dbg_replay  # noqa: E402
+import dbg_bundle_gen as _dbg_gen  # noqa: E402
+R.section("The debugger harness: ingest, store seed, week generator")
+for _dbg_name, _dbg_ok, _dbg_detail in (
+    _dbg_ingest.gate_checks() + _dbg_replay.gate_checks() + _dbg_gen.gate_checks()
+):
+    R.check(_dbg_name, _dbg_ok, _dbg_detail)
+
 
 # --- round 9's judge re-runner (PLAN R3) ---
 #
