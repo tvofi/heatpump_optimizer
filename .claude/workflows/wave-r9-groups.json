@@ -7558,7 +7558,8 @@
    "resume": {
     "stage": "in-flight",
     "branch": "handoff/r9-rc-prcontract-fix",
-    "commit": "2784d696f1557226b212544d2ee364d80513cb1d"
+    "commit": "2784d696f1557226b212544d2ee364d80513cb1d",
+    "last_step": "round-2 repair 2784d696 on handoff/r9-rc-prcontract-fix, body on handoff-body/r9-rc-prcontract-fix; fix-review round 2 returned merge at 2784d696 (unpublished: no PR, no nonce at 2026-10-05T20:24Z)"
    }
   }
  ]
