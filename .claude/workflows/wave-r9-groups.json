@@ -4978,7 +4978,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "cursor/r9-sw-1-resume-826f",
-    "commit": null,
+    "commit": "d76d98ca40c0462e13f5869f1898b1a0b48b20b8",
     "last_step": "None",
     "next_step": "round-3 handed off 893846c6 but routed back: 0/81 mutation pins (drive stalled on machine contention); resumed serially from persisted state, then re-handoff",
     "note_file": "handoff/round9/fix/resume/SW-1.md on handoff/r9-sw-model",
