@@ -123,14 +123,6 @@ from homeassistant.util import dt as dt_util
 
 from . import boost, pump_mode, setpoint_check
 from .const import (
-    CONF_DHW_SETPOINT_ENTITY,
-    CONF_HEAT_PUMP_MODE_ENTITY,
-    CONF_HEAT_PUMP_SWITCH_ENTITY,
-    CONF_PUMP_DUTY_MODE,
-    CONF_SPACE_SETPOINT_ENTITY,
-    CONF_SPACE_SETPOINT_UNIT,
-    DEFAULT_PUMP_DUTY_MODE,
-    DEFAULT_SPACE_SETPOINT_UNIT,
     DOMAIN,
     MODE_AUTO,
     MODE_BOOST,
@@ -138,6 +130,7 @@ from .const import (
     MODE_OFF,
     PUMP_DUTY_MODES,
 )
+from .entry_config import EntryConfig
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
@@ -220,15 +213,16 @@ _MODE_DOMAINS = frozenset(("select", "input_select"))
 
 def _entities(config: Any) -> dict[str, Any]:
     """Slot -> the configured entity id; the three writable pump slots."""
+    cfg = EntryConfig.from_mapping(config)
     return {
-        "mode": config.get(CONF_HEAT_PUMP_MODE_ENTITY),
-        "dhw_setpoint": config.get(CONF_DHW_SETPOINT_ENTITY),
-        "space_setpoint": config.get(CONF_SPACE_SETPOINT_ENTITY),
+        "mode": cfg.heat_pump_mode_entity,
+        "dhw_setpoint": cfg.dhw_setpoint_entity,
+        "space_setpoint": cfg.space_setpoint_entity,
     }
 
 
 def _flow_unit(config: Any) -> bool:
-    return bool(config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow")
+    return EntryConfig.from_mapping(config).space_setpoint_unit == "flow"
 
 
 def state_for(coord: Any) -> ArbiterState:
@@ -240,8 +234,7 @@ def state_for(coord: Any) -> ArbiterState:
 
 
 def duty_mode(config: Any) -> str:
-    mode = config.get(CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE)
-    return mode if mode in PUMP_DUTY_MODES else DUTY_OFF
+    return EntryConfig.from_mapping(config).pump_duty_mode
 
 
 def step_duty(result: Any, now: datetime) -> str | None:
@@ -676,7 +669,7 @@ def _pump_off(coord: Any) -> bool:
     degC), so nothing is compared or written until it is on again; then a
     reset that is still there is rewritten like any other difference.
     """
-    entity = coord._config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
+    entity = coord._config.heat_pump_switch_entity
     power = coord.hass.states.get(entity) if entity else None
     return bool(getattr(power, "state", None) == "off")
 

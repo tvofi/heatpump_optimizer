@@ -33,10 +33,6 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import HeatPumpOptimizerEntity
 from .payload import Payload
 from .inputs import _finite
-from .const import (
-    CONF_MOLD_FLOOR_BREACH_MARGIN,
-    DEFAULT_MOLD_FLOOR_BREACH_MARGIN,
-)
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound
 # refresh, and no entity here calls out, so there is nothing to throttle
@@ -174,13 +170,7 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
 
     def _margin_c(self) -> float:
         """The breach margin, °C: a noisily jittering reading must not fire."""
-        raw = self.coordinator.effective_config.get(
-            CONF_MOLD_FLOOR_BREACH_MARGIN, DEFAULT_MOLD_FLOOR_BREACH_MARGIN
-        )
-        try:
-            return float(raw)
-        except (TypeError, ValueError):
-            return float(DEFAULT_MOLD_FLOOR_BREACH_MARGIN)
+        return self.coordinator.effective_config.mold_floor_breach_margin
 
     def _floor(self) -> tuple[float | None, float | None]:
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.

@@ -28,11 +28,10 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_OPTIMIZATION_INTERVAL,
     CONFIG_ENTRY_VERSION,
-    DEFAULT_OPTIMIZATION_INTERVAL,
     DOMAIN,
 )
+from .entry_config import EntryConfig
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -164,10 +163,8 @@ def _handover_stamps(hass: HomeAssistant) -> dict[str, Any]:
 
 
 def _handover_interval_minutes(coordinator: Any) -> float:
-    config = getattr(coordinator, "_config", None) or {}
-    return float(
-        config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL)
-    )
+    config: EntryConfig = getattr(coordinator, "_config", None) or EntryConfig()
+    return config.optimization_interval
 
 
 def _take_fresh_handover(

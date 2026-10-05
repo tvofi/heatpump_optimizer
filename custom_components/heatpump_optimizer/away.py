@@ -30,6 +30,7 @@ from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
 from .drift import stored_instant
+from .entry_config import EntryConfig
 from .payload import AwayView
 from .store import QuarantiningStore, load_mapping
 
@@ -134,7 +135,7 @@ class _AwayCoord(Protocol):
     hass: Any
     entry: Any
     _away_state: AwayState
-    _config: Mapping[str, Any]
+    _config: EntryConfig
 
     def _entity_state(
         self, entity_id: str | None
@@ -378,9 +379,9 @@ async def restore_override(coord: _AwayCoord) -> None:
 async def _migrate_helpers(
     coord: _AwayCoord, payload: dict[str, Any]
 ) -> dict[str, Any]:
-    presence = coord._config.get(CONF_AWAY_PRESENCE_ENTITY)
+    presence = coord._config.away_presence_entity
     presence_raw, presence_attrs = coord._entity_state(presence)
-    return_raw, _ = coord._entity_state(coord._config.get(CONF_AWAY_RETURN_ENTITY))
+    return_raw, _ = coord._entity_state(coord._config.away_return_entity)
     mig = migrate_helper_override(
         presence, presence_raw, presence_attrs, return_raw
     )

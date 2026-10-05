@@ -24,18 +24,14 @@ from . import narrative
 from . import topology
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
-    CONF_CONTRACT_FIXED_PRICE,
-    CONF_DHW_TANK_VOLUME,
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
-    CONF_INDOOR_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
-    DEFAULT_DHW_TANK_VOLUME,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -45,6 +41,7 @@ from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordina
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
+from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
 
@@ -671,7 +668,7 @@ class IndoorTempSensor(_MeasuredTemperatureMixin, HeatPumpOptimizerSensorBase):
         to draw the raw trace through that gap. ``None`` with no thermometer.
         """
         config = self.coordinator.effective_config
-        return {"source_entity": config.get(CONF_INDOOR_TEMP_ENTITY) or None}
+        return {"source_entity": EntryConfig.from_mapping(config).indoor_temp_entity}
 
 
 class OutdoorTempSensor(HeatPumpOptimizerSensorBase):
@@ -2751,7 +2748,7 @@ def _gap_energy_rate(data: Mapping[str, Any], config: Mapping[str, Any]) -> floa
     """
     rate = data.get("current_price")
     if not isinstance(rate, (int, float)) or float(rate) <= 0.0:
-        rate = float(config.get(CONF_CONTRACT_FIXED_PRICE) or 0.0)
+        rate = EntryConfig.from_mapping(config).contract_fixed_price
     if rate <= 0.0:
         rate = FALLBACK_ENERGY_PRICE_PER_KWH
     return float(rate)
@@ -2812,7 +2809,7 @@ def _gap_probe_terms(
     )
     # The DHW-coast miss: one reheat of the tank's usable band a day, over a
     # month, at the same resolved rate.
-    volume = float(config.get(CONF_DHW_TANK_VOLUME) or DEFAULT_DHW_TANK_VOLUME)
+    volume = EntryConfig.from_mapping(config).dhw_tank_volume
     band = float(DEFAULT_DHW_SETPOINT) - float(DEFAULT_DHW_MIN_TEMP)
     terms["outdoor_load_kw"] = sum(hp_vals) / len(hp_vals) if hp_vals else 0.0
     terms["outdoor_hours"] = 24.0 * 30.0 * duty

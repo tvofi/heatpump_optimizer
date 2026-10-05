@@ -42,10 +42,6 @@ import numpy as np
 
 from .const import (
     CAPACITY_FLOOR_FRACTION,
-    CONF_SILENT_MODE_FRACTION,
-    CONF_SILENT_MODE_WINDOWS,
-    DEFAULT_SILENT_MODE_FRACTION,
-    DEFAULT_SILENT_MODE_WINDOWS,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -55,6 +51,7 @@ from .dhw_schedule import (
     parse_windows,
     windows_for_day,
 )
+from .entry_config import EntryConfig
 from .optimizer import _utc_step_starts
 
 
@@ -102,13 +99,13 @@ def compose(
     rather than failing the solve: the options page refuses such a value, so
     one can only arrive from an older or hand-edited entry.
     """
-    spec = config.get(CONF_SILENT_MODE_WINDOWS) or DEFAULT_SILENT_MODE_WINDOWS
+    cfg = EntryConfig.from_mapping(config)
+    spec, fraction = cfg.silent_mode_windows, cfg.silent_mode_power_fraction
+    if fraction is None:
+        return caps_extra
     try:
         windows = parse_windows(spec)
         weekly = parse_weekly_windows(spec)
-        fraction = float(
-            config.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
-        )
     except (DHWWindowError, TypeError, ValueError):
         return caps_extra
     silent = caps(start_time, n_steps, dt_hours, windows, fraction, p_max, weekly)
