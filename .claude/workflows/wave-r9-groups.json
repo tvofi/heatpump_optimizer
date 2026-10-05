@@ -7578,6 +7578,44 @@
     "stage": "not-started",
     "branch": "handoff/r9-stamp-unblock"
    }
+  },
+  {
+   "group": "R9-FR-11",
+   "lane": "FIX",
+   "issues": [
+    1951
+   ],
+   "fixes": [],
+   "findings": [],
+   "covers": [],
+   "class": null,
+   "wave": 2,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "effort": "medium",
+   "fixture": null,
+   "owner_gate": null,
+   "rca": false,
+   "barrier": null,
+   "barrier_prototype": null,
+   "blocked_on": [],
+   "after": [],
+   "brief": "Pre-study R9-FR-1 round 2 (2026-10-05, under tvofi's 2026-10-04 R9-FR-1 brief; measured at 86dbf0ca; evidence in the round-2 pre-study document on branch handoff/r9-friction-study): #1951, the typing share. The workstation seat recipe builds the pinned typing interpreter the cloud recipe already builds, so a Mac seat's scoped gate checks the mypy census before the handoff instead of CI's typing job finding it after. Measured: tools/audit/seat/cloud-setup.sh:61-68 \"HPO_TYPING_PYTHON\" builds venv-ha from tests/requirements-typing.txt and exports HPO_TYPING_PYTHON; tools/audit/seat/seat_venv.sh builds venv-ci only and tools/audit/seat/shims/seat-python execs venv-ci with nothing exported, so tests/typing_ruler.py on a Mac seat prints its census-not-checked skip line and passes while the census goes unmeasured. #1958 and #1959 were Mac seats blocked root-cause-unanswered on typing in the v6.7.16 window, and #1959's own Red-checks answer names this gap. Scope: seat_venv.sh gains the venv-ha build with cloud-setup.sh's exact pins call (hash-pinned, --no-deps) and its homeassistant version assertion; --check reports it; the shims export HPO_TYPING_PYTHON pointing at it only when it exists and the variable is unset, never overriding a value the seat set. Do not edit tests/typing_ruler.py, tests/run.sh or tests/closure.py: they are code-owned, and the ruler's PINNED_ENV contract does the rest once the variable is set. Acceptance, failing first: at the base, the shim-run ruler prints the not-checked line; at the head with venv-ha built it checks the census; null control: with venv-ha absent at the head the shim exports nothing and the not-checked line returns. Measure the venv-ha disk footprint with du and state it in the body: the environment family's Mac disk-full entries are this change's risk. Instrument in tools/, no policy-file edit. Body: Part of #1951 (R9-FR-12 is the other part), re-measurement command node .claude/workflows/policy_lint.mjs --stats --since <the tag after this merge>.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "fix/r9-fr-11",
+    "commit": null,
+    "last_step": null,
+    "next_step": "failing acceptance first (the not-checked line at the base), then the venv-ha build, then the null control",
+    "note_file": "handoff/round9/fix/resume/FR-11.md on fix/r9-fr-11",
+    "review_branch": null,
+    "review_note_file": null,
+    "plan": null,
+    "log": null,
+    "pickup_cloud": null,
+    "pickup_local": null,
+    "note": null
+   }
   }
  ]
 }
