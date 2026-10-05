@@ -17,6 +17,7 @@ import gzip
 import json
 import os
 import sys
+import tempfile
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -178,16 +179,24 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          len(two["states"][entity]) == 2 * len(one["states"][entity])
          and two["window"]["end"] != one["window"]["end"],
          f"n1={len(one['states'][entity])} n2={len(two['states'][entity])}"),
+        ("debug generator: --out default is empty so the CLI mkdtemps",
+         _parser().parse_args([]).out == "",
+         f"default={_parser().parse_args([]).out!r}"),
     ]
 
 
-def main(argv: list[str] | None = None) -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--days", type=int, default=7)
-    parser.add_argument("--out", default="/tmp/hpo-debug-bundle")
+    parser.add_argument("--out", default="",
+                        help="directory for bundle.json[.gz]; mkdtemp when omitted")
     parser.add_argument("--slim-fields", default="",
                         help="comma list of slim-row fields to drop")
-    args = parser.parse_args(argv)
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
     drop = {s.strip() for s in args.slim_fields.split(",") if s.strip()}
     bundle = build_bundle(args.days, drop)
 
@@ -203,7 +212,8 @@ def main(argv: list[str] | None = None) -> int:
 
     raw = _dumps(bundle).encode()
     packed = gzip.compress(raw, 6)
-    out_dir = Path(args.out)
+    out_dir = (Path(args.out) if args.out
+               else Path(tempfile.mkdtemp(prefix="hpo-debug-bundle-")))
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "bundle.json").write_bytes(raw)
     (out_dir / "bundle.json.gz").write_bytes(packed)
@@ -217,6 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     print(f"RESULT cycle_row_bytes={row_bytes} unit=byte")
     print(f"RESULT mean_row_bytes={row_bytes // max(len(rows), 1)} unit=byte")
     print("RESULT thread_factor=1.0 unit=ratio")
+    print(f"RESULT out_dir={out_dir} unit=path")
     return 0
 
 
