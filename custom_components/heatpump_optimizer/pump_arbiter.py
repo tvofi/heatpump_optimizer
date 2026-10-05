@@ -139,6 +139,7 @@ from .const import (
     PUMP_DUTY_MODES,
 )
 from .inputs import state_unit, temperature_c, temperature_from_c
+from .payload import CurrentAction
 from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -231,7 +232,7 @@ class ArbiterInputs:
     state: Any
     thermal: Any
     params: Any
-    action: dict[str, Any]
+    action: CurrentAction
     measured_power_kw: float | None
     disinfecting: bool
 

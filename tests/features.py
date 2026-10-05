@@ -50293,6 +50293,23 @@ R.check(
     _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
 )
+
+# The rail's edge itself: at exactly COLD_RAIL_C the day is not below it, so
+# the 90-minute lease still holds and minute 31 writes nothing. The ordering
+# bound is pinned here because the mutation table flips it (`<` -> `<=`) and
+# only this line separates the two leases.
+_pa_cold_edge = _PaCoord(_PA_TUYA, duties="d" * 12)
+_pa_cold_edge._current_state.outdoor_temperature = -10.0
+_pa_run(_pa_cold_edge, 0)
+_pa_cold_edge.device("select.pump_mode", "DHW (Hot Water)")
+_pa_cold_edge.device("number.dhw_set", "48")
+_pa_cold_edge.device("number.water_set", "25")
+_pa_run(_pa_cold_edge, 31)
+R.check(
+    "at exactly the cold rail the lease is the 90-minute one, not the cold one",
+    len(_pa_cold_edge.writes()) == 3,
+    f"{_pa_cold_edge.writes()}",
+)
 _pa_stale = _PaCoord(_PA_TUYA)
 _pa_stale.stale = True
 _pa_run(_pa_stale, 1)
@@ -50897,6 +50914,22 @@ R.check(
     len(_pa_day_log) == 96
     and _pa_day_log[-1]["start"] == (_PA_T0 + timedelta(minutes=15 * 98)).isoformat(),
     f"{len(_pa_day_log)=}",
+)
+# The run boundary itself: a draw exactly at the meter's threshold (half the
+# 0.4 kW modulation floor = 0.2 kW) counts as a run, one hair below does not.
+# The ordering bound is pinned here because the mutation table flips it
+# (`>=` -> `>`) and only this line separates a delivered step from idle.
+_pa_edge = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
+_pa_edge._current_state.dhw_temperature = 45.0
+for _pa_m, _pa_kw in ((1, 0.2), (16, 0.19)):
+    _pa_edge._measured_power = _pa_kw
+    _pa_run(_pa_edge, _pa_m)
+_pa_run(_pa_edge, 31)  # closes the second step into the log
+_pa_edge_log = _pa.diagnostics_view(_pa_edge)["ledger"]["steps"]
+R.check(
+    "a draw exactly at the meter's threshold is a run; one hair below is not",
+    [r["verdict"] for r in _pa_edge_log] == ["delivered", "idle-instead"],
+    f"{_pa_edge_log}",
 )
 _pa_nometer = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
 _pa_nometer._current_state.dhw_temperature = 45.0

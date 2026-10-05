@@ -21707,6 +21707,63 @@ R.check(
     "none of the four learner summaries appeared",
 )
 
+# The snapshot's wiring, at the values (not just the keys): a delegate that
+# stopped calling the view, or a view that stopped reading its members,
+# leaves the keys in place with None behind them (R9-EG-B6, #1739).
+R.check(
+    "the coordinator snapshot carries the live counter values, not None placeholders",
+    _diag["coordinator"].get("solve_failures") == 0
+    and _diag["coordinator"].get("tibber_outage_cycles") == 0
+    and _diag["coordinator"].get("tibber_reauth_started") is False
+    and _diag["coordinator"].get("cop_samples") is not None,
+    f"counters: " + repr({
+        k: _diag["coordinator"].get(k)
+        for k in ("solve_failures", "tibber_outage_cycles",
+                  "tibber_reauth_started", "cop_samples")
+    }),
+)
+
+# The view's tolerance, both ends: a coordinator that cannot produce the
+# view reports None fields and no learner keys, and a learner whose
+# summary is absent or raises is omitted or reported, never raised.
+_diag_duck = type("Duck", (), {"mode": "auto", "last_update_success": True})()
+_diag_duck_snap = _diag_mod._coordinator_snapshot(_diag_duck)
+R.check(
+    "a coordinator without the view reports None fields and no learner keys",
+    _diag_duck_snap["solve_failures"] is None
+    and _diag_duck_snap["cop_scale"] is None
+    and _diag_duck_snap["house_heat_loss_scale"] is None
+    and _diag_duck_snap["tibber_outage_cycles"] is None
+    and not any(
+        k in _diag_duck_snap
+        for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
+    ),
+    repr({k: _diag_duck_snap[k] for k in ("solve_failures", "cop_scale")}),
+)
+
+
+from heatpump_optimizer.coordinator import (
+    CoordinatorDiagnostics as _DiagView,  # noqa: E402
+)
+
+
+class _DiagLearners:
+    """A coordinator stub whose learners sit at both ends of of()'s guard."""
+
+
+_diag_learners_stub = _DiagLearners()
+_diag_learners_stub._accuracy = object()  # no summary attribute at all
+_diag_learners_stub._comfort_learner = type(
+    "L", (), {"summary": lambda self: (_ for _ in ()).throw(RuntimeError("boom"))}
+)()
+_diag_of = _DiagView.of(_diag_learners_stub)
+R.check(
+    "a learner without a callable summary is omitted; one that raises reports unavailable",
+    "accuracy" not in _diag_of.learner_summaries
+    and _diag_of.learner_summaries.get("comfort_learner") == "summary unavailable",
+    repr(_diag_of.learner_summaries),
+)
+
 # --- D10-08: the shared entity base lives in entity.py ----------------------
 #
 # The audit found five CoordinatorEntity base classes, one per platform file,
