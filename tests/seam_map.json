@@ -213,6 +213,7 @@
   "async_simulate": "core",
   "async_update_thermal_params": "core",
   "configured_dhw_windows": "dhw",
+  "coordinator._async_save_restored": "learning",
   "coordinator._cop_fold_blocked": "learning",
   "coordinator._ctx_of": "core",
   "coordinator._diagnose_payload": "core",

@@ -526,6 +526,36 @@ def _refit_pair(
     return residual, delta_t
 
 
+def _clipped_refit_scale(
+    current_scale: float,
+    num: float,
+    den: float,
+    pairs: int,
+    days: float,
+    base_u: float,
+    dt_hours: float,
+) -> float | None:
+    """The pooled Newton step, or None until the window is evidence.
+
+    Three settled days, and a day's worth of pairs the learner would
+    admit, at the interval cadence. Below either, the plant state the
+    predictions came from has not re-equilibrated.
+    """
+    if (
+        days < REFIT_SETTLED_DAYS
+        or pairs < 24.0 / max(dt_hours, 1e-6)
+        or den <= 0.0
+        or base_u <= 1e-6
+    ):
+        return None
+    raw = current_scale + (num / den) / base_u
+    if not np.isfinite(raw):
+        return None
+    return round(float(np.clip(
+        raw, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX
+    )), 3)
+
+
 def heat_loss_refit(
     samples: Iterable[AccuracySample],
     *,
@@ -574,18 +604,9 @@ def heat_loss_refit(
             min(s.when for s in settled), timedelta(hours=-dt_hours)
         )
         days = utc_elapsed_seconds(max(s.when for s in settled), origin) / 86400.0
-    scale = None
-    if (
-        days >= REFIT_SETTLED_DAYS
-        and pairs >= 24.0 / max(dt_hours, 1e-6)
-        and den > 0.0
-        and base_u > 1e-6
-    ):
-        raw = current_scale + (num / den) / base_u
-        if np.isfinite(raw):
-            scale = round(float(np.clip(
-                raw, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX
-            )), 3)
+    scale = _clipped_refit_scale(
+        current_scale, num, den, pairs, days, base_u, dt_hours
+    )
     return {
         "scale": scale,
         "band_percent": REFIT_BAND_PERCENT,
