@@ -6,14 +6,14 @@
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
  "duplication_copies": 38,
- "functions_cc_over_15": 32,
+ "functions_cc_over_15": 31,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 45,
- "max_class_loc": 8989,
- "max_method_loc": 374,
+ "max_class_loc": 8972,
+ "max_method_loc": 373,
  "methods_over_150": 17,
- "methods_over_200": 10,
- "recorded_at": "243990abf3f598656756074f46c01430f323de40",
- "seam_cut_total": 761
+ "methods_over_200": 9,
+ "recorded_at": "82d1f47f20c0557f6898f843960eaa64bb20cbfd",
+ "seam_cut_total": 758
 }

@@ -33,10 +33,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { at, canonList, lsFiles } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
-const rd = (rel) => fs.readFileSync(path.join(ROOT, rel), 'utf8')
+const rd = (rel) => fs.readFileSync(at(rel), 'utf8')
 const git = (args) => execFileSync('git', args, { cwd: ROOT, encoding: 'utf8' })
 
 // A definition that lives in a script with no exports is read from its source
@@ -90,7 +91,7 @@ const PAIRS = [
     concept: 'rule-frontmatter-paths',
     what: 'the globs a .claude/rules/*.md `paths:` key declares (decides when the harness loads the rule)',
     async corpus() {
-      const live = git(['ls-files', '.claude/rules']).split('\n').filter((f) => /\.md$/.test(f)).map((f) => [f, rd(f)])
+      const live = lsFiles('.claude/rules/*').filter((f) => /\.md$/.test(f)).map((f) => [f, rd(f)])
       return [...live, ...Object.entries(FM_SHAPES).map(([k, t]) => [`shape:${k}`, t])]
     },
     async readers() {
@@ -238,7 +239,7 @@ const SHARED_GRAMMARS = {
 }
 
 function governanceCode() {
-  return git(['ls-files']).split('\n').filter((f) => /\.(py|mjs|js|cjs)$/.test(f)
+  return canonList(git(['ls-files']).split('\n')).filter((f) => /\.(py|mjs|js|cjs)$/.test(f)
     && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
     && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f))
 }

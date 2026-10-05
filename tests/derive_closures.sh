@@ -154,6 +154,8 @@ p2=$!
   rec tests/edge.py
   rec tests/validate.py
   rec tests/backtest.py
+  # #1935: in run.sh's lane order, right after backtest.py.
+  rec tests/boost_drift_replay.py
   # What tests/hastub owes Home Assistant (#536), in run.sh's lane order. Its
   # closure is the whole stub on purpose: any change there must put this in
   # scope. Recorded HERE and not only with --single, because the closures job

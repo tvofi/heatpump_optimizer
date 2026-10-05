@@ -4,6 +4,7 @@ sys.path.insert(0, "custom_components")
 import numpy as np
 from datetime import datetime
 from profiles import prices, weather, house, DT
+from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
@@ -28,7 +29,15 @@ ot, wind, rain, sol = weather("winter_cold", START)
 st = ThermalState(room_temperature=21.0, slab_temperature=22.0,
     outdoor_temperature=float(ot[0]), dhw_temperature=50.0,
     dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0)
-r = opt.optimize(st, pr, ot, wind, rain, sol, START)
+r = opt.optimize(inputs=solve_inputs(
+    initial_state=st,
+    prices=pr,
+    outdoor_temps=ot,
+    wind_speeds=wind,
+    precipitation=rain,
+    solar_radiation=sol,
+    start_time=START,
+))
 
 # v5.2.0: the DHW expected-error band comes off the tank's own accuracy
 # record. Seeded here with a widening-with-lead sigma so the payload

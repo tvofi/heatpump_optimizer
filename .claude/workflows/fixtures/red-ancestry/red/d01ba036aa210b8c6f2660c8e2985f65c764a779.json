@@ -1,0 +1,20 @@
+{
+  "total_count": 3,
+  "check_runs": [
+    {
+      "name": "fast (3.14)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "name": "typing",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "pr-contract",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ]
+}

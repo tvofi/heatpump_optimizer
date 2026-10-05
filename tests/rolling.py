@@ -27,6 +27,7 @@ import sys
 from datetime import datetime, timedelta
 
 from harness import Results
+from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
 
@@ -42,7 +43,8 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
-)
+
+    WeatherSeries,)
 
 R = Results("Closed-loop rolling simulation")
 
@@ -150,15 +152,15 @@ def run_rolling(
         now = START + timedelta(hours=step * DT)
 
         if step % replan_every == 0:
-            plan = optimizer.optimize(
-                state,
-                price_series[step : step + horizon_steps],
-                outdoor[step : step + horizon_steps],
-                wind[step : step + horizon_steps],
-                rain[step : step + horizon_steps],
-                solar[step : step + horizon_steps],
-                now,
-            )
+            plan = optimizer.optimize(inputs=solve_inputs(
+                initial_state=state,
+                prices=price_series[step : step + horizon_steps],
+                outdoor_temps=outdoor[step : step + horizon_steps],
+                wind_speeds=wind[step : step + horizon_steps],
+                precipitation=rain[step : step + horizon_steps],
+                solar_radiation=solar[step : step + horizon_steps],
+                start_time=now,
+            ))
             history["status"].append(plan.status)
             history["replan_first_step"].append(float(plan.power_schedule[0]))
 
@@ -176,10 +178,12 @@ def run_rolling(
                 initial_state=state,
                 space_power_schedule=np.array([space_power]),
                 dhw_power_schedule=np.array([dhw_power]),
-                outdoor_temps=outdoor[step : step + 1],
-                wind_speeds=wind[step : step + 1],
-                precipitation=rain[step : step + 1],
-                solar_radiation=solar[step : step + 1],
+                weather=WeatherSeries(
+                    outdoor_temps=outdoor[step : step + 1],
+                    wind_speeds=wind[step : step + 1],
+                    precipitation=rain[step : step + 1],
+                    solar_radiation=solar[step : step + 1],
+                ),
                 start_hour=now.hour + now.minute / 60.0,
                 dt_hours=DT,
             )
@@ -187,10 +191,12 @@ def run_rolling(
             room, slab, upper, lower, _, _, _ = plant.simulate_trajectory(
                 initial_state=state,
                 power_schedule=np.array([space_power]),
-                outdoor_temps=outdoor[step : step + 1],
-                wind_speeds=wind[step : step + 1],
-                precipitation=rain[step : step + 1],
-                solar_radiation=solar[step : step + 1],
+                weather=WeatherSeries(
+                    outdoor_temps=outdoor[step : step + 1],
+                    wind_speeds=wind[step : step + 1],
+                    precipitation=rain[step : step + 1],
+                    solar_radiation=solar[step : step + 1],
+                ),
                 dt_hours=DT,
             )
             tank = [state.dhw_temperature, state.dhw_temperature]

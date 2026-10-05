@@ -603,6 +603,18 @@ INERT_EXCEPT = (
     "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
     "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
     "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+    # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
+    # importlib (the record-autofix generator and the branch-to-group lookup)
+    # and drives figure_lint.mjs through node, so each is a dependency of a
+    # gate script. Left inside their prefixes they would be declared unread
+    # while being read -- the #357 contradiction -- and `closures` went red
+    # on exactly that at the round-2 head (INERT READS UNDER-APPROXIMATED;
+    # the CI recording named all three). Each moves to entities.py's
+    # recorded closure, so an edit to one selects that script instead of
+    # skipping it -- the preflight.sh and policy_lint.mjs routes.
+    ".claude/workflows/figure_lint.mjs",
+    "tools/audit/seat/record_row.py",
+    "tools/audit/seat/roster_lib.py",
 )
 
 
@@ -1416,9 +1428,20 @@ def _fold_inert_reads(table: dict, records: dict) -> None:
     a script actually opened, to tell a `docs/delivery` row nothing reads from a
     doc `harness_headers.py` does. A script that read none has no key; the
     table's own presence says the recorder measured it.
+
+    GROW-ONLY against the table it is handed (#1886): the audithook sees only
+    its own process, so a Darwin `--single` of a script whose Linux recording
+    carries inert_reads -- LICENSE, opened by processes only `strace` catches
+    -- records an empty list, and a fold that replaced the entry dropped it,
+    reddening the next CI recording as INERT READS UNDER-APPROXIMATED.
+    Keeping an entry the run at hand cannot see is the safe direction:
+    over-approximation costs the merge fast path a run it may not have
+    needed, under-approximation merges a change to a read INERT file unread.
     """
     for k, r in records.items():
-        reads = sorted(f for f in r.get("inert_reads", ()) if _is_real_file(f))
+        reads = sorted(
+            f for f in set(table.get(k, ())) | set(r.get("inert_reads", ()))
+            if _is_real_file(f))
         if reads:
             table[k] = reads
         else:
@@ -1547,8 +1570,19 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
+    prev_inert: dict[str, list[str]] = {}
     if out.exists():
-        prev = json.loads(out.read_text()).get("closures", {})
+        prev_payload = json.loads(out.read_text())
+        prev = prev_payload.get("closures", {})
+        # Seed the inert table with the committed entries (#1886), so the
+        # grow-only fold keeps them: a full merge's records are Linux strace
+        # unions, but the table must not depend on this run having re-seen
+        # every INERT open an earlier recording measured. Entries for scripts
+        # this fold does not emit are retired, and drop here rather than
+        # surviving every re-derivation.
+        prev_inert = {k: list(v) for k, v in
+                      prev_payload.get("inert_reads", {}).items()
+                      if k in records}
         for k, fresh in list(closures.items()):
             closures[k] = _keep_committed_files(k, set(prev.get(k, ())), set(fresh))
     bad = inert_closure_violations(closures)
@@ -1563,7 +1597,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         "recorded": {k: {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
                      for k in sorted(records)},
         "closures": closures,
-        "inert_reads": {},
+        "inert_reads": prev_inert,
     }
     _fold_inert_reads(payload["inert_reads"], records)
     out.write_text(json.dumps(payload, indent=1) + "\n")
@@ -2561,11 +2595,16 @@ def write_affected(plan: dict, workdir: Path) -> None:
 # shrink, so one unreproducible lane vetoed an unrelated repair.
 
 
-def _selftest_write_records(rec_dir: Path, mapping: dict[str, list[str]]) -> None:
+def _selftest_write_records(rec_dir: Path, mapping: dict[str, list[str]],
+                            inert: dict[str, list[str]] | None = None) -> None:
     rec_dir.mkdir(parents=True, exist_ok=True)
     for script, files in mapping.items():
         (rec_dir / f"{Path(script).name}.json").write_text(json.dumps({
             "script": script, "rc": 0, "seconds": 0.1, "files": files,
+            # `inert_reads` is what a Linux strace union adds (#1886's
+            # dimension): absent is exactly a Darwin audithook record.
+            **({"inert_reads": inert[script]} if inert and script in inert
+               else {}),
         }))
 
 
@@ -2904,6 +2943,83 @@ def selftest() -> int:
                 f"rc={prc2} after={sorted(after)!r}",
             )
 
+    # #1886 (R9-FR-4): `inert_reads` is grow-only against the committed
+    # table. The audithook sees only its own process, so a Darwin `--single`
+    # of a script whose Linux recording carries inert_reads (LICENSE is
+    # opened by processes only strace catches, `_union_strace`) records an
+    # empty list, and a fold that REPLACED the entry dropped it -- the next
+    # Linux recording then reddened INERT READS UNDER-APPROXIMATED, the arm
+    # that exists so the merge fast path never treats a read INERT file as
+    # unread. The property, not the instance: a recording whose inert list is
+    # emptier than the committed entry never drops a committed file, on
+    # either merge path, while a recording that saw more still grows it.
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        out = td_path / "closures.json"
+        rec = td_path / "rec"
+
+        def fresh_table() -> None:
+            out.write_text(json.dumps({
+                "closures": {grower: grower_old},
+                "recorded": {},
+                "inert_reads": {grower: ["LICENSE"]},
+            }))
+
+        fresh_table()
+        # Audithook shape: same files, no inert reads the hook can see.
+        _selftest_write_records(rec, {grower: grower_new})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=True)
+        inert = json.loads(out.read_text()).get("inert_reads", {})
+        pin(
+            "a partial merge keeps committed inert_reads the run cannot "
+            "see (#1886)",
+            rc == 0 and inert.get(grower) == ["LICENSE"],
+            f"rc={rc} inert={inert.get(grower)!r}",
+        )
+
+        fresh_table()
+        _selftest_write_records(rec, {grower: grower_new},
+                                inert={grower: ["SECURITY.md"]})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=True)
+        inert = json.loads(out.read_text()).get("inert_reads", {})
+        pin(
+            "a recording that saw other inert reads grows, never swaps "
+            "(#1886 grow arm)",
+            rc == 0 and inert.get(grower) == ["LICENSE", "SECURITY.md"],
+            f"rc={rc} inert={inert.get(grower)!r}",
+        )
+
+        # The full merge writes a fresh payload, so keeping the committed
+        # entries there is a deliberate seed, not a side effect: without it
+        # every full re-derivation drops every committed inert read.
+        fresh_table()
+        _selftest_write_records(rec, {s: [s] for s in rover})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, allow_failures=False, partial=False)
+        inert = json.loads(out.read_text()).get("inert_reads", {})
+        pin(
+            "a full merge keeps committed inert_reads the run cannot see "
+            "(#1886)",
+            rc == 0 and inert.get(grower) == ["LICENSE"],
+            f"rc={rc} inert={inert.get(grower)!r}",
+        )
+
+    # The #1886 sequence end to end: a Darwin-shaped --single merge, then
+    # check() against a Linux-shaped recording of the same script -- the
+    # order CI reddened in. Its own helper for the CLOSURES swap
+    # (`_selftest_phantom_check`'s pattern).
+    crc, clog = _selftest_inert_sequence()
+    pin(
+        "the #1886 sequence stays green: Darwin merge, then Linux check",
+        crc == 0 and "INERT READS UNDER-APPROXIMATED" not in clog,
+        f"rc={crc} log={clog[-300:]!r}",
+    )
+
     print("\n=== coverage reuses only what the scoped gate skips (#1812) ===")
     stage = ["tests/a.py", "tests/b.py", "tests/c.py", "tests/d.py"]
     every = set(stage)
@@ -2985,6 +3101,46 @@ def _selftest_stale_message() -> tuple[int, str]:
         try:
             with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
                 rc = check(rec, partial=True)
+        finally:
+            CLOSURES = orig
+        return rc, buf.getvalue() + err.getvalue()
+
+
+def _selftest_inert_sequence() -> tuple[int, str]:
+    """The #1886 replay in miniature: merge, then check (#1886).
+
+    A Darwin `--single` records the audithook's view only -- no inert reads
+    for a script whose Linux recording carries them -- and merging that used
+    to drop the committed entry, so the next Linux-shaped recording reddened
+    check()'s INERT READS UNDER-APPROXIMATED arm. Drives the same two steps
+    on a synthetic table: a partial merge whose recording sees no inert
+    reads, then check() against a recording that sees LICENSE.
+    """
+    global CLOSURES
+    grower = "tests/open_meteo.py"
+    files = [grower, "tests/harness.py"]
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        fake = td_path / "closures.json"
+        fake.write_text(json.dumps({
+            "closures": {grower: files},
+            "recorded": {},
+            "inert_reads": {grower: ["LICENSE"]},
+        }))
+        darwin = td_path / "darwin"
+        _selftest_write_records(darwin, {grower: files})
+        linux = td_path / "linux"
+        _selftest_write_records(linux, {grower: files},
+                                inert={grower: ["LICENSE"]})
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            merge(darwin, fake, allow_failures=False, partial=True)
+        orig = CLOSURES
+        CLOSURES = fake
+        buf, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(err):
+                rc = check(linux, partial=True)
         finally:
             CLOSURES = orig
         return rc, buf.getvalue() + err.getvalue()

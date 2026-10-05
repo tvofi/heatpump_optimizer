@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_settle_interval_diag CMP_BOUND 611f0784",
+  "killed_by": "tests/boost_drift_replay.py",
+  "old": "    share = planned_space / planned_total if planned_total > 1e-6 else 1.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 82d1f47f20c0557f6898f843960eaa64bb20cbfd: CMP_BOUND (`share = planned_space / planned_total if planned_total >= 1e-6 else 1.0`) took tests/boost_drift_replay.py from rc=0 failed=0 to rc=1 failed=1."
+}

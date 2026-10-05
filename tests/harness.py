@@ -552,12 +552,11 @@ class CapturingOptimizer:
     def __init__(self, inner):
         self._inner = inner
 
-    def optimize(
-        self, state, prices, outdoor, wind, precip, solar, start_time,
-        *args, **kwargs
-    ):
+    def optimize(self, *, inputs):
         from heatpump_optimizer.optimizer import OptimizationResult
 
+        prices = inputs.forecast.prices
+        start_time = inputs.start_time
         n = len(prices)
         return OptimizationResult(
             power_schedule=[1.0] * n,
@@ -587,8 +586,8 @@ class ProcessProbeOptimizer:
     be, which is what makes it the negative case rather than this.
     """
 
-    def optimize(self, state, *positional, **keywords):
-        return (os.getpid(), state)
+    def optimize(self, *, inputs):
+        return (os.getpid(), inputs)
 
 
 class UnpicklableResult:
@@ -610,5 +609,5 @@ class UnpicklableResultOptimizer:
     thing under test is what the worker does with a reply it cannot pickle.
     """
 
-    def optimize(self, state, *positional, **keywords):
+    def optimize(self, *, inputs):
         return UnpicklableResult()

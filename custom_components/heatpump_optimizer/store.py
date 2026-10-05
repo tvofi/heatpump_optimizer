@@ -266,6 +266,9 @@ _ACCURACY: dict[str, Domain | str] = {
         "actual_power_kw", "predicted_temp", "actual_temp", "actual_cost", "outdoor_temp",
         "humidity", "cop_residual")},
     "samples/#/predicted_cost": _R,
+    # #1935: whether a boost overlay governed the interval -- the exclusion
+    # tag a post-drift recommendation reads.
+    "samples/#/boost_space": _FLAG,
     "lead_sigma/~": Domain("choice", choices=_LEADS), "lead_sigma/*": _Z,
     "lead_counts/~": Domain("choice", choices=_LEADS), "lead_counts/*": Domain("int", 1),
     "lead_pending/#/0": _AT, "lead_pending/#/1": Domain("choice", choices=LEAD_BUCKETS),

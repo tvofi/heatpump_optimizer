@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 import math
-from dataclasses import dataclass, field, replace
+from dataclasses import astuple, dataclass, field, replace
 from typing import Any, cast
 
 import numpy as np
@@ -1616,6 +1616,41 @@ def learner_newton_step(
     return target, updated
 
 
+@dataclass(frozen=True, kw_only=True)
+class WeatherSeries:
+    """The per-step weather one trajectory simulates against, each named, built from a solve horizon with ``from_horizon``.
+
+    The trajectory entry points used to take these five series positionally,
+    all same-shape float arrays, so a transposition passed silently (#1776).
+    ``None`` keeps each one's neutral default: no wind, rain, sun, free heat
+    or humidity, byte-for-byte the previous behaviour. The solve-level record
+    that carries these plus the price series is ``optimizer.ForecastSeries``;
+    this one holds only what the physics consumes, which ``optimizer``
+    builds from its horizon.
+    """
+
+    outdoor_temps: np.ndarray
+    wind_speeds: np.ndarray | None = None
+    precipitation: np.ndarray | None = None
+    solar_radiation: np.ndarray | None = None
+    humidity: np.ndarray | None = None
+    external_heat_kw: np.ndarray | None = None
+
+    @classmethod
+    def from_horizon(cls, h: Any) -> "WeatherSeries":
+        """The weather of a solve horizon: the fields read by name, so any
+        record carrying them works (``optimizer._Horizon`` and the planner's
+        read-only view of it both do)."""
+        return cls(
+            outdoor_temps=h.outdoor_temps,
+            wind_speeds=h.wind_speeds,
+            precipitation=h.precipitation,
+            solar_radiation=h.solar_radiation,
+            humidity=h.humidity,
+            external_heat_kw=h.external_heat_kw,
+        )
+
+
 class ThermalModel:
     """Thermal model supporting single-zone, two-zone, and DHW operation."""
 
@@ -2817,14 +2852,10 @@ class ThermalModel:
         self,
         initial_state: ThermalState,
         power_schedule: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray | None = None,
-        precipitation: np.ndarray | None = None,
-        solar_radiation: np.ndarray | None = None,
+        weather: WeatherSeries,
+        *,
         dt_hours: float = 0.25,
-        external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
         start_hour: float | None = None,
     ) -> tuple[
         np.ndarray,
@@ -2837,14 +2868,13 @@ class ThermalModel:
     ]:
         """Simulate the full trajectory given a power schedule.
 
-        ``external_heat_kw`` is an optional per-step forecast of free thermal
-        input (a wood furnace, item 28). ``valve_targets`` is an optional
+        ``weather`` is the per-step series the physics consumes
+        (:class:`WeatherSeries`); ``valve_targets`` is an optional
         per-step mixing-valve target schedule, fully resolved -- every entry a
         real temperature, no sentinel values -- which is how a commanded valve
         holds its charge between cheap hours and the price peak.
-        ``humidity`` is the forecast relative humidity per step (#21), for
-        the defrost derate. ``None`` for
-        any of them is the default and is byte-for-byte the previous
+        ``None`` for
+        either is the default and is byte-for-byte the previous
         behaviour.
 
         Returns:
@@ -2853,6 +2883,12 @@ class ThermalModel:
                        buffer_tank_temperatures, buffer_refused_kw,
                        wood_tank_temperatures or None)
         """
+        outdoor_temps = weather.outdoor_temps
+        wind_speeds = weather.wind_speeds
+        precipitation = weather.precipitation
+        solar_radiation = weather.solar_radiation
+        humidity = weather.humidity
+        external_heat_kw = weather.external_heat_kw
         n_steps = len(power_schedule)
 
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
@@ -2995,14 +3031,10 @@ class ThermalModel:
         self,
         initial_state: ThermalState,
         power_matrix: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray | None = None,
-        precipitation: np.ndarray | None = None,
-        solar_radiation: np.ndarray | None = None,
+        weather: WeatherSeries,
+        *,
         dt_hours: float = 0.25,
-        external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
         start_hour: float | None = None,
     ) -> dict[str, np.ndarray]:
         """Simulate B trajectories at once: ``power_matrix`` is [B, n].
@@ -3029,6 +3061,12 @@ class ThermalModel:
         """
         p = self.params
         power_matrix = np.asarray(power_matrix, dtype=float)
+        outdoor_temps = weather.outdoor_temps
+        wind_speeds = weather.wind_speeds
+        precipitation = weather.precipitation
+        solar_radiation = weather.solar_radiation
+        humidity = weather.humidity
+        external_heat_kw = weather.external_heat_kw
         n_steps = power_matrix.shape[1]
         wind_speeds, precipitation, solar_radiation = weather_or_calm(
             n_steps, wind_speeds, precipitation, solar_radiation
@@ -3302,16 +3340,12 @@ class ThermalModel:
         initial_state: ThermalState,
         space_power_schedule: np.ndarray,
         dhw_power_schedule: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray | None = None,
-        precipitation: np.ndarray | None = None,
-        solar_radiation: np.ndarray | None = None,
+        weather: WeatherSeries,
+        *,
         start_hour: float = 0.0,
         dt_hours: float = 0.25,
         dhw_draw_rates: np.ndarray | None = None,
-        external_heat_kw: np.ndarray | None = None,
         valve_targets: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
         coil_wood_read: np.ndarray | None = None,
         end_state: list[ThermalState] | None = None,
     ) -> tuple[
@@ -3342,6 +3376,9 @@ class ThermalModel:
             Tuple of (room_temps, slab_temps, upper_temps, lower_temps,
                        dhw_temps, buffer_temps, wood_temps or None)
         """
+        # astuple: the arrays by reference, in the record's field order.
+        (outdoor_temps, wind_speeds, precipitation, solar_radiation,
+         humidity, external_heat_kw) = astuple(weather)
         n_steps = len(space_power_schedule)
 
         wind_speeds, precipitation, solar_radiation = weather_or_calm(

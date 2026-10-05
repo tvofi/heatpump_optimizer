@@ -73,7 +73,7 @@ for _part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
 
 import numpy as np  # noqa: E402
 
-from profiles import DT, N, house, prices, weather  # noqa: E402
+from profiles import DT, N, house, prices, solve_inputs, weather  # noqa: E402
 from heatpump_optimizer import optimizer as optm  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer, OptimizationConfig)
@@ -191,10 +191,26 @@ results = {}
 for name, ms_patch in arms:
     t0 = time.perf_counter()
     if ms_patch is None:
-        r = o7.optimize(st7, pr7, ot7, wi7, ra7, so7, start7)
+        r = o7.optimize(inputs=solve_inputs(
+            initial_state=st7,
+            prices=pr7,
+            outdoor_temps=ot7,
+            wind_speeds=wi7,
+            precipitation=ra7,
+            solar_radiation=so7,
+            start_time=start7,
+        ))
     else:
         with mock.patch.object(optm, "_multi_start_minimize", ms_patch):
-            r = o7.optimize(st7, pr7, ot7, wi7, ra7, so7, start7)
+            r = o7.optimize(inputs=solve_inputs(
+                initial_state=st7,
+                prices=pr7,
+                outdoor_temps=ot7,
+                wind_speeds=wi7,
+                precipitation=ra7,
+                solar_radiation=so7,
+                start_time=start7,
+            ))
     pw = np.asarray(r.power_schedule, dtype=float)
     c, v = score(m7, pw, st7, ot7, wi7, ra7, so7, pr7)
     results[name] = (c, v, pw)
@@ -204,7 +220,15 @@ for name, ms_patch in arms:
 
 # Null control 1: in-process determinism of the production arm.
 o7b, m7b, pr7b, ot7b, wi7b, ra7b, so7b, st7b, _ = dhw_setup()
-r7b = o7b.optimize(st7b, pr7b, ot7b, wi7b, ra7b, so7b, start7)
+r7b = o7b.optimize(inputs=solve_inputs(
+    initial_state=st7b,
+    prices=pr7b,
+    outdoor_temps=ot7b,
+    wind_speeds=wi7b,
+    precipitation=ra7b,
+    solar_radiation=so7b,
+    start_time=start7,
+))
 pw7b = np.asarray(r7b.power_schedule, dtype=float)
 identical = bool(np.array_equal(pw7b, results["prod"][2]))
 print(f"RESULT stop_repeat_identical={int(identical)}", flush=True)
@@ -249,8 +273,15 @@ def f21_solve(two_zone, seed=None, l1=None):
     if l1 is not None:
         optm._COMFORT_FLOOR_L1 = l1
     try:
-        res = fopt.optimize(st, prices("winter_typical", t0),
-                            out, wind, rain, sun, t0)
+        res = fopt.optimize(inputs=solve_inputs(
+            initial_state=st,
+            prices=prices("winter_typical", t0),
+            outdoor_temps=out,
+            wind_speeds=wind,
+            precipitation=rain,
+            solar_radiation=sun,
+            start_time=t0,
+        ))
     finally:
         optm._COMFORT_FLOOR_L1 = saved
     return np.asarray(res.power_schedule), float(res.objective_value)

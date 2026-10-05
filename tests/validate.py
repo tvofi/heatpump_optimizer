@@ -5,8 +5,9 @@ sys.path.insert(0, os.path.join(
 import numpy as np
 from datetime import datetime, timedelta
 from profiles import prices, weather, house, DT, N
+from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import (
-    ThermalModel, ThermalParameters, ThermalState)
+    ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig, count_compressor_starts)
 from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
@@ -32,7 +33,15 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
         dhw_hours_since_legionella=20.0,
         upper_floor_temperature=21.0, lower_floor_temperature=21.0,
         buffer_tank_temperature=40.0)
-    r = opt.optimize(st, pr, ot, wind, rain, sol, start)
+    r = opt.optimize(inputs=solve_inputs(
+        initial_state=st,
+        prices=pr,
+        outdoor_temps=ot,
+        wind_speeds=wind,
+        precipitation=rain,
+        solar_radiation=sol,
+        start_time=start,
+    ))
 
     pw = np.asarray(r.power_schedule)
     room = np.asarray(r.room_temp_trajectory[1:])
@@ -210,7 +219,10 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     # comfortable reproduces the same user-visible bug and would otherwise
     # ship green.
     coast_room, _, coast_up, coast_lo, _, _, _ = m.simulate_trajectory(
-        st, np.zeros(N), ot, wind, rain, sol, DT, start_hour=start.hour
+        st, np.zeros(N),
+        WeatherSeries(outdoor_temps=ot, wind_speeds=wind,
+                      precipitation=rain, solar_radiation=sol),
+        dt_hours=DT, start_hour=start.hour,
     )
     coast_zones = [coast_room] + ([coast_up, coast_lo] if two_zone else [])
     coast_min = min(float(np.min(z)) for z in coast_zones)

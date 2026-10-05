@@ -2630,3 +2630,340 @@ jobs:
         run: |
           python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
             --status "${{ steps.autofix.outputs.status }}"
+
+  # record-autofix — the record beat for rowless merges, mechanical (R9-FR-10,
+  # issue #1952, owner-approved 2026-10-04). `record` (governance.yml) reddens
+  # on main after every rowless merge, and clearing it was fully manual: a seat
+  # wrote docs/delivery/<N>.md from API facts and opened the record pull
+  # request by hand — five such rows were owed in one day (2026-10-04). This
+  # job is that beat: it enumerates the window's merges through the REST API
+  # (the commit-to-pull-request map `record` itself reads), plans the rows the
+  # checked-out tree still lacks, writes them behind the generator's guarded
+  # write set (docs/delivery/<N>.md and NOTHING else — the plan's
+  # Delivery-status table and the handover are a seat's dispositions, never
+  # this job's), commits under the `ci:` subject the loop guard keys on, pushes
+  # the record branch, and opens or updates the record pull request as the
+  # hpo-author App with a generated body, then posts its #201 coordination
+  # comment.
+  #
+  # KEPT MANUAL, deliberately: the approving labelled review on the record pull
+  # request, and the living handover's updated-for line — tied to merges that
+  # change owed work, not every beat, which this job would over-write. The job
+  # carries no review-posting step and never touches that file; the tests.yml
+  # pins in tests/entities.py hold both lines of that design.
+  #
+  # TRIGGERS. Push to main and the nightly — the events `record` runs on. The
+  # job asks the same question `record` does (which merges in the window still
+  # lack a disposition), so "the record check is red on main" is answered by
+  # the job's own enumeration rather than by a second workflow's conclusion:
+  # nothing owed is the ordinary green, and a beat owed and not landed reddens
+  # the report below.
+  #
+  # IDENTITY AND SECRETS. The pull request must be authored by the hpo-author
+  # App (decision 0011; pr-contract refuses any other author), so the token is
+  # an installation token of the hpo-author App, minted per run exactly as
+  # mutation-ledger-push mints its ledger-writer: the PEM and App ID come from
+  # the main-only `record-writer` environment as HPO_RECORD_PEM and
+  # HPO_RECORD_APPID — the hpo-author App's own credentials, which the
+  # orchestrator box otherwise alone holds (~/.zcode/hpo-author.*). Absent
+  # secrets are fail-closed only when a beat was owed: skip-no-writer reddens
+  # the report, the mutation-ledger-push precedent, because a red here means
+  # "no bot commit" while a rowless merge stands on main.
+  record-autofix:
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main'
+      && (github.event_name == 'push'
+          || github.event_name == 'schedule'
+          || github.event_name == 'workflow_dispatch')
+    environment: record-writer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # No permissions block, deliberately, so the workflow's read-only floor is
+    # what GITHUB_TOKEN holds: the enumeration reads public-repo pull-request
+    # data, and every write -- branch push, pull request, #201 comment --
+    # rides the App installation token minted below, never GITHUB_TOKEN. The
+    # four-jobs floor pin in tests/entities.py stays at four, where a fifth
+    # override has to be argued for rather than land.
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          # The window is `<last v* tag>..main`; the record job's own checkout
+          # says why the tags must come along (a non-release tag otherwise
+          # answers `git describe` and yields an empty window).
+          fetch-tags: true
+          # D11-s1-03: the write is the App token's, below; the checkout left
+          # no credential on disk.
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Enumerate the window's merges
+        id: enumerate
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # --match 'v*': the record job's "Choose the window" step carries the
+          # same flag for the same reason (archive-rosters-2026-09).
+          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          # Fail-closed: an enumeration that could not read the window reddens
+          # this job; it must never read as an empty one.
+          python3 -I tools/audit/seat/record_row.py \
+            --enumerate --repo "$REPO" --since "$SINCE" \
+            > "$RUNNER_TEMP/merges.json"
+
+      - name: Mint the record-writer App token
+        id: mint
+        env:
+          REPO: ${{ github.repository }}
+          RECORD_PEM: ${{ secrets.HPO_RECORD_PEM }}
+          RECORD_APPID: ${{ secrets.HPO_RECORD_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RECORD_PEM" ] || [ -z "$RECORD_APPID" ]; then
+            echo "::notice::HPO_RECORD_PEM or HPO_RECORD_APPID is not set in the record-writer environment; the beat, if owed, cannot land (fail-closed: the report step reddens skip-no-writer)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-record.pem"
+          jwt_h="$RUNNER_TEMP/hpo-record-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RECORD_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RECORD_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the record-writer App JWT failed"
+            exit 1
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the hpo-author App has no installation on $REPO, or its JWT was refused"
+            exit 1
+          }
+          tok=$(curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" \
+            -d '{"permissions":{"contents":"write","pull_requests":"write","issues":"write"}}' \
+            "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])') && [ -n "$tok" ] || {
+            echo "::warning::minting the record-writer App installation token failed"
+            exit 1
+          }
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
+      # Apply, check the write set, commit and push, re-applied onto a main
+      # that moved under the push (three tries). Every try re-plans against
+      # the freshly fetched tree, so a row that landed on main between
+      # enumeration and apply drops out of the plan instead of conflicting.
+      # The one force on this branch is a LEASE, never a bare --force: the
+      # record branch is job-owned (generated rows and nothing else), and a
+      # re-run after a later step failed re-plans the same main into a
+      # SIBLING commit -- same parent, fresh committer timestamp -- which a
+      # fast-forward-only push refuses forever (run 37261904851, attempt
+      # 06:14: three `! [rejected] ... (non-fast-forward)`). The push
+      # anchors --force-with-lease on the tip this very try fetched, so the
+      # only tip it ever replaces is the one it observed -- the job's own
+      # stale sibling -- while a remote that moved after that fetch, to a
+      # job commit or a foreign one alike, refuses as stale info; an
+      # unreadable fetch leaves the expectation empty, which refuses
+      # anywhere the branch already exists. The roster is fail-soft: a ref
+      # it cannot be read from rows every merge in the neutral phrasing a
+      # seat edits at approval.
+      - name: Write the rows and push the record branch
+        id: record
+        env:
+          TOKEN: ${{ steps.mint.outputs.token }}
+          ROSTER_REF: ${{ vars.RECORD_ROSTER_REF || 'handoff/audit-r9-fixplan' }}
+        run: |
+          set -uo pipefail
+          status="skip-unknown"
+          if [ -z "$TOKEN" ]; then
+            status="skip-no-writer"
+          else
+            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+            echo "::add-mask::$AUTH"
+            # Contrast for the PR step's length line: the SAME attempt's
+            # token drives this basic-auth push successfully, so a length
+            # that agrees here and there pins the value as live in both
+            # steps. A length, never a value.
+            echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+            git config user.name "hpo-author[bot]"
+            git config user.email "hpo-author[bot]@users.noreply.github.com"
+            # The explicit refspec, so the roster is readable at
+            # origin/<ROSTER_REF> below (a bare fetch lands it on FETCH_HEAD
+            # only). Fail-soft: an unreadable roster rows in the neutral
+            # phrasing a seat edits at approval.
+            git fetch -q origin "+refs/heads/$ROSTER_REF:refs/remotes/origin/$ROSTER_REF" || \
+              echo "::warning::the roster ref $ROSTER_REF is unreadable; rows land in the neutral phrasing"
+            for try in 1 2 3; do
+              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              # The job's own previous run may have left its rows commit on
+              # record/autofix; fetch that tip, per try, so the lease below
+              # is anchored on the freshest observation. Fail-soft with no
+              # annotation: absent (the ordinary state between beats) and
+              # unreadable both leave the expectation empty, and the empty
+              # lease then requires the branch not to exist -- so a branch
+              # that is present but was not observed refuses, fail-closed.
+              git fetch -q origin "+refs/heads/record/autofix:refs/remotes/origin/record/autofix" || true
+              python3 -I tools/audit/seat/record_row.py \
+                --plan --merges-file "$RUNNER_TEMP/merges.json" \
+                --roster-ref "origin/$ROSTER_REF" \
+                > "$RUNNER_TEMP/plan.json" || { status="skip-plan"; break; }
+              if [ -z "$(python3 -I tools/audit/seat/record_row.py --row-numbers --plan-file "$RUNNER_TEMP/plan.json")" ]; then
+                status="nothing-owed"
+                break
+              fi
+              python3 -I tools/audit/seat/record_row.py \
+                --apply --plan-file "$RUNNER_TEMP/plan.json" || { status="skip-apply"; break; }
+              git add docs/delivery
+              if git diff --cached --quiet; then status="nothing-owed"; break; fi
+              git commit -q -m "ci: record delivery rows" || { status="nothing-owed"; break; }
+              expect=$(git rev-parse -q --verify refs/remotes/origin/record/autofix || :)
+              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                   push --force-with-lease=refs/heads/record/autofix:"$expect" \
+                   origin HEAD:refs/heads/record/autofix; then
+                status="pushed"
+                break
+              fi
+              status="skip-push-refused"  # main or the record tip moved under the push; loop re-derives
+            done
+          fi
+          echo "RECORD AUTOFIX: $status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the record pull request
+        id: pr
+        if: steps.record.outputs.status == 'pushed'
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ steps.mint.outputs.token }}
+          BASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The header carries its NAME, not just its value: run 37281783211
+          # self-reported the 401 as `{"message": "Requires authentication"}`
+          # -- GitHub saw no Authorization header at all -- because curl
+          # SILENTLY DROPS an -H argument without a colon (measured:
+          # `curl -H "Bearer <token>"` sends no header, `curl -H
+          # "Authorization: Bearer <token>"` sends it), and every 401 before
+          # it, run 37261904851 included, was the same nameless header. The
+          # lengths below pin this in the log without ever printing a value:
+          # TOKEN and AUTH are both non-empty here, and the request still
+          # carried no header -- an empty-variable explanation is refuted by
+          # the same run that prints them.
+          AUTH=$(printf 'Authorization: Bearer %s' "$TOKEN")
+          echo "::add-mask::$TOKEN"
+          echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          HEAD_SHA=$(git rev-parse HEAD)
+          # Every write below reports its own evidence: URL, HTTP status and,
+          # on any non-2xx, the response body -- deliberately without curl's
+          # -f, which discarded all three. This is what turned the 401s from
+          # run 37261904851 (attempts 06:08 and 06:17, `curl: (22) ... 401`
+          # and nothing else) into run 37281783211's self-describing refusal
+          # and so into the header fix above. The token stays masked and the
+          # Authorization header value is never printed, so a future red
+          # self-explains without leaking the credential. The body file is
+          # shared, so no call runs inside a command substitution (a subshell
+          # would swallow the diagnostics).
+          curl_json() { # curl_json LABEL METHOD DATA_FILE URL; body lands in $RUNNER_TEMP/resp.json
+            label=$1 method=$2 data=$3 url=$4
+            code=$(curl -sS -o "$RUNNER_TEMP/resp.json" -w '%{http_code}' \
+              -X "$method" -H "$AUTH" -H "$ACCEPT" -d @"$data" "$url") || {
+              echo "::error::$label: transport failure against $url"
+              return 1
+            }
+            case "$code" in
+              2*) echo "$label: $method $url -> HTTP $code" ;;
+              *)
+                echo "::error::$label: $method $url returned HTTP $code; response body follows"
+                cat "$RUNNER_TEMP/resp.json"
+                return 1
+                ;;
+            esac
+          }
+          # The payload the pull request carries: title, body. The generator
+          # refuses a body with a closing keyword before an issue number, so
+          # the generation is the guard, not this step's prose. POST /pulls
+          # also REQUIRES head and base -- a title-and-body payload is
+          # refused 422 "Invalid request ... weren't supplied" (verified
+          # from the orchestrator's box; the CI 401s masked it) -- so the
+          # create payload adds them: head is the branch the lookup below
+          # keys on, base is main. PATCH takes title and body only.
+          python3 -I - "$HEAD_SHA" "$BASE_SHA" <<'PY' > /dev/null
+          import json, os, subprocess, sys
+          head, base = sys.argv[1], sys.argv[2]
+          plan = os.environ["RUNNER_TEMP"] + "/plan.json"
+          row = "tools/audit/seat/record_row.py"
+          def gen(*flags):
+              return subprocess.run(["python3", "-I", row, *flags], check=True,
+                                    capture_output=True, text=True).stdout
+          title = gen("--print-title", "--plan-file", plan).strip()
+          body = gen("--print-body", "--plan-file", plan,
+                     "--head", head, "--base", base)
+          json.dump({"title": title, "body": body},
+                    open(os.environ["RUNNER_TEMP"] + "/payload.json", "w"))
+          json.dump({"title": title, "body": body,
+                     "head": "record/autofix", "base": "main"},
+                    open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
+          PY
+          # Open or update: the beat's own open pull request from a previous
+          # unmerged beat is updated in place (fresh rows commit, regenerated
+          # body naming the new head), never duplicated.
+          NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
+            "$API/repos/$REPO/pulls?head=$REPO:record/autofix&state=open" \
+            | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
+          if [ -n "$NUM" ]; then
+            curl_json "record-pr update" PATCH \
+              "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
+          else
+            curl_json "record-pr open" POST \
+              "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
+            NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
+          fi
+          # The beat's #201 coordination comment, naming the pull request it
+          # opened (delivery-status-tracking item 3); one per beat.
+          python3 -I tools/audit/seat/record_row.py \
+            --print-comment --plan-file "$RUNNER_TEMP/plan.json" --pr "$NUM" \
+            > "$RUNNER_TEMP/comment.md"
+          python3 -I -c 'import json,os; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/comment.md").read()}))' \
+            > "$RUNNER_TEMP/comment.json"
+          curl_json "record-pr comment" POST \
+            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
+          echo "pr=$NUM" >> "$GITHUB_OUTPUT"
+
+      # As in mutation-ledger-push and the other autofix lanes (#523): the
+      # status reaches the run, and a beat owed and not landed reddens this
+      # job — a red here means "no bot commit" while a rowless merge stands
+      # on main. nothing-owed is the protocol's ordinary green.
+      - name: Report whether the beat landed
+        if: always()
+        env:
+          STATUS: ${{ steps.record.outputs.status }}
+        run: |
+          echo "### record-autofix" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          case "$STATUS" in
+            pushed|nothing-owed) exit 0 ;;
+            "")
+              echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
+              exit 1 ;;
+            *)
+              echo "::error::a record beat was owed (or the window could not be read) and did not land: $STATUS"
+              exit 1 ;;
+          esac

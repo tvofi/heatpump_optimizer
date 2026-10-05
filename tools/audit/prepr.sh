@@ -153,7 +153,8 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   # a `merge_group` run has no pull request and grades like one, never like main.
   if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \|\| github\.sha \}\}[[:space:]]*$/) expr = "both"
   else if ($0 ~ /^[[:space:]]+PINNED:[[:space:]]*\$\{\{ github\.event\.pull_request\.base\.sha( \|\| github\.event\.merge_group\.base_sha)? \}\}[[:space:]]*$/) expr = "pr"
-  if ($0 ~ /git checkout "\$PINNED" --/) { if (expr != "") pinstyle = expr; inpin = 1; next }
+  # A listed restore (R9-RO-2) names its pathspecs on the `git diff` line.
+  if ($0 ~ /git (checkout|diff --name-only -z .*) "\$PINNED" --( |$)/) { if (expr != "") pinstyle = expr; inpin = 1; next }
   if (inpin) {
     s = $0
     while (match(s, q "[^" q "]+" q)) {
@@ -300,6 +301,62 @@ closure_lane() { # script, strace present (1 or 0)
   esac
 }
 
+# The closures recorder's interpreter, resolved deliberately. WHY THIS EXISTS.
+# derive_closures.sh records under `${PYTHON:-python3}`, the first python3 on
+# PATH. On a seat whose PATH still resolves to pyenv 3.11 that interpreter
+# cannot parse the tree -- the nested same-quote f-string in tests/entities.py
+# is 3.12 syntax -- so the recording dies at compile, and step 6b refuses it
+# as "failed while being recorded ... fix the script first": advice pointed at
+# the wrong artifact, and R9-FR-3 and R9-WEB-5 each lost a full prepr pass to
+# exactly that. The interpreter a recording runs under is a property of the
+# recording, not of the shell it inherits (#1091/#1099/#1095 are the same
+# class at the mypy census, where an unpinned interpreter fails rather than
+# measuring), so it is resolved here, in one place, in this order:
+#
+#   1. $HPO_RECORDER_PYTHON -- an override in the style of HPO_TYPING_PYTHON.
+#      CHECKED, never trusted and never skipped past: an override that cannot
+#      parse the tree refuses the run, because a seat that named one asked for
+#      it by name and silently recording under something else is the defect.
+#   2. the seat venv tools/audit/seat/seat_venv.sh builds, whose pins are what
+#      the recorded scripts import, at $HPO_STATE_DIR/venv-ci/bin/python3.
+#   3. the ambient python3 -- the adaptation, not the default: a candidate is
+#      kept only if it parses the tree, so a seat already running under a good
+#      interpreter gets the recording it always got, byte-unchanged.
+#
+# None of those parsing the tree is a refusal naming the build command, before
+# anything is recorded. A recording taken under an interpreter that cannot
+# parse the tree is not a shorter recording but a wrong one, and the refusal
+# a truncated recording produces ("fix the script first") is worse than none.
+recorder_parses() { # candidate interpreter -> rc 0 when it parses every source the recorder may run or import
+  "$1" - <<'PY' 2>/dev/null
+import ast, pathlib, sys
+bad = 0
+for p in [*sorted(pathlib.Path("tests").glob("*.py")),
+          *sorted(pathlib.Path("custom_components").rglob("*.py"))]:
+    try:
+        ast.parse(p.read_text(), filename=str(p))
+    except SyntaxError:
+        bad += 1
+sys.exit(1 if bad else 0)
+PY
+}
+recorder_python() { # -> the interpreter on stdout; rc 1 with the remedy when none parses
+  local c state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  if [ -n "${HPO_RECORDER_PYTHON:-}" ]; then
+    if recorder_parses "$HPO_RECORDER_PYTHON"; then
+      printf '%s\n' "$HPO_RECORDER_PYTHON"; return 0
+    fi
+    echo "\$HPO_RECORDER_PYTHON=$HPO_RECORDER_PYTHON cannot parse the tree -- point it at one that can or unset it, or build the seat venv: tools/audit/seat/seat_venv.sh"
+    return 1
+  fi
+  for c in "$state/venv-ci/bin/python3" "python3"; do
+    command -v "$c" >/dev/null 2>&1 || continue
+    if recorder_parses "$c"; then printf '%s\n' "$c"; return 0; fi
+  done
+  echo "no interpreter that parses the tree was found (tried the seat venv at $state/venv-ci/bin/python3 and the ambient python3) -- build the seat venv: tools/audit/seat/seat_venv.sh"
+  return 1
+}
+
 # The verdict over a directory of `--record-only` recordings. A recording's
 # own `rc` is read from its JSON, as `closure.py merge` reads it for
 # `skip-failed-recording`: derive_closures.sh echoes the recording WRAPPER's
@@ -341,7 +398,7 @@ claims_line() { # rc 0 holds, 1 refused
 # The recorder is `derive_closures.sh` unless PREPR_RECORD names another one
 # taking the same arguments, which only `--self-test` does. rc 3 is a skip.
 closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
-  local cw kind s v left="" strace=0 r
+  local cw kind s v left="" strace=0 r=0 rp=""
   cw=$(mktemp -d)
   if git diff --name-only "$1"...HEAD > "$cw/changed.txt"; then
     python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1
@@ -354,13 +411,21 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
     full) echo "the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden"; r=3 ;;
     scoped)
       command -v strace >/dev/null && strace=1
+      rp=""
       while read -r s; do
         [ -n "$s" ] || continue
         if [ "$(closure_lane "$s" "$strace")" != record ]; then left="$left $s"; continue; fi
-        GOLDEN_REF=origin/main ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
+        # Resolved on the first script this machine will actually record, so a
+        # diff whose recordings are all left to CI owes no interpreter (and
+        # `closure_lane` above still ran on the ambient python3 it always did).
+        if [ -z "$rp" ]; then
+          rp=$(recorder_python) || { echo "$rp"; r=1; break; }
+        fi
+        GOLDEN_REF=origin/main PYTHON="$rp" ${PREPR_RECORD:-./tests/derive_closures.sh} --single "$s" \
           --record-only --out-dir "$cw/rec" > "$cw/derive.out" 2>&1
       done < "$cw/aff/affected.scripts"
-      if [ ! -d "$cw/rec" ]; then
+      if [ "$r" -eq 1 ]; then : # the interpreter refusal is already printed
+      elif [ ! -d "$cw/rec" ]; then
         echo "nothing scoped can be recorded on this machine; left to CI:$left"; r=3
       else
         v=$(closures_verdict "$cw/rec"); r=$?
@@ -429,9 +494,135 @@ diff_paths() { # merge base, out file
   return "$rc"
 }
 
-body_check() { # body file, head sha, title, paths file
-  node .claude/workflows/policy_lint.mjs --pr-body "$1" --head "$2" \
-    --title "$3" --paths-file "$4"
+body_check() { # body file, head sha, title, paths file, red names...
+  # The red names ride the SAME flags CI's pr-contract job passes: one `--red`
+  # per name, never a comma-joined value, so a check name containing a comma
+  # reaches `## Red checks` whole (policy_lint splits only a LONE `--red`
+  # value). Step 7 passes none; step 7c passes every red the branch's pushed
+  # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
+  # whether the body answers a red in both callers.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  shift 4
+  for n in "$@"; do args+=(--red "$n"); done
+  node .claude/workflows/policy_lint.mjs "${args[@]}"
+}
+
+# --- the ancestry red-check arm (#1860, R9-FR-2) -------------------------------
+# WHY THIS EXISTS. defect-root-cause.md's enforced trigger fires on "a check
+# that went red on a commit in the branch", but the push-time enforcement that
+# existed read only the HEAD: `pr-contract` lists the head's check runs, and a
+# red an earlier push carried and a later push cleared leaves no check-run
+# record at the head at all -- so the fix reviewer was the first reader of it,
+# at the most expensive moment. The round-9 friction sweep measured the class:
+# `root-cause-unanswered` blocked 8 of W14's 14 merges, 6 of the 8 on reds a
+# branch check-run sweep sees (pre-study R9-FR-1, #1860). This arm is that
+# trigger moved to push time -- the cheaper detector the rule itself prefers.
+#
+# THE RED KEY IS pr-contract.yml's OWN ("List the red checks at this head"),
+# reused verbatim rather than re-worded: status completed, conclusion failure,
+# check-run name not `pr-contract` (this repository's only job by that name;
+# an id-keyed exclusion would let its own red back in and deadlock), sorted
+# unique. The refusal is the SAME body check's: step 7c feeds each name to
+# `body_check` above as one `--red`, so one implementation decides whether the
+# body answers a red, not two. The nightly-status/delivery-status exemption is
+# deliberately NOT copied here: it already lives in policy_lint's `--pr-body`
+# machinery, which the `--red` flags feed, and a second copy would drift.
+#
+# THE RANGE IS THE COMMITS THE REMOTE ALREADY HAS, derived through
+# `pr_head_ref` (step 7b's rule, never `@{u}`): the branch's own remote branch
+# is the local mirror of the pull request's head ref, so the arm reads exactly
+# the history a reviewer of the pull request reads. A run before the first
+# push has nothing to read and says so. policy_lint's own red-history
+# derivation (inside `--pr-body`) covers the same range but only when a token
+# sits in the environment -- CI's pr-contract step exports none and a seat's
+# credential usually lives in `gh`'s store, which is exactly the gap this arm
+# closes by asking `gh` itself.
+#
+# SKIP, NEVER REFUSE, AT EVERY BOUNDARY OF WHAT THE ARM CAN SEE: `gh` absent,
+# no credential, origin not a GitHub remote, no merge base, nothing pushed, no
+# pushed commit carrying any check run, or a read that failed. policy_lint's
+# internal derivation REFUSES a failed read because it runs in CI holding a
+# granted token; this arm runs on a seat at push time, where a hung or
+# rate-limited call must not block a push, so it prints what went UNCHECKED
+# instead -- the push-order arm's NO NETWORK argument, relaxed only to reads
+# that print their own skip line. This is the CI determinism bound too: no
+# job that re-executes this script exports a credential to it, so there the
+# arm prints its skip line and stays local-only-deterministic, the position
+# PREPR_SKIP_CLOSURES holds for the closures step.
+REDS_JQ='.check_runs[]
+         | select(.status == "completed" and .conclusion == "failure")
+         | select(.name != "pr-contract")
+         | .name'
+
+gh_credential() { # gh binary -> the token on stdout, rc 1 when none
+  case "${GITHUB_TOKEN:-}" in ?*) printf '%s' "$GITHUB_TOKEN"; return 0 ;; esac
+  case "${GH_TOKEN:-}" in ?*) printf '%s' "$GH_TOKEN"; return 0 ;; esac
+  command -v "$1" >/dev/null 2>&1 || return 1
+  "$1" auth token 2>/dev/null
+}
+
+ancestry_reds() { # the branch's own remote head ref
+  # -> rc 0: the red names, one per line, sorted unique
+  #    rc 3: the skip reason (one line)
+  local ghc tok url repo base shas sha out names any
+  ghc=${PREPR_GH:-gh}   # --self-test replaces the gh binary word, argv identical
+  command -v "$ghc" >/dev/null 2>&1 || { echo "gh is absent, so no branch check run could be read"; return 3; }
+  tok=$(gh_credential "$ghc") || { echo "no token: GITHUB_TOKEN and GH_TOKEN are unset and \`$ghc auth token\` refuses, so no branch check run could be read"; return 3; }
+  url=$(git remote get-url origin 2>/dev/null)
+  case "$url" in
+    *github.com:*) repo=${url##*github.com:} ;;
+    *github.com/*) repo=${url##*github.com/} ;;
+    *) repo="" ;;
+  esac
+  repo=${repo%.git}
+  case "$repo" in */*) ;; *) echo "origin is not a GitHub remote, so no check run could be read"; return 3 ;; esac
+  base=$(git merge-base origin/main HEAD 2>/dev/null) || { echo "no merge base with origin/main, so no ancestry could be enumerated"; return 3; }
+  shas=$(git rev-list "$base..$1" 2>/dev/null) || { echo "$1 could not be read, so no ancestry was enumerated"; return 3; }
+  [ -n "$shas" ] || { echo "no commit of this branch is on $1 yet -- the first push has no ancestry to read"; return 3; }
+  names=""; any=""
+  for sha in $shas; do
+    out=$("$ghc" api --paginate "repos/$repo/commits/$sha/check-runs" --jq "$REDS_JQ" 2>/dev/null) || {
+      echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
+    [ -n "$out" ] && { names="$names$out"$'\n'; any=1; }
+  done
+  if [ -z "$any" ]; then
+    # Nothing failed anywhere: say whether that was MEASURED or merely
+    # unpopulated -- a branch whose commits never ran CI owes no answer and
+    # confirms nothing, and `total_count` is on the first page of the same
+    # endpoint this loop already read. Only the all-green branch pays for
+    # this second pass.
+    for sha in $shas; do
+      out=$("$ghc" api "repos/$repo/commits/$sha/check-runs" --jq '.total_count' 2>/dev/null) || {
+        echo "the check runs at $sha could not be read, so the ancestry reds are UNCHECKED this run, not confirmed empty"; return 3; }
+      [ "${out:-0}" -gt 0 ] 2>/dev/null && { any=1; break; }
+    done
+    [ -n "$any" ] || { echo "no pushed commit carries any check run, so there is no red to answer and none confirmed absent"; return 3; }
+  fi
+  printf '%s' "$names" | sort -u
+}
+
+# Step 7c's whole body, so `--self-test` drives the code the step runs (the
+# #1591 lesson: a self-test that drove only a helper left the call site
+# unpinned). rc 0 answered or no red, 1 an unanswered red, 3 a skip boundary.
+reds_line() { # body file, head sha, title, paths file, remote head ref
+  local names r n out reds=()
+  names=$(ancestry_reds "$5"); r=$?
+  [ "$r" -eq 3 ] && { printf '%s\n' "$names"; return 3; }
+  if [ -z "$names" ]; then
+    printf 'no red check run stands on any commit this branch pushed'
+    return 0
+  fi
+  while IFS= read -r n; do [ -n "$n" ] && reds+=("$n"); done <<<"$names"
+  out=$(mktemp)
+  body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+  if [ "$r" -eq 0 ]; then
+    printf 'the body answers every red this branch pushed (%s)' "$(echo $names)"
+  else
+    # The refusal printed is the red gate's own sentence, not this wrapper's,
+    # so the row that reads it pins WHICH check refused.
+    printf 'RED UNANSWERED (%s): %s' "$(echo $names)" "$(grep -m1 'does not name it' "$out" || tail -1 "$out")"
+  fi
+  rm -f "$out"; return "$r"
 }
 
 # A BODY IN A SHARED ROOT IS ANOTHER SEAT'S BODY WAITING TO HAPPEN. Seats of one
@@ -728,6 +919,87 @@ if [ "${1:-}" = "--self-test" ]; then
   st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
   rm -f /tmp/prepr-bodyst.$$
 
+  # Step 7c, driven through `reds_line` -- the function the step calls -- over
+  # a throwaway repository whose two pushed commits carry OFFLINE check-run
+  # fixtures under .claude/workflows/fixtures/red-ancestry/, one per way the
+  # ancestry can look. The commits are built with fixed dates so their SHAs are
+  # deterministic and the fixtures are keyed by them: a later edit to this
+  # construction changes the SHAs, the stub finds no fixture, and these rows
+  # FAIL rather than pass vacuously. The stub replaces the `gh` binary word
+  # (`PREPR_GH`) with identical argv, so the URL and the jq key are built by
+  # the production code the step runs, and real `jq` applies that key over the
+  # fixture JSON -- no network, in CI's self-test job exactly as here.
+  #
+  # The throwaway repository is reached through GIT_DIR rather than `cd`: the
+  # body check must still run from THIS tree, because policy_lint.mjs's entry
+  # guard compares `process.argv[1]` with the realpath of its own module and a
+  # copy or symlink reached from another directory silently runs nothing.
+  DABS=$(cd "$D" && pwd -P)
+  RAFIX=$(cd .claude/workflows/fixtures/red-ancestry && pwd -P)
+  RA=$(mktemp -d)
+  (
+    set -e; cd "$RA"; git init -q -b main .
+    git config user.name st; git config user.email st@st
+    git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000'
+    export GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
+    echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
+    git -c commit.gpgsign=false checkout -q -b fix
+    echo b > code; git -c commit.gpgsign=false commit -qam one
+    echo c > code; git -c commit.gpgsign=false commit -qam two
+    git update-ref refs/remotes/origin/fix fix
+    git update-ref refs/remotes/origin/main main
+  ) >/dev/null 2>&1
+  cat >"$RA/gh" <<'EOS'
+#!/bin/bash
+# serves $REDFIX/<sha>.json through the jq filter prepr passed, like gh api
+set -u
+filter=""; url=""; prev=""
+for a in "$@"; do
+  [ "$prev" = "--jq" ] && filter=$a
+  case "$a" in repos/*/commits/*/check-runs) url=$a ;; esac
+  prev=$a
+done
+[ -n "$filter" ] && [ -n "$url" ] || exit 5
+sha=${url#*/commits/}; sha=${sha%/check-runs}
+[ -f "$REDFIX/$sha.json" ] || exit 1
+exec jq -r "$filter" "$REDFIX/$sha.json"
+EOS
+  chmod +x "$RA/gh"
+  printf '#!/bin/bash\nexit 1\n' >"$RA/ghdead"; chmod +x "$RA/ghdead"
+  ra() { # case dir, body file, remote ref -> "<rc>:$line"
+    local out r
+    out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/$1" GITHUB_TOKEN=selftest PREPR_GH="$RA/gh" \
+      reds_line "$DABS/$2" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "${3:-origin/fix}")
+    r=$?
+    echo "$r:$out"
+  }
+  got=$(ra red unnamed-red.md)
+  st "${got%%:*}" 1 "a red an earlier pushed commit carried and the body does not name is refused"
+  case "$got" in *'fast (3.14)'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming the check";; *) st 0 1 "and the refusal is the red gate's own, naming the check";; esac
+  got=$(ra red red-answered.md)
+  st "${got%%:*}" 0 "the same ancestry with a body that names the red passes (null control)"
+  case "$got" in *'answers every red'*) st 1 1 "and the ok line names what was answered";; *) st 0 1 "and the ok line names what was answered";; esac
+  got=$(ra green red-answered.md)
+  st "${got%%:*}" 0 "an ancestry whose only failure is pr-contract's own run passes (the exclusion key)"
+  case "$got" in *'no red check run stands'*) st 1 1 "and the ok line says no red stands, so green was measured, not assumed";; *) st 0 1 "and the ok line says no red stands, so green was measured, not assumed";; esac
+  got=$(ra bare red-answered.md)
+  st "${got%%:*}" 3 "an ancestry no commit of which carries any check run skips, never refuses"
+  case "$got" in *'no pushed commit carries any check run'*) st 1 1 "and the skip line names the boundary";; *) st 0 1 "and the skip line names the boundary";; esac
+  got=$(ra red red-answered.md origin/main)
+  st "${got%%:*}" 3 "a branch nothing of which is pushed past the merge base skips"
+  got=$(ra red red-answered.md origin/never-pushed)
+  st "${got%%:*}" 3 "a remote head ref that does not resolve skips"
+  out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN= GH_TOKEN= PREPR_GH="$RA/ghdead" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 3 "no credential gh can use skips the arm (never refuses)"
+  case "$out" in *no\ token*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  out=$(GIT_DIR="$RA/.git" REDFIX="$RAFIX/red" GITHUB_TOKEN=selftest PREPR_GH="$RA/no-such-gh" \
+    reds_line "$DABS/red-answered.md" "$ZERO" '' "$DABS/paths-nonpolicy.txt" origin/fix)
+  st $? 3 "an absent gh skips the arm (never refuses)"
+  case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
+  rm -rf "${RA:?}"
+
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
   # make the DERIVATION fail, so the step refuses rather than handing the check a
@@ -913,6 +1185,39 @@ if [ "${1:-}" = "--self-test" ]; then
   [ "$(closure_lane tests/entities.py 0)" = record ]; st $? 0 "a Python script is recorded without strace"
   [ "$(closure_lane tests/stress.py 1)" = needs-lease ]; st $? 0 "stress.py is left to CI: a push takes no gate lease"
 
+  # R9-FR-5: the closures recorder's interpreter, resolved deliberately.
+  # R9-FR-3 and R9-WEB-5 each lost a full prepr pass to the same defect:
+  # derive_closures.sh records under the first python3 on PATH, and on a seat
+  # whose PATH still resolves to pyenv 3.11 that interpreter cannot parse the
+  # tree (the nested same-quote f-string in tests/entities.py is 3.12 syntax),
+  # so the recording died at compile and step 6b refused it as "failed while
+  # being recorded ... fix the script first" -- advice pointed at the wrong
+  # artifact. The stub interpreters here stand for parse outcomes, so the
+  # resolution logic is hermetic; the live probe's discrimination (this tree's
+  # own 3.11 refused, the seat venv passed) is a body figure, not an arm.
+  FB=$(mktemp -d); mkdir -p "$FB/bin" "$FB/goodbin" "$FB/empty"
+  printf '#!/bin/sh\nexit 0\n' > "$FB/bin/goodpy"; chmod +x "$FB/bin/goodpy"
+  printf '#!/bin/sh\nexit 1\n' > "$FB/bin/python3"; chmod +x "$FB/bin/python3"
+  cp "$FB/bin/goodpy" "$FB/goodbin/python3"
+  mkdir -p "$FB/state/venv-ci/bin"; cp "$FB/bin/goodpy" "$FB/state/venv-ci/bin/python3"
+  mkdir -p "$FB/badstate/venv-ci/bin"; cp "$FB/bin/python3" "$FB/badstate/venv-ci/bin/python3"
+  got=$(HPO_RECORDER_PYTHON=/bin/false PATH="$FB/goodbin:$PATH" recorder_python)
+  st $? 1 "an override that cannot parse the tree is refused, never skipped past"
+  grep -q 'HPO_RECORDER_PYTHON' <<<"$got"
+  st $? 0 "and that refusal names the override, so it is not read as a missing venv"
+  got=$(HPO_RECORDER_PYTHON="$FB/bin/goodpy" HPO_STATE_DIR="$FB/empty" PATH="$FB/bin:$PATH" recorder_python)
+  st "$got" "$FB/bin/goodpy" "an override that parses the tree wins over every candidate behind it"
+  got=$(HPO_STATE_DIR="$FB/state" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "$FB/state/venv-ci/bin/python3" "a parsing seat venv outranks a parsing ambient"
+  got=$(HPO_STATE_DIR="$FB/badstate" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "python3" "a venv that cannot parse is skipped for a parsing ambient: the guard is the parse, not the path"
+  got=$(HPO_STATE_DIR="$FB/empty" PATH="$FB/goodbin:$PATH" recorder_python)
+  st "$got" "python3" "a parsing ambient is used as-is, so a recording under it is byte-unchanged (null control)"
+  got=$(HPO_STATE_DIR="$FB/empty" PATH="$FB/bin:$PATH" recorder_python)
+  st $? 1 "no candidate parsing the tree is refused before anything is recorded"
+  grep -q 'seat_venv.sh' <<<"$got"
+  st $? 0 "and that refusal names the venv build command, not the recording"
+
   # Steps 6a and 6b over a throwaway clone, driven through the functions the
   # steps print (`claims_line`, `closures_line`). Main claims a lane AFTER the
   # branches fork. Two fork from that main: one edits the claim file and keeps
@@ -969,13 +1274,37 @@ rec = {"script": s, "rc": 0, "seconds": 0.1, "files": files, "spawned": [], "how
 for sub, over in (("ok", {}), ("under", {"files": files + [extra]}), ("dead", {"rc": 3, "files": files + [extra]})):
     (d / sub / "wood_advisor.py.json").write_text(json.dumps(dict(rec, **over)))
 PY
-  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
+  printf '#!/bin/bash\nmkdir -p "$5" && cp "$FIXTURE_REC/$(basename "$2").json" "$5/"\n[ -n "${PYLOG:-}" ] && printf '"'"'%%s\\n'"'"' "${PYTHON-}" >> "$PYLOG"\nexit 0\n' > "$CLM/rec.sh"; chmod +x "$CLM/rec.sh"
   closures_at() { (cd "$CLM/r" && git checkout -q "$1" && got=$(PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/$2" closures_line fork); echo "$?:${got%%:*}"); }
   got=$(closures_at cl ok); st "$got" '0:scoped recordings are covered' "6b passes a scoped script its committed closure covers (null control)"
   got=$(closures_at cl under); st "$got" '1:UNDER-SCOPED' "6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED"
   got=$(closures_at cl dead); st "$got" '1:failed while being recorded' "6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED"
   got=$(closures_at rec under); st "${got%%:*}" 3 "6b skips a diff that reaches no selectable script, recording nothing"
+  # R9-FR-5 through the step itself: the resolved interpreter reaches the
+  # recorder as $PYTHON, and a resolution that refuses stops the step before
+  # anything records. `cl` is the branch whose diff makes 6b scoped; the stub
+  # recorder logs the PYTHON it received, since the out-dir it writes is
+  # removed with the verdict. Inlined rather than through `closures_at`,
+  # whose echo truncates at the first colon -- and the remedy text names
+  # "seat venv: tools/audit/seat/seat_venv.sh".
+  : > "$CLM/pylog"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+       HPO_STATE_DIR="$FB/state" closures_line fork 2>&1); rc=$?
+  st "$rc" 0 "6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)"
+  [ "$(tail -1 "$CLM/pylog")" = "$FB/state/venv-ci/bin/python3" ]
+  st $? 0 "and the recorder received that interpreter as \$PYTHON"
+  : > "$CLM/pylog"
+  full=$(cd "$CLM/r" && git checkout -q cl \
+    && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
+       HPO_RECORDER_PYTHON=/bin/false closures_line fork 2>&1); rc=$?
+  st "$rc" 1 "6b refuses an override that cannot parse the tree instead of recording under it"
+  grep -q 'seat_venv.sh' <<<"$full"
+  st $? 0 "and the step's refusal names the venv build command"
+  [ ! -s "$CLM/pylog" ]
+  st $? 0 "and nothing recorded under the refused interpreter"
   rm -rf "$CLM"
+  rm -rf "$FB"
 
   # Steps 3e-3g, driven through the functions the steps call: the reader and
   # the verdict on this repository's own workflows, on a PR-only pin it must
@@ -1371,7 +1700,6 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   else
     step "pr-body" 1 "the changed-path list did not derive from $BASE...HEAD, so the \`## Approval\` gate was not run -- an empty list reads as \"touches no policy file\", which is the fail-open it exists to close"
   fi
-  rm -f "$PATHS"
 
   # --- 7a. every figure's command resolves. `pr-contract` runs the same script,
   # so this is the cheaper detector rather than a second opinion: the #715
@@ -1409,6 +1737,29 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
     5) step "push order" 1 "$UPREF and HEAD have diverged, $BEHIND commit(s) there against $AHEAD here: the push is refused as a non-fast-forward and the force-push past it is forbidden -- merge $UPREF, then rewrite \`## Head\` at the merge commit" ;;
     *) step "push order" 1 "$UPREF: unknown push-order verdict" ;;
   esac
+
+  # --- 7c. the ancestry red-check arm (`reds_line` above): the second pass of
+  # pr-body, fed every red a PUSHED commit of this branch carries -- the fix
+  # reviewer's root-cause trigger (defect-root-cause.md), moved to push time,
+  # where repairing it is one body edit instead of a review round (#1860). It
+  # runs after 7b because it reads the same remote head ref 7b derives, and
+  # needs the path list pr-body derived: without one the body check it feeds
+  # was not run, and the arm says so rather than feeding it nothing.
+  if [ ! -f "$PATHS" ]; then
+    say skip "ancestry reds" "no changed-path list, so the body check this arm feeds was not run"
+  elif [ -z "$UPREF" ]; then
+    say skip "ancestry reds" "HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head"
+  elif [ -z "$UPSHA" ]; then
+    say skip "ancestry reds" "no $UPREF yet; the push creates it, so no commit of this branch has check runs to read"
+  else
+    REDS_LINE=$(reds_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$UPREF")
+    case $? in
+      0) step "ancestry reds" 0 "$REDS_LINE" ;;
+      3) say skip "ancestry reds" "$REDS_LINE" ;;
+      *) step "ancestry reds" 1 "$REDS_LINE" ;;
+    esac
+  fi
+  rm -f "$PATHS"
 else
   say skip "body" "no body passed"
 fi

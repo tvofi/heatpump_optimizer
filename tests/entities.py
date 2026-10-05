@@ -3351,7 +3351,7 @@ _D801_TEMPERATURE_DEFAULTS = (
     "dhw_temperature",
 )
 #: The entities D8-01 names. The rest of the payload moves with these defaults
-#: too, because `_solve_snapshot` deep-copies the state as the MPC's initial
+#: too, because `_solve_hubs` deep-copies the state as the MPC's initial
 #: condition -- that is a different finding (the optimizer plans against a tank
 #: it has never measured) and it is not what this fix claims to close.
 _D801_IN_SCOPE = {
@@ -3579,12 +3579,16 @@ _P2_FENCED = {
 
 def _p2_fence_args(source):
     """The callee each ``_best_effort_cycle_step`` call fences, as written:
-    a bound method, or the call inside a lambda."""
+    a bound method, the method a ``partial`` binds (#1736 hands the solve's
+    record to two steps that way), or the call inside a lambda."""
     out = set()
     for n in ast.walk(ast.parse(source)):
         if isinstance(n, ast.Call) and getattr(n.func, "id", None) == "_best_effort_cycle_step" \
                 and n.args:
             arg = n.args[0]
+            if isinstance(arg, ast.Call) and arg.args and ast.unparse(arg.func) in (
+                    "partial", "functools.partial"):
+                arg = arg.args[0]
             heads = [arg] if isinstance(arg, ast.Attribute) else [
                 c.func for c in ast.walk(arg) if isinstance(c, ast.Call)]
             out |= {ast.unparse(h) for h in heads}
@@ -4311,14 +4315,15 @@ def _p6_seed_log(cycles=2):
     log = []
     _hass, _entry, coord = _d801_coordinator({**_FLOW_CONFIG, const.CONF_DHW_ENABLED: True})
     coord._opt_config.horizon_hours = 6.0
-    snap = coord._solve_snapshot
+    snap = coord._solve_record
 
-    def recording_snapshot():
-        state, optimizer = snap()
+    def recording_snapshot(*a, **k):
+        record = snap(*a, **k)
+        state = record.inputs.state
         log.append({f.name: getattr(state, f.name) for f in _p6_dc.fields(state)})
-        return state, optimizer
+        return record
 
-    coord._solve_snapshot = recording_snapshot
+    coord._solve_record = recording_snapshot
 
     async def run():
         for cycle in range(cycles):
@@ -14972,6 +14977,15 @@ R.check(
     f"{len(_D308_PAIRS)} of {_D308_TOTAL} with {_D308_COMPARABLE} comparable",
 )
 
+# R9-DBG-3: import the harness before the orphan census so a recording that
+# fails that census still traced the new tools/replay files (the two-step
+# merge in tests/closure.py). The checks themselves run with the replay
+# cheap half.
+sys.path.insert(0, str(_closure.ROOT / "tools" / "replay"))
+import debug_ingest as _dbg_ingest  # noqa: E402
+import debug_replay as _dbg_replay  # noqa: E402
+import dbg_bundle_gen as _dbg_gen  # noqa: E402
+
 # The scoped gate refuses to skip anything when a changed file is in no
 # closure -- an unmeasured file is not a safe skip. That is right, and it was
 # quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
@@ -22446,6 +22460,67 @@ R.check(
 )
 
 
+# --- #1736: no live hub crosses to a thread --------------------------------
+# A solve plans from one record built on the loop (SolveRecord), and the three
+# hubs -- _opt_config, _thermal_params, _current_state -- are the configured
+# state the loop keeps writing. Every hand-off P12 enumerates, plus the solve's
+# own transports (_await_optimize, _await_off_loop), is refused an argument
+# that IS a hub attribute however it is reached (self., ctx., coord.,
+# self._ctx.); a call wrapping one -- copy.deepcopy(...), replace(...) -- is a
+# copy and passes. The key is the attribute NAME: a same-named attribute of
+# another object is refused too, which is the design choice (no such name
+# exists outside the coordinator's hubs).
+_HUB_NAMES = frozenset({"_opt_config", "_thermal_params", "_current_state"})
+_HUB_THREAD_ARGS = {**_P12_THREAD_ARG, "_await_optimize": 1, "_await_off_loop": 1}
+
+
+def _hub_handoffs(trees):
+    """Every (file:line, hand-off, hub) where a live hub is an argument."""
+    found = []
+    for _fname, _tree in trees.items():
+        for _node in ast.walk(_tree):
+            _i = _HUB_THREAD_ARGS.get(_callee_name(_node))
+            if _i is None:
+                continue
+            for _arg in list(_node.args[_i:]) + [_k.value for _k in _node.keywords]:
+                _a = _arg.value if isinstance(_arg, ast.Starred) else _arg
+                if isinstance(_a, ast.Attribute) and _a.attr in _HUB_NAMES:
+                    found.append((f"{_fname}:{_node.lineno}", _callee_name(_node), _a.attr))
+    return found
+
+
+_hub_sites = _hub_handoffs(_PKG_TREES)
+R.check(
+    "no live hub is handed to a thread or the process worker (#1736)",
+    _hub_sites == [],
+    f"{_hub_sites}: hand over the solve's record or a copy built on the loop",
+)
+_hub_ctl = {
+    "probe.py": ast.parse(
+        "async def bad(self, hass, ctx, coord, opt, fn):\n"
+        "    await _await_optimize(hass, opt, ctx._current_state)\n"
+        "    await hass.async_add_executor_job(fn, coord._thermal_params)\n"
+        "    await _await_process(hass, fn, self._ctx._opt_config)\n"
+        "    await _await_off_loop(hass, fn, state=ctx._current_state)\n"
+    ),
+    "null.py": ast.parse(
+        "async def ok(self, hass, ctx, opt, fn, record):\n"
+        "    await _await_optimize(hass, opt, record.inputs)\n"
+        "    await _await_process(hass, fn, copy.deepcopy(ctx._thermal_params))\n"
+        "    await hass.async_add_executor_job(fn, replace(ctx._current_state))\n"
+        "    ctx._opt_config.target_temp = 21.0\n"
+    ),
+}
+_hub_ctl_found = _hub_handoffs(_hub_ctl)
+R.check(
+    "the hub barrier refuses a live hub in every hand-off and passes its copies",
+    sorted(_s[0] for _s in _hub_ctl_found)
+    == ["probe.py:2", "probe.py:3", "probe.py:4", "probe.py:5"],
+    f"found {_hub_ctl_found}; a barrier that misses its own positive control, "
+    "or refuses a copy, pins nothing",
+)
+
+
 _action_producers, _pending = set(), []
 for _tree in _PKG_TREES.values():
     for _fn in ast.walk(_tree):
@@ -23944,6 +24019,328 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
+#
+# `record` reddens on main after every rowless merge, and the beat that clears
+# it was fully manual: a seat wrote `docs/delivery/<N>.md` from API facts and
+# opened the record pull request by hand. The generator the `record-autofix`
+# job (tests.yml) runs is `tools/audit/seat/record_row.py`, over the
+# branch-to-group lookup `roster_lib.py` carries. What is pinned here is the
+# behaviour the issue's traps name -- rows the tree's own reader reads, a write
+# set that can never touch the plan's table, a body that passes the very
+# programs CI runs and closes nothing, a PR whose row exists writes nothing --
+# each driven through the production symbols, and for the body through the
+# same `policy_lint.mjs --pr-body` / `figure_lint.mjs --pr-body` the contract
+# lane runs.
+import importlib.util as _rr_util  # noqa: E402
+import contextlib as _rr_cx  # noqa: E402
+import io as _rr_io  # noqa: E402
+
+try:
+    _rr_spec = _rr_util.spec_from_file_location(
+        "hpo_record_row",
+        _closure.ROOT / "tools" / "audit" / "seat" / "record_row.py")
+    _rr = _rr_util.module_from_spec(_rr_spec)
+    _rr_spec.loader.exec_module(_rr)
+    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rr_out, \
+            _rr_cx.redirect_stderr(_rr_io.StringIO()):
+        _rr_ok = _rr.self_test() == 0
+    _rr_detail = _rr_out.getvalue()
+except Exception as _rr_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _rr_ok, _rr_detail = False, f"{type(_rr_exc).__name__}: {_rr_exc}"
+R.check(
+    "tools/audit/seat/record_row.py --self-test passes",
+    _rr_ok,
+    "run `python3 tools/audit/seat/record_row.py --self-test` for the "
+    "failing check names:\n" + _rr_detail,
+)
+
+# The branch-to-group lookup is roster_lib's, not the generator's own: a
+# second derivation of the same mapping is the drift `roster_lib` exists to
+# prevent (#1948). Equality on the NORMALIZED tail, never a prefix, so
+# `fix/r9-fr-1` cannot answer for R9-FR-10 -- the one mismatch a startswith
+# rule produces, and the control this arm drives beside the matches.
+try:
+    _rl_spec = _rr_util.spec_from_file_location(
+        "hpo_roster_lib",
+        _closure.ROOT / "tools" / "audit" / "seat" / "roster_lib.py")
+    _rl = _rr_util.module_from_spec(_rl_spec)
+    _rl_spec.loader.exec_module(_rl)
+    _rl_roster = {"groups": [
+        {"group": "R9-FR-4", "resume": {"branch": "handoff/r9-fr-4"}},
+        {"group": "R9-WEB-5", "resume": {"branch": "handoff/r9-web-5"}},
+        {"group": "R9-FR-10", "resume": {}},
+    ]}
+    _rl_got = [
+        _rl.group_for_branch(_rl_roster, b) for b in
+        ("handoff/r9-fr-4", "fix/r9-fr-4", "fix/r9-fr-10",
+         "claude/beautiful-khorana-48e0a0", "policy/0013", "fix/r9-fr-1")]
+    _rl_ok = True
+except Exception as _rl_exc:  # noqa: BLE001
+    _rl_ok, _rl_got = False, [f"{type(_rl_exc).__name__}: {_rl_exc}"]
+R.check(
+    "a merged pull request's branch answers for its roster group, and only its group",
+    _rl_ok and _rl_got == ["R9-FR-4", "R9-FR-4", "R9-FR-10", None, None, None],
+    f"lookups={_rl_got}; exact resume.branch, tail-normalized group id, the "
+    "resume.branch fallback for a group with no explicit branch, and None "
+    "for a branch no group claims -- a prefix rule would answer R9-FR-10 "
+    "for fix/r9-fr-1, and a hotfix branch must row in the neutral phrasing "
+    "a seat edits at approval, not in a group it does not belong to",
+)
+
+# THE ROW THE TREE READS. `delivery_status.read_texts` is one of the two
+# readers a row must satisfy (`policy_lint --record` is the other, same
+# anchor), so the generated line is driven through the real reader over a
+# fixture row directory -- not through a copy of the anchor regex. The null
+# control is the table-row SHAPE: `speaksFor` reads a `|`-row in the plan's
+# table, but a row FILE holding one rows nobody through the reader here,
+# which is why the generator emits the anchored bullet and never a table row.
+with _ds_tf.TemporaryDirectory() as _raf_tmp:
+    _raf_root, _ds.ROOT = _ds.ROOT, Path(_raf_tmp)
+    _raf_rows = [
+        _rr.row_line(2052, "fix(R9-FR-4): the pin drive splits its shared "
+                           "work", "3f7ed8161234", "R9-FR-4"),
+        _rr.row_line(2053, "policy: a hotfix with no group | pipes too",
+                     "451a078f9876", None),
+    ]
+    (Path(_raf_tmp) / _ds.ROW_DIR).mkdir(parents=True)
+    for _n, _line in zip((2052, 2053), _raf_rows):
+        (Path(_raf_tmp) / _ds.ROW_DIR / f"{_n}.md").write_text(_line + "\n")
+    _raf_ledger = _ds.classify(
+        _ds_merges((2052, 0), (2053, 0), (2054, 0)), _ds.read_texts())
+    (Path(_raf_tmp) / _ds.ROW_DIR / "2055.md").write_text(
+        "| [#2055](https://github.com/o/r/pull/2055) | merged |\n")
+    _raf_ctrl = _ds.classify(_ds_merges((2055, 0)), _ds.read_texts())
+    _ds.ROOT = _raf_root
+R.check(
+    "the generator's row is read by the tree's own row reader, and a "
+    "table-row shape is not",
+    [r["state"] for r in _raf_ledger["merges"]]
+    == ["rowed", "rowed", "pending"]
+    and _raf_ctrl["merges"][0]["state"] == "pending",
+    f"states {[r['state'] for r in _raf_ledger['merges']]}, table-shape "
+    f"control {_raf_ctrl['merges'][0]['state']!r}; the ledger and `record` "
+    "read the generated file the same way, and the control shows the reader "
+    "distinguishes the anchored bullet from a table row, so the pin is not "
+    "vacuous",
+)
+
+# ROWS NEVER AT A TABLE END. The plan's Delivery-status table is the one
+# surface a row must never be appended to: a row at the table's end conflicts
+# every open branch, and past the freeze `policy_lint` refuses it
+# (delivery-status-tracking.md). The generator's entire write surface is
+# `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any
+# path that is not a row file, and each generated file is exactly one line so
+# it can neither split nor trail a table.
+with _ds_tf.TemporaryDirectory() as _raf_tmp2:
+    _raf_guard = []
+    # Each bad path carries a WELL-FORMED anchored line, so only the path
+    # guard can refuse it -- the M1 mutation proof showed a line-shape refusal
+    # here reads exactly like a passing path guard.
+    _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
+    for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
+                 "docs/delivery/2052.md.bak", "docs/delivery/sub/2052.md"):
+        try:
+            _rr.write_rows([{"number": 2052, "path": _bad,
+                             "line": _raf_line}], Path(_raf_tmp2))
+            _raf_guard.append(f"{_bad}=ACCEPTED")
+        except _rr.Refuse:
+            _raf_guard.append(f"{_bad}=refused")
+    _rr.write_rows([{"number": 2052, "path": "docs/delivery/2052.md",
+                     "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
+                   Path(_raf_tmp2))
+    _raf_text = (Path(_raf_tmp2) / "docs/delivery/2052.md").read_text()
+    _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
+R.check(
+    "the generator's write set is docs/delivery/<N>.md and nothing else",
+    all(g.endswith("=refused") for g in _raf_guard)
+    and _raf_text == _raf_want,
+    f"guard={_raf_guard}, written={_raf_text!r}; a row appended to the "
+    "plan's Delivery-status table conflicts every open branch and past the "
+    "freeze policy_lint refuses it, so the plan and the handover are not in "
+    "the write set, and a one-line file can neither split a table nor trail one",
+)
+
+# A PR WHOSE ROW EXISTS WRITES NOTHING; A MAIN THAT MOVED RE-DERIVES. The
+# plan is recomputed against the tree it is applied to, so a row that landed
+# on main between enumeration and apply drops out of the plan instead of
+# conflicting, and an apply over an already-written row is a no-op.
+with _ds_tf.TemporaryDirectory() as _raf_tmp3:
+    (Path(_raf_tmp3) / _ds.ROW_DIR).mkdir(parents=True)
+    _raf_merges = [
+        {"number": 2052, "title": "fix: one", "state": "merged",
+         "head_ref": "fix/r9-fr-4", "merge_sha": "a" * 40},
+        {"number": 2053, "title": "fix: two", "state": "merged",
+         "head_ref": "claude/beautiful-khorana-48e0a0", "merge_sha": "b" * 40},
+    ]
+    _raf_plan1 = _rr.plan_merges(_raf_merges, Path(_raf_tmp3), roster=None)
+    _rr.write_rows(_raf_plan1, Path(_raf_tmp3))
+    _raf_plan2 = _rr.plan_merges(_raf_merges, Path(_raf_tmp3), roster=None)
+    _raf_again = _rr.write_rows(_raf_plan2, Path(_raf_tmp3))
+R.check(
+    "a pull request whose row already exists plans and writes nothing",
+    [r["number"] for r in _raf_plan1] == [2052, 2053]
+    and _raf_plan2 == [] and _raf_again == [],
+    f"first plan={[r['number'] for r in _raf_plan1]}, re-plan={_raf_plan2}, "
+    f"re-apply wrote {_raf_again}; the plan is recomputed against the tree "
+    "it is applied to, so a row that landed on main between enumeration and "
+    "apply drops out instead of conflicting",
+)
+
+# THE GENERATED BODY, THROUGH THE PROGRAMS CI RUNS. `checkPrBody` refuses a
+# missing or empty section and a bare `n/a`; `figure_lint` refuses a command
+# that does not resolve. And the closing-keyword trap: GitHub closes issues
+# from a pull request's BODY prose, so a generated `Closes #N` anywhere would
+# close an issue the beat never meant to touch -- the record PR closes
+# nothing, disposes itself as record-class, and the generated prose carries
+# no closing keyword before an issue number at all.
+def _raf_body_fixture():
+    import subprocess
+    rows = [{"number": 1893, "path": "docs/delivery/1893.md",
+             "line": "- [#1893](https://github.com/o/r/pull/1893) — "
+                     "**merged `3f7ed816`**, fix(R9-FR-4): the pin drive "
+                     "splits its shared work (R9-FR-4).",
+             "title": "fix(R9-FR-4): the pin drive splits its shared work",
+             "merge_sha": "3f7ed8161234", "group": "R9-FR-4"}]
+    body = _rr.pr_body("a" * 40, "0b9c8d7", rows)
+    comment = _rr.coord_comment(1953, rows)
+    out = {"body": body, "comment": comment}
+    with _ds_tf.TemporaryDirectory() as td:
+        p = Path(td) / "body.md"
+        p.write_text(body)
+        pf = Path(td) / "paths.txt"
+        pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
+        r1 = subprocess.run(
+            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+             str(p), "--head", "a" * 40, "--paths-file", str(pf)],
+            capture_output=True, text=True)
+        r2 = subprocess.run(
+            ["node", ".claude/workflows/figure_lint.mjs", "--pr-body",
+             str(p)],
+            capture_output=True, text=True)
+        out["policy_rc"], out["policy_out"] = r1.returncode, r1.stdout
+        out["figures_rc"], out["figures_out"] = r2.returncode, r2.stdout
+    return out
+
+
+_RAF = _raf_body_fixture()
+# The closing-keyword grammar is record_row.py's CLOSING_KEYWORD, driven here
+# as the production symbol -- a second copy in the test would be exactly the
+# shared grammar the agreement lane refuses (and a test re-implementing a
+# formula pins nothing).
+_RAF_CLOSING = _rr.CLOSING_KEYWORD
+_RAF_TABLE_ROW = re.compile(r"(?m)^\s*\|")
+_RAF_BODY_CLEAN = (
+    not _RAF_CLOSING.search(_RAF["body"])
+    and not _RAF_CLOSING.search(_RAF["comment"])
+    and not _RAF_TABLE_ROW.search(_RAF["body"]))
+R.check(
+    "the generated record body passes policy_lint --pr-body and figure_lint",
+    _RAF["policy_rc"] == 0 and _RAF["figures_rc"] == 0,
+    f"policy rc={_RAF['policy_rc']}, figures rc={_RAF['figures_rc']}; "
+    f"policy: {_RAF['policy_out'].strip()[-300:]!r}; figures: "
+    f"{_RAF['figures_out'].strip()[-200:]!r}. These are the two programs "
+    "`body_check` and step 7a run, so a generated body is held to the "
+    "contract it will meet, in the same pull request that adds the generator",
+)
+R.check(
+    "and the generated prose closes nothing and never emits a table row",
+    _RAF_BODY_CLEAN,
+    f"closing keyword in body={bool(_RAF_CLOSING.search(_RAF['body']))}, "
+    f"in comment={bool(_RAF_CLOSING.search(_RAF['comment']))}, "
+    f"table row={bool(_RAF_TABLE_ROW.search(_RAF['body']))}; GitHub closes "
+    "issues from a pull request's body prose, so a generated `Closes #N` "
+    "would close an issue the beat never meant to touch -- the record PR "
+    "closes nothing and disposes itself as record-class",
+)
+R.check(
+    "the record beat's sections: head named, red named, approval kept manual, "
+    "handover untouched",
+    "a" * 40 in _RAF["body"]
+    and "record" in (_rr.sections(_RAF["body"]).get("Red checks") or "")
+    and "hpo-author" in (_rr.sections(_RAF["body"]).get("Approval") or "")
+    and "docs/HANDOVER.md" not in _RAF["body"],
+    f"head={'a' * 40 in _RAF['body']}, red named="
+    f"{'record' in (_rr.sections(_RAF['body']).get('Red checks') or '')}, "
+    "approval manual="
+    f"{'hpo-author' in (_rr.sections(_RAF['body']).get('Approval') or '')}, "
+    "handover untouched="
+    f"{'docs/HANDOVER.md' not in _RAF['body']}; the design keeps the "
+    "approving labelled review and the HANDOVER updated-for line manual "
+    "deliberately -- a job would over-write the handover every beat",
+)
+
+# THE JOB'S WIRING, over tests.yml's record-autofix block read WITHOUT its
+# comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
+# a grant would accept the sentence that explains the grant. Pinned: main
+# only, its own environment, the `ci:` commit subject the loop guard keys on,
+# the guarded `git add docs/delivery` write set, the re-derive loop, the
+# #201 comment, and the report step that reddens a beat owed and not landed.
+# The record push's one force is a LEASE anchored on the tip the same try
+# fetched (a re-run's sibling commit made the fast-forward-only push of run
+# 37261904851, attempt 06:14, refuse forever), so every push line carries
+# `--force-with-lease=refs/heads/record/autofix:<expected>` and nothing else
+# that forces. The null controls strip the subject, the ref guard and the
+# lease's anchor and must each fail.
+_RAF_JOB_RAW = _workflow_job(_TESTS_YML, "record-autofix")
+_RAF_JOB = "\n".join(
+    _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
+_RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
+_RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+
+
+def _raf_job_ok(job: str) -> bool:
+    """The wiring record-autofix owes, read over non-comment lines."""
+    adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
+    pushes = re.findall(r"(?m)^\s*(push .*)$", job)
+    return (
+        bool(job)
+        and "github.ref == 'refs/heads/main'" in job
+        and "environment: record-writer" in job
+        and 'git commit -q -m "ci: record delivery rows"' in job
+        and adds == ["git add docs/delivery"]
+        and "docs/HANDOVER.md" not in job
+        and "for try in 1 2 3" in job
+        and "issues/201/comments" in job
+        and "if: always()" in job
+        and pushes
+        and all(_RAF_LEASE in p for p in pushes)
+        and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
+                    for p in pushes)
+        and not re.search(r"pulls/.*/reviews", job))
+
+
+R.check(
+    "tests.yml's record-autofix job: main-only, its own environment, "
+    "loop-guarded ci: subject, guarded write set",
+    _raf_job_ok(_RAF_JOB),
+    f"job present={_RAF_JOB != ''}, ref guard="
+    f"{'github.ref == ' in _RAF_JOB}, env="
+    f"{'environment: record-writer' in _RAF_JOB}, adds="
+    f"{[a.strip() for a in _RAF_ADDS]}, "
+    "handover mentioned="
+    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
+    "gate after the generator's own guard -- a `git add -A` would commit a "
+    "write the guard refused -- a moved main is re-derived by the fetch/"
+    "reset loop, and the record push replaces only the tip the same try "
+    "fetched, under the lease anchored on it",
+)
+R.check(
+    "and the pin reads the job's own lines, not its name (null controls)",
+    not _raf_job_ok(_RAF_JOB.replace(
+        "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'git commit -q -m "ci: record delivery rows"', "", 1))
+    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
+                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1)),
+    "stripping the ref guard, the ci: subject, the guarded add, or the "
+    "lease's anchor -- or replacing the lease with an unanchored "
+    "--force-with-lease or a bare --force -- must each turn the pin red -- "
+    "or the pin matched a comment, not the wiring",
+)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
@@ -23986,7 +24383,7 @@ def _pt_seams(docs: dict) -> "set[str]":
         for _job in ((_doc or {}).get("jobs") or {}).values():
             _steps = _job.get("steps") or []
             _pins = [_p for _s in _steps
-                     for _p in _pt_quoted_after(str(_s.get("run") or ""), 'git checkout "$PINNED" --')]
+                     for _p in _pt_quoted_after(str(_s.get("run") or ""), '"$PINNED" -- ')]
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
@@ -24175,7 +24572,7 @@ _PT_DIFF = 'git diff --quiet "$BASE"..."$HEAD" --'
 R.check(
     "and the arm fires on exactly the pathspec policy-docs restores from the base",
     _pt_spec(_PT_DOCS, "tests.yml", "graders-head-copy", _PT_DIFF)
-    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", 'git checkout "$PINNED" --') != [],
+    == _pt_spec(_PT_DOCS, "governance.yml", "policy-docs", '"$PINNED" -- ') != [],
     f"arm={_pt_spec(_PT_DOCS, 'tests.yml', 'graders-head-copy', _PT_DIFF)}",
 )
 
@@ -25178,6 +25575,16 @@ R.check(
 # approval never turns it green); the gate run before the restore, without it
 # or without `-I` (the pull request grades itself); a write grant. The null
 # control drives the same predicate over a copy with the restore removed.
+def _restores_workflow_py(run: str) -> bool:
+    """The step restores `.claude/workflows/*.py` from PINNED: directly, or
+    listed (R9-RO-2) -- the pathspec on the `git diff` that lists what PINNED
+    holds, and a `--pathspec-from-file` checkout restoring that list."""
+    if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run):
+        return True
+    return bool(re.search(r"\"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", run)) and (
+        'git checkout "$PINNED" --pathspec-from-file=' in run)
+
+
 def _brg_defects(text: str) -> "list[str]":
     doc = _yaml.safe_load(text) or {}
     on = doc.get(True, doc.get("on")) or {}
@@ -25187,7 +25594,7 @@ def _brg_defects(text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if list(jobs) != ["budget-raise-gate"]:
         out.append(f"jobs {list(jobs)}")
@@ -25219,8 +25626,8 @@ R.check(
     f"defects: {_BRG_DEFECTS}",
 )
 _BRG_NULL = _brg_defects(re.sub(
-    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n",
-    "true\n", _BRG_TEXT))
+    r"git checkout \"\$PINNED\" -- \\\n\s*'\.claude/workflows/\*\.py'\n", "true\n", _BRG_TEXT).replace(
+    'git checkout "$PINNED" --pathspec-from-file=', 'true "$PINNED" --pathspec-from-file='))
 R.check(
     "and the same file with its restore removed is refused (null control)",
     any(d.startswith("restore at") for d in _BRG_NULL),
@@ -25247,7 +25654,7 @@ def _brr_defects(text: str, gate_text: str) -> "list[str]":
     gate = [i for i, r in enumerate(runs)
             if re.search(r"python3?\s+(?:-\w+\s+)*\S*budget_raise_gate\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     gate_name = (_yaml.safe_load(gate_text) or {}).get("name")
     out = []
     if set(on) != {"workflow_run"}:
@@ -25447,7 +25854,7 @@ def _crr_defects(text: str, watched: "list[str]") -> "list[str]":
     runs = [str(s.get("run", "")) for s in steps]
     prog = [i for i, r in enumerate(runs) if re.search(r"python3?\s+(?:-\w+\s+)*\S*contract_rerun\.py", r)]
     restore = [i for i, r in enumerate(runs)
-               if re.search(r"git checkout \"\$PINNED\" -- \\\s*'\.claude/workflows/\*\.py'", r)]
+               if _restores_workflow_py(r)]
     out = []
     if set(on) != {"workflow_run"}:
         out.append(f"triggers {sorted(map(str, on))}")
@@ -29853,6 +30260,175 @@ R.check(
 )
 
 
+# R9-FR-7 (#1945): the pin-measurement drive, split. `--pin-killed` is the
+# autofix lane's measuring half: every site a diff adds unpinned is driven by
+# every driver whose recorded closure reaches its file, and a kill is the
+# site's `killed_by` pin. drive_pool admits a mutant only if its WHOLE serial
+# sweep -- the sum of every driver's cost, what a survivor costs -- ends by
+# --budget-minutes, so a 13-driver anchor can be refused by an estimate
+# bigger than the whole budget before any run starts (#1887: "34 not started
+# for --budget-minutes", nothing measured), and the workers it does start
+# grind one mutant's drivers back to back (#1779: 8 sites overran the pin
+# step's 60 minutes with no table). The drives are independent -- mutant x
+# driver, no shared state but the worker tree a run mutates -- so the split
+# queues the admitted mutants' shared drivers as individual tasks any worker
+# can take. The oracle is PIN EQUALITY: the split's verdicts, and the pins
+# `pin_results` writes from them, must equal the serial schedule's --
+# `drive_pool` at one worker -- including WHICH driver a kill names.
+_mut_pin = getattr(_mut, "drive_pin_pool", None)
+
+_MUT_S_SEEN: list = []
+_MUT_S_BAR = _mut_threading.Barrier(4)
+_MUT_S_POOL = [{"file": f"x{i}.py", "line": i, "kind": "CONST",
+                "anchor": f"x{i}.py:a", "drivers": ["tests/a.py",
+                                                    "tests/b.py"]}
+               for i in range(2)]
+_MUT_S_OUT = (_mut_pin(_MUT_S_POOL, 4,
+                       {"tests/a.py": 1, "tests/b.py": 2},
+                       lambda w, m, s: not _mut_barrier_run(
+                           _MUT_S_BAR, _MUT_S_SEEN, w, m["line"], s))
+              if _mut_pin is not None else [])
+R.check(
+    "the pin drive holds four (mutant, driver) runs in flight at once -- the "
+    "split exists, and is not drive_pool's one-mutant-at-a-time schedule",
+    _mut_pin is not None
+    and [v for _, v in _MUT_S_OUT] == ["LIVES", "LIVES"]
+    and len(_MUT_S_SEEN) == 4,
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'} "
+    f"runs={_MUT_S_SEEN!r} -- four workers must take four runs together; a "
+    "schedule that sweeps one mutant per worker breaks the barrier",
+)
+
+# Pin equality, on a fixture shaped like the ledger's kills: four drivers,
+# tests/features.py the costliest and the likeliest killer, one mutant a
+# cheap driver kills at once, two survivors. Completion order under the
+# split is the inverse of driver order -- the cheap driver finishes first --
+# and the named killer must still be the serial sweep's first killer.
+_MUT_E_DRIVERS = ["tests/a.py", "tests/features.py", "tests/b.py",
+                  "tests/env_drift.py"]
+_MUT_E_COST = {"tests/a.py": 10, "tests/features.py": 500, "tests/b.py": 40,
+               "tests/env_drift.py": 90}
+_MUT_E_POOL = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+                "anchor": f"m{i}.py:a", "old": "o", "new": "n",
+                "drivers": list(_MUT_E_DRIVERS)}
+               for i in range(6)]
+_MUT_E_KILLS = {(0, "tests/features.py"), (1, "tests/a.py"),
+                (3, "tests/b.py"), (4, "tests/features.py")}
+
+
+def _mut_e_run(schedule, workers):
+    """(verdicts, pin JSON) one schedule gives on the equality fixture."""
+    kills: dict = {}
+
+    def drive(w, m, s):
+        hit = (m["line"], s) in _MUT_E_KILLS
+        _time.sleep(_MUT_E_COST[s] / 2000.0)
+        if hit:
+            kills[(id(m), s)] = _mut.ScriptRun(1, 2, _MUT_E_COST[s] / 2000.0)
+        return hit
+
+    out = schedule(_MUT_E_POOL, workers, _MUT_E_COST, drive)
+    entries, _, _ = _mut.pin_results(
+        out, kills, {s: _mut.ScriptRun(0, 0, 1.0) for s in _MUT_E_DRIVERS},
+        _MUT_E_POOL, "r")
+    return [v for _, v in out], json.dumps(entries, sort_keys=True, indent=2)
+
+
+_MUT_E_OUT = ((_mut_e_run(_mut.drive_pool, 1), _mut_e_run(_mut_pin, 4))
+              if _mut_pin is not None else None)
+R.check(
+    "the split's verdicts and pins are byte-identical to the serial "
+    "schedule's, the named killer included",
+    _MUT_E_OUT is not None
+    and _MUT_E_OUT[0] == _MUT_E_OUT[1]
+    and sum(v.startswith("killed by") for v in _MUT_E_OUT[0][0]) == 4
+    and _MUT_E_OUT[0][0][1] == "killed by tests/a.py",
+    f"serial={_MUT_E_OUT[0]!r} split={_MUT_E_OUT[1]!r}"
+    if _MUT_E_OUT else f"drive_pin_pool="
+                       f"{'absent' if _mut_pin is None else 'present'}",
+)
+
+# The honesty guard under the split: a timed-out driver is never a kill
+# (R9-F10.12), and a mutant whose first driver times out runs nothing
+# further and pins nothing -- exactly the serial sweep's stop.
+_MUT_H_RAN: list = []
+
+
+def _mut_h_drive(w, m, s):
+    _MUT_H_RAN.append(s)
+    return None if s == "tests/a.py" else False
+
+
+_MUT_H_SITE = [{"file": "x.py", "line": 0, "kind": "CONST", "anchor": "x.py:a",
+                "drivers": ["tests/a.py", "tests/b.py", "tests/features.py"]}]
+_MUT_H_OUT = (_mut_pin(_MUT_H_SITE, 4,
+                       {"tests/a.py": 1, "tests/b.py": 2,
+                        "tests/features.py": 500}, _mut_h_drive)
+              if _mut_pin is not None else [])
+_MUT_H_PINS = (_mut.pin_results(_MUT_H_OUT, {}, {}, _MUT_H_SITE, "r")[0]
+               if _MUT_H_OUT else None)
+R.check(
+    "under the split a timed-out driver is never a kill: the mutant runs "
+    "nothing further, reads SKIP-TIMED-OUT, and pins nothing",
+    _mut_pin is not None
+    and [v for _, v in _MUT_H_OUT] == ["SKIP-TIMED-OUT in tests/a.py"]
+    and _MUT_H_PINS == {}
+    and _MUT_H_RAN == ["tests/a.py"],
+    f"verdicts={[v for _, v in _MUT_H_OUT]!r} pins={_MUT_H_PINS!r} "
+    f"ran={_MUT_H_RAN!r}",
+)
+
+# The budget under the split: admission compares the outstanding work against
+# the workers left to run it, so the split measures what the serial estimate
+# refuses. Four mutants of one 40 s driver each under a deadline of 100: the
+# serial schedule starts a mutant only if its whole sweep ends by it, so its
+# third mutant needs 80 + 40 and closes the pool; the split's fourth mutant
+# needs 40/4 = 10 of outstanding work, which fits at any interleaving.
+_MUT_BG2_T = [0.0]
+_MUT_BG2_POOL = [{"file": "x.py", "line": i, "kind": "CONST",
+                  "drivers": ["tests/a.py"]} for i in range(4)]
+
+
+def _mut_bg2_run(schedule, workers, deadline):
+    _MUT_BG2_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append(m["line"])
+        _MUT_BG2_T[0] += 40 / workers
+        return False
+
+    out = schedule(_MUT_BG2_POOL, workers, {"tests/a.py": 40}, drive,
+                   deadline=deadline, clock=lambda: _MUT_BG2_T[0])
+    return [v for _, v in out], sorted(ran)
+
+
+_MUT_BG2_OUT = ((_mut_bg2_run(_mut.drive_pool, 1, 100),
+                 _mut_bg2_run(_mut_pin, 4, 100))
+                if _mut_pin is not None else None)
+R.check(
+    "the split's budget admission divides the outstanding work by the "
+    "workers, measuring a pool the serial estimate closes after two",
+    _MUT_BG2_OUT is not None
+    and _MUT_BG2_OUT[0] == (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"],
+                            [0, 1])
+    and _MUT_BG2_OUT[1] == (["LIVES"] * 4, [0, 1, 2, 3]),
+    f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
+    if _MUT_BG2_OUT else f"drive_pin_pool="
+                         f"{'absent' if _mut_pin is None else 'present'}",
+)
+_MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
+               "else drive_pool" in _MUT_MAIN_DEFER)
+R.check(
+    "main() routes the pin-measurement phase through the split and every "
+    "other mode through drive_pool",
+    _mut_pin is not None and _MUT_ROUTED
+    and "results += drive_phase(" in _MUT_MAIN_DEFER,
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'}, "
+    f"routing={'present' if _MUT_ROUTED else 'absent'}",
+)
+
+
 # R9-F10.13 arm A: a mutant on a line a survivor_triage mark names makes that
 # mark stale in the mutated tree, so the staleness check above failed the
 # driver and the mutant read KILLED by it (#1867's review: the payload.py mark,
@@ -30606,6 +31182,15 @@ R.check(
 # the loop in every arm and the fit ran there in the third.
 for _rp_name, _rp_ok, _rp_detail in _replay.kernel_checks():
     R.check(_rp_name, _rp_ok, _rp_detail)
+
+# R9-DBG-3: repo-side debugger harness, gated here like the replay cheap half
+# so a change under tools/replay selects this script without a new selectable
+# lane (run.sh / derive_closures.sh / closure.py are owned).
+R.section("The debugger harness: ingest, store seed, week generator")
+for _dbg_name, _dbg_ok, _dbg_detail in (
+    _dbg_ingest.gate_checks() + _dbg_replay.gate_checks() + _dbg_gen.gate_checks()
+):
+    R.check(_dbg_name, _dbg_ok, _dbg_detail)
 
 
 # --- round 9's judge re-runner (PLAN R3) ---

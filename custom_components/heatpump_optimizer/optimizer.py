@@ -92,6 +92,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    WeatherSeries,
     _mean_humidity,
     _step_humidity,
     planned_draw_runs,
@@ -1530,6 +1531,55 @@ class _Horizon:
         return _utc_step_starts(self.start_time, self.n_steps, timedelta(hours=self.dt))
 
 
+
+@dataclass(frozen=True, kw_only=True)
+class ForecastSeries:
+    """The per-step series one solve plans against, each named (#1736).
+
+    Most are same-shape float arrays, so the positional signature they used
+    to travel in would have taken a transposition silently. ``None`` keeps
+    each one's neutral default: no wind, rain, sun, surplus, free heat or
+    price dispersion, every price published, the ambient humidity.
+    """
+
+    prices: np.ndarray
+    outdoor_temps: np.ndarray
+    wind_speeds: np.ndarray | None = None
+    precipitation: np.ndarray | None = None
+    solar_radiation: np.ndarray | None = None
+    price_known: np.ndarray | None = None
+    pv_surplus: np.ndarray | None = None
+    price_sigma: np.ndarray | None = None
+    humidity: np.ndarray | None = None
+    external_heat_kw: np.ndarray | None = None
+
+
+@dataclass(frozen=True, kw_only=True)
+class SolveLimits:
+    """What bounds one solve beyond its configuration: the manual pins, the
+    electrical ceiling, the comfort floor's two adjustments and the pump's
+    blocked channels. The defaults bound nothing."""
+
+    space_pins: np.ndarray | None = None
+    dhw_pins: np.ndarray | None = None
+    power_caps_extra: np.ndarray | None = None
+    min_temp_margins: np.ndarray | None = None
+    min_temp_floors: np.ndarray | None = None
+    space_blocked: bool = False
+    dhw_blocked: bool = False
+
+
+@dataclass(frozen=True, kw_only=True)
+class SolveInputs:
+    """Everything ``HeatPumpOptimizer.optimize`` plans from besides its own
+    model and configuration, built once per solve and never written."""
+
+    state: ThermalState
+    forecast: ForecastSeries
+    start_time: datetime | None = None
+    limits: SolveLimits = field(default_factory=SolveLimits)
+
+
 def hold_demand_kw(
     params: ThermalParameters,
     target: float,
@@ -2359,15 +2409,9 @@ class HeatPumpOptimizer:
                 return space_power, dhw_power, status
 
             replanned_plan, self._dhw_requirement = planner._build_dhw_requirements(
-                initial_state=h.initial_state,
-                prices=h.prices,
-                outdoor_temps=h.outdoor_temps,
-                step_hours=h.step_hours,
-                n_steps=h.n_steps,
-                dt=h.dt,
+                h,
                 p_max=p_max,
                 space_demand=np.where(pinned, p_max, space_power),
-                dhw_pins=h.dhw_pins,
                 p_run_cap=(
                     float(np.min(h.power_caps_extra))
                     if h.power_caps_extra is not None
@@ -2376,10 +2420,7 @@ class HeatPumpOptimizer:
                 # The first build's block (#1747): a replan without it plans
                 # hot water the mode cannot make, and masks the breach.
                 blocked=h.dhw_blocked,
-                step_weekdays=h.step_weekdays,
-                holiday_flags=h.holiday_flags,
                 wood_temps=wood_temps,
-                humidity=h.humidity,
             )
             replanned = replanned_plan.schedule
             if np.allclose(replanned, dhw_power, atol=1e-4):
@@ -2695,32 +2736,7 @@ class HeatPumpOptimizer:
     # Main optimization
     # ------------------------------------------------------------------
 
-    def optimize(
-        self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray | None = None,
-        precipitation: np.ndarray | None = None,
-        solar_radiation: np.ndarray | None = None,
-        start_time: datetime | None = None,
-        price_known: np.ndarray | None = None,
-        pv_surplus: np.ndarray | None = None,
-        space_pins: np.ndarray | None = None,
-        dhw_pins: np.ndarray | None = None,
-        external_heat_kw: np.ndarray | None = None,
-        price_sigma: np.ndarray | None = None,
-        power_caps_extra: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
-        # Keyword-only: both are per-step temperature series, the same shape
-        # and dtype as half the arrays above — a positional transposition
-        # would be silent and plausible-looking.
-        *,
-        min_temp_margins: np.ndarray | None = None,
-        min_temp_floors: np.ndarray | None = None,
-        space_blocked: bool = False,
-        dhw_blocked: bool = False,
-    ) -> OptimizationResult:
+    def optimize(self, *, inputs: SolveInputs) -> OptimizationResult:
         """Run the MPC optimization with predictive weather anticipation.
 
         This is the CORE of true MPC: the optimizer uses the FULL 24-hour
@@ -2732,27 +2748,40 @@ class HeatPumpOptimizer:
         - Increases pre-heating before forecasted windy/rainy periods
         - Coordinates DHW heating with space heating and electricity prices
 
-        ``prices`` are the raw import prices. Where ``pv_surplus`` forecasts
-        spare production, the objectives price consumption piecewise — the
-        surplus-covered energy at ``config.pv_export_price``, the rest at the
-        import price — so a step with trivial sun is not repriced wholesale.
-        ``price_known`` marks which steps rest on published market data rather
-        than on the learned diurnal prior.
+        The forecast's ``prices`` are the raw import prices. Where its
+        ``pv_surplus`` forecasts spare production, the objectives price
+        consumption piecewise — the surplus-covered energy at
+        ``config.pv_export_price``, the rest at the import price — so a step
+        with trivial sun is not repriced wholesale. ``price_known`` marks which
+        steps rest on published market data rather than on the learned
+        diurnal prior.
 
-        ``space_blocked`` / ``dhw_blocked`` say that the heat pump's *observed
-        operating mode* cannot serve that channel at all — a unit in ``heat``
-        makes no hot water, a unit in ``DHW`` or ``cool`` heats no rooms. They
-        are not a preference and not a manual pin: the pin-safety loop below
-        releases forced-off pins when a floor would be breached, and doing
-        that here would put back power the hardware refuses to draw. So a
-        blocked channel stays blocked, its floor is left unmet, and the reason
-        codes say ``pump_mode`` rather than ``idle`` so the shortfall is
-        visible instead of looking like the optimizer declining to run. Both
-        default to False, which is byte-for-byte the previous behaviour.
+        The limits' ``space_blocked`` / ``dhw_blocked`` say that the heat
+        pump's *observed operating mode* cannot serve that channel at all — a
+        unit in ``heat`` makes no hot water, a unit in ``DHW`` or ``cool``
+        heats no rooms. They are not a preference and not a manual pin: the
+        pin-safety loop below releases forced-off pins when a floor would be
+        breached, and doing that here would put back power the hardware
+        refuses to draw. So a blocked channel stays blocked, its floor is left
+        unmet, and the reason codes say ``pump_mode`` rather than ``idle`` so
+        the shortfall is visible instead of looking like the optimizer
+        declining to run. Both default to False, which is byte-for-byte the
+        previous behaviour.
         """
         import time
 
         t_start = time.monotonic()
+        initial_state, start_time = inputs.state, inputs.start_time
+        series, limits = inputs.forecast, inputs.limits
+        prices, outdoor_temps = series.prices, series.outdoor_temps
+        wind_speeds, precipitation = series.wind_speeds, series.precipitation
+        solar_radiation, humidity = series.solar_radiation, series.humidity
+        price_known, pv_surplus = series.price_known, series.pv_surplus
+        price_sigma, external_heat_kw = series.price_sigma, series.external_heat_kw
+        space_pins, dhw_pins = limits.space_pins, limits.dhw_pins
+        power_caps_extra = limits.power_caps_extra
+        min_temp_margins, min_temp_floors = limits.min_temp_margins, limits.min_temp_floors
+        space_blocked, dhw_blocked = limits.space_blocked, limits.dhw_blocked
 
         n_steps = min(len(prices), len(outdoor_temps), self.config.n_steps)
         dt = self.config.dt_hours
@@ -3048,10 +3077,16 @@ class HeatPumpOptimizer:
 
         if power_caps is not None and throttling:
             result = self._repair_throttled_buffer_caps(
-                result, power_caps, initial_state, outdoor_temps,
-                wind_speeds, precipitation, solar_radiation, dt,
-                prices, step_hours, external_heat_kw, valve_targets,
-                humidity, _solve,
+                WeatherSeries(
+                    outdoor_temps=outdoor_temps,
+                    wind_speeds=wind_speeds,
+                    precipitation=precipitation,
+                    solar_radiation=solar_radiation,
+                    humidity=humidity,
+                    external_heat_kw=external_heat_kw,
+                ),
+                initial_state, result, power_caps, dt,
+                prices, step_hours, valve_targets, _solve,
             )
 
         result.manual_pins_active = space_pins is not None or dhw_pins is not None
@@ -3497,17 +3532,13 @@ class HeatPumpOptimizer:
 
     def _tighten_buffer_caps(
         self,
+        weather: WeatherSeries,
+        initial_state: ThermalState,
         result: OptimizationResult,
         power_caps: np.ndarray,
-        initial_state: ThermalState,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray,
-        precipitation: np.ndarray,
-        solar_radiation: np.ndarray,
         dt: float,
-        external_heat_kw: np.ndarray | None = None,
+        *,
         valve_targets: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
         start_hour: float | None = None,
     ) -> bool:
         """Lower per-step power ceilings where the plan charged a full tank.
@@ -3520,18 +3551,15 @@ class HeatPumpOptimizer:
         in place, exactly as the pin-release loop mutates the pins, and
         returns whether anything changed so the caller knows to re-solve.
         """
+        outdoor_temps = weather.outdoor_temps
+        humidity = weather.humidity
         schedule = np.asarray(result.power_schedule, dtype=float)
         _, _, _, _, _, refused, _ = self.model.simulate_trajectory(
             initial_state=initial_state,
             power_schedule=schedule,
-            outdoor_temps=outdoor_temps,
-            wind_speeds=wind_speeds,
-            precipitation=precipitation,
-            solar_radiation=solar_radiation,
+            weather=weather,
             dt_hours=dt,
-            external_heat_kw=external_heat_kw,
             valve_targets=valve_targets,
-            humidity=humidity,
             # The refusal check must simulate the same physics the
             # objective did — with #53's profile active, flat internal
             # gains would judge the caps on a trajectory the solve does
@@ -3568,30 +3596,22 @@ class HeatPumpOptimizer:
 
     def _repair_throttled_buffer_caps(
         self,
+        weather: WeatherSeries,
+        initial_state: ThermalState,
         result: OptimizationResult,
         power_caps: np.ndarray,
-        initial_state: ThermalState,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray,
-        precipitation: np.ndarray,
-        solar_radiation: np.ndarray,
         dt: float,
         prices: np.ndarray,
         step_hours: np.ndarray,
-        external_heat_kw: np.ndarray | None,
         valve_targets: np.ndarray | None,
-        humidity: np.ndarray | None,
         solve: Callable[..., OptimizationResult],
     ) -> OptimizationResult:
         """Re-solve after lowering ceilings where the tank clamp refused heat."""
         p_max = self.model.params.max_electrical_power
         for _ in range(_SAFETY_REPAIR_ROUNDS):
             if not self._tighten_buffer_caps(
-                result, power_caps, initial_state, outdoor_temps,
-                wind_speeds, precipitation, solar_radiation, dt,
-                external_heat_kw=external_heat_kw,
+                weather, initial_state, result, power_caps, dt,
                 valve_targets=valve_targets,
-                humidity=humidity,
                 start_hour=float(step_hours[0]),
             ):
                 break
@@ -3744,6 +3764,7 @@ class HeatPumpOptimizer:
         outdoor_temps, wind_speeds, precipitation, solar_radiation = (
             h.outdoor_temps, h.wind_speeds, h.precipitation, h.solar_radiation
         )
+        weather = WeatherSeries.from_horizon(h)
         temp_min_bounds, temp_max_bounds = h.temp_min_bounds, h.temp_max_bounds
 
         # How far the user is willing to let the house drift below target. The
@@ -3763,14 +3784,9 @@ class HeatPumpOptimizer:
             return self.model.simulate_trajectory(
                 initial_state=initial_state,
                 power_schedule=power_schedule,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
+                weather=weather,
                 dt_hours=dt,
-                external_heat_kw=h.external_heat_kw,
                 valve_targets=h.valve_targets,
-                humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
 
@@ -3849,14 +3865,9 @@ class HeatPumpOptimizer:
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
                 power_matrix=space_matrix,
-                outdoor_temps=outdoor_temps,
-                wind_speeds=wind_speeds,
-                precipitation=precipitation,
-                solar_radiation=solar_radiation,
+                weather=weather,
                 dt_hours=dt,
-                external_heat_kw=h.external_heat_kw,
                 valve_targets=h.valve_targets,
-                humidity=h.humidity,
                 start_hour=float(h.step_hours[0]),
             )
             # The grid sees the combined draw: space plus the fixed DHW plan.
@@ -3890,6 +3901,7 @@ class HeatPumpOptimizer:
         )
         outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
         precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        weather = WeatherSeries.from_horizon(h)
         comfort_targets = h.comfort_targets
         solar_gains_per_step = h.solar_gains
         forecast_heat_loss_factors = h.heat_loss_factors
@@ -3940,9 +3952,7 @@ class HeatPumpOptimizer:
         # Computed once and reused below for the savings reference; the same
         # simulation also makes a good solver start.
         baseline_power, baseline_end = self._compute_baseline_power(
-            initial_state, outdoor_temps, wind_speeds, precipitation,
-            solar_radiation, dt, comfort_targets,
-            external_heat_kw=h.external_heat_kw, humidity=h.humidity,
+            weather, initial_state, dt, comfort_targets,
         )
         baseline_energy = float(np.sum(baseline_power) * dt)
         starts = [
@@ -4169,6 +4179,7 @@ class HeatPumpOptimizer:
         )
         outdoor_temps, wind_speeds = h.outdoor_temps, h.wind_speeds
         precipitation, solar_radiation = h.precipitation, h.solar_radiation
+        weather = WeatherSeries.from_horizon(h)
         comfort_targets = h.comfort_targets
         step_hours, solar_gains_per_step = h.step_hours, h.solar_gains
         forecast_heat_loss_factors = h.heat_loss_factors
@@ -4194,24 +4205,15 @@ class HeatPumpOptimizer:
         # the only reason to run the pump is to be ready for the *next* window
         # — and the energy-cost term then decides *when* that happens.
         dhw_plan, self._dhw_requirement = planner._build_dhw_requirements(
-            initial_state=initial_state,
-            prices=prices,
-            outdoor_temps=outdoor_temps,
-            step_hours=step_hours,
-            n_steps=n_steps,
-            dt=dt,
+            h,
             p_max=p_max,
-            dhw_pins=h.dhw_pins,
             p_run_cap=(
                 float(np.min(h.power_caps_extra))
                 if h.power_caps_extra is not None
                 else None
             ),
             blocked=h.dhw_blocked,
-            step_weekdays=h.step_weekdays,
-            holiday_flags=h.holiday_flags,
             wood_temps=planner._dhw_coil_wood_forecast(h),
-            humidity=h.humidity,
         )
 
         dhw_floor_temps = dhw_plan.floor_temps
@@ -4299,16 +4301,11 @@ class HeatPumpOptimizer:
             initial_state=initial_state,
             space_power_schedule=optimal_space,
             dhw_power_schedule=optimal_dhw,
-            outdoor_temps=outdoor_temps,
-            wind_speeds=wind_speeds,
-            precipitation=precipitation,
-            solar_radiation=solar_radiation,
+            weather=WeatherSeries.from_horizon(h),
             start_hour=start_hour,
             dt_hours=dt,
             dhw_draw_rates=dhw_draw_rates,
-            external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets,
-            humidity=h.humidity,
             end_state=published_end,
         )
         # The achieved objective, for candidate comparison across valve
@@ -4317,9 +4314,7 @@ class HeatPumpOptimizer:
 
         # Baseline cost; its house owns the plan's refill coil and draws.
         baseline_power, baseline_end = self._compute_baseline_power(
-            initial_state, outdoor_temps, wind_speeds, precipitation,
-            solar_radiation, dt, comfort_targets,
-            external_heat_kw=h.external_heat_kw, humidity=h.humidity,
+            weather, initial_state, dt, comfort_targets,
             coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
@@ -4677,15 +4672,10 @@ class HeatPumpOptimizer:
 
     def _compute_baseline_power(
         self,
+        weather: WeatherSeries,
         initial_state: ThermalState,
-        outdoor_temps: np.ndarray,
-        wind_speeds: np.ndarray,
-        precipitation: np.ndarray,
-        solar_radiation: np.ndarray,
         dt: float,
         comfort_targets: np.ndarray | None = None,
-        external_heat_kw: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
         coil_draws: np.ndarray | None = None,
         coil_dhw_temp: float = 0.0,
     ) -> tuple[np.ndarray, ThermalState]:
@@ -4714,6 +4704,18 @@ class HeatPumpOptimizer:
         wood-tank refill coil on that state each step, from a tank at
         ``coil_dhw_temp``, as the plan's own trajectory does.
         """
+        outdoor_temps = weather.outdoor_temps
+        wind_speeds = weather.wind_speeds
+        precipitation = weather.precipitation
+        solar_radiation = weather.solar_radiation
+        external_heat_kw = weather.external_heat_kw
+        humidity = weather.humidity
+        # The thermostat runs the same heat-loss physics as the plan, so its
+        # weather is the horizon's: the series the loss multiplies are
+        # required here, never the record's None default. Both callers hand
+        # it a horizon's series (tests build them concrete).
+        assert wind_speeds is not None and precipitation is not None
+        assert solar_radiation is not None
         n_steps = len(outdoor_temps)
         p = self.model.params
         if not p.dhw_coil_active:
@@ -5256,10 +5258,7 @@ class HeatPumpOptimizer:
 
 
 def optimize_in_process(
-    optimizer: "HeatPumpOptimizer",
-    state: ThermalState,
-    positional: tuple[Any, ...],
-    keywords: dict[str, Any],
+    optimizer: "HeatPumpOptimizer", inputs: SolveInputs
 ) -> OptimizationResult:
     """Picklable ``optimize`` entry for the worker process; lambdas are not.
 
@@ -5267,4 +5266,4 @@ def optimize_in_process(
     callable. The coordinator's three executor lambdas could not cross
     that boundary (#199 #290).
     """
-    return optimizer.optimize(state, *positional, **keywords)
+    return optimizer.optimize(inputs=inputs)

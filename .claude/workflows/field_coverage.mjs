@@ -47,7 +47,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips } from './counts.mjs'
+import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips, at, canon } from './counts.mjs'
 import { checkBudgets, sizes, policyBudgets, CHECKS } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -139,10 +139,10 @@ if (/\\/rules\\/branches\\/main$/.test(p)) {
 } else { process.stderr.write('gh stub: ' + p); process.exit(1) }
 `
 const RULESET_PROBE = `
-import { liveRequiredContexts, liveRequiredContextsWhy, requiredContextsDrift } from ${JSON.stringify(pathToFileURL(path.join(HERE, 'counts.mjs')).href)}
+import { liveRequiredContexts, liveRequiredContextsWhy, requiredContextsDrift, at } from ${JSON.stringify(pathToFileURL(path.join(HERE, 'counts.mjs')).href)}
 import fs from 'node:fs'
 const rel = '.claude/workflows/fixtures/required-contexts.json'
-const fixture = JSON.parse(fs.readFileSync(process.env.FC_ROOT + '/' + rel, 'utf8'))
+const fixture = JSON.parse(fs.readFileSync(at(rel), 'utf8'))
 const live = liveRequiredContexts()
 const drift = live == null ? [] : requiredContextsDrift(rel, fixture, live)
 process.stdout.write(JSON.stringify({ live: live != null, why: liveRequiredContextsWhy(), drift: drift.length }))
@@ -166,7 +166,7 @@ const RULESET = {
     fs.writeFileSync(path.join(tmp, 'ruleset.json'), JSON.stringify(obj))
     fs.writeFileSync(path.join(tmp, 'gh'), GH_STUB, { mode: 0o755 })
     fs.writeFileSync(path.join(tmp, 'probe.mjs'), RULESET_PROBE)
-    const env = { ...process.env, PATH: `${tmp}:${process.env.PATH}`, FC_RULESET: path.join(tmp, 'ruleset.json'), FC_ROOT: ROOT }
+    const env = { ...process.env, PATH: `${tmp}:${process.env.PATH}`, FC_RULESET: path.join(tmp, 'ruleset.json') }
     const { code, out } = await run('node', [path.join(tmp, 'probe.mjs')], { env })
     fs.rmSync(tmp, { recursive: true, force: true })
     if (code !== 0) return `error:probe exit ${code}: ${out.trim().split('\n').pop()}`
@@ -203,7 +203,7 @@ const APPROVALS = {
   },
 }
 
-function ruleFixture() { return JSON.parse(fs.readFileSync(path.join(ROOT, '.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
+function ruleFixture() { return JSON.parse(fs.readFileSync(at('.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
 function ruleRepo() { return ruleFixture().branch_endpoint.replace(/^repos\//, '').replace(/\/rules\/branches\/main$/, '') }
 function ruleId() { return ruleFixture().rulesets[0] }
 
@@ -239,7 +239,7 @@ async function budgetsRun(report) {
       if (!edit) { report.blind.push(`budgets row key \`${key}\`: no edit moves it and IGNORE does not name it`); continue }
       let blind = 0; let healthyRed = 0; let checked = 0
       for (const f of files) {
-        const raw = fs.readFileSync(path.join(ROOT, f), 'utf8')
+        const raw = fs.readFileSync(at(f), 'utf8')
         const rel = path.relative(ROOT, path.join(tmpDir, f.replace(/\//g, '__')))
         // Budget object: the real one, the file's own cap under the temp name,
         // every aggregate out of reach, so only the per-file arm can answer.
@@ -343,6 +343,7 @@ const DECLARED = {
   'pinned tests/structure.py': { none: 'the structural ratchet, graded by its own self-check; the census arm plants members in it' },
   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
+  'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
 }
@@ -350,7 +351,7 @@ const DECLARED = {
 function derivedSet(report) {
   const set = CHECKS.map((c) => `check ${c.name}`)
   const cg = spawnSync('python3', ['-I', 'tools/audit/round6/D11/fix/codeowners_gap.py'], { cwd: ROOT, encoding: 'utf8' })
-  const pinned = [...new Set((cg.stdout || '').split('\n').map((l) => /^#\s+PINNED (\S+)$/.exec(l)).filter(Boolean).map((m) => m[1]))]
+  const pinned = [...new Set((cg.stdout || '').split('\n').map((l) => /^#\s+PINNED (\S+)$/.exec(l)).filter(Boolean).map((m) => canon(m[1])))]
   if (cg.status !== 0 || !pinned.length) report.refused.push(`registry: codeowners_gap.py yielded no PINNED program (exit ${cg.status})`)
   set.push(...pinned.map((f) => `pinned ${f}`))
   const stamp = fs.readFileSync(path.join(ROOT, 'tools/release/stamp.py'), 'utf8')
