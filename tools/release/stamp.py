@@ -569,6 +569,31 @@ def self_test() -> int:
              "v6.4.4: stamp the round"]
     check("merged prs: both shapes, and nothing invented",
           merged_prs(mixed) == {"1052", "969"})
+    try:
+        _body_pr = pr_from_subject(
+            "record: delivery rows for #1969 (autofix)",
+            "Merge pull request #1970, head abc.\n")
+        _fixes_pr = pr_from_subject(
+            "fix(R9-DIAG-1F): freeze the learners", "Fixes #1935\n")
+    except TypeError:
+        _body_pr = _fixes_pr = None
+    check("subjects: a title-subject merge is numbered from a body Merge pull request line",
+          _body_pr == "1970")
+    check("subjects: Fixes #N in the body is not a merged pull request",
+          _fixes_pr is None)
+    check("window: the format carries the body so a title-subject merge is readable",
+          "%b" in WINDOW_FORMAT and "%x1e" in WINDOW_FORMAT)
+    _titlew = [("50e1f11", 2, "record: delivery rows for #1969 (autofix)",
+                "Merge pull request #1970, head abc.\n")]
+    try:
+        _r4_omit = rule4_problem(_titlew, "Shipped things.", "v6.7.16", "6.7.17")
+        _r4_named = rule4_problem(_titlew, "Shipped #1970.", "v6.7.16", "6.7.17")
+    except ValueError:
+        _r4_omit, _r4_named = "unpack-rejects-body", "unpack-rejects-body"
+    check("rule 4: a title-subject merge is demanded by number, not only by sha",
+          "#1970" in (_r4_omit or ""))
+    check("rule 4: notes naming that number pass",
+          _r4_named is None)
 
     # The window is main's own first-parent line. Reading every commit of
     # every merged branch is what produced both halves of the defect, so the
