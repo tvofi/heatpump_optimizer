@@ -1,18 +1,17 @@
 # R9-FR-1 resume — friction pre-study
 
-Stage: **DONE** (2026-10-04). Deliverable:
-`tools/audit/round9/prestudy/friction-prestudy.md` on this branch
-(`handoff/r9-friction-study`), body on `handoff-body/r9-friction-study`.
+Stage: **DONE, round 2** (2026-10-05, at `origin/main` `86dbf0ca`). Round 1
+(2026-10-04, `8eab7dfd`) stays in the tree beside it and is superseded where
+they differ.
 
-- Sweep: four tag windows (since v6.7.13/14/15/16) at `1913f0dd7`, raw outputs
-  in `/Users/timmalmstrom/hpo-seats/r9-fr-study/scratch/fr-study/`.
-- FOLD: R9-FR-2 (#1860 prepr ancestry red-check arm), R9-FR-3 (#1825 family
-  folding in the stats counter) — exact roster JSON in the doc §4.
-- CLOSE BY RE-TRIAGE: #1881 (W15 closed under step 18, harness 2/2 < 3).
-- REFUSE: #1807 (head-moves are delivery-protocol main-syncs; ruleset costs
-  tvofi's hands), #1826 (heterogeneous; named contradiction already fixed),
-  #1855 (0 of 10 declarations name the lease), environment family (0 in W15).
-  Each refusal carries the number that changes the answer (doc §3).
+- Deliverable: `tools/audit/round9/prestudy/friction-prestudy-r2.md`.
+- Roster proposal (not applied to the live roster by this seat):
+  `tools/audit/round9/prestudy/friction-prestudy-r2-groups.json` — groups
+  R9-FR-11 (Mac seat typing venv) and R9-FR-12 (prepr predicts
+  budget-raise-gate and no-copies), the R9-RO-6 after-edge, R9-FR-1's resume,
+  and the seven issue dispositions. `brief_lint.mjs` on it: 0 errors.
+- Raw outputs: `/Users/timmalmstrom/hpo-seats/r9-fr-1/scratch/`.
 
-Next for the orchestrator: apply the two roster groups, post the dispositions,
-re-triage-close #1881. Nothing is owed by this seat.
+Next for the orchestrator: apply the proposal file, post the dispositions on
+#1807 #1826 #1855 (round 1's never reached them), and make the next stamp name
+#1891 and #1892. Nothing is owed by this seat.
