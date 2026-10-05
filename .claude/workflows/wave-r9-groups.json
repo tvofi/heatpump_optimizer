@@ -7210,7 +7210,7 @@
     "stage": "done",
     "branch": "handoff/r9-dbg-3",
     "commit": "077f53aff6745fb082fd1299d4921a5d9c32f644",
-    "last_step": null,
+    "last_step": "merged #1973 at 077f53af (deploy-key merge, 2026-10-05T20:28:02Z); #1941 closed",
     "next_step": "fixer.md step 1 at a fresh merge base; the pre-study doc is the spec",
     "note_file": "handoff/round9/fix/resume/DBG-3.md on fix/r9-dbg-3",
     "review_branch": "fix/r9-dbg-3-review",
