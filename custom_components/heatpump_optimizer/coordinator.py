@@ -322,6 +322,8 @@ if TYPE_CHECKING:  # annotations only; tests/hastub carries neither name
 
 _LOGGER = logging.getLogger(__name__)
 _create_issue = setpoint_check.create_issue
+# The learned scale's store key and published attribute are this config key.
+_COP_STORE_KEY = CONF_COP_SCALE
 
 # Forecast wind speed arrives in whatever unit the user's Home Assistant is
 # configured for, so it has to be converted explicitly rather than guessed.
@@ -3328,11 +3330,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if _reanchored or not _had_anchor:
             await self._async_save_thermal_learning()
 
-        # The store key is the config key's spelling. Bound through a local so
-        # the entry-config census, which cannot see the receiver, does not
-        # read this thermal-learning load as a read of the entry.
-        _cop_key = CONF_COP_SCALE
-        cop_scale = stored.get(_cop_key)
+        cop_scale = stored.get(_COP_STORE_KEY)
         if cop_scale is not None:
             try:
                 self._apply_cop_scale(float(cop_scale))
@@ -3471,7 +3469,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Every plan is priced through the COP curve, so a learned
             # correction that evaporated on restart silently re-based
             # all costs on the nameplate figure.
-            CONF_COP_SCALE: self._cop_scale,
+            _COP_STORE_KEY: self._cop_scale,
             "cop_samples": self._cop_samples,
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
@@ -7191,7 +7189,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
-            CONF_COP_SCALE: round(self._cop_scale, 3),
+            _COP_STORE_KEY: round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._last_measured_cop,
             "defrost_derate": self._defrost.factor(
@@ -8919,7 +8917,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
                 (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
                 (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
-                (self._apply_cop_scale, CONF_COP_SCALE),
+                (self._apply_cop_scale, _COP_STORE_KEY),
             ):
                 value = thermal.get(key)
                 if value is not None:
