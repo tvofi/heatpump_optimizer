@@ -7517,6 +7517,27 @@
     "branch": "handoff/r9-rc-prcontract"
    },
    "fixes": []
+  },
+  {
+   "group": "R9-DEFER-1793",
+   "lane": "DEFER",
+   "issues": [
+    1793
+   ],
+   "fixes": [],
+   "after": [],
+   "brief": "Deferred by the owner on 2026-09-30: a feature request for a shared household power budget. Not scheduled in this programme. The issue stays open and is not a wave.",
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "owner_gate": null,
+   "resume": {
+    "stage": "deferred",
+    "branch": "none",
+    "commit": null,
+    "last_step": "deferred by tvofi 2026-09-30",
+    "next_step": null,
+    "note": "not a wave"
+   }
   }
  ]
 }
