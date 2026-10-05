@@ -44,7 +44,8 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
-)
+
+    WeatherSeries,)
 
 R = Results("Replay backtest")
 
@@ -71,10 +72,12 @@ def score(model, opt_cfg, power, price_series, outdoor, wind, rain, solar, state
     room, slab, upper, lower, _, _, _ = model.simulate_trajectory(
         initial_state=state,
         power_schedule=power,
-        outdoor_temps=outdoor,
-        wind_speeds=wind,
-        precipitation=rain,
-        solar_radiation=solar,
+        weather=WeatherSeries(
+            outdoor_temps=outdoor,
+            wind_speeds=wind,
+            precipitation=rain,
+            solar_radiation=solar,
+        ),
         dt_hours=DT,
     )
     if model.params.two_zone_enabled:
@@ -112,7 +115,9 @@ def always_on(optimizer, state, outdoor, wind, rain, solar, comfort_targets):
     do with the plan.
     """
     power, _ = optimizer._compute_baseline_power(
-        state, outdoor, wind, rain, solar, DT, comfort_targets
+        WeatherSeries(outdoor_temps=outdoor, wind_speeds=wind,
+                      precipitation=rain, solar_radiation=solar),
+        state, DT, comfort_targets,
     )
     return np.asarray(power, dtype=float)
 
@@ -343,7 +348,10 @@ def _storage_arm(volume: float, price_profile: str):
     # arms are peers, not a plan against a thermostat: a surplus carried into
     # tomorrow is worth exactly what a deficit costs.
     room, slab, upper, lower, buf, _, _ = model.simulate_trajectory(
-        state, power, outdoor, wind, rain, solar, DT
+        state, power,
+        WeatherSeries(outdoor_temps=outdoor, wind_speeds=wind,
+                      precipitation=rain, solar_radiation=solar),
+        dt_hours=DT,
     )
     p = model.params
     e_delta = (
@@ -431,7 +439,11 @@ def _furnace_arm(informed: bool, burn: np.ndarray):
     # Score under the real physics: the fire burns whether or not the plan
     # knew about it.
     room, slab, upper, lower, _, _, _ = model.simulate_trajectory(
-        state, power, outdoor, wind, rain, solar, DT, external_heat_kw=burn
+        state, power,
+        WeatherSeries(outdoor_temps=outdoor, wind_speeds=wind,
+                      precipitation=rain, solar_radiation=solar,
+                      external_heat_kw=burn),
+        dt_hours=DT,
     )
     indoor = np.minimum(upper[1:], lower[1:])
     floor = np.array(

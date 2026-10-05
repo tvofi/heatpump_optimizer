@@ -74,29 +74,51 @@ def coord_footprint(pkg: C.Pkg, eng: C.Engine) -> tuple[int, list[str]]:
 READ_KW_KEYS = True  # False: the plain count, for ``vector.ablated`` (counter C11 off)
 
 
+def _param_count(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> int:
+    """The definition's parameter count, C11's literal ``**kw`` keys included.
+
+    The one definition of the guard; ``params_over_10`` and the head census
+    (#1776) both read it, so the count and the named sites cannot drift
+    apart.
+    """
+    a = fn.args
+    k = len([x for x in a.posonlyargs + a.args + a.kwonlyargs if x.arg not in ("self", "cls")])
+    if a.kwarg and READ_KW_KEYS:
+        kw = a.kwarg.arg
+        keys = set()
+        for x in ast.walk(fn):
+            if isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) \
+                    and x.func.attr in ("get", "pop") \
+                    and isinstance(x.func.value, ast.Name) and x.func.value.id == kw and x.args \
+                    and isinstance(x.args[0], ast.Constant):
+                keys.add(x.args[0].value)
+            elif isinstance(x, ast.Subscript) and isinstance(x.value, ast.Name) and x.value.id == kw \
+                    and isinstance(x.slice, ast.Constant):
+                keys.add(x.slice.value)
+        k += len(keys)
+    return k
+
+
+def params_over_10_sites(trees: dict[str, ast.Module]) -> list[str]:
+    """``module.qualname`` for every function the guard counts, parents included."""
+    sites: list[str] = []
+    for mod, t in trees.items():
+        def visit(node: ast.AST, prefix: str) -> None:
+            for child in ast.iter_child_nodes(node):
+                if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    if _param_count(child) > 10:
+                        sites.append(f"{mod}.{prefix}{child.name}")
+                    visit(child, f"{prefix}{child.name}.")
+                elif isinstance(child, ast.ClassDef):
+                    visit(child, f"{prefix}{child.name}.")
+                else:
+                    visit(child, prefix)
+        visit(t, "")
+    return sites
+
+
 def params_over_10(trees: dict[str, ast.Module]) -> int:
-    n = 0
-    for t in trees.values():
-        for fn in ast.walk(t):
-            if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                continue
-            a = fn.args
-            k = len([x for x in a.posonlyargs + a.args + a.kwonlyargs if x.arg not in ("self", "cls")])
-            if a.kwarg and READ_KW_KEYS:
-                kw = a.kwarg.arg
-                keys = set()
-                for x in ast.walk(fn):
-                    if isinstance(x, ast.Call) and isinstance(x.func, ast.Attribute) \
-                            and x.func.attr in ("get", "pop") \
-                            and isinstance(x.func.value, ast.Name) and x.func.value.id == kw and x.args \
-                            and isinstance(x.args[0], ast.Constant):
-                        keys.add(x.args[0].value)
-                    elif isinstance(x, ast.Subscript) and isinstance(x.value, ast.Name) and x.value.id == kw \
-                            and isinstance(x.slice, ast.Constant):
-                        keys.add(x.slice.value)
-                k += len(keys)
-            n += k > 10
-    return n
+    return len(params_over_10_sites(trees))
 
 
 def measure(root: Path, pkg: C.Pkg | None = None) -> dict:

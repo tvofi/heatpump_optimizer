@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from profiles import prices, weather, house, DT, N
 from profiles import solve_inputs  # noqa: E402
 from heatpump_optimizer.thermal_model import (
-    ThermalModel, ThermalParameters, ThermalState)
+    ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig, count_compressor_starts)
 from heatpump_optimizer.dhw_schedule import parse_windows, hour_in_windows
@@ -219,7 +219,10 @@ def run(scen, price_p, weather_p, two_zone=False, dhw=True, start=START, **over)
     # comfortable reproduces the same user-visible bug and would otherwise
     # ship green.
     coast_room, _, coast_up, coast_lo, _, _, _ = m.simulate_trajectory(
-        st, np.zeros(N), ot, wind, rain, sol, DT, start_hour=start.hour
+        st, np.zeros(N),
+        WeatherSeries(outdoor_temps=ot, wind_speeds=wind,
+                      precipitation=rain, solar_radiation=sol),
+        dt_hours=DT, start_hour=start.hour,
     )
     coast_zones = [coast_room] + ([coast_up, coast_lo] if two_zone else [])
     coast_min = min(float(np.min(z)) for z in coast_zones)

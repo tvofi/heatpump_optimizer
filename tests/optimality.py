@@ -23,7 +23,7 @@ from harness import Results
 from profiles import solve_inputs  # noqa: E402
 from profiles import prices, weather, house, DT, N
 from heatpump_optimizer.thermal_model import (
-    ThermalModel, ThermalParameters, ThermalState)
+    ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig)
 rng=np.random.default_rng(0)
@@ -41,7 +41,7 @@ def setup(tz, price_p="winter_typical", weather_p="winter_cold", start=datetime(
     return opt,m,pr,ot,wi,ra,so,st,start
 
 def score_plan(m,pw,st,ot,wi,ra,so,pr,minT=16.5):
-    room,slab,up,lo,_,_,_=m.simulate_trajectory(st,pw,ot,wi,ra,so,DT)
+    room,slab,up,lo,_,_,_=m.simulate_trajectory(st,pw,WeatherSeries(outdoor_temps=ot,wind_speeds=wi,precipitation=ra,solar_radiation=so),dt_hours=DT)
     r=room[1:]
     cost=float(np.sum(pr*pw*DT))
     viol=float(np.maximum(0,minT-r).sum())
