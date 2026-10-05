@@ -16,7 +16,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R9-EG-B6 (stage in-flight, branch `handoff/r9-eg-collaborator-interfaces`, note `handoff/round9/fix/resume/EG-B6.md on handoff/r9-eg-collaborator-interfaces`): `git fetch origin handoff/r9-eg-collaborator-interfaces && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DIAG-1F (stage in-flight, branch `fix/r9-diag-1f-pr`, note `handoff/round9/fix/resume/DIAG-1F.md on fix/r9-diag-1f`): `git fetch origin fix/r9-diag-1f-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DBG-3, R9-DIAG-1F, R9-EG-B11, R9-EG-B6, R9-F10.16, R9-FR-1, R9-RO-2b, R9-SW-1, R9-WEB-5
+Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DBG-3, R9-DIAG-1F, R9-EG-B11, R9-EG-B6, R9-F10.16, R9-FR-1, R9-RC-PRCONTRACT, R9-RO-2b, R9-SW-1, R9-WEB-5
 
 ## Resume steps
 
