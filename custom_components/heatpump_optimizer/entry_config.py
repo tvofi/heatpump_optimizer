@@ -47,8 +47,15 @@ def _nonzero_number(value: Any, default: float) -> float:
     return _number(value, default) or default
 
 
-def _optional_number(value: Any, default: None) -> float | None:
-    return None if value == "" else _number(value, default)  # type: ignore[arg-type]
+def _optional_number(value: Any, default: float | None) -> float | None:
+    """A finite float, or the default. An empty string is absent, not zero."""
+    if value == "":
+        return None
+    try:
+        result = float(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return result if math.isfinite(result) else default
 
 
 def _whole(value: Any, default: int | None) -> int | None:
