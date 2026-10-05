@@ -347,7 +347,7 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
     state = _slot_state(inp, "space_setpoint")
     if _flow_unit(inp.config):
-        return _flow_target(coord, state, duty)
+        return _flow_target(inp, state, duty)
     room = _planned_room(result, now)
     low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
     if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
