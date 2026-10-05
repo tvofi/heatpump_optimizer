@@ -10,10 +10,10 @@
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 45,
- "max_class_loc": 8972,
+ "max_class_loc": 8953,
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
- "recorded_at": "82d1f47f20c0557f6898f843960eaa64bb20cbfd",
- "seam_cut_total": 758
+ "recorded_at": "51ebfc879e5854fc4a9b0d41ca56d026a94c85a8",
+ "seam_cut_total": 752
 }
