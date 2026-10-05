@@ -19,7 +19,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R9-DEFER-1793 (stage deferred, branch `none`, note `None`): `git fetch origin none && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-RC-PRCONTRACT-FIX (stage in-flight, branch `handoff/r9-rc-prcontract-fix`, note `None`): `git fetch origin handoff/r9-rc-prcontract-fix && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-DIAG-2S, R9-EG-B11, R9-EG-B6, R9-F10.16, R9-FR-1, R9-RC-PRCONTRACT-FIX, R9-RO-2b, R9-STAMP-UNBLOCK, R9-SW-1
+Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-DIAG-2S, R9-EG-B11, R9-EG-B6, R9-F10.16, R9-FR-11, R9-FR-12, R9-RC-PRCONTRACT-FIX, R9-RO-2b, R9-STAMP-UNBLOCK, R9-SW-1
 
 ## Resume steps
 
