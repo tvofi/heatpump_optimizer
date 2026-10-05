@@ -11236,6 +11236,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "MixedHotWaterSensor": frozenset({
         "litres_40c", "shower_minutes", "tank_temperature"
     }),
+    "ModelRestartAdvisorSensor": frozenset({
+        "current_scale", "drift_alarm", "refit", "restore"
+    }),
     "MoldFloorBreachBinarySensor": frozenset({
         "floor_c", "shortfall_c", "space_blocked"
     }),

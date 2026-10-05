@@ -1098,14 +1098,15 @@ def model_restart_advice(coord: Any) -> dict[str, Any]:
     anything; the restore service does, on an explicit request.
     """
     ctx = getattr(coord, "_ctx", coord)
-    ring = coord._snapshot_ring
+    ring = getattr(coord, "_snapshot_ring", None)
+    scale = getattr(coord, "_house_heat_loss_scale", None)
     advice: dict[str, Any] = {
-        "drift_alarm": bool(ring.alarmed),
-        "current_scale": round(float(coord._house_heat_loss_scale), 3),
+        "drift_alarm": bool(getattr(ring, "alarmed", False)),
+        "current_scale": None if scale is None else round(float(scale), 3),
         "refit": None,
         "restore": None,
     }
-    if not ring.alarmed:
+    if ring is None or not ring.alarmed:
         return advice
     snap = ring.best_restore()
     if snap is not None:
@@ -9365,7 +9366,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
-            self._accuracy.restart_evidence(dt_util.now())  # #1936
+            if (tracker := getattr(self, "_accuracy", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936
             for setter, key in (
                 (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
                 (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
