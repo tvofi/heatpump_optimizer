@@ -6649,7 +6649,7 @@
     "stage": "in-flight",
     "branch": "handoff/r9-f10-16",
     "commit": "7eb31bd2c13004c4ca437b8880686ef71d64c8c5",
-    "last_step": null,
+    "last_step": "round-2 repair 7eb31bd2 on handoff/r9-f10-16, body on handoff-body/r9-f10-16 at ce2b1962; fix-review round 2 returned merge at 7eb31bd2 (unpublished: no PR, no nonce); open_pr.sh running at 2026-10-05T21:05Z",
     "next_step": "fixer.md step 1 at a fresh merge base after every after-edge merged",
     "note_file": null,
     "review_branch": null,
