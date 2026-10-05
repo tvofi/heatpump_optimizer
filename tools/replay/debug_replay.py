@@ -90,6 +90,17 @@ def restore_store_loads(original) -> None:
     harness.FakeHass.async_create_task = original
 
 
+def _carry_attrs(rows: list) -> list:
+    """Replay needs the attributes in force, not the sparse export deltas."""
+    last = None
+    out = []
+    for updated, state, attrs, reported in rows:
+        if attrs is not None:
+            last = attrs
+        out.append([updated, state, last, reported])
+    return out
+
+
 def trim_replay(replay_doc: dict, start: datetime, end: datetime,
                 pad: timedelta = timedelta(hours=6)) -> dict:
     """A windowed copy of an ``hpo-replay/1`` document (the smoke's tail-day)."""
@@ -97,9 +108,10 @@ def trim_replay(replay_doc: dict, start: datetime, end: datetime,
     out["window"] = {"start": start.isoformat(), "end": end.isoformat()}
     keep_from = start - pad
     for entity_id, rows in list((out.get("states") or {}).items()):
-        kept = [r for r in rows if datetime.fromisoformat(r[0]) >= keep_from]
-        if kept:
-            out["states"][entity_id] = kept
+        filled = _carry_attrs(rows)
+        keep = [r for r in filled if datetime.fromisoformat(r[0]) >= keep_from]
+        if keep:
+            out["states"][entity_id] = keep
         else:
             del out["states"][entity_id]
     return out
@@ -148,6 +160,10 @@ def gate_checks() -> list[tuple[str, bool, str]]:
         (ROOT / "tests" / "replay" / "synthetic-dhw-only.json").read_text())
     start = datetime.fromisoformat(replay["window"]["start"])
     trimmed = trim_replay(replay, start, start + timedelta(hours=2))
+    seam = offender_window(replay)
+    np_id = "sensor.nordpool_kwh_se3_sek"
+    filled_np = sum(1 for r in seam["states"].get(np_id, [])
+                    if r[2] and r[2].get("raw_today"))
     stub._DISK.clear()
     stub._DISK.update(before)
     return [
@@ -162,6 +178,8 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          trimmed["window"]["end"] != replay["window"]["end"]
          and bool(trimmed.get("states")),
          f"end={trimmed['window']['end']} n={len(trimmed.get('states') or {})}"),
+        ("debug replay: trim_replay carries sparse export attributes forward",
+         filled_np > 0, f"nordpool_rows_with_raw_today={filled_np}"),
     ]
 
 
