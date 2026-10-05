@@ -233,7 +233,6 @@
   "effective_config": "core",
   "mode": "core",
   "month_channel_totals": "core",
-  "optimization_running": "core",
   "prices": "fetch",
   "record_setpoint_override": "core",
   "system_identification_active": "core",
