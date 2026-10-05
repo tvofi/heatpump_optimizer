@@ -291,7 +291,11 @@ def _predict_step_excursion_plant(
     gains = plant.gains
     slab_thermal_mass = plant.slab_mass
     slab_heat_transfer = plant.slab_transfer
-    if ua is None or capacity is None or ua <= 1e-9 or capacity <= 1e-9:
+    if (ua is None or capacity is None or gains is None
+            or ua <= 1e-9 or capacity <= 1e-9):
+        # gains None was unrepresentable before the record (the sizer took it
+        # required); a house with no gains is degenerate in the same direction
+        # as one with no loss or mass.
         return float("inf"), float("inf")
     if model is None:
         model = _sizing_model(

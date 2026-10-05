@@ -4710,6 +4710,12 @@ class HeatPumpOptimizer:
         solar_radiation = weather.solar_radiation
         external_heat_kw = weather.external_heat_kw
         humidity = weather.humidity
+        # The thermostat runs the same heat-loss physics as the plan, so its
+        # weather is the horizon's: the series the loss multiplies are
+        # required here, never the record's None default. Both callers hand
+        # it a horizon's series (tests build them concrete).
+        assert wind_speeds is not None and precipitation is not None
+        assert solar_radiation is not None
         n_steps = len(outdoor_temps)
         p = self.model.params
         if not p.dhw_coil_active:
