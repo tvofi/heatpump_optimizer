@@ -16434,7 +16434,7 @@ _hubs_src = inspect.getsource(_Coord._solve_hubs)
 R.check(
     "the relax sits behind its flag, inside the solve's bands",
     0
-    < _run_src.find("CONF_OPEN_WINDOW_RELAX_ENABLED")
+    < _run_src.find("open_window_relax_enabled")
     < _run_src.find("OPEN_WINDOW_RELAX_C")
     and "_vent_cusum.tripped" in _run_src
     and 0 < _hubs_src.find("if banded:") < _hubs_src.find("self._floor_widening()"),
