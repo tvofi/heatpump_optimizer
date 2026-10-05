@@ -24287,7 +24287,6 @@ def _raf_job_ok(job: str) -> bool:
     return (
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
-        and "github.event.schedule == '17 2 * * *'" in job
         and "environment: record-writer" in job
         and 'git commit -q -m "ci: record delivery rows"' in job
         and adds == ["git add docs/delivery"]
@@ -29066,8 +29065,7 @@ try:
         for _rr in ("refs/heads/main", "refs/heads/fix/x", "refs/pull/1/merge"):
             for _rc in ("true", "false"):
                 _rx = {"github.event_name": _rv, "github.ref": _rr,
-                       "needs.recheck-gate.outputs.recheck": _rc,
-                       "github.event.schedule": "17 8 * * *"}
+                       "needs.recheck-gate.outputs.recheck": _rc}
                 _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
                 _r_push = _gh_eval(_gh_if(_ml_push), {
                     **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -29087,24 +29085,14 @@ R.check(
     f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
 )
 _CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
-_SLOW_JOB = _workflow_job(_TESTS_YML, "slow")
 R.check(
-    "mutation-nightly and mutation-ledger fire on distinct crons (#1930 (d))",
-    _CRONS == ["17 2 * * *", "17 8 * * *"]
-    and "github.event.schedule == '17 2 * * *'" in _MUTN_JOB
-    and "github.event.schedule == '17 8 * * *'" in _ml_meas
-    and "github.event.schedule == '17 2 * * *'" in _SLOW_JOB,
+    "one schedule cron; required lanes share that run (#1930 (d))",
+    _CRONS == ["17 2 * * *"]
+    and "github.event.schedule" not in _MUTN_JOB
+    and "github.event.schedule" not in _ml_meas
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
     f"crons={_CRONS!r}",
-)
-_rx_early = {"github.event_name": "schedule", "github.ref": "refs/heads/main",
-             "needs.recheck-gate.outputs.recheck": "false",
-             "github.event.schedule": "17 2 * * *"}
-R.check(
-    "the 02:17 cron does not start the ledger (#1930 (d))",
-    not _gh_eval(_gh_if(_ml_meas), _rx_early)
-    and _gh_eval(_gh_if(_MUTN_JOB), _rx_early),
-    f"ledger={_gh_eval(_gh_if(_ml_meas), _rx_early)} "
-    f"nightly={_gh_eval(_gh_if(_MUTN_JOB), _rx_early)}",
 )
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
@@ -29337,12 +29325,16 @@ R.check(
     _MUT_TRIAGE_KEY(_EQ_MUT)
     == "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
     and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
-    == ([_GAP_MUT], [_EQ_MUT])
-    and "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,)
+    == ([_GAP_MUT], [_EQ_MUT]),
     f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
     f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
+)
+R.check(
+    "survivor_gaps unpacks equivalent beside gaps (#1885)",
+    "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,
+    "the equivalent unpack is gone from mutation_table.py",
 )
 # The line pin is half the mark: a production edit changes text under the
 # same key, and the mark must not follow it. The line NUMBER is not part of the

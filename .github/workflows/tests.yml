@@ -115,14 +115,7 @@ on:
         type: boolean
         default: false
   schedule:
-    # 02:17 UTC: slow, nightly-ha, mutation-nightly (and the rest of the
-    # workflow's schedule-only jobs that are not the ledger).
     - cron: "17 2 * * *"
-    # 08:17 UTC: mutation-ledger alone, so it does not pay its baseline on the
-    # same runner-pool minute as mutation-nightly (#1930 (d)). Sharing one
-    # baseline artifact is not in the instrument: each job clones its own
-    # worker trees.
-    - cron: "17 8 * * *"
 
 # The suite needs the code it tests and the cache it reuses, nothing
 # more; every job inherits this read-only floor.
@@ -935,8 +928,7 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && (
-        (github.event_name == 'schedule'
-         && github.event.schedule == '17 2 * * *')
+        github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1020,8 +1012,7 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' && (
-        (github.event_name == 'schedule'
-         && github.event.schedule == '17 8 * * *')
+        github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1229,8 +1220,7 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && (
-        (github.event_name == 'schedule'
-         && github.event.schedule == '17 2 * * *')
+        github.event_name == 'schedule'
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1331,8 +1321,7 @@ jobs:
   # instead: `tests/entities.py` pins the wiring of the step below.
   nightly-ha:
     if: >-
-      (github.event_name == 'schedule'
-       && github.event.schedule == '17 2 * * *')
+      github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -2678,8 +2667,7 @@ jobs:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main'
       && (github.event_name == 'push'
-          || (github.event_name == 'schedule'
-              && github.event.schedule == '17 2 * * *')
+          || github.event_name == 'schedule'
           || github.event_name == 'workflow_dispatch')
     environment: record-writer
     runs-on: ubuntu-latest
