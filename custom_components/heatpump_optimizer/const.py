@@ -590,6 +590,10 @@ DEFAULT_SYSID_ENABLED: Final = False
 CONF_COMFORT_LEARNING_ENABLED: Final = "comfort_learning_enabled"
 DEFAULT_COMFORT_LEARNING_ENABLED: Final = False
 
+# --- The debug collector, #1939 ---------------------------------------------
+CONF_DEBUG_COLLECT: Final = "debug_collect_enabled"
+DEFAULT_DEBUG_COLLECT: Final = False
+
 # --- Building presets, item 17 ---------------------------------------------
 CONF_BUILDING_PRESET_ENABLED: Final = "building_preset_enabled"
 CONF_BUILDING_STRUCTURE: Final = "building_structure"
@@ -629,6 +633,8 @@ SERVICE_CLEAR_MANUAL_PLAN: Final = "clear_manual_plan"
 SERVICE_RESTORE_SNAPSHOT: Final = "restore_learned_snapshot"
 #: T6 #52 — attribute the last settled interval's temperature residual.
 SERVICE_DIAGNOSE_INTERVAL: Final = "diagnose_interval"
+#: #1939 — start, stop or read an entry's debug collection.
+SERVICE_DEBUG_COLLECT: Final = "debug_collect"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.

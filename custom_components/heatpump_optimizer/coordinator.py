@@ -2446,6 +2446,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     thermal_model = _view("_thermal_model")
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
+    optimization_running = _view("_optimization_running")
+    accuracy = _view("_accuracy")
+    solve_failures = _view("_solve_failures")
 
     def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
@@ -11172,10 +11175,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     # ==================================================================
     # Forcing a run, and the what-if simulator (items 3, 21)
     # ==================================================================
-
-    @property
-    def optimization_running(self) -> bool:
-        return self._optimization_running
 
     async def async_simulate(
         self,

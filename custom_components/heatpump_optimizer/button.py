@@ -9,7 +9,10 @@ until it did, the UI would imply a state that does not exist:
 * "Learning Reset Comfort Weight" — undo the revealed-preference comfort
   tuning,
 * "Prediction Accuracy Diagnose Last Interval" — attribute the last
-  interval's temperature residual.
+  interval's temperature residual,
+
+and a fifth, present only while the debug-collection option is on:
+"Finalize Debug Collection" ends the week's collection now.
 
 The runs take real time — an optimization fetches prices and weather and then
 solves — so they report ``available`` as False while busy, giving the user
@@ -24,6 +27,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
+from . import debugger
 from .const import DOMAIN
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, off_the_action
@@ -47,14 +51,15 @@ async def async_setup_entry(
 ) -> None:
     """Set up Heat Pump Optimizer buttons from a config entry."""
     coordinator = entry.runtime_data
-    async_add_entities(
-        [
-            ForceOptimizationButton(coordinator, entry),
-            SystemIdentificationButton(coordinator, entry),
-            ResetComfortWeightButton(coordinator, entry),
-            DiagnoseIntervalButton(coordinator, entry),
-        ]
-    )
+    buttons: list[_OptimizerButtonBase] = [
+        ForceOptimizationButton(coordinator, entry),
+        SystemIdentificationButton(coordinator, entry),
+        ResetComfortWeightButton(coordinator, entry),
+        DiagnoseIntervalButton(coordinator, entry),
+    ]
+    if debugger.collector_for(coordinator) is not None:
+        buttons.append(DebugFinalizeButton(coordinator, entry))
+    async_add_entities(buttons)
 
 
 class _OptimizerButtonBase(HeatPumpOptimizerEntity, ButtonEntity):
@@ -191,3 +196,25 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
 
     async def async_press(self) -> None:
         off_the_action(self, self.coordinator.async_diagnose_interval())
+
+
+class DebugFinalizeButton(_OptimizerButtonBase):
+    """End the debug collection now, so Download diagnostics carries it final (#1939).
+
+    Present only while the learning page's debug-collection option is on;
+    unavailable once the collection is final, until it is started again.
+    """
+
+    def __init__(
+        self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
+    ) -> None:
+        super().__init__(coordinator, entry, "debug_finalize", "debug_collection_finalize")
+
+    @property
+    def available(self) -> bool:
+        collector = debugger.collector_for(self.coordinator)
+        return bool(super().available and collector is not None and not collector.final)
+
+    async def async_press(self) -> None:
+        if (collector := debugger.collector_for(self.coordinator)) is not None:
+            collector.finalize()

@@ -57611,9 +57611,11 @@ async def _dbg_cycles(hass, coord, start, count):
     return start + count * _DBG_STEP
 
 
-def _dbg_unload(entry):
+async def _dbg_unload(entry):
+    """Run the entry's unload callbacks, awaiting a coroutine one as Home Assistant does."""
     for fn in entry._on_unload:
-        fn()
+        if _dbg_aio.iscoroutine(result := fn()):
+            await result
     entry._on_unload.clear()
 
 
@@ -57674,7 +57676,7 @@ async def _dbg_week(flush):
         out["saves_before"] = _dbg_storage.SAVE_COUNTS.get(_dbg_key(), 0)
         if flush:
             await _dbg.async_unload_debugger(coord)
-        _dbg_unload(entry)
+        await _dbg_unload(entry)
         coord.data = _dbg_payload(999)
         coord.async_update_listeners()
         out["after_unload"] = len(first.rows) - out["rows_before"]
