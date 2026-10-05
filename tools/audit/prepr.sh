@@ -498,7 +498,8 @@ body_check() { # body file, head sha, title, paths file, red names...
   # The red names ride the SAME flags CI's pr-contract job passes: one `--red`
   # per name, never a comma-joined value, so a check name containing a comma
   # reaches `## Red checks` whole (policy_lint splits only a LONE `--red`
-  # value). Step 7 passes none; step 7c passes every red the branch's pushed
+  # value). Step 7's `body_line` passes `budget-raise-gate` when the diff
+  # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
   local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
@@ -1842,6 +1843,24 @@ else
   esac
 fi
 
+# --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
+# before the push. `copies_line` above. The scan reads the whole tree, so it
+# runs only when the diff can introduce a shared top-level name; any other
+# diff skips and says so. A path list that did not derive refuses: an empty
+# list would read as "no python changed", which is the fail-open.
+COPY_PATHS=/tmp/prepr-copies.$$
+if diff_paths "$BASE" "$COPY_PATHS"; then
+  COPIES_LINE=$(copies_line "$PWD" "$COPY_PATHS")
+  case $? in
+    3) say skip "no-copies" "$COPIES_LINE" ;;
+    0) step "no-copies" 0 "$COPIES_LINE" ;;
+    *) step "no-copies" 1 "$COPIES_LINE" ;;
+  esac
+else
+  step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
+fi
+rm -f "$COPY_PATHS"
+
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
 if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
@@ -1864,7 +1883,10 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # detector rather than a second opinion.
   PATHS=/tmp/prepr-paths.$$
   if diff_paths "$BASE" "$PATHS"; then
-    body_check "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" \
+    # body_line feeds `--red budget-raise-gate` when the diff raises a budget
+    # leaf, then runs this same body_check. A base with no gate skips that
+    # name and still runs the check.
+    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD \
       >/tmp/prepr-body.$$ 2>&1
     step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
     rm -f /tmp/prepr-body.$$
