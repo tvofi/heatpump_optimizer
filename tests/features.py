@@ -51734,6 +51734,47 @@ R.check(
     f"{_f32_live}",
 )
 
+# The check above sets the latch, then calls apply. Home Assistant's queued
+# pass is the other order: apply is already waiting on held.lock when unload
+# or Off happens. Snapshotting ArbiterInputs before those waits keeps the
+# pre-wait latch and mode, so the guard and Off write-nothing both miss.
+async def _f32_queued(arm):
+    coord = _PaCoord(_PA_TUYA)
+    await _pa.apply(coord, _PA_T0 + timedelta(minutes=1))
+    held = _pa.state_for(coord)
+    await held.lock.acquire()
+    queued = _pa_aio.ensure_future(
+        _pa.apply(coord, _PA_T0 + timedelta(minutes=16)))
+    for _ in range(5):
+        await _pa_aio.sleep(0)
+    if arm == "unload":
+        coord._entry_released = True
+        await _pa.release(coord)
+    elif arm == "off":
+        await coord.async_set_mode(_PA_OFF)
+    coord.hass.services.calls.clear()
+    held.lock.release()
+    await queued
+    return len(held.unsubs), len(coord.writes())
+
+
+_f32_queued_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("unload", "off", "null"):
+        _f32_queued_live[_f32_arm] = _pa_aio.run(_f32_queued(_f32_arm))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued behind the lock across an unload arms no listener and "
+    "writes nothing; one queued across Off writes nothing (D1-s3-02); a live "
+    "coordinator still writes (null control)",
+    _f32_queued_live["unload"] == (0, 0)
+    and _f32_queued_live["off"] == (2, 0)
+    and _f32_queued_live["null"] == (2, 3),
+    f"{_f32_queued_live}",
+)
+
 # D1-s3-03: a record of any other shape is not restored, and the next pass
 # neither raises nor keeps it; an honest record still loads.
 _f32_iso = "2026-06-01T11:59:00+00:00"

@@ -636,13 +636,13 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
     """One arbitration pass; safe to call from the cycle and from the tick."""
     now = now or dt_util.now()
     held = state_for(coord)
-    inp = coord.arbiter_inputs()
-    mode = duty_mode(inp.config)
+    mode = duty_mode(coord.arbiter_inputs().config)
     if mode == DUTY_OFF:
         release_listeners(coord)
         return
     async with held.lock:
         await _load(coord)
+        inp = coord.arbiter_inputs()
         if inp.entry_released:
             return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
