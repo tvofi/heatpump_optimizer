@@ -7556,8 +7556,9 @@
    "owner_gate": ".github/workflows/ is code-owned; owner approval before landing",
    "brief": "Fix seat for the countermeasure in tools/audit/rca/R9-RC-PRCONTRACT.md at 50e9dd193306a714ea020c410bc33ce8cd5b9ff8 (analysis PR #1972). This group implements; the RCA group does not. On .github/workflows/pr-contract.yml only, set the cancel-in-progress flag to false. Leave .github/workflows/tests.yml unchanged. Shrink the tests/entities.py pin so it means a superseded run, not two events at one SHA. An edited-event rerunner was rejected by the cost test in that analysis; do not build one. Do not restate that analysis's figures; re-measure at this group's merge base. .github/workflows/ is an owner path; owner approval before landing. Demonstration owed: two author-app pull-request events at one SHA both conclude success or failure, never cancelled; a superseded tests.yml push still cancels.",
    "resume": {
-    "stage": "not-started",
-    "branch": "handoff/r9-rc-prcontract-fix"
+    "stage": "in-flight",
+    "branch": "handoff/r9-rc-prcontract-fix",
+    "commit": "2784d696f1557226b212544d2ee364d80513cb1d"
    }
   }
  ]
