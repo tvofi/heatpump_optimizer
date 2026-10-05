@@ -30934,6 +30934,14 @@ def _lg_coord(**over):
     return coord
 
 
+def _lg_without_probe(coord):
+    """The guard captured the parsed entry at construction, so clearing the
+    tank slot has to reach that object too. A pop used to mutate the one dict
+    both held."""
+    with_config(coord, {"dhw_temp_entity": None})
+    coord._legionella._config = coord._config
+
+
 def _lg_cycle(coord, temps):
     """Command a boost, feed it `temps`, then let the plan move on."""
     for temp in temps:
@@ -30990,7 +30998,7 @@ R.check(
 # success; see the v5.1.10 section below for why the two are the same
 # countdown and only one of them can also be honest about what happened.
 _lg_blind = _lg_coord()
-with_config(_lg_blind, {"dhw_temp_entity": None})
+_lg_without_probe(_lg_blind)
 _lg_cycle_blind_before = _lg_blind._legionella.hours_since()
 _lg_blind._current_action = {"dhw_reason": _LG_REASON}
 _asyncio.run(_lg_blind._legionella.async_track_cycle(None))
@@ -31533,7 +31541,7 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 # the cycle is unverified. This integration publishes a plan; the actuation
 # may be an automation that never ran.
 _lg_blind2 = _lg_coord()
-with_config(_lg_blind2, {"dhw_temp_entity": None})
+_lg_without_probe(_lg_blind2)
 _lg_blind_before = _lg_blind2._legionella.hours_since()
 _lg_cycle(_lg_blind2, [None, None])
 _lg_blind_after = _lg_blind2._legionella.hours_since()
@@ -31563,7 +31571,7 @@ R.check(
 # attempt produces the SAME countdown, which is the whole argument for not
 # writing it.
 _lg_claim = _lg_coord()
-with_config(_lg_claim, {"dhw_temp_entity": None})
+_lg_without_probe(_lg_claim)
 _lg_claim._legionella.last_cycle = _lg_blind2._legionella.attempt
 R.check(
     "claiming success instead would give an identical countdown "
