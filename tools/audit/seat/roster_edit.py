@@ -6,14 +6,19 @@
     python3 tools/audit/seat/roster_edit.py append-group <json-file>
     python3 tools/audit/seat/roster_edit.py edit-brief  <group> <text | @file>
     python3 tools/audit/seat/roster_edit.py append-carry <group> <text | @file>
-        [--checkout DIR] [--roster-ref BR] [--branch OUT] [--worktree DIR]
-        [--lint-cwd DIR] [--push] [--message MSG]
+    python3 tools/audit/seat/roster_edit.py set-resume  <group> --field <stage|commit|branch|last_step|next_step|note> <text | @file>
+        [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
+        [--worktree DIR] [--lint-cwd DIR] [--push] [--message MSG]
     python3 tools/audit/seat/roster_edit.py --self-test
 
 Two recorded JSON breakages came from editing the roster as text; every op
 here loads the whole roster, validates the change, and dumps it again with
-gen.py's own formatting (indent 1, trailing newline), so an edit cannot
-unbalance the file.
+the file's own formatting (indent=1, ASCII-escaped, no trailing newline --
+`dump` below), so an edit cannot unbalance the file. THE ROUND-TRIP RULE: a
+no-op edit must reproduce the roster's bytes exactly; the self-test pins it
+with hand-written fixture bytes, because a dump that does not match the
+file's live formatting rewrites every one of its 7503 lines on ANY edit (a
+naive `json.dump(..., indent=2)` did exactly that).
 
 The write path is the checkout -B worktree pattern: a throwaway worktree of
 `--checkout` (default: this directory's repository) is created detached at
@@ -36,7 +41,11 @@ Ops (all group ids must exist, except append-group which must not):
   append-group inserts a validated new group (group/lane/after/brief needed,
                `after` naming known groups, resume defaulted);
   edit-brief   replaces the brief (an @file argument reads the file);
-  append-carry appends to the group's carry list, refusing an exact repeat.
+  append-carry appends to the group's carry list, refusing an exact repeat;
+  set-resume   sets one resume field -- the free-text state a session
+               restarts from. stage and branch are non-null: an empty value
+               is refused. commit demands a sha. An empty value for commit,
+               last_step, next_step or note clears the field to null.
 """
 
 from __future__ import annotations
@@ -78,6 +87,34 @@ def op_set_stage(roster, group, stage, at_sha):
     g.setdefault("resume", {})["stage"] = stage
     if at_sha:
         g["resume"]["commit"] = at_sha
+
+
+#: The resume fields set-resume may write. stage and branch are the roster's
+#: structural non-null fields (gen.py defaults them); commit and the
+#: free-text fields are str-or-null across the live roster, so an empty
+#: value clears them to null.
+RESUME_FIELDS = ("stage", "commit", "branch", "last_step", "next_step",
+                 "note")
+NON_NULL_RESUME_FIELDS = ("stage", "branch")
+TEXT_RESUME_FIELDS = ("last_step", "next_step", "note")
+
+
+def op_set_resume(roster, group, field, value):
+    g = _need(roster, group)
+    if field not in RESUME_FIELDS:
+        # argparse's --field choices refuse it first; this guards direct callers
+        raise Refuse(f"unknown resume field: {field!r} "
+                     f"(known: {', '.join(RESUME_FIELDS)})")
+    resume = g.setdefault("resume", {})
+    if value == "":
+        if field in NON_NULL_RESUME_FIELDS:
+            raise Refuse(f"resume.{field} is a non-null field; an empty "
+                         "value is refused")
+        resume[field] = None  # clearing a nullable field
+        return
+    if field == "commit" and not SHA_RE.match(value):
+        raise Refuse(f"--field commit needs a sha: {value!r}")
+    resume[field] = _text(value) if field in TEXT_RESUME_FIELDS else value
 
 
 def op_wire_issue(roster, group, issue):
@@ -217,7 +254,13 @@ def lint_gate(checkout, lint_cwd, roster_path):
 
 
 def dump(roster) -> str:
-    return json.dumps(roster, indent=1, ensure_ascii=False) + "\n"
+    """The roster's canonical bytes: indent=1, ASCII-escaped, no trailing
+    newline -- what the file at the roster ref carries. Anything else
+    rewrites every line of the file on ANY edit (a naive
+    `json.dump(..., indent=2)` rewrote 7503 of 7503); the self-test pins
+    the round-trip with hand-written fixture bytes, so a drifting dump
+    cannot pass by writing its own output back."""
+    return json.dumps(roster, indent=1)
 
 
 def main(argv=None) -> int:
@@ -227,10 +270,14 @@ def main(argv=None) -> int:
         return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "append-group",
-                                  "edit-brief", "append-carry"))
+                                  "edit-brief", "append-carry", "set-resume"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("--at-sha")
+    p.add_argument("--field", choices=RESUME_FIELDS,
+                   help="set-resume only: which resume field to write")
+    p.add_argument("--value", dest="value_opt",
+                   help="the value, for when a positional value does not fit")
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default="handoff/audit-r9-fixplan")
     p.add_argument("--branch", default=None)
@@ -239,24 +286,41 @@ def main(argv=None) -> int:
     p.add_argument("--push", action="store_true")
     p.add_argument("--message")
     a = p.parse_args(argv)
-    if not a.value:
+    if a.value is not None and a.value_opt is not None:
+        p.error("give the value positionally or with --value, not both")
+    value = a.value_opt if a.value is None else a.value
+    if value is None or (value == "" and a.op != "set-resume"):
         p.error(f"{a.op} needs a value argument")
+    if a.op == "set-resume" and not a.field:
+        p.error("set-resume needs --field")
+    if a.op != "set-resume" and a.field:
+        p.error("--field is a set-resume flag")
     branch = a.branch or a.roster_ref
     try:
         prepare_worktree(a.checkout, a.roster_ref, branch, a.worktree)
         path = Path(a.worktree) / ROSTER_PATH
         roster = json.loads(path.read_text(encoding="utf-8"))
         if a.op == "set-stage":
-            op_set_stage(roster, a.group, a.value, a.at_sha)
+            op_set_stage(roster, a.group, value, a.at_sha)
         elif a.op == "wire-issue":
-            op_wire_issue(roster, a.group, a.value)
+            op_wire_issue(roster, a.group, value)
         elif a.op == "append-group":
-            op_append_group(roster, a.value)
+            op_append_group(roster, value)
         elif a.op == "edit-brief":
-            op_edit_brief(roster, a.group, a.value)
+            op_edit_brief(roster, a.group, value)
+        elif a.op == "set-resume":
+            op_set_resume(roster, a.group, a.field, value)
         else:
-            op_append_carry(roster, a.group, a.value)
+            op_append_carry(roster, a.group, value)
         path.write_text(dump(roster), encoding="utf-8")
+        if not run(["git", "-C", str(a.worktree),
+                    "status", "--porcelain"]).strip():
+            # A no-op edit reproduces the roster's own bytes (the round-trip
+            # rule): nothing to commit, nothing to push, still a success --
+            # re-running an op is idempotent.
+            print(f"no change: {a.op} {a.group} wrote the roster's own "
+                  "bytes (byte-identical); nothing to commit or push")
+            return 0
         msg = a.message or f"roster_edit {a.op} {a.group} ({SELF})"
         run(["git", "-C", str(a.worktree), "commit", "-q", "-am", msg])
         head = run(["git", "-C", str(a.worktree), "rev-parse", "HEAD"]).strip()
@@ -438,7 +502,9 @@ def _self_test() -> int:
         '  {\n'
         '   "group": "R9-A",\n'
         '   "lane": "L1",\n'
-        '   "issues": [10],\n'
+        '   "issues": [\n'
+        '    10\n'
+        '   ],\n'
         '   "fixes": [],\n'
         '   "after": [],\n'
         '   "brief": "fixture group A at 21 \\u00b0C",\n'
@@ -477,11 +543,10 @@ def _self_test() -> int:
                            "--branch", "edit-byte",
                            "--worktree", str(Path(tmp, "wt2")),
                            "--lint-cwd", str(seed2), "--push"])) == 0)
-    shown = subprocess.run(
-        ["git", "-C", str(origin2), "show",
-         f"refs/heads/edit-byte:{ROSTER_PATH}"], capture_output=True, text=True)
-    check("no-op set-resume is byte-identical",
-          shown.returncode == 0 and shown.stdout == canon)
+    # The no-op path commits and pushes nothing, so the bytes are read from
+    # the worktree the op wrote: they must be the roster's own, unchanged.
+    tip = (Path(tmp, "wt2") / ROSTER_PATH).read_text(encoding="utf-8")
+    check("no-op set-resume is byte-identical", tip == canon)
 
     # the lint gate: a bad brief is refused BEFORE the push; the branch on the
     # remote stays where it was.
