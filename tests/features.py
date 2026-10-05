@@ -2086,6 +2086,19 @@ R.check(
     f"Pel={_r9f41_el} peak={_r9f41_peak:.4f} final={_r9f41_final:.4f} "
     f"bound={_r9f41_bound}",
 )
+R.check(
+    "the degenerate-house bound is closed AT the bound: a house at exactly "
+    "1e-9 predicts infinity, not a finite excursion",
+    _r9f41_sysid._predict_step_excursion_plant(
+        HousePlant(ua=1e-9, capacity=8.0, gains=0.3), 21.0, 0.0, 3.0, 2.0, 2.0
+    ) == (float("inf"), float("inf"))
+    and _r9f41_sysid._predict_step_excursion_plant(
+        HousePlant(ua=0.2, capacity=1e-9, gains=0.3), 21.0, 0.0, 3.0, 2.0, 2.0
+    ) == (float("inf"), float("inf")),
+    "a CMP_BOUND mutant on the guard's `<=` passes every value the other "
+    "checks drive (0.0 and 0.2 both fire `<` too) and survives on them; only "
+    "the bound itself separates closed from open",
+)
 
 
 # --- R9 P11 (#1649): the stub clock and the stub Store answer as Home Assistant's
