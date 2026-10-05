@@ -50011,20 +50011,36 @@ class _PaCoord:
     def _plan_is_stale(self):
         return self.stale
 
+    @property
+    def effective_config(self):
+        # setpoint_check.evaluate reads the published views (#1739).
+        return self._config
+
+    @property
+    def thermal_params(self):
+        return self._thermal_params
+
     def arbiter_inputs(self):
+        # Every field read live, so a test that reaches into the stub's
+        # privates (a disinfection hold, a meter sample, the unload latch)
+        # is seen by the next pass, exactly as the real coordinator's
+        # published builder reads its own.
         return _pa.ArbiterInputs(
             hass=self.hass,
             config=self._config,
             mode=self._mode,
             plan=self._optimization_result,
             plan_stale=self.stale,
-            entry_released=False,
+            entry_released=getattr(self, "_entry_released", False),
             state=self._current_state,
             thermal=self._thermal_model,
             params=self._thermal_params,
             action=self._current_action,
-            measured_power_kw=None,
-            disinfecting=False,
+            measured_power_kw=getattr(self, "_measured_power", None),
+            disinfecting=getattr(
+                getattr(getattr(self, "_legionella", None), "disinfect", None),
+                "memo", None,
+            ) is True,
         )
 
     async def async_set_mode(self, mode):
@@ -55290,7 +55306,7 @@ R.check(
 # 0.15 kW step the plan books as running is below what a meter sample proves,
 # which is the whole reason one formula could not answer both.
 _f24_meter = _f24_NS(
-    _thermal_model=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
+    thermal=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
 )
 R.check(
     "R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the "
@@ -55298,7 +55314,7 @@ R.check(
     callable(_f24_ran_kw)
     and _f24_ran_kw(_f24_meter) == 0.2
     and callable(_f24_meter_kw)
-    and _f24_meter_kw(_f24_meter._thermal_model.params) == 0.2
+    and _f24_meter_kw(_f24_meter.thermal.params) == 0.2
     and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
     and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
     f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
