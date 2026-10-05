@@ -6648,7 +6648,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "handoff/r9-f10-16",
-    "commit": null,
+    "commit": "7eb31bd2c13004c4ca437b8880686ef71d64c8c5",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base after every after-edge merged",
     "note_file": null,
