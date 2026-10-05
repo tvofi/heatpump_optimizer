@@ -64,6 +64,7 @@ from heatpump_optimizer.price_model import (
     hourly_from_entries,
 )
 from heatpump_optimizer.sysid import (
+    HousePlant,
     PHASE_ARMED,
     PHASE_DONE,
     SysIdConfig,
@@ -79,10 +80,56 @@ from heatpump_optimizer.tariff import (
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
 from heatpump_optimizer.dhw_learning import DhwProfileLearner
-from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
-from heatpump_optimizer.dhw_planner import DhwPlanner
+from heatpump_optimizer.thermal_model import (
+    ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
+from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext
+from heatpump_optimizer.optimizer import _Horizon
 
 R = Results("Feature modules")
+
+
+def _WS(outdoor, wind=None, rain=None, solar=None, humidity=None, ext=None):
+    """The physics module's weather record from this file's fixture arrays
+    (#1776): the series the trajectory entry points now take as one frozen
+    object instead of five positional lists."""
+    return WeatherSeries(
+        outdoor_temps=outdoor, wind_speeds=wind, precipitation=rain,
+        solar_radiation=solar, humidity=humidity, external_heat_kw=ext)
+
+
+def _dhw_horizon(*, prices, outdoor, n, dt, step_hours=None, state=None,
+                 step_weekdays=None, holiday_flags=None, humidity=None,
+                 dhw_pins=None):
+    """A minimal solve horizon for the DHW planner's direct calls (#1776)."""
+    return _Horizon(
+        initial_state=state or ThermalState(
+            room_temperature=21.0, slab_temperature=22.0,
+            outdoor_temperature=-5.0, dhw_temperature=48.0,
+            dhw_hours_since_legionella=20.0,
+            buffer_tank_temperature=40.0),
+        prices=prices, outdoor_temps=outdoor,
+        wind_speeds=np.zeros(n), precipitation=np.zeros(n),
+        solar_radiation=np.zeros(n), start_time=None, n_steps=n, dt=dt,
+        comfort_targets=np.full(n, 21.0), temp_min_bounds=np.full(n, 17.0),
+        temp_max_bounds=np.full(n, 23.0),
+        step_hours=np.arange(n) * dt if step_hours is None else step_hours,
+        solar_gains=np.zeros(n), heat_loss_factors=np.ones(n), forecast={},
+        t_start=0.0, step_weekdays=step_weekdays, holiday_flags=holiday_flags,
+        humidity=humidity, dhw_pins=dhw_pins,
+    )
+
+
+def _dhw_ctx(*, prices, outdoor, n, dt, c_dhw, p_dhw_max,
+             min_run_power=0.1, max_lead_steps=24, humidity=None,
+             import_prices=None):
+    """The DHW planners' shared record for direct calls (#1776). The floor
+    repair ranks at ``import_prices``, defaulting to the same series."""
+    return _DhwPlanContext(
+        prices=prices, import_prices=prices if import_prices is None
+        else import_prices,
+        outdoor_temps=outdoor, humidity=humidity,
+        n_steps=n, dt=dt, c_dhw=c_dhw, p_dhw_max=p_dhw_max,
+        min_run_power=min_run_power, max_lead_steps=max_lead_steps)
 
 
 def _solve_record_now(coord):
@@ -2024,7 +2071,8 @@ R.check(
 _r9f41_sid = SystemIdentification(SysIdConfig(enabled=True))
 _r9f41_el = _r9f41_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
 _r9f41_peak, _r9f41_final = _r9f41_sysid._predict_step_excursion_plant(
-    0.20, 8.0, 0.3, 21.0, 2.0, (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
+    HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0,
+    (_r9f41_el or 0.0) * 3.0, 2.0, 2.0
 )
 _r9f41_bound = (
     _r9f41_sid.config.max_excursion_c - _r9f41_sysid.SIZING_NOISE_HEADROOM_C
@@ -2037,6 +2085,19 @@ R.check(
     and _r9f41_final <= _r9f41_bound,
     f"Pel={_r9f41_el} peak={_r9f41_peak:.4f} final={_r9f41_final:.4f} "
     f"bound={_r9f41_bound}",
+)
+R.check(
+    "the degenerate-house bound is closed AT the bound: a house at exactly "
+    "1e-9 predicts infinity, not a finite excursion",
+    _r9f41_sysid._predict_step_excursion_plant(
+        HousePlant(ua=1e-9, capacity=8.0, gains=0.3), 21.0, 0.0, 3.0, 2.0, 2.0
+    ) == (float("inf"), float("inf"))
+    and _r9f41_sysid._predict_step_excursion_plant(
+        HousePlant(ua=0.2, capacity=1e-9, gains=0.3), 21.0, 0.0, 3.0, 2.0, 2.0
+    ) == (float("inf"), float("inf")),
+    "a CMP_BOUND mutant on the guard's `<=` passes every value the other "
+    "checks drive (0.0 and 0.2 both fire `<` too) and survives on them; only "
+    "the bound itself separates closed from open",
 )
 
 
@@ -4854,17 +4915,19 @@ def _weekly_requirement_hours(spec, start):
         for i in range(_n)
     ])
     _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
-        initial_state=ThermalState(
-            room_temperature=21.0, slab_temperature=22.0,
-            outdoor_temperature=-5.0, dhw_temperature=48.0,
-            dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
-        prices=np.full(_n, 1.0),
-        outdoor_temps=np.full(_n, -5.0),
-        step_hours=_hours,
-        n_steps=_n, dt=0.25, p_max=4.0,
-        step_weekdays=np.array(
-            [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
-             for i in range(_n + 1)]),
+        _dhw_horizon(
+            prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0),
+            n=_n, dt=0.25, step_hours=_hours,
+            state=ThermalState(
+                room_temperature=21.0, slab_temperature=22.0,
+                outdoor_temperature=-5.0, dhw_temperature=48.0,
+                dhw_hours_since_legionella=20.0,
+                buffer_tank_temperature=40.0),
+            step_weekdays=np.array(
+                [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+                 for i in range(_n + 1)]),
+        ),
+        p_max=4.0,
     )
     _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
     _floors = np.asarray(_plan.floor_temps)
@@ -5181,17 +5244,19 @@ def _pd_requirement_hours(spec, extra, start):
         for i in range(_n)
     ])
     _plan, _ = _dhw_planner(_o)._build_dhw_requirements(
-        initial_state=ThermalState(
-            room_temperature=21.0, slab_temperature=22.0,
-            outdoor_temperature=-5.0, dhw_temperature=48.0,
-            dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0),
-        prices=np.full(_n, 1.0),
-        outdoor_temps=np.full(_n, -5.0),
-        step_hours=_hours,
-        n_steps=_n, dt=0.25, p_max=4.0,
-        step_weekdays=np.array(
-            [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
-             for i in range(_n + 1)]),
+        _dhw_horizon(
+            prices=np.full(_n, 1.0), outdoor=np.full(_n, -5.0),
+            n=_n, dt=0.25, step_hours=_hours,
+            state=ThermalState(
+                room_temperature=21.0, slab_temperature=22.0,
+                outdoor_temperature=-5.0, dhw_temperature=48.0,
+                dhw_hours_since_legionella=20.0,
+                buffer_tank_temperature=40.0),
+            step_weekdays=np.array(
+                [(start + __import__("datetime").timedelta(hours=(i - 1) * 0.25)).weekday()
+                 for i in range(_n + 1)]),
+        ),
+        p_max=4.0,
     )
     _idle = min(_p.dhw_idle_min_temp, _p.dhw_min_temp)
     _floors = np.asarray(_plan.floor_temps)
@@ -5334,11 +5399,13 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
         f"over {n} steps, wanted every step >= {min_substeps}",
     )
     batch = m.simulate_trajectory_batch(
-        st, powers, ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+        st, powers, _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
+        start_hour=7.0)
     mism = []
     for b in range(powers.shape[0]):
         r, s, u, l, buf, _, wood = m.simulate_trajectory(
-            st, powers[b], ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+            st, powers[b], _WS(ot, wi, ra, so, hum, ext), dt_hours=0.25,
+            start_hour=7.0)
         refs = (("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
                 ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
                 ("buffer", batch["buffer"][b], buf))
@@ -5366,14 +5433,15 @@ def _grad_parity(two_zone, wood=False, valve=None, extra_cfg=None, label="",
 
     def space_obj(x):
         rr, _, _, _, _, _, _ = m.simulate_trajectory(
-            st, np.clip(x, 0.0, None), ot, wi, ra, so, 0.25, ext, None, hum, 7.0)
+            st, np.clip(x, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
+            dt_hours=0.25, start_hour=7.0)
         room = rr[1:]
         return float(np.sum((room - targets) ** 2) + 0.01 * np.sum(x))
 
     def space_obj_batch(mat, *a):
         tr = m.simulate_trajectory_batch(
-            st, np.clip(mat, 0.0, None), ot, wi, ra, so, 0.25,
-            ext, None, hum, 7.0)
+            st, np.clip(mat, 0.0, None), _WS(ot, wi, ra, so, hum, ext),
+            dt_hours=0.25, start_hour=7.0)
         out = np.empty(mat.shape[0])
         for bi in range(mat.shape[0]):
             room = tr["room"][bi][1:]
@@ -8102,14 +8170,11 @@ _bl_n = 16
 _bl_out = np.full(_bl_n, -5.0)
 _bl_zero = np.zeros(_bl_n)
 _bl_flat, _ = _bl_opt._compute_baseline_power(
-    _bl_state, _bl_out, _bl_zero, _bl_zero, _bl_zero, 0.25
+    _WS(_bl_out, _bl_zero, _bl_zero, _bl_zero), _bl_state, 0.25
 )
 _bl_setback, _ = _bl_opt._compute_baseline_power(
+    _WS(_bl_out, _bl_zero, _bl_zero, _bl_zero),
     _bl_state,
-    _bl_out,
-    _bl_zero,
-    _bl_zero,
-    _bl_zero,
     0.25,
     np.array([21.0] * 8 + [17.0] * 8),
 )
@@ -9066,7 +9131,7 @@ R.check(
 
 # 5. The trajectory the objective needs travels with the return value (#280).
 _tr280 = _m_valve.simulate_trajectory(
-    _st(45.0), np.full(96, 3.0), _outdoor, dt_hours=0.25
+    _st(45.0), np.full(96, 3.0), _WS(_outdoor), dt_hours=0.25
 )
 R.check(
     "simulate_trajectory returns the buffer trajectory",
@@ -9076,7 +9141,7 @@ R.check(
 _r280, _s280, _u280, _l280, _buf280, *_ = _tr280
 _tc280 = float(_term(_r280, _s280, _u280, _l280, _buf280))
 _m_valve.simulate_trajectory(
-    _st(45.0), np.zeros(96), _outdoor, dt_hours=0.25
+    _st(45.0), np.zeros(96), _WS(_outdoor), dt_hours=0.25
 )
 R.check(
     "terminal cost is stable when the buffer came from the return value (#280)",
@@ -9322,12 +9387,13 @@ _r4f_pow = np.vstack([np.zeros(8), np.full(8, 1.5), np.full(8, 3.0)])
 
 def _r4f_parity(m, st, label):
     batch = m.simulate_trajectory_batch(
-        st, _r4f_pow, _r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm, 0.25)
+        st, _r4f_pow, _WS(_r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm),
+        dt_hours=0.25)
     mism = []
     for b in range(_r4f_pow.shape[0]):
         r, s, u, l, buf, _, _ = m.simulate_trajectory(
-            st, _r4f_pow[b], _r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm,
-            0.25)
+            st, _r4f_pow[b],
+            _WS(_r4f_deep, _r4f_calm, _r4f_calm, _r4f_calm), dt_hours=0.25)
         for name, arr, ref in (
             ("room", batch["room"][b], r), ("slab", batch["slab"][b], s),
             ("upper", batch["upper"][b], u), ("lower", batch["lower"][b], l),
@@ -9588,7 +9654,8 @@ def _storage_plan(price_profile):
         start_time=datetime(2026, 1, 15),
     ))
     pw = np.asarray(r.power_schedule)
-    _, _, _, _, buf, _, _ = m.simulate_trajectory(st, pw, outdoor, zeros, zeros, zeros, 0.25)
+    _, _, _, _, buf, _, _ = m.simulate_trajectory(
+        st, pw, _WS(outdoor, zeros, zeros, zeros), dt_hours=0.25)
     night = float(pw[hours < 5].sum() * 0.25)
     peaks = float(
         pw[((hours >= 7) & (hours < 10)) | ((hours >= 16) & (hours < 20))].sum()
@@ -9788,13 +9855,13 @@ _ht_st = ThermalState(
 )
 _ht_zero = np.zeros(24)
 _, _, _, _, _ht_open_buf, _, _ = _ht_m.simulate_trajectory(
-    _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
-    valve_targets=np.full(24, 23.0),
+    _ht_st, _ht_zero, _WS(np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero),
+    dt_hours=0.25, valve_targets=np.full(24, 23.0),
 )
 _ht_open_end = float(_ht_open_buf[-1])
 _, _, _, _, _ht_held_buf, _, _ = _ht_m.simulate_trajectory(
-    _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero, 0.25,
-    valve_targets=np.full(24, 17.0),
+    _ht_st, _ht_zero, _WS(np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero),
+    dt_hours=0.25, valve_targets=np.full(24, 17.0),
 )
 _ht_held_end = float(_ht_held_buf[-1])
 R.check(
@@ -9807,11 +9874,13 @@ R.check(
 R.check(
     "and no schedule is byte-for-byte the configured target",
     float(_ht_m.simulate_trajectory(
-        _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero,
-        0.25, valve_targets=None,
+        _ht_st, _ht_zero,
+        _WS(np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero),
+        dt_hours=0.25, valve_targets=None,
     )[0][-1]) == float(_ht_m.simulate_trajectory(
-        _ht_st, _ht_zero, np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero,
-        0.25, valve_targets=np.full(24, _ht_p.comfort_ceiling),
+        _ht_st, _ht_zero,
+        _WS(np.full(24, -5.0), _ht_zero, _ht_zero, _ht_zero),
+        dt_hours=0.25, valve_targets=np.full(24, _ht_p.comfort_ceiling),
     )[0][-1]),
     "passing the value the model would have used itself must change nothing",
 )
@@ -9853,7 +9922,7 @@ _cp, _cm, _copt, _cst, _cprices, _cout, _czeros = _cap_fixture()
 # must refuse heat, and the tighten helper must cut those steps' ceilings.
 _full = np.full(96, _cp.max_electrical_power)
 _, _, _, _, _, _full_refused, _ = _cm.simulate_trajectory(
-    _cst, _full, _cout, _czeros, _czeros, _czeros, 0.25
+    _cst, _full, _WS(_cout, _czeros, _czeros, _czeros), dt_hours=0.25
 )
 R.check(
     "charging a full tank at full power is refused by the physics",
@@ -9868,7 +9937,7 @@ class _FakeResult:
 
 _caps = np.full(96, _cp.max_electrical_power)
 _tightened = _copt._tighten_buffer_caps(
-    _FakeResult(), _caps, _cst, _cout, _czeros, _czeros, _czeros, 0.25
+    _WS(_cout, _czeros, _czeros, _czeros), _cst, _FakeResult(), _caps, 0.25
 )
 R.check(
     "the tighten loop cuts the ceiling at the refusing steps",
@@ -9890,8 +9959,8 @@ _cres = _copt.optimize(inputs=solve_inputs(
     start_time=datetime(2026, 1, 15),
 ))
 _, _, _, _, _cres_buf, _cres_refused, _ = _cm.simulate_trajectory(
-    _cst, np.asarray(_cres.power_schedule), _cout,
-    _czeros, _czeros, _czeros, 0.25,
+    _cst, np.asarray(_cres.power_schedule),
+    _WS(_cout, _czeros, _czeros, _czeros), dt_hours=0.25,
 )
 R.check(
     "even free electricity cannot plan past the tank's ceiling",
@@ -10039,7 +10108,7 @@ def _space234(self, h):
     return _fake234
 
 
-def _tight234(self, result, power_caps, *a, **kw):
+def _tight234(self, weather, initial_state, result, power_caps, *a, **kw):
     _fired234["n"] += 1
     if _fired234["n"] != 1:
         return False
@@ -10134,7 +10203,7 @@ def _space_keep234(self, h):
     return _unseeded_keep234
 
 
-def _tight_keep234(self, result, power_caps, *a, **kw):
+def _tight_keep234(self, weather, initial_state, result, power_caps, *a, **kw):
     _fired_keep234["n"] += 1
     if _fired_keep234["n"] != 1:
         return False
@@ -11436,8 +11505,8 @@ def _w2t_state(wood, buf=45.0):
 def _w2t_run(params, wood, burn, *, n=48, power=0.5, dt=0.25):
     model = ThermalModel(params)
     out = model.simulate_trajectory(
-        _w2t_state(wood), np.full(n, power), np.full(n, -5.0), dt_hours=dt,
-        external_heat_kw=np.full(n, burn),
+        _w2t_state(wood), np.full(n, power),
+        _WS(np.full(n, -5.0), ext=np.full(n, burn)), dt_hours=dt,
     )
     return model, out
 
@@ -12055,7 +12124,7 @@ def _r7cap_coil_implied_q(wood_l, dt=_R7CAP_DT):
     # same temperature, which is what makes the two drops comparable.
     out = model.simulate_trajectory_with_dhw(
         _w2t_state(20.0, buf=45.0),
-        np.full(1, 2.0), np.zeros(1), np.full(1, -5.0),
+        np.full(1, 2.0), np.zeros(1), _WS(np.full(1, -5.0)),
         start_hour=7.0, dt_hours=dt,
     )
     return (20.0 - out[6][1]) * params.wood_tank_thermal_mass / dt
@@ -12104,11 +12173,13 @@ _r7cap_pw = np.full((2, 12), 0.5)
 _r7cap_ot = np.full(12, -5.0)
 _r7cap_z = np.zeros(12)
 _r7cap_batch = _r7cap_m.simulate_trajectory_batch(
-    _r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+    _r7cap_st, _r7cap_pw, _WS(_r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z),
+    dt_hours=0.25)
 _r7cap_mism = []
 for _b in range(_r7cap_pw.shape[0]):
     _r7cap_sr = _r7cap_m.simulate_trajectory(
-        _r7cap_st, _r7cap_pw[_b], _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25)
+        _r7cap_st, _r7cap_pw[_b],
+        _WS(_r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z), dt_hours=0.25)
     for _nm, _arr, _ref in (
         ("room", _r7cap_batch["room"][_b], _r7cap_sr[0]),
         ("upper", _r7cap_batch["upper"][_b], _r7cap_sr[2]),
@@ -12215,12 +12286,17 @@ def _r7cap_weather(omit):
     try:
         return {
             "batch": _r7cap_m.simulate_trajectory_batch(
-                _r7cap_st, _r7cap_pw, _r7cap_ot, _w, _p, _s, 0.25),
+                _r7cap_st, _r7cap_pw,
+                _WS(_r7cap_ot, _w, _p, _s), dt_hours=0.25),
             "scalar": _r7cap_m.simulate_trajectory(
-                _r7cap_st, _r7cap_pw[0], _r7cap_ot, _w, _p, _s, 0.25),
+                _r7cap_st, _r7cap_pw[0],
+                _WS(_r7cap_ot, _w, _p, _s), dt_hours=0.25),
             "dhw": _r7cap_dhw.simulate_trajectory_with_dhw(
-                _r7cap_st, np.full(1, 0.5), _r7cap_z[:1], _r7cap_ot[:1],
-                _w, _p, _s, dt_hours=0.25),
+                _r7cap_st, np.full(1, 0.5), _r7cap_z[:1],
+                _WS(_r7cap_ot[:1],
+                    None if _w is None else _w[:1],
+                    None if _p is None else _p[:1],
+                    None if _s is None else _s[:1]), dt_hours=0.25),
         }
     except Exception as exc:  # noqa: BLE001 -- reported, not swallowed
         return f"{type(exc).__name__}: {exc}"
@@ -12249,14 +12325,17 @@ R.check(
 )
 _r7cap_live = {}
 for _nm, _pos in (("wind", 3), ("precip", 4), ("solar", 5)):
-    _args = [_r7cap_st, _r7cap_pw, _r7cap_ot, _r7cap_z, _r7cap_z, _r7cap_z, 0.25]
+    _live = {"wind": _r7cap_z, "precip": _r7cap_z, "solar": _r7cap_z}
     if _nm == "wind":
-        _args[_pos] = np.full(12, 15.0)
+        _live[_nm] = np.full(12, 15.0)
     elif _nm == "precip":
-        _args[_pos] = np.concatenate([np.zeros(3), np.full(3, 5.0), np.zeros(6)])
+        _live[_nm] = np.concatenate([np.zeros(3), np.full(3, 5.0), np.zeros(6)])
     else:
-        _args[_pos] = np.concatenate([np.zeros(6), np.full(6, 400.0)])
-    _got = _r7cap_m.simulate_trajectory_batch(*_args)
+        _live[_nm] = np.concatenate([np.zeros(6), np.full(6, 400.0)])
+    _got = _r7cap_m.simulate_trajectory_batch(
+        _r7cap_st, _r7cap_pw,
+        _WS(_r7cap_ot, _live["wind"], _live["precip"], _live["solar"]),
+        dt_hours=0.25)
     _r7cap_live[_nm] = max(
         float(np.max(np.abs(_got[_ax] - _r7cap_batch[_ax])))
         for _ax in ("room", "upper", "lower", "buffer")
@@ -12408,7 +12487,7 @@ def _coil_run(params, wood):
     )
     n = 24
     out = m.simulate_trajectory_with_dhw(
-        s, np.full(n, 0.5), np.zeros(n), np.full(n, -5.0),
+        s, np.full(n, 0.5), np.zeros(n), _WS(np.full(n, -5.0)),
         start_hour=6.0, dt_hours=0.25,
     )
     return m, out
@@ -12795,7 +12874,7 @@ def _vud_run(cfg):
         buffer_tank_temperature=60.0, outdoor_temperature=-5.0,
     )
     out = m.simulate_trajectory(
-        s, np.full(8, 1.0), np.full(8, -5.0), dt_hours=0.25
+        s, np.full(8, 1.0), _WS(np.full(8, -5.0)), dt_hours=0.25
     )
     return m, out
 
@@ -21113,7 +21192,7 @@ R.check(
 _g_room, _g_slab, _g_up, _g_low, *_ = _g_stiff.simulate_trajectory(
     ThermalState(),
     np.full(96, 2.0),
-    np.full(96, -5.0),
+    _WS(np.full(96, -5.0)),
 )
 R.check(
     "a 24 h trajectory on the stiff house stays finite and bounded",
@@ -22382,7 +22461,7 @@ def _drive_sysid_step(ua, cap, gains, cop, max_el=5.0, cadence_min=30, size=True
             plan_power_kw=plan,
         )
         if size:
-            kw.update(house_ua=ua, house_capacity=cap, house_gains=gains)
+            kw.update(house=HousePlant(ua=ua, capacity=cap, gains=gains))
         override = sid.step(**kw)
         if sid.phase in (PHASE_DONE, _PH_ABORTED):
             break
@@ -22429,7 +22508,7 @@ def _drive_sysid_step_plant(ua, cap, gains, cop, max_el=5.0, cadence_min=15, siz
             plan_power_kw=plan,
         )
         if size:
-            kw.update(house_ua=ua, house_capacity=cap, house_gains=gains)
+            kw.update(house=HousePlant(ua=ua, capacity=cap, gains=gains))
         override = sid.step(**kw)
         if sid.phase in (PHASE_DONE, _PH_ABORTED):
             break
@@ -22518,7 +22597,7 @@ _779_sid = SystemIdentification(SysIdConfig(enabled=True))
 _779_el = _779_sid._size_step_power(6.0, 3.0, 21.0, 2.0, 0.20, 8.0, 0.3)
 _779_q = (_779_el or 0.0) * 3.0
 _779_plant, _779_final = _predict_step_excursion_plant(
-    0.20, 8.0, 0.3, 21.0, 2.0, _779_q, 2.0, 2.0
+    HousePlant(ua=0.20, capacity=8.0, gains=0.3), 21.0, 2.0, _779_q, 2.0, 2.0
 )
 _779_one, _ = _predict_step_excursion(21.0, 2.0, 0.20, 8.0, 0.3, _779_q, 2.0, 2.0)
 R.check(
@@ -22552,9 +22631,7 @@ for _ in range(3):
         max_power_kw=5.0,
         cop=3.0,
         plan_power_kw=2.0,
-        house_ua=0.20,
-        house_capacity=8.0,
-        house_gains=0.3,
+        house=HousePlant(ua=0.20, capacity=8.0, gains=0.3),
     )
     _settle_t += timedelta(minutes=30)
 _settle_rows = [s for s in _settle_sid.samples if s.phase == _PH_SETTLE]
@@ -22835,7 +22912,7 @@ R.check(
 _FlOpt = DhwPlanner
 _fl_orig = _FlOpt._repair_dhw_floor
 try:
-    _FlOpt._repair_dhw_floor = lambda self, *, plan, **kw: plan
+    _FlOpt._repair_dhw_floor = lambda self, ctx, *, plan, **kw: plan
     _fl_mutant = _fl_worst(_fl_opt)
 finally:
     _FlOpt._repair_dhw_floor = _fl_orig
@@ -29325,12 +29402,8 @@ _dp_state = ThermalState(
     buffer_tank_temperature=40.0,
 )
 _dp_plan, _ = _dhw_planner(_wf_opt)._build_dhw_requirements(
-    initial_state=_dp_state,
-    prices=np.full(_wf_n, 1.0),
-    outdoor_temps=np.full(_wf_n, -5.0),
-    step_hours=_wf_hours,
-    n_steps=_wf_n,
-    dt=_wf_dt,
+    _dhw_horizon(prices=np.full(_wf_n, 1.0), outdoor=np.full(_wf_n, -5.0),
+                 n=_wf_n, dt=_wf_dt, step_hours=_wf_hours, state=_dp_state),
     p_max=4.0,
 )
 _dp_win, _dp_learned = _dhw_planner(_wf_opt)._effective_dhw_windows()
@@ -29756,12 +29829,13 @@ try:
     _sysid_cycle(_943_wire_host, np.full(48, 0.2))
 finally:
     _SysIdModule.SystemIdentification.step = _943_orig_step
+_943_house = _943_kwargs.get("house")
 R.check(
     "#943 wiring: _run_system_identification passes the configured slab pair",
-    _943_kwargs.get("house_slab_mass") == _943_light.slab_thermal_mass
-    and _943_kwargs.get("house_slab_transfer") == _943_light.slab_heat_transfer,
-    f"step() saw house_slab_mass={_943_kwargs.get('house_slab_mass')!r} "
-    f"house_slab_transfer={_943_kwargs.get('house_slab_transfer')!r}; "
+    isinstance(_943_house, HousePlant)
+    and _943_house.slab_mass == _943_light.slab_thermal_mass
+    and _943_house.slab_transfer == _943_light.slab_heat_transfer,
+    f"step() saw house={_943_house!r}; "
     f"configured=({_943_light.slab_thermal_mass}, "
     f"{_943_light.slab_heat_transfer})",
 )
@@ -31578,10 +31652,15 @@ R.check(
 # Mutation: put the whole-tail room bound back — the first cut of the floor
 # repair's own ceiling, and what left the ramp short.
 def _lg_whole_tail_repair(
-    self, *, plan, initial_temp, outdoor_temps, draw_rates, dt,
-    requirement, max_temp, p_dhw_max, min_run_power, prices, c_dhw,
-    forced_off=None, humidity=None,
+    self, ctx, *, plan, initial_temp, draw_rates, requirement, max_temp,
+    forced_off=None,
 ):
+    outdoor_temps = ctx.outdoor_temps
+    dt = ctx.dt
+    p_dhw_max = ctx.p_dhw_max
+    min_run_power = ctx.min_run_power
+    prices = ctx.prices
+    c_dhw = ctx.c_dhw
     """The rejected floor repair: the room bound taken over the WHOLE tail, and
     nothing behind it to enforce the ceiling. Same loop, same ranking, same
     arithmetic; the bound is the only difference."""
@@ -31752,10 +31831,11 @@ R.check(
 )
 
 _fr_fixed = _dhw_planner(_fr_opt)._repair_dhw_floor(
-    plan=_fr_plan.copy(), initial_temp=52.0, outdoor_temps=_fr_outdoor,
-    draw_rates=_fr_draws, dt=_FR_DT, requirement=_fr_req,
-    max_temp=_fr_ceiling, p_dhw_max=_FR_RUN, min_run_power=_FR_MIN,
-    prices=_fr_prices, c_dhw=_fr_c,
+    _dhw_ctx(prices=_fr_prices, outdoor=_fr_outdoor,
+             n=_fr_plan.size, dt=_FR_DT, c_dhw=_fr_c, p_dhw_max=_FR_RUN,
+             min_run_power=_FR_MIN),
+    plan=_fr_plan.copy(), initial_temp=52.0,
+    draw_rates=_fr_draws, requirement=_fr_req, max_temp=_fr_ceiling,
 )
 _fr_after = _fr_traj(_fr_fixed)
 R.check(
@@ -34136,12 +34216,8 @@ def _g2_planning_sim_calls(**kw):
             ]
         )
         _dhw_planner(opt)._build_dhw_requirements(
-            initial_state=st,
-            prices=built["prices"],
-            outdoor_temps=built["outdoor"],
-            step_hours=step_hours,
-            n_steps=n,
-            dt=0.25,
+            _dhw_horizon(prices=built["prices"], outdoor=built["outdoor"],
+                         n=n, dt=0.25, step_hours=step_hours, state=st),
             p_max=opt.model.params.max_electrical_power,
         )
     finally:
@@ -41204,11 +41280,13 @@ def _ridge_drive(params, sigma_c, seed, declare_plant=True, gap_tick=None):
             max_power_kw=_RIDGE_MAX_POWER_KW,
             cop=_RIDGE_COP,
             plan_power_kw=hold_thermal / _RIDGE_COP,
-            house_ua=ua_true,
-            house_capacity=float(params.room_thermal_mass),
-            house_gains=gains,
-            house_slab_mass=float(params.slab_thermal_mass),
-            house_slab_transfer=float(params.slab_heat_transfer),
+            house=HousePlant(
+                ua=ua_true,
+                capacity=float(params.room_thermal_mass),
+                gains=gains,
+                slab_mass=float(params.slab_thermal_mass),
+                slab_transfer=float(params.slab_heat_transfer),
+            ),
         )
         if not sid.active:
             break
@@ -41553,11 +41631,13 @@ def _r6_drift_drive(drift_c_per_h, seconds=30):
                 plan_power_kw=(
                     0.0 if sid.phase in ("step", "relax") else q_hold / cop
                 ),
-                house_ua=ua_true,
-                house_capacity=float(params.room_thermal_mass),
-                house_gains=gains,
-                house_slab_mass=float(params.slab_thermal_mass),
-                house_slab_transfer=float(params.slab_heat_transfer),
+                house=HousePlant(
+                    ua=ua_true,
+                    capacity=float(params.room_thermal_mass),
+                    gains=gains,
+                    slab_mass=float(params.slab_thermal_mass),
+                    slab_transfer=float(params.slab_heat_transfer),
+                ),
             )
             if sid.phase in ("done", "aborted", "idle"):
                 break
@@ -46557,7 +46637,8 @@ _g8_sid_one = _g8_sid._predict_step_excursion(
     baseline=21.0, outdoor=0.0, ua=0.0, capacity=10.0, gains=0.3,
     step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
 _g8_sid_plant = _g8_sid._predict_step_excursion_plant(
-    baseline=21.0, outdoor=0.0, ua=0.2, capacity=0.0, gains=0.3,
+    HousePlant(ua=0.2, capacity=0.0, gains=0.3),
+    baseline=21.0, outdoor=0.0,
     step_thermal_kw=3.0, step_hours=2.0, relax_hours=2.0)
 R.check(
     "a house with no loss or no mass predicts an INFINITE excursion, not a small one",
@@ -46634,7 +46715,7 @@ for _h in (0.0, 0.5, 1.0, 1.5, 2.5, 3.0, 3.5, 4.5):
     _g8_sid_trace.append((
         _h,
         _g8_sid_step(_g8_sid_run, _G8_SID_T0 + timedelta(hours=_h),
-                     house_ua=0.25, house_capacity=12.0, house_gains=0.3),
+                     house=HousePlant(ua=0.25, capacity=12.0, gains=0.3)),
         _g8_sid_run.phase,
     ))
 _g8_sid_phases = [p for _, _, p in _g8_sid_trace]
@@ -46692,8 +46773,8 @@ R.check(
 _g8_sid_nofit = _g8_sid_new(max_excursion_c=0.001, settle_hours=0.0)
 _g8_sid_nofit.arm(_G8_SID_T0)
 _g8_sid_nofit_out = _g8_sid_step(
-    _g8_sid_nofit, _G8_SID_T0, house_ua=0.25, house_capacity=12.0,
-    house_gains=0.3)
+    _g8_sid_nofit, _G8_SID_T0,
+    house=HousePlant(ua=0.25, capacity=12.0, gains=0.3))
 _g8_sid_blind = _g8_sid_new(settle_hours=0.0)
 _g8_sid_blind.arm(_G8_SID_T0)
 _g8_sid_blind_out = _g8_sid_step(_g8_sid_blind, _G8_SID_T0, max_power_kw=6.0)
@@ -49913,9 +49994,12 @@ def _r7d203_coil_mismatches(wood_l):
         *_, wood = opt.model.simulate_trajectory_with_dhw(
             initial_state=_copy.deepcopy(h.initial_state),
             space_power_schedule=np.zeros(1), dhw_power_schedule=np.zeros(1),
-            outdoor_temps=h.outdoor_temps[:1], wind_speeds=h.wind_speeds[:1],
-            precipitation=h.precipitation[:1],
-            solar_radiation=h.solar_radiation[:1],
+            weather=WeatherSeries(
+                outdoor_temps=h.outdoor_temps[:1],
+                wind_speeds=h.wind_speeds[:1],
+                precipitation=h.precipitation[:1],
+                solar_radiation=h.solar_radiation[:1],
+            ),
             start_hour=float(h.step_hours[0]), dt_hours=h.dt,
             dhw_draw_rates=np.array([rate]),
         )
@@ -49962,8 +50046,9 @@ def _r7d203_window_capacity(volume):
 def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
     opt, _ = _r7d203_opt(200.0, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
-        45.0, np.full(n, 60.0), np.full(n, 1.0), np.full(n, -5.0),
-        np.zeros(n), n, dt, 3.0, c_dhw, np.full(n, 60.0),
+        _dhw_ctx(prices=np.full(n, 1.0), outdoor=np.full(n, -5.0),
+                 n=n, dt=dt, c_dhw=c_dhw, p_dhw_max=3.0),
+        45.0, np.full(n, 60.0), np.zeros(n), np.full(n, 60.0),
     )
     return None if plan is None else float(plan.sum())
 
@@ -49980,8 +50065,9 @@ def _r7d203_min_cost(c_dhw, n=12, dt=1.0):
 def _r7d203_greedy_steps(c_dhw, volume=43.1, req=50.0, ceiling=55.0, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=0.3)
     plan = _dhw_planner(opt)._plan_dhw_cheapest_first(
-        45.0, np.full(n, req), np.linspace(0.2, 2.0, n), np.full(n, -5.0),
-        np.zeros(n), n, 1.0, 3.0, 0.1, 24, c_dhw, np.full(n, ceiling),
+        _dhw_ctx(prices=np.linspace(0.2, 2.0, n), outdoor=np.full(n, -5.0),
+                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+        45.0, np.full(n, req), np.zeros(n), np.full(n, ceiling),
     )
     return [i for i, value in enumerate(plan) if value > 0.0]
 
@@ -50004,11 +50090,11 @@ _R7D203_FALL_REQ = [45.0] * 9 + [60.0] * 3
 def _r7d203_repair_steps(c_dhw, ceiling, requirement, volume=17.24, n=12):
     opt, _ = _r7d203_opt(volume, dhw_cooling_rate=3.0)
     plan = _dhw_planner(opt)._repair_dhw_floor(
-        plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
-        draw_rates=np.zeros(n), dt=1.0,
+        _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
+                 n=n, dt=1.0, c_dhw=c_dhw, p_dhw_max=3.0),
+        plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.asarray(requirement, dtype=float),
-        max_temp=np.asarray(ceiling, dtype=float), p_dhw_max=3.0,
-        min_run_power=0.1, prices=np.linspace(0.5, 1.5, n), c_dhw=c_dhw,
+        max_temp=np.asarray(ceiling, dtype=float),
     )
     return [i for i, value in enumerate(plan) if value > 0.0]
 
@@ -50152,25 +50238,29 @@ def _r7d203_zero_capacity():
             params, windows, np.arange(24) * 1.0, None, 1.0, 24, None
         )[0])
         legionella = _dhw_planner(opt)._dhw_legionella_ceilings(
-            params=params, n_steps=12, dt=1.0, c_dhw=0.0,
+            _dhw_horizon(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
+                         n=12, dt=1.0),
+            params=params, c_dhw=0.0,
             draw_rates=np.zeros(12), floor_temps=np.full(12, 45.0),
-            outdoor_temps=np.full(12, -5.0), p_dhw_run=3.0,
+            p_dhw_run=3.0,
             legionella_due=True, legionella_hour=6.0, legionella_step=5,
         )
         min_cost = _dhw_planner(opt)._plan_dhw_min_cost(
-            45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
-            np.zeros(12), 12, 1.0, 3.0, 0.0, np.full(12, 55.0),
+            _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
+                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+            45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
         repair = _dhw_planner(opt)._repair_dhw_floor(
-            plan=np.zeros(12), initial_temp=45.0,
-            outdoor_temps=np.full(12, -5.0), draw_rates=np.zeros(12), dt=1.0,
+            _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
+                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0),
+            plan=np.zeros(12), initial_temp=45.0, draw_rates=np.zeros(12),
             requirement=np.full(12, 55.0), max_temp=np.full(12, 55.0),
-            p_dhw_max=3.0, min_run_power=0.1, prices=np.full(12, 1.0),
-            c_dhw=0.0,
         )
         greedy = _dhw_planner(opt)._plan_dhw_cheapest_first(
-            45.0, np.full(12, 55.0), np.full(12, 1.0), np.full(12, -5.0),
-            np.zeros(12), 12, 1.0, 3.0, 0.1, 6, 0.0, np.full(12, 55.0),
+            _dhw_ctx(prices=np.full(12, 1.0), outdoor=np.full(12, -5.0),
+                     n=12, dt=1.0, c_dhw=0.0, p_dhw_max=3.0,
+                     max_lead_steps=6),
+            45.0, np.full(12, 55.0), np.zeros(12), np.full(12, 55.0),
         )
     except ZeroDivisionError:
         return "ZeroDivisionError"
@@ -50277,8 +50367,10 @@ R.check(
 _r7pin_opt, _ = _r7d203_opt(200.0)
 try:
     _r7pin_plan = _dhw_planner(_r7pin_opt)._plan_dhw_min_cost(
-        45.0, np.array([45.0] * 7 + [55.0]), np.array([0.1] * 4 + [1.0] * 4),
-        np.full(8, -5.0), np.zeros(8), 8, 1.0, 3.0, 0.232, np.full(8, 60.0),
+        _dhw_ctx(prices=np.array([0.1] * 4 + [1.0] * 4),
+                 outdoor=np.full(8, -5.0), n=8, dt=1.0, c_dhw=0.232,
+                 p_dhw_max=3.0),
+        45.0, np.array([45.0] * 7 + [55.0]), np.zeros(8), np.full(8, 60.0),
         space_demand=np.array([5.0] * 4 + [0.0] * 4), p_total_max=5.0,
     )
     _r7pin_err = None
@@ -50327,8 +50419,9 @@ def _r7ua_min_cost(volume):
     c = params.dhw_tank_thermal_mass
     n = 12
     plan = _dhw_planner(opt)._plan_dhw_min_cost(
-        45.0, np.array([45.0] * 8 + [55.0] * 4), np.linspace(0.5, 1.5, n),
-        np.full(n, -5.0), np.zeros(n), n, 1.0, 50.0 * c, c,
+        _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
+                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c),
+        45.0, np.array([45.0] * 8 + [55.0] * 4), np.zeros(n),
         np.full(n, 60.0),
     )
     return None if plan is None else np.asarray(plan, dtype=float) / c
@@ -50339,11 +50432,12 @@ def _r7ua_repair(volume):
     c = params.dhw_tank_thermal_mass
     n = 12
     plan = _dhw_planner(opt)._repair_dhw_floor(
-        plan=np.zeros(n), initial_temp=45.0, outdoor_temps=np.full(n, -5.0),
-        draw_rates=np.zeros(n), dt=1.0,
+        _dhw_ctx(prices=np.linspace(0.5, 1.5, n), outdoor=np.full(n, -5.0),
+                 n=n, dt=1.0, c_dhw=c, p_dhw_max=50.0 * c,
+                 min_run_power=5.0 * c),
+        plan=np.zeros(n), initial_temp=45.0, draw_rates=np.zeros(n),
         requirement=np.array([45.0] * 9 + [60.0] * 3),
-        max_temp=np.array([60.0] * 4 + [59.5] * 8), p_dhw_max=50.0 * c,
-        min_run_power=5.0 * c, prices=np.linspace(0.5, 1.5, n), c_dhw=c,
+        max_temp=np.array([60.0] * 4 + [59.5] * 8),
     )
     return np.asarray(plan, dtype=float) / c
 
@@ -50353,8 +50447,10 @@ def _r7ua_legionella(volume):
     c = params.dhw_tank_thermal_mass
     n = 24
     res = _dhw_planner(opt)._dhw_legionella_ceilings(
-        params=params, n_steps=n, dt=1.0, c_dhw=c, draw_rates=np.zeros(n),
-        floor_temps=np.full(n, 20.0), outdoor_temps=np.full(n, -5.0),
+        _dhw_horizon(prices=np.zeros(n), outdoor=np.full(n, -5.0),
+                     n=n, dt=1.0),
+        params=params, c_dhw=c, draw_rates=np.zeros(n),
+        floor_temps=np.full(n, 20.0),
         p_dhw_run=2.0 * c, legionella_due=True, legionella_hour=20.0,
         legionella_step=20,
     )
@@ -54728,7 +54824,7 @@ for _f23_label, _f23_cfg in _F23_EULER_CASES:
     _f23_m = _f23_model(_f23_cfg)
     _f23_s0 = _f23_start(_f23_m)
     _f23_r = _f23_m.simulate_trajectory(
-        _f23_s0, np.zeros(96), np.zeros(96), dt_hours=0.25)
+        _f23_s0, np.zeros(96), _WS(np.zeros(96)), dt_hours=0.25)
     _f23_all = np.concatenate([np.asarray(a, dtype=float) for a in _f23_r[:5]])
     _f23_exc = (
         float(max(np.max(_f23_all) - _f23_s0.buffer_tank_temperature,
@@ -54821,7 +54917,7 @@ def _f23_coil_residual(dhw0, wood0):
             wood_tank_temperature=wood0,
         )
         r = m.simulate_trajectory_with_dhw(
-            s, np.zeros(1), np.zeros(1), np.zeros(1), start_hour=7.0,
+            s, np.zeros(1), np.zeros(1), _WS(np.zeros(1)), start_hour=7.0,
             dt_hours=0.25, dhw_draw_rates=np.full(1, 2.0))
         out.append((r[4][-1], r[6][-1], m._step_dhw_floor_injected * 0.25))
     (d_on, w_on, f_on), (d_off, w_off, f_off) = out
@@ -55463,12 +55559,14 @@ def _z1524_run(
             price_horizon=np.full(48, 1.0), learner_samples=0,
             max_power_kw=declared.max_electrical_power, cop=cop,
             plan_power_kw=hold,
-            house_ua=declared.heat_loss_coefficient
-            * declared.house_heat_loss_scale,
-            house_capacity=declared.room_thermal_mass,
-            house_gains=declared.internal_gains,
-            house_slab_mass=declared.slab_thermal_mass,
-            house_slab_transfer=declared.slab_heat_transfer,
+            house=HousePlant(
+                ua=declared.heat_loss_coefficient
+                * declared.house_heat_loss_scale,
+                capacity=declared.room_thermal_mass,
+                gains=declared.internal_gains,
+                slab_mass=declared.slab_thermal_mass,
+                slab_transfer=declared.slab_heat_transfer,
+            ),
         )
         el = hold if override is None else float(override)
         stepped = stepped or el > hold + 1e-9
@@ -56180,7 +56278,7 @@ R.check(
 # widens by how far one declared width of each told quantity moves the answer,
 # so the property is asserted against the plant's truth, not the interval. The
 # enumerator arm keeps both sides complete: every declared quantity
-# SystemIdentification.step is handed (its house_* keywords) is either fitted
+# SystemIdentification.step is handed (the HousePlant record's fields) is either fitted
 # or names the sysid width the gate prices it with, and has a runner axis; a
 # new one without both is refused. Liveness is the #1524 null-control check above (the unperturbed
 # nights still adopt), so the sweep cannot go green by refusing everything.
@@ -56217,10 +56315,8 @@ _R9P5_ROLES = {
     "house_slab_transfer": "SLAB_PAIR_PRIOR_LOG_SD",
 }
 _r9p5_told = {
-    k for k in _r9p5_inspect.signature(
-        _SysIdModule.SystemIdentification.step
-    ).parameters
-    if k.startswith("house_")
+    f"house_{k}"
+    for k in _r9p5_inspect.signature(_SysIdModule.HousePlant).parameters
 }
 _r9p5_kw = set(_r9p5_inspect.signature(_z1524_run).parameters)
 R.check(
@@ -56356,11 +56452,14 @@ def _r9p5_derived_night(structure, era):
         override = sid.step(
             now=when, room_temp=st.room_temperature, outdoor_temp=0.0, price=0.1,
             price_horizon=np.full(48, 1.0), learner_samples=0, max_power_kw=3.5,
-            cop=3.0, plan_power_kw=hold / 3.0, house_ua=ua,
-            house_capacity=float(decl.room_thermal_mass),
-            house_gains=float(decl.internal_gains),
-            house_slab_mass=float(decl.slab_thermal_mass),
-            house_slab_transfer=float(decl.slab_heat_transfer),
+            cop=3.0, plan_power_kw=hold / 3.0,
+            house=HousePlant(
+                ua=ua,
+                capacity=float(decl.room_thermal_mass),
+                gains=float(decl.internal_gains),
+                slab_mass=float(decl.slab_thermal_mass),
+                slab_transfer=float(decl.slab_heat_transfer),
+            ),
         )
         if not sid.active:
             break

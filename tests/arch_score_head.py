@@ -28,7 +28,7 @@ sys.path.insert(0, str(ROOT / "tools" / "audit"))
 from harness import Results  # noqa: E402
 
 from archscore import counters, score, vector  # noqa: E402
-from archscore.metrics import common, hub_solve_writes  # noqa: E402
+from archscore.metrics import common, footprint, hub_solve_writes  # noqa: E402
 
 R = Results("architecture score on today's tree (R9-EG-A1)")
 
@@ -48,6 +48,85 @@ SOLVE_PATH_HUB_WRITERS = {
 #: The planted write the control adds as async_run_optimization's first statement.
 _PLANT_AT = '        ctx = getattr(self, "_ctx", self)\n        _LOGGER.info("Running heat pump optimization'
 _PLANT = '        ctx._opt_config.peak_count = 3\n'
+
+#: #1776: the fragment-chain guard. ``params_over_10`` is a count, so a split
+#: that decomposes nothing RAISES it (the pre-study's perturbation B3c), and a
+#: keyword bag does not lower it (counter C11). The functions this group left
+#: over the line are rows here, each with why; the ones the round converted
+#: take the horizon, the weather series or a frozen record of their related
+#: arrays instead of positional lists. A site the instrument returns that is
+#: not a row is red, and a row the instrument no longer returns is red too --
+#: the table shrinks only by a deliberate edit that says the function went
+#: under. Keyed ``module.qualname``, never a line number.
+PARAMS_OVER_10_LEFT = {
+    "away.resolve":
+        "the operating-mode resolver's five option groups, each keyword-only "
+        "with its own default; a record would re-wrap the mode dict its "
+        "callers already hold",
+    "comfort_band._pair_violations":
+        "two (key, default) quartets read out of the candidate and current "
+        "option dicts; those dicts are the records, and a schedule record "
+        "would name each key twice",
+    "optimizer.HeatPumpOptimizer._build_result":
+        "keyword-only already, and every optional is one published result "
+        "field; the OptimizationResult it assembles IS the record",
+    "tariff._peak_charge":
+        "the capacity-charge scaffolding's shared core; the tariff-record "
+        "family (peak_cost, peak_cost_smooth, peak_cost_batch, this) is the "
+        "next family owed, outside this group's line cap",
+    "tariff.peak_cost":
+        "the published capacity charge; the tariff-record family is the next "
+        "family owed, outside this group's line cap",
+    "tariff.peak_cost_batch":
+        "the batch twin; same family, same disposition",
+    "tariff.peak_cost_smooth":
+        "the solver's smooth surrogate; same family, same disposition",
+    "thermal_model.ThermalModel._simulate_step_single":
+        "the per-step hot path takes scalars; a frozen per-step record "
+        "allocated one object per simulated step, and the sysid rollout was "
+        "already priced out of its harness budget once by per-sub-step work",
+    "thermal_model.ThermalModel._simulate_step_two_zone":
+        "the two-zone step twin; same per-step path, same disposition",
+    "thermal_model.ThermalModel.simulate_step":
+        "the public per-step entry, 12 production and 27 test call sites; "
+        "its step conditions travel as scalars into the two models above",
+    "topology.rank_sensor_gaps":
+        "a keyword-only scenario probe for the diagnostics estimate, every "
+        "parameter an independent knob with a published default; a record "
+        "would move those defaults into a second home",
+    "wood_fuel.build_wood_fuel_view":
+        "the wood-furnace card view; the series it reads are derived views, "
+        "not the planner's positional arrays",
+}
+
+#: The seven planted parameters the control appends to hold_demand_kw's
+#: signature (four plus seven crosses the line).
+_PARAM_PLANT = "".join(
+    f"    extra_unplanned_{i}: float | None = None,\n" for i in range(7))
+_PARAM_PLANT_AT = "    solar_mean: float = 0.0,\n) -> float:"
+
+
+def param_sites(root: Path) -> list[str]:
+    """``module.qualname`` for every function the fragment-chain guard counts."""
+    pkg = common.load(str(root))
+    trees = {m.name: m.tree for m in pkg.mods.values() if "." not in m.name}
+    return footprint.params_over_10_sites(trees)
+
+
+def planted_param_site() -> tuple[bool, list[str]]:
+    """The positive control: today's package with one parameter planted on
+    ``hold_demand_kw``. ``(planted, sites)``."""
+    with tempfile.TemporaryDirectory(prefix="archscore-params-") as tmp:
+        root = Path(tmp)
+        shutil.copytree(ROOT / counters.PKG, root / counters.PKG,
+                        ignore=shutil.ignore_patterns("__pycache__"))
+        opt = root / counters.PKG / "optimizer.py"
+        text = opt.read_text()
+        if _PARAM_PLANT_AT not in text:
+            return False, []
+        opt.write_text(text.replace(_PARAM_PLANT_AT,
+                                    _PARAM_PLANT + _PARAM_PLANT_AT, 1))
+        return True, param_sites(root)
 
 
 def hub_writers(root: Path) -> set[tuple[str, str]]:
@@ -115,6 +194,25 @@ def main() -> int:
     R.check("every listed producer is still reached, so the table holds no stale row",
             set(SOLVE_PATH_HUB_WRITERS) <= writers,
             f"stale: {sorted(set(SOLVE_PATH_HUB_WRITERS) - writers)}")
+    sites = param_sites(ROOT)
+    R.check("the head census does not out-count the score's own guard (C4 can only add copies)",
+            len(sites) <= here["params_over_10"],
+            f"census {len(sites)} vs guard {here['params_over_10']}")
+    R.check("every function over ten parameters is a dispositioned row (#1776)",
+            set(sites) <= set(PARAMS_OVER_10_LEFT),
+            f"unlisted: {sorted(set(sites) - set(PARAMS_OVER_10_LEFT))}: take the horizon, "
+            "the weather series or a frozen record of the related arrays, or row the "
+            "function here with why it stays over the line")
+    R.check("every dispositioned row is still over the line, so the table holds no stale row",
+            set(PARAMS_OVER_10_LEFT) <= set(sites),
+            f"stale: {sorted(set(PARAMS_OVER_10_LEFT) - set(sites))}: drop the row -- the "
+            "function went under the line")
+    R.check("the guard's round target holds: no more than 14 over the line",
+            len(sites) <= 14, f"{len(sites)} sites")
+    planted, psites = planted_param_site()
+    R.check("the guard refuses a parameter planted on a four-parameter function, and lists only it",
+            planted and psites and sorted(set(psites) - set(sites)) == ["optimizer.hold_demand_kw"],
+            f"planted={planted}; new {sorted(set(psites) - set(sites))}")
     return R.close("ARCHITECTURE SCORE HEAD CHECKS")
 
 

@@ -43,6 +43,7 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    WeatherSeries,
     _mean_humidity,
     _step_humidity,
     dhw_coil_draw_reduction,
@@ -161,6 +162,31 @@ class DhwPlan:
     max_lead_hours: float
 
 
+@dataclass(frozen=True)
+class _DhwPlanContext:
+    """What the three DHW planners share, built once per plan (#1776).
+
+    The derived price series the plan is bought at (the surplus-covered
+    fraction priced at the export rate), the horizon geometry and the tank
+    envelope -- run power, energy cost, standby floor and lead time -- used
+    to travel as positional lists through three near-identical signatures.
+    The floor repair ranks its top-ups at the RAW import price instead -- a
+    top-up buys real energy, not the plan's smoothed view of it -- so the
+    raw series travels beside the derived one.
+    """
+
+    prices: np.ndarray
+    import_prices: np.ndarray
+    outdoor_temps: np.ndarray
+    humidity: np.ndarray | None
+    n_steps: int
+    dt: float
+    c_dhw: float
+    p_dhw_max: float
+    min_run_power: float
+    max_lead_steps: int
+
+
 class _Horizon(Protocol):
     """The planner's read-only view of the optimizer's per-solve horizon.
 
@@ -171,6 +197,8 @@ class _Horizon(Protocol):
 
     @property
     def initial_state(self) -> ThermalState: ...
+    @property
+    def prices(self) -> np.ndarray: ...
     @property
     def n_steps(self) -> int: ...
     @property
@@ -191,6 +219,12 @@ class _Horizon(Protocol):
     def valve_targets(self) -> np.ndarray | None: ...
     @property
     def humidity(self) -> np.ndarray | None: ...
+    @property
+    def dhw_pins(self) -> np.ndarray | None: ...
+    @property
+    def step_weekdays(self) -> np.ndarray | None: ...
+    @property
+    def holiday_flags(self) -> np.ndarray | None: ...
 
 
 class _PlannerConfig(Protocol):
@@ -346,18 +380,14 @@ class DhwPlanner:
 
     def _dhw_legionella_due(
         self,
+        h: _Horizon,
         *,
         params: ThermalParameters,
-        initial_state: ThermalState,
-        n_steps: int,
-        dt: float,
         hours_mod: np.ndarray,
         draw_rates: np.ndarray,
         ready_temps: np.ndarray,
-        outdoor_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
-        humidity: np.ndarray | None = None,
     ) -> tuple[bool, float | None, int | None]:
         """Whether the anti-legionella cycle is due, and which step it lands on.
 
@@ -365,6 +395,11 @@ class DhwPlanner:
         ``(due, hour, step)``; the ceilings the cycle then needs are
         ``_dhw_legionella_ceilings``.
         """
+        initial_state = h.initial_state
+        n_steps = h.n_steps
+        dt = h.dt
+        outdoor_temps = h.outdoor_temps
+        humidity = h.humidity
         legionella_due = False
         legionella_hour: float | None = None
         legionella_step: int | None = None
@@ -488,19 +523,16 @@ class DhwPlanner:
 
     def _dhw_legionella_ceilings(
         self,
+        h: _Horizon,
         *,
         params: ThermalParameters,
-        n_steps: int,
-        dt: float,
         c_dhw: float,
         draw_rates: np.ndarray,
         floor_temps: np.ndarray,
-        outdoor_temps: np.ndarray,
         p_dhw_run: float,
         legionella_due: bool,
         legionella_hour: float | None,
         legionella_step: int | None,
-        humidity: np.ndarray | None = None,
     ) -> _DhwLegionellaPlan:
         """The tank ceilings and run-up floor the cycle needs, verbatim.
 
@@ -508,6 +540,10 @@ class DhwPlanner:
         may exceed during a boost, ``runup_temps`` the per-step floor the
         cycle needs beforehand.
         """
+        n_steps = h.n_steps
+        dt = h.dt
+        outdoor_temps = h.outdoor_temps
+        humidity = h.humidity
         max_temp = np.full(max(n_steps, 0), float(params.dhw_max_temp))
         lp_max_temp = max_temp
         # The run-up the cycle needs, as a per-step FLOOR. Folded into
@@ -598,20 +634,16 @@ class DhwPlanner:
 
     def _dhw_legionella_plan(
         self,
+        h: _Horizon,
         *,
         params: ThermalParameters,
-        initial_state: ThermalState,
-        n_steps: int,
-        dt: float,
         c_dhw: float,
         hours_mod: np.ndarray,
         draw_rates: np.ndarray,
         ready_temps: np.ndarray,
         floor_temps: np.ndarray,
-        outdoor_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
-        humidity: np.ndarray | None = None,
     ) -> "_DhwLegionellaPlan":
         """The anti-legionella stage: when the cycle runs, and its ceilings.
 
@@ -619,31 +651,24 @@ class DhwPlanner:
         helper is not a decomposition (#224 stage 1).
         """
         legionella_due, legionella_hour, legionella_step = self._dhw_legionella_due(
+            h,
             params=params,
-            initial_state=initial_state,
-            n_steps=n_steps,
-            dt=dt,
             hours_mod=hours_mod,
             draw_rates=draw_rates,
             ready_temps=ready_temps,
-            outdoor_temps=outdoor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
-            humidity=humidity,
         )
         return self._dhw_legionella_ceilings(
+            h,
             params=params,
-            n_steps=n_steps,
-            dt=dt,
             c_dhw=c_dhw,
             draw_rates=draw_rates,
             floor_temps=floor_temps,
-            outdoor_temps=outdoor_temps,
             p_dhw_run=p_dhw_run,
             legionella_due=legionella_due,
             legionella_hour=legionella_hour,
             legionella_step=legionella_step,
-            humidity=humidity,
         )
 
     def _dhw_coil_wood_forecast(
@@ -677,23 +702,18 @@ class DhwPlanner:
         raw = np.asarray(self.model.dhw_draw_rates(hours), dtype=float)
         read = np.empty(n)
         *_, wood = self.model.simulate_trajectory_with_dhw(
-            initial_state=h.initial_state,
-            space_power_schedule=power,
-            dhw_power_schedule=(
+            h.initial_state,
+            power,
+            (
                 np.zeros(n)
                 if dhw_power is None
                 else np.asarray(dhw_power, dtype=float)[:n]
             ),
-            outdoor_temps=h.outdoor_temps,
-            wind_speeds=h.wind_speeds,
-            precipitation=h.precipitation,
-            solar_radiation=h.solar_radiation,
+            WeatherSeries.from_horizon(h),
             start_hour=float(h.step_hours[0]),
             dt_hours=h.dt,
             dhw_draw_rates=raw,
-            external_heat_kw=h.external_heat_kw,
             valve_targets=h.valve_targets,
-            humidity=h.humidity,
             coil_wood_read=read,
         )
         return None if wood is None else read
@@ -857,22 +877,14 @@ class DhwPlanner:
 
     def _build_dhw_requirements(
         self,
-        initial_state: ThermalState,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
-        step_hours: np.ndarray,
-        n_steps: int,
-        dt: float,
+        h: _Horizon,
+        *,
         p_max: float,
         space_demand: np.ndarray | None = None,
-        dhw_pins: np.ndarray | None = None,
         p_run_cap: float | None = None,
         blocked: bool = False,
         off_steps: np.ndarray | None = None,
-        step_weekdays: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
-        holiday_flags: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
     ) -> tuple[DhwPlan, np.ndarray]:
         """Build the DHW availability requirements and a cheapest-first plan.
 
@@ -889,6 +901,16 @@ class DhwPlanner:
         the only thing left to decide *when* the pump runs — so it runs at the
         cheapest hours that still satisfy the windows.
         """
+        initial_state = h.initial_state
+        prices = h.prices
+        outdoor_temps = h.outdoor_temps
+        step_hours = h.step_hours
+        n_steps = h.n_steps
+        dt = h.dt
+        dhw_pins = h.dhw_pins
+        step_weekdays = h.step_weekdays
+        holiday_flags = h.holiday_flags
+        humidity = h.humidity
         params = self.model.params
         windows, learned_windows = self._effective_dhw_windows()
         (
@@ -940,19 +962,15 @@ class DhwPlanner:
             lp_max_temp,
             runup_temps,
         ) = self._dhw_legionella_plan(
+            h,
             params=params,
-            initial_state=initial_state,
-            n_steps=n_steps,
-            dt=dt,
             c_dhw=c_dhw,
             hours_mod=hours_mod,
             draw_rates=draw_rates,
             ready_temps=ready_temps,
             floor_temps=floor_temps,
-            outdoor_temps=outdoor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
-            humidity=humidity,
         )
 
         # How long stored heat actually survives in this tank. The learned
@@ -1000,43 +1018,44 @@ class DhwPlanner:
         # of pricing it is what used to pin heating to the demand windows.
         max_lead_steps = max(1, min(n_steps, int(np.ceil(max_lead_hours / dt))))
 
+        # What the three planners share, built once: the derived price
+        # series, the horizon geometry and the tank envelope (#1776).
+        ctx = _DhwPlanContext(
+            prices=dhw_prices,
+            import_prices=prices,
+            outdoor_temps=outdoor_temps,
+            humidity=humidity,
+            n_steps=n_steps,
+            dt=dt,
+            c_dhw=c_dhw,
+            p_dhw_max=p_dhw_run,
+            min_run_power=min_run_power,
+            max_lead_steps=max_lead_steps,
+        )
+
         # Stage 1: a linear program over the whole horizon finds the truly
         # cheapest feasible allocation. Stage 2 repairs whatever the linear
         # approximation got wrong against the real tank simulation.
         seed = self._plan_dhw_min_cost(
+            ctx,
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=dhw_prices,
-            outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
-            n_steps=n_steps,
-            dt=dt,
-            p_dhw_max=p_dhw_run,
-            c_dhw=c_dhw,
             # The LP alone gets the coast-down band — see the ceiling block.
             max_temp=lp_max_temp,
             space_demand=space_demand,
             p_total_max=p_max,
             forced_off=forced_off,
-            humidity=humidity,
         )
 
         schedule = self._plan_dhw_cheapest_first(
+            ctx,
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=dhw_prices,
-            outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
-            n_steps=n_steps,
-            dt=dt,
-            p_dhw_max=p_dhw_run,
-            min_run_power=min_run_power,
-            max_lead_steps=max_lead_steps,
-            c_dhw=c_dhw,
             max_temp=max_temp,
             initial_plan=seed,
             forced_off=forced_off,
-            humidity=humidity,
         )
 
         schedule = self._apply_dhw_min_run(
@@ -1055,21 +1074,13 @@ class DhwPlanner:
         # unbought, so the greedy planner runs once more to re-buy any
         # shortfall in steps that can still take a real block.
         schedule = self._plan_dhw_cheapest_first(
+            ctx,
             initial_temp=initial_state.dhw_temperature,
             requirement=requirement,
-            prices=dhw_prices,
-            outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
-            n_steps=n_steps,
-            dt=dt,
-            p_dhw_max=p_dhw_run,
-            min_run_power=min_run_power,
-            max_lead_steps=max_lead_steps,
-            c_dhw=c_dhw,
             max_temp=max_temp,
             initial_plan=schedule,
             forced_off=forced_off,
-            humidity=humidity,
         )
 
         # The tank's rating is physics, not preference, so it is enforced after
@@ -1097,19 +1108,13 @@ class DhwPlanner:
         # before each breach until the simulated trajectory honours the
         # requirement, then re-apply the rating, which always wins.
         schedule = self._repair_dhw_floor(
+            ctx,
             plan=schedule,
             initial_temp=initial_state.dhw_temperature,
-            outdoor_temps=outdoor_temps,
             draw_rates=draw_rates,
-            dt=dt,
             requirement=requirement,
             max_temp=max_temp,
-            p_dhw_max=p_dhw_run,
-            min_run_power=min_run_power,
-            prices=prices,
-            c_dhw=c_dhw,
             forced_off=forced_off,
-            humidity=humidity,
         )
         # Not re-clamped here, because the repair now carries the clamp
         # inside its own loop: every top-up it places is followed by one,
@@ -1244,20 +1249,14 @@ class DhwPlanner:
 
     def _plan_dhw_min_cost(
         self,
+        ctx: _DhwPlanContext,
         initial_temp: float,
         requirement: np.ndarray,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
-        n_steps: int,
-        dt: float,
-        p_dhw_max: float,
-        c_dhw: float,
         max_temp: np.ndarray,
         space_demand: np.ndarray | None = None,
         p_total_max: float | None = None,
         forced_off: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
     ) -> np.ndarray | None:
         """Minimum-cost DHW schedule over the whole horizon, as a linear program.
 
@@ -1303,6 +1302,13 @@ class DhwPlanner:
         Returns ``None`` when the solve fails, so the caller can fall back to
         the greedy planner.
         """
+        prices = ctx.prices
+        outdoor_temps = ctx.outdoor_temps
+        humidity = ctx.humidity
+        n_steps = ctx.n_steps
+        dt = ctx.dt
+        p_dhw_max = ctx.p_dhw_max
+        c_dhw = ctx.c_dhw
         if n_steps == 0 or c_dhw <= 0.0:
             return None
 
@@ -1520,20 +1526,14 @@ class DhwPlanner:
 
     def _repair_dhw_floor(
         self,
+        ctx: _DhwPlanContext,
         *,
         plan: np.ndarray,
         initial_temp: float,
-        outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
-        dt: float,
         requirement: np.ndarray,
         max_temp: np.ndarray,
-        p_dhw_max: float,
-        min_run_power: float,
-        prices: np.ndarray,
-        c_dhw: float,
         forced_off: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Top up the plan until the SIMULATED trajectory meets the floor.
 
@@ -1558,6 +1558,13 @@ class DhwPlanner:
         model's tank-rating clamp to bound it, which only worked while the
         charge limit and the rating were the same number.
         """
+        outdoor_temps = ctx.outdoor_temps
+        humidity = ctx.humidity
+        dt = ctx.dt
+        p_dhw_max = ctx.p_dhw_max
+        min_run_power = ctx.min_run_power
+        prices = ctx.import_prices
+        c_dhw = ctx.c_dhw
         plan = np.asarray(plan, dtype=float).copy()
         n = plan.size
         if n == 0 or requirement is None or c_dhw <= 0.0:
@@ -1953,21 +1960,13 @@ class DhwPlanner:
 
     def _plan_dhw_cheapest_first(
         self,
+        ctx: _DhwPlanContext,
         initial_temp: float,
         requirement: np.ndarray,
-        prices: np.ndarray,
-        outdoor_temps: np.ndarray,
         draw_rates: np.ndarray,
-        n_steps: int,
-        dt: float,
-        p_dhw_max: float,
-        min_run_power: float,
-        max_lead_steps: int,
-        c_dhw: float,
         max_temp: np.ndarray,
         initial_plan: np.ndarray | None = None,
         forced_off: np.ndarray | None = None,
-        humidity: np.ndarray | None = None,
     ) -> np.ndarray:
         """Greedily top up a DHW plan in the cheapest feasible hours.
 
@@ -1993,6 +1992,15 @@ class DhwPlanner:
         unlike a gradient solve, it produces blocks the heat pump can actually
         run.
         """
+        prices = ctx.prices
+        outdoor_temps = ctx.outdoor_temps
+        humidity = ctx.humidity
+        n_steps = ctx.n_steps
+        dt = ctx.dt
+        p_dhw_max = ctx.p_dhw_max
+        min_run_power = ctx.min_run_power
+        max_lead_steps = ctx.max_lead_steps
+        c_dhw = ctx.c_dhw
         if initial_plan is None:
             plan = np.zeros(n_steps)
         else:
