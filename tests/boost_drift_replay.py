@@ -461,16 +461,92 @@ def check_freeze_units() -> None:
         "past the tail, learning resumes",
         coord._learning_frozen("sensor.indoor") is None,
     )
+    # The cancel path owes the same tail an expiry does, and only the
+    # space channel's cancel does.
+    coord3 = build_coord()
+    asyncio.run(boost_mod.set_channel(
+        coord3, boost_mod.CHANNEL_SPACE, True, refresh=False))
+    asyncio.run(boost_mod.set_channel(
+        coord3, boost_mod.CHANNEL_SPACE, False, refresh=False))
+    R.check(
+        "cancelling a live space overlay starts the settling tail",
+        coord3._learning_frozen("sensor.indoor") == FREEZE_REASON,
+    )
+    coord4 = build_coord()
+    asyncio.run(boost_mod.set_channel(
+        coord4, boost_mod.CHANNEL_DHW, True, refresh=False))
+    asyncio.run(boost_mod.set_channel(
+        coord4, boost_mod.CHANNEL_DHW, False, refresh=False))
+    R.check(
+        "cancelling a DHW overlay starts none (the freeze is scoped to "
+        "space heat)",
+        coord4._learning_frozen("sensor.indoor") is None,
+    )
+    # The tag's exact boundaries: an overlay that ends this instant, or
+    # began this instant, did not govern the interval that is closing.
+    coord5 = build_coord()
+    now5 = dt_mod.now()
+    held5 = boost_mod.held_for(coord5)
+    held5.until[boost_mod.CHANNEL_SPACE] = now5
+    R.check(
+        "an overlay ending exactly now did not govern the closing "
+        "interval (no tag)",
+        not boost_mod.interval_boosted({}, coord5),
+    )
+    held5.until[boost_mod.CHANNEL_SPACE] = now5 + timedelta(hours=2)
+    R.check(
+        "an overlay beginning exactly now governs only the NEXT interval "
+        "(no tag on the closing one)",
+        not boost_mod.interval_boosted({}, coord5),
+    )
+    held5.until[boost_mod.CHANNEL_SPACE] = now5 + timedelta(hours=1)
+    R.check(
+        "an overlay that began mid-interval tags the closing interval",
+        boost_mod.interval_boosted({}, coord5),
+    )
+    # The diagnosis record's apportionment: a plan that drew nothing
+    # splits the meter's whole draw to space.
+    coord6 = build_coord()
+    sample6 = AccuracySample(
+        when=now5, predicted_power_kw=None, actual_power_kw=2.0,
+        predicted_temp=None, actual_temp=20.0,
+    )
+    from heatpump_optimizer.coordinator import _settle_interval_diag
+    _settle_interval_diag(coord6, sample6, {
+        "diag": {"state": {}, "planned": {}},
+        "space_power": 5e-7, "dhw_power": 5e-7,   # planned_total == 1e-6
+    }, 0.5, now5)
+    R.check(
+        "a plan whose total draw sits exactly at the apportionment floor "
+        "books the whole metered draw to space (share 1.0)",
+        coord6._last_interval_record is not None
+        and coord6._last_interval_record["realised"]["electrical_power"] == 2.0,
+    )
     asyncio.run(coord.async_set_mode("boost", refresh=False))
     R.check(
         "the global boost mode freezes learning through the same reason",
         coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+    )
+    _tail_before = boost_mod.held_for(coord).space_settle_until
+    asyncio.run(coord.async_set_mode("boost", refresh=False))
+    R.check(
+        "re-selecting boost while already in it starts no second tail "
+        "(the tail is owed to LEAVING boost, not to being in it)",
+        boost_mod.held_for(coord).space_settle_until == _tail_before,
     )
     asyncio.run(coord.async_set_mode("auto", refresh=False))
     R.check(
         "leaving boost mode starts the settling tail (same mechanism, "
         "same owed tail)",
         coord._learning_frozen("sensor.indoor") == FREEZE_REASON,
+    )
+    coord2 = build_coord()
+    asyncio.run(coord2.async_set_mode("comfort", refresh=False))
+    asyncio.run(coord2.async_set_mode("auto", refresh=False))
+    R.check(
+        "leaving a non-boost mode starts no tail (comfort->auto never "
+        "freezes learning)",
+        coord2._learning_frozen("sensor.indoor") is None,
     )
 
 
