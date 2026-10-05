@@ -7517,7 +7517,7 @@
     "next_step": "none: the countermeasure is R9-RC-PRCONTRACT-FIX, not this group's implementation",
     "branch": "handoff/r9-rc-prcontract",
     "commit": "86dbf0ca1d5e1bed903ec83b676a147f2eee8e49",
-    "last_step": "RCA handed off as PR #1972"
+    "last_step": "merged #1972 at 86dbf0ca (deploy-key merge, 2026-10-05T20:54:57Z)"
    },
    "fixes": []
   },
