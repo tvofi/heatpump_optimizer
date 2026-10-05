@@ -25,8 +25,10 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      every PR merged since the last tag -- a stamp covers everything
      unstamped, whoever merged it. The merges are read off main's own
      --first-parent line, in both subject shapes main has produced
-     ('Merge pull request #N from ...' and a trailing '(#N)'), and a window
-     the rule could not attribute refuses instead of enumerating empty: an
+     ('Merge pull request #N from ...' and a trailing '(#N)'), and from a
+     body line 'Merge pull request #N' when the subject is the pull request
+     title (a deploy-key merge). A window the rule could not attribute
+     refuses instead of enumerating empty: an
      enumerator that silently finds nothing cannot reject notes that omit
      everything.
   5. (rule "rows") Every merged pull request in the window this tag is about to
@@ -141,11 +143,13 @@ REGISTER_FILES = (REGISTER_DIR / "claims.json", REGISTER_DIR / "claims.md")
 REGISTER_PYTHONPATH = "tests/hastub"
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 # Rule 4's population: the pull requests merged into main since the last tag.
-# It is read off main's OWN first-parent line (window_log_args below), and a
-# subject there has taken two shapes, so both are matched. The squash form is
-# END-ANCHORED on purpose: `fix(#960): ...` is a branch commit naming an
-# ISSUE, and an unanchored search over branch commits read seven of those as
-# merged pull requests, one of them still open.
+# It is read off main's OWN first-parent line (window_log_args below). A
+# subject there has taken two shapes, so both are matched, and a deploy-key
+# merge may put the pull request title in the subject with `Merge pull
+# request #N` only in the body -- the same grammar, read after the subject
+# named nothing. The squash form is END-ANCHORED on purpose: `fix(#960): ...`
+# is a branch commit naming an ISSUE, and an unanchored search over branch
+# commits read seven of those as merged pull requests, one of them still open.
 PR_RE = re.compile(r"\(#(\d+)\)\s*$")
 MERGE_SUBJECT_RE = re.compile(r"^Merge pull request #(\d+)\b")
 # The stamper's own commit. It carries no pull request by construction, and it
@@ -153,9 +157,12 @@ MERGE_SUBJECT_RE = re.compile(r"^Merge pull request #(\d+)\b")
 # leaves the commit behind), so it is excluded before the blindness alarm
 # below counts what it could not attribute.
 STAMP_SUBJECT_RE = re.compile(r"^v\d+\.\d+\.\d+: stamp\b")
-# %h/%p/%s, unit-separated. The parent count is how a merge is recognised as
-# one -- git says so, where a subject regex only guesses.
-WINDOW_FORMAT = "%h%x1f%p%x1f%s"
+# %h/%p/%s/%b, unit-separated, record-separated. The parent count is how a
+# merge is recognised as one -- git says so, where a subject regex only
+# guesses. %b is multi-line, so a line-oriented format would split the body
+# into unreadable records; %x1e is the same record separator
+# tests/delivery_status.py LOG_FORMAT uses.
+WINDOW_FORMAT = "%h%x1f%p%x1f%s%x1f%b%x1e"
 # Rule 2's gate. gh answers it when gh is installed; when it is not, the same
 # question goes straight to the REST API, which needs the repository spelled
 # out: a stamp is taken from a checkout of this repository by definition, and
@@ -286,24 +293,46 @@ def notes_section(text: str, version: str) -> str | None:
     return None
 
 
-def pr_from_subject(subject: str) -> str | None:
+def pr_from_subject(subject: str, body: str = "") -> str | None:
     """The pull request a first-parent commit on main carries, or None.
 
-    Two shapes, because main has produced both: GitHub's merge commit
+    Two subject shapes, because main has produced both: GitHub's merge commit
     (`Merge pull request #N from ...`) and the squash subject (`... (#N)`).
     Which one is in force is a per-merge choice nothing in this repository
     pins, so rule 4 reads both rather than the one that was current when it
     was written.
+
+    A deploy-key merge may carry the pull request title as the subject, with
+    the number only on a body line `Merge pull request #N` -- the same
+    grammar as the merge subject, read only after the subject named nothing.
+    `Fixes #N` is an issue close, not that line. Kept in step with
+    `tests/delivery_status.py` `subject_number`.
     """
     merge = MERGE_SUBJECT_RE.match(subject)
     if merge:
         return merge.group(1)
     squash = PR_RE.search(subject)
-    return squash.group(1) if squash else None
+    if squash:
+        return squash.group(1)
+    for line in body.splitlines():
+        merge = MERGE_SUBJECT_RE.match(line.strip())
+        if merge:
+            return merge.group(1)
+    return None
 
 
 def merged_prs(subjects: list[str]) -> set[str]:
     return {pr for pr in (pr_from_subject(s) for s in subjects) if pr}
+
+
+def _row_message(row: tuple) -> tuple[str, str]:
+    """(subject, body) from a parse_window row; body empty on the 3-field form."""
+    return row[2], row[3] if len(row) > 3 else ""
+
+
+def prs_from_window(window: list[tuple]) -> set[str]:
+    """Rule 4's population from a parsed window, including a body Merge line."""
+    return {pr for pr in (pr_from_subject(*_row_message(row)) for row in window) if pr}
 
 
 def window_log_args(last_tag: str, head: str = "HEAD") -> list[str]:
@@ -318,28 +347,33 @@ def window_log_args(last_tag: str, head: str = "HEAD") -> list[str]:
             f"--format={WINDOW_FORMAT}"]
 
 
-def parse_window(raw: str) -> list[tuple[str, int, str]]:
-    """(abbreviated sha, parent count, subject) per first-parent commit.
+def parse_window(raw: str) -> list[tuple[str, int, str, str]]:
+    """(abbreviated sha, parent count, subject, body) per first-parent commit.
 
-    A non-empty line that does not carry WINDOW_FORMAT's three fields is
-    REFUSED, not skipped. Skipping it returns the same empty list a clean
-    empty window returns, and that is the failure path this whole change
+    A non-empty record that does not carry WINDOW_FORMAT's sha/parents/subject
+    fields is REFUSED, not skipped. Skipping it returns the same empty list a
+    clean empty window returns, and that is the failure path this whole change
     exists to close (#1041 comment 5693093076): the derivation that produces
     the population a check quantifies over must not answer "nothing merged"
     when it means "I could not read this". The first version of this function
     had the bare `continue`, written by a seat that had just read that
     analysis, which is how durable the shape is.
+
+    Records are `%x1e`-separated because `%b` is multi-line: a line-oriented
+    split would treat each body line as its own unreadable commit.
     """
     rows = []
-    for line in raw.splitlines():
-        if not line:
+    for record in raw.split("\x1e"):
+        record = record.lstrip("\n")
+        if not record.strip():
             continue
-        parts = line.split("\x1f", 2)
-        if len(parts) != 3:
+        parts = record.split("\x1f")
+        if len(parts) < 3:
             raise Refuse(4, f"git log --first-parent returned a line rule 4 cannot read: "
-                            f"{line!r}. A window that cannot be read is not an empty one.")
-        sha, parents, subject = parts
-        rows.append((sha, len(parents.split()), subject))
+                            f"{record!r}. A window that cannot be read is not an empty one.")
+        sha, parents, subject = parts[0], parts[1], parts[2]
+        body = "\x1f".join(parts[3:]) if len(parts) > 3 else ""
+        rows.append((sha, len(parents.split()), subject, body))
     return rows
 
 
@@ -352,8 +386,10 @@ def blind_merges(window: list[tuple[str, int, str]]) -> list[tuple[str, str]]:
     dropped from the population, which is how the enumerator went blind in
     the first place.
     """
-    return [(sha, subject) for sha, parents, subject in window
-            if parents >= 2 and pr_from_subject(subject) is None]
+    return [(sha, subject) for row in window
+            for sha, parents, subject, body in [
+                (row[0], row[1], row[2], row[3] if len(row) > 3 else "")]
+            if parents >= 2 and pr_from_subject(subject, body) is None]
 
 
 def unattributed_direct_pushes(window: list[tuple[str, int, str]]) -> list[tuple[str, str]]:
@@ -378,9 +414,11 @@ def unattributed_direct_pushes(window: list[tuple[str, int, str]]) -> list[tuple
     enumerator so the shape has a check at all; a seat deciding to gate a
     release on it is a separate, owner-facing change.
     """
-    return [(sha, subject) for sha, parents, subject in window
+    return [(sha, subject) for row in window
+            for sha, parents, subject, body in [
+                (row[0], row[1], row[2], row[3] if len(row) > 3 else "")]
             if parents == 1 and not STAMP_SUBJECT_RE.match(subject)
-            and pr_from_subject(subject) is None]
+            and pr_from_subject(subject, body) is None]
 
 
 def enumeration_went_blind(window: list[tuple[str, int, str]],
@@ -410,7 +448,7 @@ def rule4_problem(window: list[tuple[str, int, str]], body: str,
     without taking a release: the enumerator underneath it read the wrong
     commits for twenty-five merges and nothing could run it to find out.
     """
-    prs = merged_prs([subject for _, _, subject in window])
+    prs = prs_from_window(window)
     blind = blind_merges(window)
     if enumeration_went_blind(window, prs, blind):
         return (f"read no merged pull request from any of the {len(window)} commit(s) on main "
@@ -602,20 +640,22 @@ def self_test() -> int:
           "--first-parent" in window_log_args("v6.5.0"))
     check("window: the log spans last tag to head",
           "v6.5.0..HEAD" in window_log_args("v6.5.0"))
-    check("window: the format carries sha, parents and subject",
+    check("window: the format carries sha, parents, subject and body",
           f"--format={WINDOW_FORMAT}" in window_log_args("v6.5.0")
-          and WINDOW_FORMAT.count("%x1f") == 2)
-    parsed = parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
-                          "bbb2222\x1faaa1111\x1ffix: a thing (#8)\n")
+          and WINDOW_FORMAT.count("%x1f") == 3
+          and "%b" in WINDOW_FORMAT and "%x1e" in WINDOW_FORMAT)
+    parsed = parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\x1f\x1e"
+                          "bbb2222\x1faaa1111\x1ffix: a thing (#8)\x1f\x1e")
     check("window: a merge is recognised by its parent count",
-          parsed == [("abc1234", 2, "Merge pull request #7 from x/y"),
-                     ("bbb2222", 1, "fix: a thing (#8)")])
-    check("window: a subject carrying the separator keeps it",
-          parse_window("abc1234\x1faaa1111\x1ffix: a\x1fb") == [("abc1234", 1, "fix: a\x1fb")])
+          parsed == [("abc1234", 2, "Merge pull request #7 from x/y", ""),
+                     ("bbb2222", 1, "fix: a thing (#8)", "")])
+    check("window: a body carrying the separator keeps it",
+          parse_window("abc1234\x1faaa1111\x1ffix: a\x1fb\x1fc\x1e")
+          == [("abc1234", 1, "fix: a", "b\x1fc")])
     check("window: an empty log is an empty window", parse_window("") == [])
     try:
-        parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\n"
-                     "a-line-with-no-separators\n")
+        parse_window("abc1234\x1fdef5678 9012345\x1fMerge pull request #7 from x/y\x1f\x1e"
+                     "a-line-with-no-separators\x1e")
         check("window: an unreadable line refuses, it is not dropped", False)
     except Refuse as _pw:
         # Dropping it would return the list a clean run returns, minus a
@@ -623,7 +663,7 @@ def self_test() -> int:
         check("window: an unreadable line refuses, it is not dropped",
               "cannot read" in str(_pw) and "rule 4" in str(_pw))
     try:
-        parse_window("every-line-unreadable\nand-this-one-too\n")
+        parse_window("every-line-unreadable\x1eand-this-one-too\x1e")
         check("window: an all-unreadable log refuses rather than reading empty", False)
     except Refuse:
         check("window: an all-unreadable log refuses rather than reading empty", True)
@@ -1858,14 +1898,14 @@ def main() -> int:
     # and --allow-rowless exactly as they were.
     rowless = parse_rowless(why) if (not cleared and window) else []
     if rowless:
-        window_prs = merged_prs([s for _, _, s in window])
+        window_prs = prs_from_window(window)
         for pr, sha7 in rowless:
             if pr not in window_prs:
                 raise Refuse("rows", f"the disposition instrument lists #{pr} without a "
                                      f"row, but rule 4's window does not name that pull "
                                      f"request; the two enumerations disagree, so the "
                                      f"stamp refuses rather than classify from either")
-            if not any(sha.startswith(sha7) for sha, _, _ in window):
+            if not any(row[0].startswith(sha7) for row in window):
                 raise Refuse("rows", f"the disposition instrument lists #{pr} at merge "
                                      f"{sha7}, which no commit in rule 4's window names; "
                                      f"the two enumerations disagree, so the stamp "
