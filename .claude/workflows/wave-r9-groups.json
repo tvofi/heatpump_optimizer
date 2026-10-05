@@ -7207,9 +7207,9 @@
    "after": [],
    "brief": "Pre-study R9-DBG-0 sections 6 and 7: the repo-side debugger harness, confined to tools/replay (unowned; F11 owns tools/audit), importing the existing tests/replay.py run_fixture for replay and reusing the two prototypes that exist on handoff/r9-dbg-0 at eae236d66 (the smoke ingest and the synthetic-week generator - cited here per the tag rule). Deliverables: the ingest tool generalised from the smoke prototype, the replay driver with store seeding, and the generator promoted as a CI-visible artifact. If tests/replay.py itself must change, STOP and tell the orchestrator (the F10 wave-18 edge would bind - prefer the import-only integration). Disposition the synthetic week's single agreement offender with a targeted replay (doc section 5). Parallel to DBG-1. ~400 tool lines plus a tests smoke if gate-wired.",
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-dbg-3",
-    "commit": null,
+    "commit": "077f53aff6745fb082fd1299d4921a5d9c32f644",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base; the pre-study doc is the spec",
     "note_file": "handoff/round9/fix/resume/DBG-3.md on fix/r9-dbg-3",
