@@ -27340,7 +27340,7 @@ R.check(
     and float(np.max(_qw_sil_dhw[_qw_off_idx])) <= float(np.min(_qw_sil_quiet.caps[_qw_off_idx])) + 1e-6,
     f"space {float(np.max(_qw_sil_space[_qw_off_idx]))}, "
     f"dhw {float(np.max(_qw_sil_dhw[_qw_off_idx]))}, "
-    f"cap {float(np.min(_qw_sil_quiet.caps[_qw_off_idx]))}",
+    f"cap {None if _qw_sil_quiet.caps is None else float(np.min(_qw_sil_quiet.caps[_qw_off_idx]))}",
 )
 
 # The production wiring, driven through the coordinator the way the #1067
@@ -27378,6 +27378,14 @@ def _qw_steps_where(start, n, pred):
     ]
 
 
+def _qw_len(limits):
+    """The horizon a solve's quiet fields cover; 0 when none reached it."""
+    for arr in (limits.power_caps_extra, limits.quiet_actions, limits.off_steps):
+        if arr is not None:
+            return len(arr)
+    return 0
+
+
 _qw_w_cfg = {
     _QW_LIMITED: "switch.pump_night_mode",
     _QW_SILENT: "00:00-06:00", _QW_OFF: "22:00-23:00", _QW_FRAC: 0.6,
@@ -27386,15 +27394,11 @@ _qw_wc, _qw_runs = _qw_plan(_qw_w_cfg, simulate={"quiet_off_windows": "23:30-23:
 _qw_wpmax = float(_qw_wc._thermal_params.max_electrical_power)
 _qw_w0_limits, _qw_w0_start = _qw_runs[0]
 _qw_w1_limits, _qw_w1_start = _qw_runs[1]
-_qw_w0_n = len(_qw_w0_limits.power_caps_extra)
+_qw_w0_n = _qw_len(_qw_w0_limits)
 _qw_w0_night = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour < 6)
 _qw_w0_off = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour == 22)
 _qw_w1_off = _qw_steps_where(
-    _qw_w1_start,
-    len(_qw_runs[1][0].quiet_actions)
-    if _qw_runs[1][0].quiet_actions is not None
-    else len(_qw_runs[1][0].power_caps_extra),
-    lambda d: (d.hour, d.minute) == (23, 30),
+    _qw_w1_start, _qw_len(_qw_w1_limits), lambda d: (d.hour, d.minute) == (23, 30),
 )
 R.check(
     "the plan's solve carries the silent cap and the off mask; the what-if honours its own off override",
@@ -27404,7 +27408,8 @@ R.check(
     and _qw_w0_limits.quiet_actions is not None
     and _g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax) == _qw_w0_night
     and sorted(i for i, v in enumerate(_qw_w0_limits.off_steps) if v) == _qw_w0_off
-    and sorted(i for i, v in enumerate(_qw_runs[1][0].off_steps) if v) == _qw_w1_off,
+    and _qw_w1_limits.off_steps is not None
+    and sorted(i for i, v in enumerate(_qw_w1_limits.off_steps) if v) == _qw_w1_off,
     f"plan capped {len(_g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax))} (want {len(_qw_w0_night)}), "
     f"plan off {0 if _qw_w0_limits.off_steps is None else int(np.sum(_qw_w0_limits.off_steps))} "
     f"(want {len(_qw_w0_off)}), what-if off "
