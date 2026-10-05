@@ -2792,6 +2792,11 @@ jobs:
           else
             AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
             echo "::add-mask::$AUTH"
+            # Contrast for the PR step's length line: the SAME attempt's
+            # token drives this basic-auth push successfully, so a length
+            # that agrees here and there pins the value as live in both
+            # steps. A length, never a value.
+            echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
             git config user.name "hpo-author[bot]"
             git config user.email "hpo-author[bot]@users.noreply.github.com"
             # The explicit refspec, so the roster is readable at
@@ -2846,21 +2851,33 @@ jobs:
           BASE_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          AUTH=$(printf 'Bearer %s' "$TOKEN")
+          # The header carries its NAME, not just its value: run 37281783211
+          # self-reported the 401 as `{"message": "Requires authentication"}`
+          # -- GitHub saw no Authorization header at all -- because curl
+          # SILENTLY DROPS an -H argument without a colon (measured:
+          # `curl -H "Bearer <token>"` sends no header, `curl -H
+          # "Authorization: Bearer <token>"` sends it), and every 401 before
+          # it, run 37261904851 included, was the same nameless header. The
+          # lengths below pin this in the log without ever printing a value:
+          # TOKEN and AUTH are both non-empty here, and the request still
+          # carried no header -- an empty-variable explanation is refuted by
+          # the same run that prints them.
+          AUTH=$(printf 'Authorization: Bearer %s' "$TOKEN")
           echo "::add-mask::$TOKEN"
+          echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
           API=https://api.github.com
           ACCEPT='Accept: application/vnd.github+json'
           HEAD_SHA=$(git rev-parse HEAD)
           # Every write below reports its own evidence: URL, HTTP status and,
           # on any non-2xx, the response body -- deliberately without curl's
-          # -f, which discarded all three. The 401s of run 37261904851
-          # (attempts 06:08 and 06:17) printed only `curl: (22) ... 401`,
-          # while the byte-equivalent request returns 201/422 from the
-          # orchestrator's box; the token stays masked and the Authorization
-          # header value is never printed, so the next red self-explains
-          # without leaking the credential. The body file is shared, so no
-          # call runs inside a command substitution (a subshell would
-          # swallow the diagnostics).
+          # -f, which discarded all three. This is what turned the 401s from
+          # run 37261904851 (attempts 06:08 and 06:17, `curl: (22) ... 401`
+          # and nothing else) into run 37281783211's self-describing refusal
+          # and so into the header fix above. The token stays masked and the
+          # Authorization header value is never printed, so a future red
+          # self-explains without leaking the credential. The body file is
+          # shared, so no call runs inside a command substitution (a subshell
+          # would swallow the diagnostics).
           curl_json() { # curl_json LABEL METHOD DATA_FILE URL; body lands in $RUNNER_TEMP/resp.json
             label=$1 method=$2 data=$3 url=$4
             code=$(curl -sS -o "$RUNNER_TEMP/resp.json" -w '%{http_code}' \
