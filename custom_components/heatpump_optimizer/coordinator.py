@@ -1728,6 +1728,37 @@ class CoordinatorDiagnostics:
     house_heat_loss_scale: float | None = None
     learner_summaries: Mapping[str, Any] = field(default_factory=dict)
 
+    LEARNERS = ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model")
+
+    @classmethod
+    def of(cls, coord: Any) -> "CoordinatorDiagnostics":
+        """Read ``coord``'s live counters and learner summaries into a view.
+
+        Lives beside the fields it fills, so a member diagnostics needs and
+        a field here go stale together, not apart. A learner whose
+        ``summary()`` raises reports ``"summary unavailable"``, as the
+        per-field fallback in ``diagnostics.py`` did before the view.
+        """
+        summaries: dict[str, Any] = {}
+        for name in cls.LEARNERS:
+            obj = getattr(coord, name, None)
+            summary = getattr(obj, "summary", None)
+            if not callable(summary):
+                continue
+            try:
+                summaries[name.lstrip("_")] = summary()
+            except Exception:  # noqa: BLE001 -- diagnostics never breaks
+                summaries[name.lstrip("_")] = "summary unavailable"
+        return cls(
+            tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
+            tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
+            solve_failures=getattr(coord, "_solve_failures", None),
+            cop_scale=getattr(coord, "_cop_scale", None),
+            cop_samples=getattr(coord, "_cop_samples", None),
+            house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
+            learner_summaries=summaries,
+        )
+
 
 def _ctx_of(coord: Any) -> CoordinatorContext:
     """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
@@ -3080,31 +3111,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
 
     def diagnostics_state(self) -> CoordinatorDiagnostics:
-        """What diagnostics may read about this instance, as one view.
-
-        The learners' own ``summary()`` dictionaries ride along; a summary
-        that raises reports ``"summary unavailable"`` there, exactly as the
-        per-field fallback in ``diagnostics.py`` did before the view (#1739).
-        """
-        summaries: dict[str, Any] = {}
-        for name in ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model"):
-            obj = getattr(self, name, None)
-            summary = getattr(obj, "summary", None)
-            if not callable(summary):
-                continue
-            try:
-                summaries[name.lstrip("_")] = summary()
-            except Exception:  # noqa: BLE001 - diagnostics never breaks
-                summaries[name.lstrip("_")] = "summary unavailable"
-        return CoordinatorDiagnostics(
-            tibber_outage_cycles=getattr(self, "_tibber_outage_cycles", None),
-            tibber_reauth_started=getattr(self, "_tibber_reauth_started", None),
-            solve_failures=getattr(self, "_solve_failures", None),
-            cop_scale=getattr(self, "_cop_scale", None),
-            cop_samples=getattr(self, "_cop_samples", None),
-            house_heat_loss_scale=getattr(self, "_house_heat_loss_scale", None),
-            learner_summaries=summaries,
-        )
+        """What diagnostics may read about this instance, as one view (#1739)."""
+        return CoordinatorDiagnostics.of(self)
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
