@@ -200,7 +200,7 @@ def space_learning_frozen(coord: Any, now: datetime | None = None) -> bool:
     return tail is not None and utc_elapsed_seconds(tail, now) > 0
 
 
-def interval_boosted(pending: Mapping, coord: Any) -> bool:
+def interval_boosted(pending: Mapping[str, Any], coord: Any) -> bool:
     """#1935: did a boost overlay govern the interval ``pending`` describes?
 
     The flag captured when the interval began, or an overlay live at
