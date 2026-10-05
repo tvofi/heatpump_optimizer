@@ -4664,11 +4664,11 @@
     "R9-EG-B5"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-eg-param-objects",
-    "commit": null,
-    "last_step": null,
-    "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
+    "commit": "b4287c517b910ffe2bca507c76ecf9e7196e00e1",
+    "last_step": "merged",
+    "next_step": null,
     "note_file": "handoff/round9/fix/resume/EG-A3.md on handoff/r9-eg-param-objects",
     "review_branch": "handoff/r9-eg-param-objects-review",
     "review_note_file": "handoff/round9/fix/resume/EG-A3-review.md on handoff/r9-eg-param-objects-review",
