@@ -24287,6 +24287,7 @@ def _raf_job_ok(job: str) -> bool:
     return (
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
+        and "github.event.schedule == '17 2 * * *'" in job
         and "environment: record-writer" in job
         and 'git commit -q -m "ci: record delivery rows"' in job
         and adds == ["git add docs/delivery"]
@@ -29065,7 +29066,8 @@ try:
         for _rr in ("refs/heads/main", "refs/heads/fix/x", "refs/pull/1/merge"):
             for _rc in ("true", "false"):
                 _rx = {"github.event_name": _rv, "github.ref": _rr,
-                       "needs.recheck-gate.outputs.recheck": _rc}
+                       "needs.recheck-gate.outputs.recheck": _rc,
+                       "github.event.schedule": "17 8 * * *"}
                 _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
                 _r_push = _gh_eval(_gh_if(_ml_push), {
                     **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -29083,6 +29085,26 @@ R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
     not _REACH,
     f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
+)
+_CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
+_SLOW_JOB = _workflow_job(_TESTS_YML, "slow")
+R.check(
+    "mutation-nightly and mutation-ledger fire on distinct crons (#1930 (d))",
+    _CRONS == ["17 2 * * *", "17 8 * * *"]
+    and "github.event.schedule == '17 2 * * *'" in _MUTN_JOB
+    and "github.event.schedule == '17 8 * * *'" in _ml_meas
+    and "github.event.schedule == '17 2 * * *'" in _SLOW_JOB,
+    f"crons={_CRONS!r}",
+)
+_rx_early = {"github.event_name": "schedule", "github.ref": "refs/heads/main",
+             "needs.recheck-gate.outputs.recheck": "false",
+             "github.event.schedule": "17 2 * * *"}
+R.check(
+    "the 02:17 cron does not start the ledger (#1930 (d))",
+    not _gh_eval(_gh_if(_ml_meas), _rx_early)
+    and _gh_eval(_gh_if(_MUTN_JOB), _rx_early),
+    f"ledger={_gh_eval(_gh_if(_ml_meas), _rx_early)} "
+    f"nightly={_gh_eval(_gh_if(_MUTN_JOB), _rx_early)}",
 )
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
@@ -29315,7 +29337,8 @@ R.check(
     _MUT_TRIAGE_KEY(_EQ_MUT)
     == "custom_components/heatpump_optimizer/pump_mode.py:242 GUARD_OFF"
     and _MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)
-    == ([_GAP_MUT], [_EQ_MUT]),
+    == ([_GAP_MUT], [_EQ_MUT])
+    and "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,)
     f"key={_MUT_TRIAGE_KEY(_EQ_MUT)!r}, gaps -> "
     f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
     "leaves the numerator; the unmarked survivor stays in it, because the "
@@ -29799,6 +29822,19 @@ R.check(
     and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
     and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+# #1930 (b) rejected making tests/env_drift.py lazy: its recorded seconds
+# time the cheap stub (closure.py #934), not the CI --all run.
+_MUT_ED_SEC = getattr(_mut, "recorded_seconds", lambda: {})().get(
+    "tests/env_drift.py")
+R.check(
+    "env_drift stays eager: recorded seconds time the stub, not CI --all "
+    "(#1930 (b))",
+    "tests/env_drift.py" in getattr(_mut, "REF_DRIVEN", ())
+    and _MUT_ED_SEC is not None and _MUT_ED_SEC < 10.0
+    and (_mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+         if _mut_lazy else False),
+    f"recorded={_MUT_ED_SEC!r} REF_DRIVEN={getattr(_mut, 'REF_DRIVEN', None)!r}",
 )
 _MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
 _MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
@@ -31165,6 +31201,18 @@ R.check(
     "the nightly slow job runs the replay lane as its own step",
     "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+)
+_SLOW_STEPS = _workflow_job(_tests_workflow, "slow")
+R.check(
+    "the nightly slow job is the unique scripts, not a second full suite "
+    "(#1930 (c))",
+    "run: python3 tests/rolling.py" in _SLOW_STEPS
+    and "run: python3 tests/replay.py" in _SLOW_STEPS
+    and "DRIFT_VALUE_REPORT" in _SLOW_STEPS
+    and "tests/env_drift.py --all" in _SLOW_STEPS
+    and "./tests/run.sh" not in _SLOW_STEPS
+    and "GATE_SCOPE: full" not in _SLOW_STEPS,
+    "slow still re-runs run.sh, or dropped rolling/replay/the value report",
 )
 
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran

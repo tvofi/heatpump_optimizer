@@ -71,9 +71,11 @@ name: Tests
 #   custom_components/, so a change to what a test reads was checked one
 #   merge too late -- five times (#354).
 #
-# * slow — nightly and on demand. Same suite plus SLOW=1, which adds
-#   tests/rolling.py (the closed-loop learner simulation, ~15 minutes),
-#   then tests/replay.py (recorded days through the real coordinator).
+# * slow — nightly and on demand. Only what a push to main's `fast` job
+#   does not already run: tests/rolling.py (SLOW-gated in run.sh, closed-loop
+#   ~15 minutes), tests/replay.py (recorded days), and env_drift.py's
+#   DRIFT_VALUE_REPORT (level 3, report-only). The rest of the suite is the
+#   last push's GATE_SCOPE=full `fast` run (#1930 (c)).
 #
 # * nightly-ha — nightly and on demand. The only lane that runs the
 #   integration inside a real Home Assistant instead of tests/hastub, in
@@ -113,7 +115,14 @@ on:
         type: boolean
         default: false
   schedule:
+    # 02:17 UTC: slow, nightly-ha, mutation-nightly (and the rest of the
+    # workflow's schedule-only jobs that are not the ledger).
     - cron: "17 2 * * *"
+    # 08:17 UTC: mutation-ledger alone, so it does not pay its baseline on the
+    # same runner-pool minute as mutation-nightly (#1930 (d)). Sharing one
+    # baseline artifact is not in the instrument: each job clones its own
+    # worker trees.
+    - cron: "17 8 * * *"
 
 # The suite needs the code it tests and the cache it reuses, nothing
 # more; every job inherits this read-only floor.
@@ -926,7 +935,8 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && (
-        github.event_name == 'schedule'
+        (github.event_name == 'schedule'
+         && github.event.schedule == '17 2 * * *')
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1010,7 +1020,8 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' && (
-        github.event_name == 'schedule'
+        (github.event_name == 'schedule'
+         && github.event.schedule == '17 8 * * *')
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1218,7 +1229,8 @@ jobs:
     needs: [recheck-gate]
     if: >-
       !cancelled() && (
-        github.event_name == 'schedule'
+        (github.event_name == 'schedule'
+         && github.event.schedule == '17 2 * * *')
         || (github.event_name == 'workflow_dispatch'
             && needs.recheck-gate.outputs.recheck != 'true')
       )
@@ -1232,10 +1244,6 @@ jobs:
       - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.13"
-
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
-        with:
-          node-version: "22"
 
       - name: Install pinned test dependencies
         run: >-
@@ -1261,31 +1269,25 @@ jobs:
           }
           echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
 
-      - name: Run the suite including the closed-loop simulation
+      # Unique to this job vs a push-to-main `fast` run: the committed-fixture
+      # value report (#347, level 3), per fixture rather than as a count.
+      # `fast` already ran the rest of the suite on the last merge. Levels 1
+      # and 2 gate there; this never fails anything: the numbers are the
+      # runner's own.
+      - name: Report committed-fixture drift values
         env:
           GOLDEN_MODE: drift
-          SLOW: "1"
-          # Said out loud even though it is the default: the nightly is one
-          # of the runs the scoped gate is measured against, so it never
-          # scopes.
-          GATE_SCOPE: full
-          # The committed-fixture value report (#347, level 3), per fixture
-          # rather than as a count. Only a canonical environment can honestly
-          # re-record a float-bearing fixture -- a dev box would poison it,
-          # which is exactly why claims exist instead of re-records -- so
-          # this run is where the list belongs. It never fails anything: the
-          # numbers in it are the runner's own. Levels 1 and 2 gate, in this
-          # job and in `fast`, because they do not depend on the machine.
           DRIFT_VALUE_REPORT: "1"
-          # See the fast job: the solve-time guard calibrates against this
-          # runner rather than against a stopwatch, and threads are pinned
-          # so process CPU time means the same thing here as anywhere else.
-          # The nightly ref is HEAD^1 and moves every night, so there is no
-          # baseline worth caching here either.
+          PYTHONPATH: tests/hastub
+        run: python3 tests/env_drift.py --all "$GOLDEN_REF"
+
+      - name: Closed-loop simulation
+        env:
+          PYTHONPATH: tests/hastub
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
-        run: ./tests/run.sh
+        run: python3 tests/rolling.py
 
       # Recorded days (tests/replay/*.json, written by tools/replay/export.py)
       # fed through the real coordinator cycle by cycle, every published
@@ -1295,6 +1297,8 @@ jobs:
       # pull request until a week of real data has been timed.
       - name: Replay recorded days through the real coordinator
         if: success() || failure()
+        env:
+          PYTHONPATH: tests/hastub
         run: python3 tests/replay.py
 
   # Real Home Assistant, in the container an installation actually runs
@@ -1327,7 +1331,8 @@ jobs:
   # instead: `tests/entities.py` pins the wiring of the step below.
   nightly-ha:
     if: >-
-      github.event_name == 'schedule'
+      (github.event_name == 'schedule'
+       && github.event.schedule == '17 2 * * *')
       || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -2673,7 +2678,8 @@ jobs:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main'
       && (github.event_name == 'push'
-          || github.event_name == 'schedule'
+          || (github.event_name == 'schedule'
+              && github.event.schedule == '17 2 * * *')
           || github.event_name == 'workflow_dispatch')
     environment: record-writer
     runs-on: ubuntu-latest

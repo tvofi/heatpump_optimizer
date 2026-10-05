@@ -2646,6 +2646,9 @@ def lazy_drivers(needed: list[str], scope: str) -> list[str]:
     """
     if scope != "changed":
         return []
+    # env_drift stays eager (#1930 (b)): recorded_seconds times the stub
+    # (~1 s), not the CI `--all` baseline, so a lazy Smith-order would
+    # understate its cost and run it before the long shared drivers.
     return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
 
 
