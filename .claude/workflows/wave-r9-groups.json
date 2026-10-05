@@ -7562,6 +7562,22 @@
     "last_step": "round-2 repair 2784d696 on handoff/r9-rc-prcontract-fix, body on handoff-body/r9-rc-prcontract-fix; fix-review round 2 returned merge at 2784d696 (unpublished: no PR, no nonce at 2026-10-05T20:24Z)",
     "next_step": "open_pr.sh from handoff/r9-rc-prcontract-fix; carry or re-measure the verdict at the PR head; .github/workflows/ is code-owned, so it merges on tvofi's approving review (mandate to 2026-10-09) with CI green at a head containing origin/main"
    }
+  },
+  {
+   "group": "R9-STAMP-UNBLOCK",
+   "lane": "fix",
+   "after": [],
+   "issues": [],
+   "fixes": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "effort": "medium",
+   "owner_gate": "authorising --allow-rowless for the window is the owner's decision; the instrument change is reviewed like any fix",
+   "brief": "Orchestrator record, 2026-10-05: The next stamp is refused by tools/release/stamp.py, and stays refused after Tests goes green, because main's first-parent line since v6.7.16 carries deploy-key merges whose subject is the pull request's title, with the pull request named only in the body: 81071813 (#1959), 130c7808 (#1971), 077f53af (#1973), 50e1f116 (#1970), 86dbf0ca (#1972). Rule 4 accepts those only when the notes name each by sha. Rule 5 runs tests/delivery_status.py with --require-rows, whose subject_number reads the subject alone; it prints the UNCHECKED skip for the whole window and exits 1, and rows_gate_decision refuses an uncleared window that parsed no rowless line unless --allow-rowless is passed. Re-measure with: python3 tests/delivery_status.py --require-rows --since v6.7.16 (expect exit 1 and the merge-collection skip). Owed, in order: the delivery rows the window lacks (#1973 has no row; the #1971 and #1972 rows still read open), through the record-autofix job or a record pull request once Actions runs; then either (a) the instrument reads the number from the body's 'Merge pull request #N' line, a change to tests/delivery_status.py with its failing test first, keeping rule 4's enumerator in tools/release/stamp.py in step, or (b) the owner authorises --allow-rowless for this window. A deploy-key merge that carries 'Merge pull request #N' as its subject avoids both. The handover record pull request for #1970 and #1972 is blocked on the Actions outage; docs/HANDOVER.md still names e52da168 on its updated-for line, and this entry is the durable record until that pull request lands.",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r9-stamp-unblock"
+   }
   }
  ]
 }
