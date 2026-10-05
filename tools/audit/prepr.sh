@@ -1459,10 +1459,21 @@ PY
   # removed with the verdict. Inlined rather than through `closures_at`,
   # whose echo truncates at the first colon -- and the remedy text names
   # "seat venv: tools/audit/seat/seat_venv.sh".
+  # A seat shim named python3 execs `$HPO_STATE_DIR/venv-ci/bin/python3`
+  # (`seat_venv.sh --install-shims`). This arm points that variable at a stub,
+  # so the shim turns `python3 tests/closure.py affected` into the stub and
+  # the arm reports "derived no case" -- a red that is the shim, not the
+  # recorder. Resolve an interpreter with the variable unset and put its
+  # directory first on this one call. The stub stays the absolute path
+  # `recorder_python` selects.
+  realpy=$(env -u HPO_STATE_DIR python3 -c 'import sys; print(sys.executable)' 2>/dev/null) || realpy=""
+  pybin=$PATH
+  [ -n "$realpy" ] && pybin="$(dirname "$realpy"):$PATH"
   : > "$CLM/pylog"
   full=$(cd "$CLM/r" && git checkout -q cl \
     && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
-       HPO_STATE_DIR="$FB/state" closures_line fork 2>&1); rc=$?
+       HPO_STATE_DIR="$FB/state" PATH="$pybin" \
+       closures_line fork 2>&1); rc=$?
   st "$rc" 0 "6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)"
   [ "$(tail -1 "$CLM/pylog")" = "$FB/state/venv-ci/bin/python3" ]
   st $? 0 "and the recorder received that interpreter as \$PYTHON"
