@@ -24443,7 +24443,18 @@ steps:
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
           'tools/audit/record-predicate' \
-          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+          'tools/audit/round6/D11/fix/codeowners_gap.py' \
+          'tools/policy/*.mjs' \
+          'tools/policy/*.py' \
+          'tools/pr/*.py' \
+          'tools/policy/vendor' \
+          'tools/pr/*.sh' \
+          'tools/seat/*.sh' \
+          'tools/coverage/*.sh' \
+          'dev/audit/*.sh' \
+          'tools/policy/record-predicate' \
+          'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+          'tests/layout.py'; then
         echo "governance=false" >> "$GITHUB_OUTPUT"
       else
         echo "governance=true" >> "$GITHUB_OUTPUT"
