@@ -1016,6 +1016,55 @@ def _freq_fold_blocked(coord: Any) -> bool:
     frozen = coord._learning_frozen(CONF_POWER_ENTITY)
     return bool(frozen and ":" in frozen)
 
+
+def _accuracy_freeze_allows_sample(reason: str | None) -> bool:
+    """#1935: the boost freeze suppresses the prediction, not the sample.
+
+    A boost interval's row is recorded — with its overlay tag and no
+    predicted temperature — because a post-drift recommendation excludes
+    override rows by that tag; every other freeze reason skips the sample
+    outright (D7-03/D7-05).
+    """
+    return reason is None or reason == boost.FREEZE_REASON
+
+
+def _settle_interval_diag(
+    coord: Any, sample: AccuracySample, pending: dict[str, Any],
+    elapsed: float, now: datetime,
+) -> None:
+    """T6 #52: the settled triple the diagnosis button re-runs.
+
+    Realised values measured NOW close the interval whose assumptions were
+    captured when it began. The meter reads the whole pump; the model's
+    power input is the space channel. Apportion the measured draw by the
+    plan's own split — the same convention the energy settlement uses — so
+    the power swap compares space against space.
+    """
+    diag = pending.get("diag")
+    if diag is None or sample.actual_temp is None:
+        return
+    ctx = getattr(coord, "_ctx", coord)
+    planned_space = float(pending.get("space_power") or 0.0)
+    planned_dhw = float(pending.get("dhw_power") or 0.0)
+    planned_total = planned_space + planned_dhw
+    share = planned_space / planned_total if planned_total > 1e-6 else 1.0
+    coord._last_interval_record = {
+        "when": now.isoformat(timespec="seconds"),
+        "state": diag["state"],
+        "planned": diag["planned"],
+        "dt_hours": elapsed,
+        "realised": {
+            "electrical_power": (
+                sample.actual_power_kw * share
+                if sample.actual_power_kw is not None
+                else None
+            ),
+            "outdoor_temp": ctx._current_state.outdoor_temperature,
+            "solar_radiation": ctx._current_state.solar_radiation,
+        },
+        "actual": float(sample.actual_temp),
+    }
+
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
 #: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
@@ -5682,6 +5731,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_set_mode(self, mode: str, *, refresh: bool = True) -> None:
         """Set the operation mode, once a startup load has landed (R6)."""
         await self._accuracy_store.async_wait_for_read()
+        if self._mode == MODE_BOOST and mode != MODE_BOOST:
+            # #1935: the mode surface's settling tail — same plant-state
+            # divergence the channel overlay's leaves behind.
+            boost.note_mode_boost_ended(self)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
             # The plan stops being what runs, so its unmatured promises
@@ -6219,6 +6272,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # any learning signal.
         if self._vent_cusum.tripped:
             return "ventilation"
+        # #1935: boost space heating — either surface — actuates heat the
+        # plan's trajectory never assumed, so the plant state the interval
+        # replay integrates from diverges and every residual is warm-side
+        # garbage: two boost days walked a persisted ``house_heat_loss_scale``
+        # to the trust-region floor. Ranked below "ventilation" deliberately:
+        # that is the one reason the heat-loss learner looks past (its
+        # pass-through feeds the window CUSUM), and a boost window must not
+        # starve the detector of its feed.
+        if boost.space_learning_frozen(self):
+            return boost.FREEZE_REASON
         return None
 
     async def _fetch_tibber_prices(self) -> None:
@@ -9789,6 +9852,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     actual_power_kw=self._measured_power,
                     predicted_temp=pending.get("predicted_temp"),
                     actual_temp=ctx._current_state.room_temperature,
+                    # #1935: the tag a post-drift recommendation excludes
+                    # override rows by, rather than guessing at windows.
+                    boost_space=boost.interval_boosted(pending, self),
                     predicted_cost=(
                         (pending.get("power") or 0.0)
                         * elapsed
@@ -9838,48 +9904,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # above is set — open window, external heat, pump fault, or
                 # an unusable indoor sensor. Energy below is still
                 # accumulated: it really was drawn.
-                if indoor_frozen is None:
+                if _accuracy_freeze_allows_sample(indoor_frozen):
                     self._accuracy.record(sample)
                 self._accumulate_energy(sample, elapsed, pending)
 
                 # T6 #52: the settled triple the diagnosis button re-runs.
-                # Realised values measured NOW close the interval whose
-                # assumptions were captured when it began.
-                diag = pending.get("diag")
-                if diag is not None and sample.actual_temp is not None:
-                    # The meter reads the whole pump; the model's power
-                    # input is the space channel. Apportion the measured
-                    # draw by the plan's own split — the same convention
-                    # the energy settlement uses — so the power swap
-                    # compares space against space.
-                    planned_space = float(pending.get("space_power") or 0.0)
-                    planned_dhw = float(pending.get("dhw_power") or 0.0)
-                    planned_total = planned_space + planned_dhw
-                    share = (
-                        planned_space / planned_total
-                        if planned_total > 1e-6
-                        else 1.0
-                    )
-                    self._last_interval_record = {
-                        "when": now.isoformat(timespec="seconds"),
-                        "state": diag["state"],
-                        "planned": diag["planned"],
-                        "dt_hours": elapsed,
-                        "realised": {
-                            "electrical_power": (
-                                sample.actual_power_kw * share
-                                if sample.actual_power_kw is not None
-                                else None
-                            ),
-                            "outdoor_temp": (
-                                ctx._current_state.outdoor_temperature
-                            ),
-                            "solar_radiation": (
-                                ctx._current_state.solar_radiation
-                            ),
-                        },
-                        "actual": float(sample.actual_temp),
-                    }
+                _settle_interval_diag(self, sample, pending, elapsed, now)
 
                 # The defrost derate, from whichever estimator this install
                 # can support, while the learners are not frozen for some
@@ -9909,6 +9939,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "spot_price": self._current_spot_price(),
             "grid_fee": self._current_grid_fee(now),
             "predicted_temp": self._predicted_next_room_temp(),
+            # #1935: the interval this prediction governs runs under a boost
+            # overlay — either surface — so the sample it becomes is tagged.
+            "boost_space": boost.space_boost_active(self),
             "outdoor": ctx._current_state.outdoor_temperature,
             "humidity": self._current_humidity(),
             # T6 #52: the assumptions this interval starts under, for the
@@ -10034,6 +10067,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         if self._mode not in (MODE_AUTO, MODE_ECONOMY):
+            return None
+        # #1935: the channel overlay leaves ``_mode`` "auto" while it governs
+        # the action, so the gate above cannot see it — the same
+        # suppression, for the same reason, through the other surface.
+        if boost.space_boost_active(self):
             return None
         result = self._optimization_result
         if result is None or not result.room_temp_trajectory:

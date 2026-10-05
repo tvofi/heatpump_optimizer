@@ -544,6 +544,10 @@ lane_e2e() {
   run "$PYTHON" tests/validate.py
   run "$PYTHON" tests/edge.py
   run "$PYTHON" tests/backtest.py
+  # #1935: the boost-drift replay -- two boost days against the real
+  # learners, solver and accuracy record (the R9-DIAG-1 pre-study's
+  # harness, in-tree with the fix). Three ~2-minute arms plus unit checks.
+  run "$PYTHON" tests/boost_drift_replay.py
   run "$PYTHON" tests/optimality.py
 
   # The closed-loop simulation runs hundreds of solves and takes about a

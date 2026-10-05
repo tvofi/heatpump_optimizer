@@ -44,14 +44,15 @@ images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 90 of the 435 script pairs (30 choose 2) sharing 0.80 or more
-of their production-module closure, all 90 among the 325 pairs whose two
+recording finds 96 of the 465 script pairs (31 choose 2) sharing 0.80 or more
+of their production-module closure, all 96 among the 351 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
 R9 F10.3's strace instrument recorded its round-harness children's imports;
 doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
-added icons.json and services.yaml to doc_claims.py's closure).
+added icons.json and services.yaml to doc_claims.py's closure; #1935's
+tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80).
 Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
 (77 shared production files), structure.py/typing_ruler.py (69),
 finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (69
