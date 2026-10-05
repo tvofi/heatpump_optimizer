@@ -4976,8 +4976,8 @@
     "R9-F10.1c"
    ],
    "resume": {
-    "stage": "not-started",
-    "branch": "handoff/r9-sw-model",
+    "stage": "in-flight",
+    "branch": "cursor/r9-sw-1-resume-826f",
     "commit": null,
     "last_step": "None",
     "next_step": "round-3 handed off 893846c6 but routed back: 0/81 mutation pins (drive stalled on machine contention); resumed serially from persisted state, then re-handoff",
@@ -6646,7 +6646,7 @@
     "R9-F10.13"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-f10-16",
     "commit": null,
     "last_step": null,
@@ -6731,10 +6731,10 @@
    "after": [],
    "brief": "Owner ask (tvofi, 2026-10-04, folded per the no-pre-study ruling): the README links the product page repo-relative (`docs/index.html`, README lines 16 and 1012), which on github.com opens the raw file, not the published page. Point every README product-page link at the published Pages URL form that the deploy actually serves (verify the served path from the pages.yml staging and the live site before writing it), keep the link working on the published site itself, and extend the W1 pin (the tests/doc_claims.py arm) to refuse a repo-relative docs/index.html product-page link so the regression cannot return. One PR, no VERSION, rows per protocol.",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-web-5",
-    "commit": null,
-    "last_step": null,
+    "commit": "475f686f16289e2d031e05ef30dbb9959fea226d",
+    "last_step": "#1894 merged 475f686f; #1932 still OPEN",
     "next_step": "fixer.md step 1 at a fresh merge base; failing pin first",
     "note_file": "handoff/round9/fix/resume/WEB-5.md on handoff/r9-web-5",
     "review_branch": "handoff/r9-web-5-review",
@@ -6968,8 +6968,8 @@
    "resume": {
     "stage": "done",
     "branch": "fix/r9-diag-1f-pr",
-    "commit": "998babef",
-    "last_step": "merge verdict 5996200310 at 093776f8 (43/43 replay, 22 pins, spot-kills clean); carried to 68410b67 over main nightly-kills; tvofi owner review 5415913063 (mandate) for run.sh/derive_closures.sh lane wiring; CI settling",
+    "commit": "810718133f0e41ee495706a0cd978dd34457292d",
+    "last_step": "merged #1959 at 81071813; #1935 closed",
     "next_step": "merge #1959 at 68410b67 the moment CI is green (all approvals staged); then row via record beat, roster done, worktree_gc",
     "note_file": "handoff/round9/fix/resume/DIAG-1F.md on fix/r9-diag-1f",
     "review_branch": null,
@@ -7206,8 +7206,8 @@
    "after": [],
    "brief": "Pre-study R9-DBG-0 sections 6 and 7: the repo-side debugger harness, confined to tools/replay (unowned; F11 owns tools/audit), importing the existing tests/replay.py run_fixture for replay and reusing the two prototypes that exist on handoff/r9-dbg-0 at eae236d66 (the smoke ingest and the synthetic-week generator - cited here per the tag rule). Deliverables: the ingest tool generalised from the smoke prototype, the replay driver with store seeding, and the generator promoted as a CI-visible artifact. If tests/replay.py itself must change, STOP and tell the orchestrator (the F10 wave-18 edge would bind - prefer the import-only integration). Disposition the synthetic week's single agreement offender with a targeted replay (doc section 5). Parallel to DBG-1. ~400 tool lines plus a tests smoke if gate-wired.",
    "resume": {
-    "stage": "not-started",
-    "branch": "fix/r9-dbg-3",
+    "stage": "in-flight",
+    "branch": "handoff/r9-dbg-3",
     "commit": null,
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base; the pre-study doc is the spec",
@@ -7512,8 +7512,9 @@
    ],
    "brief": "Root-cause seat (root-cause.md + defect-root-cause.md), dispatched 2026-10-05 after three same-day instances of the pr-contract friction class. The phenomena, all measured this day: (1) a body re-take after an orchestrator head move (carry merges under fix-review.md step 12, record-beat re-derives) leaves the old red pr-contract run at the live head; steward SKILL.md section 10 documents one expected failure per push and assumes one body per push, which the head-move workflow violates. An edited event re-measured it once (PR #1959, green 14:15Z) and fired nothing once (PR #1969, needing a manual job re-run). (2) A CANCELLED required-check run blocks the ruleset merge even beside a newer green run: PR #1969's merge was refused with 'Required status check pr-contract is cancelled' until the cancelled job was re-run; the bot pushes that cancel superseded in-flight runs are GITHUB_TOKEN pushes under .github/workflows/tests.yml. The seat owes: a named cause and process state (the dispatching orchestrator reads it as (c)/(d) -- the process was followed and its one-body-per-push precondition changed underneath it; verify, do not inherit), the class reach (every future carry merge and record beat), a cost test with numbers (minutes per merge lost to manual re-runs, measured over the round-9 window), and a countermeasure or a recorded refusal. Countermeasure candidates to price: an edited-triggered re-runner workflow on the pattern of .github/workflows/budget-raise-gate-rerun.yml for the newest red pr-contract run at the same head; and re-examining the concurrency/cancel behavior for bot pushes in .github/workflows/tests.yml. Both land in owned paths (.github/workflows/) and ride owner review; policy changes need the owner. The interim standing practice (re-run the red job after every re-body; check for cancelled runs before every merge) is already in the state RESUME and is not the fix -- it is what the countermeasure would replace.",
    "resume": {
-    "stage": "not-started",
-    "next_step": "dispatch when usage resets; the three instances are PRs #1968/#1969 merges and #1959 carries, all 2026-10-05"
+    "stage": "in-flight",
+    "next_step": "dispatch when usage resets; the three instances are PRs #1968/#1969 merges and #1959 carries, all 2026-10-05",
+    "branch": "handoff/r9-rc-prcontract"
    },
    "fixes": []
   }
