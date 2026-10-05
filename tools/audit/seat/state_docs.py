@@ -101,9 +101,13 @@ def generate(repo: str, roster_args: list, checkout: str, pr_state: str,
 # ------------------------------------------------------------------ the tree
 def check_write_set(staged: dict) -> None:
     """The guarded write set, record_row's shape: anything outside the three
-    state docs is refused, never skipped. (GUARD: the refusal lands in the
-    next commit; the self-test's guard arms run red until then.)"""
-    return
+    state docs is refused, never skipped."""
+    bad = sorted(p for p in staged if p not in WRITE_SET)
+    if bad:
+        raise Refuse(
+            f"outside the state-doc write set: {', '.join(bad)} -- the write "
+            f"set is exactly {', '.join(WRITE_SET)}; every other path at the "
+            "state ref is carried untouched, never written")
 
 
 def write_tree(checkout: str, staged: dict, prev: str | None) -> str:
