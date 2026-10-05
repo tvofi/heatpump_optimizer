@@ -30990,7 +30990,7 @@ R.check(
 # success; see the v5.1.10 section below for why the two are the same
 # countdown and only one of them can also be honest about what happened.
 _lg_blind = _lg_coord()
-_lg_blind._config.pop("dhw_temp_entity", None)
+with_config(_lg_blind, {"dhw_temp_entity": None})
 _lg_cycle_blind_before = _lg_blind._legionella.hours_since()
 _lg_blind._current_action = {"dhw_reason": _LG_REASON}
 _asyncio.run(_lg_blind._legionella.async_track_cycle(None))
@@ -31533,7 +31533,7 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 # the cycle is unverified. This integration publishes a plan; the actuation
 # may be an automation that never ran.
 _lg_blind2 = _lg_coord()
-_lg_blind2._config.pop("dhw_temp_entity", None)
+with_config(_lg_blind2, {"dhw_temp_entity": None})
 _lg_blind_before = _lg_blind2._legionella.hours_since()
 _lg_cycle(_lg_blind2, [None, None])
 _lg_blind_after = _lg_blind2._legionella.hours_since()
@@ -31563,7 +31563,7 @@ R.check(
 # attempt produces the SAME countdown, which is the whole argument for not
 # writing it.
 _lg_claim = _lg_coord()
-_lg_claim._config.pop("dhw_temp_entity", None)
+with_config(_lg_claim, {"dhw_temp_entity": None})
 _lg_claim._legionella.last_cycle = _lg_blind2._legionella.attempt
 R.check(
     "claiming success instead would give an identical countdown "
