@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:step_actions GUARD_OFF 83599562",
+  "killed_by": "tests/features.py",
+  "old": "        if hour_in_windows(hour, windows_for_day(o_weekly, day, o_win)):",
+  "reason": "Recorded by `mutation_table.py --pin-killed via the EG-B1 hand route (scratch driver /Users/timmalmstrom/hpo-seats/r9-sw-1/pinroute/drive.py: the Mac features baseline is red at main, so the red counts were kept and killed() judged count-relative, per the R9-EG-B1 decision)` against 893846c6fb82d80933965f9e6378406dd0354d32: GUARD_OFF (`if False:`) took tests/features.py from rc=1 failed=2 to rc=1 failed=7. Carried to this branch by content anchor: custom_components/heatpump_optimizer/quiet_windows.py is byte-identical at 893846c6 and here."
+}
