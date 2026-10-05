@@ -7189,7 +7189,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
-            _COP_STORE_KEY: round(self._cop_scale, 3),
+            "cop_scale": round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._last_measured_cop,
             "defrost_derate": self._defrost.factor(
