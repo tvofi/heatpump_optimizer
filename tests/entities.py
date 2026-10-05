@@ -24270,16 +24270,23 @@ R.check(
 # only, its own environment, the `ci:` commit subject the loop guard keys on,
 # the guarded `git add docs/delivery` write set, the re-derive loop, the
 # #201 comment, and the report step that reddens a beat owed and not landed.
-# The null controls strip the subject and the ref guard and must both fail.
+# The record push's one force is a LEASE anchored on the tip the same try
+# fetched (a re-run's sibling commit made the fast-forward-only push of run
+# 37261904851, attempt 06:14, refuse forever), so every push line carries
+# `--force-with-lease=refs/heads/record/autofix:<expected>` and nothing else
+# that forces. The null controls strip the subject, the ref guard and the
+# lease's anchor and must each fail.
 _RAF_JOB_RAW = _workflow_job(_TESTS_YML, "record-autofix")
 _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
+_RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
 
 
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
+    pushes = re.findall(r"(?m)^\s*(push .*)$", job)
     return (
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
@@ -24290,7 +24297,10 @@ def _raf_job_ok(job: str) -> bool:
         and "for try in 1 2 3" in job
         and "issues/201/comments" in job
         and "if: always()" in job
-        and not re.search(r"(?m)^\s*push .*(--force|-f)\b", job)
+        and pushes
+        and all(_RAF_LEASE in p for p in pushes)
+        and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
+                    for p in pushes)
         and not re.search(r"pulls/.*/reviews", job))
 
 
@@ -24305,8 +24315,9 @@ R.check(
     "handover mentioned="
     f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
     "gate after the generator's own guard -- a `git add -A` would commit a "
-    "write the guard refused -- and a moved main is re-derived by the fetch/"
-    "reset loop, never forced",
+    "write the guard refused -- a moved main is re-derived by the fetch/"
+    "reset loop, and the record push replaces only the tip the same try "
+    "fetched, under the lease anchored on it",
 )
 R.check(
     "and the pin reads the job's own lines, not its name (null controls)",
@@ -24315,9 +24326,14 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(
         'git commit -q -m "ci: record delivery rows"', "", 1))
     and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
-                                         "git add -A", 1)),
-    "stripping the ref guard, the ci: subject, or the guarded add must each "
-    "turn the pin red -- or the pin matched a comment, not the wiring",
+                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1)),
+    "stripping the ref guard, the ci: subject, the guarded add, or the "
+    "lease's anchor -- or replacing the lease with an unanchored "
+    "--force-with-lease or a bare --force -- must each turn the pin red -- "
+    "or the pin matched a comment, not the wiring",
 )
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
