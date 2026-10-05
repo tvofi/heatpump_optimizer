@@ -30,7 +30,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from . import pump_arbiter
-from .const import CONF_TIBBER_TOKEN, DOMAIN
+from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
@@ -96,7 +96,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
         else None,
         "optimization_running": getattr(coord, "optimization_running", None),
         "solve_failures": getattr(coord, "_solve_failures", None),
-        "cop_scale": getattr(coord, "_cop_scale", None),
+        CONF_COP_SCALE: getattr(coord, "_cop_scale", None),
         "cop_samples": getattr(coord, "_cop_samples", None),
         "house_heat_loss_scale": getattr(coord, "_house_heat_loss_scale", None),
         "last_update_success": bool(

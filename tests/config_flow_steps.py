@@ -5415,9 +5415,15 @@ def _noop_static_reads(fallbacks):
     out). A key used as a dict-literal KEY is a write, not a read. Any other
     reference -- ``K in config``, a table row, a subscript -- is unproven.
     Only names and dotted attributes are resolved; no source is evaluated.
+    A key declared on ``EntryConfig`` is read as its parsed field (#1745),
+    which names no ``CONF_``: it is proven when the fallback parses to the
+    field's default, and unproven otherwise.
     """
     import importlib
+    from dataclasses import fields
     from pathlib import Path
+
+    from heatpump_optimizer.entry_config import EntryConfig
 
     unknown = object()
     conf_values = {v for k, v in vars(const).items() if k.startswith("CONF_") and isinstance(v, str)}
@@ -5467,7 +5473,13 @@ def _noop_static_reads(fallbacks):
                 return False
         return False
 
-    unproven = set()
+    absent = EntryConfig.from_mapping({})
+    unproven = {
+        f.name for f in fields(EntryConfig)
+        if f.metadata and f.name in fallbacks and not config_flow._same_setting(
+            getattr(absent, f.name),
+            getattr(EntryConfig.from_mapping({f.name: fallbacks[f.name]}), f.name))
+    }
     package = Path(config_flow.__file__).parent
     for path in sorted(package.glob("*.py")):
         if path.name in _NOOP_STATIC_SKIP:

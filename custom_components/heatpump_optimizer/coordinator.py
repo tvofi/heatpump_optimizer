@@ -31,7 +31,7 @@ from dataclasses import dataclass, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
 
 import aiohttp
@@ -91,7 +91,6 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    CONF_TIBBER_TOKEN,
     PRICE_SOURCE_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_OUTDOOR_TEMP_ENTITY,
@@ -99,7 +98,6 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_MIXING_VALVE_TARGET_ENTITY,
-    CONF_MIXING_VALVE_WRITE_TARGET_KIND, DEFAULT_MIXING_VALVE_WRITE_TARGET_KIND,
     MIXING_VALVE_WRITE_EPSILON,
     CONF_DHW_TEMP_ENTITY,
     CONF_DHW_SCHEDULE_ENABLED,
@@ -110,22 +108,6 @@ from .const import (
     CONF_DHW_LEGIONELLA_TEMP,
     CONF_DHW_LEGIONELLA_INTERVAL_DAYS,
     CONF_TARGET_TEMP,
-    CONF_MIN_TEMP,
-    CONF_MAX_TEMP,
-    CONF_COMFORT_TEMP_DAY,
-    CONF_COMFORT_TEMP_NIGHT,
-    CONF_DAY_START_HOUR,
-    CONF_DAY_END_HOUR,
-    CONF_PRICE_WEIGHT,
-    DEFAULT_MIN_TEMP,
-    DEFAULT_MAX_TEMP,
-    DEFAULT_COMFORT_TEMP_DAY,
-    DEFAULT_COMFORT_TEMP_NIGHT,
-    DEFAULT_DAY_START_HOUR,
-    DEFAULT_DAY_END_HOUR,
-    DEFAULT_PRICE_WEIGHT,
-    BUFFER_COOLING_RATE_MAX,
-    BUFFER_COOLING_RATE_MIN,
     buffer_cooling_rate_bounds,
     default_buffer_cooling_rate,
     CONF_BUFFER_COOLING_RATE,
@@ -149,6 +131,7 @@ from .const import (
     CONF_POWER_ENTITY,
     CONF_ENERGY_ENTITY,
     CONF_HOUSE_POWER_ENTITY,
+    CONF_COP_SCALE,
     COP_SCALE_MAX,
     COP_SCALE_MIN,
     COP_TRACKING_ERROR_GATE,
@@ -169,13 +152,6 @@ from .const import (
     MANUAL_PLAN_STORE_VERSION,
     MANUAL_PLAN_WINDOW_HOURS,
     SIMULATE_MIN_INTERVAL_SECONDS,
-    CONF_DHW_FREE_DISINFECTION_ENABLED,
-    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
-    DEFAULT_DHW_LEGIONELLA_TEMP,
-    DEFAULT_DHW_SETPOINT,
-    DHW_LEGIONELLA_BOOST_MAX_HOURS,
-    DHW_LEGIONELLA_HOLD_MINUTES,
-    SPACE_PUMP_FLOOR_MARGIN_C,
     VENT_CUSUM_THRESHOLD_C,
     VENT_CUSUM_DRIFT_C,
     VENT_CUSUM_CLIP_C,
@@ -1654,9 +1630,9 @@ def _view(name: str) -> property:
     return property(attrgetter(name))
 
 
-def _grid_fee_entity_value(hass: HomeAssistant, config: EntryConfig) -> float | None:
+def _grid_fee_entity_value(hass: HomeAssistant, config: Mapping[str, Any]) -> float | None:
     """The live fee entity's value per kWh, in its own unit (#1513)."""
-    return _entity_price(hass, config.grid_fee_entity)
+    return _entity_price(hass, EntryConfig.from_mapping(config).grid_fee_entity)
 
 
 def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
@@ -1665,7 +1641,7 @@ def _entity_price(hass: HomeAssistant, entity_id: Any) -> float | None:
     return None if state is None else price_per_kwh(state.state, state_unit(state))
 
 
-def _audit_price_units(hass: HomeAssistant, config: EntryConfig) -> None:
+def _audit_price_units(hass: HomeAssistant, config: Mapping[str, Any]) -> None:
     """Name a price unit the reader cannot parse, once per slot (#1513).
 
     The reader keeps that entity's raw number, as every install did before
@@ -1673,10 +1649,11 @@ def _audit_price_units(hass: HomeAssistant, config: EntryConfig) -> None:
     but no longer silently. The notice clears when the unit parses, or the
     slot is emptied.
     """
+    cfg = EntryConfig.from_mapping(config)
     for slot, entity_id in (
-        ("price", config.price_entity),
-        ("export", config.pv_export_price_entity),
-        ("grid_fee", config.grid_fee_entity),
+        ("price", cfg.price_entity),
+        ("export", cfg.pv_export_price_entity),
+        ("grid_fee", cfg.grid_fee_entity),
     ):
         state = hass.states.get(entity_id) if entity_id else None
         unit = state_unit(state)
@@ -1695,7 +1672,7 @@ def _audit_price_units(hass: HomeAssistant, config: EntryConfig) -> None:
     # #1657: the feed denominates every money figure, and the sensors say so
     # (``money_currency``), but the money fields in the options dialog are
     # labelled in the instance currency. Name the disagreement.
-    declared = _feed_currency(hass, config)
+    declared = _feed_currency(hass, cfg)
     if declared is None or declared == resolve_currency(hass):
         ir.async_delete_issue(hass, DOMAIN, "price_currency")
         return
@@ -2174,16 +2151,17 @@ def _effective_house_heat_loss(
     return round(base * scale, 4)
 
 
-def _entity_price_source(cfg: EntryConfig) -> bool:
-    return cfg.price_source == PRICE_SOURCE_ENTITY
+def _entity_price_source(config: Mapping[str, Any]) -> bool:
+    return EntryConfig.from_mapping(config).price_source == PRICE_SOURCE_ENTITY
 
 
-def _price_feed(cfg: EntryConfig) -> Any:
+def _price_feed(config: Mapping[str, Any]) -> Any:
     """The price entity whose numbers the plan is priced in, if one is."""
+    cfg = EntryConfig.from_mapping(config)
     return cfg.price_entity if _entity_price_source(cfg) else None
 
 
-def _feed_currency(hass: HomeAssistant, cfg: EntryConfig) -> str | None:
+def _feed_currency(hass: HomeAssistant, cfg: Mapping[str, Any]) -> str | None:
     """The currency the price feed declares for its numbers, if any (#1657).
 
     Every money figure is denominated by the feed, so this, not the
@@ -2197,8 +2175,8 @@ def _feed_currency(hass: HomeAssistant, cfg: EntryConfig) -> str | None:
     return declared_currency(attrs.get("unit_of_measurement"), attrs)
 
 
-def _price_entity_state(hass: Any, cfg: EntryConfig) -> Any:
-    entity_id = cfg.price_entity
+def _price_entity_state(hass: Any, config: Mapping[str, Any]) -> Any:
+    entity_id = EntryConfig.from_mapping(config).price_entity
     if not entity_id:
         return None
     return hass.states.get(entity_id)
@@ -3350,7 +3328,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if _reanchored or not _had_anchor:
             await self._async_save_thermal_learning()
 
-        cop_scale = stored.get("cop_scale")
+        cop_scale = stored.get(CONF_COP_SCALE)
         if cop_scale is not None:
             try:
                 self._apply_cop_scale(float(cop_scale))
@@ -3489,7 +3467,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Every plan is priced through the COP curve, so a learned
             # correction that evaporated on restart silently re-based
             # all costs on the nameplate figure.
-            "cop_scale": self._cop_scale,
+            CONF_COP_SCALE: self._cop_scale,
             "cop_samples": self._cop_samples,
             # v4.0.0 T4a — the detectors' memory, all additive keys.
             "vent_cusum": self._vent_cusum.as_dict(),
@@ -7209,7 +7187,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "lower_floor_loss_ratio": round(self._lower_floor_loss_ratio, 3),
             "lower_floor_loss_samples": self._lower_floor_loss_samples,
             "lower_floor_loss_learned": self._lower_floor_loss_samples > 0,
-            "cop_scale": round(self._cop_scale, 3),
+            CONF_COP_SCALE: round(self._cop_scale, 3),
             "cop_samples": self._cop_samples,
             "measured_cop": self._last_measured_cop,
             "defrost_derate": self._defrost.factor(
@@ -8937,7 +8915,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
                 (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
                 (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
-                (self._apply_cop_scale, "cop_scale"),
+                (self._apply_cop_scale, CONF_COP_SCALE),
             ):
                 value = thermal.get(key)
                 if value is not None:

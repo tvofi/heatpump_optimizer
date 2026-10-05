@@ -30,6 +30,7 @@ from .const import (
     CONF_ECL110_STATE_TOPIC,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_COP_SCALE,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
@@ -1729,7 +1730,7 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
         data = self._data()
         return {
             "waiting_for": self._waiting_for,
-            "cop_scale": data.get("cop_scale"),
+            CONF_COP_SCALE: data.get(CONF_COP_SCALE),
             "cop_samples": data.get("cop_samples"),
             # The same curve the Estimated COP sensor publishes, so observed
             # and modelled can be compared side by side. The previous source,

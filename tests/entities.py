@@ -4050,10 +4050,11 @@ if _EntryConfig is not None:
     )
     _ec_unstable = [
         f.name for f in _ec_fields
-        if getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name) != f.default
+        if (lambda got: type(got) is not type(f.default) or got != f.default)(
+            getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name))
     ]
     R.check(
-        "every declared default survives its own key's parse",
+        "every declared default survives its own key's parse, type included",
         not _ec_unstable, f"{_ec_unstable}",
     )
 
