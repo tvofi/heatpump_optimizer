@@ -14,8 +14,7 @@ git show origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json  
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R9-EG-B6 (stage in-flight, branch `handoff/r9-eg-collaborator-interfaces`, note `handoff/round9/fix/resume/EG-B6.md on handoff/r9-eg-collaborator-interfaces`): `git fetch origin handoff/r9-eg-collaborator-interfaces && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
-
-Resume doc: `/tmp/r9-orch/state/RESUME-CURRENT.md` -- its Roster section is the counters; do not re-derive them by hand.
+- R9-DIAG-1F (stage in-flight, branch `fix/r9-diag-1f-pr`, note `handoff/round9/fix/resume/DIAG-1F.md on fix/r9-diag-1f`): `git fetch origin fix/r9-diag-1f-pr && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
 Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DBG-3, R9-DIAG-1F, R9-EG-B11, R9-EG-B6, R9-F10.16, R9-FR-1, R9-RO-2b, R9-SW-1, R9-WEB-5
 

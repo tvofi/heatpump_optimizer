@@ -197,7 +197,7 @@ gantt
 | R9-FR-2 | FIX | 1 | done | #1860 | opus/opus | - | #1860 — prepr.sh gains an ancestry red-check arm: the fix reviewer's root-cause trigger, moved to push time. |  |
 | R9-FR-3 | FIX | 1 | done | #1825 | sonnet/sonnet | - | #1825 — the stats counter folds verdict-class sibling families so the threshold sees the family, not only the exact id. |  |
 | R9-FR-4 | FIX | 1 | done | #1934 | opus/opus | yes: tests/closure.py is @tvofi code-owned; ci-autofix.md is policy — both merge on the labelled agent approval (mandate 5951564627) after the merge verdict | Carry from R9-RO-2's round 2 (#1886, reviewer-verified): a Darwin `--single` recording of any script whose Linux recording carries inert_reads DROPS them (cl... |  |
-| R9-DIAG-1F | FIX | 1 | not-started | #1935 | opus/opus | - | Pre-study R9-DIAG-1 (doc tools/audit/round9/prestudy/boost-drift-prestudy.md on handoff/r9-diag-1 @3c90f86a3, measured): boost space heating corrupts the lea... |  |
+| R9-DIAG-1F | FIX | 1 | in-flight | #1935 | opus/opus | - | Pre-study R9-DIAG-1 (doc tools/audit/round9/prestudy/boost-drift-prestudy.md on handoff/r9-diag-1 @3c90f86a3, measured): boost space heating corrupts the lea... |  |
 | R9-DIAG-2S | FIX | 2 | not-started | #1936 | opus/opus | - | Feature per the R9-DIAG-1 feasibility verdict (doc section 4): at accuracy_drift warning time, batch-Newton refit house_heat_loss_scale from >=3 settled post... |  |
 | R9-FR-5 | FIX | 1 | done | #1937 | sonnet/sonnet | - | prepr's closures recorder defaults to pyenv python3 (3.11), which cannot parse the tree — the recording fails once, the run refuses, and the seat has to re-r... |  |
 | R9-DBG-0 | STUDY | 1 | done | #1938 | opus/- | - | tvofi, 2026-10-04, careful pre-study and roster plan for a debugger feature. |  |
