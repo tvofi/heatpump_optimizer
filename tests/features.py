@@ -27147,7 +27147,7 @@ R.check(
 # End to end. An off window in a cold horizon: nothing planned inside it,
 # the plan pre-heats before it, and the shortfall the window prices is
 # published rather than hidden.
-def _qw_solve(off_spec, silent_spec=None, fraction=None, **over):
+def _qw_solve(off_spec, silent_spec=None, fraction=None, dhw_temp=48.0, **over):
     _cfg = _grad_house(two_zone=False, dhw=True)
     _cfg.update(over)
     _p = ThermalParameters.from_config(_cfg)
@@ -27160,7 +27160,7 @@ def _qw_solve(off_spec, silent_spec=None, fraction=None, **over):
     _ot, _wi, _ra, _so = _grad_weather("winter_cold", _start)
     _st = ThermalState(
         room_temperature=21.0, slab_temperature=22.0,
-        outdoor_temperature=float(_ot[0]), dhw_temperature=48.0,
+        outdoor_temperature=float(_ot[0]), dhw_temperature=dhw_temp,
         dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
     )
     _quiet = _qw.compose(
@@ -27169,18 +27169,19 @@ def _qw_solve(off_spec, silent_spec=None, fraction=None, **over):
          _QW_OFF: off_spec, _QW_FRAC: fraction if fraction is not None else 0.6},
         _qw_states({}), _start, 96, 0.25, float(_p.max_electrical_power),
     )
-    return _o.optimize(inputs=solve_inputs(
+    _res = _o.optimize(inputs=solve_inputs(
         initial_state=_st, prices=_pr, outdoor_temps=_ot,
         wind_speeds=_wi, precipitation=_ra, solar_radiation=_so,
         start_time=_start,
         power_caps_extra=_quiet.caps,
         off_steps=_quiet.off_steps,
         quiet_actions=_quiet.actions,
-    )), _quiet
+    ))
+    return _res, _quiet, _o
 
 # 04:00 start, off 06:00-08:00: steps 8 through 15. Hot water only in the
 # evening, so the off window crosses no demand window.
-_qw_off_res, _qw_off_quiet = _qw_solve("06:00-08:00", dhw_windows="17:00-22:00")
+_qw_off_res, _qw_off_quiet, _ = _qw_solve("06:00-08:00", dhw_windows="17:00-22:00")
 _qw_off_idx = list(range(8, 16))
 _qw_space = np.asarray(_qw_off_res.power_schedule, dtype=float)
 _qw_dhw = np.asarray(_qw_off_res.dhw_power_schedule, dtype=float)
@@ -27204,7 +27205,7 @@ R.check(
 # The null control: the same solve with no windows at all must be free to
 # plan inside those steps -- the zeros above are the window's, not the
 # weather's or the price profile's.
-_qw_free_res, _ = _qw_solve("", dhw_windows="17:00-22:00")
+_qw_free_res, _, _ = _qw_solve("", dhw_windows="17:00-22:00")
 _qw_free_space = np.asarray(_qw_free_res.power_schedule, dtype=float)
 _qw_free_dhw = np.asarray(_qw_free_res.dhw_power_schedule, dtype=float)
 R.check(
@@ -27219,10 +27220,40 @@ R.check(
     "quiet_actions" not in _qw_free_res.predictive_info,
     f"keys {sorted(_qw_free_res.predictive_info)}",
 )
+# The off window's hot-water half must be PLANNED AROUND, not clipped after
+# the fact. The off window below covers the horizon's cheapest hour
+# (04:00-05:00 at 0.62 SEK), with the demand window opening at the 07:00
+# peak and a cold tank: the plan must re-buy that energy in the 0.95 SEK
+# hours before the window, so the requirement is still met. A clip deletes
+# the energy instead of moving it and the tank arrives short. (This is the
+# check the mutation proof's m5 -- forced-off merge deleted, terminal
+# zeroing left -- exists to kill.)
+_qw_rebuy_res, _qw_rebuy_quiet, _qw_rebuy_opt = _qw_solve(
+    "04:00-05:00", dhw_windows="07:00-09:00", dhw_temp=40.0,
+)
+_qw_rebuy_req = np.asarray(_qw_rebuy_opt._dhw_requirement, dtype=float)
+_qw_rebuy_temps = np.asarray(
+    _qw_rebuy_res.dhw_temp_trajectory, dtype=float
+)
+_qw_rebuy_gaps = (
+    _qw_rebuy_req[12:19] - _qw_rebuy_temps[13:20]
+    if _qw_rebuy_req.size and _qw_rebuy_temps.size > 20
+    else np.array([9.9])
+)
+_qw_rebuy_energy = float(np.sum(
+    np.asarray(_qw_rebuy_res.dhw_power_schedule, dtype=float)[4:12]
+))
+R.check(
+    "an off window's hot-water energy is re-bought before it: the demand window after it still meets its requirement",
+    float(np.max(_qw_rebuy_gaps)) <= 0.5 and _qw_rebuy_energy > 0.0,
+    f"worst shortfall {float(np.max(_qw_rebuy_gaps)):.2f} K against the "
+    f"requirement over 07:00-09:00, re-bought energy after the window "
+    f"{_qw_rebuy_energy:.2f} kWh (a clip, not a re-plan, reads short and zero)",
+)
 # A silent window end to end: both channels stay under the cap in the
 # window's steps -- the DHW block included, which today is bounded only
 # through the planner's horizon-minimum run cap.
-_qw_sil_res, _qw_sil_quiet = _qw_solve("", silent_spec="06:00-08:00", fraction=0.6)
+_qw_sil_res, _qw_sil_quiet, _ = _qw_solve("", silent_spec="06:00-08:00", fraction=0.6)
 _qw_sil_space = np.asarray(_qw_sil_res.power_schedule, dtype=float)
 _qw_sil_dhw = np.asarray(_qw_sil_res.dhw_power_schedule, dtype=float)
 R.check(
