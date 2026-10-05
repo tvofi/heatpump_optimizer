@@ -281,8 +281,11 @@ def main(argv=None) -> int:
 # ----------------------------------------------------------------- self-test
 def _self_test() -> int:
     failed = []
+    passed = 0
 
     def check(name, ok, got=""):
+        nonlocal passed
+        passed += 1
         if not ok:
             failed.append(f"{name} (got: {got})")
 
@@ -320,16 +323,33 @@ def _self_test() -> int:
     run(["git", "clone", "-q", str(origin), str(drv)])
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
-             at_sha=None):
+             at_sha=None, field=None, value_opt=None):
         args = [op, group]
         if value is not None:
             args += [value]
+        if field:
+            args += ["--field", field]
+        if value_opt is not None:
+            args += ["--value", value_opt]
         if at_sha:
             args += ["--at-sha", at_sha]
-        return main(args + ["--checkout", str(drv), "--roster-ref", "main",
-                            "--branch", branch, "--worktree", str(Path(tmp, "wt")),
-                            "--lint-cwd", lint_cwd or str(seed)]
-                    + (["--push"] if push else []))
+        try:
+            return main(args
+                        + ["--checkout", str(drv), "--roster-ref", "main",
+                           "--branch", branch, "--worktree",
+                           str(Path(tmp, "wt")),
+                           "--lint-cwd", lint_cwd or str(seed)]
+                        + (["--push"] if push else []))
+        except SystemExit as e:
+            return e.code  # argparse refuses (unknown op/field) as SystemExit
+
+    def sysrc(call):
+        """The exit code of a call that may refuse through argparse's
+        SystemExit -- an unknown --field choice dies there, not at rc 2."""
+        try:
+            return call()
+        except SystemExit as e:
+            return e.code
 
     def branch_roster(name="edit-1"):
         sha = run(["git", "-C", str(origin), "rev-parse",
@@ -376,6 +396,93 @@ def _self_test() -> int:
           edit("append-carry", "R9-A", "carry text one") == 2)
     check("unknown group refused", edit("set-stage", "R9-ZZ", "done") == 2)
 
+    # set-resume: the resume free-text fields a session restarts from, through
+    # the same load/modify/dump flow -- never a string splice.
+    check("set-resume rc",
+          edit("set-resume", "R9-A", "merged as #9 at a1b2c3d",
+               field="last_step") == 0)
+    check("set-resume round-trip",
+          branch_roster()["groups"][0]["resume"].get("last_step")
+          == "merged as #9 at a1b2c3d")
+    check("set-resume --value flag",
+          edit("set-resume", "R9-A", None, field="next_step",
+               value_opt="claim the next ready group") == 0
+          and branch_roster()["groups"][0]["resume"].get("next_step")
+          == "claim the next ready group")
+    check("set-resume commit needs a sha",
+          edit("set-resume", "R9-A", "nothex", field="commit") == 2)
+    check("set-resume commit accepts a sha",
+          edit("set-resume", "R9-A", "b" * 40, field="commit") == 0
+          and branch_roster()["groups"][0]["resume"].get("commit") == "b" * 40)
+    check("set-resume empty on a non-null field refused",
+          edit("set-resume", "R9-A", "", field="stage") == 2
+          and edit("set-resume", "R9-A", "", field="branch") == 2)
+    check("set-resume empty on a nullable field clears it",
+          edit("set-resume", "R9-A", "", field="last_step") == 0
+          and branch_roster()["groups"][0]["resume"].get("last_step") is None)
+    check("set-resume unknown group refused",
+          edit("set-resume", "R9-ZZ", "x", field="last_step") == 2)
+    check("set-resume unknown field refused",
+          sysrc(lambda: edit("set-resume", "R9-A", "x", field="log")) == 2)
+
+    # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
+    # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump
+    # that does not reproduce them rewrites every line of the file on ANY edit
+    # -- the 7503-of-7503-line rewrite a naive json.dump(..., indent=2)
+    # produced. The fixture bytes below are hand-written, never dumped, so a
+    # drifting dump cannot pass this by writing its own output back.
+    canon = (
+        '{\n'
+        ' "repo": "fixture/roster",\n'
+        ' "groups": [\n'
+        '  {\n'
+        '   "group": "R9-A",\n'
+        '   "lane": "L1",\n'
+        '   "issues": [10],\n'
+        '   "fixes": [],\n'
+        '   "after": [],\n'
+        '   "brief": "fixture group A at 21 \\u00b0C",\n'
+        '   "resume": {\n'
+        '    "stage": "in-flight",\n'
+        '    "branch": "handoff/a",\n'
+        '    "commit": "' + "a" * 40 + '",\n'
+        '    "last_step": "reviewer handed off at \\u00b0",\n'
+        '    "next_step": null,\n'
+        '    "note": null\n'
+        '   }\n'
+        '  }\n'
+        ' ]\n'
+        '}')
+    check("dump round-trips the canonical bytes",
+          dump(json.loads(canon)) == canon)
+    seed2 = Path(tmp, "seed2")
+    seed2.mkdir()
+    run(["git", "init", "-q", "-b", "main", str(seed2)])
+    (seed2 / ".claude/workflows").mkdir(parents=True)
+    (seed2 / ".claude/workflows/brief_lint.mjs").write_text(
+        "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
+        encoding="utf-8")
+    (seed2 / ROSTER_PATH).parent.mkdir(parents=True, exist_ok=True)
+    (seed2 / ROSTER_PATH).write_text(canon, encoding="utf-8")
+    run(["git", "-C", str(seed2), "add", "-A"])
+    run(["git", "-C", str(seed2), "commit", "-q", "-m", "fixture roster"])
+    origin2 = Path(tmp, "origin2.git")
+    run(["git", "clone", "-q", "--bare", str(seed2), str(origin2)])
+    drv2 = Path(tmp, "drv2")
+    run(["git", "clone", "-q", str(origin2), str(drv2)])
+    check("no-op set-resume rc",
+          sysrc(lambda: main(["set-resume", "R9-A", "reviewer handed off at \u00b0",
+                           "--field", "last_step",
+                           "--checkout", str(drv2), "--roster-ref", "main",
+                           "--branch", "edit-byte",
+                           "--worktree", str(Path(tmp, "wt2")),
+                           "--lint-cwd", str(seed2), "--push"])) == 0)
+    shown = subprocess.run(
+        ["git", "-C", str(origin2), "show",
+         f"refs/heads/edit-byte:{ROSTER_PATH}"], capture_output=True, text=True)
+    check("no-op set-resume is byte-identical",
+          shown.returncode == 0 and shown.stdout == canon)
+
     # the lint gate: a bad brief is refused BEFORE the push; the branch on the
     # remote stays where it was.
     before = run(["git", "-C", str(origin), "rev-parse", "refs/heads/edit-1"]).strip()
@@ -407,7 +514,8 @@ def _self_test() -> int:
           branch_roster("edit-3")["groups"][0]["resume"]["stage"] == "done")
 
     shutil.rmtree(tmp, ignore_errors=True)
-    print(f"roster_edit self-test: 21 checks, {len(failed)} failed")
+    print(f"roster_edit self-test: {passed + len(failed)} checks, "
+          f"{len(failed)} failed")
     for f in failed:
         print("FAIL", f)
     return 1 if failed else 0
