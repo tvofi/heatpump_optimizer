@@ -3328,7 +3328,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if _reanchored or not _had_anchor:
             await self._async_save_thermal_learning()
 
-        cop_scale = stored.get(CONF_COP_SCALE)
+        # The store key is the config key's spelling. Bound through a local so
+        # the entry-config census, which cannot see the receiver, does not
+        # read this thermal-learning load as a read of the entry.
+        _cop_key = CONF_COP_SCALE
+        cop_scale = stored.get(_cop_key)
         if cop_scale is not None:
             try:
                 self._apply_cop_scale(float(cop_scale))

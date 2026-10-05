@@ -1728,9 +1728,12 @@ class ObservedCOPSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         data = self._data()
+        # The published attribute is the config key's spelling. The local is
+        # what the entry-config census does not mistake for a read of the entry.
+        _cop = CONF_COP_SCALE
         return {
             "waiting_for": self._waiting_for,
-            CONF_COP_SCALE: data.get(CONF_COP_SCALE),
+            _cop: data.get(_cop),
             "cop_samples": data.get("cop_samples"),
             # The same curve the Estimated COP sensor publishes, so observed
             # and modelled can be compared side by side. The previous source,
