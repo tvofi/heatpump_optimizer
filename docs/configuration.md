@@ -840,8 +840,6 @@ opt-in learners are on **Advanced learning features**.
 | Peak guard margin | 0.5 kW | 0.0–3.0, 0.1 steps | How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often. |
 | Heat pump silent mode schedule | empty | time frames, like the hot water ones | When the pump's own silent or night mode caps the compressor, for example `22:00-06:00`; day selectors such as `weekend 23:00-08:00` work too. The schedule lives in the pump's controller, where the optimizer cannot read it, so without this the plan counts on full power in those hours and may buy cheap night quarters the pump will not use. A frame shorter than one 15-minute planning step is refused. Leave empty to plan without it. |
 | Power kept in silent mode | 1.0 | 0.6–1.0, 0.05 steps | The share of the pump's maximum electrical power it still runs at inside that schedule. Inside those hours the plan's power ceiling is this share of the maximum; where the fuse cap or the measured capacity limit is lower, the lower one applies. 1.0 caps nothing. The range stops at 0.6, the same floor as *Plan within measured heat pump capacity*, so this can trim the plan but never leave the house without heat. The *Capacity limited (night mode)* sensor slot is the other half: it keeps the learners off the capped intervals, while this schedule tells the plan about the hours ahead. |
-| Silent windows | empty | time frames, like the hot water ones | Your own quiet hours: inside them the plan caps the heat pump at the *Power kept in silent mode* share (or at a measured figure, when the heat pump exposes a power or compressor-frequency entity). Distinct from the pump's own schedule above: that one the pump keeps by itself. Silent rows are only planned where the *Capacity limited (night mode)* slot is a switch the optimizer can hold; otherwise the plan is not capped for them and one repair notice says so. A frame shorter than one 15-minute planning step is refused. Leave empty to plan without them. |
-| Off windows | empty | time frames, like the hot water ones | Hours in which nothing is planned at all: no space heating and no hot-water slots. The plan pre-heats before them and publishes any shortfall they price. An off window may not overlap a hot-water window on the same day, and silent and off windows may not overlap each other; both rules are enforced on save. Leave empty to plan without them. |
 
 ### Transfer fees and contract
 
@@ -958,9 +956,9 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `run_optimization` | none | — |
 | `set_away` | `active`, `return_time` (at least one required) | — |
 | `set_mode` | `mode` (required) | — |
-| `set_thermal_parameters` | 28 optional model fields | — |
-| `simulate_plan` | 16 optional comfort and wood fields | always |
-| `apply_schedule` | 5 optional schedule fields + `entry_id` | optional |
+| `set_thermal_parameters` | 31 optional model fields | — |
+| `simulate_plan` | 19 optional comfort, wood and quiet-window fields | always |
+| `apply_schedule` | 8 optional schedule fields + `entry_id` | optional |
 | `assign_entity` | `key`, `entity_id` (both required) + `manual_setpoint`, `entry_id` | optional |
 | `apply_topology` | `layout` (required), `positions`, `dhw`, `wood`, `entry_id` | optional |
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
@@ -986,10 +984,13 @@ comfort temperature and ignore prices), `economy` (allow up to 1.5 °C below you
 comfort floor to ride out expensive hours, never below 15 °C), `boost` (maximum
 heating power) or `off`.
 
-**`set_thermal_parameters`** writes model parameters at runtime. All 28 fields
+**`set_thermal_parameters`** writes model parameters at runtime. All 31 fields
 are optional and anything omitted is left alone. Unparseable `dhw_windows`
 frames are rejected — the call refuses rather than silently keeping the old
-windows. The ranges below are the
+windows. The three quiet-window fields (`quiet_silent_windows`,
+`quiet_off_windows`, `silent_mode_power_fraction`) are configuration rather
+than physics: they are stored and take effect on the next solve, with the
+same overlap refusals `apply_schedule` applies. The ranges below are the
 physics bounds rather than the UI's convenience sliders, so several are wider
 than the options pages allow — an automation calling with a zero thermal mass
 would otherwise divide by zero inside the model:
@@ -1018,8 +1019,10 @@ forecast without disturbing operation, and returns the answer directly. Fields,
 all optional: `target_temp`, `min_temp`, `max_temp`, `comfort_weight`,
 `comfort_temp_day`, `comfort_temp_night`, `dhw_setpoint`,
 `dhw_min_temperature`, `day_start_hour` (0–23), `day_end_hour` (0–24),
-`dhw_windows`, `wood_type`, `wood_packing`, `wood_price_sek_m3`,
-`wood_furnace_efficiency`, `wood_slots`. An empty `dhw_windows` string is meaningful: it simulates having
+`dhw_windows`, `quiet_silent_windows`, `quiet_off_windows`,
+`silent_mode_power_fraction` (0–1), `wood_type`, `wood_packing`,
+`wood_price_sek_m3`, `wood_furnace_efficiency`, `wood_slots`. An empty
+`dhw_windows` string is meaningful: it simulates having
 no guaranteed hot water periods at all. The underlying solve is rate-limited,
 so dragging a slider cannot trigger one solve per pixel — this is what the
 card's what-if panel calls. A what-if that cannot run fails with an error
@@ -1028,7 +1031,8 @@ compare against before the first plan exists, and not enough price data is the
 same failure the live solve would report.
 
 **`apply_schedule`** is the save counterpart: it writes `day_start_hour`,
-`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature` and `dhw_windows`
+`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature`, `dhw_windows`,
+`quiet_silent_windows`, `quiet_off_windows` and `silent_mode_power_fraction`
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
 would never open is rejected — checked against the values that *would* be
