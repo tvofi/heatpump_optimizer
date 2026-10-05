@@ -1,6 +1,6 @@
 """Button entities for Heat Pump Cost Optimizer.
 
-Four momentary actions with no lasting state, which is exactly what a
+Five momentary actions with no lasting state, which is exactly what a
 ``ButtonEntity`` is for. A switch would have to bounce itself back off, and
 until it did, the UI would imply a state that does not exist:
 
@@ -11,8 +11,8 @@ until it did, the UI would imply a state that does not exist:
 * "Prediction Accuracy Diagnose Last Interval" — attribute the last
   interval's temperature residual,
 
-and a fifth, present only while the debug-collection option is on:
-"Finalize Debug Collection" ends the week's collection now.
+and a fifth, "Finalize Debug Collection", which ends the week's collection
+now and is unavailable unless that option is on.
 
 The runs take real time — an optimization fetches prices and weather and then
 solves — so they report ``available`` as False while busy, giving the user
@@ -57,8 +57,7 @@ async def async_setup_entry(
         ResetComfortWeightButton(coordinator, entry),
         DiagnoseIntervalButton(coordinator, entry),
     ]
-    if debugger.collector_for(coordinator) is not None:
-        buttons.append(DebugFinalizeButton(coordinator, entry))
+    buttons.append(DebugFinalizeButton(coordinator, entry))
     async_add_entities(buttons)
 
 
@@ -201,19 +200,27 @@ class DiagnoseIntervalButton(_OptimizerButtonBase):
 class DebugFinalizeButton(_OptimizerButtonBase):
     """End the debug collection now, so Download diagnostics carries it final (#1939).
 
-    Present only while the learning page's debug-collection option is on;
-    unavailable once the collection is final, until it is started again.
+    Unavailable unless the learning page's debug-collection option is on and
+    the collection has not already stopped.
     """
 
     def __init__(
         self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry
     ) -> None:
-        super().__init__(coordinator, entry, "debug_finalize", "debug_collection_finalize")
+        super().__init__(coordinator, entry, "debug_finalize", "learning_finalize_debug")
 
     @property
     def available(self) -> bool:
         collector = debugger.collector_for(self.coordinator)
         return bool(super().available and collector is not None and not collector.final)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, str]:
+        """Why the button is dark on an install that is not collecting (#1335)."""
+        collector = debugger.collector_for(self.coordinator)
+        if collector is not None and not collector.final:
+            return {}
+        return {"waiting_for": "debug_collect"}
 
     async def async_press(self) -> None:
         if (collector := debugger.collector_for(self.coordinator)) is not None:

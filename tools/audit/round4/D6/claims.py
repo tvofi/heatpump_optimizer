@@ -309,18 +309,30 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 75 entities are created on every install",
-   CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
-eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
-   int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
-eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
-   int(re.search(r"### Binary Sensors \((\d+) total\)", README).group(1)),
-   COUNTS["binary_sensor"])
-eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,
-   int(re.search(r"### Buttons \((\d+) total\)", README).group(1)), COUNTS["button"])
-eq("C5", "docs/architecture.md:mermaid", "75 entities / 59 sensors / 6 binary sensors / "
-   "4 buttons / 4 switches / 1 climate / 1 datetime", CMD,
-   (75, 59, 6, 4, 4, 1, 1),
+_all_n = re.search(r"All (\d+) entities", README)
+eq("C1", "README.md:Entities",
+   f"All {_all_n.group(1)} entities are created on every install",
+   CMD, int(_all_n.group(1)), TOTAL)
+_sensor_n = re.search(r"### Sensors \((\d+) total\)", README)
+eq("C2", "README.md:### Sensors", f"Sensors ({_sensor_n.group(1)} total)", CMD,
+   int(_sensor_n.group(1)), COUNTS["sensor"])
+_bin_n = re.search(r"### Binary Sensors \((\d+) total\)", README)
+eq("C3", "README.md:### Binary Sensors", f"Binary Sensors ({_bin_n.group(1)} total)", CMD,
+   int(_bin_n.group(1)), COUNTS["binary_sensor"])
+_btn_n = re.search(r"### Buttons \((\d+) total\)", README)
+eq("C4", "README.md:### Buttons", f"Buttons ({_btn_n.group(1)} total)", CMD,
+   int(_btn_n.group(1)), COUNTS["button"])
+_arch_diag = re.search(
+    r"(\d+) entities<br/>(\d+) sensors, (\d+) binary sensors,<br/>"
+    r"(\d+) buttons, (\d+) switches,<br/>(\d+) climate, (\d+) datetime",
+    DOCS["architecture.md"])
+_arch_diag_t = tuple(int(g) for g in _arch_diag.groups())
+eq("C5", "docs/architecture.md:mermaid",
+   f"{_arch_diag_t[0]} entities / {_arch_diag_t[1]} sensors / "
+   f"{_arch_diag_t[2]} binary sensors / {_arch_diag_t[3]} buttons / "
+   f"{_arch_diag_t[4]} switches / {_arch_diag_t[5]} climate / "
+   f"{_arch_diag_t[6]} datetime", CMD,
+   _arch_diag_t,
    (TOTAL, COUNTS["sensor"], COUNTS["binary_sensor"], COUNTS["button"],
     COUNTS["switch"], COUNTS["climate"], COUNTS["datetime"]))
 
@@ -454,14 +466,21 @@ SCHEMAS = {
     "clear_manual_plan": svc.SERVICE_SCHEMA_CLEAR_MANUAL_PLAN,
     "restore_learned_snapshot": svc.SERVICE_SCHEMA_RESTORE_SNAPSHOT,
     "diagnose_interval": svc.SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
+    "debug_collect": svc.SERVICE_SCHEMA_DEBUG_COLLECT,
 }
-eq("C15", "README.md:## Services", "12 services are registered under the "
+# The label is the sentence's own number, as C26's is: a label frozen at
+# "12 services" would keep quoting 12 after the catalogue gained one, while
+# the verdict stayed true.
+_svc_readme_n = re.search(r"^(\d+) services are registered", README, re.M)
+eq("C15", "README.md:## Services",
+   f"{_svc_readme_n.group(1)} services are registered under the "
    "heatpump_optimizer domain", CMD,
-   int(re.search(r"^(\d+) services are registered", README, re.M).group(1)),
-   len(SERVICES_YAML))
-eq("C16", "docs/configuration.md:## Services", "12 services are registered", CMD,
-   int(re.search(r"^(\d+) services are registered", DOCS["configuration.md"], re.M).group(1)),
-   len(SERVICES_YAML))
+   int(_svc_readme_n.group(1)), len(SERVICES_YAML))
+_svc_cfg_n = re.search(
+    r"^(\d+) services are registered", DOCS["configuration.md"], re.M)
+eq("C16", "docs/configuration.md:## Services",
+   f"{_svc_cfg_n.group(1)} services are registered", CMD,
+   int(_svc_cfg_n.group(1)), len(SERVICES_YAML))
 eq("C17", "README.md:## Services", "the Services table names exactly services.yaml's keys",
    CMD,
    sorted(m.group(1) for m in re.finditer(r"^\| `([a-z_]+)` \|",
@@ -471,33 +490,49 @@ eq("C18", "README.md + docs/configuration.md", "set_thermal_parameters takes 28 
    CMD, 28, len(schema_keys(SCHEMAS["set_thermal_parameters"])))
 eq("C19", "docs/configuration.md", "simulate_plan takes 16 optional fields", CMD,
    16, len(schema_keys(SCHEMAS["simulate_plan"])))
-eq("C20", "docs/configuration.md", "seven services accept an optional entry_id", CMD,
-   7, sum(1 for s in SCHEMAS.values() if "entry_id" in schema_keys(s)))
+# Same shape as C28: the documented side is the sentence, not a literal 7
+# that agreed with itself the day an eighth entry_id service arrived.
+_ENTRY_WORDS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "thirteen": 13,
+}
+_entry_word = re.search(
+    r"The (\w+)\s+that act on a specific config entry", DOCS["configuration.md"])
+eq("C20", "docs/configuration.md",
+   f"{_entry_word.group(1)} services accept an optional entry_id", CMD,
+   _ENTRY_WORDS[_entry_word.group(1)],
+   sum(1 for s in SCHEMAS.values() if "entry_id" in schema_keys(s)))
 _sch_vs_yaml = {
     n: (schema_keys(s) ^ set((SERVICES_YAML[n] or {}).get("fields") or {}))
     for n, s in SCHEMAS.items()
 }
+# SCHEMAS is the catalogue C20 and C22 read. A service present in
+# services.yaml and absent here leaves those rows true while ignoring it
+# (#546): the gap is that catalogue's own null control.
+_diffs = {k: sorted(v) for k, v in _sch_vs_yaml.items() if v}
+_schema_gap = sorted(set(SERVICES_YAML) ^ set(SCHEMAS))
 claim("C21", "services.yaml",
       "services.yaml documents exactly the fields each voluptuous schema accepts",
-      CMD, f"symmetric differences={{k: sorted(v) for k, v in _sch_vs_yaml.items() if v}}"
-      .replace("{k: sorted(v) for k, v in _sch_vs_yaml.items() if v}",
-               str({k: sorted(v) for k, v in _sch_vs_yaml.items() if v})),
-      "true" if not any(_sch_vs_yaml.values()) else "false")
+      CMD, f"symmetric differences={_diffs}, catalogue gap={_schema_gap}",
+      "true" if not _diffs and not _schema_gap else "false")
 
 _ex_fail = []
+_ex_n = 0
 for _n, _s in SCHEMAS.items():
     _fields = (SERVICES_YAML[_n] or {}).get("fields") or {}
     _ex = {f: d["example"] for f, d in _fields.items()
            if isinstance(d, dict) and "example" in d}
     if not _ex:
         continue
+    _ex_n += 1
     try:
         _s(dict(_ex))
     except Exception as err:  # noqa: BLE001
         _ex_fail.append((_n, f"{type(err).__name__}: {err}"))
 claim("C22", "services.yaml",
       "every services.yaml `example` payload passes its own service schema",
-      CMD, f"services with examples=5, failures={_ex_fail}",
+      CMD, f"services with examples={_ex_n}, failures={_ex_fail}",
       "true" if not _ex_fail else "false")
 
 _reg: dict[str, str] = {}
@@ -771,12 +806,15 @@ claim("C36", "docs/architecture.md:The Home Assistant boundary",
       "modules outside the named set import homeassistant at module level and "
       "cannot be imported without it: "
       + ", ".join(sorted(set(_ha_importers) - set(_doc_named))))
-eq("C37", "docs/architecture.md:module map", "__init__.py -- the 11 services", CMD,
-   int(re.search(r"Setup and unload, the (\d+) services", DOCS["architecture.md"]).group(1)),
-   len(SERVICES_YAML), "there are {m} services")
-eq("C38", "docs/architecture.md:module map", "services.yaml -- The 11 service definitions",
-   CMD, int(re.search(r"The (\d+) service definitions", DOCS["architecture.md"]).group(1)),
-   len(SERVICES_YAML), "services.yaml defines {m} services")
+_init_svc = re.search(
+    r"Setup and unload, the (\d+) services", DOCS["architecture.md"])
+eq("C37", "docs/architecture.md:module map",
+   f"__init__.py -- the {_init_svc.group(1)} services", CMD,
+   int(_init_svc.group(1)), len(SERVICES_YAML), "there are {m} services")
+_yaml_svc = re.search(r"The (\d+) service definitions", DOCS["architecture.md"])
+eq("C38", "docs/architecture.md:module map",
+   f"services.yaml -- The {_yaml_svc.group(1)} service definitions", CMD,
+   int(_yaml_svc.group(1)), len(SERVICES_YAML), "services.yaml defines {m} services")
 eq("C39", "docs/architecture.md:module map", "sensor.py -- 59 sensors", CMD,
    int(re.search(r"# (\d+) sensors", DOCS["architecture.md"]).group(1)), COUNTS["sensor"])
 # #939: the map comments now name every constructed entity, and the long ones

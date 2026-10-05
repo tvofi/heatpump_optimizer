@@ -1990,7 +1990,7 @@
       "diagnose_last_interval": {
         "name": "Prognosnoggrannhet diagnostisera senaste intervallet"
       },
-      "debug_collection_finalize": {
+      "learning_finalize_debug": {
         "name": "Inlärning avsluta felsökningsinsamling"
       },
       "learning_reset_comfort_weight": {

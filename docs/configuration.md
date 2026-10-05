@@ -231,7 +231,7 @@ single field takes the same grammar, including day selectors such as
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
 Saving this page moves to the read-only review screen — confirming there is
-what creates the entry. All 75 entities appear at once and the first plan is
+what creates the entry. All 76 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ---
@@ -938,13 +938,15 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-12 services are registered under the `heatpump_optimizer` domain. The seven
+13 services are registered under the `heatpump_optimizer` domain. The eight
 that act on a specific config entry also accept an optional `entry_id`; omitting
 it applies the call to every loaded entry, which is what a single-heat-pump
-install wants. Of those seven, only `assign_entity`, `apply_topology` and
-`apply_schedule` write configuration back into the entry — the other four act on
-the running coordinator. `run_optimization`, `set_away`, `set_mode`,
-`set_thermal_parameters` and `simulate_plan` always act on every loaded entry.
+install wants. Of those eight, `assign_entity`, `apply_topology`,
+`apply_schedule` and `debug_collect` write configuration back into the entry —
+`debug_collect`'s start turns the collection option on, which reloads the
+entry — and the other four act on the running coordinator. `run_optimization`,
+`set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
+on every loaded entry.
 
 The services are registered when the integration loads and stay registered
 while every entry is unloaded, so an automation that names one still validates.
@@ -965,6 +967,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
 | `diagnose_interval` | `entry_id` | optional |
+| `debug_collect` | `action` (required), `entry_id` | optional |
 
 **`run_optimization`** fetches prices and weather and re-solves the 24-hour plan
 immediately. The **Optimize Now** button does the same thing. A run that cannot
@@ -1073,6 +1076,14 @@ required) the call fails with an error instead of answering with an empty
 restore.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
+**`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
+the learning page's debug-collection option on, which reloads the entry and
+begins the week (or clears a collection that has already finished and begins
+again). `stop` ends it now, which is what the Finalize Debug Collection button
+does. `status` reports how many cycles it holds and how large it is, and that
+report is the service response. The collection also stops itself after seven
+days. Turning the option off deletes what was collected. Download diagnostics
+on the entry carries the week.
 
 ---
 

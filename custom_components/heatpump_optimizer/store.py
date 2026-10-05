@@ -459,7 +459,22 @@ def _tries() -> dict[str, dict[str, Any]]:
     return tries
 
 
+def _scalar_domain(node: dict[str, Any]) -> Domain | None:
+    """The domain when this node declares one value, not a container of them.
+
+    A container walked in place of that value yields no leaf -- an empty list
+    has no element to check -- so the declaration would go unread and a list
+    where a number belongs would be admitted.
+    """
+    domain = node.get("")
+    return domain if isinstance(domain, Domain) and set(node) <= {""} else None
+
+
 def _fields(node: dict[str, Any], value: Any, path: tuple[Any, ...], out: list[Any]) -> None:
+    scalar = _scalar_domain(node)
+    if scalar is not None and isinstance(value, (dict, list)):
+        out.append((path, False, scalar, value))
+        return
     if isinstance(value, dict):
         for key, child in value.items():
             if key not in node:

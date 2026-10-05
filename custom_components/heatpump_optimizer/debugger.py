@@ -89,12 +89,47 @@ def cycle_row(
     return {key: value for key, value in row.items() if value is not None}
 
 
+def _aware(raw: Any) -> str | None:
+    """A stored instant as aware text, or ``None`` when it does not parse.
+
+    The domain accepts a naive stamp (it parses), and a loader that keeps that
+    text installs a naive instant the next ``now - stamp`` cannot subtract.
+    """
+    when = stored_instant(raw)
+    return None if when is None else when.isoformat()
+
+
+def _repair(item: dict[str, Any], field: str, needs: set[str]) -> dict[str, Any] | None:
+    """``item`` inside its domain, instants rewritten aware; ``None`` when it is not.
+
+    A sample that is not a sample dict is the same refusal as a row outside
+    its domain. The stamp is stored aware so a naive one cannot reach a
+    subtraction against ``now``.
+    """
+    if not needs <= item.keys() or not admitted("debug", {field: [item]}):
+        return None
+    stamp = _aware(item.get("t"))
+    if stamp is None:
+        return None
+    fixed = {**item, "t": stamp}
+    sample = fixed.get("accuracy_sample")
+    if sample is None:
+        return fixed
+    if not isinstance(sample, dict):
+        return None
+    sample_t = _aware(sample.get("t"))
+    if sample_t is None:
+        return None
+    fixed["accuracy_sample"] = {**sample, "t": sample_t}
+    return fixed
+
+
 def _kept(raw: dict[str, Any], field: str, needs: set[str]) -> list[dict[str, Any]]:
-    """The stored items of ``field`` inside their declared domain; each bad one dropped alone."""
+    """The stored items of ``field``; each bad one dropped alone."""
     items = raw.get(field)
     return [
-        item for item in items
-        if isinstance(item, dict) and needs <= item.keys() and admitted("debug", {field: [item]})
+        fixed for item in items
+        if isinstance(item, dict) and (fixed := _repair(item, field, needs)) is not None
     ] if isinstance(items, list) else []
 
 

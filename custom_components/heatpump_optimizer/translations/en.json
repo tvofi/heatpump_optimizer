@@ -1990,7 +1990,7 @@
       "diagnose_last_interval": {
         "name": "Prediction Accuracy Diagnose Last Interval"
       },
-      "debug_collection_finalize": {
+      "learning_finalize_debug": {
         "name": "Learning Finalize Debug Collection"
       },
       "learning_reset_comfort_weight": {

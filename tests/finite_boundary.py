@@ -255,6 +255,7 @@ def _healthy_payloads() -> dict[str, dict]:
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: pump_arbiter persist skipped: %r" % (exc,))
     run(_save_notifier(coord))
+    run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     _storage.SAVE_COUNTS.clear()
@@ -408,6 +409,46 @@ async def _save_notifier(coord):
     await held._async_save()
 
 
+#: The debug collector, held where the production module keeps it per
+#: coordinator, so the class sweep (Arm 4) reads what its loader installed.
+def _debug_for(coord):
+    from heatpump_optimizer import debugger
+    held = debugger.collector_for(coord)
+    if held is None:
+        held = debugger._COLLECTORS[coord] = debugger.DebugCollector(
+            coord.hass, coord.entry.entry_id, lambda coro: coro.close())
+    return held
+
+
+async def _load_debug(coord):
+    await _debug_for(coord).async_load()
+
+
+async def _save_debug(coord):
+    """Seed one full row -- the production row builder's, every field set -- and its snapshot."""
+    from types import SimpleNamespace
+    from heatpump_optimizer import debugger
+    from heatpump_optimizer.accuracy import AccuracySample, AccuracyTracker
+    held = _debug_for(coord)
+    if not held.rows:
+        at = _dt.datetime(2026, 1, 1, 12, 0, 0, tzinfo=_dt.timezone.utc)
+        tracker = AccuracyTracker()
+        tracker.record(AccuracySample(
+            when=at, predicted_power_kw=1.0, actual_power_kw=1.2, predicted_temp=21.0,
+            actual_temp=21.2, predicted_cost=0.5, actual_cost=0.6, outdoor_temp=-2.0,
+            humidity=80.0, cop_residual=0.1))
+        view = SimpleNamespace(accuracy=tracker, solve_failures=1, prices=[{}] * 96)
+        payload = {
+            "mode": "auto", "current_action": {"mode": "heat", "power": 2.5, "heat_pump_on": True},
+            "solve_time_ms": 40.0, "weather_forecast_stale_hours": 0.5,
+            "indoor_temperature": 21.0, "outdoor_temperature": -3.0, "dhw_temperature": 50.0,
+        }
+        held.started_at = at
+        held.rows = [debugger.cycle_row(view, payload, at, 12.5)]
+        held.snapshots = [{"t": at.isoformat(), "cycle": 0, "data": json.dumps(payload)}]
+    await held.async_save()
+
+
 # The reach arm's wiring: which real loader consumes which store. This is the
 # instrument's configuration, not the seam set — the seam set is Arm 1's AST
 # walk, and the equality check below holds this map to it.
@@ -426,6 +467,7 @@ LOADERS = {
     "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c),
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
     "notifier": _load_notifier,
+    "debug": _load_debug,
 }
 
 R.check(
@@ -815,6 +857,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
     run(_save_notifier(coord))
+    run(_save_debug(coord))
     disk = {k: json.loads(v) for k, v in _storage._DISK.items()}
     _storage._DISK.clear()
     return disk
@@ -1292,6 +1335,7 @@ def _a6_savers():
         "away": lambda c: mod("away").persist_override(c),
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
         "notifier": _save_notifier,
+        "debug": _save_debug,
     }
 
 

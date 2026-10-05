@@ -20131,7 +20131,7 @@ _LC_DATA = {
 # setup, then its unload. The FakeServices registry is honest — registration
 # stores, removal deletes — so what it holds at each step is what Home
 # Assistant would hold. The services belong to the domain (action-setup,
-# #180): async_setup registers all twelve before any entry exists, an
+# #180): async_setup registers every service services.yaml documents before any entry exists, an
 # entry's setup adds and replaces nothing, and the last unload removes
 # nothing — a service that vanished with its entry is exactly what made an
 # automation fail validation while the entry was unloaded. (Under the old
@@ -20143,9 +20143,11 @@ _seed_prices(_lc_hass)  # #924
 _lc_entry = FakeEntry(data=_LC_DATA)
 _asyncio.run(_ha_setup_component(_integ, _lc_hass))
 _lc_registered = dict(_lc_hass.services.async_services().get(_DOMAIN, {}))
+_lc_catalog = set(__import__("yaml").safe_load(
+    _Path("custom_components/heatpump_optimizer/services.yaml").read_text()))
 R.check(
-    "async_setup registers the integration's twelve services before any entry",
-    len(_lc_registered) == 12,
+    "async_setup registers every service services.yaml documents, before any entry",
+    set(_lc_registered) == _lc_catalog,
     f"{len(_lc_registered)} registered: {sorted(_lc_registered)}",
 )
 _asyncio.run(_ha_setup_entry(_integ, _lc_hass, _lc_entry))
@@ -20848,13 +20850,14 @@ _HPO_SERVICE_MAP = {
     "clear_manual_plan": "handle_clear_manual_plan",
     "restore_learned_snapshot": "handle_restore_snapshot",
     "diagnose_interval": "handle_diagnose_interval",
+    "debug_collect": "handle_debug_collect",
 }
 _hpo_hass = FakeHass()
 _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
 _hpo_registered = _hpo_hass.services.async_services().get(_DOMAIN, {})
 R.check(
-    "async_setup registers all twelve services, unchanged",
-    set(_hpo_registered) == set(_HPO_SERVICE_MAP),
+    "async_setup registers every service services.yaml documents, unchanged",
+    set(_hpo_registered) == set(_HPO_SERVICE_MAP) == _lc_catalog,
     f"registered: {sorted(_hpo_registered)}",
 )
 # The registry calls a handler with one argument (the ServiceCall), so the
@@ -20887,8 +20890,8 @@ if _hpo_services_path.exists():
         ):
             _hpo_reg_sites += 1
 R.check(
-    "the twelve registration sites live in services.py, none in __init__.py",
-    _hpo_reg_sites == 12
+    "every registration site lives in services.py, none in __init__.py",
+    _hpo_reg_sites == len(_lc_catalog)
     and not any(
         isinstance(_hpo_n, _hpo_ast.Call)
         and isinstance(_hpo_n.func, _hpo_ast.Attribute)
@@ -31969,6 +31972,7 @@ _ET_KEYS = {
     "tibber_fetch_failed": {"error"},
     # D10-s1-03: the refused token, through _raise_auth_failed.
     "tibber_auth_failed": {"error"},
+    "debug_collect_inactive": {"entry_id"},
 }
 
 
@@ -37208,6 +37212,8 @@ _RC2_ROWS += [
     (_rc2_button.ForceOptimizationButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.DiagnoseIntervalButton, "async_press", (), ("mode", "auto"), None),
     (_rc2_button.SystemIdentificationButton, "async_press", (), ("mode", "auto"), None),
+    # The final flag lives in the debug store, not on the coordinator.
+    (_rc2_button.DebugFinalizeButton, "async_press", (), ("mode", "auto"), None),
 ]
 _RC2_EXEMPT = {}
 # The coordinator's own setters, which the services call with a refresh: each
@@ -57893,7 +57899,10 @@ async def _dbg_actions():
             buttons[entry.entry_id] = [b for b in added if isinstance(b, _dbg_button.DebugFinalizeButton)]
         press = buttons["dbg"][0]
         press.hass = hass
+        off_press = buttons["dbg_off"][0]
+        off_press.hass = hass
         out["available"] = press.available
+        out["off_available"] = off_press.available
         await press.async_press()
         out["pressed_final"] = _dbg.collector_for(on.runtime_data).final
         out["available_after"] = press.available
@@ -57929,11 +57938,13 @@ R.check(
     str({k: _dbg_a[k] for k in ("off_option", "start_off")}),
 )
 R.check(
-    "DBG-1 the finalize button exists only while the option is on, and a press "
-    "finalizes the collection and makes it unavailable",
-    _dbg_a["buttons"] == {"dbg": 1, "dbg_off": 0} and _dbg_a["available"] is True
+    "DBG-1 the finalize button is always present, unavailable while the option "
+    "is off, and a press finalizes the collection and makes it unavailable",
+    _dbg_a["buttons"] == {"dbg": 1, "dbg_off": 1} and _dbg_a["available"] is True
+    and _dbg_a["off_available"] is False
     and _dbg_a["pressed_final"] is True and _dbg_a["available_after"] is False,
-    str({k: _dbg_a[k] for k in ("buttons", "available", "pressed_final", "available_after")}),
+    str({k: _dbg_a[k] for k in ("buttons", "available", "off_available", "pressed_final",
+                                "available_after")}),
 )
 
 # -- the option, its strings, and the wiring --------------------------------------
