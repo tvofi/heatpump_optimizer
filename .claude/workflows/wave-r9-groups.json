@@ -7516,7 +7516,8 @@
     "stage": "rca-done",
     "next_step": "dispatch when usage resets; the three instances are PRs #1968/#1969 merges and #1959 carries, all 2026-10-05",
     "branch": "handoff/r9-rc-prcontract",
-    "commit": "50e9dd193306a714ea020c410bc33ce8cd5b9ff8"
+    "commit": "50e9dd193306a714ea020c410bc33ce8cd5b9ff8",
+    "last_step": "RCA handed off as PR #1972"
    },
    "fixes": []
   },
