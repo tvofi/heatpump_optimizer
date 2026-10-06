@@ -527,10 +527,10 @@ INERT_EXCEPT = (
     "docs/ecl110.md",
     "docs/how-it-works.md",
     "docs/setup.md",
-    "docs/img/dhw-demand-windows.svg",
-    "docs/img/dhw-store-decay.svg",
-    "docs/img/marginal-cop.svg",
-    "docs/img/make_model_figures.py",
+    "docs/img/model/dhw-demand-windows.svg",
+    "docs/img/model/dhw-store-decay.svg",
+    "docs/img/model/marginal-cop.svg",
+    "docs/img/model/make_model_figures.py",
     # R9-WEB-1: tests/doc_claims.py opens the product page to pin every claim
     # on it to the reader documents, so the page is a gate script's read, not
     # inert prose: an edit to it selects doc_claims.py. The self-hosted fonts

@@ -8,7 +8,7 @@
 
 **Tech Stack:** Home Assistant custom component (coordinator / sensor / ledger), Lovelace card (`heatpump-optimizer-card.js`, no build step), `tests/features.py` + `tests/entities.py` + `tests/card.mjs` (`R.check` / `check`, not pytest).
 
-**Spec:** `docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md`
+**Spec:** `docs/design/2026-09-05-monthly-savings-history/design.md`
 
 ## Global Constraints
 

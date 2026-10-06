@@ -8,7 +8,7 @@
 
 **Tech Stack:** Home Assistant custom component (Store, config flow, switch, new datetime platform, services), Lovelace card (`heatpump-optimizer-card.js`, no build step), `tests/features.py` + `tests/config_flow_steps.py` + `tests/entities.py` + `tests/card.mjs` (`R.check` / `check`, not pytest).
 
-**Spec:** `docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md`
+**Spec:** `docs/design/2026-09-05-away-plan-toggle/design.md`
 
 ## Global Constraints
 

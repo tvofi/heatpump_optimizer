@@ -492,67 +492,67 @@
   {
    "old": "docs/img/card-dhw-band-weekly.png",
    "new": "docs/img/model/card-dhw-band-weekly.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/card-plan-chart.png",
    "new": "docs/img/card/card-plan-chart.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/chart-anatomy.svg",
    "new": "docs/img/card/chart-anatomy.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/chart-dashed-lines.svg",
    "new": "docs/img/card/chart-dashed-lines.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/dhw-demand-windows.svg",
    "new": "docs/img/model/dhw-demand-windows.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/dhw-store-decay.svg",
    "new": "docs/img/model/dhw-store-decay.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-coil.svg",
    "new": "docs/img/model/hydronic-coil.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-single-buffer.svg",
    "new": "docs/img/model/hydronic-single-buffer.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-two-tank.svg",
    "new": "docs/img/model/hydronic-two-tank.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/make_card_figures.mjs",
    "new": "docs/img/card/make_card_figures.mjs",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/make_model_figures.py",
    "new": "docs/img/model/make_model_figures.py",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/marginal-cop.svg",
    "new": "docs/img/model/marginal-cop.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/options-hot-water-by-day.png",
    "new": "docs/img/card/options-hot-water-by-day.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/plan-1067-rotenso-inputs.md",
@@ -582,37 +582,37 @@
   {
    "old": "docs/setup/",
    "new": "docs/img/setup/",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-away-plan-toggle.md",
    "new": "docs/design/2026-09-05-away-plan-toggle/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-monthly-savings-history.md",
    "new": "docs/design/2026-09-05-monthly-savings-history/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-wood-furnace-economics.md",
    "new": "docs/design/2026-09-05-wood-furnace-economics/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md",
    "new": "docs/design/2026-09-05-away-plan-toggle/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md",
    "new": "docs/design/2026-09-05-monthly-savings-history/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md",
    "new": "docs/design/2026-09-05-wood-furnace-economics/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "icon.png",

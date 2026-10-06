@@ -1,4 +1,4 @@
-// Regenerates docs/img/card-dhw-band-weekly.png: the shipped card's enlarged
+// Regenerates docs/img/model/card-dhw-band-weekly.png: the shipped card's enlarged
 // Plan page across a Friday and a Saturday, with a per-weekday hot-water
 // schedule (`weekdays 07:30-08:30, weekend 19:00-21:00`) in force, so the
 // tank's dashed lower edge is held at the 45 degree minimum inside Friday's
@@ -13,7 +13,7 @@
 // (which sits at or above the 45 degree minimum) so the clamp is visible.
 //
 //   python3 tests/plan_view.py
-//   node docs/img/make_card_weekly_figure.mjs      # from the repository root
+//   node docs/img/model/make_card_weekly_figure.mjs      # from the repository root
 //
 // Needs `playwright` resolvable (NODE_PATH or a local node_modules) and its
 // Chromium. docs/ is INERT in tests/closure.py, so this selects no gate script.
@@ -22,14 +22,14 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { CARD_PATH, DEFAULT_SPACE, DEFAULT_DHW, planStates } from "../../tests/card_rig.mjs";
+import { CARD_PATH, DEFAULT_SPACE, DEFAULT_DHW, planStates } from "../../../tests/card_rig.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
 const plan0 = JSON.parse(fs.readFileSync(process.env.HPO_PLANDATA ||
   path.join("/tmp", `plandata-${crypto.createHash("sha256").update(path.join(ROOT, "tests")).digest("hex").slice(0, 12)}.json`), "utf8"));
-const OUT = process.env.HPO_WEEKLY_OUT || path.join(ROOT, "docs/img/card-dhw-band-weekly.png");
+const OUT = process.env.HPO_WEEKLY_OUT || path.join(ROOT, "docs/img/model/card-dhw-band-weekly.png");
 
 const DAY = 86400e3;
 const iso = (ms) => new Date(ms).toISOString().slice(0, 19);
