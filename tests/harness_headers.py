@@ -318,7 +318,8 @@ def depth_root_seams() -> list[str]:
     """Depth-counted repository roots still in the RO-7 scope.
 
     A seam is a fixed parent count from the script itself: ``parents[N]``,
-    two or more ``dirname`` around ``__file__``, or a ``join``/``resolve``
+    two or more ``dirname`` around ``__file__``, a ``dirname`` repeated in
+    a ``range`` loop, an ``os.pardir`` repeat, or a ``join``/``resolve``
     whose arguments after the base are only ``..``. A join that then names
     a sibling directory is not a repository root and is not returned.
     """
@@ -343,6 +344,13 @@ def depth_root_seams() -> list[str]:
                 hit = True
             if re.search(r"(?:os\.path\.dirname\(\s*){2,}os\.path\.abspath\(\s*__file__", s):
                 hit = True
+            if "*[os.pardir]" in s or re.search(r"os\.pardir\s*\*\s*[2-9]", s):
+                hit = True
+            if n < len(lines) and re.match(
+                    r"for\s+\w+\s+in\s+range\(([2-9]|\d{2,})\)\s*:", s):
+                nxt = lines[n].strip()
+                if re.match(r"(\w+)\s*=\s*os\.path\.dirname\(\s*\1\s*\)", nxt):
+                    hit = True
             if 'dirname "$0")/..' in s:
                 hit = True
             m = re.search(r"(?:resolve|join)\((.*)\)", s)
