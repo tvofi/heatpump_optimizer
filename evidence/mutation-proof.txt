@@ -1,0 +1,21 @@
+Head 26002ff5b84d59966ce3921ae3199a513599b920.
+Mutant worktree /tmp/r9-sw2-mutant, same SHA, one edit: the first statement of
+_silent_target is `return None`, before the entity check the body names.
+Command, both trees: PYTHONPATH=tests/hastub python3 tests/features.py
+
+Head: 1 of 3788 FEATURE CHECKS FAILED.
+The failure is the check the body names:
+  FAIL R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]
+Every SW-2 check in that run printed ok, including the seven the mutation proof names.
+
+Mutant: 9 of 3788 FEATURE CHECKS FAILED. The seven named checks failed:
+  inside a silent window the night-mode switch is held on, and the space step is still the plan's
+  outside a silent window the switch is held off, and the space step still heats
+  where an off row overlaps a silent row the switch is held off, not on
+  a silent switch that does not echo is rewritten after the grace, warned on the next miss, and retried
+  the silent write is in the ownership record a restart restores
+  a boost releases the silent switch for its duration and the window holds it again after
+  the global boost mode releases the silent switch too
+Also failed, not in that list of seven: an on echo clears the miss, so the next off is rewritten once and not yet a warning.
+The same R9-F2.1 P3 line failed, with the same two objectives.
+The review worktree was not edited. The mutant tree was discarded as the proof.
