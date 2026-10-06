@@ -47681,13 +47681,13 @@ import json as _g7b_json  # noqa: E402
 import pathlib as _g7b_pathlib  # noqa: E402
 import sys as _g7b_sys  # noqa: E402
 
-_g7b_sys.path.insert(0, str(_g7b_pathlib.Path(__file__).resolve().parent.parent / "tools"))
+_g7b_sys.path.insert(0, str(_g7b_pathlib.Path(__file__).resolve().parent.parent / "tools/devices"))
 import gen_device_fixtures as _g7b_gen  # noqa: E402
 
 from heatpump_optimizer import device_prefill as _g7b_dp  # noqa: E402
 
 # The records are read from the generated fixture, never typed here: it is
-# built by tools/gen_device_fixtures.py from tvofi/tuya_heat_pump's own model
+# built by tools/devices/gen_device_fixtures.py from tvofi/tuya_heat_pump's own model
 # file at the commit the fixture records, so a key this repository mistypes
 # cannot agree with itself. Honest scope: the fixture proves the mapping
 # against those definitions at that commit, not against a live pump.
@@ -47887,7 +47887,7 @@ R.check(
 # ---------------------------------------------------------------------------
 # #1067 W1067-G7b-2: the tuya_local table, and the localtuya decision.
 #
-# Both fixtures are generated, never typed: tools/gen_device_fixtures.py reads
+# Both fixtures are generated, never typed: tools/devices/gen_device_fixtures.py reads
 # make-all/tuya-local at tag 2026.9.1 (commit 4551357) and both maintained
 # localtuya lines at their own pins, and the suite reads only what it wrote.
 # Honest scope: they prove the mapping against those definitions at those
@@ -48199,7 +48199,7 @@ R.check(
 R.check(
     "the corpus is generated, records where it was read from, and marks its "
     "hand-shaped sets",
-    _G7B3_CORPUS["_generated_by"] == "tools/gen_device_fixtures.py"
+    _G7B3_CORPUS["_generated_by"] == "tools/devices/gen_device_fixtures.py"
     and any(device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
     and any(not device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
     and all(

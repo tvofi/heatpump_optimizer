@@ -22,6 +22,10 @@
 #   tools/audit/prepr.sh --self-test
 #
 set -uo pipefail
+# This file. A seat runs `bash tools/pr/prepr.sh`; CI may restore the base
+# copy at tools/audit/prepr.sh and run that instead. Reads of the script use
+# the path it was invoked as.
+PREPR_PATH=$0
 cd "$(git rev-parse --show-toplevel)" || exit 2
 
 # --- the push-order verdict --------------------------------------------------
@@ -168,7 +172,9 @@ injobs && /^ +[A-Za-z0-9_-]+:[[:space:]]*(#.*)?$/ {
   buf = buf " " $0
   if ($0 ~ /\\[[:space:]]*$/) next
   l = buf; buf = ""
-  if (l ~ /^[[:space:]]*(test|\[) +-[efs] /) next   # a presence test runs nothing
+  # A presence test runs nothing. `if test -f <old>` is that test on its own
+  # line; a one-line `if test; then node` still has an interpreter and is parsed.
+  if (l ~ /(^|[[:space:]])(test|\[) +-[efs] / && l !~ /(^|[^A-Za-z0-9_.\/-])(node|python|python3|bash|sh)([[:space:]]|$)/) next
   interp = (l ~ /(^|[^A-Za-z0-9_.\/-])(node|python|python3|bash|sh)([[:space:]]|$)/)
   s = l
   while (match(s, /[A-Za-z0-9_.\/-]+\.(mjs|py|sh|js)([^A-Za-z0-9_]|$)/)) {
@@ -193,7 +199,9 @@ pinned_graders() { pin_read graders "$@"; }  # each program a pinned job that al
 pinned_paths() { pin_read paths "$@"; }      # each pathspec those jobs restore from the base
 PINNED_ELSEWHERE='
 .claude/workflows/policy_lint_envmatrix.mjs builds the six environment shapes CI declares, 50 s here, and whether they hold depends on the host
+tools/policy/policy_lint_envmatrix.mjs builds the six environment shapes CI declares, 50 s here, and whether they hold depends on the host
 .claude/workflows/budget_raise_gate.py reads a review off the GitHub API, not the tree; this script never reaches the network
+tools/policy/budget_raise_gate.py reads a review off the GitHub API, not the tree; this script never reaches the network
 tests/coverage_ratchet.py needs the coverage payload of a full gate run; graders-head-copy runs the head copy on the pull request
 '
 # No `| grep -q` below: under `pipefail` a grep that exits on its first match
@@ -245,7 +253,7 @@ pinned_touched() { # file of changed paths, pins (one per line)
 # by a sibling command is a step nothing pins: the assertion passes while the
 # call site names the wrong file, or no longer exists.
 figures_check() { # body file
-  node .claude/workflows/figure_lint.mjs --pr-body "$1"
+  if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body "$1"; else node tools/policy/figure_lint.mjs --pr-body "$1"; fi
 }
 
 # Steps 6a and 6b: the two failures CI already repairs, refused before the push.
@@ -505,7 +513,7 @@ body_check() { # body file, head sha, title, paths file, red names...
   local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
-  node .claude/workflows/policy_lint.mjs "${args[@]}"
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
@@ -529,12 +537,17 @@ body_check() { # body file, head sha, title, paths file, red names...
 raise_red() { # merge base, head -> one line; rc 0 no raise, 4 raised, 3 skipped, 1 unread
   local src out r n total
   src=$(mktemp)
-  if ! git show "$1:.claude/workflows/budget_raise_gate.py" >"$src" 2>/dev/null; then
+  if git show "$1:.claude/workflows/budget_raise_gate.py" >"$src" 2>/dev/null \
+     || git show "$1:tools/policy/budget_raise_gate.py" >"$src" 2>/dev/null; then
+    :
+  else
     rm -f "$src"
-    echo "the merge base carries no .claude/workflows/budget_raise_gate.py, so no budget raise was predicted"
+    echo "the merge base carries no budget_raise_gate.py, so no budget raise was predicted"
     return 3
   fi
-  out=$(python3 -I - "$src" "$1" "$2" "$PWD/.claude/workflows/budget_raise_gate.py" 2>&1 <<'PY'
+  if [ -f "$PWD/tools/policy/budget_raise_gate.py" ]; then brg_home=$PWD/tools/policy/budget_raise_gate.py
+  else brg_home=$PWD/.claude/workflows/budget_raise_gate.py; fi
+  out=$(python3 -I - "$src" "$1" "$2" "$brg_home" 2>&1 <<'PY'
 import sys, types
 src, base, head, home = sys.argv[1:]
 m = types.ModuleType("budget_raise_gate")
@@ -859,14 +872,19 @@ transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> 
 # run; a carried list under-selects the day a step is added. The two modules
 # named after it are imported by `policy_lint.mjs`, not named here, and its
 # `--pr-body` rows move when they do.
-SELFTEST_FIXTURES=.claude/workflows/fixtures/
+SELFTEST_FIXTURES=tools/policy/fixtures/
+[ -d .claude/workflows/fixtures ] && SELFTEST_FIXTURES=.claude/workflows/fixtures/
 selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
-  { printf '%s\n' tools/audit/prepr.sh
-    grep -oE '(\.claude/workflows|tools|tests)/[A-Za-z0-9_./-]+\.(mjs|js|py|sh)' tools/audit/prepr.sh
+  { printf '%s\n' "$PREPR_PATH"
+    grep -oE '(\.claude/workflows|tools|tests)/[A-Za-z0-9_./-]+\.(mjs|js|py|sh)' "$PREPR_PATH"
   } | sort -u | while read -r p; do
     git ls-files --error-unmatch -- "$p" >/dev/null 2>&1 && printf '%s\n' "$p"
   done
-  printf '%s\n' .claude/workflows/counts.mjs .claude/workflows/render_md.mjs
+  if [ -f tools/policy/counts.mjs ]; then
+    printf '%s\n' tools/policy/counts.mjs tools/policy/render_md.mjs
+  else
+    printf '%s\n' .claude/workflows/counts.mjs .claude/workflows/render_md.mjs
+  fi
   printf '%s\n' "$SELFTEST_FIXTURES"
 }
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
@@ -896,7 +914,7 @@ fi
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
-  D=.claude/workflows/fixtures/policy-rot/prepr
+  D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves
   # and needs no remote, so this arm runs in a clone with no `origin` too.
@@ -908,10 +926,10 @@ if [ "${1:-}" = "--self-test" ]; then
          else st_fail=$((st_fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$3" "$1" "$2"; fi; }
 
   for f in missing-section no-figures empty-section wrong-head dead-carry bad-friction backtick-bad-event bare-na folded-entry bullet-after-entry; do
-    node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1
+    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; fi
     st $? 1 "a body with $f is refused"
   done
-  node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1; fi
   st $? 1 "a body that does not name its red check is refused"
   # TWO null controls, not one. `good-none.md` answers every section with the
   # accepted WORD; `good.md` answers `## Friction` with a well-formed line. A
@@ -920,9 +938,9 @@ if [ "${1:-}" = "--self-test" ]; then
   # for writing its rule id the way every other file in this corpus writes an
   # identifier. A rot fixture proves a check fires; only a healthy one that
   # exercises the same code path proves it fires for the right reason.
-  node .claude/workflows/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body with a well-formed friction line is silent (null control)"
-  node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "a healthy body answering every section with a word is silent (null control)"
 
   # The hooks check, driven over one fixture per way a wiring can be wrong.
@@ -930,10 +948,10 @@ if [ "${1:-}" = "--self-test" ]; then
   # that does not parse, both read exactly like a working one to anybody who
   # only looks at whether the file is there.
   for f in missing empty unreadable broken self-test-fails bad-matcher bad-type; do
-    node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
+    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 1 "a settings file whose hook is $f is refused"
   done
-  node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks >/dev/null 2>&1; fi
   st $? 0 "this repository's own three wired hooks pass (null control)"
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
@@ -943,7 +961,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # correctly-wired settings file, so a regression here shows up as this
   # loop's REFUSE, not as the bad-matcher.json loop's silence.
   for f in star-matcher no-matcher empty-matcher; do
-    node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1
+    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
   done
 
@@ -975,7 +993,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # body check refuses the same rot fixture and passes the same healthy one, so
   # a `figures_check` rewired to it would satisfy a status-only assertion. Each
   # arm therefore also reads a string only this instrument prints.
-  figures_check .claude/workflows/fixtures/figures/gh-arg.md >/tmp/prepr-figst.$$ 2>&1
+  figures_check tools/policy/fixtures/figures/gh-arg.md >/tmp/prepr-figst.$$ 2>&1
   st $? 1 "a body whose figure command cannot resolve is refused"
   grep -q -- 'has no `--arg` flag' /tmp/prepr-figst.$$
   st $? 0 "and the step's own output names the flag, so the step runs the figure check"
@@ -1012,7 +1030,7 @@ if [ "${1:-}" = "--self-test" ]; then
 
   # Step 7c, driven through `reds_line` -- the function the step calls -- over
   # a throwaway repository whose two pushed commits carry OFFLINE check-run
-  # fixtures under .claude/workflows/fixtures/red-ancestry/, one per way the
+  # fixtures under tools/policy/fixtures/red-ancestry/, one per way the
   # ancestry can look. The commits are built with fixed dates so their SHAs are
   # deterministic and the fixtures are keyed by them: a later edit to this
   # construction changes the SHAs, the stub finds no fixture, and these rows
@@ -1026,7 +1044,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # guard compares `process.argv[1]` with the realpath of its own module and a
   # copy or symlink reached from another directory silently runs nothing.
   DABS=$(cd "$D" && pwd -P)
-  RAFIX=$(cd .claude/workflows/fixtures/red-ancestry && pwd -P)
+  RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
   (
     set -e; cd "$RA"; git init -q -b main .
@@ -1103,7 +1121,7 @@ EOS
     git config user.name st; git config user.email st@st
     echo a > README; git add -A; git -c commit.gpgsign=false commit -qm nogate; git tag nogate
     mkdir -p .claude/workflows tests
-    cp "$OLDPWD/.claude/workflows/budget_raise_gate.py" .claude/workflows/
+    cp "$OLDPWD/tools/policy/budget_raise_gate.py" .claude/workflows/
     printf '{\n "recorded_at": "x",\n "foo_loc": 10\n}\n' > tests/structure_budgets.json
     git add -A; git -c commit.gpgsign=false commit -qm base; git tag base
     git checkout -q -b raise base
@@ -1133,7 +1151,7 @@ EOS
   got=$(bl base docs unnamed-red.md)
   st "${got%%:*}" 0 "a diff touching no budget file passes"
   got=$(bl nogate raise unnamed-red.md)
-  case "$got" in *'carries no .claude/workflows/budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
+  case "$got" in *'carries no budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
   st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
   rm -rf "${BR:?}"
 
@@ -1166,7 +1184,7 @@ EOS
   # The call site. Driving the two functions above does not pin that a step
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
-  flow=$(awk 'f{print} /^rc=0$/{f=1}' tools/audit/prepr.sh)
+  flow=$(awk 'f{print} /^rc=0$/{f=1}' "$PREPR_PATH")
   printf '%s\n' "$flow" | grep -q 'body_line "'
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
   printf '%s\n' "$flow" | grep -q 'copies_line "'
@@ -1324,9 +1342,9 @@ EOS
   got=$(ve main merged); st "$?:$got" '0:' "a pull request that merged a stamped main passes (null control)"
   got=$(ve no-such-ref docs); st "$?:$got" '2:' "a main ref that does not resolve is refused, not read as no edit"
   # The call site `pr-contract` runs, not only the function.
-  out=$(cd "$VER" && bash "$OLDPWD/tools/audit/prepr.sh" --version-edit base ver 2>&1); st $? 1 "--version-edit exits non-zero on a VERSION edit"
+  out=$(cd "$VER" && bash "$OLDPWD/tools/pr/prepr.sh" --version-edit base ver 2>&1); st $? 1 "--version-edit exits non-zero on a VERSION edit"
   case "$out" in *"REFUSE no version edit"*VERSION*) st 1 1 "and names what it refused";; *) st 0 1 "and names what it refused";; esac
-  (cd "$VER" && bash "$OLDPWD/tools/audit/prepr.sh" --version-edit main merged >/dev/null 2>&1); st $? 0 "--version-edit exits zero on a merged, stamped main (null control)"
+  (cd "$VER" && bash "$OLDPWD/tools/pr/prepr.sh" --version-edit main merged >/dev/null 2>&1); st $? 0 "--version-edit exits zero on a merged, stamped main (null control)"
   rm -rf "$VER"
 
   # The shared-root refusal, over real directories because the predicate resolves
@@ -1346,9 +1364,9 @@ EOS
   shared_root "$SRD/scratchpad/seat/body.md"; st $? 1 "a body in the seat's own subdirectory passes (null control)"
   shared_root "$SRD/body.md"; st $? 1 "a body in a mktemp -d directory passes (null control)"
   # The call site, not only the function: the run stops after the body-path step.
-  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/audit/prepr.sh "$SRD/scratchpad/body.md" 2>&1); st $? 2 "prepr.sh refuses a root body at its call site"
+  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/pr/prepr.sh "$SRD/scratchpad/body.md" 2>&1); st $? 2 "prepr.sh refuses a root body at its call site"
   case "$out" in *"REFUSE   body path"*) st 1 1 "and names the step";; *) st 0 1 "and names the step";; esac
-  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/audit/prepr.sh "$SRD/scratchpad/seat/body.md" 2>&1); st $? 0 "and passes a seat body there (null control)"
+  out=$(PREPR_BODY_PATH_ONLY=1 bash tools/pr/prepr.sh "$SRD/scratchpad/seat/body.md" 2>&1); st $? 0 "and passes a seat body there (null control)"
   case "$out" in *"ok       body path"*) st 1 1 "printing an ok line, so a skipped step is visible";; *) st 0 1 "printing an ok line, so a skipped step is visible";; esac
   rm -rf "$SRD"
 
@@ -1499,18 +1517,18 @@ PY
   OWN=tools/audit/round6/D11/fix/codeowners_gap.py
   grep -qx "$OWN" <<<"$(pinned_graders .github/workflows/*.yml)"
   st $? 0 "the pin reader finds codeowners_gap.py in a pinned job that grades main"
-  pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml >/dev/null
+  pinned_verdict "$PREPR_PATH" .github/workflows/*.yml >/dev/null
   st $? 0 "this script and these workflows pass the verdict (null control)"
   printf 'jobs:\n  only-pr:\n    steps:\n      - env:\n          PINNED: ${{ github.event.pull_request.base.sha }}\n        run: |\n          git checkout "$PINNED" -- \\\n            %s\n      - run: node .claude/workflows/pr_only.mjs\n' "'x.mjs'" > "$WF/pr.yml"
   [ -z "$(pinned_graders "$WF/pr.yml")$(pinned_paths "$WF/pr.yml")$(pin_read problems "$WF/pr.yml")" ]
   st $? 0 "a pin that never grades main is not counted, and is not a problem (null control)"
   touch "$WF/empty/none.yml"
-  pinned_verdict tools/audit/prepr.sh "$WF/empty/none.yml" >/dev/null
+  pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
-  grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' tools/audit/prepr.sh > "$WF/deleted.sh"
+  grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' "$PREPR_PATH" > "$WF/deleted.sh"
   [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$OWN" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check|# &|' tools/audit/prepr.sh > "$WF/commented.sh"
+  sed 's|^python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check|# &|' "$PREPR_PATH" > "$WF/commented.sh"
   [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$OWN" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
@@ -1544,7 +1562,7 @@ PY
     # The reader reads a shape it knows rather than refusing it: with 3e's run
     # present, each of these passes (null control).
     case $pert in x-flag|bare-python|uv-run|continuation|indent4|queue-base)
-      pinned_verdict tools/audit/prepr.sh "$WF/wf/"*.yml >/dev/null
+      pinned_verdict "$PREPR_PATH" "$WF/wf/"*.yml >/dev/null
       st $? 0 "governance.yml perturbed ($pert), with step 3e's run present, passes (null control)" ;;
     esac
   done
@@ -1568,9 +1586,9 @@ PY
   st $? 1 "a change to no pinned path touches none (null control)"
   rm -rf "${WF:?}"
 
-  printf 'Closes #999\n' | bash tools/audit/preflight.sh >/dev/null 2>&1
+  printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh >/dev/null 2>&1; else bash tools/pr/preflight.sh >/dev/null 2>&1; fi
   st $? 1 "preflight refuses an unintended closing keyword"
-  printf 'Closes #999\n' | bash tools/audit/preflight.sh 999 >/dev/null 2>&1
+  printf 'Closes #999\n' | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh 999 >/dev/null 2>&1; else bash tools/pr/preflight.sh 999 >/dev/null 2>&1; fi
   st $? 0 "preflight accepts an intended one (null control)"
 
   # transport_in_ancestry, on a throwaway repository: one null control per arm
@@ -1614,13 +1632,13 @@ PY
 
   # selftest_owed: the trigger for step 3h.
   SO=$(mktemp)
-  printf '%s\n' tools/audit/prepr.sh > "$SO"; selftest_owed "$SO"; st $? 0 "a change to prepr.sh owes the self-test"
-  printf '%s\n' .claude/workflows/policy_lint.mjs > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a program a step runs owes the self-test"
-  printf '%s\n' .claude/workflows/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
+  printf '%s\n' "$PREPR_PATH" > "$SO"; selftest_owed "$SO"; st $? 0 "a change to prepr.sh owes the self-test"
+  printf '%s\n' tools/policy/policy_lint.mjs > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a program a step runs owes the self-test"
+  printf '%s\n' tools/policy/fixtures/policy-rot/prepr/good.md > "$SO"; selftest_owed "$SO"; st $? 0 "a change to a fixture owes the self-test"
   printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
   selftest_inputs > "$SO.in"
-  for p in tools/audit/preflight.sh .claude/workflows/figure_lint.mjs tests/env_drift.py \
-           .claude/workflows/counts.mjs .claude/workflows/render_md.mjs; do
+  for p in tools/pr/preflight.sh tools/policy/figure_lint.mjs tests/env_drift.py \
+           tools/policy/counts.mjs tools/policy/render_md.mjs; do
     grep -qxF "$p" "$SO.in"; st $? 0 "the derived inputs name $p"
   done
   rm -f "$SO.in"
@@ -1677,7 +1695,7 @@ MODE=$(python3 tests/closure.py select --diff "$BASE" 2>/dev/null | grep -oE 'MO
 step "gate mode" 0 "${MODE:-(no mode line)}"
 
 # --- 3. the policy corpus.
-node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1
+if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1; else node tools/policy/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1; fi
 step "policy_lint" $? "$(tail -2 /tmp/prepr-policy.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-policy.$$
 
@@ -1685,22 +1703,22 @@ rm -f /tmp/prepr-policy.$$
 # 350ms, against 1.6s for the lint pass beside it: the lane runs the acceptance
 # only, never the corpus. Three checks reached main measuring nothing, so the
 # cheaper detector this answers to is this one.
-node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1
+if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; else node tools/policy/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
 rm -f /tmp/prepr-mutants.$$
 
 # --- 3b. the generated Cursor rules match their source.
-node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1
+if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; else node tools/policy/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; fi
 step "rules_sync" $? "$(tail -1 /tmp/prepr-rules.$$)"
 rm -f /tmp/prepr-rules.$$
 
 # --- 3c. the five copies of the shared prompt block are the canonical text.
-node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1
+if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1; else node tools/policy/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1; fi
 step "fragments" $? "$(tail -1 /tmp/prepr-frag.$$)"
 rm -f /tmp/prepr-frag.$$
 
 # --- 3d. the hooks this repository wires are present and self-testing.
-node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1
+if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; else node tools/policy/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; fi
 step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
 
@@ -1719,7 +1737,7 @@ PIN_TOUCHED=1
 pinned_touched /tmp/prepr-changed.$$ "$(pinned_paths .github/workflows/*.yml)" && PIN_TOUCHED=0
 rm -f /tmp/prepr-changed.$$
 if [ "$PIN_TOUCHED" -eq 0 ]; then
-  node .claude/workflows/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1
+  if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1; else node tools/policy/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1; fi
   step "brief_lint" $? "$(tail -1 /tmp/prepr-briefs.$$)"
   rm -f /tmp/prepr-briefs.$$
 else
@@ -1729,22 +1747,26 @@ fi
 # --- 3f2. the contract re-run's decision, from its own fixtures (D13-s1-03).
 # `pr-contract-rerun.yml` runs the default branch's copy; its self-test is
 # offline and under a second, so the local path is the self-test.
-python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1
+if test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; else python3 -I tools/pr/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; fi
 step "contract_rerun" $? "$(tail -1 /tmp/prepr-crr.$$)"
 rm -f /tmp/prepr-crr.$$
 
 # --- 3f3. field coverage (I3 barrier), which `policy-docs` runs from the base
 # once the base carries it. The whole program: without `gh` its ruleset arm
 # prints its UNCHECKED skip, and the other arms are offline.
-node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1
+if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; else node tools/policy/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; fi
 step "field coverage" $? "$(tail -1 /tmp/prepr-fc.$$)"
 rm -f /tmp/prepr-fc.$$
 
 # --- 3f4. the agreement lane (I4 barrier), which `wave-script` runs from the
 # base once the base carries it: the Python readers first, under -I, then the
 # lane over their answers. Needs full history for its merge-subject corpus.
-python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1 \
-  && node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1
+if test -f .claude/workflows/agreement_py.py; then
+  python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
+else
+  python3 -I tools/policy/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
+fi \
+  && if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; else node tools/policy/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; fi
 step "agreement lane" $? "$(tail -1 /tmp/prepr-ag.$$)"
 rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 
@@ -1766,7 +1788,7 @@ rm -f /tmp/prepr-tp.$$
 
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
-VERDICT=$(pinned_verdict tools/audit/prepr.sh .github/workflows/*.yml)
+VERDICT=$(pinned_verdict "$PREPR_PATH" .github/workflows/*.yml)
 step "pinned graders" $? "$(echo $VERDICT)"
 
 # --- 3h. the self-test, when this diff can move one of its rows (`selftest_owed`).
@@ -1774,7 +1796,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # detector. A diff that cannot be listed is treated as owing it.
 if ! git diff --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
-  bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1
+  if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; else bash tools/pr/prepr.sh --self-test >/tmp/prepr-stlog.$$ 2>&1; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
   rm -f /tmp/prepr-stlog.$$
 else
@@ -1803,9 +1825,10 @@ rm -f /tmp/prepr-st.$$
 if [ "$PIN_TOUCHED" -eq 0 ] || ! git diff --quiet "$BASE"...HEAD -- \
      .claude/workflows/web-fix-wave.js \
      .claude/workflows/check-wave-script.mjs \
+     tools/policy/check-wave-script.mjs \
      '.claude/workflows/wave-*-groups.json' \
      'tools/audit/briefs/*.md'; then
-  node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1
+  if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; else node tools/policy/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; fi
   step "wave-script" $? "$(tail -1 /tmp/prepr-wave.$$)"
   rm -f /tmp/prepr-wave.$$
 else
@@ -1884,7 +1907,7 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # `preflight.sh ... || true`, so the check binds nowhere. Found by the first
   # body in twenty merges to carry a closing keyword.
   shift
-  bash tools/audit/preflight.sh "$@" < "$BODY"
+  if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" < "$BODY"; else bash tools/pr/preflight.sh "$@" < "$BODY"; fi
   step "preflight" $?
   # THE PATHS ARE THE SECOND INPUT, and until #1053 this step had only the
   # first. `diff_paths` above carries why they are derived three-dot and with

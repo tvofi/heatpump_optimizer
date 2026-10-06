@@ -75,4 +75,4 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale "$RUN_ID" --repo "$REPO"
+          if test -f .claude/workflows/budget_raise_gate.py; then python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale "$RUN_ID" --repo "$REPO"; else python3 -I tools/policy/budget_raise_gate.py --rerun-stale "$RUN_ID" --repo "$REPO"; fi

@@ -30,7 +30,9 @@ import fs from 'node:fs'
 import { createRequire } from 'node:module'
 
 const require = createRequire(import.meta.url)
-const MarkdownIt = require('../.claude/workflows/vendor/markdown-it.min.js')
+const MarkdownIt = require(fs.existsSync(new URL('../.claude/workflows/vendor/markdown-it.min.js', import.meta.url))
+  ? '../.claude/workflows/vendor/markdown-it.min.js'
+  : '../tools/policy/vendor/markdown-it.min.js')
 const md = new MarkdownIt('commonmark').enable('table')
 
 const FILES = [
