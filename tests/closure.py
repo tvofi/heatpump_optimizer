@@ -490,6 +490,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
+    # (R9-RO-6). Left inside the prefix the note is declared unread while
+    # being read, and check refuses the committed table before it compares
+    # a recording (#357).
+    "tools/pr/README.md",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
