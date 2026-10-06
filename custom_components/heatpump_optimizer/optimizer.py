@@ -1112,6 +1112,18 @@ def classify_space_steps(
     return reasons
 
 
+@dataclass(frozen=True)
+class IdleContext:
+    """The arrays an idle sub-code is read from, absent when the caller has none."""
+
+    prices: np.ndarray | None = None
+    level: np.ndarray | None = None
+    floor: np.ndarray | None = None
+    surplus: np.ndarray | None = None
+    other: np.ndarray | None = None
+    caps: np.ndarray | None = None
+
+
 def classify_dhw_steps(
     power: np.ndarray,
     in_window: np.ndarray,
@@ -1119,26 +1131,21 @@ def classify_dhw_steps(
     legionella_step: int | None,
     n_steps: int,
     threshold: float = 0.05,
-    *,
-    prices: np.ndarray | None = None,
-    tank: np.ndarray | None = None,
-    floors: np.ndarray | None = None,
-    other: np.ndarray | None = None,
-    caps: np.ndarray | None = None,
-    surplus: np.ndarray | None = None,
+    idle: IdleContext | None = None,
 ) -> list[str]:
     """Why each hot-water step is where it is.
 
-    Idle steps take the same sub-codes as space heating. Callers that do not
-    pass prices, the tank, the floor, the other channel, the fuse cap or the
-    surplus get ``idle``, which is what a hot-water path with none of those
-    in hand used to publish as an empty explanation.
+    Idle steps take the same sub-codes as space heating. A caller that passes
+    no ``idle`` context gets ``idle``, which is what a hot-water path with
+    none of those arrays in hand used to publish as an empty explanation.
     """
+    ctx = idle or IdleContext()
     reasons: list[str] = []
     for i in range(n_steps):
         if power[i] <= threshold:
             reasons.append(idle_reason(
-                i, power, prices, tank, floors, surplus, other, caps, threshold,
+                i, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
+                ctx.other, ctx.caps, threshold,
             ))
             continue
         if legionella_step is not None and i == legionella_step:
@@ -1263,8 +1270,10 @@ def _dhw_reason_list(
         _mark_manual_reasons(
             classify_dhw_steps(
                 dhw_power, window, ready_arr, legionella_step, n,
-                prices=h.prices, tank=dhw_temps, floors=floors,
-                other=space_power, caps=h.power_caps_extra, surplus=surplus,
+                idle=IdleContext(
+                    prices=h.prices, level=dhw_temps, floor=floors,
+                    surplus=surplus, other=space_power, caps=h.power_caps_extra,
+                ),
             ),
             h.dhw_pins,
         ),

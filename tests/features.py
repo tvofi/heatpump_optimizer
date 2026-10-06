@@ -58650,6 +58650,7 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_IDLE_FUSE as _UX5_FUSE,
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
+    IdleContext as _Ux5Idle,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,
     idle_reason as _ux5_idle_reason,
@@ -58714,10 +58715,12 @@ _ux5_dhw_idle = _ux5_dhw(
 )
 _ux5_dhw_exact = _ux5_dhw(
     np.array([0.0, 2.0]), np.array([False, True]), np.zeros(2), None, 2,
-    prices=np.array([2.0, 0.4]),
-    tank=np.array([50.0, 50.0, 48.0]),
-    floors=np.array([40.0, 40.0]),
-    other=np.array([3.0, 0.0]),
+    idle=_Ux5Idle(
+        prices=np.array([2.0, 0.4]),
+        level=np.array([50.0, 50.0, 48.0]),
+        floor=np.array([40.0, 40.0]),
+        other=np.array([3.0, 0.0]),
+    ),
 )
 R.check(
     "UX-5 a hot-water step with no prices or tank stays idle, and one whose "
