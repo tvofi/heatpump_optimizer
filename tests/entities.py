@@ -24545,7 +24545,42 @@ steps:
     if: always() && steps.changed.outputs.delivery_status == 'true'
     run: |
       git fetch --no-tags --quiet origin main
-      python tests/delivery_status.py --check
+      # A non-zero exit shared with the base copy on this tree is that
+      # copy's own. Exit with the pull request's code only when the two
+      # differ, and exit 1 when this copy prints OVERDUE and the base
+      # copy does not: both of those exits are 1, so the codes alone
+      # cannot separate them.
+      head_copy="$RUNNER_TEMP/delivery_status.head.py"
+      cp tests/delivery_status.py "$head_copy"
+      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+      base_rc=$?
+      set -e
+      cp "$head_copy" tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+      head_rc=$?
+      set -e
+      cat "$RUNNER_TEMP/delivery_status.base.out"
+      echo "----- head copy -----"
+      cat "$RUNNER_TEMP/delivery_status.head.out"
+      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+      head_overdue=0
+      base_overdue=0
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+        head_overdue=1
+      fi
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+        base_overdue=1
+      fi
+      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+        exit 1
+      fi
+      if [ "$head_rc" -ne "$base_rc" ]; then
+        exit "$head_rc"
+      fi
+      exit 0
 
   - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -24710,6 +24745,91 @@ R.check(
     _pt_trigger(_PT_SCRIPT.replace('echo "governance=true"', 'echo "governance=false"'),
                 ".claude/workflows/x.mjs") == "false",
     "the trigger check must execute the script, not read the pathspec",
+)
+
+
+def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
+              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
+    """Run the delivery_status step under bash -e with stub git and python.
+
+    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
+    code for whichever copy the step has in tests/delivery_status.py, so the
+    step's own comparison is what the return code measures.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "tests").mkdir()
+        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
+        (root / "rt").mkdir()
+        bindir = root / "bin"
+        bindir.mkdir()
+        (bindir / "git").write_text(
+            "#!/bin/sh\n"
+            "case \"$1\" in\n"
+            "  fetch) exit 0 ;;\n"
+            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
+            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
+            "esac\n")
+        (bindir / "python").write_text(
+            "#!/bin/sh\n"
+            "f=$(cat tests/delivery_status.py)\n"
+            "case \"$f\" in\n"
+            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
+            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
+            "esac\n"
+            "case \"$f\" in\n"
+            f"  HEAD*) exit {head_rc} ;;\n"
+            f"  BASE*) exit {base_rc} ;;\n"
+            "  *) echo unreadable copy >&2; exit 9 ;;\n"
+            "esac\n")
+        os.chmod(bindir / "git", 0o755)
+        os.chmod(bindir / "python", 0o755)
+        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
+               "RUNNER_TEMP": str(root / "rt")}
+        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
+                              capture_output=True, text=True)
+        return proc.returncode
+
+
+_PT_DS_RUN = next(
+    str(_s.get("run") or "")
+    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
+    if "tests/delivery_status.py" in str(_s.get("run") or ""))
+_PT_DS_CASES = {
+    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
+    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
+    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
+    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
+    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
+    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
+    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
+}
+_PT_DS_DROP_EXIT = (
+    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
+_PT_DS_DROP_OVERDUE = (
+    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
+    '  exit 1\nfi\n')
+_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
+_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
+_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
+R.check(
+    "graders-head-copy's delivery_status step is red only when this copy's "
+    "exit differs from the base copy's, or this copy alone prints OVERDUE",
+    _PT_DS_CASES == {
+        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
+        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
+    }
+    and _PT_DS_SAME != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
+    and _PT_DS_ZERO != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
+    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
+    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
+    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
+    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
+    f"OVERDUE line makes a head-only OVERDUE green "
+    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
 )
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
