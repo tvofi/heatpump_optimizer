@@ -382,6 +382,17 @@ def _substitutions(text: str) -> "tuple[str, list[str]] | None":
     return "".join(out), inner
 
 
+
+def _retired_new(target: str) -> str | None:
+    """The new path when `target` is a retired old path, else None."""
+    from layout import _swap, moves
+    for old, new in moves(ROOT):
+        got = _swap(target, old, new)
+        if got:
+            return got
+    return None
+
+
 def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bool:
     """True when every command on this logical `run:` line is on the allowlist."""
     import shlex
@@ -479,7 +490,16 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
             if not target:
                 return False
             target = os.path.normpath(target)
-            if target not in have or not any(spec_hit(sp, target) for sp in specs):
+            if target not in have:
+                # The old half of a move, absent until CI restores it. The
+                # command is the restored path; admitting it does not execute
+                # a file, and the new path is its own command on the else
+                # branch (R9-RO-6). A target that is not a retired path still
+                # refuses the line.
+                if not _retired_new(target):
+                    return False
+                continue
+            if not any(spec_hit(sp, target) for sp in specs):
                 return False
             if target.endswith(".py") and "-I" not in flags:
                 return False
@@ -896,6 +916,11 @@ def self_test() -> int:
             print(f"  {'ok  ' if ok else 'FAIL'} {kind:5} {name}: grader {'PINNED' if got else 'not pinned'}")
     # The surface's top-level directories: an instrument the reorganisation
     # moves under dev/ stays on it (R9-RO-2); docs/ is the null control.
+    both = ("if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs; else node tools/policy/policy_lint.mjs; fi")
+    got = EXEC.findall(both)
+    ok = got == [".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"]
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} EXEC  if/then prefers the old path: {got}")
     for line, want in (("python3 -I dev/audit/rounds/x/fix.py --check", "dev/audit/rounds/x/fix.py"),
                        ("python3 -I tools/audit/x.py", "tools/audit/x.py"), ("python3 -I docs/x.py", None)):
         m = EXEC.search(line)

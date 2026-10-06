@@ -25,7 +25,9 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import { at, listDir } from './counts.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
-const src = fs.readFileSync(path.join(here, 'web-fix-wave.js'), 'utf8')
+const ROOT = path.resolve(here, '..', '..')
+const STAY = path.join(ROOT, '.claude', 'workflows')
+const src = fs.readFileSync(path.join(STAY, 'web-fix-wave.js'), 'utf8')
 // Drop the `export const meta = {...}` literal: it is ESM syntax, and the rest
 // of the file is an async function body by construction.
 const i = src.indexOf('export const meta')
@@ -790,7 +792,7 @@ console.log('-- The round driver: seats from the scopes, boxes, and the Prepare 
 // round in Prepare unless tools/audit/check_scopes.py exits 0 at the baseline.
 // Driven, not grepped: the script body runs against stubbed agent()/pipeline().
 await block('the scoped round driver', async () => {
-  const rd = fs.readFileSync(path.join(here, 'audit-find.js'), 'utf8')
+  const rd = fs.readFileSync(path.join(STAY, 'audit-find.js'), 'utf8')
   const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
   const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
   const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
@@ -996,7 +998,7 @@ await block('the scoped round driver', async () => {
 // PANEL:BEGIN block: round 8's pins below run until that block exists, and
 // 'the round-9 verification pass' holds the driver from then on. The driver's
 // pull request may drop round 8's arm; a driver with neither shape fails both.
-const PANEL_DRIVER = /\/\/ PANEL:BEGIN/.test(fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8'))
+const PANEL_DRIVER = /\/\/ PANEL:BEGIN/.test(fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8'))
 if (!PANEL_DRIVER) {
 console.log('-- The verification pass: one verifier per dimension, every finding to the judge')
 // Round 8, the owner's panel shape. `audit-verify.js` dispatched three verifiers
@@ -1006,7 +1008,7 @@ console.log('-- The verification pass: one verifier per dimension, every finding
 // every finding -- a refute is a vote the judge re-measures, never a kill.
 // Driven, not grepped: the script body runs against stubbed agent()/pipeline().
 await block('the verification pass', async () => {
-  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vsrc = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
   const vi = vsrc.indexOf('export const meta')
   const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
   const F = (id, dimension) => ({ id, dimension, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })
@@ -1089,7 +1091,7 @@ console.log('-- The round-9 verification pass: three lenses per dimension, major
 // instance of a barriered one (defect-root-cause.md). The rules are evaluated
 // alone from the PANEL block, then the body is driven against stubbed agents.
 if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
-  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vsrc = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
   const blk = vsrc.match(/\/\/ PANEL:BEGIN[\s\S]*?\/\/ PANEL:END/)
   t('the panel rules are delimited in audit-verify.js', !!blk, 'no PANEL:BEGIN..END block')
   const P = new Function(`${blk?.[0] ?? ''}\nreturn { seatOf, shardsFor, panelOf, rcaOwed }`)()
@@ -1225,7 +1227,7 @@ console.log('-- The verification pass feeds the rotation ledger its yield')
 // its register writer, computed here in the script from the judge's verdicts and
 // each finding's `step`, so the number is the script's and not an agent's count.
 await block('the rotation yield', async () => {
-  const vsrc = fs.readFileSync(path.join(here, 'audit-verify.js'), 'utf8')
+  const vsrc = fs.readFileSync(path.join(STAY, 'audit-verify.js'), 'utf8')
   const vi = vsrc.indexOf('export const meta')
   const vbody = vsrc.slice(0, vi) + vsrc.slice(vsrc.indexOf('\n}\n', vi) + 3)
   const F = (id, dimension, step) => ({ id, dimension, step, severity: 'low', title: id, claim: id, report_path: 'r', harness_paths: [], attached_refutation: null })

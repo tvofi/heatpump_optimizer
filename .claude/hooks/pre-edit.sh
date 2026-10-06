@@ -82,7 +82,7 @@ if rel == "RELEASE_NOTES.md" and branch != "main":
 
 if rel.startswith(".cursor/rules/"):
     print(f"{rel} is GENERATED from .claude/rules/ by "
-          "node .claude/workflows/rules_sync.mjs, and byte-compared by --check. "
+          "node tools/policy/rules_sync.mjs, and byte-compared by --check. "
           "Edit the .claude/rules/ source and regenerate; a hand edit here is "
           "reverted by the next generation and fails `policy-docs` in between.")
     sys.exit(1)

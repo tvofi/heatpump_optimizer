@@ -25,5 +25,5 @@ i=s.index('## Head\n\n')+len('## Head\n\n')
 pre="`%s` "%H + ((N+" and then ") if N else "") + "merges origin/main `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below) into this PR's previous head.\n\n"%M
 s=s[:i]+pre+s[i:]; open(p,'w').write(s)
 E
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash tools/audit/app_push.sh $R $WT $BR $B $ISS > $WT.log 2>&1 || { grep REFUSE $WT.log; exit 1; }
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R $WT $BR $B $ISS > $WT.log 2>&1; else bash tools/pr/app_push.sh $R $WT $BR $B $ISS > $WT.log 2>&1; fi|| { grep REFUSE $WT.log; exit 1; }
 echo "HEAD=$H"

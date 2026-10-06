@@ -34,7 +34,7 @@ import sys
 from collections.abc import Callable, Iterable, Mapping
 from typing import NamedTuple
 
-ROOT = pathlib.Path(__file__).resolve().parent.parent
+ROOT = pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "custom_components"))
 
 from heatpump_optimizer import device_prefill, name_match  # noqa: E402

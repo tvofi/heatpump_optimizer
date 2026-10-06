@@ -239,7 +239,7 @@ def lint_gate(checkout, lint_cwd, roster_path):
              made, main_sha])
         lint_cwd = made
     try:
-        r = subprocess.run(["node", ".claude/workflows/brief_lint.mjs",
+        r = subprocess.run(["node", ".claude/workflows/brief_lint.mjs" if __import__("pathlib").Path(".claude/workflows/brief_lint.mjs").is_file() else "tools/policy/brief_lint.mjs",
                             str(Path(roster_path).resolve())],
                            cwd=lint_cwd, capture_output=True, text=True)
         out = r.stdout + r.stderr

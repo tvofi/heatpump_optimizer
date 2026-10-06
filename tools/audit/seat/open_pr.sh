@@ -24,7 +24,7 @@ i=s.index('## Head\n\n')+len('## Head\n\n')
 if H!=C: s=s[:i]+"`%s` merges origin/main `%s` into the authored code head `%s` (an automatic merge by the orchestrator\'s script; any resolution inside the code head is described below).\n\n"%(H,M,C)+s[i:]
 open(p,'w').write(s)
 E0
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash tools/audit/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || { grep -E 'REFUSE' $D/p1.log; exit 1; }
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1; else bash tools/pr/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1; fi|| { grep -E 'REFUSE' $D/p1.log; exit 1; }
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
 printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > docs/delivery/$N.md
@@ -40,5 +40,5 @@ i=s.index('## Head\n\n')+len('## Head\n\n')
 s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
 open(p,'w').write(s)
 E
-PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash tools/audit/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1 || { grep -E 'REFUSE' $D/p2.log; exit 1; }
+PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1; else bash tools/pr/app_push.sh $R $WT $BR $D/body.md $ISS > $D/p2.log 2>&1; fi|| { grep -E 'REFUSE' $D/p2.log; exit 1; }
 echo "PR=$N HEAD=$H AUTHOR=$(git log -1 --format='%an')"

@@ -514,7 +514,7 @@ jobs:
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Lint every wave roster's citations
-        run: node .claude/workflows/brief_lint.mjs
+        run: if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs; else node tools/policy/brief_lint.mjs; fi
 
   # The pinned, stub-free typing ruler (#303). Three numbers -- the error
   # count, its per-code split, and the `# type: ignore` count -- and none of
@@ -1588,13 +1588,13 @@ jobs:
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs
+        run: node tools/policy/policy_lint.mjs
 
       - name: The pull request's field_coverage.mjs, under the Actions token
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/field_coverage.mjs
+        run: node tools/policy/field_coverage.mjs
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run

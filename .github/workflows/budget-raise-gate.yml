@@ -117,5 +117,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
         run: |
           set -euo pipefail
-          python3 -I .claude/workflows/budget_raise_gate.py \
-            --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          if test -f .claude/workflows/budget_raise_gate.py; then
+            python3 -I .claude/workflows/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          else
+            python3 -I tools/policy/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          fi

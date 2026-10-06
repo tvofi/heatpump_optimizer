@@ -36,6 +36,7 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from layout import canon as _layout_canon
 from harness import (
     EagerHass,
     FakeCoordinator,
@@ -17181,7 +17182,7 @@ R.check(
 # a check nothing reads is exactly what let the nightly lane's blocking pin go
 # stale in silence (#533). Both arms, so this cannot become a check that passes
 # whatever the script does.
-_preflight = Path("tools/audit/preflight.sh")
+_preflight = Path("tools/pr/preflight.sh")
 R.check(
     "the orchestrator pre-flight refuses an undeclared closing keyword",
     _preflight.is_file()
@@ -17298,7 +17299,7 @@ def _copy_policy_lint_tree(dst):
     """
     import shutil
 
-    wf = Path(".claude/workflows")
+    wf = Path("tools/policy")
     need, seen = ["policy_lint.mjs"], set()
     while need:
         f = need.pop()
@@ -24271,11 +24272,11 @@ def _raf_body_fixture():
         pf = Path(td) / "paths.txt"
         pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
         r1 = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(p), "--head", "a" * 40, "--paths-file", str(pf)],
             capture_output=True, text=True)
         r2 = subprocess.run(
-            ["node", ".claude/workflows/figure_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/figure_lint.mjs"), "--pr-body",
              str(p)],
             capture_output=True, text=True)
         out["policy_rc"], out["policy_out"] = r1.returncode, r1.stdout
@@ -24480,7 +24481,7 @@ def _pt_seams(docs: dict) -> "set[str]":
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
-                out |= {_g for _g in _PT_PROG.findall(str(_s.get("run") or ""))
+                out |= {_layout_canon(_g) for _g in _PT_PROG.findall(str(_s.get("run") or ""))
                         if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
     return out
 
@@ -24581,13 +24582,13 @@ steps:
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/policy_lint.mjs
+    run: node tools/policy/policy_lint.mjs
 
   - name: The pull request's field_coverage.mjs, under the Actions token
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/field_coverage.mjs
+    run: node tools/policy/field_coverage.mjs
 ''')
 _PT_WF_PERMS = {"contents": "read"}
 _PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
@@ -24627,7 +24628,7 @@ def _pt_armed(docs: dict) -> "set[str]":
     """The graders the arm runs as the Actions token: the literal's, or none on any mismatch."""
     if _pt_arm_mismatch(docs):
         return set()
-    return {_m.group(1) for _s in _PT_JOB_CANON["steps"]
+    return {_layout_canon(_m.group(1)) for _s in _PT_JOB_CANON["steps"]
             if _s.get("env") == _PT_ARM_ENV and _s.get("if") == _PT_ARM_IF
             for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or ""))] if _m}
 
@@ -24687,7 +24688,7 @@ def _pt_arm_mutant(edit) -> "set[str]":
     _wf = _d["tests.yml"]
     _job = _wf["jobs"]["graders-head-copy"]
     _step = next((_s for _s in _job.get("steps") or []
-                  if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), None)
+                  if _s.get("run") == "node tools/policy/policy_lint.mjs"), None)
     if _step is None:  # no arm step to silence: nothing is armed (the check's first conjunct)
         return set()
     edit(_wf, _job, _step)
@@ -24766,7 +24767,7 @@ def _friction_none_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -24850,7 +24851,7 @@ def _friction_trailer_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -24993,7 +24994,7 @@ def _autofix_head_fixture():
     def run(head, names):
         (d / "body.md").write_text(body(f"`{names}`"))
         p = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(d / "body.md"), "--head", head],
             cwd=str(d), capture_output=True, text=True)
         return p.returncode, p.stdout
@@ -26729,7 +26730,7 @@ def _sunset_drive():
                       capture_output=True, text=True).returncode != 0:
         ref = "HEAD"
     return subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs", "--sunset", "--since", ref],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--sunset", "--since", ref],
         capture_output=True, text=True, env={**_os.environ, "GITHUB_TOKEN": ""})
 
 
@@ -27453,10 +27454,10 @@ def _template_arm_fixture():
         # own root, the same way it resolves the real template.
         env = {**os.environ, "POLICY_LINT_TEMPLATE": os.path.relpath(p, root)}
         rc_broken = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs"],
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
             capture_output=True, text=True, env=env).returncode
     rc_live = subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs"],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
         capture_output=True, text=True).returncode
     return rc_broken, rc_live
 

@@ -278,6 +278,13 @@ INERT = (
     # deliberately, instead of silently making every gate full.
     ".abacus.donotdelete",
     ".claude/",
+    # R9-RO-6: policy, PR, coverage and device instruments left the
+    # INERT prefixes they were under. The directory stays unread except
+    # the files INERT_EXCEPT names, which tests/entities.py opens.
+    "tools/policy/",
+    "tools/pr/",
+    "tools/coverage/",
+    "tools/devices/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
     # under tests/ reads them. Same reason `.claude/` is here.
     ".cursor/",
@@ -477,7 +484,13 @@ def is_handover(rel: str) -> bool:
 # closures-autofix could not repair it: merging the recording produces the
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
-    "tools/audit/preflight.sh",
+    "tools/pr/preflight.sh",
+    # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
+    # INERT. tests/entities.py and tests/features.py import them, so an edit
+    # selects those scripts. Left inside the prefix they would be declared
+    # unread while being read.
+    "tools/devices/gen_device_fixtures.py",
+    "tools/devices/measure_prefill_corpus.py",
     # The round-harness exceptions that used to sit here -- #817's three
     # round-3 files and #951's qs_rules.py -- moved to `_is_header_corpus`
     # below when #995's dynamic discovery made the read set the whole
@@ -547,12 +560,12 @@ INERT_EXCEPT = (
     # over-scoping costs time, under-scoping skips scripts.
     "tools/audit/round4/D6/claims.json",
     "tools/audit/round4/D6/claims.md",
-    ".claude/workflows/policy_lint.mjs",
-    ".claude/workflows/brief_lint.mjs",
-    ".claude/workflows/counts.mjs",
-    ".claude/workflows/render_md.mjs",
-    ".claude/workflows/vendor/markdown-it.min.js",
-    ".claude/workflows/vendor/markdown-it.LICENSE",
+    "tools/policy/policy_lint.mjs",
+    "tools/policy/brief_lint.mjs",
+    "tools/policy/counts.mjs",
+    "tools/policy/render_md.mjs",
+    "tools/policy/vendor/markdown-it.min.js",
+    "tools/policy/vendor/markdown-it.LICENSE",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
     # re-derive VERDICT_CLASSES and pin that the stats histogram's block-class
     # set is the one the wave teaches -- the stale-copy class of check this
@@ -568,7 +581,7 @@ INERT_EXCEPT = (
     # to the job that produces it, and refuses one a body edit can re-report as
     # skipped. The fixture is the list the ruleset reads, so it is a
     # dependency, the web-fix-wave.js route: an edit to it selects entities.py.
-    ".claude/workflows/fixtures/required-contexts.json",
+    "tools/policy/fixtures/required-contexts.json",
     # #1303 (D13-01): tests/entities.py reads the by-design-red exclusion list
     # and the D13 harness that consumes it, to pin that the harness reads the
     # REGISTERED artifact rather than a copy beside itself (step 11: a check
@@ -612,7 +625,7 @@ INERT_EXCEPT = (
     # the CI recording named all three). Each moves to entities.py's
     # recorded closure, so an edit to one selects that script instead of
     # skipping it -- the preflight.sh and policy_lint.mjs routes.
-    ".claude/workflows/figure_lint.mjs",
+    "tools/policy/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
     # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the

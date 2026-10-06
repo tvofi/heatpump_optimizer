@@ -1,5 +1,5 @@
 {
-  "_generated_by": "tools/gen_device_fixtures.py",
+  "_generated_by": "tools/devices/gen_device_fixtures.py",
   "upstream_repo": "tvofi/tuya_heat_pump",
   "upstream_tag": "v2.6.0-beta04",
   "upstream_commit": "fda9bed19395267898570d72fe5e9324f523d574",

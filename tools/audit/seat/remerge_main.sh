@@ -28,6 +28,6 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
 # Every REFUSE line, not the last 120 characters. app_push's die is the last
 # line and does not name the prepr step; the step line is the one before it.
 # tail -1 | cut -c1-120 kept only the die (measured on #1974 and #1975).
-push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/audit/app_push.sh tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 || true)
+push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1; else bash tools/pr/app_push.sh tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1; fi|| true)
 printf '%s\n' "$push_out" | grep -E 'REFUSE|PUSHED' || true
 sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"
