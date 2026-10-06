@@ -1,60 +1,57 @@
 Closes #1939
 
-The debug collector, its learning-page option, the `debug_collect` action, the finalize button and the `hpo-debug/1` bundle. The ring is the `debug` store. The collector listens to the coordinator, so `coordinator.py` names no debugger.
+Merge `origin/main` `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872` into `058a5f8018e87cb7861477c8e7382ba9c7daada8`. `f07cd253c52f1012427d9869a808f1df39dafb93` is an ancestor of that tip; the commits above it add `docs/delivery/2000.md` only.
 
-This head records the 52 mutation sites the diff added. CI run 37473761833 on `9da596f2e578e846a1fdff8619bf4acced647e46` killed none of them: job 112303713384 printed `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`, and job 112305445205 printed `AUTOFIX: skip-no-measurement`. The admission compares one mutant's whole driver sum with the 35-minute budget, and that sum exceeds it for `button.py`, `debugger.py` and `store.py`, so the drive never started. A full local `--pin-killed` is `MUTATION TABLE INCONCLUSIVE` on this host because `tests/features.py`'s baseline is the R9-F2.1 P3 pair; that run wrote no pins and was not used.
-
-`tests/debug_collect.py` is the driver that kills 51 of the sites. `_repair`'s `if stamp is None` guard is equivalent: `admitted` already refuses every stamp `stored_instant` refuses, and applying that GUARD_OFF left `tests/debug_collect.py` at rc=0. That site is `survivor_triage`, verdict equivalent.
-
-This head merges `origin/main` `6b1ccb685e51903e7e524995a84d831d3904da9f` (delivery rows only) onto the pin commit `6d5d796e955275cb76226bbae4d2cbc8150cabd0`. The merge does not touch the pinned files.
+The mermaid and the D6 census keep both additions. Main adds the Model Restart Advisor (60 sensors). This branch adds the finalize button (5 buttons). The platforms construct 77 entities. The claim list kept is `config_flow`. `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` are origin/main's list; those fixture files match origin/main, and a `coord_minimal` capture differs from that file only in value leaves. `tests/structure.py` measures `max_class_loc` at the ledger sum, so the cap is not raised.
 
 _Requested by **tvofi**_.
 
 ## Head
 
-`b065533fb1fe2161b89eb50ab2fa595320645d13` merges the authored code head `fca0bea0c9ab864d087a6ee8939500b833f7d32c` and then merges origin/main `6b1ccb68` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-`fca0bea0c9ab864d087a6ee8939500b833f7d32c`
+`50a36f792eb32913607bc003408c4b6661e41a73`
 
 ## Mutation proof
 
-`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` on `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, against base `fc76a05577985c92574e4d42433f61192efe47f4`. Each of the 51 killed sites took `tests/debug_collect.py` from rc=0 failed=0 to rc=1. One ledger row: `tests/mutation_ledger/killed_by/debugger.py/_repair.GUARD_OFF.a7fab6b5.json` records GUARD_OFF `if False:` failed=1. The equivalent site was not in that pool.
+`debugger.py`, `button.py` and `tests/debug_collect.py` are unchanged from the pin commit `6d5d796e955275cb76226bbae4d2cbc8150cabd0`. The pins recorded there still name those lines. `store.py` gains `evidence_since` on the accuracy domain from origin/main; that domain is not the debug store.
+
+Replacing `60 sensors` with `59 sensors` in the mermaid and running `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` prints `FALSE C5`. Restoring the line prints `claims_false=0`.
+
+The earlier drive, `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` on `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, pinned 51 sites. `_repair`'s `if stamp is None` guard is `survivor_triage`, verdict equivalent: applying GUARD_OFF left `tests/debug_collect.py` at rc=0.
 
 ## Null control
 
-The same drive: `null control custom_components/heatpump_optimizer/store.py:73 NULL_COMMENT survived tests/debug_collect.py`. A comment-only edit, every driver in play must let it survive, and this one did.
+The same C5 run: the documented tuple is `(77, 59, 6, 5, 4, 1, 1)` and the measured tuple stays `(77, 60, 6, 5, 4, 1, 1)`.
 
-Applying GUARD_OFF to `debugger.py`'s `if stamp is None` and running `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` stayed rc=0, which is why that site is triaged rather than pinned.
+`config_flow`'s capture matches the committed fixture (0 leaf diffs) and differs from origin/main's fixture by `_seed.debug_collect_enabled`, `_seeded.learning.debug_collect_enabled` and `learning.debug_collect_enabled`.
+
+The pin drive's null control, on that same head: `null control custom_components/heatpump_optimizer/store.py:73 NULL_COMMENT survived tests/debug_collect.py`.
 
 ## Figures
 
-`PYTHONPATH=tests/hastub python3 tests/debug_collect.py` at `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, 2026-10-06T14:58:47Z, origin/main `6b1ccb685e51903e7e524995a84d831d3904da9f` — `ALL 30 DEBUG COLLECT CHECKS PASSED`.
+Taken at `50a36f792eb32913607bc003408c4b6661e41a73`, 2026-10-06T18:20:18Z, origin/main `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872`.
 
-`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` — `PIN KILLED: 51 pinned, 0 left unpinned`. Inventory line before the drive: 4750 unpinned, 4699 at the ratchet base.
-
-`python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT coordinator_private_reach=0 count`, `RESULT max_class_loc=9067 count`, `RESULT seam_cut_total=772 count`.
-
-`PYTHONPATH=tests/hastub python3 tests/entities.py` — `ALL 2187 ENTITY CHECKS PASSED`.
-
-`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` before the delivery-row merge — `MODE: SCOPED -- 30 script(s) run, 2 scoped out.` `tests/stress.py` is in `scope.run` and was not run.
-
-`./tests/derive_closures.sh --single tests/debug_collect.py` — recorder exit 0, `closure: updated 1 closure(s)`, `tests/debug_collect.py` 81 files, recorded rc 0.
+- `python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT max_class_loc=9048 count`. `RESULT seam_cut_total=765 count`.
+- `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT claims_true=123 claims`. `RESULT claims_false=0 claims`.
+- `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` — `ALL 30 DEBUG COLLECT CHECKS PASSED`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` — `MODE: FULL -- every test script runs, nothing is scoped out.` Reason: `tests/run.sh` changes the gate itself. `tests/run.sh` was not run unscoped.
+- `git merge-tree --write-tree origin/main HEAD` — exit 0.
+- `CLAIM_HEAD=$(git rev-parse HEAD) PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)` — `claims hygiene: 1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872 ok`.
 
 ## Red checks
 
 `closures`. Under-scoped `tests/features.py` by `services.yaml` on an earlier head. The Linux recording's rc is 0 and that path is in the committed closure. Cheaper detector: the recording JSON's `rc` plus `tests/closure.py check`, both already produced by the job. No cheaper detector exists for a file a completed run newly opens.
 
-`closures-autofix`. `skip-failed-recording` on `tests/harness_headers.py` at that earlier head (header counts behind the tree). Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds. The headers name the printed counts.
+`closures-autofix`. `skip-failed-recording` on `tests/harness_headers.py` at that earlier head. Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds.
 
-`fast (3.14)`. Job 112362400100 on run 37490713480, head `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh` and `TEST NEVER RAN: tests/debug_collect.py is wired into tests/run.sh but no lane`, then `2 TEST SCRIPT(S) FAILED`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`, which printed the first line before the 31-minute suite. Standing cost is that grep. This head adds `run "$PYTHON" tests/debug_collect.py` in `lane_units`. An earlier head of this branch also failed `fast (3.14)` on `env_drift.py --all` and `harness_headers.py`; those two scripts are the cheaper detector for that one, and they were green on `9da596f2`.
+`fast (3.14)`. On `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`. This head has `run "$PYTHON" tests/debug_collect.py` in `lane_units`.
 
-`mutation`. On `9da596f2`, job 112303713384: `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`. Cheaper detector: none. The refusal is `drive_pin_pool`'s admission, which does not start a mutant whose recorded driver sum exceeds 35 minutes; the inventory that lists the 52 sites is the same process, not an earlier one. This head pins 51 under `killed_by` for `tests/debug_collect.py` and triages the stamp-is-None guard as equivalent, so the added-unpinned set is empty.
+`mutation`. On `9da596f2`, job 112303713384: `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`. Cheaper detector: none. The admission is `drive_pin_pool`, which does not start a mutant whose recorded driver sum exceeds 35 minutes. This head pins 51 under `killed_by` for `tests/debug_collect.py` and triages the stamp-is-None guard as equivalent.
 
-`mutation-autofix`. Job 112305445205: `AUTOFIX: skip-no-measurement`. The pin process exited 1 under `pipefail` before `measurement()` wrote a status, so no bot commit was coming. Cheaper detector: none beyond reading that summary line. The pins are in this commit.
+`mutation-autofix`. Job 112305445205: `AUTOFIX: skip-no-measurement`. Cheaper detector: none beyond that summary line. The pins are in `6d5d796e`.
 
-`delivery-status`. The diff adds `docs/delivery/1987.md`. The job on the earlier head was `DELIVERY STATUS UNCHECKED` over main's merge subjects, which `subject_number` does not recognise. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's, not this row.
+`delivery-status`. The diff adds `docs/delivery/1987.md`. The earlier red was `DELIVERY STATUS UNCHECKED` over main's merge subjects. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's.
 
-`pr-contract` was red on an earlier head because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This section names them. Cheaper detector: `tools/audit/prepr.sh`, the same contract. Not run here: another `prepr.sh` was already in flight.
+`pr-contract` was red on an earlier head because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This section names them. Cheaper detector: `tools/audit/prepr.sh`.
 
 `nightly-status` graded main. This diff does not change `tests/nightly_status.py`, `tests.yml`, `governance.yml`, the plan or `docs/HANDOVER.md`.
 
