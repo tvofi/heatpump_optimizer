@@ -25,12 +25,13 @@ import logging
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from typing import Any, Deque
+from typing import Any, Deque, Iterable
 
 import numpy as np
 
 from homeassistant.util import dt as dt_util
 
+from .const import HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -166,9 +167,18 @@ class AccuracyTracker:
     lead_pending: list[tuple[datetime, float, float]] = field(
         default_factory=list
     )
+    #: R9-DIAG-2S (#1936): when the learned state last jumped by a restore.
+    #: Every pair before it was predicted by the state the restore replaced,
+    #: so a refit fitted across it would apply that state's error to the
+    #: restored one -- and an accepted refit's own evidence would be applied
+    #: a second time. Persisted, because the samples it fences are.
+    evidence_since: datetime | None = None
 
     def record(self, sample: AccuracySample) -> None:
         self.samples.append(sample)
+
+    def restart_evidence(self, now: datetime) -> None:
+        self.evidence_since = now
 
     # -- lead-time error (T5 #16) --------------------------------------------
 
@@ -366,7 +376,13 @@ class AccuracyTracker:
         # Only the most recent slice is persisted; the whole history is not
         # worth the storage write on every interval.
         recent = list(self.samples)[-192:]
+        since = (
+            {"evidence_since": self.evidence_since.isoformat()}
+            if self.evidence_since is not None
+            else {}
+        )
         return {
+            **since,
             "samples": [s.as_dict() for s in recent],
             # T5 #16, additive keys. The pending promises persist too, or
             # every restart would silently discard up to a day of filed
@@ -448,6 +464,11 @@ class AccuracyTracker:
                 if not np.isfinite(lead) or not np.isfinite(predicted):
                     continue
                 tracker.lead_pending.append((when, lead, predicted))
+        since = data.get("evidence_since")
+        if since:
+            tracker.evidence_since = stored_instant(
+                str(since), dt_util.DEFAULT_TIME_ZONE
+            )
         return tracker
 
 
@@ -463,3 +484,134 @@ def delivered_ratio(sample: AccuracySample) -> float | None:
     if sample.predicted_power_kw <= 0.05 or sample.actual_power_kw <= 0.05:
         return None
     return float(sample.predicted_power_kw / sample.actual_power_kw)
+
+
+#: R9-DIAG-2S (#1936): the settled evidence a heat-loss refit waits for. In
+#: the R9-DIAG-1 pre-study a refit one day after the boost days was as wrong
+#: as the learner it would replace (0.576 against a true 1.15: the plant
+#: state the predictions came from had not re-equilibrated); three settled
+#: days answered 1.138.
+REFIT_SETTLED_DAYS = 3.0
+#: Width of the refit's uncertainty, in percent, published on the advice.
+#: The recommendation text states the band as ±7-10 %: the pre-study's null
+#: control -- a correct model, no boost -- refit to 0.93, a -7 % floor set
+#: by the open-loop slab lag every plan prediction carries, and the honest
+#: width around a drifted refit was about ±10 %.
+REFIT_BAND_PERCENT = 10
+
+
+def _refit_start(
+    rows: list[AccuracySample], settle: timedelta, since: datetime | None
+) -> datetime | None:
+    """Where settled evidence begins: after the last boost-tagged pair plus
+    ``settle``, and after the last restore, whichever is later."""
+    tagged = [s.when for s in rows if s.boost_space]
+    bounds = [since] if since is not None else []
+    if tagged:
+        bounds.append(utc_shift(max(tagged), settle))
+    return max(bounds) if bounds else None
+
+
+def _refit_pair(
+    s: AccuracySample, min_delta: float, max_residual: float
+) -> tuple[float, float] | None:
+    """``(residual, delta_t)`` for a pair the interval learner would admit."""
+    pred, act, out = s.predicted_temp, s.actual_temp, s.outdoor_temp
+    if s.boost_space or pred is None or act is None or out is None:
+        return None
+    residual = act - pred
+    delta_t = (act + pred) / 2.0 - out
+    if delta_t < min_delta or abs(residual) > max_residual:
+        return None
+    return residual, delta_t
+
+
+def _clipped_refit_scale(
+    current_scale: float,
+    num: float,
+    den: float,
+    pairs: int,
+    days: float,
+    base_u: float,
+    dt_hours: float,
+) -> float | None:
+    """The pooled Newton step, or None until the window is evidence.
+
+    Three settled days, and a day's worth of pairs the learner would
+    admit, at the interval cadence. Below either, the plant state the
+    predictions came from has not re-equilibrated.
+    """
+    if (
+        days < REFIT_SETTLED_DAYS
+        or pairs < 24.0 / max(dt_hours, 1e-6)
+        or den <= 0.0
+        or base_u <= 1e-6
+    ):
+        return None
+    raw = current_scale + (num / den) / base_u
+    if not np.isfinite(raw):
+        return None
+    return round(float(np.clip(
+        raw, HOUSE_HEAT_LOSS_SCALE_MIN, HOUSE_HEAT_LOSS_SCALE_MAX
+    )), 3)
+
+
+def heat_loss_refit(
+    samples: Iterable[AccuracySample],
+    *,
+    current_scale: float,
+    base_u: float,
+    capacity: float,
+    dt_hours: float,
+    min_delta: float,
+    max_residual: float,
+    settle: timedelta,
+    since: datetime | None,
+) -> dict[str, Any]:
+    """Batch-refit ``house_heat_loss_scale`` from settled prediction pairs.
+
+    The interval learner's Newton relation -- a residual ``e`` over ``dt``
+    at an indoor/outdoor difference ``dT`` implies ``dUA = -e*C/(dT*dt)`` --
+    pooled over every admitted pair as one step, ``sum(-e*C) / sum(dT*dt)``,
+    instead of 2 % a sample for days. ``dT`` is taken about the pair's mean
+    indoor temperature, and a pair the learner's own guards would refuse
+    (``min_delta``, ``max_residual``) is refused here too.
+
+    The step is taken about ``current_scale`` although each pair was
+    predicted under the scale of its own interval, which the learner walks
+    meanwhile; the pre-study measured that approximation inside
+    ``REFIT_BAND_PERCENT``. ``scale`` stays None until the settled span
+    reaches ``REFIT_SETTLED_DAYS`` and holds a day's worth of admitted
+    pairs at the ``dt_hours`` cadence.
+    """
+    rows = list(samples)
+    start = _refit_start(rows, settle, since)
+    settled = [
+        s for s in rows
+        if start is None or utc_elapsed_seconds(s.when, start) > 0
+    ]
+    num = den = 0.0
+    pairs = 0
+    for s in settled:
+        pair = _refit_pair(s, min_delta, max_residual)
+        if pair is not None:
+            num -= pair[0] * capacity
+            den += pair[1] * dt_hours
+            pairs += 1
+    days = 0.0
+    if settled:
+        origin = start or utc_shift(
+            min(s.when for s in settled), timedelta(hours=-dt_hours)
+        )
+        days = utc_elapsed_seconds(max(s.when for s in settled), origin) / 86400.0
+    scale = _clipped_refit_scale(
+        current_scale, num, den, pairs, days, base_u, dt_hours
+    )
+    return {
+        "scale": scale,
+        "band_percent": REFIT_BAND_PERCENT,
+        "pairs": pairs,
+        "settled_days": round(max(0.0, days), 2),
+        "required_days": REFIT_SETTLED_DAYS,
+        "settled_since": start.isoformat() if start is not None else None,
+    }
