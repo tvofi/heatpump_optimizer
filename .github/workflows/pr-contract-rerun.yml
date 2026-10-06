@@ -73,4 +73,4 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          python3 -I .claude/workflows/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"
+          if test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"; else python3 -I tools/pr/contract_rerun.py --rerun "$RUN_ID" --repo "$REPO"; fi
