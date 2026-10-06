@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_arbitrate GUARD_OFF deac2794",
+  "killed_by": "tests/structure.py",
+  "old": "    if mode != DUTY_CONTROL or _pump_off(inp):",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 67a0cb9816565113447bb54415989090706435b4: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1. Re-measured on a git-archive export of the branch head 13a82a9d, 2026-10-05: driving tests/structure.py prints 3 STRUCTURE BUDGET(S) BREACHED. Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `    if mode != DUTY_CONTROL or _pump_off(coord):` into `    if mode != DUTY_CONTROL or _pump_off(inp):`."
+}

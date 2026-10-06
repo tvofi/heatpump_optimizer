@@ -615,6 +615,15 @@ INERT_EXCEPT = (
     ".claude/workflows/figure_lint.mjs",
     "tools/audit/seat/record_row.py",
     "tools/audit/seat/roster_lib.py",
+    # R9-RO-2b: tests/entities.py opens codeowners_gap.py — the pathspec the
+    # governance restore lists, passed to git on the arm's planted diff.
+    # Six path parts, so `_is_header_corpus` does not reach it and the
+    # `tools/audit/` prefix kept it INERT. closures run 37395017010 was
+    # UNDER-SCOPED on that read; filing it under inert_reads left it out of
+    # the closure, and merge refuses the pair of INERT and recorded. It
+    # leaves the prefix the way roster_lib.py did, so an edit selects
+    # tests/entities.py.
+    "tools/audit/round6/D11/fix/codeowners_gap.py",
 )
 
 

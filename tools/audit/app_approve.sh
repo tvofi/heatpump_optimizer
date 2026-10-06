@@ -258,7 +258,16 @@ else:
   # collapsed to exactly one right after resolution, before any guard reads
   # it -- one normalisation point instead of teaching every guard about
   # `//`.
-  local evdir="" evwhy="the verdict names no absolute path at all" tok
+  #
+  # `pwd -P` of `/` is `/` on macOS 26.6, so a comparison with that path
+  # does not see `/System/Volumes/Data`. That mount is a different
+  # directory, and `grep -rqF` of a head sha over it walked the data
+  # volume for 17 minutes, then again for 9 hours, both killed by hand.
+  # A resolved path that is its own mount point is a volume root. Evidence
+  # is a directory on a volume, not the volume itself.
+  local evdir="" evwhy="the verdict names no absolute path at all" tok rootphys
+  rootphys=$(cd / && pwd -P)
+  rootphys=$(printf '%s' "$rootphys" | sed -E 's#^/+#/#')
   while read -r tok; do
     tok=$(printf '%s' "$tok" | sed -e "s/^[([{\`\"']*//" -e "s/[]).,;:}\`\"']*\$//" -e 's:/*$::')
     [ -n "$tok" ] || continue
@@ -280,6 +289,13 @@ else:
         evwhy="$tok resolves to $resolved, under /proc, /dev or /sys -- refused as evidence"
         continue ;;
     esac
+    local mount
+    mount=$(df -P "$resolved" 2>/dev/null | awk 'NR==2 { print $NF }')
+    if [ "$resolved" = "/" ] || [ "$resolved" = "$rootphys" ] \
+       || { [ -n "$mount" ] && [ "$resolved" = "$mount" ]; }; then
+      evwhy="$tok resolves to $resolved, the filesystem root -- refused as evidence"
+      continue
+    fi
     if [ -z "$(ls -A "$resolved" 2>/dev/null)" ]; then evwhy="$tok ($resolved) is empty"; continue; fi
     if grep -rqF -- "$evsha" "$resolved" 2>/dev/null; then evdir=$resolved; break; fi
     evwhy="no file under $tok ($resolved) names the head $evsha"
@@ -675,7 +691,7 @@ st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err"
 # the boundary class). A source pin backs this up, since a behavioral test
 # alone can't distinguish "'(' was removed" from "some other boundary char
 # also covers this case by accident".
-st "$(sed -n '1,300p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+st "$(sed -n '1,340p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
    "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
 mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
 run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
@@ -730,8 +746,17 @@ st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
 # segment tells them apart, and that's not otherwise part of this suite),
 # so this is a straight source pin, same technique as the VERDICT_AUTHORS
 # pin above.
-st "$(sed -n '1,300p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+st "$(sed -n '1,340p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
    "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
+st "$(sed -n '1,340p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
+   "pin: a resolved path that is its own mount point is refused"
+if [ -d /System/Volumes/Data ]; then
+  mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
+  run datavol o/r 7 "$SHA"; st $? 1 "REFUSE: /System/Volumes/Data is a mount point, not evidence"
+  st "$(grep -c 'the filesystem root -- refused as evidence' "$W/datavol/err")" 1 \
+    "naming the mount-point refusal, not a missing directory"
+  st "$(calls datavol curl)" 0 "and nothing was minted or posted"
+fi
 
 # `pwd -P` on this shell keeps EXACTLY TWO leading slashes: POSIX carves
 # `//foo` out as implementation-defined (unlike three-or-more, which always

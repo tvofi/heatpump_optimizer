@@ -29642,6 +29642,11 @@ class _SysIdHost:
     def _get_current_price(self):
         return 0.2
 
+    def adopt_action(self, action):
+        # boost.adopt_plan publishes through the coordinator's one writer
+        # (#1739); the stub holds the same slot the real class does.
+        self._current_action = action
+
 
 _COOLING = pump_signals.PumpSignals(
     mode=pump_mode.capability("Cooling"),
@@ -36350,7 +36355,7 @@ R.check(
 from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP
 from heatpump_optimizer.wood_fuel import (
     build_wood_fuel_view as _wf_view,
-    wood_fuel_from_coordinator as _wf_from_coord,
+    wood_fuel_from_parts as _wf_from_coord,
     wood_tank_soc_from_probes as _wf_soc,
 )
 
@@ -36486,7 +36491,7 @@ R.check(
     repr(_wf_idle_pub.get("wood_fuel")),
 )
 R.check(
-    "wood_fuel_from_coordinator is the publish helper",
+    "wood_fuel_from_parts is the publish helper",
     _wf_from_coord is not None,
 )
 
@@ -36578,14 +36583,30 @@ _wf_probe_result = _WfNS(
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
 )
-_wf_from_probes = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_probes = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator uses the live wood-tank temperature",
     (_wf_from_probes.get("night_advice") or {}).get("action") == "light",
     repr(_wf_from_probes.get("night_advice")),
 )
 _wf_probe_coord._current_state.wood_tank_temperature = None
-_wf_from_empty = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_empty = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
     "night_advice" not in _wf_from_empty,
@@ -37852,7 +37873,7 @@ async def _rc2_prelude(coord, what, value):
     elif what == "away":
         coord._away_state.override_active = value
         coord._away_state.override_return_iso = None
-        await away_mode.persist_override(coord)
+        await away_mode.persist_override(coord, coord._away_state)
     elif what == "comfort":
         coord._comfort_learner.evidence = value
         await coord._async_save_accuracy()
@@ -37865,7 +37886,9 @@ async def _rc2_boot(entry):
     coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
-    await boost_mod.restore_session(coord)
+    await boost_mod.restore_session(
+        coord, coord._away_state, coord._config, coord._entity_state
+    )
     await coord._async_load_manual_plan()
     return coord
 
@@ -44562,7 +44585,7 @@ class _G8SpBoom:
     hass = _G8SpHass()
 
     @property
-    def _config(self):
+    def effective_config(self):
         raise RuntimeError("entry is being reloaded")
 
 
@@ -44925,7 +44948,9 @@ try:
     _G8AwayStore.raise_save = True
     _g8_save_coord = _G8AwayCoord()
     _g8_save_coord._away_state.override_active = True
-    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(_g8_save_coord))
+    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(
+        _g8_save_coord, _g8_save_coord._away_state
+    ))
     _g8_save_attempted = list(_G8AwayStore.saved)
     _G8AwayStore.raise_save = False
 
@@ -44936,7 +44961,10 @@ try:
     _g8_load_coord = _G8AwayCoord(config={_G8_AWAY_PRES: "input_boolean.away_mode"},
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
-    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(_g8_load_coord))
+    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord._entity_state,
+    ))
     _g8_load_saved = list(_G8AwayStore.saved)
     _G8AwayStore.raise_load = False
 
@@ -44947,7 +44975,10 @@ try:
         "migrated_helpers": True,
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
-    _t6_call(_asyncio.run, _g8_away.restore_override(_g8_done_coord))
+    _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord._entity_state,
+    ))
     _g8_done_saved = list(_G8AwayStore.saved)
     _G8AwayStore.payload = None
 finally:
@@ -50668,6 +50699,38 @@ class _PaCoord:
     def _plan_is_stale(self):
         return self.stale
 
+    @property
+    def effective_config(self):
+        # setpoint_check.evaluate reads the published views (#1739).
+        return self._config
+
+    @property
+    def thermal_params(self):
+        return self._thermal_params
+
+    def arbiter_inputs(self):
+        # Every field read live, so a test that reaches into the stub's
+        # privates (a disinfection hold, a meter sample, the unload latch)
+        # is seen by the next pass, exactly as the real coordinator's
+        # published builder reads its own.
+        return _pa.ArbiterInputs(
+            hass=self.hass,
+            config=self._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self.stale,
+            entry_released=getattr(self, "_entry_released", False),
+            state=self._current_state,
+            thermal=self._thermal_model,
+            params=self._thermal_params,
+            action=self._current_action,
+            measured_power_kw=getattr(self, "_measured_power", None),
+            disinfecting=getattr(
+                getattr(getattr(self, "_legionella", None), "disinfect", None),
+                "memo", None,
+            ) is True,
+        )
+
     async def async_set_mode(self, mode):
         self.set_modes.append(mode)
         self._mode = mode
@@ -50821,6 +50884,23 @@ R.check(
     "below the cold rail the lease is 30 minutes",
     _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
+)
+
+# The rail's edge itself: at exactly COLD_RAIL_C the day is not below it, so
+# the 90-minute lease still holds and minute 31 writes nothing. The ordering
+# bound is pinned here because the mutation table flips it (`<` -> `<=`) and
+# only this line separates the two leases.
+_pa_cold_edge = _PaCoord(_PA_TUYA, duties="d" * 12)
+_pa_cold_edge._current_state.outdoor_temperature = -10.0
+_pa_run(_pa_cold_edge, 0)
+_pa_cold_edge.device("select.pump_mode", "DHW (Hot Water)")
+_pa_cold_edge.device("number.dhw_set", "48")
+_pa_cold_edge.device("number.water_set", "25")
+_pa_run(_pa_cold_edge, 31)
+R.check(
+    "at exactly the cold rail the lease is the 90-minute one, not the cold one",
+    len(_pa_cold_edge.writes()) == 3,
+    f"{_pa_cold_edge.writes()}",
 )
 _pa_stale = _PaCoord(_PA_TUYA)
 _pa_stale.stale = True
@@ -51132,12 +51212,12 @@ _pa_mbs._thermal_params = _PaNS(
     dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
-_p8_sp.evaluate(_pa_mbs)
+_p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
 _pa_mbs_issues = [i for i in getattr(_pa_mbs.hass, "issues", []) if i[1] == _p8_sp.ISSUE_DHW]
 _pa_mbs_null = _PaCoord(_PA_MODBUS, duties="s", duty="observe")
 _pa_mbs_null._thermal_params = _pa_mbs._thermal_params
 _pa_mbs_null.device("number.dhw_set", "40")
-_p8_sp.evaluate(_pa_mbs_null)
+_p8_sp.evaluate(_pa_mbs_null, lambda pump: _pa.dhw_gated(_pa_mbs_null, pump))
 R.check(
     "with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum",
     _pa_mbs.hass.states.get("number.dhw_set").state == "40.0"
@@ -51426,6 +51506,22 @@ R.check(
     len(_pa_day_log) == 96
     and _pa_day_log[-1]["start"] == (_PA_T0 + timedelta(minutes=15 * 98)).isoformat(),
     f"{len(_pa_day_log)=}",
+)
+# The run boundary itself: a draw exactly at the meter's threshold (half the
+# 0.4 kW modulation floor = 0.2 kW) counts as a run, one hair below does not.
+# The ordering bound is pinned here because the mutation table flips it
+# (`>=` -> `>`) and only this line separates a delivered step from idle.
+_pa_edge = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
+_pa_edge._current_state.dhw_temperature = 45.0
+for _pa_m, _pa_kw in ((1, 0.2), (16, 0.19)):
+    _pa_edge._measured_power = _pa_kw
+    _pa_run(_pa_edge, _pa_m)
+_pa_run(_pa_edge, 31)  # closes the second step into the log
+_pa_edge_log = _pa.diagnostics_view(_pa_edge)["ledger"]["steps"]
+R.check(
+    "a draw exactly at the meter's threshold is a run; one hair below is not",
+    [r["verdict"] for r in _pa_edge_log] == ["delivered", "idle-instead"],
+    f"{_pa_edge_log}",
 )
 _pa_nometer = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
 _pa_nometer._current_state.dhw_temperature = 45.0
@@ -52228,6 +52324,47 @@ R.check(
     "after it (D1-s3-02); a live coordinator re-arms both (null control)",
     _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
     f"{_f32_live}",
+)
+
+# The check above sets the latch, then calls apply. Home Assistant's queued
+# pass is the other order: apply is already waiting on held.lock when unload
+# or Off happens. Snapshotting ArbiterInputs before those waits keeps the
+# pre-wait latch and mode, so the guard and Off write-nothing both miss.
+async def _f32_queued(arm):
+    coord = _PaCoord(_PA_TUYA)
+    await _pa.apply(coord, _PA_T0 + timedelta(minutes=1))
+    held = _pa.state_for(coord)
+    await held.lock.acquire()
+    queued = _pa_aio.ensure_future(
+        _pa.apply(coord, _PA_T0 + timedelta(minutes=16)))
+    for _ in range(5):
+        await _pa_aio.sleep(0)
+    if arm == "unload":
+        coord._entry_released = True
+        await _pa.release(coord)
+    elif arm == "off":
+        await coord.async_set_mode(_PA_OFF)
+    coord.hass.services.calls.clear()
+    held.lock.release()
+    await queued
+    return len(held.unsubs), len(coord.writes())
+
+
+_f32_queued_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("unload", "off", "null"):
+        _f32_queued_live[_f32_arm] = _pa_aio.run(_f32_queued(_f32_arm))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued behind the lock across an unload arms no listener and "
+    "writes nothing; one queued across Off writes nothing (D1-s3-02); a live "
+    "coordinator still writes (null control)",
+    _f32_queued_live["unload"] == (0, 0)
+    and _f32_queued_live["off"] == (2, 0)
+    and _f32_queued_live["null"] == (2, 3),
+    f"{_f32_queued_live}",
 )
 
 # D1-s3-03: a record of any other shape is not restored, and the next pass
@@ -55933,7 +56070,7 @@ R.check(
 # 0.15 kW step the plan books as running is below what a meter sample proves,
 # which is the whole reason one formula could not answer both.
 _f24_meter = _f24_NS(
-    _thermal_model=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
+    thermal=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
 )
 R.check(
     "R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the "
@@ -55941,7 +56078,7 @@ R.check(
     callable(_f24_ran_kw)
     and _f24_ran_kw(_f24_meter) == 0.2
     and callable(_f24_meter_kw)
-    and _f24_meter_kw(_f24_meter._thermal_model.params) == 0.2
+    and _f24_meter_kw(_f24_meter.thermal.params) == 0.2
     and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
     and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
     f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
