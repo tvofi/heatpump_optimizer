@@ -24842,8 +24842,12 @@ def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
             f"  BASE*) exit {base_rc} ;;\n"
             "  *) echo unreadable copy >&2; exit 9 ;;\n"
             "esac\n")
-        os.chmod(bindir / "git", 0o755)
-        os.chmod(bindir / "python", 0o755)
+        os.chmod(bindir / "git", 0o700)
+        os.chmod(bindir / "python", 0o700)
+        _pt_ds_rc.modes = (
+            (bindir / "git").stat().st_mode & 0o777,
+            (bindir / "python").stat().st_mode & 0o777,
+        )
         env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
                "RUNNER_TEMP": str(root / "rt")}
         proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
@@ -24864,6 +24868,11 @@ _PT_DS_CASES = {
     "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
     "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
 }
+R.check(
+    "the delivery_status stubs are owner-executable and neither group nor world accessible",
+    _pt_ds_rc.modes == (0o700, 0o700),
+    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
+)
 _PT_DS_DROP_EXIT = (
     'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
 _PT_DS_DROP_OVERDUE = (
