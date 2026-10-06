@@ -2238,13 +2238,13 @@ of `room`, and the card drops a duplicate extra rather than labelling it — so
 the dashes cannot be rendered at all from the default payload, and no amount of
 configuration in the figure generator changes that. `tests/plan_view.py` takes
 `HPO_PLAN_TWO_ZONE=1` for this; its default is off, so the gate's payload is
-unchanged. Control: `docs/img/make_card_figures.mjs` exits non-zero when the
+unchanged. Control: `docs/img/card/make_card_figures.mjs` exits non-zero when the
 two-zone render carries no dashed `house_temp` path, which is what a payload
 silently reverting to one zone would produce.
 
 **Where a figure's caption is a claim, the generator checks it.** The
 demand-window figure's caption says the tank is held above the minimum inside a
-frame; `docs/img/make_model_figures.py` refuses to write the figure if the plan
+frame; `docs/img/model/make_model_figures.py` refuses to write the figure if the plan
 it read dips below it, using `dhw_schedule.hour_in_windows` to decide what
 "inside" means. The measured values are printed beside the curve rather than
 left to the reader's eye, because the crossing sits within a few pixels of a

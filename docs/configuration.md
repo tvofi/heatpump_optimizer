@@ -337,7 +337,7 @@ appear, each holding one weekday's times in the same comma-separated
 format (`12:00-24:00` for "nothing until noon"). An empty field does not
 mean "no hot water that day"; it means *inherit*, exactly as before.
 
-![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/options-hot-water-by-day.png)
+![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/card/options-hot-water-by-day.png)
 
 *The page as the flow renders it, two weekdays answered and the rest
 inheriting. A generated render of the integration's own form definitions
