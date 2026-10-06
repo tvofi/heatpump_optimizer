@@ -2841,6 +2841,7 @@ jobs:
         if: steps.record.outputs.status == 'pushed'
         env:
           REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
           TOKEN: ${{ steps.mint.outputs.token }}
           BASE_SHA: ${{ github.sha }}
         run: |
@@ -2915,9 +2916,11 @@ jobs:
           PY
           # Open or update: the beat's own open pull request from a previous
           # unmerged beat is updated in place (fresh rows commit, regenerated
-          # body naming the new head), never duplicated.
+          # body naming the new head), never duplicated. The head filter is
+          # `<owner>:<branch>`: `<owner>/<repo>:<branch>` answers [] and sent
+          # run 37343172583 to a create the API refused 422.
           NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
-            "$API/repos/$REPO/pulls?head=$REPO:record/autofix&state=open" \
+            "$API/repos/$REPO/pulls?head=${OWNER}:record/autofix&state=open" \
             | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
           if [ -n "$NUM" ]; then
             curl_json "record-pr update" PATCH \
