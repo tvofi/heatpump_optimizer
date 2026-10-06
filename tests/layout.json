@@ -216,7 +216,7 @@
   },
   {
    "old": ".claude/workflows/carry-1644.json",
-   "new": "dev/programme/carries/carry-1644.json",
+   "new": "dev/archive/carries/carry-1644.json",
    "since": null
   },
   {
@@ -226,12 +226,12 @@
   },
   {
    "old": ".claude/workflows/carry-1646.json",
-   "new": "dev/programme/carries/carry-1646.json",
+   "new": "dev/archive/carries/carry-1646.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1647.json",
-   "new": "dev/programme/carries/carry-1647.json",
+   "new": "dev/archive/carries/carry-1647.json",
    "since": null
   },
   {
@@ -241,32 +241,32 @@
   },
   {
    "old": ".claude/workflows/carry-1649.json",
-   "new": "dev/programme/carries/carry-1649.json",
+   "new": "dev/archive/carries/carry-1649.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1651.json",
-   "new": "dev/programme/carries/carry-1651.json",
+   "new": "dev/archive/carries/carry-1651.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1652.json",
-   "new": "dev/programme/carries/carry-1652.json",
+   "new": "dev/archive/carries/carry-1652.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1653.json",
-   "new": "dev/programme/carries/carry-1653.json",
+   "new": "dev/archive/carries/carry-1653.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1654.json",
-   "new": "dev/programme/carries/carry-1654.json",
+   "new": "dev/archive/carries/carry-1654.json",
    "since": null
   },
   {
    "old": ".claude/workflows/carry-1655.json",
-   "new": "dev/programme/carries/carry-1655.json",
+   "new": "dev/archive/carries/carry-1655.json",
    "since": null
   },
   {
@@ -276,7 +276,7 @@
   },
   {
    "old": ".claude/workflows/carry-1660.json",
-   "new": "dev/programme/carries/carry-1660.json",
+   "new": "dev/archive/carries/carry-1660.json",
    "since": null
   },
   {
@@ -286,7 +286,42 @@
   },
   {
    "old": ".claude/workflows/carry-1686.json",
-   "new": "dev/programme/carries/carry-1686.json",
+   "new": "dev/archive/carries/carry-1686.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1743.json",
+   "new": "dev/archive/carries/carry-1743.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1747.json",
+   "new": "dev/archive/carries/carry-1747.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1757.json",
+   "new": "dev/archive/carries/carry-1757.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1774.json",
+   "new": "dev/programme/carries/carry-1774.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1776.json",
+   "new": "dev/archive/carries/carry-1776.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1791.json",
+   "new": "dev/archive/carries/carry-1791.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1795.json",
+   "new": "dev/programme/carries/carry-1795.json",
    "since": null
   },
   {

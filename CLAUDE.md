@@ -156,7 +156,7 @@ never only in /tmp (decision 0013).
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
-- `tools/audit/README.md` — how a round is run and where its evidence lands.
+- `dev/audit/README.md` — how a round is run and where its evidence lands.
 - `docs/HANDOVER.md` — state, not policy: the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 

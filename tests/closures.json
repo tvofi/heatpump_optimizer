@@ -2909,9 +2909,7 @@
  "inert_reads": {
   "tests/harness_headers.py": [
    "LICENSE",
-   "docs/audit-2026-08.md",
-   "docs/audit-2026-09.md",
-   "docs/backlog.md"
+   "docs/audit-2026-09.md"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"

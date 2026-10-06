@@ -31,7 +31,7 @@ const TREE_DIRS = new Set([...TREE].flatMap((p) => p.split('/').slice(0, -1).map
 const BLOB = 'https://github.com/tvofi/heatpump_optimizer/blob/main/'
 const TREEURL = 'https://github.com/tvofi/heatpump_optimizer/tree/main/'
 // Rows of the README Documentation table the site links to GitHub instead of rendering, each with its reason.
-const EXCLUDE = { 'docs/backlog.md': 'an archive of what was built, not a reader doc (R9-RO-4 archives it)' }
+const EXCLUDE = {}
 const errors = []
 const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, badges: 0, external: 0, mermaid: 0 }
 

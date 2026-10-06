@@ -3,7 +3,7 @@
 Everything the per-dimension audit runs on, so that a finding can be
 re-measured by someone who was not there: the briefs each auditor receives,
 the schema every finding must satisfy, the harness contract, and the three
-harnesses a judge still re-runs (`harnesses/README.md`). The register
+harnesses a judge still re-runs (the instruments section below). The register
 that records what came of it is `docs/audit-2026-09.md`; the orchestration
 scripts are `.claude/workflows/audit-*.js`.
 
@@ -15,10 +15,10 @@ does not, including the one file here a test executes. Do not restate them.
 seat; this file does not repeat that list. The rest of the layout:
 
 ```
+dev/audit/README.md           this file: the harness contract, and the instruments kept live
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/                   every contract and dimension brief, tabled in CLAUDE.md; COMMON.md first
-  harnesses/README.md       the instruments kept live, and where rounds 1-3 went
   preflight.sh              executed by tests/entities.py, so it is not INERT
   seat/                     the stateless seat instruments; each carries --self-test
 tools/release/stamp.py      the only way a version is assigned
@@ -246,3 +246,48 @@ stops meaning anything the next time it moves.
 Which harnesses at that commit still run, and by which of three rot classes, is
 recorded in `round2/HARNESSES.md` at `d5d8c4a`; its verdicts are final at that
 commit and not against a current `main` tree.
+
+## Rounds 1-3 are at a tag
+
+`tools/audit/round1/`, `round2/` and `round3/` held 212 files and 5.5 MB of
+write-once evidence for three closed rounds: reports, panel and judge verdicts,
+mutant patches, quiet-window logs, `.out` files. Nothing in the gate reads them
+(`tools/audit/` is `INERT` in `tests/closure.py`), and every number they carry
+that anything still acts on is in `docs/audit-2026-09.md`, which stays.
+
+They are reachable in full at **`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`**
+— `origin/main` at v6.3.18, the commit this archival was cut from, and
+on `main`'s first-parent history:
+
+    git show d5d8c4a:tools/audit/round2/JUDGE.md
+    git checkout d5d8c4a -- tools/audit/round2/D5/REPORT.md
+
+Every citation names that SHA rather than a tag (this file
+carries why).
+
+Round 2's executable harnesses were archived earlier, at
+`audit-round2-evidence` (`757e164`); this file carries the rule
+for running one, and the root-resolution trap that has caught three reviewers.
+
+The done wave rosters — `wave-1b-groups.json`, `wave-2-groups.json`,
+`wave-3-groups.json` — were archived at that same commit, along with
+`web-phase0.js` and `triage-quiet-judges.json`. Their briefs record what a
+judge established and refuted, so read them before re-deriving anything a group
+in them already settled.
+
+## The four that stayed
+
+Each was added by a fix pull request *after* its round closed, and each is an
+instrument someone re-runs rather than a report someone reads. That is the whole
+of the rule: evidence is archived, instruments are kept.
+
+| file | metric | added by | who re-runs it |
+|---|---|---|---|
+| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
+| `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
+| `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
+| `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
+
+All four drive production symbols and print `RESULT` lines under the harness
+contract in this file. `j5_gil.py` must never be run on
+`FakeHass`, whose executor runs inline and would measure nothing.

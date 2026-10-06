@@ -231,7 +231,6 @@ INERT = (
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
     "NOTICE",
-    "icon.png",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
     # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
@@ -276,7 +275,13 @@ INERT = (
     # file that is in no closure and on no list, and tests/entities.py fails
     # when that set is not empty. So a new file has to be classified once,
     # deliberately, instead of silently making every gate full.
-    ".abacus.donotdelete",
+    # The reorganisation's archive and the audit record that has already
+    # moved (R9-RO-4). Same claim as tools/audit/: prose and evidence no gate
+    # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
+    # _is_header_corpus before a live harness lands under dev/audit/, or the
+    # move would declare a file the gate reads as unread.
+    "dev/archive/",
+    "dev/audit/",
     ".claude/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
     # under tests/ reads them. Same reason `.claude/` is here.

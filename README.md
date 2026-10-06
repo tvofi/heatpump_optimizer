@@ -940,28 +940,8 @@ PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
 
 ## Project status
 
-The v4.0.0 feature program — 36 selected proposals, delivered as tranches T0
-through T8 and recorded in
-[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md) — is complete, and
-every release since has been an audit train on top of it: a full-codebase
-review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
-per-dimension audit repeated round by round
-([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
-program ([docs/plan-2026-09-open-issues.md](docs/plan-2026-09-open-issues.md),
-which supersedes the complete [docs/plan-open-issues.md](docs/plan-open-issues.md))
-and the card
-decomposition program
-([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
-finding fixed and released one PR at a time under the standing gate protocol
-(see [tests/README.md](tests/README.md) for that gate). The running state of
-that programme — decisions taken, traps hit, owed work — is the durable
-handover at [docs/HANDOVER.md](docs/HANDOVER.md), and each wave keeps a plan
-of record written before execution and kept as written, such as
-[docs/plan-1067-rotenso-inputs.md](docs/plan-1067-rotenso-inputs.md) for
-issue #1067. Every v6.0.0 or later
-release has its detail in [RELEASE_NOTES.md](RELEASE_NOTES.md); what remains
-open — findings judged real and deliberately not built — is the short list at
-the top of `docs/backlog.md`.
+Finished plans, the August 2026 audit, the backlog and the closed wave
+rosters are in [dev/archive/README.md](dev/archive/README.md).
 
 ## Written with AI, and what that costs
 
@@ -1017,7 +997,6 @@ before installing; it applies with full force.
 | [docs/automations.md](docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
 | [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
 | [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
-| [docs/backlog.md](docs/backlog.md) | The archive of what was built and why, plus what is open |
 | [DISCLAIMER.md](DISCLAIMER.md) | The full disclaimer |
 
 ## Disclaimer

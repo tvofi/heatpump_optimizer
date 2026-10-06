@@ -19,7 +19,7 @@
       "opens": [
         "docs/plan-2026-09-open-issues.md",
         "docs/HANDOVER.md",
-        ".claude/workflows/wave-4-groups.json"
+        "dev/archive/rosters/wave-4-groups.json"
       ],
       "cap": 6904
     },
@@ -50,7 +50,7 @@
     "AGENTS.md": 13,
     "CLAUDE.md": 221,
     "tests/README.md": 800,
-    "tools/audit/README.md": 250,
+    "dev/audit/README.md": 293,
     "tools/audit/briefs/COMMON.md": 108,
     "tools/audit/briefs/D0.md": 66,
     "tools/audit/briefs/D1.md": 60,
@@ -72,8 +72,7 @@
     "tools/audit/briefs/judge.md": 30,
     "tools/audit/briefs/orchestrator.md": 291,
     "tools/audit/briefs/root-cause.md": 84,
-    "tools/audit/briefs/verifier.md": 39,
-    "tools/audit/harnesses/README.md": 60
+    "tools/audit/briefs/verifier.md": 39
   },
   "files_tokens": {
     ".claude/rules/brief-citations.md": 893,
@@ -93,7 +92,7 @@
     "AGENTS.md": 183,
     "CLAUDE.md": 3590,
     "tests/README.md": 6686,
-    "tools/audit/README.md": 3880,
+    "dev/audit/README.md": 4582,
     "tools/audit/briefs/COMMON.md": 1598,
     "tools/audit/briefs/D0.md": 926,
     "tools/audit/briefs/D1.md": 819,
@@ -115,8 +114,7 @@
     "tools/audit/briefs/judge.md": 469,
     "tools/audit/briefs/orchestrator.md": 4096,
     "tools/audit/briefs/root-cause.md": 998,
-    "tools/audit/briefs/verifier.md": 612,
-    "tools/audit/harnesses/README.md": 724
+    "tools/audit/briefs/verifier.md": 612
   },
   "_acceptance": "fixtures/policy-rot/budgets.md is capped at 1 line and 1 token on purpose: it is how the budgets check is shown refusing, on both per-file caps. The rest of that directory is deliberately uncapped, which is the check's other half.",
   "_generated": "`.cursor/rules/*.mdc` carries no cap: it is generated from `.claude/rules/` and byte-compared by rules_sync --check, so its size is its source's."

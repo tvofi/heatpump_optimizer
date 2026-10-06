@@ -249,12 +249,7 @@ const POLICY_GLOBS = [
   // The source is linted; the output is compared.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
-  /^tools\/audit\/README\.md$/,
-  // The live instruments' own README, which `tools/audit/README.md` names. It
-  // arrived with the archive pass and the widened basename resolution reported
-  // it immediately: a seat-facing document outside every cap is the corpus
-  // escape this check exists for, whether or not anyone meant it as one.
-  /^tools\/audit\/harnesses\/README\.md$/,
+  /^dev\/audit\/README\.md$/,
   /^tests\/README\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
   // A skill is seat-facing text loaded by the harness at the moment a pull
@@ -454,7 +449,6 @@ const CORPUS_EXCLUDED = new Set([
   'docs/audit-2026-09.md',            // evidence register
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
-  'docs/backlog.md',                  // superseded record, kept for history
   // The living handover left POLICY_GLOBS by the owner's decision of 2026-09-16
   // (#201 comment 5702401684): it carries state, not rules, changes with nearly
   // every record PR, and so owes no `## Approval` and no code-owner review. Its

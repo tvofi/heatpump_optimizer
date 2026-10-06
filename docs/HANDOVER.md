@@ -213,7 +213,7 @@ time on a merge verdict carried to the live head with green CI.
 **The wave landed in full. #1067 closes with the pull request that writes this
 note (W1067-G8); the Delivery-status row in `docs/plan-2026-09-open-issues.md`
 is the record of which merge carried each group — linked there, never restated
-here.** The plan of record is `docs/plan-1067-rotenso-inputs.md`. Its status
+here.** The plan of record is `dev/archive/plans/plan-1067-rotenso-inputs.md`. Its status
 block overrides the G2 brief: the lift-aware efficiency reference was built,
 measured to double-count the lift, and reverted, so the credited COP is
 unchanged from `main`; only G3's pricing of the lift stops the walk. The same

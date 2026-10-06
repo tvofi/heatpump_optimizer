@@ -19750,8 +19750,8 @@ R.check(
 # INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
 # 62799e4 -- the gap is the skip, not a different baseline SHA.
 _493_FILES = [
-    ".claude/workflows/wave-4-groups.json",
-    ".claude/workflows/wave-5-groups.json",
+    "dev/archive/rosters/wave-4-groups.json",
+    "dev/archive/rosters/wave-5-groups.json",
     "docs/plan-2026-09-open-issues.md",
 ]
 _493_CARD = {
@@ -19912,8 +19912,8 @@ _h493_card = (
 _h493_root, _h493_base = _hygiene_git(
     _h493_card,
     {
-        ".claude/workflows/wave-4-groups.json": "{}\n",
-        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "dev/archive/rosters/wave-4-groups.json": "{}\n",
+        "dev/archive/rosters/wave-5-groups.json": "{}\n",
         "docs/plan-2026-09-open-issues.md": "# plan\n",
     },
     py_touch=False,
