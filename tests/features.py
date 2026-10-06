@@ -52370,6 +52370,248 @@ R.check(
     f"{list(_pa.state_for(_pa_lg).log)}",
 )
 
+# R9-SW-2 (#1911): the capacity-limited switch is a fourth held slot.
+# An Off window is the idle row and nothing else (tvofi, 2026-09-30, D1).
+# Switching the optimizer off inside a window undoes nothing (D2).
+
+
+def _pa_sw(coord):
+    """``(service, entity_id)`` for every switch call this pass made."""
+    return [
+        (svc, (data or {}).get("entity_id"))
+        for domain, svc, data in coord.hass.services.calls
+        if domain == "switch"
+    ]
+
+
+def _pa_silent(duties="s", spec="06:00-08:00", entity="switch.pump_night_mode", **kw):
+    """A controlling arbiter with a night-mode switch and, unless ``spec`` is None, silent rows."""
+    coord = _PaCoord(_PA_TUYA, duties=duties, **kw)
+    coord._config["heat_pump_capacity_limited_entity"] = entity
+    if spec is not None:
+        coord._config["quiet_silent_windows"] = spec
+    coord.hass.states.set(entity, FakeState("off"))
+    return coord
+
+
+def _pa_echo_duty(coord):
+    """Report the mode and set-point writes back; leave the silent switch where it is."""
+    for domain, _svc, data in coord.hass.services.calls:
+        if domain == "switch" or not data or "entity_id" not in data:
+            continue
+        coord.device(data["entity_id"], str(data.get("option", data.get("value"))))
+    coord.hass.services.calls.clear()
+
+
+_pa_sil = _pa_silent()
+_pa_plain = _PaCoord(_PA_TUYA, duties="s")
+_pa_run(_pa_sil, 1)
+_pa_run(_pa_plain, 1)
+_pa_sil_duty = [w for w in _pa_sil.writes() if w[0] != "switch"]
+_pa_lim = PumpSignals(
+    mode=pump_mode.FULL_CAPABILITY,
+    mode_observed=True,
+    electric_heat=pump_signals.PumpElectricHeat(capacity_limited=True),
+)
+_pa_lim_owned = _pa_own(_pa_sil, _pa_lim)
+R.check(
+    "inside a silent window the night-mode switch is held on, and the space step is still the plan's",
+    ("turn_on", "switch.pump_night_mode") in _pa_sw(_pa_sil)
+    and _pa_sil_duty == _pa_plain.writes()
+    and ("number", "set_value", 55.0) in _pa_sil_duty,
+    f"{_pa_sw(_pa_sil)} duty {_pa_sil_duty} plain {_pa_plain.writes()}",
+)
+R.check(
+    "a capacity-limited reading the arbiter caused still skips the learners, and blocks no duty",
+    _pa_lim_owned.electric_heat.capacity_limited is True
+    and _pa_lim_owned.electric_heat.compressor_draw_distorted is True
+    and not _pa_lim_owned.space_blocked
+    and not _pa_lim_owned.dhw_blocked,
+    f"limited {_pa_lim_owned.electric_heat.capacity_limited!r} "
+    f"distorted {_pa_lim_owned.electric_heat.compressor_draw_distorted!r} "
+    f"blocked {_pa_lim_owned.space_blocked!r}",
+)
+
+_pa_out = _pa_silent(spec="22:00-23:00")
+_pa_run(_pa_out, 1)
+R.check(
+    "outside a silent window the switch is held off, and the space step still heats",
+    _pa_sw(_pa_out) == [("turn_off", "switch.pump_night_mode")]
+    and ("select", "select_option", "Heating") in _pa_out.writes()
+    and ("number", "set_value", 55.0) in _pa_out.writes(),
+    f"{_pa_sw(_pa_out)} {_pa_out.writes()}",
+)
+_pa_lap = _pa_silent()
+_pa_lap._config["quiet_off_windows"] = "06:00-08:00"
+_pa_run(_pa_lap, 1)
+R.check(
+    "where an off row overlaps a silent row the switch is held off, not on",
+    _pa_sw(_pa_lap) == [("turn_off", "switch.pump_night_mode")]
+    and ("select", "select_option", "Heating") in _pa_lap.writes(),
+    f"{_pa_sw(_pa_lap)} {_pa_lap.writes()}",
+)
+
+_pa_norows = _pa_silent(spec=None)
+_pa_norows_plain = _PaCoord(_PA_TUYA, duties="s")
+_pa_run(_pa_norows, 1)
+_pa_run(_pa_norows_plain, 1)
+R.check(
+    "an install with no silent rows never writes the switch",
+    _pa_sw(_pa_norows) == [] and _pa_norows.writes() == _pa_norows_plain.writes(),
+    f"{_pa_sw(_pa_norows)} {_pa_norows.writes()}",
+)
+_pa_ro = _pa_silent(entity="binary_sensor.pump_night")
+_pa_sel = _pa_silent(entity="select.pump_silent")
+_pa_run(_pa_ro, 1)
+_pa_run(_pa_sel, 1)
+R.check(
+    "a read-only flag and a silent-as-mode select are not written",
+    _pa_sw(_pa_ro) == [] and _pa_sw(_pa_sel) == []
+    and all(c[0] != "binary_sensor" for c in _pa_ro.hass.services.calls)
+    and all(c[0] != "select" or c[1] != "select_option" or (c[2] or {}).get("entity_id") != "select.pump_silent"
+            for c in _pa_sel.hass.services.calls),
+    f"{_pa_ro.hass.services.calls} {_pa_sel.hass.services.calls}",
+)
+
+_pa_hold = _pa_silent()
+_pa_run(_pa_hold, 0)
+_pa_echo_duty(_pa_hold)
+_pa_aio.run(_pa.apply(_pa_hold, _PA_T0 + timedelta(seconds=5)))
+_pa_hold_grace = list(_pa_sw(_pa_hold))
+_pa_hold.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(_pa_hold, _PA_T0 + timedelta(seconds=60)))
+_pa_hold_rewrite = list(_pa_sw(_pa_hold))
+_pa_hold_issues = [
+    i for i in getattr(_pa_hold.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED
+]
+_pa_echo_duty(_pa_hold)
+_pa_aio.run(_pa.apply(_pa_hold, _PA_T0 + timedelta(seconds=120)))
+_pa_hold_second = list(_pa_sw(_pa_hold))
+_pa_hold_warned = [
+    i for i in getattr(_pa_hold.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED
+]
+_pa_hold.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(
+    _pa_hold, _PA_T0 + timedelta(seconds=120 + _pa.RETRY_MINUTES * 60),
+))
+R.check(
+    "a silent switch that does not echo is rewritten after the grace, warned on the next miss, and retried",
+    _pa_hold_grace == []
+    and _pa_hold_rewrite == [("turn_on", "switch.pump_night_mode")]
+    and _pa_hold_issues == []
+    and _pa_hold_second == []
+    and len(_pa_hold_warned) == 1
+    and _pa_sw(_pa_hold) == [("turn_on", "switch.pump_night_mode")],
+    f"grace {_pa_hold_grace} rewrite {_pa_hold_rewrite} "
+    f"second {_pa_hold_second} warned {_pa_hold_warned} retry {_pa_sw(_pa_hold)}",
+)
+
+_pa_boot = _pa_silent()
+_pa_run(_pa_boot, 0)
+_pa_boot_again = _pa_restart(_pa_boot)
+R.check(
+    "the silent write is in the ownership record a restart restores",
+    _pa.state_for(_pa_boot_again).written.get("silent", (None,))[0] is True,
+    f"{_pa.state_for(_pa_boot_again).written!r}",
+)
+
+_pa_pwr = _pa_silent()
+_pa_pwr._config["heat_pump_switch_entity"] = "switch.pump_power"
+_pa_pwr.hass.states.set("switch.pump_power", FakeState("off"))
+_pa_run(_pa_pwr, 1)
+R.check(
+    "while the power switch reads off the silent slot is not compared or written",
+    _pa_pwr.writes() == [] and _pa_sw(_pa_pwr) == [],
+    f"{_pa_pwr.writes()} {_pa_sw(_pa_pwr)}",
+)
+
+_pa_bst = _pa_silent()
+boost_mod.held_for(_pa_bst).set("space", True, _PA_T0)
+_pa_run(_pa_bst, 1)
+_pa_bst_during = list(_pa_sw(_pa_bst))
+_pa_bst_heat = ("select", "select_option", "Heating") in _pa_bst.writes()
+boost_mod.held_for(_pa_bst).set("space", False, _PA_T0 + timedelta(minutes=20))
+_pa_echo_duty(_pa_bst)
+_pa_run(_pa_bst, 21)
+R.check(
+    "a boost releases the silent switch for its duration and the window holds it again after",
+    _pa_bst_during == [("turn_off", "switch.pump_night_mode")]
+    and _pa_bst_heat
+    and ("turn_on", "switch.pump_night_mode") in _pa_sw(_pa_bst),
+    f"during {_pa_bst_during} heat {_pa_bst_heat} after {_pa_sw(_pa_bst)}",
+)
+_pa_gbst = _pa_silent(duties="-")
+_pa_gbst._mode = "boost"
+_pa_run(_pa_gbst, 1)
+R.check(
+    "the global boost mode releases the silent switch too",
+    _pa_sw(_pa_gbst) == [("turn_off", "switch.pump_night_mode")],
+    f"{_pa_sw(_pa_gbst)}",
+)
+
+_pa_offtr = _pa_silent()
+_pa_run(_pa_offtr, 1)
+_pa_offtr.device("switch.pump_night_mode", "on")
+_pa_offtr.hass.services.calls.clear()
+_pa_offtr._mode = _PA_OFF
+_pa_run(_pa_offtr, 2)
+R.check(
+    "switching the optimizer off inside a silent window writes nothing and leaves the switch on",
+    _pa_offtr.writes() == [] and _pa_sw(_pa_offtr) == []
+    and _pa_offtr.hass.states.get("switch.pump_night_mode").state == "on",
+    f"{_pa_offtr.writes()} {_pa_sw(_pa_offtr)}",
+)
+
+_pa_idle = _PaCoord(_PA_TUYA, duties="-")
+_pa_offw = _PaCoord(_PA_TUYA, duties="-")
+_pa_offw._config["quiet_off_windows"] = "06:00-08:00"
+_pa_offw._config["heat_pump_switch_entity"] = "switch.pump_power"
+_pa_offw._config["heat_pump_capacity_limited_entity"] = "switch.pump_night_mode"
+_pa_offw.hass.states.set("switch.pump_power", FakeState("on"))
+_pa_offw.hass.states.set("switch.pump_night_mode", FakeState("on"))
+_pa_run(_pa_idle, 1)
+_pa_run(_pa_offw, 1)
+R.check(
+    "an off window writes the idle row and nothing else: no extra gate, never the power switch",
+    _pa_offw.writes() == _pa_idle.writes() and _pa_sw(_pa_offw) == []
+    and ("number", "set_value", 25.0) in _pa_offw.writes()
+    and all(w[0] != "select" for w in _pa_offw.writes()),
+    f"off {_pa_offw.writes()} idle {_pa_idle.writes()} switch {_pa_sw(_pa_offw)}",
+)
+
+from heatpump_optimizer import quiet_windows as _pa_qw  # noqa: E402
+
+_pa_qw_seen: list[str] = []
+
+
+def _pa_qw_get(entity_id):
+    _pa_qw_seen.append(entity_id)
+    return None
+
+
+_pa_qw_cfg = {
+    "quiet_silent_windows": "06:00-08:00",
+    "heat_pump_capacity_limited_entity": "switch.pump_night_mode",
+    "silent_mode_power_fraction": 0.7,
+}
+_pa_qw_caps = _pa_qw.compose(
+    None, _pa_qw_cfg, _pa_qw_get, _PA_T0, 8, 0.25, 3.0,
+)
+_pa_qw_power_seen: list[str] = []
+_pa_qw.compose(
+    None,
+    {**_pa_qw_cfg, "heat_pump_power_entity": "sensor.pump_power"},
+    lambda entity_id: _pa_qw_power_seen.append(entity_id) or None,
+    _PA_T0, 8, 0.25, 3.0,
+)
+R.check(
+    "the live silent-switch reading is not an input to the plan's ceiling",
+    _pa_qw_caps.caps is not None
+    and "switch.pump_night_mode" not in _pa_qw_seen
+    and "sensor.pump_power" in _pa_qw_power_seen,
+    f"seen {_pa_qw_seen} power {_pa_qw_power_seen} caps {_pa_qw_caps.caps}",
+)
+
 # ---------------------------------------------------------------------------
 R.section("N-service-clamp/P1 — the manual plan's expiry clamps to its window and a store sample count loads bounded (D1-s2-54, D1-s2-03)")
 # Round 9 F1.4 (#1681 N-service-clamp, #1647 P1). D1-s2-54: apply_manual_plan

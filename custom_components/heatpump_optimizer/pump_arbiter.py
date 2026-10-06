@@ -60,6 +60,17 @@ shows a sent value for a few seconds whether or not the device took it.
 While the configured power switch reads off, nothing is compared or
 written.
 
+**The silent switch** is a fourth held slot on that same record, and only
+when the capacity-limited entity is a ``switch`` and at least one silent
+row is configured (#1911). Inside a silent window it is held on; outside
+one, off; a boost releases it for the boost and it is held again after.
+An install with no silent rows never has it written. An Off window adds
+no write of its own: those steps are the idle row, and the power switch
+is not one of them. Switching the optimizer off writes nothing and undoes
+nothing, so a switch it turned on stays on. The reading that write causes
+keeps the learners off the interval, and it is not a further cap on the
+plan: the window's ceiling is the solve's.
+
 The v6.6.12 design stood down on any change it could not explain as an
 ignored write, turning the optimizer off. On tvofi's install the fork's
 echo, a set-point the device refused, a restart that lost the record's
@@ -109,7 +120,7 @@ import bisect
 import logging
 from collections import Counter, deque
 from dataclasses import dataclass, field, replace
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from weakref import WeakKeyDictionary
 
@@ -121,12 +132,15 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, pump_mode, setpoint_check
+from . import boost, pump_mode, quiet_windows, setpoint_check
 from .const import (
     CONF_DHW_SETPOINT_ENTITY,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_HEAT_PUMP_MODE_ENTITY,
     CONF_HEAT_PUMP_SWITCH_ENTITY,
     CONF_PUMP_DUTY_MODE,
+    CONF_QUIET_OFF_WINDOWS,
+    CONF_QUIET_SILENT_WINDOWS,
     CONF_SPACE_SETPOINT_ENTITY,
     CONF_SPACE_SETPOINT_UNIT,
     DEFAULT_PUMP_DUTY_MODE,
@@ -191,6 +205,8 @@ class PumpCommand:
     mode: str | None
     dhw_setpoint: float | None
     space_setpoint: float | None
+    #: On or off for the silent switch; ``None`` writes nothing there.
+    silent: bool | None = None
 
 
 @dataclass
@@ -239,17 +255,23 @@ class ArbiterInputs:
 
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
-_SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
+_SLOTS = ("mode", "dhw_setpoint", "space_setpoint", "silent")
 #: The mode slot's writable domains; its third, ``sensor``, is read-only.
 _MODE_DOMAINS = frozenset(("select", "input_select"))
 
 
 def _entities(config: Any) -> dict[str, Any]:
-    """Slot -> the configured entity id; the three writable pump slots."""
+    """Slot -> the configured entity id.
+
+    The silent slot is the capacity-limited entity only while that entity
+    is a switch the arbiter can hold. A binary sensor stays a reading.
+    """
+    silent = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
     return {
         "mode": config.get(CONF_HEAT_PUMP_MODE_ENTITY),
         "dhw_setpoint": config.get(CONF_DHW_SETPOINT_ENTITY),
         "space_setpoint": config.get(CONF_SPACE_SETPOINT_ENTITY),
+        "silent": silent if quiet_windows.silent_control_usable(silent) else None,
     }
 
 
@@ -304,6 +326,11 @@ def own(coord: Any, signals: Any) -> Any:
     pump showed the next, or one from before a restart; anything else is
     rewritten within a tick. With the optimizer off the reading blocks
     again, since the pump is the person's then.
+
+    A capacity-limited reading the arbiter caused by holding the silent
+    switch is left on ``signals``. The learners skip that interval, which
+    is what the flag is for, and the reading is not a plan block: the
+    window's ceiling is already the solve's, and this flag adds none.
     """
     inp = coord.arbiter_inputs()
     if duty_mode(inp.config) != DUTY_CONTROL or inp.mode == MODE_OFF:
@@ -387,6 +414,58 @@ def _flow_target(inp: ArbiterInputs, state: Any, duty: str | None) -> float | No
     return _bounded(state, hold, FLOW_GATE_C)
 
 
+def _step_start(now: datetime) -> datetime:
+    """The 15-minute step start covering ``now``, on the solver's clock."""
+    return now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
+
+
+def _silent_rows(spec: Any) -> bool:
+    """Whether ``spec`` names a silent window the week can reach.
+
+    The same ``step_actions`` the solve uses, over seven days from a Monday,
+    so a weekday token and an overnight window are rows and an empty or
+    unreadable spec is not. No rows means the switch is never written.
+    """
+    if not isinstance(spec, str) or not spec.strip():
+        return False
+    monday = datetime(2026, 1, 5, tzinfo=timezone.utc)
+    actions = quiet_windows.step_actions(monday, 7 * 96, 0.25, spec, None)
+    return actions is not None
+
+
+def _inside_silent(silent_spec: str, off_spec: Any, now: datetime) -> bool:
+    """Whether the step covering ``now`` is silent, off winning an overlap.
+
+    The same ``step_actions`` the solve uses, so a hand-edited store whose
+    off row overlaps a silent row holds the switch off: that step is idle,
+    not a silent one.
+    """
+    actions = quiet_windows.step_actions(
+        _step_start(now), 1, 0.25, silent_spec, off_spec,
+    )
+    return actions is not None and int(actions[0]) == quiet_windows.ACTION_SILENT
+
+
+def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None:
+    """On inside a silent window, off outside; ``None`` when the slot is not ours.
+
+    ``None`` when the capacity-limited entity is not a switch, or no silent
+    row is configured: that install never has the switch written. A boost,
+    a channel or the global boost mode, releases it for the boost.
+    """
+    if _entities(inp.config)["silent"] is None:
+        return None
+    spec = inp.config.get(CONF_QUIET_SILENT_WINDOWS)
+    if not _silent_rows(spec):
+        return None
+    if inp.mode == MODE_BOOST:
+        return False
+    held = boost.held_for(coord)
+    if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
+        return False
+    return _inside_silent(spec, inp.config.get(CONF_QUIET_OFF_WINDOWS), now)
+
+
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
     result = inp.plan
@@ -394,8 +473,10 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
     space_state = _slot_state(inp, "space_setpoint")
     dhw = _bounded(_slot_state(inp, "dhw_setpoint"), float(inp.params.dhw_setpoint))
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
-        # Cooling is the user's season, not a duty the plan chose: hands off.
+        # Cooling is the user's season, not a duty the plan chose: hands off,
+        # the silent switch included.
         return PumpCommand(None, None, None)
+    silent = _silent_target(coord, inp, now)
     both = pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
     if duty == "space" and inp.disinfecting:
         duty = "both"
@@ -407,18 +488,18 @@ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> 
         # both thermostats the plan kept off, and the other single duty
         # arms the one it did not just satisfy. The DHW-only lease keeps
         # counting across idle (``_leased``).
-        return PumpCommand(None, dhw, space)
+        return PumpCommand(None, dhw, space, silent)
     if duty == "space":
         if _option_for(mode_state, pump_mode.MODE_HEAT):
-            return PumpCommand(pump_mode.MODE_HEAT, dhw, space)
-        return PumpCommand(both, _bounded(_slot_state(inp, "dhw_setpoint"), DHW_GATE_C), space)
+            return PumpCommand(pump_mode.MODE_HEAT, dhw, space, silent)
+        return PumpCommand(both, _bounded(_slot_state(inp, "dhw_setpoint"), DHW_GATE_C), space, silent)
     if duty != "dhw":
-        return PumpCommand(both, dhw, space)
+        return PumpCommand(both, dhw, space, silent)
     if _option_for(mode_state, pump_mode.MODE_DHW):
-        return PumpCommand(pump_mode.MODE_DHW, dhw, space)
+        return PumpCommand(pump_mode.MODE_DHW, dhw, space, silent)
     if _flow_unit(inp.config):
-        return PumpCommand(both, dhw, space)
-    return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
+        return PumpCommand(both, dhw, space, silent)
+    return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0), silent)
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
@@ -495,6 +576,8 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
     """``observed`` is the select's state for the mode, degC for a set-point."""
     if slot == "mode":
         return bool(pump_mode.resolve(observed) != value)
+    if slot == "silent":
+        return bool(observed is not value)
     if observed is None or value is None:
         return False
     return bool(abs(observed - value) > SETPOINT_TOLERANCE)
@@ -506,6 +589,13 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
     if slot == "mode":
         raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
         return raw if pump_mode.resolve(raw) is not None else None
+    if slot == "silent":
+        raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
+        if raw == "on":
+            return True
+        if raw == "off":
+            return False
+        return None
     return setpoint_check._read_setpoint(inp.hass, entity)
 
 
@@ -576,6 +666,13 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
                 domain,
                 "select_option",
                 {"entity_id": entity, "option": _option_for(state, value)},
+                blocking=True,
+            )
+        elif slot == "silent":
+            await inp.hass.services.async_call(
+                domain,
+                "turn_on" if value else "turn_off",
+                {"entity_id": entity},
                 blocking=True,
             )
         else:
@@ -786,6 +883,8 @@ def _writable(slot: str, value: Any) -> bool:
     """
     if slot == "mode":
         return isinstance(value, str) and value in _OWN_MODES
+    if slot == "silent":
+        return value is True or value is False
     return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
