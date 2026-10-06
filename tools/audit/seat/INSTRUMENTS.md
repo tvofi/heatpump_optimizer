@@ -165,9 +165,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - `roster_lib.py` — shared roster parsing and wave logic (depth, critical
   path, open groups, the branch-to-group lookup). Not a CLI: import it.
   When: any tool that reads the roster — one schema reader, not several.
-- `seat_venv.sh` — builds the seat interpreter venv reproducibly and installs
+- `seat_venv.sh` — builds the seat interpreter venvs reproducibly and installs
   the `shims/`. When: a new workstation or cloud seat; CI features are
   container-only on the Mac (no local venv for the Accelerate wheels).
+  Builds `venv-ci` (CI's `fast` pins) and `venv-ha` (the typing lock,
+  hash-pinned, `--no-deps`, cloud-setup.sh's pins call). `--check` reports
+  both. `--self-test` drives the recipe and the shim export.
 - `state_docs.py` — one call regenerates the three state docs
   (`plan_table.py`, `resume_doc.py`, `handover_prompt.py`), commits exactly
   their outputs to the orphan ref `handoff/audit-r9-plan` at
@@ -199,5 +202,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   detached so a crashed seat is recoverable from its branch. Refusal: it
   never touches the worktree or its index — a snapshot, not a save.
 - `shims/seat-python`, `shims/seat-python3` — the seat interpreter: execs the
-  venv `seat_venv.sh` builds under `$HPO_STATE_DIR` (default
-  `~/.local/state/hpo`). When: a seat's PATH needs a pinned interpreter.
+  venv-ci `seat_venv.sh` builds under `$HPO_STATE_DIR` (default
+  `~/.local/state/hpo`) and exports `HPO_TYPING_PYTHON` to venv-ha/bin/python
+  only when that interpreter exists and the variable is unset. When: a seat's
+  PATH needs a pinned interpreter, and the scoped gate should check the mypy
+  census.
