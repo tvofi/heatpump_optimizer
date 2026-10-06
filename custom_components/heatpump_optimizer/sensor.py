@@ -2943,7 +2943,7 @@ class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
         )
 
     @property
-    def native_value(self) -> float:
+    def native_value(self) -> float | None:
         advice = model_restart_advice(self.coordinator)
         refit = (advice["refit"] or {}).get("scale")
         scale = refit if refit is not None else advice["current_scale"]
