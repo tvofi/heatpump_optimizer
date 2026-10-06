@@ -590,9 +590,12 @@ def _forget(held: ArbiterState) -> None:
 
 async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
     held = state_for(coord)
-    state, entity = _slot_state(inp, slot), _entities(inp.config)[slot]
+    entity = _slot_entity(inp.config, slot)
+    state = inp.hass.states.get(entity) if entity else None
     recorded = held.written.get(slot)
-    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
+    if value is None or entity is None or state is None or (
+        recorded and not _differs(slot, recorded[0], value)
+    ):
         return
     if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
         return
@@ -607,12 +610,19 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
                 {"entity_id": entity, "option": _option_for(state, value)},
                 blocking=True,
             )
+        elif slot in _NIGHT_KEYS:
+            await inp.hass.services.async_call(
+                domain,
+                "set_value",
+                {"entity_id": entity, "value": int(value)},
+                blocking=True,
+            )
         else:
             await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
     except Exception as err:  # noqa: BLE001 - retried on the next tick
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
-    held.written[slot] = (value, now)
+    held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
     await _persist(coord)
 
 
@@ -656,35 +666,7 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
         "night_end_minute": end_m,
     }
     for slot in _NIGHT_SLOTS:
-        await _write_night(coord, inp, slot, values[slot], now)
-
-
-async def _write_night(
-    coord: Any, inp: ArbiterInputs, slot: str, value: int, now: datetime
-) -> None:
-    held = state_for(coord)
-    entity = _slot_entity(inp.config, slot)
-    state = inp.hass.states.get(entity) if entity else None
-    recorded = held.written.get(slot)
-    if entity is None or state is None:
-        return
-    if recorded and not _differs(slot, recorded[0], value):
-        return
-    if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
-        return
-    domain = entity.split(".", 1)[0]
-    try:
-        await inp.hass.services.async_call(
-            domain,
-            "set_value",
-            {"entity_id": entity, "value": int(value)},
-            blocking=True,
-        )
-    except Exception as err:  # noqa: BLE001 - retried on the next tick
-        _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
-        return
-    held.written[slot] = (int(value), now)
-    await _persist(coord)
+        await _write(coord, inp, slot, values[slot], now)
 
 
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
