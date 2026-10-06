@@ -121,7 +121,7 @@ export function derivations() {
   if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
   d.scripts = jsonKeys('tests/closures.json', 'closures')
   d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = fs.readdirSync(at('dev/governance/dimensions')).filter((f) => /^D\d+\.md$/.test(f)).length
+  d.briefs = fs.readdirSync(at('dev/governance/dimensions')).filter((f) => f.endsWith('.md')).length
   d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
   const card = read('tests/card_drift.mjs')
   if (card) {
