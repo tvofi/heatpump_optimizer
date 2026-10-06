@@ -628,8 +628,8 @@ INERT_EXCEPT = (
     # parts, so `_is_header_corpus` (five) does not reach it and the
     # tools/audit/ prefix would keep it INERT while this gate script reads
     # it. It leaves the prefix the way judge_batch.py did. The mjs and sh
-    # copies are read by a child of that script; the audit hook does not
-    # follow children, and the tools/audit/ prefix still covers them.
+    # copies stay on the prefix: the scan's child opens them, strace -f
+    # records that under inert_reads, and the hook does not follow the child.
     "tools/audit/repo_root.py",
 )
 

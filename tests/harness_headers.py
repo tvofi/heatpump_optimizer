@@ -368,7 +368,9 @@ def inline_scan() -> int:
     """Compare every inlined walk to the canonical copy, and list depth seams.
 
     Run as a child of ``check_repo_roots``. The audit hook does not follow
-    children, and this scan opens the evidence corpus, which stays INERT.
+    children. The closures job's ``strace -f`` does, and files those opens
+    under ``inert_reads``: the corpus stays INERT, and a Darwin re-record
+    cannot see the child's opens, so that list is not rebuilt here.
     ``harness_headers`` is ``run_always``, so the child still runs on every gate.
     """
     import ast
