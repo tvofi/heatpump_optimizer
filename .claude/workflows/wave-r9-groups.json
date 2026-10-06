@@ -4978,7 +4978,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "cursor/r9-sw-1-resume-826f",
-    "commit": "d76d98ca40c0462e13f5869f1898b1a0b48b20b8",
+    "commit": "fd41f78a1d18fcdc0ab7616d8eb491d3ff512c08",
     "last_step": "fixer seat bc-2cfdcbf9 driving mutation pins serially: tip d76d98ca on cursor/r9-sw-1-resume-826f and handoff/r9-sw-model (2026-10-05T20:42Z), after 04805baa; PR #1960 still at ca0fbf77, where closures, mutation and budget-raise-gate are red",
     "next_step": "fixer re-handoff with every added site pinned; orchestrator brings the authored head onto PR #1960 (update_pr.sh), dispatches the review at that head; #1910 is closed by the PR only if fixes[] names it (it does not today)",
     "note_file": "handoff/round9/fix/resume/SW-1.md on handoff/r9-sw-model",
