@@ -391,6 +391,8 @@ from .accuracy import (
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
+    REFIT_SETTLED_DAYS,
+    heat_loss_refit,
     utc_elapsed_seconds,
     utc_shift,
 )
@@ -1064,6 +1066,106 @@ def _settle_interval_diag(
         },
         "actual": float(sample.actual_temp),
     }
+
+
+def _house_loss_terms(params: ThermalParameters) -> tuple[float, float]:
+    """``(base_u, capacity)`` the house heat-loss scale is fitted about.
+
+    Two-zone fits from the upper zone alone, matching the indoor sensor the
+    residual is read from. The scale still multiplies both zones -- it owns
+    the overall *level* -- while ``lower_floor_loss_ratio`` owns the split
+    and is fitted separately from the lower zone. Splitting the jobs this
+    way is what keeps the two identifiable: the ratio does not touch the
+    upper zone, so this fit is unaffected by it.
+    """
+    if params.two_zone_enabled:
+        return params.upper_floor_heat_loss, params.upper_floor_thermal_mass
+    return params.heat_loss_coefficient, params.room_thermal_mass
+
+
+async def _async_save_restored(coord: Any) -> None:
+    """Persist every learner a snapshot restore rewrote, each by its own store."""
+    await coord._async_save_thermal_learning()
+    await coord._dhw_learner.async_save_profile()
+    await coord._dhw_learner.async_save_draws()
+    await coord._async_save_price_model()
+    await coord._async_save_accuracy()
+
+
+def model_restart_advice(coord: Any) -> dict[str, Any]:
+    """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
+
+    Nothing until the #42 alarm is raised. Then the last known-good
+    snapshot (``best_restore``: healthy, in band, pre-streak) and a batch
+    refit of the heat-loss scale from the tracker's settled pairs -- the
+    evidence that raised the alarm. Recommend-only: nothing here applies
+    anything; the restore service does, on an explicit request.
+    """
+    ctx = getattr(coord, "_ctx", coord)
+    ring = getattr(coord, "_snapshot_ring", None)
+    scale = getattr(coord, "_house_heat_loss_scale", None)
+    advice: dict[str, Any] = {
+        "drift_alarm": bool(getattr(ring, "alarmed", False)),
+        "current_scale": None if scale is None else round(float(scale), 3),
+        "refit": None,
+        "restore": None,
+    }
+    if ring is None or not ring.alarmed:
+        return advice
+    snap = ring.best_restore()
+    if snap is not None:
+        thermal = (snap.get("learners") or {}).get("thermal_learning") or {}
+        advice["restore"] = {
+            "taken_at": snap.get("taken_at"),
+            "scale": thermal.get("house_heat_loss_scale"),
+        }
+    base_u, capacity = _house_loss_terms(ctx._thermal_params)
+    advice["refit"] = heat_loss_refit(
+        coord._accuracy.samples,
+        current_scale=float(coord._house_heat_loss_scale),
+        base_u=base_u,
+        capacity=capacity,
+        dt_hours=_as_float(
+            ctx._config.get(CONF_OPTIMIZATION_INTERVAL),
+            DEFAULT_OPTIMIZATION_INTERVAL,
+        ) / 60.0,
+        min_delta=HOUSE_LOSS_MIN_DELTA,
+        max_residual=HOUSE_LOSS_MAX_RESIDUAL,
+        settle=boost.SPACE_SETTLE_TAIL,
+        since=coord._accuracy.evidence_since,
+    )
+    return advice
+
+
+async def async_adopt_heat_loss_refit(coord: Any) -> bool:
+    """Accept the drift advisor's heat-loss refit (#1936); True when applied.
+
+    Through ``_apply_learner_payloads`` -- the path every snapshot restore
+    takes -- with the thermal store's own current payload and only the scale
+    replaced, so nothing else moves. The restore restarts the evidence,
+    which is what keeps the pairs this refit came from out of the next one.
+    """
+    refit = model_restart_advice(coord)["refit"]
+    scale = refit["scale"] if refit else None
+    if scale is None:
+        _LOGGER.warning(
+            "No heat-loss refit is on offer: it needs an active drift alarm "
+            "and %g settled days of evidence", REFIT_SETTLED_DAYS,
+        )
+        return False
+    previous = coord._house_heat_loss_scale
+    thermal = coord._thermal_learning_payload()
+    thermal["house_heat_loss_scale"] = scale
+    coord._apply_learner_payloads({"thermal_learning": thermal})
+    _LOGGER.info(
+        "House heat-loss scale restarted from the drift refit on request: "
+        "%.3f -> %.3f (estimator band about +/-7-10%%)",
+        previous, coord._house_heat_loss_scale,
+    )
+    await coord._async_save_thermal_learning()
+    await coord._async_save_accuracy()
+    coord.async_update_listeners()
+    return True
 
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
@@ -5106,19 +5208,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # Current effective coefficient, i.e. what actually produced the
         # prediction, so the Newton step is taken about the right point.
-        #
-        # Two-zone fits from the upper zone alone, matching the residual above.
-        # The scale still multiplies both zones -- it owns the overall *level* --
-        # while `lower_floor_loss_ratio` owns the split and is fitted separately
-        # from the lower zone. Splitting the jobs this way is what keeps the two
-        # identifiable: the ratio does not touch the upper zone, so this fit is
-        # unaffected by it.
-        if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss
-            capacity = params.upper_floor_thermal_mass
-        else:
-            base_u = params.heat_loss_coefficient
-            capacity = params.room_thermal_mass
+        base_u, capacity = _house_loss_terms(params)
         step = learner_newton_step(
             self._house_heat_loss_scale,
             base_u, capacity, residual, delta_t, dt_h,
@@ -9468,6 +9558,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
+            if (tracker := getattr(self, "_accuracy", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936
             for setter, key in (
                 (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
                 (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
@@ -9630,11 +9721,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     BIAS_TRIP_DAYS,
                     snap.get("taken_at"),
                 )
-                await self._async_save_thermal_learning()
-                await self._dhw_learner.async_save_profile()
-                await self._dhw_learner.async_save_draws()
-                await self._async_save_price_model()
-                await self._async_save_accuracy()
+                await _async_save_restored(self)
         _create_issue(
             self.hass,
             DOMAIN,
@@ -9666,11 +9753,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "Learned state restored from the snapshot taken %s",
             snap.get("taken_at"),
         )
-        await self._async_save_thermal_learning()
-        await self._dhw_learner.async_save_profile()
-        await self._dhw_learner.async_save_draws()
-        await self._async_save_price_model()
-        await self._async_save_accuracy()
+        await _async_save_restored(self)
         self.async_update_listeners()
         return True
 

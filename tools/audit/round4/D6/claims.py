@@ -309,18 +309,26 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 75 entities are created on every install",
+eq("C1", "README.md:Entities", "All 76 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
-eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
+eq("C2", "README.md:### Sensors", "Sensors (60 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
 eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
    int(re.search(r"### Binary Sensors \((\d+) total\)", README).group(1)),
    COUNTS["binary_sensor"])
 eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,
    int(re.search(r"### Buttons \((\d+) total\)", README).group(1)), COUNTS["button"])
-eq("C5", "docs/architecture.md:mermaid", "75 entities / 59 sensors / 6 binary sensors / "
-   "4 buttons / 4 switches / 1 climate / 1 datetime", CMD,
-   (75, 59, 6, 4, 4, 1, 1),
+_arch_diagram = re.search(
+    r"(\d+) entities<br/>(\d+) sensors, (\d+) binary sensors,<br/>"
+    r"(\d+) buttons, (\d+) switches,<br/>(\d+) climate, (\d+) datetime",
+    DOCS["architecture.md"],
+)
+_arch_doc = tuple(int(g) for g in _arch_diagram.groups())
+eq("C5", "docs/architecture.md:mermaid",
+   f"{_arch_doc[0]} entities / {_arch_doc[1]} sensors / {_arch_doc[2]} binary sensors / "
+   f"{_arch_doc[3]} buttons / {_arch_doc[4]} switches / {_arch_doc[5]} climate / "
+   f"{_arch_doc[6]} datetime",
+   CMD, _arch_doc,
    (TOTAL, COUNTS["sensor"], COUNTS["binary_sensor"], COUNTS["button"],
     COUNTS["switch"], COUNTS["climate"], COUNTS["datetime"]))
 
@@ -777,7 +785,7 @@ eq("C37", "docs/architecture.md:module map", "__init__.py -- the 11 services", C
 eq("C38", "docs/architecture.md:module map", "services.yaml -- The 11 service definitions",
    CMD, int(re.search(r"The (\d+) service definitions", DOCS["architecture.md"]).group(1)),
    len(SERVICES_YAML), "services.yaml defines {m} services")
-eq("C39", "docs/architecture.md:module map", "sensor.py -- 59 sensors", CMD,
+eq("C39", "docs/architecture.md:module map", "sensor.py -- 60 sensors", CMD,
    int(re.search(r"# (\d+) sensors", DOCS["architecture.md"]).group(1)), COUNTS["sensor"])
 # #939: the map comments now name every constructed entity, and the long ones
 # wrap onto `│ ...` continuation lines (button.py's precedent), so an entry's

@@ -655,3 +655,15 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
+#
+# R9-DIAG-2S (#1936): this diff claims the five coordinator captures and
+# NOTHING ELSE. The direction is ADD-ONLY. Every moved leaf is
+# sensors.model_restart_advisor, present on this head only: the Model
+# Restart Advisor is a new sensor, and the committed fixtures predate it.
+# No plan, schedule or solver leaf moves. These names are not may-drift.
+
+coord_all_features # R9-DIAG-2S: sensors.model_restart_advisor added
+coord_dhw # R9-DIAG-2S: sensors.model_restart_advisor added
+coord_grid_fee # R9-DIAG-2S: sensors.model_restart_advisor added
+coord_minimal # R9-DIAG-2S: sensors.model_restart_advisor added
+coord_two_zone # R9-DIAG-2S: sensors.model_restart_advisor added
