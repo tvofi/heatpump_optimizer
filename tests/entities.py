@@ -23643,6 +23643,52 @@ R.check(
     "recording, and report a row as written by the commit that failed to "
     "write it",
 )
+# Deploy-key merges on main have used the pull request TITLE as the subject,
+# with the number only on a body line `Merge pull request #N`. `subject_number`
+# reading the subject alone reports those as UNCHECKED; option (a) reads that
+# body line. `Fixes #N` is an issue close, not that line — the same window
+# holds both, and taking the issue number would file the wrong merge.
+_DS_TITLE_WINDOW = [
+    _ds_commit(
+        "50e1f11",
+        "record: delivery rows for #1969 (autofix)",
+        body="Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
+    ),
+    _ds_commit(
+        "8107181",
+        "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
+        body="Fixes #1935\n",
+    ),
+    _ds_commit("ccccccc", "v6.7.16: stamp", parents=1),
+]
+_ds_title_merges, _ds_title_blind = _ds.collect(_DS_TITLE_WINDOW)
+try:
+    _ds_from_body = _ds.subject_number(
+        "record: delivery rows for #1969 (autofix)",
+        "Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
+    )
+    _ds_from_fixes = _ds.subject_number(
+        "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
+        "Fixes #1935\n",
+    )
+except TypeError:
+    _ds_from_body = _ds_from_fixes = None
+R.check(
+    "a title-subject merge is numbered from a body Merge pull request line",
+    [m["number"] for m in _ds_title_merges] == [1970]
+    and (_ds_title_merges[0]["title"] if _ds_title_merges else None)
+    == "record: delivery rows for #1969 (autofix)"
+    and [b["sha"] for b in _ds_title_blind] == ["8107181"]
+    and _ds.subject_number("record: delivery rows for #1969 (autofix)") is None
+    and _ds_from_body == 1970
+    and _ds_from_fixes is None,
+    f"collected {[m['number'] for m in _ds_title_merges]} title "
+    f"{(_ds_title_merges[0]['title'] if _ds_title_merges else None)!r}; "
+    f"unattributed {_ds_title_blind}; subject_number(title, body-line)="
+    f"{_ds_from_body!r}. The subject-only call is the null control: option "
+    "(a) reads the body's `Merge pull request #N` line and does not take "
+    "`Fixes #N` as that line",
+)
 # The guard: a merge commit no rule can attribute. THIS is what separates a run
 # that could not look from a run that looked and found nothing -- the two were
 # byte-identical before, and the second is a legitimate green right after a
@@ -24571,7 +24617,42 @@ steps:
     if: always() && steps.changed.outputs.delivery_status == 'true'
     run: |
       git fetch --no-tags --quiet origin main
-      python tests/delivery_status.py --check
+      # A non-zero exit shared with the base copy on this tree is that
+      # copy's own. Exit with the pull request's code only when the two
+      # differ, and exit 1 when this copy prints OVERDUE and the base
+      # copy does not: both of those exits are 1, so the codes alone
+      # cannot separate them.
+      head_copy="$RUNNER_TEMP/delivery_status.head.py"
+      cp tests/delivery_status.py "$head_copy"
+      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+      base_rc=$?
+      set -e
+      cp "$head_copy" tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+      head_rc=$?
+      set -e
+      cat "$RUNNER_TEMP/delivery_status.base.out"
+      echo "----- head copy -----"
+      cat "$RUNNER_TEMP/delivery_status.head.out"
+      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+      head_overdue=0
+      base_overdue=0
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+        head_overdue=1
+      fi
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+        base_overdue=1
+      fi
+      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+        exit 1
+      fi
+      if [ "$head_rc" -ne "$base_rc" ]; then
+        exit "$head_rc"
+      fi
+      exit 0
 
   - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -24736,6 +24817,100 @@ R.check(
     _pt_trigger(_PT_SCRIPT.replace('echo "governance=true"', 'echo "governance=false"'),
                 ".claude/workflows/x.mjs") == "false",
     "the trigger check must execute the script, not read the pathspec",
+)
+
+
+def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
+              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
+    """Run the delivery_status step under bash -e with stub git and python.
+
+    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
+    code for whichever copy the step has in tests/delivery_status.py, so the
+    step's own comparison is what the return code measures.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "tests").mkdir()
+        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
+        (root / "rt").mkdir()
+        bindir = root / "bin"
+        bindir.mkdir()
+        (bindir / "git").write_text(
+            "#!/bin/sh\n"
+            "case \"$1\" in\n"
+            "  fetch) exit 0 ;;\n"
+            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
+            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
+            "esac\n")
+        (bindir / "python").write_text(
+            "#!/bin/sh\n"
+            "f=$(cat tests/delivery_status.py)\n"
+            "case \"$f\" in\n"
+            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
+            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
+            "esac\n"
+            "case \"$f\" in\n"
+            f"  HEAD*) exit {head_rc} ;;\n"
+            f"  BASE*) exit {base_rc} ;;\n"
+            "  *) echo unreadable copy >&2; exit 9 ;;\n"
+            "esac\n")
+        os.chmod(bindir / "git", 0o700)
+        os.chmod(bindir / "python", 0o700)
+        _pt_ds_rc.modes = (
+            (bindir / "git").stat().st_mode & 0o777,
+            (bindir / "python").stat().st_mode & 0o777,
+        )
+        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
+               "RUNNER_TEMP": str(root / "rt")}
+        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
+                              capture_output=True, text=True)
+        return proc.returncode
+
+
+_PT_DS_RUN = next(
+    str(_s.get("run") or "")
+    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
+    if "tests/delivery_status.py" in str(_s.get("run") or ""))
+_PT_DS_CASES = {
+    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
+    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
+    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
+    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
+    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
+    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
+    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
+}
+R.check(
+    "the delivery_status stubs are owner-executable and neither group nor world accessible",
+    _pt_ds_rc.modes == (0o700, 0o700),
+    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
+)
+_PT_DS_DROP_EXIT = (
+    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
+_PT_DS_DROP_OVERDUE = (
+    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
+    '  exit 1\nfi\n')
+_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
+_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
+_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
+R.check(
+    "graders-head-copy's delivery_status step is red only when this copy's "
+    "exit differs from the base copy's, or this copy alone prints OVERDUE",
+    _PT_DS_CASES == {
+        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
+        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
+    }
+    and _PT_DS_SAME != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
+    and _PT_DS_ZERO != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
+    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
+    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
+    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
+    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
+    f"OVERDUE line makes a head-only OVERDUE green "
+    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
 )
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
