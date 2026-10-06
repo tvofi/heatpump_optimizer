@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 341.3,
-   "rc": 1
+   "seconds": 157.6,
+   "rc": 0
   },
   "tests/env_drift.py": {
    "seconds": 0.9,
@@ -2918,6 +2918,7 @@
   "tests/entities.py": [
    ".claude/workflows/figure_lint.mjs",
    "LICENSE",
+   "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py"
   ]
