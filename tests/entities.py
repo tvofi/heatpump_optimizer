@@ -5012,7 +5012,10 @@ for _label, _coord, _want in (
 ):
     _coord._current_action = {}
     _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
-    _boost_mod.apply(_coord)
+    _boost_mod.apply(_coord, _boost_mod.BoostOverlay(
+        float(_coord._thermal_model.params.max_electrical_power),
+        0.0, float(_coord._ecl110_displace_max),
+    ))
     _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
     R.check(
         f"the boost overlay {_label} hot-water power where the plant "
@@ -21731,6 +21734,63 @@ R.check(
     "none of the four learner summaries appeared",
 )
 
+# The snapshot's wiring, at the values (not just the keys): a delegate that
+# stopped calling the view, or a view that stopped reading its members,
+# leaves the keys in place with None behind them (R9-EG-B6, #1739).
+R.check(
+    "the coordinator snapshot carries the live counter values, not None placeholders",
+    _diag["coordinator"].get("solve_failures") == 0
+    and _diag["coordinator"].get("tibber_outage_cycles") == 0
+    and _diag["coordinator"].get("tibber_reauth_started") is False
+    and _diag["coordinator"].get("cop_samples") is not None,
+    f"counters: " + repr({
+        k: _diag["coordinator"].get(k)
+        for k in ("solve_failures", "tibber_outage_cycles",
+                  "tibber_reauth_started", "cop_samples")
+    }),
+)
+
+# The view's tolerance, both ends: a coordinator that cannot produce the
+# view reports None fields and no learner keys, and a learner whose
+# summary is absent or raises is omitted or reported, never raised.
+_diag_duck = type("Duck", (), {"mode": "auto", "last_update_success": True})()
+_diag_duck_snap = _diag_mod._coordinator_snapshot(_diag_duck)
+R.check(
+    "a coordinator without the view reports None fields and no learner keys",
+    _diag_duck_snap["solve_failures"] is None
+    and _diag_duck_snap["cop_scale"] is None
+    and _diag_duck_snap["house_heat_loss_scale"] is None
+    and _diag_duck_snap["tibber_outage_cycles"] is None
+    and not any(
+        k in _diag_duck_snap
+        for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
+    ),
+    repr({k: _diag_duck_snap[k] for k in ("solve_failures", "cop_scale")}),
+)
+
+
+from heatpump_optimizer.coordinator import (
+    CoordinatorDiagnostics as _DiagView,  # noqa: E402
+)
+
+
+class _DiagLearners:
+    """A coordinator stub whose learners sit at both ends of of()'s guard."""
+
+
+_diag_learners_stub = _DiagLearners()
+_diag_learners_stub._accuracy = object()  # no summary attribute at all
+_diag_learners_stub._comfort_learner = type(
+    "L", (), {"summary": lambda self: (_ for _ in ()).throw(RuntimeError("boom"))}
+)()
+_diag_of = _DiagView.of(_diag_learners_stub)
+R.check(
+    "a learner without a callable summary is omitted; one that raises reports unavailable",
+    "accuracy" not in _diag_of.learner_summaries
+    and _diag_of.learner_summaries.get("comfort_learner") == "summary unavailable",
+    repr(_diag_of.learner_summaries),
+)
+
 # --- D10-08: the shared entity base lives in entity.py ----------------------
 #
 # The audit found five CoordinatorEntity base classes, one per platform file,
@@ -31744,6 +31804,78 @@ R.check(
     and _egb2_real.effective_config
     == {**_egb2_real.entry.data, **_egb2_real.entry.options},
     "no real coordinator" if _egb2_real is None else "a view diverged",
+)
+
+
+# --- R9-EG-B6 (#1739 collaborator half): no private reach from a collaborator.
+# The same scan that pins the surfaces pins the collaborator modules, minus
+# the data/options spread rule: a service or the setup entry legitimately
+# reads ``{**entry.data, **entry.options}`` -- that rule is about the
+# platforms' merged COPY, not about a private. What a collaborator may not
+# do is touch a coordinator private: its inputs arrive as explicit
+# parameters (the pump arbiter's snapshot, boost's overlay numbers, away's
+# state and entity reader, wood fuel's parts) or through a view the
+# coordinator publishes (the B2 views, the diagnostics state).
+def _egb6_private_reads(tree: ast.AST) -> list[str]:
+    found = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr.startswith("_")
+            and not node.attr.startswith("__")
+            and _egb2_is_coord(node.value)
+        ):
+            found.append(f"{node.lineno}:.{node.attr}")
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("getattr", "hasattr", "setattr")
+            and len(node.args) >= 2
+            and _egb2_is_coord(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and str(node.args[1].value).startswith("_")
+        ):
+            found.append(f"{node.lineno}:{node.func.id}({node.args[1].value!r})")
+    return found
+
+
+_EGB6_COLLABORATORS = (
+    "pump_arbiter.py", "boost.py", "away.py", "wood_fuel.py",
+    "diagnostics.py", "setpoint_check.py", "services.py", "__init__.py",
+)
+_egb6_trees = {n: ast.parse((ROOT / n).read_text()) for n in _EGB6_COLLABORATORS}
+_egb6_reads = {
+    n: r for n, r in ((n, _egb6_private_reads(t)) for n, t in _egb6_trees.items()) if r
+}
+R.check(
+    "EG-B6: no collaborator module reaches a coordinator private member; "
+    "its inputs arrive as explicit parameters or a published view (#1739)",
+    not _egb6_reads,
+    repr(_egb6_reads),
+)
+# The scan's own null control, keyed to the collaborator spellings the fix
+# removed: the arbiter's snapshot reads, the getattr fallbacks and the
+# three in-place writes each plant a hit, and the public twin of each line
+# plants none.
+_egb6_planted = ast.parse(
+    "x = coord._config\n"
+    "y = getattr(coord, '_optimization_result', None)\n"
+    "coord._current_action = {}\n"
+    "coordinator._skip_solve_once = True\n"
+)
+_egb6_public = ast.parse(
+    "x = coord.arbiter_inputs().config\n"
+    "y = getattr(coord, 'arbiter_inputs', None)\n"
+    "coord.adopt_action({})\n"
+    "coordinator.diagnostics_state().solve_failures\n"
+)
+R.check(
+    "EG-B6: the collaborator reach scan names a planted reach of each "
+    "spelling and none of their published twins (the scan's null control)",
+    len(_egb6_private_reads(_egb6_planted)) == 4
+    and not _egb6_private_reads(_egb6_public),
+    f"planted={_egb6_private_reads(_egb6_planted)!r} "
+    f"public={_egb6_private_reads(_egb6_public)!r}",
 )
 
 

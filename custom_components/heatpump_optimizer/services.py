@@ -483,15 +483,19 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
     wanted_set = params.get("dhw_setpoint")
     if wanted_min is not None or wanted_set is not None:
         for _entry_id, coord in targets:
+            # Each coordinator's effective pair, read through the published
+            # read-only view (#1739): the service is invoked by Home
+            # Assistant far from the coordinator, so the view is the
+            # interface here, not an injected parameter.
             setpoint = (
                 wanted_set
                 if wanted_set is not None
-                else coord._thermal_params.dhw_setpoint
+                else coord.thermal_params.dhw_setpoint
             )
             minimum = (
                 wanted_min
                 if wanted_min is not None
-                else coord._thermal_params.dhw_min_temp
+                else coord.thermal_params.dhw_min_temp
             )
             ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
             if float(minimum) > ceiling:
