@@ -485,7 +485,6 @@
   ],
   "tests/entities.py": [
    ".claude/workflows/brief_lint.mjs",
-   "dev/governance/config/cfr_exclusions.json",
    ".claude/workflows/counts.mjs",
    ".claude/workflows/figure_lint.mjs",
    ".claude/workflows/fixtures/required-contexts.json",
@@ -591,6 +590,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "dev/governance/config/cfr_exclusions.json",
    "dev/programme/HANDOVER.md",
    "docs/architecture.md",
    "docs/automations.md",
