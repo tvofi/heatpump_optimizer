@@ -1,0 +1,10 @@
+RESULT outside-window tank at min: None
+RESULT all-day window tank at min: the tank is at its minimum inside a demand window
+RESULT plan base identity held: True
+RESULT plan base values held: True
+RESULT overlaid power: 0.0 supply: True
+RESULT july-stamp far-due dhw power: 0.5
+RESULT july-stamp block still held: False
+RESULT live-stamp far-due dhw power: 0.5
+RESULT live-stamp block held: False
+RESULT round-sliver due 24.0 due<24 False deadline_step 95 places True
