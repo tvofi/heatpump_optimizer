@@ -481,32 +481,7 @@ jobs:
       - name: Require each declared environment shape to produce its declared outcome
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          # The pin above commits the base's matrix. That copy still invokes
-          # .claude/workflows/policy_lint.mjs, which R9-RO-6 moved to
-          # tools/policy/. Node then exits 1 with "Cannot find module" before
-          # the linter runs, and every row that starts it reports rc=1.
-          # Rewrite those invocations in the working tree this step executes.
-          # The clone the matrix builds is the pin commit, whose linter is
-          # already at tools/policy/; the assertions stay the base's.
-          python3 - <<'PY'
-          from pathlib import Path
-          p = Path("tools/policy/policy_lint_envmatrix.mjs")
-          if not p.exists():
-              p = Path(".claude/workflows/policy_lint_envmatrix.mjs")
-          t = p.read_text()
-          n = t
-          for name in ("policy_lint_mutants.mjs", "check-wave-script.mjs", "policy_lint.mjs"):
-              n = n.replace(f".claude/workflows/{name}", f"tools/policy/{name}")
-          if n != t:
-              p.write_text(n)
-          PY
-          if test -f .claude/workflows/policy_lint_envmatrix.mjs; then
-            node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
-          else
-            node tools/policy/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
-          fi
+        run: if test -f .claude/workflows/policy_lint_envmatrix.mjs; then node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; else node tools/policy/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; fi
 
   wave-script:
     # The control flow a wave resume rests on. `.claude/` is INERT in
