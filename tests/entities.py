@@ -14981,6 +14981,15 @@ R.check(
     f"{len(_D308_PAIRS)} of {_D308_TOTAL} with {_D308_COMPARABLE} comparable",
 )
 
+# R9-DBG-3: import the harness before the orphan census so a recording that
+# fails that census still traced the new tools/replay files (the two-step
+# merge in tests/closure.py). The checks themselves run with the replay
+# cheap half.
+sys.path.insert(0, str(_closure.ROOT / "tools" / "replay"))
+import debug_ingest as _dbg_ingest  # noqa: E402
+import debug_replay as _dbg_replay  # noqa: E402
+import dbg_bundle_gen as _dbg_gen  # noqa: E402
+
 # The scoped gate refuses to skip anything when a changed file is in no
 # closure -- an unmeasured file is not a safe skip. That is right, and it was
 # quietly making gates full: renaming one identifier in setup_qa_render.mjs, a
@@ -31177,6 +31186,15 @@ R.check(
 # the loop in every arm and the fit ran there in the third.
 for _rp_name, _rp_ok, _rp_detail in _replay.kernel_checks():
     R.check(_rp_name, _rp_ok, _rp_detail)
+
+# R9-DBG-3: repo-side debugger harness, gated here like the replay cheap half
+# so a change under tools/replay selects this script without a new selectable
+# lane (run.sh / derive_closures.sh / closure.py are owned).
+R.section("The debugger harness: ingest, store seed, week generator")
+for _dbg_name, _dbg_ok, _dbg_detail in (
+    _dbg_ingest.gate_checks() + _dbg_replay.gate_checks() + _dbg_gen.gate_checks()
+):
+    R.check(_dbg_name, _dbg_ok, _dbg_detail)
 
 
 # --- round 9's judge re-runner (PLAN R3) ---

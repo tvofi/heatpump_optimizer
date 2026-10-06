@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 217.4,
-   "rc": 0
+   "seconds": 341.3,
+   "rc": 1
   },
   "tests/env_drift.py": {
    "seconds": 0.9,
@@ -697,6 +697,9 @@
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
    "tools/release/stamp.py",
+   "tools/replay/dbg_bundle_gen.py",
+   "tools/replay/debug_ingest.py",
+   "tools/replay/debug_replay.py",
    "tools/replay/export.py",
    "tools/replay/synthesize.py",
    "tools/site/package-lock.json"
