@@ -7609,7 +7609,7 @@
     "branch": "fix/r9-fr-11",
     "commit": "ff6675b03068fa154621501e6bd726ab3ac8041f",
     "last_step": "PR #1982 head ff6675b03068fa154621501e6bd726ab3ac8041f. Merge verdict posted. tvofi approved under mandate 6003649101. The head does not contain origin/main 0e8e22c6. ## Red checks names delivery-status.",
-    "next_step": "failing acceptance first (the not-checked line at the base), then the venv-ha build, then the null control",
+    "next_step": "Recarry origin/main, carry the verdict, then merge. leaves #201 open. This is the second fold, so #1951 may close.",
     "note_file": "handoff/round9/fix/resume/FR-11.md on fix/r9-fr-11",
     "review_branch": null,
     "review_note_file": null,
