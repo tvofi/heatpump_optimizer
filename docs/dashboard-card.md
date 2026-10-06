@@ -17,6 +17,9 @@ each panel with its own scale:
     recorded state history, which every install has), and the commanded power
     in kW above it on installs whose action sensor publishes a `power_kw`
     attribute
+  - **Silent window** and **Off window** — a band along the top of the panel
+    for steps the plan assumed as silent or off, from the plan sensor's
+    resolved actions. The chips appear only while those steps exist.
 - **Temperatures** (°C)
   - **Outdoor temperature** (smooth dashed-blue line)
   - **DHW tank temperature** (smooth line, with the prediction's expected
@@ -467,6 +470,22 @@ editor: it saves the schedule it shows, and what it shows is the ordinary
 spec. When overrides are in force the plan honours them instead, and the
 [resolved band](#the-two-kinds-of-dashed-line) on the chart is what follows
 that.
+
+Directly under those hot-water rows sits a **Silent windows** list. Each row
+is the same day selector, start, end and remove, plus an action: **Silent**
+or **Off**. Silent caps the compressor in those hours at the power-fraction
+slider that appears under the list whenever any row is Silent (the existing
+`silent_mode_power_fraction`, 0.6 to 1.0, pre-filled from the plan sensor).
+Off means the plan schedules no space heating and no hot water in the window;
+nothing extra is written, and those steps are ordinary idle. An Off row may
+not overlap a hot-water window on the same day; Silent may. Silent and Off
+may not overlap each other. The card refuses those overlaps before it calls
+the host. A Silent row the backend cannot enforce (no writable silent
+control) is marked on the row. Switching the optimizer off inside a window
+undoes nothing.
+
+The heating-power panel draws the resolved silent and off steps as a band
+along the top of the panel, from the plan sensor's `quiet_actions`.
 
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save

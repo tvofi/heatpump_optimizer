@@ -33,9 +33,11 @@ from .const import (
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_INDOOR_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
+    CONF_SILENT_MODE_FRACTION,
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DEFAULT_DHW_TANK_VOLUME,
+    DEFAULT_SILENT_MODE_FRACTION,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -120,6 +122,10 @@ def _quiet_windows_attributes(coordinator: Any, data: Any) -> dict[str, Any]:
     out: dict[str, Any] = dict(specs)
     if specs.get("quiet_silent_not_enforced"):
         out["quiet_silent_not_enforced"] = True
+    cfg = getattr(coordinator, "_ctx", coordinator)._config
+    out["silent_mode_power_fraction"] = float(
+        cfg.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+    )
     actions = (data.get("predictive_info") or {}).get("quiet_actions")
     if actions:
         out["quiet_actions"] = actions
