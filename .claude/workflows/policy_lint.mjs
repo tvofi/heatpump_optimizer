@@ -5274,9 +5274,25 @@ function assertAcceptance(derived) {
     return 1
   }
 
-  const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
+  const missingExtensions = (exts) => [...exts].filter((e) => !treeExts.has(e))
+  const deadWeight = missingExtensions(NOT_A_DOCUMENT)
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
+    return 1
+  }
+  // The live list is bounded, so the refusal above is silent here and would
+  // stay silent if its predicate stopped seeing a dead entry. The fixture
+  // names an extension no tracked file has. That witness is not
+  // `donotdelete`: the restored base copy of this list still names it, so
+  // the tree keeps one file of that extension.
+  pins += 1
+  const deadFixtureRel = '.claude/workflows/fixtures/not_a_document_dead.json'
+  let deadFixture = null
+  try { deadFixture = JSON.parse(read(deadFixtureRel) ?? 'null') } catch { deadFixture = null }
+  const planted = Array.isArray(deadFixture) ? deadFixture.filter((e) => typeof e === 'string' && e) : []
+  const wouldRefuse = missingExtensions(new Set([...NOT_A_DOCUMENT, ...planted]))
+  if (!planted.length || !planted.every((e) => wouldRefuse.includes(e))) {
+    console.log(`\nFIXTURE VACUOUS: ${deadFixtureRel} does not make the blocklist bound refuse an extension no tracked file has (got ${JSON.stringify(planted)}). Deleting that bound would then change nothing this acceptance measures.`)
     return 1
   }
   // ... and the same list bounded from BELOW. Without this, `NOT_A_DOCUMENT`
