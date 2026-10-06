@@ -142,7 +142,7 @@ push_and_open() {
   local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
   ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
-    || die "the body did not pass tools/audit/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+    || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
   # clean. A dirty worktree would push a sha whose tree the body never

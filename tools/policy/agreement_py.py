@@ -118,7 +118,10 @@ def main(argv):
         out = ROOT / ".agreement-py.json"
         out.write_text(json.dumps(data))
         try:
-            return subprocess.run(["node", ".claude/workflows/agreement.mjs", "--py-json", str(out)], cwd=ROOT).returncode
+            ag = Path(__file__).with_name("agreement.mjs")
+            if not ag.is_file():
+                ag = ROOT / ".claude/workflows/agreement.mjs"
+            return subprocess.run(["node", str(ag), "--py-json", str(out)], cwd=ROOT).returncode
         finally:
             out.unlink(missing_ok=True)
     print(__doc__)

@@ -10,10 +10,10 @@ repository's to assert, so the fixtures those tables are tested against are
 One checkout per pinned source, named by its own ``origin`` URL so a fixture
 cannot be built from the wrong clone:
 
-    python3 tools/gen_device_fixtures.py --write \
+    python3 tools/devices/gen_device_fixtures.py --write \
         --repo ~/tuya_heat_pump --repo ~/tuya-local \
         --repo ~/hass-localtuya --repo ~/localtuya
-    python3 tools/gen_device_fixtures.py --check <the same --repo arguments>
+    python3 tools/devices/gen_device_fixtures.py --check <the same --repo arguments>
 
 Each ``--repo`` may be given once per source; the source is found by matching
 the checkout's ``remote.origin.url`` against the ``repo`` its spec names, and
@@ -65,7 +65,7 @@ import unicodedata
 
 import yaml
 
-FIXTURES = pathlib.Path(__file__).resolve().parent.parent / "tests" / "fixtures"
+FIXTURES = pathlib.Path(__file__).resolve().parents[2] / "tests" / "fixtures"
 
 #: The model file each fixture is generated from, at the commit recorded in
 #: it. ``slug`` is the device-name slug the coordinator builds from the
@@ -794,7 +794,7 @@ def build_corpus(spec: dict) -> dict:
             },
         })
     return {
-        "_generated_by": "tools/gen_device_fixtures.py",
+        "_generated_by": "tools/devices/gen_device_fixtures.py",
         "sources": [
             {
                 "fixture": item["fixture"],
@@ -823,7 +823,7 @@ def build(spec: dict, repos: list[pathlib.Path]) -> dict:
         _check_pin(spec, repos)
     path = spec.get("path") or spec["lines"][spec["shaped_on"]]["path"]
     fixture = {
-        "_generated_by": "tools/gen_device_fixtures.py",
+        "_generated_by": "tools/devices/gen_device_fixtures.py",
         "upstream_repo": spec["repo"],
         "upstream_tag": spec.get("tag"),
         "upstream_commit": spec["commit"],
