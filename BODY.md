@@ -40,7 +40,7 @@ A scratch probe of the collector over the features fixture's half-hour payload, 
 
 ## Forward-carry
 
-R9-DBG-2's brief should record that the collector is a listener and that `coordinator.py` names no debugger, which `tests/features.py` pins. This seat was instructed not to edit the live roster, so that sentence is not in `.claude/workflows/wave-r9-groups.json`.
+R9-DBG-2's brief should record that the collector is a listener and that `coordinator.py` names no debugger, which `tests/features.py` pins. This seat was instructed not to edit the live roster, so that sentence is not in the wave roster yet.
 
 ## Friction
 
