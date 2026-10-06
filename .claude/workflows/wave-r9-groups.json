@@ -6458,9 +6458,9 @@
     "R9-EG-B6"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-sw-block",
-    "commit": null,
+    "commit": "de8ccc657ccd9fe5acdcfc6b800d02d70c6ee9e5",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: read PRESTUDY.md of the 2026-10-03 owner-asks seat and handoff/round9/fix/SW.md section 2.3, then write the failing test (a block never outlives a due anti-legionella cycle)",
     "note_file": "handoff/round9/fix/resume/SW-5.md on handoff/r9-sw-block",
