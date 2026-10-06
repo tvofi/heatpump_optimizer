@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 7.3,
+   "seconds": 6.4,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -2435,10 +2435,10 @@
    "docs/dashboard-card.md",
    "docs/ecl110.md",
    "docs/how-it-works.md",
-   "docs/img/dhw-demand-windows.svg",
-   "docs/img/dhw-store-decay.svg",
-   "docs/img/make_model_figures.py",
-   "docs/img/marginal-cop.svg",
+   "docs/img/model/dhw-demand-windows.svg",
+   "docs/img/model/dhw-store-decay.svg",
+   "docs/img/model/make_model_figures.py",
+   "docs/img/model/marginal-cop.svg",
    "docs/index.html",
    "docs/setup.md",
    "docs/site/docs.css",
