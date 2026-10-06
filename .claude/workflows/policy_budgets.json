@@ -19,9 +19,9 @@
       "opens": [
         "docs/plan-2026-09-open-issues.md",
         "docs/HANDOVER.md",
-        "dev/archive/rosters/wave-4-groups.json"
+        ".claude/workflows/wave-4-groups.json"
       ],
-      "cap": 5922
+      "cap": 6904
     },
     "policy": {
       "opens": [
@@ -114,7 +114,8 @@
     "tools/audit/briefs/judge.md": 469,
     "tools/audit/briefs/orchestrator.md": 4096,
     "tools/audit/briefs/root-cause.md": 998,
-    "tools/audit/briefs/verifier.md": 612
+    "tools/audit/briefs/verifier.md": 612,
+    "tools/audit/harnesses/README.md": 724
   },
   "_acceptance": "fixtures/policy-rot/budgets.md is capped at 1 line and 1 token on purpose: it is how the budgets check is shown refusing, on both per-file caps. The rest of that directory is deliberately uncapped, which is the check's other half.",
   "_generated": "`.cursor/rules/*.mdc` carries no cap: it is generated from `.claude/rules/` and byte-compared by rules_sync --check, so its size is its source's."
