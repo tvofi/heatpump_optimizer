@@ -7579,7 +7579,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "fix/r9-stamp-unblock",
-    "next_step": "notes for the next stamp must name #1891 and #1892; rule 5 still refuses the five title-subject merges",
+    "next_step": "Not in the merge train while graders-head-copy is red. Do not stamp until this merges and stamp.py accepts the tree. The next stamp notes must name #1891 and #1892.",
     "commit": "e6d844faaf3a1968b45ec13c6abdcafc290d083c",
     "last_step": "PR #1979 head e6d844faaf3a1968b45ec13c6abdcafc290d083c. Merge verdict posted and tvofi approved. The head does not contain origin/main 0e8e22c6. graders-head-copy is red."
    }
