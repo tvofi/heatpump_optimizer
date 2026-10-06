@@ -91,7 +91,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
@@ -7889,9 +7888,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         -- not the plan's reading of it. The specs are stored canonical by
         the services that write them, so they are handed back as stored.
         A silent spec with no control that can hold it carries the
-        not-enforced marker beside it, decided from the entity ID's domain
-        and never the state, so a switch that has not reported yet (state
-        ``unknown``) is not dropped: unknown is not off.
+        not-enforced marker beside it. A switch is decided from the entity
+        ID's domain and never the state, so one that has not reported yet
+        (state ``unknown``) is not dropped: unknown is not off. A GCHV
+        night-mode schedule is holdable only when the four numbers resolve
+        and the spec is one daily window the same every day (#1913).
         """
         cfg = getattr(self, "_ctx", self)._config
         out: dict[str, str] = {
@@ -7900,9 +7901,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
         }
-        if out["quiet_silent_windows_spec"] and not quiet_windows.silent_control_usable(
-            cfg.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
-        ):
+        if quiet_windows.silent_unenforceable(cfg, self.hass.states.get):
             out["quiet_silent_not_enforced"] = "true"
         return out
 
