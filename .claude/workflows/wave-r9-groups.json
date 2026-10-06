@@ -7562,7 +7562,7 @@
     "branch": "handoff/r9-rc-prcontract-fix",
     "commit": "8f389accc0010c71affb80d8e0ca1caf86659621",
     "last_step": "PR #1977 head 8f389accc0010c71affb80d8e0ca1caf86659621. Merge verdict confirmed. tvofi approved under mandate 6003649101. The head does not contain origin/main 0e8e22c6.",
-    "next_step": "open_pr.sh from handoff/r9-rc-prcontract-fix; carry or re-measure the verdict at the PR head; .github/workflows/ is code-owned, so it merges on tvofi's approving review (mandate to 2026-10-09) with CI green at a head containing origin/main"
+    "next_step": "Recarry origin/main, carry the verdict, then merge. leaves #201 open."
    }
   },
   {
