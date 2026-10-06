@@ -7647,7 +7647,7 @@
     "branch": "fix/r9-fr-12",
     "commit": "0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e",
     "last_step": "Merged as #1981 at 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e (PR head b2b045ca344c5ed9691b336b04a9619faa90c7f9). #1951 stays open until #1982 merges.",
-    "next_step": "failing self-test fixtures first, then arm (a), then arm (b), then the null controls",
+    "next_step": "none",
     "note_file": "handoff/round9/fix/resume/FR-12.md on fix/r9-fr-12",
     "review_branch": null,
     "review_note_file": null,
