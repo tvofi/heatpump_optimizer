@@ -6697,7 +6697,7 @@
    ],
    "resume": {
     "stage": "in-flight",
-    "branch": "handoff/r9-ro-2b",
+    "branch": "fix/r9-ro-2b-pr",
     "commit": "356eb0152efb4e5cc775a1af8e4ea2ecb2c8e5de",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base after #1886 merges",
