@@ -482,6 +482,10 @@ lane_units() {
   run "$PYTHON" tests/solar_alignment.py
   # Four #805 survivors that are not in coordinator.py or optimizer.py.
   run "$PYTHON" tests/guard_pins.py
+  # The debug collector's guards (#1939). Own script so the pin drive can
+  # kill them without tests/features.py, whose recorded cost with the rest
+  # of the package exceeds the pin step's budget.
+  run "$PYTHON" tests/debug_collect.py
   # The finiteness sweep (#1408): every store is a QuarantiningStore whose load
   # scrubs non-finite numeric leaves, and this derives the boundary set from the
   # tree and drives a non-finite leaf through each one -- the property check
