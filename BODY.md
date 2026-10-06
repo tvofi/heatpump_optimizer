@@ -2,67 +2,57 @@ Closes #1939
 
 The debug collector, its learning-page option, the `debug_collect` action, the finalize button and the `hpo-debug/1` bundle. The ring is the `debug` store. The collector listens to the coordinator, so `coordinator.py` names no debugger.
 
-This head clears the reds measured on `8f75654777b9f10c07977386a00376d8a6f57280`. The catalogue headers still named the counts from before `debugger.py` and the debug-collection option, so `tests/harness_headers.py` exited 1 and the closure merge refused the batch. `config_flow` is float-free and now emits `debug_collect_enabled`; the fixture is re-recorded and claimed. `tests/features.py`'s Linux recording, rc 0, reads `services.yaml`; that path is in the committed closure. `tests/finite_boundary.py`'s top-level `_kept` collided with `debugger._kept`; the local is renamed `_finite_payload` because it is a sanitized payload, not that function.
+This head records the 52 mutation sites the diff added. CI run 37473761833 on `9da596f2e578e846a1fdff8619bf4acced647e46` killed none of them: job 112303713384 printed `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`, and job 112305445205 printed `AUTOFIX: skip-no-measurement`. The admission compares one mutant's whole driver sum with the 35-minute budget, and that sum exceeds it for `button.py`, `debugger.py` and `store.py`, so the drive never started. A full local `--pin-killed` is `MUTATION TABLE INCONCLUSIVE` on this host because `tests/features.py`'s baseline is the R9-F2.1 P3 pair; that run wrote no pins and was not used.
 
-This head merges `origin/main` `96683e6e7eecc2d35b5fa4cb632bfc0b2894e2ff`. `diagnostics.py` keeps main's `diagnostics_state` view and this branch's debug bundle. The ledger merge's `coordinator_private_reach` of -1 is not the tree: `python3 tests/structure.py` on the merged tree measures 0, and `max_class_loc` 9067, both equal to the budgets in this commit. Figures taken before that merge are against `6568f70aed61f3197beed2ff4822fda473a5a785`.
+`tests/debug_collect.py` is the driver that kills 51 of the sites. `_repair`'s `if stamp is None` guard is equivalent: `admitted` already refuses every stamp `stored_instant` refuses, and applying that GUARD_OFF left `tests/debug_collect.py` at rc=0. That site is `survivor_triage`, verdict equivalent.
+
+This head merges `origin/main` `6b1ccb685e51903e7e524995a84d831d3904da9f` (delivery rows only) onto the pin commit `6d5d796e955275cb76226bbae4d2cbc8150cabd0`. The merge does not touch the pinned files.
 
 ## Head
 
-9da596f2e578e846a1fdff8619bf4acced647e46
+`fca0bea0c9ab864d087a6ee8939500b833f7d32c`
 
 ## Mutation proof
 
-`RESULT arch_modules_on_disk` in `tools/audit/round4/D6/claims.py` set from 71 to 70, then `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`. Failed check: `tools/audit/round4/D6/claims.py RESULT arch_modules_on_disk matches header` with header `70` and printed `71`. Restored. The same script on the restored tree passed.
-
-The `store.py` container-at-scalar proof stands at `6ddebd3120e7e59a1a223d89e9f9a3b36c102314`. The merge of `6568f70aed61f3197beed2ff4822fda473a5a785` does not touch that predicate.
+`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` on `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, against base `fc76a05577985c92574e4d42433f61192efe47f4`. Each of the 51 killed sites took `tests/debug_collect.py` from rc=0 failed=0 to rc=1. One ledger row: `tests/mutation_ledger/killed_by/debugger.py/_repair.GUARD_OFF.a7fab6b5.json` records GUARD_OFF `if False:` failed=1. The equivalent site was not in that pool.
 
 ## Null control
 
-Restored header, `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `ALL 105 HARNESS HEADER CHECKS PASSED`.
+The same drive: `null control custom_components/heatpump_optimizer/store.py:73 NULL_COMMENT survived tests/debug_collect.py`. A comment-only edit, every driver in play must let it survive, and this one did.
 
-`PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 6568f70aed61f3197beed2ff4822fda473a5a785`: exit 0. `CLAIMED config_flow` names the three `debug_collect_enabled` leaves. Closing lines: `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`.
+Applying GUARD_OFF to `debugger.py`'s `if stamp is None` and running `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` stayed rc=0, which is why that site is triaged rather than pinned.
 
 ## Figures
 
-`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` at `6568f70aed61f3197beed2ff4822fda473a5a785`, 2026-10-06T13:15:42Z — mode line `MODE: SCOPED -- 29 script(s) run, 2 scoped out.` `tests/stress.py` is in `scope.run` and was not run.
+`PYTHONPATH=tests/hastub python3 tests/debug_collect.py` at `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, 2026-10-06T14:58:47Z, origin/main `6b1ccb685e51903e7e524995a84d831d3904da9f` — `ALL 30 DEBUG COLLECT CHECKS PASSED`.
 
-`PYTHONPATH=tests/hastub python3 tools/audit/round3/D5/option_doc_coverage.py` — `RESULT option_fields_rendered=199 count`, `RESULT option_schema_keys_rendered=232 count`, `RESULT option_fields_undocumented=0 count`.
+`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` — `PIN KILLED: 51 pinned, 0 left unpinned`. Inventory line before the drive: 4750 unpinned, 4699 at the ratchet base.
 
-`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT arch_modules_on_disk=71 modules`, `RESULT arch_map_listed=71 modules`, `RESULT ha_module_level_importers=27 modules`.
+`python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT coordinator_private_reach=0 count`, `RESULT max_class_loc=9067 count`, `RESULT seam_cut_total=772 count`.
 
-`PYTHONPATH=tests/hastub python3 tests/harness_headers.py` on `9d28d1448e65c88ce29d339dd98f02a868307739` — `ALL 105 HARNESS HEADER CHECKS PASSED`.
+`PYTHONPATH=tests/hastub python3 tests/entities.py` — `ALL 2187 ENTITY CHECKS PASSED`.
 
-`PYTHONPATH=tests/hastub python3 tests/golden.py --record --only config_flow` — recorded `config_flow`. Leaf diff against the previous fixture: nine new leaves, all under `debug_collect_enabled`, none removed, none changed.
+`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` before the delivery-row merge — `MODE: SCOPED -- 30 script(s) run, 2 scoped out.` `tests/stress.py` is in `scope.run` and was not run.
 
-`PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 6568f70aed61f3197beed2ff4822fda473a5a785` — exit 0, `NO UNCLAIMED DRIFT`, `NO STALE FIXTURE`. `claims-for:` equals `VERSION` `6.7.16`.
-
-`python3 tests/structure.py` on the merged tree — `RESULT coordinator_private_reach=0 count`, `RESULT max_class_loc=9067 count`, `RESULT seam_cut_total=772 count`, and every ratchet line `ok`. The ledger sum `-1` is not in the file.
-
-`python3 tests/closure.py no-copies` on `fd23d5b5cee3b6b812b05aea08366fdc40d3b347` — `closure: no test file defines a symbol production also defines`.
-
-Closures job 112237571054 log: every `done <script> (exit N)` line is `exit 0`, including `tests/features.py` and `tests/harness_headers.py`. That N is `closure.py record`'s exit. Artifact `closure-recordings` of run 37453972072: `tests/features.py` rc 0, `tests/harness_headers.py` rc 1. File-set difference of that features recording against the committed closure before this commit: only `custom_components/heatpump_optimizer/services.yaml` added.
-
-`./tests/derive_closures.sh --single tests/features.py` on this host: recorder exit 0, script rc 1. The only failing check in the kept output is `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it` with shipped `110.4366` and seeded `110.1297`. That recording's file set is missing `tests/hastub/homeassistant/components/binary_sensor.py`, `tests/replay.py` and `tests/replay/synthetic-dhw-only.json` relative to the Linux rc 0 recording, so it was not merged. `python3 tests/closure.py merge --in-dir <the Linux features.py.json> --partial` wrote the Linux set, rc 0.
-
-`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 4` — `MUTATION TABLE INCONCLUSIVE`. Baseline `tests/features.py: rc=1 failed=2 648s`. The named check is the P3 line above. `tests/env_drift.py` baseline in the same drive: `rc=0 failed=0 143s`. No `killed_by` rows written. The inventory line before the drive: `PIN KILLED -- 52 new unpinned site(s)`.
+`./tests/derive_closures.sh --single tests/debug_collect.py` — recorder exit 0, `closure: updated 1 closure(s)`, `tests/debug_collect.py` 81 files, recorded rc 0.
 
 ## Red checks
 
-`closures`. Under-scoped `tests/features.py` by `services.yaml`. The closures log's `exit 0` is the recorder. The artifact rc for that script is 0, so the read is complete. Cheaper detector: the recording JSON's `rc` plus `tests/closure.py check`, both already produced by the job. Standing cost of reading the rc is the artifact. No cheaper detector exists for a file a completed run newly opens.
+`closures`. Under-scoped `tests/features.py` by `services.yaml` on an earlier head. The Linux recording's rc is 0 and that path is in the committed closure. Cheaper detector: the recording JSON's `rc` plus `tests/closure.py check`, both already produced by the job. No cheaper detector exists for a file a completed run newly opens.
 
-`closures-autofix`. `skip-failed-recording`. The failed recording is `tests/harness_headers.py`, artifact rc 1, five header mismatches (`option_fields_rendered` 198/199, `option_schema_keys_rendered` 231/232, `arch_modules_on_disk` 70/71, `arch_map_listed` 70/71, `ha_module_level_importers` 26/27). Cheaper detector: `option_doc_coverage.py` and `claims.py`, which print those RESULT lines. Standing cost is those two scripts, seconds. The headers now name the printed counts, and `harness_headers.py` passes on this head.
+`closures-autofix`. `skip-failed-recording` on `tests/harness_headers.py` at that earlier head (header counts behind the tree). Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds. The headers name the printed counts.
 
-`fast (3.14)`. `python3 tests/env_drift.py --all` and `python3 tests/harness_headers.py`. The header mismatches use the two scripts above. The float-free fixture's staleness is `python3 tests/golden.py --only config_flow` under strict mode, one option-flow capture. Unclaimed drift is `env_drift.py --all`, which is the check that went red. Both are green on this head against `6568f70aed61f3197beed2ff4822fda473a5a785`.
+`fast (3.14)`. `env_drift.py --all` and `harness_headers.py` on that earlier head. Cheaper detector: those two scripts. Both were green on `9da596f2` against the claim ref that head named.
 
-`mutation`. `MUTATION TABLE REFUSED`, 52 sites added unpinned on `button.py`, `debugger.py` and `store.py`. Cheaper detector: the inventory `python3 tests/mutation_table.py` prints before any mutant runs. Standing cost is that inventory, seconds. `--pin-killed` on this host is `MUTATION TABLE INCONCLUSIVE` because `tests/features.py`'s baseline is the P3 pair. CI's `fast` job on `8f756547` did not fail `tests/features.py`. No pins were written. The 52 sites remain unpinned in this tree.
+`mutation`. On `9da596f2`, job 112303713384: `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`. Cheaper detector: none. The refusal is `drive_pin_pool`'s admission, which does not start a mutant whose recorded driver sum exceeds 35 minutes; the inventory that lists the 52 sites is the same process, not an earlier one. This head pins 51 under `killed_by` for `tests/debug_collect.py` and triages the stamp-is-None guard as equivalent, so the added-unpinned set is empty.
 
-`mutation-autofix`. `skip-measure-failed`. The measure step's `tests/env_drift.py` baseline was red (the `fast` failure). Cheaper detector: that same `env_drift.py --all`, which this head passes. The local pin drive then stops on the Darwin P3 baseline, so this host still cannot record the pins. CI's features baseline was green, so the next measure is not blocked by the env_drift failure this commit clears.
+`mutation-autofix`. Job 112305445205: `AUTOFIX: skip-no-measurement`. The pin process exited 1 under `pipefail` before `measurement()` wrote a status, so no bot commit was coming. Cheaper detector: none beyond reading that summary line. The pins are in this commit.
 
-`delivery-status`. The diff adds `docs/delivery/1987.md`. Job 112236938339: `DELIVERY STATUS UNCHECKED — 28 rowed, 0 pending, 0 overdue`, seven merge commits on main whose subjects `subject_number` does not recognise. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. The unread subjects are main's merges, not this row. Not changed here.
+`delivery-status`. The diff adds `docs/delivery/1987.md`. The job on the earlier head was `DELIVERY STATUS UNCHECKED` over main's merge subjects, which `subject_number` does not recognise. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's, not this row.
 
-`pr-contract` on run 37453973764 was red because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This body names them. Cheaper detector: `tools/audit/prepr.sh`, the same contract.
+`pr-contract` was red on an earlier head because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This section names them. Cheaper detector: `tools/audit/prepr.sh`, the same contract. Not run here: another `prepr.sh` was already in flight.
 
-`nightly-status` graded main and this diff does not reach what it reads.
+`nightly-status` graded main. This diff does not change `tests/nightly_status.py`, `tests.yml`, `governance.yml`, the plan or `docs/HANDOVER.md`.
 
 ## Forward-carry
 
@@ -71,3 +61,5 @@ none
 ## Friction
 
 none
+
+_Requested by **tvofi**_.
