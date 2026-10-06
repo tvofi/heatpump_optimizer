@@ -947,8 +947,8 @@ through T8 and recorded in
 every release since has been an audit train on top of it: a full-codebase
 review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
 per-dimension audit repeated round by round
-([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
-program ([docs/plan-2026-09-open-issues.md](docs/plan-2026-09-open-issues.md),
+([dev/programme/register/audit-2026-09.md](dev/programme/register/audit-2026-09.md)) alongside the open-issues
+program ([dev/programme/plan-2026-09-open-issues.md](dev/programme/plan-2026-09-open-issues.md),
 which supersedes the complete [docs/plan-open-issues.md](docs/plan-open-issues.md))
 and the card
 decomposition program
@@ -956,7 +956,7 @@ decomposition program
 finding fixed and released one PR at a time under the standing gate protocol
 (see [tests/README.md](tests/README.md) for that gate). The running state of
 that programme — decisions taken, traps hit, owed work — is the durable
-handover at [docs/HANDOVER.md](docs/HANDOVER.md), and each wave keeps a plan
+handover at [dev/programme/HANDOVER.md](dev/programme/HANDOVER.md), and each wave keeps a plan
 of record written before execution and kept as written, such as
 [docs/plan-1067-rotenso-inputs.md](docs/plan-1067-rotenso-inputs.md) for
 issue #1067. Every v6.0.0 or later
