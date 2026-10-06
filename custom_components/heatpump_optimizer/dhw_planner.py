@@ -175,7 +175,11 @@ def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
     """``mask`` with Off steps removed. The same array when there is no window."""
     if off is None:
         return mask
-    return mask & ~off
+    # The numpy stub types ``&`` of two unparameterised ndarrays as ``Any``.
+    # The annotated name is what ``-> np.ndarray`` returns; a bare return of
+    # the expression is the ruler's ``no-any-return``.
+    kept: np.ndarray = mask & ~off
+    return kept
 
 
 class _DhwLegionellaPlan(NamedTuple):
