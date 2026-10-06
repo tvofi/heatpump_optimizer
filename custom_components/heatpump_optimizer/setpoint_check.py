@@ -27,10 +27,6 @@ _LOGGER = logging.getLogger(__name__)
 
 ISSUE_DHW = "dhw_setpoint_below_disinfection"
 ISSUE_SPACE = "space_setpoint_unreadable"
-#: ``(coord, reading degC) -> bool``: whether the reading is the pump-duty
-#: arbiter's own hot-water gate. ``pump_arbiter`` installs it at import; it
-#: cannot be imported here, because it imports this module.
-dhw_gated: Callable[[Any, float], bool] = lambda _coord, _reading: False
 _INVALID = ("unknown", "unavailable", "none", "")
 
 
@@ -40,24 +36,27 @@ def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
     ir.async_create_issue(hass, domain, issue_id, **kwargs)
 
 
-def evaluate(coord: Any) -> None:
+def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
     """Read optional set-point entities and raise or clear the two issues.
 
     Stateless and idempotent: no coordinator attribute. A second call with
     the same inputs leaves ``hass.issues`` at one entry per issue id.
     Never raises into the caller — a balky entity must not break a solve.
+    ``gated`` is the pump-duty arbiter's own hot-water gate (wired by the
+    coordinator, which owns both sides of the seam, #1739): a reading that
+    is the arbiter's own write is a step decision, not a mis-set point.
     """
     try:
-        _evaluate(coord)
+        _evaluate(coord, gated)
     except Exception as err:  # noqa: BLE001 - never break a solve
         _LOGGER.debug("Set-point consistency check skipped: %s", err)
 
 
-def _evaluate(coord: Any) -> None:
+def _evaluate(coord: Any, gated: Callable[[float], bool] | None) -> None:
     hass = coord.hass
-    config = coord._config
-    params = coord._thermal_params
-    _dhw(hass, config, params, lambda pump: dhw_gated(coord, pump))
+    config = coord.effective_config
+    params = coord.thermal_params
+    _dhw(hass, config, params, gated)
     _space(hass, config)
 
 

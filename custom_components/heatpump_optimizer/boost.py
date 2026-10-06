@@ -53,18 +53,24 @@ CHANNEL_SPACE = "space"
 CHANNELS = (CHANNEL_DHW, CHANNEL_SPACE)
 
 
-class _BoostOpt(Protocol):
+@dataclass(frozen=True)
+class BoostOverlay:
+    """The three numbers the overlay prices its channels with (#1739).
+
+    Built by the coordinator at each cycle from its own members; ``apply``
+    receives it instead of reading the coordinator's privates.
+    """
+
+    max_power: float
     max_temp: float
+    ecl_max: float
 
 
 class _BoostCoord(Protocol):
     hass: Any
     entry: Any
-    _current_action: CurrentAction
-    _thermal_model: Any
-    _ecl110_displace_max: float
-    _opt_config: _BoostOpt
-    _ctx: Any
+
+    def adopt_action(self, action: CurrentAction) -> None: ...
 
     async def async_request_refresh(self) -> None: ...
 
@@ -138,14 +144,16 @@ _PLAN_BASES: WeakKeyDictionary[Any, CurrentAction] = WeakKeyDictionary()
 def adopt_plan(coord: _BoostCoord, action: CurrentAction) -> None:
     """Adopt ``action`` as the plan base the cycle overlays onto (#1752).
 
-    Every whole-dict writer of ``_current_action`` -- the solve, the fixed
+    Every whole-dict writer of the running action -- the solve, the fixed
     modes, the sysid override -- routes through here. The live action is
     the base unchanged until ``apply`` lays the overlay on a copy of it,
     so a cancelled or expired boost disappears on the next cycle whatever
-    that cycle's solve outcome is.
+    that cycle's solve outcome is. The slot itself is written by the
+    coordinator's ``adopt_action`` (#1739): the state transition has one
+    owner.
     """
     _PLAN_BASES[coord] = action
-    coord._current_action = action
+    coord.adopt_action(action)
 
 
 def held_for(coord: Any) -> BoostState:
@@ -258,13 +266,15 @@ def overlay(
             action["mode"] = "hot_water"
 
 
-def apply(coord: _BoostCoord) -> None:
+def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
     """Expire, then lay the overlay on a COPY of the plan base (#1752).
 
     The published and actuated action is rebuilt every cycle from the base
     the solve or mode block last adopted, never carried forward from the
     previous cycle's overlaid dict, so a boost that is no longer live is
-    gone from the action whatever kept the plan.
+    gone from the action whatever kept the plan. ``specs`` are the
+    coordinator's overlay numbers, passed in (#1739) rather than read off
+    its privates.
     """
     now = dt_util.now()
     held = held_for(coord)
@@ -275,15 +285,14 @@ def apply(coord: _BoostCoord) -> None:
         held.until.pop(CHANNEL_DHW, None)
     base = _PLAN_BASES.get(coord)
     action: CurrentAction = {**base} if base else {}
-    ctx: Any = getattr(coord, "_ctx", coord)
     overlay(
         action,
         held,
-        max_power=float(coord._thermal_model.params.max_electrical_power),
-        max_temp=float(ctx._opt_config.max_temp),
-        ecl_max=float(coord._ecl110_displace_max),
+        max_power=specs.max_power,
+        max_temp=specs.max_temp,
+        ecl_max=specs.ecl_max,
     )
-    coord._current_action = action
+    coord.adopt_action(action)
 
 
 def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
@@ -331,9 +340,18 @@ async def restore(coord: Any) -> None:
             held.until[channel] = parsed
 
 
-async def restore_session(coord: Any) -> None:
-    """Away override and boost channels, one spawn from the coordinator."""
-    await away_mode.restore_override(coord)
+async def restore_session(
+    coord: Any,
+    state: away_mode.AwayState,
+    config: Mapping[str, Any],
+    read_entity: away_mode.EntityReader,
+) -> None:
+    """Away override and boost channels, one spawn from the coordinator.
+
+    The away half's inputs pass through to ``away_mode.restore_override``
+    (#1739); the boost half keeps only the coordinator's public surface.
+    """
+    await away_mode.restore_override(coord, state, config, read_entity)
     await restore(coord)
 
 
