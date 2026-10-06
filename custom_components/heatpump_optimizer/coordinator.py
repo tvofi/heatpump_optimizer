@@ -27,11 +27,11 @@ import subprocess
 import sys
 import threading
 from bisect import bisect_right
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
 
 import aiohttp
@@ -454,7 +454,7 @@ from .open_meteo import OpenMeteoSolar
 from .wood_fuel import (
     simulate_wood_slots,
     wood_furnace_on,
-    wood_fuel_from_coordinator,
+    wood_fuel_from_parts,
 )
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -1861,6 +1861,56 @@ class CoordinatorContext:
     _opt_config: OptimizationConfig
 
 
+@dataclass(frozen=True)
+class CoordinatorDiagnostics:
+    """The collaborator view ``diagnostics.py`` publishes about this instance.
+
+    The live counters a bug report needs and the learners' own summaries,
+    read here -- inside the class -- so ``diagnostics.py`` names no private
+    member (#1739). Fields default ``None`` where the value has no meaning
+    yet; a member that cannot be read at all reports the same way.
+    """
+
+    tibber_outage_cycles: int | None = None
+    tibber_reauth_started: bool | None = None
+    solve_failures: int | None = None
+    cop_scale: float | None = None
+    cop_samples: int | None = None
+    house_heat_loss_scale: float | None = None
+    learner_summaries: Mapping[str, Any] = field(default_factory=dict)
+
+    LEARNERS = ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model")
+
+    @classmethod
+    def of(cls, coord: Any) -> "CoordinatorDiagnostics":
+        """Read ``coord``'s live counters and learner summaries into a view.
+
+        Lives beside the fields it fills, so a member diagnostics needs and
+        a field here go stale together, not apart. A learner whose
+        ``summary()`` raises reports ``"summary unavailable"``, as the
+        per-field fallback in ``diagnostics.py`` did before the view.
+        """
+        summaries: dict[str, Any] = {}
+        for name in cls.LEARNERS:
+            obj = getattr(coord, name, None)
+            summary = getattr(obj, "summary", None)
+            if not callable(summary):
+                continue
+            try:
+                summaries[name.lstrip("_")] = summary()
+            except Exception:  # noqa: BLE001 -- diagnostics never breaks
+                summaries[name.lstrip("_")] = "summary unavailable"
+        return cls(
+            tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
+            tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
+            solve_failures=getattr(coord, "_solve_failures", None),
+            cop_scale=getattr(coord, "_cop_scale", None),
+            cop_samples=getattr(coord, "_cop_samples", None),
+            house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
+            learner_summaries=summaries,
+        )
+
+
 def _ctx_of(coord: Any) -> CoordinatorContext:
     """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
 
@@ -2549,8 +2599,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
 
-    def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
-        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: HeatPumpOptimizerConfigEntry,
+        *,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``.
+
+        ``skip_first_solve`` and ``reload_handover`` are the setup entry's two
+        one-shot writes (#1739): the first refresh must not run the full MPC
+        solve inside ``async_setup_entry``, and a plan stashed by an
+        in-process reload is handed over here rather than patched on after
+        construction -- state arrives initialised, so a
+        ``ConfigEntryNotReady`` retry reconstructs cleanly.
+        """
         self.entry = entry
         config = {**entry.data, **entry.options}
         # The feed's code where it declares one (#1657), adopted per cycle.
@@ -2569,7 +2634,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         thermal_params, opt_config = self._init_model(config)
         current_state = ThermalState()
-        self._init_runtime_state()
+        self._init_runtime_state(skip_first_solve, reload_handover)
         self._ctx = CoordinatorContext(
             config, thermal_params, self.hass, current_state, opt_config)
         self._init_dhw_learning(hass, entry)
@@ -2607,7 +2672,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(boost.restore_session(self))
+        self._spawn(boost.restore_session(
+            self, self._away_state, config, self._entity_state
+        ))
 
     @callback
     def _release_registrations(self) -> None:
@@ -2717,8 +2784,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
         return thermal_params, opt_config
 
-    def _init_runtime_state(self) -> None:
-        """What the current update cycle is working with."""
+    def _init_runtime_state(
+        self,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """What the current update cycle is working with.
+
+        ``skip_first_solve`` and ``reload_handover`` arrive from the setup
+        entry through the constructor (#1739); everything else starts empty.
+        """
         self._mode: str = MODE_AUTO
         # #6: last commanded pump states, so actuation is transitions-only.
         # Initialised here since W5-G9: it is core state and was misplaced in
@@ -2766,16 +2841,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimization_running: bool = False
         # #1754: a mid-solve refresh is recorded, not dropped; the finally re-runs it.
         self._optimization_rerun_requested: bool = False
-        # Set by ``async_setup_entry`` — and by nothing else — just before the
+        # Set by ``async_setup_entry`` -- and by nothing else -- just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
         # so every subsequent refresh (and every direct test call) solves
         # exactly as it always has.
-        self._skip_solve_once: bool = False
+        self._skip_solve_once = skip_first_solve
         # The previous plan, handed over by ``async_unload_entry`` across an
         # in-process reload so the flag-lightened first refresh can republish
         # it instantly, without even a network fetch. Never persisted.
-        self._reload_handover: Payload | None = None
+        self._reload_handover = reload_handover
 
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
@@ -3140,6 +3215,55 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def mode(self) -> str:
         """Return current operation mode."""
         return self._mode
+
+    # -- collaborator interfaces (#1739) --------------------------------------
+    #
+    # The collaborators used to reach these private members directly; each
+    # write now has its one owner here, and what a collaborator reads it
+    # receives as an explicit input or a published view.
+
+    def adopt_action(self, action: CurrentAction) -> None:
+        """Take ``action`` as the running action.
+
+        The one writer of ``_current_action``: the solve, the fixed modes and
+        the sysid override adopt their plans through ``boost.adopt_plan``,
+        and the boost overlay publishes its rebuilt copy here, so no foreign
+        module assigns the slot (#1739).
+        """
+        self._current_action = action
+
+    def arbiter_inputs(self) -> pump_arbiter.ArbiterInputs:
+        """One pass's read-only inputs for the pump arbiter (#1739).
+
+        Built at each arbitration pass -- the cycle, the one-minute tick and
+        the entity-change listener all enter through ``pump_arbiter.apply``,
+        which asks for a fresh snapshot, so a boost set or a mode change
+        between passes is seen by the next one. ``plan_stale`` is the gate
+        ``_plan_is_stale`` owns; the plan itself rides along because the
+        share split and the baseline read it ungated.
+        """
+        ctx = _ctx_of(self)
+        return pump_arbiter.ArbiterInputs(
+            hass=self.hass,
+            config=ctx._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self._plan_is_stale(),
+            entry_released=self._entry_released,
+            state=ctx._current_state,
+            thermal=self._thermal_model,
+            params=ctx._thermal_params,
+            action=self._current_action,
+            measured_power_kw=self._measured_power,
+            disinfecting=getattr(
+                getattr(self._legionella, "disinfect", None), "memo", None
+            )
+            is True,
+        )
+
+    def diagnostics_state(self) -> CoordinatorDiagnostics:
+        """What diagnostics may read about this instance, as one view (#1739)."""
+        return CoordinatorDiagnostics.of(self)
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
@@ -5371,7 +5495,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            boost.apply(self)
+            boost.apply(
+                self,
+                boost.BoostOverlay(
+                    max_power=float(
+                        self._thermal_model.params.max_electrical_power),
+                    max_temp=float(ctx._opt_config.max_temp),
+                    ecl_max=float(self._ecl110_displace_max),
+                ),
+            )
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
@@ -6157,7 +6289,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
         self._check_pump_mode_expired()
-        setpoint_check.evaluate(self)
+        # The arbiter's own gate, wired here: the coordinator owns both
+        # sides of the seam, so setpoint_check needs no import-time hook
+        # back into pump_arbiter (#1739).
+        setpoint_check.evaluate(
+            self, gated=lambda pump: pump_arbiter.dhw_gated(self, pump)
+        )
         # Flag level once per cycle; the listener only sees transitions.
         self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
 
@@ -7823,7 +7960,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
         data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
-        data["wood_fuel"] = wood_fuel_from_coordinator(self, result)
+        ctx = _ctx_of(self)
+        data["wood_fuel"] = wood_fuel_from_parts(
+            ctx._config,
+            external_heat=self._external_heat,
+            opt_config=ctx._opt_config,
+            thermal_params=ctx._thermal_params,
+            thermal_model=self._thermal_model,
+            current_state=ctx._current_state,
+            result=result,
+        )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
         # unchanged from before this feature existed.
@@ -9696,7 +9842,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._away_state.override_return_iso = (
                 ret.isoformat() if ret else None
             )
-            self._spawn(away_mode.persist_override(self))
+            self._spawn(away_mode.persist_override(self, self._away_state))
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         self._away_state = away_mode.resolve(
             config,
@@ -9739,7 +9885,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._away_state.override_active = on
         self._away_state.override_return_iso = ret.isoformat() if ret else None
-        await away_mode.persist_override(self)
+        await away_mode.persist_override(self, self._away_state)
         if refresh:
             await self.async_request_refresh()
 

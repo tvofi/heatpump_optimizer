@@ -31,7 +31,11 @@ from homeassistant.core import HomeAssistant
 
 from . import pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    CoordinatorDiagnostics,
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+)
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
 #: credential, and the entry name, which is free text the user typed and
@@ -85,34 +89,33 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     the outage latches and the staleness flags -- the things that explain
     WHY a plan looks wrong -- without the 200-key published payload
     (reproducible from the entities) or any trajectory array (large, and
-    derivable).
+    derivable). The counters and learner summaries arrive through the
+    coordinator's published ``diagnostics_state`` view (#1739); a
+    coordinator that cannot produce one (a duck-typed harness) reports the
+    fields as ``None``, exactly as the per-field ``getattr`` fallbacks did.
     """
+    try:
+        state: CoordinatorDiagnostics | None = coord.diagnostics_state()
+    except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        state = None
     snap: dict[str, Any] = {
         "mode": getattr(coord, "mode", None),
-        "tibber_outage_cycles": getattr(coord, "_tibber_outage_cycles", None),
-        "tibber_reauth_started": getattr(coord, "_tibber_reauth_started", None),
+        "tibber_outage_cycles": state.tibber_outage_cycles if state else None,
+        "tibber_reauth_started": state.tibber_reauth_started if state else None,
         "weather_stale_hours": coord.weather_stale_hours()
         if hasattr(coord, "weather_stale_hours")
         else None,
         "optimization_running": getattr(coord, "optimization_running", None),
-        "solve_failures": getattr(coord, "_solve_failures", None),
-        "cop_scale": getattr(coord, "_cop_scale", None),
-        "cop_samples": getattr(coord, "_cop_samples", None),
-        "house_heat_loss_scale": getattr(coord, "_house_heat_loss_scale", None),
+        "solve_failures": state.solve_failures if state else None,
+        "cop_scale": state.cop_scale if state else None,
+        "cop_samples": state.cop_samples if state else None,
+        "house_heat_loss_scale": state.house_heat_loss_scale if state else None,
         "last_update_success": bool(
             getattr(coord, "last_update_success", False)
         ),
     }
-    for name in (
-        "_accuracy", "_comfort_learner", "_curve_learner", "_price_model",
-    ):
-        obj = getattr(coord, name, None)
-        summary = getattr(obj, "summary", None)
-        if callable(summary):
-            try:
-                snap[name.lstrip("_")] = summary()
-            except Exception:  # noqa: BLE001 -- diagnostics never breaks
-                snap[name.lstrip("_")] = "summary unavailable"
+    if state:
+        snap.update(state.learner_summaries)
     try:
         snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
     except Exception:  # noqa: BLE001 -- diagnostics never breaks

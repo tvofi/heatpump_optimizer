@@ -1737,6 +1737,22 @@ class _ArbCoord:  # weak-referenceable, as the arbiter's WeakKeyDictionary needs
     hass = _arb_hass
     _config = {const.CONF_DHW_SETPOINT_ENTITY: "number.dhw"}
 
+    def arbiter_inputs(self):
+        return _arbiter.ArbiterInputs(
+            hass=self.hass,
+            config=self._config,
+            mode="auto",
+            plan=None,
+            plan_stale=False,
+            entry_released=False,
+            state=None,
+            thermal=None,
+            params=None,
+            action={},
+            measured_power_kw=None,
+            disinfecting=False,
+        )
+
 
 _arb_coord = _ArbCoord()
 _echo_at = datetime(2026, 10, 25, 2, 59, tzinfo=STHLM)

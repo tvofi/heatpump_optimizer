@@ -515,33 +515,45 @@ def _attach_night_advice(
         view["night_advice"] = advice
 
 
-def wood_fuel_from_coordinator(coord: Any, result: Any) -> WoodFuel:
-    """Publish helper so the coordinator does not grow a method (#463)."""
+def wood_fuel_from_parts(
+    config: dict[str, Any],
+    *,
+    external_heat: Any,
+    opt_config: Any,
+    thermal_params: Any,
+    thermal_model: Any,
+    current_state: Any,
+    result: Any,
+) -> WoodFuel:
+    """The published wood-fuel view from the coordinator's parts (#1739).
+
+    Every input is passed by the coordinator's one call site: the external
+    heat detector, the optimization and thermal parameters, the model's COP
+    curve, the thermal state and the plan. Nothing reaches a private.
+    """
     n = len(result.timestamps) if result is not None else 0
-    det = coord._external_heat
+    det = external_heat
     suppressing = bool(det.suppressing)
     if result is not None and suppressing:
         forecast_kw = det.forecast_free_heat(
             n,
-            coord._opt_config.dt_hours,
-            coord._thermal_params.two_tank_modelled,
+            opt_config.dt_hours,
+            thermal_params.two_tank_modelled,
         )
     else:
         forecast_kw = []
-    state = getattr(coord, "_current_state", None)
-    opt = getattr(coord, "_opt_config", None)
     return build_wood_fuel_view(
-        coord._config,
+        config,
         prices=list(result.prices) if result is not None else [],
         outdoor=list(result.outdoor_temps) if result is not None else [],
         space_kw=list(result.power_schedule) if result is not None else [],
         dhw_kw=(
             list(result.dhw_power_schedule or []) if result is not None else []
         ),
-        cop_at=coord._thermal_model.compute_cop,
+        cop_at=thermal_model.compute_cop,
         timestamps=list(result.timestamps) if result is not None else [],
         forecast_kw=forecast_kw,
         suppressing=suppressing,
-        wood_tank_temperature=getattr(state, "wood_tank_temperature", None),
-        comfort_min=getattr(opt, "min_temp", None),
+        wood_tank_temperature=getattr(current_state, "wood_tank_temperature", None),
+        comfort_min=getattr(opt_config, "min_temp", None),
     )
