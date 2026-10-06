@@ -172,13 +172,13 @@ for _name, _bad in _SANITIZE_CASES.items():
         f"scrubbed={_scrubbed!r}",
     )
 
-_kept = _sanitize({"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
-                   "3": 1.0, "-2": 2.0})
+_finite_payload = _sanitize({"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
+                            "3": 1.0, "-2": 2.0})
 R.check(
     "a finite payload round-trips unchanged (no over-refusal)",
-    _kept == {"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
-              "3": 1.0, "-2": 2.0},
-    f"kept={_kept!r}",
+    _finite_payload == {"rate": 0.3, "big": 9.9e14, "label": "abc", "zero": 0.0, "flag": True, "n": 7,
+                        "3": 1.0, "-2": 2.0},
+    f"kept={_finite_payload!r}",
 )
 _absurd = _sanitize({"f": 1e300, "i": 2 ** 64, "j": 10 ** 400, "s": "1e300", "1000000000000000": 1.0,
                      "k": [-1e15]})
