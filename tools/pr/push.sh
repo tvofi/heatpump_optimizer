@@ -301,7 +301,11 @@ body_then_push() { # pr number, body file
 if [ "${1:-}" = "--self-test" ]; then
   SELF="$(cd "$(dirname -- "$0")" && pwd)/$(basename -- "$0")"
   cd "$(git rev-parse --show-toplevel)" || exit 2
-  D=.claude/workflows/fixtures/policy-rot/prepr
+  if test -d .claude/workflows/fixtures/policy-rot/prepr; then
+    D=.claude/workflows/fixtures/policy-rot/prepr
+  else
+    D=tools/policy/fixtures/policy-rot/prepr
+  fi
   ZERO=0000000000000000000000000000000000000000
   STALE=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
   # The two listings `gh pr list --json number` actually prints, as literals, so

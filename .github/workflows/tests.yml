@@ -510,6 +510,15 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          # The rm above deletes both vendor trees; the pin puts back only the
+          # one the base carries. The other stays in the index, and the base
+          # walk reads it. Put that half back from this head.
+          if [ ! -f tools/policy/vendor/markdown-it.min.js ] && git cat-file -e "HEAD:tools/policy/vendor/markdown-it.min.js" 2>/dev/null; then
+            git checkout HEAD -- tools/policy/vendor
+          fi
+          if [ ! -f .claude/workflows/vendor/markdown-it.min.js ] && git cat-file -e "HEAD:.claude/workflows/vendor/markdown-it.min.js" 2>/dev/null; then
+            git checkout HEAD -- .claude/workflows/vendor
+          fi
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
@@ -634,7 +643,7 @@ jobs:
           fi
           PY=$(python -c 'import sys; print(sys.version.split()[0])')
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
 
       # An exact key and no restore-keys: data from any other commit is a miss.
       - name: Restore the base's per-script coverage
@@ -718,7 +727,11 @@ jobs:
           else
             echo "No per-script coverage for ${{ steps.covkey.outputs.base }}: measuring every script."
           fi
-          tools/audit/w5-partition/coverage_tree.sh fast || true
+          if test -f tools/audit/w5-partition/coverage_tree.sh; then
+            tools/audit/w5-partition/coverage_tree.sh fast || true
+          else
+            tools/coverage/coverage_tree.sh fast || true
+          fi
           test -s "$W5P_WORK/out/coverage.json" || {
             echo "The instrument produced no coverage.json. That is this job"
             echo "failing, not the ratchet: there is no measurement to judge."

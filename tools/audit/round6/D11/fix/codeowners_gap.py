@@ -491,12 +491,13 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
                 return False
             target = os.path.normpath(target)
             if target not in have:
-                # The old half of a move, absent until CI restores it. The
-                # command is the restored path; admitting it does not execute
-                # a file, and the new path is its own command on the else
-                # branch (R9-RO-6). A target that is not a retired path still
-                # refuses the line.
-                if not _retired_new(target):
+                # The old half of a move, absent until CI restores it, and only
+                # when this same line also runs the new path. A bare command of
+                # the old path is still an execution the allowlist does not own
+                # (the coverage_tree.sh probes). A target that is not a retired
+                # path, or a retired path with no new half on the line, refuses.
+                new = _retired_new(target)
+                if not (new and new in line):
                     return False
                 continue
             if not any(spec_hit(sp, target) for sp in specs):
