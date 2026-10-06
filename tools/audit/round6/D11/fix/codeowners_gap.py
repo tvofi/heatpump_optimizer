@@ -59,7 +59,8 @@ its `if:` names `github.event_name` only against other events; a job whose
 the pull request's instruments and grades nothing, and is skipped -- `--check`
 refuses one that a required context names. In every other reachable job, each
 execution of the file must come after a step of the form
-`git checkout "$PINNED" -- '<pathspec>' ...` whose pathspecs match it (git's
+`git checkout "$PINNED" -- '<pathspec>' ...`, or its listed form (`RESTORE`),
+whose pathspecs match it (git's
 glob, where `*` crosses `/`), and a pinned `.py` must run under `python3 -I`,
 so a module the pull request adds beside it cannot shadow an import. The
 workflows, hooks and settings (A, C, D) are never pinned: GitHub runs the pull

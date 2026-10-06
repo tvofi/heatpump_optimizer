@@ -23,7 +23,7 @@ WHAT IT REFUSES, every class conservative:
   * workflow   -- either side touches `.github/`: the gate itself moved.
   * claim      -- either side touches a golden claim file (`claim-files.md`).
   * grader     -- either side touches a path a required job restores from the
-                  base (the `git checkout "$PINNED" --` pathspecs): a grader on
+                  base (the pathspecs `codeowners_gap.RESTORE` reads): a grader on
                   one side and what it grades on the other is the semantic
                   conflict a merge-tree cannot see (#1589 against #1592).
   * budget     -- either side touches a `*_budgets.json` no closure records
@@ -102,7 +102,7 @@ def _codeowners_gap():
 
 
 def grader_specs(workflow_texts: list[str]) -> list[str]:
-    """Every pathspec a `git checkout "$PINNED" --` restore names."""
+    """Every pathspec a restore names, checked out or listed."""
     restore = _codeowners_gap().RESTORE
     specs: set[str] = set()
     for text in workflow_texts:
