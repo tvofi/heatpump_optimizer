@@ -17239,6 +17239,72 @@ R.check(
     _rs_zero_dt["scale"] is None and _rs_zero_dt["pairs"] > 0,
     f"{_rs_zero_dt}",
 )
+# The admission bounds are closed on the admitted side. A pair on the floor
+# or on the residual ceiling is evidence; one step the other way is not.
+_rs_on_floor = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a pair sitting on the indoor/outdoor floor is admitted",
+    _rs_on_floor == (0.0, _RS_MIN_DT),
+    f"{_rs_on_floor}",
+)
+_rs_on_ceiling = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=22.0,
+                   outdoor_temp=10.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a pair sitting on the residual ceiling is admitted",
+    _rs_on_ceiling == (_RS_MAX_RES, 11.5),
+    f"{_rs_on_ceiling}",
+)
+_rs_tagged_pair = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=10.0, boost_space=True),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a boost-tagged pair is refused before it can move the step",
+    _rs_tagged_pair is None,
+    f"{_rs_tagged_pair}",
+)
+
+
+def _rs_clip(**over):
+    args = dict(current_scale=1.0, num=1.0, den=10.0, pairs=100, days=4.0,
+                base_u=0.15, dt_hours=0.5)
+    args.update(over)
+    return _rs_acc._clipped_refit_scale(**args)
+
+
+R.check(
+    "#1936: exactly three settled days is enough evidence",
+    _rs_clip(days=3.0) is not None,
+    f"{_rs_clip(days=3.0)}",
+)
+R.check(
+    "#1936: a day's worth of pairs, exactly, is enough evidence",
+    _rs_clip(pairs=48) is not None,
+    f"{_rs_clip(pairs=48)}",
+)
+R.check(
+    "#1936: a zero indoor/outdoor sum is not a step",
+    _rs_clip(den=0.0) is None,
+    f"{_rs_clip(den=0.0)}",
+)
+R.check(
+    "#1936: a base loss at the floor is not a step",
+    _rs_clip(base_u=1e-6) is None,
+    f"{_rs_clip(base_u=1e-6)}",
+)
+R.check(
+    "#1936: a non-finite step is not a recommendation",
+    _rs_clip(num=float("nan")) is None,
+    f"{_rs_clip(num=float('nan'))}",
+)
 # A boost window on day 1, then 12 h of diverged plant state: the rows
 # before the window's end plus the tail carry a large cold residual, the
 # settled rows after it a small one. Only the settled rows may answer.
