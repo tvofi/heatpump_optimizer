@@ -36,7 +36,13 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from layout import canon as _layout_canon
+from layout import canon as _layout_canon, locate as _layout_locate
+
+# Dynamic import of a moved instrument. The string is the path while the file
+# is still there, otherwise the path the move map records, so a module import
+# follows the same file the `node <locate>` invocations already run.
+_PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
+_COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
     EagerHass,
     FakeCoordinator,
@@ -20926,17 +20932,28 @@ R.check(
     "narrowing INERT to tools/audit/ (#372) must not still cover "
     "tools/release/stamp.py, or the recorder has nothing to pull it into",
 )
-# Every tools/ file outside tools/audit/ must be classified. This replaced an
-# equality against the single-element list ["tools/release/stamp.py"] (#1067
+# Every tools/ file outside the inert homes must be classified. This replaced
+# an equality against the single-element list ["tools/release/stamp.py"] (#1067
 # G7b-1, which added tools/gen_device_fixtures.py): that literal said "there
 # is one such file", which is not the property #372's narrowing bought. The
-# property is that narrowing INERT leaves every non-audit tools/ file for the
-# recorder to classify, and it holds for any number of them.
+# property is that narrowing INERT leaves every such file for the recorder to
+# classify, and it holds for any number of them. tools/audit/ is the evidence
+# home #372 named. The instrument directories R9-RO-6 moved out of `.claude/`
+# and `tools/audit/` are inert homes of the same kind: unread except the files
+# INERT_EXCEPT names. A blanket `tools/` prefix would still hide stamp.py, and
+# that file staying in this set is what refuses it.
+_INERT_TOOL_HOMES = (
+    "tools/audit/",
+    "tools/policy/",
+    "tools/pr/",
+    "tools/coverage/",
+    "tools/devices/",
+)
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
         ["git", "ls-files", "tools/"], cwd=_closure.ROOT,
         capture_output=True, text=True).stdout.split()
-    if not f.startswith("tools/audit/")
+    if not f.startswith(_INERT_TOOL_HOMES)
 ]
 R.check(
     "narrowing INERT leaves every non-audit tools/ file in the must-classify set",
@@ -24111,8 +24128,15 @@ _IST_JOB = "\n".join(
 
 
 def _runs_selftest(job: str, script: str) -> bool:
+    """True when a step runs `script --self-test` at either home.
+
+    The job prefers the copy restored at `tools/audit/` and otherwise runs the
+    one this move put at `tools/pr/`. Either invocation is the self-test; a
+    step that names the script and does not pass `--self-test` is not.
+    """
     return any(
-        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        f"bash tools/audit/{script} --self-test" in _blk
+        or f"bash tools/pr/{script} --self-test" in _blk
         for _blk in job.split("\n      - name: ")[1:])
 
 
@@ -24120,15 +24144,16 @@ R.check(
     "the instrument self-test job runs both App identity self-tests",
     _runs_selftest(_IST_JOB, "app_approve.sh")
     and _runs_selftest(_IST_JOB, "app_comment.sh"),
-    "governance.yml's instrument-self-tests must run `bash tools/audit/"
-    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
-    "--self-test` as steps; without them the approver-only verdict allowlist "
-    "and the poster's read-back are unpinned",
+    "governance.yml's instrument-self-tests must run `app_approve.sh "
+    "--self-test` and `app_comment.sh --self-test`, at `tools/audit/` when "
+    "that copy is restored and at `tools/pr/` otherwise; without them the "
+    "approver-only verdict allowlist and the poster's read-back are unpinned",
 )
 R.check(
     "and a job with the poster's step removed is not (null control)",
     not _runs_selftest(
-        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        _IST_JOB.replace("bash tools/audit/app_comment.sh --self-test", "true", 1)
+        .replace("bash tools/pr/app_comment.sh --self-test", "true", 1),
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
@@ -24964,7 +24989,7 @@ R.check(
 )
 _FRICTION_PARSED = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "none_then: m.frictionEntries('None\\n`CLAUDE.md`: cost: real')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
@@ -25042,7 +25067,7 @@ def _friction_trailer_fixture():
 _FT = _friction_trailer_fixture()
 _FRICTION_TRAILER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
@@ -25097,7 +25122,7 @@ R.check(
 # and a line naming no rule still yields no id.
 _FRICTION_DOT = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const ids = (t) => m.frictionEntries(t).map((e) => e.id);"
      "console.log(JSON.stringify({"
      "path: ids('`.claude/skills/steward/SKILL.md`: cost: the skill named by its path'),"
@@ -25181,9 +25206,10 @@ def _autofix_head_fixture():
         return p.returncode, p.stdout
 
     try:
-        (d / ".claude/workflows").mkdir(parents=True)
+        _pl = Path(_layout_locate(".claude/workflows/policy_lint.mjs"))
+        (d / _pl.parent).mkdir(parents=True)
         (d / "tests/golden").mkdir(parents=True)
-        _copy_policy_lint_tree(d / ".claude/workflows")
+        _copy_policy_lint_tree(d / _pl.parent)
         (d / "tests/closures.json").write_text('{"closures": {}}\n')
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
@@ -25276,7 +25302,7 @@ R.check(
 # what it is excused for. So agreement is pinned here instead.
 _AH_CONST = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS ?? null)))"],
     capture_output=True, text=True).stdout or "null")
 _AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
@@ -26407,7 +26433,7 @@ _VC_WORDS = (re.findall(r"'([a-z][a-z0-9-]*)'", _VC_ARR.group(1))
              if _VC_ARR else [])
 _BLOCK_CLASSES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "fromScript: m.blockClasses ? m.blockClasses() : null,"
      "guard: m.blockClasses ? m.blockClasses('// no array here') : null"
@@ -26439,7 +26465,7 @@ R.check(
 # acceptance drives only the healthy extraction.
 _SHA40 = "0" * 40
 _STATS_JS = (
-    "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+    _PL_IMPORT + ".then((m) => " +
     "console.log(m.statsFindings ? JSON.stringify(m.statsFindings({"
     "prs: [{pr: 1}, {pr: 2}, {pr: 3}],"
     "fetched: new Map([[1, {body: 'x', comments: ["
@@ -26480,7 +26506,7 @@ R.check(
 # control -- the fix must not over-refuse it.
 _STATS_BLOCKFOLD = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const call = (bodies) => {"
      "const prs = bodies.map((_, i) => ({ pr: i + 1 }));"
@@ -26535,7 +26561,7 @@ R.check(
 # outside-grammar report instead of the population this check measures.
 _STATS_COVER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const head = (i) => String(i).padStart(2, '0').repeat(20);"
      "const mk = (n, verdicts) => ({"
      "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
@@ -26592,8 +26618,8 @@ R.check(
 # reader that classifies nothing.
 _STATS_GRAMMAR = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const src = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const key = 'const VERDICT_RE = ';"
      "const start = src.indexOf(key) + key.length;"
@@ -26660,8 +26686,8 @@ R.check(
 # accepts that the histogram neither counts nor reports.
 _STATS_BODIES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const waveText = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const reKey = 'const VERDICT_RE = ';"
      "const reEnd = waveText.indexOf('\\n)', waveText.indexOf(reKey)) + 2;"
@@ -26759,7 +26785,7 @@ R.check(
 # a window that posted none -- a constant census satisfies neither direction.
 _STATS_REVIEWS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const run = (second) => {"
      "const h = m.statsHistogram([{ pr: 1 }, { pr: 2 }], new Map(["
@@ -26850,7 +26876,7 @@ def _fetch_ledger(reviews: str):
            "HPO_STUB_REVIEWS": reviews}
     run = subprocess.run(
         ["node", "--input-type=module", "-e",
-         "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+         _PL_IMPORT + ".then((m) => {" +
          "const r = m.fetchWindow([{ pr: 7001 }]);"
          "const f = r.fetched.get(7001) || {};"
          "console.log(JSON.stringify({ error: r.fetchError,"
@@ -26949,8 +26975,8 @@ R.check(
 # re-derived rather than transcribed.
 _STATS_REWORK = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const load = (f) => { const d = JSON.parse(fs.readFileSync(f, 'utf8'));"
      "return { prs: d.records.map((r) => ({ pr: r.pr })),"
      "fetched: new Map(d.records.map((r) => "
@@ -27043,7 +27069,7 @@ R.check(
 # (4), and a reviewer's own `blocked <sha> head-moved` on a moved head (5).
 _STATS_ROUNDS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const M = (c) => 'Fix review: merge ' + sha(c);"
      "const B = (c, k) => 'Fix review: blocked ' + sha(c) + ' ' + k + ': x';"
@@ -27579,7 +27605,7 @@ def _ruleset_reader_fixture():
                    "PATH": f"{td / 'bin'}:{os.environ['PATH']}"}
             r = subprocess.run(
                 ["node", "--input-type=module", "-e",
-                 "import('./.claude/workflows/counts.mjs').then((m) => "
+                 _COUNTS_IMPORT + ".then((m) => " +
                  "console.log(JSON.stringify(m.liveRequiredContexts())))"],
                 capture_output=True, text=True, env=env)
             return r.returncode, r.stdout.strip()
