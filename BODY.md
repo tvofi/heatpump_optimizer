@@ -10,6 +10,10 @@ The release conditions are enumerated by `PYTHONPATH=tests/hastub python3 tests/
 
 ## Head
 
+`63aebe893e572c9ae558cae7049613b23a2c8f6b`
+
+`63aebe893e572c9ae558cae7049613b23a2c8f6b` puts `tests/block_duty.py` on a `run` line in `tests/run.sh` and a `rec` line in `tests/derive_closures.sh`, and writes the selection-cost counts `tests/entities.py` derived from `tests/closures.json` into `tests/deployment_shape.py`. Parent `aa1a661584d66722c4167c00b995c7609c4cf7cf`. Measured `date -u`: 2026-10-06T19:02:19Z. This is not a stamp.
+
 `aa1a661584d66722c4167c00b995c7609c4cf7cf`
 
 `3560b69668e171c91cac0fbcf1db35490795306e` merges origin/main `f07cd253` into `aedd50be`. The entity census keeps both additions: 78 entities, 60 sensors, 6 switches.
@@ -56,13 +60,17 @@ With no block set, `boost.overlay` adds no key and changes no value (`tests/feat
 
 ## Red checks
 
-`mutation` went red at `6132233c4a1a8dc1fda61aa142624d1a4f8af38c`. First error line: `MUTATION TABLE REFUSED -- 4776 unpinned site(s) against 4699 at the ratchet base 6b1ccb685e51903e7e524995a84d831d3904da9f, 78 of them added by this diff.` The same job's pin step then printed `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 78 not started for --budget-minutes`. Cheaper detector: `tests/mutation_table.py`'s source inventory, which prints that refusal before any driver and costs seconds. This commit records the 68 kills and the 10 equivalent rows. Against `6b1ccb68` the unpinned count is 4698 and added is 0.
+`closures` failed at `3560b69668e171c91cac0fbcf1db35490795306e`, job 112424468392. The job printed `closure: selectable script(s) with NO recording this run:` and `tests/block_duty.py`. `closures-autofix` on the same run, job 112436474265, printed `closures-autofix: skip-clean -- nothing owed to a human.` A script the derive lanes never run is not UNDER-SCOPED, so no bot commit comes. Cheaper detector: `tests/run.sh` prints `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh` before any lane. That scan is the start of `fast`; it adds no standing cost of its own. `63aebe89` adds the script to both lane files.
 
-`mutation-autofix` went red on the same head. First error line: `mutation-autofix: skip-no-measurement -- THE REPAIR DID NOT HAPPEN.` The pin step had measured nothing, so the job had no rows to apply. Cheaper detector: that summary line. The dispositions are in this commit, which is what the job would have pushed.
+`fast (3.14)` failed at the same head, job 112424333780. The run printed `3 TEST SCRIPT(S) FAILED`. The three lines are `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh`, `FAILED python3 tests/entities.py` (`FAIL and the lane's docstring records those measured numbers as the selection-cost note (#1218)`, `missing markers -> ['103 of the 496', '378 pairs']`), and `TEST NEVER RAN: tests/block_duty.py is wired into tests/run.sh but no lane executed it and no lane skipped it on purpose.` Cheaper detector for the wiring: the unwired line, already the start of this job. For the note: none. `tests/entities.py` re-derives the pair counts and is the detector. `63aebe89` writes `103 of the 496` and `378 pairs` into the note (`all 88 files` was already there).
 
-`nightly-status` and `delivery-status` grade `main` and were already red on that head. This commit does not change their scripts, `tests.yml`, `governance.yml`, the plan, or `docs/HANDOVER.md`. Cheaper detector: none. Each check is the detector.
+`mutation` went red at `6132233c4a1a8dc1fda61aa142624d1a4f8af38c`. First error line: `MUTATION TABLE REFUSED -- 4776 unpinned site(s) against 4699 at the ratchet base 6b1ccb685e51903e7e524995a84d831d3904da9f, 78 of them added by this diff.` The same job's pin step then printed `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 78 not started for --budget-minutes`. Cheaper detector: `tests/mutation_table.py`'s source inventory, which prints that refusal before any driver and costs seconds. The 68 kills and the 10 equivalent rows are in `b8915426`. At `3560b696` the `mutation` job succeeded.
 
-On this machine `tests/features.py` fails `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it` (shipped 110.4366, seeded 110.1297). `optimizer.py` and `thermal_model.py` are not in the diff. CI's `fast (3.14)` was green at `6132233c`. Cheaper detector: none. That check is the detector.
+`mutation-autofix` went red at `6132233c4a1a8dc1fda61aa142624d1a4f8af38c`. First error line: `mutation-autofix: skip-no-measurement -- THE REPAIR DID NOT HAPPEN.` The pin step had measured nothing, so the job had no rows to apply. Cheaper detector: that summary line, which is this job reading the mutation job. The dispositions are in `b8915426`. At `3560b696` the job was skipped.
+
+`nightly-status` grades `main`. At `3560b696`, job 112424333066, pinned `f07cd253c52f1012427d9869a808f1df39dafb93`, it printed `NIGHTLY FAILED: record-autofix failed last night.` and `scheduled run 37440269774, 2026-10-06T09:03:01+00:00, head cff39da, run conclusion 'failure'`. Cheaper detector: none. The check is the detector. This diff does not touch `tests/nightly_status.py`, `.github/workflows/tests.yml`, `.github/workflows/governance.yml`, `docs/plan-2026-09-open-issues.md`, or `docs/HANDOVER.md`.
+
+`delivery-status` grades `main`. At `3560b696`, job 112424332787, pinned `f07cd253c52f1012427d9869a808f1df39dafb93`, it printed `DELIVERY STATUS UNCHECKED — 39 rowed, 1 pending, 0 overdue (overdue at 12 commits)` and `pending  #2001 1b1bbaa 0 commit(s) since — record: delivery rows for #2000 (autofix)`. Cheaper detector: none. The check is the detector. This diff does not touch `tests/delivery_status.py`.
 
 ## Forward-carry
 
