@@ -82,8 +82,32 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.storage import _reset_store_disk
 from homeassistant.util import dt as _dt_stub
 
-from heatpump_optimizer.const import MANUAL_PLAN_WINDOW_HOURS
+from heatpump_optimizer.const import (
+    CAPACITY_FLOOR_FRACTION,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_COMPRESSOR_FREQ_MAX_HZ,
+    CONF_COMPRESSOR_FREQ_SENSOR,
+    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+    CONF_POWER_ENTITY,
+    CONF_QUIET_OFF_WINDOWS,
+    CONF_QUIET_SILENT_WINDOWS,
+    CONF_SILENT_MODE_FRACTION,
+    DEFAULT_SILENT_MODE_FRACTION,
+    MANUAL_PLAN_WINDOW_HOURS,
+)
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+from heatpump_optimizer.dhw_planner import (
+    _forced_off_with,
+    _legionella_charge,
+    _place_legionella_step,
+)
+from heatpump_optimizer import quiet_windows as _qw
+from heatpump_optimizer.sensor import MonthlyPeakSensor, _quiet_windows_attributes
+from heatpump_optimizer.services import (
+    _canonical_quiet_spec,
+    _canonical_quiet_updates,
+    _refuse_quiet,
+)
 from heatpump_optimizer.manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -413,6 +437,545 @@ def test_pins_change_schedule(R: Results) -> None:
         "a safe forced-off step is not released",
         k is not None and not pinned_off.manual_released_dhw,
         f"step {k} released {getattr(pinned_off, 'manual_released_dhw', None)}",
+    )
+
+
+def test_off_window_over_pins(R: Results) -> None:
+    R.section("A quiet Off window outranks a force-on pin (#1910)")
+
+    # The one place the Off mask is fitted to the horizon: a short mask is
+    # padded False and, with nothing else forced off, is the whole result.
+    try:
+        fitted = _forced_off_with(None, [True, False], 4)
+    except TypeError as err:
+        fitted = err
+    R.check(
+        "an Off mask shorter than the horizon is padded off-free to its length",
+        isinstance(fitted, np.ndarray)
+        and fitted.tolist() == [True, False, False, False],
+        f"got {fitted!r}",
+    )
+    merged = _forced_off_with(np.array([False, True, False, False]), [True], 4)
+    R.check(
+        "an Off mask is OR'd into the steps pins already forced off",
+        isinstance(merged, np.ndarray)
+        and merged.tolist() == [True, True, False, False],
+        f"got {merged!r}",
+    )
+
+    # A force-on pin inside the window must not reopen it: the overlay runs
+    # after the planners, so only the restated invariant keeps the steps
+    # empty. The pinned step is one the pin alone does fill (the null
+    # control), so the zeros are the window's.
+    winter = _build_optimizer("winter_typical", "winter_cold")
+    base = _solve(winter)
+    _base_dhw = np.asarray(base.dhw_power_schedule)
+    _base_tank = np.asarray(base.dhw_temp_trajectory)
+    _ceiling = winter[0].model.params.dhw_max_temp
+    _on_idx = next(
+        i
+        for i in range(2, N - 2)
+        if _base_dhw[i] < 0.05 and _base_tank[i] < _ceiling - 2.0
+    )
+    dp = np.full(N, np.nan)
+    dp[_on_idx] = 1.0
+    off = np.zeros(N, dtype=bool)
+    off[_on_idx - 2 : _on_idx + 2] = True
+    free = _solve(winter, dhw_pins=dp.copy())
+    held = _solve(winter, dhw_pins=dp.copy(), off_steps=off)
+    in_window = np.asarray(held.dhw_power_schedule)[off]
+    R.check(
+        "a force-on hot-water pin inside an Off window plans nothing in its steps",
+        free.dhw_power_schedule[_on_idx] > 0.3 and float(np.max(in_window)) == 0.0,
+        f"step {_on_idx}: pin alone {free.dhw_power_schedule[_on_idx]:.3f}, "
+        f"inside the window {float(np.max(in_window)):.3f}",
+    )
+
+
+def _legionella_steps(plan) -> list[int]:
+    """Steps whose reason is the anti-legionella cycle itself."""
+    return [i for i, reason in enumerate(plan.dhw_reasons) if reason == REASON_LEGIONELLA]
+
+
+def test_legionella_outside_off_window(R: Results) -> None:
+    """An Off window must not delete an anti-legionella cycle placed in it (#1910).
+
+    The cycle is due (200 h since the last one, interval 7 days) on a 50 °C
+    tank whose disinfection target is 60 °C. With no window the plan puts the
+    cycle at step 1. A window over that step used to zero the slot and leave
+    the tank at the everyday ceiling; the cycle has to be bought on a step
+    the window leaves free. A window that does not cover step 1 leaves the
+    cycle there, and still buys no hot water inside itself.
+    """
+    R.section("An Off window plans the anti-legionella cycle outside itself (#1910)")
+    winter = _build_optimizer(
+        "winter_typical", "winter_cold", dhw_hours_since_legionella=200.0,
+    )
+    params = winter[0].model.params
+    bare = _solve(winter)
+    bare_steps = _legionella_steps(bare)
+    bare_max = float(np.max(bare.dhw_temp_trajectory))
+    R.check(
+        "with no Off window the overdue cycle is at step 1 and the tank reaches 60 C",
+        params.dhw_legionella_temp == 60.0
+        and params.dhw_legionella_interval_days == 7.0
+        and winter[1].dhw_temperature == 50.0
+        and bare_steps == [1]
+        and bare_max == 60.0,
+        f"steps {bare_steps} max {bare_max} "
+        f"target {params.dhw_legionella_temp} interval {params.dhw_legionella_interval_days}",
+    )
+
+    cover = np.zeros(N, dtype=bool)
+    cover[0:3] = True
+    covered = _solve(winter, off_steps=cover)
+    covered_steps = _legionella_steps(covered)
+    covered_max = float(np.max(covered.dhw_temp_trajectory))
+    covered_in = float(np.max(np.asarray(covered.dhw_power_schedule)[cover]))
+    R.check(
+        "an Off window covering the placed step plans the cycle outside it",
+        bool(covered_steps)
+        and all(not cover[i] for i in covered_steps)
+        and covered_in == 0.0
+        and covered_max == params.dhw_legionella_temp,
+        f"steps {covered_steps} in-window DHW {covered_in} max {covered_max}",
+    )
+
+    elsewhere = np.zeros(N, dtype=bool)
+    elsewhere[40:52] = True
+    left = _solve(winter, off_steps=elsewhere)
+    left_steps = _legionella_steps(left)
+    left_max = float(np.max(left.dhw_temp_trajectory))
+    left_in = float(np.max(np.asarray(left.dhw_power_schedule)[elsewhere]))
+    R.check(
+        "an Off window elsewhere leaves the cycle at step 1 and buys no hot water inside it",
+        left_steps == [1] and left_max == 60.0 and left_in == 0.0,
+        f"steps {left_steps} in-window DHW {left_in} max {left_max}",
+    )
+
+    # The overdue cycle's window is one step, so the reach simulation is what
+    # moves it. A deadline that still has hours left shops the cheapest step
+    # in that span, and an elastic cycle shops the horizon: both can land on
+    # an Off step the reach never needed. Step 10 is made strictly cheapest
+    # so the placement is that step and not the tied night price.
+    def cheap(hours: float):
+        bundle = _build_optimizer(
+            "winter_typical", "winter_cold", dhw_hours_since_legionella=hours,
+        )
+        opt, state, priced, outdoor, wind, rain, solar = bundle
+        priced = np.array(priced, dtype=float)
+        priced[10] = 0.01
+        return (opt, state, priced, outdoor, wind, rain, solar)
+
+    def outside(bundle, index: int, name: str) -> None:
+        bare_at = _legionella_steps(_solve(bundle))
+        mask = np.zeros(N, dtype=bool)
+        mask[index] = True
+        moved = _solve(bundle, off_steps=mask)
+        moved_at = _legionella_steps(moved)
+        moved_in = float(np.max(np.asarray(moved.dhw_power_schedule)[mask]))
+        R.check(
+            name,
+            bare_at == [index]
+            and moved_at == [1]
+            and moved_in == 0.0
+            and float(np.max(moved.dhw_temp_trajectory)) == 60.0,
+            f"bare {bare_at} moved {moved_at} in-window DHW {moved_in} "
+            f"max {float(np.max(moved.dhw_temp_trajectory))}",
+        )
+
+    outside(
+        cheap(158.0), 10,
+        "an Off window on the deadline's cheap hour plans the cycle elsewhere",
+    )
+    elastic = cheap(140.0)
+    elastic[0].model.params.dhw_elastic_legionella_enabled = True
+    elastic[0].model.params.dhw_legionella_price_ceiling = float(
+        np.max(elastic[2])
+    )
+    outside(
+        elastic, 10,
+        "an elastic cycle shops the hour outside an Off window",
+    )
+
+
+def test_legionella_arms_a_solve_horizon_never_builds(R: Results) -> None:
+    """The Off-window arms a solve's horizon does not build (#1910).
+
+    A placement slice that is entirely off still has a later free step, or
+    it does not. A charge with no window is the other arm: every step runs.
+    """
+    R.section("Legionella placement when the slice is entirely off (#1910)")
+    prices = np.array([9.0, 8.0, 7.0, 0.2, 3.0])
+    covered = np.array([True, True, True, False, True])
+    placed = _place_legionella_step(prices, 0, 3, covered)
+    R.check(
+        "a slice the Off window covers entirely is bought at the next free step",
+        placed == 3,
+        f"got {placed}",
+    )
+    blocked = np.ones(5, dtype=bool)
+    blocked[0] = False
+    nowhere = _place_legionella_step(prices, 1, 4, blocked)
+    R.check(
+        "no free step left places no anti-legionella cycle",
+        nowhere is None,
+        f"got {nowhere}",
+    )
+    open_charge = _legionella_charge(4, 1.5, None)
+    R.check(
+        "no Off window charges every step of the reach",
+        isinstance(open_charge, np.ndarray) and bool(np.allclose(open_charge, 1.5)),
+        f"got {open_charge!r}",
+    )
+    masked = _legionella_charge(4, 1.5, np.array([True, False, True, False]))
+    R.check(
+        "an Off step contributes nothing to the reach",
+        isinstance(masked, np.ndarray)
+        and bool(np.allclose(masked, [0.0, 1.5, 0.0, 1.5])),
+        f"got {masked!r}",
+    )
+
+
+class _QuietCoord:
+    def __init__(self, specs: dict) -> None:
+        self._specs = specs
+
+    def configured_quiet_windows(self) -> dict:
+        return self._specs
+
+
+class _PowerState:
+    def __init__(self, state: str, unit: str | None = "W") -> None:
+        self.state = state
+        self.attributes = {} if unit is None else {"unit_of_measurement": unit}
+
+
+def _quiet_get(mapping: dict):
+    def get_state(entity_id):
+        if not isinstance(entity_id, str):
+            raise TypeError(entity_id)
+        return mapping.get(entity_id)
+    return get_state
+
+
+def test_quiet_window_arms(R: Results) -> None:
+    """The quiet-window arms a full solve never reaches (#1910).
+
+    Each check is the value the production function returns on a degenerate
+    or boundary input. A guard deleted, a bound widened, or a return
+    removed changes that value or raises; the count drive's survivors are
+    the arms these inputs are the first to name.
+    """
+    R.section("Quiet-window arms the solve does not reach (#1910)")
+    start = datetime(2026, 1, 15, 0, 0, tzinfo=timezone.utc)
+
+    def call(fn, *args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except (TypeError, ValueError, ZeroDivisionError, AttributeError) as err:
+            return err
+
+    neg = call(_qw.step_actions, start, -1, 0.25, "01:00-02:00", "")
+    R.check(
+        "a negative horizon is no actions, not an error",
+        neg is None,
+        f"got {neg!r}",
+    )
+    R.check(
+        "a zero horizon is no actions",
+        _qw.step_actions(start, 0, 0.25, "01:00-02:00", "") is None,
+    )
+    bad = call(_qw.step_actions, start, 4, 0.25, "not-a-window", "")
+    R.check(
+        "an unreadable spec is no actions",
+        bad is None,
+        f"got {bad!r}",
+    )
+    R.check(
+        "a non-string control and a switch control are domain verdicts",
+        _qw.silent_control_usable(None) is False
+        and _qw.silent_control_usable("not-an-entity") is False
+        and _qw.silent_control_usable("switch.night") is True,
+    )
+    missing = call(_qw._power_entity_kw, "sensor.hp", lambda _e: None)
+    R.check(
+        "a power entity with no state is no reading",
+        missing is None,
+        f"got {missing!r}",
+    )
+    zero_kw = call(
+        _qw._power_entity_kw, "sensor.hp",
+        _quiet_get({"sensor.hp": _PowerState("0", "W")}),
+    )
+    R.check(
+        "a zero power reading is no reading",
+        zero_kw is None,
+        f"got {zero_kw!r}",
+    )
+    bad_unit = call(
+        _qw._power_entity_kw, "sensor.hp",
+        _quiet_get({"sensor.hp": _PowerState("3500", "furlong")}),
+    )
+    R.check(
+        "an unrecognised power unit is no reading",
+        bad_unit is None,
+        f"got {bad_unit!r}",
+    )
+    R.check(
+        "no state callable and a non-positive nameplate measure nothing",
+        _qw.measured_ceiling_kw({CONF_POWER_ENTITY: "sensor.hp"}, None, 5.0) is None
+        and call(
+            _qw.measured_ceiling_kw,
+            {CONF_POWER_ENTITY: "sensor.hp"},
+            _quiet_get({"sensor.hp": _PowerState("3500", "W")}),
+            0.0,
+        ) is None,
+    )
+    odd_id = call(
+        _qw.measured_ceiling_kw,
+        {CONF_POWER_ENTITY: 12},
+        _quiet_get({}),
+        5.0,
+    )
+    R.check(
+        "a non-string power entity id is not read",
+        odd_id is None,
+        f"got {odd_id!r}",
+    )
+    hz_zero = call(
+        _qw.measured_ceiling_kw,
+        {
+            CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz",
+            CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0,
+        },
+        _quiet_get({"sensor.hz": _PowerState("0", None)}),
+        5.0,
+    )
+    R.check(
+        "a zero hertz reading measures nothing",
+        hz_zero is None,
+        f"got {hz_zero!r}",
+    )
+    _hz_number = _PowerState("40", None)
+    _hz_number.attributes = {"min": 0.0, "max": 0.0}
+    hz_ceiling = call(
+        _qw.measured_ceiling_kw,
+        {CONF_COMPRESSOR_FREQ_ENTITY: "number.hz"},
+        _quiet_get({"number.hz": _hz_number}),
+        5.0,
+    )
+    R.check(
+        "a frequency entity whose range max is zero measures nothing",
+        hz_ceiling is None,
+        f"got {hz_ceiling!r}",
+    )
+    R.check(
+        "a non-positive nameplate has no silent cap, and fraction 1.0 caps nothing",
+        _qw.silent_cap_kw({CONF_SILENT_MODE_FRACTION: 0.7}, None, 0.0) is None
+        and _qw.silent_cap_kw({CONF_SILENT_MODE_FRACTION: 0.7}, None, -1.0) is None
+        and _qw.silent_cap_kw({CONF_SILENT_MODE_FRACTION: 1.0}, None, 5.0) is None,
+    )
+    floored = _qw.silent_cap_kw(
+        {CONF_POWER_ENTITY: "sensor.hp", CONF_SILENT_MODE_FRACTION: 0.3},
+        _quiet_get({"sensor.hp": _PowerState("1000", "W")}),
+        5.0,
+    )
+    R.check(
+        "a measured figure below the floor is raised to the floor",
+        floored is not None
+        and abs(floored - CAPACITY_FLOOR_FRACTION * 5.0) < 1e-9,
+        f"got {floored!r}",
+    )
+    fraction_cap = _qw.silent_cap_kw({CONF_SILENT_MODE_FRACTION: 0.7}, None, 5.0)
+    R.check(
+        "the configured fraction is the cap when nothing is measured",
+        fraction_cap is not None and abs(fraction_cap - 3.5) < 1e-9,
+        f"got {fraction_cap!r}",
+    )
+    at_nameplate = _qw.compose(
+        None,
+        {
+            CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.n",
+            CONF_QUIET_SILENT_WINDOWS: "00:00-01:00",
+            CONF_POWER_ENTITY: "sensor.hp",
+        },
+        _quiet_get({"sensor.hp": _PowerState("5000", "W")}),
+        start, 4, 0.25, 5.0,
+    )
+    R.check(
+        "a measured ceiling equal to nameplate does not install a cap array",
+        at_nameplate.caps is None,
+        f"caps {at_nameplate.caps!r}",
+    )
+    dropped = call(
+        _qw.compose,
+        None,
+        {
+            CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.n",
+            CONF_QUIET_SILENT_WINDOWS: "00:00-01:00",
+            CONF_SILENT_MODE_FRACTION: 1.0,
+        },
+        _quiet_get({}),
+        start, 4, 0.25, 5.0,
+    )
+    R.check(
+        "fraction 1.0 resolves the rows and installs no cap",
+        not isinstance(dropped, Exception)
+        and dropped.caps is None
+        and dropped.actions is not None,
+        f"got {dropped!r}",
+    )
+    unreachable = call(
+        _qw.compose,
+        None,
+        {
+            CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.n",
+            CONF_QUIET_SILENT_WINDOWS: "03:00-04:00",
+        },
+        _quiet_get({}),
+        start, 4, 0.25, 5.0,
+    )
+    R.check(
+        "a window the horizon never reaches leaves the caller's cap alone",
+        not isinstance(unreachable, Exception) and unreachable.caps is None,
+        f"got {unreachable!r}",
+    )
+    extra = np.full(4, 4.0)
+    folded = _qw.compose(
+        extra,
+        {
+            CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "switch.n",
+            CONF_QUIET_SILENT_WINDOWS: "00:00-01:00",
+            CONF_SILENT_MODE_FRACTION: 0.5,
+        },
+        _quiet_get({}),
+        start, 4, 0.25, 5.0,
+    )
+    R.check(
+        "a silent cap is the elementwise minimum with the caller's extra cap",
+        folded.caps is not None
+        and abs(float(folded.caps[0]) - CAPACITY_FLOOR_FRACTION * 5.0) < 1e-9
+        and float(folded.caps[0]) < float(extra[0]),
+        f"caps {None if folded.caps is None else folded.caps.tolist()}",
+    )
+    folded_frac = _qw.overridden_config(
+        {"a": 1}, {CONF_SILENT_MODE_FRACTION: 0.4},
+    )
+    R.check(
+        "a what-if fraction off the default is folded into the config",
+        folded_frac.get(CONF_SILENT_MODE_FRACTION) == 0.4
+        and folded_frac.get("a") == 1,
+        f"got {folded_frac!r}",
+    )
+    folded_key = _qw.overridden_config(
+        {"a": 1}, {CONF_QUIET_SILENT_WINDOWS: "01:00-02:00"},
+    )
+    R.check(
+        "a what-if spec key is folded and an absent one is not",
+        folded_key.get(CONF_QUIET_SILENT_WINDOWS) == "01:00-02:00"
+        and "a" in folded_key
+        and _qw.overridden_config({"a": 1}, {}) == {"a": 1},
+        f"got {folded_key!r}",
+    )
+    empty_pair = _qw._parse_spec_pair("", "")
+    one_pair = _qw._parse_spec_pair("", "08:00-09:00")
+    R.check(
+        "two empty specs parse as nothing; one empty spec does not drop the other",
+        empty_pair is None and one_pair is not None and one_pair[1][0],
+        f"empty {empty_pair!r}, one {one_pair!r}",
+    )
+    R.check(
+        "windows that only touch at an endpoint do not overlap, from either side",
+        _qw._overlaps((1.0, 2.0), (2.0, 3.0)) is False
+        and _qw._overlaps((2.0, 3.0), (1.0, 2.0)) is False,
+    )
+    R.check(
+        "an off window overlapping a silent window is refused even with no hot water",
+        _qw.overlap_problem("06:00-07:30", "05:00-07:00", "") is not None,
+    )
+    R.check(
+        "an off window overlapping hot water is refused",
+        _qw.overlap_problem("", "05:00-07:00", "06:00-08:30") is not None,
+    )
+    weekly = _canonical_quiet_spec("weekdays 08:00-09:00")
+    R.check(
+        "a weekly quiet spec keeps its day selector through canonicalisation",
+        "weekdays" in weekly and "08:00" in weekly,
+        f"got {weekly!r}",
+    )
+    updates = call(_canonical_quiet_updates, {})
+    one_update = call(
+        _canonical_quiet_updates, {CONF_QUIET_OFF_WINDOWS: "08:00-09:00"},
+    )
+    R.check(
+        "absent quiet specs canonicalise to nothing, and a present one round-trips",
+        updates == {}
+        and isinstance(one_update, dict)
+        and "08:00" in one_update.get(CONF_QUIET_OFF_WINDOWS, ""),
+        f"empty {updates!r}, one {one_update!r}",
+    )
+    try:
+        _refuse_quiet(
+            {CONF_QUIET_OFF_WINDOWS: "05:00-07:00"},
+            "apply_schedule_invalid_quiet_windows",
+            "", "", "06:00-08:30",
+        )
+        refused = False
+    except ServiceValidationError:
+        refused = True
+    R.check(
+        "a service call whose off window overlaps hot water is refused",
+        refused,
+    )
+
+    opt = _build_optimizer("winter_typical", "winter_cold")[0]
+    off = np.zeros(8, dtype=bool)
+    off[1:3] = True
+    _throttling, caps, _extra = opt._build_space_power_caps(8, None, False, off)
+    R.check(
+        "an Off mask with no other cap still zeroes exactly its own space steps",
+        caps is not None and np.array_equal(caps[off] == 0.0, np.ones(2))
+        and float(np.min(caps[~off])) > 0.0,
+        f"caps {None if caps is None else np.asarray(caps).tolist()}",
+    )
+
+    specs = {
+        "quiet_silent_windows_spec": "22:00-06:00",
+        "quiet_off_windows_spec": "",
+        "quiet_silent_not_enforced": "true",
+    }
+    published = _quiet_windows_attributes(
+        _QuietCoord(specs),
+        {"predictive_info": {"quiet_actions": [0, 2, 2]}},
+    )
+    R.check(
+        "the plan sensor publishes the not-enforced marker and the resolved actions",
+        published.get("quiet_silent_not_enforced") is True
+        and published.get("quiet_actions") == [0, 2, 2],
+        f"got {published!r}",
+    )
+    peak_coord = _mk_coordinator()
+    peak_coord.data = {
+        "peak_month": "2026-01",
+        "peak_threshold_kw": 3.0,
+        "projected_peak_kw": 2.0,
+        "projected_peak_cost": 10.0,
+        "billed_peak_kw": 4.0,
+        "fuse_advisor": {"ok": 1},
+    }
+    peak_attrs = MonthlyPeakSensor(peak_coord, FakeEntry(data={})).extra_state_attributes
+    R.check(
+        "the monthly peak sensor publishes the tariff fields it was given",
+        isinstance(peak_attrs, dict)
+        and peak_attrs.get("month") == "2026-01"
+        and peak_attrs.get("fuse_advisor") == {"ok": 1},
+        f"got {peak_attrs!r}",
+    )
+    # The default fraction is the one the fold must treat as unset.
+    R.check(
+        "the default silent fraction is the unset value the fold compares against",
+        DEFAULT_SILENT_MODE_FRACTION == 1.0,
     )
 
 
@@ -1068,6 +1631,10 @@ def _run() -> int:
     test_channel_semantics(R)
     test_serialization(R)
     test_pins_change_schedule(R)
+    test_off_window_over_pins(R)
+    test_legionella_outside_off_window(R)
+    test_legionella_arms_a_solve_horizon_never_builds(R)
+    test_quiet_window_arms(R)
     test_safety_release(R)
     test_naive_expiry(R)
     test_give_up_is_per_channel(R)

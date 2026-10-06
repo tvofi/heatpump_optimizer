@@ -75,7 +75,7 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=70       (69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_modules_on_disk=71       (70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
@@ -101,7 +101,7 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=70            (69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_map_listed=71            (70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
@@ -476,10 +476,10 @@ eq("C17", "README.md:## Services", "the Services table names exactly services.ya
    sorted(m.group(1) for m in re.finditer(r"^\| `([a-z_]+)` \|",
           re.search(r"^## Services\n(.*?)(?=^## )", README, re.M | re.S).group(1), re.M)),
    sorted(SERVICES_YAML))
-eq("C18", "README.md + docs/configuration.md", "set_thermal_parameters takes 28 fields",
-   CMD, 28, len(schema_keys(SCHEMAS["set_thermal_parameters"])))
-eq("C19", "docs/configuration.md", "simulate_plan takes 16 optional fields", CMD,
-   16, len(schema_keys(SCHEMAS["simulate_plan"])))
+eq("C18", "README.md + docs/configuration.md", "set_thermal_parameters takes 31 fields",
+   CMD, 31, len(schema_keys(SCHEMAS["set_thermal_parameters"])))
+eq("C19", "docs/configuration.md", "simulate_plan takes 19 optional fields", CMD,
+   19, len(schema_keys(SCHEMAS["simulate_plan"])))
 eq("C20", "docs/configuration.md", "seven services accept an optional entry_id", CMD,
    7, sum(1 for s in SCHEMAS.values() if "entry_id" in schema_keys(s)))
 _sch_vs_yaml = {

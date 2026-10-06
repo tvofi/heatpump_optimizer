@@ -140,6 +140,8 @@ def solve_inputs(
     min_temp_floors=None,
     space_blocked=False,
     dhw_blocked=False,
+    off_steps=None,
+    quiet_actions=None,
 ):
     """``HeatPumpOptimizer.optimize``'s record from its pre-#1736 argument
     names, every one by keyword: a test states the inputs it varies and
@@ -169,5 +171,7 @@ def solve_inputs(
             min_temp_floors=min_temp_floors,
             space_blocked=space_blocked,
             dhw_blocked=dhw_blocked,
+            off_steps=off_steps,
+            quiet_actions=quiet_actions,
         ),
     )

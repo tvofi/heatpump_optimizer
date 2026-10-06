@@ -81,7 +81,7 @@ what creates the entry.
 
 ## Screen 1 · Price source and weather
 
-![The first screen: a name, the electricity price source, a Tibber token field, a price-sensor picker and the required weather forecast picker](setup/01-first-screen.png)
+![The first screen: a name, the electricity price source, a Tibber token field, a price-sensor picker and the required weather forecast picker](img/setup/01-first-screen.png)
 
 *A name, where prices come from, and the weather forecast — the two required
 answers of the whole flow.*
@@ -96,7 +96,7 @@ answers of the whole flow.*
 
 ## Screen 2 · Optional sensors
 
-![The optional-sensors screen: three groups — Room temperatures, Solar forecast, and Heat pump and tanks](setup/02-optional-sensors.png)
+![The optional-sensors screen: three groups — Room temperatures, Solar forecast, and Heat pump and tanks](img/setup/02-optional-sensors.png)
 
 *Every picker here is optional. Skip any you do not have — the optimizer
 still works, just with less accuracy.*
@@ -113,7 +113,7 @@ optimizer trusts its own model of the room, which drifts over time.
 After the two required screens the flow asks **Finish setup now?** — a menu
 with three answers:
 
-![The finish-setup menu: Quick setup (recommended), Continue setup, Finish setup now](setup/03-menu.png)
+![The finish-setup menu: Quick setup (recommended), Continue setup, Finish setup now](img/setup/03-menu.png)
 
 *Three answers, all of which end with a working entry.*
 
@@ -142,7 +142,7 @@ Two things worth knowing about this menu:
 
 ## Quick setup (recommended)
 
-![The Quick setup page: five toggles, two wood-tank sensor pickers, and the building questionnaire](setup/04-quick-setup.png)
+![The Quick setup page: five toggles, two wood-tank sensor pickers, and the building questionnaire](img/setup/04-quick-setup.png)
 
 *The whole house in one page: five yes/no questions, the wood-tank probes
 when you have that tank, and the same building questionnaire the full wizard
@@ -187,7 +187,7 @@ how the house actually behaves. The full table of choices is in
 Submitting the page moves straight to a screen that reads your heat pump's
 own entities:
 
-![The pre-fill offer: a single device picker with an explanation](setup/05-prefill-offer.png)
+![The pre-fill offer: a single device picker with an explanation](img/setup/05-prefill-offer.png)
 
 *Pick the pump's device and submit — or leave it empty to skip this and
 continue setup.*
@@ -197,7 +197,7 @@ its own entities: the outdoor, tank, flow and return temperature sensors, the
 hot water setpoint, and the pump's night-mode switch. Pick the device and
 submit, and the next form shows what its entities suggest:
 
-![The pre-fill result: six suggested fields you can edit or clear, each pre-filled with a value read from the pump](setup/06-prefill-result.png)
+![The pre-fill result: six suggested fields you can edit or clear, each pre-filled with a value read from the pump](img/setup/06-prefill-result.png)
 
 *Ordinary fields you can edit or clear — nothing is written until you submit
 this second form. Keep what looks right, clear what does not, and the wizard
@@ -236,7 +236,7 @@ Two details worth knowing:
 **Continue setup** walks the original pages. The first asks for the
 temperatures:
 
-![The Temperature Settings page: seven sliders for target, minimum, maximum, day and night comfort, and the day's hours](setup/07-wizard-temperatures.png)
+![The Temperature Settings page: seven sliders for target, minimum, maximum, day and night comfort, and the day's hours](img/setup/07-wizard-temperatures.png)
 
 *The gap between the target and the minimum is what makes savings possible:
 the wider it is, the more the house can coast through expensive hours.*
@@ -254,7 +254,7 @@ target, a night above the day temperature, and so on) run here too.
 **Finish setup now** skips the questions and creates the entry with shipped
 defaults once you confirm one last overview of what will be created:
 
-![The overview: a read-only summary of the system as the flow configured it](setup/08-setup-overview.png)
+![The overview: a read-only summary of the system as the flow configured it](img/setup/08-setup-overview.png)
 
 *What the optimizer believes your system is. An empty slot is shown as empty
 on purpose — it is a sensor this setup could use and does not have.*

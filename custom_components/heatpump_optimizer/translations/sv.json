@@ -477,6 +477,18 @@
     },
     "tibber_fetch_failed": {
       "message": "Elpriserna kunde inte hämtas: {error}"
+    },
+    "apply_schedule_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "set_thermal_params_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "simulate_plan_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "quiet_windows_overlap": {
+      "message": "Överlappande tysta fönster: {overlap}"
     }
   },
   "options": {
@@ -1733,6 +1745,10 @@
     "store_version": {
       "title": "Sparad inlärning kunde inte läsas",
       "description": "Optimerarens sparade data {store} kan inte läsas: {detail}. Den här versionen kan inte flytta över den, så den delen av det inlärda börjar om från standardvärden. Det händer när en äldre version installeras över en nyare, eller en nyare som ändrade hur datan sparas. Inget behöver göras för att optimeraren ska fortsätta köras. Om datan sparades av en nyare version lämnas den orörd och den här versionen sparar inget över den: installera den nyare versionen igen för att få tillbaka den, eller, för att behålla den här versionen, radera filen {store} i mappen .storage och starta om."
+    },
+    "quiet_silent_not_enforced": {
+      "title": "Tysta fönster genomförs inte",
+      "description": "Tysta fönster är konfigurerade, men kapacitetsbegränsningsplatsen ({entity}) är inte en brytare som integrationen kan hålla, så planen begränsas inte för dem och värmepumpen ombeds aldrig köra tyst. Tilldela värmepumpens egna natt-/tystlägesbrytare som kapacitetsbegränsad entitet, eller ta bort de tysta raderna."
     }
   },
   "entity": {
@@ -2171,6 +2187,18 @@
         "ecl110_displace_max": {
           "name": "ECL110 största parallellförskjutning",
           "description": "Den högsta parallellförskjutning optimeringen får begära, i °C."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },
@@ -2241,6 +2269,18 @@
         "wood_furnace_efficiency": {
           "name": "Vedpannans verkningsgrad",
           "description": "Tänk om-värde för pannans verkningsgrad i procent."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },
@@ -2319,6 +2359,18 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa ändringen till en konfigurationspost. Lämna tomt för att tillämpa den på varje konfigurerad värmepump, vilket är vad en installation med en enda värmepump vill ha."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },

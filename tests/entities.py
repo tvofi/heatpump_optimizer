@@ -1433,20 +1433,20 @@ R.check(
 )
 
 # B12 replaces B4's interim chart SVG with a screenshot this repository's
-# Playwright lane writes (`HPO_HERO_OUT=docs/img/card-plan-chart.png node
+# Playwright lane writes (`HPO_HERO_OUT=docs/img/card/card-plan-chart.png node
 # tests/card_browser.mjs`). The path is the pin: reverting it to `.svg`
 # puts the interim asset back. The PNG lives under `docs/` (INERT);
 # this check reads README.md only, so it does not pull `docs/` into a
 # measured closure. The hero must stay a single-line `![alt](src)` —
 # the HACS rewriter checks above are why.
 _hero = _re.search(
-    r"^!\[[^\n]*\]\((docs/img/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
     readme,
     _re.M,
 )
 R.check(
     "the README hero is the Playwright screenshot, not B4's interim SVG",
-    _hero is not None and _hero.group(1) == "docs/img/card-plan-chart.png",
+    _hero is not None and _hero.group(1) == "docs/img/card/card-plan-chart.png",
     f"hero src: {_hero.group(1) if _hero else None}",
 )
 
@@ -3682,6 +3682,10 @@ def _p2_registry(sources):
                  "services.py::handle_set_thermal_params": "service data write",
                  "services.py::handle_apply_topology": "service data write",
                  "services.py::handle_apply_schedule": "service data write",
+                 # #1910: the quiet-overlap refusal reads the stored
+                 # hot-water SPEC to judge an off window against it; it
+                 # never answers whether hot water is enabled.
+                 "services.py::_refuse_quiet_conflicts": "overlap validation",
                  "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
                      "windows update",
                  "quick_setup.py::stored_answers": answer,
@@ -24454,7 +24458,8 @@ R.check(
 # comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
 # a grant would accept the sentence that explains the grant. Pinned: main
 # only, its own environment, the `ci:` commit subject the loop guard keys on,
-# the guarded `git add docs/delivery` write set, the re-derive loop, the
+# the guarded `git add docs/delivery` write set (the rows commit, and the
+# self-row commit after NUM exists), the re-derive loop, the
 # #201 comment, and the report step that reddens a beat owed and not landed.
 # The record push's one force is a LEASE anchored on the tip the same try
 # fetched (a re-run's sibling commit made the fast-forward-only push of run
@@ -24477,8 +24482,9 @@ def _raf_job_ok(job: str) -> bool:
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
-        and 'git commit -q -m "ci: record delivery rows"' in job
-        and adds == ["git add docs/delivery"]
+        and job.count('git commit -q -m "ci: record delivery rows"') == 2
+        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
         and "issues/201/comments" in job
@@ -24515,10 +24521,12 @@ R.check(
                                          "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
-    "--force-with-lease or a bare --force -- must each turn the pin red -- "
+    "--force-with-lease or a bare --force, or dropping the self-row write "
+    "that runs only after NUM is known -- must each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
@@ -32456,7 +32464,7 @@ _PG_TREE = {
     "docs/site/notes.markdown": "# the other markdown extension",
     "docs/img/a.png": "p",
     "docs/img/card/b-dark.png": "p",
-    "docs/setup/c.svg": "<svg/>",
+    "docs/img/setup/c.svg": "<svg/>",
     "docs/how-it-works.md": "# reader doc",
     "docs/HANDOVER.MD": "# record, upper-case extension",
     "docs/tool.py": "print()",
@@ -32467,7 +32475,7 @@ _PG_TREE = {
 }
 _PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
             "site/fonts/OFL-A.txt", "img/a.png", "img/card/b-dark.png",
-            "setup/c.svg"}
+            "img/setup/c.svg"}
 
 
 def _pg_run(script: str, cwd: Path) -> int:

@@ -337,7 +337,7 @@ appear, each holding one weekday's times in the same comma-separated
 format (`12:00-24:00` for "nothing until noon"). An empty field does not
 mean "no hot water that day"; it means *inherit*, exactly as before.
 
-![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/options-hot-water-by-day.png)
+![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/card/options-hot-water-by-day.png)
 
 *The page as the flow renders it, two weekdays answered and the rest
 inheriting. A generated render of the integration's own form definitions
@@ -956,9 +956,9 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `run_optimization` | none | — |
 | `set_away` | `active`, `return_time` (at least one required) | — |
 | `set_mode` | `mode` (required) | — |
-| `set_thermal_parameters` | 28 optional model fields | — |
-| `simulate_plan` | 16 optional comfort and wood fields | always |
-| `apply_schedule` | 5 optional schedule fields + `entry_id` | optional |
+| `set_thermal_parameters` | 31 optional model fields | — |
+| `simulate_plan` | 19 optional comfort, wood and quiet-window fields | always |
+| `apply_schedule` | 8 optional schedule fields + `entry_id` | optional |
 | `assign_entity` | `key`, `entity_id` (both required) + `manual_setpoint`, `entry_id` | optional |
 | `apply_topology` | `layout` (required), `positions`, `dhw`, `wood`, `entry_id` | optional |
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
@@ -984,10 +984,13 @@ comfort temperature and ignore prices), `economy` (allow up to 1.5 °C below you
 comfort floor to ride out expensive hours, never below 15 °C), `boost` (maximum
 heating power) or `off`.
 
-**`set_thermal_parameters`** writes model parameters at runtime. All 28 fields
+**`set_thermal_parameters`** writes model parameters at runtime. All 31 fields
 are optional and anything omitted is left alone. Unparseable `dhw_windows`
 frames are rejected — the call refuses rather than silently keeping the old
-windows. The ranges below are the
+windows. The three quiet-window fields (`quiet_silent_windows`,
+`quiet_off_windows`, `silent_mode_power_fraction`) are configuration rather
+than physics: they are stored and take effect on the next solve, with the
+same overlap refusals `apply_schedule` applies. The ranges below are the
 physics bounds rather than the UI's convenience sliders, so several are wider
 than the options pages allow — an automation calling with a zero thermal mass
 would otherwise divide by zero inside the model:
@@ -1016,8 +1019,10 @@ forecast without disturbing operation, and returns the answer directly. Fields,
 all optional: `target_temp`, `min_temp`, `max_temp`, `comfort_weight`,
 `comfort_temp_day`, `comfort_temp_night`, `dhw_setpoint`,
 `dhw_min_temperature`, `day_start_hour` (0–23), `day_end_hour` (0–24),
-`dhw_windows`, `wood_type`, `wood_packing`, `wood_price_sek_m3`,
-`wood_furnace_efficiency`, `wood_slots`. An empty `dhw_windows` string is meaningful: it simulates having
+`dhw_windows`, `quiet_silent_windows`, `quiet_off_windows`,
+`silent_mode_power_fraction` (0–1), `wood_type`, `wood_packing`,
+`wood_price_sek_m3`, `wood_furnace_efficiency`, `wood_slots`. An empty
+`dhw_windows` string is meaningful: it simulates having
 no guaranteed hot water periods at all. The underlying solve is rate-limited,
 so dragging a slider cannot trigger one solve per pixel — this is what the
 card's what-if panel calls. A what-if that cannot run fails with an error
@@ -1026,7 +1031,8 @@ compare against before the first plan exists, and not enough price data is the
 same failure the live solve would report.
 
 **`apply_schedule`** is the save counterpart: it writes `day_start_hour`,
-`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature` and `dhw_windows`
+`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature`, `dhw_windows`,
+`quiet_silent_windows`, `quiet_off_windows` and `silent_mode_power_fraction`
 into your configuration and reloads the entry, so the next plan uses them. The
 windows are parsed and canonicalised before storing, and a day window that
 would never open is rejected — checked against the values that *would* be

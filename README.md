@@ -15,7 +15,7 @@ hours.
 
 [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
 
-![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.png)
+![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card/card-plan-chart.png)
 
 *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
 slots it picked for heating and for hot water. Screenshot of the shipped card
@@ -688,7 +688,7 @@ that deliver them.
 ## Services
 
 12 services are registered under the `heatpump_optimizer` domain. Field-level
-detail for each — including all 28 fields of `set_thermal_parameters` — is in
+detail for each — including all 31 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
 EV charger following the Cost Power Headroom sensor, mode switching on price — are in
 [docs/automations.md](docs/automations.md).

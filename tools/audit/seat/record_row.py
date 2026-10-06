@@ -6,6 +6,7 @@
         [--roster-ref GITREF | --roster-file PATH]
     python3 tools/audit/seat/record_row.py --apply --plan-file F [--root DIR]
     python3 tools/audit/seat/record_row.py --row-numbers --plan-file F
+    python3 tools/audit/seat/record_row.py --write-self-row --pr N [--root DIR]
     python3 tools/audit/seat/record_row.py --self-test
 
 The `record-autofix` job (.github/workflows/tests.yml) drives the three modes
@@ -44,6 +45,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roster_lib  # noqa: E402  the branch-to-group lookup (#1948's product)
 
+_TESTS = Path(__file__).resolve().parents[3] / "tests"
+if str(_TESTS) not in sys.path:
+    sys.path.insert(0, str(_TESTS))
+import delivery_status  # noqa: E402  anchored, mentions, merge_parents
+
 SELF = "tools/audit/seat/record_row.py"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 
@@ -52,13 +58,10 @@ DEFAULT_REPO = "tvofi/heatpump_optimizer"
 #: `tests/delivery_status.py`'s `ROW_ANCHOR` and `policy_lint.mjs`'s
 #: `rowAnchor` read it, so a misnamed file rows nobody.
 ROW_PATH = re.compile(r"^docs/delivery/(\d+)\.md$")
-#: The line shape a row file must carry: `[-*] [#N](.../pull/N)`. Kept in step
-#: with the two readers by the cross-reader arm in tests/entities.py, which
-#: drives generated rows through `delivery_status.read_texts` -- a second
-#: anchor regex here would be the drift those readers exist to prevent, so
-#: this module only asserts its own output against the grammar's skeleton and
-#: lets the tree's readers be the authority.
-ROW_LINE_SHAPE = re.compile(r"^\s*-\s+\[#(\d+)\]\([^()]*?/pull/(\d+)\)")
+#: The pre-merge row's title. It names no other pull request. `mentions`
+#: reads the whole anchored line, so a second number on it would row a merge
+#: this file does not anchor, while `has_row` would still plan that merge.
+OPEN_ROW_TITLE = "record: delivery rows (autofix)"
 
 #: The plan of record and the living handover are dispositions a seat writes,
 #: never this generator: a row appended to the plan's table sits at the
@@ -106,28 +109,52 @@ def row_path(number: int) -> str:
     return f"docs/delivery/{number}.md"
 
 
+def open_row_line(number: int, title: str) -> str:
+    """The row written before the pull request merges.
+
+    ``row_line`` embeds the merge SHA. That SHA does not exist until the
+    merge, so this line does not carry one. It anchors ``number`` and says
+    the pull request is open. A title that names another pull request is
+    refused: ``mentions`` would read it as that pull request's row.
+    """
+    safe = " ".join(str(title).split()).replace("|", "/")
+    if re.search(r"#\d+", safe):
+        raise Refuse(
+            "a pre-merge row title names a pull request; mentions() would "
+            "read that as a row and has_row would not")
+    return (f"- [#{int(number)}](https://github.com/{DEFAULT_REPO}/pull/"
+            f"{int(number)}) — **open**, {safe}")
+
+
+def self_row(number: int) -> dict:
+    """The record pull request's own row. No merge SHA."""
+    line = open_row_line(number, OPEN_ROW_TITLE)
+    return {"number": int(number), "path": row_path(int(number)),
+            "line": line, "title": OPEN_ROW_TITLE, "merge_sha": "",
+            "group": None}
+
+
 def rowed_line(number: int, text: str) -> bool:
-    """Whether `text` anchors <N> the way the tree's readers require."""
-    m = ROW_LINE_SHAPE.match(text)
-    return bool(m) and int(m[1]) == int(m[2]) == number
+    """Whether `text` anchors <N>. ``delivery_status.anchored``, not a copy."""
+    return delivery_status.anchored(number, text)
 
 
 def has_row(number: int, root: Path) -> bool:
     """Whether <N> carries a row in `root`: its own anchored row file, or a
-    mention in the plan of record or the handover -- the same predicate
-    `tests/delivery_status.py`'s `mentions` applies, bounded so `#88` is not
-    satisfied by `#885`."""
+    mention in the plan of record or the handover. The file half is
+    ``anchored``; the prose half is ``mentions``. A number in some other
+    row file's title is neither."""
     path = root / row_path(number)
     if path.exists():
         for line in path.read_text(encoding="utf-8").splitlines():
             if rowed_line(number, line):
                 return True
-    pattern = re.compile(rf"(?:#|/pull/){number}(?![0-9])")
+    texts = []
     for name in (PLAN_FILE, HANDOVER_FILE):
         p = root / name
-        if p.exists() and pattern.search(p.read_text(encoding="utf-8")):
-            return True
-    return False
+        if p.exists():
+            texts.append(p.read_text(encoding="utf-8"))
+    return bool(texts) and delivery_status.mentions(number, texts)
 
 
 def plan_merges(merges: list[dict], root: Path,
@@ -353,15 +380,15 @@ def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
     log = subprocess.run(
         ["git", "log", "--first-parent", "--format=%H%x1f%P", span],
         check=True, capture_output=True, text=True).stdout.splitlines()
-    # A SINGLE-PARENT first-parent commit is a direct push -- a release stamp,
-    # a `record:` leftover-row commit, an autofix bot push -- and legitimately
-    # attributes to no pull request; the same guard `tests/delivery_status`'s
-    # `collect` keys on the parent count for. Only a TWO-parent commit the map
-    # cannot attribute is this enumeration going blind, and it refuses.
+    # A single-parent first-parent commit is a direct push and owes no row.
+    # `merge_parents` is `collect`'s predicate: a two-parent commit is a
+    # merged pull request and is never skipped, the record beat included.
+    # Skipping that beat here while `collect` still ages it is the loop.
+    # The beat's own row is `self_row`, written once its number exists.
     merges = []
     for line in log:
         sha, _, parents = line.partition("\x1f")
-        if len(parents.split()) < 2:
+        if not delivery_status.merge_parents(len(parents.split())):
             continue
         pulls = _api(repo, f"/commits/{sha}/pulls", token) or []
         # The endpoint answers `merged: null` on this surface, so the merge
@@ -504,6 +531,69 @@ def self_test() -> int:
         ok("comment no closing keyword", True)
         ok("title", pr_title(rows) == "record: delivery rows for #2052, "
                                      "#2053 (autofix)")
+        # The record pull request's own row, written before it merges.
+        # No merge SHA. Both readers see the anchor. A real unrowed merge,
+        # including one this beat will itself be, still plans a row.
+        try:
+            open_row_line(2002, "record: delivery rows for #2001 (autofix)")
+            ok("other number refused", False)
+        except Refuse:
+            pass
+        opened = open_row_line(2002, OPEN_ROW_TITLE)
+        ok("open row anchors and carries no merge sha",
+           rowed_line(2002, opened) and "**open**" in opened
+           and "**merged `" not in opened
+           and re.findall(r"#(\d+)", opened) == ["2002"])
+        try:
+            _self_wrote = write_rows([self_row(2002)], root)
+            _self_again = write_rows([self_row(2002)], root)
+        except Refuse:
+            _self_wrote = _self_again = None
+        ok("self row written",
+           _self_wrote == ["docs/delivery/2002.md"])
+        ok("self row already there", _self_again == [])
+        saved_root = delivery_status.ROOT
+        delivery_status.ROOT = root
+        try:
+            texts = delivery_status.read_texts()
+        finally:
+            delivery_status.ROOT = saved_root
+        ok("readers agree the open row is a row",
+           has_row(2002, root) and delivery_status.mentions(2002, texts))
+        beat = {"number": 2001,
+                "title": pr_title([{"number": 2000}]),
+                "state": "merged", "head_ref": "record/autofix",
+                "merge_sha": "d" * 40}
+        ok("an unrowed record merge still plans a row",
+           [r["number"] for r in plan_merges([beat], root, roster=None)]
+           == [2001])
+        ok("readers agree that merge is not rowed by the self-row",
+           not has_row(2001, root)
+           and not delivery_status.mentions(2001, texts))
+        real = {"number": 1887, "title": "fix: a real change",
+                "state": "merged", "head_ref": "fix/r9-x",
+                "merge_sha": "e" * 40}
+        ok("a real unrowed merge still plans a row",
+           [r["number"] for r in plan_merges([real], root, roster=None)]
+           == [1887])
+        ok("one parent is not a merge",
+           not delivery_status.merge_parents(1))
+        ok("two parents is a merge", delivery_status.merge_parents(2))
+        import inspect
+        ok("enumerate and collect share the parent predicate",
+           "delivery_status.merge_parents" in inspect.getsource(
+               enumerate_merges)
+           and "merge_parents(" in inspect.getsource(delivery_status.collect))
+        led = delivery_status.classify(
+            delivery_status.collect([{
+                "sha": "a" * 40, "parents": 2,
+                "subject": "Merge pull request #2001 from "
+                           "tvofi/record/autofix",
+                "body": pr_title([{"number": 2000}]),
+            }])[0], [])
+        ok("ledger still pending a record merge with no row",
+           led["merges"][0]["state"] == "pending"
+           and led["counts"]["overdue"] == 0)
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: "
@@ -526,6 +616,10 @@ def main() -> int:
                     help="print the record pull request title for --plan-file")
     ap.add_argument("--print-comment", action="store_true",
                     help="print the #201 comment for --plan-file and --pr")
+    ap.add_argument("--write-self-row", action="store_true",
+                    help="write docs/delivery/<--pr>.md for the open record "
+                         "pull request, anchoring its number and carrying no "
+                         "merge SHA")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--repo", default=DEFAULT_REPO)
     ap.add_argument("--since", default="")
@@ -544,6 +638,13 @@ def main() -> int:
 
     if args.self_test:
         return self_test()
+    if args.write_self_row:
+        if args.pr <= 0:
+            print("::error::--write-self-row needs --pr", file=sys.stderr)
+            return 2
+        written = write_rows([self_row(args.pr)], Path(args.root))
+        print("wrote: " + (" ".join(written) if written else "(nothing)"))
+        return 0
     if args.enumerate_:
         token = __import__("os").environ.get(args.token_env, "")
         if not token:
