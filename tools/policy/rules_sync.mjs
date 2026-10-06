@@ -66,7 +66,15 @@ function main() {
     const wantCursor = render(parse(raw, rel))
     for (const [outRel, want] of [[claudeRel, raw], [cursorRel, wantCursor]]) {
       const outAbs = path.join(ROOT, outRel)
-      const have = fs.existsSync(outAbs) ? fs.readFileSync(outAbs, 'utf8') : null
+      // Read, do not existsSync-then-read. CodeQL js/file-system-race
+      // (check run 112518264694) flags the later writeFileSync because the
+      // existsSync result can be stale by the time the write runs.
+      let have = null
+      try {
+        have = fs.readFileSync(outAbs, 'utf8')
+      } catch (e) {
+        if (e.code !== 'ENOENT') throw e
+      }
       if (have === want) continue
       if (check) {
         console.log(`DRIFT ${outRel}: ${have === null ? 'missing' : 'differs from'} the generated form of ${rel}`)
