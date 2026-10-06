@@ -8,7 +8,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`33f6e8edfbee922929a61d7bbd3f665e52f624d8`
+`205943f950645b72866385d8c852e61a70cd3413`
 
 ## Mutation proof
 
@@ -28,7 +28,9 @@ The pin drive's null control, on that same head: `null control custom_components
 
 ## Figures
 
-Taken at `33f6e8edfbee922929a61d7bbd3f665e52f624d8`, 2026-10-06T19:56:47Z, origin/main `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872`. `python3 tests/structure.py` and `./tests/derive_closures.sh --single tests/debug_collect.py` were run at this head. The other commands were run at `50a36f792eb32913607bc003408c4b6661e41a73`; this commit does not change the files they read.
+Taken at `205943f950645b72866385d8c852e61a70cd3413`, 2026-10-06T20:20:03Z, origin/main `00da22db537a688efe6a7a9518a9fc91767c3a5a`. `python3 tests/structure.py` and `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` were run at this head. `git merge-tree --write-tree origin/main HEAD` exits 0.
+
+Merge of `00da22db` (`#1960`). The eight content conflicts are resolved. The claim table is the regenerated one, not a union of the two texts. `max_class_loc` stays 9048; the ledger sum 9103 was not recorded. Quiet-window composition lives in `quiet_windows.py`, and `python3 tests/structure.py` measures the coordinator class at that cap.
 
 - `python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT max_class_loc=9048 count`. `RESULT seam_cut_total=765 count`.
 - `./tests/derive_closures.sh --single tests/debug_collect.py` — exit 0. `git diff` on `tests/closures.json` changes only the recorded `seconds` for that script.
