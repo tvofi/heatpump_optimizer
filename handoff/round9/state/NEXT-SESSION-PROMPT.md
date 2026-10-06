@@ -24,9 +24,8 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R9-DIAG-2S (stage in-flight, branch `handoff/r9-diag-2s`, note `handoff/round9/fix/resume/DIAG-2S.md on fix/r9-diag-2s`): `git fetch origin handoff/r9-diag-2s && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DBG-1 (stage in-flight, branch `handoff/r9-dbg-1`, note `handoff/round9/fix/resume/DBG-1.md on fix/r9-dbg-1`): `git fetch origin handoff/r9-dbg-1 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DEFER-1793 (stage deferred, branch `none`, note `None`): `git fetch origin none && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
-- R9-STAMP-UNBLOCK (stage in-flight, branch `fix/r9-stamp-unblock`, note `None`): `git fetch origin fix/r9-stamp-unblock && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-DIAG-2S, R9-EG-B11, R9-RO-3, R9-RO-4, R9-RO-5, R9-RO-6, R9-RO-7, R9-STAMP-UNBLOCK, R9-SW-1, R9-SW-5
+Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-DIAG-2S, R9-EG-B11, R9-RO-3, R9-RO-4, R9-RO-5, R9-RO-6, R9-RO-7, R9-SW-1, R9-SW-5
 
 ## Resume steps
 
