@@ -26,14 +26,17 @@ The write path is the checkout -B worktree pattern: a throwaway worktree of
 so a re-run is idempotent. An existing worktree with uncommitted changes is
 refused, never clobbered.
 
-THE LINT GATE. `--push` refuses unless
-`node .claude/workflows/brief_lint.mjs <modified roster>` run FROM A FRESH
-origin/main checkout prints `TOTAL: 0 error(s)`. Without `--lint-cwd`, the
-tool checks out one itself; with it, the tool verifies the directory's HEAD
-still equals origin/main and refuses otherwise -- the stale-worktree
-phantom-error trap: a checkout main has moved past is a lint the tree no
-longer runs. An edit whose brief text the linter refuses is refused at the
-same gate, before anything reaches GitHub.
+THE LINT GATE. `--push` refuses unless the brief_lint the fresh origin/main
+checkout contains, run in that checkout on the modified roster, prints
+`TOTAL: 0 error(s)`. That is `.claude/workflows/brief_lint.mjs` when the
+checkout has that file, otherwise `tools/policy/brief_lint.mjs`. The probe
+is the checkout, not the process cwd: a branch that has moved the script
+still lints with the copy main holds. Without `--lint-cwd`, the tool checks
+out one itself; with it, the tool verifies the directory's HEAD still equals
+origin/main and refuses otherwise -- the stale-worktree phantom-error trap:
+a checkout main has moved past is a lint the tree no longer runs. An edit
+whose brief text the linter refuses is refused at the same gate, before
+anything reaches GitHub.
 
 Ops (all group ids must exist, except append-group which must not):
   set-stage    sets resume.stage (and resume.commit with --at-sha);
@@ -52,6 +55,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -63,6 +67,11 @@ SELF = "tools/audit/seat/roster_edit.py"
 ROSTER_PATH = ".claude/workflows/wave-r9-groups.json"
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
 SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+# Historical path first, then the moved one: the same preference as
+# `test -f` in the graders. Which of the two exists is read from the
+# checkout being linted.
+BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
+BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
 
 
 class Refuse(Exception):
@@ -222,6 +231,22 @@ def prepare_worktree(checkout, ref, branch, wt) -> None:
         run(["git", "-C", str(wt), "checkout", "-B", branch, base])
 
 
+def brief_lint_script(lint_cwd) -> str | None:
+    """Relative path of the brief_lint that directory contains.
+
+    Prefer the historical path when that file is present, otherwise the
+    moved path. None when the checkout has neither. The process cwd is a
+    different tree and is not consulted: probing it and then running that
+    relative path with `cwd=lint_cwd` executes a file the checkout does
+    not contain.
+    """
+    root = Path(lint_cwd)
+    for rel in (BRIEF_LINT_OLD, BRIEF_LINT_NEW):
+        if (root / rel).is_file():
+            return rel
+    return None
+
+
 def lint_gate(checkout, lint_cwd, roster_path):
     """brief_lint from a fresh origin/main checkout. Returns (ok, detail)."""
     run(["git", "-C", str(checkout), "fetch", "-q", "origin", "main"])
@@ -239,8 +264,11 @@ def lint_gate(checkout, lint_cwd, roster_path):
              made, main_sha])
         lint_cwd = made
     try:
-        r = subprocess.run(["node", ".claude/workflows/brief_lint.mjs" if __import__("pathlib").Path(".claude/workflows/brief_lint.mjs").is_file() else "tools/policy/brief_lint.mjs",
-                            str(Path(roster_path).resolve())],
+        script = brief_lint_script(lint_cwd)
+        if script is None:
+            return False, (f"neither brief_lint path is a file in {lint_cwd}: "
+                           f"{BRIEF_LINT_OLD} or {BRIEF_LINT_NEW}")
+        r = subprocess.run(["node", script, str(Path(roster_path).resolve())],
                            cwd=lint_cwd, capture_output=True, text=True)
         out = r.stdout + r.stderr
         ok = bool(TOTAL_OK.search(out))
@@ -354,6 +382,73 @@ def _self_test() -> int:
             failed.append(f"{name} (got: {got})")
 
     tmp = tempfile.mkdtemp(prefix="hpo-fr8-selftest-")
+
+    # The script node runs is the one lint_cwd contains. The process cwd is a
+    # different tree: this branch has moved brief_lint, and a fresh main
+    # checkout still has it at the historical path. A stub in the process cwd
+    # that prints the other verdict must not be the one that runs.
+    old_rel = BRIEF_LINT_OLD
+    new_rel = BRIEF_LINT_NEW
+
+    def lint_src(mark, total):
+        return (f"console.log('{mark}');\n"
+                f"console.log('TOTAL: {total} error(s) across 1 file(s)');\n")
+
+    def planted(name, files):
+        seed_n = Path(tmp, name)
+        seed_n.mkdir()
+        run(["git", "init", "-q", "-b", "main", str(seed_n)])
+        for rel, source in files.items():
+            dest = seed_n / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(source, encoding="utf-8")
+        (seed_n / "README.md").write_text("fixture\n", encoding="utf-8")
+        run(["git", "-C", str(seed_n), "add", "-A"])
+        run(["git", "-C", str(seed_n), "commit", "-q", "-m", "fixture lint"])
+        origin_n = Path(tmp, name + ".git")
+        run(["git", "clone", "-q", "--bare", str(seed_n), str(origin_n)])
+        drv_n = Path(tmp, name + "-drv")
+        run(["git", "clone", "-q", str(origin_n), str(drv_n)])
+        return drv_n, seed_n
+
+    def decoy(name, rel, source):
+        d = Path(tmp, name)
+        dest = d / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(source, encoding="utf-8")
+        return d
+
+    def gate_at(drv_n, lint_n, cwd_n):
+        os.chdir(cwd_n)
+        return lint_gate(drv_n, str(lint_n), lint_n / "README.md")
+
+    here = os.getcwd()
+    try:
+        drv_n, lint_n = planted("gate-old", {old_rel: lint_src("LINTCWD", 0)})
+        ok, why = gate_at(drv_n, lint_n, decoy("decoy-new", new_rel, lint_src("PROCESS", 1)))
+        check("lint_cwd historical script runs",
+              ok and "LINTCWD" in why and "PROCESS" not in why, why[:160])
+        drv_n, lint_n = planted("gate-new", {new_rel: lint_src("LINTCWD", 0)})
+        ok, why = gate_at(drv_n, lint_n, decoy("decoy-old", old_rel, lint_src("PROCESS", 1)))
+        check("lint_cwd moved script runs",
+              ok and "LINTCWD" in why and "PROCESS" not in why, why[:160])
+        drv_n, lint_n = planted("gate-refuse", {new_rel: lint_src("LINTCWD", 1)})
+        ok, why = gate_at(drv_n, lint_n, decoy("decoy-accept", old_rel, lint_src("PROCESS", 0)))
+        check("lint_cwd refusal stands",
+              not ok and "LINTCWD" in why and "PROCESS" not in why, why[:160])
+        drv_n, lint_n = planted("gate-both", {
+            old_rel: lint_src("LINTOLD", 0), new_rel: lint_src("LINTNEW", 1)})
+        ok, why = gate_at(drv_n, lint_n, decoy("decoy-both", new_rel, lint_src("PROCESS", 1)))
+        check("both paths prefer the historical file",
+              ok and "LINTOLD" in why and "LINTNEW" not in why and "PROCESS" not in why,
+              why[:160])
+        drv_n, lint_n = planted("gate-none", {})
+        ok, why = gate_at(drv_n, lint_n, decoy("decoy-none", old_rel, lint_src("PROCESS", 0)))
+        check("lint_cwd without brief_lint refuses",
+              not ok and "neither brief_lint path" in why, why[:160])
+    finally:
+        os.chdir(here)
+
     seed = Path(tmp, "seed")
     seed.mkdir()
     run(["git", "init", "-q", "-b", "main", str(seed)])
