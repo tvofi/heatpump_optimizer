@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:apply BOOLOP 3418e11d",
+  "killed_by": "tests/block_duty.py",
+  "old": "    released = snap is not None and release_blocked(coord, snap, now)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: BOOLOP (`released = snap is not None or release_blocked(coord, snap, now)`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}
