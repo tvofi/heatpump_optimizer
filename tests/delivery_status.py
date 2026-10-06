@@ -229,6 +229,47 @@ def subject_title(subject: str, body: str) -> str:
     return subject.strip()
 
 
+#: The mechanical record beat's title, the string ``record_row.pr_title``
+#: emits, and its branch. One predicate, because the generator and this
+#: ledger were each deciding that a two-parent merge owes a row: the beat
+#: cannot carry its own merge SHA in a row written before it merges, and the
+#: next beat writing that row is the loop. A named head must be the beat's
+#: branch. A title-subject merge names no branch, and the title is then the
+#: whole fact -- an empty head is that shape, not a pass for every title.
+RECORD_BEAT_TITLE = re.compile(
+    r"record: delivery rows for #\d+(?:, #\d+)* \(autofix\)")
+RECORD_BEAT_HEAD = "record/autofix"
+
+
+def merge_head(subject: str) -> str:
+    """The branch a ``Merge pull request #N from <owner>/<branch>`` names.
+
+    Empty when the subject is not that shape. A title-subject merge carries
+    no branch; ``record_beat`` then decides from the title alone.
+    """
+    if not MERGE_SUBJECT.search(subject or ""):
+        return ""
+    marker = " from "
+    i = (subject or "").find(marker)
+    if i < 0:
+        return ""
+    rest = subject[i + len(marker):].strip()
+    owner, sep, branch = rest.partition("/")
+    if not sep or not owner or not branch:
+        return ""
+    return branch
+
+
+def record_beat(title: str, head: str) -> bool:
+    """Whether this merge is the record-autofix beat, which owes no row.
+
+    The decision is the return. A line after it changes nothing.
+    """
+    titled = RECORD_BEAT_TITLE.fullmatch((title or "").strip()) is not None
+    branch = (head or "").strip()
+    return bool(titled) and branch in ("", RECORD_BEAT_HEAD)
+
+
 def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
     """Merges in the window, and the merge commits nothing could attribute.
 
@@ -269,6 +310,7 @@ def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
         merges.append({
             "number": number,
             "title": subject_title(commit["subject"], commit.get("body", "")),
+            "head_ref": merge_head(commit["subject"]),
             "merge_sha": commit["sha"],
             "commits_after": depth,
         })
@@ -316,10 +358,17 @@ def classify(merges: list[dict], texts: list[str],
     """
     rows = []
     for m in merges:
-        has_row = mentions(int(m["number"]), texts)
-        after = int(m.get("commits_after", 0))
-        state = "rowed" if has_row else (
-            "overdue" if after >= stale_after else "pending")
+        # mentions only asks whether the number is anchored. record_beat is
+        # the owe decision when nothing anchors it, the same predicate the
+        # generator skips on; an anchored beat stays rowed.
+        if mentions(int(m["number"]), texts):
+            state = "rowed"
+        elif record_beat(str(m.get("title") or ""),
+                         str(m.get("head_ref") or "")):
+            state = "self-disposing"
+        else:
+            after = int(m.get("commits_after", 0))
+            state = "overdue" if after >= stale_after else "pending"
         rows.append({**m, "state": state})
     overdue = [r for r in rows if r["state"] == "overdue"]
     pending = [r for r in rows if r["state"] == "pending"]
@@ -334,6 +383,8 @@ def classify(merges: list[dict], texts: list[str],
             "rowed": sum(1 for r in rows if r["state"] == "rowed"),
             "pending": len(pending),
             "overdue": len(overdue),
+            "self-disposing": sum(1 for r in rows
+                                  if r["state"] == "self-disposing"),
         },
     }
 
@@ -394,7 +445,11 @@ def render_markdown(ledger: dict) -> str:
                      "this.")
         lines.append("")
     elif not blind and not counts["pending"] and not counts["overdue"]:
-        lines.append("Every merge in the window carries a row.")
+        if any(r["state"] == "self-disposing" for r in ledger["merges"]):
+            lines.append("Every merge that owes a row carries one. "
+                         "A record-autofix merge owes none.")
+        else:
+            lines.append("Every merge in the window carries a row.")
         lines.append("")
     lines.append(
         "This region is replaced in place; the issue's own text above and "
@@ -556,7 +611,7 @@ def main() -> int:
           f"{counts['pending']} pending, {counts['overdue']} overdue "
           f"(overdue at {ledger['stale_after_commits']} commits)")
     for r in ledger["merges"]:
-        if r["state"] != "rowed":
+        if r["state"] not in ("rowed", "self-disposing"):
             print(f"  {r['state']:<8} #{r['number']} "
                   f"{str(r.get('merge_sha', ''))[:7]} "
                   f"{r.get('commits_after', 0)} commit(s) since — "
@@ -573,7 +628,11 @@ def main() -> int:
               "evidence that the window was read -- a run that could not read "
               "it reports UNCHECKED and never EMPTY")
     elif not blind and not counts["pending"] and not counts["overdue"]:
-        print("  every merge in the window carries a row")
+        if any(r["state"] == "self-disposing" for r in ledger["merges"]):
+            print("  every merge that owes a row carries one; a "
+                  "record-autofix merge owes none")
+        else:
+            print("  every merge in the window carries a row")
     print()
     print("This check is NOT a required context and a red here blocks no "
           "merge. Pending is the ordinary state: the protocol writes rows in "

@@ -44,6 +44,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import roster_lib  # noqa: E402  the branch-to-group lookup (#1948's product)
 
+_TESTS = Path(__file__).resolve().parents[3] / "tests"
+if str(_TESTS) not in sys.path:
+    sys.path.insert(0, str(_TESTS))
+import delivery_status  # noqa: E402  record_beat: the ledger's owe predicate
+
 SELF = "tools/audit/seat/record_row.py"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 
@@ -145,6 +150,11 @@ def plan_merges(merges: list[dict], root: Path,
     rows = []
     for m in sorted(merges, key=lambda x: int(x["number"])):
         n = int(m["number"])
+        # The same predicate classify applies. Skipping here while the ledger
+        # still calls the beat overdue is the loop, so this is not a second rule.
+        if delivery_status.record_beat(str(m.get("title") or ""),
+                                       str(m.get("head_ref") or "")):
+            continue
         if has_row(n, root):
             continue
         group = roster_lib.group_for_branch(roster, m.get("head_ref") or "") \
@@ -376,11 +386,17 @@ def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
                 "the REST API; the window is UNCHECKED this run, not "
                 "confirmed empty")
         pr = _api(repo, f"/pulls/{matched[0]['number']}", token)
+        title = pr.get("title") or ""
+        head = (pr.get("head") or {}).get("ref") or ""
+        # record_beat, not a private skip: classify reads the same predicate,
+        # and a beat left in this list is a row the next beat will owe.
+        if delivery_status.record_beat(title, head):
+            continue
         merges.append({
             "number": int(pr["number"]),
-            "title": pr.get("title") or "",
+            "title": title,
             "state": pr.get("state") or "",
-            "head_ref": (pr.get("head") or {}).get("ref") or "",
+            "head_ref": head,
             "merge_sha": pr.get("merge_commit_sha") or sha,
         })
     merges.sort(key=lambda m: m["number"])
@@ -504,6 +520,54 @@ def self_test() -> int:
         ok("comment no closing keyword", True)
         ok("title", pr_title(rows) == "record: delivery rows for #2052, "
                                      "#2053 (autofix)")
+        # The record beat owes no row. The title is this module's own
+        # pr_title; the head is record/autofix when a merge names one, and
+        # unnamed on a title-subject merge. A different merge still plans.
+        _beat_title = pr_title([{"number": 2000}])
+        _beat = {"number": 2001, "title": _beat_title, "state": "merged",
+                 "head_ref": "record/autofix", "merge_sha": "d" * 40}
+        _other = {"number": 1887, "title": "fix: a real change",
+                  "state": "merged", "head_ref": "fix/r9-x",
+                  "merge_sha": "e" * 40}
+        ok("record beat plans no row",
+           plan_merges([_beat], root, roster=None) == [])
+        ok("a different merge still plans",
+           [r["number"] for r in plan_merges([_other], root, roster=None)]
+           == [1887])
+        ok("the beat title on another head still plans",
+           [r["number"] for r in plan_merges(
+               [dict(_beat, head_ref="fix/copied")], root, roster=None)]
+           == [2001])
+        ok("another title on the beat head still plans",
+           [r["number"] for r in plan_merges(
+               [dict(_beat, title="fix: not the beat")], root, roster=None)]
+           == [2001])
+        _two = pr_title([{"number": 1970}, {"number": 1973}])
+        ok("a two-number beat plans no row",
+           plan_merges([dict(_beat, title=_two)], root, roster=None) == [])
+        _led = delivery_status.classify(
+            [{**_beat, "commits_after": delivery_status.STALE_AFTER_COMMITS}],
+            [])
+        ok("ledger does not call the beat overdue or pending",
+           _led["merges"][0]["state"] not in ("overdue", "pending", "rowed")
+           and _led["counts"]["overdue"] == 0
+           and _led["counts"]["pending"] == 0
+           and _led["verdict"] == delivery_status.OK)
+        _led_unnamed = delivery_status.classify(
+            [{**_beat, "head_ref": "",
+              "commits_after": delivery_status.STALE_AFTER_COMMITS}], [])
+        ok("a title-subject beat is not overdue or pending",
+           _led_unnamed["merges"][0]["state"] not in
+           ("overdue", "pending", "rowed"))
+        _led_other = delivery_status.classify(
+            [{**_other, "commits_after": 0}], [])
+        ok("ledger still pending a different merge",
+           _led_other["merges"][0]["state"] == "pending")
+        _led_anchored = delivery_status.classify(
+            [{**_beat, "commits_after": delivery_status.STALE_AFTER_COMMITS}],
+            ["[#2001](https://github.com/o/r/pull/2001)"])
+        ok("an anchored beat stays rowed",
+           _led_anchored["merges"][0]["state"] == "rowed")
 
     if fails:
         print(f"{len(fails)} self-test check(s) failed: "

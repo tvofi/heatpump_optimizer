@@ -24298,6 +24298,107 @@ R.check(
     "it is applied to, so a row that landed on main between enumeration and "
     "apply drops out instead of conflicting",
 )
+# THE RECORD BEAT OWES NO ROW. Merging the beat is a two-parent commit, so
+# both readers were treating it as a merge that owes a row, and the next beat
+# wrote that row and became the next such merge. The title is the generator's
+# own pr_title; the head is record/autofix when the merge names a branch.
+# A title-subject merge names none. A different merge still plans, and the
+# ledger still calls that one pending. The beat past the staleness threshold
+# is the case that would have been OVERDUE.
+_RAF_BEAT_TITLE = _rr.pr_title([{"number": 2000}])
+_RAF_BEAT = {"number": 2001, "title": _RAF_BEAT_TITLE, "state": "merged",
+             "head_ref": "record/autofix", "merge_sha": "d" * 40,
+             "commits_after": _ds.STALE_AFTER_COMMITS}
+_RAF_OTHER = {"number": 1887, "title": "fix: a real change", "state": "merged",
+              "head_ref": "fix/r9-x", "merge_sha": "e" * 40,
+              "commits_after": 0}
+with _ds_tf.TemporaryDirectory() as _raf_beat_root:
+    _raf_beat_plan = _rr.plan_merges([_RAF_BEAT], Path(_raf_beat_root))
+    _raf_other_plan = _rr.plan_merges([_RAF_OTHER], Path(_raf_beat_root))
+    _raf_copied_plan = _rr.plan_merges(
+        [{**_RAF_BEAT, "head_ref": "fix/copied"}], Path(_raf_beat_root))
+    _raf_head_only_plan = _rr.plan_merges(
+        [{**_RAF_BEAT, "title": "fix: not the beat"}], Path(_raf_beat_root))
+    _raf_two_plan = _rr.plan_merges(
+        [{**_RAF_BEAT, "title": _rr.pr_title(
+            [{"number": 1970}, {"number": 1973}])}],
+        Path(_raf_beat_root))
+_raf_beat_led = _ds.classify([_RAF_BEAT], [])
+_raf_unnamed_led = _ds.classify([{**_RAF_BEAT, "head_ref": ""}], [])
+_raf_other_led = _ds.classify([_RAF_OTHER], [])
+_raf_fill = [
+    _ds_commit(f"f{i:05d}", f"stamp {i}", parents=1)
+    for i in range(_ds.STALE_AFTER_COMMITS)
+]
+_raf_log_merges, _raf_log_blind = _ds.collect(_raf_fill + [
+    _ds_commit("beat001", f"{_RAF_BEAT_TITLE} (#2001)", parents=2,
+               body="Leaves #201 open.\n"),
+])
+_raf_log_led = _ds.classify(_raf_log_merges, [], unattributed=_raf_log_blind)
+_raf_from_merges, _raf_from_blind = _ds.collect([
+    _ds_commit("beat002", "Merge pull request #2001 from tvofi/record/autofix",
+               parents=2, body=_RAF_BEAT_TITLE + "\n"),
+])
+_raf_from_led = _ds.classify(_raf_from_merges, [],
+                             unattributed=_raf_from_blind)
+_raf_wrong_merges, _raf_wrong_blind = _ds.collect([
+    _ds_commit("beat003", "Merge pull request #2001 from tvofi/fix/copied",
+               parents=2, body=_RAF_BEAT_TITLE + "\n"),
+])
+_raf_wrong_led = _ds.classify(_raf_wrong_merges, [],
+                              unattributed=_raf_wrong_blind)
+_raf_real_merges, _raf_real_blind = _ds.collect(_raf_fill + [
+    _ds_commit("real001", "Merge pull request #1887 from tvofi/fix/r9-x",
+               parents=2, body="fix: a real change\n"),
+])
+_raf_real_led = _ds.classify(_raf_real_merges, [],
+                             unattributed=_raf_real_blind)
+
+
+def _raf_not_owed(ledger, number):
+    row = next(r for r in ledger["merges"] if r["number"] == number)
+    return (row["state"] not in ("overdue", "pending", "rowed")
+            and ledger["counts"]["overdue"] == 0
+            and ledger["counts"]["pending"] == 0
+            and ledger["verdict"] == _ds.OK)
+
+
+R.check(
+    "a record-autofix merge plans no row and is not overdue or pending, "
+    "and a different merge still plans",
+    _raf_beat_plan == []
+    and [r["number"] for r in _raf_other_plan] == [1887]
+    and [r["number"] for r in _raf_copied_plan] == [2001]
+    and [r["number"] for r in _raf_head_only_plan] == [2001]
+    and _raf_two_plan == []
+    and _raf_not_owed(_raf_beat_led, 2001)
+    and _raf_not_owed(_raf_unnamed_led, 2001)
+    and _raf_other_led["merges"][0]["state"] == "pending"
+    and _ds.classify([_RAF_BEAT], [
+        "[#2001](https://github.com/o/r/pull/2001)"])["merges"][0]["state"]
+    == "rowed"
+    and _raf_not_owed(_raf_log_led, 2001)
+    and _raf_log_merges[0]["commits_after"] == _ds.STALE_AFTER_COMMITS
+    and _raf_not_owed(_raf_from_led, 2001)
+    and _raf_wrong_led["merges"][0]["state"] == "pending"
+    and _raf_real_led["verdict"] == _ds.OVERDUE
+    and _raf_real_led["merges"][0]["number"] == 1887,
+    f"beat plan={[r['number'] for r in _raf_beat_plan]}, "
+    f"other={[r['number'] for r in _raf_other_plan]}, "
+    f"copied head={[r['number'] for r in _raf_copied_plan]}, "
+    f"other title={[r['number'] for r in _raf_head_only_plan]}, "
+    f"two-number={_raf_two_plan}, "
+    f"ledger beat={_raf_beat_led['merges'][0]['state']}, "
+    f"unnamed={_raf_unnamed_led['merges'][0]['state']}, "
+    f"other={_raf_other_led['merges'][0]['state']}, "
+    f"log={_raf_log_led['merges'][0]['state']} "
+    f"after={_raf_log_merges[0]['commits_after']}, "
+    f"from-branch={_raf_from_led['merges'][0]['state']}, "
+    f"wrong-head={_raf_wrong_led['merges'][0]['state']}, "
+    f"real={_raf_real_led['verdict']}; the beat past the threshold is the "
+    "merge the next beat was writing a row for, and a merge that is not "
+    "that beat still plans and still ages",
+)
 
 # THE GENERATED BODY, THROUGH THE PROGRAMS CI RUNS. `checkPrBody` refuses a
 # missing or empty section and a bare `n/a`; `figure_lint` refuses a command
