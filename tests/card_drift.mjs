@@ -23,7 +23,7 @@
 // If this script reports moved states, `docs/img/*.svg` may be stale too, and
 // NOTHING will tell you (#558 C2/C3, measured 2026-09-07). Some of those
 // figures are pictures of the chart, drawn by running the shipped card through
-// this same rig (`docs/img/make_card_figures.mjs`). `docs/` is INERT in
+// this same rig (`docs/img/card/make_card_figures.mjs`). `docs/` is INERT in
 // tests/closure.py, so a card change selects no script that reads them and the
 // committed figures silently stop matching what the card draws -- C2's axis
 // change alone dropped two time labels out of `chart-anatomy.svg`, and the

@@ -1433,20 +1433,20 @@ R.check(
 )
 
 # B12 replaces B4's interim chart SVG with a screenshot this repository's
-# Playwright lane writes (`HPO_HERO_OUT=docs/img/card-plan-chart.png node
+# Playwright lane writes (`HPO_HERO_OUT=docs/img/card/card-plan-chart.png node
 # tests/card_browser.mjs`). The path is the pin: reverting it to `.svg`
 # puts the interim asset back. The PNG lives under `docs/` (INERT);
 # this check reads README.md only, so it does not pull `docs/` into a
 # measured closure. The hero must stay a single-line `![alt](src)` —
 # the HACS rewriter checks above are why.
 _hero = _re.search(
-    r"^!\[[^\n]*\]\((docs/img/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
     readme,
     _re.M,
 )
 R.check(
     "the README hero is the Playwright screenshot, not B4's interim SVG",
-    _hero is not None and _hero.group(1) == "docs/img/card-plan-chart.png",
+    _hero is not None and _hero.group(1) == "docs/img/card/card-plan-chart.png",
     f"hero src: {_hero.group(1) if _hero else None}",
 )
 
@@ -32388,7 +32388,7 @@ _PG_TREE = {
     "docs/site/notes.markdown": "# the other markdown extension",
     "docs/img/a.png": "p",
     "docs/img/card/b-dark.png": "p",
-    "docs/setup/c.svg": "<svg/>",
+    "docs/img/setup/c.svg": "<svg/>",
     "docs/how-it-works.md": "# reader doc",
     "docs/HANDOVER.MD": "# record, upper-case extension",
     "docs/tool.py": "print()",
@@ -32399,7 +32399,7 @@ _PG_TREE = {
 }
 _PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
             "site/fonts/OFL-A.txt", "img/a.png", "img/card/b-dark.png",
-            "setup/c.svg"}
+            "img/setup/c.svg"}
 
 
 def _pg_run(script: str, cwd: Path) -> int:

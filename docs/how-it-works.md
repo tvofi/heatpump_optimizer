@@ -204,7 +204,7 @@ temperature. The planner and the published trajectory therefore read the same
 humidity, so the defrost derate cannot plan hot water at one humidity and
 deliver it at another.
 
-![Two plots of marginal COP against outdoor temperature: with the throttling-valve gate off the buffer-tank curve lies exactly on the building-mass curve and only the hot water tank sits lower, and with the gate on the buffer tank is derated below the building-mass curve and the hot water tank, at the same temperature, lies on it](img/marginal-cop.svg)
+![Two plots of marginal COP against outdoor temperature: with the throttling-valve gate off the buffer-tank curve lies exactly on the building-mass curve and only the hot water tank sits lower, and with the gate on the buffer tank is derated below the building-mass curve and the hot water tank, at the same temperature, lies on it](img/model/marginal-cop.svg)
 
 Both panels are `marginal_cop` asked directly over the same outdoor range. With
 the gate off, the buffer and building-mass curves are not merely close — the
@@ -463,10 +463,10 @@ Hot water is only *required* during the time frames you configure — for exampl
   drifts down, so no electricity is spent keeping water hot that nobody is going
   to use.
 
-![A 24-hour timeline of the tank under the optimizer's own plan: two shaded demand frames, the tank pre-heated as each opens and held above the 45 degree minimum inside it, drifting below between them, with the planned hot-water power underneath](img/dhw-demand-windows.svg)
+![A 24-hour timeline of the tank under the optimizer's own plan: two shaded demand frames, the tank pre-heated as each opens and held above the 45 degree minimum inside it, drifting below between them, with the planned hot-water power underneath](img/model/dhw-demand-windows.svg)
 
 That figure is one the shipped optimizer produced rather than an illustration
-of it: `docs/img/make_model_figures.py` reads the plan `tests/plan_view.py`
+of it: `docs/img/model/make_model_figures.py` reads the plan `tests/plan_view.py`
 solved, shades the frames `dhw_schedule.parse_windows` returns for the spec
 above, and refuses to write the figure at all if the plan it read dips below
 the minimum inside a frame.
@@ -482,7 +482,7 @@ require hot water around the clock.
 
 ### How the schedule is produced
 
-![A decay curve: degrees per thermal kWh still present in the hot water tank against how long ago the kWh was delivered, falling from 2.87 to about three quarters of that over 24 hours](img/dhw-store-decay.svg)
+![A decay curve: degrees per thermal kWh still present in the hot water tank against how long ago the kWh was delivered, falling from 2.87 to about three quarters of that over 24 hours](img/model/dhw-store-decay.svg)
 
 The decay above is not the formula below plotted; it is the shipped tank
 simulation perturbed by one kWh and asked what is left. That distinction is the
