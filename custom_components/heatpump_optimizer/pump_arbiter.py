@@ -121,7 +121,7 @@ import logging
 from collections import Counter, deque
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, TypeGuard
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -419,12 +419,14 @@ def _step_start(now: datetime) -> datetime:
     return now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
 
 
-def _silent_rows(spec: Any) -> bool:
+def _silent_rows(spec: Any) -> TypeGuard[str]:
     """Whether ``spec`` names a silent window the week can reach.
 
     The same ``step_actions`` the solve uses, over seven days from a Monday,
     so a weekday token and an overnight window are rows and an empty or
     unreadable spec is not. No rows means the switch is never written.
+    True only for a ``str``, which is what lets the caller pass it to
+    :func:`_inside_silent`.
     """
     if not isinstance(spec, str) or not spec.strip():
         return False
