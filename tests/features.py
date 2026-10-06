@@ -17207,7 +17207,8 @@ R.check(
 )
 R.check(
     "#1936: the refit states its own band and the evidence behind it",
-    _rs_one["band_percent"] == _rs_acc.REFIT_BAND_PERCENT
+    _rs_one["band_percent"] == 10
+    and _rs_one["band_percent"] == _rs_acc.REFIT_BAND_PERCENT
     and _rs_one["pairs"] == 192
     and _rs_one["required_days"] == _rs_acc.REFIT_SETTLED_DAYS
     and abs(_rs_one["settled_days"] - 4.0) < 0.05,
@@ -17229,6 +17230,14 @@ R.check(
     "#1936: under three settled days there is no refit, only the progress",
     _rs_short["scale"] is None and abs(_rs_short["settled_days"] - 2.5) < 0.05,
     f"{_rs_short}",
+)
+# dt_hours of 0 is the clamp's own input: the pair floor stays the 1e-6
+# stand-in, and the call returns a dict instead of dividing by the interval.
+_rs_zero_dt = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03), dt_h=0.0)
+R.check(
+    "#1936: a zero interval still answers a dict -- the pair floor stays finite",
+    _rs_zero_dt["scale"] is None and _rs_zero_dt["pairs"] > 0,
+    f"{_rs_zero_dt}",
 )
 # A boost window on day 1, then 12 h of diverged plant state: the rows
 # before the window's end plus the tail carry a large cold residual, the
