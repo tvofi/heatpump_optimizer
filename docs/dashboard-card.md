@@ -808,8 +808,8 @@ The form offers every documented option:
 - **Show the schedule editor** and **Show the headline stats**, as toggles.
 - **Currency**, as a dropdown of the likely codes that still accepts any other
   ISO code typed in.
-- **Series shown by default**, as an expandable group of the eight per-series
-  toggles, labelled with the same names the legend uses.
+- **Series shown by default**, as an expandable group of one toggle per
+  series, labelled with the same names the legend uses.
 
 Field labels follow the frontend language, like the rest of the card.
 
@@ -841,6 +841,8 @@ series:                                  # optional, initial per-series visibili
   dhw_slots: true
   space_slots: true
   actioned: true
+  quiet_silent: true
+  quiet_off: true
   outdoor: true
   dhw_temp: true
   house_temp: true
@@ -858,7 +860,7 @@ series:                                  # optional, initial per-series visibili
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
 | `currency`     | string  | plan sensor's, else HA's, else `SEK` | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors (v4.1.0+), then Home Assistant's configured currency, then `SEK`. Only override this if your price feed disagrees with all of them. It relabels rather than converts, and it does not relabel a savings figure: the headline and the savings page keep the unit their own sensor declares. |
 | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
-| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
+| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `quiet_silent`, `quiet_off`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery
 
