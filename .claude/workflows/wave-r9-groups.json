@@ -4872,9 +4872,9 @@
     "R9-EG-A3"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-eg-entry-config",
-    "commit": null,
+    "commit": "fc0aff72aa1f28b5bbbcc898b919ed2b7d101b29",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure with the prototype, then write the failing check",
     "note_file": "handoff/round9/fix/resume/EG-B11.md on handoff/r9-eg-entry-config",
