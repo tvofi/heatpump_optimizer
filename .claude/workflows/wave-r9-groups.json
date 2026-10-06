@@ -6651,7 +6651,7 @@
     "stage": "in-flight",
     "branch": "handoff/r9-f10-16",
     "commit": "3c0e3324d1f09e68677ee8caca38b2e42035c6a8",
-    "last_step": "round-2 repair 7eb31bd2 on handoff/r9-f10-16, body on handoff-body/r9-f10-16 at ce2b1962; fix-review round 2 returned merge at 7eb31bd2 (unpublished: no PR, no nonce); open_pr.sh running at 2026-10-05T21:05Z",
+    "last_step": "PR #1975 head 3c0e3324d1f09e68677ee8caca38b2e42035c6a8. Merge verdict posted and approved. The head does not contain origin/main 0e8e22c6. The body closes #1930.",
     "next_step": "PR #1975 open (draft) at 3c0e3324 = 7eb31bd2 + origin/main 86dbf0ca + its own delivery row; carry the r2 verdict to that head (app_approve.sh --carry), CI green, tvofi's review for .github/workflows/tests.yml (code-owned; mandate to 2026-10-09), merge",
     "note_file": null,
     "review_branch": null,
