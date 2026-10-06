@@ -6,7 +6,13 @@ Leaves #201 open
 
 _Requested by **tvofi**_.
 
+The release conditions are enumerated by `PYTHONPATH=tests/hastub python3 tests/block_duty.py`. Each one has a failing direction in that script: a due or overdue anti-legionella cycle (`a due or overdue cycle inside the horizon releases DHW`), a disinfection hold, the tank at its minimum inside a demand window and not outside one (`00:00-01:00` at 12:00), the room floor, the cold-rail lease, system identification, and a stale plan.
+
 ## Head
+
+`aa1a661584d66722c4167c00b995c7609c4cf7cf`
+
+`3560b69668e171c91cac0fbcf1db35490795306e` merges origin/main `f07cd253` into `aedd50be`. The entity census keeps both additions: 78 entities, 60 sensors, 6 switches.
 
 `b89154264a7eb6cca52d4605b902f4238d23240d`
 
@@ -16,7 +22,7 @@ _Requested by **tvofi**_.
 
 `3301d6197d15cfbf58543f4af82fc7980c012996`
 
-Measured at origin/main `0a60e06585640fd79ca321c65a9b8f13bc0030a4` (`date -u`: 2026-10-06T17:30:35Z). This is not a stamp. The unpinned count below was also taken against `6b1ccb685e51903e7e524995a84d831d3904da9f` and `62f604eb062bf88d3dc4b0f4ec85ca17359af229`.
+The window check was measured at `aa1a661584d66722c4167c00b995c7609c4cf7cf` (`date -u`: 2026-10-06T18:46:09Z). This is not a stamp. origin/main in that merge is `f07cd253c52f1012427d9869a808f1df39dafb93`. The unpinned count below was taken at `b8915426` against `6b1ccb685e51903e7e524995a84d831d3904da9f`, `62f604eb062bf88d3dc4b0f4ec85ca17359af229` and `0a60e06585640fd79ca321c65a9b8f13bc0030a4`.
 
 ## Mutation proof
 
@@ -24,13 +30,15 @@ Measured at origin/main `0a60e06585640fd79ca321c65a9b8f13bc0030a4` (`date -u`: 2
 
 The overlay assignment `action["power"] = 0.0` replaced with `action["power"] = action["power"]` left power at 1.2 under the check `a space block zeroes space power and leaves the supply switch and DHW alone`. Restored, that check printed `ok`.
 
+Deleting `and _window_open(snap, now)` from `_dhw_floor` made `PYTHONPATH=tests/hastub python3 tests/block_duty.py` exit 1: `FAIL the tank at its minimum outside a demand window does not release` (1 of 46). A 45 °C tank, minimum 45 °C, windows `00:00-01:00`, at 12:00. Restored, the same command printed `ALL 46 BLOCK DUTY CHECKS PASSED` and that check `ok`.
+
 ## Null control
 
 With no block set, `boost.overlay` adds no key and changes no value (`tests/features.py`: `with no block set the overlay adds no key and changes no value`, printed `ok`). A boost-only store payload has no `block_dhw` or `block_space` key (printed `ok`). `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt` are not in the diff. `tests/env_drift.py --all` against `62f604eb` printed `NO UNCLAIMED DRIFT`.
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tests/block_duty.py` — `ALL 45 BLOCK DUTY CHECKS PASSED`
+- `PYTHONPATH=tests/hastub python3 tests/block_duty.py` — `ALL 46 BLOCK DUTY CHECKS PASSED` at `aa1a661584d66722c4167c00b995c7609c4cf7cf`. The same command with `and _window_open(snap, now)` deleted exited 1 on `the tank at its minimum outside a demand window does not release`.
 - Unpinned ratchet, `tests/mutation_table.py`'s `unpinned_sites` / `added_unpinned` / `ratchet_refusal` against `6b1ccb685e51903e7e524995a84d831d3904da9f`, `62f604eb062bf88d3dc4b0f4ec85ca17359af229` and `0a60e06585640fd79ca321c65a9b8f13bc0030a4` — unpinned 4698, base 4699, added 0, refusal None
 - `python3 tests/closure.py select --diff origin/main` — `MODE: SCOPED -- 21 script(s) run, 10 scoped out` at the code head before `tests/block_duty.py`
 - `PYTHONPATH=tests/hastub python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`
