@@ -56,8 +56,17 @@
 // printed on every run, beside every figure, for that reason.
 import { execFileSync } from 'node:child_process'
 
-const PLAN = 'docs/plan-2026-09-open-issues.md'
-const HAND = 'docs/HANDOVER.md'
+// History keeps the old paths (tvofi D2). A head after R9-RO-5 has the new
+// ones. A reader of only the new path misses every commit before the move.
+const PLAN_PATHS = ['dev/programme/plan-2026-09-open-issues.md', 'docs/plan-2026-09-open-issues.md']
+const HAND_PATHS = ['dev/programme/HANDOVER.md', 'docs/HANDOVER.md']
+export function firstPresent(read, paths) {
+  for (const p of paths) {
+    const t = read(p)
+    if (t != null) return t
+  }
+  return null
+}
 const SECTION = 'Delivery status'
 
 // ---------------------------------------------------------------------------
@@ -162,7 +171,9 @@ function sweep(range, map) {
   for (const H of heads) {
     const since = git('describe', '--tags', '--abbrev=0', '--match', 'v*', H).trim()
     const commits = git('log', '--first-parent', '--format=%H', `${since}..${H}`).trim().split('\n').filter(Boolean)
-    const { lines, sectionFound } = recordRegion(show(H, PLAN) ?? '', show(H, HAND) ?? '')
+    const { lines, sectionFound } = recordRegion(
+      firstPresent((p) => show(H, p), PLAN_PATHS) ?? '',
+      firstPresent((p) => show(H, p), HAND_PATHS) ?? '')
     if (!sectionFound) { noRegion++; continue }
     windows++
     const prs = []
@@ -212,8 +223,8 @@ function inFlight(slug, since) {
   }
   const rows = []
   for (const [pr, sha] of openPrs) {
-    const plan = contents(slug, PLAN, sha)
-    const hand = contents(slug, HAND, sha)
+    const plan = firstPresent((p) => contents(slug, p, sha), PLAN_PATHS)
+    const hand = firstPresent((p) => contents(slug, p, sha), HAND_PATHS)
     if (plan === null || hand === null) { rows.push({ pr, unread: true }); continue }
     const { lines, sectionFound } = recordRegion(plan, hand)
     if (!sectionFound) { rows.push({ pr, unread: true }); continue }
@@ -292,6 +303,12 @@ function selfTest() {
   eq('the absolute form reports an unmentioned number', newlyRefusedAbsolute(live, ['9999'], PREDICATES.cand), ['9999'])
   // No section, no region -- reported as absence rather than as an empty region.
   eq('a plan with no such heading reports the absence', recordRegion('# plan\nnothing\n', '').sectionFound, false)
+  const hist = (p) => (p === 'docs/HANDOVER.md' ? 'old' : null)
+  const head = (p) => (p === 'dev/programme/HANDOVER.md' ? 'new' : null)
+  eq('a new-path-only read misses a historical handover', firstPresent(hist, ['dev/programme/HANDOVER.md']), null)
+  eq('both paths find the historical handover', firstPresent(hist, HAND_PATHS), 'old')
+  eq('both paths find the moved handover', firstPresent(head, HAND_PATHS), 'new')
+  eq('an old-path-only read misses the moved handover', firstPresent(head, ['docs/HANDOVER.md']), null)
   // Absolute, not the difference form, for the same reason as above: the
   // difference form holds even if the handover contributed no lines at all,
   // which is the property this assertion is named for.

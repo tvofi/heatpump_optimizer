@@ -25,7 +25,7 @@ set -uo pipefail
 # Deliberately a PREFIX list rather than the linter's own globs: this decides
 # whether to RUN the linter, so it may be wider than what the linter reads, and
 # a prefix that is too narrow is the failure that matters.
-POLICY_PREFIXES='^(CLAUDE\.md|\.claude/|\.cursor/|tools/audit/|tests/README\.md|docs/HANDOVER\.md|\.github/)'
+POLICY_PREFIXES='^(CLAUDE\.md|\.claude/|\.cursor/|tools/audit/|tests/README\.md|docs/HANDOVER\.md|\.github/|dev/governance/|dev/programme/)'
 
 touches_policy() { # $1 the newline-separated changed-file list
   printf '%s\n' "$1" | grep -qE "$POLICY_PREFIXES"
@@ -54,6 +54,9 @@ if [ "${1:-}" = "--self-test" ]; then
   touches_policy '.github/workflows/governance.yml'            ; st $? 0 "a workflow turn runs it"
   touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
   touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- the prefix list names only the handover there"
+  touches_policy 'dev/governance/rules/gate-scoping.md'        ; st $? 0 "the rules source runs it"
+  touches_policy 'dev/programme/HANDOVER.md'                   ; st $? 0 "the moved handover runs it"
+  touches_policy 'dev/programme/register/audit-2026-09.md'     ; st $? 0 "the register runs it"
   printf 'a\ncustom_components/x.py\n.claude/rules/y.md\nb\n' >/dev/null
   touches_policy "$(printf 'custom_components/x.py\n.claude/rules/y.md')"; st $? 0 "one policy path among several is enough"
 

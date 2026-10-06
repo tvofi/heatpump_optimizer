@@ -236,6 +236,13 @@ INERT = (
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
     # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
     "docs/",
+    # R9-RO-5: the governance corpus and the programme record moved out of
+    # docs/, .claude/rules/ and tools/audit/briefs/. They are prose. The
+    # living handover is the hole is_handover cuts, under dev/programme/ as
+    # well as under docs/ so a second copy put back in the old place is
+    # unclassified rather than inert.
+    "dev/governance/",
+    "dev/programme/",
     # tests/README.md was here until #938: entities.py now reads the
     # manual's per-script size annotations and pins them against the
     # code's own counts, and a file a gate script reads is a dependency,
@@ -430,21 +437,29 @@ GATE_FILES = (
 # and on no list, so `select` refuses to skip anything (MODE: FULL) and
 # `orphan_files` reports it. A second handover is therefore refused on the pull
 # request that adds it, not on the push to main that follows.
-HANDOVER_DIR = "docs/"
+# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+# a handover put back there is not inert, so it is an orphan and forces FULL.
+HANDOVER_DIRS = ("dev/programme/", "docs/")
+HANDOVER_DIR = HANDOVER_DIRS[0]
 HANDOVER_STEM = "handover"
 
 
 def is_handover(rel: str) -> bool:
-    """Anything under `docs/` whose first path segment starts with `handover`.
+    """A path whose first segment under a handover directory starts with `handover`.
 
     Deliberately wider than the one filename: it also catches a dated sibling
-    and the `docs/handovers/` directory someone reaches for once the flat name
-    is refused, which is the shape the ban would otherwise be one rename from.
+    and a `handovers/` directory someone reaches for once the flat name is
+    refused, which is the shape the ban would otherwise be one rename from.
+    Both directories count, so the living file and a copy put back under
+    docs/ are the same class.
     """
-    if not rel.startswith(HANDOVER_DIR):
-        return False
-    first = rel[len(HANDOVER_DIR):].lower().split("/", 1)[0]
-    return first.startswith(HANDOVER_STEM)
+    for directory in HANDOVER_DIRS:
+        if not rel.startswith(directory):
+            continue
+        first = rel[len(directory):].lower().split("/", 1)[0]
+        if first.startswith(HANDOVER_STEM):
+            return True
+    return False
 
 
 # tools/audit/ is INERT because it holds write-once evidence nothing in the gate
@@ -580,7 +595,7 @@ INERT_EXCEPT = (
     # `.json` artifact is under the `.claude/` prefix and never matches
     # `_is_header_corpus` at all. An edit to either now selects
     # tests/entities.py instead of skipping it.
-    ".claude/workflows/cfr_exclusions.json",
+    "dev/governance/config/cfr_exclusions.json",
     "tools/audit/round5/D13/seat-a/dora_cfr.py",
     # The 9 fixtures that harness READS, on the same #1303 route. The check
     # drives `dora_cfr.main()` with `git` patched to raise at its first call,

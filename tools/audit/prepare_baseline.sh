@@ -87,7 +87,8 @@ git archive "$FULL" | tar -x -C "$EXPORT"
 # died with FileNotFoundError before a finder's first measurement. COMMON.md and
 # audit-find.js both say to keep it. The `finders_can_start` refusal below is the
 # general form of that lesson and fires on any other file a test opens this way.
-rm -f "$EXPORT"/docs/audit-*.md "$EXPORT"/docs/backlog.md
+rm -f "$EXPORT"/docs/audit-*.md "$EXPORT"/docs/backlog.md \
+  "$EXPORT"/dev/programme/register/audit-*.md
 mkdir -p "$EXPORT/tools/audit"
 cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # current briefs, README, schema
 mkdir -p "$EXPORT/tools/audit/round${ROUND}"

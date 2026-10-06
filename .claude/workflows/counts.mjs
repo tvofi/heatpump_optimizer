@@ -121,7 +121,7 @@ export function derivations() {
   if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
   d.scripts = jsonKeys('tests/closures.json', 'closures')
   d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = lsFiles('tools/audit/briefs/D*.md').length
+  d.briefs = fs.readdirSync(at('dev/governance/dimensions')).filter((f) => /^D\d+\.md$/.test(f)).length
   d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
   const card = read('tests/card_drift.mjs')
   if (card) {
@@ -131,7 +131,7 @@ export function derivations() {
   d.services = countMatches('custom_components/heatpump_optimizer/services.yaml', /^[a-z_]+:/gm)
   d.modules = git(['ls-files', 'custom_components/heatpump_optimizer/']).trim().split('\n').filter((f) => f.endsWith('.py')).length
   d.goldens = git(['ls-files', 'tests/golden/*.json']).trim().split('\n').filter(Boolean).length
-  const pb = read('.claude/workflows/policy_budgets.json')
+  const pb = read('dev/governance/config/policy_budgets.json')
   d.caps = pb ? JSON.parse(pb).files : null
   return d
 }
