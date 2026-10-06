@@ -455,36 +455,6 @@
    "since": null
   },
   {
-   "old": ".claude/workflows/wave-3l-groups.json",
-   "new": "dev/archive/rosters/wave-3l-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-4-groups.json",
-   "new": "dev/archive/rosters/wave-4-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-5-groups.json",
-   "new": "dev/archive/rosters/wave-5-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-d11-groups.json",
-   "new": "dev/archive/rosters/wave-d11-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-r8-groups.json",
-   "new": "dev/archive/rosters/wave-r8-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-ux-groups.json",
-   "new": "dev/archive/rosters/wave-ux-groups.json",
-   "since": null
-  },
-  {
    "old": "docs/HANDOVER.md",
    "new": "dev/programme/HANDOVER.md",
    "since": null

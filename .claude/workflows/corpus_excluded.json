@@ -3,6 +3,7 @@
  "_why_data_not_source": "These entries must be DATA and not a hardcoded block inside .claude/workflows/policy_lint.mjs. The `policy-docs` job's 'Restore the check source from the base commit' step (#1403) rewrites `.claude/workflows/*.mjs` and `*.py` from the base commit before grading, so a round that ships its evidence files and their exclusions in one branch would have the exclusions erased on CI and fail named-docs; pre-registering them first is refused as FIXTURE VACUOUS, because an exclusion that names no tracked file yet is a destination waiting to be used. This file is outside that pathspec, so it arrives with the branch that adds the evidence it excludes -- the same shape the #1403 fix's own comment names for policy_budgets.json, policy_known_bad.json and cfr_exclusions.json: a grader's criteria are data, and a fixture's expected outcome has to be the data under test.",
  "_fail_closed": "A missing or unparseable file, or a non-array `excluded`, makes policy_lint.mjs merge nothing, and the cited-but-unexcluded evidence files then re-arm named-docs on the production run -- so this list cannot silently drop an entry; the check that consumes it notices.",
  "excluded": [
+  "dev/archive/README.md",
   "tools/audit/handoff/r9-f2-solver-4/README.md",
   "tools/audit/handoff/r9-f2-solver-5/README.md",
   "tools/audit/round6/BASELINE.md",
