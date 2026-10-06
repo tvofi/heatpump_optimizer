@@ -284,7 +284,11 @@ def run(arm: str, surface: str, two_zone: bool = False):
             if want != ("boost" if mode_is_boost else "auto"):
                 asyncio.run(coord.async_set_mode(want, refresh=False))
                 mode_is_boost = boosting
-        boost_mod.apply(coord)
+        boost_mod.apply(coord, boost_mod.BoostOverlay(
+            max_power=float(coord._thermal_model.params.max_electrical_power),
+            max_temp=float(ctx._opt_config.max_temp),
+            ecl_max=float(coord._ecl110_displace_max),
+        ))
         # -- actuate: the true house answers the overlaid action -----------
         act = coord._current_action
         want = float(act.get("power", 0.0))

@@ -244,7 +244,7 @@ def _healthy_payloads() -> dict[str, dict]:
     try:
         from heatpump_optimizer import boost, away
         run(boost.persist(coord))
-        run(away.persist_override(coord))
+        run(away.persist_override(coord, coord._away_state))
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: boost/away persist skipped: %r" % (exc,))
     try:
@@ -422,8 +422,8 @@ LOADERS = {
     "dhw_profile": lambda c: c._dhw_learner.async_load_profile(),
     "dhw_draws": lambda c: c._dhw_learner.async_load_draws(),
     "dhw_legionella": lambda c: c._legionella.async_load(),
-    "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c),
-    "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c),
+    "boost": lambda c: __import__("heatpump_optimizer.boost", fromlist=["x"]).restore_session(c, c._away_state, c._config, c._entity_state),
+    "away": lambda c: __import__("heatpump_optimizer.away", fromlist=["x"]).restore_override(c, c._away_state, c._config, c._entity_state),
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
     "notifier": _load_notifier,
 }
@@ -810,7 +810,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     away = importlib.import_module("heatpump_optimizer.away")
     coord._away_state.override_active = True
     coord._away_state.override_return_iso = (_A4_NOW + _dt.timedelta(hours=20)).isoformat()
-    run(away.persist_override(coord))
+    run(away.persist_override(coord, coord._away_state))
     arbiter = importlib.import_module("heatpump_optimizer.pump_arbiter")
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
@@ -1289,7 +1289,7 @@ def _a6_savers():
         "dhw_draws": lambda c: c._dhw_learner.async_save_draws(),
         "dhw_legionella": lambda c: c._legionella.async_save(),
         "boost": lambda c: mod("boost").persist(c),
-        "away": lambda c: mod("away").persist_override(c),
+        "away": lambda c: mod("away").persist_override(c, c._away_state),
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
         "notifier": _save_notifier,
     }
