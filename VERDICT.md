@@ -1,31 +1,30 @@
-Fix review: blocked cf9de4e2a50332c608d854de900108afe890039a root-cause-unanswered: mutation went red, unanswered
+Fix review: blocked 705c3be37fe94feb37be1600b57403e129c382f8 root-cause-unanswered: env-matrix went red, unanswered
 
-bus-nonce: e4e73143a901614343e524123b70ad30
+bus-nonce: ef5cdfa1b9f91bcefdc38e8899928d8e
 
-Round 4. A conflict with main is resolved by merge. Measured detached at cf9de4e2a50332c608d854de900108afe890039a. Parents 205943f950645b72866385d8c852e61a70cd3413 and a28fd0aee6651a24161fa38e3295d4ac2d906d57. The body names this head. `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/` is empty. The three-dot diff does not touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading.
+Round 5. Measured detached at 705c3be37fe94feb37be1600b57403e129c382f8. Parents 19391406563cf785e723be51ceb7b9b34a850511 and 6001b09a557259f37319b400d219cf83e02c563f. The body names this head. `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/` is empty. The three-dot diff does not touch `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading.
 
-## Resolution
+## Pin
 
-`git merge-tree --write-tree origin/main cf9de4e2a50332c608d854de900108afe890039a` exits 0. `git merge-tree --write-tree 00da22db537a688efe6a7a9518a9fc91767c3a5a 205943f950645b72866385d8c852e61a70cd3413` exits 0 and its tree equals that commit. `git merge-tree --write-tree 205943f950645b72866385d8c852e61a70cd3413 a28fd0aee6651a24161fa38e3295d4ac2d906d57` exits 0 and its tree `2352acb5e248fc6068d0753813d24e67bc940b50` equals this commit. No conflict markers in the eight files.
+`configured_specs` ends at `quiet_windows.py:370` with `return out`. Replacing that line with `pass`, `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` exited 1: `FAIL configured_specs returns the stored rows and the not-enforced marker` `got None`, `1 of 129 manual plan checks FAILED`. Restoring the line, the same command exited 0: `ALL 129 manual plan checks PASSED`. The ledger reason says `failed=2`. This tree printed `failed=1`.
 
-None of the eight is byte-identical to either parent. Added lines from ec401ab3 and from 00da22db are in the result, except the census sentences, which were rewritten to 72 modules and 27 module-level `homeassistant` importers, naming both `debugger.py` and `quiet_windows.py`. `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` exits 0 and leaves `claims.json`, `claims.md` and `claims.py` unchanged.
+The inventory calls in `tests/mutation_table.py` (`inventory`, `unpinned_sites`, `added_unpinned`), stopped before the drive: 4695 unpinned of 5687, 4695 at the ratchet base `6001b09a557259f37319b400d219cf83e02c563f`, 0 added. The line-370 site is `configured_specs RETURN_DEL a8227ccf` and is not unpinned. The body's 4695-against-`a28fd0ae` is that earlier base; this head's `ratchet_base` is `6001b09a`.
 
-RESULT claims_false=0 count
-RESULT arch_modules_on_disk=72 count
-RESULT ha_module_level_importers=27 count
+RESULT manual_plan_mutant_failed=1 count
+RESULT manual_plan_restored_failed=0 count
+RESULT unpinned=4695 count
+RESULT unpinned_base=4695 count
+RESULT unpinned_added=0 count
 
-`tests/debug_collect.py` is still recorded: 81 files, the same list and order as at 33f6e8edfbee922929a61d7bbd3f665e52f624d8, `recorded` `{"seconds": 2.2, "rc": 0}`. `tests/derive_closures.sh` line 174 is `rec tests/debug_collect.py`, after `guard_pins.py` at line 169.
-
-RESULT closure_files=81 count
-RESULT closure_list_equal_33f6=1 count
-
-`python3 tests/structure.py` exits 0. `HeatPumpOptimizerCoordinator` is 9048 LOC. The cap is 9048. origin/main records 9104. The body's `seam_cut_total=765` is not this head: the run printed 766, and the cap at 205943f9 is already 766, equal to origin/main.
+`python3 tests/structure.py` exits 0.
 
 RESULT max_class_loc=9048 count
 RESULT seam_cut_total=766 count
 
-## Mutation
+`git merge-tree --write-tree origin/main HEAD` exits 0. `git merge-tree --write-tree 19391406563cf785e723be51ceb7b9b34a850511 6001b09a557259f37319b400d219cf83e02c563f` exits 0 and its tree `4a947fb10030ca4eaf1dc82c46c2434f61ea40fd` equals this commit. stderr: `LEDGER-MERGE: resolved tests/closures.json`. `tests/debug_collect.py` is still 81 files, the same list as at `cf9de4e2`, `rc` 0, and `tests/derive_closures.sh` line 174 still records it.
 
-Job 112484566102 on this head: `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`, then `MUTATION TABLE REFUSED -- 4696 unpinned site(s) against 4695 at the ratchet base a28fd0aee6651a24161fa38e3295d4ac2d906d57, 1 of them added by this diff`, then `NOT RUN` that site for `--budget-minutes`. The three-dot diff adds those 53 lines, including `configured_specs` and that `return out`. The body's `mutation` paragraph answers job 112303713384 on `9da596f2`. Job 112486109066 printed `AUTOFIX: skip-no-measurement` and `THE REPAIR DID NOT HAPPEN.` The pull request head at measurement was this SHA.
+## env-matrix
 
-evidence: /Users/timmalmstrom/hpo-seats/r9-dbg-1-review-cf9d/evidence
+Job 112529653069 on this head failed. The log's first failure is `pr / policy_lint rc=0 and every pin earned -- rc=1`, and the shallow arm is `Cannot find module .../.claude/workflows/policy_lint.mjs`. `## Red checks` does not name `env-matrix`. The later `pr-contract` job 112530277746 exited 1 with `check env-matrix is red and ## Red checks does not name it`. An earlier `pr-contract` job on this commit, 112529650505, succeeded. The pull request head at measurement was this SHA.
+
+evidence: /Users/timmalmstrom/hpo-seats/r9-dbg-1-review-705c/evidence
