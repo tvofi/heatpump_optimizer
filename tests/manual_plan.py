@@ -96,7 +96,11 @@ from heatpump_optimizer.const import (
     MANUAL_PLAN_WINDOW_HOURS,
 )
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
-from heatpump_optimizer.dhw_planner import _forced_off_with
+from heatpump_optimizer.dhw_planner import (
+    _forced_off_with,
+    _legionella_charge,
+    _place_legionella_step,
+)
 from heatpump_optimizer import quiet_windows as _qw
 from heatpump_optimizer.sensor import MonthlyPeakSensor, _quiet_windows_attributes
 from heatpump_optimizer.services import (
@@ -592,6 +596,44 @@ def test_legionella_outside_off_window(R: Results) -> None:
     outside(
         elastic, 10,
         "an elastic cycle shops the hour outside an Off window",
+    )
+
+
+def test_legionella_arms_a_solve_horizon_never_builds(R: Results) -> None:
+    """The Off-window arms a solve's horizon does not build (#1910).
+
+    A placement slice that is entirely off still has a later free step, or
+    it does not. A charge with no window is the other arm: every step runs.
+    """
+    R.section("Legionella placement when the slice is entirely off (#1910)")
+    prices = np.array([9.0, 8.0, 7.0, 0.2, 3.0])
+    covered = np.array([True, True, True, False, True])
+    placed = _place_legionella_step(prices, 0, 3, covered)
+    R.check(
+        "a slice the Off window covers entirely is bought at the next free step",
+        placed == 3,
+        f"got {placed}",
+    )
+    blocked = np.ones(5, dtype=bool)
+    blocked[0] = False
+    nowhere = _place_legionella_step(prices, 1, 4, blocked)
+    R.check(
+        "no free step left places no anti-legionella cycle",
+        nowhere is None,
+        f"got {nowhere}",
+    )
+    open_charge = _legionella_charge(4, 1.5, None)
+    R.check(
+        "no Off window charges every step of the reach",
+        isinstance(open_charge, np.ndarray) and bool(np.allclose(open_charge, 1.5)),
+        f"got {open_charge!r}",
+    )
+    masked = _legionella_charge(4, 1.5, np.array([True, False, True, False]))
+    R.check(
+        "an Off step contributes nothing to the reach",
+        isinstance(masked, np.ndarray)
+        and bool(np.allclose(masked, [0.0, 1.5, 0.0, 1.5])),
+        f"got {masked!r}",
     )
 
 
@@ -1591,6 +1633,7 @@ def _run() -> int:
     test_pins_change_schedule(R)
     test_off_window_over_pins(R)
     test_legionella_outside_off_window(R)
+    test_legionella_arms_a_solve_horizon_never_builds(R)
     test_quiet_window_arms(R)
     test_safety_release(R)
     test_naive_expiry(R)

@@ -146,6 +146,10 @@ def _legionella_charge(
     power = np.full(n_steps, p_dhw_run)
     if off is None:
         return power
+    # ``np.where(None, ...)`` is the full array, so this guard would be
+    # equivalent to its absence. Indexing None is not, and that is the
+    # difference the reach is refusing: no window is not an Off mask.
+    off = off.astype(bool)
     return np.where(off, 0.0, power)
 
 
