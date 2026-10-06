@@ -7133,7 +7133,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "handoff/r9-dbg-1",
-    "commit": "6ddebd3120e7e59a1a223d89e9f9a3b36c102314",
+    "commit": "fca0bea0c9ab864d087a6ee8939500b833f7d32c",
     "last_step": "handoff/r9-dbg-1 is 6ddebd3120e7e59a1a223d89e9f9a3b36c102314. No open pull request.",
     "next_step": "Open the pull request from that handoff tip, then review.",
     "note_file": "handoff/round9/fix/resume/DBG-1.md on fix/r9-dbg-1",
