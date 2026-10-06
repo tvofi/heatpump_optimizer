@@ -1,0 +1,477 @@
+{
+  "base": "6001b09a557259f37319b400d219cf83e02c563f",
+  "head": "af7cf417c9e8ff7a23e0bd82bd4ca32fc5814cbf",
+  "commits": {
+    "af7cf417c9e8ff7a23e0bd82bd4ca32fc5814cbf": {
+      "n": 34,
+      "reds": [
+        "delivery-status",
+        "env-matrix",
+        "mutation",
+        "nightly-status",
+        "pr-contract",
+        "typing"
+      ],
+      "runs": [
+        {
+          "name": "CodeQL",
+          "status": "completed",
+          "conclusion": "neutral",
+          "id": 112527583593
+        },
+        {
+          "name": "pr-contract",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112527489404
+        },
+        {
+          "name": "mutation-autofix",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527425598
+        },
+        {
+          "name": "closures",
+          "status": "in_progress",
+          "conclusion": null,
+          "id": 112527325861
+        },
+        {
+          "name": "mutation-nightly",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527228322
+        },
+        {
+          "name": "mutation-ledger",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527228259
+        },
+        {
+          "name": "mutation-ledger-push",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527228124
+        },
+        {
+          "name": "nightly-ha",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527227357
+        },
+        {
+          "name": "record-autofix",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527227253
+        },
+        {
+          "name": "slow",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527227205
+        },
+        {
+          "name": "recheck-gate",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112527226827
+        },
+        {
+          "name": "nightly-status",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112527225983
+        },
+        {
+          "name": "typing",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112527225870
+        },
+        {
+          "name": "fast (3.14)",
+          "status": "in_progress",
+          "conclusion": null,
+          "id": 112527225858
+        },
+        {
+          "name": "browser",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527225806
+        },
+        {
+          "name": "coverage",
+          "status": "in_progress",
+          "conclusion": null,
+          "id": 112527225785
+        },
+        {
+          "name": "briefs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527225727
+        },
+        {
+          "name": "mutation",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112527225658
+        },
+        {
+          "name": "closure-scope",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527225410
+        },
+        {
+          "name": "Analyze (actions)",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527123622
+        },
+        {
+          "name": "Analyze (python)",
+          "status": "in_progress",
+          "conclusion": null,
+          "id": 112527123505
+        },
+        {
+          "name": "Analyze (javascript-typescript)",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112527123199
+        },
+        {
+          "name": "budget-raise-gate",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526811747
+        },
+        {
+          "name": "policy-docs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526802795
+        },
+        {
+          "name": "delivery-status-publish",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112526802763
+        },
+        {
+          "name": "record",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112526802586
+        },
+        {
+          "name": "instrument-self-tests",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526801855
+        },
+        {
+          "name": "budget-raise-gate",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112526801547
+        },
+        {
+          "name": "delivery-status",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112526801540
+        },
+        {
+          "name": "validate-hacs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526801512
+        },
+        {
+          "name": "wave-script",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526801500
+        },
+        {
+          "name": "env-matrix",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112526801255
+        },
+        {
+          "name": "hassfest",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112526801186
+        },
+        {
+          "name": "pr-contract",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112526801164
+        }
+      ]
+    },
+    "afbf64f3a396dc26ead7ef70d1151d7b1953a733": {
+      "n": 38,
+      "reds": [
+        "delivery-status",
+        "env-matrix",
+        "mutation",
+        "nightly-status",
+        "pr-contract",
+        "typing"
+      ],
+      "runs": [
+        {
+          "name": "closures-autofix",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112527224473
+        },
+        {
+          "name": "claims-autofix",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112527160195
+        },
+        {
+          "name": "graders-head-copy",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112527137990
+        },
+        {
+          "name": "coverage-ratchet",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112527137756
+        },
+        {
+          "name": "pr-contract",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112526385512
+        },
+        {
+          "name": "mutation-autofix",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525900356
+        },
+        {
+          "name": "CodeQL",
+          "status": "completed",
+          "conclusion": "neutral",
+          "id": 112525881794
+        },
+        {
+          "name": "closures",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525780321
+        },
+        {
+          "name": "budget-raise-gate",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525717953
+        },
+        {
+          "name": "mutation-ledger-push",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525702772
+        },
+        {
+          "name": "mutation-nightly",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525701493
+        },
+        {
+          "name": "mutation-ledger",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525701274
+        },
+        {
+          "name": "slow",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525700844
+        },
+        {
+          "name": "recheck-gate",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525700443
+        },
+        {
+          "name": "record-autofix",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525700381
+        },
+        {
+          "name": "nightly-ha",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525700278
+        },
+        {
+          "name": "record",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525699612
+        },
+        {
+          "name": "typing",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112525699607
+        },
+        {
+          "name": "fast (3.14)",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525699603
+        },
+        {
+          "name": "delivery-status-publish",
+          "status": "completed",
+          "conclusion": "skipped",
+          "id": 112525699584
+        },
+        {
+          "name": "coverage",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525699490
+        },
+        {
+          "name": "mutation",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112525699450
+        },
+        {
+          "name": "briefs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525699419
+        },
+        {
+          "name": "browser",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525699382
+        },
+        {
+          "name": "closure-scope",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525699175
+        },
+        {
+          "name": "Analyze (javascript-typescript)",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525698918
+        },
+        {
+          "name": "Analyze (actions)",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525698907
+        },
+        {
+          "name": "nightly-status",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112525698781
+        },
+        {
+          "name": "Analyze (python)",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525698691
+        },
+        {
+          "name": "instrument-self-tests",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525698648
+        },
+        {
+          "name": "delivery-status",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112525698390
+        },
+        {
+          "name": "budget-raise-gate",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "id": 112525698348
+        },
+        {
+          "name": "env-matrix",
+          "status": "completed",
+          "conclusion": "failure",
+          "id": 112525698345
+        },
+        {
+          "name": "wave-script",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525698328
+        },
+        {
+          "name": "policy-docs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525698021
+        },
+        {
+          "name": "validate-hacs",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525697911
+        },
+        {
+          "name": "hassfest",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525697625
+        },
+        {
+          "name": "pr-contract",
+          "status": "completed",
+          "conclusion": "success",
+          "id": 112525697294
+        }
+      ]
+    },
+    "0a58990088e0ebe5e427df028d57f6f6960a665f": {
+      "n": 0,
+      "reds": [],
+      "runs": []
+    }
+  },
+  "union_red": [
+    "delivery-status",
+    "env-matrix",
+    "mutation",
+    "nightly-status",
+    "pr-contract",
+    "typing"
+  ]
+}
