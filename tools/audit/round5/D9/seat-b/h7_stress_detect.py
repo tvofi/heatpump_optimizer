@@ -34,6 +34,18 @@ solve_cpu_ms ~2x and exactly one count channel (kernel: neither; evals:
 evaluations), and the verdict lines must follow that movement.
 """
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 
 for _v in (
@@ -49,9 +61,7 @@ import subprocess
 import sys
 import time
 
-REPO = os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-)
+REPO = str(repo_root(__file__))
 for p in (os.path.join(REPO, "tests/hastub"), os.path.join(REPO, "tests"), REPO):
     if p not in sys.path:
         sys.path.insert(0, p)

@@ -39,6 +39,18 @@ it; a harness whose number does not move is voided.
 MACHINE: any; durations are GitHub-reported (contention-immune; no load1 or
 thread_factor claim beyond the contract lines).
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import collections
 import datetime
 import glob
@@ -51,7 +63,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.environ.get("FIXTURE_DIR", os.path.join(HERE, "fixtures"))
-ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", ".."))
+ROOT = str(repo_root(__file__))
 
 # The exclusion list this harness reads is the REGISTERED artifact -- the file
 # beside `policy_budgets.json` that the D13 brief names, owned by the tree --
@@ -76,8 +88,9 @@ def git(*a):
 def exclusions_path(root=None):
     """The exclusion artifact, resolved against the REPOSITORY, not this seat.
 
-    `root` defaults to this file's five-levels-up ROOT, so a run from anywhere
-    finds the same file; a check (or a caller) can point it at another tree."""
+    `root` defaults to this file's repository root (the directory holding
+    the integration manifest), so a run from anywhere finds the same file;
+    a check (or a caller) can point it at another tree."""
     return os.path.join(root if root is not None else ROOT, EXCLUSION_ARTIFACT)
 
 

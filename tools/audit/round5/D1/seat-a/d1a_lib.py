@@ -15,6 +15,18 @@ Everything here is in-memory only; production and tests on disk are never
 modified. Run scripts from the repository root with PYTHONPATH=tests/hastub.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -36,7 +48,7 @@ from datetime import datetime, timedelta, timezone  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 _HERE = Path(__file__).resolve()
-_REPO = _HERE.parents[5]  # file -> seat-a -> D1 -> round5 -> audit -> tools -> root
+_REPO = repo_root(_HERE)
 for _p in (str(_REPO / "tests"), str(_REPO / "custom_components")):
     if _p not in sys.path:
         sys.path.insert(0, _p)

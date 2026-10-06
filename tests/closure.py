@@ -624,6 +624,13 @@ INERT_EXCEPT = (
     # leaves the prefix the way roster_lib.py did, so an edit selects
     # tests/entities.py.
     "tools/audit/round6/D11/fix/codeowners_gap.py",
+    # R9-RO-7: tests/harness_headers.py imports repo_root.py. Three path
+    # parts, so `_is_header_corpus` (five) does not reach it and the
+    # tools/audit/ prefix would keep it INERT while this gate script reads
+    # it. It leaves the prefix the way judge_batch.py did. The mjs and sh
+    # copies are read by a child of that script; the audit hook does not
+    # follow children, and the tools/audit/ prefix still covers them.
+    "tools/audit/repo_root.py",
 )
 
 

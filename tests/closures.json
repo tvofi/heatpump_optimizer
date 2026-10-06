@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 224.6,
+   "seconds": 476.5,
    "rc": 0
   },
   "tests/doc_claims.py": {
@@ -2126,6 +2126,7 @@
    "tests/stress.py",
    "tests/stress_budgets.json",
    "tests/structure.py",
+   "tools/audit/repo_root.py",
    "tools/audit/round3/D0/arms_decomposition.py",
    "tools/audit/round3/D0/budget_slack.py",
    "tools/audit/round3/D0/coopt_gate.py",

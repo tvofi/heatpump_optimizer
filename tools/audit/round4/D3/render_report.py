@@ -5,6 +5,18 @@
 
 Reads pool.json and prescreen.json only; executes nothing.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import json
 from pathlib import Path
 
@@ -21,7 +33,7 @@ def main() -> int:
     print("### Baseline of every driver (rc and reported failures on the clean tree)\n")
     print("| script | rc | failed | wall s (provisional, load1 5.2-6.8) | closures.json recorded s |")
     print("|---|---|---|---|---|")
-    rec = json.loads((HERE.parents[3] / "tests" / "closures.json").read_text())["recorded"]
+    rec = json.loads((repo_root(HERE) / "tests" / "closures.json").read_text())["recorded"]
     for s, v in sorted(base.items(), key=lambda kv: -kv[1]["seconds"]):
         key = s.split()[0]
         r = rec.get(key, {}).get("seconds", "-")

@@ -266,10 +266,206 @@ def run_harness(rel: str) -> str:
     return stdout
 
 
+def _fn_text(text: str, name: str) -> str | None:
+    """The source of a top-level ``def name`` or of a JS/sh function, or None."""
+    if name == "repo_root" and "def repo_root(start):" in text:
+        import ast
+        import warnings
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", SyntaxWarning)
+            tree = ast.parse(text)
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef) and node.name == "repo_root":
+                return ast.get_source_segment(text, node)
+    if name == "repoRoot" and "async function repoRoot(start)" in text:
+        lines = text[text.index("async function repoRoot(start)"):].splitlines()
+        out = []
+        for line in lines:
+            out.append(line)
+            if line == "}":
+                break
+        return "\n".join(out)
+    if name == "repo_root_sh" and "repo_root() {" in text:
+        lines = text[text.index("repo_root() {"):].splitlines()
+        out, depth = [], 0
+        for line in lines:
+            out.append(line)
+            depth += line.count("{") - line.count("}")
+            if depth == 0 and len(out) > 1:
+                break
+        return "\n".join(out)
+    return None
+
+
+def _scope_paths() -> list[Path]:
+    base = ROOT / "tools" / "audit"
+    found = []
+    for p in base.iterdir():
+        if not p.is_dir():
+            continue
+        if p.name.startswith("round") or p.name in (
+            "harnesses", "ci-version-edit", "w5-g5-195-coverage"):
+            found.extend(
+                f for f in p.rglob("*")
+                if f.is_file() and f.suffix in {".py", ".mjs", ".js", ".sh"}
+                and "__pycache__" not in f.parts
+            )
+    found.append(base / "judge_batch.py")
+    return found
+
+
+def depth_root_seams() -> list[str]:
+    """Depth-counted repository roots still in the RO-7 scope.
+
+    A seam is a fixed parent count from the script itself: ``parents[N]``,
+    two or more ``dirname`` around ``__file__``, or a ``join``/``resolve``
+    whose arguments after the base are only ``..``. A join that then names
+    a sibling directory is not a repository root and is not returned.
+    """
+    import re
+    root_name = re.compile(
+        r"^(?:ROOT|REPO|_REPO|_ROOT|REPO_ROOT|OWN_ROOT|root|repo)\s*=")
+    seams = []
+    for path in _scope_paths():
+        rel = path.relative_to(ROOT).as_posix()
+        try:
+            lines = path.read_text().splitlines()
+        except UnicodeError:
+            continue
+        for n, line in enumerate(lines, 1):
+            s = line.strip()
+            if not s or s.startswith(("#", "//", "*", "/*")):
+                continue
+            hit = False
+            if ".parents[" in s and (
+                root_name.match(s)
+                or re.search(r"\b(?:HERE|SEAT|_HERE)\.parents\[", s)):
+                hit = True
+            if re.search(r"(?:os\.path\.dirname\(\s*){2,}os\.path\.abspath\(\s*__file__", s):
+                hit = True
+            if 'dirname "$0")/..' in s:
+                hit = True
+            m = re.search(r"(?:resolve|join)\((.*)\)", s)
+            if m:
+                args = [a.strip().strip(",").strip() for a in m.group(1).split(",")]
+                dots = {'".."', "'..'"}
+                if len(args) >= 3 and all(a in dots for a in args[1:]):
+                    hit = True
+            if hit:
+                seams.append(f"{rel}:{n}: {s[:160]}")
+    return seams
+
+
+def inline_scan() -> int:
+    """Compare every inlined walk to the canonical copy, and list depth seams.
+
+    Run as a child of ``check_repo_roots``. The audit hook does not follow
+    children, and this scan opens the evidence corpus, which stays INERT.
+    ``harness_headers`` is ``run_always``, so the child still runs on every gate.
+    """
+    import ast
+
+    helper = ROOT / "tools" / "audit" / "repo_root.py"
+    canon_py = _fn_text(helper.read_text(), "repo_root")
+    canon_js = _fn_text((ROOT / "tools/audit/repo_root.mjs").read_text(), "repoRoot")
+    canon_sh = _fn_text((ROOT / "tools/audit/repo_root.sh").read_text(), "repo_root_sh")
+    py_bad, js_bad, sh_bad = [], [], []
+    py_n = js_n = sh_n = 0
+    for path in _scope_paths():
+        text = path.read_text(errors="replace")
+        rel = path.relative_to(ROOT).as_posix()
+        if path.suffix == ".py" and "def repo_root(start):" in text:
+            py_n += 1
+            if _fn_text(text, "repo_root") != canon_py:
+                py_bad.append(rel)
+        if "async function repoRoot(start)" in text:
+            js_n += 1
+            if _fn_text(text, "repoRoot") != canon_js:
+                js_bad.append(rel)
+        if "repo_root() {" in text:
+            sh_n += 1
+            if _fn_text(text, "repo_root_sh") != canon_sh:
+                sh_bad.append(rel)
+    for path in _scope_paths():
+        if path.suffix != ".sh":
+            continue
+        text = path.read_text(errors="replace")
+        if "<<'PY'" not in text or "def repo_root(start):" not in text:
+            continue
+        heredoc_py = text.split("<<'PY'", 1)[1].split("\nPY", 1)[0]
+        if _fn_text(heredoc_py, "repo_root") != canon_py:
+            py_bad.append(path.relative_to(ROOT).as_posix() + ":heredoc")
+    failed = False
+    if py_bad or py_n == 0:
+        print(f"FAIL python copies={py_n} differ={py_bad[:8]}")
+        failed = True
+    if js_bad or js_n == 0:
+        print(f"FAIL javascript copies={js_n} differ={js_bad[:8]}")
+        failed = True
+    if sh_bad or sh_n == 0:
+        print(f"FAIL shell copies={sh_n} differ={sh_bad[:8]}")
+        failed = True
+    seams = depth_root_seams()
+    if seams:
+        print("FAIL depth seams: " + "; ".join(seams[:12]))
+        failed = True
+    tree = ast.parse(helper.read_text())
+    fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == "repo_root")
+    returns = [n for n in ast.walk(fn) if isinstance(n, ast.Return)]
+    if len(returns) != 1:
+        print(f"FAIL repo_root returns={len(returns)}")
+        failed = True
+    return 1 if failed else 0
+
+
+def check_repo_roots() -> None:
+    """The production walk, imported.
+
+    Called from ``main`` only. Importing this module (judge_batch does) must
+    not open the helper, or that read would land in the importer's closure.
+    The inline comparison opens the evidence corpus, so it runs in a child.
+    """
+    import importlib.util
+    import tempfile
+
+    helper = ROOT / "tools" / "audit" / "repo_root.py"
+    spec = importlib.util.spec_from_file_location("hpo_repo_root", helper)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    try:
+        found = mod.repo_root(Path(__file__))
+    except RuntimeError as exc:
+        found = exc
+    R.check("repo_root finds the checkout that holds the manifest",
+            found == ROOT, str(found))
+    deeper = ROOT / "tools" / "audit" / "nested" / "round3" / "D5" / "x.py"
+    try:
+        deeper_found = mod.repo_root(deeper)
+    except RuntimeError as exc:
+        deeper_found = exc
+    R.check("repo_root finds the checkout from one segment deeper",
+            deeper_found == ROOT, str(deeper_found))
+    with tempfile.TemporaryDirectory() as tmp:
+        try:
+            mod.repo_root(Path(tmp) / "a.py")
+            refused = False
+        except RuntimeError:
+            refused = True
+        R.check("repo_root refuses a directory with no manifest", refused, tmp)
+    proc = subprocess.run(
+        [sys.executable, "-c",
+         "import harness_headers; raise SystemExit(harness_headers.inline_scan())"],
+        cwd=ROOT, env=os.environ, capture_output=True, text=True,
+    )
+    R.check("every inlined walk matches the canonical helper and no depth root remains",
+            proc.returncode == 0, (proc.stdout + proc.stderr)[-400:])
+
+
 def main() -> int:
     # Discovered here, not at import: tools/audit/judge_batch.py imports this
     # module for header_lines/expected_from, and a discovery at import would
     # put the whole harness corpus in every importer's measured closure.
+    check_repo_roots()
     EXECUTE = _discover()
     declared = declared_live()
     R.check(
