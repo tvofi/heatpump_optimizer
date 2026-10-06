@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:_one_state_ua_halfwidth CMP_BOUND a19e1b35",
+  "killed_by": "tests/entities.py",
+  "old": "    if beta2 <= 1e-12:",
+  "reason": "Recorded by `mutation_table.py --drain` against cff39dad61c4cc15dbaabd03c3a2e3746bca1fab: CMP_BOUND (`if beta2 < 1e-12:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}
