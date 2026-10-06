@@ -29,11 +29,13 @@ on:
 permissions:
   contents: read
 
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
+# The forty-minute gate in tests.yml still cancels a superseded pull-request
+# run (round-9 process review item 3). This required job is short, and
+# cancelling two events at one SHA (synchronize + edited) left a cancelled
+# required context at the live head (R9-RC-PRCONTRACT). Do not cancel here.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+  cancel-in-progress: false
 
 jobs:
   pr-contract:
