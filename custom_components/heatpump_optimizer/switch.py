@@ -1,6 +1,6 @@
 """Switch entities for Heat Pump Cost Optimizer.
 
-Four switches, all plain toggles over coordinator state. Each reads the live
+Six switches, all plain toggles over coordinator state. Each reads the live
 state rather than the published payload, and publishes it as soon as the
 action has changed it, before the refresh that runs the solve (30 to 70 s on
 a Pi): Home Assistant's toggle falls back to the old state after about two
@@ -13,6 +13,8 @@ front of the user (v6.6.12).
 * "Away" — the plan page's away override.
 * "DHW Boost" and "Boost Space Heating" — two-hour maximum boosts of the hot
   water and the space heating, released when their window ends.
+* "Block DHW" and "Block Space Heating" — the opposite, for the same two
+  hours. A safety floor releases a block and the switch says why.
 """
 from __future__ import annotations
 
@@ -48,6 +50,8 @@ async def async_setup_entry(
             AwaySwitch(coordinator, entry),
             BoostDhwSwitch(coordinator, entry),
             BoostSpaceSwitch(coordinator, entry),
+            BlockDhwSwitch(coordinator, entry),
+            BlockSpaceSwitch(coordinator, entry),
         ]
     )
 
@@ -134,11 +138,18 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
         publish_then_refresh(self)
 
 
-class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
-    """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527)."""
+class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+    """A two-hour boost or block of one duty. The four switches share this.
 
-    _attr_translation_key = "dhw_boost"
+    Subclasses set the channel, the polarity and the registry key. Hot-water
+    switches also mix in ``DHWEntityMixin``. State stays in ``boost``'s weak
+    map; the coordinator grows no attribute.
+    """
+
     _platform_domain = "switch"
+    _channel = ""
+    _block = False
+    _unique_key = ""
 
     def __init__(
         self,
@@ -146,47 +157,78 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
         entry: HeatPumpOptimizerConfigEntry,
     ) -> None:
         super().__init__(coordinator)
-        # The unique id keeps the pre-#1334 key: an existing install's registry
-        # entry (and its history) is identified by this string, so the rename
-        # moves the suggested object id for NEW installs only, exactly as #1227
-        # and #1333 moved the sensors'.
-        self._pin_identity(entry, "boost_dhw")
+        self._pin_identity(entry, self._unique_key)
 
     @property
     def is_on(self) -> bool:
-        return boost.held_for(self.coordinator).active("dhw", dt_util.now())
+        held = boost.held_for(self.coordinator)
+        now = dt_util.now()
+        if self._block:
+            return held.block_active(self._channel, now)
+        return held.active(self._channel, now)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any] | None:
+        if not self._block:
+            return None
+        why = boost.block_release_reason(self.coordinator, self._channel)
+        if why is None:
+            return None
+        return {"block_release": why}
+
+    async def _press(self, active: bool) -> None:
+        if self._block:
+            await boost.set_block(
+                self.coordinator, self._channel, active, refresh=False
+            )
+        else:
+            await boost.set_channel(
+                self.coordinator, self._channel, active, refresh=False
+            )
+        publish_then_refresh(self)
 
     async def async_turn_on(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "dhw", True, refresh=False)
-        publish_then_refresh(self)
+        await self._press(True)
 
     async def async_turn_off(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "dhw", False, refresh=False)
-        publish_then_refresh(self)
+        await self._press(False)
 
 
-class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
+class BoostDhwSwitch(DHWEntityMixin, TimedDutySwitch):
+    """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527).
+
+    The unique id keeps the pre-#1334 key: an existing install's registry
+    entry (and its history) is identified by this string, so the rename
+    moves the suggested object id for NEW installs only, exactly as #1227
+    and #1333 moved the sensors'.
+    """
+
+    _attr_translation_key = "dhw_boost"
+    _channel = "dhw"
+    _unique_key = "boost_dhw"
+
+
+class BoostSpaceSwitch(TimedDutySwitch):
     """Two-hour maximum space heat."""
 
     _attr_translation_key = "boost_space"
-    _platform_domain = "switch"
+    _channel = "space"
+    _unique_key = "boost_space"
 
-    def __init__(
-        self,
-        coordinator: HeatPumpOptimizerCoordinator,
-        entry: HeatPumpOptimizerConfigEntry,
-    ) -> None:
-        super().__init__(coordinator)
-        self._pin_identity(entry, "boost_space")
 
-    @property
-    def is_on(self) -> bool:
-        return boost.held_for(self.coordinator).active("space", dt_util.now())
+class BlockDhwSwitch(DHWEntityMixin, TimedDutySwitch):
+    """Two-hour hot-water block; gated like every hot-water entity."""
 
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "space", True, refresh=False)
-        publish_then_refresh(self)
+    _attr_translation_key = "block_dhw"
+    _channel = "dhw"
+    _block = True
+    _unique_key = "block_dhw"
 
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        await boost.set_channel(self.coordinator, "space", False, refresh=False)
-        publish_then_refresh(self)
+
+class BlockSpaceSwitch(TimedDutySwitch):
+    """Two-hour space-heat block."""
+
+    _attr_translation_key = "block_space"
+    _channel = "space"
+    _block = True
+    _unique_key = "block_space"

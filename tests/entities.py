@@ -9883,7 +9883,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
+R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -10010,6 +10010,72 @@ try:
 finally:
     _boost_mod.persist = _boost_persist_real
 
+dhw_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_dhw"
+)
+space_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_space"
+)
+R.check(
+    "the block switches pin block_dhw and block_space",
+    dhw_block_sw._attr_unique_id.endswith("_block_dhw")
+    and space_block_sw._attr_unique_id.endswith("_block_space")
+    and dhw_block_sw.entity_id == "switch.heat_pump_optimizer_block_dhw"
+    and space_block_sw.entity_id == "switch.heat_pump_optimizer_block_space",
+    f"{dhw_block_sw._attr_unique_id} {space_block_sw.entity_id}",
+)
+R.check(
+    "the block switches are named Block DHW and Block Space Heating",
+    display_name("switch", dhw_block_sw) == "Block DHW"
+    and display_name("switch", space_block_sw) == "Block Space Heating",
+    f"{display_name('switch', dhw_block_sw)} / {display_name('switch', space_block_sw)}",
+)
+R.check(
+    "Block DHW is gated like the DHW boost switch",
+    isinstance(dhw_block_sw, _DHWGate) and not isinstance(space_block_sw, _DHWGate),
+)
+_block_persisted = []
+_block_held = _boost_mod.held_for(dhw_block_sw.coordinator)
+_block_held.until.clear()
+_block_held.blocked.clear()
+
+
+async def _block_persist_recorder(coord):
+    held = _boost_mod.held_for(coord)
+    _block_persisted.append((sorted(held.until), sorted(held.blocked)))
+
+
+_boost_mod.persist = _block_persist_recorder
+try:
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "turning Block DHW on holds the block channel and not the boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "a later DHW boost press clears the DHW block",
+        _block_persisted[-1:] == [(["dhw"], [])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "a later Block DHW press clears the DHW boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_off())
+    R.check(
+        "turning Block DHW off releases the block channel",
+        _block_persisted[-1:] == [([], [])],
+        str(_block_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
+
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
 # starts at the real coordinator's default (auto) or the restored mode -- not
@@ -10045,9 +10111,11 @@ _sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
 _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
-                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
 }
-for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
+                 "BlockDhwSwitch", "BlockSpaceSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)

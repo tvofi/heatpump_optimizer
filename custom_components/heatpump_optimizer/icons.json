@@ -272,6 +272,12 @@
       "boost_space": {
         "default": "mdi:radiator"
       },
+      "block_dhw": {
+        "default": "mdi:water-boiler-off"
+      },
+      "block_space": {
+        "default": "mdi:radiator-off"
+      },
       "optimizer_active": {
         "default": "mdi:robot"
       }

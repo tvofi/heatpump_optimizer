@@ -390,7 +390,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "last_cycle": _AT0, "last_attempt": _AT0, "last_attempt_peak": _R,
         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
     },
-    "boost": {"dhw/until": _AT, "space/until": _AT},
+    "boost": {
+        "dhw/until": _AT, "space/until": _AT,
+        "block_dhw/until": _AT, "block_space/until": _AT,
+    },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {

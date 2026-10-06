@@ -309,7 +309,7 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 75 entities are created on every install",
+eq("C1", "README.md:Entities", "All 77 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
 eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
@@ -318,9 +318,9 @@ eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
    COUNTS["binary_sensor"])
 eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,
    int(re.search(r"### Buttons \((\d+) total\)", README).group(1)), COUNTS["button"])
-eq("C5", "docs/architecture.md:mermaid", "75 entities / 59 sensors / 6 binary sensors / "
-   "4 buttons / 4 switches / 1 climate / 1 datetime", CMD,
-   (75, 59, 6, 4, 4, 1, 1),
+eq("C5", "docs/architecture.md:mermaid", "77 entities / 59 sensors / 6 binary sensors / "
+   "4 buttons / 6 switches / 1 climate / 1 datetime", CMD,
+   (77, 59, 6, 4, 6, 1, 1),
    (TOTAL, COUNTS["sensor"], COUNTS["binary_sensor"], COUNTS["button"],
     COUNTS["switch"], COUNTS["climate"], COUNTS["datetime"]))
 
@@ -428,9 +428,10 @@ eq("C13", "README.md:### Buttons", "the button table names exactly the buttons t
    "platform constructs", CMD, sorted(r[0] for r in _bt_rows),
    sorted(display("button", e) for e in CENSUS["button"]))
 
-eq("C14", "README.md:Switches", "Optimizer Active, Away, DHW Boost and Boost "
-   "Space Heating are the switches", CMD,
-   ["Away", "Boost Space Heating", "DHW Boost", "Optimizer Active"],
+eq("C14", "README.md:Switches", "Optimizer Active, Away, Block DHW, Block Space "
+   "Heating, DHW Boost and Boost Space Heating are the switches", CMD,
+   ["Away", "Block DHW", "Block Space Heating", "Boost Space Heating",
+    "DHW Boost", "Optimizer Active"],
    sorted(display("switch", e) for e in CENSUS["switch"]))
 
 # --- C15..C22 services -----------------------------------------------------

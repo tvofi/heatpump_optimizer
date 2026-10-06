@@ -2005,6 +2005,12 @@
       "boost_space": {
         "name": "Boost Space Heating"
       },
+      "block_dhw": {
+        "name": "Block DHW"
+      },
+      "block_space": {
+        "name": "Block Space Heating"
+      },
       "optimizer_active": {
         "name": "Optimizer Active"
       }
