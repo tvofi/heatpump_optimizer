@@ -498,13 +498,104 @@ body_check() { # body file, head sha, title, paths file, red names...
   # The red names ride the SAME flags CI's pr-contract job passes: one `--red`
   # per name, never a comma-joined value, so a check name containing a comma
   # reaches `## Red checks` whole (policy_lint splits only a LONE `--red`
-  # value). Step 7 passes none; step 7c passes every red the branch's pushed
+  # value). Step 7's `body_line` passes `budget-raise-gate` when the diff
+  # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
   local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
   node .claude/workflows/policy_lint.mjs "${args[@]}"
+}
+
+# --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
+# WHY THIS EXISTS. Every root-cause-unanswered block of the v6.7.16 window named
+# a red standing at the reviewed head, and step 7c reads only commits already
+# pushed, so it cannot see the first red the handoff push itself produces. Two
+# of those reds are functions of the diff alone and are predicted here, before
+# that push (pre-study R9-FR-1 round 2, section 3).
+#
+# THE BUDGET RED IS THE BASE'S GATE, RUN OFFLINE. `budget-raise-gate.yml`
+# restores `.claude/workflows/*.py` from the base and runs `gate()`, which is
+# red on any raise until the owner approves at the head. So the base's copy of
+# budget_raise_gate.py is loaded and its own `gate()` run with the review read
+# replaced by a refusal: the enumeration, the schema and `file_raises` are the
+# gate's, never copied here, and no network is reached. Its `__file__` is this
+# tree's path, so its `tests/layout.py` import is the head's, as in CI. A raise
+# feeds one extra `--red budget-raise-gate` to `body_check`: the same body check
+# pr-contract runs, fed one more name. A base without the gate, or a gate
+# without `gate()`, is a skip; an answer that does not parse is a refusal,
+# because a gate that ran and was not read is not a gate that found nothing.
+raise_red() { # merge base, head -> one line; rc 0 no raise, 4 raised, 3 skipped, 1 unread
+  local src out r n total
+  src=$(mktemp)
+  if ! git show "$1:.claude/workflows/budget_raise_gate.py" >"$src" 2>/dev/null; then
+    rm -f "$src"
+    echo "the merge base carries no .claude/workflows/budget_raise_gate.py, so no budget raise was predicted"
+    return 3
+  fi
+  out=$(python3 -I - "$src" "$1" "$2" "$PWD/.claude/workflows/budget_raise_gate.py" 2>&1 <<'PY'
+import sys, types
+src, base, head, home = sys.argv[1:]
+m = types.ModuleType("budget_raise_gate")
+m.__file__ = home
+sys.modules[m.__name__] = m
+exec(compile(open(src).read(), f"{base[:12]}:.claude/workflows/budget_raise_gate.py", "exec"), m.__dict__)
+for name in ("gate", "_reviews", "_mandate"):
+    if not callable(getattr(m, name, None)):
+        print(f"SKIP the merge base's budget_raise_gate.py has no {name}()")
+        sys.exit(3)
+def offline(*_a):
+    raise RuntimeError("offline: prepr.sh never reads a review")
+m._reviews = m._mandate = offline
+sys.exit(m.gate(base, head, "0", "offline/offline"))
+PY
+); r=$?
+  rm -f "$src"
+  if [ "$r" -eq 3 ] && [ "${out#SKIP }" != "$out" ]; then echo "${out#SKIP }, so no budget raise was predicted"; return 3; fi
+  total=$(printf '%s\n' "$out" | sed -n 's/^RESULT budget_raises=\([0-9][0-9]*\) count$/\1/p')
+  n=$(printf '%s\n' "$out" | grep -c '^RAISE ')
+  if [ -z "$total" ] || [ "$total" != "$n" ]; then
+    echo "the base's budget_raise_gate.py answered without a readable RESULT line ($(printf '%s\n' "$out" | tail -1)), so the raises are UNREAD"
+    return 1
+  fi
+  if [ "$n" -eq 0 ]; then echo "no budget leaf raised over $(git rev-parse --short "$1")...$(git rev-parse --short "$2")"; return 0; fi
+  echo "$n budget raise(s), budget-raise-gate red until tvofi approves at the head: $(printf '%s\n' "$out" | sed -n 's/^RAISE //p' | head -1)"
+  return 4
+}
+
+# Step 7's whole body: the predicted budget red, then the body check fed it.
+# rc 0 the body answers, 1 refused.
+body_line() { # body file, head sha, title, paths file, merge base, head
+  local raised r out reds=()
+  raised=$(raise_red "$5" "$6"); r=$?
+  case "$r" in
+    4) reds=(budget-raise-gate) ;;
+    1) printf 'REFUSE: %s' "$raised"; return 1 ;;
+  esac
+  out=$(mktemp)
+  body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
+  if [ "$r" -eq 0 ]; then printf '%s -- %s' "$(tail -1 "$out")" "$raised"
+  else printf '%s -- %s' "$(grep -m1 'does not name it' "$out" || tail -1 "$out")" "$raised"; fi
+  rm -f "$out"; return "$r"
+}
+
+# THE COPY CLAIM IS CI'S OWN COMMAND. `tests.yml`'s closures job runs
+# `tests/closure.py no-copies` on both arms and nothing local ran it: a diff
+# that can introduce a copy -- a `.py` under tests/ (a new definition) or under
+# custom_components/ (a new production name a test already defines) -- runs it
+# here. The scan reads the whole tree, so its wall time is paid only then.
+copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a copy, 3 skipped
+  local out r
+  if ! grep -qE '^(tests|custom_components)/.*\.py$' "$2" 2>/dev/null; then
+    echo "the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name"
+    return 3
+  fi
+  [ -f "$1/tests/closure.py" ] || { echo "no tests/closure.py under $1, so no-copies was not run"; return 3; }
+  out=$(cd "$1" && PYTHONPATH=tests/hastub python3 tests/closure.py no-copies 2>&1); r=$?
+  if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
+  echo "$(printf '%s\n' "$out" | grep -m1 '^COPY-CLAIMED' || printf '%s\n' "$out" | tail -1) ($(printf '%s\n' "$out" | grep -c '^COPY-CLAIMED') in all) -- import the production symbol instead (tests/README.md), or the closures job refuses it"
+  return 1
 }
 
 # --- the ancestry red-check arm (#1860, R9-FR-2) -------------------------------
@@ -1000,6 +1091,87 @@ EOS
   case "$out" in *gh\ is\ absent*) st 1 1 "and the skip line says why";; *) st 0 1 "and the skip line says why";; esac
   rm -rf "${RA:?}"
 
+  # Step 7's budget arm, driven through `body_line` -- the function the step
+  # calls -- over a throwaway repository reached through GIT_DIR, for the reason
+  # 7c's rows give. Its base commit carries THIS tree's budget_raise_gate.py, so
+  # the rows grade the gate the pull request will restore; `nogate` is a base
+  # with none. Each arm also reads a string only its own path prints, because a
+  # body check that refused on other grounds would satisfy a status alone.
+  BR=$(mktemp -d)
+  (
+    set -e; cd "$BR"; git init -q -b main .
+    git config user.name st; git config user.email st@st
+    echo a > README; git add -A; git -c commit.gpgsign=false commit -qm nogate; git tag nogate
+    mkdir -p .claude/workflows tests
+    cp "$OLDPWD/.claude/workflows/budget_raise_gate.py" .claude/workflows/
+    printf '{\n "recorded_at": "x",\n "foo_loc": 10\n}\n' > tests/structure_budgets.json
+    git add -A; git -c commit.gpgsign=false commit -qm base; git tag base
+    git checkout -q -b raise base
+    printf '{\n "recorded_at": "x",\n "foo_loc": 11\n}\n' > tests/structure_budgets.json
+    git -c commit.gpgsign=false commit -qam raise
+    git checkout -q -b lower base
+    printf '{\n "recorded_at": "y",\n "foo_loc": 9\n}\n' > tests/structure_budgets.json
+    git -c commit.gpgsign=false commit -qam lower
+    git checkout -q -b docs base
+    echo b > README; git -c commit.gpgsign=false commit -qam docs
+  ) >/dev/null 2>&1
+  bl() { # base, head, body -> "<rc>:$line"
+    local out r
+    out=$(GIT_DIR="$BR/.git" body_line "$DABS/$3" "$ZERO" '' "$DABS/paths-nonpolicy.txt" "$1" "$2")
+    r=$?
+    echo "$r:$out"
+  }
+  got=$(bl base raise unnamed-red.md)
+  st "${got%%:*}" 1 "a diff raising a budget leaf with a body silent on budget-raise-gate is refused before the push"
+  case "$got" in *'budget-raise-gate'*'does not name it'*) st 1 1 "and the refusal is the red gate's own, naming budget-raise-gate";; *) st 0 1 "and the refusal is the red gate's own, naming budget-raise-gate";; esac
+  got=$(bl base raise budget-answered.md)
+  st "${got%%:*}" 0 "the same raise with a body naming budget-raise-gate passes (null control)"
+  case "$got" in *'1 budget raise'*'foo_loc'*) st 1 1 "and the ok line names the raise it fed";; *) st 0 1 "and the ok line names the raise it fed";; esac
+  got=$(bl base lower unnamed-red.md)
+  st "${got%%:*}" 0 "a budget re-recorded down owes no answer"
+  case "$got" in *'no budget leaf raised'*) st 1 1 "and the ok line says no raise was found, so the gate ran";; *) st 0 1 "and the ok line says no raise was found, so the gate ran";; esac
+  got=$(bl base docs unnamed-red.md)
+  st "${got%%:*}" 0 "a diff touching no budget file passes"
+  got=$(bl nogate raise unnamed-red.md)
+  case "$got" in *'carries no .claude/workflows/budget_raise_gate.py'*) st 1 1 "a merge base with no gate skips the arm and says so";; *) st 0 1 "a merge base with no gate skips the arm and says so";; esac
+  st "${got%%:*}" 0 "and the body check still runs, fed nothing (skip, never refuse)"
+  rm -rf "${BR:?}"
+
+  # Step 6c, driven through `copies_line` -- the function the step calls --
+  # over a fixture tree holding THIS tree's tests/closure.py, one production
+  # module and one test file, so the copy claim is the only variable.
+  CR=$(mktemp -d)
+  mkdir -p "$CR/tests" "$CR/custom_components/heatpump_optimizer"
+  cp tests/closure.py "$CR/tests/"
+  printf 'def heat_loss(x):\n    return x\n' > "$CR/custom_components/heatpump_optimizer/model.py"
+  printf 'tests/thermal.py\n' > "$CR/changed-py.txt"
+  printf 'README.md\ntests/golden/a.json\n' > "$CR/changed-none.txt"
+  printf 'def heat_loss(x):\n    return 2 * x\n' > "$CR/tests/thermal.py"
+  got=$(copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  st "$r" 1 "a test file defining a production top-level name is refused"
+  case "$got" in *"COPY-CLAIMED: tests/thermal.py defines 'heat_loss'"*) st 1 1 "and the refusal is no-copies' own line";; *) st 0 1 "and the refusal is no-copies' own line";; esac
+  printf 'def local_loss(x):\n    return 2 * x\n' > "$CR/tests/thermal.py"
+  got=$(copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  st "$r" 0 "the same test with the name renamed passes (null control)"
+  case "$got" in *'no test file defines a symbol production also defines'*) st 1 1 "and the ok line is no-copies' own, so it ran";; *) st 0 1 "and the ok line is no-copies' own, so it ran";; esac
+  printf 'def heat_loss(x):\n    return 2 * x\n' > "$CR/tests/thermal.py"
+  got=$(copies_line "$CR" "$CR/changed-none.txt"); r=$?
+  st "$r" 3 "a diff touching no .py under tests/ or custom_components/ skips, even over a copy"
+  case "$got" in *'changes no .py under tests/ or custom_components/'*) st 1 1 "and the skip line names the boundary";; *) st 0 1 "and the skip line names the boundary";; esac
+  rm -f "$CR/tests/closure.py"
+  got=$(copies_line "$CR" "$CR/changed-py.txt"); r=$?
+  st "$r" 3 "a tree with no tests/closure.py skips, never refuses"
+  rm -rf "${CR:?}"
+
+  # The call site. Driving the two functions above does not pin that a step
+  # calls them: the #1591 self-test drove a helper while the step kept calling
+  # the old one. The main flow is the text after this self-test returns.
+  flow=$(awk 'f{print} /^rc=0$/{f=1}' tools/audit/prepr.sh)
+  printf '%s\n' "$flow" | grep -q 'body_line "'
+  st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
+  printf '%s\n' "$flow" | grep -q 'copies_line "'
+  st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
+
   # The degraded arm, asserted on BOTH keys because the first version of it
   # asserted a property the code did not have. A range that does not resolve must
   # make the DERIVATION fail, so the step refuses rather than handing the check a
@@ -1287,10 +1459,21 @@ PY
   # removed with the verdict. Inlined rather than through `closures_at`,
   # whose echo truncates at the first colon -- and the remedy text names
   # "seat venv: tools/audit/seat/seat_venv.sh".
+  # A seat shim named python3 execs `$HPO_STATE_DIR/venv-ci/bin/python3`
+  # (`seat_venv.sh --install-shims`). This arm points that variable at a stub,
+  # so the shim turns `python3 tests/closure.py affected` into the stub and
+  # the arm reports "derived no case" -- a red that is the shim, not the
+  # recorder. Resolve an interpreter with the variable unset and put its
+  # directory first on this one call. The stub stays the absolute path
+  # `recorder_python` selects.
+  realpy=$(env -u HPO_STATE_DIR python3 -c 'import sys; print(sys.executable)' 2>/dev/null) || realpy=""
+  pybin=$PATH
+  [ -n "$realpy" ] && pybin="$(dirname "$realpy"):$PATH"
   : > "$CLM/pylog"
   full=$(cd "$CLM/r" && git checkout -q cl \
     && PREPR_RECORD="$CLM/rec.sh" FIXTURE_REC="$CLM/ok" PYLOG="$CLM/pylog" \
-       HPO_STATE_DIR="$FB/state" closures_line fork 2>&1); rc=$?
+       HPO_STATE_DIR="$FB/state" PATH="$pybin" \
+       closures_line fork 2>&1); rc=$?
   st "$rc" 0 "6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)"
   [ "$(tail -1 "$CLM/pylog")" = "$FB/state/venv-ci/bin/python3" ]
   st $? 0 "and the recorder received that interpreter as \$PYTHON"
@@ -1671,6 +1854,24 @@ else
   esac
 fi
 
+# --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
+# before the push. `copies_line` above. The scan reads the whole tree, so it
+# runs only when the diff can introduce a shared top-level name; any other
+# diff skips and says so. A path list that did not derive refuses: an empty
+# list would read as "no python changed", which is the fail-open.
+COPY_PATHS=/tmp/prepr-copies.$$
+if diff_paths "$BASE" "$COPY_PATHS"; then
+  COPIES_LINE=$(copies_line "$PWD" "$COPY_PATHS")
+  case $? in
+    3) say skip "no-copies" "$COPIES_LINE" ;;
+    0) step "no-copies" 0 "$COPIES_LINE" ;;
+    *) step "no-copies" 1 "$COPIES_LINE" ;;
+  esac
+else
+  step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
+fi
+rm -f "$COPY_PATHS"
+
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
 if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
@@ -1693,7 +1894,10 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   # detector rather than a second opinion.
   PATHS=/tmp/prepr-paths.$$
   if diff_paths "$BASE" "$PATHS"; then
-    body_check "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" \
+    # body_line feeds `--red budget-raise-gate` when the diff raises a budget
+    # leaf, then runs this same body_check. A base with no gate skips that
+    # name and still runs the check.
+    body_line "$BODY" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$PATHS" "$BASE" HEAD \
       >/tmp/prepr-body.$$ 2>&1
     step "pr-body" $? "$(tail -1 /tmp/prepr-body.$$)"
     rm -f /tmp/prepr-body.$$
