@@ -2924,6 +2924,7 @@
    "tools/audit/harnesses/j5_gil.py",
    "tools/audit/harnesses/k1725_blas_kernel_gap.py",
    "tools/audit/harnesses/r9_fr3_family_consumer.mjs",
+   "tools/audit/harnesses/scale_writer_seams.py",
    "tools/audit/harnesses/solve_inputs_parity.py",
    "tools/audit/harnesses/thermal_parity.py",
    "tools/audit/repo_root.mjs",
