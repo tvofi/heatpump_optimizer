@@ -7011,7 +7011,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "handoff/r9-diag-2s",
-    "commit": "3c51d2403722fc7a6de9ba2cd7f29e18dda56c77",
+    "commit": "86587b16fbe06a1edd2fbc9dc2642d2e9aa08a15",
     "last_step": "handoff/r9-diag-2s is 3c51d2403722fc7a6de9ba2cd7f29e18dda56c77 (fixture key 875ed11c, then the refit-band pin). PR #1983 is still b403d2bf6d90f82e38da738c493d86479d5c6782, approved, mutation red. A pin process was still running at measurement.",
     "next_step": "When the pin process exits, update PR #1983 onto the handoff tip and re-review. Do not merge b403d2bf. #1936 stays open until that merge. leaves #201 open.",
     "note_file": "handoff/round9/fix/resume/DIAG-2S.md on fix/r9-diag-2s",
