@@ -259,11 +259,12 @@ else:
   # it -- one normalisation point instead of teaching every guard about
   # `//`.
   #
-  # On Darwin, `pwd -P` of `/` is `/System/Volumes/Data`, which has three
-  # components and so passes the check above. `grep -rqF` of a head sha
-  # over that path walked the data volume for 17 minutes, and a second
-  # time for 9 hours, both killed by hand. A resolved path equal to the
-  # physical root is the root whatever the OS calls it.
+  # `pwd -P` of `/` is `/` on macOS 26.6, so a comparison with that path
+  # does not see `/System/Volumes/Data`. That mount is a different
+  # directory, and `grep -rqF` of a head sha over it walked the data
+  # volume for 17 minutes, then again for 9 hours, both killed by hand.
+  # A resolved path that is its own mount point is a volume root. Evidence
+  # is a directory on a volume, not the volume itself.
   local evdir="" evwhy="the verdict names no absolute path at all" tok rootphys
   rootphys=$(cd / && pwd -P)
   rootphys=$(printf '%s' "$rootphys" | sed -E 's#^/+#/#')
@@ -288,7 +289,10 @@ else:
         evwhy="$tok resolves to $resolved, under /proc, /dev or /sys -- refused as evidence"
         continue ;;
     esac
-    if [ "$resolved" = "/" ] || [ "$resolved" = "$rootphys" ]; then
+    local mount
+    mount=$(df -P "$resolved" 2>/dev/null | awk 'NR==2 { print $NF }')
+    if [ "$resolved" = "/" ] || [ "$resolved" = "$rootphys" ] \
+       || { [ -n "$mount" ] && [ "$resolved" = "$mount" ]; }; then
       evwhy="$tok resolves to $resolved, the filesystem root -- refused as evidence"
       continue
     fi
@@ -745,7 +749,14 @@ st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
 st "$(sed -n '1,340p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
    "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
 st "$(sed -n '1,340p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
-   "pin: a resolved path equal to pwd -P of / is the root (Darwin prints /System/Volumes/Data)"
+   "pin: a resolved path that is its own mount point is refused"
+if [ -d /System/Volumes/Data ]; then
+  mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
+  run datavol o/r 7 "$SHA"; st $? 1 "REFUSE: /System/Volumes/Data is a mount point, not evidence"
+  st "$(grep -c 'the filesystem root -- refused as evidence' "$W/datavol/err")" 1 \
+    "naming the mount-point refusal, not a missing directory"
+  st "$(calls datavol curl)" 0 "and nothing was minted or posted"
+fi
 
 # `pwd -P` on this shell keeps EXACTLY TWO leading slashes: POSIX carves
 # `//foo` out as implementation-defined (unlike three-or-more, which always
