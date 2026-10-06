@@ -126,7 +126,7 @@
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 765.6,
+   "seconds": 1198.3,
    "rc": 0
   }
  },
@@ -2885,6 +2885,7 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/quiet_windows.py",
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
