@@ -52506,6 +52506,26 @@ R.check(
     f"second {_pa_hold_second} warned {_pa_hold_warned} retry {_pa_sw(_pa_hold)}",
 )
 
+_pa_held = _pa_silent()
+_pa_run(_pa_held, 0)
+_pa_echo_duty(_pa_held)
+_pa_aio.run(_pa.apply(_pa_held, _PA_T0 + timedelta(seconds=60)))
+_pa_echo_duty(_pa_held)
+_pa_held.device("switch.pump_night_mode", "on")
+_pa_aio.run(_pa.apply(_pa_held, _PA_T0 + timedelta(seconds=120)))
+_pa_held.hass.services.calls.clear()
+_pa_held.device("switch.pump_night_mode", "off")
+_pa_aio.run(_pa.apply(_pa_held, _PA_T0 + timedelta(seconds=180)))
+_pa_held_back = list(_pa_sw(_pa_held))
+_pa_held_issue = [
+    i for i in getattr(_pa_held.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED
+]
+R.check(
+    "an on echo clears the miss, so the next off is rewritten once and not yet a warning",
+    _pa_held_back == [("turn_on", "switch.pump_night_mode")] and _pa_held_issue == [],
+    f"{_pa_held_back} {_pa_held_issue}",
+)
+
 _pa_boot = _pa_silent()
 _pa_run(_pa_boot, 0)
 _pa_boot_again = _pa_restart(_pa_boot)
