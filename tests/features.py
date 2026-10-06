@@ -10742,7 +10742,7 @@ R.check(
     == _sv_full["slots"][0]["label"],
 )
 
-_text = _topo.render_text_summary(_full)
+_flow_text = _topo.render_text_summary(_full)
 R.check(
     "every assignable slot carries the domains it accepts",
     all(s.get("domains") for s in _full["slots"])
@@ -10790,16 +10790,16 @@ R.check(
 
 R.check(
     "the flow overview is a fenced monospaced block",
-    _text.startswith("```\n") and _text.endswith("\n```"),
+    _flow_text.startswith("```\n") and _flow_text.endswith("\n```"),
     "the one drawing surface every install already renders",
 )
 R.check(
     "with configured sensors named and empty slots called out",
-    "sensor.wood_top" in _text and "not configured" in _text,
+    "sensor.wood_top" in _flow_text and "not configured" in _flow_text,
 )
 R.check(
     "and the storage claim matches the model",
-    "used as a store" in _text,
+    "used as a store" in _flow_text,
     "a 750 L tank behind a manual valve is a store as of v3.10.0",
 )
 # _full_cfg is itself a two-tank configuration (two zones, manual valve,
@@ -10808,9 +10808,9 @@ R.check(
 # the abstraction still runs: wood present without a probe.
 R.check(
     "a modelled wood tank is claimed as its own store",
-    "modelled as its own store" in _text
-    and "modelled as heat into the heat-pump tank" not in _text
-    and "Heat pump tank: 750 L" in _text,
+    "modelled as its own store" in _flow_text
+    and "modelled as heat into the heat-pump tank" not in _flow_text
+    and "Heat pump tank: 750 L" in _flow_text,
     "issue #40: with the two-tank model active the summary stops "
     "apologizing for an abstraction it no longer uses",
 )
