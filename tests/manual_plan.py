@@ -84,6 +84,7 @@ from homeassistant.util import dt as _dt_stub
 
 from heatpump_optimizer.const import MANUAL_PLAN_WINDOW_HOURS
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
+from heatpump_optimizer.dhw_planner import _forced_off_with
 from heatpump_optimizer.manual_plan import (
     CHANNEL_DHW,
     CHANNEL_SPACE,
@@ -413,6 +414,58 @@ def test_pins_change_schedule(R: Results) -> None:
         "a safe forced-off step is not released",
         k is not None and not pinned_off.manual_released_dhw,
         f"step {k} released {getattr(pinned_off, 'manual_released_dhw', None)}",
+    )
+
+
+def test_off_window_over_pins(R: Results) -> None:
+    R.section("A quiet Off window outranks a force-on pin (#1910)")
+
+    # The one place the Off mask is fitted to the horizon: a short mask is
+    # padded False and, with nothing else forced off, is the whole result.
+    try:
+        fitted = _forced_off_with(None, [True, False], 4)
+    except TypeError as err:
+        fitted = err
+    R.check(
+        "an Off mask shorter than the horizon is padded off-free to its length",
+        isinstance(fitted, np.ndarray)
+        and fitted.tolist() == [True, False, False, False],
+        f"got {fitted!r}",
+    )
+    merged = _forced_off_with(np.array([False, True, False, False]), [True], 4)
+    R.check(
+        "an Off mask is OR'd into the steps pins already forced off",
+        isinstance(merged, np.ndarray)
+        and merged.tolist() == [True, True, False, False],
+        f"got {merged!r}",
+    )
+
+    # A force-on pin inside the window must not reopen it: the overlay runs
+    # after the planners, so only the restated invariant keeps the steps
+    # empty. The pinned step is one the pin alone does fill (the null
+    # control), so the zeros are the window's.
+    winter = _build_optimizer("winter_typical", "winter_cold")
+    base = _solve(winter)
+    _base_dhw = np.asarray(base.dhw_power_schedule)
+    _base_tank = np.asarray(base.dhw_temp_trajectory)
+    _ceiling = winter[0].model.params.dhw_max_temp
+    _on_idx = next(
+        i
+        for i in range(2, N - 2)
+        if _base_dhw[i] < 0.05 and _base_tank[i] < _ceiling - 2.0
+    )
+    dp = np.full(N, np.nan)
+    dp[_on_idx] = 1.0
+    off = np.zeros(N, dtype=bool)
+    off[_on_idx - 2 : _on_idx + 2] = True
+    free = _solve(winter, dhw_pins=dp.copy())
+    held = _solve(winter, dhw_pins=dp.copy(), off_steps=off)
+    in_window = np.asarray(held.dhw_power_schedule)[off]
+    R.check(
+        "a force-on hot-water pin inside an Off window plans nothing in its steps",
+        free.dhw_power_schedule[_on_idx] > 0.3 and float(np.max(in_window)) == 0.0,
+        f"step {_on_idx}: pin alone {free.dhw_power_schedule[_on_idx]:.3f}, "
+        f"inside the window {float(np.max(in_window)):.3f}",
     )
 
 
@@ -1068,6 +1121,7 @@ def _run() -> int:
     test_channel_semantics(R)
     test_serialization(R)
     test_pins_change_schedule(R)
+    test_off_window_over_pins(R)
     test_safety_release(R)
     test_naive_expiry(R)
     test_give_up_is_per_channel(R)
