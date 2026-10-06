@@ -57,7 +57,8 @@ i=s.index('## Head\n\n')+len('## Head\n\n')
 s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `docs/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
 open(p,'w').write(s)
 E3
-  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; else bash tools/pr/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; fi| grep -E 'REFUSE|PUSHED' | tail -2 | cut -c1-200
+  if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+  PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2 | cut -c1-200
   gh pr edit $N --title "$TITLE" >/dev/null
   echo "RESULT pr=$N head=$H (update)"; exit 0
 fi
@@ -76,7 +77,8 @@ s=s[:i]+"`%s` merges origin/main `%s` into the authored head `%s`, with no hand 
 open(p,'w').write(s)
 E2
 fi
-out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; else bash tools/pr/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; fi| grep -E 'REFUSE|PUSHED' | tail -2); echo "$out" | cut -c1-200
+if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -2); echo "$out" | cut -c1-200
 N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
 gh pr edit $N --title "$TITLE" >/dev/null
 [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
@@ -90,5 +92,6 @@ i=s.index('## Head\n\n')+len('## Head\n\n')
 s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
 open(p,'w').write(s)
 E
-PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} if test -f tools/audit/app_push.sh; then bash tools/audit/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; else bash tools/pr/app_push.sh $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1; fi| grep -E 'REFUSE|PUSHED' | tail -1 | cut -c1-200
+if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=${PREPR_SKIP_CLOSURES:-} bash "$_push" $R "$WT" "$BR" "$B" ${ISSUES:-} 2>&1 | grep -E 'REFUSE|PUSHED' | tail -1 | cut -c1-200
 echo "RESULT pr=$N head=$H"
