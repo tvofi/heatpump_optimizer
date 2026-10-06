@@ -38,56 +38,73 @@ SELF_TEST=0
 # refusal cases failed on the first run; its nine ALLOW cases all passed, and
 # passed vacuously. A null control cannot see this class -- only the direction
 # that demands an answer can.
+# The program itself is the comment block below, read back with sed. A
+# here-document in decide() is what python reported as an unterminated string
+# at the continued print; the shell does not parse that block.
+# HPO_PRE_EDIT_PY
+# import json, sys, os
+# branch = sys.argv[1]
+# try:
+#     payload = json.loads(sys.argv[2])
+# except Exception:
+#     sys.exit(0)                      # unparseable -- fail open
+# ti = payload.get("tool_input") or {}
+# if not isinstance(ti, dict):
+#     sys.exit(0)
+# p = ti.get("file_path") or ti.get("notebook_path") or ""
+# if not isinstance(p, str) or not p:
+#     sys.exit(0)
+# root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
+# try:
+#     rel = os.path.relpath(os.path.realpath(p), os.path.realpath(root))
+# except Exception:
+#     sys.exit(0)
+# if rel.startswith(".."):
+#     sys.exit(0)                      # outside the repository -- not ours to judge
+# rel = rel.replace(os.sep, "/")
+#
+# STAMPED = ("VERSION", "custom_components/heatpump_optimizer/manifest.json")
+# if rel in STAMPED and branch != "main":
+#     print(f"{rel} is assigned after the merge by tools/release/stamp.py, and this "
+#           f"branch is '{branch}'. CLAUDE.md rule 4. The stamp refuses a branch that "
+#           f"moved it, which is a forty-minute way to learn this.")
+#     sys.exit(1)
+#
+# if rel == "RELEASE_NOTES.md" and branch != "main":
+#     # Only the HEADING is stamped; a branch may add body lines under an
+#     # existing one. So this reads what is being written rather than the path.
+#     text = " ".join(str(v) for k, v in ti.items()
+#                     if k in ("new_string", "content", "new_source"))
+#     if any(l.lstrip().startswith("## ") for l in text.splitlines()):
+#         print("RELEASE_NOTES.md's version heading is written by "
+#               "tools/release/stamp.py after the merge, and this branch is "
+#               f"'{branch}'. CLAUDE.md rule 4. Body lines under an existing "
+#               "heading are fine; a new `## ` heading is not.")
+#         sys.exit(1)
+#
+# if rel.startswith(".cursor/rules/"):
+#     print(f"{rel} is GENERATED from .claude/rules/ by "
+#           "node .claude/workflows/rules_sync.mjs, and byte-compared by --check. "
+#           "Edit the .claude/rules/ source and regenerate; a hand edit here is "
+#           "reverted by the next generation and fails `policy-docs` in between.")
+#     sys.exit(1)
+# HPO_PRE_EDIT_PY_END
+
 decide() { # $1 branch, $2 the raw payload; stdout: a refusal message, or nothing
-  python3 - "$1" "$2" <<'PY'
-import json, sys, os
-branch = sys.argv[1]
-try:
-    payload = json.loads(sys.argv[2])
-except Exception:
-    sys.exit(0)                      # unparseable -- fail open
-ti = payload.get("tool_input") or {}
-if not isinstance(ti, dict):
-    sys.exit(0)
-p = ti.get("file_path") or ti.get("notebook_path") or ""
-if not isinstance(p, str) or not p:
-    sys.exit(0)
-root = os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
-try:
-    rel = os.path.relpath(os.path.realpath(p), os.path.realpath(root))
-except Exception:
-    sys.exit(0)
-if rel.startswith(".."):
-    sys.exit(0)                      # outside the repository -- not ours to judge
-rel = rel.replace(os.sep, "/")
-
-STAMPED = ("VERSION", "custom_components/heatpump_optimizer/manifest.json")
-if rel in STAMPED and branch != "main":
-    print(f"{rel} is assigned after the merge by tools/release/stamp.py, and this "
-          f"branch is '{branch}'. CLAUDE.md rule 4. The stamp refuses a branch that "
-          f"moved it, which is a forty-minute way to learn this.")
-    sys.exit(1)
-
-if rel == "RELEASE_NOTES.md" and branch != "main":
-    # Only the HEADING is stamped; a branch may add body lines under an
-    # existing one. So this reads what is being written rather than the path.
-    text = " ".join(str(v) for k, v in ti.items()
-                    if k in ("new_string", "content", "new_source"))
-    if any(l.lstrip().startswith("## ") for l in text.splitlines()):
-        print("RELEASE_NOTES.md's version heading is written by "
-              "tools/release/stamp.py after the merge, and this branch is "
-              f"'{branch}'. CLAUDE.md rule 4. Body lines under an existing "
-              "heading are fine; a new `## ` heading is not.")
-        sys.exit(1)
-
-if rel.startswith(".cursor/rules/"):
-    print(f"{rel} is GENERATED from .claude/rules/ by "
-          "node .claude/workflows/rules_sync.mjs, and byte-compared by --check. "
-          "Edit the .claude/rules/ source and regenerate; a hand edit here is "
-          "reverted by the next generation and fails `policy-docs` in between.")
-    sys.exit(1)
-PY
+  # The program is the marked comment block above, not a here-document.
+  # policy_lint --hooks failed this script with python's "unterminated string
+  # literal" at the continued print inside a here-document, and the same
+  # program on disk compiles. The block is comments, so the shell does not
+  # parse it; sed strips one marker and python compiles the bytes on disk.
+  sed -n '/^# HPO_PRE_EDIT_PY$/,/^# HPO_PRE_EDIT_PY_END$/{
+    /^# HPO_PRE_EDIT_PY$/d
+    /^# HPO_PRE_EDIT_PY_END$/d
+    s/^# //
+    s/^#$//
+    p
+  }' "$0" | python3 - "$1" "$2"
 }
+
 
 if [ "$SELF_TEST" = 1 ]; then
   # A check that cannot be shown failing does not merge. Each case drives
