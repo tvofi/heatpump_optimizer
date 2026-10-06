@@ -1,0 +1,11 @@
+125:pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-06T17:33:13.6139414Z  * [new branch]        handoff-body/r9-fr-10-record-autofix-fixes -> origin/handoff-body/r9-fr-10-record-autofix-fixes
+258:pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-06T17:33:13.6520051Z  * [new branch]        handoff/r9-fr-10-record-autofix-fixes -> origin/handoff/r9-fr-10-record-autofix-fixes
+263:pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-06T17:33:13.6530515Z  * [new branch]        handoff/r9-nightly-status-k5uati -> origin/handoff/r9-nightly-status-k5uati
+306:pr-contract	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-06T17:33:13.6614615Z  * [new branch]        record/autofix          -> origin/record/autofix
+643:pr-contract	Restore the check source from the base commit	2026-10-06T17:33:14.6828150Z ^[[36;1m# the diff lists what PINNED holds of them, skipping the half it lacks,^[[0m
+650:pr-contract	Restore the check source from the base commit	2026-10-06T17:33:14.6831103Z ^[[36;1m  'tools/audit/record-predicate' \^[[0m
+660:pr-contract	Restore the check source from the base commit	2026-10-06T17:33:14.6834843Z ^[[36;1m  'tools/policy/record-predicate' \^[[0m
+716:pr-contract	List the paths this pull request changes	2026-10-06T17:33:16.6671154Z ^[[36;1m# reporter that grades `main` is exempt from `## Red checks` only^[[0m
+744:pr-contract	List the red checks at this head	2026-10-06T17:33:17.3230020Z red checks the body must answer: delivery-status,nightly-status
+749:pr-contract	Check the body against the contract	2026-10-06T17:33:17.3275778Z ^[[36;1m# refusal nor `## Red checks` can match.^[[0m
+767:pr-contract	Check the body against the contract	2026-10-06T17:33:17.4480133Z   skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
