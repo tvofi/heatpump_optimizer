@@ -130,16 +130,32 @@ jobs:
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          rm -rf .claude/workflows/vendor tools/policy/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Refuse a Cursor rule that is not the generated form of its source
         run: node .claude/workflows/rules_sync.mjs --check
@@ -427,16 +443,32 @@ jobs:
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          rm -rf .claude/workflows/vendor tools/policy/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
           git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
 
       # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
@@ -482,8 +514,11 @@ jobs:
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          rm -rf .claude/workflows/vendor tools/policy/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
@@ -498,9 +533,24 @@ jobs:
             'tests/replay.py' \
             'tests/structure.py' \
             'tools/audit/round4/D11/d11lib.py' \
-            'tools/audit/round4/D11/governance_cost.py'
+            'tools/audit/round4/D11/governance_cost.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' \
+            'dev/audit/rounds/round4/D11/d11lib.py' \
+            'dev/audit/rounds/round4/D11/governance_cost.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Drive the wave script's branching
         run: node .claude/workflows/check-wave-script.mjs
@@ -864,7 +914,8 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- \
-            'tests/delivery_status.py'
+            'tests/delivery_status.py' \
+            'tests/layout.py'
           test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
           git fetch --no-tags --quiet origin main
           python -I -S tests/delivery_status.py --check

@@ -24582,7 +24582,18 @@ steps:
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
           'tools/audit/record-predicate' \
-          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+          'tools/audit/round6/D11/fix/codeowners_gap.py' \
+          'tools/policy/*.mjs' \
+          'tools/policy/*.py' \
+          'tools/pr/*.py' \
+          'tools/policy/vendor' \
+          'tools/pr/*.sh' \
+          'tools/seat/*.sh' \
+          'tools/coverage/*.sh' \
+          'dev/audit/*.sh' \
+          'tools/policy/record-predicate' \
+          'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+          'tests/layout.py'; then
         echo "governance=false" >> "$GITHUB_OUTPUT"
       else
         echo "governance=true" >> "$GITHUB_OUTPUT"
@@ -26167,6 +26178,136 @@ R.check(
     "finder's reader missed mutation_table this way)",
     _prw_executed("          import subprocess, mutation_table\n") == {"tests/mutation_table.py"},
     f"read: {_prw_executed('          import subprocess, mutation_table')}",
+)
+
+
+# --- every base restore names each file at both its paths (R9-RO-2b, #1931).
+# Lane RO moves what the base-restoring steps check out (tests/layout.json),
+# and PINNED holds the old path until a move merges, then the new one, so a
+# step names both. Only the listed form can: a direct `git checkout "$PINNED"
+# --` fails on a pathspec PINNED lacks, where `git diff --name-only -z` against
+# the empty tree lists what PINNED holds of them. `test -s` on the list refuses
+# a PINNED holding neither, and the checkout of that list comes next -- the
+# only shape codeowners_gap.py credits (#1886 review, round 1). Pathspecs are
+# git's glob, where `*` crosses `/`; the matcher is held to `git ls-files` on
+# every step it reads. A direct checkout is judged against this tree, the base
+# the next pull request restores from.
+import fnmatch as _twp_fnmatch  # noqa: E402
+import shlex as _twp_shlex  # noqa: E402
+
+import layout as _twp_layout  # noqa: E402
+
+_TWP_RESTORE = re.compile(
+    r'git (checkout|diff --name-only -z "\$\(git hash-object -t tree /dev/null\)") "\$PINNED" -- (.*)')
+_TWP_OPS = (">", ";", "&&", "||", "|")
+
+
+def _twp_hit(spec: str, path: str) -> bool:
+    if any(ch in spec for ch in "*?["):
+        return _twp_fnmatch.fnmatchcase(path, spec)
+    return path == spec or path.startswith(spec.rstrip("/") + "/")
+
+
+def _twp_restores(run: str):
+    """(listed, pathspecs, list file, the next two lines) per restore in `run`."""
+    lines = [ln.strip() for ln in run.replace("\\\n", " ").splitlines()
+             if ln.strip() and not ln.lstrip().startswith("#")]
+    for i, ln in enumerate(lines):
+        m = _TWP_RESTORE.search(ln)
+        if not m:
+            continue
+        toks = _twp_shlex.split(m.group(2))
+        cut = next((k for k, t in enumerate(toks) if t.startswith(_TWP_OPS)), len(toks))
+        dest = toks[cut][1:] or "".join(toks[cut + 1:cut + 2]) if cut < len(toks) and toks[cut].startswith(">") else ""
+        yield m.group(1) != "checkout", toks[:cut], dest, lines[i + 1:i + 3]
+
+
+def _twp_steps(texts: dict):
+    for name, text in sorted(texts.items()):
+        for jid, job in ((_yaml.safe_load(text) or {}).get("jobs") or {}).items():
+            for s in (job or {}).get("steps") or []:
+                for r in _twp_restores(str(s.get("run") or "")):
+                    yield f"{name}:{jid}", *r
+
+
+def _twp_defects(texts: dict, tracked: "list[str]", moves: "list[dict]") -> "list[str]":
+    out = []
+    for where, listed, specs, dest, after in _twp_steps(texts):
+        lost = [(f, t) for f in tracked if any(_twp_hit(p, f) for p in specs)
+                for t in [_twp_layout.target(f, moves)]
+                if t and t != f and not any(_twp_hit(p, t) for p in specs)]
+        if lost:
+            out.append(f"{where} restores {len(lost)} file(s) at the old path only, e.g. "
+                       f"{lost[0][0]} and not {lost[0][1]}")
+        if not listed:
+            out += [f"{where} checks out {p}, which no tracked file matches: a PINNED without it fails "
+                    "the step, so list it" for p in specs if not any(_twp_hit(p, f) for f in tracked)]
+        elif not dest or after != [f'test -s "{dest}"', 'git checkout "$PINNED" '
+                                   f'--pathspec-from-file="{dest}" --pathspec-file-nul']:
+            out.append(f"{where} lists to {dest or 'stdout'} without `test -s` on it and its checkout "
+                       "on the next two lines")
+    return out
+
+
+_TWP_TRACKED = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
+                              check=True).stdout.splitlines()
+_TWP_MOVES = [{"old": o, "new": n} for o, n in _twp_layout.moves()]
+_TWP_LIVE = list(_twp_steps(_PRW_TEXTS))
+_TWP_DEFECTS = _twp_defects(_PRW_TEXTS, _TWP_TRACKED, _TWP_MOVES)
+R.check(
+    "every base-restoring step names each file it restores at the path tests/layout.json moves "
+    "it to, listed so that a PINNED holding either path restores and one holding neither fails",
+    _TWP_DEFECTS == [] and any(r[1] for r in _TWP_LIVE),
+    f"defects: {_TWP_DEFECTS}; listed restores read: {sum(1 for r in _TWP_LIVE if r[1])}",
+)
+_TWP_MATCHER_OFF = sorted(
+    w for w, _l, specs, _d, _a in _TWP_LIVE
+    if sorted(f for f in _TWP_TRACKED if any(_twp_hit(p, f) for p in specs)) != sorted(subprocess.run(
+        ["git", "ls-files", "--", *specs], capture_output=True, text=True, check=True).stdout.splitlines()))
+R.check(
+    "and the pathspec matcher selects what `git ls-files` selects on every restore it reads "
+    "(its precondition)",
+    _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
+    f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+def _twp_wf(*lines: str) -> dict:
+    return {"probe.yml": "jobs:\n  probe:\n    steps:\n      - run: |\n"
+            + "".join(f"          {ln}\n" for ln in lines)}
+
+
+_TWP_LIST = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\',
+             "  '.claude/workflows/*.py' \\", "  'tools/policy/*.py' > \"$RUNNER_TEMP/p.list\"")
+_TWP_TEST = 'test -s "$RUNNER_TEMP/p.list"'
+_TWP_CHECKOUT = 'git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/p.list" --pathspec-file-nul'
+_TWP_PROBES = {
+    "the listed form": (_twp_wf(*_TWP_LIST, _TWP_TEST, _TWP_CHECKOUT), ""),
+    "a direct checkout of a file that does not move": (
+        _twp_wf('git checkout "$PINNED" -- tests/keep.py'), ""),
+    "a direct checkout of the old path alone": (
+        _twp_wf('git checkout "$PINNED" -- \\', "  '.claude/workflows/*.py'"), "at the old path only"),
+    "a direct checkout of both paths": (
+        _twp_wf('git checkout "$PINNED" -- \\', "  '.claude/workflows/*.py' 'tools/policy/*.py'"),
+        "no tracked file matches"),
+    "a listing with no emptiness test": (_twp_wf(*_TWP_LIST, _TWP_CHECKOUT), "without `test -s`"),
+    "a listing rewritten before its checkout": (
+        _twp_wf(*_TWP_LIST, _TWP_TEST, 'echo > "$RUNNER_TEMP/p.list"', _TWP_CHECKOUT), "without `test -s`"),
+    "a listing whose checkout reads another list": (_twp_wf(*_TWP_LIST, _TWP_TEST, _TWP_CHECKOUT.replace(
+        "p.list", "other.list")), "without `test -s`"),
+    "a listing to stdout": (_twp_wf(*_TWP_LIST[:2], "  'tools/policy/*.py'", _TWP_TEST, _TWP_CHECKOUT),
+                            "lists to stdout"),
+}
+_TWP_GOT = {k: _twp_defects(wf, [".claude/workflows/g.py", "tests/keep.py"],
+                            [{"old": ".claude/workflows/", "new": "tools/policy/"}])
+            for k, (wf, _w) in _TWP_PROBES.items()}
+_TWP_WRONG = sorted(k for k, (_wf, want) in _TWP_PROBES.items()
+                    if (_TWP_GOT[k] != [] if not want else not any(want in d for d in _TWP_GOT[k])))
+R.check(
+    "and on a planted tree the predicate passes the listed form and refuses an old path alone, "
+    "a direct checkout of a path the base lacks, and a listing not checked out next (null controls)",
+    _TWP_WRONG == [],
+    f"wrong verdicts: {[(k, _TWP_GOT[k]) for k in _TWP_WRONG]}",
 )
 # --- D13-s1-03: `pr-contract` lists the reds at the head when it runs, about
 # fifteen seconds after a push, and nothing re-ran it when a red it could not
