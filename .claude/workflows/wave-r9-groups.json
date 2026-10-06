@@ -3498,9 +3498,9 @@
     "R9-EG-B6"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-eg-coordinator-seams",
-    "commit": null,
+    "commit": "301abb21c2fce2e45419e6a67d4d59828c1d1e8d",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base: re-measure the issue's enumerator, then write the failing check",
     "note_file": "handoff/round9/fix/resume/EG-B7.md on handoff/r9-eg-coordinator-seams",
