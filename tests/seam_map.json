@@ -242,6 +242,7 @@
   "record_setpoint_override": "core",
   "system_identification_active": "core",
   "target_temperature": "core",
-  "weather_stale_hours": "fetch"
+  "weather_stale_hours": "fetch",
+  "configured_quiet_windows": "dhw"
  }
 }

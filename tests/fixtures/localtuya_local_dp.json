@@ -1,5 +1,5 @@
 {
-  "_generated_by": "tools/gen_device_fixtures.py",
+  "_generated_by": "tools/devices/gen_device_fixtures.py",
   "upstream_repo": "xZetsubou/hass-localtuya",
   "upstream_tag": "2026.7.0",
   "upstream_commit": "3d0c0ec737b59ebfb1eea65df42f5d902eafaecc",

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:silent_cap_kw CMP_BOUND f5252f4e",
+  "killed_by": "tests/manual_plan.py",
+  "old": "    if fraction >= 1.0:",
+  "reason": "Recorded by hand against 45e75b85 plus this commit's tests/manual_plan.py test_quiet_window_arms, in a detached copy with the mutant applied. The comment-only null control, a comment prepended to the mutated file, left all manual-plan checks passing. CMP_BOUND (`if fraction > 1.0:`) took tests/manual_plan.py from rc=0 to rc=1: 1 check FAILED, \"a non-positive nameplate has no silent cap, and fraction 1.0 caps nothing\"."
+}

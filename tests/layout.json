@@ -95,8 +95,8 @@
    "globs": [
     "tools/policy/**",
     "tools/pr/**",
-    "tools/seat/**",
-    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py}",
+    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh}",
+    "tools/audit/seat/**",
     "tools/coverage/**",
     "tools/devices/**",
     "tools/release/**",
@@ -133,6 +133,16 @@
    "old": ".abacus.donotdelete",
    "new": null,
    "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/agreement.mjs",
+   "new": "tools/policy/agreement.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/agreement_py.py",
+   "new": "tools/policy/agreement_py.py",
+   "since": null
   },
   {
    "old": ".claude/workflows/brief_lint.mjs",
@@ -885,11 +895,6 @@
    "since": null
   },
   {
-   "old": "tools/audit/seat/",
-   "new": "tools/seat/",
-   "since": null
-  },
-  {
    "old": "tools/audit/w5-g5-195-coverage/",
    "new": "dev/audit/waves/w5-g5-195-coverage/",
    "since": null
@@ -897,11 +902,6 @@
   {
    "old": "tools/audit/w5-partition/",
    "new": "tools/coverage/",
-   "since": null
-  },
-  {
-   "old": "tools/audit/worktree_gc.sh",
-   "new": "tools/seat/worktree_gc.sh",
    "since": null
   },
   {
