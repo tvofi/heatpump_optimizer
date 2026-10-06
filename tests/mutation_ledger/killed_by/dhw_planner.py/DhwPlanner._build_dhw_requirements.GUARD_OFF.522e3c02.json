@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._build_dhw_requirements GUARD_OFF 522e3c02",
+  "killed_by": "tests/features.py",
+  "old": "        if off_steps is not None:",
+  "reason": "Recorded by hand (/Users/timmalmstrom/hpo-seats/r9-sw-1-resume/drive2.py, the R9-EG-B1 count-relative route: this Mac's tests/features.py is red at main on R9-F2.1 P3, so red baselines are kept) against 04805baaaa7eb85ef9c33fbe20b89e086f70a551: GUARD_OFF (`if False:`) took tests/features.py from failed=2 to failed=3; the comment-only null control did not raise it, newly failing time-budget checks are not counted, and a +1 was confirmed by re-run."
+}

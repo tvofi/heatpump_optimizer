@@ -155,18 +155,18 @@
  {
   "id": "C18",
   "source": "README.md + docs/configuration.md",
-  "claim": "set_thermal_parameters takes 28 fields",
+  "claim": "set_thermal_parameters takes 31 fields",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=28 measured=28",
+  "result": "documented=31 measured=31",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C19",
   "source": "docs/configuration.md",
-  "claim": "simulate_plan takes 16 optional fields",
+  "claim": "simulate_plan takes 19 optional fields",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=16 measured=16",
+  "result": "documented=19 measured=19",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=71 measured=71",
+  "result": "documented=72 measured=72",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=71, listed=71, missing=[], phantom=[]",
+  "result": "on disk=72, listed=72, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },

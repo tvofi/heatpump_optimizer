@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:_forced_off_with CMP_BOUND fbce8455",
+  "old": "    if mask.size < n_steps:",
+  "reason": "Equivalent (CMP_BOUND, `<` -> `<=`): `mask` is already cut to `n_steps`, so the arms differ only at mask.size == n_steps, where the mutant concatenates a zero-length False array and returns an equal bool mask (a copy where head may return a view; every caller only reads it: `forced_off[j]`, a slice under `~`, `np.where`). Measured by tools/audit/round9/SW1/forced_off_equiv.py (`PYTHONPATH=tests/hastub python3 tools/audit/round9/SW1/forced_off_equiv.py`): head vs the operator's own mutant over 84 calls (n_steps 0/1/4/8/96, mask lengths around n_steps, no prior and a random prior, array and list), 44 of them tied inside the function (counted by an append in the comparison), 0 differing; the tie-only control (`if mask.size < n_steps or mask.size == n_steps and (mask := ~mask) is not None:`) differs on 32 of the 44 tied cases and 0 untied -- the other 12 have n_steps 0 or a prior mask already all True, where inverting the window mask cannot move the result. The method and tie counter are tools/audit/round9/F10/f10_6/equiv_probe.py's. tests/manual_plan.py's 88 checks pass on the mutant.",
+  "verdict": "equivalent"
+}

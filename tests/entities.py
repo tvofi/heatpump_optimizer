@@ -3682,6 +3682,10 @@ def _p2_registry(sources):
                  "services.py::handle_set_thermal_params": "service data write",
                  "services.py::handle_apply_topology": "service data write",
                  "services.py::handle_apply_schedule": "service data write",
+                 # #1910: the quiet-overlap refusal reads the stored
+                 # hot-water SPEC to judge an off window against it; it
+                 # never answers whether hot water is enabled.
+                 "services.py::_refuse_quiet_conflicts": "overlap validation",
                  "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
                      "windows update",
                  "quick_setup.py::stored_answers": answer,
