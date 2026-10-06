@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 127.0,
+   "seconds": 449.2,
    "rc": 0
   },
   "tests/doc_claims.py": {
@@ -3451,6 +3451,8 @@
    "tools/audit/round9/F10/f10_6/inventory_identity.py",
    "tools/audit/round9/F10/gate-infra-4/mutants.py",
    "tools/audit/round9/F10/gate-infra-4/perturb.py",
+   "tools/audit/round9/SW1/forced_off_equiv.py",
+   "tools/audit/round9/SW1/quiet_survivor_equiv.py",
    "tools/audit/round9/fixplan/build.sh",
    "tools/audit/round9/fixplan/data.py",
    "tools/audit/round9/fixplan/gen.py",
