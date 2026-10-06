@@ -6648,9 +6648,9 @@
     "R9-F10.13"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-f10-16",
-    "commit": "3c0e3324d1f09e68677ee8caca38b2e42035c6a8",
+    "commit": "e606538597c7797af73e329d5ccb40bc8d15b0ff",
     "last_step": "PR #1975 head 3c0e3324d1f09e68677ee8caca38b2e42035c6a8. Merge verdict posted and approved. The head does not contain origin/main 0e8e22c6. The body closes #1930.",
     "next_step": "Recarry origin/main, carry the verdict, then merge. leaves #201 open.",
     "note_file": null,
