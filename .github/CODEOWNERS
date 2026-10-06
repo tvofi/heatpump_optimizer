@@ -110,6 +110,11 @@
 /.claude/workflows/audit-find.js          @tvofi
 /.claude/workflows/audit-verify.js        @tvofi
 /.claude/workflows/web-fix-wave.js        @tvofi
+# The env-matrix job runs this pull request's driver when the base driver
+# still names `.claude/workflows/policy_lint.mjs` (`git checkout HEAD` there,
+# which the pin does not credit). That driver loads counts.mjs with it.
+/tools/policy/counts.mjs                  @tvofi
+/tools/policy/policy_lint_envmatrix.mjs   @tvofi
 # The test scripts the gate's jobs execute directly -- by interpreter or by
 # their own `./` path -- and the modules those import (#1515), where no pin can
 # hold (decision 0013, amended 2026-09-24): the suite (`run.sh` and what `fast`
