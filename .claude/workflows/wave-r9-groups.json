@@ -7558,9 +7558,9 @@
    "owner_gate": ".github/workflows/ is code-owned; owner approval before landing",
    "brief": "Fix seat for the countermeasure in tools/audit/rca/R9-RC-PRCONTRACT.md at 50e9dd193306a714ea020c410bc33ce8cd5b9ff8 (analysis PR #1972). This group implements; the RCA group does not. On .github/workflows/pr-contract.yml only, set the cancel-in-progress flag to false. Leave .github/workflows/tests.yml unchanged. Shrink the tests/entities.py pin so it means a superseded run, not two events at one SHA. An edited-event rerunner was rejected by the cost test in that analysis; do not build one. Do not restate that analysis's figures; re-measure at this group's merge base. .github/workflows/ is an owner path; owner approval before landing. Demonstration owed: two author-app pull-request events at one SHA both conclude success or failure, never cancelled; a superseded tests.yml push still cancels.",
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-rc-prcontract-fix",
-    "commit": "8f389accc0010c71affb80d8e0ca1caf86659621",
+    "commit": "cff39dad61c4cc15dbaabd03c3a2e3746bca1fab",
     "last_step": "PR #1977 head 8f389accc0010c71affb80d8e0ca1caf86659621. Merge verdict confirmed. tvofi approved under mandate 6003649101. The head does not contain origin/main 0e8e22c6.",
     "next_step": "Recarry origin/main, carry the verdict, then merge. leaves #201 open."
    }
