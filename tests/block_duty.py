@@ -186,9 +186,11 @@ def main() -> int:
         and boost_mod.block_release_reason(_Coord(warm), "space", NOW, warm) is None,
     )
     due = _Coord(warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0})
+    overdue = _Coord(warm, {"dhw_legionella_due_in_hours": -2.0, "horizon_hours": 24.0})
     check(
-        "a cycle inside the horizon releases DHW",
-        lambda: boost_mod.block_release_reason(due, "dhw", NOW) == boost_mod.RELEASE_LEGIONELLA,
+        "a due or overdue cycle inside the horizon releases DHW",
+        lambda: boost_mod.block_release_reason(due, "dhw", NOW) == boost_mod.RELEASE_LEGIONELLA
+        and boost_mod.block_release_reason(overdue, "dhw", NOW) == boost_mod.RELEASE_LEGIONELLA,
     )
     edge = _Coord(warm, {"dhw_legionella_due_in_hours": 24.0, "horizon_hours": 24.0})
     check(
@@ -212,6 +214,17 @@ def main() -> int:
         "the tank at its minimum inside a window releases DHW",
         lambda: boost_mod.block_release_reason(_Coord(tank), "dhw", NOW, tank)
         == boost_mod.RELEASE_TANK,
+    )
+    closed_params = SimpleNamespace(
+        dhw_min_temp=45.0, dhw_demand_windows=parse_windows("00:00-01:00"),
+    )
+    closed = _snap(
+        state=SimpleNamespace(room_temperature=21.0, outdoor_temperature=5.0, dhw_temperature=45.0),
+        params=closed_params,
+    )
+    check(
+        "the tank at its minimum outside a demand window does not release",
+        lambda: boost_mod.block_release_reason(_Coord(closed), "dhw", NOW, closed) is None,
     )
     room_at = ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C
     room = _snap(state=SimpleNamespace(room_temperature=room_at, outdoor_temperature=5.0))
