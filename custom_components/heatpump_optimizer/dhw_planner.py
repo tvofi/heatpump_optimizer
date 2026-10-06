@@ -107,6 +107,85 @@ def _within_ceiling(requirement: Any, max_temp: Any) -> tuple[np.ndarray, np.nda
     return np.minimum(np.asarray(requirement, dtype=float), ceiling), ceiling
 
 
+def _forced_off_with(
+    forced_off: np.ndarray | None, off_steps: Any, n_steps: int
+) -> np.ndarray:
+    """``forced_off`` with the quiet Off window's steps OR'd in (#1910).
+
+    The one place the off mask is fitted to the horizon: cut to
+    ``n_steps``, padded False, and merged with whatever pins and blocks
+    already forced off. All-zero on no off steps is fine — the callers
+    gate on ``off_steps is not None`` for the semantics, not the mask.
+    """
+    mask = np.asarray(off_steps, dtype=bool)[:n_steps]
+    if mask.size < n_steps:
+        mask = np.concatenate(
+            [mask, np.zeros(n_steps - mask.size, dtype=bool)]
+        )
+    if forced_off is None:
+        return mask
+    return forced_off | mask
+
+
+def _legionella_off_mask(off_steps: Any, n_steps: int) -> np.ndarray | None:
+    """The Off window as a horizon mask, or None when there is no window."""
+    if off_steps is None:
+        return None
+    return _forced_off_with(None, off_steps, n_steps)
+
+
+def _legionella_charge(
+    n_steps: int, p_dhw_run: float, off: np.ndarray | None
+) -> np.ndarray:
+    """Flat-out DHW power for the reach simulation, zero on Off steps.
+
+    The tank cannot heat during an Off window. A reach computed as if
+    those steps ran would call a step reachable that the window then
+    deletes, and the cycle would never be bought.
+    """
+    power = np.full(n_steps, p_dhw_run)
+    if off is None:
+        return power
+    # ``np.where(None, ...)`` is the full array, so this guard would be
+    # equivalent to its absence. Indexing None is not, and that is the
+    # difference the reach is refusing: no window is not an Off mask.
+    off = off.astype(bool)
+    return np.where(off, 0.0, power)
+
+
+def _place_legionella_step(
+    prices: np.ndarray, first: int, limit: int, off: np.ndarray | None
+) -> int | None:
+    """Cheapest step in ``[first, limit)`` the Off window leaves runnable.
+
+    When that slice is entirely off, the earliest later free step: the
+    cycle is bought in the steps that remain. None when none remain.
+    With no window this is ``first + argmin(prices[first:limit])``.
+    """
+    if off is None:
+        return first + int(np.argmin(prices[first:limit]))
+    window = off[first:limit]
+    if bool(np.all(window)):
+        later = np.flatnonzero(~off[first:])
+        if later.size == 0:
+            return None
+        return first + int(later[0])
+    scored = np.array(prices[first:limit], dtype=float, copy=True)
+    scored[window] = np.inf
+    return first + int(np.argmin(scored))
+
+
+def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
+    """``mask`` with Off steps removed. The same array when there is no window."""
+    if off is None:
+        return mask
+    # The numpy stub types ``&`` of two unparameterised ndarrays as ``Any``.
+    # The annotated name is what ``-> np.ndarray`` returns; a bare return of
+    # the expression is the ruler's ``no-any-return``.
+    kept: np.ndarray = mask & ~off
+    return kept
+
+
 class _DhwLegionellaPlan(NamedTuple):
     """What the anti-legionella stage decides, and the ceilings it sets."""
 
@@ -368,6 +447,7 @@ class DhwPlanner:
         ready_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
+        off_steps: np.ndarray | None = None,
     ) -> tuple[bool, float | None, int | None]:
         """Whether the anti-legionella cycle is due, and which step it lands on.
 
@@ -411,10 +491,11 @@ class DhwPlanner:
             # action, and the shortfall was never observed, never reported
             # and never retried. This is the same simulation every later
             # stage runs, so the two cannot disagree about what is reachable.
+            off = _legionella_off_mask(off_steps, n_steps)
             ramp = np.asarray(
                 self.model.simulate_dhw_only(
                     initial_temp=float(initial_state.dhw_temperature),
-                    dhw_power_schedule=np.full(n_steps, p_dhw_run),
+                    dhw_power_schedule=_legionella_charge(n_steps, p_dhw_run, off),
                     outdoor_temps=outdoor_temps,
                     draw_rates=draw_rates,
                     dt_hours=dt,
@@ -446,15 +527,18 @@ class DhwPlanner:
                     # is never commanded, the tracker never runs, and the
                     # "cannot reach temperature" notice can never be
                     # raised — a permanent latch nobody is told about.
-                    # Starting now is what makes progress: the tank charges,
-                    # the next solve starts warmer, `reach_step` shrinks, and
-                    # if it never does, the shortfall is observed and
-                    # reported.
-                    place_idx = 0
+                    # Starting at the first step the pump may run is what
+                    # makes progress: the tank charges, the next solve starts
+                    # warmer, `reach_step` shrinks, and if it never does, the
+                    # shortfall is observed and reported. An Off window on
+                    # step 0 moves that start to the next free step.
+                    place_idx = _place_legionella_step(dhw_prices, 0, 1, off)
                 else:
                     first = min(max(reach_step, 0), n_steps - 1)
                     limit = max(first + 1, min(deadline_step + 1, n_steps))
-                    place_idx = first + int(np.argmin(dhw_prices[first:limit]))
+                    place_idx = _place_legionella_step(
+                        dhw_prices, first, limit, off
+                    )
             elif (
                 params.dhw_elastic_legionella_enabled
                 and params.dhw_legionella_price_ceiling is not None
@@ -485,6 +569,7 @@ class DhwPlanner:
                 # `reach_step`, shared with the hard-deadline branch above
                 # so the two can never disagree about what is reachable.
                 known_mask[: min(reach_step, n_steps)] = False
+                known_mask = _drop_off_steps(known_mask, off)
                 candidates = np.where(known_mask)[0]
                 if candidates.size:
                     idx = int(candidates[np.argmin(dhw_prices[candidates])])
@@ -624,11 +709,14 @@ class DhwPlanner:
         floor_temps: np.ndarray,
         p_dhw_run: float,
         dhw_prices: np.ndarray,
+        off_steps: np.ndarray | None = None,
     ) -> "_DhwLegionellaPlan":
         """The anti-legionella stage: when the cycle runs, and its ceilings.
 
         Two halves, split because the ratchet is right that a 268-line
-        helper is not a decomposition (#224 stage 1).
+        helper is not a decomposition (#224 stage 1). ``off_steps`` keeps
+        the cycle off an Off window: the reach and the placement both
+        treat those steps as unusable (#1910).
         """
         legionella_due, legionella_hour, legionella_step = self._dhw_legionella_due(
             h,
@@ -638,6 +726,7 @@ class DhwPlanner:
             ready_temps=ready_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
+            off_steps=off_steps,
         )
         return self._dhw_legionella_ceilings(
             h,
@@ -863,6 +952,7 @@ class DhwPlanner:
         space_demand: np.ndarray | None = None,
         p_run_cap: float | None = None,
         blocked: bool = False,
+        off_steps: np.ndarray | None = None,
         wood_temps: np.ndarray | None = None,
     ) -> tuple[DhwPlan, np.ndarray]:
         """Build the DHW availability requirements and a cheapest-first plan.
@@ -950,6 +1040,7 @@ class DhwPlanner:
             floor_temps=floor_temps,
             p_dhw_run=p_dhw_run,
             dhw_prices=dhw_prices,
+            off_steps=off_steps,
         )
 
         # How long stored heat actually survives in this tank. The learned
@@ -982,6 +1073,14 @@ class DhwPlanner:
             # unusable. The difference from a pin is that this one is never
             # released — see ``optimize``'s docstring.
             forced_off = np.ones(n_steps, dtype=bool)
+        if off_steps is not None:
+            # #1910 (D1): a quiet Off window plans no hot-water slots in
+            # exactly its steps, through that same door — the anti-legionella
+            # run and every window's pre-heat are planned around it like any
+            # other unusable step, buying their energy in the steps that
+            # remain. Not a pin: the window is a scheduled decision, so the
+            # pin-safety release loop in ``optimize`` never frees these.
+            forced_off = _forced_off_with(forced_off, off_steps, n_steps)
 
         # Pre-heating is allowed anywhere in the horizon: the planners price the
         # standby losses of storing heat, so an early cheap hour wins only when
@@ -1165,6 +1264,14 @@ class DhwPlanner:
             # hardware. Cheap, and it means no future addition to this method
             # can quietly reopen a channel the pump refuses to serve.
             schedule = np.zeros_like(schedule)
+        if off_steps is not None:
+            # #1910: the same invariant for the Off window's steps, restated
+            # for the same reason — a manual force-on pin inside a window
+            # must not reopen what the schedule refuses to plan (D1: the
+            # window means no slots there, nothing else).
+            schedule = np.where(
+                _forced_off_with(None, off_steps, n_steps), 0.0, schedule
+            )
         return DhwPlan(
             floor_temps=floor_temps,
             ready_temps=ready_temps,
