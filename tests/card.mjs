@@ -3248,6 +3248,67 @@ check("the hand-scheduled reason has a label",
   const sv = mkInbox(inboxStates(), "sv-SE");
   check("the inbox speaks Swedish",
     /Värt att göra/.test(sv.html()));
+
+  // R9-DIAG-2S (#1936): the drift alarm's two restart points, each advice
+  // until its button is pressed.
+  const restartStates = (patch = {}) => {
+    const s = inboxStates();
+    s[`${PFX}_model_restart_advisor`] = { state: "1.138", last_updated: "t1", attributes: {
+      drift_alarm: true, current_scale: 0.673,
+      refit: { scale: 1.138, band_percent: 10, pairs: 180, settled_days: 3.25,
+        required_days: 3, settled_since: "2026-03-07T04:30:00+00:00" },
+      restore: { taken_at: "2026-03-01T03:00:00+00:00", scale: 1.0 }, ...patch } };
+    return s;
+  };
+  const rs = mkInbox(restartStates());
+  const rsPage = rs.html().slice(rs.html().indexOf('advisor-page"'));
+  check("a drift alarm offers the refit with its band, and the restore point",
+    /Restart the heat-loss model at 1\.14 \(now 0\.67\)/.test(rsPage)
+    && /3\.3 settled days \(180 intervals\)/.test(rsPage) && /±7-10 %/.test(rsPage)
+    && /Nothing changes until you accept/.test(rsPage)
+    && /Restore the model from 2026-03-01/.test(rsPage)
+    && /data-act="adopt_refit"/.test(rsPage) && /data-act="restore_snapshot"/.test(rsPage));
+  check("the restart rows carry no money, so they follow every priced row",
+    ['data-act="try_degree"', 'data-act="open_schedule"', 'data-act="assign"']
+      .every((a) => rsPage.indexOf(a) > 0 && rsPage.indexOf(a) < rsPage.indexOf('data-act="adopt_refit"')),
+    ['try_degree', 'open_schedule', 'assign', 'adopt_refit']
+      .map((a) => `${a}@${rsPage.indexOf(`data-act="${a}"`)}`).join(" "));
+  check("rendering the recommendation calls no service", rs.calls.length === 0);
+  await press(rs.c, '[data-act="adopt_refit"]');
+  check("Adopt refit restores through restore_learned_snapshot with source refit",
+    rs.calls.length === 1 && rs.calls[0][0] === "heatpump_optimizer"
+    && rs.calls[0][1] === "restore_learned_snapshot"
+    && JSON.stringify(rs.calls[0][2]) === JSON.stringify({ source: "refit" }),
+    JSON.stringify(rs.calls));
+  const rr = mkInbox(restartStates());
+  await press(rr.c, '[data-act="restore_snapshot"]');
+  check("Restore calls restore_learned_snapshot with no source (the snapshot)",
+    rr.calls.length === 1 && rr.calls[0][1] === "restore_learned_snapshot"
+    && JSON.stringify(rr.calls[0][2]) === "{}", JSON.stringify(rr.calls));
+  const rw = mkInbox(restartStates({ refit: { scale: null, band_percent: 10, pairs: 40,
+    settled_days: 1.25, required_days: 3, settled_since: null } })).html();
+  check("a refit short of its settled days shows its progress and no button",
+    /Heat-loss refit pending/.test(rw) && /needs 3 settled days of evidence; 1\.3 so far/.test(rw)
+    && !/data-act="adopt_refit"/.test(rw) && /data-act="restore_snapshot"/.test(rw));
+  const rq = mkInbox(restartStates({ drift_alarm: false, refit: null, restore: null })).html();
+  check("with no drift alarm the restart advisor draws no row",
+    !/heat-loss|Restore the model|data-act="adopt_refit"|data-act="restore_snapshot"/i.test(rq));
+  const ru = restartStates();
+  ru[`${PFX}_model_restart_advisor`] = { state: "unavailable", attributes: {} };
+  const ruHtml = mkInbox(ru).html();
+  check("an unavailable restart advisor says so and offers no restart",
+    /This advice is unavailable right now/.test(ruHtml)
+    && !/data-act="adopt_refit"|data-act="restore_snapshot"/.test(ruHtml));
+  const rf = mkInbox(restartStates());
+  rf.c.hass.callService = async () => { throw new Error("no refit"); };
+  await press(rf.c, '[data-act="adopt_refit"]');
+  const rfOut = rf.c.shadowRoot.querySelector(".setup-result");
+  check("a refused adopt says why",
+    rfOut && /Could not apply: no refit/.test(rfOut.textContent), rfOut && rfOut.textContent);
+  const rsv = mkInbox(restartStates(), "sv-SE").html();
+  check("the restart rows speak Swedish",
+    /Starta om värmeförlustmodellen på 1\.14 \(nu 0\.67\)/.test(rsv)
+    && /Godta omanpassning/.test(rsv) && /±7-10 %/.test(rsv) && /Återställ modellen från/.test(rsv));
 }
 
 // --- Scenario: the layout editor (v3.16.0, issue #40) ----------------------

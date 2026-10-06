@@ -41,7 +41,11 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
 )
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    model_restart_advice,
+)
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
@@ -266,6 +270,7 @@ async def async_setup_entry(
         FrequencyAdvisorSensor(coordinator, entry),
         SensorGapAdvisorSensor(coordinator, entry),
         WoodBurnAdvisorSensor(coordinator, entry),
+        ModelRestartAdvisorSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -2918,3 +2923,32 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
             "when": advice.get("when"),
             "reason": advice.get("reason") or "",
         }
+
+
+class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """The drift alarm's restart points, recommend-only (R9-DIAG-2S, #1936).
+
+    The state is the ``house_heat_loss_scale`` the advisor recommends: the
+    refit while one is on offer, otherwise the scale in use -- nothing to
+    change. The attributes carry both restart points for the card's inbox;
+    accepting either goes through ``restore_learned_snapshot``.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(
+            coordinator, entry, "model_restart_advisor", "model_restart_advisor"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        advice = model_restart_advice(self.coordinator)
+        refit = (advice["refit"] or {}).get("scale")
+        scale = refit if refit is not None else advice["current_scale"]
+        return None if scale is None else float(scale)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return model_restart_advice(self.coordinator)
