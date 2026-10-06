@@ -3294,9 +3294,9 @@
     "R9-EG-B1"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-eg-collaborator-interfaces",
-    "commit": "57b96d728835e3b762b3e6dc55ee502e433bcee8",
+    "commit": "0aa61e7b72bc6f39fc43a1e74eed5e038d78d9f8",
     "last_step": "PR #1966 head 57b96d728835e3b762b3e6dc55ee502e433bcee8. tvofi approved that commit. Required checks are green, including budget-raise-gate. The head does not contain origin/main 0e8e22c6. The diff changes tests/structure_budgets.json, so the merge train stops on it.",
     "next_step": "Hand recarry onto origin/main, then a code-owner approval on the new head under mandate 6003649101. leaves #201 open.",
     "note_file": "handoff/round9/fix/resume/EG-B6.md on handoff/r9-eg-collaborator-interfaces",
