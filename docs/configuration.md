@@ -569,14 +569,18 @@ writes, at every 15-minute plan step:
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **For a *Flow temperature* entity** the heating value is 55 °C, or the
-  entity's maximum if that is lower. The pump's own water thermostat then
-  never cuts a planned heating step short, and the optimizer decides when
-  the house is heated. The supply only gets as hot as your radiators or
-  floor can take the pump's output, so in mild weather it stays well below
-  55 °C. The space gate is the entity's minimum, never below 25 °C. The hold
-  value, for when the plan is not in charge, is 35 °C (the flow the pump's
-  rated COP assumes), or the model's weather curve where that is higher.
+- **For a *Flow temperature* entity** the heating value follows the planned
+  power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
+  the entity's maximum if that is lower. A lower planned level moves the
+  target toward the return-water temperature, or toward 35 °C when no return
+  sensor is configured, so the pump's own water thermostat can deliver that
+  level. A fixed 55 °C never cycles, and a slot the plan priced below the
+  pump's minimum then runs at that minimum. The supply only gets as hot as
+  your radiators or floor can take the pump's output, so in mild weather it
+  stays below the ceiling. The space gate is the entity's minimum, never
+  below 25 °C. The hold value, for when the plan is not in charge, is 35 °C
+  (the flow the pump's rated COP assumes), or the model's weather curve where
+  that is higher, and never above the heating ceiling.
   The model's weather curve is a pricing curve, not a set-point: written
   as one, it held the pump at 25 °C and underheated the house.
 - **For an *Indoor temperature* entity** each of the three is the step's
@@ -621,7 +625,7 @@ writes, at every 15-minute plan step:
   step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
-  heating flow set-point (55 °C) rather than the fallback's.
+  heating-flow ceiling (55 °C, or `flow_heat_c`) rather than the fallback's.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —

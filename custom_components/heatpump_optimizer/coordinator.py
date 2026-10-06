@@ -468,6 +468,7 @@ from .thermal_model import (
     ThermalState,
     learner_newton_step,
     mold_safe_room_floor,
+    learner_unmetered,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -2589,6 +2590,20 @@ def _space_pump_to_drive(coord: Any) -> str | None:
         return None
     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
     return str(entity) if entity else None
+
+
+def _tail_freeze(coord: Any) -> str | None:
+    """Freeze reasons ranked after ventilation (#1935, #1955).
+
+    Boost space heating, then an unmetered switch-and-setpoint install
+    whose house-heat-loss learner would replay commanded kilowatts the
+    write surface cannot deliver. A frequency install, a measured-power
+    install and an explicit clamp opt-out stay on today's gate.
+    """
+    if boost.space_learning_frozen(coord):
+        return boost.FREEZE_REASON
+    ctx = getattr(coord, "_ctx", coord)
+    return learner_unmetered(getattr(ctx, "_config", None))
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
@@ -6507,8 +6522,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # that is the one reason the heat-loss learner looks past (its
         # pass-through feeds the window CUSUM), and a boost window must not
         # starve the detector of its feed.
-        if boost.space_learning_frozen(self):
-            return boost.FREEZE_REASON
+        if (reason := _tail_freeze(self)) is not None:
+            return reason
         return None
 
     async def _fetch_tibber_prices(self) -> None:

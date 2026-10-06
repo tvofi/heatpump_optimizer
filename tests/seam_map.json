@@ -227,6 +227,7 @@
   "coordinator._settle_interval_diag": "core",
   "coordinator._space_pump_to_drive": "core",
   "coordinator._store_diagnosis": "core",
+  "coordinator._tail_freeze": "learning",
   "coordinator._warm_seeded": "core",
   "coordinator._watch_lift": "learning",
   "coordinator._with_sensor_advisor": "core",
