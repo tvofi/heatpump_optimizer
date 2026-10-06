@@ -1,5 +1,5 @@
 {
-  "_generated_by": "tools/gen_device_fixtures.py",
+  "_generated_by": "tools/devices/gen_device_fixtures.py",
   "sources": [
     {
       "fixture": "tuya_heat_pump_000004k4z6.json",

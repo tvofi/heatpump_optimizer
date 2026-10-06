@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:overlap_problem RETURN_DEL da9e8e97",
+  "killed_by": "tests/harness_headers.py",
+  "old": "    return None",
+  "reason": "Recorded by `mutation_table.py --pin-killed via the EG-B1 hand route (scratch driver /Users/timmalmstrom/hpo-seats/r9-sw-1/pinroute/drive.py: the Mac features baseline is red at main, so the red counts were kept and killed() judged count-relative, per the R9-EG-B1 decision)` against 893846c6fb82d80933965f9e6378406dd0354d32: RETURN_DEL (`pass`) took tests/harness_headers.py from rc=1 failed=2 to rc=1 failed=3. Carried to this branch by content anchor: custom_components/heatpump_optimizer/quiet_windows.py is byte-identical at 893846c6 and here."
+}

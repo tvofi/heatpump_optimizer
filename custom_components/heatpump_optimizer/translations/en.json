@@ -477,6 +477,18 @@
     },
     "tibber_fetch_failed": {
       "message": "Electricity prices could not be fetched: {error}"
+    },
+    "apply_schedule_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "set_thermal_params_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "simulate_plan_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "quiet_windows_overlap": {
+      "message": "Overlapping quiet windows: {overlap}"
     }
   },
   "options": {
@@ -1733,6 +1745,10 @@
     "store_version": {
       "title": "Stored learning could not be read",
       "description": "The optimizer's stored data {store} cannot be read: {detail}. This release has no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. Nothing needs to be done for the optimizer to keep running. If the data was saved by a newer version, it is left as it is and this version saves nothing over it: reinstall the newer version to get it back, or, to keep this version, delete the file {store} in the .storage folder and restart."
+    },
+    "quiet_silent_not_enforced": {
+      "title": "Silent windows are not enforced",
+      "description": "Silent windows are configured, but the capacity-limited slot ({entity}) is not a switch this integration can hold on, so the plan is not capped for them and the heat pump is never asked to run silently. Assign the heat pump's own night/silent-mode switch as the capacity-limited entity, or remove the silent rows."
     }
   },
   "entity": {
@@ -2165,6 +2181,18 @@
         "ecl110_displace_max": {
           "name": "ECL110 displace maximum",
           "description": "Highest parallel shift the optimizer may command, in °C."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2235,6 +2263,18 @@
         "wood_furnace_efficiency": {
           "name": "Wood furnace efficiency",
           "description": "What-if furnace efficiency in percent."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2313,6 +2353,18 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the change to one config entry. Leave empty to apply to every configured heat pump, which is what a single-heat-pump install wants."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },

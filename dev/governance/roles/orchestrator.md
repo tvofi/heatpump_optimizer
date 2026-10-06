@@ -42,7 +42,7 @@ cannot answer the second, you have not measured — you have expected.
   files that carried fourteen changed lines.
 - **Never chain past a check with `;`.** `check; publish` publishes whether or
   not the check refused. Use `check && publish` — and for the body and the
-  push, that `&&` is already wired as `tools/audit/push.sh` (#678).
+  push, that `&&` is already wired as `tools/pr/push.sh` (#678).
 
 A claim that turns out wrong is corrected under `fixer.md` step 9, never to a
 bare line number.
@@ -92,7 +92,7 @@ open**", never the negated form. The same applies to roster text, which a seat
 will paraphrase into its own body — a third-hand path to the same outcome, and it
 has occurred.
 
-**Run `tools/audit/preflight.sh` over the merge body before you merge — as a
+**Run `tools/pr/preflight.sh` over the merge body before you merge — as a
 filter, not as proof.** It checks **four** reference forms, and **four is not
 all of them** — it names seven further shapes that still pass, and it is
 line-oriented, so a keyword and a number split across a newline are invisible to it.
@@ -101,7 +101,7 @@ It reads the body on **stdin** and takes the issues you *intend* to close as
 **arguments**:
 
 ```
-printf '%s\n' "$BODY" | tools/audit/preflight.sh <intended-numbers>
+printf '%s\n' "$BODY" | tools/pr/preflight.sh <intended-numbers>
 ```
 
 Two ways it misleads. **Empty
@@ -236,7 +236,7 @@ shape that lets a real error be waved through.
 - Every gate lane **ran**. Absent is not green, and a `DIRTY` pull request never
   queues Tests.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
-  with no reviewer turn (tvofi, 2026-10-01): `tools/audit/app_approve.sh --carry
+  with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
   <head>` names miss the branch's own diff, and the claim files equal
   `origin/main`'s. Anything else is a resolution delta for the same reviewer.
@@ -249,7 +249,7 @@ shape that lets a real error be waved through.
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
 - The merge message passes section 4.
-- Approval: `tools/audit/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
+- Approval: `tools/pr/app_approve.sh <owner/repo> <pr> <sha>`, or the owner's
   review on a code-owned path; then merge with `--match-head-commit <sha>`.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
@@ -282,7 +282,7 @@ before merging — so open the pull request and surface it.
   wrote, run by you, on text you wrote is three roles this programme separates,
   and `judge.md`'s void rule applies to it: *a finding whose harness does not
   move under its own perturbation is void, whatever the votes said.* Tools you
-  run are encouraged — `tools/audit/preflight.sh` exists because intentions did
+  run are encouraged — `tools/pr/preflight.sh` exists because intentions did
   not bind and a script bound immediately — but the reviewer stays the authority.
 - **Do not re-implement what CI already repairs** (`ci-autofix.md`): wait for
   the bot commit, never open a second pull request, never hand-empty the claim

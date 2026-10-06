@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_padded_mask RETURN_DEL 418287e9",
+  "killed_by": "tests/features.py",
+  "old": "    return head if bool(np.any(head)) else None",
+  "reason": "Recorded by hand (/Users/timmalmstrom/hpo-seats/r9-sw-1-resume/drive2.py, the R9-EG-B1 count-relative route: this Mac's tests/features.py is red at main on R9-F2.1 P3, so red baselines are kept) against 04805baaaa7eb85ef9c33fbe20b89e086f70a551: RETURN_DEL (`pass`) took tests/features.py from failed=2 to failed=4; the comment-only null control did not raise it, newly failing time-budget checks are not counted, and a +1 was confirmed by re-run."
+}

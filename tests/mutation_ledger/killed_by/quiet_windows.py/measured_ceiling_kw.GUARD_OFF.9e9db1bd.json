@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:measured_ceiling_kw GUARD_OFF 9e9db1bd",
+  "killed_by": "tests/features.py",
+  "old": "        if kw is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` via the EG-B1 hand route (scratch driver /Users/timmalmstrom/hpo-seats/r9-sw-1/pinroute/drive.py; reconstructed from that lane's run log after a usage-limit kill -- the verdict was judged and the batch write never ran). The mutant took tests/features.py from failed=2 to failed=3 (count-relative, red baselines kept, +1 knife edges confirmed by re-run). Carried to this branch by content anchor: custom_components/heatpump_optimizer/quiet_windows.py is byte-identical at 893846c6 and here."
+}
