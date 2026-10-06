@@ -619,16 +619,18 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
     # #1910: the quiet specs get the same pre-write refusal, canonicalised
     # so what is stored is what the optimizer will read back, plus the
     # cross-spec overlap rule judged against each coordinator's effective
-    # hot-water spec.
+    # hot-water spec. The stored quiet rows come from the published
+    # config view (#1739), the same interface the deadband pair below uses.
     if any(
         params.get(k) is not None
         for k in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS)
     ):
         for _entry_id, coord in targets:
+            stored = coord.effective_config
             _refuse_quiet(
                 params, "set_thermal_params_invalid_quiet_windows",
-                str(coord._config.get(CONF_QUIET_SILENT_WINDOWS) or ""),
-                str(coord._config.get(CONF_QUIET_OFF_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_SILENT_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_OFF_WINDOWS) or ""),
                 coord.configured_dhw_windows(),
                 dhw_override=params.get(CONF_DHW_WINDOWS),
             )
@@ -700,14 +702,16 @@ async def handle_simulate_plan(hass: HomeAssistant, call: ServiceCall) -> dict[s
     for entry_id, coord in _loaded_coordinators(hass):
         # #1910: refuse an overlapping or unparseable what-if the same way
         # the save path refuses it, before the solve runs -- judged against
-        # the coordinator's effective specs with the call's rows folded in.
+        # the coordinator's published config view (#1739) with the call's
+        # rows folded in.
         if any(
             k in overrides for k in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS)
         ):
+            stored = coord.effective_config
             overrides = {**overrides, **_refuse_quiet(
                 overrides, "simulate_plan_invalid_quiet_windows",
-                str(coord._config.get(CONF_QUIET_SILENT_WINDOWS) or ""),
-                str(coord._config.get(CONF_QUIET_OFF_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_SILENT_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_OFF_WINDOWS) or ""),
                 coord.configured_dhw_windows(),
                 dhw_override=overrides.get(CONF_DHW_WINDOWS),
             )}
