@@ -1,0 +1,16 @@
+Commit 26002ff5b84d59966ce3921ae3199a513599b920, check-runs API, read at posting.
+
+Red, and ## Red checks does not name them:
+  typing. Census artifact typing-census.json: errors 1, by_code arg-type 1, by_module pump_arbiter.py 1. Job 112532951404.
+  Local mypy 2.3.1 --strict on that file: pump_arbiter.py:466: error: Argument 1 to "_inside_silent" has incompatible type "Any | None"; expected "str"  [arg-type]
+  The local run also reported scipy.optimize import-untyped; that is this environment missing scipy stubs. The CI census is one error.
+  mutation. Job 112532951481: MUTATION TABLE REFUSED -- 4712 unpinned site(s) against 4695 at 6001b09a557259f37319b400d219cf83e02c563f, 17 of them added by this diff. The ADDED UNPINNED list for pump_arbiter.py is 17 lines. The pin step then printed MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 17 not started for --budget-minutes.
+  mutation-autofix. Job 112535205266: AUTOFIX: skip-no-measurement. The log line is "mutation-autofix: skip-no-measurement -- THE REPAIR DID NOT HAPPEN."
+  env-matrix. Job 112532467495: policy_lint rc=1, including Cannot find module .claude/workflows/policy_lint.mjs. pr-contract job 112533135653: check `env-matrix` is red and `## Red checks` does not name it. That job printed `skip red-history` because neither GITHUB_TOKEN nor GH_TOKEN was set.
+  The earlier head a1fda86801998d0173ba9f5863ea2023829a9c2a also has typing, env-matrix and delivery-status failure conclusions.
+
+Not this pull request's red:
+  nightly-status job 112532950883: NIGHTLY FAILED: record-autofix failed last night. The job says it is not a required context.
+  delivery-status job 112532467823: DELIVERY STATUS UNCHECKED — 42 rowed, 2 pending, 0 overdue. Pending names are #2003 and #2001. The log does not name #2007. The diff adds docs/delivery/2007.md.
+
+fast (3.14) concluded success. closures is not among the failed or unfinished runs. budget-raise-gate has a success (job 112532472283) and a cancelled predecessor.
