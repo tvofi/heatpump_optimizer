@@ -486,7 +486,7 @@ jobs:
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
-          rm -rf .claude/workflows/vendor tools/policy/vendor
+          rm -rf .claude/workflows/vendor
           # Each program at its path before and after the reorganisation (R9-RO-2):
           # the diff lists what PINNED holds of them, skipping the half it lacks,
           # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
@@ -514,7 +514,7 @@ jobs:
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Lint every wave roster's citations
-        run: node .claude/workflows/brief_lint.mjs
+        run: if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs; else node tools/policy/brief_lint.mjs; fi
 
   # The pinned, stub-free typing ruler (#303). Three numbers -- the error
   # count, its per-code split, and the `# type: ignore` count -- and none of
@@ -634,7 +634,7 @@ jobs:
           fi
           PY=$(python -c 'import sys; print(sys.version.split()[0])')
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
 
       # An exact key and no restore-keys: data from any other commit is a miss.
       - name: Restore the base's per-script coverage
@@ -718,7 +718,11 @@ jobs:
           else
             echo "No per-script coverage for ${{ steps.covkey.outputs.base }}: measuring every script."
           fi
-          tools/audit/w5-partition/coverage_tree.sh fast || true
+          if test -f tools/audit/w5-partition/coverage_tree.sh; then
+            tools/audit/w5-partition/coverage_tree.sh fast || true
+          else
+            tools/coverage/coverage_tree.sh fast || true
+          fi
           test -s "$W5P_WORK/out/coverage.json" || {
             echo "The instrument produced no coverage.json. That is this job"
             echo "failing, not the ratchet: there is no measurement to judge."
@@ -1623,13 +1627,13 @@ jobs:
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs
+        run: node tools/policy/policy_lint.mjs
 
       - name: The pull request's field_coverage.mjs, under the Actions token
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/field_coverage.mjs
+        run: node tools/policy/field_coverage.mjs
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run
@@ -2700,7 +2704,11 @@ jobs:
   # this job's), commits under the `ci:` subject the loop guard keys on, pushes
   # the record branch, and opens or updates the record pull request as the
   # hpo-author App with a generated body, then posts its #201 coordination
-  # comment.
+  # comment. The pull request number exists only after that open or lookup.
+  # The same write set then gains docs/delivery/<that number>.md. The line
+  # anchors the number and carries no merge SHA: the SHA does not exist until
+  # the merge. The next run finds the row and stops at nothing-owed. A real
+  # unrowed merge is still a row; skipping the beat is not.
   #
   # KEPT MANUAL, deliberately: the approving labelled review on the record pull
   # request, and the living handover's updated-for line — tied to merges that
@@ -2924,7 +2932,10 @@ jobs:
           echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
           API=https://api.github.com
           ACCEPT='Accept: application/vnd.github+json'
-          HEAD_SHA=$(git rev-parse HEAD)
+          # The self-row push leases on the rows commit this step's parent
+          # already pushed. AUTH is the bearer header; BASIC is the push.
+          BASIC=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          echo "::add-mask::$BASIC"
           # Every write below reports its own evidence: URL, HTTP status and,
           # on any non-2xx, the response body -- deliberately without curl's
           # -f, which discarded all three. This is what turned the 401s from
@@ -2959,7 +2970,10 @@ jobs:
           # from the orchestrator's box; the CI 401s masked it) -- so the
           # create payload adds them: head is the branch the lookup below
           # keys on, base is main. PATCH takes title and body only.
-          python3 -I - "$HEAD_SHA" "$BASE_SHA" <<'PY' > /dev/null
+          # The python is indented with the run block: YAML strips that
+          # common indent, and a further indent would be a Python error.
+          write_payload() {
+            python3 -I - "$1" "$BASE_SHA" <<'PY' > /dev/null
           import json, os, subprocess, sys
           head, base = sys.argv[1], sys.argv[2]
           plan = os.environ["RUNNER_TEMP"] + "/plan.json"
@@ -2976,6 +2990,7 @@ jobs:
                      "head": "record/autofix", "base": "main"},
                     open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
           PY
+          }
           # Open or update: the beat's own open pull request from a previous
           # unmerged beat is updated in place (fresh rows commit, regenerated
           # body naming the new head), never duplicated. The head filter is
@@ -2984,14 +2999,29 @@ jobs:
           NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
             "$API/repos/$REPO/pulls?head=${OWNER}:record/autofix&state=open" \
             | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
-          if [ -n "$NUM" ]; then
-            curl_json "record-pr update" PATCH \
-              "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
-          else
+          if [ -z "$NUM" ]; then
+            write_payload "$(git rev-parse HEAD)"
             curl_json "record-pr open" POST \
               "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
             NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
           fi
+          # NUM exists only now. The rows commit does not contain this pull
+          # request's row. The merge SHA does not exist yet, so the line
+          # anchors the number and says open. The lease is the rows commit
+          # the previous step pushed, which is HEAD until this commit.
+          PARENT=$(git rev-parse HEAD)
+          python3 -I tools/audit/seat/record_row.py \
+            --write-self-row --pr "$NUM" --root .
+          git add docs/delivery
+          if ! git diff --cached --quiet; then
+            git commit -q -m "ci: record delivery rows"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $BASIC" \
+              push --force-with-lease=refs/heads/record/autofix:"$PARENT" \
+              origin HEAD:refs/heads/record/autofix
+          fi
+          write_payload "$(git rev-parse HEAD)"
+          curl_json "record-pr update" PATCH \
+            "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
           # The beat's #201 coordination comment, naming the pull request it
           # opened (delivery-status-tracking item 3); one per beat.
           python3 -I tools/audit/seat/record_row.py \

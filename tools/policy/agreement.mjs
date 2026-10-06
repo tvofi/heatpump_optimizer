@@ -48,7 +48,7 @@ function constFromSource(rel, name) {
   if (!m) throw new Error(`${rel}: no top-level const ${name} regex`)
   return new Function(`return ${m[1]}`)()
 }
-const load = (rel) => import(pathToFileURL(path.join(ROOT, rel)).href)
+const load = (rel) => import(pathToFileURL(at(rel)).href)
 
 
 const CC = 'custom_components/heatpump_optimizer'
