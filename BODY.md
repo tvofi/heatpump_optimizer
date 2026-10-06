@@ -10,6 +10,10 @@ The release conditions are enumerated by `PYTHONPATH=tests/hastub python3 tests/
 
 ## Head
 
+`78852922691f6ba3f1cc312d64c189e15b36f514`
+
+`78852922691f6ba3f1cc312d64c189e15b36f514` merges origin/main `a28fd0aee6651a24161fa38e3295d4ac2d906d57` into `edc8fa5dbb14ee4065b4383e5e94d4e35b0952e3`. The only content conflict was `tests/deployment_shape.py`. The selection-cost sentence is the merged `tests/closures.json` re-derived: 106 of the 496 pairs, 378 comparable, all 89 production files. `git merge-tree --write-tree origin/main 78852922691f6ba3f1cc312d64c189e15b36f514` exited 0.
+
 `63aebe893e572c9ae558cae7049613b23a2c8f6b`
 
 `63aebe893e572c9ae558cae7049613b23a2c8f6b` puts `tests/block_duty.py` on a `run` line in `tests/run.sh` and a `rec` line in `tests/derive_closures.sh`, and writes the selection-cost counts `tests/entities.py` derived from `tests/closures.json` into `tests/deployment_shape.py`. Parent `aa1a661584d66722c4167c00b995c7609c4cf7cf`. Measured `date -u`: 2026-10-06T19:02:19Z. This is not a stamp.
