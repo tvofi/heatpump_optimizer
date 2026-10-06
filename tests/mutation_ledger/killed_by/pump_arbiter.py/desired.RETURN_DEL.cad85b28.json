@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:desired RETURN_DEL cad85b28",
+  "killed_by": "tests/features.py",
+  "old": "        return PumpCommand(both, _bounded(_slot_state(inp, \"dhw_setpoint\"), DHW_GATE_C), space, silent)",
+  "reason": "pump-duty arbiter revision; `return PumpCommand(both, _bounded(_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)` -> `pass` fails 2 of the arbiter checks in tests/features.py's pump-duty arbiter section, against a green baseline. Measured by driving that section, 2026-09-24. Re-measured on a git-archive export of 13a82a9d, 2026-10-05: 5 of 3698 feature checks fail (`with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum` among them), against the export baseline's two artefacts (#363 recorded_at, R9-F2.1 P3). Re-keyed by R9-EG-B6 (#1739): the collaborator-interface rename made the line `        return PumpCommand(both, _bounded(_slot_state(coord, \"dhw_setpoint\"), DHW_GATE_C), space)` into `        return PumpCommand(both, _bounded(_slot_state(inp, \"dhw_setpoint\"), DHW_GATE_C), space)`. Re-keyed by R9-SW-2 (#1911): the same return now passes silent, `        return PumpCommand(both, _bounded(_slot_state(inp, \"dhw_setpoint\"), DHW_GATE_C), space, silent)`. RETURN_DEL still deletes the return."
+}
