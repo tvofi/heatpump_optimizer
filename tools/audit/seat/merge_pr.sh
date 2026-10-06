@@ -7,7 +7,7 @@ R=tvofi/heatpump_optimizer; D=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/merge_pr;
 cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." || exit 1
 live=$(gh pr view $PR --json headRefOid --jq .headRefOid); [ "$live" = "$S" ] || { echo "HEAD MOVED: $live"; exit 1; }
 sed '1s/^# //' "$E/VERDICT.md" > $D/v/verdict-$PR.md; grep -q "$E" $D/v/verdict-$PR.md || printf '\nEvidence: %s/\n' "$E" >> $D/v/verdict-$PR.md
-bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1 | tail -1; [ "${PIPESTATUS[0]}" = 0 ] || exit 1
+if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; else bash tools/pr/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; fi| tail -1; [ "${PIPESTATUS[0]}" = 0 ] || exit 1
 if [ "$MODE" = owner ]; then
   [ "$(date -u +%s)" -lt "$(date -u -j -f %Y-%m-%dT%H:%MZ 2026-09-25T08:40Z +%s)" ] || { echo "MANDATE EXPIRED"; exit 1; }
   cat > $D/approve-$PR.md <<EOT
@@ -15,7 +15,7 @@ Owner approval (code-owned paths) at head $S after the "Fix review: merge" verdi
 EOT
   gh pr review $PR --approve --body-file $D/approve-$PR.md || exit 1
 else
-  bash tools/audit/app_approve.sh $R $PR $S 2>&1 | tail -1
+  if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh $R $PR $S 2>&1; else bash tools/pr/app_approve.sh $R $PR $S 2>&1; fi| tail -1
 fi
 sleep 45
 for i in $(seq 1 60); do n=$(gh api "repos/$R/commits/$S/check-runs?per_page=100" --jq '[.check_runs[] | select(.status!="completed")] | length'); [ "$n" = 0 ] && break; sleep 60; done
@@ -34,7 +34,7 @@ fi
 sleep 10
 for j in 1 2 3 4 5 6; do st=$(gh pr view $PR --json mergeStateStatus --jq .mergeStateStatus); [ "$st" != UNKNOWN ] && break; sleep 20; done; echo "state $st"
 [ "$st" = CLEAN ] || [ "$st" = HAS_HOOKS ] || { echo "not clean"; exit 1; }
-gh pr view $PR --json title --jq .title | bash tools/audit/preflight.sh "$@" 2>&1 | tail -1
+gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/preflight.sh "$@" 2>&1; fi| tail -1
 gh pr merge $PR --merge --match-head-commit $S || exit 1
 sleep 8; echo "merged $(gh pr view $PR --json mergeCommit --jq .mergeCommit.oid)"
 for n in "$@"; do echo "issue $n $(gh issue view $n --json state --jq .state)"; done

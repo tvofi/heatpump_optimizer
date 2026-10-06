@@ -133,7 +133,10 @@ class Train:
         return ["TIMEOUT"]
 
     def policy_paths(self, files: list[str]) -> list[str]:
-        filt = ["node", str(ROOT / ".claude/workflows/policy_lint.mjs"), "--corpus-filter"]
+        _pl = ROOT / ".claude/workflows/policy_lint.mjs"
+        if not _pl.is_file():
+            _pl = ROOT / "tools/policy/policy_lint.mjs"
+        filt = ["node", str(_pl), "--corpus-filter"]
         probe = self.run(filt, stdin="CLAUDE.md\ntools/audit/not-a-policy-path.zzz\n")[1].split()
         if probe != ["CLAUDE.md"]:
             raise Stop("policy", "policy_lint.mjs --corpus-filter failed its sentinel probe, so what is policy is undefined here")
