@@ -2,7 +2,7 @@ Closes #1939
 
 Leaves #201 open.
 
-Successor of `cf9de4e2a50332c608d854de900108afe890039a`. That commit merged handoff `205943f950645b72866385d8c852e61a70cd3413` with `origin/main` `a28fd0aee6651a24161fa38e3295d4ac2d906d57`. This commit pins `configured_specs`'s `return out`.
+Successor of `705c3be37fe94feb37be1600b57403e129c382f8`. That commit merged the pin `19391406563cf785e723be51ceb7b9b34a850511` with `origin/main` `6001b09a557259f37319b400d219cf83e02c563f`. This commit points the env-matrix at `tools/policy/policy_lint.mjs`.
 
 Merge `origin/main` `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872` into `058a5f8018e87cb7861477c8e7382ba9c7daada8`. `f07cd253c52f1012427d9869a808f1df39dafb93` is an ancestor of that tip; the commits above it add `docs/delivery/2000.md` only.
 
@@ -12,13 +12,13 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`19391406563cf785e723be51ceb7b9b34a850511`
+`b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a`
 
 ## Mutation proof
 
 `configured_specs` in `quiet_windows.py` ends with `return out`. Replacing that line with `pass` and running `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `FAIL configured_specs returns the stored rows and the not-enforced marker  [got None]` and `1 of 129 manual plan checks FAILED`. The line was restored before the commit.
 
-`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 1 --scripts tests/manual_plan.py` pinned `custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL`, killed by `tests/manual_plan.py`. The row is `tests/mutation_ledger/killed_by/quiet_windows.py/configured_specs.RETURN_DEL.a8227ccf.json`. It records `rc=1 failed=2` against baseline `rc=0 failed=0`. The hand run's harness summary is one failing check; the green run of the same script prints the same three price-stub tracebacks and exits 0.
+`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 1 --scripts tests/manual_plan.py` pinned `custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL`, killed by `tests/manual_plan.py`. The row is `tests/mutation_ledger/killed_by/quiet_windows.py/configured_specs.RETURN_DEL.a8227ccf.json`. Its reason text says `failed=2`. On this tree, replacing `return out` with `pass` and running `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `1 of 129 manual plan checks FAILED`. The line was restored. The script's summary is 1.
 
 `tests/features.py` also calls `configured_quiet_windows`, which calls `configured_specs`. `--pin-killed --scripts tests/features.py` was inconclusive: baseline `rc=1 failed=2`, the named check `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it`. No pin was written from that run.
 
@@ -42,13 +42,14 @@ The earlier pin drive's null control, on `6d5d796e955275cb76226bbae4d2cbc8150cab
 
 ## Figures
 
-Taken at `19391406563cf785e723be51ceb7b9b34a850511`, 2026-10-06T22:02:55Z, merge base `a28fd0aee6651a24161fa38e3295d4ac2d906d57`.
+Taken at `b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a`, 2026-10-06T22:49:49Z, ratchet base `6001b09a557259f37319b400d219cf83e02c563f`.
 
 - `python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT max_class_loc=9048 count`. `RESULT seam_cut_total=766 count`.
 - `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 1 --scripts tests/manual_plan.py` — `pinned custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL -- killed by tests/manual_plan.py`. `PIN KILLED: 1 pinned, 0 left unpinned`. Exit 0.
 - `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` — `ALL 129 manual plan checks PASSED`.
 - `/usr/bin/time -p python3 tests/mutation_table.py --scope changed --base origin/main` at `cf9de4e2a50332c608d854de900108afe890039a`, before this pin — exit 1, `real 4.52`. The refusal names one added site, `quiet_windows.py:370 RETURN_DEL`.
-- After the pin, `unpinned_sites` and `added_unpinned` in `tests/mutation_table.py` at this head: 4695 unpinned against 4695 at `a28fd0aee6651a24161fa38e3295d4ac2d906d57`, 0 added. The full `--scope changed` drive was not started; that command continues into the sampled pool once the ratchet passes.
+- `tests/mutation_table.py` `ratchet_base("changed", "origin/main")`, `unpinned_sites`, `added_unpinned` at this head: base `6001b09a557259f37319b400d219cf83e02c563f`, 4695 unpinned against 4695 there, 0 added.
+- `node tools/policy/policy_lint_envmatrix.mjs` with this checkout, a fresh work directory, and `HEAD` — `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)`. Exit 0.
 
 Taken at `205943f950645b72866385d8c852e61a70cd3413`, 2026-10-06T20:20:03Z, origin/main `00da22db537a688efe6a7a9518a9fc91767c3a5a`. `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` was run at that head. `git merge-tree --write-tree origin/main HEAD` at this head exits 0.
 
@@ -63,7 +64,9 @@ Merge of `00da22db` (`#1960`). The eight content conflicts are resolved. The cla
 
 ## Red checks
 
-`mutation`. Job 112484566102, run 37526452102, on `cf9de4e2a50332c608d854de900108afe890039a`: `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which returns at that ratchet before any mutant is cloned. Standing cost on that head, while the site was unpinned: `/usr/bin/time -p` `real 4.52`. The command is not in `tools/audit/prepr.sh` or `.claude/hooks`. This head `19391406563cf785e723be51ceb7b9b34a850511` records the kill under `killed_by` for `tests/manual_plan.py`.
+`env-matrix`. Job 112529653069, run 37539776169, on `705c3be37fe94feb37be1600b57403e129c382f8`. The shallow row: `Error: Cannot find module '/home/runner/work/_temp/envmatrix/shallow/.claude/workflows/policy_lint.mjs'`. The same missing module is the `rc=1 pins=null` on `pr`, `push-main` and `no-remote`, and the absent `skip checkProvenance-pin` line. Cheaper detector: `node tools/policy/policy_lint_envmatrix.mjs` on the checkout. It is named in a comment in `tools/pr/prepr.sh` and is not one of that script's steps. A pass of it on this tree printed `16 declared outcome(s) held, 0 did not`. This head `b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a` starts `tools/policy/policy_lint.mjs`, and the env-matrix job keeps that file across the base restore.
+
+`mutation`. Job 112484566102, run 37526452102, on `cf9de4e2a50332c608d854de900108afe890039a`: `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which returns at that ratchet before any mutant is cloned. Standing cost on that head, while the site was unpinned: `/usr/bin/time -p` `real 4.52`. The command is not in `tools/pr/prepr.sh` or `.claude/hooks`. The kill is recorded at `19391406563cf785e723be51ceb7b9b34a850511` under `killed_by` for `tests/manual_plan.py`.
 
 `mutation-autofix`. Job 112486109066 printed `AUTOFIX: skip-no-measurement` and the repair did not happen. The site was not started: it would have overrun `--budget-minutes`, so there was no kill to apply. Cheaper detector: the mutation job's ratchet, same command and standing cost as above. No bot commit was waited on.
 
