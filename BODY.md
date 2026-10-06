@@ -12,7 +12,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`fca0bea0c9ab864d087a6ee8939500b833f7d32c` merges the authored code head `fca0bea0c9ab864d087a6ee8939500b833f7d32c` and then merges origin/main `6b1ccb68` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`b065533fb1fe2161b89eb50ab2fa595320645d13` merges the authored code head `fca0bea0c9ab864d087a6ee8939500b833f7d32c` and then merges origin/main `6b1ccb68` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `fca0bea0c9ab864d087a6ee8939500b833f7d32c`
 
@@ -46,7 +46,7 @@ Applying GUARD_OFF to `debugger.py`'s `if stamp is None` and running `PYTHONPATH
 
 `closures-autofix`. `skip-failed-recording` on `tests/harness_headers.py` at that earlier head (header counts behind the tree). Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds. The headers name the printed counts.
 
-`fast (3.14)`. `env_drift.py --all` and `harness_headers.py` on that earlier head. Cheaper detector: those two scripts. Both were green on `9da596f2` against the claim ref that head named.
+`fast (3.14)`. Job 112362400100 on run 37490713480, head `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh` and `TEST NEVER RAN: tests/debug_collect.py is wired into tests/run.sh but no lane`, then `2 TEST SCRIPT(S) FAILED`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`, which printed the first line before the 31-minute suite. Standing cost is that grep. This head adds `run "$PYTHON" tests/debug_collect.py` in `lane_units`. An earlier head of this branch also failed `fast (3.14)` on `env_drift.py --all` and `harness_headers.py`; those two scripts are the cheaper detector for that one, and they were green on `9da596f2`.
 
 `mutation`. On `9da596f2`, job 112303713384: `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 52 not started for --budget-minutes`. Cheaper detector: none. The refusal is `drive_pin_pool`'s admission, which does not start a mutant whose recorded driver sum exceeds 35 minutes; the inventory that lists the 52 sites is the same process, not an earlier one. This head pins 51 under `killed_by` for `tests/debug_collect.py` and triages the stamp-is-None guard as equivalent, so the added-unpinned set is empty.
 
