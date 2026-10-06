@@ -38,3 +38,4 @@ config/
 # this line is what keeps an aborted run from leaving an untracked file in a
 # policy directory.
 .claude/workflows/.*.mutant-*.mjs
+tools/policy/.*.mutant-*.mjs

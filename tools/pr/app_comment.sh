@@ -49,7 +49,12 @@ set -uo pipefail
 API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 APP_LOGIN='hpo-approver[bot]'
-GH_COMMENT="$(cd "$(dirname -- "$0")/../.." && pwd)/.claude/workflows/gh_comment.py"
+_root="$(cd "$(dirname -- "$0")/../.." && pwd)"
+if [ -f "$_root/.claude/workflows/gh_comment.py" ]; then
+  GH_COMMENT="$_root/.claude/workflows/gh_comment.py"
+else
+  GH_COMMENT="$_root/tools/pr/gh_comment.py"
+fi
 die() { printf 'app_comment: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 check_pr() { # repo pr [sha] -> refuses unless open (and, given a sha, at exactly it)

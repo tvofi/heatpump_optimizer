@@ -59,7 +59,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    keep the body outside the worktree.
 
    **Running locally does not discharge CI.** What `scope.run` names is green
-   locally and the body passes `tools/audit/prepr.sh`; the orchestrator opens
+   locally and the body passes `tools/pr/prepr.sh`; the orchestrator opens
    the PR (`docs/decisions/0011-app-authored-identity.md`).
 
    **`run.sh` takes the gate lease itself, around `tests/stress.py` alone**;
