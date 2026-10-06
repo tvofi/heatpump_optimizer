@@ -4976,9 +4976,9 @@
     "R9-F10.1c"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "cursor/r9-sw-1-resume-826f",
-    "commit": "bdc182732618f27a7ecdb1b4d11cfbc77a1c799c",
+    "commit": "00da22db537a688efe6a7a9518a9fc91767c3a5a",
     "last_step": "PR #1960 is still draft at ca0fbf77f56ca9d0eb331e6faa977ec50c2b6b62. cursor/r9-sw-1-resume-826f is fd41f78a1d18fcdc0ab7616d8eb491d3ff512c08, five pin commits ahead of the PR. A fixer is recording tests/boost_drift_replay.py, which CI said reads quiet_windows.py and the closure does not list.",
     "next_step": "Land the closure repair on the resume branch, update PR #1960 onto that tip, then code-owner approval of the budget raise (max_class_loc 8972 to 9027, seam_cut_total 758 to 759) and a review. leaves #201 open.",
     "note_file": "handoff/round9/fix/resume/SW-1.md on handoff/r9-sw-model",
