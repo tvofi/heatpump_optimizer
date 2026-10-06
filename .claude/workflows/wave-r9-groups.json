@@ -5478,9 +5478,9 @@
     "R9-RO-2b"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-ro-7",
-    "commit": null,
+    "commit": "95880c58ae77ac9b217d5b9c644f539457638c2d",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/RO.md, re-derive the move map for this group's units, then write the failing check",
     "note_file": "handoff/round9/fix/resume/RO-7.md on handoff/r9-ro-7",
