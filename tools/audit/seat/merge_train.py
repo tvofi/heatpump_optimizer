@@ -194,7 +194,9 @@ class Train:
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             if "PUSHED" not in o:
-                raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-200:])
+                # The refusal is several lines (each prepr step, then app_push's
+                # die). The last 200 characters were only the die.
+                raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
             h = self.head(pr)
             self.log(f"#{pr} recarry: main merged, head {h[:8]}")
         red = [n for n in self.wait_ci(h) if n not in self.ignore]
