@@ -24387,6 +24387,39 @@ R.check(
     "--force-with-lease or a bare --force -- must each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
+# The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
+# API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open
+# record pull request and the create POST was refused 422 "A pull request
+# already exists" (run 37343172583, PR #1970 open). Every lookup's filter is
+# the owner form, the owner coming from github.repository_owner.
+_RAF_HEADS = re.findall(r"pulls\?head=([^&\"\s]+)", _RAF_JOB)
+
+
+def _raf_lookup_ok(job: str) -> bool:
+    heads = re.findall(r"pulls\?head=([^&\"\s]+)", job)
+    return (bool(heads)
+            and all(h == "${OWNER}:record/autofix" for h in heads)
+            and "OWNER: ${{ github.repository_owner }}" in job)
+
+
+R.check(
+    "tests.yml's record-autofix finds its own open pull request by "
+    "head=<owner>:record/autofix",
+    _raf_lookup_ok(_RAF_JOB),
+    f"head filters={_RAF_HEADS}, owner env="
+    f"{'OWNER: ${{ github.repository_owner }}' in _RAF_JOB}; the pulls "
+    "endpoint's head filter is `user:ref-name`, and an `<owner>/<repo>:` "
+    "filter matches nothing, so the job POSTs a duplicate and is refused",
+)
+R.check(
+    "and the lookup pin refuses the repository-form filter (null control)",
+    not _raf_lookup_ok(_RAF_JOB.replace(
+        "head=${OWNER}:record/autofix", "head=$REPO:record/autofix"))
+    and not _raf_lookup_ok(_RAF_JOB.replace(
+        "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
+    "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
+    "the repository's full name, must each turn the lookup pin red",
+)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
@@ -25404,15 +25437,24 @@ R.check(
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
-# --- round-9 process review item 3: a superseded pull-request run is cancelled,
-# and nothing else is. Every workflow a pull request starts declares one
-# top-level `concurrency:`; each `${{ }}` in it is evaluated here under the
-# events the file lists. Two `pull_request` runs of one pull request share a
-# group and cancel; two runs of any other event -- a push to main, a merge
+# --- round-9 process review item 3, shrunk: a superseded long-job
+# pull-request run is an older SHA replaced by a newer one in the same
+# group, and that pair is cancelled; two events at one SHA of the
+# required short contract job are not (R9-RC-PRCONTRACT). Every workflow
+# a pull request starts declares one top-level `concurrency:`; each
+# `${{ }}` in it is evaluated here under the events the file lists. Two
+# `pull_request` runs of one pull request share a group. `tests.yml` and
+# the other long `on: pull_request` workflows cancel the older SHA;
+# `pr-contract.yml` shares the group and does not cancel, so an `edited`
+# twin at the live SHA finishes instead of writing a cancelled required
+# context. Only `pr-contract.yml` lists `edited`, so only it can receive
+# that twin. Two runs of any other event -- a push to main, a merge
 # queue entry, the nightly, an autofix push or dispatch, a review -- get
-# groups of their own, because a group they shared would queue them, and a newer
-# pending run cancels the older pending one whatever `cancel-in-progress`
-# says. Main's FULL push gate must never be the run that is dropped.
+# groups of their own, because a group they shared would queue them, and
+# a newer pending run cancels the older pending one whatever
+# `cancel-in-progress` says. Main's FULL push gate must never be the run
+# that is dropped. The SHA on the event pair is read: a pair with no SHA,
+# or a long-job pair whose two SHAs are equal, is a problem.
 def _cc_value(expr, event: "dict[str, object]"):
     """A `${{ }}`-bearing string under `event`, each expression replaced by its
     value; None when one cannot be decided (literals, `==`, `&&`, `||` only)."""
@@ -25435,6 +25477,17 @@ _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
               "schedule", "workflow_dispatch")
 
 
+def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
+    """One modelled Actions event. `sha` is None when the model carries none."""
+    event = {"github.event_name": ev, "github.workflow": doc.get("name"),
+             "github.run_id": run_id, "github.event.sender.login": who,
+             "github.event.pull_request.number":
+                 7 if ev.startswith("pull_request") else None}
+    if sha is not None:
+        event["github.sha"] = sha
+    return event
+
+
 def _cc_problems(name: str, doc: dict) -> "list[str]":
     on = doc.get("on", doc.get(True)) or {}
     events = [on] if isinstance(on, str) else list(on)
@@ -25446,25 +25499,34 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
     out = []
     for ev in [e for e in _CC_EVENTS if e in events]:
         for who in ("hpo-author[bot]", "github-actions[bot]"):
+            # A superseded pair is sha-1 replaced by sha-2, not two events
+            # at one SHA. An autofix push never cancels.
             def at(run_id, ev=ev, who=who):
-                return {"github.event_name": ev, "github.workflow": doc.get("name"),
-                        "github.run_id": run_id, "github.event.sender.login": who,
-                        "github.event.pull_request.number":
-                            7 if ev.startswith("pull_request") else None}
-            # Only a pull request's own push supersedes; an autofix push does not.
-            want = ev == "pull_request" and who != "github-actions[bot]"
-            cancel = _cc_value(cc.get("cancel-in-progress"), at(1))
-            a, b = _cc_value(cc.get("group"), at(1)), _cc_value(cc.get("group"), at(2))
-            if cancel != str(want):
+                return _cc_pr_event(doc, run_id, f"sha-{run_id}", who=who, ev=ev)
+            share = ev == "pull_request" and who != "github-actions[bot]"
+            cancel_want = share and name != "pr-contract.yml"
+            older, newer = at(1), at(2)
+            cancel = _cc_value(cc.get("cancel-in-progress"), older)
+            a, b = (_cc_value(cc.get("group"), older),
+                    _cc_value(cc.get("group"), newer))
+            if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != want:
+            if None in (a, b) or (a == b) != share:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
+            if share:
+                sa, sb = older.get("github.sha"), newer.get("github.sha")
+                if not sa or not sb:
+                    out.append(f"{name}: pull_request pair by {who} carries no SHA")
+                elif name != "pr-contract.yml" and sa == sb:
+                    out.append(f"{name}: superseded pair by {who} is one SHA, "
+                               "not an older SHA replaced by a newer")
     return out
 
 
 _CC_FOUND = [p for n, d in _RC_DOCS.items() for p in _cc_problems(n, d)]
 R.check(
-    "only a pull request's superseded run is cancelled (process review item 3)",
+    "a superseded long-job pull-request run is cancelled; "
+    "pr-contract same-SHA twins are not",
     not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
                           for n, d in _RC_DOCS.items()),
     f"{_CC_FOUND or 'none'}",
@@ -25476,6 +25538,49 @@ R.check(
     "and a group keyed on the ref, cancelling everything, is refused (null control)",
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
+)
+_PC_DOC = _RC_DOCS["pr-contract.yml"]
+_TS_DOC = _RC_DOCS["tests.yml"]
+_CC_TWIN_SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+_CC_OLD_SHA = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+_CC_NEW_SHA = "cccccccccccccccccccccccccccccccccccccccc"
+_CC_PC_TWIN = (_cc_pr_event(_PC_DOC, 1, _CC_TWIN_SHA),
+               _cc_pr_event(_PC_DOC, 2, _CC_TWIN_SHA))
+_CC_TS_SUPERSEDE = (_cc_pr_event(_TS_DOC, 1, _CC_OLD_SHA),
+                    _cc_pr_event(_TS_DOC, 2, _CC_NEW_SHA))
+_CC_PC_CC = (_PC_DOC.get("concurrency") or {})
+_CC_TS_CC = (_TS_DOC.get("concurrency") or {})
+R.check(
+    "pr-contract does not cancel two author-app pull_request events at one SHA",
+    _CC_PC_TWIN[0].get("github.sha") == _CC_PC_TWIN[1].get("github.sha") == _CC_TWIN_SHA
+    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[0]) == "False"
+    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[1]) == "False"
+    and _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[0])
+    == _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[1]),
+    f"sha={_CC_PC_TWIN[0].get('github.sha')!r}/{_CC_PC_TWIN[1].get('github.sha')!r} "
+    f"cancel={_cc_value(_CC_PC_CC.get('cancel-in-progress'), _CC_PC_TWIN[0])!r}",
+)
+R.check(
+    "tests.yml cancels a superseded older SHA",
+    _CC_TS_SUPERSEDE[0].get("github.sha") == _CC_OLD_SHA
+    and _CC_TS_SUPERSEDE[1].get("github.sha") == _CC_NEW_SHA
+    and _CC_OLD_SHA != _CC_NEW_SHA
+    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[0]) == "True"
+    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[1]) == "True"
+    and _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[0])
+    == _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[1]),
+    f"sha={_CC_TS_SUPERSEDE[0].get('github.sha')!r}/{_CC_TS_SUPERSEDE[1].get('github.sha')!r} "
+    f"cancel={_cc_value(_CC_TS_CC.get('cancel-in-progress'), _CC_TS_SUPERSEDE[0])!r}",
+)
+_PC_CANCEL_TRUE = {**_PC_DOC, "concurrency": {
+    **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": True}}
+R.check(
+    "and a pr-contract.yml that cancels same-SHA twins is refused (null control)",
+    any("cancel-in-progress" in p for p in _cc_problems("pr-contract.yml",
+                                                       _PC_CANCEL_TRUE))
+    and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
+        **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
+    f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
@@ -29139,6 +29244,16 @@ R.check(
     not _REACH,
     f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
 )
+_CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
+R.check(
+    "one schedule cron; required lanes share that run (#1930 (d))",
+    _CRONS == ["17 2 * * *"]
+    and "github.event.schedule" not in _MUTN_JOB
+    and "github.event.schedule" not in _ml_meas
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
+    f"crons={_CRONS!r}",
+)
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
 # and that job runs in the `ledger` environment, whose deployment branches the
@@ -29375,6 +29490,11 @@ R.check(
     f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
+)
+R.check(
+    "survivor_gaps unpacks equivalent beside gaps (#1885)",
+    "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,
+    "the equivalent unpack is gone from mutation_table.py",
 )
 # The line pin is half the mark: a production edit changes text under the
 # same key, and the mark must not follow it. The line NUMBER is not part of the
@@ -29854,6 +29974,19 @@ R.check(
     and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
     and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+# #1930 (b) rejected making tests/env_drift.py lazy: its recorded seconds
+# time the cheap stub (closure.py #934), not the CI --all run.
+_MUT_ED_SEC = getattr(_mut, "recorded_seconds", lambda: {})().get(
+    "tests/env_drift.py")
+R.check(
+    "env_drift stays eager: recorded seconds time the stub, not CI --all "
+    "(#1930 (b))",
+    "tests/env_drift.py" in getattr(_mut, "REF_DRIVEN", ())
+    and _MUT_ED_SEC is not None and _MUT_ED_SEC < 10.0
+    and (_mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+         if _mut_lazy else False),
+    f"recorded={_MUT_ED_SEC!r} REF_DRIVEN={getattr(_mut, 'REF_DRIVEN', None)!r}",
 )
 _MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
 _MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
@@ -31220,6 +31353,18 @@ R.check(
     "the nightly slow job runs the replay lane as its own step",
     "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+)
+_SLOW_STEPS = _workflow_job(_tests_workflow, "slow")
+R.check(
+    "the nightly slow job is the unique scripts, not a second full suite "
+    "(#1930 (c))",
+    "run: python3 tests/rolling.py" in _SLOW_STEPS
+    and "run: python3 tests/replay.py" in _SLOW_STEPS
+    and "DRIFT_VALUE_REPORT" in _SLOW_STEPS
+    and "tests/env_drift.py --all" in _SLOW_STEPS
+    and "./tests/run.sh" not in _SLOW_STEPS
+    and "GATE_SCOPE: full" not in _SLOW_STEPS,
+    "slow still re-runs run.sh, or dropped rolling/replay/the value report",
 )
 
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran

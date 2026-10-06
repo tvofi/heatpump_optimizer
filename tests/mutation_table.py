@@ -2102,6 +2102,13 @@ def _share(workers: int, work) -> None:
 # was SIGXCPU'd at 240 on the null control inside this pool (mutation-ledger,
 # run 37108891698) -- the same work billed at least 2.48x. Alone, it is billed
 # what a pull request's serial run.sh bills it.
+# nightly/ledger --scope full still drives these (#1930 (a)): three
+# killed_by rows name them. The two stress pins survived every remaining
+# driver that was green unmutated here (structure, edge, validate,
+# finite_boundary, optimality). tests/features.py's unmutated run was
+# already red, so it is not a remaining driver. Dropping the pair is an
+# unpinned-count raise. harness_headers's one pin is also killed by
+# tests/manual_plan.py.
 EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")
 
 # The gate lease (`tests/gate_lock.py`, gate-scoping.md) is stress.py's alone:
@@ -2646,6 +2653,9 @@ def lazy_drivers(needed: list[str], scope: str) -> list[str]:
     """
     if scope != "changed":
         return []
+    # env_drift stays eager (#1930 (b)): recorded_seconds times the stub
+    # (~1 s), not the CI `--all` baseline, so a lazy Smith-order would
+    # understate its cost and run it before the long shared drivers.
     return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
 
 
