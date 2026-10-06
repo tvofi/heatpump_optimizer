@@ -20944,6 +20944,14 @@ R.check(
     f"{_tools_outside_audit}; inert among them "
     f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
 )
+_pr_note = (Path(_closure.ROOT) / "tools/pr/README.md").read_text()
+R.check(
+    "the pull-request note names the gate lease and the seat instruments",
+    ".claude/rules/gate-scoping.md" in _pr_note
+    and "tools/audit/seat/INSTRUMENTS.md" in _pr_note,
+    "tools/pr/README.md is a tools/ file outside tools/audit/, so the "
+    "narrowing above classifies it by a read rather than by INERT",
+)
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks
 # for both halves explicitly: that `closure.py check` records stamp.py in a

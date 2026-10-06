@@ -5282,9 +5282,7 @@ function assertAcceptance(derived) {
   }
   // The live list is bounded, so the refusal above is silent here and would
   // stay silent if its predicate stopped seeing a dead entry. The fixture
-  // names an extension no tracked file has. That witness is not
-  // `donotdelete`: the restored base copy of this list still names it, so
-  // the tree keeps one file of that extension.
+  // names an extension no tracked file has.
   pins += 1
   const deadFixtureRel = '.claude/workflows/fixtures/not_a_document_dead.json'
   let deadFixture = null

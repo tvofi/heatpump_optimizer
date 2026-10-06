@@ -693,6 +693,7 @@
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
+   "tools/pr/README.md",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
    "tools/replay/debug_ingest.py",
