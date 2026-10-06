@@ -8,7 +8,11 @@ This head records the 52 mutation sites the diff added. CI run 37473761833 on `9
 
 This head merges `origin/main` `6b1ccb685e51903e7e524995a84d831d3904da9f` (delivery rows only) onto the pin commit `6d5d796e955275cb76226bbae4d2cbc8150cabd0`. The merge does not touch the pinned files.
 
+_Requested by **tvofi**_.
+
 ## Head
+
+`fca0bea0c9ab864d087a6ee8939500b833f7d32c` merges the authored code head `fca0bea0c9ab864d087a6ee8939500b833f7d32c` and then merges origin/main `6b1ccb68` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `fca0bea0c9ab864d087a6ee8939500b833f7d32c`
 
@@ -61,5 +65,3 @@ none
 ## Friction
 
 none
-
-_Requested by **tvofi**_.
