@@ -1,0 +1,7 @@
+head 705c3be37fe94feb37be1600b57403e129c382f8
+env-matrix job 112529653069 run 37539776169 conclusion failure
+FAIL pr / policy_lint rc=0 and every pin earned -- rc=1 pins=null
+FAIL shallow / policy_lint rc=0 -- rc=1 Error: Cannot find module /home/runner/work/_temp/envmatrix/shallow/.claude/workflows/policy_lint.mjs
+pr-contract job 112530277746 run 37539776099 conclusion failure (later than the success job 112529650505)
+red checks the body must answer: delivery-status,env-matrix,nightly-status
+ERROR check `env-matrix` is red and `## Red checks` does not name it.
