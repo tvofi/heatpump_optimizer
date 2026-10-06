@@ -7010,7 +7010,7 @@
    "brief": "Feature per the R9-DIAG-1 feasibility verdict (doc section 4): at accuracy_drift warning time, batch-Newton refit house_heat_loss_scale from >=3 settled post-boost, boost-tagged days (measured 1.138 vs truth 1.15 while the learner walked at 1.111; estimator's own band +-7-10% \u2014 state it in the recommendation text); new advisor sensor -> card advisor inbox row (R9-UX-2 pattern); recommend-only, accept applies through the existing _apply_learner_payloads restore path; never auto-apply. Files: accuracy.py, coordinator.py, sensor.py, the card. Requires R9-DIAG-1F's boost-tagged samples. UI text en+sv.",
    "resume": {
     "stage": "in-flight",
-    "branch": "fix/r9-diag-2s",
+    "branch": "handoff/r9-diag-2s",
     "commit": "3c51d2403722fc7a6de9ba2cd7f29e18dda56c77",
     "last_step": null,
     "next_step": "refit estimator per doc section 4, then sensor + inbox row + accept path",
