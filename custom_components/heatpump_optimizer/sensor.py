@@ -122,7 +122,7 @@ def _quiet_windows_attributes(coordinator: Any, data: Any) -> dict[str, Any]:
     out: dict[str, Any] = dict(specs)
     if specs.get("quiet_silent_not_enforced"):
         out["quiet_silent_not_enforced"] = True
-    cfg = getattr(coordinator, "_ctx", coordinator)._config
+    cfg = coordinator.effective_config
     out["silent_mode_power_fraction"] = float(
         cfg.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
     )
