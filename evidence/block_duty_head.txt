@@ -1,0 +1,50 @@
+
+=== block duty ===
+  ok   BLOCK_HOURS is 2
+  ok   the boost lead stays two hours while both constants are 2
+  ok   a block is live until its own end and not after
+  ok   expiry at the end drops the block and does not settle a block
+  ok   a block dated more than two hours ahead is clamped to two hours
+  ok   a space block replacing a live boost sets the settling tail and clears the boost
+  ok   a DHW block replacing a boost does not set the space settling tail
+  ok   a later boost clears the block
+  ok   no block leaves the action unchanged
+  ok   a space block zeroes space power and not the supply switch
+  ok   a space block does not invent power_normalized
+  ok   a DHW block zeroes hot water
+  ok   no floor is a reason
+  ok   a cycle inside the horizon releases DHW
+  ok   a cycle exactly at the horizon does not release
+  ok   a live disinfection hold releases DHW
+  ok   the tank at its minimum inside a window releases DHW
+  ok   the room floor releases at the margin and not above it
+  ok   the cold rail releases a space block
+  ok   the cold rail is strict below its threshold
+  ok   a missing room below the rail counts
+  ok   sysid and a stale plan release a block
+  ok   no snapshot is not a reason
+  ok   a due cycle releases the block before the overlay and asks to persist
+  ok   a coordinator with no arbiter inputs has no release reason
+  ok   a non-mapping payload is not a legionella reason
+  ok   a planned demand window releases the tank floor
+  ok   restore keeps a future block and a future boost, not one dated now
+  ok   a block dated at this instant is not still live
+  ok   an already-expired block is not released
+  ok   a live block with no floor is kept
+  ok   turning a block on refreshes
+  ok   a due cycle refuses the on-press
+  ok   a block switch reads the block channel
+  ok   a boost switch does not read the block channel
+  ok   a boost switch reads the boost channel
+  ok   the block switch says why and the boost switch does not
+  ok   a block with no floor publishes no attribute
+  ok   the block press holds the block channel
+  ok   no block leaves the duty, including None
+  ok   a space block turns both into dhw, space into idle, and idle stays idle
+  ok   a DHW block turns both into space
+  ok   the cold lease is strict: a room at the plan is not below it
+  ok   the arbiter releases a block a floor forbids before it serves a duty
+  ok   both channels blocked is idle
+
+ALL 45 BLOCK DUTY CHECKS PASSED
+BLOCK_RC:0
