@@ -59,6 +59,8 @@
 # v6.7.16: EG-A2 one-formula class closure; mutation wall-clock budget; instruments into the tree; card and site polish; coverage tracer diet; nightly ledger CPU bounds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow  # adds debug_collect_enabled on the options seed, the seeded learning page and the learning page (#1939); those leaves are absent on the baseline
+#
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum

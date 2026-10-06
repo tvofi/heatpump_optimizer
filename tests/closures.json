@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 542.9,
+   "seconds": 856.4,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -946,6 +946,7 @@
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
+   "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
