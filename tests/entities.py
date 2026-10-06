@@ -29165,6 +29165,16 @@ R.check(
     not _REACH,
     f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
 )
+_CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
+R.check(
+    "one schedule cron; required lanes share that run (#1930 (d))",
+    _CRONS == ["17 2 * * *"]
+    and "github.event.schedule" not in _MUTN_JOB
+    and "github.event.schedule" not in _ml_meas
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
+    f"crons={_CRONS!r}",
+)
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
 # and that job runs in the `ledger` environment, whose deployment branches the
@@ -29401,6 +29411,11 @@ R.check(
     f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
+)
+R.check(
+    "survivor_gaps unpacks equivalent beside gaps (#1885)",
+    "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,
+    "the equivalent unpack is gone from mutation_table.py",
 )
 # The line pin is half the mark: a production edit changes text under the
 # same key, and the mark must not follow it. The line NUMBER is not part of the
@@ -29880,6 +29895,19 @@ R.check(
     and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
     and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+# #1930 (b) rejected making tests/env_drift.py lazy: its recorded seconds
+# time the cheap stub (closure.py #934), not the CI --all run.
+_MUT_ED_SEC = getattr(_mut, "recorded_seconds", lambda: {})().get(
+    "tests/env_drift.py")
+R.check(
+    "env_drift stays eager: recorded seconds time the stub, not CI --all "
+    "(#1930 (b))",
+    "tests/env_drift.py" in getattr(_mut, "REF_DRIVEN", ())
+    and _MUT_ED_SEC is not None and _MUT_ED_SEC < 10.0
+    and (_mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+         if _mut_lazy else False),
+    f"recorded={_MUT_ED_SEC!r} REF_DRIVEN={getattr(_mut, 'REF_DRIVEN', None)!r}",
 )
 _MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
 _MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
@@ -31246,6 +31274,18 @@ R.check(
     "the nightly slow job runs the replay lane as its own step",
     "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
+)
+_SLOW_STEPS = _workflow_job(_tests_workflow, "slow")
+R.check(
+    "the nightly slow job is the unique scripts, not a second full suite "
+    "(#1930 (c))",
+    "run: python3 tests/rolling.py" in _SLOW_STEPS
+    and "run: python3 tests/replay.py" in _SLOW_STEPS
+    and "DRIFT_VALUE_REPORT" in _SLOW_STEPS
+    and "tests/env_drift.py --all" in _SLOW_STEPS
+    and "./tests/run.sh" not in _SLOW_STEPS
+    and "GATE_SCOPE: full" not in _SLOW_STEPS,
+    "slow still re-runs run.sh, or dropped rolling/replay/the value report",
 )
 
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran
