@@ -817,8 +817,10 @@ _yaml_svc = re.search(r"The (\d+) service definitions", DOCS["architecture.md"])
 eq("C38", "docs/architecture.md:module map",
    f"services.yaml -- The {_yaml_svc.group(1)} service definitions", CMD,
    int(_yaml_svc.group(1)), len(SERVICES_YAML), "services.yaml defines {m} services")
-eq("C39", "docs/architecture.md:module map", "sensor.py -- 59 sensors", CMD,
-   int(re.search(r"# (\d+) sensors", DOCS["architecture.md"]).group(1)), COUNTS["sensor"])
+_map_sensors = re.search(r"# (\d+) sensors", DOCS["architecture.md"])
+eq("C39", "docs/architecture.md:module map",
+   f"sensor.py -- {_map_sensors.group(1)} sensors", CMD,
+   int(_map_sensors.group(1)), COUNTS["sensor"])
 # #939: the map comments now name every constructed entity, and the long ones
 # wrap onto `│ ...` continuation lines (button.py's precedent), so an entry's
 # comment is joined before its comma-separated names are read. The verdict is

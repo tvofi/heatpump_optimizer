@@ -30,7 +30,7 @@ from . import comfort_band
 from . import debugger
 from . import mixing_valve
 from . import topology
-from .accuracy import utc_shift
+from .accuracy import REFIT_SETTLED_DAYS, utc_shift
 from .const import (
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
@@ -70,7 +70,11 @@ from .const import (
     topology_layout_valid,
 )
 from .config_flow import identity_update
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    async_adopt_heat_loss_refit,
+)
 from .dhw_schedule import (
     DHWWindowError,
     format_weekly_windows,
@@ -245,6 +249,8 @@ SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
 SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
     {
         vol.Optional("entry_id"): cv.string,
+        # #1936: the drift advisor's two restart points.
+        vol.Optional("source", default="snapshot"): vol.In(("snapshot", "refit")),
     }
 )
 
@@ -955,15 +961,35 @@ async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dic
     rollback from a completed one. The qualifying-snapshot rule stays in
     the coordinator; the raise lives here because that is where the
     caller is.
+
+    ``source: refit`` accepts the drift advisor's heat-loss refit instead
+    (#1936), through the same restore machinery and refused the same way
+    when none is on offer.
     """
-    target_entry = dict(call.data).get("entry_id")
+    data = dict(call.data)
+    target_entry = data.get("entry_id")
+    from_refit = data.get("source") == "refit"
     restored: list[str] = []
     unqualified: list[str] = []
     for entry_id, coord in _manual_targets(hass, target_entry):
-        if await coord.async_restore_learned_snapshot():
+        if await (
+            async_adopt_heat_loss_refit(coord)
+            if from_refit
+            else coord.async_restore_learned_snapshot()
+        ):
             restored.append(entry_id)
         else:
             unqualified.append(entry_id)
+    if unqualified and from_refit:
+        entry_ids = ", ".join(unqualified)
+        raise HomeAssistantError(
+            f"No heat-loss refit is on offer for {entry_ids}: a refit needs "
+            f"an active drift alarm and {REFIT_SETTLED_DAYS:g} settled days "
+            "of evidence",
+            translation_domain=DOMAIN,
+            translation_key="restore_learned_snapshot_no_refit",
+            translation_placeholders={"entry_ids": entry_ids},
+        )
     if unqualified:
         entry_ids = ", ".join(unqualified)
         raise HomeAssistantError(

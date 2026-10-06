@@ -263,6 +263,9 @@
       },
       "wood_burn_advisor": {
         "default": "mdi:fireplace"
+      },
+      "model_restart_advisor": {
+        "default": "mdi:restart"
       }
     },
     "switch": {
