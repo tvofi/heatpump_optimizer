@@ -116,7 +116,7 @@ const HOOKS = {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fc-hooks-'))
     const f = path.join(tmp, 'settings.json')
     fs.writeFileSync(f, JSON.stringify(obj, null, 2))
-    const { code, out } = await run('node', ['.claude/workflows/policy_lint.mjs', '--hooks', path.relative(ROOT, f)])
+    const { code, out } = await run('node', [at('.claude/workflows/policy_lint.mjs'), '--hooks', path.relative(ROOT, f)])
     fs.rmSync(tmp, { recursive: true, force: true })
     if (code === 0) return 'green'
     if (code === 1) return 'red'
@@ -197,7 +197,7 @@ const APPROVALS = {
     author_association: 'GitHub derives it from user, which is read',
   },
   async verdict(obj) {
-    const code = `import json,sys\nsys.path.insert(0,'.claude/workflows')\nimport budget_raise_gate as g\nok,_=g.approval([json.loads(sys.argv[1])],sys.argv[2])\nprint('green' if ok else 'red')`
+    const code = `import json,sys,pathlib\nfor d in ('.claude/workflows','tools/policy'):\n    if pathlib.Path(d,'budget_raise_gate.py').is_file():\n        sys.path.insert(0,d); break\nimport budget_raise_gate as g\nok,_=g.approval([json.loads(sys.argv[1])],sys.argv[2])\nprint('green' if ok else 'red')`
     const { code: rc, out } = await run('python3', ['-I', '-c', code, JSON.stringify(obj), HEAD])
     return rc === 0 ? out.trim() : `error:exit ${rc}: ${out.trim().split('\n').pop()}`
   },

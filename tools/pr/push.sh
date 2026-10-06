@@ -301,7 +301,11 @@ body_then_push() { # pr number, body file
 if [ "${1:-}" = "--self-test" ]; then
   SELF="$(cd "$(dirname -- "$0")" && pwd)/$(basename -- "$0")"
   cd "$(git rev-parse --show-toplevel)" || exit 2
-  D=.claude/workflows/fixtures/policy-rot/prepr
+  if test -d .claude/workflows/fixtures/policy-rot/prepr; then
+    D=.claude/workflows/fixtures/policy-rot/prepr
+  else
+    D=tools/policy/fixtures/policy-rot/prepr
+  fi
   ZERO=0000000000000000000000000000000000000000
   STALE=deadbeefdeadbeefdeadbeefdeadbeefdeadbeef
   # The two listings `gh pr list --json number` actually prints, as literals, so
@@ -374,11 +378,11 @@ if [ "${1:-}" = "--self-test" ]; then
   # direction that catches a repair that silently matched nothing.
   W=$(mktemp -d) || exit 2
   cp "$D/wrong-head.md" "$W/b.md"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 1 "before the repair, the contract check refuses the stale head"
   write_head "$W/b.md" "$ZERO"; st $? 0 "write_head reports success on a body that has the heading"
   st "$(head_section_sha "$W/b.md")" "$ZERO" "and the section now names the head it was given"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "after the repair, the same body passes the contract check"
   # Every other section survived the rewrite: a repair that emptied the body
   # would also pass the two assertions above, because a body is refused for a
@@ -428,9 +432,9 @@ Round one was measured at \`$KEEP\` and the prose says why."
      "the repair substitutes one line rather than truncating the section (line count unchanged)"
   st "$(grep -c "$KEEP" "$W/prose.md")" "1" \
      "an unrelated SHA the record cites is left where it stands"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "the repaired body passes the contract check at the new head"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1; fi
   st $? 1 "AND IS REFUSED AT THE SUPERSEDED ONE -- naming both would empty the \`does not name\` refusal"
   st "$WARN" "" \
      "nothing warned: the superseded SHA is gone from the section (null control on the warn below)"
@@ -453,7 +457,7 @@ Round one, and this sentence is the record."
   write_head "$W/abbrev.md" "$ZERO"; st $? 0 "write_head succeeds on a section declaring an ABBREVIATED head"
   if cmp -s "$W/abbrev.md" "$W/abbrev.before"; then IDENT=same; else IDENT=differs; fi
   st "$IDENT" "same" "and leaves THAT byte-identical too: an abbreviation names the same commit"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "which the contract check accepts, because its test is a substring of the 7-prefix"
   # No SHA in the section at all: there is nothing to substitute, so the SHA is
   # inserted under the heading and the prose still stays.
@@ -461,7 +465,7 @@ Round one, and this sentence is the record."
   write_head "$W/nosha.md" "$ZERO"; st $? 0 "write_head succeeds on a section that names no SHA"
   st "$(head_section_sha "$W/nosha.md")" "$ZERO" "and inserts the head under the heading"
   st "$(grep -c 'names no commit at all' "$W/nosha.md")" "1" "leaving that section's prose in place"
-  node .claude/workflows/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1; fi
   st $? 0 "and the inserted body passes the contract check"
   # THE RESIDUAL, STATED AND PINNED. Preserving the section means a superseded
   # SHA the PROSE also cites survives, and `includes` would then be satisfied at
@@ -650,7 +654,7 @@ fi
 
 # --- 2. the contract check, before anything leaves this machine --------------
 echo
-bash tools/audit/prepr.sh "$BODY" "$@"
+if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh "$BODY" "$@"; else bash tools/pr/prepr.sh "$BODY" "$@"; fi
 PREPR=$?
 echo
 if [ "$PREPR" -ne 0 ]; then

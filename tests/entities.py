@@ -36,6 +36,13 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from layout import canon as _layout_canon, locate as _layout_locate
+
+# Dynamic import of a moved instrument. The string is the path while the file
+# is still there, otherwise the path the move map records, so a module import
+# follows the same file the `node <locate>` invocations already run.
+_PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
+_COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
     EagerHass,
     FakeCoordinator,
@@ -17191,7 +17198,7 @@ R.check(
 # a check nothing reads is exactly what let the nightly lane's blocking pin go
 # stale in silence (#533). Both arms, so this cannot become a check that passes
 # whatever the script does.
-_preflight = Path("tools/audit/preflight.sh")
+_preflight = Path("tools/pr/preflight.sh")
 R.check(
     "the orchestrator pre-flight refuses an undeclared closing keyword",
     _preflight.is_file()
@@ -17308,7 +17315,7 @@ def _copy_policy_lint_tree(dst):
     """
     import shutil
 
-    wf = Path(".claude/workflows")
+    wf = Path("tools/policy")
     need, seen = ["policy_lint.mjs"], set()
     while need:
         f = need.pop()
@@ -20929,17 +20936,28 @@ R.check(
     "narrowing INERT to tools/audit/ (#372) must not still cover "
     "tools/release/stamp.py, or the recorder has nothing to pull it into",
 )
-# Every tools/ file outside tools/audit/ must be classified. This replaced an
-# equality against the single-element list ["tools/release/stamp.py"] (#1067
+# Every tools/ file outside the inert homes must be classified. This replaced
+# an equality against the single-element list ["tools/release/stamp.py"] (#1067
 # G7b-1, which added tools/gen_device_fixtures.py): that literal said "there
 # is one such file", which is not the property #372's narrowing bought. The
-# property is that narrowing INERT leaves every non-audit tools/ file for the
-# recorder to classify, and it holds for any number of them.
+# property is that narrowing INERT leaves every such file for the recorder to
+# classify, and it holds for any number of them. tools/audit/ is the evidence
+# home #372 named. The instrument directories R9-RO-6 moved out of `.claude/`
+# and `tools/audit/` are inert homes of the same kind: unread except the files
+# INERT_EXCEPT names. A blanket `tools/` prefix would still hide stamp.py, and
+# that file staying in this set is what refuses it.
+_INERT_TOOL_HOMES = (
+    "tools/audit/",
+    "tools/policy/",
+    "tools/pr/",
+    "tools/coverage/",
+    "tools/devices/",
+)
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
         ["git", "ls-files", "tools/"], cwd=_closure.ROOT,
         capture_output=True, text=True).stdout.split()
-    if not f.startswith("tools/audit/")
+    if not f.startswith(_INERT_TOOL_HOMES)
 ]
 R.check(
     "narrowing INERT leaves every non-audit tools/ file in the must-classify set",
@@ -24114,8 +24132,15 @@ _IST_JOB = "\n".join(
 
 
 def _runs_selftest(job: str, script: str) -> bool:
+    """True when a step runs `script --self-test` at either home.
+
+    The job prefers the copy restored at `tools/audit/` and otherwise runs the
+    one this move put at `tools/pr/`. Either invocation is the self-test; a
+    step that names the script and does not pass `--self-test` is not.
+    """
     return any(
-        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        f"bash tools/audit/{script} --self-test" in _blk
+        or f"bash tools/pr/{script} --self-test" in _blk
         for _blk in job.split("\n      - name: ")[1:])
 
 
@@ -24123,15 +24148,16 @@ R.check(
     "the instrument self-test job runs both App identity self-tests",
     _runs_selftest(_IST_JOB, "app_approve.sh")
     and _runs_selftest(_IST_JOB, "app_comment.sh"),
-    "governance.yml's instrument-self-tests must run `bash tools/audit/"
-    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
-    "--self-test` as steps; without them the approver-only verdict allowlist "
-    "and the poster's read-back are unpinned",
+    "governance.yml's instrument-self-tests must run `app_approve.sh "
+    "--self-test` and `app_comment.sh --self-test`, at `tools/audit/` when "
+    "that copy is restored and at `tools/pr/` otherwise; without them the "
+    "approver-only verdict allowlist and the poster's read-back are unpinned",
 )
 R.check(
     "and a job with the poster's step removed is not (null control)",
     not _runs_selftest(
-        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        _IST_JOB.replace("bash tools/audit/app_comment.sh --self-test", "true", 1)
+        .replace("bash tools/pr/app_comment.sh --self-test", "true", 1),
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
@@ -24327,11 +24353,11 @@ def _raf_body_fixture():
         pf = Path(td) / "paths.txt"
         pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
         r1 = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(p), "--head", "a" * 40, "--paths-file", str(pf)],
             capture_output=True, text=True)
         r2 = subprocess.run(
-            ["node", ".claude/workflows/figure_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/figure_lint.mjs"), "--pr-body",
              str(p)],
             capture_output=True, text=True)
         out["policy_rc"], out["policy_out"] = r1.returncode, r1.stdout
@@ -24390,7 +24416,8 @@ R.check(
 # comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
 # a grant would accept the sentence that explains the grant. Pinned: main
 # only, its own environment, the `ci:` commit subject the loop guard keys on,
-# the guarded `git add docs/delivery` write set, the re-derive loop, the
+# the guarded `git add docs/delivery` write set (the rows commit, and the
+# self-row commit after NUM exists), the re-derive loop, the
 # #201 comment, and the report step that reddens a beat owed and not landed.
 # The record push's one force is a LEASE anchored on the tip the same try
 # fetched (a re-run's sibling commit made the fast-forward-only push of run
@@ -24413,8 +24440,9 @@ def _raf_job_ok(job: str) -> bool:
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
-        and 'git commit -q -m "ci: record delivery rows"' in job
-        and adds == ["git add docs/delivery"]
+        and job.count('git commit -q -m "ci: record delivery rows"') == 2
+        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
         and "issues/201/comments" in job
@@ -24451,10 +24479,12 @@ R.check(
                                          "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
-    "--force-with-lease or a bare --force -- must each turn the pin red -- "
+    "--force-with-lease or a bare --force, or dropping the self-row write "
+    "that runs only after NUM is known -- must each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
@@ -24536,7 +24566,7 @@ def _pt_seams(docs: dict) -> "set[str]":
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
-                out |= {_g for _g in _PT_PROG.findall(str(_s.get("run") or ""))
+                out |= {_layout_canon(_g) for _g in _PT_PROG.findall(str(_s.get("run") or ""))
                         if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
     return out
 
@@ -24672,13 +24702,13 @@ steps:
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/policy_lint.mjs
+    run: node tools/policy/policy_lint.mjs
 
   - name: The pull request's field_coverage.mjs, under the Actions token
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/field_coverage.mjs
+    run: node tools/policy/field_coverage.mjs
 ''')
 _PT_WF_PERMS = {"contents": "read"}
 _PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
@@ -24718,7 +24748,7 @@ def _pt_armed(docs: dict) -> "set[str]":
     """The graders the arm runs as the Actions token: the literal's, or none on any mismatch."""
     if _pt_arm_mismatch(docs):
         return set()
-    return {_m.group(1) for _s in _PT_JOB_CANON["steps"]
+    return {_layout_canon(_m.group(1)) for _s in _PT_JOB_CANON["steps"]
             if _s.get("env") == _PT_ARM_ENV and _s.get("if") == _PT_ARM_IF
             for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or ""))] if _m}
 
@@ -24778,7 +24808,7 @@ def _pt_arm_mutant(edit) -> "set[str]":
     _wf = _d["tests.yml"]
     _job = _wf["jobs"]["graders-head-copy"]
     _step = next((_s for _s in _job.get("steps") or []
-                  if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), None)
+                  if _s.get("run") == "node tools/policy/policy_lint.mjs"), None)
     if _step is None:  # no arm step to silence: nothing is armed (the check's first conjunct)
         return set()
     edit(_wf, _job, _step)
@@ -24951,7 +24981,7 @@ def _friction_none_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -24967,7 +24997,7 @@ R.check(
 )
 _FRICTION_PARSED = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "none_then: m.frictionEntries('None\\n`CLAUDE.md`: cost: real')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
@@ -25035,7 +25065,7 @@ def _friction_trailer_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -25045,7 +25075,7 @@ def _friction_trailer_fixture():
 _FT = _friction_trailer_fixture()
 _FRICTION_TRAILER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
@@ -25100,7 +25130,7 @@ R.check(
 # and a line naming no rule still yields no id.
 _FRICTION_DOT = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const ids = (t) => m.frictionEntries(t).map((e) => e.id);"
      "console.log(JSON.stringify({"
      "path: ids('`.claude/skills/steward/SKILL.md`: cost: the skill named by its path'),"
@@ -25178,15 +25208,16 @@ def _autofix_head_fixture():
     def run(head, names):
         (d / "body.md").write_text(body(f"`{names}`"))
         p = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(d / "body.md"), "--head", head],
             cwd=str(d), capture_output=True, text=True)
         return p.returncode, p.stdout
 
     try:
-        (d / ".claude/workflows").mkdir(parents=True)
+        _pl = Path(_layout_locate(".claude/workflows/policy_lint.mjs"))
+        (d / _pl.parent).mkdir(parents=True)
         (d / "tests/golden").mkdir(parents=True)
-        _copy_policy_lint_tree(d / ".claude/workflows")
+        _copy_policy_lint_tree(d / _pl.parent)
         (d / "tests/closures.json").write_text('{"closures": {}}\n')
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
@@ -25279,7 +25310,7 @@ R.check(
 # what it is excused for. So agreement is pinned here instead.
 _AH_CONST = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS ?? null)))"],
     capture_output=True, text=True).stdout or "null")
 _AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
@@ -25582,8 +25613,9 @@ R.check(
 # reader cannot decide, is a required context a body edit can re-report as
 # skipped at an existing head. The mapping must cover every context, so the
 # check cannot pass by mapping none.
-_RC_CONTEXTS = json.loads(Path(
-    ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"]
+_RC_CONTEXTS = json.loads(next(Path(p) for p in (
+    ".claude/workflows/fixtures/required-contexts.json",
+    "tools/policy/fixtures/required-contexts.json") if Path(p).is_file()).read_text())["contexts"]
 _RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
             for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
 
@@ -26409,7 +26441,7 @@ _VC_WORDS = (re.findall(r"'([a-z][a-z0-9-]*)'", _VC_ARR.group(1))
              if _VC_ARR else [])
 _BLOCK_CLASSES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "fromScript: m.blockClasses ? m.blockClasses() : null,"
      "guard: m.blockClasses ? m.blockClasses('// no array here') : null"
@@ -26441,7 +26473,7 @@ R.check(
 # acceptance drives only the healthy extraction.
 _SHA40 = "0" * 40
 _STATS_JS = (
-    "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+    _PL_IMPORT + ".then((m) => " +
     "console.log(m.statsFindings ? JSON.stringify(m.statsFindings({"
     "prs: [{pr: 1}, {pr: 2}, {pr: 3}],"
     "fetched: new Map([[1, {body: 'x', comments: ["
@@ -26482,7 +26514,7 @@ R.check(
 # control -- the fix must not over-refuse it.
 _STATS_BLOCKFOLD = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const call = (bodies) => {"
      "const prs = bodies.map((_, i) => ({ pr: i + 1 }));"
@@ -26537,7 +26569,7 @@ R.check(
 # outside-grammar report instead of the population this check measures.
 _STATS_COVER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const head = (i) => String(i).padStart(2, '0').repeat(20);"
      "const mk = (n, verdicts) => ({"
      "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
@@ -26594,8 +26626,8 @@ R.check(
 # reader that classifies nothing.
 _STATS_GRAMMAR = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const src = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const key = 'const VERDICT_RE = ';"
      "const start = src.indexOf(key) + key.length;"
@@ -26662,8 +26694,8 @@ R.check(
 # accepts that the histogram neither counts nor reports.
 _STATS_BODIES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const waveText = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const reKey = 'const VERDICT_RE = ';"
      "const reEnd = waveText.indexOf('\\n)', waveText.indexOf(reKey)) + 2;"
@@ -26761,7 +26793,7 @@ R.check(
 # a window that posted none -- a constant census satisfies neither direction.
 _STATS_REVIEWS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const run = (second) => {"
      "const h = m.statsHistogram([{ pr: 1 }, { pr: 2 }], new Map(["
@@ -26852,7 +26884,7 @@ def _fetch_ledger(reviews: str):
            "HPO_STUB_REVIEWS": reviews}
     run = subprocess.run(
         ["node", "--input-type=module", "-e",
-         "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+         _PL_IMPORT + ".then((m) => {" +
          "const r = m.fetchWindow([{ pr: 7001 }]);"
          "const f = r.fetched.get(7001) || {};"
          "console.log(JSON.stringify({ error: r.fetchError,"
@@ -26914,7 +26946,7 @@ def _sunset_drive():
                       capture_output=True, text=True).returncode != 0:
         ref = "HEAD"
     return subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs", "--sunset", "--since", ref],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--sunset", "--since", ref],
         capture_output=True, text=True, env={**_os.environ, "GITHUB_TOKEN": ""})
 
 
@@ -26951,8 +26983,8 @@ R.check(
 # re-derived rather than transcribed.
 _STATS_REWORK = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const load = (f) => { const d = JSON.parse(fs.readFileSync(f, 'utf8'));"
      "return { prs: d.records.map((r) => ({ pr: r.pr })),"
      "fetched: new Map(d.records.map((r) => "
@@ -27045,7 +27077,7 @@ R.check(
 # (4), and a reviewer's own `blocked <sha> head-moved` on a moved head (5).
 _STATS_ROUNDS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const M = (c) => 'Fix review: merge ' + sha(c);"
      "const B = (c, k) => 'Fix review: blocked ' + sha(c) + ' ' + k + ': x';"
@@ -27581,7 +27613,7 @@ def _ruleset_reader_fixture():
                    "PATH": f"{td / 'bin'}:{os.environ['PATH']}"}
             r = subprocess.run(
                 ["node", "--input-type=module", "-e",
-                 "import('./.claude/workflows/counts.mjs').then((m) => "
+                 _COUNTS_IMPORT + ".then((m) => " +
                  "console.log(JSON.stringify(m.liveRequiredContexts())))"],
                 capture_output=True, text=True, env=env)
             return r.returncode, r.stdout.strip()
@@ -27638,10 +27670,10 @@ def _template_arm_fixture():
         # own root, the same way it resolves the real template.
         env = {**os.environ, "POLICY_LINT_TEMPLATE": os.path.relpath(p, root)}
         rc_broken = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs"],
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
             capture_output=True, text=True, env=env).returncode
     rc_live = subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs"],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
         capture_output=True, text=True).returncode
     return rc_broken, rc_live
 

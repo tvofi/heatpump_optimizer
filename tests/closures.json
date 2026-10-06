@@ -453,7 +453,7 @@
    "tests/hastub/homeassistant/util/dt.py",
    "tests/nightly_ha.py",
    "tests/profiles.py",
-   "tools/gen_device_fixtures.py"
+   "tools/devices/gen_device_fixtures.py"
   ],
   "tests/edge.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -487,15 +487,7 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
-   ".claude/workflows/brief_lint.mjs",
    ".claude/workflows/cfr_exclusions.json",
-   ".claude/workflows/counts.mjs",
-   ".claude/workflows/figure_lint.mjs",
-   ".claude/workflows/fixtures/required-contexts.json",
-   ".claude/workflows/policy_lint.mjs",
-   ".claude/workflows/render_md.mjs",
-   ".claude/workflows/vendor/markdown-it.LICENSE",
-   ".claude/workflows/vendor/markdown-it.min.js",
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
    ".github/workflows/budget-raise-gate-rerun.yml",
@@ -678,7 +670,6 @@
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/judge_batch.py",
-   "tools/audit/preflight.sh",
    "tools/audit/round4/D11/d11lib.py",
    "tools/audit/round4/D11/dora_keys.py",
    "tools/audit/round4/D11/governance_cost.py",
@@ -697,6 +688,15 @@
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
+   "tools/policy/brief_lint.mjs",
+   "tools/policy/counts.mjs",
+   "tools/policy/figure_lint.mjs",
+   "tools/policy/fixtures/required-contexts.json",
+   "tools/policy/policy_lint.mjs",
+   "tools/policy/render_md.mjs",
+   "tools/policy/vendor/markdown-it.LICENSE",
+   "tools/policy/vendor/markdown-it.min.js",
+   "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
    "tools/replay/debug_ingest.py",
@@ -1013,8 +1013,8 @@
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
-   "tools/gen_device_fixtures.py",
-   "tools/measure_prefill_corpus.py"
+   "tools/devices/gen_device_fixtures.py",
+   "tools/devices/measure_prefill_corpus.py"
   ],
   "tests/frontend.py": [
    "custom_components/heatpump_optimizer/const.py",
@@ -2615,7 +2615,6 @@
    "tests/hastub/homeassistant/util/dt.py"
   ],
   "tests/md_tables.mjs": [
-   ".claude/workflows/vendor/markdown-it.min.js",
    "README.md",
    "docs/architecture.md",
    "docs/automations.md",
@@ -2624,7 +2623,8 @@
    "docs/ecl110.md",
    "docs/how-it-works.md",
    "docs/setup.md",
-   "tests/md_tables.mjs"
+   "tests/md_tables.mjs",
+   "tools/policy/vendor/markdown-it.min.js"
   ],
   "tests/layout.py": [
    "tests/layout.json",
@@ -3466,7 +3466,7 @@
    "docs/site/docs.css"
   ],
   "tests/entities.py": [
-   ".claude/workflows/figure_lint.mjs",
+   "tools/policy/figure_lint.mjs",
    "LICENSE",
    "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",

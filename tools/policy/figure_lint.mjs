@@ -90,6 +90,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { locate } from './counts.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
@@ -361,13 +362,18 @@ let atRev = null
 export const setRev = (rev) => { atRev = rev }
 
 function inTree(rel) {
+  // A body written before a move names the old path. `locate` is the file the
+  // command runs now; the path as written is the one a pinned rev still holds.
+  const names = rel === locate(rel) ? [rel] : [rel, locate(rel)]
   if (atRev) {
-    try {
-      execFileSync('git', ['cat-file', '-e', `${atRev}:${rel}`], { cwd: ROOT, stdio: 'ignore', timeout: 20000 })
-      return true
-    } catch { return false }
+    return names.some((n) => {
+      try {
+        execFileSync('git', ['cat-file', '-e', `${atRev}:${n}`], { cwd: ROOT, stdio: 'ignore', timeout: 20000 })
+        return true
+      } catch { return false }
+    })
   }
-  return fs.existsSync(path.join(ROOT, rel))
+  return names.some((n) => fs.existsSync(path.join(ROOT, n)))
 }
 
 // --- the analysis ------------------------------------------------------------

@@ -229,6 +229,20 @@ def subject_title(subject: str, body: str) -> str:
     return subject.strip()
 
 
+def merge_parents(parents: int) -> bool:
+    """Whether a first-parent commit is a pull-request merge.
+
+    Two or more parents is a merge and owes ``docs/delivery/<N>.md``. One
+    parent is a direct push — a release stamp, a ``record:`` commit — and
+    owes nothing. The record beat is a merge. Its row is written when the
+    pull request opens, anchoring the number: the merge SHA does not exist
+    until the merge, and the anchor does not need it. ``enumerate_merges``
+    calls this same predicate; a second parent-count rule is how the beat
+    was skipped in one reader and left overdue in the other.
+    """
+    return int(parents) > 1
+
+
 def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
     """Merges in the window, and the merge commits nothing could attribute.
 
@@ -262,7 +276,7 @@ def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
     for depth, commit in enumerate(commits):
         number = subject_number(commit["subject"], commit.get("body", ""))
         if number is None:
-            if int(commit.get("parents", 1)) > 1:
+            if merge_parents(int(commit.get("parents", 1))):
                 unattributed.append({"sha": commit["sha"],
                                      "subject": commit["subject"]})
             continue
@@ -496,12 +510,25 @@ ROW_DIR = "docs/delivery"
 ROW_ANCHOR = re.compile(r"^\s*[-*]\s+\[#(\d+)\]\((?:[^()\s]*/pull/)(\d+)\)")
 
 
+def anchored(number: int, line: str) -> bool:
+    """Whether `line` is a row for `number`.
+
+    The anchor is the number, in the link text and in the pull URL, and
+    nothing else. A merge SHA is not part of it: the record pull request's
+    own row is written before that pull request merges. `mentions` is the
+    search over lines this has accepted (and over the plan and the handover);
+    `record_row.rowed_line` is this function, not a second regex.
+    """
+    m = ROW_ANCHOR.match(line)
+    return bool(m) and int(m.group(1)) == int(m.group(2)) == int(number)
+
+
 def read_texts() -> list[str]:
     rows = [
         line
         for path in sorted((ROOT / locate(ROW_DIR)).glob("*.md")) if path.stem.isdigit()
         for line in path.read_text().splitlines()
-        if (m := ROW_ANCHOR.match(line)) and m[1] == m[2] == path.stem
+        if anchored(int(path.stem), line)
     ]
     return [
         (ROOT / locate(name)).read_text() for name in DISPOSITION_FILES
