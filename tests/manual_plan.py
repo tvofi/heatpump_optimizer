@@ -488,6 +488,113 @@ def test_off_window_over_pins(R: Results) -> None:
     )
 
 
+def _legionella_steps(plan) -> list[int]:
+    """Steps whose reason is the anti-legionella cycle itself."""
+    return [i for i, reason in enumerate(plan.dhw_reasons) if reason == REASON_LEGIONELLA]
+
+
+def test_legionella_outside_off_window(R: Results) -> None:
+    """An Off window must not delete an anti-legionella cycle placed in it (#1910).
+
+    The cycle is due (200 h since the last one, interval 7 days) on a 50 °C
+    tank whose disinfection target is 60 °C. With no window the plan puts the
+    cycle at step 1. A window over that step used to zero the slot and leave
+    the tank at the everyday ceiling; the cycle has to be bought on a step
+    the window leaves free. A window that does not cover step 1 leaves the
+    cycle there, and still buys no hot water inside itself.
+    """
+    R.section("An Off window plans the anti-legionella cycle outside itself (#1910)")
+    winter = _build_optimizer(
+        "winter_typical", "winter_cold", dhw_hours_since_legionella=200.0,
+    )
+    params = winter[0].model.params
+    bare = _solve(winter)
+    bare_steps = _legionella_steps(bare)
+    bare_max = float(np.max(bare.dhw_temp_trajectory))
+    R.check(
+        "with no Off window the overdue cycle is at step 1 and the tank reaches 60 C",
+        params.dhw_legionella_temp == 60.0
+        and params.dhw_legionella_interval_days == 7.0
+        and winter[1].dhw_temperature == 50.0
+        and bare_steps == [1]
+        and bare_max == 60.0,
+        f"steps {bare_steps} max {bare_max} "
+        f"target {params.dhw_legionella_temp} interval {params.dhw_legionella_interval_days}",
+    )
+
+    cover = np.zeros(N, dtype=bool)
+    cover[0:3] = True
+    covered = _solve(winter, off_steps=cover)
+    covered_steps = _legionella_steps(covered)
+    covered_max = float(np.max(covered.dhw_temp_trajectory))
+    covered_in = float(np.max(np.asarray(covered.dhw_power_schedule)[cover]))
+    R.check(
+        "an Off window covering the placed step plans the cycle outside it",
+        bool(covered_steps)
+        and all(not cover[i] for i in covered_steps)
+        and covered_in == 0.0
+        and covered_max == params.dhw_legionella_temp,
+        f"steps {covered_steps} in-window DHW {covered_in} max {covered_max}",
+    )
+
+    elsewhere = np.zeros(N, dtype=bool)
+    elsewhere[40:52] = True
+    left = _solve(winter, off_steps=elsewhere)
+    left_steps = _legionella_steps(left)
+    left_max = float(np.max(left.dhw_temp_trajectory))
+    left_in = float(np.max(np.asarray(left.dhw_power_schedule)[elsewhere]))
+    R.check(
+        "an Off window elsewhere leaves the cycle at step 1 and buys no hot water inside it",
+        left_steps == [1] and left_max == 60.0 and left_in == 0.0,
+        f"steps {left_steps} in-window DHW {left_in} max {left_max}",
+    )
+
+    # The overdue cycle's window is one step, so the reach simulation is what
+    # moves it. A deadline that still has hours left shops the cheapest step
+    # in that span, and an elastic cycle shops the horizon: both can land on
+    # an Off step the reach never needed. Step 10 is made strictly cheapest
+    # so the placement is that step and not the tied night price.
+    def cheap(hours: float):
+        bundle = _build_optimizer(
+            "winter_typical", "winter_cold", dhw_hours_since_legionella=hours,
+        )
+        opt, state, priced, outdoor, wind, rain, solar = bundle
+        priced = np.array(priced, dtype=float)
+        priced[10] = 0.01
+        return (opt, state, priced, outdoor, wind, rain, solar)
+
+    def outside(bundle, index: int, name: str) -> None:
+        bare_at = _legionella_steps(_solve(bundle))
+        mask = np.zeros(N, dtype=bool)
+        mask[index] = True
+        moved = _solve(bundle, off_steps=mask)
+        moved_at = _legionella_steps(moved)
+        moved_in = float(np.max(np.asarray(moved.dhw_power_schedule)[mask]))
+        R.check(
+            name,
+            bare_at == [index]
+            and moved_at == [1]
+            and moved_in == 0.0
+            and float(np.max(moved.dhw_temp_trajectory)) == 60.0,
+            f"bare {bare_at} moved {moved_at} in-window DHW {moved_in} "
+            f"max {float(np.max(moved.dhw_temp_trajectory))}",
+        )
+
+    outside(
+        cheap(158.0), 10,
+        "an Off window on the deadline's cheap hour plans the cycle elsewhere",
+    )
+    elastic = cheap(140.0)
+    elastic[0].model.params.dhw_elastic_legionella_enabled = True
+    elastic[0].model.params.dhw_legionella_price_ceiling = float(
+        np.max(elastic[2])
+    )
+    outside(
+        elastic, 10,
+        "an elastic cycle shops the hour outside an Off window",
+    )
+
+
 class _QuietCoord:
     def __init__(self, specs: dict) -> None:
         self._specs = specs
@@ -1483,6 +1590,7 @@ def _run() -> int:
     test_serialization(R)
     test_pins_change_schedule(R)
     test_off_window_over_pins(R)
+    test_legionella_outside_off_window(R)
     test_quiet_window_arms(R)
     test_safety_release(R)
     test_naive_expiry(R)
