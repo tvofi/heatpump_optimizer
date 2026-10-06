@@ -184,16 +184,26 @@ def mentions(number: int, texts: list[str]) -> bool:
     return any(pattern.search(t) for t in texts)
 
 
-def subject_number(subject: str) -> int | None:
-    """The pull-request number a first-parent subject names, or None.
+def subject_number(subject: str, body: str = "") -> int | None:
+    """The pull-request number a first-parent merge names, or None.
 
-    The merge shape is tried first: a squash subject cannot also be a merge
-    subject, but a merge subject whose branch name happened to end in `(#N)`
-    could be read as one, and the number GitHub wrote at the front is the
-    authoritative one.
+    The merge shape is tried first on the subject: a squash subject cannot
+    also be a merge subject, but a merge subject whose branch name happened
+    to end in `(#N)` could be read as one, and the number GitHub wrote at
+    the front is the authoritative one.
+
+    A deploy-key merge may carry the pull request TITLE as the subject, with
+    the number only on a body line ``Merge pull request #N``. That line is
+    the same grammar as the merge subject, so it is read only after the
+    subject itself named nothing; ``Fixes #N`` is an issue close, not that
+    line.
     """
     for pattern in (MERGE_SUBJECT, SQUASH_SUBJECT):
         found = pattern.search(subject)
+        if found:
+            return int(found.group(1))
+    for line in body.splitlines():
+        found = MERGE_SUBJECT.search(line.strip())
         if found:
             return int(found.group(1))
     return None
@@ -214,7 +224,9 @@ def subject_title(subject: str, body: str) -> str:
             if line.strip():
                 return line.strip()
         return subject.strip()
-    return subject[: subject.rfind("(#")].strip()
+    if SQUASH_SUBJECT.search(subject):
+        return subject[: subject.rfind("(#")].strip()
+    return subject.strip()
 
 
 def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
@@ -235,11 +247,12 @@ def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
     Measure the guard's false-positive surface at your own head rather than
     trusting this sentence; the enumerator is
 
-        git log --first-parent --format='%H%x1f%P%x1f%s' <range>
+        git log --first-parent --format='%H%x1f%P%x1f%s%x1f%b%x1e' <range>
 
     filtered to entries whose parent field holds more than one sha, then to
-    those `subject_number` returns None for. At the head this was written
-    against every such residual predated `v6.2.12` -- hand-written local merge
+    those `subject_number` returns None for (subject and body). At the head
+    this was written against every such residual predated `v6.2.12` --
+    hand-written local merge
     subjects from the W1/W2 waves -- so none is reachable from a window a
     release tag opens, and no single-parent commit anywhere in main's history
     was taken by `MERGE_SUBJECT`.
@@ -247,7 +260,7 @@ def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
     merges: list[dict] = []
     unattributed: list[dict] = []
     for depth, commit in enumerate(commits):
-        number = subject_number(commit["subject"])
+        number = subject_number(commit["subject"], commit.get("body", ""))
         if number is None:
             if int(commit.get("parents", 1)) > 1:
                 unattributed.append({"sha": commit["sha"],

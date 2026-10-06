@@ -491,14 +491,16 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
                 return False
             target = os.path.normpath(target)
             if target not in have:
-                # The old half of a move, absent until CI restores it. The
-                # command is the restored path; admitting it does not execute
-                # a file, and the new path is its own command on the else
-                # branch (R9-RO-6). A target that is not a retired path still
-                # refuses the line.
-                if not _retired_new(target):
-                    return False
-                continue
+                # `if test -f old; then` / `node old` are separate lines, so the
+                # new path is not on this one. An interpreter aimed at a retired
+                # path that is not in the tree does not run. A bare command of
+                # that path still refuses: the coverage_tree.sh probes are that
+                # command, and admitting one leaves the grader pinned.
+                # A space means the word is a command string (`bash -c 'old.sh fast'`),
+                # not the retired path. That probe must still taint.
+                if INTERP.match(w) and " " not in target and _retired_new(target):
+                    continue
+                return False
             if not any(spec_hit(sp, target) for sp in specs):
                 return False
             if target.endswith(".py") and "-I" not in flags:
