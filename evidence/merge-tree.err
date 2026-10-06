@@ -1,0 +1,18 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  max_class_loc: 9049 + both deltas = 9103
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/config_flow_steps.py: merged as a set (115 entries)
+  closures.tests/entities.py: merged as a set (218 entries)
+  closures.tests/env_drift.py: merged as a set (181 entries)
+  closures.tests/features.py: merged as a set (129 entries)
+  closures.tests/golden.py: merged as a set (183 entries)
+  closures.tests/manual_plan.py: merged as a set (95 entries)
+  closures.tests/structure.py: merged as a set (75 entries)
+  closures.tests/deployment_shape.py: merged as a set (113 entries)
+  closures.tests/typing_ruler.py: merged as a set (75 entries)
+  closures.tests/harness_headers.py: merged as a set (359 entries)
+  closures.tests/doc_claims.py: merged as a set (142 entries)
+  closures.tests/finite_boundary.py: merged as a set (104 entries)
+  closures.tests/arch_score_head.py: merged as a set (110 entries)
+  re-run the gate that owns this file before pushing
