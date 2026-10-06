@@ -325,4 +325,3 @@ RESULT thread_factor=1.0 ratio
   ok   seam_cut_total 765 <= 765
 
 STRUCTURE RATCHET PASSED
-STRUCT_RC:0

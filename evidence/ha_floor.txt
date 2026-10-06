@@ -1,2 +1,0 @@
-RESULT checked=147 missing=0 unrecorded=0 undecidable=0
-FLOOR_RC:0
