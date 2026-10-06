@@ -6700,7 +6700,7 @@
     "branch": "fix/r9-ro-2b-pr",
     "commit": "5a0d4f1fbe066cfc573a9e963aa6e28704f35ab4",
     "last_step": "MERGED as #1980 at 5a0d4f1f; #1931 closed",
-    "next_step": "Confirm that review. Merge only if it returns merge at this head and the required checks are green. Closes #1931. leaves #201 open.",
+    "next_step": "none; #1931 closed",
     "note_file": null,
     "review_branch": null,
     "review_note_file": null,
