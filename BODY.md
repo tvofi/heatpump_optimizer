@@ -4,11 +4,11 @@ The debug collector, its learning-page option, the `debug_collect` action, the f
 
 This head clears the reds measured on `8f75654777b9f10c07977386a00376d8a6f57280`. The catalogue headers still named the counts from before `debugger.py` and the debug-collection option, so `tests/harness_headers.py` exited 1 and the closure merge refused the batch. `config_flow` is float-free and now emits `debug_collect_enabled`; the fixture is re-recorded and claimed. `tests/features.py`'s Linux recording, rc 0, reads `services.yaml`; that path is in the committed closure. `tests/finite_boundary.py`'s top-level `_kept` collided with `debugger._kept`; the local is renamed `_finite_payload` because it is a sanitized payload, not that function.
 
-`origin/main` at 2026-10-06T13:15:42Z is `96683e6e7eecc2d35b5fa4cb632bfc0b2894e2ff`. `git merge-tree --write-tree origin/main HEAD` conflicts in `custom_components/heatpump_optimizer/diagnostics.py`. This head does not contain that tip. The measurements below are against merge-base `6568f70aed61f3197beed2ff4822fda473a5a785`.
+This head merges `origin/main` `96683e6e7eecc2d35b5fa4cb632bfc0b2894e2ff`. `diagnostics.py` keeps main's `diagnostics_state` view and this branch's debug bundle. The ledger merge's `coordinator_private_reach` of -1 is not the tree: `python3 tests/structure.py` on the merged tree measures 0, and `max_class_loc` 9067, both equal to the budgets in this commit. Figures taken before that merge are against `6568f70aed61f3197beed2ff4822fda473a5a785`.
 
 ## Head
 
-fd23d5b5cee3b6b812b05aea08366fdc40d3b347
+9da596f2e578e846a1fdff8619bf4acced647e46
 
 ## Mutation proof
 
@@ -36,7 +36,7 @@ Restored header, `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `AL
 
 `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 6568f70aed61f3197beed2ff4822fda473a5a785` — exit 0, `NO UNCLAIMED DRIFT`, `NO STALE FIXTURE`. `claims-for:` equals `VERSION` `6.7.16`.
 
-`python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`.
+`python3 tests/structure.py` on the merged tree — `RESULT coordinator_private_reach=0 count`, `RESULT max_class_loc=9067 count`, `RESULT seam_cut_total=772 count`, and every ratchet line `ok`. The ledger sum `-1` is not in the file.
 
 `python3 tests/closure.py no-copies` on `fd23d5b5cee3b6b812b05aea08366fdc40d3b347` — `closure: no test file defines a symbol production also defines`.
 
