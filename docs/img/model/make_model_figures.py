@@ -12,7 +12,7 @@ selects no gate script. (A generator under ``tools/`` would be an orphan until
 
     python3 tests/plan_view.py                       # writes the plan payload
     PYTHONPATH=tests/hastub:tests:custom_components \
-      python3 docs/img/make_model_figures.py
+      python3 docs/img/model/make_model_figures.py
 
 Run from the repository root.
 """
@@ -27,8 +27,8 @@ import sys
 
 import numpy as np
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-OUT = ROOT / "docs" / "img"
+ROOT = pathlib.Path(__file__).resolve().parents[3]
+OUT = ROOT / "docs" / "img" / "model"
 for extra in ("tests/hastub", "tests", "custom_components"):
     sys.path.insert(0, str(ROOT / extra))
 
