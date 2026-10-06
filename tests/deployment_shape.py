@@ -44,8 +44,8 @@ images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 96 of the 465 script pairs (31 choose 2) sharing 0.80 or more
-of their production-module closure, all 96 among the 351 pairs whose two
+recording finds 103 of the 496 script pairs (32 choose 2) sharing 0.80 or more
+of their production-module closure, all 103 among the 378 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
