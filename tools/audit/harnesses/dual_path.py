@@ -53,23 +53,28 @@ from pathlib import Path
 
 ROOT = Path(subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True,
                            text=True, check=True).stdout.strip())
-BODY = ".claude/workflows/fixtures/policy-rot/prepr/good.md"
+BODY = "tools/policy/fixtures/policy-rot/prepr/good.md"
+def _either(interp: str, old: str, new: str, args: str = "") -> str:
+    """Prefer the restored path, else the moved one. Both literals stay so a
+    grader restored from the base is the one that runs."""
+    tail = f" {args}" if args else ""
+    return f"if test -f {old}; then {interp} {old}{tail}; else {interp} {new}{tail}; fi"
 COMMANDS = [
-    ("rules_sync --check", "node .claude/workflows/rules_sync.mjs --check"),
+    ("rules_sync --check", _either("node", ".claude/workflows/rules_sync.mjs", "tools/policy/rules_sync.mjs", "--check")),
     ("codeowners_gap --check", "python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check"),
-    ("policy_lint", "node .claude/workflows/policy_lint.mjs"),
-    ("fragments_sync", "node .claude/workflows/fragments_sync.mjs"),
-    ("policy_lint --report", "node .claude/workflows/policy_lint.mjs --report"),
-    ("policy_lint --hooks", "node .claude/workflows/policy_lint.mjs --hooks"),
-    ("field_coverage", "node .claude/workflows/field_coverage.mjs"),
-    ("check-wave-script", "node .claude/workflows/check-wave-script.mjs"),
-    ("agreement_py", "python3 -I .claude/workflows/agreement_py.py --out $T/agreement.json"),
-    ("agreement", "node .claude/workflows/agreement.mjs --py-json $T/agreement.json"),
-    ("brief_lint", "node .claude/workflows/brief_lint.mjs"),
-    ("budget_raise_gate", "python3 -I .claude/workflows/budget_raise_gate.py --base HEAD~1 --head HEAD --pr 0"),
-    ("policy_lint --pr-body", "node .claude/workflows/policy_lint.mjs --pr-body $T/body.md --head $HEAD"),
-    ("figure_lint --pr-body", "node .claude/workflows/figure_lint.mjs --pr-body $T/body.md"),
-    ("preflight", "bash tools/audit/preflight.sh < $T/body.md"),
+    ("policy_lint", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
+    ("fragments_sync", _either("node", ".claude/workflows/fragments_sync.mjs", "tools/policy/fragments_sync.mjs")),
+    ("policy_lint --report", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--report")),
+    ("policy_lint --hooks", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--hooks")),
+    ("field_coverage", _either("node", ".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs")),
+    ("check-wave-script", _either("node", ".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs")),
+    ("agreement_py", _either("python3 -I", ".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py", "--out $T/agreement.json")),
+    ("agreement", _either("node", ".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs", "--py-json $T/agreement.json")),
+    ("brief_lint", _either("node", ".claude/workflows/brief_lint.mjs", "tools/policy/brief_lint.mjs")),
+    ("budget_raise_gate", _either("python3 -I", ".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py", "--base HEAD~1 --head HEAD --pr 0")),
+    ("policy_lint --pr-body", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--pr-body $T/body.md --head $HEAD")),
+    ("figure_lint --pr-body", _either("node", ".claude/workflows/figure_lint.mjs", "tools/policy/figure_lint.mjs", "--pr-body $T/body.md")),
+    ("preflight", "if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh < $T/body.md; else bash tools/pr/preflight.sh < $T/body.md; fi"),
     ("delivery_status --check", "python3 -I -S tests/delivery_status.py --check"),
 ]
 # One data file per grader that reads one, deleted for the `neither` arm.
@@ -359,7 +364,10 @@ def arm_shadow(base: str, tmp: Path) -> int:
         grown.write_text(grown.read_text() + "".join(f"Planted line {i} of prose that grows the file.\n" for i in range(grow)))
         git(tree, "add", "-A")
         commit(tree, f"planted: {name}")
-        r = subprocess.run(["node", ".claude/workflows/policy_lint.mjs"], cwd=tree, capture_output=True, text=True)
+        _lint = "tools/policy/policy_lint.mjs"
+        if (tree / ".claude/workflows/policy_lint.mjs").is_file():
+            _lint = ".claude/workflows/policy_lint.mjs"
+        r = subprocess.run(["node", _lint], cwd=tree, capture_output=True, text=True)
         ok = r.returncode == 1 and "exceeds its cap" in r.stdout
         bad += not ok
         print(f"  shadow {name}: policy_lint rc {r.returncode} {'refused' if ok else 'NOT REFUSED'}")

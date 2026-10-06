@@ -20,9 +20,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const MarkdownIt = require('../../.claude/workflows/vendor/markdown-it.min.js')
+const _vendorOld = new URL('../../.claude/workflows/vendor/markdown-it.min.js', import.meta.url)
+const _vendorNew = new URL('../policy/vendor/markdown-it.min.js', import.meta.url)
+const MarkdownIt = require(fileURLToPath(fs.existsSync(_vendorOld) ? _vendorOld : _vendorNew))
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []))
 const ROOT = args.root, OUT = args.out, MERMAID = args.mermaid || 'site/mermaid/mermaid.min.js'

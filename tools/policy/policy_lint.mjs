@@ -75,7 +75,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -1185,9 +1185,12 @@ function checkRuleBinding(model = null) {
       })
       continue
     }
+    // `tracked` is spelt at the old path (`canon`). A glob of the new path
+    // matches the file `locate` reads, which is where the harness opens it.
+    const boundNames = tracked.flatMap((f) => [f, locate(f)])
     for (const g of rule.globs) {
       const re = globToRe(g)
-      if (tracked.some((f) => re.test(f))) continue
+      if (boundNames.some((f) => re.test(f))) continue
       findings.push({
         severity: 'error',
         check: 'rule-binding',
