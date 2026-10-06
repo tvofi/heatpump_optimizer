@@ -470,6 +470,13 @@ restore_learned_snapshot:
     entry_id:
       selector:
         text: null
+    source:
+      example: snapshot
+      selector:
+        select:
+          options:
+          - snapshot
+          - refit
 diagnose_interval:
   fields:
     entry_id:

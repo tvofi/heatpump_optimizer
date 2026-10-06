@@ -460,6 +460,9 @@
     "restore_learned_snapshot_no_snapshot": {
       "message": "No learner snapshot qualifies for restore for {entry_ids}: a snapshot needs healthy inputs and in-band accuracy at its capture time"
     },
+    "restore_learned_snapshot_no_refit": {
+      "message": "No heat-loss refit is on offer for {entry_ids}: a refit needs an active drift alarm and three settled days of evidence"
+    },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
     },
@@ -1637,11 +1640,11 @@
     },
     "accuracy_drift": {
       "title": "Learned model is drifting",
-      "description": "The optimizer's predictions have been consistently off for several days, which usually means something about the house or the system changed faster than the learners can follow. Check that sensors read sensibly. If the plan has become noticeably worse, the \"Restore learned snapshot\" service rolls the learned model back to the last known-good weekly snapshot."
+      "description": "The optimizer's predictions have been consistently off for several days, which usually means something about the house or the system changed faster than the learners can follow. Check that sensors read sensibly. If the plan has become noticeably worse, the \"Restore learned snapshot\" service rolls the learned model back to the last known-good weekly snapshot. The Model Restart Advisor sensor and the card's Advisor tab offer that snapshot and, once three settled days of evidence exist, a refit of the house heat-loss scale with its uncertainty of about ±7-10 %. Nothing is applied until you accept one."
     },
     "accuracy_drift_rolled_back": {
       "title": "Learned model was restored from a snapshot",
-      "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point."
+      "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point. If predictions stay off, the Model Restart Advisor offers a refit of the house heat-loss scale after three settled days of evidence, with its uncertainty of about ±7-10 %; nothing is applied until you accept it."
     },
     "freq_watchdog": {
       "title": "Frequency control stood down",
@@ -1959,6 +1962,9 @@
       },
       "wood_burn_advisor": {
         "name": "Wood-Burn Night Advisor"
+      },
+      "model_restart_advisor": {
+        "name": "Model Restart Advisor"
       }
     },
     "binary_sensor": {
@@ -2350,11 +2356,15 @@
     },
     "restore_learned_snapshot": {
       "name": "Restore Learned Snapshot",
-      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore.",
+      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore. With the source set to the heat-loss refit, it instead accepts the drift advisor's refit of the house heat-loss scale, offered while the drift alarm is raised and three settled days of evidence exist.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the restore to one config entry. Leave empty to restore every configured heat pump."
+        },
+        "source": {
+          "name": "Restart point",
+          "description": "The weekly snapshot (default), or the drift advisor's heat-loss refit."
         }
       }
     },

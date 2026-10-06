@@ -1914,6 +1914,15 @@
    "extra_state_attributes": null,
    "native_value": "auto"
   },
+  "model_restart_advisor": {
+   "extra_state_attributes": {
+    "current_scale": 1.0,
+    "drift_alarm": false,
+    "refit": null,
+    "restore": null
+   },
+   "native_value": 1.0
+  },
   "monthly_peak": {
    "extra_state_attributes": {
     "free_headroom_threshold_kw": null,

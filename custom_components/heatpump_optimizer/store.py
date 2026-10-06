@@ -273,6 +273,8 @@ _ACCURACY: dict[str, Domain | str] = {
     "lead_counts/~": Domain("choice", choices=_LEADS), "lead_counts/*": Domain("int", 1),
     "lead_pending/#/0": _AT, "lead_pending/#/1": Domain("choice", choices=LEAD_BUCKETS),
     "lead_pending/#/2": _R,
+    # #1936: the last restore -- pairs before it never feed a refit.
+    "evidence_since": _AT,
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {
