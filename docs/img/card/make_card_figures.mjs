@@ -16,7 +16,7 @@
 //   python3 tests/plan_view.py                                   # 1-zone payload
 //   HPO_PLAN_TWO_ZONE=1 HPO_PLANDATA=/tmp/plandata-twozone.json \
 //     python3 tests/plan_view.py                                 # 2-zone payload
-//   node docs/img/make_card_figures.mjs
+//   node docs/img/card/make_card_figures.mjs
 //
 // Run from the repository root.
 import fs from "fs";
@@ -26,10 +26,10 @@ import { fileURLToPath } from "url";
 import {
   CARD_PATH, DEFAULT_SPACE, DEFAULT_DHW,
   makeCardContext, loadCard, collect, planStates, frozenDateClass,
-} from "../../tests/card_rig.mjs";
+} from "../../../tests/card_rig.mjs";
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const OUT = path.join(ROOT, "docs/img");
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../../..");
+const OUT = path.join(ROOT, "docs/img/card");
 
 // Same default-path derivation as tests/card.mjs and tests/plan_view.py, so a
 // run here cannot be satisfied by another checkout's stale payload.
