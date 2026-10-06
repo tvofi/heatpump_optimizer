@@ -9,14 +9,15 @@
   ok   a DHW block replacing a boost does not set the space settling tail
   ok   a later boost clears the block
   ok   no block leaves the action unchanged
-  FAIL a space block zeroes space power and not the supply switch  [predicate false]
-  FAIL a space block does not invent power_normalized  [predicate false]
+  ok   a space block zeroes space power and not the supply switch
+  ok   a space block does not invent power_normalized
   ok   a DHW block zeroes hot water
   ok   no floor is a reason
-  ok   a cycle inside the horizon releases DHW
+  ok   a due or overdue cycle inside the horizon releases DHW
   ok   a cycle exactly at the horizon does not release
   ok   a live disinfection hold releases DHW
   ok   the tank at its minimum inside a window releases DHW
+  ok   the tank at its minimum outside a demand window does not release
   ok   the room floor releases at the margin and not above it
   ok   the cold rail releases a space block
   ok   the cold rail is strict below its threshold
@@ -46,5 +47,5 @@
   ok   the arbiter releases a block a floor forbids before it serves a duty
   ok   both channels blocked is idle
 
-2 of 45 BLOCK DUTY CHECKS FAILED
-POWER_BLOCK_RC:1
+ALL 46 BLOCK DUTY CHECKS PASSED
+
