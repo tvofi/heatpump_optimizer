@@ -24968,6 +24968,7 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_CHEAP_PRICE as _R_CHEAP,
     REASON_COMFORT_FLOOR as _R_FLOOR,
     REASON_IDLE as _R_IDLE,
+    REASON_IDLE_COASTING as _R_COAST,
     REASON_PREHEAT_WEATHER as _R_PREHEAT,
     REASON_SCHEDULED as _R_SCHED,
     REASON_SOLAR_SURPLUS as _R_SURPLUS,
@@ -25026,8 +25027,9 @@ _ranked = _classify(
     _pw_idle, _pr_cl, _room_low, _min_cl, _hl_cl, _surplus_cl, _n_cl
 )
 R.check(
-    "idle, comfort floor and solar surplus all still outrank it",
-    _ranked[2] == _R_IDLE
+    "an idle step above the floor says it is coasting, and comfort floor "
+    "and solar surplus still outrank the fall-through",
+    _ranked[2] == _R_COAST
     and _ranked[3] == _R_FLOOR
     and _ranked[4] == _R_SURPLUS,
     f"{_ranked}",
@@ -58234,11 +58236,10 @@ R.check(
     f"bands {_r9egb1_bands}; configured {_r9egb1_h2_e[1]}, {_r9egb1_h2_a[1]}",
 )
 
-# The what-ifs keep the bases they had: a price tile, run in the solve's tail,
-# prices against the plan it follows -- the setback included -- and its target
-# tiles perturb that plan's target; the card's what-if prices against the
-# configured band. Whether the card should see the setback is the owner's
-# decision (#1736's parity lead), so this pins today's answer at both ends.
+# The what-ifs: a price tile, run in the solve's tail, prices against the
+# plan it follows -- the setback included -- and its target tiles perturb
+# that plan's target. The card's what-if honours the same active setback
+# (R9-UX-5), and without one it prices the configured band.
 def _r9egb1_whatifs():
     coord = _r9egb1_coord(away=True)
     coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
@@ -58268,15 +58269,17 @@ except Exception as _r9egb1_err:  # noqa: BLE001 - a raise is this check's failu
     _r9egb1_w_card, _r9egb1_w_seen = {"error": "raised"}, []
 _r9egb1_w_away = float(_r9egb1_w_coord._away_state.target_temperature or 0.0)
 R.check(
-    "#1736 the price tile prices against its solve's record (setback band, "
-    "target one below the set-back target); the card against the configured band",
+    "UX-5 the price tile and the card's what-if both price the active setback",
     _r9egb1_w_reason is None
     and "error" not in _r9egb1_w_card
     and len(_r9egb1_w_seen) == 3
     and [c.comfort_temp_day for c in _r9egb1_w_seen]
-    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_coord._opt_config.comfort_temp_day]
+    == [_r9egb1_w_away, _r9egb1_w_away, _r9egb1_w_away]
     and _r9egb1_w_seen[1].target_temp == round(min(21.0, _r9egb1_w_away) - 1.0, 1)
-    and _r9egb1_w_seen[2].target_temp == _r9egb1_w_coord._opt_config.target_temp,
+    and _r9egb1_w_seen[2].target_temp == min(
+        _r9egb1_w_coord._opt_config.target_temp, _r9egb1_w_away)
+    and _r9egb1_w_seen[2].min_temp == min(
+        _r9egb1_w_coord._opt_config.min_temp, _r9egb1_w_away),
     f"{_r9egb1_w_reason!r} {_r9egb1_w_card.get('error')}; day/target per solve "
     f"{[(c.comfort_temp_day, c.target_temp) for c in _r9egb1_w_seen]}",
 )
@@ -58637,5 +58640,155 @@ R.check(
     and _eg_short(None, np.zeros(2), np.zeros(1), 0.0, None, None, 0.25, None, np.array([0.06]), set())[2] == 0,
 )
 
+
+# R9-UX-5 (#1795): exact idle sub-codes, the what-if's setback, the published
+# floor, and the comfort event's cause.
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    REASON_IDLE as _UX5_IDLE,
+    REASON_IDLE_COASTING as _UX5_COAST,
+    REASON_IDLE_DEARER as _UX5_DEAR,
+    REASON_IDLE_FUSE as _UX5_FUSE,
+    REASON_IDLE_OTHER as _UX5_OTHER,
+    REASON_IDLE_SOLAR as _UX5_SOLAR,
+    classify_dhw_steps as _ux5_dhw,
+    classify_space_steps as _ux5_space,
+    idle_reason as _ux5_idle_reason,
+)
+from heatpump_optimizer.narrative import ZERO_ENERGY_REASONS as _UX5_ZERO  # noqa: E402
+from heatpump_optimizer.notifier import _comfort as _ux5_comfort  # noqa: E402
+
+_ux5_n = 4
+_ux5_power = np.array([2.0, 0.0, 0.0, 1.5])
+_ux5_prices = np.array([0.4, 1.2, 0.3, 0.5])
+_ux5_room = np.array([21.0, 21.5, 21.5, 21.2, 21.0])
+_ux5_floor = np.full(_ux5_n, 19.0)
+_ux5_loss = np.ones(_ux5_n)
+_ux5_dear = _ux5_space(
+    _ux5_power, _ux5_prices, _ux5_room, _ux5_floor, _ux5_loss, None, _ux5_n,
+)
+R.check(
+    "UX-5 an idle step dearer than every hour that ran says so",
+    _ux5_dear[1] == _UX5_DEAR,
+    str(_ux5_dear),
+)
+_ux5_at_floor = _ux5_room.copy()
+_ux5_at_floor[2] = 19.0
+_ux5_cheap = _ux5_prices.copy()
+_ux5_cheap[1] = 0.2
+_ux5_plain = _ux5_space(
+    _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+)
+R.check(
+    "UX-5 an idle step at the floor and not dearer than the hours used stays idle",
+    _ux5_plain[1] == _UX5_IDLE,
+    str(_ux5_plain),
+)
+_ux5_caps = np.array([5.0, 0.0, 5.0, 5.0])
+_ux5_fused = _ux5_space(
+    _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+    caps=_ux5_caps,
+)
+R.check(
+    "UX-5 an idle step whose fuse cap leaves no room says the fuse",
+    _ux5_fused[1] == _UX5_FUSE,
+    str(_ux5_fused),
+)
+_ux5_other = np.array([0.0, 2.0, 0.0, 0.0])
+R.check(
+    "UX-5 an idle step whose other channel is drawing says so, ahead of the fuse",
+    _ux5_space(
+        _ux5_power, _ux5_cheap, _ux5_at_floor, _ux5_floor, _ux5_loss, None, _ux5_n,
+        other=_ux5_other, caps=_ux5_caps,
+    )[1] == _UX5_OTHER,
+)
+_ux5_sun = np.array([0.0, 0.0, 1.5, 0.0])
+R.check(
+    "UX-5 an idle step with solar before the next run is waiting for solar",
+    _ux5_space(
+        np.array([0.0, 0.0, 0.0, 2.0]), _ux5_prices, _ux5_at_floor, _ux5_floor,
+        _ux5_loss, _ux5_sun, _ux5_n,
+    )[1] == _UX5_SOLAR,
+)
+_ux5_dhw_idle = _ux5_dhw(
+    np.array([0.0, 0.0]), np.zeros(2, dtype=bool), np.zeros(2), None, 2,
+)
+_ux5_dhw_exact = _ux5_dhw(
+    np.array([0.0, 2.0]), np.array([False, True]), np.zeros(2), None, 2,
+    prices=np.array([2.0, 0.4]),
+    tank=np.array([50.0, 50.0, 48.0]),
+    floors=np.array([40.0, 40.0]),
+    other=np.array([3.0, 0.0]),
+)
+R.check(
+    "UX-5 a hot-water step with no prices or tank stays idle, and one whose "
+    "other channel is drawing names that",
+    _ux5_dhw_idle == [_UX5_IDLE, _UX5_IDLE] and _ux5_dhw_exact[0] == _UX5_OTHER,
+    str((_ux5_dhw_idle, _ux5_dhw_exact)),
+)
+R.check(
+    "UX-5 every idle sub-code is a zero-energy narrative reason",
+    {_UX5_DEAR, _UX5_COAST, _UX5_FUSE, _UX5_SOLAR, _UX5_OTHER} <= _UX5_ZERO,
+)
+_ux5_cold = {
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 18.6}],
+    "space_plan": {"forecast": [
+        {"t": "2026-10-03T06:00:00+02:00", "reason": "idle_fuse"},
+    ]},
+}
+_ux5_occ = _ux5_comfort(_ux5_cold)
+_ux5_plain_evt = _ux5_comfort({
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 18.6}],
+})
+_ux5_ok = _ux5_comfort({
+    "min_temperature": 19.0,
+    "schedule": [{"time": "2026-10-03T06:00:00+02:00", "room_temp": 19.0}],
+    "space_plan": {"forecast": [{"t": "2026-10-03T06:00:00+02:00", "reason": "idle_fuse"}]},
+})
+R.check(
+    "UX-5 the comfort event names the coldest step's reason, and a plan with "
+    "no forecast still fires with no cause",
+    _ux5_occ["comfort"].data["cause"] == "idle_fuse"
+    and _ux5_plain_evt["comfort"].data["cause"] is None
+    and _ux5_ok == {},
+    str((_ux5_occ, _ux5_plain_evt, _ux5_ok)),
+)
+_ux5_home = _r9egb1_coord()
+_ux5_home_cfg = _ux5_home._solve_hubs(
+    8, banded=_r9egb1_cmod._whatif_banded(_ux5_home._away_state)
+)[0]
+_ux5_away = _r9egb1_coord(away=True)
+# The update resolves away before it publishes; a payload read before that
+# still shows the configured floor, which is the defect's own shape.
+_ux5_away._resolve_away()
+_ux5_home._resolve_away()
+_ux5_away_view = _ux5_away._build_data_dict()
+_ux5_home_view = _ux5_home._build_data_dict()
+R.check(
+    "UX-5 without a setback the what-if band and the published floor stay configured",
+    not _r9egb1_cmod._whatif_banded(_ux5_home._away_state)
+    and _ux5_home_cfg.target_temp == _ux5_home._opt_config.target_temp
+    and _ux5_home_cfg.min_temp == _ux5_home._opt_config.min_temp
+    and _ux5_home_view["min_temperature"] == _ux5_home._opt_config.min_temp
+    and "configured_min_temperature" not in _ux5_home_view,
+    str((_ux5_home_cfg.target_temp, _ux5_home_view.get("min_temperature"))),
+)
+R.check(
+    "UX-5 during a setback the thermal view publishes the floor the plan uses "
+    "and names the configured one beside it",
+    _r9egb1_cmod._whatif_banded(_ux5_away._away_state)
+    and _ux5_away_view["min_temperature"] == min(
+        _ux5_away._opt_config.min_temp, _ux5_away._away_state.target_temperature)
+    and _ux5_away_view["configured_min_temperature"] == _ux5_away._opt_config.min_temp
+    and _ux5_away_view["min_temperature"] != _ux5_away_view["configured_min_temperature"],
+    str({k: _ux5_away_view.get(k) for k in ("min_temperature", "configured_min_temperature")}),
+)
+# idle_reason is the production function the two classifiers call; a direct
+# call with nothing to go on is the null for a step the sub-codes cannot see.
+R.check(
+    "UX-5 idle_reason with no signal is idle",
+    _ux5_idle_reason(0, np.zeros(1), None, None, None, None, None, None, 0.05) == _UX5_IDLE,
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

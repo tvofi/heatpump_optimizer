@@ -600,6 +600,7 @@ class PlanSettingsView(TypedDict, total=False):
     day_end_hour: int
     horizon_hours: float
     min_temperature: float
+    configured_min_temperature: float
     max_temperature: float
 
 

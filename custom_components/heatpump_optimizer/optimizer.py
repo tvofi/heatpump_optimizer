@@ -966,6 +966,86 @@ REASON_DHW_READY = "dhw_ready"
 REASON_DHW_PREHEAT = "dhw_preheat"
 REASON_LEGIONELLA = "legionella"
 REASON_IDLE = "idle"
+#: Why an idle step is idle, when the solved plan shows it (R9-UX-5). One
+#: code, the most specific that applies: a hard limit, then a named wait,
+#: then the price, then coasting. ``idle`` remains the fall-through.
+REASON_IDLE_OTHER = "idle_other_channel"
+REASON_IDLE_FUSE = "idle_fuse"
+REASON_IDLE_SOLAR = "idle_solar"
+REASON_IDLE_DEARER = "idle_dearer"
+REASON_IDLE_COASTING = "idle_coasting"
+_IDLE_REASONS = frozenset({
+    REASON_IDLE, REASON_IDLE_OTHER, REASON_IDLE_FUSE, REASON_IDLE_SOLAR,
+    REASON_IDLE_DEARER, REASON_IDLE_COASTING,
+})
+
+
+def _above_floor(i: int, level: np.ndarray | None, floor: np.ndarray | None) -> bool:
+    """The step's temperature is clear of the floor the plan was holding.
+
+    ``level`` is a trajectory with the initial state at index 0, so step ``i``
+    reads index ``i + 1``, the same index the heating classifier uses.
+    """
+    if level is None or floor is None or i >= len(floor) or len(level) == 0:
+        return False
+    j = i + 1 if i + 1 < len(level) else len(level) - 1
+    return float(level[j]) > float(floor[i]) + 0.15
+
+
+def _dearer_than_used(
+    i: int, power: np.ndarray, prices: np.ndarray | None, threshold: float,
+) -> bool:
+    """This idle step costs more than every hour the channel actually ran."""
+    if prices is None or i >= len(prices) or len(power) == 0:
+        return False
+    n = min(len(power), len(prices))
+    used = np.asarray(prices[:n], dtype=float)[np.asarray(power[:n], dtype=float) > threshold]
+    return bool(used.size) and float(prices[i]) > float(np.max(used))
+
+
+def _waiting_for_solar(
+    i: int, power: np.ndarray, surplus: np.ndarray | None, threshold: float,
+) -> bool:
+    """Surplus arrives before this channel's next run, and not at this step."""
+    if surplus is None or i >= len(surplus) or float(surplus[i]) > 1e-6:
+        return False
+    nxt = i + 1
+    while nxt < len(power) and float(power[nxt]) <= threshold:
+        if nxt < len(surplus) and float(surplus[nxt]) > 1e-6:
+            return True
+        nxt += 1
+    return False
+
+
+def idle_reason(
+    i: int,
+    power: np.ndarray,
+    prices: np.ndarray | None,
+    level: np.ndarray | None,
+    floor: np.ndarray | None,
+    surplus: np.ndarray | None,
+    other: np.ndarray | None,
+    caps: np.ndarray | None,
+    threshold: float,
+) -> str:
+    """The exact idle sub-code for step ``i``, or ``idle`` when none applies.
+
+    Ranked. The other channel drawing, and a fuse cap that leaves no
+    electrical room, are limits the plan did not choose. Waiting for solar
+    and a price above every hour that ran are choices. Coasting is what is
+    left when the temperature is simply above the floor.
+    """
+    if other is not None and i < len(other) and float(other[i]) > threshold:
+        return REASON_IDLE_OTHER
+    if caps is not None and i < len(caps) and float(caps[i]) <= threshold:
+        return REASON_IDLE_FUSE
+    if _waiting_for_solar(i, power, surplus, threshold):
+        return REASON_IDLE_SOLAR
+    if _dearer_than_used(i, power, prices, threshold):
+        return REASON_IDLE_DEARER
+    if _above_floor(i, level, floor):
+        return REASON_IDLE_COASTING
+    return REASON_IDLE
 
 
 def classify_space_steps(
@@ -977,6 +1057,9 @@ def classify_space_steps(
     surplus: np.ndarray | None,
     n_steps: int,
     threshold: float = 0.05,
+    *,
+    other: np.ndarray | None = None,
+    caps: np.ndarray | None = None,
 ) -> list[str]:
     """Why each space-heating step is where it is.
 
@@ -999,7 +1082,10 @@ def classify_space_steps(
     cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
     for i in range(n_steps):
         if power[i] <= threshold:
-            reasons.append(REASON_IDLE)
+            reasons.append(idle_reason(
+                i, power, prices, room_temps, temp_min_bounds, surplus,
+                other, caps, threshold,
+            ))
             continue
         # Closest to a hard requirement wins: at or below the comfort floor,
         # the plan has no choice.
@@ -1033,12 +1119,27 @@ def classify_dhw_steps(
     legionella_step: int | None,
     n_steps: int,
     threshold: float = 0.05,
+    *,
+    prices: np.ndarray | None = None,
+    tank: np.ndarray | None = None,
+    floors: np.ndarray | None = None,
+    other: np.ndarray | None = None,
+    caps: np.ndarray | None = None,
+    surplus: np.ndarray | None = None,
 ) -> list[str]:
-    """Why each hot-water step is where it is."""
+    """Why each hot-water step is where it is.
+
+    Idle steps take the same sub-codes as space heating. Callers that do not
+    pass prices, the tank, the floor, the other channel, the fuse cap or the
+    surplus get ``idle``, which is what a hot-water path with none of those
+    in hand used to publish as an empty explanation.
+    """
     reasons: list[str] = []
     for i in range(n_steps):
         if power[i] <= threshold:
-            reasons.append(REASON_IDLE)
+            reasons.append(idle_reason(
+                i, power, prices, tank, floors, surplus, other, caps, threshold,
+            ))
             continue
         if legionella_step is not None and i == legionella_step:
             reasons.append(REASON_LEGIONELLA)
@@ -1130,9 +1231,45 @@ def _mark_blocked_reasons(reasons: list[str], blocked: bool) -> list[str]:
     if not blocked:
         return reasons
     return [
-        REASON_PUMP_MODE if reason == REASON_IDLE else reason
+        REASON_PUMP_MODE if reason in _IDLE_REASONS else reason
         for reason in reasons
     ]
+
+
+def _dhw_reason_list(
+    h: _Horizon,
+    space_power: np.ndarray,
+    dhw_power: np.ndarray | None,
+    dhw_temps: np.ndarray | None,
+    in_window: np.ndarray | None,
+    ready: np.ndarray | None,
+    legionella_step: int | None,
+    floors: np.ndarray | None,
+    surplus: np.ndarray | None,
+) -> list[str]:
+    """Hot-water reasons for a result, including when the caller has no windows.
+
+    The shared builder used to store an empty list and let only the DHW path
+    fill it, so any result that carried hot-water power without that second
+    assignment published no reason at all. Idle steps still get the sub-codes
+    when the caller has no demand windows to pass.
+    """
+    if dhw_power is None:
+        return []
+    n = h.n_steps
+    window = in_window if in_window is not None else np.zeros(n, dtype=bool)
+    ready_arr = ready if ready is not None else np.zeros(n)
+    return _mark_blocked_reasons(
+        _mark_manual_reasons(
+            classify_dhw_steps(
+                dhw_power, window, ready_arr, legionella_step, n,
+                prices=h.prices, tank=dhw_temps, floors=floors,
+                other=space_power, caps=h.power_caps_extra, surplus=surplus,
+            ),
+            h.dhw_pins,
+        ),
+        h.dhw_blocked,
+    )
 
 
 def _mark_manual_reasons(
@@ -2329,6 +2466,10 @@ class HeatPumpOptimizer:
         wood_temps: np.ndarray | None = None,
         predictive_info: dict[str, Any] | None = None,
         objective_value: float = float("nan"),
+        dhw_in_window: np.ndarray | None = None,
+        dhw_ready: np.ndarray | None = None,
+        dhw_legionella_step: int | None = None,
+        dhw_floors: np.ndarray | None = None,
     ) -> OptimizationResult:
         """Assemble the result both solve paths return.
 
@@ -2419,12 +2560,17 @@ class HeatPumpOptimizer:
                         h.heat_loss_factors,
                         self._pv_surplus,
                         h.n_steps,
+                        other=dhw_power,
+                        caps=h.power_caps_extra,
                     ),
                     h.space_pins,
                 ),
                 h.space_blocked,
             ),
-            dhw_reasons=[],
+            dhw_reasons=_dhw_reason_list(
+                h, space_power, dhw_power, dhw_temps, dhw_in_window, dhw_ready,
+                dhw_legionella_step, dhw_floors, self._pv_surplus,
+            ),
             price_known=self._price_known_list(h.n_steps),
             projected_peak_kw=grid["peak_kw"],
             peak_cost=grid["peak_cost"],
@@ -4463,6 +4609,10 @@ class HeatPumpOptimizer:
             dhw_power=optimal_dhw,
             dhw_temps=dhw_temps,
             dhw_cost=dhw_cost,
+            dhw_in_window=in_demand_window,
+            dhw_ready=dhw_ready_temps,
+            dhw_legionella_step=dhw_plan.legionella_step,
+            dhw_floors=dhw_floor_temps,
             predictive_info={
                 "dhw_peak_usage_hours": [
                     int(step_hours[idx]) % 24
@@ -4501,21 +4651,6 @@ class HeatPumpOptimizer:
                 ),
                 "dhw_hold_hours": round(float(self.model.dhw_hold_hours()), 1),
             },
-        )
-        # The only reason codes the shared builder cannot produce: they depend
-        # on the demand windows and legionella deadline this path computed.
-        result.dhw_reasons = _mark_blocked_reasons(
-            _mark_manual_reasons(
-                classify_dhw_steps(
-                    optimal_dhw,
-                    in_demand_window,
-                    dhw_ready_temps,
-                    dhw_plan.legionella_step,
-                    n_steps,
-                ),
-                h.dhw_pins,
-            ),
-            h.dhw_blocked,
         )
         return result
 

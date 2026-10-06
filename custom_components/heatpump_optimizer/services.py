@@ -40,6 +40,7 @@ from .const import (
     CONF_DHW_MIN_TEMP,
     CONF_DHW_SETPOINT,
     CONF_DHW_TANK_VOLUME,
+    CONF_TARGET_TEMP,
     CONF_DHW_WINDOWS,
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
@@ -50,6 +51,7 @@ from .const import (
     CONF_WOOD_FURNACE_ENABLED,
     DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
+    DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
     CONF_TOPOLOGY_LAYOUT,
@@ -226,6 +228,15 @@ SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
             vol.Coerce(float), vol.Range(min=0.0, max=1.0)
         ),
         vol.Optional("comfort_temp_day"): vol.All(
+            vol.Coerce(float), vol.Range(min=5, max=30)
+        ),
+        # The inbox Apply and the what-if save. Both are options keys, so a
+        # reload keeps them; set_thermal_parameters writes the same keys but
+        # the card's Apply goes through this service.
+        vol.Optional(CONF_DHW_SETPOINT): vol.All(
+            vol.Coerce(float), vol.Range(min=30, max=75)
+        ),
+        vol.Optional(CONF_TARGET_TEMP): vol.All(
             vol.Coerce(float), vol.Range(min=5, max=30)
         ),
         # The coarse range matches the options flow; the real ceiling depends
@@ -918,7 +929,7 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
         CONF_DAY_START_HOUR,
         CONF_DAY_END_HOUR,
         CONF_COMFORT_TEMP_DAY,
-        CONF_DHW_MIN_TEMP,
+        CONF_DHW_MIN_TEMP, CONF_DHW_SETPOINT, CONF_TARGET_TEMP,
     ):
         if data.get(key) is not None:
             updates[key] = data[key]
@@ -1014,15 +1025,15 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
     # impossible minimum is not rejected downstream -- the plan would simply
     # sit in permanent slight violation, which is close to undiagnosable
     # from the outside. Hence a hard failure here.
-    if CONF_DHW_MIN_TEMP in updates:
-        wanted = float(updates[CONF_DHW_MIN_TEMP])
+    if CONF_DHW_MIN_TEMP in updates or CONF_DHW_SETPOINT in updates:
         for entry in targets:
-            setpoint = float(
-                entry.options.get(
-                    CONF_DHW_SETPOINT,
-                    entry.data.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
-                )
-            )
+            stored = {**entry.data, **entry.options}
+            setpoint = float(updates.get(
+                CONF_DHW_SETPOINT, stored.get(CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT),
+            ))
+            wanted = float(updates.get(
+                CONF_DHW_MIN_TEMP, stored.get(CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP),
+            ))
             ceiling = setpoint - DHW_MIN_TEMP_SETPOINT_MARGIN
             if wanted > ceiling:
                 raise ServiceValidationError(

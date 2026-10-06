@@ -14024,6 +14024,34 @@ R.check(
     _svc_entry.options.get(const.CONF_DAY_START_HOUR) == 6
     and _svc_entry.options.get(const.CONF_DAY_END_HOUR) == 21,
 )
+_svc_call(
+    const.SERVICE_APPLY_SCHEDULE,
+    {"dhw_setpoint": 52.0, "target_temperature": 20.5},
+)
+R.check(
+    "apply_schedule persists the hot-water setpoint and the comfort target",
+    _svc_entry.options.get(const.CONF_DHW_SETPOINT) == 52.0
+    and _svc_entry.options.get(const.CONF_TARGET_TEMP) == 20.5,
+    str({
+        "dhw": _svc_entry.options.get(const.CONF_DHW_SETPOINT),
+        "target": _svc_entry.options.get(const.CONF_TARGET_TEMP),
+    }),
+)
+_ux5_set_before = _svc_entry.options.get(const.CONF_DHW_SETPOINT)
+_ux5_set_refused = None
+try:
+    _svc_call(const.SERVICE_APPLY_SCHEDULE, {"dhw_setpoint": 46.0})
+except ServiceValidationError as err:
+    _ux5_set_refused = str(err)
+R.check(
+    "apply_schedule refuses a setpoint that leaves no deadband under the stored minimum",
+    _ux5_set_refused is not None
+    and _svc_entry.options.get(const.CONF_DHW_SETPOINT) == _ux5_set_before,
+    f"refused={_ux5_set_refused!r} stored={_svc_entry.options.get(const.CONF_DHW_SETPOINT)!r}",
+)
+# Later checks on this entry treat an absent target as "never written".
+_svc_entry.options.pop(const.CONF_DHW_SETPOINT, None)
+_svc_entry.options.pop(const.CONF_TARGET_TEMP, None)
 
 # v5.1.7 — the comfort band, on every path that writes it.
 #
@@ -32249,6 +32277,8 @@ def _egb3_top(fn, names=("data", "out")):
 _egb3_resolve = {
     "self._legionella.disinfect.view()": ("disinfection", "view"),
     "self._away_state.as_dict()": ("away", "as_dict"),
+    "state.as_dict()": ("away", "as_dict"),
+    "_fold_away(self._away_state, data)": ("coordinator", "_fold_away"),
     "_plan_settings_view(ctx._opt_config)": ("coordinator", "_plan_settings_view"),
 }
 _egb3_inline = {"two_tank", "view()", "data"}

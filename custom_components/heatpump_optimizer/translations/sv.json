@@ -1909,6 +1909,11 @@
           "dhw_ready": "Gör tanken redo",
           "dhw_window": "Varmvatten behövs nu",
           "idle": "Viloläge",
+          "idle_coasting": "Över golvet, i medgång",
+          "idle_dearer": "Dyrare än de timmar som används",
+          "idle_fuse": "Begränsat av säkringen",
+          "idle_other_channel": "Den andra kanalen har kapaciteten",
+          "idle_solar": "Väntar på sol",
           "legionella": "Legionellacykel",
           "manual_plan": "Ditt eget schema",
           "preheat_weather": "Förvärmning inför kallare väder",
@@ -2365,6 +2370,14 @@
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
           "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
+        },
+        "dhw_setpoint": {
+          "name": "Varmvattenbörvärde",
+          "description": "Tanktemperaturen planen värmer mot. Skrivs in i konfigurationen, så den finns kvar efter en omladdning."
+        },
+        "target_temperature": {
+          "name": "Komfortmål",
+          "description": "Innetemperaturen planen håller. Skrivs in i konfigurationen, så den finns kvar efter en omladdning."
         }
       }
     },

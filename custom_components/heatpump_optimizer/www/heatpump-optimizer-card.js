@@ -185,6 +185,7 @@ const STRINGS = {
     "advisor.act_degree": "Try in what-if",
     "advisor.optin_degree": "Price of a degree",
     "advisor.applied": "Valve target set to {to} °C.",
+    "advisor.applied_setpoint": "Hot-water setpoint set to {to} °C.",
     "advisor.apply_failed": "Could not apply: {error}",
     // The drift alarm's restart points (R9-DIAG-2S, #1936).
     "advisor.refit_title": "Restart the heat-loss model at {to} (now {from})",
@@ -318,6 +319,12 @@ const STRINGS = {
     "why.dhw_off": "Hot water off",
     "why.both_off": "Space heating and hot water off",
     "why.likely": "Likely because:",
+    "why.because": "Because:",
+    "why.sub_other": "the other channel has the capacity",
+    "why.sub_fuse": "the fuse limit caps heating",
+    "why.sub_solar": "the plan is waiting for solar",
+    "why.sub_dearer": "this hour is dearer than the hours the plan uses",
+    "why.sub_coasting": "the temperature is above the floor, so the plan is coasting",
     "why.price_rank":
       "{price} {unit} is among the dearest {pct} % of the plan " +
       "(cheapest {min})",
@@ -800,6 +807,7 @@ const STRINGS = {
     "advisor.act_degree": "Prova i what-if",
     "advisor.optin_degree": "Pris på en grad",
     "advisor.applied": "Ventilmålet satt till {to} °C.",
+    "advisor.applied_setpoint": "Varmvattenbörvärdet satt till {to} °C.",
     "advisor.apply_failed": "Kunde inte verkställa: {error}",
     "advisor.refit_title": "Starta om värmeförlustmodellen på {to} (nu {from})",
     "advisor.refit_detail":
@@ -906,6 +914,12 @@ const STRINGS = {
     "why.dhw_off": "Varmvattnet av",
     "why.both_off": "Husvärmen och varmvattnet av",
     "why.likely": "Troligen för att:",
+    "why.because": "Därför att:",
+    "why.sub_other": "den andra kanalen har kapaciteten",
+    "why.sub_fuse": "säkringen begränsar värmen",
+    "why.sub_solar": "planen väntar på sol",
+    "why.sub_dearer": "denna timme är dyrare än de timmar planen använder",
+    "why.sub_coasting": "temperaturen ligger över golvet, så planen går på sparad värme",
     "why.price_rank":
       "{price} {unit} hör till de dyraste {pct} % av planen " +
       "(billigast {min})",
@@ -7323,6 +7337,23 @@ function tooltipHtml(rows, whyHtml) {
  * hover would otherwise show nothing at all, and "the optimizer chose not
  * to" is exactly the wrong reading of a mode the unit itself enforces.
  */
+const IDLE_FAMILY = new Set([
+  "idle", "idle_other_channel", "idle_fuse", "idle_solar",
+  "idle_dearer", "idle_coasting",
+]);
+// Most telling first: fitWhy drops the last line, so this is what a small
+// card keeps.
+const IDLE_SUB_ORDER = [
+  "idle_fuse", "idle_other_channel", "idle_solar", "idle_dearer", "idle_coasting",
+];
+const IDLE_SUB_LINE = {
+  idle_fuse: "why.sub_fuse",
+  idle_other_channel: "why.sub_other",
+  idle_solar: "why.sub_solar",
+  idle_dearer: "why.sub_dearer",
+  idle_coasting: "why.sub_coasting",
+};
+
 function reasonHtml(rows) {
   const out = [];
   const seen = new Set();
@@ -7342,7 +7373,7 @@ function reasonHtml(rows) {
       : "reasons.pump_mode_space";
   for (const r of rows) {
     const pumpMode = r.reason === "pump_mode";
-    if ((!r.reason || r.reason === "idle") && !pumpMode) continue;
+    if ((!r.reason || IDLE_FAMILY.has(r.reason)) && !pumpMode) continue;
     if (seen.has(r.reason)) continue;
     seen.add(r.reason);
     let label;
@@ -7425,15 +7456,35 @@ function idleWhyHtml(rows, ctx) {
   for (const ch of ["space", "dhw"]) {
     const row = (rows || []).find((r) => r.field === `${ch}_power`);
     if (!row || row.value > WHY_RUNNING_KW) continue;
-    if (row.reason && row.reason !== "idle") continue;
+    if (row.reason && !IDLE_FAMILY.has(row.reason)) continue;
     const fc = ctx[ch] || [];
     const ts = fc.map((p) => Date.parse(p.t));
     const i = ts.indexOf(Number(row.t));
     if (i < 0) continue;
     if (t === null) t = ts[i];
-    idle.push({ ch, fc, ts, i });
+    idle.push({ ch, fc, ts, i, reason: row.reason });
   }
   if (!idle.length) return "";
+  const { ts: headTs, i: headI } = idle[0];
+  const step =
+    headI + 1 < headTs.length ? headTs[headI + 1] - headTs[headI]
+      : headI > 0 ? headTs[headI] - headTs[headI - 1] : 900000;
+  const exact = [...new Set(
+    idle.map((x) => x.reason).filter((r) => IDLE_SUB_LINE[r])
+  )].sort((a, b) => IDLE_SUB_ORDER.indexOf(a) - IDLE_SUB_ORDER.indexOf(b));
+  const head = idle.length > 1 ? "why.both_off" : `why.${idle[0].ch}_off`;
+  const whyBlock = (label, lines) => (
+    `<div class="tt-why"><span class="why-head">` +
+    `${esc(`${whyClock(t)}\u2013${whyClock(t + step)}`)} \u00b7 ` +
+    `${esc(L(head))}. ${esc(L(label))}</span><ul>` +
+    lines.map((l) => `<li>${esc(l)}</li>`).join("") +
+    `</ul></div>`
+  );
+  // A published sub-code replaces the inferred lines. It is the exact
+  // reason; the likely-because list is what remains when there is none.
+  if (exact.length) {
+    return whyBlock("why.because", exact.map((r) => L(IDLE_SUB_LINE[r])));
+  }
   const unit = ctx.priceUnit || "";
   const money = (v) => Number(v).toFixed(2);
   const lines = [];
@@ -7455,9 +7506,6 @@ function idleWhyHtml(rows, ctx) {
   }
 
   const { ts: sts, i: si } = idle[0];
-  const step =
-    si + 1 < sts.length ? sts[si + 1] - sts[si]
-      : si > 0 ? sts[si] - sts[si - 1] : 900000;
   for (const { ch, fc, ts, i } of idle) {
     const running = (k) => Number(fc[k][`${ch}_power`]) > WHY_RUNNING_KW;
     // The run it coasts on: the last stretch of running steps before it.
@@ -7499,14 +7547,7 @@ function idleWhyHtml(rows, ctx) {
   }
 
   if (!lines.length) return "";
-  const head = idle.length > 1 ? "why.both_off" : `why.${idle[0].ch}_off`;
-  return (
-    `<div class="tt-why"><span class="why-head">` +
-    `${esc(`${whyClock(t)}\u2013${whyClock(t + step)}`)} \u00b7 ` +
-    `${esc(L(head))}. ${esc(L("why.likely"))}</span><ul>` +
-    lines.map((l) => `<li>${esc(l)}</li>`).join("") +
-    `</ul></div>`
-  );
+  return whyBlock("why.likely", lines);
 }
 /** Keep the tooltip inside a chart `cap` px tall by shortening the idle
  * explanation, its last (least telling) line first, and dropping it whole
@@ -8216,9 +8257,14 @@ function advisorRows(host) {
       const from = Number(attrs.current_setpoint);
       if (!Number.isFinite(to) || !Number.isFinite(from) || to === from) return null;
       const perDay = dhwCostPerDay(attrs.candidates, from) - dhwCostPerDay(attrs.candidates, to);
+      // The money is interpolated off the sweep. The write is the recommended
+      // setpoint the sensor publishes, never that interpolation.
+      const recommended = Number(attrs.recommended_setpoint);
+      const write = Number.isFinite(recommended) ? recommended : to;
       return {
-        value: perDay > 0 ? perDay * DAYS_PER_MONTH : null, act: "open_schedule",
-        title: L("advisor.dhw_title", { from, to }), detail: L("advisor.dhw_detail"),
+        value: perDay > 0 ? perDay * DAYS_PER_MONTH : null,
+        act: "apply_dhw", target: write,
+        title: L("advisor.dhw_title", { from, to: write }), detail: L("advisor.dhw_detail"),
       };
     }),
     advisorRow(plan, "valve", (to, attrs) => {
@@ -8250,7 +8296,7 @@ function advisorRows(host) {
 
 function advisorRowHtml(host, row) {
   const act = {
-    assign: "advisor.act_assign", open_schedule: "advisor.act_schedule",
+    assign: "advisor.act_assign", apply_dhw: "advisor.act_apply",
     apply_valve: "advisor.act_apply", try_degree: "advisor.act_degree",
     adopt_refit: "advisor.act_adopt", restore_snapshot: "advisor.act_restore",
   };
@@ -8548,8 +8594,18 @@ function attachAdvisorInbox(host, root) {
         host.setup.pickerFocus = viaKeyboard;
         host.setup.pickerViaKeyboard = viaKeyboard;
         host.dialog.page = "setup";
-      } else if (act === "open_schedule") {
-        host.dialog.page = "plan";
+      } else if (act === "apply_dhw") {
+        const to = Number(btn.dataset.target);
+        if (!Number.isFinite(to)) return;
+        try {
+          await host.hass.callService("heatpump_optimizer", "apply_schedule", {
+            dhw_setpoint: to,
+          });
+          note(L("advisor.applied_setpoint", { to }));
+        } catch (err) {
+          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+        }
+        return;
       } else if (act === "try_degree") {
         // Seed the what-if slider with the tile's target and run it.
         const to = Number(btn.dataset.target);
@@ -10635,6 +10691,7 @@ class WhatIfPanel {
         day_end_hour: draft.dayEnd,
         dhw_windows: formatWindows(draft.dhwWindows),
         comfort_temp_day: draft.comfort,
+        target_temperature: draft.comfort,
         dhw_min_temperature: draft.dhwMin,
       });
       out.className = "wi-result cheaper";
