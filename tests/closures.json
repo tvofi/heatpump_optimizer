@@ -26,8 +26,8 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 341.3,
-   "rc": 1
+   "seconds": 167.2,
+   "rc": 0
   },
   "tests/env_drift.py": {
    "seconds": 0.9,
@@ -691,6 +691,7 @@
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+   "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
@@ -2932,6 +2933,7 @@
   "tests/entities.py": [
    ".claude/workflows/figure_lint.mjs",
    "LICENSE",
+   "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py"
   ]
