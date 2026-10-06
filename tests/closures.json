@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 476.5,
+   "seconds": 127.0,
    "rc": 0
   },
   "tests/doc_claims.py": {
@@ -2126,6 +2126,7 @@
    "tests/stress.py",
    "tests/stress_budgets.json",
    "tests/structure.py",
+   "tools/audit/judge_batch.py",
    "tools/audit/repo_root.py",
    "tools/audit/round3/D0/arms_decomposition.py",
    "tools/audit/round3/D0/budget_slack.py",
@@ -2342,7 +2343,9 @@
    "tools/audit/round4/D9/h9_null_plans.py",
    "tools/audit/round4/D9/verify2_h9_sample.py",
    "tools/audit/round4/D9/verify3_h7_mmap.py",
-   "tools/audit/round4/D9/verify3_h9_profile.py"
+   "tools/audit/round4/D9/verify3_h9_profile.py",
+   "tools/audit/round5/D13/seat-a/dora_cfr.py",
+   "tools/audit/round6/D11/fix/codeowners_gap.py"
   ],
   "tests/doc_claims.py": [
    "DISCLAIMER.md",
