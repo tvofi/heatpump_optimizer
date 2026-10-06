@@ -25573,8 +25573,9 @@ R.check(
 # reader cannot decide, is a required context a body edit can re-report as
 # skipped at an existing head. The mapping must cover every context, so the
 # check cannot pass by mapping none.
-_RC_CONTEXTS = json.loads(Path(
-    ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"]
+_RC_CONTEXTS = json.loads(next(Path(p) for p in (
+    ".claude/workflows/fixtures/required-contexts.json",
+    "tools/policy/fixtures/required-contexts.json") if Path(p).is_file()).read_text())["contexts"]
 _RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
             for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
 

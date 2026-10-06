@@ -90,7 +90,7 @@ jobs:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
         run: |
           set -euo pipefail
-          rm -rf .claude/workflows/vendor tools/policy/vendor
+          rm -rf .claude/workflows/vendor
           # Each program at its path before and after the reorganisation (R9-RO-2):
           # the diff lists what PINNED holds of them, skipping the half it lacks,
           # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
@@ -114,15 +114,6 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          # The rm above deletes both vendor trees; the pin puts back only the
-          # one the base carries. The other stays in the index, and the base
-          # walk reads it. Put that half back from this head.
-          if [ ! -f tools/policy/vendor/markdown-it.min.js ] && git cat-file -e "HEAD:tools/policy/vendor/markdown-it.min.js" 2>/dev/null; then
-            git checkout HEAD -- tools/policy/vendor
-          fi
-          if [ ! -f .claude/workflows/vendor/markdown-it.min.js ] && git cat-file -e "HEAD:.claude/workflows/vendor/markdown-it.min.js" 2>/dev/null; then
-            git checkout HEAD -- .claude/workflows/vendor
-          fi
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
