@@ -452,8 +452,14 @@ def check_repo_roots() -> None:
         except RuntimeError:
             refused = True
         R.check("repo_root refuses a directory with no manifest", refused, tmp)
+    # run.sh exports PYTHONPATH=$PWD/tests/hastub and nothing else. This file
+    # inserts "tests" itself before importing harness; a child does not inherit
+    # that insertion, so the scan has to make the same insertion. Without it
+    # the child raises ModuleNotFoundError: No module named 'harness_headers'
+    # (fast 3.14 on 95880c58).
     proc = subprocess.run(
         [sys.executable, "-c",
+         "import sys; sys.path.insert(0, 'tests'); "
          "import harness_headers; raise SystemExit(harness_headers.inline_scan())"],
         cwd=ROOT, env=os.environ, capture_output=True, text=True,
     )
