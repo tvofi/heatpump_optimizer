@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:ModelRestartAdvisorSensor.native_value RETURN_DEL b9a14709",
+  "killed_by": "tests/features.py",
+  "old": "        return None if scale is None else float(scale)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
