@@ -1,0 +1,40 @@
+head ec401ab3a7aa25c17f04c15acaa8c49a6c1fae7a
+worktree /Users/timmalmstrom/hpo-seats/r9-dbg-1-review-ec40/wt
+detached HEAD ec401ab3a7aa25c17f04c15acaa8c49a6c1fae7a
+
+tests/derive_closures.sh
+  169: rec tests/guard_pins.py
+  174: rec tests/debug_collect.py
+  182: rec tests/finite_boundary.py
+tests/run.sh
+  484: run tests/guard_pins.py
+  488: run tests/debug_collect.py
+  493: run tests/finite_boundary.py
+
+tests/closures.json closures["tests/debug_collect.py"] length 81
+order-equal to 50a36f792eb32913607bc003408c4b6661e41a73
+order-equal to 33f6e8edfbee922929a61d7bbd3f665e52f624d8
+recorded at head {"seconds": 2.2, "rc": 0}
+recorded at 50a36f79 {"seconds": 0.6, "rc": 0}
+bab72287a6460a6f4246a7c5857792f248dc9d9f: no tests/debug_collect.py entry, 31 scripts
+origin/main 00da22db537a688efe6a7a9518a9fc91767c3a5a: no tests/debug_collect.py entry, 31 scripts
+head: 32 scripts, entry present
+
+parent merge-tree 33f6e8ed bab72287 exit 0
+tree 8188575b7da54750a0ee7a9e4eee2c5d57aabc7d
+commit tree ec401ab3^{tree} 8188575b7da54750a0ee7a9e4eee2c5d57aabc7d
+stderr: LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/doc_claims.py: merged as a set (141 entries)
+
+origin/main merge-tree exit 1
+content conflicts:
+  README.md
+  custom_components/heatpump_optimizer/strings.json
+  custom_components/heatpump_optimizer/translations/en.json
+  custom_components/heatpump_optimizer/translations/sv.json
+  docs/architecture.md
+  tests/deployment_shape.py
+  tools/audit/round4/D6/claims.md
+  tools/audit/round4/D6/claims.py
+stderr: LEDGER-MERGE resolved tests/structure_budgets.json and tests/closures.json
+no MERGE-CLAIM line
