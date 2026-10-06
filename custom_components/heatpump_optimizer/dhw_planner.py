@@ -146,6 +146,10 @@ def _legionella_charge(
     power = np.full(n_steps, p_dhw_run)
     if off is None:
         return power
+    # ``np.where(None, ...)`` is the full array, so this guard would be
+    # equivalent to its absence. Indexing None is not, and that is the
+    # difference the reach is refusing: no window is not an Off mask.
+    off = off.astype(bool)
     return np.where(off, 0.0, power)
 
 
@@ -175,7 +179,11 @@ def _drop_off_steps(mask: np.ndarray, off: np.ndarray | None) -> np.ndarray:
     """``mask`` with Off steps removed. The same array when there is no window."""
     if off is None:
         return mask
-    return mask & ~off
+    # The numpy stub types ``&`` of two unparameterised ndarrays as ``Any``.
+    # The annotated name is what ``-> np.ndarray`` returns; a bare return of
+    # the expression is the ruler's ``no-any-return``.
+    kept: np.ndarray = mask & ~off
+    return kept
 
 
 class _DhwLegionellaPlan(NamedTuple):
