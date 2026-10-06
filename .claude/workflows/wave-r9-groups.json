@@ -6699,7 +6699,7 @@
     "stage": "done",
     "branch": "fix/r9-ro-2b-pr",
     "commit": "5a0d4f1fbe066cfc573a9e963aa6e28704f35ab4",
-    "last_step": "PR #1980 head 356eb0152efb4e5cc775a1af8e4ea2ecb2c8e5de merges handoff 360847e8b6da0a2c3206a166461b408fbe2106fe (codeowners_gap.py in INERT_EXCEPT and in the tests/entities.py closure). The merge verdict on 569e0e63 does not cover this head. A review of 356eb015 is in flight.",
+    "last_step": "MERGED as #1980 at 5a0d4f1f; #1931 closed",
     "next_step": "Confirm that review. Merge only if it returns merge at this head and the required checks are green. Closes #1931. leaves #201 open.",
     "note_file": null,
     "review_branch": null,
