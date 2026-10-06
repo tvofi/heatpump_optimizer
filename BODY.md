@@ -14,7 +14,7 @@ Planner power on a switch-plus-setpoint install that has no frequency entity. On
 
 ## Head
 
-afbf64f3a396dc26ead7ef70d1151d7b1953a733
+b71f454fee369934bfdf2d0c5438ccbed1277743
 
 Merged `origin/main` at `6001b09a557259f37319b400d219cf83e02c563f` (`2026-10-06T21:12:46Z`).
 
@@ -39,9 +39,13 @@ none
 
 ## Red checks
 
-`tests/features.py` "R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it" printed the same pair on this branch and on unmodified `origin/main` at `a28fd0ae` (optimizer.py is unchanged from there to `6001b09a`). The branch did not move it. Cheaper detector: none; that check is the measurement.
+typing. `tests/typing_ruler.py --mypy` on the previous head recorded errors 0 and measured 1, code attr-defined, in optimizer.py: `duty_floor_kw` was passed on `OptimizationResult` with no field. The field is declared and passed in the constructor. Cheaper detector: none. The source-only ruler `tests/run.sh` runs counts ignores and does not see an undeclared field; the census is the check.
 
-`tests/features.py` "R9-F2.4 P2: the arbiter splits a step's duty on the plan's own running rule, so no caller can hand it a threshold" went red while `step_duty` had a third parameter. The parameter is gone. The final tree's signature has two parameters and the duties are `both`, `space`.
+mutation. The job refused ledger completeness: six `killed_by` pins whose old source text was no longer a site the inventory generates. The pin step did not run; its refusal pattern is the unpinned form, and this was not that form. Those six lines are restored, and the expressions added around them are not one-line sites, so the inventory reports completeness 0 and no added unpinned site. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which performs that inventory and returns before it drives a mutant. Standing cost is one inventory pass, no clone and no solve.
+
+env-matrix. `policy_lint_envmatrix.mjs` spawned `node .claude/workflows/policy_lint.mjs` (and the mutants and wave-script siblings). That path is gone; the scripts live at `tools/policy/`. Every shape exited 1 with the module missing, so `pins` stayed null. The matrix now spawns `tools/policy/policy_lint.mjs`, `tools/policy/policy_lint_mutants.mjs` and `tools/policy/check-wave-script.mjs`. The row assertions are unchanged. Cheaper detector: none. The matrix is the process that executes those paths.
+
+`tests/features.py` "R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it" printed the same pair on this branch and on unmodified `origin/main` at `a28fd0ae` (optimizer.py is unchanged from there to `6001b09a`). The branch did not move it. Cheaper detector: none; that check is the measurement.
 
 ## Forward-carry
 
