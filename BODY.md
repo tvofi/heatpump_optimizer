@@ -8,7 +8,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`50a36f792eb32913607bc003408c4b6661e41a73`
+`33f6e8edfbee922929a61d7bbd3f665e52f624d8`
 
 ## Mutation proof
 
@@ -28,9 +28,10 @@ The pin drive's null control, on that same head: `null control custom_components
 
 ## Figures
 
-Taken at `50a36f792eb32913607bc003408c4b6661e41a73`, 2026-10-06T18:20:18Z, origin/main `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872`.
+Taken at `33f6e8edfbee922929a61d7bbd3f665e52f624d8`, 2026-10-06T19:56:47Z, origin/main `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872`. `python3 tests/structure.py` and `./tests/derive_closures.sh --single tests/debug_collect.py` were run at this head. The other commands were run at `50a36f792eb32913607bc003408c4b6661e41a73`; this commit does not change the files they read.
 
 - `python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT max_class_loc=9048 count`. `RESULT seam_cut_total=765 count`.
+- `./tests/derive_closures.sh --single tests/debug_collect.py` — exit 0. `git diff` on `tests/closures.json` changes only the recorded `seconds` for that script.
 - `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT claims_true=123 claims`. `RESULT claims_false=0 claims`.
 - `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` — `ALL 30 DEBUG COLLECT CHECKS PASSED`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` — `MODE: FULL -- every test script runs, nothing is scoped out.` Reason: `tests/run.sh` changes the gate itself. `tests/run.sh` was not run unscoped.
@@ -39,9 +40,11 @@ Taken at `50a36f792eb32913607bc003408c4b6661e41a73`, 2026-10-06T18:20:18Z, origi
 
 ## Red checks
 
+`closures`. Job 112436237942, run 37512253135, on `50a36f792eb32913607bc003408c4b6661e41a73`: `selectable script(s) with NO recording this run: tests/debug_collect.py`. The committed closure already listed it. The full arm re-derives from the lanes in `tests/derive_closures.sh`, and those lanes did not record it. Cheaper detector: none. The roster check is `tests/closure.py check` on that full re-derive; nothing in the tree compares selectable scripts to the `rec` lines before CI.
+
 `closures`. Under-scoped `tests/features.py` by `services.yaml` on an earlier head. The Linux recording's rc is 0 and that path is in the committed closure. Cheaper detector: the recording JSON's `rc` plus `tests/closure.py check`, both already produced by the job. No cheaper detector exists for a file a completed run newly opens.
 
-`closures-autofix`. `skip-failed-recording` on `tests/harness_headers.py` at that earlier head. Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds.
+`closures-autofix`. Job 112457301514 printed `allowed=True` and `AUTOFIX: skip-clean`. No bot commit. An earlier head printed `skip-failed-recording` on `tests/harness_headers.py`. Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds, for that earlier recording failure. `skip-clean` is the job's own summary line.
 
 `fast (3.14)`. On `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`. This head has `run "$PYTHON" tests/debug_collect.py` in `lane_units`.
 
