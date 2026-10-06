@@ -4744,7 +4744,7 @@ R.check(
 # snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
 # being unknown; `python3 tests/ha_floor.py record` re-records it, and the
 # nightly floor container re-asks every answer of Home Assistant itself.
-# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+# Root cause and cost test: dev/audit/rca/R9-RCA-1869.md.
 R.section("P11: every Home Assistant name production reaches exists at the floor")
 
 import ha_floor as _p11  # noqa: E402

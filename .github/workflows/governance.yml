@@ -586,7 +586,7 @@ jobs:
 
       # Class R-register (round 9, #1759): every in-tree judge survivor sits in
       # exactly one class, every class that met an adopted trigger carries a
-      # barrier or an rca document under tools/audit/rca, and the counts the
+      # barrier or an rca document under dev/audit/rca, and the counts the
       # ledger carries are the ones its instances derive. The checker is the
       # pull request's own copy, not a pinned one: a pinned grader must be
       # declared in field_coverage.mjs, which is itself pinned, so the pull
