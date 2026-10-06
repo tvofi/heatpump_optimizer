@@ -1180,10 +1180,12 @@ claim("C108", "README.md + docs/*.md",
 claim("C109", "README.md + docs/how-it-works.md",
       "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md "
       "resolve",
-      CMD, "those three files are removed from the round-4 export by "
-      "tools/audit/prepare_baseline.sh; this tree cannot answer",
+      CMD, "finder_wall in tools/audit/prepare_baseline.sh removes "
+      "docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; "
+      "this tree cannot answer",
       "unverifiable",
-      "not checkable in the export -- COMMON.md's wall removes exactly these files")
+      "not checkable in the export -- finder_wall removes docs/audit-*.md, "
+      "dev/archive/audits/audit-*.md and dev/archive/backlog.md")
 
 _imgs = []
 for _f in _doc_files:

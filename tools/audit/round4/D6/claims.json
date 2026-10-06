@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (91 links)",
+  "claim": "every relative link resolves (81 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "91 links, broken=[], of which removed-by-the-export=[]",
+  "result": "81 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -976,9 +976,9 @@
   "source": "README.md + docs/how-it-works.md",
   "claim": "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md resolve",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "those three files are removed from the round-4 export by tools/audit/prepare_baseline.sh; this tree cannot answer",
+  "result": "finder_wall in tools/audit/prepare_baseline.sh removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; this tree cannot answer",
   "verdict": "unverifiable",
-  "truth": "not checkable in the export -- COMMON.md's wall removes exactly these files"
+  "truth": "not checkable in the export -- finder_wall removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md"
  },
  {
   "id": "C110",

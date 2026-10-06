@@ -280,11 +280,9 @@ INERT = (
     # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
     # _is_header_corpus before a live harness lands under dev/audit/, or the
     # move would declare a file the gate reads as unread.
-    # The marker stays. policy-docs restores policy_lint.mjs from the base,
-    # and that copy's NOT_A_DOCUMENT still names this extension, so a tree
-    # with no such file is FIXTURE VACUOUS.
-    ".abacus.donotdelete",
     "dev/archive/",
+    # Section 3.2's pull-request note. Nothing in the gate reads it.
+    "tools/pr/README.md",
     "dev/audit/",
     ".claude/",
     # Cursor project rules (`.cursor/rules/*.mdc`). Agents load them; nothing
