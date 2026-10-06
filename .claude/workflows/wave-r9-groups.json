@@ -7012,7 +7012,7 @@
     "stage": "in-flight",
     "branch": "handoff/r9-diag-2s",
     "commit": "3c51d2403722fc7a6de9ba2cd7f29e18dda56c77",
-    "last_step": null,
+    "last_step": "handoff/r9-diag-2s is 3c51d2403722fc7a6de9ba2cd7f29e18dda56c77 (fixture key 875ed11c, then the refit-band pin). PR #1983 is still b403d2bf6d90f82e38da738c493d86479d5c6782, approved, mutation red. A pin process was still running at measurement.",
     "next_step": "refit estimator per doc section 4, then sensor + inbox row + accept path",
     "note_file": "handoff/round9/fix/resume/DIAG-2S.md on fix/r9-diag-2s",
     "review_branch": null,
