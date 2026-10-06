@@ -121,18 +121,20 @@ _LOGGER = logging.getLogger(__name__)
 
 def _duty_floor(opt: HeatPumpOptimizer) -> float | None:
     """``p_min`` on a clamped install, else ``None`` (the duty-cycle reading)."""
-    if not opt.config.clamp_planned_levels:
-        return None
-    return float(opt.model.params.min_electrical_power)
+    return (
+        float(opt.model.params.min_electrical_power)
+        if opt.config.clamp_planned_levels
+        else None
+    )
 
 
 def _published_levels(
     clamp: bool, power: np.ndarray, p_min: float, p_max: float
 ) -> np.ndarray:
     """The schedule that ships: identity unless the install cannot duty-cycle."""
-    if not clamp:
-        return power
-    return project_planned_levels(power, p_min, p_max)
+    return (
+        project_planned_levels(power, p_min, p_max) if clamp else power
+    )
 
 
 def _realize_draw(
@@ -143,10 +145,13 @@ def _realize_draw(
     p_max: float,
 ) -> tuple[np.ndarray, np.ndarray | None]:
     """Space and, when present, DHW at the power the write surface can deliver."""
-    space = _published_levels(clamp, space, p_min, p_max)
-    if dhw is None:
-        return space, None
-    return space, _published_levels(clamp, dhw, p_min, p_max)
+    return (
+        _published_levels(clamp, space, p_min, p_max),
+        (
+            None if dhw is None
+            else _published_levels(clamp, dhw, p_min, p_max)
+        ),
+    )
 
 
 def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
@@ -1304,6 +1309,10 @@ class OptimizationResult:
     #: keys at all.
     mode_blocked_space: bool = False
     mode_blocked_dhw: bool = False
+    #: ``p_min`` when this solve projected unrealizable levels (#1955).
+    #: Absent (None) keeps ``step_duty``'s duty-cycle reading. Not a
+    #: caller argument: the plan carries the floor it was solved under.
+    duty_floor_kw: float | None = None
 
 
 @dataclass
@@ -2393,7 +2402,7 @@ class HeatPumpOptimizer:
         upper_setpoints, lower_setpoints = self._zone_setpoints(space_power)
         two_zone = self.model.params.two_zone_enabled
 
-        result = OptimizationResult(
+        return OptimizationResult(
             power_schedule=space_power.tolist(),
             room_temp_trajectory=room_temps.tolist(),
             slab_temp_trajectory=slab_temps.tolist(),
@@ -2472,9 +2481,8 @@ class HeatPumpOptimizer:
             pv_surplus=self._pv_surplus_list(h.n_steps),
             pv_self_consumed_kwh=self._pv_self_consumed(total_power, h.dt),
             predictive_info=predictive_info or {},
+            duty_floor_kw=_duty_floor(self),
         )
-        result.duty_floor_kw = _duty_floor(self)
-        return result
 
     def _co_optimize(
         self,

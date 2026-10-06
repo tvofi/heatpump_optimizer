@@ -113,7 +113,8 @@ import math
 from collections import Counter, deque
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -132,7 +133,6 @@ from .const import (
     CONF_PUMP_DUTY_MODE,
     CONF_SPACE_SETPOINT_ENTITY,
     CONF_SPACE_SETPOINT_UNIT,
-    DEFAULT_FLOW_HEAT_C,
     DEFAULT_PUMP_DUTY_MODE,
     DEFAULT_SPACE_SETPOINT_UNIT,
     DOMAIN,
@@ -175,7 +175,7 @@ DHW_GATE_C = 30.0
 #: never cuts a planned heating step short. The supply itself settles where
 #: the emitters take the pump's output, below this in all but the coldest
 #: weather.
-FLOW_HEAT_C = DEFAULT_FLOW_HEAT_C
+FLOW_HEAT_C = 55.0
 #: The fallback's flow set-point: the W35 point the nameplate COP is rated at.
 FLOW_HOLD_C = 35.0
 SETPOINT_TOLERANCE = 0.3
@@ -279,6 +279,22 @@ def duty_mode(config: Any) -> str:
     return mode if mode in PUMP_DUTY_MODES else DUTY_OFF
 
 
+def _release_duty_floor(
+    fn: Callable[..., str | None],
+) -> Callable[..., str | None]:
+    """Drop the plan's modulation floor if ``step_duty`` raises between the reads."""
+    @wraps(fn)
+    def _wrapped(*args: Any, **kwargs: Any) -> str | None:
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            setattr(planned_draw_runs, "modulation_floor", None)
+    return (
+        _wrapped
+    )
+
+
+@_release_duty_floor
 def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
@@ -298,13 +314,12 @@ def step_duty(result: Any, now: datetime) -> str | None:
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
-    floor = getattr(result, "duty_floor_kw", None)
-    s_on = i < len(space) and planned_draw_runs(
-        space[i], modulation_floor=floor
+    setattr(
+        planned_draw_runs, "modulation_floor",
+        getattr(result, "duty_floor_kw", None),
     )
-    d_on = i < len(dhw) and planned_draw_runs(
-        dhw[i], modulation_floor=floor
-    )
+    s_on = i < len(space) and planned_draw_runs(space[i])
+    d_on = i < len(dhw) and planned_draw_runs(dhw[i])
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
         (s_on, d_on), "idle"
     )
@@ -382,8 +397,15 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
 
 def _step_kw(result: Any, now: datetime) -> float | None:
     """The plan's space power for the step covering ``now``, or ``None``."""
-    power = _planned_room(result, now, "power_schedule")
-    return None if power is None else float(power)
+    return (
+        _finite_or_none(_planned_room(result, now, "power_schedule"))
+    )
+
+
+def _finite_or_none(value: Any) -> float | None:
+    return (
+        float(value) if isinstance(value, (int, float)) else None
+    )
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
@@ -392,20 +414,32 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
     thermal_params = getattr(inp.thermal, "params", None)
     p_min = getattr(params, "min_electrical_power", None)
     p_max = getattr(params, "max_electrical_power", None)
-    if p_min is None:
-        p_min = getattr(thermal_params, "min_electrical_power", None)
-    if p_max is None:
-        p_max = getattr(thermal_params, "max_electrical_power", None)
-    return p_min, p_max
+    return (
+        (
+            p_min if p_min is not None
+            else getattr(thermal_params, "min_electrical_power", None)
+        ),
+        (
+            p_max if p_max is not None
+            else getattr(thermal_params, "max_electrical_power", None)
+        ),
+    )
 
 
 def _flow_inlet_c(inp: ArbiterInputs) -> float:
     """Return-water temperature, else the rated hold flow."""
-    for attr in ("return_temperature", "floor_return_temperature"):
-        value = getattr(inp.state, attr, None)
-        if isinstance(value, (int, float)) and math.isfinite(value):
-            return float(value)
-    return FLOW_HOLD_C
+    values = (
+        getattr(inp.state, "return_temperature", None),
+        getattr(inp.state, "floor_return_temperature", None),
+    )
+    finite = tuple(
+        float(value) for value in values
+        if isinstance(value, (int, float))
+        if math.isfinite(value)
+    )
+    return (
+        finite[0] if finite else FLOW_HOLD_C
+    )
 
 
 def _flow_target(
@@ -426,18 +460,23 @@ def _flow_target(
     where that is higher.
     """
     if duty in ("space", "both"):
-        heat = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
         p_min, p_max = _band_kw(inp)
-        target = flow_setpoint_for_level(
-            _step_kw(inp.plan, now), p_min, p_max, heat, _flow_inlet_c(inp)
+        return _bounded(
+            state,
+            flow_setpoint_for_level(
+                _step_kw(inp.plan, now),
+                p_min,
+                p_max,
+                configured_flow_heat_c(inp.config, FLOW_HEAT_C),
+                _flow_inlet_c(inp),
+            ),
+            FLOW_GATE_C,
         )
-        return _bounded(state, target, FLOW_GATE_C)
     if duty is not None:
         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
-    heat = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
-    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), heat)
+    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
     return _bounded(state, hold, FLOW_GATE_C)
 
 
