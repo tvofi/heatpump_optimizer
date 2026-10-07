@@ -504,6 +504,7 @@
   "tests/entities.py": [
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
+   ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/codeql.yml",
@@ -2064,6 +2065,7 @@
    "tests/wood_advisor.py"
   ],
   "tests/harness_headers.py": [
+   ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/codeql.yml",
@@ -2709,6 +2711,7 @@
    "tools/audit/archscore/calibration/corpus_vectors.json",
    "tools/audit/archscore/calibration/expected.json",
    "tools/audit/archscore/counters.py",
+   "tools/audit/archscore/gate.py",
    "tools/audit/archscore/metrics/__init__.py",
    "tools/audit/archscore/metrics/common.py",
    "tools/audit/archscore/metrics/family_splits.py",
@@ -2749,6 +2752,7 @@
    "tools/audit/archscore/planted/perturb/N2_docstring.py",
    "tools/audit/archscore/planted/perturb/N3_seam_relabel.py",
    "tools/audit/archscore/planted/perturb/N4_const_namespace_import.py",
+   "tools/audit/archscore/planted/perturb/N5_annotated_return.py",
    "tools/audit/archscore/planted/perturb/_b1_common.py",
    "tools/audit/archscore/planted/perturb/_freq_common.py",
    "tools/audit/archscore/planted/perturb/_lib.py",
@@ -2798,6 +2802,8 @@
    "tools/audit/archscore/planted/redteam/12_combined_evasions.py",
    "tools/audit/archscore/planted/redteam/12b_combined_without_06.py",
    "tools/audit/archscore/planted/redteam/13_hub_handle_accessor.py",
+   "tools/audit/archscore/planted/redteam/14_hub_write_presolve.py",
+   "tools/audit/archscore/planted/redteam/15_payload_cast.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -3612,6 +3618,7 @@
    "dev/audit/waves/w5-g5-195-coverage/mutation_probe.py",
    "dev/programme/register/audit-2026-09.md",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
+   "dev/audit/harnesses/eg_a4_wave_deltas.py",
    "tools/audit/repo_root.mjs",
    "tools/audit/repo_root.sh"
   ],
