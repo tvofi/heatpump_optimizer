@@ -59707,6 +59707,25 @@ R.check(
     f"{_ux6_bad.promises}",
 )
 
+# The load path restates a stored receipt: the published total of a month
+# frozen before this fix stops counting spot four times after one restart.
+import asyncio as _ux6_aio  # noqa: E402
+
+_ux6_loaded = _ux6_coord()
+
+
+async def _ux6_stored():
+    return {"ledger": {"months": {}}, "month_reports": {"2026-03": _ux6_old}}
+
+
+_ux6_loaded._ledger_store.async_load = _ux6_stored
+_ux6_aio.run(_ux6_loaded._async_load_ledger())
+R.check(
+    "UX-6: a receipt stored with the old total loads with the billed total",
+    _ux6_loaded._month_reports.get("2026-03", {}).get("total_sek") == 194.5,
+    f"{_ux6_loaded._month_reports.get('2026-03', {}).get('total_sek')}",
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
 
