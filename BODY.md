@@ -15,7 +15,13 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Head
 
-`44f5103cf7825c93c06576b21a74b54d129ebad6`
+`dfe2bb79c3c08035b99fed4d190c8192f87354bc`
+
+## Delta since `1d494f01`
+
+`1d494f01` went DIRTY when #1987 merged (`origin/main` `8d7903e6`). This head merges that main into it. One file conflicted, `dev/audit/config/bugclasses.json`: both sides appended an entry after `R9-RCA-1985` in the `_rca` object, this branch `R9-RCA-2004` and main `R9-RCA-stress-recording`. Both are kept (this branch's first, a comma between), the file parses as JSON, and the diff against `origin/main` is exactly the `R9-RCA-2004` entry. `.github/workflows/governance.yml` and `tests/entities.py` also changed on both sides and merged without conflict. Code is otherwise unchanged from `44f5103c`. Cheap scope only here: `tests/structure.py` passed; the other cheap checks are listed under Figures.
+
+Body corrections in the same re-take: #2012 is merged (2026-10-07 14:21Z), not open, and the Red checks paragraph no longer says the diff leaves `governance.yml` alone.
 
 ## Mutation proof
 
@@ -44,7 +50,7 @@ The moved-path search rule is stated in `dev/audit/rca/R9-RCA-2004.md` section 4
 The earlier claim here that every other executed hit was cleared was wrong. The fix review wrote its own implementation of the rule (`widened_rule.py`) and found two more seams. Seven seams in all, counting the two `governance.yml` steps apart:
 
 - Fixed on main or on this branch: `friction_issues.mjs` `STATS_TOOL`, `preflight.sh` `corpus_filter`, the env-matrix base driver, the FR-3 consumer harness, and `governance.yml` lines 220 (`field coverage`) and 602 (`agreement lane`), which checked the pinned base for the old path only, so every base after #1919 skipped both checks (main run 37626923348: `field coverage: the base does not carry it ... skipped`). They now try `tools/policy/` first and the old path second. Over a base that carries only `tools/policy/` the old test gives skip and the new one runs; over a pre-#1919 base both run.
-- Owned by open PR #2012 (RCA-1990, `fix/r9-rca-1990`), not fixed here: `tools/audit/seat/merge_train.py:146,210` (`bash tools/audit/app_approve.sh`) and `:237` (`bash tools/audit/preflight.sh`), rc=127 from the repository root. #2012 re-points exactly these three calls through a `tool()` map.
+- Owned by #2012 (RCA-1990, `fix/r9-rca-1990`, merged 2026-10-07 14:21Z), not fixed here: `tools/audit/seat/merge_train.py:146,210` (`bash tools/audit/app_approve.sh`) and `:237` (`bash tools/audit/preflight.sh`), rc=127 from the repository root. #2012 re-points exactly these three calls through a `tool()` map; with it merged they are no longer open at `origin/main`.
 
 Completeness evidence: the reviewer's `widened_rule.py`, run at head `44f5103cf7825c93c06576b21a74b54d129ebad6`, output verbatim:
 
@@ -109,7 +115,7 @@ tools/pr/contract_rerun.py:21: [.claude/workflows/contract_rerun.py] python3 .cl
 tools/pr/prepr.sh:556: [.claude/workflows/budget_raise_gate.py] exec(compile(open(src).read(), f"{base[:12]}:.claude/workflows/budget_raise_gate.py", "exec"), m.__dict__)
 ```
 
-Triage of the 55 uncleared, by reading and not by a second script: the three `merge_train.py` lines (owned by #2012 above); usage docstrings and comments that print a pre-move command and run nothing (carried to R9-RO-9); `analyse(...)` and `templated(...)` string inputs to self-tests; `locate()`-resolved fixture constants in `policy_lint.mjs` and `field_coverage.mjs`; `pr-contract.yml:279`, which sits under a `test -f` shim beyond the four-line window; the label string at `prepr.sh:556`; and `tests/entities.py:17465,17619`, which run in a fixture directory.
+Triage of the 55 uncleared, by reading and not by a second script: the three `merge_train.py` lines (owned by #2012 above, now merged); usage docstrings and comments that print a pre-move command and run nothing (carried to R9-RO-9); `analyse(...)` and `templated(...)` string inputs to self-tests; `locate()`-resolved fixture constants in `policy_lint.mjs` and `field_coverage.mjs`; `pr-contract.yml:279`, which sits under a `test -f` shim beyond the four-line window; the label string at `prepr.sh:556`; and `tests/entities.py:17465,17619`, which run in a fixture directory.
 
 ## Figures
 
@@ -124,9 +130,11 @@ Triage of the 55 uncleared, by reading and not by a second script: the three `me
 - `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2189 ENTITY CHECKS PASSED` at `e59313f0`, and again at this head (673 s), including `ok   and compares in the moved layout, policy_lint.mjs under tools/policy/`. The first run of it hit `OSError: [Errno 28] No space left on device` (the disk had 4.0 GiB free) and the re-run passed.
 - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `12 of 109 HARNESS HEADER CHECKS FAILED`. All 12 are `tools/audit/round4/D7/sysid_estimator_frontier.py`, which hit `wall limit 900s exceeded` with `cpu=197.6s` while `tests/entities.py` ran beside it. The diff touches neither that harness nor `custom_components/`. Left to CI.
 
+Cheap scope at this head (run locally, one at a time, `PYTHONPATH=tests/hastub` under `venv-ci`): `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/entities.py` `ALL 2203 ENTITY CHECKS PASSED`; `node tools/policy/policy_lint.mjs` `TOTAL: 0 error(s) across 40 policy file(s)`; `node tools/policy/rules_sync.mjs --check` `RULES-SYNC ok`. Heavy scripts are CI's.
+
 ## Red checks
 
-Four checks ran red on earlier pushed heads of this branch. None is this diff's; each was read from the check-run API, and each is `main`'s own red at the commit the branch merged. The diff touches none of their inputs (`tests/closures.json`, `tests/closure.py`, `tests.yml`, `governance.yml`, the plan, `dev/programme/HANDOVER.md`) except this pull request's own row, `dev/programme/delivery/2014.md`.
+Four checks ran red on earlier pushed heads of this branch. None is this diff's; each was read from the check-run API, and each is `main`'s own red at the commit the branch merged. The diff touches none of the inputs these four checks read (`tests/closures.json`, `tests/closure.py`, `tests.yml`, the plan, `dev/programme/HANDOVER.md`) except this pull request's own row, `dev/programme/delivery/2014.md`. It does edit `.github/workflows/governance.yml`, at lines 220 and 602 (the field-coverage and agreement pinned-ref probes, see Search rule). Those lines sit in other jobs than `delivery-status` (the job at line 911), and none of the four checks runs them. `delivery-status` is graded elsewhere, from the base's `delivery_status.py`.
 
 - `closures` (head `064c5aae`, run 37629062547): red on `main` itself. The merged main commit `17f30f9c` (the #2021 merge) and its ancestor `b281a4c3` (the #2017 merge) both carry `closures` failure; the log names `INERT READS UNDER-APPROXIMATED`: `tests/harness_headers.py` opened `eg_b7_seam_hubs.py`, which #2017 added and did not list under `inert_reads`. #2022 fixed it and `closures` is success on `main` at `e0f0b6fb`. Cheaper detector: the `closures` job itself is the detector for this class (the committed `inert_reads` against a recording); a seat cannot run the recording locally under the heavy-script rule, so the answer is the check-run on the head that added the file, which #2017 lacked. No new detector is proposed here.
 - `closures-autofix` (head `064c5aae`, same run): downstream of the `closures` red. Its log says the failure was not UNDER-SCOPED, the only failure it repairs, so it reddened by design and did nothing. It clears with `closures` and carries no cause of its own.
