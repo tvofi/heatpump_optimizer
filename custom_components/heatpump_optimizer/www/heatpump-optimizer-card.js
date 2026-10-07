@@ -2466,9 +2466,10 @@ function formatWindows(windows) {
     .join(", ");
 }
 
-/** Quiet specs the service call should send. Empty strings omitted: Python's
- * `_canonical_quiet_updates({})` is `{}`, and `_canonical_quiet_updates` of
- * both specs as `""` writes those empties over stored rows (#2009). */
+/** Quiet specs the service call should send. Empty strings are the clear:
+ * `_canonical_quiet_updates({})` is `{}` (an omitted key leaves the stored
+ * spec), and both specs as `""` writes those empties. Same as `dhw_windows`
+ * in `overrides()`: an empty draft is the user removing the last window. */
 function quietServiceFields(draft) {
   const silent = formatWindows(
     (draft.quietWindows || []).filter((w) => w.action !== "off")
@@ -2476,13 +2477,13 @@ function quietServiceFields(draft) {
   const off = formatWindows(
     (draft.quietWindows || []).filter((w) => w.action === "off")
   );
-  const out = {};
-  if (silent) out.quiet_silent_windows = silent;
-  if (off) out.quiet_off_windows = off;
-  out.silent_mode_power_fraction = Number.isFinite(Number(draft.silentFraction))
-    ? Number(draft.silentFraction)
-    : 1;
-  return out;
+  return {
+    quiet_silent_windows: silent,
+    quiet_off_windows: off,
+    silent_mode_power_fraction: Number.isFinite(Number(draft.silentFraction))
+      ? Number(draft.silentFraction)
+      : 1,
+  };
 }
 
 const QUIET_DAY_NAMES = [

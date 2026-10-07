@@ -8030,23 +8030,62 @@ const setupBox = (card, place) =>
     called && called.service === "simulate_plan" &&
     called.data.quiet_silent_windows === "06:00-08:00");
 
+  const quietServiceFields = fn("quietServiceFields");
+  const bothRows = quietServiceFields({
+    quietWindows: [
+      { days: "daily", start: "22:00", end: "06:00", action: "silent" },
+      { days: "daily", start: "14:00", end: "15:00", action: "off" },
+    ],
+    silentFraction: 0.8,
+  });
+  check("quietServiceFields sends both specs and the fraction",
+    bothRows.quiet_silent_windows === "22:00-06:00" &&
+    bothRows.quiet_off_windows === "14:00-15:00" &&
+    bothRows.silent_mode_power_fraction === 0.8,
+    JSON.stringify(bothRows));
+  const lastSilentGone = quietServiceFields({
+    quietWindows: [
+      { days: "daily", start: "14:00", end: "15:00", action: "off" },
+    ],
+    silentFraction: 0.8,
+  });
+  check("clearing the last silent window sends an empty silent spec",
+    lastSilentGone.quiet_silent_windows === "" &&
+    "quiet_silent_windows" in lastSilentGone &&
+    lastSilentGone.quiet_off_windows === "14:00-15:00" &&
+    lastSilentGone.silent_mode_power_fraction === 0.8,
+    JSON.stringify(lastSilentGone));
+  const allGone = quietServiceFields({
+    quietWindows: [],
+    silentFraction: 0.8,
+  });
+  check("clearing every quiet window sends both empty specs",
+    allGone.quiet_silent_windows === "" &&
+    allGone.quiet_off_windows === "" &&
+    "quiet_silent_windows" in allGone &&
+    "quiet_off_windows" in allGone &&
+    allGone.silent_mode_power_fraction === 0.8,
+    JSON.stringify(allGone));
+
   const emptyQ = build(slotStates, { what_if: true });
   emptyQ._hass = mkHass(emptyQ._hass.states);
   emptyQ._onCardClick({});
   emptyQ.whatIf.draft().quietWindows = [];
   called = null;
   await emptyQ.whatIf.onApplySlots({ stopPropagation(){} });
-  check("an empty quiet schedule is omitted, matching an absent Python update",
-    called && !("quiet_silent_windows" in called.data) &&
-    !("quiet_off_windows" in called.data),
+  check("an empty quiet schedule is sent explicitly, matching a Python empty-spec write",
+    called && called.data.quiet_silent_windows === "" &&
+    called.data.quiet_off_windows === "" &&
+    "quiet_silent_windows" in called.data &&
+    "quiet_off_windows" in called.data,
     called && JSON.stringify(called.data));
   called = null;
   await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
   await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
-  check("Save omits empty quiet specs so a stored schedule is not overwritten",
+  check("Save sends empty quiet specs so a stored schedule is cleared",
     called && called.service === "apply_schedule" &&
-    !("quiet_silent_windows" in called.data) &&
-    !("quiet_off_windows" in called.data),
+    called.data.quiet_silent_windows === "" &&
+    called.data.quiet_off_windows === "",
     called && JSON.stringify(called.data));
 
   const svQ = new Card();
