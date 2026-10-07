@@ -1,0 +1,15 @@
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 213 of 213 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 213 of 213 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 213 of 213 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 213 of 213 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 213 of 213 listed
+  ok   locate .claude/workflows/agreement.mjs with ['.claude/workflows/agreement.mjs', 'tools/policy/agreement.mjs']: .claude/workflows/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with ['tools/policy/agreement.mjs']: tools/policy/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with neither: .claude/workflows/agreement.mjs
+layout self-test: ok
+python3 tests/layout.py  8.25s user 3.45s system 60% cpu 19.354 total
+rc=0

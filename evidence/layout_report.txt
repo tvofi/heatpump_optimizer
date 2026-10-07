@@ -1,0 +1,15 @@
+layout: 3958 tracked path(s) enumerated
+  retired   3 finding(s)
+    reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
+    reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
+    .claude/hooks/always-fails.sh:11 cites retired path .claude/workflows/fixtures/; use tools/policy/fixtures/
+    .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:98 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:103 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:198 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:200 cites retired path tools/audit/prepr.sh; use tools/pr/prepr.sh
+    .claude/rules/brief-citations.md:6 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/rules/brief-citations.md:11 cites retired path .claude/workflows/brief_lint.mjs; use tools/policy/brief_lint.mjs
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
