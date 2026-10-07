@@ -1,6 +1,6 @@
 ---
 description: Wave-brief citations must be linter-resolvable; do not leave them only in plan markdown
-globs: .claude/workflows/*.json,dev/programme/plan*.md,dev/programme/HANDOVER.md,dev/governance/roles/**
+globs: .claude/workflows/*.json,dev/programme/plan*.md,dev/programme/HANDOVER.md,dev/governance/**
 alwaysApply: true
 ---
 # Brief-linter citations

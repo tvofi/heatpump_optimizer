@@ -20,16 +20,21 @@ strip_earlier_rounds() {
 import json, re, sys
 from pathlib import Path
 root, cur = Path(sys.argv[1]), f"round{sys.argv[2]}"
-rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
+# R9-RO-8: rounds live at dev/audit/rounds/. An export of an older baseline
+# still has them under tools/audit/, so both homes are stripped. A glob of
+# only the old home removes nothing once the files have moved.
+homes = [h for h in (root / "dev/audit/rounds", root / "tools/audit") if h.is_dir()]
+rounds = sorted({d for h in homes for d in h.glob("round*") if d.is_dir() and d.name != cur})
 keep = {f for fs in json.loads((root / "tests/closures.json").read_text())["closures"].values()
-        for f in fs if f.startswith("tools/audit/round")}
-lit = re.compile(r"tools/audit/round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
+        for f in fs if f.startswith(("dev/audit/rounds/round", "tools/audit/round"))}
+lit = re.compile(r"(?:dev/audit/rounds/|tools/audit/)round[A-Za-z0-9_.-]*(?:/[A-Za-z0-9_.-]+)*")
 for t in sorted(p for g in ("*.py", "*.mjs", "*.sh") for p in (root / "tests").glob(g)):
     for m in lit.findall(t.read_text(errors="replace")):
         p = root / m.rstrip("/.")
+        depth = 4 if m.startswith("dev/audit/rounds/") else 3
         if p.is_file():
             keep.add(p.relative_to(root).as_posix())
-        elif p.is_dir() and len(p.relative_to(root).parts) > 3:
+        elif p.is_dir() and len(p.relative_to(root).parts) > depth:
             keep.update(f.relative_to(root).as_posix() for f in p.rglob("*") if f.is_file())
 removed = kept = 0
 for d in rounds:
@@ -46,15 +51,18 @@ for d in rounds:
 print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
 PY
 }
-# `prepare_baseline.sh --strip <export-dir> <round>` runs ONLY the earlier-round
-# strip, on an export or a worktree some other path made: audit-find.js's Prepare
-# (and the leads seat's own export) run it, so the driver and this script cannot
-# disagree on what the wall leaves in (R9 box B1's wall breach: the driver copied
-# tools/audit/ whole and nothing stripped it).
-# The finder wall. docs/audit-2026-09.md is still under docs/; the August
-# register and the backlog moved to dev/archive/ (R9-RO-4). A glob that names
-# only the old directory removes nothing once the file has moved, and the
-# export then carries the register the wall exists to keep out.
+# `prepare_baseline.sh --strip <export-dir> <round>` applies the finder wall and
+# the earlier-round strip to an export or a worktree some other path made:
+# audit-find.js's Prepare (and the leads seat's own export) run it, so the
+# driver and this script cannot disagree on what the wall leaves in (R9 box B1's
+# wall breach: the driver copied tools/audit/ whole and nothing stripped it).
+# R9-RO-10: --strip ran only the earlier-round strip while the prompts listed
+# the wall's globs by hand, and that list stopped at docs/ after the register
+# moved to dev/programme/register/, so a finder export kept it.
+# The finder wall. The live register is under dev/programme/register/ (R9-RO-5);
+# the August register and the backlog moved to dev/archive/ (R9-RO-4). A glob
+# that names only an old directory removes nothing once the file has moved, and
+# the export then carries the register the wall exists to keep out.
 finder_wall() {
   local root="$1"
   rm -f "$root"/docs/audit-*.md \
@@ -85,12 +93,48 @@ if [ "${1:-}" = "--wall-self-test" ]; then
   [ ! -e "$d2/dev/archive/backlog.md" ] || { echo "FAIL wall kept the archived backlog"; exit 1; }
   [ ! -e "$d2/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL wall kept the programme register"; exit 1; }
   [ -e "$d2/docs/setup.md" ] || { echo "FAIL wall removed a reader doc"; exit 1; }
-  rm -rf "$d1" "$d2"
+  # --strip is the entry the wave scripts call: it must apply the wall too.
+  d3=$(mktemp -d); plant "$d3"; mkdir -p "$d3/tests"; printf '{"closures":{}}\n' > "$d3/tests/closures.json"
+  bash "$0" --strip "$d3" 9 >/dev/null
+  [ ! -e "$d3/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL --strip kept the programme register"; exit 1; }
+  [ ! -e "$d3/docs/audit-2026-09.md" ] || { echo "FAIL --strip kept the docs register"; exit 1; }  # layout:old=docs/audit-2026-09.md
+  [ -e "$d3/docs/setup.md" ] || { echo "FAIL --strip removed a reader doc"; exit 1; }
+  rm -rf "$d1" "$d2" "$d3"
   echo "RESULT finder_wall=ok"
+  exit 0
+fi
+if [ "${1:-}" = "--strip-self-test" ]; then
+  PYTHON="${PYTHON:-python3}"
+  d=$(mktemp -d)
+  mkdir -p "$d/dev/audit/rounds/round3" "$d/tools/audit/round3" "$d/dev/audit/rounds/round4/D6" "$d/tests"
+  printf leak > "$d/dev/audit/rounds/round3/LEAK.md"
+  printf old > "$d/tools/audit/round3/OLD.md"
+  printf keep > "$d/dev/audit/rounds/round4/D6/claims.json"
+  printf '%s\n' '{"closures":{"tests/x.py":["dev/audit/rounds/round4/D6/claims.json"]}}' > "$d/tests/closures.json"
+  # The pre-edit wall globbed only tools/audit/round*. The new-path file must survive that.
+  "$PYTHON" - "$d" 9 <<'ENDPY'
+import sys
+from pathlib import Path
+root = Path(sys.argv[1])
+cur = f"round{sys.argv[2]}"
+rounds = sorted(d for d in (root / "tools/audit").glob("round*") if d.is_dir() and d.name != cur)
+for d in rounds:
+    for f in list(d.rglob("*")):
+        if f.is_file():
+            f.unlink()
+ENDPY
+  [ -e "$d/dev/audit/rounds/round3/LEAK.md" ] || { echo "FAIL old wall removed the new-path leak; the control no longer shows the miss"; exit 1; }
+  [ ! -e "$d/tools/audit/round3/OLD.md" ] || { echo "FAIL old wall kept the old-path evidence"; exit 1; }
+  ROUND=9 strip_earlier_rounds "$d"
+  [ ! -e "$d/dev/audit/rounds/round3/LEAK.md" ] || { echo "FAIL strip kept the new-path leak"; exit 1; }
+  [ -e "$d/dev/audit/rounds/round4/D6/claims.json" ] || { echo "FAIL strip removed a closure read"; exit 1; }
+  rm -rf "$d"
+  echo "RESULT strip_earlier_rounds=ok"
   exit 0
 fi
 if [ "${1:-}" = "--strip" ]; then
   PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
+  finder_wall "$(cd "${2:?export dir}" && pwd)"
   strip_earlier_rounds "$(cd "${2:?export dir}" && pwd)"
   exit 0
 fi
@@ -127,8 +171,10 @@ git archive "$FULL" | tar -x -C "$EXPORT"
 # general form of that lesson and fires on any other file a test opens this way.
 finder_wall "$EXPORT"
 mkdir -p "$EXPORT/tools/audit"
-cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # current briefs, README, schema
-mkdir -p "$EXPORT/tools/audit/round${ROUND}"
+cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # instruments that stayed
+mkdir -p "$EXPORT/dev/audit/rounds"
+if [ -d "$SRC/dev/audit/rounds" ]; then cp -R "$SRC/dev/audit/rounds/." "$EXPORT/dev/audit/rounds/"; fi
+mkdir -p "$EXPORT/dev/audit/rounds/round${ROUND}"
 
 # Earlier rounds must not steer a finder -- COMMON.md's wall, and the reason the
 # export drops docs/audit-*.md at all. Deleting only those two documents left the
@@ -155,7 +201,7 @@ mkdir -p "$EXPORT/tools/audit/round${ROUND}"
 #      child of tests/entities.py, are in none. A literal naming a whole round
 #      directory is ignored.
 # Everything else in an earlier round -- reports, verdicts, ledgers, logs -- is
-# removed. The instruments that survive are the ones tools/audit/harnesses/
+# removed. The instruments that survive are the ones dev/audit/harnesses/
 # README.md's rule would keep live anyway: evidence is archived, instruments
 # are kept.
 strip_earlier_rounds "$EXPORT"
@@ -175,7 +221,9 @@ for dim in $ISOLATED_DIMS; do
   [ -e "$wt" ] && { echo "refusing: $wt exists"; exit 2; }
   git worktree add --detach "$wt" "$FULL" >/dev/null
   mkdir -p "$wt/tools/audit"; cp -R "$SRC/tools/audit/." "$wt/tools/audit/"
-  mkdir -p "$wt/tools/audit/round${ROUND}/${dim}"
+  mkdir -p "$wt/dev/audit/rounds"
+  if [ -d "$SRC/dev/audit/rounds" ]; then cp -R "$SRC/dev/audit/rounds/." "$wt/dev/audit/rounds/"; fi
+  mkdir -p "$wt/dev/audit/rounds/round${ROUND}/${dim}"
   # A worktree is a real checkout, so this leaves tracked deletions in its status
   # rather than an absent file. That is the honest state and it costs nothing the
   # gate can see; BASELINE.md below says so, and a finder restoring its tree
@@ -217,7 +265,8 @@ NODE=$(command -v node || true)
 CHROMIUM=$(ls -d "$HOME"/.cache/pw-browsers/chromium-* 2>/dev/null | tr '\n' ' ' || true)
 ISOLATED_DIRS=""; for dim in $ISOLATED_DIMS; do ISOLATED_DIRS="$ISOLATED_DIRS $PARENT/audit-r${ROUND}-${dim}"; done
 for dir in "$EXPORT" $ISOLATED_DIRS; do
-  cat > "$dir/tools/audit/round${ROUND}/BASELINE.md" <<MD
+  mkdir -p "$dir/dev/audit/rounds/round${ROUND}"
+  cat > "$dir/dev/audit/rounds/round${ROUND}/BASELINE.md" <<MD
 # Round ${ROUND} baseline
 
 - baseline: ${FULL}

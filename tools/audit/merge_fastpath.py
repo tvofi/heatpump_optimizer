@@ -81,6 +81,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "tests"))
 import closure  # noqa: E402  (tests/closure.py: the gate's own selection)
+from layout import locate  # noqa: E402  old path while the restore puts the base copy there
 
 CLAIM_FILES = ("tests/golden/claimed_drift.txt", "tests/golden/card_claimed_drift.txt")
 # `run_always <interpreter> tests/<script>` in tests/run.sh: the scripts no scope skips.
@@ -94,7 +95,7 @@ def always_scripts(run_sh_texts: list[str]) -> list[str]:
 
 def _codeowners_gap():
     """The pin reader `policy-docs` runs, so the grader set is the one CI pins."""
-    path = ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py"
+    path = ROOT / locate("tools/audit/round6/D11/fix/codeowners_gap.py", root=ROOT)
     spec = importlib.util.spec_from_file_location("codeowners_gap", path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)

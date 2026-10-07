@@ -22,7 +22,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 os.chdir(ROOT)
-sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tools/release"), str(ROOT / "tools/audit/round4/D11")]
+sys.path[:0] = [str(ROOT / "tests"), str(ROOT / "tools/release")]
+from layout import locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
+# R9-RO-8: D11's library moved under dev/audit/rounds/. locate() names it where it is.
+sys.path.insert(0, str(ROOT / Path(locate("tools/audit/round4/D11/governance_cost.py")).parent))
 
 
 def git(*args):
@@ -89,7 +92,7 @@ def job_ids(text):
 
 
 def governance_jobs():
-    spec = importlib.util.spec_from_file_location("gc", "tools/audit/round4/D11/governance_cost.py")
+    spec = importlib.util.spec_from_file_location("gc", locate("tools/audit/round4/D11/governance_cost.py"))
     gc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(gc)
     src = Path("tests/entities.py").read_text()

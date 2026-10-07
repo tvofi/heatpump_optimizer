@@ -169,7 +169,7 @@ jobs:
       # sys.path, and a `subprocess.py` the pull request adds beside it would
       # run before the check.
       - name: Refuse a check script no CODEOWNERS pattern owns
-        run: python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check
+        run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi
 
       # GITHUB_TOKEN: the required-contexts class reads the live ruleset through
       # `gh api` -- the branch endpoint and the ruleset objects -- and reddens
@@ -219,7 +219,7 @@ jobs:
           set -euo pipefail
           if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
-          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
+          elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
             if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs; else node tools/policy/field_coverage.mjs; fi
@@ -396,7 +396,7 @@ jobs:
       # admitted step must leave it pinned.
       - name: Show the pin rule refusing every probe and admitting its controls
         if: always()
-        run: python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test
+        run: if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
 
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided

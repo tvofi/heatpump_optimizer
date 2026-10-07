@@ -4,7 +4,7 @@ paths:
   - ".claude/workflows/*.json"
   - "dev/programme/plan*.md"
   - "dev/programme/HANDOVER.md"
-  - "dev/governance/roles/**"
+  - "dev/governance/**"
 ---
 # Brief-linter citations
 

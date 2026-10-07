@@ -261,7 +261,7 @@ INERT = (
     # classify, so a test that imports it pulls its closure in on its own --
     # no exemption, no hidden call site. The prefix no longer covers the
     # round harness .py corpus itself (#995): harness_headers.py's discovery
-    # opens every tools/audit/round*/D*/*.py, so those files are read by
+    # opens every dev/audit/rounds/round*/D*/*.py, so those files are read by
     # the gate and `_is_header_corpus` below takes them out of this claim.
     "tools/audit/",
     # Seat hand-off notes (`handoff/<round>/...`), tracked on a fix branch
@@ -284,9 +284,9 @@ INERT = (
     # deliberately, instead of silently making every gate full.
     # The reorganisation's archive and the audit record that has already
     # moved (R9-RO-4). Same claim as tools/audit/: prose and evidence no gate
-    # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
-    # _is_header_corpus before a live harness lands under dev/audit/, or the
-    # move would declare a file the gate reads as unread.
+    # script opens. The round harnesses under dev/audit/rounds/ are the one
+    # read inside it: `_is_header_corpus` (R9-RO-8, #1921) takes them out of
+    # this claim, as it took tools/audit/round*/ out of the tools/audit/ one.
     "dev/archive/",
     "dev/audit/",
     ".claude/",
@@ -317,7 +317,7 @@ INERT = (
     # script read it, so the INERT listing was honest. #951 ended that --
     # tests/entities.py now reads the register to pin its coverage-bearing
     # rows against the tree, and tests/harness_headers.py executes
-    # tools/audit/round4/D10/qs_rules.py, which reads it too -- so the file
+    # dev/audit/rounds/round4/D10/qs_rules.py, which reads it too -- so the file
     # moved to entities.py's recorded closure, and this entry was removed
     # rather than kept beside a read (the #357 contradiction). hassfest
     # still skips it for custom repos; that is about the external checker,
@@ -519,7 +519,7 @@ INERT_EXCEPT = (
     # The round-harness exceptions that used to sit here -- #817's three
     # round-3 files and #951's qs_rules.py -- moved to `_is_header_corpus`
     # below when #995's dynamic discovery made the read set the whole
-    # tools/audit/round*/D*/*.py corpus: exact-match entries cannot follow
+    # dev/audit/rounds/round*/D*/*.py corpus: exact-match entries cannot follow
     # a glob, and 212 of them was the shape of a list nobody would keep
     # honest. Same refusal either way: declaring the prefix unread while
     # the gate opens the files is #357.
@@ -573,7 +573,7 @@ INERT_EXCEPT = (
     "blueprints/automation/notifications.yaml",
     ".gitignore",
     # #995, the .gitignore story one lane later: the live-header harness check
-    # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
+    # executes dev/audit/rounds/round4/D6/claims.py, whose re-run rewrites these two
     # caches beside it (set-iteration order churn), and card_drift.mjs --
     # recorded after it in the same lane -- answers `git diff --name-only HEAD`
     # (threeDotFiles), so git hashes the now stat-dirty pair. strace -f records
@@ -583,8 +583,15 @@ INERT_EXCEPT = (
     # .gitignore did and enters that script's closure. Over-approximate by
     # content (a name in a diff list cannot move card_drift's verdict) and safe:
     # over-scoping costs time, under-scoping skips scripts.
-    "tools/audit/round4/D6/claims.json",
-    "tools/audit/round4/D6/claims.md",
+    # R9-RO-8: origin/main's agreement_py.py, a grader every pull request job
+    # restores from the base, imports these two from their old home. They stay
+    # there until R9-RO-9, which lands after main carries the updated grader
+    # (carry-1922.json). tests/entities.py loads governance_cost by path, so the
+    # tools/audit/ prefix would declare a read file unread (#357).
+    "tools/audit/round4/D11/governance_cost.py",
+    "tools/audit/round4/D11/d11lib.py",
+    "dev/audit/rounds/round4/D6/claims.json",
+    "dev/audit/rounds/round4/D6/claims.md",
     "tools/policy/policy_lint.mjs",
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
@@ -631,7 +638,7 @@ INERT_EXCEPT = (
     # `_is_header_corpus` at all. An edit to either now selects
     # tests/entities.py instead of skipping it.
     "dev/governance/config/cfr_exclusions.json",
-    "tools/audit/round5/D13/seat-a/dora_cfr.py",
+    "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py",
     # The 9 fixtures that harness READS, on the same #1303 route. The check
     # drives `dora_cfr.main()` with `git` patched to raise at its first call,
     # and `main()` reads `window_merges.json` and one `checkruns_<sha>.json`
@@ -644,15 +651,15 @@ INERT_EXCEPT = (
     # other three fixtures in that directory (`prs_graphql.json`, read only
     # after `main()`'s first git call, and the two `pulls_*.json`, which
     # nothing in this route opens) stay INERT.
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_1cc89e020f.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_2de1c18233.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_6fae33b1da.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_72cfa89288.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_ac8b1ecfc5.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_dec0b4ea2d.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
-    "tools/audit/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
-    "tools/audit/round5/D13/seat-a/fixtures/window_merges.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_1cc89e020f.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_2de1c18233.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_6fae33b1da.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_72cfa89288.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_ac8b1ecfc5.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_dec0b4ea2d.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_e7139a7f38.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/checkruns_f50dcc90e5.json",
+    "dev/audit/rounds/round5/D13/seat-a/fixtures/window_merges.json",
     # R9-FR-10: tests/entities.py loads record_row.py and roster_lib.py by
     # importlib (the record-autofix generator and the branch-to-group lookup)
     # and drives figure_lint.mjs through node, so each is a dependency of a
@@ -673,7 +680,7 @@ INERT_EXCEPT = (
     # the closure, and merge refuses the pair of INERT and recorded. It
     # leaves the prefix the way roster_lib.py did, so an edit selects
     # tests/entities.py.
-    "tools/audit/round6/D11/fix/codeowners_gap.py",
+    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
     # R9-RO-7: tests/harness_headers.py imports repo_root.py. Three path
     # parts, so `_is_header_corpus` (five) does not reach it and the
     # tools/audit/ prefix would keep it INERT while this gate script reads
@@ -701,7 +708,7 @@ INERT_EXCEPT = (
 def _is_header_corpus(rel: str) -> bool:
     """The live-header harness corpus tests/harness_headers.py DISCOVERY opens.
 
-    ``_discover()`` globs ``tools/audit/round*/D*/*.py`` and reads the head of
+    ``_discover()`` globs ``dev/audit/rounds/round*/D*/*.py`` and reads the head of
     every match looking for the ``live-header`` marker, so each of those files
     is a read the recorder sees -- executed or not, marked or not: a change to
     any of them can flip the executed set itself. #817 moved the first three
@@ -720,11 +727,14 @@ def _is_header_corpus(rel: str) -> bool:
     widening nor narrowing this rule can rot silently.
     """
     parts = rel.split("/")
+    # R9-RO-8: the corpus moved under dev/audit/rounds/, one segment deeper
+    # (tvofi D3). A five-part tools/audit/round*/D*/*.py path is no longer the
+    # read, so it stays inside the tools/audit/ prefix.
     return (
-        len(parts) == 5
-        and parts[0] == "tools" and parts[1] == "audit"
-        and parts[2].startswith("round") and parts[3].startswith("D")
-        and parts[4].endswith(".py") and parts[4] != "__init__.py"
+        len(parts) == 6
+        and parts[0] == "dev" and parts[1] == "audit" and parts[2] == "rounds"
+        and parts[3].startswith("round") and parts[4].startswith("D")
+        and parts[5].endswith(".py") and parts[5] != "__init__.py"
     )
 
 
@@ -895,7 +905,7 @@ def _rel(path: str) -> str | None:
         # A .pyc open is a source read in disguise (#1309). On a warm cache
         # the import machinery opens only the bytecode, never the .py -- and
         # a module loaded the way tests/entities.py loads
-        # tools/audit/round4/D11/governance_cost.py and tools/release/stamp.py
+        # dev/audit/rounds/round4/D11/governance_cost.py and tools/release/stamp.py
         # (spec_from_file_location + exec_module, never inserted into
         # sys.modules) is invisible to the end-of-run sweep as well, so a
         # warm-box re-derivation recorded the dependency as absent and
@@ -1480,19 +1490,23 @@ def prune(out: Path = CLOSURES) -> int:
         print(f"closure: {out} is missing", file=sys.stderr)
         return 1
     payload = json.loads(out.read_text())
-    closures = payload.get("closures", {})
     total = 0
-    for name in sorted(closures):
-        files = closures[name]
-        real = [f for f in files if _is_real_file(f)]
-        phantom = sorted(set(files) - set(real))
-        if phantom:
-            print(f"closure: {name} drops {len(phantom)} phantom entry(ies):",
-                  file=sys.stderr)
-            for p in phantom:
-                print(f"    {p}", file=sys.stderr)
-            total += len(phantom)
-        closures[name] = sorted(real)
+    for table_key in ("closures", "inert_reads"):
+        table = payload.get(table_key, {})
+        for name in sorted(table):
+            files = table[name]
+            real = [f for f in files if _is_real_file(f)]
+            phantom = sorted(set(files) - set(real))
+            if phantom:
+                print(f"closure: {table_key} {name} drops {len(phantom)} phantom entry(ies):",
+                      file=sys.stderr)
+                for p in phantom:
+                    print(f"    {p}", file=sys.stderr)
+                total += len(phantom)
+            if real or table_key == "closures":
+                table[name] = sorted(real)
+            else:
+                del table[name]  # `_fold_inert_reads`: a script that read none has no key
     out.write_text(json.dumps(payload, indent=1) + "\n")
     print(f"closure: pruned {total} phantom entry(ies) from {out}")
     return 0
@@ -1840,9 +1854,14 @@ def check(in_dir: Path, partial: bool = False) -> int:
     # read it instead of running FULL for the unmeasured file. Fail rather
     # than note, and name the repair. The committed file is pruned in the
     # pull request that added this rule (#1310).
+    # inert_reads too (R9-RO-10): a move leaves a dead old-path entry there
+    # with no other warning, and the merge fast path then believes a script
+    # reads a file that cannot change -- #2015's merge kept the EG-B7
+    # harness's old path that way.
     phantoms = sorted(
-        (script, name)
-        for script, files in committed.items()
+        (script if table_key == "closures" else f"{script} (inert_reads)", name)
+        for table_key in ("closures", "inert_reads")
+        for script, files in table.get(table_key, {}).items()
         for name in files
         if not _is_real_file(name)
     )
@@ -2928,6 +2947,17 @@ def selftest() -> int:
         f"{_rel(str(ROOT / 'tests' / 'harness.py'))!r}",
     )
 
+
+    pin(
+        "the header corpus is the six-part path under dev/audit/rounds",
+        _is_header_corpus("dev/audit/rounds/round3/D2/dst_window_factors.py")
+        and not _is_header_corpus("tools/audit/round3/D2/dst_window_factors.py")
+        and not _is_header_corpus("dev/audit/rounds/round3/D2/__init__.py")
+        and not _is_header_corpus("dev/audit/rounds/round3/D2/sub/x.py")
+        and not _is_header_corpus("dev/audit/rounds/round3/notD/x.py"),
+        "the path-length arm did not move with the corpus",
+    )
+
     # #1310 (D3-02): a committed closure entry whose path is not an existing
     # file is a PHANTOM. `_keep_committed_files` never shrank a committed
     # closure (#527), which is right for a file that still exists and wrong
@@ -2991,6 +3021,15 @@ def selftest() -> int:
             crc2 == 0,
             f"rc={crc2} log={log2[-300:]!r}",
         )
+        # R9-RO-10: the same refusal over inert_reads, which a move leaves
+        # dead with no other warning; null control is the table above.
+        crc3, log3 = _selftest_phantom_check(
+            fake, {caller: [caller, kept_real]}, rec, {caller: [phantom]})
+        pin(
+            "check fails on a phantom in the committed inert_reads (R9-RO-10)",
+            crc3 == 1 and phantom in log3 and "(inert_reads)" in log3,
+            f"rc={crc3} log={log3[-300:]!r}",
+        )
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
@@ -2998,6 +3037,7 @@ def selftest() -> int:
         out.write_text(json.dumps({
             "closures": {caller: [caller, phantom, kept_real]},
             "recorded": {},
+            "inert_reads": {caller: [phantom, kept_real], "only-dead": [phantom]},
         }))
         pruner = globals().get("prune")
         if pruner is None:
@@ -3012,6 +3052,12 @@ def selftest() -> int:
                 "prune drops committed phantom entries (#1310)",
                 prc == 0 and phantom not in after and kept_real in after,
                 f"rc={prc} after={sorted(after)!r}",
+            )
+            ir = json.loads(out.read_text())["inert_reads"]
+            pin(
+                "prune drops dead inert_reads entries, and a key left with none (R9-RO-10)",
+                ir == {caller: [kept_real]},
+                f"inert_reads after={ir!r}",
             )
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
@@ -3226,7 +3272,8 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         return rc, buf.getvalue() + err.getvalue()
 
 
-def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int, str]:
+def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,
+                            inert_reads: dict | None = None) -> tuple[int, str]:
     """Drive check() against a committed table `closures`, captured (#1310).
 
     check() reads the module-level CLOSURES, so the table under test is
@@ -3235,7 +3282,8 @@ def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int,
     Returns (rc, captured stdout+stderr).
     """
     global CLOSURES
-    fake.write_text(json.dumps({"closures": closures, "recorded": {}}))
+    fake.write_text(json.dumps({"closures": closures, "recorded": {},
+                                "inert_reads": inert_reads or {}}))
     orig = CLOSURES
     CLOSURES = fake
     buf, err = io.StringIO(), io.StringIO()

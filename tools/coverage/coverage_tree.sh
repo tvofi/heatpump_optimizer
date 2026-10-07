@@ -3,7 +3,7 @@
 # default-gate Python scripts of tests/run.sh.
 #
 # This is the instrument for the #195 tranche partition (#505). It differs from
-# tools/audit/w5-g5-195-coverage/coverage_suite.sh, which narrows the script list
+# dev/audit/waves/w5-g5-195-coverage/coverage_suite.sh, which narrows the script list
 # to the closures that touch one tranche's three modules: a partition is over the
 # whole package, so it may not be measured against a script list chosen for part
 # of it.

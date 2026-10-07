@@ -34,7 +34,7 @@ legal start, so the solver genuinely lands in another local minimum. Each
 shape is then asked the same question about that solve.
 
 Command (from the repository root of the tree to measure, PYTHONPATH set):
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/h9_basin_coverage.py
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/h9_basin_coverage.py
 
 Expected: at the merge base b0703f7 (the v6.3.11 shape) covered=29 of 51
 against floor=40, fires=1 -- the failure CI run 33841375106 reported
