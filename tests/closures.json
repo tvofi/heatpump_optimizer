@@ -6,15 +6,15 @@
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 13.9,
+   "seconds": 9.6,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 4.2,
+   "seconds": 3.0,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 26.9,
+   "seconds": 12.5,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -30,11 +30,11 @@
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.9,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 542.9,
+   "seconds": 276.5,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,11 +42,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.9,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 5.0,
+   "seconds": 5.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -58,11 +58,11 @@
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.4,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.1,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/stress.py": {
@@ -70,7 +70,7 @@
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 8.6,
+   "seconds": 5.2,
    "rc": 0
   },
   "tests/validate.py": {
@@ -78,7 +78,7 @@
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.0,
+   "seconds": 2.1,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,15 +86,15 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.4,
+   "seconds": 0.3,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 1.2,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 1.1,
+   "seconds": 0.8,
    "rc": 0
   },
   "tests/harness_headers.py": {
@@ -102,11 +102,11 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 6.4,
+   "seconds": 4.2,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 85.6,
+   "seconds": 47.5,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -122,11 +122,11 @@
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 23.4,
+   "seconds": 18.1,
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 1198.3,
+   "seconds": 525.3,
    "rc": 0
   }
  },
@@ -196,6 +196,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -283,6 +284,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1382,6 +1384,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1461,6 +1464,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1883,7 +1887,9 @@
   "tests/guard_pins.py": [
    "custom_components/heatpump_optimizer/__init__.py",
    "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/away.py",
    "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/boost.py",
    "custom_components/heatpump_optimizer/comfort_learning.py",
    "custom_components/heatpump_optimizer/const.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
@@ -1894,17 +1900,22 @@
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/optimizer.py",
    "custom_components/heatpump_optimizer/payload.py",
    "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "custom_components/heatpump_optimizer/pump_mode.py",
    "custom_components/heatpump_optimizer/pv.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
+   "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/store.py",
    "custom_components/heatpump_optimizer/tariff.py",
@@ -1914,16 +1925,22 @@
    "tests/guard_pins.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
    "tests/hastub/homeassistant/const.py",
    "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
    "tests/hastub/homeassistant/exceptions.py",
    "tests/hastub/homeassistant/helpers/__init__.py",
    "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/entity.py",
    "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/event.py",
    "tests/hastub/homeassistant/helpers/issue_registry.py",
    "tests/hastub/homeassistant/helpers/storage.py",
    "tests/hastub/homeassistant/helpers/typing.py",
+   "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py"
@@ -1959,6 +1976,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -2891,6 +2909,7 @@
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
    "custom_components/heatpump_optimizer/narrative.py",
    "custom_components/heatpump_optimizer/open_meteo.py",
    "custom_components/heatpump_optimizer/optimizer.py",

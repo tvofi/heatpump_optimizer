@@ -91,7 +91,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
@@ -7900,8 +7899,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
         }
-        if out["quiet_silent_windows_spec"] and not quiet_windows.silent_control_usable(
-            cfg.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+        if quiet_windows.silent_unenforceable(
+            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
         ):
             out["quiet_silent_not_enforced"] = "true"
         return out
