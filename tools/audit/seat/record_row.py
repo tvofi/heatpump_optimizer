@@ -884,7 +884,11 @@ def self_test() -> int:
     ok("failed_required reads a re-run over the red it supersedes",
        failed_required([{"name": "fast (3.14)", "id": 1, "conclusion": "failure"},
                         {"name": "fast (3.14)", "id": 2, "conclusion": "success"}],
-                       {"fast (3.14)"}) == [])
+                       {"fast (3.14)"}) == []
+       and failed_required(
+           [{"name": "fast (3.14)", "id": 2, "conclusion": "success"},
+            {"name": "fast (3.14)", "id": 1, "conclusion": "failure"}],
+           {"fast (3.14)"}) == [])
     ok("not_green names a required context missing or still running",
        not_green([{"name": "a", "id": 1, "conclusion": "success"},
                   {"name": "b", "id": 2, "conclusion": None}],
