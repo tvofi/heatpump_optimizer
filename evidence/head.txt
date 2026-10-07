@@ -1,6 +1,6 @@
-head 26002ff5b84d59966ce3921ae3199a513599b920
-review worktree /Users/timmalmstrom/hpo-seats/r9-sw-2-review/wt
-merge-base 6001b09a557259f37319b400d219cf83e02c563f
-live pull-request head at posting, gh pr view 2007: 26002ff5b84d59966ce3921ae3199a513599b920
-round 1
-brief delta tools/audit/briefs/ against origin/main: empty
+head c3e8d3de1edac76d4bbb2ab412b63b2919ab58a6
+worktree /Users/timmalmstrom/hpo-seats/r9-sw-2-review/wt-c3e8
+merge-base origin/main 1fa713f73740e99a5762019f574ccd6afa45dca2
+round 2
+prior blocked head 26002ff5b84d59966ce3921ae3199a513599b920
+authored code named in the body 68fea9bb62b189e3580aca2923f90d4749ed1281

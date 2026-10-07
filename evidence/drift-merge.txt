@@ -1,0 +1,16 @@
+Head c3e8d3de1edac76d4bbb2ab412b63b2919ab58a6.
+
+python3 tests/structure.py: STRUCTURE RATCHET PASSED.
+git merge-tree --write-tree origin/main HEAD: exit 0, tree 879665113bec4c2dbdf72860b4d6d4ed6471d051, stderr empty.
+origin/main is 1fa713f73740e99a5762019f574ccd6afa45dca2.
+VERSION, manifest version, RELEASE_NOTES heading: three-dot diff empty.
+Claim files: three-dot diff empty.
+
+PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main
+(core.fsmonitor=false; baseline cache miss, captured both sides):
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE
+DRIFT_RC:0
+
+git diff 26002ff5b84d59966ce3921ae3199a513599b920 HEAD -- tests/features.py: empty.
+pump_arbiter.py since that commit: TypeGuard import, `_silent_rows` return annotation, two docstring lines. `_silent_target` is unchanged.
