@@ -4,7 +4,7 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
-eb0a8bf97bdbcea0b2b289077b2cc9e9a22e5553
+804e7f7189f0072212a64e0514175c2caf587951
 
 ## Mutation proof
 
@@ -61,7 +61,7 @@ PYTHONPATH=tests/hastub:custom_components:tests python3 -c 'from datetime import
 
 `nightly-status`. It grades main. Cheaper detector: none.
 
-`fast (3.14)`. Cheaper detector: none. That script is the check.
+`fast (3.14)`. Job 112578082702 exited 1 in "Run the suite". `tests/entities.py` failed P6 G on `pump_arbiter.py` probing `return_temperature`, which production does not store; the inlet is `floor_return_temperature`. `tests/config_flow_steps.py` failed the absent-key census because `freq_control_mode` was read without its form default, so the census could not prove the key. Cheaper detector: none. Those two scripts are the checks.
 
 ## Forward-carry
 
