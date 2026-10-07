@@ -473,7 +473,10 @@ class Train:
         scripts: set[str] = set()
         for c in runs:
             if c.get("name") in red and c.get("conclusion") not in GREEN:
-                log = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{c['id']}/logs"])[1]
+                # gh refuses a log carrying terminal escapes -- every Actions log
+                # does -- unless told to pass them (measured on the R9-RO-12 proof).
+                log = self.run(["gh", "api", "--allow-escape-sequences",
+                                f"repos/{self.repo}/actions/jobs/{c['id']}/logs"])[1]
                 scripts |= set(FAILED_SCRIPT.findall(log))
         if not scripts:
             return None
@@ -924,6 +927,8 @@ def _batch_self_test(check) -> None:
             if "check-runs" in a:
                 sha = a.split("/commits/")[1].split("/")[0]
                 return 0, "\n".join(json.dumps(c) for c in ci(w, sha))
+            if "/actions/jobs/" in a and "--allow-escape-sequences" not in argv:
+                return 1, "the response contains terminal escape sequences; pass --allow-escape-sequences"
             if "/actions/jobs/11/logs" in a:
                 return 0, '2026-10-07T00:00:00Z >>> FAILED: "$PYTHON" tests/ratchet.py'
             if "/actions/jobs/" in a:

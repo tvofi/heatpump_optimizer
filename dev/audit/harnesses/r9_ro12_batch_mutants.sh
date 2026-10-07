@@ -29,3 +29,4 @@ mut M8-no-conflict-route 'if code == 1:
 mut M9-no-admission-ci 'if red:
             raise Stop("ci", f"#{pr} red at its head: "' 'if False:
             raise Stop("ci", f"#{pr} red at its head: "'
+mut M10-log-read-without-escapes '"gh", "api", "--allow-escape-sequences",' '"gh", "api",'
