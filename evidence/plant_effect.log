@@ -1,0 +1,6 @@
+RESULT plant dhw200 check_fork rc 0
+RESULT effect dhw200 channel_boost EQUAL
+RESULT effect dhw200 mode_boost EQUAL
+RESULT plant param253 check_fork rc 0
+RESULT effect param253 channel_boost EQUAL
+RESULT effect param253 mode_boost EQUAL

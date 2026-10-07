@@ -1,0 +1,12 @@
+RESULT plant none check_fork rc 0
+  FAIL the channel surface acts on nothing before the fork (its pre-fork trace equals the surface-free arm's, so one prefix stands for it)  [first differing cycle 100 of 254]
+1 of 3 FORK FAILED
+RESULT plant channel100 check_fork rc 1
+  FAIL the mode surface acts on nothing before the fork (its pre-fork trace equals the surface-free arm's, so one prefix stands for it)  [first differing cycle 30 of 254]
+1 of 3 FORK FAILED
+RESULT plant comfort30 check_fork rc 1
+RESULT plant dhw200 check_fork rc 0
+  FAIL the channel surface acts on nothing before the fork (its pre-fork trace equals the surface-free arm's, so one prefix stands for it)  [first differing cycle 253 of 254]
+1 of 3 FORK FAILED
+RESULT plant channel253 check_fork rc 1
+RESULT plant param253 check_fork rc 0
