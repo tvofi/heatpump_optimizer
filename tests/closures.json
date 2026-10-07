@@ -126,7 +126,7 @@
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 525.3,
+   "seconds": 1634.2,
    "rc": 0
   },
   "tests/block_duty.py": {
@@ -3055,6 +3055,8 @@
    "dev/programme/register/audit-2026-09.md",
    "tools/audit/ci-version-edit/pr_contract_shapes.py",
    "tools/audit/ci-version-edit/recheck_stamp_forgery.py",
+   "tools/audit/harnesses/boost_replay_fork_parity.py",
+   "tools/audit/harnesses/ci_script_seconds.py",
    "tools/audit/harnesses/d1_s3_02_queued_apply.py",
    "tools/audit/harnesses/d907_kernel_band.py",
    "tools/audit/harnesses/dual_path.py",
