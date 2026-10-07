@@ -15,13 +15,12 @@ from homeassistant.helpers import issue_registry as ir
 from .const import (
     CONF_DHW_SETPOINT_ENTITY,
     CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
-    CONF_QUIET_SILENT_WINDOWS,
     CONF_SPACE_SETPOINT_ENTITY,
     DOMAIN,
     MIXING_VALVE_WRITE_EPSILON,
 )
 from .inputs import state_unit, temperature_c, temperature_from_c
-from .quiet_windows import silent_control_usable
+from .quiet_windows import silent_unenforceable
 
 # Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
 DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
@@ -72,20 +71,18 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
     """#1910: one warning when silent rows cannot be enforced.
 
     tvofi's chosen fallback (2026-09-30): normal operation with a warning.
-    The plan is not capped for silent rows whose capacity-limited slot is
-    not a switch the optimizer can hold -- planning for silence the pump
-    will not deliver would buy the wrong hours. The verdict comes from the
-    entity ID's domain alone, so a switch that has not reported yet
-    (state ``unknown``) does not raise it: unknown is not off.
+    The plan is not capped for silent rows the optimizer cannot hold --
+    planning for silence the pump will not deliver would buy the wrong
+    hours. A switch is decided from the entity ID's domain alone, so one
+    that has not reported yet (state ``unknown``) does not raise it:
+    unknown is not off. A GCHV night-mode schedule that is only partly
+    holdable (two windows, or days that differ) raises it too (#1913).
     """
     entity_id = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
-    active = bool(config.get(CONF_QUIET_SILENT_WINDOWS)) and not (
-        silent_control_usable(entity_id)
-    )
     _set_issue(
         hass,
         ISSUE_QUIET,
-        active,
+        silent_unenforceable(config, hass.states.get),
         placeholders={"entity": entity_id or ""},
     )
 

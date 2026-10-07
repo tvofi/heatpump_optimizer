@@ -690,3 +690,51 @@
 # R9-UX-8 (tvofi 2026-10-03: the insight text in the card on iOS does not look neat). The narrative
 # becomes a surface-2 panel of label/number rows. The stylesheet text moves in every state that renders it
 # (the file's #1388 precedent), and the states whose headline carries a narrative also move in markup.
+
+# R9-SW-3 (#1912): silent windows on the dashboard card. The one <style> block
+# gains --hpo-series-quiet_silent / --hpo-series-quiet_off and the .wi-quiet*
+# rules, so every state that renders it moves by stylesheet text. SERIES_DEFS
+# gains the two band keys, so editor_schema (the config editor's schema) moves
+# too. States that render the what-if usual-schedule section also gain the
+# Silent windows list (empty until a fixture adds a row). Default fixtures
+# publish no quiet_actions, so the chart quiet-band is not the mover here.
+no_plan # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+no_plan_expanded # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+plan_inline # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+plan_inline_sv # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+plan_short_window # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+custom_title_currency # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+hidden_series # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+score_open # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+expanded_plan # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+what_if_off # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+expanded_zoomed # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+draft_dirty_menu_open # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+draft_mid_drag # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+whatif_edited # R9-SW-3: stylesheet plus Silent windows list in the what-if editor
+whatif_weekly # R9-SW-3: stylesheet plus Silent windows list in the what-if editor
+override_active # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+shared_steps # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+shared_steps_hover # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+tooltip_hover # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+coarse_pointer # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+reduced_motion # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+setup_single_buffer # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+setup_two_tank # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+setup_coil # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+advisor_page # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+layout_editing_dragged # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+layout_editing_tidy # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+picker_open_filtered # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+wood_alert # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+wood_lane # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+wood_whatif # R9-SW-3: stylesheet plus Silent windows list in the what-if editor
+away_toggle # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+away_return # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+away_status # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+editor_schema # R9-SW-3: SERIES_DEFS gains quiet_silent and quiet_off in the config editor schema
+history_panned # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+history_deep_panned # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+history_no_power # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+history_unavailable # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)
+history_pending # R9-SW-3: stylesheet (quiet series tokens and .wi-quiet rules)

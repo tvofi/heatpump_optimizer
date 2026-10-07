@@ -55,7 +55,7 @@ for M in merges:
     for ln in text.splitlines():
         if ln.startswith("REFUSE unrecorded"):
             f = re.search(r"changes (\S+),", ln).group(1)
-            files["docs/delivery/N.md" if "/delivery/" in f else "/".join(f.split("/")[:2])] += 1
+            files["dev/programme/delivery/N.md" if "/delivery/" in f else "/".join(f.split("/")[:2])] += 1
     if "--files" not in sys.argv:
         print(M[:8], rc, f"moved={moved}", ",".join(classes))
 if "--files" in sys.argv:

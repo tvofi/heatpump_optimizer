@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:planned_draw_runs CMP_BOUND 769c490d",
+  "killed_by": "tests/features.py",
+  "old": "        below_floor = total < floor",
+  "reason": "Recorded by applying the mutant on this branch: CMP_BOUND (`below_floor = total <= floor`) leaves planned_draw_runs(3.0, modulation_floor=3.0) False, and tests/features.py expects True. `mutation_table.py --pin-killed` records no verdict on this machine because tests/features.py's baseline is red on R9-F2.1 P3, the same pair origin/main fails."
+}
