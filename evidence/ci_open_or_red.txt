@@ -1,0 +1,4 @@
+Analyze (python)	in_progress	-
+coverage	in_progress	-
+delivery-status	completed	failure
+nightly-status	completed	failure

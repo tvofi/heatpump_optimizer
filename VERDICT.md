@@ -1,0 +1,30 @@
+Fix review: blocked 2d12904f314932ef7b94117d85a98b0d5c83118a over-fire: 6d refuses every push on a red main carries (no_recording is not diff-scoped, no escape) and refuses unpinned sites before the handoff that ci-autofix.md says to wait on
+bus-nonce: 0766815e05edf17e073a370a03f5fb3a
+
+Round 1. Reviewed from a detached worktree at 2d12904f314932ef7b94117d85a98b0d5c83118a (merge base e7479ad19f96). Live head re-read at posting: unchanged.
+
+## What holds
+- Replay re-run by me (tools/audit/seat/ci_predict_replay.sh over the eight PRs; 0 API or worktree failures; 4m46s wall, under load 5-15):
+  RESULT mutation: 11/11 red commits predicted, 0/18 green predicted (matches the body).
+  RESULT closures: 12/15 red predicted (matches), 1 green predicted (e6e9b775, matches). My closures-green count is 15, not the body's 13; I did not attribute the 2 extra rows (most likely commits that concluded or landed after the fixer's replay). Rule as stated in the body; evidence/confusion.txt, replay.tsv.
+- Speed: ci_predict.py at the head 1.6 s wall (time). It runs git and Python AST only; no test, recording or mutant.
+- Reuse: the mutation arm calls mutation_table's inventory/unpinned_sites/base_unpinned_sites/added_unpinned/diff_sides, CI's own calls (mutation_table.py:2980-2996). UNCLASSIFIED uses closure.orphan_files, INERT uses closure.is_inert. Two arms are the predictor's own model, not CI's functions: the static import resolver (imported_paths; CI records closures at runtime, so there is no CI function to reuse) and NO RECORDING (a regex over derive_closures.sh's literal "rec tests/..." lines, where CI learns it from which recordings exist). The docstring's "Each arm here reads CI's own functions" overstates those two. Not a blocker alone. The predictor also omits CI's count-ratchet refusal (ratchet_refusal without an added site) and the ledger form/completeness refusals: under-prediction, fine for a predictor.
+- prepr.sh --self-test: 201 passed, 0 failed (evidence/selftest.out).
+- policy_lint: TOTAL 0 errors across 40 files; --budgets: fixer.md 4865 of 4866 tokens (cap holds, 1 token headroom).
+- CI at the head (check-runs API, evidence/check_runs_at_head.tsv): closures, mutation, fast (3.14), typing, pr-contract, policy-docs, instrument-self-tests, env-matrix all success; red only delivery-status and nightly-status, state checks this diff does not reach. Analyze (python) and coverage still in_progress at posting. The three earlier commits carry no red but those two state checks at 74944e8a. Mutation green draws nothing: the diff writes no production line.
+
+## Blocking 1: an inherited main red refuses every fixer push, with no escape
+no_recording(root, closure) is the one arm not filtered by the diff: it checks every selectable script on the tree against derive_closures.sh. A selectable script main carries unrecorded (derive_closures.sh's own comments record four such episodes: card_drift.mjs, config_flow_steps.py, finite_boundary.py, layout.py) makes step 6d refuse on every branch, whatever it touches. step "ci predict" 1 sets rc=1, and app_push.sh:144-145 dies on any prepr refusal ("NOTHING was minted, pushed or posted"); there is no PREPR_SKIP_* for 6d (6b has PREPR_SKIP_CLOSURES). The body itself says a red main already carries is "not seen, by design" -- this arm sees it and refuses.
+Plant (evidence/plant_inherited.sh, .out): a throwaway clone where "main" adds tests/zz_main_unrecorded_check.py; a branch that only appends a comment to tests/wood_advisor.py.
+  RESULT planted main red, unrelated branch: PREDICT closures NO RECORDING tests/zz_main_unrecorded_check.py, rc=1
+  RESULT control, same branch on unplanted main: none predicted, rc=0
+Repair: scope the arm to scripts not selectable-and-unrecorded at the merge base (or to scripts in the changed set), and either give 6d an explicit skip with a stated reason or make an inherited prediction a warning.
+
+## Blocking 2: the fixer.md / ci-autofix.md contradiction moved rather than closed
+New fixer.md step 2: "When --pin-killed runs is ci-autofix.md's; prepr.sh step 6d names the unpinned sites first." ci-autofix.md: when mutation refuses unpinned sites, wait for mutation-autofix; only when it goes red, run --pin-killed yourself. fixer.md (step 5 and 6) requires the body to pass prepr.sh before the handoff, and the handoff precedes any CI run. 6d now refuses on any ADDED UNPINNED (self-test pmut: "and the step refuses on a prediction"), and most fixes add a guard. So the fixer cannot pass prepr without pinning before CI ever runs, while the rule fixer.md defers to says to wait for CI's autofix. Pinning locally means the mutation drive, which is on the owner's 2026-10-07 heavy-scripts list as the seat block states it. The alternative is a hand-written survivor triage the fixer has not measured. Either 6d's mutation arm warns (names the sites and the body owes the disposition), or fixer.md says plainly that pins are owed before the handoff and ci-autofix.md's wait is amended -- the latter is a policy change needing tvofi's approval. Refusing on a red the fixer cannot repair cheaply is the wrong default for a predictor.
+
+## Forward-carry
+The autofix-chain finding (mutation-autofix 0 of 10 repaired, 8 skip-no-measurement on the drive budget; closures-autofix 0 of 10) is not carried anywhere: I find no roster group or brief owning tests.yml's autofix jobs on origin/main (no wave groups file but wave-3l; no R9-RO-11 or skip-no-measurement mention under .claude/ or dev/). The body says "for the orchestrator to place". With no later stage of this group, step 10's carry-missing does not strictly bind. But the finding is load-bearing for Blocking 2: it is why waiting for autofix does not work. It needs a home -- a roster group, or HANDOVER owed work -- before this merges. I did not re-derive the 0-of-10 counts from job logs (not verified by me).
+
+## Not checked
+No mutants of my own on ci_predict.py beyond the fixer's five arm deletions (the self-test caught each, per the body; I did not re-run them). Data-file reads and the merge-ref base offset (body: up to 5 sites) accepted as stated.
