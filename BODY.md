@@ -53,7 +53,9 @@ PYTHONPATH=tests/hastub:custom_components:tests python3 -c 'from datetime import
 
 `typing`. Cheaper detector: none. The census is `tests/typing_ruler.py --mypy`. The source-only ruler does not see an undeclared field.
 
-`mutation`. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`. Standing cost is one inventory pass, no clone and no solve.
+`mutation`. Job 112597999835 exited 1 in `pip install --require-hashes -r tests/requirements-ci.txt`. The log line is `No matching distribution found for aiohttp==3.14.3`. No table output was uploaded, so the log names no site. Cheaper detector for an unpinned site: `python3 tests/mutation_table.py --pin-killed --base origin/main`. At this head it prints `PIN KILLED: nothing to pin`. Cheaper detector for the install failure: none.
+
+`mutation-autofix`. Summary line `skip-no-measurement`. Job 112598224753 exited 1 on "Report whether the repair happened". No bot pin is coming. That line's command is the same `--pin-killed` run, and it has nothing to pin. Cheaper detector: none.
 
 `env-matrix`. Cheaper detector: the job. It checks `tools/policy/*.mjs` out from the base before it runs.
 
