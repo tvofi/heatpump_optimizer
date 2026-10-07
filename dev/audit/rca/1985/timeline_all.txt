@@ -1,0 +1,166 @@
+== #1886 a607db2a176655fc171ac6ec15eb1c039c38188e verdict@2026-10-04T00:28:10Z
+   closures failure started=2026-10-03T23:49:27Z done=2026-10-04T00:07:52Z
+   closures-autofix failure started=2026-10-04T00:07:55Z done=2026-10-04T00:08:03Z
+   nightly-status failure started=2026-10-03T23:49:10Z done=2026-10-03T23:49:18Z
+   policy-docs failure started=2026-10-03T23:49:10Z done=2026-10-03T23:49:29Z
+   pr-contract failure started=2026-10-03T23:51:50Z done=2026-10-03T23:52:07Z
+   pr-contract failure started=2026-10-04T00:26:29Z done=2026-10-04T00:26:47Z
+   pr-contract success started=2026-10-03T23:49:10Z done=2026-10-03T23:49:25Z
+   wave-script failure started=2026-10-03T23:49:10Z done=2026-10-03T23:49:26Z
+== #1942 0e2ee62bca778503d16b718d69deb7cc8d4d9374 verdict@2026-10-04T14:58:42Z
+   budget-raise-gate failure started=2026-10-04T13:54:52Z done=2026-10-04T13:55:02Z
+   budget-raise-gate failure started=2026-10-04T14:57:35Z done=2026-10-04T14:57:48Z
+   budget-raise-gate failure started=2026-10-04T14:59:03Z done=2026-10-04T14:59:16Z
+   budget-raise-gate failure started=2026-10-04T15:03:32Z done=2026-10-04T15:03:46Z
+   pr-contract failure started=2026-10-04T13:54:53Z done=2026-10-04T13:55:09Z
+   pr-contract failure started=2026-10-04T13:55:19Z done=2026-10-04T13:55:36Z
+   pr-contract success started=2026-10-04T14:57:34Z done=2026-10-04T14:57:48Z
+   pr-contract success started=2026-10-04T14:58:05Z done=2026-10-04T14:58:22Z
+   pr-contract success started=2026-10-04T14:59:31Z done=2026-10-04T14:59:45Z
+   pr-contract success started=2026-10-04T15:04:01Z done=2026-10-04T15:04:14Z
+== #1948 ae1db90faea9bf18527317294e316be5bec91004 verdict@2026-10-04T16:33:13Z
+   budget-raise-gate failure started=2026-10-04T16:26:45Z done=2026-10-04T16:26:58Z
+   budget-raise-gate failure started=2026-10-04T16:37:02Z done=2026-10-04T16:37:13Z
+   pr-contract cancelled started=2026-10-04T16:26:41Z done=2026-10-04T16:26:42Z
+   pr-contract failure started=2026-10-04T16:27:15Z done=2026-10-04T16:27:29Z
+   pr-contract failure started=2026-10-04T16:37:02Z done=2026-10-04T16:37:15Z
+   pr-contract failure started=2026-10-04T16:37:27Z done=2026-10-04T16:37:40Z
+   pr-contract success started=2026-10-04T16:26:45Z done=2026-10-04T16:26:58Z
+== #1957 6e5cb20157623006040dcb4794d0d31562c32198 verdict@2026-10-04T20:52:11Z
+   closures failure started=2026-10-04T20:27:59Z done=2026-10-04T20:46:14Z
+   closures-autofix failure started=2026-10-04T20:46:17Z done=2026-10-04T20:46:26Z
+   pr-contract cancelled started=2026-10-04T20:26:19Z done=2026-10-04T20:26:19Z
+   pr-contract cancelled started=2026-10-04T21:03:46Z done=2026-10-04T21:04:10Z
+   pr-contract success started=2026-10-04T20:26:22Z done=2026-10-04T20:26:36Z
+   pr-contract success started=2026-10-04T20:27:17Z done=2026-10-04T20:27:31Z
+== #1957 6e5cb20157623006040dcb4794d0d31562c32198 verdict@2026-10-04T20:52:44Z
+   closures failure started=2026-10-04T20:27:59Z done=2026-10-04T20:46:14Z
+   closures-autofix failure started=2026-10-04T20:46:17Z done=2026-10-04T20:46:26Z
+   pr-contract cancelled started=2026-10-04T20:26:19Z done=2026-10-04T20:26:19Z
+   pr-contract cancelled started=2026-10-04T21:03:46Z done=2026-10-04T21:04:10Z
+   pr-contract success started=2026-10-04T20:26:22Z done=2026-10-04T20:26:36Z
+   pr-contract success started=2026-10-04T20:27:17Z done=2026-10-04T20:27:31Z
+== #1958 244612e718357a11c55069ddc2fd059912a40b0d verdict@2026-10-05T02:26:48Z
+   mutation failure started=2026-10-05T02:19:17Z done=2026-10-05T02:23:29Z
+   mutation-autofix failure started=2026-10-05T02:23:31Z done=2026-10-05T02:23:45Z
+   pr-contract cancelled started=2026-10-05T02:19:20Z done=2026-10-05T02:19:33Z
+   pr-contract failure started=2026-10-05T03:03:31Z done=2026-10-05T03:03:46Z
+   pr-contract success started=2026-10-05T02:19:36Z done=2026-10-05T02:19:50Z
+   pr-contract success started=2026-10-05T02:20:03Z done=2026-10-05T02:20:17Z
+== #1958 c134b9fad98f250631168d5525d43dbbb46183bd verdict@2026-10-05T01:07:13Z
+   mutation failure started=2026-10-05T00:57:33Z done=2026-10-05T01:04:06Z
+   mutation-autofix failure started=2026-10-05T01:04:08Z done=2026-10-05T01:04:21Z
+   pr-contract cancelled started=2026-10-05T00:56:39Z done=2026-10-05T00:56:40Z
+   pr-contract cancelled started=2026-10-05T02:19:03Z done=2026-10-05T02:19:17Z
+   pr-contract failure started=2026-10-05T01:24:58Z done=2026-10-05T01:25:16Z
+   pr-contract success started=2026-10-05T00:56:43Z done=2026-10-05T00:56:57Z
+   pr-contract success started=2026-10-05T00:57:15Z done=2026-10-05T00:57:31Z
+   typing failure started=2026-10-05T00:57:34Z done=2026-10-05T00:59:03Z
+== #1959 82a8791a346b12cb91e53d5dfdc88009972603d4 verdict@2026-10-05T01:37:15Z
+   closures failure started=2026-10-05T00:57:05Z done=2026-10-05T01:40:46Z
+   fast (3.14) failure started=2026-10-05T00:56:51Z done=2026-10-05T01:37:51Z
+   mutation failure started=2026-10-05T00:56:51Z done=2026-10-05T01:00:47Z
+   mutation-autofix failure started=2026-10-05T01:00:49Z done=2026-10-05T01:01:01Z
+   pr-contract cancelled started=2026-10-05T00:56:51Z done=2026-10-05T00:56:53Z
+   pr-contract failure started=2026-10-05T01:41:12Z done=2026-10-05T01:41:30Z
+   pr-contract success started=2026-10-05T00:56:57Z done=2026-10-05T00:57:11Z
+   pr-contract success started=2026-10-05T00:57:42Z done=2026-10-05T00:57:58Z
+   typing failure started=2026-10-05T00:56:52Z done=2026-10-05T00:58:22Z
+== #1960 455db64e9c41b59953858338d26cddcb1232dac2 verdict@2026-10-06T07:33:12Z
+   budget-raise-gate failure started=2026-10-06T07:17:01Z done=2026-10-06T07:17:16Z
+   delivery-status failure started=2026-10-06T07:17:00Z done=2026-10-06T07:17:16Z
+   mutation failure started=2026-10-06T07:17:00Z done=2026-10-06T07:23:37Z
+   mutation-autofix failure started=2026-10-06T07:23:40Z done=2026-10-06T07:23:51Z
+   nightly-status failure started=2026-10-06T07:17:00Z done=2026-10-06T07:17:12Z
+   pr-contract cancelled started=2026-10-06T07:16:57Z done=2026-10-06T07:16:58Z
+   pr-contract success started=2026-10-06T07:17:02Z done=2026-10-06T07:17:22Z
+   pr-contract success started=2026-10-06T07:17:31Z done=2026-10-06T07:17:45Z
+   pr-contract success started=2026-10-06T07:19:41Z done=2026-10-06T07:19:55Z
+   pr-contract success started=2026-10-06T08:01:26Z done=2026-10-06T08:01:41Z
+   typing failure started=2026-10-06T07:17:01Z done=2026-10-06T07:18:33Z
+== #1960 a595111651e0f789c328ce8bf7539c3b582ff5b1 verdict@2026-10-05T04:38:55Z
+   budget-raise-gate failure started=2026-10-05T03:56:47Z done=2026-10-05T03:57:00Z
+   budget-raise-gate failure started=2026-10-05T03:57:18Z done=2026-10-05T03:57:29Z
+   fast (3.14) failure started=2026-10-05T03:56:47Z done=2026-10-05T04:32:38Z
+   mutation failure started=2026-10-05T03:56:59Z done=2026-10-05T04:26:18Z
+   mutation-autofix failure started=2026-10-05T04:26:21Z done=2026-10-05T04:26:31Z
+   pr-contract cancelled started=2026-10-05T03:56:47Z done=2026-10-05T03:57:03Z
+   pr-contract cancelled started=2026-10-05T03:57:06Z done=2026-10-05T03:57:19Z
+   pr-contract failure started=2026-10-05T04:33:13Z done=2026-10-05T04:33:29Z
+   pr-contract success started=2026-10-05T03:57:23Z done=2026-10-05T03:57:37Z
+   pr-contract success started=2026-10-05T03:57:46Z done=2026-10-05T03:58:03Z
+== #1960 cc0bc1016fd60ed0dbe7574c13b1cc6a1579e6b7 verdict@2026-10-05T02:31:23Z
+   budget-raise-gate failure started=2026-10-05T01:25:44Z done=2026-10-05T01:25:58Z
+   closures failure started=2026-10-05T01:26:28Z done=2026-10-05T01:44:49Z
+   closures-autofix failure started=2026-10-05T01:44:53Z done=2026-10-05T01:45:02Z
+   coverage-ratchet failure started=2026-10-05T01:37:20Z done=2026-10-05T01:37:27Z
+   fast (3.14) failure started=2026-10-05T01:26:13Z done=2026-10-05T02:00:57Z
+   mutation failure started=2026-10-05T01:26:13Z done=2026-10-05T01:32:55Z
+   mutation-autofix failure started=2026-10-05T01:32:58Z done=2026-10-05T01:33:09Z
+   pr-contract cancelled started=2026-10-05T01:25:35Z done=2026-10-05T01:25:36Z
+   pr-contract failure started=2026-10-05T01:26:11Z done=2026-10-05T01:26:25Z
+   pr-contract failure started=2026-10-05T02:01:31Z done=2026-10-05T02:01:45Z
+   pr-contract success started=2026-10-05T01:25:39Z done=2026-10-05T01:25:53Z
+   typing failure started=2026-10-05T01:26:13Z done=2026-10-05T01:27:40Z
+== #1975 3c0e3324d1f09e68677ee8caca38b2e42035c6a8 verdict@2026-10-05T21:26:03Z
+   delivery-status failure started=2026-10-05T21:24:27Z done=2026-10-05T21:24:43Z
+   nightly-status failure started=2026-10-05T21:15:16Z done=2026-10-05T21:15:25Z
+   pr-contract cancelled started=2026-10-05T21:09:21Z done=2026-10-05T21:09:22Z
+   pr-contract cancelled started=2026-10-05T21:09:23Z done=2026-10-05T21:09:25Z
+   pr-contract failure started=2026-10-05T21:24:58Z done=2026-10-05T21:25:19Z
+   pr-contract failure started=2026-10-05T21:26:06Z done=2026-10-05T21:26:26Z
+   pr-contract failure started=2026-10-05T21:27:45Z done=2026-10-05T21:28:04Z
+   pr-contract failure started=2026-10-05T21:28:48Z done=2026-10-05T21:29:11Z
+   pr-contract success started=2026-10-05T21:31:43Z done=2026-10-05T21:32:01Z
+   pr-contract success started=2026-10-05T22:09:59Z done=2026-10-05T22:10:12Z
+== #1975 3c0e3324d1f09e68677ee8caca38b2e42035c6a8 verdict@2026-10-05T21:28:51Z
+   delivery-status failure started=2026-10-05T21:24:27Z done=2026-10-05T21:24:43Z
+   nightly-status failure started=2026-10-05T21:15:16Z done=2026-10-05T21:15:25Z
+   pr-contract cancelled started=2026-10-05T21:09:21Z done=2026-10-05T21:09:22Z
+   pr-contract cancelled started=2026-10-05T21:09:23Z done=2026-10-05T21:09:25Z
+   pr-contract failure started=2026-10-05T21:24:58Z done=2026-10-05T21:25:19Z
+   pr-contract failure started=2026-10-05T21:26:06Z done=2026-10-05T21:26:26Z
+   pr-contract failure started=2026-10-05T21:27:45Z done=2026-10-05T21:28:04Z
+   pr-contract failure started=2026-10-05T21:28:48Z done=2026-10-05T21:29:11Z
+   pr-contract success started=2026-10-05T21:31:43Z done=2026-10-05T21:32:01Z
+   pr-contract success started=2026-10-05T22:09:59Z done=2026-10-05T22:10:12Z
+== #1979 e6d844faaf3a1968b45ec13c6abdcafc290d083c verdict@2026-10-05T23:09:52Z
+   delivery-status failure started=2026-10-05T22:41:05Z done=2026-10-05T22:41:18Z
+   graders-head-copy failure started=2026-10-05T22:44:28Z done=2026-10-05T22:44:41Z
+   nightly-status failure started=2026-10-05T22:41:04Z done=2026-10-05T22:41:12Z
+   pr-contract cancelled started=2026-10-05T22:41:00Z done=2026-10-05T22:41:01Z
+   pr-contract failure started=2026-10-05T22:41:05Z done=2026-10-05T22:41:23Z
+   pr-contract failure started=2026-10-05T22:41:41Z done=2026-10-05T22:41:56Z
+   pr-contract failure started=2026-10-05T22:43:46Z done=2026-10-05T22:44:07Z
+   pr-contract failure started=2026-10-05T22:49:02Z done=2026-10-05T22:49:15Z
+   pr-contract success started=2026-10-05T23:09:51Z done=2026-10-05T23:10:06Z
+   pr-contract success started=2026-10-05T23:14:06Z done=2026-10-05T23:14:27Z
+== #1980 d7c0697ef5fc2af5fdb73e9f27e13f0d1703bdd2 verdict@2026-10-06T00:18:09Z
+   closures failure started=2026-10-05T23:36:24Z done=2026-10-06T00:00:22Z
+   closures-autofix failure started=2026-10-06T00:00:25Z done=2026-10-06T00:00:33Z
+   delivery-status failure started=2026-10-05T23:34:51Z done=2026-10-05T23:35:03Z
+   nightly-status failure started=2026-10-05T23:36:09Z done=2026-10-05T23:36:19Z
+   pr-contract cancelled started=2026-10-05T23:34:52Z done=2026-10-05T23:35:16Z
+   pr-contract failure started=2026-10-05T23:35:55Z done=2026-10-05T23:36:13Z
+   pr-contract failure started=2026-10-05T23:37:41Z done=2026-10-05T23:38:01Z
+   pr-contract failure started=2026-10-06T00:13:18Z done=2026-10-06T00:13:32Z
+== #1993 1e8b9b179cd60e6097c92c256abac359fe4218db verdict@2026-10-06T22:36:14Z
+   delivery-status failure started=2026-10-06T22:03:26Z done=2026-10-06T22:03:38Z
+   env-matrix failure started=2026-10-06T22:03:26Z done=2026-10-06T22:03:40Z
+   nightly-status failure started=2026-10-06T22:03:26Z done=2026-10-06T22:03:38Z
+   pr-contract failure started=2026-10-06T22:03:44Z done=2026-10-06T22:04:04Z
+   pr-contract failure started=2026-10-06T22:04:19Z done=2026-10-06T22:04:34Z
+   pr-contract failure started=2026-10-06T22:05:14Z done=2026-10-06T22:05:35Z
+   pr-contract failure started=2026-10-06T22:48:33Z done=2026-10-06T22:48:54Z
+   pr-contract success started=2026-10-06T22:03:25Z done=2026-10-06T22:03:41Z
+== #1996 c2994f6b4c4eff24eab4a906caadcdbcd8bdd06a verdict@2026-10-06T22:12:59Z
+   CodeQL failure started=2026-10-06T21:47:48Z done=2026-10-06T21:47:51Z
+   delivery-status failure started=2026-10-06T21:47:12Z done=2026-10-06T21:47:26Z
+   env-matrix failure started=2026-10-06T21:47:12Z done=2026-10-06T21:47:30Z
+   nightly-status failure started=2026-10-06T21:47:12Z done=2026-10-06T21:47:25Z
+   pr-contract failure started=2026-10-06T21:47:38Z done=2026-10-06T21:47:56Z
+   pr-contract failure started=2026-10-06T21:48:04Z done=2026-10-06T21:48:23Z
+   pr-contract failure started=2026-10-06T21:49:14Z done=2026-10-06T21:49:30Z
+   pr-contract failure started=2026-10-06T22:20:30Z done=2026-10-06T22:20:49Z
+   pr-contract success started=2026-10-06T21:47:13Z done=2026-10-06T21:47:33Z
+   pr-contract success started=2026-10-07T01:50:00Z done=2026-10-07T01:50:16Z

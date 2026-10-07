@@ -5,13 +5,13 @@
 
 This module is the one place the roster schema is read: the wave computation is
 `gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
-critical path is `tools/audit/round9/fixplan/gen.py`'s `longest_chain()`, and
+critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
 satisfied and stop constraining the groups behind them. Nothing here shells out
 or touches the network; the roster reaches a tool as a parsed dict.
 
-Roster shape (tools/audit/round9/fixplan/gen.py writes it):
+Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
                "fixerModel", "reviewerModel", "owner_gate", "resume": {...},
                ...}], "repo", "session", ...}
@@ -128,7 +128,7 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
 # ------------------------------------------------- the branch-to-group lookup
 #
 # A merged pull request's head branch answers for the roster group its work
-# rode, so the record beat can suffix its `docs/delivery/<N>.md` row with the
+# rode, so the record beat can suffix its `dev/programme/delivery/<N>.md` row with the
 # group id. This is the ONE derivation of that mapping; the record-autofix
 # generator (record_row.py) imports it rather than re-deriving it (#1948's
 # product carrying its own consumer).

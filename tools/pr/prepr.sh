@@ -1050,6 +1050,10 @@ if [ "${1:-}" = "--self-test" ]; then
     set -e; cd "$RA"; git init -q -b main .
     git config user.name st; git config user.email st@st
     git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    # The identity is pinned through the environment, not only `git config`:
+    # GIT_AUTHOR_NAME in a seat's ambient environment outranks user.name and
+    # changes both commit SHAs, so every fixture below went unfound (7 rows).
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
     export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000'
     export GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
     echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
@@ -1514,7 +1518,8 @@ PY
   # script with step 3e's call deleted, commented out, or moved above rc=0;
   # and the pin matcher behind 3f and step 4.
   WF=$(mktemp -d); mkdir "$WF/wf" "$WF/empty"
-  OWN=tools/audit/round6/D11/fix/codeowners_gap.py
+  OWN=dev/audit/rounds/round6/D11/fix/codeowners_gap.py; OWN_OLD=tools/audit/round6/D11/fix/codeowners_gap.py
+  BOTH=$(printf '%s\n' "$OWN" "$OWN_OLD")  # the grader at both homes, in sort order
   grep -qx "$OWN" <<<"$(pinned_graders .github/workflows/*.yml)"
   st $? 0 "the pin reader finds codeowners_gap.py in a pinned job that grades main"
   pinned_verdict "$PREPR_PATH" .github/workflows/*.yml >/dev/null
@@ -1526,20 +1531,21 @@ PY
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
   grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' "$PREPR_PATH" > "$WF/deleted.sh"
-  [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$OWN" ]
+  [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check|# &|' "$PREPR_PATH" > "$WF/commented.sh"
-  [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$OWN" ]
+  sed 's|^if test -f .*codeowners_gap\.py --check >.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
+  [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
-  [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$OWN" ]
+  [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
   for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
 import os, sys
 p = sys.argv[1]; s = open(p).read(); k = os.environ["PERT"]
-own = "python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check"
+own = "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check"
+full = "if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else " + own + "; fi"
 if k == "unquoted": t = s.replace('git checkout "$PINNED" --', 'git checkout $PINNED --', 1)
 elif k == "braced": t = s.replace('git checkout "$PINNED" --', 'git checkout "${PINNED}" --', 1)
 elif k == "no-pinned-line": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n", "", 1)
@@ -1553,7 +1559,7 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
 elif k == "renamed": t = s.replace("PINNED", "PIN")
 elif k == "queue-base": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}",
                                       "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}")
-else: t = s.replace("run: " + own, "run: |\n          python3 -I \\\n            tools/audit/round6/D11/fix/codeowners_gap.py --check", 1)
+else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
 PY
@@ -1724,7 +1730,7 @@ rm -f /tmp/prepr-hooks.$$
 
 # --- 3e. no file a workflow executes lacks an owner, on this head's copy of
 # what the walk reads (`pinned_graders` above: #1633 R1a). 0.6 s, so always.
-python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1
+if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; fi
 step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-owners.$$
 
