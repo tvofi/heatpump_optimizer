@@ -113,7 +113,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   CodeQL on evidence files; nothing to do until the alerts exist.
 - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
   `hpo-author` with body, title and its own delivery row. When: only where
-  `docs/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+  `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
 - `handover_prompt.py` — generates the next-session prompt from the roster
   (and optionally a resume doc). When: ending a session; ready-next derives
   from the roster's after-edges. Refusal: none to speak of — read the output
@@ -126,6 +126,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--match-head-commit`. When: any merge queue — queued PRs merge through
   this, never by hand. Refusal: a head that moved under the review, or red
   checks the queue was not told to ignore, stop the train.
+- `moved_paths.py` — lists every line in the given files that names a path
+  `tests/layout.json` marks moved: a retired file, its emptied directory, or
+  a lifted prefix. Each hit is tagged FALLBACK when the line also names the
+  new path. When: a move, or a review of one, before the push; a reader
+  dispositions every STALE? hit. Refusal: none; it enumerates and always
+  exits 0.
 - `open_pr.sh` — opens a draft PR from `handoff/<topic>` as `hpo-author`,
   adds its own delivery row, re-pushes, prints N and the head. When: the
   orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
@@ -136,8 +142,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   but the gantt's grammar checks run in `--self-test`, not at render time.
 - `record_row.py` — the record-autofix generator: enumerates merged PRs from
   the REST API, plans the delivery rows the tree still lacks, applies them
-  behind a guarded write set (`docs/delivery/<N>.md` only). When: the periodic
-  `record` beat. Refusal: any path outside `docs/delivery/<N>.md` — the plan
+  behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
+  `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
   table and HANDOVER are a seat's dispositions, never this generator's — and
   a window it cannot attribute refuses rather than reports empty.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
