@@ -1,4 +1,0 @@
-measured head: 4e3f09b6a7230b9fdbaad3ea6b144a82466ccc87
-merge base with origin/main: 59b5ac6e4594b42cd5579cca182a743c25f4c48d
-origin/main at measurement: f060cb4cf8eabaad98ee7b04947c1edda6599c32
-previous merge verdict head: 95ad5034d4e41b5440b3c08350a2964c57867a84
