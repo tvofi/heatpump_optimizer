@@ -1268,7 +1268,10 @@ def probe_install(config: Any) -> InstallCapability:
             "setpoint" if cfg.get(const.CONF_SPACE_SETPOINT_ENTITY) else None,
             "frequency" if all((
                 freq_entity,
-                cfg.get(const.CONF_FREQ_CONTROL_MODE) == "control",
+                cfg.get(
+                    const.CONF_FREQ_CONTROL_MODE,
+                    const.DEFAULT_FREQ_CONTROL_MODE,
+                ) == "control",
             )) else None,
         ))),
         measured_power=bool(cfg.get(const.CONF_POWER_ENTITY)),

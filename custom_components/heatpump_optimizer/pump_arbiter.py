@@ -427,15 +427,12 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
 
 
 def _flow_inlet_c(inp: ArbiterInputs) -> float:
-    """Return-water temperature, else the rated hold flow."""
-    values = (
-        getattr(inp.state, "return_temperature", None),
-        getattr(inp.state, "floor_return_temperature", None),
-    )
+    """Floor-return temperature, else the rated hold flow."""
+    value = inp.state.floor_return_temperature
     finite = tuple(
-        float(value) for value in values
-        if isinstance(value, (int, float))
-        if math.isfinite(value)
+        float(item) for item in (value,)
+        if isinstance(item, (int, float))
+        if math.isfinite(item)
     )
     return (
         finite[0] if finite else FLOW_HOLD_C
