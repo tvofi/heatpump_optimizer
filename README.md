@@ -438,7 +438,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 80 entities appear and the first plan is solved within one
+- **Immediately.** All 81 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -612,13 +612,14 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
 | Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
 
-### Buttons (4 total)
+### Buttons (5 total)
 
 | Button | What it does |
 |---|---|
 | Optimize Now | Force an optimization run. Unavailable while one is in flight |
 | Learning Run System Identification | Arm the commissioning step test for the next mild, cheap night. Inert until *Allow a one-off measurement experiment* is enabled on Advanced settings → Self-learning and diagnostics, which is off by default |
 | Learning Reset Comfort Weight | Undo the revealed-preference tuning |
+| Learning Finalize Debug Collection | End the week of debug data now, so Download diagnostics carries it final. Unavailable unless *Collect a week of debug data* is on and the collection has not already stopped |
 | Prediction Accuracy Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
 ### Switches, climate and datetime entities
@@ -689,7 +690,7 @@ that deliver them.
 
 ## Services
 
-12 services are registered under the `heatpump_optimizer` domain. Field-level
+13 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 31 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
 EV charger following the Cost Power Headroom sensor, mode switching on price — are in
@@ -707,6 +708,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
 | `clear_manual_plan` | Drop the manual plan and return to fully automatic planning | Optional |
 | `restore_learned_snapshot` | Roll every learner back to the last weekly snapshot taken with healthy inputs | Optional |
 | `diagnose_interval` | Attribute the last interval's temperature error input by input | Optional |
+| `debug_collect` | Start, stop or read the week of debug data that Download diagnostics carries | Optional |
 | `assign_entity` | Assign or clear one optional sensor slot | Optional |
 | `apply_topology` | Store the hydronic layout and the box positions from the setup editor | Optional |
 

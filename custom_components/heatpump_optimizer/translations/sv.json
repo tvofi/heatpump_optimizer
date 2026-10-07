@@ -478,6 +478,9 @@
     "tibber_fetch_failed": {
       "message": "Elpriserna kunde inte hämtas: {error}"
     },
+    "debug_collect_inactive": {
+      "message": "Ingen felsökningsinsamling pågår för konfigurationsposten \"{entry_id}\" för Heat Pump Optimizer"
+    },
     "apply_schedule_invalid_quiet_windows": {
       "message": "Ogiltiga tysta fönster: {error}"
     },
@@ -1114,6 +1117,7 @@
           "comfort_learning_enabled": "Lär dig min komfortnivå av mina justeringar",
           "system_identification_enabled": "Tillåt ett engångsförsök för att mäta huset",
           "price_prior_enabled": "Uppskatta priser bortom publicerad horisont",
+          "debug_collect_enabled": "Samla en veckas felsökningsdata",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -1122,6 +1126,7 @@
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver.",
           "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Dessförinnan var resten av horisonten en platt upprepning av senaste priset, vilket döljer alla billiga timmar framåt. Detta lär sig din typiska prisprofil över dygnet och använder den i stället, och planen märker ut vilka timmar som är uppskattade.",
+          "debug_collect_enabled": "Sparar en liten rad per optimeringscykel och en fullständig ögonblicksbild per dygn i sju dygn och slutar sedan av sig själv. Hämta diagnostik för den här posten innehåller då veckan, för en felrapport. Stänger du av detta raderas det insamlade.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
@@ -2018,6 +2023,9 @@
       "diagnose_last_interval": {
         "name": "Prognosnoggrannhet diagnostisera senaste intervallet"
       },
+      "learning_finalize_debug": {
+        "name": "Inlärning avsluta felsökningsinsamling"
+      },
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"
       },
@@ -2438,6 +2446,20 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa diagnosen till en konfigurationspost. Lämna tomt för att diagnostisera varje konfigurerad värmepump."
+        }
+      }
+    },
+    "debug_collect": {
+      "name": "Felsökningsinsamling",
+      "description": "Starta, stoppa eller läs den veckolånga felsökningsinsamling som Hämta diagnostik innehåller. Start slår på insamlingsalternativet (eller rensar en avslutad insamling och börjar om); stopp avslutar den nu; status rapporterar hur många cykler den rymmer och hur stor den är. Statusen returneras som tjänstens svar.",
+      "fields": {
+        "action": {
+          "name": "Åtgärd",
+          "description": "start, stop eller status."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa åtgärden till en konfigurationspost. Lämna tomt för att agera på varje konfigurerad värmepump."
         }
       }
     }

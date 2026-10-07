@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 72 modules, of which 26 import the
+knows nothing about Home Assistant: 73 modules, of which 27 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -34,7 +34,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["80 entities<br/>62 sensors, 6 binary sensors,<br/>4 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+        ent["81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -61,7 +61,7 @@ flowchart LR
 
 ```text
 custom_components/heatpump_optimizer/
-├── __init__.py           # Setup and unload, the 12 services, entry migrations
+├── __init__.py           # Setup and unload, the 13 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
 ├── entry_config.py       # The entry's configuration, parsed once: one default
 │                         #   and one coercion per key
@@ -163,20 +163,23 @@ custom_components/heatpump_optimizer/
 │                         #   Mold Floor Breach, Open Window Detected,
 │                         #   Wood Cheaper Than Heat Pump
 ├── button.py             # Optimize now, run identification, reset comfort
-│                         #   weight, diagnose last interval
+│                         #   weight, diagnose last interval; finalize the
+│                         #   debug collection while that option is on
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
 ├── switch.py             # Away, Block DHW, Block Space Heating,
 │                         #   Boost Space Heating, DHW Boost, Optimizer Active
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
-├── services.py           # The domain's 12 services: schemas, handlers and registration
-├── diagnostics.py        # Redacted config-entry diagnostics for issue reports
+├── services.py           # The domain's 13 services: schemas, handlers and registration
+├── debugger.py           # A week of cycle rows for one entry, kept across a
+│                         #   reload and carried by Download diagnostics
+├── diagnostics.py        # Redacted config-entry diagnostics, that bundle included
 ├── repairs.py            # Fix flows Home Assistant loads by name when the user clicks Fix
 │
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
 ├── icon.png              # Integration icon
-├── services.yaml         # The 12 service definitions
+├── services.yaml         # The 13 service definitions
 ├── strings.json          # UI strings
 ├── translations/
 │   ├── en.json           # English
@@ -186,10 +189,10 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-26 of the 72 modules import `homeassistant` at module level: `__init__`,
+27 of the 73 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
-and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
+and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
 `dhw_learning`, `diagnostics`, `entity`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
 `setpoint_check`, `store`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
