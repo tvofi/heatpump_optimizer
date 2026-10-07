@@ -893,5 +893,17 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_14_hub_write_presolve": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_15_payload_cast": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }

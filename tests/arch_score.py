@@ -10,7 +10,8 @@ metric change silently moves a verdict or re-opens a game:
     admissibility must equal tools/audit/archscore/calibration/expected.json, misses included -- a case
     the score gets wrong stays recorded as wrong, and one that turns, even to the right verdict, fails
     until ``calibrate.py --record`` makes it a diff a reviewer reads;
-  * no red-team attempt reads IMPROVES, and the rename null reads NULL;
+  * no red-team attempt reads IMPROVES, and the rename null reads NULL; how many there are is
+    derived from planted/redteam/ and expected.json, never a literal;
   * halving or doubling any weight, or equalising them, moves no verdict (what expected.json
     records under ``_sensitivity``);
   * the weights are the frozen file: tools/audit/archscore/weights.json hashes to FROZEN_WEIGHTS below.
@@ -109,16 +110,25 @@ def main() -> int:
     if only_smoke:
         smoke()
     if not stored:
+        # The counts are derived, never carried: the red-team scripts on disk, labelled by cases.py,
+        # against what expected.json records (code-owned, so a case leaves only by an owner's review).
+        import cases
+        on_disk = {f"rt_{p.stem}" for p in (calibrate.HERE / "planted" / "redteam").glob("[0-9]*.py")}
+        recorded = {lab: {k for k, v in want.items() if v["set"] == "redteam" and v["label"] == lab}
+                    for lab in ("GAME", "KNOWN-OPEN")}
         games = [r for r in rows if r["set"] == "redteam" and r["label"] == "GAME"]
-        R.check("the red-team attempts are all present", len(games) >= 44, f"{len(games)}")
+        R.check("the red-team attempts are all present: every script is a case, every recorded GAME ran",
+                {r["id"] for r in games} == recorded["GAME"] and {r["id"] for r in rows} >= on_disk,
+                f"ran {len(games)} recorded {len(recorded['GAME'])}; "
+                f"missing {sorted(recorded['GAME'] - {r['id'] for r in games})}")
         R.check("no red-team attempt reads IMPROVES",
                 not [r["id"] for r in games if r["verdict"] == "IMPROVES"],
                 f"{[r['id'] for r in games if r['verdict'] == 'IMPROVES']}")
-        import cases
         known = [r for r in rows if r["label"] == "KNOWN-OPEN"]
         R.check("the known-open attempts are present and still read IMPROVES (a class fix flips them: re-record)",
-                len(known) == len(cases.KNOWN_OPEN) and all(r["verdict"] == "IMPROVES" for r in known),
-                f"{[(r['id'], r['verdict']) for r in known]}")
+                {r["id"] for r in known} == recorded["KNOWN-OPEN"] == {f"rt_{k}" for k in cases.KNOWN_OPEN}
+                and all(r["verdict"] == "IMPROVES" for r in known),
+                f"{[(r['id'], r['verdict']) for r in known]}; recorded {sorted(recorded['KNOWN-OPEN'])}")
         R.check("the rename null reads NULL",
                 next(r for r in rows if r["id"] == "rt_00_null_rename")["verdict"] == "NULL")
 
