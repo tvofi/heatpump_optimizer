@@ -51,7 +51,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from typing import Any, Final
 
 import numpy as np
@@ -81,6 +81,7 @@ from .dhw_schedule import (
     windows_for_day,
 )
 from .inputs import normalize_power_kw
+from .modbus_prefill import night_mode_write_ids, package_prefix
 from .optimizer import _utc_step_starts
 
 #: The per-step action codes, as one int8 array element per step.
@@ -164,6 +165,146 @@ def silent_control_usable(entity_id: Any) -> bool:
     if not isinstance(entity_id, str) or "." not in entity_id:
         return False
     return entity_id.split(".", 1)[0].strip().lower() == "switch"
+
+
+def gchv_schedule_ready(
+    config: Mapping[str, Any], get_state: Callable[[str], Any] | None
+) -> bool:
+    """Whether the GCHV night-mode numbers can hold a silent window.
+
+    The capacity-limited slot must be register 68's flag (so the prefix
+    resolves) and all four hour/minute numbers must be present. The flag's
+    on/off state is not a control -- the package has no silent on/off
+    register -- and is not consulted.
+    """
+    if get_state is None:
+        return False
+    prefix = package_prefix(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+    if not prefix:
+        return False
+    return all(get_state(eid) is not None for eid in night_mode_write_ids(prefix).values())
+
+
+def gchv_fits_pump(spec: str | None) -> bool:
+    """Whether ``spec`` is one daily window the same every day.
+
+    Registers 518/519 hold one start/end pair for every day. Two windows
+    on one day, or days that differ, cannot be stored; the next window is
+    still written and the rest are marked not enforced (#1913).
+    """
+    days = _gchv_days(spec)
+    if days is None or any(len(day) != 1 for day in days):
+        return False
+    first = days[0][0]
+    return all(day[0] == first for day in days)
+
+
+def next_gchv_window(
+    now: datetime, spec: str | None
+) -> tuple[float, float] | None:
+    """The next GCHV window's start/end hours (wraps as start > end).
+
+    A wrapping 22:00-06:00 is one window, even though the DHW grammar
+    splits it at midnight. A window that has already started and not yet
+    ended is the next one -- the pump should already be holding it.
+    """
+    days = _gchv_days(spec)
+    if days is None:
+        return None
+    tz = now.tzinfo
+    yesterday = now.date() - timedelta(days=1)
+    for start, end in days[yesterday.weekday()]:
+        if start < end:
+            continue
+        begin = _gchv_at(yesterday, start, tz)
+        finish = _gchv_at(now.date(), end, tz)
+        if now < finish:
+            if now >= begin:
+                return (start, end)
+    for offset in range(8):
+        day = now.date() + timedelta(days=offset)
+        for start, end in days[day.weekday()]:
+            begin = _gchv_at(day, start, tz)
+            finish = (
+                _gchv_at(day, end, tz) if start < end
+                else _gchv_at(day + timedelta(days=1), end, tz)
+            )
+            if now < finish:
+                return (start, end)
+    return None
+
+
+def silent_unenforceable(
+    config: Mapping[str, Any], get_state: Callable[[str], Any] | None = None
+) -> bool:
+    """True when silent rows are configured and cannot be fully held.
+
+    A switch control is fully holdable from its entity-id domain alone.
+    A GCHV schedule is fully holdable only when the four numbers resolve
+    and the spec is one daily window the same every day.
+    """
+    spec = config.get(CONF_QUIET_SILENT_WINDOWS)
+    if not spec:
+        return False
+    if silent_control_usable(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)):
+        return False
+    return not (gchv_schedule_ready(config, get_state) and gchv_fits_pump(spec))
+
+
+def _gchv_days(spec: str | None) -> list[list[tuple[float, float]]] | None:
+    """Per weekday, GCHV windows with midnight wraps merged back together."""
+    parsed = _parse_spec_pair(spec, None)
+    if parsed is None:
+        return None
+    (win, weekly), _unused = parsed
+    return [_gchv_merge(windows_for_day(weekly, day, win)) for day in range(7)]
+
+
+def _gchv_merge(segments: list[Window]) -> list[tuple[float, float]]:
+    """Rejoin a midnight wrap the DHW normaliser split into two segments."""
+    if not segments:
+        return []
+    segs = list(segments)
+    wrap: tuple[float, float] | None = None
+    if len(segs) >= 2 and segs[0][0] <= 0.0 and segs[-1][1] >= 24.0:
+        wrap = (segs[-1][0], segs[0][1])
+        segs = segs[1:-1]
+    out = list(segs)
+    if wrap is not None:
+        out.append(wrap)
+    return out
+
+
+def _gchv_at(day: Any, hour: float, tz: Any) -> datetime:
+    """``day`` at ``hour`` (hours past midnight) in ``tz``."""
+    minutes = int(round(hour * 60.0)) % (24 * 60)
+    return datetime.combine(day, time(minutes // 60, minutes % 60), tzinfo=tz)
+
+
+def _silent_plan_spec(
+    config: Mapping[str, Any],
+    get_state: Callable[[str], Any] | None,
+    start_time: datetime,
+    silent_spec: Any,
+) -> tuple[str | None, bool]:
+    """The silent spec the plan should cap, and whether any row is dropped.
+
+    A GCHV install that needs more than one daily window still caps the
+    next window (what the pump will hold) and marks the rest not enforced.
+    """
+    if not silent_spec:
+        return None, False
+    spec = str(silent_spec)
+    if silent_control_usable(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)):
+        return spec, False
+    if not gchv_schedule_ready(config, get_state):
+        return None, True
+    if gchv_fits_pump(spec):
+        return spec, False
+    nxt = next_gchv_window(start_time, spec)
+    if nxt is None:
+        return None, True
+    return f"{_fmt(nxt[0])}-{_fmt(nxt[1])}", True
 
 
 def _power_entity_kw(
@@ -289,17 +430,14 @@ def compose(
         # nothing while the optimizer is off; the pump stays where it was
         # left. The rows are still configured, hence the dropped marker.
         return QuietCompose(caps_extra, None, None, bool(silent_spec))
-    usable = silent_control_usable(
-        config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+    planned, silent_dropped = _silent_plan_spec(
+        config, get_state, start_time, silent_spec
     )
     actions = step_actions(
-        start_time, n_steps, dt_hours,
-        silent_spec if usable else None, off_spec,
+        start_time, n_steps, dt_hours, planned, off_spec,
     )
     if actions is None:
-        return QuietCompose(
-            caps_extra, None, None, bool(silent_spec) and not usable
-        )
+        return QuietCompose(caps_extra, None, None, silent_dropped)
     off_steps = actions == ACTION_OFF
     caps = caps_extra
     silent_steps = actions == ACTION_SILENT
@@ -313,7 +451,7 @@ def compose(
         caps,
         off_steps if bool(np.any(off_steps)) else None,
         actions,
-        bool(silent_spec) and not usable,
+        silent_dropped,
     )
 
 

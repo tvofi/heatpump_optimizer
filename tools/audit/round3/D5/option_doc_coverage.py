@@ -103,6 +103,18 @@ PERTURBATION: add the row
     and wood_economics_doc_lines UP by 1. Deleting configuration.md's
     "Wood tank volume" row moves option_fields_undocumented UP by 1.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -115,7 +127,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve()
-REPO = HERE.parents[4]
+REPO = repo_root(HERE)
 DOCROOT = Path(os.environ.get("D5_ROOT") or REPO).resolve()
 
 sys.path.insert(0, str(REPO / "tests"))

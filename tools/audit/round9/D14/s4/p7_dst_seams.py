@@ -58,6 +58,18 @@ Tolerance: exact integers (no float from BLAS enters the count; contention-immun
 Machine: Linux container, 4 cores, python 3.14 (box B9).
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -292,7 +304,7 @@ def run_day(day: str) -> dict:
     from heatpump_optimizer import const
     from heatpump_optimizer import coordinator as cm
 
-    fx = dst_fixture.build(day, HERE.parents[4])
+    fx = dst_fixture.build(day, repo_root(HERE))
     rows = {}
     for eid, rr in fx["states"].items():
         attrs, out = {}, []
