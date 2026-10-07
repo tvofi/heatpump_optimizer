@@ -331,6 +331,11 @@ async def async_setup_entry(
     await (await _async_lazy(hass, "notifier")).async_setup_notifier(
         hass, entry, coordinator
     )
+    # The debug collector listens the same way; before the platforms, which
+    # create its finalize button only while it collects.
+    await (await _async_lazy(hass, "debugger")).async_setup_debugger(
+        hass, entry, coordinator
+    )
 
     # Serve and register the Lovelace dashboard card (idempotent; runs once).
     await (await _async_lazy(hass, "frontend")).async_register_frontend(
@@ -417,6 +422,7 @@ async def async_unload_entry(
         if coordinator.data is not None:
             _plan_handovers(hass)[entry.entry_id] = coordinator.data
             _handover_stamps(hass)[entry.entry_id] = dt_util.now()
+        await (await _async_lazy(hass, "debugger")).async_unload_debugger(coordinator)
         await coordinator.async_shutdown()
 
     return unload_ok

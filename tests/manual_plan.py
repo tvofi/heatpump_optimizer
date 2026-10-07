@@ -959,6 +959,23 @@ def test_quiet_window_arms(R: Results) -> None:
         and published.get("quiet_actions") == [0, 2, 2],
         f"got {published!r}",
     )
+    # The sensor check above feeds a stub, so it never executes
+    # configured_specs. This one calls that function: deleting its return
+    # makes the check fail.
+    produced = _qw.configured_specs({
+        CONF_QUIET_SILENT_WINDOWS: "22:00-06:00",
+        CONF_QUIET_OFF_WINDOWS: "09:00-09:30",
+        CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "binary_sensor.gchv_night",
+    })
+    R.check(
+        "configured_specs returns the stored rows and the not-enforced marker",
+        produced == {
+            "quiet_silent_windows_spec": "22:00-06:00",
+            "quiet_off_windows_spec": "09:00-09:30",
+            "quiet_silent_not_enforced": "true",
+        },
+        f"got {produced!r}",
+    )
     peak_coord = _mk_coordinator()
     peak_coord.data = {
         "peak_month": "2026-01",

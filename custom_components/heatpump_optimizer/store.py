@@ -425,6 +425,19 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "bias_days": _COUNT, "last_day": _DAY0, "streak_started": _DAY0,
         "drift_inputs_healthy": _FLAG, "alarmed": _FLAG,
     },
+    # The debug collector's ring (#1939). A snapshot is the payload as JSON
+    # text: its plan instants lie ahead of the clock by design.
+    "debug": {
+        "started_at": _AT, "final": _FLAG,
+        "rows/#/t": _AT, "rows/#/mode": _TEXT, "rows/#/action_mode": _TEXT,
+        "rows/#/heat_pump_on": _FLAG,
+        **{f"rows/#/{k}": _R for k in (
+            "action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
+        **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
+        **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
+        "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
+        "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
+    },
 }
 
 
@@ -451,7 +464,22 @@ def _tries() -> dict[str, dict[str, Any]]:
     return tries
 
 
+def _scalar_domain(node: dict[str, Any]) -> Domain | None:
+    """The domain when this node declares one value, not a container of them.
+
+    A container walked in place of that value yields no leaf -- an empty list
+    has no element to check -- so the declaration would go unread and a list
+    where a number belongs would be admitted.
+    """
+    domain = node.get("")
+    return domain if isinstance(domain, Domain) and set(node) <= {""} else None
+
+
 def _fields(node: dict[str, Any], value: Any, path: tuple[Any, ...], out: list[Any]) -> None:
+    scalar = _scalar_domain(node)
+    if scalar is not None and isinstance(value, (dict, list)):
+        out.append((path, False, scalar, value))
+        return
     if isinstance(value, dict):
         for key, child in value.items():
             if key not in node:
