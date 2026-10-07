@@ -44,6 +44,7 @@ from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
 from .drift import STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
+from .ledger import BILLED_LINES
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
@@ -275,6 +276,9 @@ _ACCURACY: dict[str, Domain | str] = {
     "lead_pending/#/2": _R,
     # #1936: the last restore -- pairs before it never feed a refit.
     "evidence_since": _AT,
+    # R9-UX-6: the plan's day-ahead promise per local date (plan_promise).
+    "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
+    "promises/*/room/#": _R, "promises/*/cost/#": _R,
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {
@@ -361,6 +365,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "month_reports/*/compressor_starts": _COUNT,
         "month_reports/*/reasons_reconcile": Domain("flag", null=True),
         "month_reports/*/mean_spot_price": _R,
+        # R9-UX-6: the billed lines the total adds, and the peak the capacity line prices.
+        "month_reports/*/basis/#": Domain("choice", choices=BILLED_LINES),
+        "month_reports/*/capacity_peak_kw": _Z,
         "month_reports/*/contract_comparison/month": _MONTH,
         "month_reports/*/contract_comparison/kwh": _R,
         **{f"month_reports/*/contract_comparison/{k}": _R for k in (

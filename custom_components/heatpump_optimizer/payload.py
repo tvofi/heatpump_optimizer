@@ -717,6 +717,10 @@ class GridView(TypedDict, total=False):
     pv_enabled: bool
     pv: Pv
     savings_months: list[SavingsMonth]
+    # R9-UX-6: every receipt kept, oldest first (ledger.freeze_month_report),
+    # and yesterday's plan against what was measured (AccuracyTracker.replay).
+    receipts: list[dict[str, object]]
+    plan_replay: dict[str, object] | None
 
 
 class Ecl110View(TypedDict, total=False):

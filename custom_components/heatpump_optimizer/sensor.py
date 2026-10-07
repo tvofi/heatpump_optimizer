@@ -486,6 +486,10 @@ class PredictedSavingsSensor(HeatPumpOptimizerSensorBase):
 class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_suggested_display_precision = 2
+    # R9-UX-6: 24 receipts are about 30 KB, over the recorder's 16 KB
+    # attribute limit, and the replay is restated daily: the Savings tab
+    # reads both live, and history has the ledger's own months.
+    _unrecorded_attributes = frozenset({"receipts", "plan_replay"})
 
     def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
         super().__init__(coordinator, entry, "monthly_savings", "plan_monthly_savings")
@@ -509,7 +513,12 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs: dict[str, Any] = {"savings_months": self._rows()}
+        data = self._data()
+        attrs: dict[str, Any] = {
+            "savings_months": self._rows(),
+            "receipts": data.get("receipts") or [],
+            "plan_replay": data.get("plan_replay"),
+        }
         waiting = self._waiting_for
         if waiting is not None:
             attrs["waiting_for"] = waiting
