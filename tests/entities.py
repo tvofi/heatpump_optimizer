@@ -24564,6 +24564,22 @@ _RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
                          if "_rr" in globals() else "?")
 
 
+# The one review the job posts is the approver App's, and only behind the
+# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
+# sits after the guard's call at the live head, and the POST carries the
+# approver token, never the author's -- an author cannot approve its own pull
+# request, and a review ahead of the guard would approve what it never read.
+_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
+
+
+def _raf_review_gated(job: str) -> bool:
+    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
+    g = job.find(_RAF_GUARD)
+    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
+                     r'[^\n]*pulls/\$NUM/reviews"', job)
+    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -24583,7 +24599,8 @@ def _raf_job_ok(job: str) -> bool:
         and all(_RAF_LEASE in p for p in pushes)
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
-        and not re.search(r"pulls/.*/reviews", job))
+        and "--automerge-check --hold" in job
+        and _raf_review_gated(job))
 
 
 R.check(
@@ -24611,11 +24628,16 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
-    "that runs only after NUM is known -- must each turn the pin red -- "
+    "that runs only after NUM is known, or dropping the automerge guard "
+    "ahead of the review, or posting it with the author's token -- must "
+    "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
