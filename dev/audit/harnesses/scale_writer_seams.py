@@ -8,7 +8,7 @@ caller on the same two plants — no accuracy samples, and four settled days
 leaves. A caller that is the accept path prints the same scale on both
 plants. One that is not, does not.
 
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/scale_writer_seams.py
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/scale_writer_seams.py
 
 Run from anywhere; the script locates the repository from its own path.
 """

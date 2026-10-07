@@ -3,7 +3,7 @@
 The suite's latch-before-apply check stays green if ArbiterInputs is snapshotted
 before those waits. This file is the window the guard's comment names.
 
-    PYTHONPATH=tests/hastub:tests python3 tools/audit/harnesses/d1_s3_02_queued_apply.py
+    PYTHONPATH=tests/hastub:tests python3 dev/audit/harnesses/d1_s3_02_queued_apply.py
 """
 from __future__ import annotations
 

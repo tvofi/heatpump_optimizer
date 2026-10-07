@@ -16,7 +16,7 @@
 // and every other export are byte-identical to the tree's file, read live at
 // each run -- a parser change is measured, never a copy frozen here.
 //
-//    node tools/audit/harnesses/r9_fr3_family_consumer.mjs
+//    node dev/audit/harnesses/r9_fr3_family_consumer.mjs
 //
 // exit 0: the consumer parses the family output unchanged; exit 1: it does not.
 
