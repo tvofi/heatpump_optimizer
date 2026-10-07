@@ -31,7 +31,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`6fe488c9db7c0d423c7ad8543be6502f9fc1c55f`
+`d33cc8e4c4a2349e2f43bba9d9e7e024d50967a5` is the authored code head. It adds four commits to `6fe488c9`, where the mutation probe and most figures below were taken. `88023a27` reads the accuracy summary by literal keys (the `typing` red). `37975a23` carries this PR's delivery row. `868c2814` moves the restart guard's comment onto its own line. `d33cc8e4` holds the mutation pins.
 
 ## Mutation proof
 
@@ -60,7 +60,7 @@ Applied one at a time in a detached worktree at `6fe488c9`. Each mutant was run 
 - M19 `left <= 0` becomes `left < 0`: `a budget with exactly nothing left starts no further self-test` (on a frozen clock, the only way that boundary is reached)
 - M20 `_longest_flat` drops `max`: `the sensor self-test counts a missing reading and the longest unchanged run per input, ...`
 
-Ledger pinning is `mutation-autofix`'s job (`ci-autofix.md`), so nothing was pinned locally. At `7c5d1a93`, `python3 tests/mutation_table.py --scope changed --base origin/main` listed 16 `ADDED UNPINNED` sites, all in `debugger.py`. At `e0358dbb`, `_longest_flat` was rewritten, which removed its `BOOLOP` site. The diff inventory was not re-run at this head. In the list at `7c5d1a93`, every guard, comparison bound and removable return in the new code maps to a mutant above, or is a `RETURN_DEL` whose deletion crashes a check (`store_keys`, `store_report`, `sensor_sanity`, `run_self_tests`, `read_stores`, `_longest_flat`). Survivors on the touched sites: none known. `mutation`'s `--scope changed` table at this head is the authority.
+Ledger pins: at `b256880d`, `mutation-autofix` printed `AUTOFIX: skip-no-measurement` (job 113010565788), so no bot pin came. Under `ci-autofix.md` the seat pinned the sites itself. `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/debug_collect.py` at `868c2814` printed `null control custom_components/heatpump_optimizer/debugger.py:422 NULL_COMMENT survived tests/debug_collect.py`, 15 `pinned ... killed by tests/debug_collect.py` lines, and `PIN KILLED: 15 pinned, 0 left unpinned`. The 15 sites are all in `debugger.py`: `store_keys`, `store_report`, `spread`, `_longest_flat` (×2), `sensor_sanity`, `feed_health`, `run_self_tests` (×3), `capped` (×2), `read_stores`, and the restart guard (×2). The first attempt at `37975a23` refused with `no full-line comment in any file in the pool`, because every full-line comment in `debugger.py` was 60 characters or longer. `868c2814` moved the restart guard's inline comment onto its own line, which gives the drive a null-control line. At `d33cc8e4`, `python3 tests/mutation_table.py --scope changed --base origin/main` printed `4693 unpinned site(s) of 5835 candidate sites, 4693 at the ratchet base 8d7903e6...`, back at the base count. No site on the touched lines is left unpinned.
 
 ## Null control
 
@@ -70,7 +70,7 @@ Ledger pinning is `mutation-autofix`'s job (`ci-autofix.md`), so nothing was pin
 
 ## Figures
 
-All taken at `6fe488c9` unless another SHA is named, on 2026-10-07, against `origin/main` `8d7903e69cfebb3db279b7a17a0ca066f04c40e0`.
+All taken at `6fe488c9` unless another SHA is named. The commits after it (`88023a27`, `37975a23`, `868c2814`, `d33cc8e4`) change two lines of logic, `accuracy_report` reading through `_monitor`, plus one comment, the row and the pins. At `d33cc8e4`, `tests/debug_collect.py` printed `ALL 55 DEBUG COLLECT CHECKS PASSED`, and `tests/structure.py` and `tests/typing_ruler.py` (source mode) printed their pass lines, on 2026-10-07, against `origin/main` `8d7903e69cfebb3db279b7a17a0ca066f04c40e0`.
 
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>` at `89782b2f`: `MODE: SCOPED -- 23 script(s) run, 10 scoped out.` The later commits add `tests/debug_collect.py` checks and `tools/audit/harnesses/r9_dbg2_selftest_price.py`, which is under the INERT `tools/audit/` prefix. A loop over this diff's files against `closure.orphan_files()` printed `changed files that are orphans: []`.
 - Ran locally, one at a time, as `PYTHONPATH=tests/hastub <python> tests/<script>.py`. Some ran at earlier commits of this branch while it moved; those commits are noted. On the seat venv's Python 3.14 at `505ec49c` (the commits after it change only `run_self_tests` in `debugger.py`): `entities.py` `ALL 2202 ENTITY CHECKS PASSED` and `harness_headers.py` `ALL 109 HARNESS HEADER CHECKS PASSED`. At `6fe488c9`: `debug_collect.py` `ALL 55 DEBUG COLLECT CHECKS PASSED`, and `structure.py` `STRUCTURE RATCHET PASSED`. On system Python 3.11 at `89782b2f`..`7c5d1a93`: `config_flow_steps` `ALL 496 checks PASSED`, `deployment_shape` `ALL DEPLOYMENT SHAPE CHECKS PASSED`, `doc_claims` `ALL 160 checks PASSED`, `env_drift` `NO STALE FIXTURE: 5 committed fixture(s) still match what this tree computes`, `finite_boundary` `ALL 84 FINITE BOUNDARY CHECKS PASSED`, `guard_pins` `ALL 47 GUARD PIN CHECKS PASSED`, `manual_plan` `ALL 129 manual plan checks PASSED`, `block_duty` `ALL 46 BLOCK DUTY CHECKS PASSED`, `wood_advisor` `ALL 7 wood-advisor checks PASSED`, `plan_view` (pass line), `solar_alignment` `ALL SOLAR ALIGNMENT CHECKS PASSED`, `typing_ruler` `ALL 11 typing-ruler source checks PASSED`, and `node tests/md_tables.mjs` `RESULT doc_misrendered_lines=0`. On 3.11, `entities.py` and `harness_headers.py` fail to compile their own 3.12+ f-strings (`entities.py:3915`, and `claims.py`). That is the interpreter, not this diff, which is why they ran on 3.14. Left to CI, per the seat brief's heavy-script rule: `features.py`, `golden.py`, `boost_drift_replay.py`, `arch_score_head.py`, `card.mjs` and `card_drift.mjs`.
@@ -79,11 +79,13 @@ All taken at `6fe488c9` unless another SHA is named, on 2026-10-07, against `ori
 
 ## Red checks
 
-Expected on the first CI run. Not yet observed at this head.
-- `closures`: `UNDER-SCOPED: tests/debug_collect.py`. It now imports `tests/nightly_ha.py` and drives `diagnostics.py`, and its committed closure lists neither (read from `tests/closures.json` at this head). `closures-autofix` re-records it (`ci: re-record closures`). Cheaper detector: `./tests/derive_closures.sh --single tests/debug_collect.py`, a few seconds. The seat brief keeps closure recordings in CI, so it was not run here.
-- `mutation`: `ADDED UNPINNED` sites in `debugger.py` (above). `mutation-autofix` pins the killed ones (`ci: pin killed mutants`). Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It was run, and it lists them.
-- `mutation-autofix` and `closures-autofix`: if either reports a `skip-*` failure status, the repair is the seat's, under `ci-autofix.md`.
-- `delivery-status` and `nightly-status`: if red, they grade main's record and main's nightly lane, not this diff.
+Read from `gh api repos/tvofi/heatpump_optimizer/commits/b256880d1905ce6e9c5fd18bf0e30c5cd23be90d/check-runs`: the only pushed head so far, which is `6fe488c9` merged with `origin/main` `f637d24a`. Every check-run with conclusion `failure`:
+- `typing` (job 113008567371): `FAIL errors did not grow  [recorded 0, measured 2 (+2)]` and `by_code[literal-required]`, both in `debugger.py`. `accuracy_report` indexed the `Accuracy` TypedDict with keys taken from a tuple. `88023a27` reads them by literal keys in `_monitor`. Pinned mypy (`uvx --from mypy==2.3.1 mypy --strict --ignore-missing-imports --follow-imports=silent custom_components/heatpump_optimizer/debugger.py`) printed both `TypedDict key must be a string literal` lines at `6fe488c9` and neither at `88023a27`. The one error left in both runs is a `no-any-return` on `_read`, which exists only because this local command ignores the Home Assistant imports. CI's ruler did not report it. Cheaper detector: the ruler's `--mypy` mode, which needs the typing venv that `tests/typing_ruler.py --print-requirements` pins, at about a minute per run. `tools/pr/prepr.sh` does not run it, and the source-only mode in the gate does not run mypy.
+- `mutation` (job 113008567370): `ADDED UNPINNED` sites in `debugger.py`. `mutation-autofix` (job 113010565788): `AUTOFIX: skip-no-measurement`. Both are answered by the pins in `d33cc8e4` (`## Mutation proof`). Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It was run before the push and listed the sites, but by design it does not pin them.
+- `delivery-status` (job 113008566506): `DELIVERY STATUS UNCHECKED — 64 rowed, 0 pending, 0 overdue`. Its merge-collection step skipped 9 merge commits on main that name no pull request. That grades main's record. This PR's row is `dev/programme/delivery/2041.md` (`37975a23`).
+- `nightly-status` (job 113008566115): `NIGHTLY FAILED: mutation-ledger, mutation-nightly, record-autofix failed last night.` That grades main's nightly lanes. This diff touches none of them.
+
+`closures` was not red at `b256880d`. `tests/debug_collect.py` now imports `tests/nightly_ha.py` and drives `diagnostics.py`. If `closures` reports UNDER-SCOPED at the new head, `closures-autofix` re-records the closure.
 
 ## Forward-carry
 
