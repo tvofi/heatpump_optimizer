@@ -32,7 +32,7 @@ from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
 import numpy as np
@@ -48,6 +48,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .payload import (
+    AwayFold,
     Battery,
     ContractComparison,
     CurrentAction,
@@ -1782,7 +1783,7 @@ def _whatif_banded(state: Any) -> bool:
     return bool(state.active and not state.recovery_active)
 
 
-def _fold_away(state: Any, data: dict[str, Any]) -> dict[str, Any]:
+def _fold_away(state: away_mode.AwayState, data: Mapping[str, object]) -> AwayFold:
     """The away view, and the floor the plan solved against while away.
 
     ``min_temperature`` in ``data`` is the configured floor. During a setback
@@ -1790,7 +1791,7 @@ def _fold_away(state: Any, data: dict[str, Any]) -> dict[str, Any]:
     that floor and names the configured one beside it. With no setback the
     view is the away dict alone, so the payload keeps the key it had.
     """
-    view = state.as_dict()
+    view = cast(AwayFold, state.as_dict())
     if not view.get("away_active") or view.get("away_recovery_active"):
         return view
     configured = data.get("min_temperature")
