@@ -12,6 +12,8 @@ Part of #2016 (items 1-3; item 4 is R9-UX-10). Items 1-3 here: the `flow_meter_e
 
 ## Head
 
+`fc9a877cb312cee0f347daa0b41b763f1f66b176` merges the authored code head `543393ccafabd6bac34898248a71361f67329b29` and then merges origin/main `2d8cab3f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `f455915c4200be287c10cd7e95306b8fbf2953fe` merges the authored code head `bb410745a1d87075654e266ed9142799130aea99` and then merges origin/main `2d8cab3f` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `8912f55e61f80b31f18aec79d0d0c7e822220ac0` merges the authored code head `bb410745a1d87075654e266ed9142799130aea99` and then merges origin/main `143e2d0a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
@@ -125,6 +127,19 @@ Read from the check-runs of PR head f455915c (the reviewer's snapshot, plus one 
 - `delivery-status` (job 113050463911): main's. It grades main's delivery table; no commit of this branch edits `dev/programme/delivery/`. Not a required context.
 - `nightly-status` (job 113050462903): main's. It grades main's last scheduled nightly; not a required context on `main-protect`.
 - `closures` (job 113050559767) and `coverage` (job 113050463491) were still in progress at f455915c at the last read; `fast (3.14)` (job 113050463346) completed green, as did `Analyze (python)` (job 113050462944), and `code-scanning/alerts?ref=refs/pull/2024/merge&state=open` returned 0 alerts (the reviewer's read), which answers the CodeQL question this body left owed in the previous round.
+
+Reds on earlier pushed heads (7cab991c, run 37653143979 and its siblings), each with its cause and answer:
+
+- `Analyze (python)` (job 112901394357): the analysis finished, then the job failed while uploading results, with no alert in the log. Answered: green at f455915c (job 113050462944), with 0 open alerts on `refs/pull/2024/merge`.
+- `budget-raise-gate` (job 112901410974): the same by-construction red as above, the owner-approved raise waiting for tvofi's review at the head.
+- `closures` (job 112901558566): `UNDER-SCOPED`, 20 scripts reading the new `flow_meter.py`. This diff caused it. Fixed at f5810852 (the path copied from CI's log into those 20 lists) and bb410745 (`tests/debug_collect.py`, named by `ci_predict.py`). `ci_predict.py` predicts no closures red at this head; CI's run at f455915c was in progress at the last read.
+- `closures-autofix` (job 112910283667): `skip-failed-recording`. `tests/stress.py` failed its timing-budget check while being recorded under `strace` (typical_slab/winter at 11.5x against a budget of 11.3x), so no bot commit was coming. Answered by the hand repair from CI's log under `closures` above. The cheaper detector is `tools/pr/ci_predict.py`, which predicted the under-scope at the merge commit 703af1e7 and predicts none at this head.
+- `delivery-status` (job 112901395650): main's delivery table overdue (#1917, #2003, #2001). Not this diff's; not required.
+- `fast (3.14)` (job 112901417713): `tests/entities.py` failed three checks because `flow_meter.py` had no measured closure. This diff caused it. Fixed by the closure entries and by recounting the deployment-shape note to 91 files; green at f455915c (job 113050463346).
+- `mutation` (job 112901417777): the same 11 unpinned sites as at f455915c; answered under `## Unpinned sites`.
+- `mutation-autofix` (job 112903169103): no repair, because no closure reached `flow_meter.py` at 7cab991c. That cause is fixed; the pins await R9-CI-1.
+- `nightly-status` (job 112901409382): main's last scheduled nightly failed (mutation-ledger, mutation-nightly, record-autofix). Not this diff's; not required.
+- `pr-contract` (job 112918985908): the body omitted `Analyze (python)` from this section. Answered: the body names it; `pr-contract` was green at f455915c.
 
 ## Forward-carry
 
