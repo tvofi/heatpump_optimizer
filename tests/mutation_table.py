@@ -976,6 +976,67 @@ UNPINNED_REFUSAL = re.compile(
 PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
 
 
+def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
+    """Shard `k` of `n` (1-based) of a pin pool, split by anchor (R9-CI-1).
+
+    A disposition covers every site under its anchor (`pin_results`), so an
+    anchor's twins stay on one shard; anchors are dealt round-robin in sorted
+    order, which every shard computes alike from the same inventory, so the
+    shards are disjoint and together the whole pool.
+    """
+    if not 1 <= k <= n:
+        raise ValueError(f"--shard {k}/{n}: K must be 1..N")
+    order = {a: i for i, a in enumerate(sorted({s["anchor"] for s in pool}))}
+    return [s for s in pool if order[s["anchor"]] % n == k - 1]
+
+
+# The merged status's precedence when no shard measured: a failure a shard
+# owes a human outranks a quiet "nothing to pin" from an empty shard.
+_SHARD_PRECEDENCE = ("measured", "skip-measure-failed", "skip-no-base-program",
+                     "skip-nothing-killed", "skip-nothing-drivable",
+                     "skip-not-unpinned")
+
+
+def merge_pin_shards(root: str, out: str) -> str:
+    """Fold every shard's `mutation-pins` directory under `root` into `out`.
+
+    `mutation-autofix` downloads one artifact per shard (R9-CI-1); `apply_pins`
+    reads one directory. A shard that measured contributes its entries; the
+    merged status is `measured` when any did, else the most owing shard
+    status (`_SHARD_PRECEDENCE`). Shards measured different heads only if
+    a push raced them, which `apply_pins`'s head check then refuses. Returns
+    the merged status; `out` is left empty when no shard wrote one.
+    """
+    statuses: list[str] = []
+    pins: dict = {}
+    heads: set[str] = set()
+    for d in sorted(Path(root).iterdir()) if Path(root).is_dir() else []:
+        try:
+            st = (d / "status").read_text().strip()
+        except OSError:
+            continue
+        statuses.append(st)
+        try:
+            heads.add((d / "head").read_text().strip())
+        except OSError:
+            pass
+        if st == "measured":
+            try:
+                pins.update(json.loads((d / "pins.json").read_text()))
+            except (OSError, ValueError):
+                statuses[-1] = "skip-measure-failed"
+    if not statuses:
+        return "skip-no-measurement"
+    rank = {s: i for i, s in enumerate(_SHARD_PRECEDENCE)}
+    status = min(statuses, key=lambda s: rank.get(s, 1))
+    o = Path(out)
+    o.mkdir(parents=True, exist_ok=True)
+    (o / "status").write_text(status + "\n")
+    (o / "pins.json").write_text(json.dumps(pins, indent=2))
+    (o / "head").write_text((heads.pop() if len(heads) == 1 else "") + "\n")
+    return status
+
+
 def measurement(table: str, run: str | None, before: dict,
                 after: dict) -> tuple[str, dict]:
     """The status and `killed_by` entries `mutation`'s measure step uploads.
@@ -1107,10 +1168,37 @@ def pin_results(results: list[tuple[dict, str]],
                 entries[anchor]["reason"] += (
                     f" Each of the {len(got)} sites under this anchor was killed.")
     pinned = len(results) - left
-    report.append(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
-                  + (" -- a survivor needs a killing check or a survivor_triage "
-                     "verdict, which no tool writes" if left else ""))
+    report.append(pin_summary(pinned, left, results, entries))
     return entries, report, 1 if left else 0
+
+
+def pin_summary(pinned: int, left: int, results: list[tuple[dict, str]],
+                entries: dict) -> str:
+    """The `PIN KILLED:` line, its unpinned count split by cause (R9-CI-1).
+
+    A site the budget never started, or whose driver timed out, is not a
+    survivor: a later run pins it. Only a driven site no driver killed (or
+    one sharing an anchor with such a site) owes a test or a triage. The
+    line's head is `PIN_SUMMARY`'s, unchanged, so `measurement()` reads it.
+    """
+    cut = sum(1 for m, v in results
+              if v == "SKIP-BUDGET" and m["anchor"] not in entries)
+    timed = sum(1 for m, v in results
+                if v.startswith("SKIP-TIMED-OUT") and m["anchor"] not in entries)
+    other = sum(1 for m, v in results if v.startswith("SKIP")
+                and v != "SKIP-BUDGET" and not v.startswith("SKIP-TIMED-OUT")
+                and m["anchor"] not in entries)
+    lived = left - cut - timed - other
+    line = f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+    if left:
+        line += (f" ({lived} survived, {cut} not started for the budget, "
+                 f"{timed} timed out, {other} skipped)")
+    if lived:
+        line += (" -- a survivor needs a killing check or a survivor_triage "
+                 "verdict, which no tool writes")
+    elif left:
+        line += " -- no survivor: a later run drives the rest"
+    return line
 
 
 LEDGER_MAPS = ("survivor_triage", "killed_by")
@@ -2357,9 +2445,14 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     pin-equality oracle (tests/entities.py drives both on one fixture).
 
     `deadline` still governs the whole phase. Its admission compares the
-    work outstanding against the workers left to run it -- the split's own
-    wall-clock model -- plus the EXCLUSIVE runs owed, which run alone at the
-    tail and so never divide. At one worker the arithmetic is drive_pool's.
+    shared work outstanding against the workers left to run it -- the
+    split's own wall-clock model. The EXCLUSIVE tail is NOT reserved at
+    admission, as drive_pool reserves it: it runs only for a mutant that
+    survives every shared driver, and charging it to every mutant up front
+    (stress.py and harness_headers.py at three runs each, ~2500 s on CI)
+    refused #2025's first anchor before a single run (R9-CI-1). A survivor's
+    tail is admitted when it reaches it, against the clock then, and one
+    that no longer fits is SKIP-BUDGET: it pins nothing either way.
     """
     k = max(1, workers)
     lock = threading.Lock()
@@ -2367,8 +2460,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE]
                for m in pool]
     todo = [list(s) for s in shared0]
-    owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
-            for m in pool]
     verdict: list[str | None] = [None] * len(pool)
     timed: list[list[str]] = [[] for _ in pool]
     kill_at: list[str | None] = [None] * len(pool)
@@ -2379,7 +2470,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     active: list[int] = []
     granted: set[int] = set()
     outstanding = [0.0]
-    owed = [0.0]
 
     def admit() -> bool:
         """Grant the next anchor group under `lock`; False once none is left."""
@@ -2388,10 +2478,8 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
             twins = [j for j in queue if "anchor" in pool[i]
                      and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
             need = sum(sum(cost.get(s, 0.0) for s in todo[j]) for j in twins)
-            owe = sum(owes[j] for j in twins)
             if (i not in granted and deadline is not None
-                    and (outstanding[0] + need) / k + owed[0] + owe
-                    > deadline - clock()):
+                    and (outstanding[0] + need) / k > deadline - clock()):
                 # Closed: every site not granted with an admitted twin.
                 for j in queue:
                     if j not in granted:
@@ -2400,7 +2488,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 continue
             granted.update(twins)
             queue.pop(0)
-            owed[0] += owe
             outstanding[0] += sum(cost.get(s, 0.0) for s in todo[i])
             active.append(i)
             return True
@@ -2443,8 +2530,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 and not any(order[i][s] < ko for s in timed[i])):
             verdict[i] = f"killed by {kill_at[i]}"
             todo[i] = []
-            owed[0] -= owes[i]
-            owes[i] = 0.0
 
     def judge(i: int, script: str, hit: bool | None) -> None:
         with lock:
@@ -2454,8 +2539,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 timed[i].append(script)
                 if stop_at[i] is None:
                     stop_at[i] = order[i][script]
-                    owed[0] -= owes[i]
-                    owes[i] = 0.0
             elif hit and (kill_at[i] is None
                           or order[i][script] < order[i][kill_at[i]]):
                 kill_at[i] = script
@@ -2471,6 +2554,11 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     settled: set[str] = set()
     for i, mut in enumerate(pool):
         for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if (verdict[i] is None and not timed[i] and deadline is not None
+                    and clock() + cost.get(script, 0.0) > deadline):
+                # `cost` carries an unsettled driver's baseline and null run
+                # (budget_seconds); settling resets it to the run's own.
+                verdict[i] = "SKIP-BUDGET"
             if verdict[i] is None and settle and script not in settled:
                 settled.add(script)
                 settle(script)
@@ -2667,6 +2755,23 @@ def recorded_seconds() -> dict[str, float]:
             if isinstance(r, dict)}
 
 
+def budget_seconds(own: dict[str, float],
+                   deferred: list[str]) -> dict[str, float]:
+    """The budget's per-run cost estimate, from the measured or recorded seconds.
+
+    A deferred (EXCLUSIVE) driver's first run also pays its baseline and null
+    control -- once, at the tail, so its estimate carries all three until it
+    settles. A lazy driver is charged its run alone: its baseline is paid only
+    if a mutant run of it is red, and then on the clock the admission reads.
+    Charging every lazy driver three runs per mutant made #2025's first
+    anchor cost ~4069 s against a 35-minute budget, so nothing ran (R9-CI-1).
+    """
+    out = dict(own)
+    for s in deferred:
+        out[s] = 3 * out.get(s, 0.0)
+    return out
+
+
 class LazyBaselines:
     """Kill verdicts that pay for a lazy driver's baseline at its first red run.
 
@@ -2859,6 +2964,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="drive every candidate site this diff added without "
                          "a disposition, record each one a driver kills "
                          "under killed_by, and leave the survivors unpinned")
+    ap.add_argument("--shard", metavar="K/N",
+                    help="with --pin-killed: drive only shard K of N (1-based) "
+                         "of the new unpinned sites, split by anchor "
+                         "(pin_shard), so N runners pin one diff in parallel")
     ap.add_argument("--drain", metavar="OUT_DIR",
                     help="with --scope full: drive a --max slice of the "
                          "unpinned stock, chosen by --seed (drain_pool), and "
@@ -3038,6 +3147,12 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"  no recorded closure reaches {site['file']}; "
                       f"{triage_key(site)} stays unpinned")
+        if args.shard:
+            k, n = (int(x) for x in args.shard.split("/"))
+            total = len(pool)
+            pool = pin_shard(pool, k, n)
+            print(f"PIN SHARD {k}/{n} -- {len(pool)} of {total} site(s), "
+                  f"split by anchor")
         print(f"PIN KILLED -- {len(pool)} new unpinned site(s) against "
               f"{rbase} to drive")
         if not pool:
@@ -3190,12 +3305,8 @@ def main(argv: list[str] | None = None) -> int:
         verdicts = LazyBaselines(baseline, settle_on)
         # The baselines' seconds, and the recorded ones for a lazy or deferred
         # driver, which has none yet.
-        seconds = dict(own_s)
-        order_pool_drivers(pool, seconds, budgets.get("killed_by", {}))
-        for s in lazy + deferred:
-            # Until it settles, its first red run also pays its baseline and
-            # null control: the budget's estimate carries all three.
-            seconds[s] = 3 * seconds.get(s, 0.0)
+        order_pool_drivers(pool, own_s, budgets.get("killed_by", {}))
+        seconds = budget_seconds(own_s, deferred)
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}
