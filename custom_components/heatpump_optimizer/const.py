@@ -747,6 +747,14 @@ CONF_SPACE_SETPOINT_ENTITY: Final = "space_setpoint_entity"
 CONF_SPACE_SETPOINT_UNIT: Final = "space_setpoint_unit"
 SPACE_SETPOINT_UNITS: Final = ("indoor", "flow")
 DEFAULT_SPACE_SETPOINT_UNIT: Final = "indoor"
+#: Heating flow at full planned power, °C. The arbiter moves toward the
+#: return temperature as the planned level falls (#1955). Absent keeps
+#: :data:`pump_arbiter.FLOW_HEAT_C`.
+CONF_FLOW_HEAT_C: Final = "flow_heat_c"
+DEFAULT_FLOW_HEAT_C: Final = 55.0
+#: ``false`` keeps the duty-cycle reading on a switch-plus-setpoint
+#: install. Absent follows the install probe (#1955).
+CONF_CLAMP_PLANNED_LEVELS: Final = "clamp_planned_levels"
 CONF_DHW_DAILY_CONSUMPTION: Final = "dhw_daily_consumption"  # liters/day
 # How fast the tank cools when nothing is drawn, expressed at a reference
 # condition so it stays meaningful regardless of tank size. Self-learned at

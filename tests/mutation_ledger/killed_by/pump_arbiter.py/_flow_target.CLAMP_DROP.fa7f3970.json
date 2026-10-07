@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_flow_target CLAMP_DROP fa7f3970",
+  "killed_by": "tests/features.py",
+  "old": "    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)",
+  "reason": "Recorded by applying each mutant on this branch. Dropping the outer min (`hold = FLOW_HOLD_C if curve is None else (max(curve, FLOW_HOLD_C))`) makes _flow_target return 60.0 for flow_heat_c 48 and a curve of 60, and tests/features.py expects 48.0. Dropping the inner max (`min((curve), ceiling)`) makes a curve of 20 return 20.0, and the same file expects the rated hold 35.0. Each of the 2 sites under this anchor was killed. `mutation_table.py --pin-killed` records no verdict on this machine because tests/features.py's baseline is red on R9-F2.1 P3, the same pair origin/main fails."
+}
