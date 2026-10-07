@@ -8,11 +8,23 @@ output is the evidence string the corresponding check returned, so the draft
 carries its own provenance and nothing in it is asserted by hand.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 HERE = ROOT / "tools/audit/round3/D10"
 rows = [l.split("\t") for l in
         (HERE / "rule_table.tsv").read_text(encoding="utf-8").splitlines()[1:]]

@@ -53,6 +53,18 @@ Expected: RESULT solves_recovered_out_of_n=0 count (of 5), tolerance 0
 Baseline SHA: cdf82daabcfe3777d98b31489f36df5555ec9d82
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -69,7 +81,7 @@ import asyncio
 import sys
 from datetime import datetime, timedelta, timezone
 
-_ROOT = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
+_ROOT = str(repo_root(__file__))
 sys.path.insert(0, _ROOT)
 sys.path.insert(0, os.path.join(_ROOT, "tests"))
 

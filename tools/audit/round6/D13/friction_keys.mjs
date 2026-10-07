@@ -58,7 +58,21 @@ import path from 'node:path'
 import os from 'node:os'
 import { frictionEntries } from '../../../../.claude/workflows/policy_lint.mjs'
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../../..')
+async function repoRoot(start) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  let dir = path.resolve(start);
+  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("no repository root above " + start);
+    dir = parent;
+  }
+}
+
+
+const ROOT = await repoRoot(path.dirname(new URL(import.meta.url).pathname))
 const CACHE = process.env.D13_CACHE || path.join(os.homedir(), '.cache/hpo-d13-round6')
 const REPO = process.env.D13_REPO || 'tvofi/heatpump_optimizer'
 const SINCE = process.env.D13_SINCE || 'v6.6.0'

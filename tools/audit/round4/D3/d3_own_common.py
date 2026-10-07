@@ -12,6 +12,18 @@ Contract bits implemented here for every d3_own_* harness:
 - RESULT thread_factor / load1 / swapins printed by the caller at the end.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -34,7 +46,7 @@ except Exception:
     pass
 
 HERE = Path(__file__).resolve().parent
-OWN_ROOT = HERE.parents[3]                    # the verifier's worktree root
+OWN_ROOT = repo_root(HERE)                    # the verifier's worktree root
 SCRATCH = OWN_ROOT.parent / "audit-r4-verify-D3-1-scratch"
 CACHE = HERE / "d3_own_base_cache.json"
 FAILED_RE = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
