@@ -24,7 +24,9 @@ Unmodified main: run 37577849702 `record` job fails on #1995/#2003 and on the fr
 
 ## Red checks
 
-main `record` (rowless #1995, #2003): cause is the unlanded autofix; cheaper detector: the pin should have read the generator's path, now does. `record` friction step: cause is a path written for a moved file; a self-test arm now pins the spawned tool on disk.
+- `delivery-status`: red because main's `record-autofix` could not stage rows (`git add docs/delivery` matched nothing after the move), so rowless merges #1995 and #2003 stayed unrowed. This PR is the countermeasure. Cheaper detector: the `tests/entities.py` pin now derives the staged directory from `record_row.row_path` instead of repeating the string, so the generator and the job cannot disagree. This diff touches what it reads (`.github/workflows/tests.yml`, `dev/programme/delivery/2011.md`).
+- `nightly-status`: grades main's last scheduled Tests run, 37440269774 (2026-10-06T09:03Z), whose only failed job is `record-autofix`: the same defect. This diff reaches it, since it edits that job; the next scheduled run after merge is the verification.
+- main `record` (rowless #1995, #2003) clears once the autofix lands; its friction step is fixed here (`friction_issues.mjs` spawned a moved file), pinned by a self-test arm.
 
 ## Forward-carry
 
