@@ -1037,6 +1037,7 @@
   "compressor_freq_sensor": "sensor.seed_compressor_freq_sensor",
   "confidence_margins_enabled": true,
   "curve_learning_enabled": true,
+  "debug_collect_enabled": true,
   "dhw_disinfection_switch_entity": "sensor.seed_dhw_disinfection_switch_entity",
   "dhw_elastic_legionella_enabled": true,
   "dhw_free_disinfection_enabled": true,
@@ -3045,6 +3046,12 @@
     "selector": "SelectSelector"
    },
    "comfort_learning_enabled": {
+    "config": null,
+    "default": "True",
+    "required": "Optional",
+    "selector": "type"
+   },
+   "debug_collect_enabled": {
     "config": null,
     "default": "True",
     "required": "Optional",
@@ -5519,6 +5526,12 @@
    "selector": "SelectSelector"
   },
   "comfort_learning_enabled": {
+   "config": null,
+   "default": "False",
+   "required": "Optional",
+   "selector": "type"
+  },
+  "debug_collect_enabled": {
    "config": null,
    "default": "False",
    "required": "Optional",

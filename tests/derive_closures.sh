@@ -78,7 +78,11 @@ rec() {
   echo "  [$(date +%H:%M:%S)] record $script $*"
   $PYTHON tests/closure.py record "$script" --out-dir "$OUTDIR" --args "$@" \
     > "$OUTDIR/$(basename "$script").out" 2>&1
-  echo "  [$(date +%H:%M:%S)] done   $script (exit $?)"
+  # Captured on its own line: inside the echo below, $? would already be the
+  # $(date) substitution's status, and every script read "exit 0" -- a stress.py
+  # recording that exited 1 included, the one skip-failed-recording names.
+  local rc=$?
+  echo "  [$(date +%H:%M:%S)] done   $script (exit $rc)"
 }
 
 if [ -n "$SINGLE" ]; then
@@ -171,7 +175,12 @@ p2=$!
   rec tests/open_meteo.py
   rec tests/solar_alignment.py
   rec tests/guard_pins.py
-  # The finiteness sweep (#1408), in run.sh's lane order next to guard_pins.py.
+  # The debug collector's guards (#1939), in run.sh's lane order next to
+  # guard_pins.py. Selectable, so a lane that never records it fails the
+  # closures job with "NO recording this run" however complete the committed
+  # table is -- the same trap finite_boundary.py documents below.
+  rec tests/debug_collect.py
+  # The finiteness sweep (#1408), in run.sh's lane order next to debug_collect.py.
   # Selectable -- not in NOT_A_TEST -- so a lane that never records it fails the
   # closures job on main with "selectable script with NO recording", the same
   # trap card_drift.mjs and config_flow_steps.py hit above. It derives the store
