@@ -152,6 +152,7 @@ from .const import (
     MODE_OFF,
     PUMP_DUTY_MODES,
 )
+from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .payload import CurrentAction
 from .repairs import _write_setpoint
@@ -256,6 +257,14 @@ class ArbiterInputs:
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint", "silent")
+#: GCHV night-mode registers 518/519 as hour then minute per register (#1913).
+_NIGHT_KEYS = {
+    "night_start_hour": "start_hour",
+    "night_start_minute": "start_minute",
+    "night_end_hour": "end_hour",
+    "night_end_minute": "end_minute",
+}
+_NIGHT_SLOTS = tuple(_NIGHT_KEYS)
 #: The mode slot's writable domains; its third, ``sensor``, is read-only.
 _MODE_DOMAINS = frozenset(("select", "input_select"))
 
@@ -273,6 +282,14 @@ def _entities(config: Any) -> dict[str, Any]:
         "space_setpoint": config.get(CONF_SPACE_SETPOINT_ENTITY),
         "silent": silent if quiet_windows.silent_control_usable(silent) else None,
     }
+
+
+def _slot_entity(config: Any, slot: str) -> Any:
+    """The entity id for ``slot``, including the GCHV night-mode numbers."""
+    if slot in _NIGHT_KEYS:
+        prefix = package_prefix(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+        return None if not prefix else night_mode_write_ids(prefix).get(_NIGHT_KEYS[slot])
+    return _entities(config).get(slot)
 
 
 def _flow_unit(config: Any) -> bool:
@@ -576,6 +593,10 @@ def _leased(inp: ArbiterInputs, held: ArbiterState, duty: str | None, now: datet
 
 def _differs(slot: str, observed: Any, value: Any) -> bool:
     """``observed`` is the select's state for the mode, degC for a set-point."""
+    if slot in _NIGHT_KEYS:
+        if observed is None or value is None:
+            return False
+        return int(observed) != int(value)
     if slot == "mode":
         return bool(pump_mode.resolve(observed) != value)
     if slot == "silent":
@@ -587,7 +608,15 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
 
 def _observed(inp: ArbiterInputs, slot: str) -> Any:
     """The reading, or ``None`` when there is none: an unavailable select is not a mode."""
-    entity = _entities(inp.config)[slot]
+    entity = _slot_entity(inp.config, slot)
+    if slot in _NIGHT_KEYS:
+        raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
+        if raw is None:
+            return None
+        try:
+            return int(round(float(raw)))
+        except (TypeError, ValueError):
+            return None
     if slot == "mode":
         raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
         return raw if pump_mode.resolve(raw) is not None else None
@@ -621,7 +650,7 @@ def hold(coord: Any, now: datetime) -> None:
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
-            entity = _entities(inp.config)[slot]
+            entity = _slot_entity(inp.config, slot)
             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
 
 
@@ -653,9 +682,12 @@ def _forget(held: ArbiterState) -> None:
 
 async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
     held = state_for(coord)
-    state, entity = _slot_state(inp, slot), _entities(inp.config)[slot]
+    entity = _slot_entity(inp.config, slot)
+    state = inp.hass.states.get(entity) if entity else None
     recorded = held.written.get(slot)
-    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
+    if value is None or entity is None or state is None or (
+        recorded and not _differs(slot, recorded[0], value)
+    ):
         return
     if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
         return
@@ -677,18 +709,63 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
                 {"entity_id": entity},
                 blocking=True,
             )
+        elif slot in _NIGHT_KEYS:
+            await inp.hass.services.async_call(
+                domain,
+                "set_value",
+                {"entity_id": entity, "value": int(value)},
+                blocking=True,
+            )
         else:
             await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
     except Exception as err:  # noqa: BLE001 - retried on the next tick
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
-    held.written[slot] = (value, now)
+    held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
     await _persist(coord)
 
 
 async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
     for slot in _SLOTS:
         await _write(coord, inp, slot, getattr(command, slot), now)
+
+
+def _night_clock(hour: float) -> tuple[int, int]:
+    minutes = int(round(hour * 60.0)) % (24 * 60)
+    return minutes // 60, minutes % 60
+
+
+async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
+    """Hold the GCHV night-mode start/end for the next silent window (#1913).
+
+    Off windows write nothing extra (D1). start==end is not a documented
+    disable, so a daytime pass still holds tonight's window rather than
+    emptying the registers. At most the four numbers, and only when the
+    window changes.
+    """
+    held = state_for(coord)
+    spec = inp.config.get(CONF_QUIET_SILENT_WINDOWS)
+    if not spec or not quiet_windows.gchv_schedule_ready(
+        inp.config, inp.hass.states.get
+    ):
+        for slot in _NIGHT_SLOTS:
+            held.written.pop(slot, None)
+        return
+    nxt = quiet_windows.next_gchv_window(now, spec)
+    if nxt is None:
+        return
+    start_h, start_m = _night_clock(nxt[0])
+    end_h, end_m = _night_clock(nxt[1])
+    if (start_h, start_m) == (end_h, end_m):
+        return
+    values = {
+        "night_start_hour": start_h,
+        "night_start_minute": start_m,
+        "night_end_hour": end_h,
+        "night_end_minute": end_m,
+    }
+    for slot in _NIGHT_SLOTS:
+        await _write(coord, inp, slot, values[slot], now)
 
 
 def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
@@ -765,6 +842,7 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
         return
     hold(coord, now)
     await _command(coord, inp, desired(coord, inp, _share(coord, inp, duty, now), now), now)
+    await _write_night_schedule(coord, inp, now)
 
 
 def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
@@ -832,6 +910,9 @@ def _listen(coord: Any) -> None:
 
     held.unsubs.append(async_track_time_interval(hass, _tick, _TICK))
     entities = [e for e in _entities(inp.config).values() if e]
+    prefix = package_prefix(inp.config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+    if prefix:
+        entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
 
@@ -887,6 +968,8 @@ def _writable(slot: str, value: Any) -> bool:
         return isinstance(value, str) and value in _OWN_MODES
     if slot == "silent":
         return value is True or value is False
+    if slot in _NIGHT_KEYS:
+        return isinstance(value, int) and not isinstance(value, bool)
     return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
