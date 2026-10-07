@@ -1,4 +1,5 @@
-reviewed head: 78509aca050bf6b53f055507232051741cab67c9
-merge base / origin/main at review: 59b5ac6e4594b42cd5579cca182a743c25f4c48d
-worktree: /Users/timmalmstrom/hpo-seats/r9c-rev-2015/wt (detached at 78509aca050bf6b53f055507232051741cab67c9)
-host load at review: 191-367 (no heavy runs; CI cited)
+reviewed head: 46b9b4fd17f6b19d0fc4dedf066113516f3c639d
+prior head: 78509aca050bf6b53f055507232051741cab67c9
+merge base: f060cb4cf8eabaad98ee7b04947c1edda6599c32 (origin/main)
+auto merge-tree of f060cb4c+78509aca = 8dd708b62670241bc9f3e4560c6320e2b405010e = tree of 46b9b4fd17f6b19d0fc4dedf066113516f3c639d
+body tip handoff-body/r9-ro-8: 6a155eba41be1bb2b9c0b5ea668f5c5084d0564d
