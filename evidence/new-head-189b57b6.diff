@@ -1,3 +1,40 @@
+diff --git a/dev/audit/config/bugclasses.json b/dev/audit/config/bugclasses.json
+index a013cb53..a21ddd00 100644
+--- a/dev/audit/config/bugclasses.json
++++ b/dev/audit/config/bugclasses.json
+@@ -924,7 +924,8 @@
+     "status": "barriered",
+     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
+     "rca": [
+-      "BULK-2-I2"
++      "BULK-2-I2",
++      "R9-RCA-stress-recording"
+     ],
+     "rca_planned": [],
+     "trigger": {
+@@ -3685,6 +3686,22 @@
+         "dev/audit/rca/R9-RCA-1985.md"
+       ],
+       "in_tree_home": "dev/audit/rca/R9-RCA-1985.md"
++    },
++    "R9-RCA-stress-recording": {
++      "class": "I2",
++      "level": "instance-or-process",
++      "subject": "#1987 closures-autofix answered skip-failed-recording three times over a real UNDER-SCOPED because tests/stress.py exited 1 on CPU-ratio verdicts only under the closure recorder",
++      "trigger": "recurrence (3rd instance on #1987; 5 of 8 attributable skip-failed-recording runs since 2026-09-27)",
++      "date": "2026-10-07",
++      "status": "done",
++      "parts_missing": [],
++      "process_state": "(c)",
++      "countermeasure": "closure.py record sets HPO_CLOSURE_RECORDING=1; stress.py's six CPU/wall verdicts print rather than count under it (timing_check); derive_closures.sh reports the recording's real exit; pinned in closure.py selftest and stress.py",
++      "landed": null,
++      "doc": [
++        "handoff/r9-rca-stress-recording"
++      ],
++      "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
+     }
+   }
+ }
 diff --git a/dev/audit/rca/R9-RCA-stress-recording.md b/dev/audit/rca/R9-RCA-stress-recording.md
 new file mode 100644
 index 00000000..9b29527d
@@ -178,10 +215,10 @@ index 00000000..82208308
 @@ -0,0 +1 @@
 +- [#2018](https://github.com/tvofi/heatpump_optimizer/pull/2018) — **open**, fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit (R9-RCA-stress)
 diff --git a/tests/closure.py b/tests/closure.py
-index 9b91ebac..893a9ff0 100644
+index b6724b8a..88a6c895 100644
 --- a/tests/closure.py
 +++ b/tests/closure.py
-@@ -1145,12 +1145,22 @@ def _warm_index() -> None:
+@@ -1155,12 +1155,22 @@ def _warm_index() -> None:
              time.sleep(0.5)
  
  
@@ -204,7 +241,7 @@ index 9b91ebac..893a9ff0 100644
      if script.endswith(".mjs"):
          return _record_node(script, str(out), env)
      cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
-@@ -3138,6 +3148,33 @@ def selftest() -> int:
+@@ -3159,6 +3169,33 @@ def selftest() -> int:
              buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
              repr(buf.getvalue()))
  
@@ -256,7 +293,7 @@ index bfbc6013..6f92da88 100755
  
  if [ -n "$SINGLE" ]; then
 diff --git a/tests/stress.py b/tests/stress.py
-index a5c90803..302c31e4 100644
+index c1664cac..6bc3c8c7 100644
 --- a/tests/stress.py
 +++ b/tests/stress.py
 @@ -32,6 +32,7 @@ import ast
@@ -391,40 +428,3 @@ index a5c90803..302c31e4 100644
          "no scenario hits the absolute pathological-solve ceiling",
          not pathological,
          f"wall-clock ceiling {SOLVE_CEILING_MS:.0f} ms: " + "; ".join(pathological),
-diff --git a/tools/audit/bugclasses.json b/tools/audit/bugclasses.json
-index 71af53a2..580e6199 100644
---- a/tools/audit/bugclasses.json
-+++ b/tools/audit/bugclasses.json
-@@ -924,7 +924,8 @@
-     "status": "barriered",
-     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
-     "rca": [
--      "BULK-2-I2"
-+      "BULK-2-I2",
-+      "R9-RCA-stress-recording"
-     ],
-     "rca_planned": [],
-     "trigger": {
-@@ -3669,6 +3670,22 @@
-         "dev/audit/rca/R9-RCA-1985.md"
-       ],
-       "in_tree_home": "dev/audit/rca/R9-RCA-1985.md"
-+    },
-+    "R9-RCA-stress-recording": {
-+      "class": "I2",
-+      "level": "instance-or-process",
-+      "subject": "#1987 closures-autofix answered skip-failed-recording three times over a real UNDER-SCOPED because tests/stress.py exited 1 on CPU-ratio verdicts only under the closure recorder",
-+      "trigger": "recurrence (3rd instance on #1987; 5 of 8 attributable skip-failed-recording runs since 2026-09-27)",
-+      "date": "2026-10-07",
-+      "status": "done",
-+      "parts_missing": [],
-+      "process_state": "(c)",
-+      "countermeasure": "closure.py record sets HPO_CLOSURE_RECORDING=1; stress.py's six CPU/wall verdicts print rather than count under it (timing_check); derive_closures.sh reports the recording's real exit; pinned in closure.py selftest and stress.py",
-+      "landed": null,
-+      "doc": [
-+        "handoff/r9-rca-stress-recording"
-+      ],
-+      "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
-     }
-   }
- }
