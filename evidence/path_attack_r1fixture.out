@@ -1,7 +1,7 @@
-RESULT 'control canonical path': PASS (not refused)
+RESULT 'control canonical path': REFUSED: #1995: the row cites a pull request the API does not report merged into main
 RESULT 'arabic-indic digits': REFUSED: 'dev/programme/delivery/١٩٩٥.md': renamed, or not a canonical dev/programme/delivery/<N>.md
 RESULT 'fullwidth digits': REFUSED: 'dev/programme/delivery/１９９５.md': renamed, or not a canonical dev/programme/delivery/<N>.md
 RESULT 'leading zero': REFUSED: 'dev/programme/delivery/01995.md': renamed, or not a canonical dev/programme/delivery/<N>.md
 RESULT 'trailing newline in name': REFUSED: 'dev/programme/delivery/1995.md\n': renamed, or not a canonical dev/programme/delivery/<N>.md
 RESULT 'other dir': REFUSED: 'dev/programme/delivery2/1995.md': renamed, or not a canonical dev/programme/delivery/<N>.md
-RESULT duplicate row for one PR at two paths: ["'dev/programme/delivery/01995.md': renamed, or not a canonical dev/programme/delivery/<N>.md"]
+RESULT duplicate row for one PR at two paths: ['#1995: the row cites a pull request the API does not report merged into main', "'dev/programme/delivery/01995.md': renamed, or not a canonical dev/programme/delivery/<N>.md"]

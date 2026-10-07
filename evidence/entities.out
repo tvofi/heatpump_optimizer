@@ -1,0 +1,53 @@
+
+=== Entities and platforms ===
+
+-- Platform registration
+  ok   PLATFORMS and PLATFORM_LIST agree
+  ok   every member of the test stub's Platform exists in Home Assistant's own
+  ok   every entry of PLATFORMS is a real Home Assistant platform
+  ok   every entry of PLATFORM_LIST is a real Home Assistant platform
+  ok   diagnostics.py exists
+  ok   diagnostics is NOT forwarded as a platform
+  ok   the binary_sensor platform is registered
+  ok   the binary_sensor module exists and sets up entries
+  ok   the button platform is registered
+  ok   the button module exists and sets up entries
+  ok   the sensor platform declares PARALLEL_UPDATES = 0
+  ok   the binary_sensor platform declares PARALLEL_UPDATES = 0
+  ok   the button platform declares PARALLEL_UPDATES = 0
+  ok   the climate platform declares PARALLEL_UPDATES = 1
+  ok   the switch platform declares PARALLEL_UPDATES = 1
+  ok   the datetime platform declares PARALLEL_UPDATES = 1
+
+-- Sensors
+  ok   all sensors are constructible
+  ok   the README's sensors count is right
+  ok   the README's binary sensors count is right
+  ok   the README's binary sensors table lists every one of them
+  ok   the README's buttons count is right
+  ok   the README's buttons table lists every one of them
+  ok   the README's wood_cheaper notes name the billed-price gate
+  ok   the README's options-page count matches _OPTION_PAGES
+  ok   the README names every options page by its real menu label
+  ok   the Modbus pre-fill page labels every suggested key as its own page does
+  ok   the README does not list Enable away mode as an options-page field
+  ok   the Quick start prose step numbers agree with the diagram's
+  ok   the diagram's 'how do you want to' step pairs with the prose's 'how to describe' step (#1535 label-wording gap)
+  ok   every Quick start prose heading number is used exactly once
+  ok   the configuration reference names every shipped options field
+  ok   only the unbounded cell keeps Cost Power Headroom unavailable
+  ok   automations.md names every state the Cost Power Headroom sensor publishes
+  ok   the README's total entity count covers every registered platform
+
+=== Stress and economics ===
+  ok   tests/README.md's stress annotation states the sweep's real size
+  ok   the stress annotation's edge-case count is the dict's real size
+  ok   env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)
+  ok   stress.py's per-scenario budget verdict is importable and refuses a scenario over its own budget (R9 D7-s1-02)
+  ok   the validate annotation's scenario count is the module's real size
+  ok   tests/README.md's golden.py line names the run its default mode makes
+  ok   closures.json's comment discloses the differential guards' stub seconds
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/orch-r9c/review-2029-r2/tests/entities.py", line 1065, in <module>
+    import yaml as _yaml
+ModuleNotFoundError: No module named 'yaml'
