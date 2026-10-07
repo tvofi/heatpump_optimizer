@@ -31,17 +31,19 @@ Before the slot wrote anything, those seven checks failed and a space step's mod
 
 ## Red checks
 
-typing, job 112532951404. One `arg-type` in `pump_arbiter.py`, against a recorded 0. Same error on a1fda868: argument 1 to `_inside_silent` was `Any | None`. Cheaper detector: the ruler's mypy, one package run. Measured here before the narrow (1 error, `arg-type` 1, `pump_arbiter.py` 1, exit 1) and after (0 errors, exit 0).
+`typing`, job 112532951404. One `arg-type` in `pump_arbiter.py`, against a recorded 0. Same error on a1fda868: argument 1 to `_inside_silent` was `Any | None`. Cheaper detector: the ruler's mypy, one package run. Measured here before the narrow (1 error, `arg-type` 1, `pump_arbiter.py` 1, exit 1) and after (0 errors, exit 0).
 
-mutation, job 112532951481. `MUTATION TABLE REFUSED`, 17 sites this diff adds, 4712 unpinned against 4695 at 6001b09a. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --max 0 --scripts tests/features.py`, which refuses the count without driving a mutant. The 17 are pinned or triaged on this head; that command then exits 0.
+`mutation`, job 112532951481. `MUTATION TABLE REFUSED`, 17 sites this diff adds, 4712 unpinned against 4695 at 6001b09a. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --max 0 --scripts tests/features.py`, which refuses the count without driving a mutant. The 17 are pinned or triaged on this head; that command then exits 0.
 
-mutation-autofix, job 112535205266. Summary `AUTOFIX: skip-no-measurement` and the repair did not happen: the pin step started none of the 17 for `--budget-minutes`. No cheaper detector than that summary line. The pins were recorded here.
+`mutation-autofix`, job 112535205266. Summary `AUTOFIX: skip-no-measurement` and the repair did not happen: the pin step started none of the 17 for `--budget-minutes`. No cheaper detector than that summary line. The pins were recorded here.
 
-env-matrix, job 112532467495. `policy_lint` cannot find `.claude/workflows/policy_lint.mjs`. That path moved on the merge base in #1919. This diff does not touch the matrix driver. The cheaper detector is the job itself. R9-RO-4 and R9-RO-5 own the repair.
+`env-matrix`, job 112532467495. `policy_lint` cannot find `.claude/workflows/policy_lint.mjs`. That path moved on the merge base in #1919. This diff does not touch the matrix driver. The cheaper detector is the job itself. R9-RO-4 and R9-RO-5 own the repair.
 
-pr-contract. The previous body left typing, mutation, mutation-autofix, and env-matrix unnamed. Cheaper detector: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` on this body, which reads the section.
+`pr-contract`. Cheaper detector: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` on this body, which reads the section.
 
-nightly-status and delivery-status grade main.
+`nightly-status` and `delivery-status` grade main.
+
+Leaves #201 open.
 
 `tests/features.py` check "R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it" fails on this machine. The three-dot diff does not include the optimizer. The same check failed, with the same two objectives, on the run before the silent slot wrote anything, on the run with the slot, and on the return-None mutant. No cheaper detector: the comparison is the check. This diff does not move it. The pin drive's baseline was green (rc=0 failed=0, 486s) because that local failure was held out of the drive only.
 
