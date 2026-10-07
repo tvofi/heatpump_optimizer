@@ -1500,19 +1500,23 @@ def prune(out: Path = CLOSURES) -> int:
         print(f"closure: {out} is missing", file=sys.stderr)
         return 1
     payload = json.loads(out.read_text())
-    closures = payload.get("closures", {})
     total = 0
-    for name in sorted(closures):
-        files = closures[name]
-        real = [f for f in files if _is_real_file(f)]
-        phantom = sorted(set(files) - set(real))
-        if phantom:
-            print(f"closure: {name} drops {len(phantom)} phantom entry(ies):",
-                  file=sys.stderr)
-            for p in phantom:
-                print(f"    {p}", file=sys.stderr)
-            total += len(phantom)
-        closures[name] = sorted(real)
+    for table_key in ("closures", "inert_reads"):
+        table = payload.get(table_key, {})
+        for name in sorted(table):
+            files = table[name]
+            real = [f for f in files if _is_real_file(f)]
+            phantom = sorted(set(files) - set(real))
+            if phantom:
+                print(f"closure: {table_key} {name} drops {len(phantom)} phantom entry(ies):",
+                      file=sys.stderr)
+                for p in phantom:
+                    print(f"    {p}", file=sys.stderr)
+                total += len(phantom)
+            if real or table_key == "closures":
+                table[name] = sorted(real)
+            else:
+                del table[name]  # `_fold_inert_reads`: a script that read none has no key
     out.write_text(json.dumps(payload, indent=1) + "\n")
     print(f"closure: pruned {total} phantom entry(ies) from {out}")
     return 0
@@ -1860,9 +1864,14 @@ def check(in_dir: Path, partial: bool = False) -> int:
     # read it instead of running FULL for the unmeasured file. Fail rather
     # than note, and name the repair. The committed file is pruned in the
     # pull request that added this rule (#1310).
+    # inert_reads too (R9-RO-10): a move leaves a dead old-path entry there
+    # with no other warning, and the merge fast path then believes a script
+    # reads a file that cannot change -- #2015's merge kept the EG-B7
+    # harness's old path that way.
     phantoms = sorted(
-        (script, name)
-        for script, files in committed.items()
+        (script if table_key == "closures" else f"{script} (inert_reads)", name)
+        for table_key in ("closures", "inert_reads")
+        for script, files in table.get(table_key, {}).items()
         for name in files
         if not _is_real_file(name)
     )
@@ -3063,6 +3072,15 @@ def selftest() -> int:
             crc2 == 0,
             f"rc={crc2} log={log2[-300:]!r}",
         )
+        # R9-RO-10: the same refusal over inert_reads, which a move leaves
+        # dead with no other warning; null control is the table above.
+        crc3, log3 = _selftest_phantom_check(
+            fake, {caller: [caller, kept_real]}, rec, {caller: [phantom]})
+        pin(
+            "check fails on a phantom in the committed inert_reads (R9-RO-10)",
+            crc3 == 1 and phantom in log3 and "(inert_reads)" in log3,
+            f"rc={crc3} log={log3[-300:]!r}",
+        )
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
@@ -3070,6 +3088,7 @@ def selftest() -> int:
         out.write_text(json.dumps({
             "closures": {caller: [caller, phantom, kept_real]},
             "recorded": {},
+            "inert_reads": {caller: [phantom, kept_real], "only-dead": [phantom]},
         }))
         pruner = globals().get("prune")
         if pruner is None:
@@ -3084,6 +3103,12 @@ def selftest() -> int:
                 "prune drops committed phantom entries (#1310)",
                 prc == 0 and phantom not in after and kept_real in after,
                 f"rc={prc} after={sorted(after)!r}",
+            )
+            ir = json.loads(out.read_text())["inert_reads"]
+            pin(
+                "prune drops dead inert_reads entries, and a key left with none (R9-RO-10)",
+                ir == {caller: [kept_real]},
+                f"inert_reads after={ir!r}",
             )
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
@@ -3325,7 +3350,8 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         return rc, buf.getvalue() + err.getvalue()
 
 
-def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int, str]:
+def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,
+                            inert_reads: dict | None = None) -> tuple[int, str]:
     """Drive check() against a committed table `closures`, captured (#1310).
 
     check() reads the module-level CLOSURES, so the table under test is
@@ -3334,7 +3360,8 @@ def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int,
     Returns (rc, captured stdout+stderr).
     """
     global CLOSURES
-    fake.write_text(json.dumps({"closures": closures, "recorded": {}}))
+    fake.write_text(json.dumps({"closures": closures, "recorded": {},
+                                "inert_reads": inert_reads or {}}))
     orig = CLOSURES
     CLOSURES = fake
     buf, err = io.StringIO(), io.StringIO()

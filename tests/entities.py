@@ -5217,6 +5217,13 @@ class _AllGates:
 _healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken.last_update_success = False
+# The finalize button's gate is a running collection, not a payload field.
+# Both coordinators hold one, so a forgotten ``super().available and`` is the
+# only thing that would leave the button up after a failed refresh.
+from heatpump_optimizer.debugger import DebugCollector as _DbgCollector
+from heatpump_optimizer.debugger import _COLLECTORS as _DBG_HELD
+for _coord in (_healthy, _broken):
+    _DBG_HELD[_coord] = _DbgCollector(_coord.hass, ENTRY.entry_id, lambda coro: None)
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
 # a user reaches for when the last refresh failed -- but a press during an
@@ -6232,11 +6239,12 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
+R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
     "Learning Reset Comfort Weight",
+    "Learning Finalize Debug Collection",
     "Prediction Accuracy Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
@@ -11278,6 +11286,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "hours_until_return", "recovery_active", "return_time", "source"
     }),
     "ComfortWeightSensor": frozenset({"configured", "learned", "overrides"}),
+    "DebugFinalizeButton": frozenset({"waiting_for"}),
     "CompressorStartsSensor": frozenset({
         "lifetime", "month", "wear_price_per_start"
     }),
@@ -11823,6 +11832,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "plan_dhw_heating": "Plan ",
     },
     "button": {
+        "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
     },
@@ -14317,6 +14327,13 @@ R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
 )
+_dbg_status = _svc_call(const.SERVICE_DEBUG_COLLECT, {"action": "status"})
+R.check(
+    "debug_collect status with nothing collecting reports idle",
+    _dbg_status["debug"][_svc_entry.entry_id]["active"] is False
+    and _dbg_status["debug"][_svc_entry.entry_id]["rows"] == 0,
+    str(_dbg_status),
+)
 R.check(
     "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
     "diagnose" in _svc_log
@@ -14341,6 +14358,7 @@ _svc_covered = {
     const.SERVICE_CLEAR_MANUAL_PLAN,
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
+    const.SERVICE_DEBUG_COLLECT,
 }
 R.check(
     "every registered service was invoked above",
@@ -17515,12 +17533,22 @@ def _stale_corpus_fixture():
             "console.log('TOTAL: 0 error(s)')\n"
         )
         old_lint = run(d)
-        return stale, authored, current, old_lint
+        # Arm 5: the same stale head in the layout the tree has had since
+        # #1919 -- policy_lint.mjs under tools/policy/ and not under
+        # .claude/workflows/. A pre-flight that spells only the old path finds
+        # no program there, fails the sentinel probe and prints NOT compared on
+        # every checkout (R9-RCA-2004). Arms 1-4 build the old layout, so they
+        # stayed green while the live check went dark.
+        (d / ".claude/workflows/policy_lint.mjs").unlink()
+        (d / "tools/policy").mkdir(parents=True)
+        _copy_policy_lint_tree(d / "tools/policy")
+        moved_layout = run(d)
+        return stale, authored, current, old_lint, moved_layout
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
 
-_sc_stale, _sc_authored, _sc_current, _sc_old_lint = _stale_corpus_fixture()
+_sc_stale, _sc_authored, _sc_current, _sc_old_lint, _sc_moved_layout = _stale_corpus_fixture()
 _sc_stale_block = _sc_stale.split("authored here AND moved")[0]
 R.check(
     "the pre-flight names a policy file main moved and this branch did not touch",
@@ -17641,6 +17669,14 @@ R.check(
     "indistinguishable from nothing being stale. Without the sentinel probe the "
     "check reports `ok` on precisely the stale checkouts it exists to catch, "
     "and this run is the same stale head that fires in the first arm",
+)
+R.check(
+    "and compares in the moved layout, policy_lint.mjs under tools/policy/",
+    "policy corpus -- 1 file(s) origin/main moved" in _sc_moved_layout
+    and "NOT compared" not in _sc_moved_layout,
+    "#1919 moved policy_lint.mjs to tools/policy/ and the pre-flight kept "
+    "spelling .claude/workflows/, so every checkout of main printed NOT "
+    "compared: the sentinel probe reported it, and nothing failed (R9-RCA-2004)",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an

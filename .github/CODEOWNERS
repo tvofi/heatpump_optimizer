@@ -160,3 +160,10 @@
 /tools/audit/archscore/weights.sha256     @tvofi
 /tools/audit/archscore/calibration/expected.json  @tvofi
 /tests/arch_score.py                      @tvofi
+# The env-matrix job runs the head's copy of the matrix. The base copy still
+# starts .claude/workflows/policy_lint.mjs, which this tree does not contain
+# (job 112529653069), so a restore from the base would put that path back.
+# counts.mjs is the module that matrix imports. Ownership is what stops a
+# pull request from weakening the driver; the path fix stays in the file.
+/tools/policy/policy_lint_envmatrix.mjs   @tvofi
+/tools/policy/counts.mjs                  @tvofi

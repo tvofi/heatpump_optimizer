@@ -175,7 +175,7 @@ if (!fix?.pr) { log(`stage ${stage.name}: no PR`); return { survey, fix } }
 
 phase('Review')
 const review = await agent(`You are the adversarial reviewer for decomposition stage ${stage.name}, PR #${fix.pr} (head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('decomp-' + stage.name, fix.head_sha)}
-Read tools/audit/briefs/fix-review.md, then check the four things that are specific to a move and that CI cannot see:
+Read dev/governance/roles/fix-review.md, then check the four things that are specific to a move and that CI cannot see:
  1. Every moved block is byte-identical to the block on origin/main -- diff the moved range against ORIGIN/MAIN, not against the PR's own claim. This is the check that catches a silent revert: a fix that merged inside the relocated lines comes back reverted with no conflict and no failing test.
  2. Nothing merged since ${fork} lies inside a moved range. List what merged (git log ${fork}..origin/main) and intersect it with the moved line ranges.
  3. env_drift.py --all against the merge base is byte-identical with an EMPTY claim list, and tests/structure.py passes with every changed budget argued in the commit; no metric loosened without the owner's decision; cross_seam_fraction untouched.
