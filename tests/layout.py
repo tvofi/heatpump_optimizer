@@ -312,9 +312,13 @@ def landed(files: list[str], retired: list[dict]) -> list[dict]:
         if not dirs:
             return out
         for d in dirs:
-            news = {target(r["old"], [r]) for r in out if r["old"].startswith(d)}
-            parent = {n.rpartition("/")[0] + "/" if n else None for n in news}
-            out.append({"old": d, "new": parent.pop() if len(parent) == 1 else None, "since": "emptied"})
+            news = [r["new"] for r in out if r["old"].startswith(d)]
+            # Where its files went, as far as they went together: a pointer for
+            # the reader, never a fallback (`stale_lines`).
+            new = None if None in news else os.path.commonpath([n.rstrip("/").rpartition("/")[0]
+                                                                if not n.endswith("/") else n.rstrip("/")
+                                                                for n in news]) + "/"
+            out.append({"old": d, "new": None if new == "/" else new, "since": "emptied"})
         known.update(dirs)
 
 
@@ -338,9 +342,10 @@ def stale_lines(text: str, entries: list[dict]) -> list[tuple[str, str]]:
             continue
         hits = [r for r in entries if r["old"].rstrip("/") in line and guard_re(r["old"]).search(line)]
         for r in hits:
-            if (r["new"] and r["new"].rstrip("/") in line) or FALLBACK.search(line):
+            emptied = r.get("since") == "emptied"
+            if (r["new"] and not emptied and r["new"].rstrip("/") in line) or FALLBACK.search(line):
                 continue
-            if r.get("since") == "emptied" and any(h is not r and h["old"].startswith(r["old"]) for h in hits):
+            if emptied and any(h is not r and h["old"].startswith(r["old"]) for h in hits):
                 continue  # the file it holds is the citation, counted once
             out.append((r["old"], line))
     return out
