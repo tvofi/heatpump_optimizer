@@ -1,4 +1,4 @@
-The root cause of the `harness` friction key (#2004), with the defect found while re-deriving its count fixed. Since #1919 moved `policy_lint.mjs` into `tools/policy/`, the friction filer has spawned it at its old path, and the pre-flight has run it there. Every governance `record` run on `main` since then has refused at the friction step, and every pre-flight prints `policy corpus -- NOT compared`. Both now find the program where the tree keeps it. Each fix comes with a check that was committed first and shown failing.
+The root cause of the `harness` friction key (#2004), with the defect found while re-deriving its count fixed. Since #1919 moved `policy_lint.mjs` into `tools/policy/`, the friction filer spawned it at its old path (fixed on main by #2011; this branch also fixes the path it quotes), and the pre-flight has run it there. Every governance `record` run on `main` since then has refused at the friction step, and every pre-flight prints `policy corpus -- NOT compared`. Both now find the program where the tree keeps it. Each fix comes with a check that was committed first and shown failing.
 
 Closes #2004. Leaves #201 open.
 
@@ -15,14 +15,14 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Head
 
-`64c1744dbd6ab37a53e695eaa86239cdd5f13f34`
+`79d5ff6ca2ea029e8c5f5c45b84db8664dc40723`
 
 ## Mutation proof
 
-- `tools/policy/friction_issues.mjs`:
-  - The detector commit `ca9b3257` alone gives `node tools/policy/friction_issues.mjs --self-test` rc=1: `FAIL the stats tool this lane spawns and quotes is a file: .claude/workflows/policy_lint.mjs`, `100 passed, 1 failed`.
-  - At the fix `ed40307b`: rc=0, `101 passed, 0 failed`.
-  - Renaming the sibling to `policy_lintX.mjs` gives `FAIL ... policy_lintX.mjs`, `100 passed, 1 failed`. The rename was restored.
+- `tools/policy/friction_issues.mjs` (the spawn fix landed via #2011, `f060cb4c`; this branch kept only the quoted command):
+  - #2011 made the filer spawn `policy_lint.mjs` where the tree keeps it and left `STATS_TOOL`, the path quoted as an issue's derivation command, at `.claude/workflows/policy_lint.mjs`. This branch now makes one constant serve both and adds a self-test arm.
+  - With main's shape and the new arm only: `node tools/policy/friction_issues.mjs --self-test` rc=1, `FAIL and the stats tool quoted as an issue's derivation command is a file: .claude/workflows/policy_lint.mjs`, `101 passed, 1 failed`. At the merged tree: rc=0, `102 passed, 0 failed`.
+  - Three-dot against `origin/main`, the PR's diff to this file is the 7-line addition above and nothing else; the earlier `STATS_TOOL_PATH` / `fileURLToPath` form was dropped in the merge.
 - `tools/audit/harnesses/r9_fr3_family_consumer.mjs` (fix-review round 1 finding, line 43):
   - At `3d31fc52` (the line reads `.claude/workflows/friction_issues.mjs`): rc=1, `ENOENT: no such file or directory, open '.../.claude/workflows/friction_issues.mjs'`.
   - At the fix `64c1744d` (the line reads `tools/policy/friction_issues.mjs`): rc=0, all family arms `ok`, including `a producer that prints the family row without counting it refuses`. Restoring the old spelling gives the rc=1 again.
@@ -34,8 +34,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 ## Null control
 
 - Arm 4 (old layout, an old `policy_lint` without `--corpus-filter`) prints `NOT compared` at both commits, so the sentinel probe is not weakened.
-- The filer self-test run from `/Users/timmalmstrom/hpo-seats` (another working directory) passes and quotes the path relative to that directory.
-- The dry run at the fix, `node tools/policy/friction_issues.mjs --dry-run --stats-file <57-PR histogram> --since v6.7.16`, exits rc=0 and would update #1985, #1990 and #2004 and file `other`. The same command at `main` exits rc=1 with `refusing: .claude/workflows/policy_lint.mjs --normalize-friction-keys did not answer`.
+- The end-to-end dry run was measured before #2011 and is not re-claimed after the merge.
 
 ## Search rule
 
