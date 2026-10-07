@@ -7775,6 +7775,31 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R9-RO-12",
+   "lane": "RO",
+   "issues": [],
+   "fixes": [],
+   "covers": [],
+   "class": "governance",
+   "wave": 14,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "fixer_why": "merge-safety mechanism with tree-equality invariants and bisect needs adversarial design and a null control"
+   },
+   "effort": "medium",
+   "blocked_on": [],
+   "after": [
+    "R9-CI-1"
+   ],
+   "brief": "Round-9 governance PR RO-12 (lane RO, batch merge). Owner-approved fold 2026-10-07: tvofi chose options B and D from the merge-batching pre-study (evidence /Users/timmalmstrom/hpo-seats/prestudy-merge-batching/). B: add a batch subcommand to tools/audit/seat/merge_train.py. Admit PRs green at their judged head; route PRs touching claim files, .github/, *_budgets.json or graders, or pairwise-conflicting under git merge-tree, to the serial path, importing merge_fastpath.py refusal classes rather than copying them. Build proof commits P_i over origin/main in merge order, push batch/<ts> with the App identity, dispatch the required-check workflows on it, read results with wait_ci; merge each PR with --match-head-commit only while main tree equals P_(i-1) and confirm main tree equals P_i after; stop on any mismatch; on a red proof drop the PR whose closure owns the failing script, else retest all-but-one sets. Record PRs join batches. D: single-PR merges skip the main re-merge and rely on the full post-merge run on main plus revert-first. Both need an orchestrator.md section 11 edit (policy; merges on tvofi approving review). Prove with a perturbation (two PRs green alone that break together are caught by the proof run) and a null control (a clean batch merges with tree equality at every step).",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
