@@ -18950,7 +18950,7 @@ R.check(
 # 6.6.3 -- so this pins the register against the live VERSION, the invariant
 # the stamp has to keep. That the stamp keeps it is pinned separately in
 # stamp.py's own --self-test, which reads main()'s write region.
-_d6_json = Path("tools/audit/round4/D6/claims.json")
+_d6_json = Path("dev/audit/rounds/round4/D6/claims.json")
 _d6_c42 = next(
     (row for row in json.loads(_d6_json.read_text()) if row.get("id") == "C42"), None
 )
@@ -18961,7 +18961,7 @@ R.check(
     f"{_d6_json}'s C42 records {(_d6_c42 or {}).get('result')!r}, VERSION is "
     f"{_version!r} -- a stamp moved VERSION without re-recording the register, "
     "so tests/harness_headers.py is red at this head. Run "
-    "`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` and "
+    "`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` and "
     "commit its output.",
 )
 
@@ -25510,7 +25510,7 @@ def _load_governance_cost():
 
     spec = importlib.util.spec_from_file_location(
         "hpo_governance_cost",
-        Path("tools/audit/round4/D11/governance_cost.py"))
+        Path("dev/audit/rounds/round4/D11/governance_cost.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod
@@ -27006,11 +27006,11 @@ _STATS_REWORK = json.loads(subprocess.run(
      "{ body: '', comments: bodies.map((b) => ({ body: b })) }]]) });"
      "console.log(JSON.stringify({"
      "key: m.REWORK_CLASS,"
-     "base: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "base: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
      "'head-moved'),"
-     "reshaped: cell(load('tools/audit/round6/D13/fixtures/reshaped.json'), "
+     "reshaped: cell(load('dev/audit/rounds/round6/D13/fixtures/reshaped.json'), "
      "'head-moved'),"
-     "mergeBase: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "mergeBase: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
      "'merge'),"
      "sameHead: cell(synth(['Fix review: merge ' + sha('a'),"
      "'Fix review: merge ' + sha('a')]), 'head-moved'),"
@@ -27236,7 +27236,7 @@ try:
     import importlib.util as _cfr_util
     import io as _cfr_io
     import os as _cfr_os
-    _CFR_INSTR = _closure.ROOT / "tools/audit/round5/D13/seat-a/dora_cfr.py"
+    _CFR_INSTR = _closure.ROOT / "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py"
     _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
     _cfr = _cfr_util.module_from_spec(_cfr_spec)
     _cfr_spec.loader.exec_module(_cfr)
@@ -27382,7 +27382,7 @@ _D13_WINDOW_SIGS = (
 )
 try:
     import importlib.util as _d13_util
-    _D13_INSTR = _closure.ROOT / "tools/audit/round4/D11/dora_keys.py"
+    _D13_INSTR = _closure.ROOT / "dev/audit/rounds/round4/D11/dora_keys.py"
     _d13_spec = _d13_util.spec_from_file_location(
         "hpo_d13_keys", str(_D13_INSTR))
     _d13 = _d13_util.module_from_spec(_d13_spec)

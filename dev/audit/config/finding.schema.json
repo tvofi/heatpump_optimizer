@@ -35,7 +35,7 @@
         "properties": {"claim": {"type": "string"}, "command": {"type": "string"}, "value": {"type": "string"}}
       }
     },
-    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[0-4]|[0-9])/"}},
+    "harnesses": {"type": "array", "items": {"type": "string", "pattern": "^(?:tools/audit/round|dev/audit/rounds/round)[0-9]+/D(1[0-4]|[0-9])/"}},
     "leads": {
       "type": "array",
       "description": "What this seat noticed outside its cells (COMMON.md, the scope wall): not a finding and no harness. The driver routes each to the leads seat, which converts one only with an executed number",
@@ -52,7 +52,7 @@
       "required": ["command", "harness_path", "value", "unit", "baseline_sha", "machine", "cpu_or_wall", "contention_note", "tolerance", "load1", "thread_factor"],
       "properties": {
         "command": {"type": "string"},
-        "harness_path": {"type": "string", "pattern": "^tools/audit/round[0-9]+/D(1[0-4]|[0-9])/"},
+        "harness_path": {"type": "string", "pattern": "^(?:tools/audit/round|dev/audit/rounds/round)[0-9]+/D(1[0-4]|[0-9])/"},
         "value": {"type": ["number", "string"]},
         "unit": {"type": "string"},
         "baseline_sha": {"type": "string"},

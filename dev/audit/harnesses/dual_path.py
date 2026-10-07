@@ -61,7 +61,7 @@ def _either(interp: str, old: str, new: str, args: str = "") -> str:
     return f"if test -f {old}; then {interp} {old}{tail}; else {interp} {new}{tail}; fi"
 COMMANDS = [
     ("rules_sync --check", _either("node", ".claude/workflows/rules_sync.mjs", "tools/policy/rules_sync.mjs", "--check")),
-    ("codeowners_gap --check", "python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check"),
+    ("codeowners_gap --check", _either("python3 -I", "tools/audit/round6/D11/fix/codeowners_gap.py", "dev/audit/rounds/round6/D11/fix/codeowners_gap.py", "--check")),
     ("policy_lint", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
     ("fragments_sync", _either("node", ".claude/workflows/fragments_sync.mjs", "tools/policy/fragments_sync.mjs")),
     ("policy_lint --report", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--report")),
@@ -88,7 +88,10 @@ EXPECTED = {
     ("neither", "agreement"): "its grammar census counts the regexes HEAD's graders add",
     ("neither", "brief_lint"): "HEAD's brief_lint prints its LOCATE acceptance line",
 }
-_spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
+sys.path.insert(0, str(ROOT / "tests"))
+from layout import locate  # noqa: E402  old path while a restore has put the base copy there
+_spec = importlib.util.spec_from_file_location(
+    "codeowners_gap", ROOT / locate("tools/audit/round6/D11/fix/codeowners_gap.py", root=ROOT))
 CG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(CG)  # the pin reader policy-docs runs: its restore grammar and its execution grammar
 spec_hit = CG.spec_hit
