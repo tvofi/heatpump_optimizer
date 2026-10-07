@@ -17,7 +17,7 @@
   ok   a cycle exactly at the horizon does not release
   ok   a live disinfection hold releases DHW
   ok   the tank at its minimum inside a window releases DHW
-  ok   the tank at its minimum outside a demand window does not release
+  FAIL the tank at its minimum outside a demand window does not release  [predicate false]
   ok   the room floor releases at the margin and not above it
   ok   the cold rail releases a space block
   ok   the cold rail is strict below its threshold
@@ -47,5 +47,4 @@
   ok   the arbiter releases a block a floor forbids before it serves a duty
   ok   both channels blocked is idle
 
-ALL 46 BLOCK DUTY CHECKS PASSED
-
+1 of 46 BLOCK DUTY CHECKS FAILED

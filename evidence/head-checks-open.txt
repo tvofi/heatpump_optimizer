@@ -1,0 +1,7 @@
+null	in_progress	closures	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613255/job/112612559198
+null	in_progress	mutation	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613255/job/112612506341
+null	in_progress	fast (3.14)	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613255/job/112612506257
+null	in_progress	Analyze (python)	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613301/job/112612506220
+null	in_progress	coverage	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613255/job/112612506176
+failure	completed	nightly-status	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613255/job/112612505878
+failure	completed	delivery-status	https://github.com/tvofi/heatpump_optimizer/actions/runs/37565613215/job/112612505848
