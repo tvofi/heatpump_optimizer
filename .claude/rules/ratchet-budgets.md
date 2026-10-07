@@ -6,7 +6,6 @@ paths:
   - "CLAUDE.md"
   - "AGENTS.md"
   - "tools/audit/README.md"
-  - "tools/audit/harnesses/README.md"
 ---
 # Three caps, because one of them can be gamed by moving a file
 
