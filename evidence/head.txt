@@ -1,5 +1,4 @@
-measured head: 7e197a6fd2af676203ee5ed30fc97f8214c2de87
-merge base:    59b5ac6e4594b42cd5579cca182a743c25f4c48d
-origin/main at review: f060cb4cf8eabaad98ee7b04947c1edda6599c32 (merge-tree --write-tree origin/main HEAD: rc 0, no conflict)
-reviewer worktree: /Users/timmalmstrom/hpo-seats/r9c-rev-2018 (detached)
-replay worktree:   /Users/timmalmstrom/hpo-seats/r9c-rev-2018-replay (detached at #1987 head 95ad5034d4e41b5440b3c08350a2964c57867a84)
+round 2 measured head: 223f88c24cb52a33ff7a04799d60e5e3ee8e004f
+tree identical to e62b8b63c2d6545ce598d78ff3d1672772ef945f (authored head; merge of origin/main 38c03d94 into 00834c66)
+previous review head: 7e197a6fd2af676203ee5ed30fc97f8214c2de87
+merge base: 38c03d9419248322079dc3ba2fad9edcc931e961

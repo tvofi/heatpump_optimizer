@@ -1,9 +1,0 @@
-== M1 derive_closures.sh reverted to merge base
-  FAIL derive_closures.sh's done line reports a recording's exit 3  [  [14:07:24] record tests/x.py 
-1 of 36 closure shrink pins FAILED
-== M2 env assignment dropped
-  FAIL record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on  [the script saw '']
-1 of 36 closure shrink pins FAILED
-== M3 stress.py constant renamed
-  FAIL stress.py reads the same variable name
-1 of 36 closure shrink pins FAILED
