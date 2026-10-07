@@ -1,0 +1,3 @@
+R2-A proved pair, red after merge 1: rc=0 merged=[1, 2] last='TRAIN DONE'
+R2-B lone D, nothing later, red after: rc=0 merged=[1] last='TRAIN DONE'
+merge_train self-test: 80 checks, 0 failed
