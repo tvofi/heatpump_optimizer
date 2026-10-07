@@ -486,6 +486,10 @@ lane_units() {
   run "$PYTHON" tests/solar_alignment.py
   # Four #805 survivors that are not in coordinator.py or optimizer.py.
   run "$PYTHON" tests/guard_pins.py
+  # The debug collector's guards (#1939). Own script so the pin drive can
+  # kill them without tests/features.py, whose recorded cost with the rest
+  # of the package exceeds the pin step's budget.
+  run "$PYTHON" tests/debug_collect.py
   # The finiteness sweep (#1408): every store is a QuarantiningStore whose load
   # scrubs non-finite numeric leaves, and this derives the boundary set from the
   # tree and drives a non-finite leaf through each one -- the property check
@@ -493,7 +497,7 @@ lane_units() {
   run "$PYTHON" tests/finite_boundary.py
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
-  # re-measured, #1812): tools/audit/round4/D6/claims.py opens INERT docs
+  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
   # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
   # and an INERT path is in no closure, so a docs-only diff that moves one of
   # its RESULT lines would select nothing that runs it.

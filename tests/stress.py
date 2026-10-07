@@ -32,6 +32,7 @@ import ast
 import contextlib
 import copy
 import inspect
+import io
 import itertools
 import json
 import os
@@ -767,6 +768,30 @@ from heatpump_optimizer.thermal_model import (
 )
 
 R = Results("Stress and economics")
+
+#: Set by `tests/closure.py record`, and by nothing that grades. A recording
+#: wants this run's file reads; its CPU and wall-clock verdicts measure the
+#: recorder instead -- two other lanes on the runner and an audit hook on every
+#: open (PR #1987: 329x against the 268x budget where the gate, alone on the
+#: box, read 247.5x). Failing on one exits 1 from a run that reached its end,
+#: which `closures-autofix` reads as a truncated recording.
+CLOSURE_RECORDING_ENV = "HPO_CLOSURE_RECORDING"
+
+
+def timing_check(name, condition, detail="", *, results=None, recording=None):
+    """`R.check` for a verdict on this machine's CPU time or wall clock.
+
+    Binding wherever the suite grades. Under the closure recorder a miss is
+    printed and not counted, so the recording's rc says only whether the run
+    got to its end; every other check still counts there.
+    """
+    results = R if results is None else results
+    if recording is None:
+        recording = os.environ.get(CLOSURE_RECORDING_ENV) == "1"
+    if recording and not condition:
+        print(f"  note {name} -- not graded under the closure recorder  [{detail}]")
+        return False
+    return results.check(name, condition, detail)
 
 START = datetime(2026, 1, 15, 0, 0)
 
@@ -1892,7 +1917,7 @@ KERNEL_ARM_BATCHES = 3
 #: and judged on the median of KERNEL_DOUBT_ROUNDS interleaved readings.
 #: The floor sits under that lowest real-2x reading, and above the highest
 #: reading of an unchanged solve on the same load
-#: (tools/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
+#: (dev/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
 #: tree is not re-solved. It only decides what gets measured again; the
 #: factor alone decides what fails.
 #: Since #1947 a single reading OVER the factor is re-measured the same
@@ -2245,7 +2270,7 @@ def install():
 # wrapper would sit INSIDE the tree's own meter, and its call and clock
 # reads were charged to the baseline's kernel seconds and never to the
 # in-process sweep it is compared with, which pulled a real 2x toward the
-# factor (tools/audit/harnesses/d907_kernel_band.py prints both drivers'
+# factor (dev/audit/harnesses/d907_kernel_band.py prints both drivers'
 # readings side by side).
 _tree_meters_kernel = "kernel_ms" in vars(stress.SolverWork())
 if not _tree_meters_kernel and hasattr(
@@ -3256,6 +3281,41 @@ if __name__ == "__main__":
         "a sweep of one no-valve plant must leave the valve axes unsampled",
     )
 
+    # The recorder's exemption, narrow in both directions: a timing miss fails
+    # a graded run, is printed and not counted under the closure recorder, and
+    # a pass counts in both -- so a recording still says the run got to its end.
+    with contextlib.redirect_stdout(io.StringIO()):
+        _graded, _recorded = Results("graded"), Results("recorded")
+        timing_check("probe", False, results=_graded, recording=False)
+        timing_check("probe", False, results=_recorded, recording=True)
+        timing_check("probe", True, results=_recorded, recording=True)
+        # ...and the default, which is what every real call site uses: the
+        # environment alone decides, unset grading and "1" recording.
+        _saved = os.environ.pop(CLOSURE_RECORDING_ENV, None)
+        try:
+            _env_graded, _env_recorded = Results("env unset"), Results("env 1")
+            timing_check("probe", False, results=_env_graded)
+            os.environ[CLOSURE_RECORDING_ENV] = "1"
+            timing_check("probe", False, results=_env_recorded)
+        finally:
+            os.environ.pop(CLOSURE_RECORDING_ENV, None)
+            if _saved is not None:
+                os.environ[CLOSURE_RECORDING_ENV] = _saved
+    R.check(
+        "a timing miss fails a graded run and only prints under the closure "
+        "recorder, where a pass still counts (#1987)",
+        (_graded.failures, _recorded.failures, _recorded.checks) == (1, 0, 1),
+        f"graded {_graded.failures} failure(s); recorded "
+        f"{_recorded.failures} of {_recorded.checks}",
+    )
+    R.check(
+        f"with {CLOSURE_RECORDING_ENV} unset a timing miss fails, and only "
+        "\"1\" exempts it -- the environment, not a default, decides (#2018)",
+        (_env_graded.failures, _env_recorded.failures) == (1, 0),
+        f"unset: {_env_graded.failures} failure(s); set to 1: "
+        f"{_env_recorded.failures}",
+    )
+
     # ===========================================================================
     # The single-scenario detection statistic (#346), compared in one
     # environment rather than against a recorded table (#387)
@@ -4156,7 +4216,7 @@ if __name__ == "__main__":
     # with every seam call's CPU tripled -- and confirmed on the medians.
     # Tripled, not doubled: this pins the re-solve's WIRING, and a 2x
     # rides the 1.11x margin whose miss rate under load is
-    # tools/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
+    # dev/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
     # The second reading, 2.13x, is OVER the factor -- the nightly null's
     # reading (#1947) -- and pins that the over-factor re-route takes the
     # same real re-solve and still confirms a genuinely slower kernel on
@@ -4468,7 +4528,7 @@ if __name__ == "__main__":
         f"{_worst[0]:.1f}x its {_worst[3]:.1f} ms reference; budget is "
         f"{live_solve_budget_ratio():.0f}x"
     )
-    R.check(
+    timing_check(
         "every scenario's solve costs what it should, in CPU, for this machine",
         not slow,
         "; ".join(slow),
@@ -4506,12 +4566,12 @@ if __name__ == "__main__":
             )
             for _line in _re_measured:
                 print(f"  {_line}")
-        R.check(
+        timing_check(
             "no scenario exceeds its own recorded cost by the budget factor",
             not over_budget,
             "; ".join(over_budget),
         )
-        R.check(
+        timing_check(
             "no scenario got dramatically cheaper without a re-record",
             not stale_cheap,
             "; ".join(stale_cheap),
@@ -4658,7 +4718,7 @@ if __name__ == "__main__":
             "batched gradient at 1.0000x of the evaluation count and "
             "1.9868x of this one)",
         )
-        R.check(
+        timing_check(
             "no scenario's simulate kernel got slower per call on an "
             "unchanged plan (round-5 D9-07)",
             not drift.cost_over,
@@ -5087,7 +5147,7 @@ if __name__ == "__main__":
         f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = "
         f"{_sweep_ratio:.2f}x; budget is {SWEEP_BUDGET_RATIO:.2f}x"
     )
-    R.check(
+    timing_check(
         "the sweep as a whole costs what it has always cost, relative to this machine",
         _sweep_ratio <= SWEEP_BUDGET_RATIO,
         f"{sweep_solve_ms / 1000.0:.1f} s of solver CPU vs "
@@ -5346,7 +5406,7 @@ if __name__ == "__main__":
     # consume no CPU and would sail through every check above while making the
     # gate take an hour longer. The wall clock is the only thing that sees them,
     # which is why this ceiling stays on the wall clock and stays in the file.
-    R.check(
+    timing_check(
         "no scenario hits the absolute pathological-solve ceiling",
         not pathological,
         f"wall-clock ceiling {SOLVE_CEILING_MS:.0f} ms: " + "; ".join(pathological),

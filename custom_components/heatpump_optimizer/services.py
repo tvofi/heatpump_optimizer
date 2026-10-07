@@ -1,4 +1,4 @@
-"""The domain's twelve services: schemas, handlers and registration.
+"""The domain's thirteen services: schemas, handlers and registration.
 
 Moved verbatim from ``__init__.py`` (#222, the decomposition program's
 opener; the block used to be ``_async_register_services`` and the module
@@ -27,6 +27,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.util import dt as dt_util
 
 from . import comfort_band
+from . import debugger
 from . import mixing_valve
 from . import quiet_windows
 from . import topology
@@ -61,6 +62,7 @@ from .const import (
     SERVICE_ASSIGN_ENTITY,
     SERVICE_APPLY_MANUAL_PLAN,
     SERVICE_CLEAR_MANUAL_PLAN,
+    SERVICE_DEBUG_COLLECT,
     SERVICE_DIAGNOSE_INTERVAL,
     SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
@@ -286,6 +288,13 @@ SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
 
 SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
     {
+        vol.Optional("entry_id"): cv.string,
+    }
+)
+
+SERVICE_SCHEMA_DEBUG_COLLECT = vol.Schema(
+    {
+        vol.Required("action"): vol.In(debugger.DEBUG_ACTIONS),
         vol.Optional("entry_id"): cv.string,
     }
 )
@@ -1205,6 +1214,15 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
     return {"diagnosis": reports}
 
 
+async def handle_debug_collect(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """Start, stop or read each targeted entry's debug collection (#1939)."""
+    data = dict(call.data)
+    return {"debug": {
+        entry.entry_id: debugger.async_command(hass, entry, data["action"])
+        for entry in _loaded_entries(hass, data.get("entry_id"))
+    }}
+
+
 def async_register_services(hass: HomeAssistant) -> None:
     """The service handlers, registered by ``async_setup``.
 
@@ -1291,5 +1309,12 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_DIAGNOSE_INTERVAL,
         partial(handle_diagnose_interval, hass),
         schema=SERVICE_SCHEMA_DIAGNOSE_INTERVAL,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_DEBUG_COLLECT,
+        partial(handle_debug_collect, hass),
+        schema=SERVICE_SCHEMA_DEBUG_COLLECT,
         supports_response=SupportsResponse.OPTIONAL,
     )

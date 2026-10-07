@@ -59,6 +59,8 @@
 # v6.7.16: EG-A2 one-formula class closure; mutation wall-clock budget; instruments into the tree; card and site polish; coverage tracer diet; nightly ledger CPU bounds. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+config_flow  # adds debug_collect_enabled on the options seed, the seeded learning page and the learning page (#1939); those leaves are absent on the baseline
+#
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -655,13 +657,6 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
-#
-# R9-DIAG-2S (#1936) claimed the five coordinator captures and nothing else.
-# Those five are byte-identical here, so the claims are not carried. The
-# direction then was ADD-ONLY. Every moved leaf was
-# sensors.model_restart_advisor, present on this head only: the Model
-# Restart Advisor is a new sensor, and the committed fixtures predate it.
-# No plan, schedule or solver leaf moves. These names are not may-drift.
 
 # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
 # is space_reasons or dhw_reasons. No value leaf moves.

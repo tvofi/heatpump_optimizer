@@ -478,6 +478,9 @@
     "tibber_fetch_failed": {
       "message": "Electricity prices could not be fetched: {error}"
     },
+    "debug_collect_inactive": {
+      "message": "No debug collection is running for Heat Pump Optimizer config entry \"{entry_id}\""
+    },
     "apply_schedule_invalid_quiet_windows": {
       "message": "Invalid quiet windows: {error}"
     },
@@ -1114,6 +1117,7 @@
           "comfort_learning_enabled": "Learn my comfort preference from overrides",
           "system_identification_enabled": "Allow a one-off measurement experiment",
           "price_prior_enabled": "Estimate prices past the published horizon",
+          "debug_collect_enabled": "Collect a week of debug data",
           "after_save": "After saving"
         },
         "data_description": {
@@ -1122,6 +1126,7 @@
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
+          "debug_collect_enabled": "Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Download diagnostics on this entry then carries the week, for a bug report. Turning this off deletes what was collected.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -2012,6 +2017,9 @@
       "diagnose_last_interval": {
         "name": "Prediction Accuracy Diagnose Last Interval"
       },
+      "learning_finalize_debug": {
+        "name": "Learning Finalize Debug Collection"
+      },
       "learning_reset_comfort_weight": {
         "name": "Learning Reset Comfort Weight"
       },
@@ -2440,6 +2448,20 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the diagnosis to one config entry. Leave empty to diagnose every configured heat pump."
+        }
+      }
+    },
+    "debug_collect": {
+      "name": "Debug Collection",
+      "description": "Start, stop or read the week-long debug collection that Download diagnostics carries. Start turns the collection option on (or clears a finished collection and begins again); stop ends it now; status reports how many cycles it holds and how large it is. The status is returned as the service response.",
+      "fields": {
+        "action": {
+          "name": "Action",
+          "description": "start, stop or status."
+        },
+        "entry_id": {
+          "name": "Config entry",
+          "description": "Restrict the action to one config entry. Leave empty to act on every configured heat pump."
         }
       }
     }
