@@ -1,0 +1,6 @@
+  ok   the train's preflight script is in the tree (tools/audit/preflight.sh or tools/pr/preflight.sh)
+  ok   the train's remerge_main script is in the tree (tools/audit/seat/remerge_main.sh)
+  ok   the train's worktree_gc script is in the tree (tools/audit/worktree_gc.sh)
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   every script the train runs resolves through TOOLS, none by a bare path
+merge_train self-test: 49 checks, 0 failed

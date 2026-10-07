@@ -1,0 +1,1040 @@
+diff --git a/.claude/workflows/carry-1921.json b/.claude/workflows/carry-1921.json
+index 4c0f8373..8f44c35a 100644
+--- a/.claude/workflows/carry-1921.json
++++ b/.claude/workflows/carry-1921.json
+@@ -9,6 +9,13 @@
+       "control": "A file under an INERT prefix that a gate script reads is the skip that leaves main red: tests/closure.py's _is_header_corpus takes tools/audit/round*/D*/*.py out of the tools/audit/ claim because tests/harness_headers.py opens them. dev/audit/ holds only the merged README and the RCA documents after this move, and neither is a round harness. The perturbation: move one live-header harness under dev/audit/ without extending _is_header_corpus and python3 tests/closure.py's inert-and-recorded check goes red, or, if the read is not yet in a closure, orphan classification stays green while select skips the harness.",
+       "remeasure": "At your merge base, read tests/closure.py's INERT tuple and _is_header_corpus. If dev/audit/ is still a bare prefix, extend the header carve-out in the same commit that moves a round harness under it, and show the inert-and-recorded check red on a planted harness path before the carve-out and green after.",
+       "brief": "dev/audit/ is INERT. A live harness moved there is unread until _is_header_corpus (or INERT_EXCEPT) names it. Do that in the move commit, not after."
++    },
++    {
++      "from": "R9-RCA-1990 (#1990): R9-RO-6 and R9-RO-5 moved app_approve.sh, preflight.sh, app_comment.sh and the delivery rows, and five seat instruments kept the old paths",
++      "effect": "narrows",
++      "control": "tools/audit/seat/merge_train.py ran tools/audit/app_approve.sh after the move, so every carry printed `No such file or directory` and the train stopped, while its self-test, whose stub answers any argv containing a script's basename, stayed `43 checks, 0 failed`. Its self-test now reads the real tree: with TOOLS restored to the old paths alone and ROW_DIR to docs/delivery it prints `3 failed`, and with a bare `\"bash\", \"tools/...\"` argv it prints `1 failed` naming the path. The other seat scripts' self-tests stub their callees and do not see a missing path; bus.sh's poster pin is the exception (`grep -qxF` on its default line).",
++      "remeasure": "At your merge base, run `python3 tools/audit/seat/moved_paths.py tools/audit/seat/*` after your move: it lists every reference to a path tests/layout.json marks moved (each retired file absent from the tree, its emptied parent directory, each lifted prefix). Directories and documents count, not only scripts; a script-only grep missed `tools/audit/briefs/` in round 1 of #2012. A reference your move empties is re-pointed in the same commit, unless it is an old-path-first fallback naming the new path. Then run `python3 tools/audit/seat/merge_train.py --self-test`, `bash tools/audit/seat/bus.sh --self-test` and `python3 tools/audit/seat/handover_prompt.py --self-test` and show 0 failed.",
++      "brief": "A move re-points every seat instrument that invokes the moved path, in the move commit. merge_train.py resolves its scripts through its TOOLS table (old path first, then new) and ROW_DIR: a move edits those entries, and retiring an old lookup deletes only the old half of each tuple."
+     }
+   ]
+ }
+diff --git a/dev/audit/rca/R9-RCA-1990.md b/dev/audit/rca/R9-RCA-1990.md
+new file mode 100644
+index 00000000..26cb926d
+--- /dev/null
++++ b/dev/audit/rca/R9-RCA-1990.md
+@@ -0,0 +1,309 @@
++# RCA-1990: the `head-moved` friction key, filed for the seventh time
++
++The root-cause seat for issue **#1990** (`[policy] recurring friction: head-moved`).
++It follows `dev/governance/roles/root-cause.md` and
++`dev/governance/rules/defect-root-cause.md`, and ran at `origin/main` `3910026e`
++on 2026-10-07. The seat posted nothing on GitHub.
++
++The key has been filed seven times in fourteen days: #1498, #1501, #1574,
++#1600, #1706, #1807 and #1990 (2026-09-23 to 2026-10-06). Every earlier
++disposition closed it as inherent or as a keying artefact. CLAUDE.md treats
++roughly the third instance of a recurring error as a root-cause case, not as
++another issue.
++
++Evidence is in the seat scratch, `/Users/timmalmstrom/hpo-seats/r9c-rca-1990/`
++(`$E` below):
++
++- `harness.mjs` enumerates every entry the histogram counts. It reuses
++  `policy_lint.mjs`'s own `mergedPRsFromWindow`, `fetchWindow` and
++  `waveVerdictRe`. For each entry it lists the first-parent commits between
++  the two verdicted heads. Output: `hm-v6.7.16.json`.
++- `carry-at-time.txt` shows `app_approve.sh --carry` for each re-verification.
++  Each run uses the script version and the `main` that the head actually
++  merged.
++- `evidence/` holds the detector's arms.
++
++## 1. The count, reproduced
++
++Command: `GITHUB_TOKEN=$(gh auth token) node tools/policy/policy_lint.mjs --stats --since v6.7.16`.
++
++- It prints `11 / 20 head-moved`, the same as the issue.
++- The window is 57 merges; 50 of them carried a parsable verdict.
++- `STATS ROUNDS` reads: 18 re-verified a head that moved after a `merge`
++  (9 PRs), 35 repaired after a `blocked`, and 1 repeated a head.
++- The harness gives the same totals: 20 entries, 11 PRs, 0 git failures.
++
++The 20 entries split into 18 rework-arm re-verifications and 2 verdicts in
++which the reviewer wrote the word `head-moved` itself.
++
++| class | entries | PRs | what moved the head | push-to-verdict lag (sum) |
++|---|---|---|---|---|
++| A. RO-wave sibling repair | 11 | #1993 ×4, #1996 ×3, #1995 ×3, #1999 | a main merge plus the branch's own repair commits (closure records, entity checks, moved instruments) | 276 min |
++| B. other own commits | 2 | #1960, #1979 | a main merge plus an own fix commit | 51 min |
++| C. carry refused by design | 2 | #2008, #1960 | an automatic merge only, but main moved the context lines of the branch's diff, so `carry` printed "the branch's own diff differs" | 156 min |
++| D. carry-eligible at the time | 3 | #1983 ×2, #1980 | an automatic merge only; `carry` printed `CARRY: yes` at the time | 388 min |
++| E. reviewer wrote `head-moved` | 2 | #1977, #1988 | #1977: the PR's row commit landed 7 min after the measured head. #1988: the autofix bot rebuilt its record branch | — |
++
++How to read this table:
++
++- **The lag** runs from the head's commit time to the verdict that re-measured
++  it. It is an upper bound on review cost, because it includes CI and queue
++  wait.
++- **Measure carry at the time, not today.** Run against today's `origin/main`,
++  `--carry` says `yes` for 5 of the 18 (`carry-results.txt`). Two of those are
++  artefacts: #2008 and #1960's second entry differ only in context lines that
++  later main commits made equal again.
++- **One class-D re-review found a real defect.** #1983's round at `66de3356`
++  blocked on a class-open caller that the earlier `merge` at `b403d2bf` had
++  missed. A carry would have merged it. So class D was 2 wasted rounds
++  (151 min) and 1 productive one.
++
++## 2. Cause
++
++The issue recurs because two different things share one key:
++
++- The rework arm (#1405, re-keyed by #1549) counts every re-verification after
++  a `merge` as `head-moved`.
++- The reviewer's own breach verdict is also `head-moved`.
++
++In this window, 18 of the 20 entries are the sanctioned process doing its job.
++`fixer.md` step 6 and `orchestrator.md` §11 require a new reviewer turn for any
++head that is not a carry. In a 57-merge window, that crosses the threshold of
++3 on every active wave.
++
++Three concrete causes sit underneath the count, and each owns a class above.
++
++1. **Class A: parallel siblings that write the same registries.** R9-RO-4,
++   RO-5, RO-6 and RO-7 have the same `after` edges (`R9-RO-2`, `R9-RO-2b`), so
++   the roster ran them in parallel. Their three-dot diffs overlap in all six
++   pairs. `tests/closure.py` and `tests/closures.json` are written by all four,
++   and `tests/entities.py` by three. Each merge broke the others' path-keyed
++   gates. Each repair is the branch's own commit, so carry correctly refuses it
++   and a new review is owed.
++2. **Class D, now and from here on: the carry instrument is broken.**
++   - R9-RO-6 (#1999, merged 2026-10-06T21:05Z) moved `app_approve.sh` and
++     `preflight.sh` to `tools/pr/`.
++   - R9-RO-5 (#1996, merged 2026-10-07T01:49Z) lifted the delivery rows to
++     `dev/programme/delivery/`.
++   - `tools/audit/seat/merge_train.py` still ran `tools/audit/app_approve.sh`
++     (approve and carry), `tools/audit/preflight.sh`, and required
++     `docs/delivery/<N>.md`.
++   - Run at main, the train's carry step prints
++     `bash: tools/audit/app_approve.sh: No such file or directory`, so it can
++     never print `CARRY: yes`. The train stops at `carry` on every pull request
++     (`evidence/carry-argv.txt`).
++   - Its self-test stayed `43 checks, 0 failed`. The stub answers any argv
++     that contains the basename `app_approve.sh`, so a missing path is
++     invisible to it.
++   - `merge_train.py` is the instrument that `INSTRUMENTS.md` names for "any
++     merge queue", and the one that applies `orchestrator.md` §11's carry
++     without a reviewer turn. With it down, every main sync costs a review.
++3. **Class E: verdicts measured before the head settled.** #1977's row commit
++   landed 7 minutes after the code head the reviewer measured.
++
++The search for the same shape in the moved instruments, under
++`tools/audit/seat/`, found more of class 2:
++
++- `bus.sh`'s default poster was `$ROOT/tools/audit/app_comment.sh`. That path
++  is missing, so a `bus.sh` run without `HPO_BUS_POSTER` cannot post. Its
++  self-test pinned the stale string.
++- `open_pr.sh` and `handoff_push.sh` write the PR's row to
++  `docs/delivery/$N.md`. That directory no longer exists, so the write fails
++  and no row commit is made.
++- `handover_prompt.py` names `tools/audit/seat/app_push.sh` and
++  `docs/delivery/<N>.md`. The first path never existed.
++
++That first search matched script paths only (`.sh`, `.py`, `.mjs`), so it could
++not return a directory or a document. The fix review of round 1 found one it
++missed: `handover_prompt.py` sent every generated prompt to
++`tools/audit/briefs/`, which RO-5 emptied into `dev/governance/roles/`.
++Round 2 widened the search. `tools/audit/seat/moved_paths.py` reads every
++path that `tests/layout.json` marks moved: each retired file no longer in the
++tree, its emptied parent directory, and each lifted prefix; its count line says how many. It
++reports every line in the five files that names one.
++
++- Before round 2: 20 hits (`evidence/moved_paths_before.txt`, over round 1's files), the reviewer's line
++  among them.
++- After round 2: 12 hits (`evidence/moved_paths_after.txt`). Each is dispositioned in
++  the PR body's `## Figures`:
++  - 9 are old-path-first fallbacks whose new path is on the same line.
++  - `merge_train.py:160` is the same fallback, split across two lines.
++  - `handover_prompt.py:14` and `:76` name `.claude/rules/`. `layout.json`
++    lists that prefix as lifted, not retired. The generated copy stays, and
++    the harness loads it when it binds, which is what the prompt says.
++- Re-pointed in round 2:
++  - `handover_prompt.py:78`: the seat contracts' directory.
++  - `merge_train.py`: four self-test fixture lines that modelled a policy
++    path at `tools/audit/briefs/fixer.md`.
++  - `handoff_push.sh`: its rule citation, its `HANDOVER.md` comment, and a
++    note filter that excused the retired `tools/audit/handoff/`.
++
++Round 3 ran the same instrument over all of `tools/audit/seat/*`, and walked
++the tracked files of `shims/`.
++
++- A directory entry in `layout.json` whose files are still tracked is now a
++  planned move, not a moved path.
++- One finding was functional: `tmp_paths.py` scanned only `docs/decisions/`,
++  so after the lift no decision record was scanned at all. Its self-test case
++  sat on the old path and stayed green. The scope now includes
++  `dev/governance/decisions/`. With main's scope restored, the self-test
++  prints `42 checks, 1 failed` (`evidence/tp-arms.txt`). `--check` at the new
++  scope refuses nothing.
++- The rest were comments, a reason string and a fixture path, re-pointed in
++  `INSTRUMENTS.md`, `record_row.py`, `roster_lib.py`, `state_docs.py` and
++  `tmp_paths.py`.
++- `open_pr.sh` and `handoff_push.sh` write the row through one `write_row`
++  function. It always writes `dev/programme/delivery/<N>.md`, and creates the
++  directory when a branch predates the lift. Each script's new `--self-test`
++  drives that function. With `ROW_DIR` set back to main's `docs/delivery`,
++  each prints `1 checks, 1 failed` (`evidence/row-arms.txt`). The orchestrator
++  reported #2013 and #2014 rows landing at the old path; 7cef1c32's
++  `open_pr.sh` already named only the new path, and `origin/main`'s copy names
++  only the old one.
++
++The other seat scripts that RO-6 touched (`merge_pr.sh`, `remerge_main.sh`,
++`open_pr.sh` and `update_pr.sh`'s push) already use its
++old-path-then-new-path fallback. The workflow steps in `governance.yml` that
++run the moved scripts do the same.
++
++## 3. Process state
++
++**The recurrence of the issue: (c).** The friction filer (#959 option B)
++followed its rule and filed a key whose majority is the review process
++working. Five dispositions are on record, #1807's in two seats; #1600 was
++closed without a comment:
++
++| issue | outcome of its disposition |
++|---|---|
++| #1498 | refused, with an owner question |
++| #1501 | found a filer re-file bug, fixed by #1564 |
++| #1574 | a keying-version artefact |
++| #1706 | refused as inherent |
++| #1807 | stayed open, then closed by re-triage |
++
++The owner question from #1498 (2026-09-23) has never been answered, and #1706
++repeats it: should the rework arm print without proposing, as the `merge` row
++does? Until it is answered, the key re-files on every active window.
++
++**Class A: (c).** The ordering process, the roster's `after` edges, existed
++and was followed. It declared four registry-writing moves independent. Nothing
++in `brief_lint.mjs` or `roster_lib.py` compares what sibling groups write;
++groups declare no touch-set.
++
++**Class D: (d) since 2026-10-06T21:05Z.** The carry instrument's
++preconditions, the paths it invokes, changed underneath it, and its self-test
++could not notice. Before that, the evidence points to (b) for #1983's second
++round and #1980: `orchestrator.md` §11 allowed a carry with no reviewer turn,
++and a reviewer turn was taken instead. That is inferred from the instrument's
++answer at the time. The seat did not establish why the orchestrator chose a
++review.
++
++**Class E: (b), one instance.** The review-prep note says to measure the head
++only after it settles. #1988 is an autofix record branch, rebuilt by the bot
++2.5 minutes after the measured head.
++
++## 4. Cost test
++
++`cost(countermeasure, recurring) < cost(defect) × P(recurrence)`, in
++wall-clock per occurrence.
++
++**CM-1, built: the train resolves the paths it runs, and its self-test reads
++the real tree.**
++
++- Standing cost: six existence checks and one regex in a self-test that
++  already runs in `governance.yml`. Timings are within run-to-run noise: main
++  0.91–2.13 s, fixed 1.27–1.83 s, 3 runs each (`evidence/time_*.txt`).
++- Defect cost: class D's rate in this window, 3 in 57 merges, times its mean
++  lag of 129 min, is about 6.8 min per merge. That figure is from before the
++  train broke. Since the break, the train cannot land anything, and
++  `merge_pr.sh`, which needs a verdict at the exact live head, is the only
++  path.
++- Verdict: passes by orders of magnitude.
++
++**CM-2, refused: a sibling write-set check in `brief_lint.mjs`.**
++
++- Standing cost: a new touch-set field authored on every roster group, plus a
++  lint over it.
++- Defect cost: class A once in nine rounds. Path reorganisation is the only
++  wave in round 9 that produced it, at 276 min of lag over 11 rounds plus the
++  repair commits.
++- At one wave in nine rounds, the authoring cost on every group exceeds it.
++  Refused.
++- The remaining RO stages (RO-8 #1921, RO-9 #1922) are already serial: RO-9
++  waits on RO-3 to RO-8.
++- The finding that a move must re-point the seat instruments is carried
++  in-tree to `.claude/workflows/carry-1921.json` and
++  `dev/programme/carries/carry-1922.json`, with its control
++  (`finding-propagation.md`).
++- The roster brief copy, `handoff/round9/fix/RO.md` on
++  `handoff/audit-r9-fixplan`, is the orchestrator's to update.
++
++**CM-3, owner's decision, not built: stop proposing on the rework arm.**
++
++- Proposal: the rework arm stops bumping `head-moved`. `STATS ROUNDS` already
++  prints the re-verification count (18 here), so nothing goes unseen. A
++  reviewer's own `blocked <sha> head-moved`, the real breach, keeps filing.
++- Standing cost: none at run time.
++- Defect cost: 7 filings in 14 days. Six recorded dispositions took a seat
++  each (#1807 took two, plus this one), about 3 per week. Every active window
++  re-files, because 18 of this window's 20 entries are sanctioned rework.
++- Why it is not built here:
++  - It reverses the keying that two judged findings pinned in
++    `tests/entities.py`: #1405 D13-01 and #1549 D13-s1-01.
++  - It changes what the owner-approved filer files (#959 B, #201 comment
++    5670207248 item 4).
++  - That makes it policy, and the question has been open since #1498.
++
++**Class E: no countermeasure.** It is 2 entries in 20. The row-only commit
++could be made carry-eligible by teaching `carry` to accept a commit that only
++adds the PR's own row. At 1 in 57 merges, that does not pay for widening a
++governance instrument's acceptance.
++
++## 5. CM-1 as built, with its arms
++
++Changed:
++
++- `merge_train.py`:
++  - One `TOOLS` table resolves each script it runs, using the old path first
++    (the move's own convention).
++  - `ROW_DIR` is `dev/programme/delivery`.
++  - Six new self-test checks read the real tree: each script resolves, the row
++    directory exists, and no `self.run` argv names a script by a bare path.
++- `bus.sh`: the default poster resolves with the same fallback. The self-test
++  pin now matches the whole default line (`grep -qxF`), so the pin cannot match
++  itself, and the resolved file must exist.
++- `open_pr.sh`, `handoff_push.sh`: the row path.
++- `handover_prompt.py`: the push script, the row path and the contracts'
++  directory. A new self-test check requires every backticked repository path
++  in the generated prompt to exist; a templated `<N>` file is checked by its
++  directory. With line 78 restored to `tools/audit/briefs/`, the self-test
++  prints `13 checks, 1 failed`, naming the path (`evidence/hp-arms.txt`).
++
++Arms (`evidence/detector-arms.txt`, `evidence/bus-arms.txt`):
++
++| tree | result |
++|---|---|
++| fixed | `merge_train self-test: 49 checks, 0 failed`; `bus self-test: 45 checks, 0 failed` |
++| main's stale locations restored in `TOOLS`/`ROW_DIR` | 3 failed: app_approve, preflight, `docs/delivery/` |
++| main's bare `"tools/audit/app_approve.sh"` carry argv restored | 1 failed: the bare-path check names it |
++| `bus.sh`'s default restored to `tools/audit/app_comment.sh` | 1 failed: the poster pin |
++| `origin/main`'s own `merge_train.py` (null control: the gap) | `43 checks, 0 failed`, green on the broken tree |
++
++The functional arm uses #1980's pair `569e0e63` → `356eb015`:
++
++- Main's carry argv prints `No such file or directory`, with no `CARRY` line.
++- The fixed `tool("app_approve")` resolves to `tools/pr/app_approve.sh` and
++  prints `CARRY: yes` (`evidence/carry-argv.txt`).
++
++What the detector does not catch:
++
++- A path assembled at run time.
++- A script reached through a shell wrapper rather than a `self.run` argv.
++- Paths in the other seat scripts. Those keep their own fallbacks and
++  self-tests; only `bus.sh`'s pin was strengthened here.
++
++## 6. Which of the two the count changes
++
++**Neither.** The count is correct under its keying and over the window's
++bodies. CM-1 lowers future class-D entries, because a carried head takes no
++verdict. CM-3 would change the keying rule, and that is the owner's call.
+diff --git a/dev/programme/carries/carry-1922.json b/dev/programme/carries/carry-1922.json
+index 3d1056a0..b65f3b46 100644
+--- a/dev/programme/carries/carry-1922.json
++++ b/dev/programme/carries/carry-1922.json
+@@ -12,6 +12,13 @@
+       "control": "Run, at your merge base, a listing of git ls-files spelled through canon (counts.mjs canonList) and the same listing unspelled, and test the globs tools/audit/briefs/** and dev/governance/roles/** against each. On the R9-RO-5 head the old glob matched the canon spelling and none of the real paths, and the new glob matched the real paths and none of the canon spelling. The null is the other column: a glob that matches the real tree and not the canon list is what rule-binding reports as matching no tracked file, because that check reads the canon list. Re-run the same two columns. When they agree, this constraint is spent.",
+       "remeasure": "Do not trust the column result above. Re-run it at your merge base before editing a rule paths glob. policy-docs restores policy_lint.mjs and brief_lint.mjs from the base, and rule-binding walks the canon spelling.",
+       "brief": "R9-RO-9 drops the old-path lookup. In that same change, and not before, move each rule's paths globs off the canon spelling (tools/audit/briefs, docs/HANDOVER.md, docs/delivery, docs/plan) onto the paths the files have after R9-RO-5. A glob written only at the new path, while canon still spells listings the old way, is reported by rule-binding as matching no tracked file, on the restored grader as well as on the branch. Leaving the globs on the old spelling after canon is removed is the other failure: they then match nothing. The two edits are one edit."
++    },
++    {
++      "from": "R9-RCA-1990 (#1990): R9-RO-6 and R9-RO-5 moved app_approve.sh, preflight.sh, app_comment.sh and the delivery rows, and five seat instruments kept the old paths",
++      "effect": "narrows",
++      "control": "tools/audit/seat/merge_train.py ran tools/audit/app_approve.sh after the move, so every carry printed `No such file or directory` and the train stopped, while its self-test, whose stub answers any argv containing a script's basename, stayed `43 checks, 0 failed`. Its self-test now reads the real tree: with TOOLS restored to the old paths alone and ROW_DIR to docs/delivery it prints `3 failed`, and with a bare `\"bash\", \"tools/...\"` argv it prints `1 failed` naming the path. The other seat scripts' self-tests stub their callees and do not see a missing path; bus.sh's poster pin is the exception (`grep -qxF` on its default line).",
++      "remeasure": "At your merge base, run `python3 tools/audit/seat/moved_paths.py tools/audit/seat/*` after your move: it lists every reference to a path tests/layout.json marks moved (each retired file absent from the tree, its emptied parent directory, each lifted prefix). Directories and documents count, not only scripts; a script-only grep missed `tools/audit/briefs/` in round 1 of #2012. A reference your move empties is re-pointed in the same commit, unless it is an old-path-first fallback naming the new path. Then run `python3 tools/audit/seat/merge_train.py --self-test`, `bash tools/audit/seat/bus.sh --self-test` and `python3 tools/audit/seat/handover_prompt.py --self-test` and show 0 failed.",
++      "brief": "A move re-points every seat instrument that invokes the moved path, in the move commit. merge_train.py resolves its scripts through its TOOLS table (old path first, then new) and ROW_DIR: a move edits those entries, and retiring an old lookup deletes only the old half of each tuple."
+     }
+   ]
+ }
+diff --git a/dev/programme/delivery/2012.md b/dev/programme/delivery/2012.md
+new file mode 100644
+index 00000000..919fb545
+--- /dev/null
++++ b/dev/programme/delivery/2012.md
+@@ -0,0 +1 @@
++- [#2012](https://github.com/tvofi/heatpump_optimizer/pull/2012) — **open**, fix(R9-RCA-1990): re-point the seat instruments after the reorg; head-moved root cause (none)
+diff --git a/tools/audit/bugclasses.json b/tools/audit/bugclasses.json
+index 71af53a2..a013cb53 100644
+--- a/tools/audit/bugclasses.json
++++ b/tools/audit/bugclasses.json
+@@ -3654,6 +3654,22 @@
+       ],
+       "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
+     },
++    "R9-RCA-1990": {
++      "class": null,
++      "level": "instance-or-process",
++      "subject": "#1990 head-moved friction filed seven times; carry instrument broken by the RO path moves",
++      "trigger": "recurrence (7 issues on one friction key, 2026-09-23..10-06)",
++      "date": "2026-10-07",
++      "status": "done",
++      "parts_missing": [],
++      "process_state": "(c) recurrence and RO siblings; (d) carry instrument",
++      "countermeasure": "merge_train resolves the scripts it runs and its self-test reads the real tree; rework-arm keying is the owner's decision",
++      "landed": null,
++      "doc": [
++        "https://github.com/tvofi/heatpump_optimizer/issues/1990"
++      ],
++      "in_tree_home": "dev/audit/rca/R9-RCA-1990.md"
++    },
+     "R9-RCA-1985": {
+       "class": null,
+       "level": "instance-or-process",
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index 21a08de4..f6e7ba05 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -113,7 +113,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   CodeQL on evidence files; nothing to do until the alerts exist.
+ - `handoff_push.sh` — the legacy one-shot: pushes a handoff branch as
+   `hpo-author` with body, title and its own delivery row. When: only where
+-  `docs/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
++  `dev/programme/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+ - `handover_prompt.py` — generates the next-session prompt from the roster
+   (and optionally a resume doc). When: ending a session; ready-next derives
+   from the roster's after-edges. Refusal: none to speak of — read the output
+@@ -126,6 +126,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   `--match-head-commit`. When: any merge queue — queued PRs merge through
+   this, never by hand. Refusal: a head that moved under the review, or red
+   checks the queue was not told to ignore, stop the train.
++- `moved_paths.py` — lists every line in the given files that names a path
++  `tests/layout.json` marks moved: a retired file, its emptied directory, or
++  a lifted prefix. Each hit is tagged FALLBACK when the line also names the
++  new path. When: a move, or a review of one, before the push; a reader
++  dispositions every STALE? hit. Refusal: none; it enumerates and always
++  exits 0.
+ - `open_pr.sh` — opens a draft PR from `handoff/<topic>` as `hpo-author`,
+   adds its own delivery row, re-pushes, prints N and the head. When: the
+   orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
+@@ -136,8 +142,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
+   but the gantt's grammar checks run in `--self-test`, not at render time.
+ - `record_row.py` — the record-autofix generator: enumerates merged PRs from
+   the REST API, plans the delivery rows the tree still lacks, applies them
+-  behind a guarded write set (`docs/delivery/<N>.md` only). When: the periodic
+-  `record` beat. Refusal: any path outside `docs/delivery/<N>.md` — the plan
++  behind a guarded write set (`dev/programme/delivery/<N>.md` only). When: the periodic
++  `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
+   table and HANDOVER are a seat's dispositions, never this generator's — and
+   a window it cannot attribute refuses rather than reports empty.
+ - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index 67753e98..4955c3bc 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -73,14 +73,18 @@
+ # code-owner rule), given by the orchestrator under the mandate, separately.
+ #
+ # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
+-# HPO_BUS_POSTER (this checkout's tools/audit/app_comment.sh), HPO_IDENTITY_DIR.
++# HPO_BUS_POSTER (this checkout's app_comment.sh: tools/audit/ if a copy is
++# restored there, else tools/pr/, where R9-RO-6 moved it), HPO_IDENTITY_DIR.
+ # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
+ set -uo pipefail
+ 
+ ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
+ REMOTE=${HPO_BUS_REMOTE:-origin}
+ REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
+-POSTER=${HPO_BUS_POSTER:-$ROOT/tools/audit/app_comment.sh}
++POSTER=${HPO_BUS_POSTER:-}
++if [ -z "$POSTER" ]; then
++  if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
++fi
+ S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
+ die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
+ 
+@@ -380,7 +384,9 @@ P
+     printf '%s' "$2" | git -C "$W/seat" commit-tree "$tr"
+   }
+ 
+-  grep -q 'POSTER:-$ROOT/tools/audit/app_comment.sh}' "$ROOT/tools/audit/seat/bus.sh"
++  # -x: the whole default line, so this pin cannot match itself.
++  grep -qxF '  if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi' \
++    "$ROOT/tools/audit/seat/bus.sh" && test -f "$ROOT/tools/pr/app_comment.sh"
+   expect "a verdict posts as a comment through app_comment.sh, never as an approving review" $?
+ 
+   out=$(seat push-verdict 7 "$W/badgrammar.md" "$W/ev1"); rc=$?
+diff --git a/tools/audit/seat/handoff_push.sh b/tools/audit/seat/handoff_push.sh
+index 3f203a17..1620b874 100644
+--- a/tools/audit/seat/handoff_push.sh
++++ b/tools/audit/seat/handoff_push.sh
+@@ -2,10 +2,26 @@
+ # handoff_push.sh <handoff-topic> <code-sha-full> "<title>" [merge-main]
+ # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
+ # retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
+-# row here because it is the seat that learns N (.claude/rules/delivery-status-tracking.md).
++# row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
+ # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
+-# docs/HANDOVER.md names it.
++# dev/programme/HANDOVER.md names it.
+ set -uo pipefail
++# THE ROW'S HOME (#1990's RCA, round 3). Rows are written to dev/programme/delivery/
++# only, never to the retired delivery directory, and it is made when a
++# branch predates the lift. One function, so the self-test drives the write.
++ROW_DIR=dev/programme/delivery
++write_row() { # <worktree> <N> <line>; prints the repo-relative path written
++  mkdir -p "$1/$ROW_DIR" && printf '%s\n' "$3" > "$1/$ROW_DIR/$2.md" && echo "$ROW_DIR/$2.md"
++}
++if [ "${1:-}" = --self-test ]; then
++  _t=$(mktemp -d); _f=0
++  _p=$(write_row "$_t" 7 "- [#7] row") || _f=1
++  [ "$_p" = "dev/programme/delivery/7.md" ] && [ -f "$_t/$_p" ] && [ ! -e "$_t/docs" ] || _f=1
++  rm -rf "$_t"
++  if [ $_f = 0 ]; then echo "  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"
++  else echo "  FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"; fi
++  echo "handoff_push self-test: 1 checks, $_f failed"; exit $_f
++fi
+ TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
+ # The main checkout is the one this script's checkout shares its object store with; a PR's
+ # worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
+@@ -17,7 +33,7 @@ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
+ T="origin/handoff/$TOPIC"
+ git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
+ CODE=$(git rev-parse "$CODE")
+-git diff --name-only "$CODE" "$T" | grep -vqE '^(tools/audit/handoff/|handoff/)' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
++git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+ # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
+ # transport commit above the code head, until no open handoff carries one.
+ if git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then
+@@ -54,7 +70,7 @@ if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # updat
+ import sys
+ p,H,C,N=sys.argv[1:5]; s=open(p).read()
+ i=s.index('## Head\n\n')+len('## Head\n\n')
+-s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `docs/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
++s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
+ open(p,'w').write(s)
+ E3
+   if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+@@ -83,13 +99,13 @@ N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+')
+ gh pr edit $N --title "$TITLE" >/dev/null
+ [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
+ export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
+-( cd "$WT" && echo "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE" > docs/delivery/$N.md && git add docs/delivery/$N.md && git commit -qm "record: the delivery row for #$N" ) || exit 1
++( cd "$WT" && _row=$(write_row . $N "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE") && git add "$_row" && git commit -qm "record: the delivery row for #$N" ) || exit 1
+ H=$(git -C "$WT" rev-parse HEAD)
+ python3 - "$B" "$H" "$CODE" "$N" <<'E'
+ import sys
+ p,H,C,N=sys.argv[1:5]; s=open(p).read()
+ i=s.index('## Head\n\n')+len('## Head\n\n')
+-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
++s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+ open(p,'w').write(s)
+ E
+ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+diff --git a/tools/audit/seat/handover_prompt.py b/tools/audit/seat/handover_prompt.py
+index a33f288a..a8f712c8 100644
+--- a/tools/audit/seat/handover_prompt.py
++++ b/tools/audit/seat/handover_prompt.py
+@@ -75,7 +75,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
+          "`CLAUDE.md` at the checkout root -- the index: every policy file and "
+          "the obligation each carries. Then the `.claude/rules/` file each "
+          "task touches, loaded when it binds. Then the seat brief your work "
+-         "names under `tools/audit/briefs/` (the fixer's is `fixer.md`). "
++         "names under `dev/governance/roles/` (the fixer's is `fixer.md`). "
+          "Call the owner tvofi.", "",
+          "## Load the state", "",
+          "```bash",
+@@ -113,7 +113,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
+           + (f", fork base `{roster['fork']}` at plan time"
+              if roster.get("fork") else "") + ".",
+           "- Pull requests are authored by the `hpo-author` App via "
+-          "`tools/audit/seat/app_push.sh` (never `push.sh`, never tvofi); "
++          "`tools/pr/app_push.sh` (never `push.sh`, never tvofi); "
+           "`hpo-approver` approves non-code-owned PRs; only tvofi reviews "
+           "code-owned paths (decision 0011).",
+           "- Model routing per group is the roster's own fields "
+@@ -126,7 +126,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
+           "- every issue in `issues[]` is closed by the PR the roster makes "
+           "its closer (`fixes[]`), read back on GitHub, not assumed;",
+           "- CI green at each merged head and the delivery row written "
+-          "(`docs/delivery/<N>.md`);",
++          "(`dev/programme/delivery/<N>.md`);",
+           "- the resume doc regenerated under its budget "
+           "(`tools/audit/seat/resume_doc.py`) and the plan table with it "
+           f"(`{Path(SELF).parent / 'plan_table.py'}`).",
+@@ -213,9 +213,19 @@ def _self_test() -> int:
+           and "session `fixture-r9`" in text and "`db878b29`" in text)
+     check("merge identity", "hpo-author" in text and "hpo-approver" in text
+           and "tvofi reviews" in text and "decision 0011" in text)
+-    check("done criteria", "resume.stage" in text and "docs/delivery/" in text)
++    check("done criteria", "resume.stage" in text and "dev/programme/delivery/" in text)
+     check("resume steps", "Claim one ready group" in text
+           and "#201" in text)
++    # Every repository path the prompt names is in the tree (#1990's RCA: a
++    # move left the retired briefs directory here after its contracts went to
++    # dev/governance/roles/). A templated `<N>` file is checked by its directory.
++    import re as _re
++    _root = Path(__file__).resolve().parents[3]
++    _named = sorted(set(_re.findall(r"`((?:tools|dev|docs|tests|\.claude)/[^`\s]*)`", text)))
++    _gone = [q for q in _named
++             if not (_root / (q.rsplit("/", 1)[0] if "<" in q else q)).exists()]
++    check("every repository path the prompt names exists"
++          + (f" (missing: {', '.join(_gone)})" if _gone else ""), _named and not _gone)
+ 
+     # empty roster: no in-flight block, ready-next says none.
+     empty = render({"groups": [], "repo": "r"}, "fixture", "", "",
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 024db90c..ef7d3ff1 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -71,6 +71,30 @@ from pathlib import Path
+ ROOT = Path(__file__).resolve().parents[3]
+ HEX = frozenset("0123456789abcdef")
+ 
++# EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
++# dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
++# tools/pr/ and R9-RO-5 lifted the delivery rows under dev/programme/; the train
++# kept the old strings, so every run stopped at the carry, and its self-test --
++# whose stub answers any argv containing a script's basename -- stayed 43/43
++# green. A script resolves to the first candidate in the tree, the old path
++# first, the convention the move set for the scripts it moved; the self-test
++# refuses a name none of whose candidates exists, and a bare script path in a
++# `self.run` argv that bypasses this table.
++TOOLS = {
++    "app_approve": ("tools/audit/app_approve.sh", "tools/pr/app_approve.sh"),
++    "preflight": ("tools/audit/preflight.sh", "tools/pr/preflight.sh"),
++    "remerge_main": ("tools/audit/seat/remerge_main.sh",),
++    "worktree_gc": ("tools/audit/worktree_gc.sh",),
++}
++ROW_DIR = "dev/programme/delivery"
++
++
++def tool(name: str) -> str:
++    for c in TOOLS[name]:
++        if (ROOT / c).is_file():
++            return c
++    return TOOLS[name][-1]
++
+ 
+ def is_sha(s: str) -> bool:
+     return len(s) == 40 and set(s) <= HEX
+@@ -143,7 +167,7 @@ class Train:
+         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
+ 
+     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
+-        code, o = self.run(["bash", "tools/audit/app_approve.sh", self.repo, str(pr), h])
++        code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
+         if code == 0 and "REFUSE" not in o:
+             return "app"
+         # Only app_approve.sh's own code-owned refusal line, anchored and for this
+@@ -193,7 +217,7 @@ class Train:
+                     raise Stop("recarry", f"could not make a worktree at {wt}")
+             body = self.state / f"rb{pr}.md"
+             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
+-            code, o = self.run(["bash", "tools/audit/seat/remerge_main.sh", str(pr), str(wt), br, str(body)])
++            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
+             if "MERGE CONFLICT" in o:
+                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
+             if "PUSHED" not in o:
+@@ -207,7 +231,7 @@ class Train:
+         if red:
+             raise Stop("ci", "red at the head: " + ", ".join(red))
+         self.run(["git", "fetch", "-q", "origin", h])
+-        o = self.run(["bash", "tools/audit/app_approve.sh", "--carry", v, h])[1]
++        o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
+         if "CARRY: yes" not in o:
+             raise Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
+         if not self.contains_main(h):
+@@ -221,7 +245,7 @@ class Train:
+         if code:
+             raise Stop("files", "git diff failed: " + out.strip()[-160:])
+         files = out.split()
+-        row = f"docs/delivery/{pr}.md"
++        row = f"{ROW_DIR}/{pr}.md"
+         if row not in files:
+             raise Stop("row", f"#{pr} has no {row} in the three-dot diff; "
+                        "the train writes none and the stamp's --require-rows "
+@@ -234,7 +258,7 @@ class Train:
+         self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
+         self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
+         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
+-        pf = self.run(["bash", "tools/audit/preflight.sh", *map(str, item.get("issues", []))], stdin=title + "\n")[1]
++        pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
+         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
+             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
+         for _ in range(self.merge_tries):
+@@ -253,7 +277,7 @@ class Train:
+         q = ('query={repository(owner:"%s",name:"%s"){pullRequest(number:%d){closingIssuesReferences(first:10)'
+              "{nodes{number state}}}}}" % (owner, name, pr))
+         self.log(f"#{pr} closes {self.out('gh', 'api', 'graphql', '-f', q)[-160:]}")
+-        self.run(["bash", "tools/audit/worktree_gc.sh", self.repo])
++        self.run(["bash", tool("worktree_gc"), self.repo])
+ 
+     def train(self, queue: list[dict]) -> int:
+         self.state.mkdir(parents=True, exist_ok=True)
+@@ -301,15 +325,15 @@ def _self_test() -> int:
+                 if "renamed" in world:  # git lists a rename's old path only with --no-renames
+                     old, new = world["renamed"]
+                     names = f"{old}\n{new}" if "--no-renames" in argv else new
+-                    return 0, names + "\ndocs/delivery/7.md"
++                    return 0, names + f"\n{ROW_DIR}/7.md"
+                 return 0, "\n".join(world.get(
+                     "files",
+-                    ["custom_components/x.py", "docs/delivery/7.md",
+-                     "docs/delivery/8.md"]))
++                    ["custom_components/x.py", f"{ROW_DIR}/7.md",
++                     f"{ROW_DIR}/8.md"]))
+             if "--corpus-filter" in a:
+                 if world.get("broken_filter"):
+                     return 0, ""
+-                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "tools/audit/briefs/fixer.md"))
++                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
+             if "app_approve.sh" in a:
+                 return world.get("approve", (0, "APPROVED"))
+             if argv[:3] == ["gh", "pr", "review"]:
+@@ -349,8 +373,8 @@ def _self_test() -> int:
+     rc, lines, calls = go({})
+     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
+     rc, lines, calls = go({"files": ["custom_components/x.py"]})
+-    check("a pull request with no docs/delivery/<N>.md row is refused",
+-          rc == 1 and "row:" in lines[-1] and "docs/delivery/7.md" in lines[-1]
++    check(f"a pull request with no {ROW_DIR}/<N>.md row is refused",
++          rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
+           and not merged(calls))
+     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
+     rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
+@@ -365,12 +389,12 @@ def _self_test() -> int:
+     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
+     rc, lines, calls = go({"contains": [True, False]})
+     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
+-    rc, lines, calls = go({"files": ["custom_components/x.py", "docs/delivery/7.md",
+-                                     "tools/audit/briefs/fixer.md"],
+-                           "approve": (1, "REFUSE: #7 touches code-owned paths (tools/audit/briefs/fixer.md); the owner's")},
++    rc, lines, calls = go({"files": ["custom_components/x.py", f"{ROW_DIR}/7.md",
++                                     "dev/governance/roles/fixer.md"],
++                           "approve": (1, "REFUSE: #7 touches code-owned paths (dev/governance/roles/fixer.md); the owner's")},
+                           mandate="mandate 1 (tvofi)")
+     check("a policy pull request is never approved, even under a mandate", rc == 1 and "policy:" in lines[-1]
+-          and "tools/audit/briefs/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
++          and "dev/governance/roles/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
+           and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
+     rc, lines, calls = go({"heads": [H0, H1]})
+     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]
+@@ -387,7 +411,7 @@ def _self_test() -> int:
+     check("the mandate body names the label, role, paths, verdict comment and head",
+           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
+     rc, lines, calls = go({"approve": owned,
+-                           "files": ["tests/structure_budgets.json", "docs/delivery/7.md"]},
++                           "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
+                           mandate="m")
+     check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
+     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
+@@ -515,6 +539,17 @@ def _self_test() -> int:
+     check("a preflight that never says clean stops it", rc == 1 and "preflight:" in lines[-1] and not merged(calls))
+     rc, lines, calls = go({}, q=[dict(item, verdict="xyz")])
+     check("a queue entry with a malformed verdict sha is refused", rc == 1 and "queue:" in lines[-1])
++    # THE TREE THE STUB CANNOT SEE (#1990's RCA). Every check above runs against
++    # a stub that answers on a basename, so a script path that no longer exists
++    # passes all of them; these read the real tree.
++    for name, cands in TOOLS.items():
++        check(f"the train's {name} script is in the tree ({' or '.join(cands)})",
++              any((ROOT / c).is_file() for c in cands))
++    check(f"the delivery-row directory the train requires, {ROW_DIR}/, is in the tree",
++          (ROOT / ROW_DIR).is_dir())
++    bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
++    check("every script the train runs resolves through TOOLS, none by a bare path"
++          + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
+     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
+     return 1 if failed else 0
+ 
+diff --git a/tools/audit/seat/moved_paths.py b/tools/audit/seat/moved_paths.py
+new file mode 100644
+index 00000000..7e34c459
+--- /dev/null
++++ b/tools/audit/seat/moved_paths.py
+@@ -0,0 +1,141 @@
++#!/usr/bin/env python3
++"""List every reference a file makes to a path the reorganisation moved.
++
++    python3 tools/audit/seat/moved_paths.py <file-or-directory>...
++    python3 tools/audit/seat/moved_paths.py --self-test
++
++WHY THIS EXISTS (#1990's RCA, dev/audit/rca/R9-RCA-1990.md). The RO moves left
++seat instruments invoking paths they had emptied. merge_train.py could not
++carry a verdict, and a generated prompt sent seats to the retired briefs directory. The
++first search matched script paths only, so it missed the directory.
++
++WHAT IT READS: tests/layout.json. A moved path is one of:
++  - a `retired` entry's `old` that is no longer tracked (a directory entry
++    counts only once no tracked file is left under it);
++  - that entry's parent directory, when no tracked file is left under it;
++  - a `lifted` prefix.
++
++A directory argument is walked: every tracked file under it is scanned, so a
++shell glob such as `tools/audit/seat/*` that expands to a subdirectory works.
++An untracked path under a directory is skipped; a file named directly is read
++whether tracked or not.
++
++WHAT IT PRINTS: one line per hit, as `file:line: [TAG] old -> new | text`.
++  - FALLBACK: the same line also names the new path, the old-path-first
++    convention the moves set.
++  - STALE?: anything else. A reader dispositions each one: a fallback split
++    across lines, a lifted prefix whose generated copy stays, or a defect.
++The run ends with a count line. Exit 0 always: this is an enumeration a
++reader dispositions, not a gate.
++"""
++
++from __future__ import annotations
++
++import json
++import os
++import subprocess
++import sys
++import tempfile
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[3]
++
++
++def moved_paths(layout: dict, tracked: set[str]) -> dict[str, str]:
++    dirs = {"/".join(p.split("/")[:i]) + "/" for p in tracked for i in range(1, p.count("/") + 1)}
++    moved: dict[str, str] = {}
++    for e in layout.get("retired", []):
++        old, new = e["old"], e.get("new")
++        if old in tracked or (old.endswith("/") and old in dirs):
++            continue  # planned, not yet done: the file, or a file under the directory, is still tracked
++        moved[old] = new or "(retired)"
++        parent = str(Path(old).parent) + "/"
++        if parent != "./" and parent not in dirs:
++            moved.setdefault(parent, (str(Path(new).parent) + "/") if new else "(retired)")
++    for e in layout.get("lifted", []):
++        moved[e["old"]] = e["new"]
++    return moved
++
++
++def expand(args: list[str], tracked: set[str], root: Path = ROOT) -> list[str]:
++    """Each file argument as given; each directory as its tracked files, sorted."""
++    files: list[str] = []
++    for a in args:
++        p = Path(a)
++        if p.is_dir():
++            rel = str(p.resolve().relative_to(root.resolve())).rstrip("/") + "/"
++            files += sorted(os.path.relpath(root / t) for t in tracked if t.startswith(rel) and (root / t).is_file())
++        else:
++            files.append(a)
++    return files
++
++
++def scan(files: list[str], moved: dict[str, str]) -> list[str]:
++    out = []
++    order = sorted(moved.items(), key=lambda kv: -len(kv[0]))
++    for f in files:
++        for n, line in enumerate(Path(f).read_text(encoding="utf-8").splitlines(), 1):
++            for old, new in order:
++                if old in line:
++                    tag = "FALLBACK" if new != "(retired)" and new in line else "STALE?"
++                    out.append(f"{f}:{n}: [{tag}] {old} -> {new} | {line.strip()[:150]}")
++                    break
++    return out
++
++
++def _self_test() -> int:
++    layout = {"retired": [{"old": "a/old/x.sh", "new": "b/x.sh"},
++                          {"old": "keep/y.sh", "new": "c/y.sh"},
++                          {"old": "keep/", "new": "c/"}],
++              "lifted": [{"old": "r/", "new": "g/r/"}]}
++    tracked = {"b/x.sh", "keep/y.sh", "keep/z.sh"}
++    m = moved_paths(layout, tracked)
++    fails = 0
++
++    def check(name: str, cond: bool) -> None:
++        nonlocal fails
++        fails += not cond
++        print(f"  {'ok  ' if cond else 'FAIL'} {name}")
++
++    check("a retired file no longer tracked is moved", m.get("a/old/x.sh") == "b/x.sh")
++    check("its emptied parent directory is moved", m.get("a/old/") == "b/")
++    check("a retired entry still tracked is a planned move, not a moved path", "keep/y.sh" not in m)
++    check("a retired directory with tracked files under it is a planned move", "keep/" not in m)
++    check("a lifted prefix is moved", m.get("r/") == "g/r/")
++    with tempfile.TemporaryDirectory() as d:
++        f = Path(d) / "s.sh"
++        f.write_text("see `a/old/` here\nif test -f a/old/x.sh; then p=a/old/x.sh; else p=b/x.sh; fi\nclean line\n")
++        hits = scan([str(f)], m)
++    check("a directory reference is found and marked STALE?", len(hits) == 2 and "[STALE?] a/old/ -> b/" in hits[0])
++    check("an old-first fallback naming the new path is marked FALLBACK", "[FALLBACK] a/old/x.sh -> b/x.sh" in hits[1])
++    with tempfile.TemporaryDirectory() as d:
++        root = Path(d)
++        (root / "sub" / "deep").mkdir(parents=True)
++        (root / "top.sh").write_text("x\n")
++        (root / "sub" / "a.sh").write_text("`a/old/`\n")
++        (root / "sub" / "deep" / "b.sh").write_text("y\n")
++        (root / "sub" / "untracked.sh").write_text("`a/old/`\n")
++        files = expand([str(root / "top.sh"), str(root / "sub")], {"top.sh", "sub/a.sh", "sub/deep/b.sh"}, root)
++        names = [str(Path(f).resolve().relative_to(root.resolve())) for f in files]
++        check("a directory argument walks its tracked files, recursively, and skips untracked ones",
++              names == ["top.sh", "sub/a.sh", "sub/deep/b.sh"])
++        check("a walked directory's files are scanned", len(scan(files, m)) == 1)
++    print(f"moved_paths self-test: 9 checks, {fails} failed")
++    return 1 if fails else 0
++
++
++def main(argv: list[str]) -> int:
++    if argv[:1] == ["--self-test"]:
++        return _self_test()
++    layout = json.loads((ROOT / "tests/layout.json").read_text())
++    tracked = set(subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True).stdout.split())
++    m = moved_paths(layout, tracked)
++    files = expand(argv, tracked)
++    hits = scan(files, m)
++    print("\n".join(hits) if hits else "", end="\n" if hits else "")
++    print(f"moved_paths: {len(m)} moved path(s) from tests/layout.json, {len(hits)} hit(s) in {len(files)} file(s)")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main(sys.argv[1:]))
+diff --git a/tools/audit/seat/open_pr.sh b/tools/audit/seat/open_pr.sh
+index c2ceb725..73de8b9e 100755
+--- a/tools/audit/seat/open_pr.sh
++++ b/tools/audit/seat/open_pr.sh
+@@ -4,6 +4,22 @@
+ # The PR worktree and body live under $HPO_STATE_DIR/pr/<topic> (default ~/.local/state/hpo), and the
+ # seat venv seat_venv.sh builds there comes first on PATH.
+ # Successor of handoff_push.sh's open path: always merges origin/main, names the roster group in the row.
++# THE ROW'S HOME (#1990's RCA, round 3). Rows are written to dev/programme/delivery/
++# only, never to the retired delivery directory, and it is made when a
++# branch predates the lift. One function, so the self-test drives the write.
++ROW_DIR=dev/programme/delivery
++write_row() { # <worktree> <N> <line>; prints the repo-relative path written
++  mkdir -p "$1/$ROW_DIR" && printf '%s\n' "$3" > "$1/$ROW_DIR/$2.md" && echo "$ROW_DIR/$2.md"
++}
++if [ "${1:-}" = --self-test ]; then
++  _t=$(mktemp -d); _f=0
++  _p=$(write_row "$_t" 7 "- [#7] row") || _f=1
++  [ "$_p" = "dev/programme/delivery/7.md" ] && [ -f "$_t/$_p" ] && [ ! -e "$_t/docs" ] || _f=1
++  rm -rf "$_t"
++  if [ $_f = 0 ]; then echo "  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"
++  else echo "  FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"; fi
++  echo "open_pr self-test: 1 checks, $_f failed"; exit $_f
++fi
+ set -eo pipefail; unset GIT_AUTHOR_NAME
+ export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
+ M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
+@@ -28,8 +44,8 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
+ PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || { grep -E 'REFUSE' $D/p1.log; exit 1; }
+ N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
+ gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
+-printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > docs/delivery/$N.md
+-git add docs/delivery/$N.md
++_row=$(write_row . $N "$(printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)' $N $R $N "$TITLE" "$G")")
++git add "$_row"
+ git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com commit -q --author='tvofi <70032254+tvofi@users.noreply.github.com>' -m "record: the delivery row for #$N
+ 
+ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
+@@ -38,7 +54,7 @@ python3 - $D/body.md $H $N $C <<'E'
+ import sys
+ p,H,N,C=sys.argv[1:5]; s=open(p).read()
+ i=s.index('## Head\n\n')+len('## Head\n\n')
+-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
++s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+ open(p,'w').write(s)
+ E
+ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+diff --git a/tools/audit/seat/record_row.py b/tools/audit/seat/record_row.py
+index 86ae4ff7..2284cebf 100644
+--- a/tools/audit/seat/record_row.py
++++ b/tools/audit/seat/record_row.py
+@@ -20,7 +20,7 @@ read with `git show`) or `--roster-file`, nothing about a session hardcoded.
+ 
+ WHAT STAYS MANUAL, by design (issue #1952, owner-approved 2026-10-04): the
+ approving labelled review on the record pull request, and the
+-`docs/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
++`dev/programme/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
+ work, not every beat, which a job would over-write. This module's write set
+ cannot express either: `write_rows` refuses every path that is not
+ `dev/programme/delivery/<N>.md`, so a row can never be appended to the plan's
+diff --git a/tools/audit/seat/roster_lib.py b/tools/audit/seat/roster_lib.py
+index bacae4c1..c002ce2f 100644
+--- a/tools/audit/seat/roster_lib.py
++++ b/tools/audit/seat/roster_lib.py
+@@ -128,7 +128,7 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
+ # ------------------------------------------------- the branch-to-group lookup
+ #
+ # A merged pull request's head branch answers for the roster group its work
+-# rode, so the record beat can suffix its `docs/delivery/<N>.md` row with the
++# rode, so the record beat can suffix its `dev/programme/delivery/<N>.md` row with the
+ # group id. This is the ONE derivation of that mapping; the record-autofix
+ # generator (record_row.py) imports it rather than re-deriving it (#1948's
+ # product carrying its own consumer).
+diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
+index ebb6bd78..26d98b4f 100644
+--- a/tools/audit/seat/state_docs.py
++++ b/tools/audit/seat/state_docs.py
+@@ -319,18 +319,18 @@ def self_test() -> int:
+         # THE GUARD: a write outside the three files refuses, in both the
+         # direct check and a real write_tree call over the live tip.
+         try:
+-            check_write_set({"docs/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
++            check_write_set({"dev/programme/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
+             ok("guard refuses a path outside the write set", False)
+         except Refuse:
+             pass
+         try:
+             write_tree(str(drv), {**{p: "x" for p in WRITE_SET},
+-                                  "docs/HANDOVER.md": "x"}, tip)
++                                  "dev/programme/HANDOVER.md": "x"}, tip)
+             ok("write_tree refuses an outside path", False)
+         except Refuse:
+             pass
+         ok("guard refused before the tree carried the bad path",
+-           "docs/HANDOVER.md" not in git("-C", str(drv), "ls-tree", "-r",
++           "dev/programme/HANDOVER.md" not in git("-C", str(drv), "ls-tree", "-r",
+                                          "--name-only", "HEAD"))
+         # idempotence: a re-run over a current tip moves nothing
+         rc = main(common + ["--push"])
+diff --git a/tools/audit/seat/tmp_paths.py b/tools/audit/seat/tmp_paths.py
+index 0d0c3a23..e12ab92f 100644
+--- a/tools/audit/seat/tmp_paths.py
++++ b/tools/audit/seat/tmp_paths.py
+@@ -12,7 +12,8 @@ ruling the same day: a tool the programme reruns is a tracked file, and a
+ session-local copy is a defect. This is the mechanical half of that ruling.
+ 
+ WHAT IT SCANS, at <ref> (default HEAD) through `git grep`, so a ref can be
+-graded without a checkout: `.github/workflows/*.yml`, `docs/decisions/*.md`,
++graded without a checkout: `.github/workflows/*.yml`, `dev/governance/decisions/*.md`
++(and `docs/decisions/*.md`, their home before the lift),
+ `.claude/settings.json` (its hooks run commands), and every `.sh .py .mjs .js
+ .cjs` under `tools/`, `tests/` and `.claude/` plus the seat shims, except the
+ write-once round evidence under `tools/audit/round*/`, `tools/audit/handoff/`
+@@ -114,7 +115,7 @@ ALLOW = (
+     ("tools/policy/friction_issues.mjs", "process.env.RUNNER_TEMP ?? '/tmp'}/friction-issue-body.md",
+      "a workflow program: RUNNER_TEMP is set on the runner; /tmp is a one-shot body's local fallback"),
+     ("tests/plan_view.py", '"/tmp", "plandata-%s.json" % hashlib.sha256',
+-     "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (tools/audit/README.md)"),
++     "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (dev/audit/README.md)"),
+     (SELF, "", "this file names every class in its own patterns, docstring and fixtures"),
+ )
+ 
+@@ -123,7 +124,7 @@ def scope(path: str) -> bool:
+     if re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*)/", path):
+         return False
+     return bool(re.match(r"\.github/workflows/[^/]+\.ya?ml$", path)
+-                or re.match(r"docs/decisions/[^/]+\.md$", path)
++                or re.match(r"(?:docs|dev/governance)/decisions/[^/]+\.md$", path)
+                 or re.match(r"(?:tools|tests|\.claude)/.*\.(?:sh|py|mjs|js|cjs)$", path)
+                 or re.match(r"tools/audit/seat/shims/", path)
+                 or path == ".claude/settings.json")
+@@ -186,7 +187,7 @@ def classify(lines: list[tuple[str, int, str]], allow=ALLOW) -> tuple[list[str],
+ def grep(ref: str) -> list[tuple[str, int, str]]:
+     r = subprocess.run(
+         ["git", "grep", "-n", "-I", "-E", r"/tmp|/Users/|/home/|~/|\$HOME/|\$\{HOME\}/|TMPDIR|gettempdir", ref, "--",
+-         ".github/workflows", "docs/decisions", "tools", "tests", ".claude"],
++         ".github/workflows", "docs/decisions", "dev/governance/decisions", "tools", "tests", ".claude"],
+         cwd=ROOT, capture_output=True, text=True)
+     if r.returncode not in (0, 1):
+         raise SystemExit(f"tmp_paths: git grep failed: {r.stderr.strip()}")
+@@ -216,6 +217,11 @@ def self_test() -> int:
+     check("an instrument run from $HOME is refused", one(s, 'export PATH=$HOME/hpo-seats/bin:$PATH') != [])
+     check("a decision record citing /private/tmp is refused",
+           one("docs/decisions/0012-x.md", "(`/private/tmp/audit-7/r8prog/design.md`)") != [])
++    # The governance lift moved the decisions under dev/governance/ and the
++    # scope kept only the old directory, so every decision went unscanned and
++    # the check above, on the old path, stayed green (#1990's RCA, round 3).
++    check("a decision record at its lifted home citing /private/tmp is refused",
++          one("dev/governance/decisions/0012-x.md", "(`/private/tmp/audit-7/r8prog/design.md`)") != [])
+     check("a workflow invoking a ~/ instrument is refused", one(".github/workflows/x.yml", "run: bash ~/tools/x.sh") != [])
+     check("a repo-relative path passes (null control)", one(s, "bash tools/audit/seat/remerge_main.sh") == [])
+     check("a $TMPDIR default passes", one(s, 'f="${TMPDIR:-/tmp}/body_push.$$"') == [])

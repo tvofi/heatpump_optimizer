@@ -1,4 +1,0 @@
---- open_pr ROW_DIR=docs/delivery
- 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
-open_pr self-test: 1 checks, 1 failed

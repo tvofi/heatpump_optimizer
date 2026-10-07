@@ -1,0 +1,4 @@
+  FAIL the train's app_approve script is in the tree (tools/audit/app_approve.sh)
+  FAIL the train's preflight script is in the tree (tools/audit/preflight.sh)
+  FAIL the delivery-row directory the train requires, docs/delivery/, is in the tree
+merge_train self-test: 49 checks, 3 failed

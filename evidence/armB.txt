@@ -1,0 +1,2 @@
+  FAIL every script the train runs resolves through TOOLS, none by a bare path (bare: tools/audit/worktree_gc.sh)
+merge_train self-test: 49 checks, 1 failed

@@ -1,0 +1,46 @@
+  FAIL a verdict posts as a comment through app_comment.sh, never as an approving review
+  ok   push-verdict refuses a first line outside the grammar
+  ok   push-verdict refuses a verdict with no nonce line
+  ok   push-verdict refuses evidence that names no head
+  ok   push-verdict refuses a verdict with no evidence directory
+  ok   push-verdict refuses a non-numeric pull request
+  ok   no refused push left a review ref
+  ok   a first pass records a baseline and posts nothing
+  ok   watch --post posts neither a forged proposal nor a forged verdict ref
+  ok   confirm promotes no proposal that was never dispatched
+  ok   a verdict signed with a key that is not the approver's does not post
+  ok   dispatch records pr, head and reviewer and prints a fresh nonce
+  ok   two dispatches mint two nonces
+  ok   another dispatch's nonce does not count
+  ok   push-verdict proposes on review/<pr>, fast-forwarding it
+  ok   watch reports a new handoff ref
+  ok   watch reports a new review ref
+  ok   a dispatched proposal waits for the orchestrator's confirmation, naming the reviewer
+  ok   a confirmation for a commit that is not the tip posts nothing
+  ok   confirm refuses on a machine without the approver key
+  ok   confirm signs the proposal onto verdict/<pr> and posts it once
+  ok   the signed verdict carries the reviewer's tree unchanged
+  ok   the posted body names the reviewer and the proposal
+  ok   the posted body keeps the reviewer's first line
+  ok   the posted body cites an absolute evidence directory that names the head
+  ok   the poster is called with the repository and pull request
+  ok   watch passes over a verdict it already posted
+  ok   an unchanged pass reports and posts nothing
+  ok   post refuses a commit already posted
+  ok   a signed verdict moved to another pull request does not post
+  ok   a signature over another tree does not post
+  ok   round 1's nonce does not count at another head
+  ok   a later round fast-forwards the verdict ref and is posted
+  ok   a confirmed verdict replayed after a later round does not post again
+  ok   a replay with its signature line re-encoded does not post again
+  ok   a replay with its signature line re-encoded does not post again
+  ok   a signature line that is not canonical base64 does not verify
+  ok   watch refuses a raw ref outside the grammar and posts nothing
+  ok   a refused verdict is not retried on the next pass
+  ok   watch refuses a raw proposal whose only naming file is VERDICT.md
+  ok   a poster refusal is reported and not recorded as posted
+  ok   post retries a refused verdict by hand
+  ok   watch reports a deleted ref
+  ok   watch without --once exits on its first event
+  ok   watch without --once keeps waiting while nothing changes
+bus self-test: 45 checks, 1 failed
