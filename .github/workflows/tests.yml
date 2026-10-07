@@ -2694,18 +2694,18 @@ jobs:
   # record-autofix — the record beat for rowless merges, mechanical (R9-FR-10,
   # issue #1952, owner-approved 2026-10-04). `record` (governance.yml) reddens
   # on main after every rowless merge, and clearing it was fully manual: a seat
-  # wrote docs/delivery/<N>.md from API facts and opened the record pull
+  # wrote dev/programme/delivery/<N>.md from API facts and opened the record pull
   # request by hand — five such rows were owed in one day (2026-10-04). This
   # job is that beat: it enumerates the window's merges through the REST API
   # (the commit-to-pull-request map `record` itself reads), plans the rows the
   # checked-out tree still lacks, writes them behind the generator's guarded
-  # write set (docs/delivery/<N>.md and NOTHING else — the plan's
+  # write set (dev/programme/delivery/<N>.md and NOTHING else — the plan's
   # Delivery-status table and the handover are a seat's dispositions, never
   # this job's), commits under the `ci:` subject the loop guard keys on, pushes
   # the record branch, and opens or updates the record pull request as the
   # hpo-author App with a generated body, then posts its #201 coordination
   # comment. The pull request number exists only after that open or lookup.
-  # The same write set then gains docs/delivery/<that number>.md. The line
+  # The same write set then gains dev/programme/delivery/<that number>.md. The line
   # anchors the number and carries no merge SHA: the SHA does not exist until
   # the merge. The next run finds the row and stops at nothing-owed. A real
   # unrowed merge is still a row; skipping the beat is not.
@@ -2890,7 +2890,7 @@ jobs:
               fi
               python3 -I tools/audit/seat/record_row.py \
                 --apply --plan-file "$RUNNER_TEMP/plan.json" || { status="skip-apply"; break; }
-              git add docs/delivery
+              git add dev/programme/delivery
               if git diff --cached --quiet; then status="nothing-owed"; break; fi
               git commit -q -m "ci: record delivery rows" || { status="nothing-owed"; break; }
               expect=$(git rev-parse -q --verify refs/remotes/origin/record/autofix || :)
@@ -3012,7 +3012,7 @@ jobs:
           PARENT=$(git rev-parse HEAD)
           python3 -I tools/audit/seat/record_row.py \
             --write-self-row --pr "$NUM" --root .
-          git add docs/delivery
+          git add dev/programme/delivery
           if ! git diff --cached --quiet; then
             git commit -q -m "ci: record delivery rows"
             git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $BASIC" \

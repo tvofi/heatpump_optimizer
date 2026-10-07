@@ -24488,6 +24488,12 @@ _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
 _RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+# The write set's directory is the generator's own row path, not a second
+# spelling: the job staged `docs/delivery` after the rows moved to
+# `dev/programme/delivery`, so `git add` matched nothing, every beat read
+# "nothing-owed", and `record` stayed red on main.
+_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
+                         if "_rr" in globals() else "?")
 
 
 def _raf_job_ok(job: str) -> bool:
@@ -24499,7 +24505,7 @@ def _raf_job_ok(job: str) -> bool:
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
         and job.count('git commit -q -m "ci: record delivery rows"') == 2
-        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and adds == [_RAF_ADD, _RAF_ADD]
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
@@ -24533,8 +24539,7 @@ R.check(
         "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
         'git commit -q -m "ci: record delivery rows"', "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
-                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
