@@ -1,0 +1,5 @@
+RESULT mutant='none' stress_pin=pass gate_miss_fails=True recorder_miss_exempt=True -> baseline
+RESULT mutant='T1 exempt passes too' stress_pin=FAIL(killed) gate_miss_fails=True recorder_miss_exempt=True -> killed
+RESULT mutant='T2 env read inverted' stress_pin=pass gate_miss_fails=False recorder_miss_exempt=False -> SURVIVES stress pin [gate/recorder behaviour WRONG]
+RESULT mutant='T3 env default to recording' stress_pin=pass gate_miss_fails=False recorder_miss_exempt=True -> SURVIVES stress pin [gate/recorder behaviour WRONG]
+RESULT mutant='T4 never exempt' stress_pin=FAIL(killed) gate_miss_fails=True recorder_miss_exempt=False -> killed [gate/recorder behaviour WRONG]
