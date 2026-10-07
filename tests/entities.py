@@ -29512,8 +29512,9 @@ R.check(
 # same-repo ratchet failure, graded by `measurement`, and a push grant only
 # in the job that runs no pull-request driver.
 _ma_mut = _workflow_job(_TESTS_YML, "mutation")
+_ma_pins = _workflow_job(_TESTS_YML, "mutation-pins")
 _ma_fix = _workflow_job(_TESTS_YML, _MA)
-_ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
+_ma_meas = [s for s in _ma_pins.split("\n      - ") if "mutation-pins" in s
             and "measurement(" in s]
 _MA_WIRING = [w for w in (
     'git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py',
@@ -29529,12 +29530,12 @@ _MA_WIRING = [w for w in (
     "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
     "printf '%s\\n' \"$PR_HEAD\" > \"$out/head\"",
     "if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\\(s\\) against'",
-) if not _ma_meas or w not in _ma_meas[0]]
+) if not _ma_meas or w not in _ma_pins]
 R.check(
     "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
     len(_ma_meas) == 1 and not _MA_WIRING
-    and "failure()" in _ma_meas[0]
-    and "contents: write" not in _ma_mut,
+    and "needs.mutation.result == 'failure'" in _ma_pins
+    and "contents: write" not in _ma_mut and "contents: write" not in _ma_pins,
     f"measure steps={len(_ma_meas)} missing={_MA_WIRING}",
 )
 R.check(
@@ -29543,7 +29544,10 @@ R.check(
     and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
     and "contents: write" in _ma_fix
     and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
-    and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
+    and "mutation_table.merge_pin_shards(" in _ma_fix
+    and "pattern: mutation-pins*" in _ma_fix
+    and "needs: [mutation, mutation-pins]" in _ma_fix
+    and "mutation_table.apply_pins(pins, head)" in _ma_fix,
     "the job's if:, its push grant, and the head it hands apply_pins",
 )
 
@@ -30876,8 +30880,8 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation", "&& budget=(--budget-minutes 90)"),
-    ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+    ("mutation-pins", "&& budget=(--budget-minutes 90)"),
+    ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
@@ -31239,6 +31243,61 @@ R.check(
     and _MUT_CI_SEC == {"tests/a.py": 10.0, "tests/stress.py": 270.0}
     and "seconds = budget_seconds(own_s, deferred)" in _MUT_MAIN_DEFER,
     f"out={_MUT_CI_OUT!r} seconds={_MUT_CI_SEC!r}",
+)
+# R9-CI-1, the shards: one runner pinned 10 of #2025's 56 sites in its
+# budget. `pin_shard` deals anchors round-robin, so the shards are disjoint,
+# cover the pool, and never split an anchor's twins; `merge_pin_shards` folds
+# the shard artifacts into the one directory `apply_pins` reads, `measured`
+# when any shard measured, else the most owing status.
+_MUT_SH_POOL = [{"anchor": a, "line": i} for i, a in
+                enumerate(["p:a", "p:b", "p:b", "p:c", "p:d", "p:e", "p:a"])]
+_MUT_SH = [_mut.pin_shard(_MUT_SH_POOL, k, 4) for k in range(1, 5)]
+_MUT_SH_ANCH = [{s["anchor"] for s in sh} for sh in _MUT_SH]
+with _tempfile.TemporaryDirectory() as _sh_td:
+    _sh_root = Path(_sh_td) / "shards"
+    for _n, _st, _pins in (("mutation-pins-1", "measured", {"p:a": {"killed_by": "t"}}),
+                           ("mutation-pins-2", "skip-nothing-drivable", {}),
+                           ("mutation-pins-3", "measured", {"p:c": {"killed_by": "u"}}),
+                           ("mutation-pins-4", "skip-nothing-killed", {})):
+        (_sh_root / _n).mkdir(parents=True)
+        (_sh_root / _n / "status").write_text(_st + "\n")
+        (_sh_root / _n / "pins.json").write_text(json.dumps(_pins))
+        (_sh_root / _n / "head").write_text("h\n")
+    _sh_st = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "m"))
+    _sh_pins = json.loads((Path(_sh_td) / "m" / "pins.json").read_text())
+    for _n in ("mutation-pins-1", "mutation-pins-3"):
+        (_sh_root / _n / "status").write_text("skip-nothing-killed\n")
+    _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
+    (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
+    _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+R.check(
+    "the pin shards are disjoint, cover the pool and keep an anchor's twins "
+    "together; their merge is measured when any shard measured",
+    sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
+    and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
+            for b in _MUT_SH_ANCH[i + 1:])
+    and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed",
+    f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
+    f"quiet={_sh_q} failed={_sh_f}",
+)
+# The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
+# "46 left unpinned -- a survivor needs a killing check" was 46 sites the
+# budget never started and no survivor. The head stays PIN_SUMMARY's.
+_MUT_PS = [(dict(anchor=f"s:{i}"), v) for i, v in enumerate(
+    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET", "LIVES", "SKIP-TIMED-OUT in t"])]
+_MUT_PS_CUT = _mut.pin_summary(1, 3, [r for r in _MUT_PS if r[1] != "LIVES"],
+                               {"s:0": {}})
+_MUT_PS_LIVE = _mut.pin_summary(1, 4, _MUT_PS, {"s:0": {}})
+R.check(
+    "the pin summary counts budget cuts and timeouts apart from survivors, "
+    "and names a survivor's remedy only when one survived",
+    "(0 survived, 2 not started for the budget, 1 timed out, 0 skipped)" in _MUT_PS_CUT
+    and "survivor needs" not in _MUT_PS_CUT
+    and "(1 survived, 2 not started" in _MUT_PS_LIVE
+    and "survivor needs" in _MUT_PS_LIVE
+    and _mut.PIN_SUMMARY.search(_MUT_PS_CUT.strip()) is not None,
+    f"cut={_MUT_PS_CUT.strip()!r} live={_MUT_PS_LIVE.strip()!r}",
 )
 _MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
                "else drive_pool" in _MUT_MAIN_DEFER)

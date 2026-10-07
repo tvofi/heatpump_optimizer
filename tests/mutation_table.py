@@ -976,6 +976,67 @@ UNPINNED_REFUSAL = re.compile(
 PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
 
 
+def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
+    """Shard `k` of `n` (1-based) of a pin pool, split by anchor (R9-CI-1).
+
+    A disposition covers every site under its anchor (`pin_results`), so an
+    anchor's twins stay on one shard; anchors are dealt round-robin in sorted
+    order, which every shard computes alike from the same inventory, so the
+    shards are disjoint and together the whole pool.
+    """
+    if not 1 <= k <= n:
+        raise ValueError(f"--shard {k}/{n}: K must be 1..N")
+    order = {a: i for i, a in enumerate(sorted({s["anchor"] for s in pool}))}
+    return [s for s in pool if order[s["anchor"]] % n == k - 1]
+
+
+# The merged status's precedence when no shard measured: a failure a shard
+# owes a human outranks a quiet "nothing to pin" from an empty shard.
+_SHARD_PRECEDENCE = ("measured", "skip-measure-failed", "skip-no-base-program",
+                     "skip-nothing-killed", "skip-nothing-drivable",
+                     "skip-not-unpinned")
+
+
+def merge_pin_shards(root: str, out: str) -> str:
+    """Fold every shard's `mutation-pins` directory under `root` into `out`.
+
+    `mutation-autofix` downloads one artifact per shard (R9-CI-1); `apply_pins`
+    reads one directory. A shard that measured contributes its entries; the
+    merged status is `measured` when any did, else the most owing shard
+    status (`_SHARD_PRECEDENCE`). Shards measured different heads only if
+    a push raced them, which `apply_pins`'s head check then refuses. Returns
+    the merged status; `out` is left empty when no shard wrote one.
+    """
+    statuses: list[str] = []
+    pins: dict = {}
+    heads: set[str] = set()
+    for d in sorted(Path(root).iterdir()) if Path(root).is_dir() else []:
+        try:
+            st = (d / "status").read_text().strip()
+        except OSError:
+            continue
+        statuses.append(st)
+        try:
+            heads.add((d / "head").read_text().strip())
+        except OSError:
+            pass
+        if st == "measured":
+            try:
+                pins.update(json.loads((d / "pins.json").read_text()))
+            except (OSError, ValueError):
+                statuses[-1] = "skip-measure-failed"
+    if not statuses:
+        return "skip-no-measurement"
+    rank = {s: i for i, s in enumerate(_SHARD_PRECEDENCE)}
+    status = min(statuses, key=lambda s: rank.get(s, 1))
+    o = Path(out)
+    o.mkdir(parents=True, exist_ok=True)
+    (o / "status").write_text(status + "\n")
+    (o / "pins.json").write_text(json.dumps(pins, indent=2))
+    (o / "head").write_text((heads.pop() if len(heads) == 1 else "") + "\n")
+    return status
+
+
 def measurement(table: str, run: str | None, before: dict,
                 after: dict) -> tuple[str, dict]:
     """The status and `killed_by` entries `mutation`'s measure step uploads.
@@ -1107,10 +1168,37 @@ def pin_results(results: list[tuple[dict, str]],
                 entries[anchor]["reason"] += (
                     f" Each of the {len(got)} sites under this anchor was killed.")
     pinned = len(results) - left
-    report.append(f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
-                  + (" -- a survivor needs a killing check or a survivor_triage "
-                     "verdict, which no tool writes" if left else ""))
+    report.append(pin_summary(pinned, left, results, entries))
     return entries, report, 1 if left else 0
+
+
+def pin_summary(pinned: int, left: int, results: list[tuple[dict, str]],
+                entries: dict) -> str:
+    """The `PIN KILLED:` line, its unpinned count split by cause (R9-CI-1).
+
+    A site the budget never started, or whose driver timed out, is not a
+    survivor: a later run pins it. Only a driven site no driver killed (or
+    one sharing an anchor with such a site) owes a test or a triage. The
+    line's head is `PIN_SUMMARY`'s, unchanged, so `measurement()` reads it.
+    """
+    cut = sum(1 for m, v in results
+              if v == "SKIP-BUDGET" and m["anchor"] not in entries)
+    timed = sum(1 for m, v in results
+                if v.startswith("SKIP-TIMED-OUT") and m["anchor"] not in entries)
+    other = sum(1 for m, v in results if v.startswith("SKIP")
+                and v != "SKIP-BUDGET" and not v.startswith("SKIP-TIMED-OUT")
+                and m["anchor"] not in entries)
+    lived = left - cut - timed - other
+    line = f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+    if left:
+        line += (f" ({lived} survived, {cut} not started for the budget, "
+                 f"{timed} timed out, {other} skipped)")
+    if lived:
+        line += (" -- a survivor needs a killing check or a survivor_triage "
+                 "verdict, which no tool writes")
+    elif left:
+        line += " -- no survivor: a later run drives the rest"
+    return line
 
 
 LEDGER_MAPS = ("survivor_triage", "killed_by")
@@ -2876,6 +2964,10 @@ def main(argv: list[str] | None = None) -> int:
                     help="drive every candidate site this diff added without "
                          "a disposition, record each one a driver kills "
                          "under killed_by, and leave the survivors unpinned")
+    ap.add_argument("--shard", metavar="K/N",
+                    help="with --pin-killed: drive only shard K of N (1-based) "
+                         "of the new unpinned sites, split by anchor "
+                         "(pin_shard), so N runners pin one diff in parallel")
     ap.add_argument("--drain", metavar="OUT_DIR",
                     help="with --scope full: drive a --max slice of the "
                          "unpinned stock, chosen by --seed (drain_pool), and "
@@ -3055,6 +3147,12 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(f"  no recorded closure reaches {site['file']}; "
                       f"{triage_key(site)} stays unpinned")
+        if args.shard:
+            k, n = (int(x) for x in args.shard.split("/"))
+            total = len(pool)
+            pool = pin_shard(pool, k, n)
+            print(f"PIN SHARD {k}/{n} -- {len(pool)} of {total} site(s), "
+                  f"split by anchor")
         print(f"PIN KILLED -- {len(pool)} new unpinned site(s) against "
               f"{rbase} to drive")
         if not pool:
