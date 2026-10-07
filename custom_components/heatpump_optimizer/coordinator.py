@@ -449,6 +449,7 @@ from .freq_control import (
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
+from .flow_meter import read_heat_output_kw
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -2963,6 +2964,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._measured_power: float | None = None
         self._measured_house_power: float | None = None
         self._measured_energy: float | None = None
+        # Heat the pump hands the water, read off the flow meter (#2016);
+        # None unless the flow key is set and no power or frequency signal
+        # exists.
+        self._heat_output_kw: float | None = None
         # Learned correction to the modelled COP, from measured input against
         # modelled thermal output. Only moves when a power entity exists.
         self._cop_scale: float = float(
@@ -6295,6 +6300,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
         self._flow_bias.observe_temps(*read_water_temps(reader))
+        self._heat_output_kw = read_heat_output_kw(reader, self.effective_config)
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -7804,6 +7810,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_house_power": self._measured_house_power,
             "measured_energy": self._measured_energy,
             "measured_power_available": self._measured_power is not None,
+            "measured_heat_output_kw": self._heat_output_kw,
         }
 
     def _grid_view(self) -> GridView:

@@ -648,6 +648,15 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
             return commanded_power_kw(self.coordinator.data.get("current_action"))
         return None
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        # Read off the flow meter on an install with no power or frequency
+        # signal (#2016); None everywhere else.
+        heat = (self._data()).get("measured_heat_output_kw")
+        return {
+            "measured_heat_output_kw": None if heat is None else round(heat, 3)
+        }
+
 
 class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
     _attr_state_class = SensorStateClass.MEASUREMENT

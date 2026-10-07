@@ -11217,6 +11217,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
+    "CurrentPowerSensor": frozenset({"measured_heat_output_kw"}),
     "CurrentSetpointSensor": frozenset({
         "lower_floor_setpoint", "upper_floor_setpoint"
     }),
