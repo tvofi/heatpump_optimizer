@@ -10,7 +10,11 @@ _Requested by **tvofi**_.
 
 ## Head
 
-729d675f66d7e1fa976cf5d914785337b6ebf2f1
+a2311cbbee81ff53c079beaef82c5fcd6d2a185e
+
+## Delta since the delta verdict at e4c51f12
+
+For fix-review step 12, the delta alone: one merge, `origin/main` (09ba95d0) into the handoff head 729d675f, clean, no conflict. It carries 60c00052 (record `eg_b7_seam_hubs.py`'s inert read at the path it now has) and R9-RO-8's move of `tools/audit/harnesses` to `dev/audit/harnesses`. No production file changes: `git diff 729d675f HEAD --stat -- custom_components` prints nothing. The blocked verdict's finding was `closures` and `closures-autofix` red at e4c51f12 for a gap on main, and the merge absorbs the fix. At e4c51f12 typing, mutation, env-matrix, coverage, fast (3.14) and hassfest are green, so the typing, mutation and env-matrix reds below describe earlier heads and are not red now.
 
 ## Delta since the merge verdict at 29751f36
 
@@ -61,6 +65,8 @@ Before the slot wrote anything, those seven checks failed and a space step's mod
 `mutation-autofix`, job 112535205266. Summary `AUTOFIX: skip-no-measurement` and the repair did not happen: the pin step started none of the 17 for `--budget-minutes`. No cheaper detector than that summary line. The pins were recorded here.
 
 `env-matrix`, job 112532467495. `policy_lint` cannot find `.claude/workflows/policy_lint.mjs`. That path moved on the merge base in #1919. This diff does not touch the matrix driver. The cheaper detector is the job itself. R9-RO-4 and R9-RO-5 own the repair.
+
+`closures`, job 112866129364, and `closures-autofix`, job 112886615096, at e4c51f12. `INERT READS UNDER-APPROXIMATED ... tests/harness_headers.py: tools/audit/harnesses/eg_b7_seam_hubs.py`. Cause: main's inert-read record for `eg_b7_seam_hubs.py` pointed at a path the harness move had left, a gap on main and not in this diff, which leaves `tests/closures.json` untouched; fixed on main by 60c00052 and absorbed by this merge. `closures-autofix` reported "not on UNDER-SCOPED", the kind it does not repair. No cheaper detector: only the Linux closure recording opens the file, and it is heavy and CI-only. Standing cost: a harness move owes the inert-read record in its own PR. No countermeasure is built here; 60c00052 and R9-RO-8 own it.
 
 `pr-contract`. Cheaper detector: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` on this body, which reads the section.
 
