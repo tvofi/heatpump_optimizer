@@ -1,9 +1,0 @@
-
-=== #1935 boost drift replay ===
-
-=== #1935 boost drift replay ===
-RESULT mode=real fork_cycle=7 fork_used=7 n_cycles=12
-RESULT real null_no_boost: samples=11 tagged=0 folds_outside=7 folds_frozen=4 folds_after=0 hh_final=0.9731 EQUAL
-RESULT real channel_boost: samples=11 tagged=4 folds_outside=7 folds_frozen=0 folds_after=0 hh_final=0.9777 EQUAL
-RESULT real mode_boost: samples=11 tagged=4 folds_outside=7 folds_frozen=0 folds_after=0 hh_final=0.9777 EQUAL
-RESULT real ALL EQUAL

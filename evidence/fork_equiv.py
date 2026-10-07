@@ -30,7 +30,7 @@ import boost_drift_replay as head
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationResult
 
 spec = importlib.util.spec_from_file_location(
-    "bdr_base", "/Users/timmalmstrom/hpo-seats/r9c-rev-2026-ev/bdr_base.py")
+    "bdr_base", "/Users/timmalmstrom/hpo-seats/r9c-rev-2026-r2-ev/bdr_base.py")
 base = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(base)
 

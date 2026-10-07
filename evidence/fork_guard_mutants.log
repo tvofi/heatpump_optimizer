@@ -1,8 +1,0 @@
-b.fork_cycle=lambda f=b.fork_cycle: f()+1 =>   FAIL the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)  [fork=255 first boosting cycle=254] 1 of 1 FORK FAILED  rc=0
-b.fork_cycle=lambda f=b.fork_cycle: f()-1 =>   FAIL the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)  [fork=253 first boosting cycle=254] 1 of 1 FORK FAILED  rc=0
-b.fork_cycle=lambda: 0 =>   FAIL the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)  [fork=0 first boosting cycle=254] 1 of 1 FORK FAILED  rc=0
-b.BOOST_STARTS=(6.5,12.0,18.0); b.fork_cycle=lambda: 254 =>   FAIL the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)  [fork=254 first boosting cycle=253] 1 of 1 FORK FAILED  rc=0
-b.BOOST_DAYS=(4,6); b.fork_cycle=lambda: 254 =>   FAIL the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)  [fork=254 first boosting cycle=206] 1 of 1 FORK FAILED  rc=0
-b.BOOST_STARTS=(6.5,12.0,18.0) => ALL 1 FORK PASSED  rc=0
-b.BOOST_DAYS=(4,6) => ALL 1 FORK PASSED  rc=0
-pass => ALL 1 FORK PASSED  rc=0
