@@ -57,6 +57,18 @@ so one finding's perturbation cannot move the next finding's number. A `--repo`
 that is not a git worktree is flagged `tree unchecked` on every row.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import argparse
 import contextlib
@@ -70,7 +82,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
+ROOT = repo_root(__file__)
 for _p in (ROOT / "tests" / "hastub", ROOT / "tests"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))

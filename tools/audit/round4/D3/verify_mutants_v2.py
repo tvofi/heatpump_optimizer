@@ -20,6 +20,18 @@ mutants under test, verified by git diff).
 MACHINE: 8-core Apple M1, 8 GB, macOS 25.6.0, python 3.11, OpenBLAS.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -36,7 +48,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 HERE = Path(__file__).resolve().parent
 POOL = HERE / "pool.json"
 PY = sys.executable

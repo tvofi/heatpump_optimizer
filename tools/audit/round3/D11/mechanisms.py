@@ -42,6 +42,18 @@ PERTURBATION OUTPUT (`--perturb`), three arms, none of them touching GitHub:
     arm C record if:always() has_pull_request_rule=0 required_approvals=0 skipped_on_pr=0
 MACHINE: 8-core Apple M1, 8 GB, node v20.10.0, python3 3.11.5.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import json
 import os
 import re
@@ -53,7 +65,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 HERE = Path(__file__).resolve().parent
 CACHE = HERE / "ghcache.json"
 PL = Path(os.environ.get("MECH_POLICY_LINT", ROOT / ".claude/workflows/policy_lint.mjs"))

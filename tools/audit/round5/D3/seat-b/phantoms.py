@@ -31,6 +31,18 @@
 # NULL CONTROL: the same select() with the entry present stays SCOPED with
 # entities.py the sole selection -- the flip is caused by the phantom entry
 # alone, nothing else in the temp copy differs.
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -42,7 +54,7 @@ import sys
 from pathlib import Path
 
 SEAT = Path(__file__).resolve().parent
-ROOT = SEAT.parents[4]
+ROOT = repo_root(SEAT)
 TMP = Path("/tmp/audit-5/tmp/d3b/phantoms")
 sys.path.insert(0, str(ROOT / "tests"))
 

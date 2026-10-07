@@ -44,6 +44,18 @@ PERTURBATION: add `[x](docs/HANDOVER.md)` to README.md -> unreachable_docs must
 INSTRUMENTED: the markdown link graph rooted at README.md, i.e. the reader
     path the README's own navigation defines.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import time
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -54,7 +66,7 @@ import re
 from collections import deque
 from pathlib import Path
 
-ROOT = Path(os.environ.get("D5_ROOT") or Path(__file__).resolve().parents[4]).resolve()
+ROOT = Path(os.environ["D5_ROOT"]).resolve() if os.environ.get("D5_ROOT") else repo_root(__file__)
 
 LINK_RE = re.compile(r"\[(?:[^\]\[]|\[[^\]]*\])*\]\(\s*(<[^>]*>|[^()\s]*(?:\([^()]*\)[^()\s]*)*)\s*(?:\"[^\"]*\")?\)")
 HEADING_RE = re.compile(r"^(#{1,6})\s+(.*?)\s*#*\s*$")
