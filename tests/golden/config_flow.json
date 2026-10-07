@@ -1054,6 +1054,7 @@
   "external_heat_entity": "sensor.seed_external_heat_entity",
   "floor_return_temp_entity": "sensor.seed_floor_return_temp_entity",
   "flow_curve_cop_enabled": true,
+  "flow_meter_entity": "sensor.seed_flow_meter_entity",
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
   "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
@@ -2086,6 +2087,14 @@
        "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
       },
       "default": "'sensor.seed_compressor_freq_sensor'",
+      "required": "Optional",
+      "selector": "EntitySelector"
+     },
+     "flow_meter_entity": {
+      "config": {
+       "filter": "[{'domain': ['sensor']}]"
+      },
+      "default": "'sensor.seed_flow_meter_entity'",
       "required": "Optional",
       "selector": "EntitySelector"
      },
@@ -4616,6 +4625,14 @@
     "compressor_freq_sensor": {
      "config": {
       "filter": "[{'domain': ['sensor'], 'device_class': ['frequency']}]"
+     },
+     "default": null,
+     "required": "Optional",
+     "selector": "EntitySelector"
+    },
+    "flow_meter_entity": {
+     "config": {
+      "filter": "[{'domain': ['sensor']}]"
      },
      "default": null,
      "required": "Optional",
