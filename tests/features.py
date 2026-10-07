@@ -58651,12 +58651,20 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
     IdleContext as _Ux5Idle,
+    _above_floor as _ux5_above,
+    _dearer_than_used as _ux5_dearer,
+    _waiting_for_solar as _ux5_solar_wait,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,
     idle_reason as _ux5_idle_reason,
 )
+from heatpump_optimizer.away import AwayState as _Ux5Away  # noqa: E402
+from heatpump_optimizer.coordinator import _fold_away as _ux5_fold  # noqa: E402
 from heatpump_optimizer.narrative import ZERO_ENERGY_REASONS as _UX5_ZERO  # noqa: E402
-from heatpump_optimizer.notifier import _comfort as _ux5_comfort  # noqa: E402
+from heatpump_optimizer.notifier import (  # noqa: E402
+    _comfort as _ux5_comfort,
+    _comfort_cause as _ux5_cause,
+)
 
 _ux5_n = 4
 _ux5_power = np.array([2.0, 0.0, 0.0, 1.5])
@@ -58793,5 +58801,99 @@ R.check(
     "UX-5 idle_reason with no signal is idle",
     _ux5_idle_reason(0, np.zeros(1), None, None, None, None, None, None, 0.05) == _UX5_IDLE,
 )
+
+
+def _ux5_call(fn, *args):
+    """(ran, value). A mutant that raises is a failed check, not a dead file."""
+    try:
+        return True, fn(*args)
+    except Exception as exc:
+        return False, type(exc).__name__
+
+
+_ux5_thr = 0.05
+_ok, _got = _ux5_call(_ux5_above, 0, None, None)
+R.check("UX-5 no trajectory is not above the floor", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 1, np.array([20.0, 20.0]), np.array([19.0]))
+R.check("UX-5 a step past the floor array is not above it", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 1, np.array([21.0, 19.0]), np.array([19.0, 19.0]))
+R.check("UX-5 the last temperature sample is the one past the trajectory",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_above, 0, np.array([19.0, 19.15]), np.array([19.0]))
+R.check("UX-5 a step exactly 0.15 above the floor is not coasting",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 0, np.zeros(1), None, _ux5_thr)
+R.check("UX-5 no prices is not dearer than the hours that ran", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.zeros(1), np.array([1.0]), _ux5_thr)
+R.check("UX-5 a step past the price array is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 0, np.array([1.0, 1.0, 1.0]), np.array([0.4, 0.5]), _ux5_thr)
+R.check("UX-5 dearer compares the hours both arrays cover", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.array([_ux5_thr, 0.0]), np.array([1.0, 2.0]), _ux5_thr)
+R.check("UX-5 an hour exactly at the run threshold did not run", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.zeros(2), np.array([1.0, 2.0]), _ux5_thr)
+R.check("UX-5 a channel that never ran is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_dearer, 1, np.array([1.0, 0.0]), np.array([2.0, 2.0]), _ux5_thr)
+R.check("UX-5 a step at the dearest hour that ran is not dearer", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(2), None, _ux5_thr)
+R.check("UX-5 no surplus is not a wait for solar", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 1, np.zeros(1), np.array([0.0]), _ux5_thr)
+R.check("UX-5 a step past the surplus array is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 0.0]), np.array([1e-6, 2.0]), _ux5_thr)
+R.check("UX-5 dust on this step still leaves a later surplus as a wait",
+        _ok and _got is True, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(2), np.zeros(2), _ux5_thr)
+R.check("UX-5 no surplus before the next run is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, _ux5_thr, 0.0]), np.array([0.0, 0.0, 2.0]), _ux5_thr)
+R.check("UX-5 an hour exactly at the threshold is still before the next run",
+        _ok and _got is True, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.array([0.0, 0.0]), np.array([0.0]), _ux5_thr)
+R.check("UX-5 surplus that ends before the look-ahead is not a wait",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 0.0, 2.0]), np.array([0.0, 1e-6, 0.0]), _ux5_thr)
+R.check("UX-5 dust ahead is not surplus to wait for", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(1), np.zeros(1), _ux5_thr)
+R.check("UX-5 a one-step horizon with no surplus is not a wait", _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 1, np.zeros(2), None, None, None, None, np.array([0.0]), None, _ux5_thr)
+R.check("UX-5 a step past the other channel is idle", _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 0, np.zeros(1), None, None, None, None, np.array([_ux5_thr]), None, _ux5_thr)
+R.check("UX-5 the other channel exactly at the threshold is not drawing",
+        _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 1, np.zeros(2), None, None, None, None, None, np.array([0.0]), _ux5_thr)
+R.check("UX-5 a step past the fuse cap is idle", _ok and _got == _UX5_IDLE, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_reason, 0, np.zeros(1), None, None, None, None, None, np.array([_ux5_thr]), _ux5_thr)
+R.check("UX-5 a fuse cap exactly at the threshold is the fuse",
+        _ok and _got == _UX5_FUSE, str(_got))
+_ok, _got = _ux5_call(_ux5_fold, _Ux5Away(), {"min_temperature": 19.0})
+R.check("UX-5 home publishes no second floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, recovery_active=True, target_temperature=16.0),
+    {"min_temperature": 19.0})
+R.check("UX-5 recovery does not publish the setback floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, target_temperature=None), {"min_temperature": 19.0})
+R.check("UX-5 away with no target keeps the configured floor",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_fold, _Ux5Away(active=True, target_temperature=19.0), {"min_temperature": 19.0})
+R.check("UX-5 a setback equal to the floor does not name a second one",
+        _ok and isinstance(_got, dict) and "configured_min_temperature" not in _got, str(_got))
+_when = "2026-10-03T06:00:00+02:00"
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": None}, _when)
+R.check("UX-5 a plan that is not a dict has no cause", _ok and _got is None, str(_got))
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": {"forecast": [
+    None, {"t": "other", "reason": "idle"}]}}, _when)
+R.check("UX-5 a non-dict forecast step is skipped", _ok and _got is None, str(_got))
+_ok, _got = _ux5_call(_ux5_cause, {"space_plan": {"forecast": [
+    {"t": _when, "reason": ""}]}}, _when)
+R.check("UX-5 an empty reason is no cause", _ok and _got is None, str(_got))
 
 sys.exit(R.close("FEATURE CHECKS"))
