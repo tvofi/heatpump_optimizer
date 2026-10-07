@@ -654,6 +654,20 @@ INERT_EXCEPT = (
     # copies stay on the prefix: the scan's child opens them, strace -f
     # records that under inert_reads, and the hook does not follow the child.
     "tools/audit/repo_root.py",
+    # R9-RO-7: tests/entities.py opens these eight tools/policy scripts.
+    # The tools/policy/ prefix kept them INERT. Filing them under
+    # inert_reads left them out of the closure, and merge refuses the pair
+    # of INERT and recorded. closures job 112576325018 was UNDER-SCOPED on
+    # that read. They leave the prefix the way figure_lint.mjs did, so an
+    # edit selects tests/entities.py.
+    "tools/policy/agreement.mjs",
+    "tools/policy/check-wave-script.mjs",
+    "tools/policy/field_coverage.mjs",
+    "tools/policy/figure_census.mjs",
+    "tools/policy/fragments_sync.mjs",
+    "tools/policy/friction_issues.mjs",
+    "tools/policy/policy_lint_mutants.mjs",
+    "tools/policy/rules_sync.mjs",
 )
 
 
