@@ -288,6 +288,6 @@ trigger, not analysing it; the analysis is `root-cause.md`'s seat.
 The owner's rule. At the **fourth** round, replace the body instead of repairing
 it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
 fire, and only figures re-taken in that pass. Round history is deleted, not
-restated — except a **disclosed self-correction** (`docs/HANDOVER.md`'s #1058
+restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
 so the orchestrator splits the branch or closes it.

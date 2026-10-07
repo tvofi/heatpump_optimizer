@@ -1,15 +1,16 @@
 ---
 description: A one-sided cap may only be re-recorded down for prose that was deleted, never for prose that moved
 paths:
-  - ".claude/workflows/policy_budgets.json"
+  - "dev/governance/config/policy_budgets.json"
   - ".claude/rules/**"
   - "CLAUDE.md"
   - "AGENTS.md"
   - "tools/audit/README.md"
+  - "dev/audit/README.md"
 ---
 # Three caps, because one of them can be gamed by moving a file
 
-`.claude/workflows/policy_budgets.json` holds one-sided caps on the governance
+`dev/governance/config/policy_budgets.json` holds one-sided caps on the governance
 corpus: a policy file may shrink freely and never grow past its cap. Deliberately
 not the two-sided ratchet `tests/structure.py` applies to code — an "improved and
 not yet recorded" refusal on prose would charge a seat for deleting a paragraph,
@@ -103,7 +104,7 @@ preference:
    cap you write is the number `--budgets` measured, and the band is added to it
    by the tool where a reviewer can see both.
 
-`node .claude/workflows/policy_lint.mjs --budgets` prints every file against its
+`node tools/policy/policy_lint.mjs --budgets` prints every file against its
 cap, the floor, the corpus and each role; write that, never a cap's value — one
 stated beside its file's name is checked by `counts` in the corpus and the
 record. The `budgets` class is held out of the known-bad ledger: a cap recordable

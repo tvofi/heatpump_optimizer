@@ -443,7 +443,7 @@ jobs:
   # this directory. Same shape as `browser` above (also driving an INERT
   # script, tests/card_browser.mjs): its own never-scoped job, `if:` copied
   # verbatim, so `closure-scope`'s case output cannot skip it. `node
-  # .claude/workflows/check-wave-script.mjs` is the other file in this
+  # tools/policy/check-wave-script.mjs` is the other file in this
   # position and still runs by hand only, which leaves the wave resume control
   # flow as the one piece of orchestration no CI job runs; a job of this shape
   # for it is owed.
@@ -2037,7 +2037,7 @@ jobs:
       # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
       # HPO_RUNS_APPID, Actions: write alone, a smaller blast radius than
       # hpo-approver's -- minting the token with the same RS256 flow
-      # tools/audit/app_approve.sh uses, ported inline because a workflow
+      # tools/pr/app_approve.sh uses, ported inline because a workflow
       # cannot read the orchestrator box's key files. Fail-soft throughout:
       # absent secrets print one notice and approve nothing (until the owner
       # sets them, behavior is unchanged), and a later mint or approve error
@@ -2295,7 +2295,7 @@ jobs:
       # As in closures-autofix (#1276): the dispatches run at once, the
       # pull_request runs a GITHUB_TOKEN push triggers wait action_required
       # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/audit/app_approve.sh uses, ported
+      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
       # inline -- after the same bounded poll for the pushed SHA's runs
       # (#1283). Fail-soft throughout: absent secrets print one notice and
       # approve nothing, and a later error warns rather than reddening a
@@ -2565,7 +2565,7 @@ jobs:
       # As in closures-autofix (#1276): the dispatches run at once, the
       # pull_request runs a GITHUB_TOKEN push triggers wait action_required
       # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/audit/app_approve.sh uses, ported
+      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
       # inline -- after the same bounded poll for the pushed SHA's runs
       # (#1283). Fail-soft throughout: absent secrets print one notice and
       # approve nothing, and a later error warns rather than reddening a

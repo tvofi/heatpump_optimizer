@@ -13,8 +13,8 @@
 # `GET /commits/<head>/check-runs?check_name=pr-contract`, the listing rather
 # than a pull request's check summary, which hides a red-then-green run.
 #
-#   tools/audit/push.sh [--write-head] [--no-pr] [--title <t>] <body.md> [issue-numbers...]
-#   tools/audit/push.sh --self-test
+#   tools/pr/push.sh [--write-head] [--no-pr] [--title <t>] <body.md> [issue-numbers...]
+#   tools/pr/push.sh --self-test
 #
 # The trailing issue numbers are the ones you INTEND to close; they are handed
 # to `prepr.sh`, which hands them to `preflight.sh`, which refuses a closing
@@ -24,7 +24,7 @@
 # push and a body write are two API calls and no transaction spans them. #678's
 # word for step 4 is "atomically" and this script cannot deliver that, so it
 # does not claim it. What it guarantees is the ORDERING -- nothing reaches the
-# remote until the body has passed `tools/audit/prepr.sh` -- and that is what
+# remote until the body has passed `tools/pr/prepr.sh` -- and that is what
 # the race turns on. A seat that skips this script loses nothing it has today,
 # which is the whole reason the interface is one command: a countermeasure that
 # costs more than the shortest path is not used.
@@ -618,7 +618,7 @@ if command -v gh >/dev/null 2>&1; then
   LOGIN=$(gh api user --jq .login 2>/dev/null || true)
   case "$LOGIN" in
     tvofi|app/hpo-author)
-      say REFUSE "identity" "the ambient gh identity is $LOGIN; author pull requests as the hpo-author App via tools/audit/app_push.sh, never push.sh"
+      say REFUSE "identity" "the ambient gh identity is $LOGIN; author pull requests as the hpo-author App via tools/pr/app_push.sh, never push.sh"
       exit 2 ;;
   esac
 fi
