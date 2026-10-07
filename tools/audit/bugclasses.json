@@ -3663,7 +3663,7 @@
       "status": "done",
       "parts_missing": [],
       "process_state": "(c)",
-      "countermeasure": "refused: no check (pr-contract + rerun fired on 17/17); red-check grammar split declined (orchestrator, mandate 5951564627); revisit at >=3 body-only repairs in one window; owed: web-fix-wave.js root-cause route also needs a body-repair round",
+      "countermeasure": "refused: no check (pr-contract + rerun fired on 17/17); red-check grammar split declined (orchestrator, mandate 5951564627); revisit when body-only repairs (next verdict merge at the same head) reach 3 PRs in one window, measured 2 (#1975, #1979; 10.0 min); owed: web-fix-wave.js root-cause route also needs a body-repair round",
       "landed": null,
       "doc": [
         "dev/audit/rca/R9-RCA-1985.md"
