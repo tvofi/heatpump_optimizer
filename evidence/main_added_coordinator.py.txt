@@ -1,0 +1,9 @@
+                    power_caps_extra=_quiet.caps,
+                power_caps_extra=quiet.caps,
+        _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
+        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
+        quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
+    accuracy = _view("_accuracy")
+    optimization_running = _view("_optimization_running")
+    solve_failures = _view("_solve_failures")
+from . import quiet_windows

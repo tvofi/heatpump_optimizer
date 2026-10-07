@@ -1,0 +1,59 @@
+                    # #1910: the what-if inherits the quiet windows the live
+                    # plan assumed — same reason as the mode block above.
+                    power_caps_extra=cap_extra,
+                cfg.get(CONF_QUIET_SILENT_WINDOWS) or ""
+                power_caps_extra=caps,
+            "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
+            "quiet_silent_windows_spec": str(
+            ),
+            cap_extra, ctx._config, solve_at, len(horizon.prices),
+            cap_extra, quiet_windows.overridden_config(ctx._config, overrides),
+            caps, ctx._config, ctx.hass.states.get, solve_now, n,
+            caps, ctx._config, solve_now, n, config.dt_hours,
+            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
+            config.dt_hours, params.max_electrical_power,
+            ctx.hass.states.get, solve_at, len(horizon.prices),
+            optimizer_active=self._mode != MODE_OFF,
+            out["quiet_silent_not_enforced"] = "true"
+            params.max_electrical_power,
+            scratch_config.dt_hours, scratch_params.max_electrical_power,
+        """
+        """The quiet-window specs as CONFIGURED, one per action (#1910).
+        # #1067: the pump's own silent-mode schedule, the same channel.
+        # #1067: the what-if prices the same silent-mode ceiling the plan did.
+        # #1910 (SW-1): the user's quiet windows, composed on the loop
+        # #1910: and the same quiet windows, with the call's own spec and
+        # D2 says nothing is planned for a window while the optimizer is
+        # because the measured figure reads hass state. Silent rows cap
+        # forces hot water off with. The gate is here, not in the solver:
+        # fraction overrides folded onto the configuration first.
+        # off, and a silent row needs a control that can be held.
+        # the per-step mask the solver zeroes space with and the planner
+        # through the same power_caps_extra channel; off rows come back as
+        )
+        ):
+        -- not the plan's reading of it. The specs are stored canonical by
+        A silent spec with no control that can hold it carries the
+        The silent-windows counterpart of ``configured_dhw_windows``: the
+        _quiet = quiet_windows.compose(
+        ``unknown``) is not dropped: unknown is not off.
+        and never the state, so a switch that has not reported yet (state
+        cap_extra = _quiet.caps
+        cap_extra = silent_mode.compose(
+        caps = quiet.caps
+        caps = silent_mode.compose(
+        card's editor edits the configuration, so it needs the
+        cfg = getattr(self, "_ctx", self)._config
+        configuration -- in the shared grammar, empty string for "no rows"
+        if quiet_windows.silent_unenforceable(
+        not-enforced marker beside it, decided from the entity ID's domain
+        out: dict[str, str] = {
+        quiet = quiet_windows.compose(
+        return self._optimization_running
+        the services that write them, so they are handed back as stored.
+        }
+    @property
+    CONF_QUIET_OFF_WINDOWS,
+    CONF_QUIET_SILENT_WINDOWS,
+    def optimization_running(self) -> bool:
+from . import quiet_windows, silent_mode

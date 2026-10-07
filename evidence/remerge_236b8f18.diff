@@ -1,0 +1,288 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  max_class_loc: 9104 + both deltas = 8821
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/config_flow_steps.py: merged as a set (116 entries)
+  closures.tests/entities.py: merged as a set (228 entries)
+  closures.tests/env_drift.py: merged as a set (182 entries)
+  closures.tests/features.py: merged as a set (130 entries)
+  closures.tests/golden.py: merged as a set (184 entries)
+  closures.tests/manual_plan.py: merged as a set (96 entries)
+  closures.tests/structure.py: merged as a set (76 entries)
+  closures.tests/deployment_shape.py: merged as a set (114 entries)
+  closures.tests/typing_ruler.py: merged as a set (76 entries)
+  closures.tests/harness_headers.py: merged as a set (364 entries)
+  closures.tests/doc_claims.py: merged as a set (143 entries)
+  closures.tests/finite_boundary.py: merged as a set (105 entries)
+  closures.tests/arch_score_head.py: merged as a set (111 entries)
+  re-run the gate that owns this file before pushing
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/coordinator.py
+index 22faa972..26693ba7 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -91,14 +91,6 @@ from homeassistant.util import dt as dt_util
+ 
+ from .const import (
+     DOMAIN,
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-=======
+-    CONF_TIBBER_TOKEN,
+-    CONF_SILENT_MODE_FRACTION,
+-    CONF_PRICE_ENTITY,
+-    CONF_PRICE_SOURCE,
+-    DEFAULT_PRICE_SOURCE,
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
+     PRICE_SOURCE_ENTITY,
+     CONF_INDOOR_TEMP_ENTITY,
+     CONF_OUTDOOR_TEMP_ENTITY,
+@@ -5805,9 +5797,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+                 setattr(self, attribute, params[name])
+ 
+         if CONF_DHW_SCHEDULE_ENABLED in params:
+-            ctx._thermal_params.dhw_schedule_enabled = bool(
+-                params[CONF_DHW_SCHEDULE_ENABLED]
+-            )
++            ctx._thermal_params.dhw_schedule_enabled = bool(params[CONF_DHW_SCHEDULE_ENABLED])
+         self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
+         if CONF_DHW_WINDOWS in params:
+             try:
+@@ -7613,32 +7603,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         return format_windows(params.dhw_windows)
+ 
+     def configured_quiet_windows(self) -> dict[str, str]:
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-        """The quiet-window specs as CONFIGURED, one per action (#1910).
+-
+-        The silent-windows counterpart of ``configured_dhw_windows``: the
+-        card's editor edits the configuration, so it needs the
+-        configuration -- in the shared grammar, empty string for "no rows"
+-        -- not the plan's reading of it. The specs are stored canonical by
+-        the services that write them, so they are handed back as stored.
+-        A silent spec with no control that can hold it carries the
+-        not-enforced marker beside it, decided from the entity ID's domain
+-        and never the state, so a switch that has not reported yet (state
+-        ``unknown``) is not dropped: unknown is not off.
+-        """
+-        cfg = getattr(self, "_ctx", self)._config
+-        out: dict[str, str] = {
+-            "quiet_silent_windows_spec": cfg.quiet_silent_windows,
+-            "quiet_off_windows_spec": cfg.quiet_off_windows,
+-        }
+-        if quiet_windows.silent_unenforceable(
+-            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
+-        ):
+-            out["quiet_silent_not_enforced"] = "true"
+-=======
+-        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
+-        return out
++        return quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
+ 
+     def describe_setup(self) -> dict[str, Any]:
+         """The configured topology, for every picture of the system.
+diff --git a/custom_components/heatpump_optimizer/diagnostics.py b/custom_components/heatpump_optimizer/diagnostics.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/diagnostics.py
+index 1891b2f2..58051b1b 100644
+--- a/custom_components/heatpump_optimizer/diagnostics.py
++++ b/custom_components/heatpump_optimizer/diagnostics.py
+@@ -29,13 +29,8 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
+ from homeassistant.const import CONF_NAME
+ from homeassistant.core import HomeAssistant
+ 
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-from . import pump_arbiter
+-from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
+-=======
+ from . import debugger, pump_arbiter
+-from .const import CONF_TIBBER_TOKEN, DOMAIN
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
+ from .coordinator import (
+     CoordinatorDiagnostics,
+     HeatPumpOptimizerConfigEntry,
+diff --git a/dev/audit/rounds/round4/D6/claims.json b/dev/audit/rounds/round4/D6/claims.json
+index fdae4037..9c64d8ff 100644
+--- a/dev/audit/rounds/round4/D6/claims.json
++++ b/dev/audit/rounds/round4/D6/claims.json
+@@ -283,7 +283,7 @@
+   "source": "docs/architecture.md",
+   "claim": "45 modules",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
+-  "result": "documented=72 measured=72",
++  "result": "documented=73 measured=73",
+   "verdict": "true",
+   "truth": ""
+  },
+@@ -292,7 +292,7 @@
+   "source": "docs/architecture.md",
+   "claim": "the module map is the package's module list",
+   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
+-  "result": "on disk=72, listed=72, missing=[], phantom=[]",
++  "result": "on disk=73, listed=73, missing=[], phantom=[]",
+   "verdict": "true",
+   "truth": "0 modules are absent from the map: "
+  },
+diff --git a/dev/audit/rounds/round4/D6/claims.md b/dev/audit/rounds/round4/D6/claims.md
+remerge CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.md
+index 2aa8f998..e4f37fe6 100644
+--- a/dev/audit/rounds/round4/D6/claims.md
++++ b/dev/audit/rounds/round4/D6/claims.md
+@@ -35,15 +35,10 @@ Generated by `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.
+ | C29 | `docs/architecture.md:module map` | config_flow.py -- Setup flow plus 23 option pages behind two menus | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=23 measured=23 | **true** |  |
+ | C30 | `docs/configuration.md` | every documented Default (89 rows) is the default the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 89 compared, mismatches=[] | **true** |  |
+ | C31 | `docs/configuration.md` | every documented Range (91 rows) is the NumberSelector min/max the rendered options page actually carries | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 91 compared, mismatches=[] | **true** |  |
+-| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=72 measured=72 | **true** |  |
+-| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | on disk=72, listed=72, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-| C34 | `docs/architecture.md:The Home Assistant boundary` | the boundary sentence's count of modules importing `homeassistant` at module level | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=26 measured=26 | **true** |  |
+-| C35 | `docs/architecture.md:The Home Assistant boundary` | the named modules are the complete set of module-level importers | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | named=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'notifier.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], measured=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'notifier.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], unnamed=[] | **true** | unnamed module-level importers:  |
+-=======
++| C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=73 measured=73 | **true** |  |
++| C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | on disk=73, listed=73, missing=[], phantom=[] | **true** | 0 modules are absent from the map:  |
+ | C34 | `docs/architecture.md:The Home Assistant boundary` | the boundary sentence's count of modules importing `homeassistant` at module level | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=27 measured=27 | **true** |  |
+ | C35 | `docs/architecture.md:The Home Assistant boundary` | the named modules are the complete set of module-level importers | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | named=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'debugger.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'notifier.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], measured=['__init__.py', 'accuracy.py', 'away.py', 'binary_sensor.py', 'boost.py', 'button.py', 'climate.py', 'config_flow.py', 'coordinator.py', 'currency.py', 'datetime.py', 'debugger.py', 'defrost.py', 'dhw_learning.py', 'diagnostics.py', 'entity.py', 'frontend.py', 'legionella.py', 'notifier.py', 'open_meteo.py', 'pump_arbiter.py', 'repairs.py', 'sensor.py', 'services.py', 'setpoint_check.py', 'store.py', 'switch.py'], unnamed=[] | **true** | unnamed module-level importers:  |
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
+ | C36 | `docs/architecture.md:The Home Assistant boundary` | everything outside the named set is free of homeassistant, so each module can be driven with no Home Assistant running | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | 0 modules outside the named set import homeassistant at module level | **true** | modules outside the named set import homeassistant at module level and cannot be imported without it:  |
+ | C37 | `docs/architecture.md:module map` | __init__.py -- the 13 services | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=13 measured=13 | **true** |  |
+ | C38 | `docs/architecture.md:module map` | services.yaml -- The 13 service definitions | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=13 measured=13 | **true** |  |
+diff --git a/dev/audit/rounds/round4/D6/claims.py b/dev/audit/rounds/round4/D6/claims.py
+remerge CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.py
+index 5037051d..b0d44e9b 100644
+--- a/dev/audit/rounds/round4/D6/claims.py
++++ b/dev/audit/rounds/round4/D6/claims.py
+@@ -75,11 +75,7 @@ against a document that is CORRECT.
+                                          #1495's same mold-floor breach warning
+                                          margin, whose 0-5 °C Range row is the
+                                          only one this re-record adds)
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-    RESULT arch_modules_on_disk=72       (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+-=======
+-    RESULT arch_modules_on_disk=72       (70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++    RESULT arch_modules_on_disk=73       (72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+                                          66 until R9 F2.5's batchmath.py;
+                                          65 until #1588's pump_arbiter.py; 64
+                                          until #1408's store.py;
+@@ -105,11 +101,7 @@ against a document that is CORRECT.
+                                          bytes of, so nothing compared these
+                                          numbers to a run between 2026-09-17
+                                          and then)
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-    RESULT arch_map_listed=72            (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+-=======
+-    RESULT arch_map_listed=72            (70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++    RESULT arch_map_listed=73            (72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+                                          66 until R9 F2.5's batchmath.py;
+                                          was 45; 11 were missing; 66 with
+                                          #1588's pump_arbiter.py added to
+diff --git a/docs/architecture.md b/docs/architecture.md
+remerge CONFLICT (content): Merge conflict in docs/architecture.md
+index b2ac155d..8cfa28e4 100644
+--- a/docs/architecture.md
++++ b/docs/architecture.md
+@@ -5,11 +5,7 @@ integration does rather than how it is built, start with
+ [how-it-works.md](how-it-works.md).
+ 
+ The shape is a thin Home Assistant layer wrapped around a much larger core that
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-knows nothing about Home Assistant: 72 modules, of which 26 import the
+-=======
+-knows nothing about Home Assistant: 72 modules, of which 27 import the
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++knows nothing about Home Assistant: 73 modules, of which 27 import the
+ `homeassistant` package at module level, one more touches it inside a single
+ function, and the rest take numbers in and give numbers back.
+ 
+@@ -193,11 +189,7 @@ custom_components/heatpump_optimizer/
+ 
+ ## The Home Assistant boundary
+ 
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-26 of the 72 modules import `homeassistant` at module level: `__init__`,
+-=======
+-27 of the 72 modules import `homeassistant` at module level: `__init__`,
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++27 of the 73 modules import `homeassistant` at module level: `__init__`,
+ `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
+ platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
+ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
+diff --git a/tests/closures.json b/tests/closures.json
+index 11badee9..d52626f9 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3125,6 +3125,7 @@
+    "custom_components/heatpump_optimizer/diagnosis.py",
+    "custom_components/heatpump_optimizer/disinfection.py",
+    "custom_components/heatpump_optimizer/drift.py",
++   "custom_components/heatpump_optimizer/entry_config.py",
+    "custom_components/heatpump_optimizer/entity.py",
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/flow_lift.py",
+diff --git a/tests/deployment_shape.py b/tests/deployment_shape.py
+remerge CONFLICT (content): Merge conflict in tests/deployment_shape.py
+index b50a8290..f93b7956 100644
+--- a/tests/deployment_shape.py
++++ b/tests/deployment_shape.py
+@@ -37,52 +37,32 @@ child from ``inspect.getfile``.
+ 
+ COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
+ tracked package file by file (``_materialise``, below), and the gate's tracer
+-records every read, so this lane's recorded closure is the package: all 90
++records every read, so this lane's recorded closure is the package: all 91
+ files under ``custom_components/heatpump_optimizer/``, Python and non-Python
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-alike (89 until R9-EG-B11's ``entry_config.py``, 88 until R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+-=======
+-alike (88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++alike (90 until R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+ images) -- one of the two closures in ``tests/closures.json`` that reach every
+ production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
+ measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
+ lane. That is a selection cost, not a duplicate-assertion one: the same
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-recording finds 112 of the 496 script pairs (32 choose 2) sharing 0.80 or more
+-of their production-module closure, all 112 among the 378 pairs whose two
+-=======
+ recording finds 120 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+ of their production-module closure, all 120 among the 406 pairs whose two
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
+ scripts each have a non-empty production closure (``tests/arch_score.py``,
+ ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
+ ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
+ R9 F10.3's strace instrument recorded its round-harness children's imports;
+ doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
+ added icons.json and services.yaml to doc_claims.py's closure; #1935's
+-<<<<<<< 0dfb63a8 (Merge remote-tracking branch 'origin/main' into fix/r9-eg-entry-config)
+-tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80; R9-EG-B11's
+-entry_config.py, recorded in every closure that imports it, added 6 more).
+-Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
+-(80 shared production files), structure.py/typing_ruler.py (72),
+-finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (72
+-each), plan_view.py/solar_alignment.py (55), the optimality.py/validate.py/
+-edge.py/backtest.py four (20, six pairs), golden.py/env_drift.py (88),
+-card.mjs/card_drift.mjs (56) -- and which
+-=======
+ tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
+ ``tests/debug_collect.py`` joined when the debug-collector pin driver was
+ recorded, adding 7 pairs at >= 0.80).
+ Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py
+-(90 shared production files), entities.py/harness_headers.py,
+-doc_claims.py/entities.py and doc_claims.py/harness_headers.py (80 each),
+-structure.py/typing_ruler.py (72), finite_boundary.py/structure.py and
+-finite_boundary.py/typing_ruler.py (72 each), plan_view.py/solar_alignment.py,
++(91 shared production files), entities.py/harness_headers.py,
++doc_claims.py/entities.py and doc_claims.py/harness_headers.py (81 each),
++structure.py/typing_ruler.py (73), finite_boundary.py/structure.py and
++finite_boundary.py/typing_ruler.py (73 each), plan_view.py/solar_alignment.py,
+ boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
+-(53 each), the optimality.py/validate.py/edge.py/backtest.py four (17, six
+-pairs), golden.py/env_drift.py (88), card.mjs/card_drift.mjs (54) -- and which
+->>>>>>> 8d7903e6 (Merge pull request #1987 from tvofi/fix/r9-dbg-1)
++(55 each), the optimality.py/validate.py/edge.py/backtest.py four (20, six
++pairs), golden.py/env_drift.py (89), card.mjs/card_drift.mjs (56) -- and which
+ mutants each script actually kills
+ was never measured, so nothing here says those runs are redundant either:
+ the pre-screen stops at the first killer, and where a narrower closure here
