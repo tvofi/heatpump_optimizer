@@ -1,0 +1,13 @@
+RESULT M6 marker unkeyed: rc=1 red=4
+    FAIL guard self-test: a stale command whose marker names another path: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+    FAIL guard self-test: a stale command with an unkeyed marker: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+    FAIL guard self-test: prose naming the marker: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+    layout self-test: 3 case(s) FAILED
+RESULT M7 locate unkeyed: rc=1 red=2
+    FAIL guard self-test: a stale command beside a locate of another path: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+    layout self-test: 1 case(s) FAILED
+RESULT M8 marker lookahead dropped: rc=0 red=0
+RESULT M9 new-path arm dropped: rc=1 red=2
+    FAIL guard self-test: the same line naming the new path too: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+    layout self-test: 1 case(s) FAILED
+RESULT M10 generated rule copies not exempt: rc=0 red=0

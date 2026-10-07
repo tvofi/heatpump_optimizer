@@ -1,0 +1,75 @@
+
+tools/audit/briefs/COMMON.md
+  ERROR   [rule-binding] tools/audit/briefs/COMMON.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D0.md
+  ERROR   [rule-binding] tools/audit/briefs/D0.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D1.md
+  ERROR   [rule-binding] tools/audit/briefs/D1.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D10.md
+  ERROR   [rule-binding] tools/audit/briefs/D10.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D11.md
+  ERROR   [rule-binding] tools/audit/briefs/D11.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D12.md
+  ERROR   [rule-binding] tools/audit/briefs/D12.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D13.md
+  ERROR   [rule-binding] tools/audit/briefs/D13.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D14.md
+  ERROR   [rule-binding] tools/audit/briefs/D14.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D2.md
+  ERROR   [rule-binding] tools/audit/briefs/D2.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D3.md
+  ERROR   [rule-binding] tools/audit/briefs/D3.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D4.md
+  ERROR   [rule-binding] tools/audit/briefs/D4.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D5.md
+  ERROR   [rule-binding] tools/audit/briefs/D5.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D6.md
+  ERROR   [rule-binding] tools/audit/briefs/D6.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D7.md
+  ERROR   [rule-binding] tools/audit/briefs/D7.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D8.md
+  ERROR   [rule-binding] tools/audit/briefs/D8.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/D9.md
+  ERROR   [rule-binding] tools/audit/briefs/D9.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/fix-review.md
+  ERROR   [rule-binding] tools/audit/briefs/fix-review.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/fixer.md
+  ERROR   [rule-binding] tools/audit/briefs/fixer.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/judge.md
+  ERROR   [rule-binding] tools/audit/briefs/judge.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/nudge.md
+  ERROR   [rule-binding] tools/audit/briefs/nudge.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/orchestrator.md
+  ERROR   [rule-binding] tools/audit/briefs/orchestrator.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/root-cause.md
+  ERROR   [rule-binding] tools/audit/briefs/root-cause.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+tools/audit/briefs/verifier.md
+  ERROR   [rule-binding] tools/audit/briefs/verifier.md: is a measured policy file that no `.claude/rules/*.md` binds: editing it loads no project rule, so the caps and conventions that govern it reach the seat only if it opens CLAUDE.md's index by hand. Add it to the `paths:` of the rule that governs it.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+
+TOTAL: 23 error(s) across 40 policy file(s)
+
+FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

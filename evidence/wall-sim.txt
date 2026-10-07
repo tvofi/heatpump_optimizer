@@ -1,1 +1,0 @@
-RESULT register_survives_audit_find_wall=yes

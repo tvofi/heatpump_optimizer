@@ -1,5 +1,0 @@
-RESULT carry1922_brief_line with_marker_text= []
-RESULT carry1922_brief_line marker_word_removed= ['tools/audit/README.md', 'tools/audit/briefs/fixer.md']
-RESULT line='bash tools/audit/app_push.sh o/r . b body.md  # layout:old' refused=False
-RESULT line='p = locate(x); subprocess.run(["bash","tools/audit/app_push.sh"])' refused=False
-RESULT line='bash tools/audit/app_push.sh o/r . b body.md' refused=True
