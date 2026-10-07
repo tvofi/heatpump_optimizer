@@ -1,0 +1,3 @@
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+
+ALL 2198 ENTITY CHECKS PASSED
