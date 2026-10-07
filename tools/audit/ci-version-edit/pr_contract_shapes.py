@@ -57,7 +57,7 @@ bump_manifest = (MAN, lambda t: re.sub(r'"version": "[^"]*"', '"version": "9.9.9
 other_manifest = (MAN, lambda t: t.replace('"domain": "heatpump_optimizer",',
                                            '"domain": "heatpump_optimizer",\n  "zz_probe": 1,', 1))
 notes_heading = ("RELEASE_NOTES.md", lambda t: t.replace("\n## ", "\n## v9.9.9\n\nx\n\n## ", 1))
-docs = ("docs/HANDOVER.md", lambda t: t + "\nprobe line\n")
+docs = ("dev/programme/HANDOVER.md", lambda t: t + "\nprobe line\n")
 
 main2 = commit(B, [bump_version, bump_manifest, notes_heading], "v9.9.9 stamp")
 stale = commit(B, [docs], "docs only, forked before the stamp")

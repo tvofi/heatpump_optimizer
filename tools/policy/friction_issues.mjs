@@ -48,29 +48,23 @@
 // rather than filing nothing in silence. A missing `WOULD OPEN:` summary line
 // means the file is not a histogram at all, and that refuses too.
 //
-//   node tools/policy/friction_issues.mjs --stats-file <path> --since <ref>
-//   node tools/policy/friction_issues.mjs --stats-file <path> --since <ref> --dry-run
-//   node tools/policy/friction_issues.mjs --self-test
+//   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref>
+//   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref> --dry-run
+//   node .claude/workflows/friction_issues.mjs --self-test
 //
 // --dry-run performs the read-only half against the live repository (the
 // search) and prints the decision and the exact body it would file, writing
 // nothing. --self-test drives the decisions offline over fixture shapes,
 // network-free, the same pattern as push.sh's and gh_comment.py's.
 import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const FRICTION_PREFIX = '[policy] recurring friction: '
-// The stats tool is this script's sibling in every layout the tree has had
-// (.claude/workflows/, then tools/policy/ after #1919), so it is found beside
-// this file rather than at a spelt path: a spelt path stayed behind when the
-// pair moved, and every governance `record` run after it refused at the
-// normalizer (#2004, dev/audit/rca/R9-RCA-2004.md). It is spawned by its
-// absolute path and quoted relative to the working directory, which is the
-// checkout root wherever the lane and its documented commands run.
-const STATS_TOOL_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'policy_lint.mjs')
-const STATS_TOOL = path.relative(process.cwd(), STATS_TOOL_PATH).split(path.sep).join('/')
+// The same two homes the workflows' `if test -f` probes. One constant both
+// spawns and is quoted as an issue's derivation command, so the command a
+// filed issue carries is a file (#2004, dev/audit/rca/R9-RCA-2004.md).
+const STATS_TOOL = fs.existsSync('.claude/workflows/policy_lint.mjs') ? '.claude/workflows/policy_lint.mjs' : 'tools/policy/policy_lint.mjs'
+const STATS_RUN = STATS_TOOL
 
 // --- the pure decisions ------------------------------------------------------
 // Everything a run decides, decided here so the self-test can drive it without
@@ -557,7 +551,7 @@ function loadNormalizedLookup() {
   const rawKeys = [...new Set(issueKeys(rows))]
   let normalize = new Map()
   if (rawKeys.length) {
-    const n = spawnSync('node', [STATS_TOOL_PATH, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_RUN, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${rawKeys.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
@@ -681,7 +675,7 @@ function sweepBelowThreshold(parsed, since, dryRun) {
   const sent = issueKeys(rows)
   let normalize = new Map()
   if (sent.length) {
-    const n = spawnSync('node', [STATS_TOOL_PATH, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_RUN, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${sent.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
@@ -744,14 +738,6 @@ export function selfTest() {
     if (got === want) { pass += 1; console.log(`  ok   ${what}`) }
     else { fail += 1; console.log(`  FAIL ${what} (got ${JSON.stringify(got)}, wanted ${JSON.stringify(want)})`) }
   }
-
-  // The tool this lane spawns (`--normalize-friction-keys`) and quotes as an
-  // issue's derivation command is a file, read from the working directory the
-  // way the spawn reads it (#2004, dev/audit/rca/R9-RCA-2004.md). #1919 moved
-  // policy_lint.mjs out of .claude/workflows/ and this constant stayed behind:
-  // every governance `record` run after it refused at the normalizer, and the
-  // derivation command #2004 carries did not run.
-  st(fs.existsSync(STATS_TOOL), true, `the stats tool this lane spawns and quotes is a file: ${STATS_TOOL}`)
 
   // The trigger line, exactly as printFindings emits it: two leading spaces,
   // severity padded to 7, the [stats] check tag, the (window) where.
@@ -994,6 +980,14 @@ export function selfTest() {
     'null control: the same two rows with this window disposed at a LOWER count still file')
   st(twoClosed({ 11: at(4, 'v9.9.8'), 41: null }).refuse, true,
     'and a closed row whose body cannot be read refuses rather than filing beside it')
+
+  // The tool the lane spawns must exist where the checkout has it. The path
+  // was written for `.claude/workflows/` and spawned there after the move to
+  // `tools/policy/`: node exited 1, the lane refused, and `record` stayed red.
+  st(fs.existsSync(STATS_RUN), true,
+    `the spawned stats tool exists on disk (${STATS_RUN}), whichever of its two homes the checkout has`)
+  st(fs.existsSync(STATS_TOOL), true,
+    `and the stats tool quoted as an issue's derivation command is a file: ${STATS_TOOL}`)
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry
