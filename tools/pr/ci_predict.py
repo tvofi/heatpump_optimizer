@@ -8,16 +8,24 @@ list, a new harness the INERT-read table does not list, a selectable script no
 derive lane records) and `mutation` (a site the diff adds with no pin). The
 autofix jobs meant to repair them repaired none of the twenty runs measured on
 this round's eight fix pull requests (R9-RO-11's pre-study, in its PR body), so
-the red reached a reviewer's head every time. Each arm here reads CI's own
-functions -- `closure.orphan_files`, `closure.is_inert`, the committed
-`tests/closures.json`, `mutation_table`'s source-only ratchet -- and runs no
-test, no recording and no mutant: seconds, never a heavy script.
+the red reached a reviewer's head every time. Three arms call CI's own
+functions: UNCLASSIFIED (`closure.orphan_files`), the INERT test inside both
+closure arms (`closure.is_inert`), and ADDED UNPINNED (`mutation_table`'s
+source-only ratchet). Two are this predictor's own model, because CI learns
+the answer by running: the import arm resolves imports statically where CI
+records them at run time, and NO RECORDING reads the `rec tests/...` lines of
+`tests/derive_closures.sh` where CI sees which recordings exist. Every arm is
+scoped to what the three-dot diff adds or changes, so a red main already
+carries is never charged to a branch. Nothing here runs a test, a recording
+or a mutant: seconds, never a heavy script.
 
     python3 tools/pr/ci_predict.py [--base origin/main]
 
 Prints one `PREDICT <job> ...` line per predicted red and a last line
-`CI PREDICT: ...`; rc 1 when anything is predicted, 0 when nothing is, 2 when
-the base does not resolve. `prepr.sh` step 6d runs it.
+`CI PREDICT: ...`. rc 1 when a closures or `fast` red is predicted, 0 when
+none is, 2 when the base does not resolve. ADDED UNPINNED sites print but never
+set the rc: `mutation-autofix` may pin them after the push (`ci-autofix.md`),
+so `prepr.sh` step 6d warns and the body owes each one a disposition.
 
 What it cannot see, said so the quiet line is not over-read: a data file a
 script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
@@ -203,13 +211,20 @@ def inert_siblings(changed, inert_reads, closure):
     return preds
 
 
-def no_recording(root, closure):
-    """A selectable script no derive lane records: `NO recording this run`."""
+def no_recording(root, changed, closure):
+    """A selectable script no derive lane records: `NO recording this run`.
+
+    Only scripts the diff adds or changes, and the lane file when the diff
+    edits it: a script main already carries unrecorded is main's red, and
+    charging it to every branch would refuse pushes nothing on them can fix.
+    """
     lanes = (root / "tests" / "derive_closures.sh").read_text()
     recorded = set(re.findall(r"\brec (tests/\S+)", lanes))
+    lanes_changed = "tests/derive_closures.sh" in changed
     return [("closures", f"NO RECORDING {s}: selectable, and no lane of "
              f"tests/derive_closures.sh records it")
-            for s in closure.selectable_scripts() if s not in recorded]
+            for s in closure.selectable_scripts()
+            if s not in recorded and (s in changed or lanes_changed)]
 
 
 def orphans(changed, closure):
@@ -248,7 +263,7 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
     preds: list[tuple[str, str]] = []
     preds += orphans(changed, closure)
-    preds += no_recording(root, closure)
+    preds += no_recording(root, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads, closure)
     preds += inert_siblings(changed, inert_reads, closure)
     preds += unpinned(base)
@@ -257,7 +272,7 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
         if p not in seen:
             seen.add(p)
             out.append(p)
-    return (1 if out else 0), out, base
+    return (1 if any(j != "mutation" for j, _ in out) else 0), out, base
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -271,13 +286,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     for job, line in preds:
         print(f"PREDICT {job:<8} {line}")
-    jobs = sorted({j for j, _ in preds})
-    if preds:
-        print(f"CI PREDICT: {len(preds)} predicted red(s) on {', '.join(jobs)} "
+    jobs = sorted({j for j, _ in preds if j != "mutation"})
+    sites = sum(1 for j, _ in preds if j == "mutation")
+    if sites:
+        print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
+              f"warning; the body owes each a line under ## Unpinned sites")
+    if jobs:
+        reds = sum(1 for j, _ in preds if j != "mutation")
+        print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; who repairs "
               f"which is ci-autofix.md's")
     else:
-        print(f"CI PREDICT: none of closures' or mutation's static reds against "
+        print(f"CI PREDICT: no closures or fast red predicted against "
               f"{base[:12]} (a data-file read is not seen)")
     return rc
 
