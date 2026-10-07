@@ -1,0 +1,3 @@
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no recorded closure mentions scope.json, scope.run, scope.skip, scope.txt -- an unmeasured file is not a safe skip
