@@ -255,6 +255,8 @@ _ROW = "the update path's cone repair clips and renormalises the whole row (obse
 _PAIR = "an unreadable bin restarts the pair with a warning (_stored_rows/_stored_counts, #922)"
 _PROFILE = "normalize_profile renormalises to mean 1, and quarantines a non-finite profile whole"
 _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
+#: R9-UX-6: a receipt's total and basis are re-derived from its lines on load.
+_RESTATED = "ledger.restate_total re-derives them from the receipt's own lines on load"
 #: The DHW profile: normalize_profile's clip is [0.2, 3.5], but a fresh
 #: install stores the configured draw pattern verbatim (cells of 0.1) until
 #: the first fold, so the writer's floor is zero. dhw_learning imports this
@@ -361,12 +363,13 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"month_reports/*/{k}/~": _TEXT for k in ("lines", "reasons")},
         **{f"month_reports/*/{k}/*/kwh": _R for k in ("lines", "reasons")},
         **{f"month_reports/*/{k}/*/sek": _R for k in ("lines", "reasons")},
-        "month_reports/*/total_kwh": _R, "month_reports/*/total_sek": _R,
+        "month_reports/*/total_kwh": _R,
+        "month_reports/*/total_sek": Domain("real", unread=_RESTATED),
         "month_reports/*/compressor_starts": _COUNT,
         "month_reports/*/reasons_reconcile": Domain("flag", null=True),
         "month_reports/*/mean_spot_price": _R,
         # R9-UX-6: the billed lines the total adds, and the peak the capacity line prices.
-        "month_reports/*/basis/#": Domain("choice", choices=BILLED_LINES),
+        "month_reports/*/basis/#": Domain("choice", choices=BILLED_LINES, unread=_RESTATED),
         "month_reports/*/capacity_peak_kw": _Z,
         "month_reports/*/contract_comparison/month": _MONTH,
         "month_reports/*/contract_comparison/kwh": _R,
