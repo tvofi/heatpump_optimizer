@@ -56,6 +56,42 @@ This changes policy and the enforcement surface, so it merges only on tvofi's ap
 
 The decision it implements is tvofi's R3-6 (2026-09-29). Not yet approved at this head.
 
+Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by the orchestrator:
+
+1. A score rise passes on a body `## Architecture score` explanation, judged by the fix reviewer. It does not need the owner's approval at each head; budget-file raises keep their own owner gate.
+2. The ratchet's `duplication_copies` keeps the adjacent window. There is no switch to the gapped census.
+3. Owning all of `tools/audit/archscore/` in CODEOWNERS is accepted.
+4. After merge, tvofi adds the `arch-score` context to `main-protect-checks`. The orchestrator requests it and records it on #201.
+
+## After #2025 merges
+
+1. `git merge origin/main` into this head (never rebase), resolving against #2025's merged form.
+2. Re-run the following, since the merge base moves:
+   - `ci_predict.py --base origin/main`;
+   - `tests/closure.py select`;
+   - `tests/structure.py`;
+   - `tests/arch_score_head.py`, because #2025's coordinator changes can add a cycle hub writer, which then needs a `CYCLE_HUB_WRITERS` row;
+   - `tests/arch_score.py --stored`;
+   - `tests/entities.py`.
+3. Re-take this body's merge-base-dependent figures: the head line, scope, and the #2025 row of the wave table, which becomes a merged row.
+4. Open the pull request (the orchestrator), with `## Architecture score` as `n/a`. It touches no package file.
+5. The ruleset context `arch-score` is tvofi's to add after merge.
+
+## Approval
+
+This changes policy and the enforcement surface, so it merges only on tvofi's approving review at the head, which CODEOWNERS requires. It touches:
+
+- `.github/PULL_REQUEST_TEMPLATE.md`;
+- `.github/CODEOWNERS`, which now owns `/tools/audit/archscore/`;
+- `.github/workflows/arch-score.yml`, which is new;
+- `.github/workflows/pr-contract-rerun.yml`;
+- `tests/entities.py`, which admits the new `edited` workflow;
+- `tests/run.sh` (a comment);
+- `tests/arch_score.py`;
+- `tools/audit/archscore/calibration/expected.json`, where two verdicts are re-recorded and three cases added.
+
+The decision it implements is tvofi's R3-6 (2026-09-29). Not yet approved at this head.
+
 Open questions for tvofi:
 
 1. Is a body explanation enough for a score rise? The alternative is the owner's approval at the head, as `budget-raise-gate` demands. This PR implements the explanation and leaves the reviewer to judge it.
@@ -154,8 +190,8 @@ Two jobs went red on the dispatched run 37689221025, at `6ec6553e`. Neither is a
 
 ## Forward-carry
 
-- **The ratchet's census decision.** Keep the adjacent window in `tests/structure.py`'s `duplication_copies`. The required score check reads the gapped census (C3), so a split that the ratchet credits as a dedupe reads NULL on the gate. Switching the ratchet raises every recorded `duplication_copies` budget, and a raise is the owner's. This is an owner question, not a change made here.
-- **The footprint definition.** A typing-only change reads as a rise, because an annotated alias and a bare `return <name>` count as logic (`a1_N5_annotated_return`). Until the footprint's v2 fix lands (the PRE-STUDY section 10 queue), a UX-5/6/7 or later PR that types a value this way explains the `coord_footprint` rise in its `## Architecture score` section. Destination: the R9-UX-5/6/7 entries of the wave-r9 roster on the orchestrator's roster branch `handoff/audit-r9-fixplan`, which the orchestrator writes; the roster is not in this tree.
+- **The ratchet's census decision.** Keep the adjacent window in `tests/structure.py`'s `duplication_copies`. The required score check reads the gapped census (C3), so a split that the ratchet credits as a dedupe reads NULL on the gate. Switching the ratchet raises every recorded `duplication_copies` budget, and a raise is the owner's. Decided under the mandate: no switch (see ## Approval).
+- **The footprint definition.** A typing-only change reads as a rise, because an annotated alias and a bare `return <name>` count as logic (`a1_N5_annotated_return`). Until the footprint's v2 fix lands (the PRE-STUDY section 10 queue), a UX-5/6/7 or later PR that types a value this way explains the `coord_footprint` rise in its `## Architecture score` section. Placed by the orchestrator as roster carries on R9-UX-5, UX-6 and UX-7, on `handoff/audit-r9-fixplan` at `0180b428`. The roster is not in this tree.
 - **The ruleset.** Adding the context `arch-score` to `main-protect-checks` is a repository setting that only tvofi can apply. The orchestrator requests it and records it on #201.
 
 ## Friction
