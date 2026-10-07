@@ -53,7 +53,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI; `tests/README.md` ("The scoped gate") says why that is safe. So
+   to CI; `tests/README.md` ("The scoped gate") says why. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
