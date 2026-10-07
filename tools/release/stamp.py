@@ -1667,8 +1667,11 @@ def rows_gate_decision(*, cleared: bool, allow_rowless: bool, last_tag: str | No
 # need a new tracked file classified into a measured closure for ten lines.
 RECORD_CLASS_RES = (
     re.compile(r"^docs/delivery/[^/]+\.md$"),
+    re.compile(r"^dev/programme/delivery/[^/]+\.md$"),
     re.compile(r"^\.claude/workflows/carry-[^/]+\.json$"),
+    re.compile(r"^dev/programme/carries/carry-[^/]+\.json$"),
     re.compile(r"^docs/plan-[^/]+\.md$"),
+    re.compile(r"^dev/programme/plan-[^/]+\.md$"),
 )
 
 

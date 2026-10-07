@@ -60,7 +60,7 @@ ROOT = os.path.abspath(os.path.join(HERE, "..", "..", "..", "..", ".."))
 # file nothing in the tree carried: the judge's re-take read 0.0 while the
 # tree held no list at all (step 11: a check pins the artifact it READS, not
 # the one it is named for).
-EXCLUSION_ARTIFACT = ".claude/workflows/cfr_exclusions.json"
+EXCLUSION_ARTIFACT = "dev/governance/config/cfr_exclusions.json"
 
 API_FAILURES = 0  # recorded at fetch time (fetch printed failures=0)
 W0, W1 = "2026-09-20T10:32:14Z", "2026-09-20T17:23:10Z"
