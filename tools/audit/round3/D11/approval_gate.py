@@ -32,6 +32,18 @@ EXPECTED at baseline ae36eff19d8e542bc351b1ab31ad4167ec8e4ea1
     RESULT rule_text_approval_not_required_fraction=0.6400 +/-0.0001
 MACHINE: 8-core Apple M1, 8 GB, node v20.10.0, python3 3.11.5.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import re
 import subprocess
@@ -46,7 +58,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
 BASELINE = "ae36eff19d8e542bc351b1ab31ad4167ec8e4ea1"
 SINCE = "2026-08-27T21:02:51+00:00"
 UNTIL = "2026-09-10T21:02:51+00:00"
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 
 # Transcribed from .claude/workflows/policy_lint.mjs POLICY_GLOBS. The harness
 # refuses to run if the count of globs in that file has changed, so a widened
