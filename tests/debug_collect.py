@@ -151,6 +151,9 @@ R.check(
     f"started={idle_started} rows={len(collector.rows)}",
 )
 clock = {"t": 0.0}
+# ``debugger.time`` is the process's one ``time`` module, and asyncio's loop
+# clock reads its ``monotonic``: the real one is put back after this check.
+real_monotonic = debugger.time.monotonic
 debugger.time.monotonic = lambda: clock["t"]
 coord.optimization_running = True
 collector.observe(coord)
@@ -167,6 +170,7 @@ R.check(
     wall == 30000.0 and len(collector.rows) == 2,
     f"wall={wall} rows={len(collector.rows)}",
 )
+debugger.time.monotonic = real_monotonic
 same = len(collector.rows)
 collector.observe(coord)
 R.check(
@@ -387,14 +391,16 @@ from heatpump_optimizer.accuracy import AccuracySample, AccuracyTracker
 
 
 def _sample(minutes, predicted, actual):
-    return AccuracySample(when=T0 + timedelta(minutes=minutes),
+    # A cost is always written: the domain declares predicted_cost not nullable.
+    return AccuracySample(when=T0 + timedelta(minutes=minutes), predicted_cost=1.0,
                           predicted_temp=predicted, actual_temp=actual).as_dict()
 
 
 acc_key = debugger.store_keys("dbg")["accuracy"]
-clean = {acc_key: (1, {"samples": [_sample(0, 21.0, 20.5)]})}
-nan = {acc_key: (1, {"samples": [{**_sample(0, 21.0, 20.5), "predicted_temp": float("nan")}]})}
-off = {acc_key: (1, {"samples": [_sample(0, 21.0, 20.5)], "junk": 1})}
+clean = {acc_key: (1, {"accuracy": {"samples": [_sample(0, 21.0, 20.5)]}})}
+nan = {acc_key: (1, {"accuracy": {"samples": [
+    {**_sample(0, 21.0, 20.5), "predicted_temp": float("nan")}]}})}
+off = {acc_key: (1, {"accuracy": {"samples": [_sample(0, 21.0, 20.5)]}, "junk": 1})}
 reports = [debugger.store_report(s)[acc_key] for s in (clean, nan, off)]
 R.check(
     "the store self-test names a field off its domain and a leaf the quarantine scrubs, "
@@ -407,7 +413,8 @@ R.check(
 live = AccuracyTracker()
 for minutes in range(3):
     live.samples.append(AccuracySample.from_dict(_sample(minutes, 21.0, 21.0)))
-stored_acc = {"samples": [_sample(0, 21.0, 20.0), _sample(15, 21.0, 20.0), {"t": "nope"}]}
+stored_acc = {"accuracy": {"samples": [
+    _sample(0, 21.0, 20.0), _sample(15, 21.0, 20.0), {"t": "nope"}]}}
 monitor = debugger.accuracy_report(stored_acc, live)
 R.check(
     "the monitor self-test re-derives bias from the stored window beside the live one, "
@@ -604,6 +611,7 @@ R.check(
 
 async def _download(cap):
     coord = FakeCoordinator()
+    coord.integration_version = "0.0.0"
     entry = FakeEntry(entry_id="dl", options={CONF_DEBUG_COLLECT: True})
     entry.runtime_data = coord
     hass = _disk_hass(tempfile.gettempdir())
@@ -629,6 +637,33 @@ R.check(
     and "cycle_rows" not in big
     and len(whole["cycle_rows"]) == 50 and "inline" not in whole,
     str(big)[:300],
+)
+
+# -- the nightly lane's judge of the same two downloads (A16) ----------------
+import nightly_ha  # noqa: E402
+
+
+def _a16(inline_payload, capped_payload, encode=lambda o: json.dumps(o).encode()):
+    checks = nightly_ha.Checks()
+    nightly_ha.check_a16(checks, {"debug": inline_payload}, {"debug": capped_payload},
+                         1000, encode)
+    return {name: ok for name, (ok, _detail) in checks.results.items()}
+
+
+def _refuse(_obj):
+    raise TypeError("not serializable")
+
+
+R.check(
+    "the nightly A16 judge passes a whole bundle and a summary past the cap, and fails "
+    "each swapped, and a bundle its serializer refuses",
+    _a16(whole, big) == {"a16:debug_inline": True, "a16:debug_capped": True}
+    and _a16(big, whole) == {"a16:debug_inline": False, "a16:debug_capped": False}
+    and _a16(whole, big, _refuse) == {"a16:debug_inline": False, "a16:debug_capped": False},
+)
+R.check(
+    "the nightly lane demands both A16 checks by name",
+    {"a16:debug_inline", "a16:debug_capped"} <= set(nightly_ha.INSIDE_CHECKS),
 )
 
 dt_util.freeze(None)

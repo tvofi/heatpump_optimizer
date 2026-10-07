@@ -78,6 +78,7 @@ A12  an older schema version migrates                      1           done
 A13  the currency follows the instance                     1           done
 A14  setup does not block the event loop                   1           partial
 A15  the loop keeps ticking through the options flow       #1758       done
+A16  the debug bundle through HA's serializer, capped      #1940       done
 ===  ====================================================  ==========  =======
 
 A3's named set is the §4 A3 row of the production-escape analysis, counted at
@@ -102,6 +103,10 @@ A15 is a diagnostic, not a barrier (#1758): the v6.6.0 options-flow freeze has
 no established cause, so its third boot, two-zone + DHW, measures the loop's
 largest gap across an untouched exit, a changed save and a burst of changed
 saves in menu mode, and dumps any stall while it is open.
+A16 is the size check the debugger pre-study owed this lane (#1940, its
+section 8): a planted week goes through ``diagnostics`` and Home Assistant's
+own ``json_bytes``, once under ``INLINE_CAP_BYTES`` (carried whole) and once
+past it (the summary, whose download is under the cap).
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
@@ -237,6 +242,7 @@ A11_INSIDE = (
 )
 A12_INSIDE = ("a12:migrates",)
 A13_INSIDE = ("a13:currency",)
+A16_INSIDE = ("a16:debug_inline", "a16:debug_capped")
 # Four stores, four type-wrong payloads. The dict case must not take
 # the entry down; list/string/number are the named corrupt checks.
 A6_STORE_CASES = (
@@ -315,6 +321,7 @@ INSIDE_CHECKS = (
     *A11_INSIDE,
     *A12_INSIDE,
     *A13_INSIDE,
+    *A16_INSIDE,
     *HB_INSIDE,
 )
 
@@ -816,6 +823,58 @@ async def _async_check_a10_published(checks: Checks, hass, entry) -> None:
     token = data.get("tibber_token")
     tokens = tuple(t for t in (token, "nightly-ha-local") if t)
     check_a10_payload(checks, payload, tokens)
+
+
+def check_a16(checks: Checks, inline: object, capped: object, cap: int, encode) -> None:
+    """The bundle Home Assistant serializes whole under the cap, and its summary over it."""
+    whole = (inline.get("debug") if isinstance(inline, dict) else None) or {}
+    try:
+        size, err = len(encode(inline)), ""
+    except Exception as exc:  # noqa: BLE001 - the serializer's refusal is the finding
+        size, err = -1, repr(exc)
+    rows = whole.get("cycle_rows")
+    checks.check(
+        "a16:debug_inline",
+        size > 0 and isinstance(rows, list) and rows and "inline" not in whole,
+        err or f"{size}B through json_bytes; {len(rows or ())} row(s) inline",
+    )
+    over = (capped.get("debug") if isinstance(capped, dict) else None) or {}
+    try:
+        download = len(encode(capped))
+    except Exception:  # noqa: BLE001
+        download = -1
+    checks.check(
+        "a16:debug_capped",
+        over.get("inline") is False and over.get("bytes", 0) > cap and 0 < download < cap,
+        f"bundle {over.get('bytes')}B against the {cap}B cap; the download {download}B",
+    )
+
+
+async def _async_check_a16(checks: Checks, hass, entry) -> None:
+    try:
+        debugger, diag = _prod_mod("debugger"), _prod_mod("diagnostics")
+    except ImportError as exc:
+        check_a16(checks, None, None, 0, json_bytes_ha)
+        print(f"  a16: {exc}")
+        return
+    coord = entry.runtime_data
+    prior = debugger._COLLECTORS.get(coord)
+    collector = debugger.DebugCollector(hass, entry.entry_id, lambda coro: coro.close())
+    now = datetime.now(timezone.utc)
+    row = {"t": now.isoformat(), "mode": "auto", "prices_rows": 96}
+    collector.started_at = now
+    debugger._COLLECTORS[coord] = collector
+    try:
+        collector.rows = [row] * 10
+        inline = await diag.async_get_config_entry_diagnostics(hass, entry)
+        # A megabyte or so past the real cap, the rows sharing one dict.
+        collector.rows = [row] * (debugger.INLINE_CAP_BYTES // len(json.dumps(row)) + 2000)
+        capped = await diag.async_get_config_entry_diagnostics(hass, entry)
+    finally:
+        debugger._COLLECTORS.pop(coord, None)
+        if prior is not None:
+            debugger._COLLECTORS[coord] = prior
+    check_a16(checks, inline, capped, debugger.INLINE_CAP_BYTES, json_bytes_ha)
 
 
 def _prod_mod(name: str):
@@ -2632,6 +2691,7 @@ async def _inside(seed: dict, budget: float) -> int:
         _check_entities(checks, hass, entry)
         _check_a3_published(checks, hass, entry, constructor_defaults=False)
         await _async_check_a10_published(checks, hass, entry)
+        await _async_check_a16(checks, hass, entry)
         _check_plan(checks, hass, entry)
         await _async_check_a4(checks, hass, entry)
         await _async_check_a5(checks, hass, entry)
