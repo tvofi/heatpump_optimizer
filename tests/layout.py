@@ -304,8 +304,10 @@ def exempt(old: str, new: str | None, line: str) -> bool:
 # Text the guard does not read, though the reference arm still counts it:
 # the policy-lint config, whose keys are spelt old ON PURPOSE (`canon`'s
 # spelling until R9-RO-9 retires `canon`, so a key spelt new matches nothing);
-# and root-cause records, whose subject is often the old path that broke.
-GUARD_EXEMPT = ("dev/governance/config/", "dev/audit/rca/")
+# root-cause records, whose subject is often the old path that broke; and the
+# generated rule copies, whose text is their source's (guarded at the source,
+# and `rules_sync.mjs --check` refuses a copy that drifts from it).
+GUARD_EXEMPT = ("dev/governance/config/", "dev/audit/rca/", ".claude/rules/", ".cursor/rules/")
 
 
 def landed(files: list[str], retired: list[dict]) -> list[dict]:

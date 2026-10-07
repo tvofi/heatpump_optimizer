@@ -1,7 +1,7 @@
 ---
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
 paths:
-  - "dev/governance/roles/**"
+  - "dev/governance/**"
   - ".claude/workflows/*.json"
 ---
 # Forward-carrying a finding

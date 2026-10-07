@@ -1,6 +1,6 @@
 ---
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
-globs: dev/governance/roles/**,.claude/workflows/*.json
+globs: dev/governance/**,.claude/workflows/*.json
 alwaysApply: true
 ---
 # Forward-carrying a finding

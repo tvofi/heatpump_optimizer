@@ -3,7 +3,7 @@ description: What a sentence in the development record must carry to stay; READM
 paths:
   - "dev/programme/HANDOVER.md"
   - "dev/programme/plan*.md"
-  - "dev/governance/roles/**"
+  - "dev/governance/**"
   - ".claude/workflows/*-groups.json"
   - ".github/PULL_REQUEST_TEMPLATE.md"
 ---
