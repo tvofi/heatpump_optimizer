@@ -1,3 +1,0 @@
-31	dismissed	used in tests	py/clear-text-logging-sensitive-data	dev/audit/rounds/round9/D8/leads/l2_d8_leads.py
-32	dismissed	used in tests	py/clear-text-logging-sensitive-data	dev/audit/rounds/round9/D11/s1/privileged_pr_code.py
-33	dismissed	used in tests	py/overly-permissive-file	dev/audit/rounds/round8/evidence/D11/s2_release_gate.py
