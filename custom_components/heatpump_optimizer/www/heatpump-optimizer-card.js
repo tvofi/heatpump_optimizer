@@ -4604,34 +4604,6 @@ function cardStyleBlock(darkMode) {
       }
       .sv-val { position: relative; }
 
-      /* R9-UX-6: the month's receipt beside where its spot money went, and
-         yesterday's plan against what was measured. Rows are the savings
-         table's typography; the reason bars are one hue, labelled directly. */
-      .receipt-grid {
-        display: grid; grid-template-columns: repeat(auto-fit, minmax(18em, 1fr));
-        gap: var(--hpo-space-3, 12px) var(--hpo-space-5, 24px); margin: 0.5em 0 1em;
-      }
-      .receipt-sub, .replay-sub { color: var(--hpo-text-2, #727272); font-size: var(--hpo-text-sm, 14px); }
-      .receipt-total { font-size: 2em; font-weight: 600; font-variant-numeric: tabular-nums; }
-      .receipt-h { margin: 0 0 6px; font-size: 1em; font-weight: 600; }
-      .receipt-bar {
-        display: grid; grid-template-columns: minmax(0, 1fr) 7em auto;
-        gap: 8px; align-items: center; font-size: var(--hpo-text-sm, 14px); padding: 3px 0;
-      }
-      .receipt-bar .rb-track {
-        height: 10px; border-radius: 5px; overflow: hidden;
-        background: var(--hpo-divider, #e0e0e0);
-      }
-      .receipt-bar .rb-fill { display: block; height: 100%; background: var(--hpo-accent, #026aa8); }
-      .receipt-bar .rb-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
-      .replay { margin: 0.5em 0 1em; }
-      .replay-leg {
-        display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0;
-        font-size: var(--hpo-text-sm, 14px); color: var(--hpo-text-2, #727272);
-      }
-      .replay-leg span { display: inline-flex; gap: 6px; align-items: center; }
-      .replay svg { width: 100%; height: auto; display: block; }
-
       /* The sensor advisor page (#1269): ranked rows, each one button so
          the whole row is the target, sized by the every-pointer floor
          above. The estimate badge rides the spread at reduced emphasis
@@ -8744,6 +8716,38 @@ function healthPageHtml(host) {
 // what was measured). The total, the lines it adds (`basis`) and the
 // partition by reason are the backend's; this only lays them out.
 // Module-level, like the advisor page, for the host's own-member ratchet.
+
+// Scoped to the page that draws them, so the card's shared style block and
+// every other page's markup stay as they were.
+const RECEIPT_CSS = `
+/* The month's receipt beside where its spot money went, and
+   yesterday's plan against what was measured. Rows are the savings
+   table's typography; the reason bars are one hue, labelled directly. */
+.receipt-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(18em, 1fr));
+  gap: var(--hpo-space-3, 12px) var(--hpo-space-5, 24px); margin: 0.5em 0 1em;
+}
+.receipt-sub, .replay-sub { color: var(--hpo-text-2, #727272); font-size: var(--hpo-text-sm, 14px); }
+.receipt-total { font-size: 2em; font-weight: 600; font-variant-numeric: tabular-nums; }
+.receipt-h { margin: 0 0 6px; font-size: 1em; font-weight: 600; }
+.receipt-bar {
+  display: grid; grid-template-columns: minmax(0, 1fr) 7em auto;
+  gap: 8px; align-items: center; font-size: var(--hpo-text-sm, 14px); padding: 3px 0;
+}
+.receipt-bar .rb-track {
+  height: 10px; border-radius: 5px; overflow: hidden;
+  background: var(--hpo-divider, #e0e0e0);
+}
+.receipt-bar .rb-fill { display: block; height: 100%; background: var(--hpo-accent, #026aa8); }
+.receipt-bar .rb-val { text-align: right; font-weight: 600; font-variant-numeric: tabular-nums; }
+.replay { margin: 0.5em 0 1em; }
+.replay-leg {
+  display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 4px 0;
+  font-size: var(--hpo-text-sm, 14px); color: var(--hpo-text-2, #727272);
+}
+.replay-leg span { display: inline-flex; gap: 6px; align-items: center; }
+.replay svg { width: 100%; height: auto; display: block; }
+`;
 
 const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
 
@@ -13672,7 +13676,8 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     // R9-UX-6: the closed month's receipt and yesterday's replay come first;
     // the table of every month below them is unchanged.
-    const top = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) =>
       typeof n === "number" && Number.isFinite(n) ? n.toFixed(2) : "—";
     const pct = (n) =>
