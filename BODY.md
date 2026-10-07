@@ -68,7 +68,15 @@ owner's.
 
 ## Head
 
-`277cc786bc5820086eeadce901818225ab7d1bba`, at merge base `3910026e` (`origin/main`).
+`7cef1c324366950fa8e65976b40a040c3ca24a81`, at merge base `be0cb821` (`origin/main`). This is round 2: PR head `6f3609a4` (round 1 plus its row commit) is merged in, and three commits on top answer round 1's block.
+
+Round 1 blocked with `class-open`: `handover_prompt.py:78` still sent every generated prompt to `tools/audit/briefs/`, a directory the governance lift emptied into `dev/governance/roles/`. Round 1's search matched script paths only (`.sh`, `.py`, `.mjs`), so it could not find a directory. Round 2 lands that search as `tools/audit/seat/moved_paths.py`. It reads every path `tests/layout.json` marks moved: each retired file no longer tracked, its emptied parent directory, and each lifted prefix, 158 in all. It reports every line that names one. Re-pointed in round 2:
+
+- `handover_prompt.py:78`, to the contracts' directory. Its self-test now requires every backticked repository path in the generated prompt to exist.
+- `handoff_push.sh`: its rule citation, the `HANDOVER.md` comment on line 7, and a note filter that excused the retired `tools/audit/handoff/`.
+- `merge_train.py`: four self-test fixture lines that modelled a policy path at `tools/audit/briefs/fixer.md`.
+
+The R9-RO-8 and R9-RO-9 carries now name `moved_paths.py` in their re-measurement.
 
 ## Mutation proof
 
@@ -94,6 +102,11 @@ Functional arm, on #1980's pair `569e0e63` → `356eb015`:
 - Main's carry argv prints `bash: tools/audit/app_approve.sh: No such file or directory` and no `CARRY` line.
 - The fixed `tool("app_approve")` resolves to `tools/pr/app_approve.sh` and prints `CARRY: yes`.
 
+Round 2:
+
+- `handover_prompt.py:78` restored to `tools/audit/briefs/`: `handover_prompt self-test: 13 checks, 1 failed`, the check `every repository path the prompt names exists (missing: tools/audit/briefs/)`. Fixed: `13 checks, 0 failed`.
+- `moved_paths.py` over round 1's five files (PR head `6f3609a4`) finds the reviewer's line, `handover_prompt.py:78 [STALE?] tools/audit/briefs/ -> dev/governance/roles/`, among 20 hits. Over this head it finds 12.
+
 ## Null control
 
 - `origin/main`'s own `merge_train.py` self-test prints
@@ -112,11 +125,19 @@ Functional arm, on #1980's pair `569e0e63` → `356eb015`:
 - handover prompt 12 checks, 0 failed: `python3 tools/audit/seat/handover_prompt.py --self-test`
 - ledger 0 violations, 97 rca entries: `python3 tools/audit/fold_ledger.py check`
 - tmp paths 0 refused: `python3 -I tools/audit/seat/tmp_paths.py --check`
-- gate `MODE: SCOPED -- 0 script(s) run, 31 scoped out`: `python3 tests/closure.py select --diff 3910026e --workdir <dir>`
+- handover prompt 13 checks, 0 failed (round 2): `python3 tools/audit/seat/handover_prompt.py --self-test`
+- moved-path enumeration 6 checks, 0 failed: `python3 tools/audit/seat/moved_paths.py --self-test`
+- moved-path references, 12 hits in the five instruments, every one dispositioned below: `python3 tools/audit/seat/moved_paths.py tools/audit/seat/merge_train.py tools/audit/seat/bus.sh tools/audit/seat/open_pr.sh tools/audit/seat/handoff_push.sh tools/audit/seat/handover_prompt.py`
+  - 9 are FALLBACK: an old-path-first fallback with the new path on the same line. They are `merge_train.py:84` and `:85`, `bus.sh:86` and `:388`, `open_pr.sh:27` and `:44`, and `handoff_push.sh:60`, `:80` and `:95`.
+  - `merge_train.py:160` (`.claude/workflows/policy_lint.mjs`) is the same fallback split across lines: `:161`–`:162` fall back to `tools/policy/policy_lint.mjs`.
+  - `handover_prompt.py:14` and `:76` (`.claude/rules/`): `tests/layout.json` lists this prefix as lifted, not retired. The generated copy stays, and the harness loads it when it binds, which is what the prompt says.
+- gate `MODE: SCOPED -- 0 script(s) run, 31 scoped out`: `python3 tests/closure.py select --diff be0cb821 --workdir <dir>`
 
 ## Red checks
 
-none
+`delivery-status` is red at PR head `6f3609a4` (job 112676885167). It printed `DELIVERY STATUS UNCHECKED — 46 rowed, 3 pending, 0 overdue`. The 3 pending are #1917, #2003 and #2001, and the unread commits are main's own (`618d014`, `0a60e06` and others). None of them is #2012. The diff's one record file is #2012's own row, `dev/programme/delivery/2012.md`, which the orchestrator's row commit added. The check grades `main` and is not a required context. Cheaper detector: none. The finding is that main's record backlog is the orchestrator's to drain, and it would be red on any pull request in this window.
+
+`nightly-status` is red at PR head `6f3609a4` (job 112676884784). It printed `NIGHTLY FAILED: record-autofix failed last night`: scheduled run 37440269774 at main `cff39da`, the `record-autofix` job. That is a main lane, and this diff does not touch it or what it runs. The diff's one record file is #2012's own row. Fixing that lane and dispatching `tests.yml` on `main` is the orchestrator's (`defect-root-cause.md`, Enforcement). Cheaper detector: none from this pull request.
 
 ## Forward-carry
 
