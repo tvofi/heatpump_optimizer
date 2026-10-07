@@ -1,0 +1,138 @@
+.claude/hooks/stop-selfcheck.sh:55:  touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
+.claude/rules/brief-citations.md:6:  - "docs/HANDOVER.md"
+.claude/rules/delivery-status-tracking.md:6:  - "docs/HANDOVER.md"
+.claude/rules/delivery-status-tracking.md:7:  - "docs/delivery/**"
+.claude/rules/writing-for-agents.md:4:  - "docs/HANDOVER.md"
+.claude/workflows/web-stamp.js:153:Update the Delivery-status record: each wave row in docs/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row records gets its own file docs/delivery/<N>.md, a line anchored \`- [#N](…/pull/N)\` and its state, never a new table row, which policy_lint refuses past the freeze. Update docs/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
+.cursor/rules/brief-citations.mdc:3:globs: .claude/workflows/*.json,docs/plan*.md,docs/HANDOVER.md,tools/audit/briefs/**
+.cursor/rules/delivery-status-tracking.mdc:3:globs: docs/plan*.md,.claude/workflows/*-groups.json,docs/HANDOVER.md,docs/delivery/**
+.cursor/rules/writing-for-agents.mdc:3:globs: docs/HANDOVER.md,docs/plan*.md,tools/audit/briefs/**,.claude/workflows/*-groups.json,.github/PULL_REQUEST_TEMPLATE.md
+.github/CODEOWNERS:14:# docs/HANDOVER.md is deliberately absent: it carries state, not rules.
+.github/workflows/codeql.yml:54:# staleness, which is owed work recorded in docs/HANDOVER.md.
+dev/archive/plans/plan-1067-rotenso-inputs.md:76:- **New keys are options-page slots, not card slots.** They stay out of `topology._SLOTS` (`topology.py:101-150`) on the `CONF_COMPRESSOR_FREQ_ENTITY` precedent (`config_flow.py:1388-1389`), so `ASSIGNABLE_KEYS` stays at 21 and the documented count at `docs/configuration.md:748-761`, its live harness `tools/audit/round4/D6/claims.py:434-442` (executed by `tests/harness_headers.py`) and `_IDENTITY_ENTITY_KEYS` (`config_flow.py:424-440`, first screen only) are untouched. Card assignment of the new slots is a recorded deferral in `docs/HANDOVER.md`.
+dev/archive/plans/plan-1067-rotenso-inputs.md:214:    - **The two sources disagree**: tuya-local reads dp 107 as the tank's current temperature, and tuya_heat_pump reads it as the wired-controller temperature (T6), with dp 26 as the tank. Each table follows its own source. The disagreement is recorded in the pull-request body and in `docs/HANDOVER.md`, and not resolved in either direction without a reading from the owner's install.
+dev/archive/plans/plan-1067-rotenso-inputs.md:265:Runs after G7b-3. Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. No stamp.
+dev/archive/rosters/wave-4-groups.json:288:        "note": "S12 RECORDED HALT, merged as #637 (30a202e) at merge base 31bcaba: no subsystem API to migrate tests to, no production change, the S0/S1 facades stay. RE-SURVEYED by W4-G14 at merge base 0f0cfb8 after coordinator.py moved five times (#707, #714, #734, #733, #731): the verdict reproduces. Rules with results -- production classes named subsystem/seam/facade/delegate/context: CoordinatorContext alone, a frozen dataclass over the write-once hubs; module-level functions taking a coordinator as first parameter exist in away.py, boost.py, setpoint_check.py, wood_fuel.py, diagnostics.py, sensor.py and coordinator.py, and every one DEPENDS ON the coordinator rather than owning state a test could target instead of a facade; one delegate-shaped method (describe_setup, bound from sensor.py); zero coordinator methods without a production reference beyond their own def; the four _hub descriptors are bound from production and from tests. HYGIENE FOUND, NOT ACTED ON (a docs-and-roster seat; deletion is a production edit owing a deliberate structure re-record): four property members with zero references in production or tests -- last_optimization, next_optimization, current_action, floor_return_temp -- and three write-only instance attributes -- _dhw_draws_dirty, _last_energy_sample, _last_manual_setpoint. CONTROL the write-only rule owes: a Store-without-Load AST walk also flags _unsub_defrost, _unsub_ecl110_state, _unsub_peak_guard and _slab_temp_initialized, which are read BY NAME (a string loop in __init__, a hasattr), so the count is taken only after a string-literal check. Carried to W5-G7's brief. The seam moves sequenced to this stage are owed by no stage after S13 (docs/HANDOVER.md). This entry read pending until W4-G14 truthed it."
+dev/archive/rosters/wave-d11-groups.json:161:        "note": "#960 CLOSED. Every mutable uses ref in .github/workflows/ is SHA-pinned with its frozen tag as a trailing comment, and the release job attests the tag's tree. No lane sweeps pins for staleness -- that is owed work, recorded in docs/HANDOVER.md."
+dev/governance/config/policy_budgets.json:21:        "docs/HANDOVER.md",
+dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:135:    ... then cited from docs/HANDOVER.md              -> rc=1
+dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:136:        ERROR [named-docs] is named by docs/HANDOVER.md but has no cap in
+dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:265:path has no code owner. `docs/HANDOVER.md` is left out and leaves the policy
+dev/governance/decisions/0011-app-authored-identity.md:18:- the in-tree `docs/delivery/` rows for those pull requests survive, which is
+dev/governance/decisions/0011-app-authored-identity.md:151:rulesets (22628467, where it already stood on 2026-09-30, `docs/HANDOVER.md`;
+dev/governance/dimensions/D11.md:68:     `docs/decisions/` against the tree, the traps in `docs/HANDOVER.md`,
+dev/governance/roles/fixer.md:291:restated — except a **disclosed self-correction** (`docs/HANDOVER.md`'s #1058
+dev/governance/roles/nudge.md:17:Pull requests are authored by the hpo-author App through `tools/audit/app_push.sh`. The login that reads GitHub is tvofi. The hpo-approver App posts verdicts. A code-owned path needs a tvofi review citing the session mandate. `tools/audit/app_approve.sh` refuses those paths. A merge verdict on a path that is not code-owned is approved with that script. A record pull request that only touches `docs/delivery` is not code-owned. The ruleset still requires one approving review, so that record pull request is approved as tvofi and then merged.
+dev/governance/roles/nudge.md:89:Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `.claude/workflows/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `docs/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+dev/governance/roles/nudge.md:109:When the roster or the open pull-request set changed, run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. That regenerates the plan table, the resume, and the next-session prompt on the plan ref that script writes. It is not `docs/HANDOVER.md`. Fetch `origin/main` at the start of the turn and measure how many commits `HEAD` lacks. An ancestor checkout is not current.
+dev/governance/roles/orchestrator.md:225:`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
+dev/governance/rules/brief-citations.md:6:  - "docs/HANDOVER.md"
+dev/governance/rules/delivery-status-tracking.md:6:  - "docs/HANDOVER.md"
+dev/governance/rules/delivery-status-tracking.md:7:  - "docs/delivery/**"
+dev/governance/rules/writing-for-agents.md:4:  - "docs/HANDOVER.md"
+tests/card.mjs:10261:    movesClaimable(["docs/HANDOVER.md", "README.md", ".github/workflows/tests.yml"]) === false);
+tests/card.mjs:10263:    movesClaimable(["docs/HANDOVER.md", CLAIMED_CARD_PATH]) === true);
+tests/card.mjs:10290:      if (a[1] === "--name-only" && a[2] === "REF...HEAD") return "docs/HANDOVER.md\n";
+tests/card.mjs:10291:      if (a[1] === "--name-only" && a[2] === "HEAD") return " \ndocs/HANDOVER.md\n";
+tests/card.mjs:10301:      files.join(",") === "docs/HANDOVER.md,notes.txt", files.join(","));
+tests/card.mjs:10306:      claimsAreThisBranchs(() => "docs/HANDOVER.md\n", "REF") === false);
+tests/closure.py:1508:    a script actually opened, to tell a `docs/delivery` row nothing reads from a
+tests/delivery_status.py:235:    Two or more parents is a merge and owes ``docs/delivery/<N>.md``. One
+tests/delivery_status.py:506:#: One file per pull request, `docs/delivery/<N>.md`: a row there is read only
+tests/entities.py:15080:# Reading it here is what keeps `docs/HANDOVER.md` out of INERT, and that is
+tests/entities.py:15180:# for `docs/HANDOVER.md`: it is what keeps the file out of INERT. What is
+tests/entities.py:17930:    "to tell a docs/delivery row from a doc harness_headers.py opens",
+tests/entities.py:18616:# dispatched run skips it, and docs/HANDOVER.md records a probe in which a
+tests/entities.py:19397:        ["docs/HANDOVER.md"], {}, {}, {}, dict(_PK_CARD), "origin/main"
+tests/entities.py:19400:        ["docs/HANDOVER.md"], {}, dict(_PK_CARD), {}, dict(_PK_CARD), "origin/main"
+tests/entities.py:19494:    (_st_verdict(changed=_ST_CHANGED + ["docs/HANDOVER.md"]) or "")
+tests/entities.py:23630:# One file per pull request: `docs/delivery/<N>.md` rows <N> through a line
+tests/entities.py:24225:# it was fully manual: a seat wrote `docs/delivery/<N>.md` from API facts and
+tests/entities.py:24332:# `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any
+tests/entities.py:24341:    for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
+tests/entities.py:24399:    rows = [{"number": 1893, "path": "docs/delivery/1893.md",
+tests/entities.py:24412:        pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
+tests/entities.py:24462:    and "docs/HANDOVER.md" not in _RAF["body"],
+tests/entities.py:24468:    f"{'docs/HANDOVER.md' not in _RAF['body']}; the design keeps the "
+tests/entities.py:24477:# the guarded `git add docs/delivery` write set (the rows commit, and the
+tests/entities.py:24492:# spelling: the job staged `docs/delivery` after the rows moved to
+tests/entities.py:24510:        and "docs/HANDOVER.md" not in job
+tests/entities.py:24530:    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
+tests/layout.json:468:   "old": "docs/HANDOVER.md",
+tests/layout.json:493:   "old": "docs/delivery/",
+tools/audit/ci-version-edit/pr_contract_shapes.py:60:docs = ("docs/HANDOVER.md", lambda t: t + "\nprobe line\n")
+tools/audit/merge_fastpath.py:46:                  side's CI saw). A docs/delivery row nothing opens is not one
+tools/audit/merge_fastpath.py:304:              classes(["tests/run.sh"], ["docs/delivery/1.md"], always=()), ["full"])
+tools/audit/merge_fastpath.py:306:              classes(["custom_components/x/new.py"], ["docs/delivery/1.md"], always=()), ["full"])
+tools/audit/merge_fastpath.py:309:              classes(["docs/delivery/1.md"], ["custom_components/x/one.py"], always=()), [])
+tools/audit/merge_fastpath.py:316:              classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
+tools/audit/merge_fastpath.py:320:        check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
+tools/audit/merge_fastpath.py:322:              classes(["tests/golden/b.json"], ["docs/delivery/1.md"], t=rtabs), [])
+tools/audit/merge_fastpath.py:324:              classes(["docs/delivery/2.md"], ["custom_components/x/one.py"], t=rtabs), [])
+tools/audit/merge_fastpath.py:335:              classes(["tests/golden/b.json"], ["docs/delivery/1.md"],
+tools/audit/merge_throughput.py:7:that lands (docs/HANDOVER.md trap 14). The question is whether merges land
+tools/audit/seat/INSTRUMENTS.md:116:  `docs/HANDOVER.md` still names it; new work uses `open_pr.sh`/`update_pr.sh`.
+tools/audit/seat/INSTRUMENTS.md:139:  behind a guarded write set (`docs/delivery/<N>.md` only). When: the periodic
+tools/audit/seat/INSTRUMENTS.md:140:  `record` beat. Refusal: any path outside `docs/delivery/<N>.md` — the plan
+tools/audit/seat/handoff_push.sh:7:# docs/HANDOVER.md names it.
+tools/audit/seat/handoff_push.sh:57:s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `docs/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
+tools/audit/seat/handoff_push.sh:86:( cd "$WT" && echo "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE" > docs/delivery/$N.md && git add docs/delivery/$N.md && git commit -qm "record: the delivery row for #$N" ) || exit 1
+tools/audit/seat/handoff_push.sh:92:s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+tools/audit/seat/handover_prompt.py:129:          "(`docs/delivery/<N>.md`);",
+tools/audit/seat/handover_prompt.py:216:    check("done criteria", "resume.stage" in text and "docs/delivery/" in text)
+tools/audit/seat/merge_train.py:224:        row = f"docs/delivery/{pr}.md"
+tools/audit/seat/merge_train.py:304:                    return 0, names + "\ndocs/delivery/7.md"
+tools/audit/seat/merge_train.py:307:                    ["custom_components/x.py", "docs/delivery/7.md",
+tools/audit/seat/merge_train.py:308:                     "docs/delivery/8.md"]))
+tools/audit/seat/merge_train.py:352:    check("a pull request with no docs/delivery/<N>.md row is refused",
+tools/audit/seat/merge_train.py:353:          rc == 1 and "row:" in lines[-1] and "docs/delivery/7.md" in lines[-1]
+tools/audit/seat/merge_train.py:368:    rc, lines, calls = go({"files": ["custom_components/x.py", "docs/delivery/7.md",
+tools/audit/seat/merge_train.py:390:                           "files": ["tests/structure_budgets.json", "docs/delivery/7.md"]},
+tools/audit/seat/open_pr.sh:31:printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > docs/delivery/$N.md
+tools/audit/seat/open_pr.sh:32:git add docs/delivery/$N.md
+tools/audit/seat/open_pr.sh:41:s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+tools/audit/seat/record_row.py:23:`docs/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
+tools/audit/seat/roster_lib.py:131:# rode, so the record beat can suffix its `docs/delivery/<N>.md` row with the
+tools/audit/seat/state_docs.py:322:            check_write_set({"docs/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
+tools/audit/seat/state_docs.py:328:                                  "docs/HANDOVER.md": "x"}, tip)
+tools/audit/seat/state_docs.py:333:           "docs/HANDOVER.md" not in git("-C", str(drv), "ls-tree", "-r",
+tools/policy/brief_lint.mjs:1103:  const dirNew = locate('docs/delivery', (p) => (p === 'docs/delivery' ? undefined : { isFile: () => false }))
+tools/policy/brief_lint.mjs:1104:  const dirBoth = locate('docs/delivery', () => ({ isFile: () => false }))
+tools/policy/brief_lint.mjs:1105:  if (neu !== old && both === old && dirBoth === dirNew && dirNew !== 'docs/delivery') {
+tools/policy/counts.mjs:179:// exact shapes those rounds found: "raised the cap for docs/HANDOVER.md: 273 ->
+tools/policy/policy_lint.mjs:4:// deliberately does not read `docs/plan-*.md`, `docs/HANDOVER.md` or
+tools/policy/policy_lint.mjs:468:  'docs/HANDOVER.md',
+tools/policy/policy_lint.mjs:1935:// AND ONE FILE PER PULL REQUEST, `docs/delivery/<N>.md` -- the owner's choice on
+tools/policy/policy_lint.mjs:2243:// and the one #1081 landed the mechanism for: `docs/delivery/N.md`, N's own row.
+tools/policy/policy_lint.mjs:2275:// exact, not a prefix: a stray file under docs/delivery that is not a row
+tools/policy/policy_lint.mjs:4090:  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
+tools/policy/policy_lint.mjs:4095:      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+tools/policy/policy_lint.mjs:4294:  // touched carry-*.json, docs/delivery/*.md and docs/plan-*.md and nothing
+tools/policy/policy_lint.mjs:4298:  // than a prefix (a .bak under docs/delivery, a plan file without its wave
+tools/policy/policy_lint.mjs:4302:  if (!recordClassPaths(['docs/delivery/1749.md'])) rcFail.push('a delivery row alone did not classify as record-class')
+tools/policy/policy_lint.mjs:4305:  if (!recordClassPaths(['docs/delivery/1746.md', '.claude/workflows/carry-1686.json', 'docs/plan-2026-09-open-issues.md'])) rcFail.push('the three record path classes together did not classify as record-class')
+tools/policy/policy_lint.mjs:4306:  if (recordClassPaths(['docs/delivery/1746.md', 'custom_components/heatpump_optimizer/some_other_module.py'])) rcFail.push('a code file beside a delivery row did not break the record class')
+tools/policy/policy_lint.mjs:4308:  if (recordClassPaths(['docs/delivery/1746.md.bak'])) rcFail.push('a non-row file under docs/delivery classified as a record path')
+tools/policy/policy_lint.mjs:4318:  mergeDiffSource = () => 'docs/delivery/1749.md\n.claude/workflows/carry-1646.json\n'
+tools/policy/policy_lint.mjs:4320:  mergeDiffSource = () => 'docs/delivery/1749.md\ncustom_components/heatpump_optimizer/some_other_module.py\n'
+tools/policy/policy_lint.mjs:6026:  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+tools/policy/record-predicate/row_files_replay.py:15:          `docs/delivery/<N>.md`, keyed by the pull request that added it; a row
+tools/policy/record-predicate/sweep.mjs:62:const HAND_PATHS = ['dev/programme/HANDOVER.md', 'docs/HANDOVER.md']
+tools/policy/record-predicate/sweep.mjs:306:  const hist = (p) => (p === 'docs/HANDOVER.md' ? 'old' : null)
+tools/policy/record-predicate/sweep.mjs:311:  eq('an old-path-only read misses the moved handover', firstPresent(head, ['docs/HANDOVER.md']), null)
+tools/pr/app_approve.sh:536:  files_json tools/audit/app_approve.sh docs/delivery/7.md > "$d/files.json"
+tools/pr/gh_comment.py:53:# without the `@` -- a body of exactly `docs/HANDOVER.md` is refused. That is
+tools/pr/gh_comment.py:222:    "docs/HANDOVER.md is stale.",
+tools/pr/gh_comment.py:277:        "`docs/HANDOVER.md` names the same head.\n"
+tools/pr/prepr.sh:461:# section, and this diff touches `docs/HANDOVER.md`".
+tools/pr/prepr.sh:1437:    && $G checkout -q -b rec && mkdir -p docs/delivery && echo row > docs/delivery/9999.md \
+tools/pr/prepr.sh:1584:  printf '%s\n' README.md docs/HANDOVER.md > "$WF/changed"
+tools/pr/prepr.sh:1638:  printf '%s\n' README.md docs/HANDOVER.md > "$SO"; selftest_owed "$SO"; st $? 1 "a change to none of them owes nothing (null control)"
+tools/release/stamp.py:52:     commit) touched only the record's own files -- `docs/delivery/*.md`,
+tools/release/stamp.py:1060:          record_class_paths(["docs/delivery/1749.md", ".claude/workflows/carry-1646.json",
+tools/release/stamp.py:1063:          record_class_paths(["docs/delivery/1746.md"])
+tools/release/stamp.py:1067:          not record_class_paths(["docs/delivery/1746.md",
+tools/release/stamp.py:1072:          not record_class_paths(["docs/delivery/1746.md.bak"])
+tools/release/stamp.py:1629:                       "(docs/delivery/*.md, .claude/workflows/carry-*.json, "
+tools/release/stamp.py:1656:# prefix: a stray file under docs/delivery that is not a row, a `docs/plan.md`
+tools/release/stamp.py:1669:    re.compile(r"^docs/delivery/[^/]+\.md$"),

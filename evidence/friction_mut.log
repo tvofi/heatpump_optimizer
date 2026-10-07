@@ -1,0 +1,4 @@
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   a CLOSED exact-title sibling listed first is passed over for the OPEN one: OPEN before CLOSED, never by listing order
+  FAIL the spawned stats tool exists on disk (.claude/workflows/policy_lint.mjs), whichever of its two homes the checkout has (got false, wanted true)
+100 passed, 1 failed
