@@ -10,5 +10,3 @@
 #1995 rc=1 AUTOMERGE REFUSE #1995: not record/autofix -> main within one repository
 #1997 rc=1 AUTOMERGE REFUSE #1997: not record/autofix -> main within one repository
 #1999 rc=1 AUTOMERGE REFUSE #1999: not record/autofix -> main within one repository
-AUTOMERGE OK #2002 at (live head)
-hold rc=0

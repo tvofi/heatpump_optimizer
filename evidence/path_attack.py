@@ -7,7 +7,7 @@ pr = {"number": 2002, "mergeable": True,
       "head": {"ref": R.RECORD_BRANCH, "repo": {"full_name": R.DEFAULT_REPO}},
       "base": {"ref": "main", "repo": {"full_name": R.DEFAULT_REPO}}}
 sha = "1fa713f" + "0"*33
-facts = {1995: {"merged": True, "merge_commit_sha": sha, "title": "fix: x"}}
+facts = {1995: {"merged": True, "merge_commit_sha": sha, "title": "fix: x", "base": {"ref": "main"}}}
 line = R.row_line(1995, "fix: x", sha, None)
 def f(name): return {"filename": name, "status": "added", "additions": 1, "deletions": 0, "patch": "@@ -0,0 +1 @@\n+" + line}
 cases = {
