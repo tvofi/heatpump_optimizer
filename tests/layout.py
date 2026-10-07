@@ -303,8 +303,8 @@ def landed(files: list[str], retired: list[dict]) -> list[dict]:
     """The landed entries, and every directory their moves emptied: the map
     retires a directory's files one by one, and a citation of the directory
     (a `git diff -- <dir>`, a glob) then reads nothing, silently."""
-    out = [r for r in retired if not any(under(p, r["old"]) for p in files)]
-    have = {p[:i + 1] for p in files for i, c in enumerate(p) if c == "/"}
+    have = {p[:i + 1] for p in files for i, c in enumerate(p) if c == "/"} | set(files)
+    out = [r for r in retired if r["old"] not in have]
     known = {r["old"] for r in retired}
     while True:
         dirs = {o.rstrip("/").rpartition("/")[0] + "/" for o in (r["old"] for r in out)}
@@ -330,7 +330,12 @@ def stale_lines(text: str, entries: list[dict]) -> list[tuple[str, str]]:
     """(old, line) for each line of `text` citing a landed entry, fallbacks
     excepted."""
     out = []
+    if not entries:
+        return out
+    any_old = re.compile("|".join(re.escape(r["old"].rstrip("/")) for r in entries))
     for line in text.splitlines():
+        if not any_old.search(line):
+            continue
         hits = [r for r in entries if r["old"].rstrip("/") in line and guard_re(r["old"]).search(line)]
         for r in hits:
             if (r["new"] and r["new"].rstrip("/") in line) or FALLBACK.search(line):
@@ -341,12 +346,21 @@ def stale_lines(text: str, entries: list[dict]) -> list[tuple[str, str]]:
     return out
 
 
-def blob(root: Path, spec: str) -> str | None:
-    """`git show <spec>` as text, or None for a missing or binary blob."""
-    p = subprocess.run(["git", "show", spec], cwd=root, capture_output=True)
-    if p.returncode or b"\0" in p.stdout[:8000]:
-        return None
-    return p.stdout.decode(errors="replace")
+def blobs(root: Path, specs: list[str]) -> dict[str, str | None]:
+    """Each `<rev>:<path>` as text through one `git cat-file --batch`, None for
+    a missing or binary blob."""
+    proc = subprocess.run(["git", "cat-file", "--batch"], cwd=root, check=True, capture_output=True,
+                          input="".join(f"{s}\n" for s in specs).encode())
+    out, buf = {}, proc.stdout
+    for s in specs:
+        head, _, buf = buf.partition(b"\n")
+        if head.endswith(b" missing"):
+            out[s] = None
+            continue
+        size = int(head.rsplit(b" ", 1)[1])
+        data, buf = buf[:size], buf[size + 1:]
+        out[s] = None if b"\0" in data[:8000] else data.decode(errors="replace")
+    return out
 
 
 def guard_base(root: Path, ref: str) -> str | None:
@@ -373,6 +387,7 @@ def guard(root: Path, manifest: dict, base: str) -> list[str]:
     planned = [r for r in retired if r not in now]
     diff = git(root, "diff", "--cached", "-M", "--name-status", "-z", base).decode().split("\0")
     found: list[str] = []
+    read: list[tuple[str, str, str]] = []
     i = 0
     while i < len(diff) - 1:
         status = diff[i]
@@ -389,12 +404,14 @@ def guard(root: Path, manifest: dict, base: str) -> list[str]:
             elif len(categories_of(path, cats)) != 1 and not any(under(path, r["old"]) for r in planned):
                 found.append(f"placement: {path} is in {len(categories_of(path, cats))} categories of {MANIFEST}; "
                              "add it where its kind belongs, or a category for the kind")
-        if path.startswith(skip):
-            continue
-        head = blob(root, f":{path}")
+        if not path.startswith(skip):
+            read.append((status[:1], src, path))
+    text = blobs(root, [f":{p}" for _, _, p in read] + [f"{base}:{s}" for st, s, _ in read if st != "A"])
+    for st, src, path in read:
+        head = text[f":{path}"]
         if head is None:
             continue
-        was = blob(root, f"{base}:{src}") if status[:1] != "A" else ""
+        was = text[f"{base}:{src}"] if st != "A" else ""
         old = {}
         for k in stale_lines(was or "", now):
             old[k] = old.get(k, 0) + 1
@@ -453,23 +470,27 @@ def guard_self_test() -> int:
         ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
     ]
     failed = 0
-    for name, add, rm, want in cases:
-        tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-guard-"))
-        try:
-            g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
-            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
-            for p, t in {**base, MANIFEST: json.dumps(m)}.items():
-                (tmp / p).parent.mkdir(parents=True, exist_ok=True)
-                (tmp / p).write_text(t)
-            subprocess.run([*g, "add", "-A"], cwd=tmp, check=True)
-            subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True)
-            sha = git(tmp, "rev-parse", "HEAD").decode().strip()
-            for p in rm:
-                subprocess.run(["git", "rm", "-q", p], cwd=tmp, check=True)
+    tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-guard-"))
+    g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+    try:
+        subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+        for p, t in {**base, MANIFEST: json.dumps(m)}.items():
+            (tmp / p).parent.mkdir(parents=True, exist_ok=True)
+            (tmp / p).write_text(t)
+        subprocess.run([*g, "add", "-A"], cwd=tmp, check=True)
+        subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True)
+        sha = git(tmp, "rev-parse", "HEAD").decode().strip()
+        for name, add, rm, want in cases:
+            # Each case starts from the base commit, index and tree both.
+            subprocess.run(["git", "reset", "-q", "--hard", sha], cwd=tmp, check=True)
+            subprocess.run(["git", "clean", "-qfdx"], cwd=tmp, check=True)
+            if rm:
+                subprocess.run(["git", "rm", "-q", *rm], cwd=tmp, check=True)
             for p, t in add.items():
                 (tmp / p).parent.mkdir(parents=True, exist_ok=True)
                 (tmp / p).write_text(t)
-                subprocess.run(["git", "add", p], cwd=tmp, check=True)
+            if add:
+                subprocess.run(["git", "add", *add], cwd=tmp, check=True)
             found = guard(tmp, m, sha)
             got = {k: sum(f.startswith(k + ":") for f in found) for k in ("new-reference", "unswept", "placement")}
             ok = all(got[k] == want.get(k, 0) for k in got)
@@ -478,8 +499,8 @@ def guard_self_test() -> int:
                 failed += 1
                 for f in found:
                     print(f"         {f}")
-        finally:
-            shutil.rmtree(tmp)
+    finally:
+        shutil.rmtree(tmp)
     return failed
 
 
