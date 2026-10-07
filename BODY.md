@@ -68,7 +68,7 @@ owner's.
 
 ## Head
 
-`f607a349f1a8b6336d62fb6d36394197b996cd94`, at merge base `be0cb821` (`origin/main`). This is round 3. PR head `6f3609a4` (round 1 plus its row commit) is merged in. Three commits answer round 1's block, and three answer round 2's block and the row report that followed it.
+`82af801a69e4cdc6ae2a8d93a517750be209c410`, at merge base `38c03d94` (`origin/main`). This is round 3, plus a plain `origin/main` merge whose only conflict was `tools/audit/bugclasses.json`, where main's `R9-RCA-1985` entry and this PR's `R9-RCA-1990` entry are both kept. PR head `6f3609a4` (round 1 plus its row commit) is merged in. Three commits answer round 1's block, and three answer round 2's block and the row report that followed it.
 
 Round 2 blocked with `harness`: the carries' command `moved_paths.py tools/audit/seat/*` crashed with `IsADirectoryError` on the tracked directory `tools/audit/seat/shims/`. A directory argument is now walked: every tracked file under it is scanned, recursively, and untracked files are skipped. A self-test case covers this. A `layout.json` directory entry whose files are still tracked now counts as a planned move, not a moved one. The carry command is unchanged; its seat-wide run is in `## Figures`. That run found one functional defect, now fixed:
 
