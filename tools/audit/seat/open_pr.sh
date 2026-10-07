@@ -4,6 +4,22 @@
 # The PR worktree and body live under $HPO_STATE_DIR/pr/<topic> (default ~/.local/state/hpo), and the
 # seat venv seat_venv.sh builds there comes first on PATH.
 # Successor of handoff_push.sh's open path: always merges origin/main, names the roster group in the row.
+# THE ROW'S HOME (#1990's RCA, round 3). Rows are written to dev/programme/delivery/
+# only, never to the retired docs/delivery/, and the directory is made when a
+# branch predates the lift. One function, so the self-test drives the write.
+ROW_DIR=dev/programme/delivery
+write_row() { # <worktree> <N> <line>; prints the repo-relative path written
+  mkdir -p "$1/$ROW_DIR" && printf '%s\n' "$3" > "$1/$ROW_DIR/$2.md" && echo "$ROW_DIR/$2.md"
+}
+if [ "${1:-}" = --self-test ]; then
+  _t=$(mktemp -d); _f=0
+  _p=$(write_row "$_t" 7 "- [#7] row") || _f=1
+  [ "$_p" = "dev/programme/delivery/7.md" ] && [ -f "$_t/$_p" ] && [ ! -e "$_t/docs" ] || _f=1
+  rm -rf "$_t"
+  if [ $_f = 0 ]; then echo "  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"
+  else echo "  FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"; fi
+  echo "open_pr self-test: 1 checks, $_f failed"; exit $_f
+fi
 set -eo pipefail; unset GIT_AUTHOR_NAME
 export PATH=${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin:$PATH
 M=$(cd "$(git -C "$(dirname -- "$0")" rev-parse --path-format=absolute --git-common-dir)/.." && pwd)
@@ -28,8 +44,8 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || { grep -E 'REFUSE' $D/p1.log; exit 1; }
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
-printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > dev/programme/delivery/$N.md
-git add dev/programme/delivery/$N.md
+_row=$(write_row . $N "$(printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)' $N $R $N "$TITLE" "$G")")
+git add "$_row"
 git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com commit -q --author='tvofi <70032254+tvofi@users.noreply.github.com>' -m "record: the delivery row for #$N
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
