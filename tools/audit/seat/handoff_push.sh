@@ -7,7 +7,7 @@
 # dev/programme/HANDOVER.md names it.
 set -uo pipefail
 # THE ROW'S HOME (#1990's RCA, round 3). Rows are written to dev/programme/delivery/
-# only, never to the retired docs/delivery/, and the directory is made when a
+# only, never to the retired delivery directory, and it is made when a
 # branch predates the lift. One function, so the self-test drives the write.
 ROW_DIR=dev/programme/delivery
 write_row() { # <worktree> <N> <line>; prints the repo-relative path written
