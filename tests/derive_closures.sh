@@ -78,7 +78,11 @@ rec() {
   echo "  [$(date +%H:%M:%S)] record $script $*"
   $PYTHON tests/closure.py record "$script" --out-dir "$OUTDIR" --args "$@" \
     > "$OUTDIR/$(basename "$script").out" 2>&1
-  echo "  [$(date +%H:%M:%S)] done   $script (exit $?)"
+  # Captured on its own line: inside the echo below, $? would already be the
+  # $(date) substitution's status, and every script read "exit 0" -- a stress.py
+  # recording that exited 1 included, the one skip-failed-recording names.
+  local rc=$?
+  echo "  [$(date +%H:%M:%S)] done   $script (exit $rc)"
 }
 
 if [ -n "$SINGLE" ]; then
