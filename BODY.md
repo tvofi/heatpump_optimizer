@@ -15,7 +15,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Head
 
-`3df5d91c15679f00e26437ae6f9bb3aea4699d6d`
+`64c1744dbd6ab37a53e695eaa86239cdd5f13f34`
 
 ## Mutation proof
 
@@ -23,6 +23,9 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
   - The detector commit `ca9b3257` alone gives `node tools/policy/friction_issues.mjs --self-test` rc=1: `FAIL the stats tool this lane spawns and quotes is a file: .claude/workflows/policy_lint.mjs`, `100 passed, 1 failed`.
   - At the fix `ed40307b`: rc=0, `101 passed, 0 failed`.
   - Renaming the sibling to `policy_lintX.mjs` gives `FAIL ... policy_lintX.mjs`, `100 passed, 1 failed`. The rename was restored.
+- `tools/audit/harnesses/r9_fr3_family_consumer.mjs` (fix-review round 1 finding, line 43):
+  - At `3d31fc52` (the line reads `.claude/workflows/friction_issues.mjs`): rc=1, `ENOENT: no such file or directory, open '.../.claude/workflows/friction_issues.mjs'`.
+  - At the fix `64c1744d` (the line reads `tools/policy/friction_issues.mjs`): rc=0, all family arms `ok`, including `a producer that prints the family row without counting it refuses`. Restoring the old spelling gives the rc=1 again.
 - `tools/pr/preflight.sh`:
   - The detector commit `bf669af7` adds arm 5 to `tests/entities.py`'s stale-corpus fixture: the same stale head, with `policy_lint.mjs` under `tools/policy/` only.
   - The fixture, extracted and run on its own, gives at `bf669af7`: `policy corpus -- NOT compared: policy_lint.mjs here does not answer --corpus-filter`, and the arm is false.
@@ -33,6 +36,10 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 - Arm 4 (old layout, an old `policy_lint` without `--corpus-filter`) prints `NOT compared` at both commits, so the sentinel probe is not weakened.
 - The filer self-test run from `/Users/timmalmstrom/hpo-seats` (another working directory) passes and quotes the path relative to that directory.
 - The dry run at the fix, `node tools/policy/friction_issues.mjs --dry-run --stats-file <57-PR histogram> --since v6.7.16`, exits rc=0 and would update #1985, #1990 and #2004 and file `other`. The same command at `main` exits rc=1 with `refusing: .claude/workflows/policy_lint.mjs --normalize-friction-keys did not answer`.
+
+## Search rule
+
+The moved-path search rule is stated in `dev/audit/rca/R9-RCA-2004.md` section 4 and was widened after the fix review. It now covers any line in a tracked `*.mjs *.js *.py *.sh *.yml` file, outside the frozen `tools/audit/round*/` and `dev/archive/` trees, that names one of the 140 `tests/layout.json` `retired.old` paths absent at HEAD and either assigns it to a constant, spawns or execs it, or **reads or imports it** (`readFileSync`, `open(`, `read_text`, `import(`, `require(`, `git show`, `git cat-file`). A hit is cleared by the new path on the same statement, a `locate()` resolution, or a `test -f` / `existsSync` shim that falls back to the new path. Re-run at `64c1744d`: four executed-and-broken seams (the three from the first rule plus the FR-3 consumer harness, now fixed), and no other executed hit. Left, named for R9-RO-8: usage docstrings that print a pre-move command and are not executed (`tools/coverage/partition.py`, `coverage_tree.sh`, `tests/coverage_ratchet.py`, `tools/policy/agreement_py.py`, `budget_raise_gate.py`, `tools/pr/contract_rerun.py`, `tools/devices/measure_prefill_corpus.py`, `custom_components/heatpump_optimizer/prefill_offer.py`; the last is under `custom_components/`, so a text-only change there would widen a closure).
 
 ## Figures
 
@@ -53,7 +60,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Forward-carry
 
-- R9-RO-8 (#1921): the 67 landed `tests/layout.json` `retired` entries still at `since: null`, and program launches that spell a pre-move path and so skip `counts.mjs` `locate()`. The orchestrator carries both into the R9-RO-8 roster brief.
+- R9-RO-8 (#1921): the 67 landed `tests/layout.json` `retired` entries still at `since: null`, program launches that spell a pre-move path and so skip `counts.mjs` `locate()`, and the usage docstrings listed under Search rule that print a pre-move command. The orchestrator carries all three into the R9-RO-8 roster brief.
 - D13 (process yield): key the `harness` friction on its sub-reason once the sub-reason grammar is closed. Recommendation only.
 
 ## Friction
