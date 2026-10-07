@@ -1,0 +1,13 @@
+
+=== #1935 boost drift replay ===
+
+=== #1935 boost drift replay ===
+RESULT mode=stub fork_cycle=254 fork_used=254 n_cycles=432
+RESULT stub null_no_boost: samples=431 tagged=0 folds_outside=365 folds_frozen=66 folds_after=96 hh_final=0.3 EQUAL
+RESULT stub channel_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.3 EQUAL
+RESULT stub mode_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.3 EQUAL
+RESULT base divergence channel_boost vs null_no_boost: solve inputs identical for cycles 0..254, first differing solve cycle=255 of 432
+RESULT base divergence mode_boost vs null_no_boost: solve inputs identical for cycles 0..255, first differing solve cycle=256 of 432
+RESULT stub two_zone_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.7993 EQUAL
+RESULT stub two_zone_null: samples=431 tagged=0 folds_outside=365 folds_frozen=66 folds_after=96 hh_final=0.8071 EQUAL
+RESULT stub ALL EQUAL

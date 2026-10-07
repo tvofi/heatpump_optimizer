@@ -1,0 +1,11 @@
+
+=== #1935 boost drift replay ===
+
+=== #1935 boost drift replay ===
+RESULT mode=stub-control fork_cycle=254 fork_used=255 n_cycles=432
+RESULT stub-control null_no_boost: samples=431 tagged=0 folds_outside=365 folds_frozen=66 folds_after=96 hh_final=0.3 EQUAL
+RESULT stub-control channel_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.3 DIFFERENT daily_bias,folds_frozen,tagged,untagged
+RESULT stub-control mode_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.3 DIFFERENT daily_bias,folds_frozen,tagged,untagged
+RESULT stub-control two_zone_boost: samples=431 tagged=24 folds_outside=334 folds_frozen=0 folds_after=80 hh_final=0.7993 DIFFERENT daily,daily_bias,folds_frozen,hh_final,tagged,untagged
+RESULT stub-control two_zone_null: samples=431 tagged=0 folds_outside=365 folds_frozen=66 folds_after=96 hh_final=0.8071 EQUAL
+RESULT stub-control DIFFERS

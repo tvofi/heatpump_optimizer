@@ -1,0 +1,11 @@
+
+=== #1935 boost drift replay ===
+
+=== #1935 boost drift replay ===
+
+-- shared pre-boost prefix
+  ok   the arms share exactly the cycles before the first boosting one (no surface acts earlier, so one prefix stands for all three)
+
+ALL 1 FORK PASSED
+RESULT check_fork rc 0
+RESULT planted pre-fork surface action: shared vs unshared DIFFERENT daily_bias,folds_outside,tagged,untagged
