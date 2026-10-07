@@ -1,2 +1,0 @@
-    ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:507 GUARD_OFF: if silent_unenforceable(config, get_state):
-MUTATION TABLE REFUSED -- 4695 unpinned site(s) against 4694 at the ratchet base 59b5ac6e4594b42cd5579cca182a743c25f4c48d, 1 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded

@@ -1,0 +1,4 @@
+  4693 unpinned site(s) of 5820 candidate sites, 4693 at the ratchet base e7479ad19f9643a59dd61cfaca5e871c75bc1a6d; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 10 production file(s) whose code this diff adds or modifies
+  8 mutant(s) over 10 file(s); drivers in play: tests/arch_score_head.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/guard_pins.py, tests/harness_headers.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'e7479ad19f9643a59dd61cfaca5e871c75bc1a6d' (run.sh's GOLDEN_REF resolution)
