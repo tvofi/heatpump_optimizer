@@ -144,7 +144,7 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 const { issues = [], repo, session = 'claude-web' } = args ?? {}
 if (!issues.length || !repo) throw new Error('args.issues and args.repo are required')
 
-const judgePrompt = (it) => `You are the judge for issue #${it.issue} of the open-issues program, working from tools/audit/briefs/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
+const judgePrompt = (it) => `You are the judge for issue #${it.issue} of the open-issues program, working from dev/governance/roles/judge.md. You do not trust the finder or the verifiers; you re-measure. ${GH_READ} ${GH_WRITE} ${WT_REVIEW('triage-' + it.issue, 'origin/main')}
 Read the issue body AND every comment: the comments carry judge verdicts, corrections and claims that override the body.
 What the plan of record expects, which you may confirm or overturn with a number: ${it.expect}
 ${it.extra ?? ''}

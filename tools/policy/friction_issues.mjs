@@ -60,9 +60,11 @@ import fs from 'node:fs'
 import { spawnSync } from 'node:child_process'
 
 const FRICTION_PREFIX = '[policy] recurring friction: '
-const STATS_TOOL = '.claude/workflows/policy_lint.mjs'
-// What is spawned: the same two homes the workflows' `if test -f` probes.
-const STATS_RUN = fs.existsSync(STATS_TOOL) ? STATS_TOOL : 'tools/policy/policy_lint.mjs'
+// The same two homes the workflows' `if test -f` probes. One constant both
+// spawns and is quoted as an issue's derivation command, so the command a
+// filed issue carries is a file (#2004, dev/audit/rca/R9-RCA-2004.md).
+const STATS_TOOL = fs.existsSync('.claude/workflows/policy_lint.mjs') ? '.claude/workflows/policy_lint.mjs' : 'tools/policy/policy_lint.mjs'
+const STATS_RUN = STATS_TOOL
 
 // --- the pure decisions ------------------------------------------------------
 // Everything a run decides, decided here so the self-test can drive it without
@@ -984,6 +986,8 @@ export function selfTest() {
   // `tools/policy/`: node exited 1, the lane refused, and `record` stayed red.
   st(fs.existsSync(STATS_RUN), true,
     `the spawned stats tool exists on disk (${STATS_RUN}), whichever of its two homes the checkout has`)
+  st(fs.existsSync(STATS_TOOL), true,
+    `and the stats tool quoted as an issue's derivation command is a file: ${STATS_TOOL}`)
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry

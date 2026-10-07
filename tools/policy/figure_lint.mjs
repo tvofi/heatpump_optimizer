@@ -32,7 +32,7 @@
 // PROGRAMS or a literal script path -- the checker's own recogniser, not a
 // second one written for the count. TEMPLATED means the segment carries a
 // `<placeholder>` or a `$NAME` the body binds elsewhere. The enumerator is
-// `.claude/workflows/figure_census.mjs`, which imports that recogniser from
+// `tools/policy/figure_census.mjs`, which imports that recogniser from
 // here; the corpus it counts includes the body of the pull request that added
 // this file, so the figure moves when that body is edited. Run the enumerator,
 // do not carry its number.
@@ -103,7 +103,7 @@ const GH = process.env.FIGURE_LINT_GH || 'gh'
 // shell. So a subcommand word taken from a body selected which PROGRAM `gh`
 // ran, not merely which subcommand -- unreachable on `pr-contract`, whose
 // runner config is fresh and which a pull-request author cannot write, and
-// reachable through `tools/audit/prepr.sh` on a seat's own machine, where the
+// reachable through `tools/pr/prepr.sh` on a seat's own machine, where the
 // seat's config applies. It is closed rather than disclosed, because closing it
 // costs one empty directory: every spawn below runs under a config directory
 // this file creates, so no alias exists for the child on any machine. A real

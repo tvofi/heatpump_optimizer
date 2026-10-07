@@ -3035,7 +3035,7 @@ async def options_error_branches():
 # ---------------------------------------------------------------------------
 # The residual statement branches (register row config-flow-test-coverage).
 # Every branch below was found missed by the coverage instrument
-# (tools/audit/w5-partition/coverage_tree.sh) at the merge base this section
+# (tools/coverage/coverage_tree.sh) at the merge base this section
 # landed against; each block covers one named production statement through
 # the handler or helper that really runs, with the assertion that dies when
 # that statement is mutated beside it. One branch here is NOT covered:
@@ -6031,7 +6031,7 @@ async def options_modbus_prefill():
 # ---------------------------------------------------------------------------
 # #1067 W1067-G7b-1: the same page, fed by a heat-pump DEVICE instead of a
 # Modbus prefix. The device's entities come from the generated fixture
-# (tools/gen_device_fixtures.py, tvofi/tuya_heat_pump's own model file at the
+# (tools/devices/gen_device_fixtures.py, tvofi/tuya_heat_pump's own model file at the
 # commit the fixture records); device_prefill maps them to roles and
 # modbus_prefill.infer() is unchanged. tests/features.py pins the mapping;
 # this pins what the page does with it.

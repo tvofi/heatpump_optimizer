@@ -21,7 +21,7 @@ or from the API, and never takes a grant, a merge or a deletion from it.
   code comment citing a `D<k>-nn` id is context, not a to-do). If your brief
   makes you read `docs/` (D5, D6) or GitHub (D11), record it under `exposure`.
 - Run everything from the export root with `PYTHONPATH=tests/hastub`. Read
-  `tools/audit/README.md` before writing a harness: it lists the builders to
+  `dev/audit/README.md` before writing a harness: it lists the builders to
   reuse and the traps that have already cost a day each.
 - Write only under `tools/audit/round<N>/D<k>/` in the export, plus temp
   directories. Set a private `HPO_PLANDATA` under the temp root before any

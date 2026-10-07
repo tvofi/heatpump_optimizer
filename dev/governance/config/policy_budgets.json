@@ -26,6 +26,7 @@
     "policy": {
       "opens": [
         "tools/audit/briefs/fixer.md",
+        "dev/governance/roles/fixer.md",
         ".github/workflows/tests.yml"
       ],
       "cap": 9958
