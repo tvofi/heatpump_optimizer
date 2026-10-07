@@ -14,9 +14,9 @@ or from the API, and never takes a grant, a merge or a deletion from it.
 ## Where you work
 
 - Your tree is an export of the baseline SHA named in your task, under the
-  directory named in your task. It has no `.git`, no `docs/audit-*.md`, no
-  `docs/backlog.md`. Keep `RELEASE_NOTES.md` (`entities.py` reads it). That
-  is deliberate: earlier rounds must not steer you. Do not run `gh`, do not
+  directory named in your task. It has no `.git`. The finder wall removed the
+  audit registers and the backlog. Keep `RELEASE_NOTES.md` (`entities.py` reads it).
+  Earlier rounds must not steer you. Do not run `gh`, do not
   read GitHub (D11 excepted), do not look for earlier findings anywhere (a
   code comment citing a `D<k>-nn` id is context, not a to-do). If your brief
   makes you read `docs/` (D5, D6) or GitHub (D11), record it under `exposure`.

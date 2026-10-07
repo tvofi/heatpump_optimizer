@@ -23,8 +23,21 @@ import subprocess
 import sys
 import tempfile
 
-PLAN = "docs/plan-2026-09-open-issues.md"
+# The moved path, then the path history still has (tvofi D2). A reader of only
+# the new path misses every merge before R9-RO-5.
+PLAN_PATHS = (
+    "dev/programme/plan-2026-09-open-issues.md",
+    "docs/plan-2026-09-open-issues.md",
+)
 SINCE = "2026-09-14"
+
+
+def plan_path(rev: str) -> str:
+    """The plan's path at `rev`. The new path when that commit has it, else the old."""
+    for p in PLAN_PATHS:
+        if git("cat-file", "-e", f"{rev}:{p}").returncode == 0:
+            return p
+    return PLAN_PATHS[-1]
 
 
 def git(*args):
@@ -84,18 +97,18 @@ def sync_merges(label, number, tip, base):
             continue
         r = git("merge-tree", "--write-tree", "--name-only", branch, main)
         conflicted = r.stdout.split("\n\n")[0].split("\n")[1:]
-        if r.returncode == 1 and PLAN in conflicted:
+        if r.returncode == 1 and any(p in conflicted for p in PLAN_PATHS):
             yield label, number, s, branch, main
 
 
 def replay(number, branch, main):
     base = out("merge-base", branch, main)
-    O, A, B = (out("show", f"{c}:{PLAN}").split("\n") for c in (base, branch, main))
+    O, A, B = (out("show", f"{c}:{plan_path(c)}").split("\n") for c in (base, branch, main))
     known = {identity(O[i]) for i in row_lines(O)}
     introduced = {}
     for mc in reversed(out("rev-list", "--first-parent", f"{base}..{main}").split()):
         m = re.search(r"#(\d+)", out("log", "-1", "--format=%s", mc))
-        for d in out("diff", f"{mc}^1", mc, "--", PLAN).split("\n"):
+        for d in out("diff", f"{mc}^1", mc, "--", plan_path(mc)).split("\n"):
             if d.startswith("+") and not d.startswith("+++"):
                 introduced.setdefault(d[1:], int(m.group(1)) if m else -1)
 
@@ -137,5 +150,26 @@ def main():
     return 0 if pairs and as_is == pairs and files == 0 else 1
 
 
+def self_test() -> int:
+    """The historical commit still has the old path. A reader of only the new
+    path misses it; plan_path returns the old one. When HEAD has the move,
+    plan_path returns the new one."""
+    tip = out("rev-parse", "origin/main")
+    new, old = PLAN_PATHS
+    if git("cat-file", "-e", f"{tip}:{new}").returncode == 0 or plan_path(tip) != old:
+        print("FAIL: origin/main must resolve at the old plan path")
+        return 1
+    print(f"ok: plan_path(origin/main)={plan_path(tip)}; a new-path-only read misses it")
+    head = out("rev-parse", "HEAD")
+    if git("cat-file", "-e", f"{head}:{new}").returncode == 0:
+        if plan_path(head) != new:
+            print(f"FAIL: HEAD has {new} and plan_path returned {plan_path(head)}")
+            return 1
+        print(f"ok: plan_path(HEAD)={new}")
+    return 0
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv:
+        sys.exit(self_test())
     sys.exit(main())

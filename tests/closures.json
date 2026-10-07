@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 167.2,
+   "seconds": 192.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -492,7 +492,6 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
-   ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
    ".github/workflows/budget-raise-gate-rerun.yml",
@@ -593,7 +592,8 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
-   "docs/HANDOVER.md",
+   "dev/governance/config/cfr_exclusions.json",
+   "dev/programme/HANDOVER.md",
    "docs/architecture.md",
    "docs/automations.md",
    "docs/configuration.md",
@@ -694,14 +694,23 @@
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
+   "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
+   "tools/policy/check-wave-script.mjs",
    "tools/policy/counts.mjs",
+   "tools/policy/field_coverage.mjs",
+   "tools/policy/figure_census.mjs",
    "tools/policy/figure_lint.mjs",
    "tools/policy/fixtures/required-contexts.json",
+   "tools/policy/fragments_sync.mjs",
+   "tools/policy/friction_issues.mjs",
    "tools/policy/policy_lint.mjs",
+   "tools/policy/policy_lint_mutants.mjs",
    "tools/policy/render_md.mjs",
+   "tools/policy/rules_sync.mjs",
    "tools/policy/vendor/markdown-it.LICENSE",
    "tools/policy/vendor/markdown-it.min.js",
+   "tools/pr/README.md",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
@@ -3033,19 +3042,25 @@
  "inert_reads": {
   "tests/harness_headers.py": [
    "LICENSE",
-   "docs/audit-2026-08.md",
-   "docs/audit-2026-09.md",
-   "docs/backlog.md"
+   "dev/programme/register/audit-2026-09.md"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
   ],
   "tests/entities.py": [
-   "tools/policy/figure_lint.mjs",
    "LICENSE",
    "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
-   "tools/audit/seat/roster_lib.py"
+   "tools/audit/seat/roster_lib.py",
+   "tools/policy/agreement.mjs",
+   "tools/policy/check-wave-script.mjs",
+   "tools/policy/field_coverage.mjs",
+   "tools/policy/figure_census.mjs",
+   "tools/policy/figure_lint.mjs",
+   "tools/policy/fragments_sync.mjs",
+   "tools/policy/friction_issues.mjs",
+   "tools/policy/policy_lint_mutants.mjs",
+   "tools/policy/rules_sync.mjs"
   ]
  }
 }

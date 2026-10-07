@@ -1,10 +1,9 @@
 # Working on this repository
 
 A session loads this file automatically, and it is the **index**: it names every
-policy file and the obligation each carries, and states in full only what no
-other file states. The project policies live in `.claude/rules/` and the harness
-loads each when you read a file its `paths:` globs match, so they arrive when
-they bind without being opened by hand. A citation below is not the policy; the
+policy file and the obligation each carries. Canonical rules are `dev/governance/rules/`; `.claude/rules/` is
+generated, and the harness loads a rule when a read matches its `paths:` globs.
+A citation below is not the policy; the
 file is.
 
 ## Four rules that will refuse your pull request
@@ -59,7 +58,7 @@ deploy key (`stamp.py --push --push-key`). Retired `tvofi-seat-author` never wri
 
 ## Where the policy is — the whole set, and who each part binds
 
-Everything named here but `docs/HANDOVER.md` is **policy**, and so is this file.
+Everything named here but `dev/programme/HANDOVER.md` is **policy**, and so is this file.
 The owner approves a change to any of it before **merging**, not drafting — so
 open the pull request and surface it. Approval is the owner's approving GitHub
 review, which `main-protect-checks`'s code-owner rule requires (0009 step 6). Every
@@ -84,7 +83,7 @@ and `policy_budgets.json` caps it.
 | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
 | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
 | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
-| `delivery-status-tracking.md` | a PR's row as `docs/delivery/<N>.md`, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the record outranks any wave body |
+| `delivery-status-tracking.md` | a PR's row as `dev/programme/delivery/<N>.md`, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the record outranks any wave body |
 | `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |
 | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
 | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
@@ -103,7 +102,7 @@ template and contract are one file.
 
 ### Role contracts — open the one you are
 
-Under `tools/audit/briefs/`. Each says what its role owes and what blocks it.
+Under `dev/governance/roles/`. Each says what its role owes and what blocks it.
 
 | contract | the role |
 |---|---|
@@ -121,7 +120,7 @@ session may also hand its seats an out-of-tree shared block, named
 of a shared basename because a collision a reader must resolve is a defect.
 
 ### Dimension briefs — the audit rounds
-One per dimension, under `tools/audit/briefs/`, in the owner's own words. Named
+One per dimension, under `dev/governance/dimensions/`, in the owner's own words. Named
 individually, because a range reads as complete while covering a fraction:
 
 | brief | dimension |
@@ -156,8 +155,8 @@ never only in /tmp (decision 0013).
 
 - `tests/README.md` — what each script pins, how the scoped gate selects, why a
   test that re-implements a production formula pins nothing.
-- `tools/audit/README.md` — how a round is run and where its evidence lands.
-- `docs/HANDOVER.md` — state, not policy: the one durable handover, ruled by
+- `dev/audit/README.md` — how a round is run and where its evidence lands.
+- `dev/programme/HANDOVER.md` — state, not policy: the one durable handover, ruled by
   `writing-for-agents.md`; `tests/entities.py` refuses a second under `docs/`.
 
 ## Fix it; if you cannot, verify it independently; only then file it
@@ -174,7 +173,7 @@ largely false and that a mechanism another asked for was already in the tree,
 landed by a pull request listed in its own evidence table.
 
 **A recurring error is not a third issue.** At roughly the third instance it is
-`tools/audit/briefs/root-cause.md`: a named cause and process state, a cost test
+`dev/governance/roles/root-cause.md`: a named cause and process state, a cost test
 with numbers, and a countermeasure *or a recorded decision not to build one*,
 which an audit class cannot record alone (`defect-root-cause.md`).
 
@@ -182,7 +181,7 @@ which an audit class cannot record alone (`defect-root-cause.md`).
 goes to that stage's own brief, by `finding-propagation.md`; an issue is not
 the instrument for propagation.
 
-This rule is stated here and again in `tools/audit/briefs/orchestrator.md`
+This rule is stated here and again in `dev/governance/roles/orchestrator.md`
 section 8. That duplication is deliberate and is the owner's call: it binds every
 seat, so it belongs where every seat reads, and it binds the orchestrator
 hardest, so it belongs in that contract too. **If the two ever disagree, this
@@ -209,13 +208,13 @@ Tracking issue **#201**; its newest comment is the live state, and nothing in
 the tree competes with it for that job.
 
 Four places carry the rest, and each answers a different question. The plan of
-record is `docs/plan-2026-09-open-issues.md`; its frozen Delivery-status table
-and `docs/delivery/` outrank a wave body that disagrees — if they look stale
+record is `dev/programme/plan-2026-09-open-issues.md`; its frozen Delivery-status table
+and `dev/programme/delivery/` outrank a wave body that disagrees — if they look stale
 against #201, they are the bug and fixing them comes first.
-`docs/HANDOVER.md` carries what the code cannot say: decisions and why,
+`dev/programme/HANDOVER.md` carries what the code cannot say: decisions and why,
 corrections to the record, the traps a previous session hit, and owed work.
 `.claude/workflows/wave-*-groups.json` hold the per-group briefs, each with a
 `resume` field saying where it restarts — and a brief records what a judge
 already **established and refuted**, so reading only the issue body will have
-you implement a plan that was overturned. `docs/audit-2026-09.md` is the
+you implement a plan that was overturned. `dev/programme/register/audit-2026-09.md` is the
 evidence register the plan delivers against.

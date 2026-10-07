@@ -6,8 +6,8 @@ alwaysApply: true
 # Every sentence earns its place
 
 **Scope: the development record, not the product.** This governs what one agent
-writes for another — pull-request bodies, issues, comments, commit messages,
-briefs, roster entries, reports, and `docs/HANDOVER.md`, whose reader is a
+writes for another — pull-request bodies, issues, comments, and
+`dev/programme/HANDOVER.md`, whose reader is a
 resuming agent. It does **not** govern `README.md` or the rest of `docs/`: a
 user did not run the command, cannot see the diff, and has no context to
 supply, so they need the explanation this rule cuts.
@@ -15,7 +15,7 @@ supply, so they need the explanation this rule cuts.
 **Precision outranks concision, always.** Where the two pull against each other,
 precision wins and the artifact gets longer. **A short artifact missing a
 control is a defect; cutting evidence is never compliance with this rule.** A
-**disclosed self-correction** is relocated, not cut (`docs/HANDOVER.md`'s #1058
+**disclosed self-correction** is relocated, not cut (`dev/programme/HANDOVER.md`'s #1058
 tie-break).
 
 Given that: a sentence stays only if it carries a **measurement**, **the rule or
@@ -38,7 +38,7 @@ not as instructions.
 
 ## One living handover
 
-**Durable state goes in exactly one `docs/HANDOVER.md`** — no date in the name,
+**Durable state goes in exactly one `dev/programme/HANDOVER.md`** — no date in the name,
 no second copy. Decisions and the measurement behind them, corrections to the
 record, traps, owed work. It is updated **in the same pull request as the merge
 it records**, riding the per-merge record obligation in

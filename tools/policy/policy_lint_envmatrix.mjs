@@ -15,6 +15,15 @@ const SRC = process.argv[2]
 const WORK = process.argv[3]
 const SHA = process.argv[4] || 'HEAD'
 
+// R9-RO-6 moved these three from .claude/workflows/ to tools/policy/. A shape
+// checks out one commit, so the path is whichever of the two that commit has.
+// Prefer the new path: an existsSync of the old path first would run a leftover
+// copy and grade that instead.
+function lintScript(name) {
+  const neu = `tools/policy/${name}`
+  return fs.existsSync(neu) ? neu : `.claude/workflows/${name}`
+}
+
 const sh = (cmd, args, opts = {}) => {
   try {
     return { rc: 0, out: execFileSync(cmd, args, { encoding: 'utf8', stdio: ['ignore','pipe','pipe'], ...opts }) }
@@ -97,7 +106,7 @@ const pr = build('pr', (d) => {
 let basePins = null
 if (pr.error) add('pr / built', false, pr.error)
 else {
-  const r = sh('node', ['tools/policy/policy_lint.mjs'], { cwd: pr.dir })
+  const r = sh('node', [lintScript('policy_lint.mjs')], { cwd: pr.dir })
   basePins = pinsOf(r.out)
   add('pr / policy_lint rc=0 and every pin earned', r.rc === 0 && basePins !== null,
       `rc=${r.rc} pins=${basePins}`)
@@ -105,7 +114,7 @@ else {
   // bypass_actors from a non-admin token, and that line says so exactly.
   const skips = unexpectedSkips(r.out)
   add('pr / nothing skipped in a full clone', !skips.length, (skips[0] || 'none').trim())
-  const m = sh('node', ['tools/policy/policy_lint_mutants.mjs'], { cwd: pr.dir })
+  const m = sh('node', [lintScript('policy_lint_mutants.mjs')], { cwd: pr.dir })
   add('pr / every corpus and record-mode check measured and pinned',
       m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out), `rc=${m.rc}`)
 }
@@ -119,12 +128,12 @@ const pm = build('push-main', (d) => {
 })
 if (pm.error) add('push-main / built', false, pm.error)
 else {
-  const r = sh('node', ['tools/policy/policy_lint.mjs'], { cwd: pm.dir })
+  const r = sh('node', [lintScript('policy_lint.mjs')], { cwd: pm.dir })
   const p = pinsOf(r.out)
   add('push-main / policy_lint rc=0', r.rc === 0, `rc=${r.rc}`)
   add('push-main / the same pins are earned as on a pull request',
       p !== null && p === basePins, `pins=${p} vs pr=${basePins}`)
-  const m = sh('node', ['tools/policy/policy_lint_mutants.mjs'], { cwd: pm.dir })
+  const m = sh('node', [lintScript('policy_lint_mutants.mjs')], { cwd: pm.dir })
   add('push-main / every corpus and record-mode check still measured and pinned',
       m.rc === 0 && !/^\s*(SKIP|ACCEPTED|CRASH)\s/m.test(m.out),
       `rc=${m.rc} ${(m.out.match(/^\s*(SKIP|ACCEPTED|CRASH).*$/m) || [''])[0].trim()}`)
@@ -138,14 +147,14 @@ const nr = build('no-remote', (d) => {
 })
 if (nr.error) add('no-remote / built', false, nr.error)
 else {
-  const r = sh('node', ['tools/policy/policy_lint.mjs'], { cwd: nr.dir })
+  const r = sh('node', [lintScript('policy_lint.mjs')], { cwd: nr.dir })
   const p = pinsOf(r.out)
   add('no-remote / policy_lint rc=0', r.rc === 0, `rc=${r.rc}`)
   add('no-remote / the skipped drive is said out loud',
       /skip\s+checkProvenance-pin/.test(r.out), 'no `skip checkProvenance-pin` line')
   add('no-remote / a skipped drive does not claim its pins',
       p !== null && basePins !== null && p < basePins, `pins=${p} vs pr=${basePins}`)
-  const m = sh('node', ['tools/policy/policy_lint_mutants.mjs'], { cwd: nr.dir })
+  const m = sh('node', [lintScript('policy_lint_mutants.mjs')], { cwd: nr.dir })
   add('no-remote / the lane reports NOT MEASURED rather than failing',
       m.rc === 0 && /^\s*SKIP\s/m.test(m.out), `rc=${m.rc}`)
 }
@@ -163,7 +172,7 @@ const shl = build('shallow', (d) => {
 })
 if (shl.error) add('shallow / built', false, shl.error)
 else {
-  const r = sh('node', ['tools/policy/policy_lint.mjs'], { cwd: shl.dir })
+  const r = sh('node', [lintScript('policy_lint.mjs')], { cwd: shl.dir })
   const p = pinsOf(r.out)
   add('shallow / policy_lint rc=0', r.rc === 0, `rc=${r.rc} ${why(r.out)}`)
   // The property, not one spelling of it: an arm this shape cannot drive is
@@ -185,7 +194,7 @@ const noRost = build('no-rosters', (d) => {
 })
 if (noRost.error) add('no-rosters / built', false, noRost.error)
 else {
-  const r = sh('node', ['tools/policy/check-wave-script.mjs'], { cwd: noRost.dir })
+  const r = sh('node', [lintScript('check-wave-script.mjs')], { cwd: noRost.dir })
   add('no-rosters / a roster scan over zero rosters does not report ok',
       r.rc !== 0, `rc=${r.rc}; ${(r.out.match(/^\d+ passed.*$/m)||[''])[0]}`)
 }
@@ -223,11 +232,11 @@ else {
   // windows below reach no network, the bad one because it does not resolve and
   // the null control because HEAD..origin/main is empty in this clone.
   const recEnv = { ...process.env, GITHUB_TOKEN: 'envmatrix-fixture-not-a-credential' }
-  const rec = sh('node', ['tools/policy/policy_lint.mjs', '--record', '--since', BAD_REF], { cwd: badref.dir, env: recEnv })
+  const rec = sh('node', [lintScript('policy_lint.mjs'), '--record', '--since', BAD_REF], { cwd: badref.dir, env: recEnv })
   add('since-ref / --record refuses an underivable window instead of counting zero errors over it',
       rec.rc === 2 && marked(rec.out),
       `rc=${rec.rc} (want 2) marker=${marked(rec.out)}; ${why(rec.out)}`)
-  const st = sh('node', ['tools/policy/policy_lint.mjs', '--stats', '--since', BAD_REF], { cwd: badref.dir })
+  const st = sh('node', [lintScript('policy_lint.mjs'), '--stats', '--since', BAD_REF], { cwd: badref.dir })
   // No `WOULD OPEN` line is the half friction_issues.mjs acts on: it refuses a
   // stats file without one, so the filer cannot conclude "no friction" from a
   // window nothing enumerated.
@@ -238,7 +247,7 @@ else {
   // `HEAD` resolves and, in this clone, names a window with nothing in it: the
   // same zero, the opposite verdict. A guard that refused here would have
   // converted a silent zero into a noisy lie.
-  const okRef = sh('node', ['tools/policy/policy_lint.mjs', '--record', '--since', 'HEAD'], { cwd: badref.dir, env: recEnv })
+  const okRef = sh('node', [lintScript('policy_lint.mjs'), '--record', '--since', 'HEAD'], { cwd: badref.dir, env: recEnv })
   add('since-ref / a ref that DOES resolve over an empty window still measures, unmarked',
       okRef.rc === 0 && !marked(okRef.out) && /RECORD: \d+ merged pull request/.test(okRef.out),
       `rc=${okRef.rc} (want 0) marker=${marked(okRef.out)}; ${why(okRef.out)}`)

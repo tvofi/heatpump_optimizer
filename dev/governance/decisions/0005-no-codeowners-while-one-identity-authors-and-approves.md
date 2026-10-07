@@ -1,3 +1,9 @@
+---
+status: superseded
+supersedes: []
+superseded-by: ["0009"]
+---
+
 # 0005 — No CODEOWNERS while one identity authors and approves
 
 Status: accepted; O1 was answered — declined — so this stands rather than waits

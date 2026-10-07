@@ -4755,7 +4755,7 @@ R.check(
 # snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
 # being unknown; `python3 tests/ha_floor.py record` re-records it, and the
 # nightly floor container re-asks every answer of Home Assistant itself.
-# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+# Root cause and cost test: dev/audit/rca/R9-RCA-1869.md.
 R.section("P11: every Home Assistant name production reaches exists at the floor")
 
 import ha_floor as _p11  # noqa: E402
@@ -15053,16 +15053,16 @@ R.check(
 # and five repeats.
 _handovers = sorted(
     f for f in _subprocess.run(
-        ["git", "ls-files", "docs"], cwd=_closure.ROOT,
+        ["git", "ls-files", "-z"], cwd=_closure.ROOT,
         capture_output=True, text=True,
-    ).stdout.split()
-    if _closure.is_handover(f)
+    ).stdout.split("\0")
+    if f and _closure.is_handover(f)
 )
 R.check(
     "exactly one handover, with no date in its name",
-    _handovers == ["docs/HANDOVER.md"],
+    _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "docs/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -15070,13 +15070,13 @@ R.check(
 # the line names the merge the text reflects, which is always an ancestor.
 _uf = _re.search(
     r"^updated-for:[ \t]*([0-9a-f]{7,40})[ \t]*$",
-    Path("docs/HANDOVER.md").read_text(),
+    Path("dev/programme/HANDOVER.md").read_text(),
     _re.M,
-) if Path("docs/HANDOVER.md").exists() else None
+) if Path("dev/programme/HANDOVER.md").exists() else None
 R.check(
     "the handover names the commit it reflects",
     _uf is not None,
-    "docs/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
+    "dev/programme/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
     "was last written against",
 )
 R.check(
@@ -17974,7 +17974,7 @@ R.check(
 # it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["docs/audit-2026-09.md", "LICENSE", "SECURITY.md"])
+    ["dev/programme/register/audit-2026-09.md", "LICENSE", "SECURITY.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
@@ -19785,8 +19785,8 @@ R.check(
 # INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
 # 62799e4 -- the gap is the skip, not a different baseline SHA.
 _493_FILES = [
-    ".claude/workflows/wave-4-groups.json",
-    ".claude/workflows/wave-5-groups.json",
+    "dev/archive/rosters/wave-4-groups.json",
+    "dev/archive/rosters/wave-5-groups.json",
     "docs/plan-2026-09-open-issues.md",
 ]
 _493_CARD = {
@@ -19947,8 +19947,8 @@ _h493_card = (
 _h493_root, _h493_base = _hygiene_git(
     _h493_card,
     {
-        ".claude/workflows/wave-4-groups.json": "{}\n",
-        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "dev/archive/rosters/wave-4-groups.json": "{}\n",
+        "dev/archive/rosters/wave-5-groups.json": "{}\n",
         "docs/plan-2026-09-open-issues.md": "# plan\n",
     },
     py_touch=False,
@@ -20983,6 +20983,14 @@ R.check(
     and not [f for f in _tools_outside_audit if _closure.is_inert(f)],
     f"{_tools_outside_audit}; inert among them "
     f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
+)
+_pr_note = (Path(_closure.ROOT) / "tools/pr/README.md").read_text()
+R.check(
+    "the pull-request note names the gate lease and the seat instruments",
+    ".claude/rules/gate-scoping.md" in _pr_note
+    and "tools/audit/seat/INSTRUMENTS.md" in _pr_note,
+    "tools/pr/README.md is a tools/ file outside tools/audit/, so the "
+    "narrowing above classifies it by a read rather than by INERT",
 )
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks
@@ -24299,20 +24307,20 @@ with _ds_tf.TemporaryDirectory() as _raf_tmp2:
     # here reads exactly like a passing path guard.
     _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
     for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
-                 "docs/delivery/2052.md.bak", "docs/delivery/sub/2052.md"):
+                 "dev/programme/delivery/2052.md.bak", "dev/programme/delivery/sub/2052.md"):
         try:
             _rr.write_rows([{"number": 2052, "path": _bad,
                              "line": _raf_line}], Path(_raf_tmp2))
             _raf_guard.append(f"{_bad}=ACCEPTED")
         except _rr.Refuse:
             _raf_guard.append(f"{_bad}=refused")
-    _rr.write_rows([{"number": 2052, "path": "docs/delivery/2052.md",
+    _rr.write_rows([{"number": 2052, "path": "dev/programme/delivery/2052.md",
                      "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
                    Path(_raf_tmp2))
-    _raf_text = (Path(_raf_tmp2) / "docs/delivery/2052.md").read_text()
+    _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
     _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
 R.check(
-    "the generator's write set is docs/delivery/<N>.md and nothing else",
+    "the generator's write set is dev/programme/delivery/<N>.md and nothing else",
     all(g.endswith("=refused") for g in _raf_guard)
     and _raf_text == _raf_want,
     f"guard={_raf_guard}, written={_raf_text!r}; a row appended to the "
@@ -27207,7 +27215,7 @@ R.check(
 # are now driven with NO argument and through `main()`'s own call, so what is
 # pinned is the read the instrument actually performs.
 try:
-    _CFR_ARTIFACT = _closure.ROOT / ".claude/workflows/cfr_exclusions.json"
+    _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
     _CFR = json.loads(_CFR_ARTIFACT.read_text())
     _CFR_EXCL = _CFR.get("excluded_jobs") or {}
     # The quote the record entry's citation has to carry, read out of the
@@ -27304,7 +27312,7 @@ try:
         for _r in _cfr_reads
     )
     _CFR_INSTR_OK = bool(
-        _cfr.EXCLUSION_ARTIFACT == ".claude/workflows/cfr_exclusions.json"
+        _cfr.EXCLUSION_ARTIFACT == "dev/governance/config/cfr_exclusions.json"
         and _cfr_default_path
         == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
         and _cfr_default_map == _CFR_EXCL
@@ -27535,7 +27543,7 @@ R.check(
 # not a widening.
 try:
     _cfr_now = json.loads(
-        (_closure.ROOT / ".claude/workflows/cfr_exclusions.json").read_text())
+        (_closure.ROOT / "dev/governance/config/cfr_exclusions.json").read_text())
     _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
     _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
     _MUT_QUOTE = "unpinned site(s)"

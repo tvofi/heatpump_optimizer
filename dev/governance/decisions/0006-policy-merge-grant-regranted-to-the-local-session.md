@@ -1,7 +1,7 @@
 ---
 status: accepted
 supersedes: []
-superseded-by: []
+superseded-by: ["0007"]
 ---
 
 # 0006 — The policy-merge grant, re-granted to the local session
