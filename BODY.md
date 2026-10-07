@@ -15,7 +15,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Head
 
-`e59313f036becabed6e63929203d5a5aa9d23555`
+`1476699242afca9129a6f7e4ff39c704930cac99`
 
 ## Mutation proof
 
@@ -40,9 +40,11 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 - The seat's own enumeration, independent of `policy_lint.mjs`: `/commits/<sha>/pulls` over the first-parent commits, then each PR's comments matched against `^Fix review:\s+blocked\s+[0-9a-f]{40}\s+harness\s*:`. Result: 7 entries over #1960, #1983, #1986, #1993 (3), #1994. Reviews contribute 0.
 - `gh run view <id> --json jobs`: `record: File the recurring-friction issues the histogram named` failed on runs 37531301054, 37551449435, 37559014577, 37564564652, 37568067978 and 37577849702. That is every push to `main` from `6001b09a` (#1919) to `3910026e`.
 - `bash tools/pr/preflight.sh </dev/null`: `check policy corpus -- NOT compared` at `main`, and `ok policy corpus -- current with origin/main` at this head.
+- `node tools/policy/rules_sync.mjs --check`: rc=0 at this head. With `.cursor/rules/defect-root-cause.mdc` reverted to the old path it returns rc=1, and after restoring it rc=0.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 40 policy file(s)`.
 - `python3 tools/audit/fold_ledger.py check`: `97 rca entries`, `0 violation(s)`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 2 script(s) run, 29 scoped out` (`tests/entities.py`, `tests/harness_headers.py`).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head: `ALL 2189 ENTITY CHECKS PASSED`, including `ok   and compares in the moved layout, policy_lint.mjs under tools/policy/`. The first run of it hit `OSError: [Errno 28] No space left on device` (the disk had 4.0 GiB free) and the re-run passed.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2189 ENTITY CHECKS PASSED` at `e59313f0`, and again at this head (673 s), including `ok   and compares in the moved layout, policy_lint.mjs under tools/policy/`. The first run of it hit `OSError: [Errno 28] No space left on device` (the disk had 4.0 GiB free) and the re-run passed.
 - `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `12 of 109 HARNESS HEADER CHECKS FAILED`. All 12 are `tools/audit/round4/D7/sysid_estimator_frontier.py`, which hit `wall limit 900s exceeded` with `cpu=197.6s` while `tests/entities.py` ran beside it. The diff touches neither that harness nor `custom_components/`. Left to CI.
 
 ## Red checks
@@ -51,11 +53,13 @@ None on this head yet. No CI has run.
 
 ## Forward-carry
 
-- R9-RO-8 (#1921), which owns the reference arm, needs two findings carried before this merges. This seat makes no edits to briefs, so the orchestrator owes the write to RO-8's group brief:
-  - 67 `tests/layout.json` `retired` entries have landed moves but still carry `since: null`.
-  - Spawn and exec sites that spell a pre-move program path bypass `counts.mjs` `locate()`. This head fixes the two live ones; the class has no barrier.
+- R9-RO-8 (#1921): the 67 landed `tests/layout.json` `retired` entries still at `since: null`, and program launches that spell a pre-move path and so skip `counts.mjs` `locate()`. The orchestrator carries both into the R9-RO-8 roster brief.
 - D13 (process yield): key the `harness` friction on its sub-reason once the sub-reason grammar is closed. Recommendation only.
 
 ## Friction
 
-- `.claude/rules/defect-root-cause.md`: "Where it is recorded" names `tools/audit/rca/<id>.md`, but `fold_ledger.py`'s `RCA_DIR` is `dev/audit/rca`. Rule text is policy, so this is surfaced and not edited.
+none
+
+## Approval
+
+`dev/governance/rules/defect-root-cause.md` "Where it is recorded" now names `dev/audit/rca/<id>.md` instead of `tools/audit/rca/<id>.md`, matching `tools/audit/fold_ledger.py`'s `RCA_DIR`. The generated copies were rewritten by `node tools/policy/rules_sync.mjs`: `.claude/rules/defect-root-cause.md` and `.cursor/rules/defect-root-cause.mdc`. This is a policy change. It corrects the location and does not change what a seat must do. The orchestrator approved it under mandate 5951564627.
