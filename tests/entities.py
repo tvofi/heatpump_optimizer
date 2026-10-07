@@ -17534,12 +17534,22 @@ def _stale_corpus_fixture():
             "console.log('TOTAL: 0 error(s)')\n"
         )
         old_lint = run(d)
-        return stale, authored, current, old_lint
+        # Arm 5: the same stale head in the layout the tree has had since
+        # #1919 -- policy_lint.mjs under tools/policy/ and not under
+        # .claude/workflows/. A pre-flight that spells only the old path finds
+        # no program there, fails the sentinel probe and prints NOT compared on
+        # every checkout (R9-RCA-2004). Arms 1-4 build the old layout, so they
+        # stayed green while the live check went dark.
+        (d / ".claude/workflows/policy_lint.mjs").unlink()
+        (d / "tools/policy").mkdir(parents=True)
+        _copy_policy_lint_tree(d / "tools/policy")
+        moved_layout = run(d)
+        return stale, authored, current, old_lint, moved_layout
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
 
-_sc_stale, _sc_authored, _sc_current, _sc_old_lint = _stale_corpus_fixture()
+_sc_stale, _sc_authored, _sc_current, _sc_old_lint, _sc_moved_layout = _stale_corpus_fixture()
 _sc_stale_block = _sc_stale.split("authored here AND moved")[0]
 R.check(
     "the pre-flight names a policy file main moved and this branch did not touch",
@@ -17660,6 +17670,14 @@ R.check(
     "indistinguishable from nothing being stale. Without the sentinel probe the "
     "check reports `ok` on precisely the stale checkouts it exists to catch, "
     "and this run is the same stale head that fires in the first arm",
+)
+R.check(
+    "and compares in the moved layout, policy_lint.mjs under tools/policy/",
+    "policy corpus -- 1 file(s) origin/main moved" in _sc_moved_layout
+    and "NOT compared" not in _sc_moved_layout,
+    "#1919 moved policy_lint.mjs to tools/policy/ and the pre-flight kept "
+    "spelling .claude/workflows/, so every checkout of main printed NOT "
+    "compared: the sentinel probe reported it, and nothing failed (R9-RCA-2004)",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an

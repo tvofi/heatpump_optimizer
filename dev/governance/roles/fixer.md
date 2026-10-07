@@ -18,10 +18,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included — the M0 null run attributes it to
-   the runner (#1713, #1723). **Pinning is `mutation-autofix`'s**
-   (`ci-autofix.md`): no local `--pin-killed`; the body lists survivors on the
-   sites you touched (`mutation_table.py --scope changed`), each with a value
-   check or a written triage.
+   the runner (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
+   `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
+   `## Unpinned sites` gives each its disposition: pinned by
+   `mutation-autofix`, a value check, or a written triage.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
@@ -53,7 +53,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI; `tests/README.md` ("The scoped gate") says why that is safe. So
+   to CI; `tests/README.md` ("The scoped gate") says why. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
@@ -288,6 +288,6 @@ trigger, not analysing it; the analysis is `root-cause.md`'s seat.
 The owner's rule. At the **fourth** round, replace the body instead of repairing
 it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
 fire, and only figures re-taken in that pass. Round history is deleted, not
-restated — except a **disclosed self-correction** (`docs/HANDOVER.md`'s #1058
+restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
 so the orchestrator splits the branch or closes it.

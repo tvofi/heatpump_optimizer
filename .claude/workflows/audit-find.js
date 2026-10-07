@@ -11,7 +11,7 @@
 //                         box: "B4"      -- optional: run only that container's seats
 //                         from: "intake" -- optional: gather every box's reports, leads, intake}
 //
-// One cloud container is one box (tools/audit/README.md). A round split across
+// One cloud container is one box (dev/audit/README.md). A round split across
 // containers runs `box` once per box, each pushing its evidence to
 // handoff/audit-r<round>-find-<box>, then `from: "intake"` once, after the last
 // box. With neither, every box runs here one after another, then intake.
@@ -45,14 +45,14 @@ if (from && box) throw new Error('args.box and args.from are exclusive: a box ru
 
 const DIMS = ['D0', 'D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8', 'D9', 'D10', 'D11', 'D12', 'D13', 'D14']
 // D11 audits the process itself, so it needs `.git` and the API: a worktree, not
-// an export. D13 reads the same sources and needs the same (tools/audit/briefs/
+// an export. D13 reads the same sources and needs the same (dev/governance/dimensions/
 // D13.md), so it is isolated too. DIMS and ISOLATED are the schedule: EVERY brief
-// under tools/audit/briefs/D<N>.md belongs in DIMS. They stopped at D12 through
+// under dev/governance/dimensions/D<N>.md belongs in DIMS. They stopped at D12 through
 // round 7 (R7-INSTR-01, #1477), and the omission was silent; the check in
-// .claude/workflows/check-wave-script.mjs derives both from the briefs directory
+// tools/policy/check-wave-script.mjs derives both from the briefs directory
 // and refuses the next one.
 // D14 is isolated because it mutates production to prove each detector moves
-// (tools/audit/briefs/D14.md), and runs its detectors against pre-fix commits.
+// (dev/governance/dimensions/D14.md), and runs its detectors against pre-fix commits.
 // An isolated seat gets its OWN worktree: seats of one dimension that share a
 // box would otherwise mutate one tree under each other.
 const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14'])
@@ -61,11 +61,11 @@ const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14'])
 // draws (a finder's verdicts are its population, never its evidence) is what this
 // grants an exception to. D13 is here because its brief's six required outputs
 // read `main`'s history and the API -- round 7's own D13 was first dispatched
-// with GitHub out of scope and returned one of the six (docs/audit-2026-09.md,
+// with GitHub out of scope and returned one of the six (dev/programme/register/audit-2026-09.md,
 // R7-INSTR-01). A dim in here must also be in ISOLATED: the history it reads
 // comes from a worktree with `.git`, which is what ISOLATED buys.
 const API_DIMS = new Set(['D11', 'D13'])
-// D14 is the one finder whose METHOD is earlier findings (tools/audit/briefs/D14.md):
+// D14 is the one finder whose METHOD is earlier findings (dev/governance/dimensions/D14.md):
 // it reads tools/audit/bugclasses.json and, in its worktree's .git, the history of
 // the instances listed there (pre-fix commits). No GitHub: that stays API_DIMS'.
 const LEDGER_DIMS = new Set(['D14'])
@@ -98,7 +98,7 @@ const seatsFromScopes = (table, dim) => {
 }
 // Where each seat runs: one box per cloud container (the round-9 plan, section
 // 4.3). At most three compute-heavy finders share a box, and the Chromium
-// finder sits alone (tools/audit/README.md, "Resource rules on the audit box");
+// finder sits alone (dev/audit/README.md, "Resource rules on the audit box");
 // the leads seat runs after the fan-out, on the box named by LEADS_BOX.
 const BOXES = {
   B1: { heavy: ['D0-s1', 'D3-s1'], light: ['D5-s1', 'D6-s1', 'D10-s1'] },
@@ -195,7 +195,7 @@ const reportSchema = {
 phase('Prepare the baseline')
 const prep = await agent(
   `Prepare the round ${round} audit baseline from the repository at ${repo} (do not modify that checkout)${box ? ` for box ${box} (this container)` : ''}.
-1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, dev/archive/audits/audit-*.md, dev/archive/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so no earlier round's evidence the gate does not read stays in the export (the strip is that script's own, never a second list). Create tools/audit/round${round}/ in the export.
+1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so the finder wall (the findings registers and the backlog, wherever they live) and every earlier round's evidence the gate does not read are removed from the export (the wall and the strip are that script's own, never a second list). Create tools/audit/round${round}/ in the export.
 2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way and strip it the same way.
 3. Warm the shared drift cache once: from ${repo}, run \`DRIFT_WARM_CACHE=1 PYTHONPATH=tests/hastub python3 tests/env_drift.py --all ${baseline}\` (the cache is warmed by a run with that variable set; \`--cache-key [ref] [--all]\` only prints the key, and there is no warm mode behind it).
 4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in tools/audit/round${round}/BASELINE.md inside the export.
@@ -218,7 +218,7 @@ log(`round ${round}${box ? ` box ${box}` : ''}: ${ACTIVE.length} dimension(s), $
 const workdir = (s) => (ISOLATED.has(s.dim) ? prep.worktrees[s.id] : prep.exportDir)
 const finder = (seat) => { const dim = seat.dim; const b = boxOf(seat.id); return agent(
   `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id) ? 'a compute-heavy seat: at most three share this box' : 'a light seat'}${CHROMIUM.has(seat.id) ? '; the Chromium seat, alone on its box' : ''}). Work only in ${workdir(seat)} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read tools/audit/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
-Read tools/audit/briefs/COMMON.md, then tools/audit/briefs/${dim}.md, then tools/audit/README.md, and follow them exactly. The brief's numbered method steps are ${dim}.M1, ${dim}.M2, ... in order.
+Read dev/governance/roles/COMMON.md, then dev/governance/dimensions/${dim}.md, then dev/audit/README.md, and follow them exactly. The brief's numbered method steps are ${dim}.M1, ${dim}.M2, ... in order.
 YOUR CELLS. Your scope is ${seat.id} in tools/audit/scopes.json: ${JSON.stringify(seat.blocks)}. List them resolved with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat ${seat.id}\` (one line per step set, axis value set and file). Every step you own is a deep focus: ${seat.steps.map((m) => `${dim}.${m}`).join(', ')}. Measure only these cells. Outside them, do not measure and write no harness: record a lead {owner_seat, file, symbol, what} in your report's leads, owner_seat being the seat whose cells hold it (\`--seat\` lists any seat's) or "unknown". Leads go to the leads seat after the fan-out.
 Write your harnesses under ${seatDir(seat)}/ and your report to ${seatDir(seat)}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true -- the judge's batch re-runner re-takes it on a quiet container.
 Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, coverage, unfinished, findings, non_findings, harnesses, leads). Number your findings ${seat.id}-01, -02, ... (finding.schema.json's id pattern); every finding carries scope "${seat.id}" and class_guess (an id in tools/audit/bugclasses.json, or "new"); coverage names every step of yours with depth deep, spot or none and its evidence; unfinished names each step you could not finish and what is left; every finding names its step.`,
@@ -298,7 +298,7 @@ let leadsSeat = null
 if (leads.length) {
   const byOwner = leads.reduce((m, l) => ((m[l.owner_seat] ??= []).push(l), m), {})
   leadsSeat = await agent(
-    `You are the leads seat of audit round ${round}, on box ${LEADS_BOX}. Read tools/audit/briefs/COMMON.md and dev/audit/README.md, and follow them. Prepare your own export of baseline ${baseline} from ${repo} as a finder's is prepared (git archive; docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md deleted; tools/audit/ copied in), and work only there, with PYTHONPATH=tests/hastub. Do not run gh; do not look for earlier findings.
+    `You are the leads seat of audit round ${round}, on box ${LEADS_BOX}. Read dev/governance/roles/COMMON.md and dev/audit/README.md, and follow them. Prepare your own export of baseline ${baseline} from ${repo} as a finder's is prepared (git archive; tools/audit/ copied in; then \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo}, which applies the finder wall and the earlier-round strip), and work only there, with PYTHONPATH=tests/hastub. Do not run gh; do not look for earlier findings.
 These are the leads the finder seats raised outside their own cells, grouped by the seat whose cells hold them: ${JSON.stringify(byOwner)}. Before measuring a lead, read its owner seat's REPORT.md (paths: ${JSON.stringify(Object.fromEntries(REPORTED.map((id) => [id, reports[id].report_path])))}${from ? `; these paths are inside each box's evidence branch, so fetch handoff/audit-r${round}-find-<box> for boxes ${Object.keys(BOXES).join(', ')} from ${repo}'s origin and read them there` : ''}): a lead the owner already measured, as a finding or a non-finding, is closed by that entry and not re-measured. Turn a lead into a finding ONLY with an executed number under COMMON.md -- harness, instrumented symbol, perturbation, metric definition, and the null control and leave-one-out where they apply. The finding is the owner's cells' finding: scope = the owner seat, id <owner seat>-51, -52, ..., harness under tools/audit/round${round}/<owner dimension>/leads/. A lead with owner "unknown" is assigned an owner with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat <id>\` first.
 Write your report to tools/audit/round${round}/LEADS.md. Return JSON {report_path, findings (each as finding.schema.json's finding), non_findings, harnesses, converted: [{raised_by, file, symbol, finding_id}], closed: [{raised_by, file, symbol, why}]} -- every lead appears in exactly one of converted and closed.`,
     { label: 'leads', schema: { type: 'object', required: ['report_path', 'findings', 'non_findings', 'harnesses', 'converted', 'closed'], properties: { report_path: { type: 'string' }, findings: reportSchema.properties.findings, non_findings: reportSchema.properties.non_findings, harnesses: reportSchema.properties.harnesses, converted: { type: 'array', items: { type: 'object', required: ['raised_by', 'file', 'symbol', 'finding_id'] } }, closed: { type: 'array', items: { type: 'object', required: ['raised_by', 'file', 'symbol', 'why'] } } } } },
@@ -336,7 +336,7 @@ if (missing.length) {
   return { missing, reports, rejected, rotation_round: ledgerRound }
 }
 // D3's candidates become findings only through a full gate on a quiet box
-// (tools/audit/briefs/D3.md, step 3), so that confirmation runs here, once,
+// (dev/governance/dimensions/D3.md, step 3), so that confirmation runs here, once,
 // after every box has reported. Wall/CPU re-takes are not this step's: the
 // judge's batch re-runner re-takes every provisional number (/audit-verify).
 phase('Quiet window')
@@ -353,13 +353,13 @@ Return JSON {quiet_path, d3_confirmed: [{mutant, finding_id, survived, killed_by
 }
 
 // Intake registers; it does not merge. Deduplication, within a dimension and
-// across dimensions, is the judge's first step (tools/audit/briefs/judge.md),
+// across dimensions, is the judge's first step (dev/governance/roles/judge.md),
 // which measures that two findings are one mechanism rather than reading it.
 const provisional = accepted.filter((f) => f.provisional || ['cpu', 'wall'].includes(f.evidence?.cpu_or_wall)).map((f) => f.id)
 const intake = await agent(
   `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.${defer.length ? ` This is BATCH 1 of round ${round}: seats ${defer.join(', ')} have not reported and are deferred to a catch-up batch by tvofi's decision of 2026-09-26; list them in the dimension status table as "deferred (catch-up)", and note that the catch-up batch adds their rows and updates their dimensions' rotation entries.` : ''}${judgeFlags ? ` Add a "Judge flags" subsection to the register section with exactly this text: ${JSON.stringify(judgeFlags)}.` : ''}
 1. Validate every accepted finding's JSON against tools/audit/finding.schema.json in ${repo} (pip install jsonschema into a venv if needed); one that fails is moved to rejected-at-intake with the validator's message. Already rejected by the driver, with reasons: ${JSON.stringify(rejected)}.
-2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${round}-register created from origin/main in a worktree of your own: the dimension status table (seats reported, findings accepted, rejected at intake), one table per dimension with id, scope, step, severity, class_guess, title, status=reported, provisional (${JSON.stringify(provisional)} are provisional until the judge's batch re-run), a leads table (raised by, owner seat, file, symbol, converted to / closed because), and ${quiet ? `D3's confirmations from ${quiet.quiet_path}: ${JSON.stringify(quiet.d3_confirmed)} -- a D3 finding is registered only if its mutant survived the full gate, otherwise it is rejected at intake with the killing checks` : 'no D3 confirmations (no D3 seat reported)'}.
+2. Write the Round ${round} "Findings register" section of dev/programme/register/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${round}-register created from origin/main in a worktree of your own: the dimension status table (seats reported, findings accepted, rejected at intake), one table per dimension with id, scope, step, severity, class_guess, title, status=reported, provisional (${JSON.stringify(provisional)} are provisional until the judge's batch re-run), a leads table (raised by, owner seat, file, symbol, converted to / closed because), and ${quiet ? `D3's confirmations from ${quiet.quiet_path}: ${JSON.stringify(quiet.d3_confirmed)} -- a D3 finding is registered only if its mutant survived the full gate, otherwise it is rejected at intake with the killing checks` : 'no D3 confirmations (no D3 seat reported)'}.
 3. Copy tools/audit/round${round}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set tools/audit/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
 The accepted findings: ${JSON.stringify(accepted.map((f) => ({ id: f.id, seat: f.seat, scope: f.scope, step: f.step, severity: f.severity, class_guess: f.class_guess, title: f.title, from_lead: !!f.from_lead })))}; the reports: ${JSON.stringify(Object.fromEntries(REPORTED.map((id) => [id, reports[id].report_path])))}.
 Return JSON {branch, registered: [ids], rejected: [{id, reason}]}.`,

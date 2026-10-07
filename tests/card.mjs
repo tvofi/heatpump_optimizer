@@ -8447,7 +8447,7 @@ const setupBox = (card, place) =>
 // alpha, and apply a threshold chosen per KIND of object.
 //
 // The kind split is a design choice and is stated rather than implied
-// (`tools/audit/briefs/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
+// (`dev/governance/roles/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
 // graphics required to understand the content", which is the series, the
 // "now" reference and the boundary of the estimated-price region -- not the
 // plot frame and not the gridlines, whose job is to be legible without
@@ -8655,7 +8655,7 @@ const setupBox = (card, place) =>
 // that collapses the amber/gold axis the old palette leaned on. tvofi's D4
 // (2026-09-30, #1791) extends it to protanopia and tritanopia.
 //
-// Two design choices, stated (`tools/audit/briefs/fixer.md` step 11):
+// Two design choices, stated (`dev/governance/roles/fixer.md` step 11):
 // - The pairs are the series drawn in ONE PANEL (`panel` in SERIES_DEFS,
 //   R9-UI-4's concept A). Two series in different panels never share a y
 //   range or a stretch of plot, so their colours are not what tells them

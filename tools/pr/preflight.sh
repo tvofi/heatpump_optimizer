@@ -132,7 +132,14 @@ set_of() { printf '%s\n' "$1" | sed '/^$/d' | sort -u; }
 n_of() { set_of "$1" | wc -l | tr -d ' '; }
 minus() { comm -23 <(set_of "$1") <(set_of "$2"); }
 inter() { comm -12 <(set_of "$1") <(set_of "$2"); }
-corpus_filter() { node "$1/.claude/workflows/policy_lint.mjs" --corpus-filter 2>/dev/null; }
+# Wherever the checkout keeps the program: tools/policy/ since #1919, and
+# .claude/workflows/ in a checkout that predates it. Spelling only the old path
+# failed the probe below on every checkout of main (R9-RCA-2004).
+corpus_filter() {
+  local lint="$1/tools/policy/policy_lint.mjs"
+  test -f "$lint" || lint="$1/.claude/workflows/policy_lint.mjs"
+  node "$lint" --corpus-filter 2>/dev/null
+}
 
 why=""; root=""; base=""
 if ! root=$(git rev-parse --show-toplevel 2>/dev/null) || [ -z "$root" ]; then

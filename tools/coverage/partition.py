@@ -12,7 +12,7 @@ later, so what this encodes is a *predicate* whose complement is a real tranche.
 THE RULE, in full:
 
     A module of custom_components/heatpump_optimizer/ is below the bar when its
-    statement coverage, measured by tools/audit/w5-partition/coverage_tree.sh, is
+    statement coverage, measured by tools/coverage/coverage_tree.sh, is
     below BAR. Every below-bar module belongs to exactly one #195 tranche:
 
         coordinator.py  -> W5-G7
@@ -39,8 +39,8 @@ forward scope that the tree can outgrow.
 
 Usage:
 
-    W=$(mktemp -d); W5P_WORK=$W tools/audit/w5-partition/coverage_tree.sh all
-    python3 tools/audit/w5-partition/partition.py --coverage $W/out/coverage.json
+    W=$(mktemp -d); W5P_WORK=$W tools/coverage/coverage_tree.sh all
+    python3 tools/coverage/partition.py --coverage $W/out/coverage.json
 
     --bar F        coverage bar in percent (default 95.0)
     --roster PATH  wave roster to check for the residual group

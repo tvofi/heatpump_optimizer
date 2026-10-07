@@ -18,7 +18,7 @@ gets no offer, because a prompt that opens an empty page is noise.
 **The minimum is measured, not chosen.** It is read off the corpus table
 W1067-G7b-3 built and keeps:
 
-    PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
+    PYTHONPATH=tests/hastub python3 tools/devices/measure_prefill_corpus.py
 
 prints "roles the fallback fills per corpus device (W1067-POST1's table)",
 one row per labelled device with the roles its source table resolved and the
@@ -48,7 +48,7 @@ from . import device_prefill, name_match
 from .device_prefill import EntityRecord, Resolution
 
 #: How many roles the fallback must fill on a device no source table proves.
-#: Read off ``tools/measure_prefill_corpus.py``'s roles-per-device table as
+#: Read off ``tools/devices/measure_prefill_corpus.py``'s roles-per-device table as
 #: the smallest ``fallback`` count among its hand-shaped rows; the module
 #: docstring states the rule and the command. ``tests/features.py`` re-derives
 #: it from the corpus on every run, so a corpus that moves takes this with it.
