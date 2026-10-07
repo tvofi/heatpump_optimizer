@@ -3,7 +3,6 @@
 .claude/rules/delivery-status-tracking.md:6:  - "docs/HANDOVER.md"
 .claude/rules/delivery-status-tracking.md:7:  - "docs/delivery/**"
 .claude/rules/writing-for-agents.md:4:  - "docs/HANDOVER.md"
-.claude/workflows/web-stamp.js:153:Update the Delivery-status record: each wave row in docs/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row records gets its own file docs/delivery/<N>.md, a line anchored \`- [#N](…/pull/N)\` and its state, never a new table row, which policy_lint refuses past the freeze. Update docs/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
 .cursor/rules/brief-citations.mdc:3:globs: .claude/workflows/*.json,docs/plan*.md,docs/HANDOVER.md,tools/audit/briefs/**
 .cursor/rules/delivery-status-tracking.mdc:3:globs: docs/plan*.md,.claude/workflows/*-groups.json,docs/HANDOVER.md,docs/delivery/**
 .cursor/rules/writing-for-agents.mdc:3:globs: docs/HANDOVER.md,docs/plan*.md,tools/audit/briefs/**,.claude/workflows/*-groups.json,.github/PULL_REQUEST_TEMPLATE.md
@@ -14,7 +13,6 @@ dev/archive/plans/plan-1067-rotenso-inputs.md:214:    - **The two sources disagr
 dev/archive/plans/plan-1067-rotenso-inputs.md:265:Runs after G7b-3. Delivery-status rows verified against measured `origin/main`, roster `resume` flips, `docs/HANDOVER.md` decisions (C4 deferral: the two-zone model has one flow temperature at `thermal_model.py:1952` and no per-zone emitter law, so a zone-2 supply slot would feed nothing; card-slot deferral; one-sided lift semantics), one #201 comment via `gh_comment.py` with read-back, `Closes #1067`. No stamp.
 dev/archive/rosters/wave-4-groups.json:288:        "note": "S12 RECORDED HALT, merged as #637 (30a202e) at merge base 31bcaba: no subsystem API to migrate tests to, no production change, the S0/S1 facades stay. RE-SURVEYED by W4-G14 at merge base 0f0cfb8 after coordinator.py moved five times (#707, #714, #734, #733, #731): the verdict reproduces. Rules with results -- production classes named subsystem/seam/facade/delegate/context: CoordinatorContext alone, a frozen dataclass over the write-once hubs; module-level functions taking a coordinator as first parameter exist in away.py, boost.py, setpoint_check.py, wood_fuel.py, diagnostics.py, sensor.py and coordinator.py, and every one DEPENDS ON the coordinator rather than owning state a test could target instead of a facade; one delegate-shaped method (describe_setup, bound from sensor.py); zero coordinator methods without a production reference beyond their own def; the four _hub descriptors are bound from production and from tests. HYGIENE FOUND, NOT ACTED ON (a docs-and-roster seat; deletion is a production edit owing a deliberate structure re-record): four property members with zero references in production or tests -- last_optimization, next_optimization, current_action, floor_return_temp -- and three write-only instance attributes -- _dhw_draws_dirty, _last_energy_sample, _last_manual_setpoint. CONTROL the write-only rule owes: a Store-without-Load AST walk also flags _unsub_defrost, _unsub_ecl110_state, _unsub_peak_guard and _slab_temp_initialized, which are read BY NAME (a string loop in __init__, a hasattr), so the count is taken only after a string-literal check. Carried to W5-G7's brief. The seam moves sequenced to this stage are owed by no stage after S13 (docs/HANDOVER.md). This entry read pending until W4-G14 truthed it."
 dev/archive/rosters/wave-d11-groups.json:161:        "note": "#960 CLOSED. Every mutable uses ref in .github/workflows/ is SHA-pinned with its frozen tag as a trailing comment, and the release job attests the tag's tree. No lane sweeps pins for staleness -- that is owed work, recorded in docs/HANDOVER.md."
-dev/governance/config/policy_budgets.json:21:        "docs/HANDOVER.md",
 dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:135:    ... then cited from docs/HANDOVER.md              -> rc=1
 dev/governance/decisions/0006-policy-merge-grant-regranted-to-the-local-session.md:136:        ERROR [named-docs] is named by docs/HANDOVER.md but has no cap in
 dev/governance/decisions/0009-agent-identities-for-author-and-approver.md:265:path has no code owner. `docs/HANDOVER.md` is left out and leaves the policy
@@ -60,7 +58,6 @@ tests/entities.py:24510:        and "docs/HANDOVER.md" not in job
 tests/entities.py:24530:    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
 tests/layout.json:468:   "old": "docs/HANDOVER.md",
 tests/layout.json:493:   "old": "docs/delivery/",
-tools/audit/ci-version-edit/pr_contract_shapes.py:60:docs = ("docs/HANDOVER.md", lambda t: t + "\nprobe line\n")
 tools/audit/merge_fastpath.py:46:                  side's CI saw). A docs/delivery row nothing opens is not one
 tools/audit/merge_fastpath.py:304:              classes(["tests/run.sh"], ["docs/delivery/1.md"], always=()), ["full"])
 tools/audit/merge_fastpath.py:306:              classes(["custom_components/x/new.py"], ["docs/delivery/1.md"], always=()), ["full"])
@@ -105,17 +102,17 @@ tools/policy/policy_lint.mjs:468:  'docs/HANDOVER.md',
 tools/policy/policy_lint.mjs:1935:// AND ONE FILE PER PULL REQUEST, `docs/delivery/<N>.md` -- the owner's choice on
 tools/policy/policy_lint.mjs:2243:// and the one #1081 landed the mechanism for: `docs/delivery/N.md`, N's own row.
 tools/policy/policy_lint.mjs:2275:// exact, not a prefix: a stray file under docs/delivery that is not a row
-tools/policy/policy_lint.mjs:4090:  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
-tools/policy/policy_lint.mjs:4095:      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
-tools/policy/policy_lint.mjs:4294:  // touched carry-*.json, docs/delivery/*.md and docs/plan-*.md and nothing
-tools/policy/policy_lint.mjs:4298:  // than a prefix (a .bak under docs/delivery, a plan file without its wave
-tools/policy/policy_lint.mjs:4302:  if (!recordClassPaths(['docs/delivery/1749.md'])) rcFail.push('a delivery row alone did not classify as record-class')
-tools/policy/policy_lint.mjs:4305:  if (!recordClassPaths(['docs/delivery/1746.md', '.claude/workflows/carry-1686.json', 'docs/plan-2026-09-open-issues.md'])) rcFail.push('the three record path classes together did not classify as record-class')
-tools/policy/policy_lint.mjs:4306:  if (recordClassPaths(['docs/delivery/1746.md', 'custom_components/heatpump_optimizer/some_other_module.py'])) rcFail.push('a code file beside a delivery row did not break the record class')
-tools/policy/policy_lint.mjs:4308:  if (recordClassPaths(['docs/delivery/1746.md.bak'])) rcFail.push('a non-row file under docs/delivery classified as a record path')
-tools/policy/policy_lint.mjs:4318:  mergeDiffSource = () => 'docs/delivery/1749.md\n.claude/workflows/carry-1646.json\n'
-tools/policy/policy_lint.mjs:4320:  mergeDiffSource = () => 'docs/delivery/1749.md\ncustom_components/heatpump_optimizer/some_other_module.py\n'
-tools/policy/policy_lint.mjs:6026:  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+tools/policy/policy_lint.mjs:4097:      ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+tools/policy/policy_lint.mjs:4298:  // touched carry-*.json, docs/delivery/*.md and docs/plan-*.md and nothing
+tools/policy/policy_lint.mjs:4302:  // than a prefix (a .bak under docs/delivery, a plan file without its wave
+tools/policy/policy_lint.mjs:4306:  if (!recordClassPaths(['docs/delivery/1749.md'])) rcFail.push('a delivery row alone did not classify as record-class')
+tools/policy/policy_lint.mjs:4309:  if (!recordClassPaths(['docs/delivery/1746.md', '.claude/workflows/carry-1686.json', 'docs/plan-2026-09-open-issues.md'])) rcFail.push('the three record path classes together did not classify as record-class')
+tools/policy/policy_lint.mjs:4310:  if (recordClassPaths(['docs/delivery/1746.md', 'custom_components/heatpump_optimizer/some_other_module.py'])) rcFail.push('a code file beside a delivery row did not break the record class')
+tools/policy/policy_lint.mjs:4312:  if (recordClassPaths(['docs/delivery/1746.md.bak'])) rcFail.push('a non-row file under docs/delivery classified as a record path')
+tools/policy/policy_lint.mjs:4322:  mergeDiffSource = () => 'docs/delivery/1749.md\n.claude/workflows/carry-1646.json\n'
+tools/policy/policy_lint.mjs:4324:  mergeDiffSource = () => 'docs/delivery/1749.md\ncustom_components/heatpump_optimizer/some_other_module.py\n'
+tools/policy/policy_lint.mjs:6030:  'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+tools/policy/policy_lint.mjs:6034:// and a reader of an older base still sees docs/delivery/.
 tools/policy/record-predicate/row_files_replay.py:15:          `docs/delivery/<N>.md`, keyed by the pull request that added it; a row
 tools/policy/record-predicate/sweep.mjs:62:const HAND_PATHS = ['dev/programme/HANDOVER.md', 'docs/HANDOVER.md']
 tools/policy/record-predicate/sweep.mjs:306:  const hist = (p) => (p === 'docs/HANDOVER.md' ? 'old' : null)

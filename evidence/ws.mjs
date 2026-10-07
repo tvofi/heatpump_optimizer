@@ -1,0 +1,157 @@
+// One stamp per wave, then the wave's record on #201 and in the two
+// planning documents. See .claude/workflows/web-fragments.md for the shared
+// prompt block below, which is hand-copied into every web-*.js.
+export const meta = {
+  name: 'web-stamp',
+  description: 'Stamp main once for everything merged since the last tag, then record the wave on #201 and in the plan of record',
+  phases: [{ title: 'Stamp' }, { title: 'Record' }],
+}
+const GH_READ = `No gh CLI exists in this environment. For every GitHub read run
+ToolSearch with "select:<tool>" first, then call it (owner tvofi, repo
+heatpump_optimizer): issue_read (get / get_comments), pull_request_read
+(get, get_check_runs, get_comments, get_files, get_diff), list_pull_requests,
+actions_list (list_workflow_runs on tests.yml, branch main), actions_get,
+get_job_logs (failed_only). This grant is read-only.`
+
+const GH_WRITE = `Write grant, not merge: add_issue_comment, issue_write
+(update: labels, state, state_reason), create_pull_request, update_pull_request.
+Hold only in a phase that writes. Never together with the merge grant.`
+
+const GH_MERGE = `Merge grant: merge_pull_request (merge commit, never squash).
+Hold only in the merge phase. Do not hold the read grant here.`
+
+const GATE = `Gate rules on this 4-core box. The shell's working directory
+resets between calls: pin cd in every command. PYTHONPATH=tests/hastub for
+direct script runs; python3 tests/structure.py before every push; the five
+BLAS thread variables pinned to 1.
+
+THE LOCK IS FOR tests/stress.py, AND run.sh TAKES IT ITSELF.
+/tmp/hpo-gate.lock exists because stress.py's solve-time guard measures this
+machine while it solves, and three concurrent stress runs at load 6.5 once
+destroyed the very budget table they were recording. Measure the scope:
+
+    D=$(mktemp -d) && python3 tests/closure.py select \
+      --diff $(git merge-base origin/main HEAD) --workdir "$D"
+
+  * that command FAILS, or "$D/scope.txt" contains "MODE: FULL", or you are
+    deliberately running GATE_SCOPE=full  ->  run.sh as below. MODE: FULL is
+    how the gate reports a change it cannot reason about -- a gate file, or
+    a file in no recorded closure -- and it then runs every script including
+    stress.py. It prints ZERO selected scripts while meaning the opposite of
+    zero, so key on the mode line, never on the count. That line only exists
+    on a branch; a push to main forces GATE_SCOPE=full through the job
+    environment, which skips the code that prints a mode line at all -- the
+    only evidence in that log is the env line GATE_SCOPE: full.
+  * "$D/scope.run" names tests/stress.py  ->  run.sh as below.
+  * otherwise  ->  Run the scripts scope.run names, directly.
+
+run.sh is GATE_SCOPE=auto (or full) GOLDEN_MODE=drift
+GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh: it leases each
+stress.py run alone and releases it after, so every other script runs
+unleased. The queue, the wait bound and holding the lease by hand across
+commands (tests/gate_lock.py, HPO_GATE_LOCK_LABEL) are
+.claude/rules/gate-scoping.md's; never remove a lock you did not create.
+Print the concurrent process count beside every timing RESULT.
+
+CI IS THE AUTHORITY EITHER WAY. Its fast, closures and browser jobs run the
+same run.sh in the same drift mode against the same merge base, on a runner
+that is not competing with you -- so wait for them with actions_list and let
+them be the verdict. What you run locally is the evidence CI structurally
+CANNOT produce, and that is the reason to run it: the mutation proof (delete
+the production line, run the closure, paste the failing check names,
+restore), the failing test at the merge base before the fix exists, and the
+finder's harness before and after. CI only ever runs the committed tree, and
+tools/ is INERT so no CI job runs a harness at all.
+
+Browser lane: NODE_PATH=/opt/node22/lib/node_modules
+PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs
+(indicative only; CI's browser job decides). Value-bearing golden fixtures
+are never re-recorded on this box: value drift is claimed; golden.py
+--record --only is for new key paths, and the body says so.`
+
+const DOC = (session) => `Documentation you must leave, in this order: before
+cutting the branch, label every issue owner:${session} (issue_write update,
+keeping the existing labels) and comment "claimed-by: ${session} · branch
+<name> · <UTC>"; push the branch after the failing-test commit and after
+every commit thereafter; immediately after opening the PR, comment its URL
+and head SHA on every issue; if you cannot finish, comment "state at stop:
+<branch>, <pushed SHA>, <last green check>, <what is missing>" on every issue
+before returning.`
+
+const WT = (branch, fork) => `Work in your own worktree: from the repository
+run git fetch origin --tags; if ${branch} already exists on origin, git
+worktree add /home/user/wt/${branch} ${branch} (reuse the worktree if the
+path exists), otherwise git worktree add /home/user/wt/${branch} -b ${branch}
+${fork}. Never commit in /home/user/heatpump_optimizer itself.`
+
+const WT_REVIEW = (name, sha) => `Fresh detached worktree, per the reviewer's
+contract: git fetch origin; git worktree add --detach
+/home/user/wt/review-${name} ${sha}.`
+
+const RANK = { haiku: 0, sonnet: 1, opus: 2 }
+const tierOk = (f, r) => RANK[f] !== undefined && RANK[r] !== undefined && RANK[r] >= RANK[f]
+
+const MERGE = { type: 'object', required: ['merged'] }
+const mergePrompt = (pr, head) => `${GH_READ} ${GH_WRITE} ${GH_MERGE} Merge PR #${pr} only if ALL of:
+pull_request_read get shows mergeable_state clean and head sha ${head};
+get_check_runs shows every check success or skipped; the newest "Fix review:"
+comment says merge and post-dates that head; the diff touches neither VERSION
+nor manifest.json nor the RELEASE_NOTES.md heading. Then, so the owner label means IN-FLIGHT rather than ever-touched, remove owner:${session} from every issue this PR closes (issue_write update, keeping the other labels) -- a label that is only ever added cannot answer the question a resuming session actually asks. Then merge_pull_request
+with merge_method merge and expectedHeadSha ${head}, and return {merged: true, sha: <merge commit sha>}.
+If mergeable_state is dirty, return {merged: false, reason: "needs repair"} --
+do not merge main into the branch yourself, the fixer must, because a rebase
+invalidates the evidence. Otherwise {merged: false, reason}.`
+
+const waitMainPrompt = (sha) => `${GH_READ} Poll actions_list (workflow tests.yml,
+branch main) until the run for ${sha} completes; check every three minutes,
+give up after two hours. Require both fast and closures to be success. On a
+red run, fetch the failing job log (get_job_logs, failed_only) and return
+{green: false, log_excerpt}. Return {green, run_id}.`
+
+const stampPrompt = (repo, bump, title) => `In ${repo}: if test -f
+~/.zcode/stamp-deploy.key fails, return {stamped: false, reason:
+"no deploy key in this runtime; hand the stamp to a local orchestrator"}
+and change nothing. Else git fetch origin --tags; git worktree add --detach
+/home/user/wt/stamp origin/main (if the path exists, reuse it and git reset
+--hard origin/main). If git tag --points-at HEAD is non-empty, return
+{stamped: false, reason: "already stamped"} and change nothing. Otherwise
+write the RELEASE_NOTES.md section "## v<next ${bump}>" at the top of the
+file: a "### <subsection>" per PR merged since the last tag, written from its
+body (git log <last-tag>..HEAD --format=%s lists them; read each body with
+pull_request_read), so every "(#N)" is named -- stamp.py rule 4 refuses notes
+that omit one. Run python3 tools/release/stamp.py --bump ${bump} --title
+"${title}" --dry-run, then the same command with --push --push-key
+~/.zcode/stamp-deploy.key --known-hosts ~/.zcode/github_known_hosts, never
+without the key. If it refuses, change nothing and return {stamped: false,
+reason: <its message>}. Return {stamped: true, version, tag_sha}.`
+
+// ---------------------------------------------------------------------------
+// One stamp for everything merged since the last tag, then the wave's record.
+// Invoked once per wave (once per stage in the decomposition program), never
+// concurrently with itself: stamp.py refuses a tag that exists, a red gate,
+// and notes that omit a merged PR, and this script refuses a main that is
+// already tagged.
+//
+//   Workflow({name: 'web-stamp', args: {repo, bump, title, wave, merged: [...]}})
+// ---------------------------------------------------------------------------
+
+const { repo, bump = 'patch', title, wave, session = 'claude-web', merged = [] } = args ?? {}
+if (!repo || !title) throw new Error('args.repo and args.title are required')
+
+phase('Stamp')
+const lastSha = merged.filter((m) => m?.sha).map((m) => m.sha).pop()
+if (lastSha) {
+  const gate = await agent(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
+  if (!gate?.green) { log(`main is not green at ${lastSha}; not stamping`); return { gate } }
+}
+const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
+if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
+
+phase('Record')
+const record = await agent(`Record wave ${wave} of the open-issues program. ${GH_READ} ${GH_WRITE} ${WT('claude-web/record-wave-' + wave, 'origin/main')}
+These groups merged: ${JSON.stringify(merged)}. The release is ${stamp?.version ? 'v' + stamp.version : 'not stamped yet'}.
+Update the Delivery-status record: each wave row in dev/programme/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row records gets its own file dev/programme/delivery/<N>.md, a line anchored \`- [#N](…/pull/N)\` and its state, never a new table row, which policy_lint refuses past the freeze. Update dev/programme/register/audit-2026-09.md: set each finding's status cell to "fixed (PR #N)" or "released (vX.Y.Z)" -- where a status cell and a body paragraph disagree, the cell is the truth, so change the cell. Open the pull request (docs are INERT, so the gate scopes to almost nothing; still run PYTHONPATH=tests/hastub python3 tests/entities.py, which checks that no tracked file is unclassified) and merge it once its checks are green.
+Then post one comment on issue #201: a table of group, issues, PR, verdict and release for this wave, and one paragraph on anything that surprised you -- a correction to a brief, a number that did not reproduce, a rule that bit. Return {pr, comment_url}.`,
+  { model: 'sonnet', effort: 'medium', label: 'record', phase: 'Record', schema: { type: 'object', required: ['pr'] } })
+
+return { stamp, record }
