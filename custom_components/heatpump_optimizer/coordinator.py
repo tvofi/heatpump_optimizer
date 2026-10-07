@@ -5814,7 +5814,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
             )
-        self._ctx = replace(ctx, _config=_with_quiet_keys(ctx._config, params))  # #1910
+        self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
         if CONF_DHW_WINDOWS in params:
             try:
                 ctx._thermal_params.dhw_windows = parse_windows(
