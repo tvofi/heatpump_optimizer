@@ -3289,12 +3289,31 @@ if __name__ == "__main__":
         timing_check("probe", False, results=_graded, recording=False)
         timing_check("probe", False, results=_recorded, recording=True)
         timing_check("probe", True, results=_recorded, recording=True)
+        # ...and the default, which is what every real call site uses: the
+        # environment alone decides, unset grading and "1" recording.
+        _saved = os.environ.pop(CLOSURE_RECORDING_ENV, None)
+        try:
+            _env_graded, _env_recorded = Results("env unset"), Results("env 1")
+            timing_check("probe", False, results=_env_graded)
+            os.environ[CLOSURE_RECORDING_ENV] = "1"
+            timing_check("probe", False, results=_env_recorded)
+        finally:
+            os.environ.pop(CLOSURE_RECORDING_ENV, None)
+            if _saved is not None:
+                os.environ[CLOSURE_RECORDING_ENV] = _saved
     R.check(
         "a timing miss fails a graded run and only prints under the closure "
         "recorder, where a pass still counts (#1987)",
         (_graded.failures, _recorded.failures, _recorded.checks) == (1, 0, 1),
         f"graded {_graded.failures} failure(s); recorded "
         f"{_recorded.failures} of {_recorded.checks}",
+    )
+    R.check(
+        f"with {CLOSURE_RECORDING_ENV} unset a timing miss fails, and only "
+        "\"1\" exempts it -- the environment, not a default, decides (#2018)",
+        (_env_graded.failures, _env_recorded.failures) == (1, 0),
+        f"unset: {_env_graded.failures} failure(s); set to 1: "
+        f"{_env_recorded.failures}",
     )
 
     # ===========================================================================
