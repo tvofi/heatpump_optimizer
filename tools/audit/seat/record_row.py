@@ -446,7 +446,7 @@ def self_test() -> int:
         # anchored line, so only the path guard can refuse it -- a line-shape
         # refusal here would read exactly like a passing path guard.
         _good_line = row_line(2052, "fix: one", "a" * 40, None)
-        (root / "docs/delivery").mkdir(parents=True)
+        (root / "dev/programme/delivery").mkdir(parents=True)
         for _bad in (PLAN_FILE, HANDOVER_FILE, "dev/programme/delivery/1.md.bak"):
             try:
                 write_rows([{"number": 2052, "path": _bad,
