@@ -59,11 +59,23 @@ The heavy scope.run scripts (`tests/stress.py`, `tests/golden.py`, `tests/boost_
 
 ## Red checks
 
-`typing` -- red at ace05371, answered above. The cheaper detector is the pinned ruler run locally: about 90 s once the venv exists. It is not in `scope.run`'s local habit because it needs its own venv; `tools/audit/seat/` has no recipe for it, so a fixer meets it only in CI.
+Check-runs at the previous head ace05371ed47a6a9d378883c9fefbad08315c343, read through the API (`commits/<sha>/check-runs`); 97f89cda has no PR run yet.
 
-`mutation` and `mutation-autofix` -- red at ace05371 and unrepaired here; see Mutation proof. No cheaper detector exists on a Mac, whose features.py baseline is red.
+`typing` (job 112558412302) -- this pull request's own, fixed at this head. `tests/typing_ruler.py --mypy` printed `FAIL errors did not grow [recorded 0, measured 5 (+5)]` at ace05371 and `ALL 9 typing-ruler checks PASSED` at 97f89cda. Cheaper detector: the same ruler under the pinned toolchain locally, about 90 s once its venv exists; no seat recipe in `tools/audit/seat/` builds that venv, so a fixer meets it only in CI.
 
-`pr-contract` -- red at ace05371 because `env-matrix` was red and this body did not name it. `env-matrix` is red on origin/main (governance run 37531301054 at 6001b09a); this diff does not touch it.
+`delivery-status` (job 112558000084) -- printed `DELIVERY STATUS UNCHECKED — 42 rowed, 2 pending, 0 overdue`. It grades main, but ace05371 carried this pull request's row at the retired path `docs/delivery/2010.md`, which it reads; this head moves the row to `dev/programme/delivery/2010.md`, the path main now uses. Whatever remains at this head is main's pending rows. Cheaper detector: none beyond the check itself, which already runs on the pull request.
+
+`fast (3.14)` (job 112558412447) -- this pull request's own, NOT fixed at this head. `tests/stress.py` printed `1 of 104 STRESS CHECKS FAILED`: "no scenario's production calls grew past what its work counts vouch for, on an unchanged plan (round 9)", with optimizer.py adding about 11 700 to 23 200 production calls per scenario (summer/1z/space 1.259x against the 1.05x allowance). The cause is the new idle classifiers in `optimizer.py`: `idle_reason` and its helpers run per idle step and recompute channel-wide aggregates (`_dearer_than_used` takes the maximum price over every step that ran, once per idle step). It is not the closures or mutation chain. Cheaper detector: `tests/stress.py` itself is the detector and is heavy; none cheaper exists, because only this ratchet counts interpreter work outside the named seams.
+
+`mutation` (job 112558411932) -- refused 47 unpinned sites at ace05371 and measured none (`47 not started for --budget-minutes`). It awaits CI's measurement and the `mutation-autofix` chain at this head; the sites are unchanged in kind. Cheaper detector: none on a Mac, where the `tests/features.py` baseline is red on R9-F2.1 P3 and `--pin-killed` refuses.
+
+`mutation-autofix` (job 112560320989) -- printed `skip-no-measurement -- THE REPAIR DID NOT HAPPEN`, a consequence of `mutation` measuring nothing. It awaits the same chain. Cheaper detector: none; it only reports what `mutation` measured.
+
+`nightly-status` (job 112558411995) -- main's: `NIGHTLY FAILED: record-autofix failed last night` (scheduled run 37440269774). This diff touches none of its inputs. Cheaper detector: not this pull request's to name.
+
+`env-matrix` (job 112557999944) -- main's: red on origin/main at 6001b09a in governance run 37531301054. This diff does not touch it. Cheaper detector: not this pull request's to name.
+
+`pr-contract` (jobs 112558118698, 112575120196) -- red because the earlier body did not name `env-matrix`; this body names each red above. `budget-raise-gate` (job 112557999142) was cancelled, not failed; no `*_budgets.json` is in this diff.
 
 `R9-F2.1 P3` inside `tests/features.py` -- red on this Mac at this head and at origin/main; the Mac BLAS solve, not this diff.
 
