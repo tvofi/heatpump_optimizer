@@ -1,0 +1,61 @@
+The root cause of the `harness` friction key (#2004), with the defect found while re-deriving its count fixed. Since #1919 moved `policy_lint.mjs` into `tools/policy/`, the friction filer has spawned it at its old path, and the pre-flight has run it there. Every governance `record` run on `main` since then has refused at the friction step, and every pre-flight prints `policy corpus -- NOT compared`. Both now find the program where the tree keeps it. Each fix comes with a check that was committed first and shown failing.
+
+Closes #2004. Leaves #201 open.
+
+Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in `tools/audit/bugclasses.json`.
+
+## Root cause
+
+- **Cause:** `harness` is one verdict class covering four reviewer obligations: `class-open`, `design-trace-missing`, a carry (`since-null`), and an env-matrix base-driver run. #1881 closed the key as FIXED by step 18, which reached only the out-of-tree-harness child. Of the 7 entries (5 PRs) in this window, `class-open` is the only child at threshold (4 entries, 3 PRs).
+- **State:** (c) for the key. (c) for `class-open` entries 2 to 4: `fixer.md` step 8 makes the enumeration conditional on clearing an instance block, while `fix-review.md` step 6 opens the class on every review. (b) for entry 6 (step 6's re-execute after merge) and for #1994's carry. (d) for the moved-path class.
+- **Cost test** (minutes, this window):
+  - Aligning step 8: about 171 min standing at an estimated 3 min per PR, against 129 min of defect. It also would not have prevented #1986 or #1993. Refused.
+  - Sub-keying the histogram: recommended to D13, not built.
+  - Moved paths: 6 of 6 `main` governance runs red at the friction step, the pre-flight comparison dark, and about 92 min of #1993 rounds, against a self-test `existsSync` plus about 2.4 s for one fixture arm. Built.
+
+## Head
+
+`e59313f036becabed6e63929203d5a5aa9d23555`
+
+## Mutation proof
+
+- `tools/policy/friction_issues.mjs`:
+  - The detector commit `ca9b3257` alone gives `node tools/policy/friction_issues.mjs --self-test` rc=1: `FAIL the stats tool this lane spawns and quotes is a file: .claude/workflows/policy_lint.mjs`, `100 passed, 1 failed`.
+  - At the fix `ed40307b`: rc=0, `101 passed, 0 failed`.
+  - Renaming the sibling to `policy_lintX.mjs` gives `FAIL ... policy_lintX.mjs`, `100 passed, 1 failed`. The rename was restored.
+- `tools/pr/preflight.sh`:
+  - The detector commit `bf669af7` adds arm 5 to `tests/entities.py`'s stale-corpus fixture: the same stale head, with `policy_lint.mjs` under `tools/policy/` only.
+  - The fixture, extracted and run on its own, gives at `bf669af7`: `policy corpus -- NOT compared: policy_lint.mjs here does not answer --corpus-filter`, and the arm is false.
+  - At the fix `e04d2485`: `policy corpus -- 1 file(s) origin/main moved`, and the arm is true.
+
+## Null control
+
+- Arm 4 (old layout, an old `policy_lint` without `--corpus-filter`) prints `NOT compared` at both commits, so the sentinel probe is not weakened.
+- The filer self-test run from `/Users/timmalmstrom/hpo-seats` (another working directory) passes and quotes the path relative to that directory.
+- The dry run at the fix, `node tools/policy/friction_issues.mjs --dry-run --stats-file <57-PR histogram> --since v6.7.16`, exits rc=0 and would update #1985, #1990 and #2004 and file `other`. The same command at `main` exits rc=1 with `refusing: .claude/workflows/policy_lint.mjs --normalize-friction-keys did not answer`.
+
+## Figures
+
+- `GITHUB_TOKEN=$(gh auth token) node tools/policy/policy_lint.mjs --stats --since v6.7.16`: `harness` 5 / 7, over 57 merged PRs, 50 of which carry a verdict.
+- The seat's own enumeration, independent of `policy_lint.mjs`: `/commits/<sha>/pulls` over the first-parent commits, then each PR's comments matched against `^Fix review:\s+blocked\s+[0-9a-f]{40}\s+harness\s*:`. Result: 7 entries over #1960, #1983, #1986, #1993 (3), #1994. Reviews contribute 0.
+- `gh run view <id> --json jobs`: `record: File the recurring-friction issues the histogram named` failed on runs 37531301054, 37551449435, 37559014577, 37564564652, 37568067978 and 37577849702. That is every push to `main` from `6001b09a` (#1919) to `3910026e`.
+- `bash tools/pr/preflight.sh </dev/null`: `check policy corpus -- NOT compared` at `main`, and `ok policy corpus -- current with origin/main` at this head.
+- `python3 tools/audit/fold_ledger.py check`: `97 rca entries`, `0 violation(s)`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 2 script(s) run, 29 scoped out` (`tests/entities.py`, `tests/harness_headers.py`).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head: `ALL 2189 ENTITY CHECKS PASSED`, including `ok   and compares in the moved layout, policy_lint.mjs under tools/policy/`. The first run of it hit `OSError: [Errno 28] No space left on device` (the disk had 4.0 GiB free) and the re-run passed.
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: `12 of 109 HARNESS HEADER CHECKS FAILED`. All 12 are `tools/audit/round4/D7/sysid_estimator_frontier.py`, which hit `wall limit 900s exceeded` with `cpu=197.6s` while `tests/entities.py` ran beside it. The diff touches neither that harness nor `custom_components/`. Left to CI.
+
+## Red checks
+
+None on this head yet. No CI has run.
+
+## Forward-carry
+
+- R9-RO-8 (#1921), which owns the reference arm, needs two findings carried before this merges. This seat makes no edits to briefs, so the orchestrator owes the write to RO-8's group brief:
+  - 67 `tests/layout.json` `retired` entries have landed moves but still carry `since: null`.
+  - Spawn and exec sites that spell a pre-move program path bypass `counts.mjs` `locate()`. This head fixes the two live ones; the class has no barrier.
+- D13 (process yield): key the `harness` friction on its sub-reason once the sub-reason grammar is closed. Recommendation only.
+
+## Friction
+
+- `.claude/rules/defect-root-cause.md`: "Where it is recorded" names `tools/audit/rca/<id>.md`, but `fold_ledger.py`'s `RCA_DIR` is `dev/audit/rca`. Rule text is policy, so this is surfaced and not edited.
