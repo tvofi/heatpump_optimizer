@@ -63,42 +63,6 @@ Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by t
 3. Owning all of `tools/audit/archscore/` in CODEOWNERS is accepted.
 4. After merge, tvofi adds the `arch-score` context to `main-protect-checks`. The orchestrator requests it and records it on #201.
 
-## After #2025 merges
-
-1. `git merge origin/main` into this head (never rebase), resolving against #2025's merged form.
-2. Re-run the following, since the merge base moves:
-   - `ci_predict.py --base origin/main`;
-   - `tests/closure.py select`;
-   - `tests/structure.py`;
-   - `tests/arch_score_head.py`, because #2025's coordinator changes can add a cycle hub writer, which then needs a `CYCLE_HUB_WRITERS` row;
-   - `tests/arch_score.py --stored`;
-   - `tests/entities.py`.
-3. Re-take this body's merge-base-dependent figures: the head line, scope, and the #2025 row of the wave table, which becomes a merged row.
-4. Open the pull request (the orchestrator), with `## Architecture score` as `n/a`. It touches no package file.
-5. The ruleset context `arch-score` is tvofi's to add after merge.
-
-## Approval
-
-This changes policy and the enforcement surface, so it merges only on tvofi's approving review at the head, which CODEOWNERS requires. It touches:
-
-- `.github/PULL_REQUEST_TEMPLATE.md`;
-- `.github/CODEOWNERS`, which now owns `/tools/audit/archscore/`;
-- `.github/workflows/arch-score.yml`, which is new;
-- `.github/workflows/pr-contract-rerun.yml`;
-- `tests/entities.py`, which admits the new `edited` workflow;
-- `tests/run.sh` (a comment);
-- `tests/arch_score.py`;
-- `tools/audit/archscore/calibration/expected.json`, where two verdicts are re-recorded and three cases added.
-
-The decision it implements is tvofi's R3-6 (2026-09-29). Not yet approved at this head.
-
-Open questions for tvofi:
-
-1. Is a body explanation enough for a score rise? The alternative is the owner's approval at the head, as `budget-raise-gate` demands. This PR implements the explanation and leaves the reviewer to judge it.
-2. Should the ratchet's `duplication_copies` take the gapped window? The recommendation is no (Forward-carry).
-3. Is owning the whole `tools/audit/archscore/` directory acceptable? It puts every new planted case under the owner's review.
-4. After merge, add the `arch-score` context to `main-protect-checks`.
-
 ## Head
 
 The code head is `handoff/r9-eg-a4` at `545d5bda649518582e72db848130f3e404f6baf2`, on base `d15fc0ae57da63645d6b8d4381ffe83db3a831de` (stacked on R9-EG-B11). `git merge-base origin/main HEAD` is `09ba95d08157e40950104d28a34c94dc899d4be1`, which is #2025's own base. The figures were taken at that head on 2026-10-07.
