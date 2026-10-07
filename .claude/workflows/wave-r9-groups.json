@@ -5601,7 +5601,8 @@
     "From RCA-2004 (#2014), redirected from R9-RO-8 because RO-8 (#2015) merges first. Several usage docstrings still print a pre-move command, but none of them execute it. Update each to the current path in the same RO-9 pass that moves governance_cost.py and d11lib.py: partition.py, coverage_tree.sh, coverage_ratchet.py, agreement_py.py, budget_raise_gate.py, contract_rerun.py, measure_prefill_corpus.py. prefill_offer.py is under custom_components; editing it widens a closure, so either leave it with a recorded reason or include its closure. The control is the widened search rule in the 2004 RCA document, section 4 (reads and imports of moved paths): re-run it at the RO-9 head, and it must list none of these.",
     "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/orch/c2014.txt",
     "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/orch/c2027.txt",
-    "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/orch/c2029.txt"
+    "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/orch/c2029.txt",
+    "/private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/orch/c2030.txt"
    ]
   },
   {
