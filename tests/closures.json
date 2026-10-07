@@ -3575,6 +3575,7 @@
    "dev/audit/waves/w5-g5-195-coverage/coverage_suite.sh",
    "dev/audit/waves/w5-g5-195-coverage/mutation_probe.py",
    "dev/programme/register/audit-2026-09.md",
+   "tools/audit/harnesses/eg_b7_seam_hubs.py",
    "tools/audit/repo_root.mjs",
    "tools/audit/repo_root.sh"
   ],
