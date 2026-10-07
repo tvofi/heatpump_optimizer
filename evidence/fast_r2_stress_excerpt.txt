@@ -1,0 +1,17 @@
+  GOLDEN_MODE: drift
+  MODE: FULL -- every test script runs, nothing is scoped out.
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   a pump command that FAILED is not remembered as done
+  ok   the README names exactly the interpreters the SUITE runs on, neither more nor fewer
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+  ok   a timing miss fails a graded run and only prints under the closure recorder, where a pass still counts (#1987)
+  ok   with HPO_CLOSURE_RECORDING unset a timing miss fails, and only "1" exempts it -- the environment, not a default, decides (#2018)
+  ok   every scenario's solve costs what it should, in CPU, for this machine
+  ok   no scenario exceeds its own recorded cost by the budget factor
+  ok   no scenario got dramatically cheaper without a re-record
+  ok   no scenario's simulate kernel got slower per call on an unchanged plan (round-5 D9-07)
+  ok   no probed scenario's memory got dramatically cheaper without a re-record
+  ok   the sweep as a whole costs what it has always cost, relative to this machine
+  ok   no scenario hits the absolute pathological-solve ceiling
+ALL 106 STRESS CHECKS PASSED

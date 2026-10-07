@@ -1,4 +1,0 @@
-closures-autofix: dropped 13 recorded path(s) this tree does not have: .claude/workflows/brief_lint.mjs, .claude/workflows/cfr_exclusions.json, .claude/workflows/counts.mjs, .claude/workflows/figure_lint.mjs, .claude/workflows/fixtures/required-contexts.json
-closures-autofix: dropped 13 recorded path(s) this tree does not have: .claude/workflows/brief_lint.mjs, .claude/workflows/cfr_exclusions.json, .claude/workflows/counts.mjs, .claude/workflows/figure_lint.mjs, .claude/workflows/fixtures/required-contexts.json
-closures-autofix: dropped 2 recorded path(s) this tree does not have: .claude/workflows/cfr_exclusions.json, docs/HANDOVER.md
-closures-autofix: dropped 2 recorded path(s) this tree does not have: .claude/workflows/cfr_exclusions.json, docs/HANDOVER.md
