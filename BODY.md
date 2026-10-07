@@ -1,26 +1,20 @@
 The capacity-limited slot is a fourth held slot on the arbiter's existing record when its domain is switch and at least one silent row is configured. Inside a silent window the switch is held on; outside, off; a boost releases it and the window holds it again after. An off window writes the idle row and nothing else. Optimizer active off writes nothing and undoes nothing, so a switch the arbiter turned on stays on. The reading that write causes still marks the interval capacity-limited, so the learners skip it, and `quiet_windows.compose` does not read that entity.
 
+`_silent_rows` is a `TypeGuard` so a true result is the `str` `_inside_silent` takes. `dict.get` of the silent spec is `Any | None`, and the guard is what narrows it.
+
 Closes #1911.
 
 _Requested by **tvofi**_.
 
 ## Head
 
-a1fda86801998d0173ba9f5863ea2023829a9c2a
+68fea9bb62b189e3580aca2923f90d4749ed1281
 
 ## Mutation proof
 
-`_silent_target` returned None before the entity check. `PYTHONPATH=tests/hastub python3 tests/features.py` then failed:
+`_silent_target` returned None before the entity check. `PYTHONPATH=tests/hastub python3 tests/features.py` then failed the seven silent-slot checks (inside, outside, overlap, rewrite and warning, restart record, channel boost, global boost). The line was restored.
 
-- inside a silent window the night-mode switch is held on, and the space step is still the plan's
-- outside a silent window the switch is held off, and the space step still heats
-- where an off row overlaps a silent row the switch is held off, not on
-- a silent switch that does not echo is rewritten after the grace, warned on the next miss, and retried
-- the silent write is in the ownership record a restart restores
-- a boost releases the silent switch for its duration and the window holds it again after
-- the global boost mode releases the silent switch too
-
-The line was restored. `python3 tests/mutation_table.py --scope changed --base origin/main --max 0 --scripts tests/features.py` lists 17 sites this diff added and refuses the unpinned count. They were not driven per site; `--pin-killed` is mutation-autofix's. Two existing RETURN_DEL pins on `desired` were re-keyed onto the same returns now that they pass `silent`; the operator is still deleting the return.
+`python3 tests/mutation_table.py --pin-killed --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --scripts tests/features.py --jobs 3 --budget-minutes 180` drove the 17 sites this diff adds. Baseline `tests/features.py`: rc=0 failed=0 in 486s. Result: `PIN KILLED: 13 pinned, 4 left unpinned`. The four that lived are recorded as `equivalent` under `survivor_triage`, each from a measured comparison. After that, `python3 tests/mutation_table.py --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --max 0 --scripts tests/features.py` exits 0: 4695 unpinned, equal to the count at 6001b09a.
 
 ## Null control
 
@@ -28,17 +22,28 @@ Before the slot wrote anything, those seven checks failed and a space step's mod
 
 ## Figures
 
-- Arbiter blob at this head, same bytes the feature run executed: `git rev-parse HEAD:custom_components/heatpump_optimizer/pump_arbiter.py`
-- Feature checks: `PYTHONPATH=tests/hastub python3 tests/features.py`
-- Structure ratchet, no re-record: `python3 tests/structure.py`
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`
+- Strict mypy of the package, before the narrow and after it: `/Users/timmalmstrom/.venv-typing-r9f23/bin/python -m mypy --strict --warn-unused-ignores --show-error-codes --no-error-summary --no-incremental --python-version 3.14 custom_components/heatpump_optimizer`
+- The pin drive: `python3 tests/mutation_table.py --pin-killed --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --scripts tests/features.py --jobs 3 --budget-minutes 180`
+- The unpinned count after the pins: `python3 tests/mutation_table.py --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --max 0 --scripts tests/features.py`
+- Structure ratchet: `python3 tests/structure.py`
 - Three-dot names: `git diff --name-only $(git merge-base origin/main HEAD)...HEAD`
-- Main tip this body was written against, 2026-10-06T21:38Z: `git rev-parse origin/main`
-- Unpinned sites this diff adds: `python3 tests/mutation_table.py --scope changed --base origin/main --max 0 --scripts tests/features.py`
+- Main tip at 2026-10-07T01:00Z, not merged: `git rev-parse origin/main`
 
 ## Red checks
 
-`tests/features.py` check "R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it". The three-dot diff does not include the optimizer. The same check failed, with the same two objectives, on the run before the silent slot wrote anything, on the run with the slot, and on the return-None mutant. No cheaper detector: the comparison is the check. This diff does not move it.
+typing, job 112532951404. One `arg-type` in `pump_arbiter.py`, against a recorded 0. Same error on a1fda868: argument 1 to `_inside_silent` was `Any | None`. Cheaper detector: the ruler's mypy, one package run. Measured here before the narrow (1 error, `arg-type` 1, `pump_arbiter.py` 1, exit 1) and after (0 errors, exit 0).
+
+mutation, job 112532951481. `MUTATION TABLE REFUSED`, 17 sites this diff adds, 4712 unpinned against 4695 at 6001b09a. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base 6001b09a557259f37319b400d219cf83e02c563f --max 0 --scripts tests/features.py`, which refuses the count without driving a mutant. The 17 are pinned or triaged on this head; that command then exits 0.
+
+mutation-autofix, job 112535205266. Summary `AUTOFIX: skip-no-measurement` and the repair did not happen: the pin step started none of the 17 for `--budget-minutes`. No cheaper detector than that summary line. The pins were recorded here.
+
+env-matrix, job 112532467495. `policy_lint` cannot find `.claude/workflows/policy_lint.mjs`. That path moved on the merge base in #1919. This diff does not touch the matrix driver. The cheaper detector is the job itself. R9-RO-4 and R9-RO-5 own the repair.
+
+pr-contract. The previous body left typing, mutation, mutation-autofix, and env-matrix unnamed. Cheaper detector: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh` on this body, which reads the section.
+
+nightly-status and delivery-status grade main.
+
+`tests/features.py` check "R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it" fails on this machine. The three-dot diff does not include the optimizer. The same check failed, with the same two objectives, on the run before the silent slot wrote anything, on the run with the slot, and on the return-None mutant. No cheaper detector: the comparison is the check. This diff does not move it. The pin drive's baseline was green (rc=0 failed=0, 486s) because that local failure was held out of the drive only.
 
 ## Forward-carry
 
