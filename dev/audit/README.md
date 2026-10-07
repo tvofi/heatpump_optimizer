@@ -3,7 +3,7 @@
 Everything the per-dimension audit runs on, so that a finding can be
 re-measured by someone who was not there: the briefs each auditor receives,
 the schema every finding must satisfy, the harness contract, and the three
-harnesses a judge still re-runs (`harnesses/README.md`). The register
+harnesses a judge still re-runs (the instruments section below). The register
 that records what came of it is `docs/audit-2026-09.md`; the orchestration
 scripts are `.claude/workflows/audit-*.js`.
 
@@ -15,10 +15,10 @@ does not, including the one file here a test executes. Do not restate them.
 seat; this file does not repeat that list. The rest of the layout:
 
 ```
+dev/audit/README.md           this file: the harness contract, and the instruments kept live
 tools/audit/
   finding.schema.json       what a finder must return; a finding without evidence cannot be returned
   briefs/                   every contract and dimension brief, tabled in CLAUDE.md; COMMON.md first
-  harnesses/README.md       the instruments kept live, and where rounds 1-3 went
   preflight.sh              executed by tests/entities.py, so it is not INERT
   seat/                     the stateless seat instruments; each carries --self-test
 tools/release/stamp.py      the only way a version is assigned
@@ -133,39 +133,9 @@ moves.
 
 ## Running the gate on the audit box
 
-Run the gate the way CI runs it — drift mode against the merge base; the
-strict comparison does not reproduce on this box. The lease is
-`.claude/rules/gate-scoping.md`'s: `run.sh` takes it around each `stress.py`
-run, so a scoped run needs none taken by hand.
-
-```
-GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) \
-  OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \
-  ./tests/run.sh
-```
-
-### `stress.py` run on its own takes no lease
-
-Only `run.sh` leases it. On 2026-09-03 three `stress.py` processes ran
-concurrently at load 6.5, one recording the budget table that is the gate's
-entire reference. Wrap a direct run:
-`python3 tests/gate_lock.py auto-lease --label <your-label> -- python3 tests/stress.py`.
-
-- **The lock records intent; it enforces nothing.** It cannot stop a script
-  someone runs directly. Before any timing run, confirm exclusivity by
-  process, not by ownership:
-
-      ps aux | grep -E "[s]tress\.py|[t]ests/run\.sh"
-
-  Proceed only when yours is the sole entry, and print the concurrent-process
-  count beside every timing RESULT so a reader can see the conditions rather
-  than infer them.
-- **Separate ratios from absolutes when contention is possible.** The stress
-  gate's ratio metric cancels load by design — the reference solve is lifted
-  with the scenario, and an injected 2x was measured landing at 1.9967 on a
-  loaded box. Absolute wall and CPU numbers do not cancel and must be re-taken.
-  Say which kind each number is; do not discard sound ratios along with
-  contaminated absolutes.
+Drift mode against the merge base, and the lease `run.sh` takes around
+`stress.py`, are `.claude/rules/gate-scoping.md`. A direct `stress.py` run
+takes no lease. A ratio cancels load; an absolute number does not.
 
 ## A defect in an instrument is a finding
 
@@ -196,35 +166,11 @@ before either agent runs. `/web-stamp` stamps only where the deploy key is. A
 session with no Workflow tool runs the same prompts through the Agent tool,
 passing the model explicitly per call.
 
-### The seat record instruments (#1946)
-
-Four stateless, stdlib-only tools under `seat/`, a `--self-test` each, inputs
-all flags (`--repo`, `--roster-ref`/`--roster-file`, `--out`), no session
-state hardcoded; `roster_lib.py` is their shared roster reader, carrying the
-wave math and the critical-path walk so no tool re-derives them:
-
-- `plan_table.py` -- the plan artifact: swimlanes, a mermaid gantt with the
-  critical path tagged `crit`, per-group detail, a cadence ETA.
-- `roster_edit.py` -- the safe roster edit (set-stage, wire-issue,
-  append-group, edit-brief, append-carry): JSON load-modify-dump through a
-  checkout -B worktree; `--push` refused unless `brief_lint` from a fresh
-  origin/main checkout prints `TOTAL: 0 error(s)`.
-- `resume_doc.py` -- the resume markdown regenerated from the roster and the
-  open pull requests, traps appended verbatim, 10 KB budget enforced.
-- `handover_prompt.py` -- the next-session prompt: rules-first pointer,
-  pickup commands from the roster's resume fields, done criteria.
+The seat record instruments sit beside the seat scripts, each with `--self-test`.
 
 ## Resource rules on the audit box
 
-8-core Apple M1, 8 GB, numpy on OpenBLAS; what counts during a fan-out is
-`COMMON.md`'s. One local full gate at a time: the lease serialises only its
-`stress.py` runs, and is one per box across worktrees.
-
-**Fan-out concurrency is a judgement, not a measured capacity.** At most
-three compute-heavy finders share a box and the Chromium finder (D4) does not sit beside them. The basis is the
-8-core / 8 GB box and the stress-lock incident on 2026-09-03, not a measured
-exclusivity proof beyond that lock. `.claude/workflows/audit-find.js` schedules from this
-paragraph.
+Fan-out limits are `COMMON.md`'s. One local full gate at a time.
 
 ## A harness at the evidence tag may measure the tag, not your tree
 
@@ -246,3 +192,48 @@ stops meaning anything the next time it moves.
 Which harnesses at that commit still run, and by which of three rot classes, is
 recorded in `round2/HARNESSES.md` at `d5d8c4a`; its verdicts are final at that
 commit and not against a current `main` tree.
+
+## Rounds 1-3 are at a tag
+
+`tools/audit/round1/`, `round2/` and `round3/` held 212 files and 5.5 MB of
+write-once evidence for three closed rounds: reports, panel and judge verdicts,
+mutant patches, quiet-window logs, `.out` files. Nothing in the gate reads them
+(`tools/audit/` is `INERT` in `tests/closure.py`), and every number they carry
+that anything still acts on is in `docs/audit-2026-09.md`, which stays.
+
+They are reachable in full at **`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`**
+— `origin/main` at v6.3.18, the commit this archival was cut from, and
+on `main`'s first-parent history:
+
+    git show d5d8c4a:tools/audit/round2/JUDGE.md
+    git checkout d5d8c4a -- tools/audit/round2/D5/REPORT.md
+
+Every citation names that SHA rather than a tag (this file
+carries why).
+
+Round 2's executable harnesses were archived earlier, at
+`audit-round2-evidence` (`757e164`); this file carries the rule
+for running one, and the root-resolution trap that has caught three reviewers.
+
+The done wave rosters — `wave-1b-groups.json`, `wave-2-groups.json`,
+`wave-3-groups.json` — were archived at that same commit, along with
+`web-phase0.js` and `triage-quiet-judges.json`. Their briefs record what a
+judge established and refuted, so read them before re-deriving anything a group
+in them already settled.
+
+## The four that stayed
+
+Each was added by a fix pull request *after* its round closed, and each is an
+instrument someone re-runs rather than a report someone reads. That is the whole
+of the rule: evidence is archived, instruments are kept.
+
+| file | metric | added by | who re-runs it |
+|---|---|---|---|
+| `j5_gil.py` | starvation share = sum(heartbeat gaps > 5 ms) / solve wall, on a real asyncio loop with a 1 ms heartbeat and `HeatPumpOptimizer.optimize` submitted the way production submits it | `8542e51` (W3-G3, #290 #199) | the #290 judge built it; `briefs/fix-review.md` §9 sends a fix reviewer to it |
+| `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
+| `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
+| `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
+
+All four drive production symbols and print `RESULT` lines under the harness
+contract in this file. `j5_gil.py` must never be run on
+`FakeHass`, whose executor runs inline and would measure nothing.

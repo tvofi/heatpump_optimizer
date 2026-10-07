@@ -257,11 +257,7 @@ const POLICY_GLOBS = [
   /^dev\/governance\/dimensions\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
-  // The live instruments' own README, which `tools/audit/README.md` names. It
-  // arrived with the archive pass and the widened basename resolution reported
-  // it immediately: a seat-facing document outside every cap is the corpus
-  // escape this check exists for, whether or not anyone meant it as one.
-  /^tools\/audit\/harnesses\/README\.md$/,
+  /^dev\/audit\/README\.md$/,
   /^tests\/README\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
   // A skill is seat-facing text loaded by the harness at the moment a pull
@@ -463,7 +459,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/audit-2026-09.md',            // evidence register
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
-  'docs/backlog.md',                  // superseded record, kept for history
+  'dev/archive/README.md',            // archive index, not policy; a seat is not sent here to learn a rule
   // The living handover left POLICY_GLOBS by the owner's decision of 2026-09-16
   // (#201 comment 5702401684): it carries state, not rules, changes with nearly
   // every record PR, and so owes no `## Approval` and no code-owner review. Its
@@ -678,7 +674,6 @@ const GENERATED_PREFIX = ['.cursor/rules/', '.claude/rules/']
 // `--check`, so they cannot carry prose their source does not have. One prefix
 // entry below, and the whole inversion costs nothing.
 const NOT_A_DOCUMENT = new Set([
-  'donotdelete',
   'gitattributes',
   'gitignore',
   'js',
@@ -5309,9 +5304,23 @@ function assertAcceptance(derived) {
     return 1
   }
 
-  const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
+  const missingExtensions = (exts) => [...exts].filter((e) => !treeExts.has(e))
+  const deadWeight = missingExtensions(NOT_A_DOCUMENT)
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
+    return 1
+  }
+  // The live list is bounded, so the refusal above is silent here and would
+  // stay silent if its predicate stopped seeing a dead entry. The fixture
+  // names an extension no tracked file has.
+  pins += 1
+  const deadFixtureRel = '.claude/workflows/fixtures/not_a_document_dead.json'
+  let deadFixture = null
+  try { deadFixture = JSON.parse(read(deadFixtureRel) ?? 'null') } catch { deadFixture = null }
+  const planted = Array.isArray(deadFixture) ? deadFixture.filter((e) => typeof e === 'string' && e) : []
+  const wouldRefuse = missingExtensions(new Set([...NOT_A_DOCUMENT, ...planted]))
+  if (!planted.length || !planted.every((e) => wouldRefuse.includes(e))) {
+    console.log(`\nFIXTURE VACUOUS: ${deadFixtureRel} does not make the blocklist bound refuse an extension no tracked file has (got ${JSON.stringify(planted)}). Deleting that bound would then change nothing this acceptance measures.`)
     return 1
   }
   // ... and the same list bounded from BELOW. Without this, `NOT_A_DOCUMENT`
