@@ -1,0 +1,11 @@
+head measured: 8a5d98296c62a085bf1311a8cd00b0a0f1468d4f (live head at posting: 8a5d98296c62a085bf1311a8cd00b0a0f1468d4f)
+base: f060cb4cf8eabaad98ee7b04947c1edda6599c32 (merge base)
+RESULT base  GIT_AUTHOR_NAME=Tvofi2: 186 passed, 7 failed rc=2   (base-env.log)
+RESULT head  GIT_AUTHOR_NAME=Tvofi2: 193 passed, 0 failed rc=0   (head-env.log)
+RESULT base  unset (null control):   193 passed, 0 failed rc=0   (base-unset.log)
+RESULT head  unset (null control):   193 passed, 0 failed rc=0   (head-unset.log)
+RESULT mutant (pin line deleted at head) Tvofi2: 186 passed, 7 failed rc=2 (mutant-env.log); restored, tree clean
+diff f060cb4c...head: tools/pr/prepr.sh (+4), dev/programme/delivery/2021.md (+1) only; no VERSION/manifest/notes/claim files
+merge-tree origin/main(38c03d94) vs head: exit 0
+check-runs at head: failure nightly-status, delivery-status (main's); cancelled budget-raise-gate; neutral CodeQL
+CODEOWNERS: neither touched path matches (only /tools/pr/contract_rerun.py is owned under tools/pr); not code-owned
