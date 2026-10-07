@@ -1,2 +1,0 @@
-RESULT mutant=M1 config_flow_steps_rc=0 ALL 496 checks PASSED
-RESULT mutant=M7 config_flow_steps_rc=0 ALL 496 checks PASSED

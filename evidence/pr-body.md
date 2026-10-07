@@ -2,73 +2,79 @@ Closes #1745.
 
 The entry's merged data and options are parsed once, at coordinator construction, into a frozen `EntryConfig`. Each stored key it declares has one default and one coercion. Readers in the migrated modules take the field. A mapping handed to a price reader is parsed at that boundary; an `EntryConfig` is returned unchanged. Whole-mapping parsers (thermal parameters, grid fee, topology, wood, the options form, service data, the quiet-window what-if) still take the mapping; `tests/entities.py` names each of those modules and why.
 
-`const_modules_over_50` stays at its cap because `entry_config` reads `const` by attribute, the binding `store.py` already uses. `CONF_COP_SCALE` stays a live name because the thermal-learning store uses it.
+Main was merged in three times (3910026e, 38c03d94, e0f0b6fb). Each resolution keeps main's change and reads the configuration through the parsed object. `EntryConfig` declares `heat_pump_capacity_limited_entity`, `quiet_silent_windows` and `quiet_off_windows` (`""` where none is stored) for R9-SW-1/4/5. `coordinator.model_restart_advice` (#1936) reads the parsed interval; the auto-merge used names this branch had removed from the import.
 
-### Merging origin/main (twice: 3910026e, then 38c03d94)
+### Round 1 of the review (#2025, blocked at a390f589)
 
-The branch conflicted with main in eight files, then in two more after main moved again. Each resolution keeps main's change and reads the configuration through the parsed object:
-
-- `__init__._handover_interval_minutes` takes #1739's merged mapping and parses it with `EntryConfig`.
-- `away`, `diagnostics`: #1739's explicit inputs and `CoordinatorDiagnostics` view kept; the presence and return slots read as parsed fields; `cop_scale` stays keyed by `CONF_COP_SCALE`.
-- `pump_arbiter`, `setpoint_check`, `sensor`, `coordinator.configured_quiet_windows`: R9-SW-1/4/5's capacity-limited slot, silent and off specs and the published fraction read as parsed fields. `EntryConfig` declares `heat_pump_capacity_limited_entity`, `quiet_silent_windows` and `quiet_off_windows` (`""` where none is stored). `ArbiterInputs.config` is a `Mapping`, since the coordinator passes its `EntryConfig`.
-- `coordinator.model_restart_advice` (#1936) read `CONF_OPTIMIZATION_INTERVAL` off the mapping using names this branch had dropped from the import: a `NameError` the auto-merge would have shipped. It reads the parsed field.
-- `optimizer`: #1955's `clamp_planned_levels` joins the parsed-field build.
-- **A behaviour change the reviewer should judge.** `quiet_windows.apply_config_keys` wrote a `set_thermal_parameters` call's quiet keys into the live configuration. That configuration is now frozen, so the write raises. The options write that follows it differs from the configuration the coordinator was built from, so the update listener reloads the entry, and the new coordinator parses the keys. The fold, its `features.py` check and its two mutation pins are removed. The SW-1 check that pinned the live write now pins the options write, the reload condition and the reloaded parse. On main, a call that changed only quiet keys was applied live without a reload; here it reloads, like every other options change.
-- Module counts: both sides added a module, so the agreeing `70 -> 71` edits are 72 (`docs/architecture.md`, the `claims.py` header, the regenerated D6 claims), and the deployment-shape closure is 90 files.
-- Main's new tests and `tools/audit/harnesses/solve_inputs_parity.py` wrote into `coord._config`; they go through `harness.with_config`. The harness falls back to the dict write in a base tree.
+- **Quiet windows apply live, as on main** (orchestrator ruling under the owner's mandate). `set_thermal_parameters` folds its quiet keys into a copy of the frozen configuration, through main's own `quiet_windows.apply_config_keys`. It then swaps the new parse onto the coordinator's context (`_with_quiet_keys`, `replace(_ctx_of(self), _config=...)`). The options write that follows equals that parse, so the update listener skips the reload. `apply_config_keys`, its `features.py` check, SW-1's live-config check and both `apply_config_keys` killed_by pins are main's again, byte for byte.
+- **typing**: `mypy --strict` errors 9 to 0. Coordinator reads that went through the untyped `getattr(self, "_ctx", self)` now read the typed `effective_config` property. `ThermalParameters.from_config`, wood_fuel's readers and `_one_of` take a `Mapping`/`Container`; none of them mutates its argument. binary_sensor annotates its margin.
+- **closures**: every closure CI's closures job found under-scoped at a390f589 now lists the files it named. That is `entry_config.py` everywhere, plus `freq_control.py` and `inputs.py` for the five scripts that reach `entry_config` through `optimizer.py`.
+- **fast**: `tests/manual_plan.py`'s quiet-window stand-in returned `{}` from `effective_config`; the plan sensor now reads the parsed fraction there and raised `AttributeError`. The stand-in returns an `EntryConfig`, as the real coordinator does.
+- **survivors**: `entities.py` now kills a stored NaN or infinity reaching a number field, and a stored tank volume of 0.
 
 ## Head
 
-`a390f5895eb14fd6bc624ca6d3c9f28aa00410a2` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2025.md`. The authored code head is `5947316c55e06b03c9e37fca93f4bf8e9b64a9fb`.
+`e0f87d5b9e4dcec8c39ed1bdf0ebbc7368dad909` merges the authored code head `2f987a6da2e40bf09fb40c2e52eadbeb7096c952` and then merges origin/main `e0f0b6fb` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`9817c40bd0e75772bd05325949b58e2758eedb7b` merges origin/main `e0f0b6fb` into the authored code head `5947316c55e06b03c9e37fca93f4bf8e9b64a9fb` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
-
-5947316c55e06b03c9e37fca93f4bf8e9b64a9fb
+2f987a6da2e40bf09fb40c2e52eadbeb7096c952
 
 ## Mutation proof
 
-The merge's own behaviour is pinned by a new `tests/entities.py` check, "a stored None quiet spec reads unset, and a quiet window set by the service persists through the options write while the parsed configuration stays as built". A standalone driver of that check's exact inputs (an entry with `quiet_off_windows: None` and an empty capacity-limited slot, then `async_update_thermal_params({"quiet_silent_windows": "22:00-06:00"})`) was run against a copy of the package at this head with one replacement each:
+Applied in place to the committed head tree, `PYTHONPATH=tests/hastub python3 tests/entities.py` run, then `git checkout -- custom_components` (tree clean after each). The baseline at 057028f3 failed 1 check: the deployment-shape selection-cost note. That commit fixes it; the mutants ran before it.
 
-- M0, null (a no-op replacement): PASS.
-- M1, the fold restored (`ctx._config[k] = params[k]` for the two quiet keys before the DHW-windows block): FAIL, `TypeError: 'EntryConfig' object does not support item assignment`.
-- M2, `_spec` unguarded (`return str(value)`): FAIL, `quiet_off_windows == 'None'`.
-- M3, the slot stored raw (`_key(None, _as_stored)`): FAIL, slot `''`.
+- M1, `_number` keeps a non-finite value (`return result`): 2 of 2210 failed. The added one is "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 reads the default volume; null control: 7.5 and 150 pass through", with `non-finite=[nan, inf, -inf]`.
+- M7, `_nonzero_number` keeps 0 (`return _number(value, default)`): 2 of 2210 failed. The added one is the same check, with `tank=0.0`.
+- RETURN_DEL on `IndoorTempSensor.extra_state_attributes` (`pass`): 5 of 2210 failed, among them "the indoor sensor publishes its thermometer's id, None without one" and "IndoorTempSensor publishes exactly its pinned attribute keys (#373)".
 
-A full `tests/entities.py` run under M1 was attempted and is not cited: the interpreter on `PATH` had changed to 3.11, which cannot parse the file. Under the owner's 2026-10-07 rule the mutation drive is CI's.
+The live quiet apply is pinned by `entities.py`'s check "a stored None quiet spec reads unset, and a quiet window set by the service applies live through a new parse that equals the saved entry (no reload), the old parse untouched". The two restored `apply_config_keys` pins name it as killed by `tests/features.py` on main's measurement.
 
-The branch's original proof stands: replacing the parse in `EntryConfig.from_mapping` with the raw stored value fails "a stored value no reader can parse builds, and every reader takes the one declared default" and "a number stored as text is the same number to every reader".
+Disposition of the mutation lane:
+- **Unmeasured added sites.** CI's mutation job at a390f589 (job 112880877079) started none of the 55 sites this diff added: "55 not started for --budget-minutes". This round adds a few more. They are left to CI's chain: `mutation-autofix` pins what it kills once the lane measures, and no site is pinned or triaged locally (fixer.md step 2).
+- **Seven deleted killed_by pins.** Each was keyed to the text of a line this diff rewrote from a mapping read to a parsed-field read, so its anchor names a line that no longer exists:
+  - `HeatPumpOptimizerCoordinator._pv_export_price` RETURN_DEL: the return now reads `self.effective_config.pv_export_price`.
+  - `HeatPumpOptimizerCoordinator._solve_record` GUARD_OFF: the guard now reads `ctx._config.fuse_guard_enabled`.
+  - `HeatPumpOptimizerCoordinator.target_temperature` RETURN_DEL: the return now reads `EntryConfig.from_mapping(...).target_temperature`.
+  - `_grid_fee_entity_value` RETURN_DEL: the return now reads `.grid_fee_entity`.
+  - `_price_feed` RETURN_DEL: the return now reads `cfg.price_entity`.
+  - `pump_arbiter.duty_mode` RETURN_DEL: the return now reads `.pump_duty_mode`; the clamp to `PUMP_DUTY_MODES` moved into `EntryConfig`'s `_one_of`.
+  - `IndoorTempSensor.extra_state_attributes` RETURN_DEL: re-earned locally above (5 checks), and left to `mutation-autofix` to pin.
+
+  The other six are each the same mutation on the rewritten line, killed on main by `tests/features.py`. That script is CI's under the owner's 2026-10-07 rule, so their re-pins are CI's chain's.
 
 ## Null control
 
-M0 above. The undefined-name scan used on the merged package (a module-level `ast` walk for loaded names that nothing defines or imports) prints `files=72 with_undefined=0` at this head. The same scan over `coordinator.py` with the `#1936` line as main wrote it prints `['CONF_OPTIMIZATION_INTERVAL', 'DEFAULT_OPTIMIZATION_INTERVAL']`.
+- The reviewer's `quiet_reload_driver.py` (round 1 evidence) at 057028f3, real call: `live_spec='09:00-09:30' live_off_steps=2 live_fraction=0.8`, `reloaded=0`. The empty call: `reloaded=0`, no spec. These are main's figures in the reviewer's run. The reviewer's run at a390f589 read `live_spec=''` and `reloaded=1`.
+- `closure.py check --partial` was run against stand-in recordings: one per script CI named, each listing a390f589's committed closure plus the files CI said it really reads. Against this head's `tests/closures.json`: rc=0, "committed closures cover every file this run touched". Against a390f589's: rc=1, 21 `UNDER-SCOPED` lines.
+- The M1/M7 check carries its own null arm: 7.5 and 150 pass through unchanged.
 
 ## Figures
 
-Merge base `38c03d9419248322079dc3ba2fad9edcc931e961`. `origin/main` at measurement `45142cc3b2302b646ebd2d5b45e2d7664152a7bb`, which merges with this head without conflict (`git merge-tree --write-tree`). 2026-10-07T14:52Z. Interpreter: `~/.local/state/hpo/venv-ci/bin/python3` (3.14.7).
+Merge base `e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf` (= `origin/main` at measurement, 2026-10-07). Interpreter `venv-ci` python3 3.14.7, one script at a time with `PYTHONPATH=tests/hastub`. Every figure was taken at 057028f3 unless noted.
 
-```
-python3 tests/closure.py select --diff 38c03d9419248322079dc3ba2fad9edcc931e961 --workdir <dir>
-```
+- `HPO_TYPING_PYTHON=<the pinned typing venv> python3 tests/typing_ruler.py`: `ALL 12 typing-ruler source checks PASSED`, mypy included. The same mypy invocation at a390f589 printed the 9 errors CI's typing job did.
+- `python3 tests/entities.py`: `ALL 2210 ENTITY CHECKS PASSED`.
+- `python3 tests/manual_plan.py` at 2f987a6d: `ALL 128 manual plan checks PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `max_class_loc` 8880 -> 8877 and `seam_cut_total` 765 -> 760 are recorded in de811106 with the reason. No budget was raised.
+- At eaaa6c2f: `tests/config_flow_steps.py` `ALL 496`, `tests/doc_claims.py` `ALL 160`, `tests/guard_pins.py` `ALL 47`, `tests/deployment_shape.py` passed, `tests/closure.py selftest` `ALL 32`.
+- `python3 tests/closure.py select --files custom_components/heatpump_optimizer/entry_config.py`: `MODE: SCOPED -- 26 script(s) run, 6 scoped out`. `entities.py`, `features.py`, `typing_ruler.py` and `structure.py` are among those it runs.
 
-`MODE: SCOPED -- 28 script(s) run, 4 scoped out.`
-
-Local, at this head, run one at a time with `PYTHONPATH=tests/hastub`:
-
-- `python3 tests/entities.py`: `ALL 2209 ENTITY CHECKS PASSED`. The entry-config census reports no stray mapping read in a migrated module, no stale disposition, and no unclassified module. Residuals: `away.py`, `dhw_schedule.py`, `grid_fee.py`, `price_model.py`, `quiet_windows.py`, `thermal_model.py`, `topology.py`, `wood_fuel.py`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `max_class_loc` was recorded 8883 -> 8880 in 8c04fcd7, with the reason in that commit. `duplication_copies` is 38 within 38: the head before this merge measured 39, because `_optional_number` duplicated `_number`; it now reuses `_refused_number`.
-- `python3 tests/config_flow_steps.py`: `ALL 496 checks PASSED`. `tests/doc_claims.py`: `ALL 160 checks PASSED`. `tests/dst_checks.py`: `ALL 131`. `tests/typing_ruler.py`: `ALL 11`. `tests/deployment_shape.py`, `tests/guard_pins.py` (`ALL 47`), `tests/solar_alignment.py`: passed. `tests/wood_advisor.py`: `ALL 7`.
-- `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` regenerates `claims.json` and `claims.md` byte-identical to the committed files.
-- `PYTHONPATH=tests/hastub:custom_components:tests python3 tools/audit/harnesses/solve_inputs_parity.py`: exit 0 (at bdc519b9's tree plus the harness change; it raised on the frozen config before).
-
-Heavy scripts are CI's (owner, 2026-10-07): `tests.yml` was dispatched on `handoff/r9-eg-entry-config` at this head, run 37640455476. Its check-runs are to be read through the API at this head; none are cited here.
-
-Before the owner's rule, `tests/features.py` ran locally at this head (`1 of 3822 FEATURE CHECKS FAILED`, only R9-F2.1 P3) and `tests/arch_score.py` passed (`ALL 158`). Those are recorded as context only.
-
-Disclosed self-correction: the previous body named fc0aff72 as its head, not the handoff head 3f593fda. Its `structure.py` exit 0 was taken before fc0aff72, the commit that put `duplication_copies` at 39.
+Heavy scripts (`features.py`, `golden.py`, `stress.py`, `boost_drift_replay.py`, `arch_score`, mutation) are CI's under the owner's 2026-10-07 rule and are not run locally for this head.
 
 ## Red checks
 
-`tests/features.py` `R9-F2.1 P3` (two-zone), locally only: shipped 110.4366, seeded 110.1297. These are the same figures the previous body recorded for both this branch and the 86dbf0ca merge-base package on this machine, so the merge does not move it. CI's Linux lane decides it.
+Every non-green check-run at a390f589, read through the commit's check-runs API:
+
+- `typing` (job 112880876862): this PR's. mypy grew 0 -> 9 and is 0 again here. The cheaper detector exists and costs nothing new: `typing_ruler.py` under `HPO_TYPING_PYTHON`, run locally. The first body ran the ruler without mypy, which measured nothing.
+- `closures` (job 112881062368) and `closures-autofix` (job 112897209809): this PR's. `entry_config.py` was hand-added to 5 of the 20 closures that import it; the rest are added here. The autofix skipped because it read a recording as failed. The cheaper detector is `closure.py check --partial` against stand-in recordings, seconds, shown under Null control.
+- `fast (3.14)` (job 112880876855): this PR's. `tests/manual_plan.py` raised on the stand-in fixed above. The cheaper detector is that script itself (about 40 s). It was in this branch's scope, but the local gate run that would have reached it was stopped under the owner's heavy-script rule before it did.
+- `mutation` (job 112880877079) and `mutation-autofix` (job 112884087373): the lane measured nothing ("55 not started for --budget-minutes"), and the autofix reported skip-no-measurement. Disposition under Mutation proof. No cheaper detector exists for an unmeasured lane; the local kills above cover the two survivors the reviewer found and one re-earned pin.
+- `mutation-nightly` (job 112857793518), and `closures` (job 112857717705), both in the `tests.yml` run I dispatched at 5947316c (run 37640455476): this PR's. The nightly mutation drive's baseline raised in `tests/manual_plan.py` on the same `{}` stand-in fixed above (`'dict' object has no attribute 'silent_mode_power_fraction'`). That closures red is the same under-scope as job 112881062368. The cheaper detectors are the ones named for `fast` and `closures`.
+- `delivery-status` (job 112880304107): not this PR's. #2003 and #2001 are overdue on main, and this diff only adds the row for 2025.
+- `nightly-status` (job 112880876632): not this PR's. It reports main's nightly, which this diff does not reach.
+- `pr-contract` (job 112901458904): the previous body named none of the reds above. This body names each.
+- `budget-raise-gate` (job 112880302977): cancelled, not failed. This diff raises no budget leaf.
+
+Locally only: `tests/features.py` R9-F2.1 P3 (two-zone) prints shipped 110.4366 and seeded 110.1297 on this machine for the branch and for the base package alike. CI's Linux lane decides it.
 
 ## Forward-carry
 

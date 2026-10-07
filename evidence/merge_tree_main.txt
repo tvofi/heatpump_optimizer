@@ -1,0 +1,19 @@
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/card_drift.mjs: merged as a set (90 entries)
+  closures.tests/entities.py: merged as a set (227 entries)
+  closures.tests/harness_headers.py: merged as a set (363 entries)
+  re-run the gate that owns this file before pushing
+05fce38fb6e6fe909b18ef1424c96bd3c2f349c9
+dev/audit/rounds/round4/D6/claims.json
+tools/audit/round4/D6/claims.md
+
+Auto-merging dev/audit/harnesses/solve_inputs_parity.py
+Auto-merging dev/audit/rounds/round4/D6/claims.json
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.json
+Auto-merging dev/audit/rounds/round4/D6/claims.py
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+CONFLICT (modify/delete): tools/audit/round4/D6/claims.md deleted in origin/main and modified in e0f87d5b9e4dcec8c39ed1bdf0ebbc7368dad909.  Version e0f87d5b9e4dcec8c39ed1bdf0ebbc7368dad909 of tools/audit/round4/D6/claims.md left in tree.
+rc=1
+09ba95d08157e40950104d28a34c94dc899d4be1
