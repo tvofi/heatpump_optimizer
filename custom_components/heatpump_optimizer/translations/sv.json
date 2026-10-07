@@ -2027,6 +2027,12 @@
       "boost_space": {
         "name": "Forcera rumsvärme"
       },
+      "block_dhw": {
+        "name": "Blockera varmvatten"
+      },
+      "block_space": {
+        "name": "Blockera rumsvärme"
+      },
       "optimizer_active": {
         "name": "Optimeraren aktiv"
       }
