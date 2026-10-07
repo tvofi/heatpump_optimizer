@@ -1,0 +1,1251 @@
+diff --git a/custom_components/heatpump_optimizer/boost.py b/custom_components/heatpump_optimizer/boost.py
+index a76ba71c..955049bd 100644
+--- a/custom_components/heatpump_optimizer/boost.py
++++ b/custom_components/heatpump_optimizer/boost.py
+@@ -1,11 +1,13 @@
+-"""Timed boost overlays for hot water and space heating.
++"""Timed boost and block overlays for hot water and space heating.
+ 
+-Each channel is a two-hour maximum-heat overlay on the live action. Space
+-boost matches the global boost mode (nameplate electrical power, the
+-comfort ceiling, full ECL displace). DHW boost matches the planner's own
+-hot-water ceiling (80 % of nameplate). The channels are independent: one
+-does not rewrite the other, and neither stomps comfort or economy the way
+-selecting the global boost mode does.
++Each channel is a two-hour maximum-heat overlay on the live action, or a
++two-hour block that zeroes that duty. Space boost matches the global boost
++mode (nameplate electrical power, the comfort ceiling, full ECL displace).
++DHW boost matches the planner's own hot-water ceiling (80 % of nameplate).
++The channels are independent: one does not rewrite the other, and neither
++stomps comfort or economy the way selecting the global boost mode does. A
++block and a boost on one channel exclude each other. A safety floor releases
++a block; there is no separate frost-protection feature.
+ 
+ State lives in a Store next to the away override, and in a weak map keyed
+ by coordinator so the coordinator class does not grow another attribute.
+@@ -26,7 +28,13 @@ from homeassistant.util import dt as dt_util
+ 
+ from . import away as away_mode
+ from .accuracy import utc_elapsed_seconds, utc_shift
+-from .const import DOMAIN, MODE_BOOST
++from .const import (
++    DOMAIN,
++    ECONOMY_ABSOLUTE_FLOOR,
++    MODE_BOOST,
++    SPACE_PUMP_FLOOR_MARGIN_C,
++)
++from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
+ from .drift import stored_instant
+ from .entity import has_hot_water
+ from .payload import CurrentAction
+@@ -34,7 +42,20 @@ from .payload import CurrentAction
+ _LOGGER = logging.getLogger(__name__)
+ BOOST_STORE_VERSION = 1
+ BOOST_HOURS = 2
+-_MAX_LEAD = timedelta(hours=BOOST_HOURS)
++#: A block is the opposite of a boost: the same two hours, the duty zeroed.
++BLOCK_HOURS = 2
++_MAX_LEAD = timedelta(hours=max(BOOST_HOURS, BLOCK_HOURS))
++_BLOCK_LEAD = timedelta(hours=BLOCK_HOURS)
++#: Why a safety floor released a block, published on the switch.
++RELEASE_LEGIONELLA = "anti-legionella cycle is due"
++RELEASE_DISINFECTION = "disinfection is running"
++RELEASE_TANK = "the tank is at its minimum inside a demand window"
++RELEASE_ROOM = "the room is at the safety floor"
++RELEASE_COLD = "the house is below its plan while it is cold outside"
++RELEASE_SYSID = "a measurement experiment is running"
++RELEASE_STALE = "the plan is stale"
++#: Installed by the pump arbiter. boost does not import that module.
++_cold_lease: Any = None
+ #: #1935: how long after a space overlay ends the interval learners stay
+ #: frozen. The replay integrates from a plant state propagated open-loop
+ #: from the PLAN's trajectory, so the slab heat the overlay added -- real in
+@@ -80,6 +101,9 @@ class BoostState:
+     """Per-channel expiry. A missing key is off."""
+ 
+     until: dict[str, datetime] = field(default_factory=dict)
++    #: Per-duty block expiry. Same channel names as ``until``; a block and a
++    #: boost on one channel are never both set.
++    blocked: dict[str, datetime] = field(default_factory=dict)
+     #: #1935: when the space overlay's settling tail ends -- set when the
+     #: overlay ends (expiry or cancel) and when the global boost mode is
+     #: left. In-memory only: a restart mid-tail also loses
+@@ -91,6 +115,33 @@ class BoostState:
+         end = self.until.get(channel)
+         return end is not None and utc_elapsed_seconds(end, now) > 0
+ 
++    def block_active(self, channel: str, now: datetime) -> bool:
++        end = self.blocked.get(channel)
++        return end is not None and utc_elapsed_seconds(end, now) > 0
++
++    def _expire_one(
++        self,
++        slots: dict[str, datetime],
++        channel: str,
++        end: datetime,
++        now: datetime,
++        lead: timedelta,
++        *,
++        settle: bool,
++    ) -> None:
++        if utc_elapsed_seconds(end, now) <= 0:
++            slots.pop(channel, None)
++            if settle and channel == CHANNEL_SPACE:
++                # Anchored to the window's own end, not to when this
++                # expiry was observed: re-equilibration starts when the
++                # heat stopped (#1935).
++                self.space_settle_until = utc_shift(end, SPACE_SETTLE_TAIL)
++        elif utc_elapsed_seconds(end, now) > lead.total_seconds():
++            # The clock stepped back since the window was set: the two-hour
++            # maximum is a duration, not an instant (D1-s3-05), so it is
++            # held to two hours from now rather than for the step as well.
++            slots[channel] = utc_shift(now, lead)
++
+     def expire(self, now: datetime) -> None:
+         for channel, end in list(self.until.items()):
+             if utc_elapsed_seconds(end, now) <= 0:
+@@ -105,19 +156,44 @@ class BoostState:
+                 # maximum is a duration, not an instant (D1-s3-05), so it is
+                 # held to two hours from now rather than for the step as well.
+                 self.until[channel] = utc_shift(now, _MAX_LEAD)
++        for channel, end in list(self.blocked.items()):
++            self._expire_one(
++                self.blocked, channel, end, now, _BLOCK_LEAD, settle=False
++            )
+ 
+-    def set(self, channel: str, active: bool, now: datetime) -> None:
++    def _note_space_boost_ended(self, now: datetime) -> None:
++        # A cancel leaves the same diverged plant state an expiry does
++        # (#1935), so it owes the same settling tail.
++        self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
++
++    def _set_blocked(self, channel: str, active: bool, now: datetime) -> None:
++        if active:
++            # The later press wins. Cancelling a live space boost owes the
++            # settling tail a cancel from the switch owes.
++            if channel == CHANNEL_SPACE and self.active(channel, now):
++                self._note_space_boost_ended(now)
++            self.until.pop(channel, None)
++            self.blocked[channel] = utc_shift(now, _BLOCK_LEAD)
++        else:
++            self.blocked.pop(channel, None)
++
++    def set(
++        self, channel: str, active: bool, now: datetime, *, block: bool = False
++    ) -> None:
+         if channel not in CHANNELS:
+             raise ValueError(channel)
++        if block:
++            self._set_blocked(channel, active, now)
++            return
+         if active:
++            # A boost press clears a block on the same channel.
++            self.blocked.pop(channel, None)
+             self.until[channel] = utc_shift(now, _MAX_LEAD)
+         else:
+             was_live = self.active(channel, now)
+             self.until.pop(channel, None)
+             if channel == CHANNEL_SPACE and was_live:
+-                # A cancel leaves the same diverged plant state an expiry
+-                # does (#1935), so it owes the same settling tail.
+-                self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
++                self._note_space_boost_ended(now)
+ 
+     def as_dict(self) -> dict[str, Any]:
+         self.expire(dt_util.now())
+@@ -264,6 +340,25 @@ def overlay(
+         # publish a false Heat Pump Action (#1499).
+         if action.get("mode") in (None, "off", "idle"):
+             action["mode"] = "hot_water"
++    _zero_blocked(action, held)
++
++
++def _zero_blocked(action: CurrentAction, held: BoostState) -> None:
++    """Zero a blocked duty on the action copy. Never the power switch.
++
++    A single-channel block leaves ``heat_pump_on`` as the plan wrote it.
++    ``_apply_action`` commands the supply switch from that flag, and it
++    skips OFF only when the pump's own mode blocks both channels or is
++    cooling. Zeroing the flag here would switch the supply off for one
++    duty. The arbiter drops that duty and serves the idle row instead.
++    """
++    if CHANNEL_SPACE in held.blocked:
++        action["power"] = 0.0
++        if "power_normalized" in action:
++            action["power_normalized"] = 0.0
++    if CHANNEL_DHW in held.blocked:
++        action["dhw_power"] = 0.0
++        action["dhw_heating_active"] = False
+ 
+ 
+ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
+@@ -280,9 +375,12 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
+     held = held_for(coord)
+     held.expire(now)
+     if not has_hot_water(coord):
+-        # No tank to heat: a DHW boost set or restored anyway is dropped here,
+-        # the one place it could reach the action (#1527).
++        # No tank to heat: a DHW boost or block set or restored anyway is
++        # dropped here, the one place it could reach the action (#1527).
+         held.until.pop(CHANNEL_DHW, None)
++        held.blocked.pop(CHANNEL_DHW, None)
++    snap = _floor_snap(coord)
++    released = snap is not None and release_blocked(coord, snap, now)
+     base = _PLAN_BASES.get(coord)
+     action: CurrentAction = {**base} if base else {}
+     overlay(
+@@ -293,6 +391,8 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
+         ecl_max=specs.ecl_max,
+     )
+     coord.adopt_action(action)
++    if released:
++        _schedule_persist(coord)
+ 
+ 
+ def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
+@@ -311,12 +411,17 @@ def _parse_until(raw: Any) -> datetime | None:
+ 
+ async def persist(coord: _BoostCoord) -> None:
+     try:
+-        await _store(coord).async_save(
+-            {
+-                channel: {"until": end.isoformat()}
+-                for channel, end in held_for(coord).until.items()
+-            }
+-        )
++        held = held_for(coord)
++        payload = {
++            channel: {"until": end.isoformat()}
++            for channel, end in held.until.items()
++        }
++        # Absent when no block is set, so a boost-only store is unchanged.
++        payload.update({
++            f"block_{channel}": {"until": end.isoformat()}
++            for channel, end in held.blocked.items()
++        })
++        await _store(coord).async_save(payload)
+     except Exception as err:  # noqa: BLE001
+         _LOGGER.debug("Could not persist boost state: %s", err)
+ 
+@@ -329,15 +434,25 @@ async def restore(coord: Any) -> None:
+     held = held_for(coord)
+     for channel in CHANNELS:
+         payload = raw.get(channel)
+-        if not isinstance(payload, Mapping):
+-            continue
+-        parsed = _parse_until(payload.get("until"))
++        if isinstance(payload, Mapping):
++            parsed = _parse_until(payload.get("until"))
++        else:
++            parsed = None
+         # Both sides through as_utc (#1299's rule): the loader keeps a naive
+         # stamp naive when no zone is configured (F3.1's recorded decision),
+         # and comparing it straight against an aware now is the TypeError the
+-        # store boundary exists to make unreachable.
++        # store boundary exists to make unreachable. The comparison stays the
++        # line the mutation pins name.
+         if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):
+             held.until[channel] = parsed
++        block = raw.get(f"block_{channel}")
++        if isinstance(block, Mapping):
++            parsed_block = _parse_until(block.get("until"))
++            if (
++                parsed_block is not None
++                and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
++            ):
++                held.blocked[channel] = parsed_block
+ 
+ 
+ async def restore_session(
+@@ -362,3 +477,141 @@ async def set_channel(
+     await persist(coord)
+     if refresh:
+         await coord.async_request_refresh()
++
++
++async def set_block(
++    coord: Any, channel: str, active: bool, *, refresh: bool = True
++) -> None:
++    """Turn a block on or off. A live safety floor refuses the on-press."""
++    now = dt_util.now()
++    if active and block_release_reason(coord, channel, now) is not None:
++        held_for(coord).blocked.pop(channel, None)
++    else:
++        held_for(coord).set(channel, active, now, block=True)
++    await persist(coord)
++    if refresh:
++        await coord.async_request_refresh()
++
++
++def bind_cold_lease(fn: Any) -> None:
++    """The arbiter registers the cold-rail test. No import the other way."""
++    global _cold_lease
++    _cold_lease = fn
++
++
++def _floor_snap(coord: Any) -> Any:
++    fn = getattr(coord, "arbiter_inputs", None)
++    if not callable(fn):
++        return None
++    return fn()
++
++
++def _schedule_persist(coord: Any) -> None:
++    coord.hass.async_create_task(persist(coord))
++
++
++def _due_inside_horizon(coord: Any) -> bool:
++    """Whether the anti-legionella hard deadline falls inside this horizon.
++
++    ``dhw_legionella_due_in_hours`` is ``legionella.due_in_hours``: hours
++    left before the cycle is required. The planner places that cycle when
++    the same remainder, in steps, is still inside the horizon
++    (``deadline_step < n_steps``). Equal to the horizon is the next
++    horizon, so the comparison is strict.
++    """
++    data = getattr(coord, "data", None)
++    if not isinstance(data, Mapping):
++        return False
++    due = data.get("dhw_legionella_due_in_hours")
++    if due is None:
++        return False
++    horizon = data.get("horizon_hours", 24.0)
++    try:
++        return float(due) < float(horizon)
++    except (TypeError, ValueError):
++        return False
++
++
++def _window_open(snap: Any, now: datetime) -> bool:
++    info = getattr(snap.plan, "predictive_info", None) or {}
++    planned = info.get("dhw_windows") if snap.plan is not None else None
++    windows = None
++    if planned:
++        try:
++            windows = parse_windows(planned)
++        except DHWWindowError:
++            windows = None
++    if not windows:
++        windows = list(getattr(snap.params, "dhw_demand_windows", None) or [])
++    if not windows:
++        return False
++    hour = now.hour + now.minute / 60.0
++    return hour_in_windows(hour, windows)
++
++
++def _dhw_floor(coord: Any, snap: Any, now: datetime) -> str | None:
++    if snap.disinfecting:
++        return RELEASE_DISINFECTION
++    if _due_inside_horizon(coord):
++        return RELEASE_LEGIONELLA
++    temp = getattr(snap.state, "dhw_temperature", None)
++    floor = getattr(snap.params, "dhw_min_temp", None)
++    if (
++        temp is not None
++        and floor is not None
++        and float(temp) <= float(floor)
++        and _window_open(snap, now)
++    ):
++        return RELEASE_TANK
++    return None
++
++
++def _space_floor(snap: Any, now: datetime) -> str | None:
++    room = getattr(snap.state, "room_temperature", None)
++    if (
++        room is not None
++        and float(room) <= ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C
++    ):
++        return RELEASE_ROOM
++    if _cold_lease is not None and _cold_lease(snap, now):
++        return RELEASE_COLD
++    return None
++
++
++def block_release_reason(
++    coord: Any, channel: str, now: datetime | None = None, snap: Any = None
++) -> str | None:
++    """Why this block cannot hold, or None when the press may stand."""
++    now = now or dt_util.now()
++    if snap is None:
++        snap = _floor_snap(coord)
++    if snap is None:
++        return None
++    if channel == CHANNEL_DHW:
++        why = _dhw_floor(coord, snap, now)
++        if why is not None:
++            return why
++    elif channel == CHANNEL_SPACE:
++        why = _space_floor(snap, now)
++        if why is not None:
++            return why
++    action = snap.action or {}
++    if action.get("mode") == "system_identification":
++        return RELEASE_SYSID
++    if snap.plan_stale:
++        return RELEASE_STALE
++    return None
++
++
++def release_blocked(coord: Any, snap: Any, now: datetime) -> bool:
++    """Drop every live block a safety floor forbids. True if one dropped."""
++    held = held_for(coord)
++    released = False
++    for channel in list(held.blocked):
++        if not held.block_active(channel, now):
++            continue
++        if block_release_reason(coord, channel, now, snap) is None:
++            continue
++        held.blocked.pop(channel, None)
++        released = True
++    return released
+diff --git a/custom_components/heatpump_optimizer/icons.json b/custom_components/heatpump_optimizer/icons.json
+index 29748c62..1c910f09 100644
+--- a/custom_components/heatpump_optimizer/icons.json
++++ b/custom_components/heatpump_optimizer/icons.json
+@@ -275,6 +275,12 @@
+       "boost_space": {
+         "default": "mdi:radiator"
+       },
++      "block_dhw": {
++        "default": "mdi:water-boiler-off"
++      },
++      "block_space": {
++        "default": "mdi:radiator-off"
++      },
+       "optimizer_active": {
+         "default": "mdi:robot"
+       }
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index a462453c..b3651f52 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -38,6 +38,10 @@ into Heating + DHW, so the planned anti-legionella run can make hot water.
+ :func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
+ then Heating, each through its own row above; a share under
+ :data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
++A block drops its duty out of :func:`_planned_duty` and again out of
++whatever :func:`_share` and the hot-water lease return, so a blocked
++duty is served as idle and a lease expiry cannot hand it back. The
++power switch is not written.
+ 
+ **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
+ so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
+@@ -459,6 +463,48 @@ def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
+     return "both" if space and dhw else "space" if space else "dhw"
+ 
+ 
++def _without_block(coord: Any, duty: str | None, now: datetime) -> str | None:
++    """Drop a blocked duty. No block leaves ``duty`` unchanged, including None."""
++    held = boost.held_for(coord)
++    space_off = held.block_active(boost.CHANNEL_SPACE, now)
++    dhw_off = held.block_active(boost.CHANNEL_DHW, now)
++    if not space_off and not dhw_off:
++        return duty
++    if duty == "idle":
++        return "idle"
++    # None is the baseline row: both duties. Idle is already neither.
++    if duty is None:
++        space, dhw = not space_off, not dhw_off
++    else:
++        space = duty in ("space", "both") and not space_off
++        dhw = duty in ("dhw", "both") and not dhw_off
++    if space and dhw:
++        return "both"
++    if space:
++        return "space"
++    if dhw:
++        return "dhw"
++    return "idle"
++
++
++def block_cold_lease(inp: ArbiterInputs, now: datetime) -> bool:
++    """Whether the cold rail would hand space heat back.
++
++    Outdoor below :data:`COLD_RAIL_C` and the room below the plan's
++    temperature for this step — the pair :func:`_leased` consults, without
++    the lease timer. An unknown room or plan while it is that cold counts,
++    so a block cannot keep space heat off on a missing reading.
++    """
++    outdoor = getattr(inp.state, "outdoor_temperature", None)
++    if outdoor is None or float(outdoor) >= COLD_RAIL_C:
++        return False
++    room = getattr(inp.state, "room_temperature", None)
++    planned = _planned_room(None if inp.plan_stale else inp.plan, now)
++    if room is None or planned is None:
++        return True
++    return float(room) < float(planned)
++
++
+ def _ran_kw(inp: ArbiterInputs) -> float:
+     """The MEASURED draw above which this step's ledger row counts a run.
+ 
+@@ -660,12 +706,20 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
+             await _persist(coord)
+         if inp.mode == MODE_OFF:
+             return
+-    duty = _leased(inp, held, _planned_duty(coord, inp, now), now)
++    if boost.release_blocked(coord, inp, now):
++        await boost.persist(coord)
++    duty = _leased(
++        inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
++    )
+     _observe(held, inp, duty, now)
+     if mode != DUTY_CONTROL or _pump_off(inp):
+         return
+     hold(coord, now)
+-    await _command(coord, inp, desired(coord, inp, _share(coord, inp, duty, now), now), now)
++    await _command(
++        coord, inp,
++        desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
++        now,
++    )
+ 
+ 
+ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
+@@ -789,6 +843,9 @@ def _writable(slot: str, value: Any) -> bool:
+     return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
+ 
+ 
++boost.bind_cold_lease(block_cold_lease)
++
++
+ def diagnostics_view(coord: Any) -> dict[str, Any]:
+     """The diagnostics view."""
+     held = state_for(coord)
+diff --git a/custom_components/heatpump_optimizer/store.py b/custom_components/heatpump_optimizer/store.py
+index ff204957..de616ef6 100644
+--- a/custom_components/heatpump_optimizer/store.py
++++ b/custom_components/heatpump_optimizer/store.py
+@@ -392,7 +392,10 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
+         "last_cycle": _AT0, "last_attempt": _AT0, "last_attempt_peak": _R,
+         "disinfection_owned/#": _TEXT, "disinfection_latched": _FLAG,
+     },
+-    "boost": {"dhw/until": _AT, "space/until": _AT},
++    "boost": {
++        "dhw/until": _AT, "space/until": _AT,
++        "block_dhw/until": _AT, "block_space/until": _AT,
++    },
+     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
+     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
+     "pump_duty": {
+diff --git a/custom_components/heatpump_optimizer/strings.json b/custom_components/heatpump_optimizer/strings.json
+index 6933b981..a82855d2 100644
+--- a/custom_components/heatpump_optimizer/strings.json
++++ b/custom_components/heatpump_optimizer/strings.json
+@@ -2027,6 +2027,12 @@
+       "boost_space": {
+         "name": "Boost Space Heating"
+       },
++      "block_dhw": {
++        "name": "Block DHW"
++      },
++      "block_space": {
++        "name": "Block Space Heating"
++      },
+       "optimizer_active": {
+         "name": "Optimizer Active"
+       }
+diff --git a/custom_components/heatpump_optimizer/switch.py b/custom_components/heatpump_optimizer/switch.py
+index a875f16d..b5bdfe8d 100644
+--- a/custom_components/heatpump_optimizer/switch.py
++++ b/custom_components/heatpump_optimizer/switch.py
+@@ -1,6 +1,6 @@
+ """Switch entities for Heat Pump Cost Optimizer.
+ 
+-Four switches, all plain toggles over coordinator state. Each reads the live
++Six switches, all plain toggles over coordinator state. Each reads the live
+ state rather than the published payload, and publishes it as soon as the
+ action has changed it, before the refresh that runs the solve (30 to 70 s on
+ a Pi): Home Assistant's toggle falls back to the old state after about two
+@@ -13,6 +13,8 @@ front of the user (v6.6.12).
+ * "Away" — the plan page's away override.
+ * "DHW Boost" and "Boost Space Heating" — two-hour maximum boosts of the hot
+   water and the space heating, released when their window ends.
++* "Block DHW" and "Block Space Heating" — the opposite, for the same two
++  hours. A safety floor releases a block and the switch says why.
+ """
+ from __future__ import annotations
+ 
+@@ -48,6 +50,8 @@ async def async_setup_entry(
+             AwaySwitch(coordinator, entry),
+             BoostDhwSwitch(coordinator, entry),
+             BoostSpaceSwitch(coordinator, entry),
++            BlockDhwSwitch(coordinator, entry),
++            BlockSpaceSwitch(coordinator, entry),
+         ]
+     )
+ 
+@@ -134,11 +138,18 @@ class AwaySwitch(HeatPumpOptimizerEntity, SwitchEntity):
+         publish_then_refresh(self)
+ 
+ 
+-class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
+-    """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527)."""
++class TimedDutySwitch(HeatPumpOptimizerEntity, SwitchEntity):
++    """A two-hour boost or block of one duty. The four switches share this.
++
++    Subclasses set the channel, the polarity and the registry key. Hot-water
++    switches also mix in ``DHWEntityMixin``. State stays in ``boost``'s weak
++    map; the coordinator grows no attribute.
++    """
+ 
+-    _attr_translation_key = "dhw_boost"
+     _platform_domain = "switch"
++    _channel = ""
++    _block = False
++    _unique_key = ""
+ 
+     def __init__(
+         self,
+@@ -146,47 +157,78 @@ class BoostDhwSwitch(DHWEntityMixin, SwitchEntity):
+         entry: HeatPumpOptimizerConfigEntry,
+     ) -> None:
+         super().__init__(coordinator)
+-        # The unique id keeps the pre-#1334 key: an existing install's registry
+-        # entry (and its history) is identified by this string, so the rename
+-        # moves the suggested object id for NEW installs only, exactly as #1227
+-        # and #1333 moved the sensors'.
+-        self._pin_identity(entry, "boost_dhw")
++        self._pin_identity(entry, self._unique_key)
+ 
+     @property
+     def is_on(self) -> bool:
+-        return boost.held_for(self.coordinator).active("dhw", dt_util.now())
++        held = boost.held_for(self.coordinator)
++        now = dt_util.now()
++        if self._block:
++            return held.block_active(self._channel, now)
++        return held.active(self._channel, now)
+ 
+-    async def async_turn_on(self, **kwargs: Any) -> None:
+-        await boost.set_channel(self.coordinator, "dhw", True, refresh=False)
++    @property
++    def extra_state_attributes(self) -> dict[str, Any] | None:
++        if not self._block:
++            return None
++        why = boost.block_release_reason(self.coordinator, self._channel)
++        if why is None:
++            return None
++        return {"block_release": why}
++
++    async def _press(self, active: bool) -> None:
++        if self._block:
++            await boost.set_block(
++                self.coordinator, self._channel, active, refresh=False
++            )
++        else:
++            await boost.set_channel(
++                self.coordinator, self._channel, active, refresh=False
++            )
+         publish_then_refresh(self)
+ 
++    async def async_turn_on(self, **kwargs: Any) -> None:
++        await self._press(True)
++
+     async def async_turn_off(self, **kwargs: Any) -> None:
+-        await boost.set_channel(self.coordinator, "dhw", False, refresh=False)
+-        publish_then_refresh(self)
++        await self._press(False)
+ 
+ 
+-class BoostSpaceSwitch(HeatPumpOptimizerEntity, SwitchEntity):
++class BoostDhwSwitch(DHWEntityMixin, TimedDutySwitch):
++    """Two-hour maximum hot-water heat; gated like every hot-water entity (#1527).
++
++    The unique id keeps the pre-#1334 key: an existing install's registry
++    entry (and its history) is identified by this string, so the rename
++    moves the suggested object id for NEW installs only, exactly as #1227
++    and #1333 moved the sensors'.
++    """
++
++    _attr_translation_key = "dhw_boost"
++    _channel = "dhw"
++    _unique_key = "boost_dhw"
++
++
++class BoostSpaceSwitch(TimedDutySwitch):
+     """Two-hour maximum space heat."""
+ 
+     _attr_translation_key = "boost_space"
+-    _platform_domain = "switch"
++    _channel = "space"
++    _unique_key = "boost_space"
+ 
+-    def __init__(
+-        self,
+-        coordinator: HeatPumpOptimizerCoordinator,
+-        entry: HeatPumpOptimizerConfigEntry,
+-    ) -> None:
+-        super().__init__(coordinator)
+-        self._pin_identity(entry, "boost_space")
+ 
+-    @property
+-    def is_on(self) -> bool:
+-        return boost.held_for(self.coordinator).active("space", dt_util.now())
++class BlockDhwSwitch(DHWEntityMixin, TimedDutySwitch):
++    """Two-hour hot-water block; gated like every hot-water entity."""
+ 
+-    async def async_turn_on(self, **kwargs: Any) -> None:
+-        await boost.set_channel(self.coordinator, "space", True, refresh=False)
+-        publish_then_refresh(self)
++    _attr_translation_key = "block_dhw"
++    _channel = "dhw"
++    _block = True
++    _unique_key = "block_dhw"
+ 
+-    async def async_turn_off(self, **kwargs: Any) -> None:
+-        await boost.set_channel(self.coordinator, "space", False, refresh=False)
+-        publish_then_refresh(self)
++
++class BlockSpaceSwitch(TimedDutySwitch):
++    """Two-hour space-heat block."""
++
++    _attr_translation_key = "block_space"
++    _channel = "space"
++    _block = True
++    _unique_key = "block_space"
+diff --git a/custom_components/heatpump_optimizer/translations/en.json b/custom_components/heatpump_optimizer/translations/en.json
+index 6933b981..a82855d2 100644
+--- a/custom_components/heatpump_optimizer/translations/en.json
++++ b/custom_components/heatpump_optimizer/translations/en.json
+@@ -2027,6 +2027,12 @@
+       "boost_space": {
+         "name": "Boost Space Heating"
+       },
++      "block_dhw": {
++        "name": "Block DHW"
++      },
++      "block_space": {
++        "name": "Block Space Heating"
++      },
+       "optimizer_active": {
+         "name": "Optimizer Active"
+       }
+diff --git a/custom_components/heatpump_optimizer/translations/sv.json b/custom_components/heatpump_optimizer/translations/sv.json
+index 682e4533..a326aebb 100644
+--- a/custom_components/heatpump_optimizer/translations/sv.json
++++ b/custom_components/heatpump_optimizer/translations/sv.json
+@@ -2027,6 +2027,12 @@
+       "boost_space": {
+         "name": "Forcera rumsvärme"
+       },
++      "block_dhw": {
++        "name": "Blockera varmvatten"
++      },
++      "block_space": {
++        "name": "Blockera rumsvärme"
++      },
+       "optimizer_active": {
+         "name": "Optimeraren aktiv"
+       }
+diff --git a/tests/block_duty.py b/tests/block_duty.py
+new file mode 100644
+index 00000000..821c0853
+--- /dev/null
++++ b/tests/block_duty.py
+@@ -0,0 +1,504 @@
++#!/usr/bin/env python3
++"""The block-switch mutants, driven without a solve.
++
++``tests/features.py`` already states these checks. This script states them
++again so a mutation drive can kill the new sites without that script's
++solves: each check is the predicate one operator flips.
++
++    PYTHONPATH=tests/hastub python3 tests/block_duty.py
++"""
++from __future__ import annotations
++
++import asyncio
++import sys
++from datetime import datetime, timedelta, timezone
++from types import SimpleNamespace
++
++sys.path.insert(0, "tests")
++sys.path.insert(0, "custom_components")
++
++from harness import FakeEntry, FakeHass, FakeState, Results  # noqa: E402
++from heatpump_optimizer import boost as boost_mod  # noqa: E402
++from heatpump_optimizer import entity as entity_mod  # noqa: E402
++from heatpump_optimizer import pump_arbiter as arb  # noqa: E402
++from heatpump_optimizer import switch as switch_mod  # noqa: E402
++from heatpump_optimizer.const import (  # noqa: E402
++    ECONOMY_ABSOLUTE_FLOOR,
++    MODE_AUTO,
++    SPACE_PUMP_FLOOR_MARGIN_C,
++)
++from heatpump_optimizer.dhw_schedule import parse_windows  # noqa: E402
++
++UTC = timezone.utc
++R = Results("block duty")
++NOW = datetime(2026, 7, 1, 12, 0, tzinfo=UTC)
++entity_mod.publish_then_refresh = lambda _ent: None
++
++
++def check(name: str, fn) -> None:
++    try:
++        ok = fn()
++        detail = "" if ok else "predicate false"
++    except Exception as exc:  # noqa: BLE001 - a mutant that raises is a kill
++        ok, detail = False, f"{type(exc).__name__}: {exc}"
++    R.check(name, bool(ok), detail)
++
++
++class _Coord:
++    def __init__(self, snap=None, data=None):
++        self._snap = snap
++        self.data = data if data is not None else {}
++        self.hass = FakeHass()
++        self._current_action = {}
++        self.refreshed = 0
++        self.entry = SimpleNamespace(entry_id="block-duty")
++
++    def arbiter_inputs(self):
++        return self._snap
++
++    def adopt_action(self, action):
++        self._current_action = action
++
++    async def async_request_refresh(self):
++        self.refreshed += 1
++
++
++def _snap(**kw):
++    return arb.ArbiterInputs(
++        hass=None,
++        config=kw.get("config") or {},
++        mode=kw.get("mode", MODE_AUTO),
++        plan=kw.get("plan"),
++        plan_stale=kw.get("stale", False),
++        entry_released=False,
++        state=kw.get("state") or SimpleNamespace(
++            room_temperature=21.0, outdoor_temperature=5.0, dhw_temperature=50.0,
++        ),
++        thermal=None,
++        params=kw.get("params") or SimpleNamespace(
++            dhw_min_temp=40.0, dhw_demand_windows=[],
++        ),
++        action=kw.get("action") or {},
++        measured_power_kw=None,
++        disinfecting=kw.get("disinfecting", False),
++    )
++
++
++def main() -> int:
++    check("BLOCK_HOURS is 2", lambda: boost_mod.BLOCK_HOURS == 2)
++    check(
++        "the boost lead stays two hours while both constants are 2",
++        lambda: boost_mod._MAX_LEAD == timedelta(hours=2)
++        and boost_mod._BLOCK_LEAD == timedelta(hours=2),
++    )
++
++    life = boost_mod.BoostState()
++    life.set("space", True, NOW, block=True)
++    check(
++        "a block is live until its own end and not after",
++        lambda: life.block_active(boost_mod.CHANNEL_SPACE, NOW)
++        and life.block_active(
++            "space", NOW + timedelta(hours=2) - timedelta(seconds=1)
++        )
++        and not life.block_active("space", NOW + timedelta(hours=2)),
++    )
++    ended = boost_mod.BoostState()
++    ended.blocked["space"] = NOW
++    ended.expire(NOW)
++    check(
++        "expiry at the end drops the block and does not settle a block",
++        lambda: "space" not in ended.blocked and ended.space_settle_until is None,
++    )
++
++    far = boost_mod.BoostState()
++    far.blocked["space"] = NOW + timedelta(hours=5)
++    far.expire(NOW)
++    check(
++        "a block dated more than two hours ahead is clamped to two hours",
++        lambda: far.blocked.get("space") == NOW + timedelta(hours=2),
++    )
++
++    space_boost = boost_mod.BoostState()
++    space_boost.set("space", True, NOW)
++    space_boost.set("space", True, NOW, block=True)
++    check(
++        "a space block replacing a live boost sets the settling tail and clears the boost",
++        lambda: space_boost.until == {}
++        and "space" in space_boost.blocked
++        and space_boost.space_settle_until is not None,
++    )
++    dhw_only = boost_mod.BoostState()
++    dhw_only.set("dhw", True, NOW)
++    dhw_only.set("dhw", True, NOW, block=True)
++    check(
++        "a DHW block replacing a boost does not set the space settling tail",
++        lambda: dhw_only.space_settle_until is None and "dhw" in dhw_only.blocked,
++    )
++    back = boost_mod.BoostState()
++    back.set("space", True, NOW, block=True)
++    back.set("space", True, NOW)
++    check(
++        "a later boost clears the block",
++        lambda: back.blocked == {} and "space" in back.until,
++    )
++
++    base = {
++        "power": 1.2, "dhw_power": 0.4, "dhw_heating_active": True,
++        "heat_pump_on": True, "mode": "normal", "power_normalized": 0.3,
++    }
++    plain = dict(base)
++    boost_mod.overlay(plain, boost_mod.BoostState(), max_power=6.0, max_temp=24.0, ecl_max=8.0)
++    check("no block leaves the action unchanged", lambda: plain == base)
++    space_held = boost_mod.BoostState()
++    space_held.set("space", True, NOW, block=True)
++    space_action = dict(base)
++    boost_mod.overlay(space_action, space_held, max_power=6.0, max_temp=24.0, ecl_max=8.0)
++    check(
++        "a space block zeroes space power and not the supply switch",
++        lambda: space_action["power"] == 0.0
++        and space_action["power_normalized"] == 0.0
++        and space_action["heat_pump_on"] is True
++        and space_action["dhw_power"] == 0.4,
++    )
++    no_norm = {"power": 1.2, "dhw_power": 0.4, "heat_pump_on": True}
++    no_norm_held = boost_mod.BoostState()
++    no_norm_held.set("space", True, NOW, block=True)
++    boost_mod.overlay(no_norm, no_norm_held, max_power=6.0, max_temp=24.0, ecl_max=8.0)
++    check(
++        "a space block does not invent power_normalized",
++        lambda: "power_normalized" not in no_norm and no_norm["power"] == 0.0,
++    )
++    dhw_action = dict(base)
++    dhw_held = boost_mod.BoostState()
++    dhw_held.set("dhw", True, NOW, block=True)
++    boost_mod.overlay(dhw_action, dhw_held, max_power=6.0, max_temp=24.0, ecl_max=8.0)
++    check(
++        "a DHW block zeroes hot water",
++        lambda: dhw_action["dhw_power"] == 0.0
++        and dhw_action["dhw_heating_active"] is False
++        and dhw_action["power"] == 1.2,
++    )
++
++    warm = _snap()
++    check(
++        "no floor is a reason",
++        lambda: boost_mod.block_release_reason(_Coord(warm), "dhw", NOW, warm) is None
++        and boost_mod.block_release_reason(_Coord(warm), "space", NOW, warm) is None,
++    )
++    due = _Coord(warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0})
++    overdue = _Coord(warm, {"dhw_legionella_due_in_hours": -2.0, "horizon_hours": 24.0})
++    check(
++        "a due or overdue cycle inside the horizon releases DHW",
++        lambda: boost_mod.block_release_reason(due, "dhw", NOW) == boost_mod.RELEASE_LEGIONELLA
++        and boost_mod.block_release_reason(overdue, "dhw", NOW) == boost_mod.RELEASE_LEGIONELLA,
++    )
++    edge = _Coord(warm, {"dhw_legionella_due_in_hours": 24.0, "horizon_hours": 24.0})
++    check(
++        "a cycle exactly at the horizon does not release",
++        lambda: boost_mod.block_release_reason(edge, "dhw", NOW) is None,
++    )
++    hold = _snap(disinfecting=True)
++    check(
++        "a live disinfection hold releases DHW",
++        lambda: boost_mod.block_release_reason(_Coord(hold), "dhw", NOW, hold)
++        == boost_mod.RELEASE_DISINFECTION,
++    )
++    tank_params = SimpleNamespace(
++        dhw_min_temp=45.0, dhw_demand_windows=parse_windows("00:00-23:59"),
++    )
++    tank = _snap(
++        state=SimpleNamespace(room_temperature=21.0, outdoor_temperature=5.0, dhw_temperature=45.0),
++        params=tank_params,
++    )
++    check(
++        "the tank at its minimum inside a window releases DHW",
++        lambda: boost_mod.block_release_reason(_Coord(tank), "dhw", NOW, tank)
++        == boost_mod.RELEASE_TANK,
++    )
++    closed_params = SimpleNamespace(
++        dhw_min_temp=45.0, dhw_demand_windows=parse_windows("00:00-01:00"),
++    )
++    closed = _snap(
++        state=SimpleNamespace(room_temperature=21.0, outdoor_temperature=5.0, dhw_temperature=45.0),
++        params=closed_params,
++    )
++    check(
++        "the tank at its minimum outside a demand window does not release",
++        lambda: boost_mod.block_release_reason(_Coord(closed), "dhw", NOW, closed) is None,
++    )
++    room_at = ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C
++    room = _snap(state=SimpleNamespace(room_temperature=room_at, outdoor_temperature=5.0))
++    above = _snap(state=SimpleNamespace(
++        room_temperature=room_at + 0.1, outdoor_temperature=5.0,
++    ))
++    check(
++        "the room floor releases at the margin and not above it",
++        lambda: boost_mod.block_release_reason(_Coord(room), "space", NOW, room)
++        == boost_mod.RELEASE_ROOM
++        and boost_mod.block_release_reason(_Coord(above), "space", NOW, above) is None,
++    )
++    plan = SimpleNamespace(timestamps=[NOW], optimal_setpoints=[21.0], predictive_info={})
++    cold = _snap(
++        state=SimpleNamespace(room_temperature=18.0, outdoor_temperature=-11.0),
++        plan=plan,
++    )
++    check(
++        "the cold rail releases a space block",
++        lambda: boost_mod.block_release_reason(_Coord(cold), "space", NOW, cold)
++        == boost_mod.RELEASE_COLD,
++    )
++    rail = SimpleNamespace(state=SimpleNamespace(
++        outdoor_temperature=arb.COLD_RAIL_C, room_temperature=18.0,
++    ), plan_stale=False, plan=plan)
++    below = SimpleNamespace(state=SimpleNamespace(
++        outdoor_temperature=arb.COLD_RAIL_C - 0.1, room_temperature=18.0,
++    ), plan_stale=False, plan=plan)
++    check(
++        "the cold rail is strict below its threshold",
++        lambda: arb.block_cold_lease(rail, NOW) is False
++        and arb.block_cold_lease(below, NOW) is True,
++    )
++    missing = SimpleNamespace(state=SimpleNamespace(
++        outdoor_temperature=-11.0, room_temperature=None,
++    ), plan_stale=False, plan=plan)
++    check(
++        "a missing room below the rail counts",
++        lambda: arb.block_cold_lease(missing, NOW) is True,
++    )
++    sysid = _snap(action={"mode": "system_identification"})
++    stale = _snap(stale=True)
++    check(
++        "sysid and a stale plan release a block",
++        lambda: boost_mod.block_release_reason(_Coord(sysid), "space", NOW, sysid)
++        == boost_mod.RELEASE_SYSID
++        and boost_mod.block_release_reason(_Coord(stale), "dhw", NOW, stale)
++        == boost_mod.RELEASE_STALE,
++    )
++    check(
++        "no snapshot is not a reason",
++        lambda: boost_mod.block_release_reason(_Coord(None), "dhw", NOW) is None,
++    )
++
++    apply_c = _Coord(
++        warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0, "dhw_enabled": True},
++    )
++    boost_mod.adopt_plan(apply_c, {"power": 1.0, "dhw_power": 0.5, "heat_pump_on": True})
++    boost_mod.held_for(apply_c).set("dhw", True, boost_mod.dt_util.now(), block=True)
++    saved = []
++
++    async def _save(_data):
++        saved.append(_data)
++
++    real_store = boost_mod._store
++
++    def _mem_store(_coord):
++        return SimpleNamespace(async_save=_save, async_load=lambda: None)
++
++    scheduled = []
++
++    def _schedule(coro):
++        scheduled.append(coro)
++        coro.close()
++
++    apply_c.hass.async_create_task = _schedule
++    boost_mod._store = _mem_store
++    try:
++        boost_mod.apply(apply_c, boost_mod.BoostOverlay(6.0, 24.0, 8.0))
++    finally:
++        boost_mod._store = real_store
++    check(
++        "a due cycle releases the block before the overlay and asks to persist",
++        lambda: "dhw" not in boost_mod.held_for(apply_c).blocked
++        and apply_c._current_action["dhw_power"] == 0.5
++        and len(scheduled) == 1,
++    )
++
++    bare = SimpleNamespace(data={}, hass=FakeHass())
++    check(
++        "a coordinator with no arbiter inputs has no release reason",
++        lambda: boost_mod.block_release_reason(bare, "space", NOW) is None,
++    )
++    unmapped = SimpleNamespace(data=None, hass=FakeHass(), arbiter_inputs=lambda: warm)
++    check(
++        "a non-mapping payload is not a legionella reason",
++        lambda: boost_mod.block_release_reason(unmapped, "dhw", NOW, warm) is None,
++    )
++    planned = _snap(plan=SimpleNamespace(
++        timestamps=[NOW], optimal_setpoints=[21.0],
++        predictive_info={"dhw_windows": "00:00-23:59"},
++    ), params=SimpleNamespace(dhw_min_temp=45.0, dhw_demand_windows=[]),
++        state=SimpleNamespace(room_temperature=21.0, outdoor_temperature=5.0, dhw_temperature=45.0),
++    )
++    check(
++        "a planned demand window releases the tank floor",
++        lambda: boost_mod.block_release_reason(_Coord(planned), "dhw", NOW, planned)
++        == boost_mod.RELEASE_TANK,
++    )
++
++    clock = boost_mod.dt_util.now()
++    loaded = _Coord(warm)
++    loaded.entry = SimpleNamespace(entry_id="restore-block")
++
++    class _Mem:
++        def __init__(self, *a, **k):
++            pass
++
++        async def async_load(self):
++            return {
++                "dhw": {"until": (clock + timedelta(hours=1)).isoformat()},
++                "block_space": {"until": (clock + timedelta(hours=1)).isoformat()},
++                "block_dhw": {"until": clock.isoformat()},
++            }
++
++        async def async_save(self, data):
++            return None
++
++    real = boost_mod.QuarantiningStore
++    boost_mod.QuarantiningStore = _Mem
++    try:
++        asyncio.run(boost_mod.restore(loaded))
++    finally:
++        boost_mod.QuarantiningStore = real
++    held = boost_mod.held_for(loaded)
++    check(
++        "restore keeps a future block and a future boost, not one dated now",
++        lambda: "dhw" in held.until and "space" in held.blocked and "dhw" not in held.blocked,
++    )
++    exact = _Coord(warm)
++    exact.entry = SimpleNamespace(entry_id="restore-exact")
++    fixed_now = datetime(2026, 8, 1, 12, 0, tzinfo=UTC)
++    real_now = boost_mod.dt_util.now
++
++    class _Exact:
++        def __init__(self, *a, **k):
++            pass
++
++        async def async_load(self):
++            return {"block_dhw": {"until": fixed_now.isoformat()}}
++
++        async def async_save(self, data):
++            return None
++
++    boost_mod.dt_util.now = lambda: fixed_now
++    boost_mod.QuarantiningStore = _Exact
++    try:
++        asyncio.run(boost_mod.restore(exact))
++    finally:
++        boost_mod.dt_util.now = real_now
++        boost_mod.QuarantiningStore = real
++    check(
++        "a block dated at this instant is not still live",
++        lambda: "dhw" not in boost_mod.held_for(exact).blocked,
++    )
++
++    stale_block = _Coord(warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0})
++    boost_mod.held_for(stale_block).blocked["dhw"] = clock - timedelta(hours=3)
++    dropped = boost_mod.release_blocked(stale_block, warm, clock)
++    check(
++        "an already-expired block is not released",
++        lambda: dropped is False and "dhw" in boost_mod.held_for(stale_block).blocked,
++    )
++    live = _Coord(warm)
++    boost_mod.held_for(live).set("space", True, clock, block=True)
++    check(
++        "a live block with no floor is kept",
++        lambda: boost_mod.release_blocked(live, warm, clock) is False
++        and "space" in boost_mod.held_for(live).blocked,
++    )
++
++    refresh = _Coord(warm)
++    asyncio.run(boost_mod.set_block(refresh, "dhw", True))
++    check(
++        "turning a block on refreshes",
++        lambda: refresh.refreshed == 1 and "dhw" in boost_mod.held_for(refresh).blocked,
++    )
++    refused = _Coord(warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0})
++    asyncio.run(boost_mod.set_block(refused, "dhw", True, refresh=False))
++    check(
++        "a due cycle refuses the on-press",
++        lambda: "dhw" not in boost_mod.held_for(refused).blocked,
++    )
++
++    entry = FakeEntry()
++    sw_coord = _Coord(warm)
++    sw_coord.data = {"dhw_enabled": True}
++    block_sw = switch_mod.BlockDhwSwitch(sw_coord, entry)
++    boost_sw = switch_mod.BoostDhwSwitch(sw_coord, entry)
++    boost_mod.held_for(sw_coord).set("dhw", True, boost_mod.dt_util.now(), block=True)
++    check("a block switch reads the block channel", lambda: block_sw.is_on is True)
++    check("a boost switch does not read the block channel", lambda: boost_sw.is_on is False)
++    boost_mod.held_for(sw_coord).blocked.clear()
++    boost_mod.held_for(sw_coord).set("dhw", True, boost_mod.dt_util.now())
++    check("a boost switch reads the boost channel", lambda: boost_sw.is_on is True)
++    why_coord = _Coord(warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0})
++    why = switch_mod.BlockDhwSwitch(why_coord, entry)
++    boost_why = switch_mod.BoostDhwSwitch(why_coord, entry)
++    check(
++        "the block switch says why and the boost switch does not",
++        lambda: why.extra_state_attributes == {"block_release": boost_mod.RELEASE_LEGIONELLA}
++        and boost_why.extra_state_attributes is None,
++    )
++    quiet = switch_mod.BlockSpaceSwitch(_Coord(warm), entry)
++    check("a block with no floor publishes no attribute", lambda: quiet.extra_state_attributes is None)
++    press = _Coord(warm)
++    press_sw = switch_mod.BlockSpaceSwitch(press, entry)
++    asyncio.run(press_sw.async_turn_on())
++    check(
++        "the block press holds the block channel",
++        lambda: "space" in boost_mod.held_for(press).blocked
++        and "space" not in boost_mod.held_for(press).until,
++    )
++
++    none_duty = arb._without_block(_Coord(warm), None, NOW)
++    both = arb._without_block(_Coord(warm), "both", NOW)
++    c = _Coord(warm)
++    boost_mod.held_for(c).set("space", True, NOW, block=True)
++    check(
++        "no block leaves the duty, including None",
++        lambda: none_duty is None and both == "both",
++    )
++    dhw_only_block = _Coord(warm)
++    boost_mod.held_for(dhw_only_block).set("dhw", True, NOW, block=True)
++    check(
++        "a space block turns both into dhw, space into idle, and idle stays idle",
++        lambda: arb._without_block(c, "both", NOW) == "dhw"
++        and arb._without_block(c, "space", NOW) == "idle"
++        and arb._without_block(c, "idle", NOW) == "idle"
++        and arb._without_block(c, None, NOW) == "dhw",
++    )
++    check(
++        "a DHW block turns both into space",
++        lambda: arb._without_block(dhw_only_block, "both", NOW) == "space",
++    )
++    equal = SimpleNamespace(
++        state=SimpleNamespace(outdoor_temperature=-11.0, room_temperature=21.0),
++        plan_stale=False,
++        plan=SimpleNamespace(timestamps=[NOW], optimal_setpoints=[21.0]),
++    )
++    check(
++        "the cold lease is strict: a room at the plan is not below it",
++        lambda: arb.block_cold_lease(equal, NOW) is False,
++    )
++    arb_coord = _Coord(
++        warm, {"dhw_legionella_due_in_hours": 1.0, "horizon_hours": 24.0, "dhw_enabled": True},
++    )
++    boost_mod.held_for(arb_coord).set("dhw", True, boost_mod.dt_util.now(), block=True)
++    arb_held = arb.state_for(arb_coord)
++    asyncio.run(arb._arbitrate(arb_coord, arb_held, warm, "observe", boost_mod.dt_util.now()))
++    check(
++        "the arbiter releases a block a floor forbids before it serves a duty",
++        lambda: "dhw" not in boost_mod.held_for(arb_coord).blocked,
++    )
++    both_off = _Coord(warm)
++    boost_mod.held_for(both_off).set("space", True, NOW, block=True)
++    boost_mod.held_for(both_off).set("dhw", True, NOW, block=True)
++    check(
++        "both channels blocked is idle",
++        lambda: arb._without_block(both_off, "both", NOW) == "idle",
++    )
++
++    return R.close("BLOCK DUTY CHECKS")
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())

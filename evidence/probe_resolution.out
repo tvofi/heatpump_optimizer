@@ -1,0 +1,4 @@
+OK  block=() log=[('command', 'both'), ('night',)] want command=both then night
+OK  block=('space',) log=[('command', 'dhw'), ('night',)] want command=dhw then night
+OK  block=('dhw',) log=[('command', 'space'), ('night',)] want command=space then night
+OK  block=('space', 'dhw') log=[('command', 'idle'), ('night',)] want command=idle then night
