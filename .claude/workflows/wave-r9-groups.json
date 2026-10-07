@@ -5075,9 +5075,9 @@
     "R9-UI-4"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-sw-card",
-    "commit": null,
+    "commit": "be0cb82134bd3a008e59127da6f2b67fb1c77e98",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
     "note_file": "handoff/round9/fix/resume/SW-3.md on handoff/r9-sw-card",
