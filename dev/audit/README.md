@@ -233,7 +233,7 @@ of the rule: evidence is archived, instruments are kept.
 | `h8_single_scenario.py` | whether the stress gate detects a 2x regression confined to one scenario, and stays quiet on a multi-start basin flip (#346) | `291ae76` (#378) | anyone changing `tests/stress.py`'s per-scenario or solver-work rules |
 | `h9_basin_coverage.py` | how many of the 51 sweep scenarios the solver-work rule judges rather than exempts, against the tree's own floor (#387) | `32f309f` (#388) | the same |
 | `k1725_blas_kernel_gap.py` | the ftol check's arms and the R9-F2.1 P3 margins, per OpenBLAS kernel via `OPENBLAS_CORETYPE` | `613bff1b` (#1726, #1725) | anyone adding a knife-edge optimizer comparison (`tests/README.md`'s kernel rule) |
-| `eg_b7_seam_hubs.py` | loads of `_opt_config`, `_thermal_params` and `_current_state` through a state root, per coordinator seam, and each seam's owned attributes, at this tree and at main before #1887 (`31567b71`), with `seam_metrics`' own attribute walk (R9-EG-B7, #1744) | R9-EG-B7 (`301abb21`, landed under #1744) | anyone proposing to detach a coordinator seam: the cut falls only where the hub loads and owned attributes moved |
 
-Each drives production code and prints under the harness contract in this file. `j5_gil.py` must never be run on
+All four drive production symbols and print `RESULT` lines under the harness
+contract in this file. `j5_gil.py` must never be run on
 `FakeHass`, whose executor runs inline and would measure nothing.
