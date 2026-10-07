@@ -59105,12 +59105,9 @@ from heatpump_optimizer.optimizer import (  # noqa: E402
     REASON_IDLE_OTHER as _UX5_OTHER,
     REASON_IDLE_SOLAR as _UX5_SOLAR,
     IdleContext as _Ux5Idle,
-    _above_floor as _ux5_above,
-    _dearer_than_used as _ux5_dearer,
-    _waiting_for_solar as _ux5_solar_wait,
     classify_dhw_steps as _ux5_dhw,
     classify_space_steps as _ux5_space,
-    idle_reason as _ux5_idle_reason,
+    idle_codes as _ux5_idle_codes,
 )
 from heatpump_optimizer.away import AwayState as _Ux5Away  # noqa: E402
 from heatpump_optimizer.coordinator import _fold_away as _ux5_fold  # noqa: E402
@@ -59119,6 +59116,11 @@ from heatpump_optimizer.notifier import (  # noqa: E402
     _comfort as _ux5_comfort,
     _comfort_cause as _ux5_cause,
 )
+
+
+def _ux5_idle_reason(i, power, *context):
+    """Step i's sub-code from ``idle_codes``, over enough steps to reach i."""
+    return _ux5_idle_codes(max(i + 1, len(power)), power, *context)[i]
 
 _ux5_n = 4
 _ux5_power = np.array([2.0, 0.0, 0.0, 1.5])
@@ -59266,6 +59268,23 @@ def _ux5_call(fn, *args):
 
 
 _ux5_thr = 0.05
+
+
+def _ux5_above(i, level, floor):
+    """Does ``idle_reason`` read step i as coasting, with only the floor in hand?"""
+    return _ux5_idle_reason(i, np.zeros(1), None, level, floor, None, None, None, _ux5_thr) == _UX5_COAST
+
+
+def _ux5_dearer(i, power, prices, thr):
+    """Does ``idle_reason`` read step i as dearer, with only the prices in hand?"""
+    return _ux5_idle_reason(i, power, prices, None, None, None, None, None, thr) == _UX5_DEAR
+
+
+def _ux5_solar_wait(i, power, surplus, thr):
+    """Does ``idle_reason`` read step i as waiting for solar, with only the surplus in hand?"""
+    return _ux5_idle_reason(i, power, None, None, None, surplus, None, None, thr) == _UX5_SOLAR
+
+
 _ok, _got = _ux5_call(_ux5_above, 0, None, None)
 R.check("UX-5 no trajectory is not above the floor", _ok and _got is False, str(_got))
 _ok, _got = _ux5_call(_ux5_above, 1, np.array([20.0, 20.0]), np.array([19.0]))

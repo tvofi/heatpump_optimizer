@@ -1019,45 +1019,17 @@ _IDLE_REASONS = frozenset({
 })
 
 
-def _above_floor(i: int, level: np.ndarray | None, floor: np.ndarray | None) -> bool:
-    """The step's temperature is clear of the floor the plan was holding.
-
-    ``level`` is a trajectory with the initial state at index 0, so step ``i``
-    reads index ``i + 1``, the same index the heating classifier uses.
-    """
-    if level is None or floor is None or i >= len(floor) or len(level) == 0:
-        return False
-    j = i + 1 if i + 1 < len(level) else len(level) - 1
-    return float(level[j]) > float(floor[i]) + 0.15
+def _padded(values: np.ndarray | None, n: int) -> np.ndarray:
+    """``values`` as ``n`` floats, NaN past its end, so no comparison holds there."""
+    out = np.full(n, np.nan)
+    if values is not None:
+        m = min(n, len(values))
+        out[:m] = np.asarray(values[:m], dtype=float)
+    return out
 
 
-def _dearer_than_used(
-    i: int, power: np.ndarray, prices: np.ndarray | None, threshold: float,
-) -> bool:
-    """This idle step costs more than every hour the channel actually ran."""
-    if prices is None or i >= len(prices) or len(power) == 0:
-        return False
-    n = min(len(power), len(prices))
-    used = np.asarray(prices[:n], dtype=float)[np.asarray(power[:n], dtype=float) > threshold]
-    return bool(used.size) and float(prices[i]) > float(np.max(used))
-
-
-def _waiting_for_solar(
-    i: int, power: np.ndarray, surplus: np.ndarray | None, threshold: float,
-) -> bool:
-    """Surplus arrives before this channel's next run, and not at this step."""
-    if surplus is None or i >= len(surplus) or float(surplus[i]) > 1e-6:
-        return False
-    nxt = i + 1
-    while nxt < len(power) and float(power[nxt]) <= threshold:
-        if nxt < len(surplus) and float(surplus[nxt]) > 1e-6:
-            return True
-        nxt += 1
-    return False
-
-
-def idle_reason(
-    i: int,
+def idle_codes(
+    n: int,
     power: np.ndarray,
     prices: np.ndarray | None,
     level: np.ndarray | None,
@@ -1066,25 +1038,48 @@ def idle_reason(
     other: np.ndarray | None,
     caps: np.ndarray | None,
     threshold: float,
-) -> str:
-    """The exact idle sub-code for step ``i``, or ``idle`` when none applies.
+) -> list[str]:
+    """The exact idle sub-code for each of steps ``0..n-1``, ``idle`` where none applies.
 
-    Ranked. The other channel drawing, and a fuse cap that leaves no
-    electrical room, are limits the plan did not choose. Waiting for solar
-    and a price above every hour that ran are choices. Coasting is what is
-    left when the temperature is simply above the floor.
+    Ranked, highest first. The other channel drawing, and a fuse cap that
+    leaves no electrical room, are limits the plan did not choose. Waiting for
+    solar and a price above every hour that ran are choices. Coasting is what
+    is left when the temperature is simply above the floor.
+
+    Whole-channel arrays, read once: a classifier calls this once per plan,
+    not once per idle step, because each test reads the channel's runs or its
+    dearest used price, which do not depend on the step.
     """
-    if other is not None and i < len(other) and float(other[i]) > threshold:
-        return REASON_IDLE_OTHER
-    if caps is not None and i < len(caps) and float(caps[i]) <= threshold:
-        return REASON_IDLE_FUSE
-    if _waiting_for_solar(i, power, surplus, threshold):
-        return REASON_IDLE_SOLAR
-    if _dearer_than_used(i, power, prices, threshold):
-        return REASON_IDLE_DEARER
-    if _above_floor(i, level, floor):
-        return REASON_IDLE_COASTING
-    return REASON_IDLE
+    if n <= 0:
+        return []
+    codes = np.full(n, REASON_IDLE, dtype=object)
+    idx = np.arange(n)
+    pw = np.asarray(power, dtype=float)
+    # Coasting: the step's temperature is clear of the floor the plan was
+    # holding. ``level`` has the initial state at index 0, so step i reads
+    # index i + 1, clamped to the last sample.
+    if level is not None and floor is not None and len(level):
+        lv = np.asarray(level, dtype=float)
+        codes[lv[np.minimum(idx + 1, len(lv) - 1)] > _padded(floor, n) + 0.15] = REASON_IDLE_COASTING
+    # Dearer: the step costs more than every hour the channel actually ran.
+    if prices is not None and len(pw):
+        m = min(len(pw), len(prices))
+        used = np.asarray(prices[:m], dtype=float)[pw[:m] > threshold]
+        if used.size:
+            codes[_padded(prices, n) > np.max(used)] = REASON_IDLE_DEARER
+    # Solar: no surplus at the step, and surplus at a step before the
+    # channel's next run (a run is any step not at or under the threshold).
+    if surplus is not None:
+        sp = _padded(surplus, n)
+        runs = np.flatnonzero(~(pw <= threshold))
+        k = min(len(pw), len(surplus))
+        sunny = np.flatnonzero(np.asarray(surplus[:k], dtype=float) > 1e-6)
+        nxt_run = np.append(runs, len(pw))[np.searchsorted(runs, idx, side="right")]
+        nxt_sun = np.append(sunny, np.iinfo(np.int64).max)[np.searchsorted(sunny, idx, side="right")]
+        codes[~(sp > 1e-6) & (idx < len(surplus)) & (nxt_sun < nxt_run)] = REASON_IDLE_SOLAR
+    codes[_padded(caps, n) <= threshold] = REASON_IDLE_FUSE
+    codes[_padded(other, n) > threshold] = REASON_IDLE_OTHER
+    return list(codes.tolist())
 
 
 def classify_space_steps(
@@ -1119,12 +1114,12 @@ def classify_space_steps(
     if n_steps == 0:
         return reasons
     cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
+    idle = idle_codes(
+        n_steps, power, prices, room_temps, temp_min_bounds, surplus, other, caps, threshold,
+    )
     for i in range(n_steps):
         if power[i] <= threshold:
-            reasons.append(idle_reason(
-                i, power, prices, room_temps, temp_min_bounds, surplus,
-                other, caps, threshold,
-            ))
+            reasons.append(idle[i])
             continue
         # Closest to a hard requirement wins: at or below the comfort floor,
         # the plan has no choice.
@@ -1180,12 +1175,13 @@ def classify_dhw_steps(
     """
     ctx = idle or IdleContext()
     reasons: list[str] = []
+    codes = idle_codes(
+        n_steps, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
+        ctx.other, ctx.caps, threshold,
+    )
     for i in range(n_steps):
         if power[i] <= threshold:
-            reasons.append(idle_reason(
-                i, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
-                ctx.other, ctx.caps, threshold,
-            ))
+            reasons.append(codes[i])
             continue
         if legionella_step is not None and i == legionella_step:
             reasons.append(REASON_LEGIONELLA)
