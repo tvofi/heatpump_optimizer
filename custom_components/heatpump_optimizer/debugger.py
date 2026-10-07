@@ -419,7 +419,8 @@ class DebugCollector:
             ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
             ("feeds", lambda: feed_health(rows)),
         ], SELF_TEST_BUDGET.total_seconds())
-        if self.final and self.started_at == started_at:  # not restarted meanwhile
+        # Unless the collection restarted meanwhile:
+        if self.final and self.started_at == started_at:
             self.self_tests = tests
         await self.async_save()
 
