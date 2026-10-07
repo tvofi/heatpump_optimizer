@@ -285,14 +285,22 @@ def report(found: dict[str, list[str]], n: int, verbose: bool) -> None:
 #                  under a planned move not yet made), or at a path whose move
 #                  had landed at the base
 #
-# A retired entry has LANDED when no tracked file sits under its old path. A
-# line that also names the entry's new path, or resolves it through the move
-# map (locate, canon), is a dual-path fallback and is not a citation; neither
-# is a line carrying the marker `layout:old`, which a fixture building the old
-# tree on purpose puts on the line it builds it with. A narrative citing an
-# old path names the new one beside it, which also tells its reader.
+# A retired entry has LANDED when no tracked file sits under its old path.
+# Each exemption is keyed on the ENTRY, never on the line: a line is not a
+# citation of `old` when it also names that entry's new path (a dual-path
+# fallback, or a narrative that tells its reader where the file went), when
+# `old` is the literal argument of `locate(` or `canon(` (the move map
+# resolves it), or when it carries `layout:old=<old>` (a fixture building the
+# old tree on purpose). Any of the three for one path exempts no other path
+# on the same line.
 
-FALLBACK = re.compile(r"\b(?:locate|canon)\(|layout:old")
+
+def exempt(old: str, new: str | None, line: str) -> bool:
+    o = re.escape(old.rstrip("/"))
+    return bool((new and new.rstrip("/") in line)
+                or re.search(r"\b(?:locate|canon)\(\s*['\"`]" + o + r"/?['\"`]", line)
+                or re.search(r"layout:old=" + o + r"(?![\w./-])", line))
+
 # Text the guard does not read, though the reference arm still counts it:
 # the policy-lint config, whose keys are spelt old ON PURPOSE (`canon`'s
 # spelling until R9-RO-9 retires `canon`, so a key spelt new matches nothing);
@@ -344,7 +352,7 @@ def stale_lines(text: str, entries: list[dict]) -> list[tuple[str, str]]:
         hits = [r for r in entries if r["old"].rstrip("/") in line and guard_re(r["old"]).search(line)]
         for r in hits:
             emptied = r.get("since") == "emptied"
-            if (r["new"] and not emptied and r["new"].rstrip("/") in line) or FALLBACK.search(line):
+            if exempt(r["old"], None if emptied else r["new"], line):
                 continue
             if emptied and any(h is not r and h["old"].startswith(r["old"]) for h in hits):
                 continue  # the file it holds is the citation, counted once
@@ -463,7 +471,8 @@ def guard_self_test() -> int:
     change staged, each case naming how many findings of which kind it owes."""
     m = {"categories": [{"name": "docs", "globs": ["docs/*.md"], "why": "t"},
                         {"name": "tools", "globs": ["tools/**"], "why": "t"},
-                        {"name": "arch", "globs": ["arch/**"], "why": "t"}],
+                        {"name": "arch", "globs": ["arch/**"], "why": "t"},
+                        {"name": "twin", "globs": ["docs/twin.md"], "why": "t"}],
          "historical": ["arch/"],
          "retired": [{"old": "old/gone.sh", "new": "tools/gone.sh", "since": "1"},
                      {"old": "old/briefs/a.md", "new": "docs/a.md", "since": "1"},
@@ -478,7 +487,14 @@ def guard_self_test() -> int:
         ("a doc gains a citation of a landed path", {"docs/a.md": cites}, (), {"new-reference": 1}),
         ("the same line naming the new path too", {"docs/a.md": "old/gone.sh is tools/gone.sh now\n"}, (), {}),
         ("the same line through the move map", {"docs/a.md": "locate('old/gone.sh')\n"}, (), {}),
-        ("the same line marked as building the old tree", {"tools/t.sh": "touch old/gone.sh  # layout:old\n"}, (), {}),
+        ("the same line marked as building the old tree", {"tools/t.sh": "touch old/gone.sh  # layout:old=old/gone.sh\n"}, (), {}),
+        ("a stale command whose marker names another path", {"tools/t.sh": "bash old/gone.sh  # layout:old=old/wip.sh\n"}, (),
+         {"new-reference": 1}),
+        ("a stale command with an unkeyed marker", {"tools/t.sh": "bash old/gone.sh  # layout:old\n"}, (), {"new-reference": 1}),
+        ("a stale command beside a locate of another path", {"tools/t.sh": "locate('x'); bash old/gone.sh\n"}, (),
+         {"new-reference": 1}),
+        ("prose naming the marker", {"docs/a.md": "run old/gone.sh, or mark it layout:old\n"}, (), {"new-reference": 1}),
+        ("the old path as the move map's own argument", {"tools/t.py": "p = locate('old/gone.sh')\n"}, (), {}),
         ("the citation under a historical prefix", {"arch/r.md": cites}, (), {}),
         ("an old citation kept while the file changes", {"docs/b.md": "run old/gone.sh here\nmore\n"}, (), {}),
         ("a second copy of an old citation", {"docs/b.md": "run old/gone.sh here\n" * 2}, (), {"new-reference": 1}),
@@ -490,6 +506,9 @@ def guard_self_test() -> int:
         ("a file re-added in a directory the moves emptied", {"old/briefs/b.md": ""}, (), {"placement": 1}),
         ("a file outside every category", {"misc/x.txt": ""}, (), {"placement": 1}),
         ("a file in its category", {"tools/y.sh": ""}, (), {}),
+        ("a file in two categories", {"docs/twin.md": ""}, (), {"placement": 1}),
+        ("a file citation inside an emptied directory, counted once", {"docs/a.md": "see old/briefs/a.md\n"}, (),
+         {"new-reference": 1}),
         ("a file under a planned move", {"old/dir/y.sh": ""}, (), {}),
         ("a file re-added at a landed path", {"old/gone.sh": ""}, (), {"placement": 1, "new-reference": 0}),
         ("a move landed, a citation left", {"tools/wip.sh": ""}, ("old/wip.sh",), {"unswept": 1}),
