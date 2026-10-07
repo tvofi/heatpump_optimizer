@@ -51,15 +51,18 @@ for d in rounds:
 print(f"RESULT stripped_earlier_rounds={len(rounds)} files_removed={removed} files_kept={kept} dir={root}")
 PY
 }
-# `prepare_baseline.sh --strip <export-dir> <round>` runs ONLY the earlier-round
-# strip, on an export or a worktree some other path made: audit-find.js's Prepare
-# (and the leads seat's own export) run it, so the driver and this script cannot
-# disagree on what the wall leaves in (R9 box B1's wall breach: the driver copied
-# tools/audit/ whole and nothing stripped it).
-# The finder wall. docs/audit-2026-09.md is still under docs/; the August
-# register and the backlog moved to dev/archive/ (R9-RO-4). A glob that names
-# only the old directory removes nothing once the file has moved, and the
-# export then carries the register the wall exists to keep out.
+# `prepare_baseline.sh --strip <export-dir> <round>` applies the finder wall and
+# the earlier-round strip to an export or a worktree some other path made:
+# audit-find.js's Prepare (and the leads seat's own export) run it, so the
+# driver and this script cannot disagree on what the wall leaves in (R9 box B1's
+# wall breach: the driver copied tools/audit/ whole and nothing stripped it).
+# R9-RO-10: --strip ran only the earlier-round strip while the prompts listed
+# the wall's globs by hand, and that list stopped at docs/ after the register
+# moved to dev/programme/register/, so a finder export kept it.
+# The finder wall. The live register is under dev/programme/register/ (R9-RO-5);
+# the August register and the backlog moved to dev/archive/ (R9-RO-4). A glob
+# that names only an old directory removes nothing once the file has moved, and
+# the export then carries the register the wall exists to keep out.
 finder_wall() {
   local root="$1"
   rm -f "$root"/docs/audit-*.md \
@@ -90,7 +93,13 @@ if [ "${1:-}" = "--wall-self-test" ]; then
   [ ! -e "$d2/dev/archive/backlog.md" ] || { echo "FAIL wall kept the archived backlog"; exit 1; }
   [ ! -e "$d2/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL wall kept the programme register"; exit 1; }
   [ -e "$d2/docs/setup.md" ] || { echo "FAIL wall removed a reader doc"; exit 1; }
-  rm -rf "$d1" "$d2"
+  # --strip is the entry the wave scripts call: it must apply the wall too.
+  d3=$(mktemp -d); plant "$d3"; mkdir -p "$d3/tests"; printf '{"closures":{}}\n' > "$d3/tests/closures.json"
+  bash "$0" --strip "$d3" 9 >/dev/null
+  [ ! -e "$d3/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL --strip kept the programme register"; exit 1; }
+  [ ! -e "$d3/docs/audit-2026-09.md" ] || { echo "FAIL --strip kept the docs register"; exit 1; }  # layout:old=docs/audit-2026-09.md
+  [ -e "$d3/docs/setup.md" ] || { echo "FAIL --strip removed a reader doc"; exit 1; }
+  rm -rf "$d1" "$d2" "$d3"
   echo "RESULT finder_wall=ok"
   exit 0
 fi
@@ -125,6 +134,7 @@ ENDPY
 fi
 if [ "${1:-}" = "--strip" ]; then
   PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
+  finder_wall "$(cd "${2:?export dir}" && pwd)"
   strip_earlier_rounds "$(cd "${2:?export dir}" && pwd)"
   exit 0
 fi
