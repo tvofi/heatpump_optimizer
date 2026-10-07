@@ -1906,10 +1906,11 @@ jobs:
           retention-days: 3
 
   # Same-repo PR only: the closures job already re-recorded under strace.
-  # If check printed UNDER-SCOPED, merge those recordings and push. Not a
+  # If check printed UNDER-SCOPED or INERT READS UNDER-APPROXIMATED, merge
+  # those recordings and push (R9-CI-1: the second is the same merge). Not a
   # coding agent -- Linux CI already paid the derive. Does not push on
-  # no-copies, a failed recording, an INERT contradiction, or its own
-  # follow-up commit (`ci: re-record closures`).
+  # no-copies, a failed recording of a script the check named, an INERT
+  # contradiction, or its own follow-up commit (`ci: re-record closures`).
   #
   # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
   # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the

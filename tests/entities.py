@@ -18291,21 +18291,77 @@ def _af_case(committed, records, check_txt=None, inert=()):
             _closure.CLOSURES, _closure.is_inert = orig, real_is_inert
 
 
+# R9-CI-1: the refusal is owed only where the failed recording IS a stale
+# script's (or its driven child's): its truncated trace may be the whole
+# under-scope. A failed recording of an UNRELATED script blocked the repair of
+# every stale one -- 6 of the 9 skip-failed-recording runs whose artifacts
+# survived (2026-10-06..07) failed on a script the check did not name, mostly
+# stress.py on a timing verdict -- so that recording is left out and the rest
+# merge. The overlap case keeps the refusal.
 _af3_status, _af3_kept = _af_case(
     {"tests/open_meteo.py": ["tests/open_meteo.py"],
      "tests/frontend.py": ["tests/frontend.py"]},
-    [{"script": "tests/open_meteo.py", "rc": 0,
+    [{"script": "tests/open_meteo.py", "rc": 1,
       "files": ["tests/open_meteo.py", "tests/harness.py"]},
-     {"script": "tests/frontend.py", "rc": 1,
+     {"script": "tests/frontend.py", "rc": 0,
       "files": ["tests/frontend.py"]}],
 )
 R.check(
-    "one failed recording beside a real under-approximation reddens, not skips",
+    "a failed recording OF the under-scoped script reddens, not skips",
     _af3_status == "skip-failed-recording" and _af3_kept
     and _closure.autofix_repair_failed("closures-autofix", _af3_status),
-    f"status={_af3_status}: open_meteo.py under-approximates and the repair "
-    "is refused because frontend.py failed to record -- a human is waiting "
-    "for a commit no step will push",
+    f"status={_af3_status}: open_meteo.py under-approximates and its own "
+    "recording stopped early -- a human is waiting for a commit no step will push",
+)
+with _tempfile.TemporaryDirectory() as _af3u_td:
+    _af3u_path = Path(_af3u_td) / "closures.json"
+    _af3u_path.write_text(json.dumps({"closures": {
+        "tests/open_meteo.py": ["tests/open_meteo.py"],
+        "tests/frontend.py": ["tests/frontend.py"]}, "recorded": {}}))
+    _af3u_rec = Path(_af3u_td) / "rec"
+    _af3u_rec.mkdir()
+    for _i, _r in enumerate([
+            {"script": "tests/open_meteo.py", "rc": 0,
+             "files": ["tests/open_meteo.py", "tests/harness.py"]},
+            {"script": "tests/frontend.py", "rc": 1,
+             "files": ["tests/frontend.py"]}]):
+        (_af3u_rec / f"{_i}.json").write_text(json.dumps(_r))
+    _af3u_orig, _closure.CLOSURES = _closure.CLOSURES, _af3u_path
+    try:
+        _af3u_status = _closure.apply_under_scoped_recordings(_af3u_rec)
+    finally:
+        _closure.CLOSURES = _af3u_orig
+    _af3u_after = json.loads(_af3u_path.read_text())["closures"]
+R.check(
+    "a failed recording of an UNRELATED script no longer blocks the repair; "
+    "its own truncated trace is left out of the merge",
+    _af3u_status == "changed"
+    and "tests/harness.py" in _af3u_after["tests/open_meteo.py"]
+    and _af3u_after["tests/frontend.py"] == ["tests/frontend.py"],
+    f"status={_af3u_status} closures={_af3u_after!r}",
+)
+# R9-CI-1: INERT READS UNDER-APPROXIMATED is the same repair -- merging the
+# Linux recordings folds `inert_reads` (#1886's own remedy, ci-autofix.md) --
+# and was 15 of the 15 skip-manual-repair-owed runs read (2026-10-06..07).
+# The bot merges it; a PHANTOM or NOT A FILE stays a human's.
+_af3i_status, _af3i_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+_af3j_status, _af3j_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 1,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+R.check(
+    "an INERT READS under-approximation is merged by the bot; its script's "
+    "own failed recording still refuses",
+    (_af3i_status, _af3i_kept) == ("changed", False)
+    and (_af3j_status, _af3j_kept) == ("skip-failed-recording", True),
+    f"inert={_af3i_status},{_af3i_kept} failed={_af3j_status},{_af3j_kept}",
 )
 # The other half of the split, and the reason it is a split rather than a
 # reclassification: a failed recording with nothing under-scoped must stay
