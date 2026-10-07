@@ -1,0 +1,55 @@
+RESULT seam_count=8
+RESULT seam line=3530 owner=_async_load_thermal_learning text=self._apply_house_heat_loss_scale(float(scale))
+RESULT seam line=4613 owner=_apply_house_heat_loss_scale text=def _apply_house_heat_loss_scale(self, scale: float) -> None:
+RESULT seam line=4708 owner=_reanchor_house_heat_loss_scale text=self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+RESULT seam line=4722 owner=_reanchor_house_heat_loss_scale text=self._apply_house_heat_loss_scale(new_scale)
+RESULT seam line=4985 owner=_async_learn_house_heat_loss text=self._apply_house_heat_loss_scale(new_scale)
+RESULT seam line=5771 owner=async_update_thermal_params text=self._apply_house_heat_loss_scale(DEFAULT_HOUSE_HEAT_LOSS_SCALE)
+RESULT seam line=9204 owner=_apply_learner_payloads text=(self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
+RESULT seam line=10999 owner=_adopt_system_identification text=self._apply_house_heat_loss_scale(blended)
+RESULT accept_empty_applied=false
+RESULT accept_empty_scale=1.8
+RESULT accept_empty_offer=None
+RESULT accept_admitted_applied=true
+RESULT accept_admitted_scale=1.96
+RESULT accept_admitted_offer=1.96
+RESULT learner_zero_residual_empty_scale=1.8
+RESULT learner_zero_residual_empty_equals_accept=true
+RESULT adopt_empty_reason=adopted
+RESULT adopt_admitted_reason=adopted
+RESULT setter_clip_of_9=3
+RESULT setter_min=0.3
+RESULT setter_max=3
+RESULT nameplate_empty_scale=1
+RESULT nameplate_admitted_scale=1
+RESULT nameplate_empty_equals_accept=false
+RESULT nameplate_admitted_equals_accept=false
+RESULT adopt_empty_scale=2
+RESULT adopt_admitted_scale=2
+RESULT adopt_empty_equals_accept=false
+RESULT adopt_admitted_equals_accept=false
+RESULT load_empty_scale=1.4
+RESULT load_admitted_scale=1.4
+RESULT load_empty_equals_accept=false
+RESULT load_admitted_equals_accept=false
+RESULT reanchor_in_range_empty_scale=1.343844219
+RESULT reanchor_in_range_admitted_scale=1.343844219
+RESULT reanchor_in_range_empty_equals_accept=false
+RESULT reanchor_in_range_admitted_equals_accept=false
+RESULT reanchor_reset_empty_scale=1
+RESULT reanchor_reset_admitted_scale=1
+RESULT reanchor_reset_empty_equals_accept=false
+RESULT reanchor_reset_admitted_equals_accept=false
+RESULT reanchor_below_step_empty_scale=1.8
+RESULT reanchor_below_step_admitted_scale=1.8
+RESULT reanchor_below_step_empty_equals_accept=true
+RESULT reanchor_below_step_admitted_equals_accept=false
+RESULT payload_empty_scale=1.25
+RESULT payload_admitted_scale=1.25
+RESULT payload_empty_equals_accept=false
+RESULT payload_admitted_equals_accept=false
+RESULT learner_empty_scale=1.8032
+RESULT learner_admitted_scale=1.8032
+RESULT learner_empty_equals_accept=false
+RESULT learner_admitted_equals_accept=false
+RESULT accept_matches_offer=true

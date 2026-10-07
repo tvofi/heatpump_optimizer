@@ -1,0 +1,21 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/tests/entities.py", line 105, in <module>
+    import heatpump_optimizer as integration
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/__init__.py", line 35, in <module>
+    from .entry_config import EntryConfig
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 105, in <module>
+    class EntryConfig(Mapping[str, Any]):
+    ...<165 lines>...
+            return len(self.raw)
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 213, in EntryConfig
+    comfort_temp_day_weekend: float | None = _key(None, _optional_number)
+                                             ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 97, in _key
+    return field(default=parse(default, default), metadata={"parse": parse})
+                         ~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 54, in _optional_number
+    result = _refused_number(value, math.nan)
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 43, in _refused_number
+    return None if math.isnan(result) else result
+                   ~~~~~~~~~~^^^^^^^^
+TypeError: must be real number, not NoneType
