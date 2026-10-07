@@ -1,0 +1,53 @@
+LEDGER-MERGE: resolved tests/closures.json
+  recorded.a.seconds: took the larger of 21.1 and 27.2
+  closures.a: merged as a set (2 entries)
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: refused tests/mutation_budgets.json: survivor_triage.k1: both sides rewrote this record differently
+LEDGER-MERGE: tests/closures.json: text merge (a side is not in its writer's own JSON format)
+  ok   closures: a timing both sides re-took no longer conflicts
+  ok   closures: an addition on one side and a removal on the other both land
+  ok   closures: a file only theirs added lands beside ours' removal
+  ok   closures: a key only one side changed takes that side
+  ok   structure: a recorded_at pair with no ancestry is refused
+  ok   structure: recorded_at takes the descendant SHA
+  ok   structure: a count both sides moved takes base plus both deltas
+  ok   mutation: dispositions both sides added all land
+  ok   mutation: a measurement both sides re-took keeps the later one whole
+  ok   an unsorted map places a new key where the text merge would
+  ok   mutation: a cap both sides raised takes the lower raise, not the sum
+  ok   re-keyed ledger: a row the branch added survives main's re-key
+  ok   re-keyed ledger: the branch's edit lands on main's key
+  ok   re-keyed ledger: a row both sides re-keyed appears once, under main's key
+  ok   re-keyed ledger: a row only the branch re-keyed keeps the branch's key
+  ok   pre-#1577 branch: a count main retired is dropped, not refused
+  ok   pre-#1577 branch: its addition to `reason` is appended to main's text
+  ok   refuses: a prose field both sides rewrote (neither only appended)
+  ok   re-keyed ledger: when both sides moved a row, the anchored key wins
+  ok   re-keyed ledger: the same pinned text added under two anchors stays two rows
+  ok   re-keyed ledger: the same pinned text added at two line keys stays two rows
+  ok   re-keyed ledger: a row moved to two different anchors is not merged into one
+  ok   re-keyed ledger: rows that swapped keys on one side keep that side's keys
+  ok   a retired count both sides still record merges as base plus both deltas
+  ok   a retired key both sides still hold is merged, not dropped
+  ok   re-keyed ledger: a repeated pinned line does not stop the other rows aligning
+  ok   re-keyed ledger: a row both sides' line shifts moved is one row, under theirs' key
+  ok   re-keyed ledger: renames that would collide are refused, not collapsed
+  ok   refuses: one disposition both sides rewrote differently
+  ok   refuses: a disposition one side deleted and the other rewrote (ours deletes)
+  ok   refuses: a disposition one side deleted and the other rewrote (theirs deletes)
+  ok   refuses: a side not in its writer's own format
+  ok   a side with a raw non-ASCII character is merged, not refused
+  ok   refuses: a side that is not JSON (conflict markers)
+  ok   driver: resolves into %A and exits 0
+  ok   driver: a refusal exits 1 and leaves conflict markers in %A
+  ok   driver: a format refusal falls back to a clean text merge
+  ok   replay: a merge-tree usage error (git < 2.40) is refused, not a zero
+  ok   replay: a conflicted merge-tree (exit 1) is counted (null control)
+  ok   bugclasses: two _rca entries appended after the same last entry both land
+  ok   bugclasses: raw non-ASCII text is written back raw
+  ok   bugclasses refuses: one _rca entry both sides rewrote differently
+  ok   bugclasses refuses: a class both sides added an instance to (equal counts, both wrong)
+  FAIL .gitattributes routes every ledger to the driver
+  ok   a .gitattributes routing only one ledger is refused
+
+FAILED

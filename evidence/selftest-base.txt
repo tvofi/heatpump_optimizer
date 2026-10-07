@@ -1,0 +1,4 @@
+  ok   .gitattributes routes every ledger to the driver
+  ok   a .gitattributes routing only one ledger is refused
+
+all passed
