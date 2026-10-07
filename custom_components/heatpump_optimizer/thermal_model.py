@@ -1180,7 +1180,12 @@ def planned_draws_run(space_kw: Any, dhw_kw: Any = None) -> list[bool]:
     on_steps: list[bool] = ((space + dhw) > MIN_RUNNING_DRAW_KW).tolist()
     return on_steps
 
-def planned_draw_runs(space_kw: float, dhw_kw: float = 0.0) -> bool:
+def planned_draw_runs(
+    space_kw: float,
+    dhw_kw: float = 0.0,
+    *,
+    modulation_floor: float | None = None,
+) -> bool:
     """``planned_draws_run`` for one step, in plain floats.
 
     One circuit's own draw is the same question with the other circuit at
@@ -1192,8 +1197,252 @@ def planned_draw_runs(space_kw: float, dhw_kw: float = 0.0) -> bool:
     stress lane's attributable-RSS arm is sensitive enough to read it. Both
     forms compare float64 against the one owned constant, so they agree
     exactly rather than to a tolerance.
+
+    ``modulation_floor`` is the install probe's refusal (#1955): a level in
+    ``(MIN_RUNNING_DRAW_KW, p_min)`` is a duty-cycle average, and a
+    switch-plus-setpoint surface cannot realize one. ``None`` — every caller
+    that does not pass it — keeps the duty-cycle reading.
     """
+    floor = (
+        modulation_floor
+        if modulation_floor is not None
+        else getattr(planned_draw_runs, "modulation_floor", None)
+    )
+    total = float(space_kw) + float(dhw_kw)
+    below_floor = False
+    if floor is not None:
+        below_floor = total < floor
+    if below_floor:
+        space_kw = 0.0
+        dhw_kw = 0.0
     return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW
+
+
+@dataclass(frozen=True)
+class InstallCapability:
+    """What one install can observe and write (#1955).
+
+    ``writes`` is a subset of ``switch``, ``setpoint`` and ``frequency``.
+    ``measured_power`` is a power entity. ``frequency`` is a frequency
+    entity or sensor, read or write. (a), (c) and (d) all read this probe.
+    """
+
+    writes: frozenset[str]
+    measured_power: bool
+    frequency: bool
+
+    def can_duty_cycle(self) -> bool:
+        """A sub-minimum average is realizable.
+
+        A frequency entity means the compressor modulates. A write surface
+        that is not exactly a power switch plus a setpoint is not known to
+        be unable to, so the duty-cycle reading stands. Switch plus setpoint
+        and no frequency cannot: the compressor runs at or above its
+        modulation floor whenever the switch is on.
+        """
+        return (
+            True
+            if self.frequency or "frequency" in self.writes
+            else not (
+                "switch" in self.writes
+                and "setpoint" in self.writes
+            )
+        )
+
+    def fully_metered(self) -> bool:
+        """Power, frequency, and a surface that can realize a duty cycle."""
+        return (
+            self.measured_power
+            and self.frequency
+            and self.can_duty_cycle()
+        )
+
+
+def probe_install(config: Any) -> InstallCapability:
+    """The one install-capability probe (#1955)."""
+    cfg = config or {}
+    freq_entity = bool(cfg.get(const.CONF_COMPRESSOR_FREQ_ENTITY))
+    return InstallCapability(
+        writes=frozenset(filter(None, (
+            "switch" if cfg.get(const.CONF_HEAT_PUMP_SWITCH_ENTITY) else None,
+            "setpoint" if cfg.get(const.CONF_SPACE_SETPOINT_ENTITY) else None,
+            "frequency" if all((
+                freq_entity,
+                cfg.get(
+                    const.CONF_FREQ_CONTROL_MODE,
+                    const.DEFAULT_FREQ_CONTROL_MODE,
+                ) == "control",
+            )) else None,
+        ))),
+        measured_power=bool(cfg.get(const.CONF_POWER_ENTITY)),
+        frequency=bool(
+            freq_entity or cfg.get(const.CONF_COMPRESSOR_FREQ_SENSOR)
+        ),
+    )
+
+
+def duty_cycle_realizable(config: Any) -> bool:
+    """The duty-cycle reading stands for this config.
+
+    ``clamp_planned_levels: false`` is the opt-out. Otherwise the probe
+    decides, and an absent key follows the probe.
+    """
+    cfg = config or {}
+    cap = probe_install(cfg)
+    # A fully metered install keeps today's reading: goldens and a
+    # frequency-plus-power plant stay byte-identical (#1955).
+    return (
+        True
+        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        else True if cap.fully_metered() else cap.can_duty_cycle()
+    )
+
+
+def levels_clamped(config: Any) -> bool:
+    """Planned levels project onto ``{0} ∪ [p_min, p_max]``."""
+    return (
+        not duty_cycle_realizable(config)
+    )
+
+
+#: Freeze reason when the house-heat-loss learner would train on commanded
+#: kilowatts a switch-plus-setpoint install cannot deliver (#1955).
+UNMETERED_POWER_FREEZE = "unmetered_power"
+
+
+def learner_unmetered(config: Any) -> str | None:
+    """The house-learner freeze, or ``None`` when learning stands.
+
+    No measured power, and the probe says the write surface cannot
+    duty-cycle. A frequency install still learns from the commanded figure
+    (the compressor can realize it); an explicit clamp opt-out keeps
+    today's learner. Ranked with the boost freeze, after ventilation.
+    """
+    cfg = config or {}
+    cap = probe_install(cfg)
+    return (
+        None
+        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        else None
+        if cap.measured_power or cap.can_duty_cycle()
+        else UNMETERED_POWER_FREEZE
+    )
+
+
+def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray:
+    """Map a schedule onto ``{0} ∪ [p_min, p_max]``.
+
+    Zero stays off: the power switch can realize it. A value in
+    ``(0, p_min)`` is the duty-cycle average the solver books and a
+    switch-plus-setpoint surface delivers as ``p_min``, so it is clamped
+    up. Above ``p_max`` is clipped. Design choice (#1955): the feasible
+    set is not the closed interval ``[p_min, p_max]``, which would force
+    the pump on for the whole horizon.
+    """
+    arr = np.asarray(power, dtype=float)
+    lo = float(p_min)
+    hi = float(p_max)
+    capped = np.where(np.greater(arr, hi), hi, arr)
+    nonneg = np.where(np.less(capped, 0.0), 0.0, capped)
+    return np.where(
+        np.logical_and(np.greater(nonneg, 0.0), np.less(nonneg, lo)),
+        lo,
+        nonneg,
+    )
+
+
+def _span_when(left: float | None, right: float | None, ready: bool) -> float:
+    """``left - right`` once both ends are floats, else ``0``."""
+    span = 0.0
+    if (
+        left is not None
+        and right is not None
+        and ready
+    ):
+        span = left - right
+    return (
+        span
+    )
+
+
+def flow_setpoint_for_level(
+    planned_kw: Any,
+    p_min: Any,
+    p_max: Any,
+    heat_c: float,
+    inlet_c: float,
+) -> float:
+    """Heating flow for one planned level, °C.
+
+    Full modulation holds ``heat_c``. A positive level below it moves
+    toward ``inlet_c``, so the pump's own water thermostat can realize a
+    lower output; a fixed heating flow never cycles. A non-positive level
+    is not a partial — a boost over an idle plan still holds ``heat_c``.
+    A missing or fixed band keeps ``heat_c``, which is the historical
+    constant.
+    """
+    heat = float(heat_c)
+    planned = _optional_float(planned_kw)
+    lo = _optional_float(p_min)
+    hi = _optional_float(p_max)
+    inlet = _optional_float(inlet_c)
+    ready = all((
+        planned is not None, lo is not None, hi is not None,
+        inlet is not None, math.isfinite(heat),
+    ))
+    band = _span_when(hi, lo, ready)
+    wide = all((
+        ready,
+        (planned or 0.0) > (
+            0.0
+        ),
+        band > (
+            0.1
+        ),
+    ))
+    raw = (
+        _span_when(planned, lo, wide) / band if wide else 0.0
+    )
+    frac = (
+        0.0 if raw < (
+            0.0
+        ) else 1.0 if raw > (
+            1.0
+        ) else raw
+    )
+    low = (
+        inlet if inlet is not None and inlet < (
+            heat
+        ) else heat
+    )
+    return (
+        heat if not wide else low + frac * (heat - low)
+    )
+
+
+def _optional_float(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        number = None
+    return (
+        number
+        if (
+            number is not None
+            and math.isfinite(number)
+        )
+        else None
+    )
+
+
+def configured_flow_heat_c(config: Any, default: float | None = None) -> float:
+    """The heating-flow ceiling from config, else ``default`` (°C)."""
+    fallback = const.DEFAULT_FLOW_HEAT_C if default is None else default
+    raw = (config or {}).get(const.CONF_FLOW_HEAT_C, fallback)
+    number = _optional_float(raw)
+    return (
+        float(fallback) if number is None else number
+    )
 
 def on_threshold_kw(params: ThermalParameters) -> float:
     """The MEASURED draw above which the compressor counts as running, in kW.
