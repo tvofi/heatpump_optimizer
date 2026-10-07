@@ -7,8 +7,8 @@ appears only without the counters did not happen.
 Since R9-EG-A4 (#1774, tvofi's decision R3-6) it is a required check: `arch-score`
 (`.github/workflows/arch-score.yml`, rule in `gate.py`) passes a pull request whose change reads
 delta-S >= 0 with no gate metric rising, or whose body explains each rise under `## Architecture score`,
-one line per metric, as a budget raise is argued. The workflow restores this directory and
-`tests/structure.py` from the base, so the instrument a pull request changes grades the next one.
+one line per metric, as a budget raise is argued. The workflow runs the pull request's own copy;
+CODEOWNERS names this directory, so an edit to the instrument takes the owner's review.
 
     python3 tools/audit/archscore/score.py --diff origin/main            the tree against a ref
     python3 tools/audit/archscore/score.py --diff BASE_REF HEAD_REF      two refs

@@ -10,10 +10,13 @@
 # workflow lists starts every job in it. One job, no `if:`, so no run this
 # file starts is a skipped one (#1514's shape, as budget-raise-gate.yml).
 #
-# The check's program is pinned: tools/audit/archscore/ and tests/structure.py
-# (the definitions the vector reads) are restored from the base before it runs,
-# under `python3 -I`, so a pull request cannot edit the check that grades it.
-# A change to the instrument is graded by the base's copy.
+# The check runs the pull request's own copy of tools/audit/archscore/, as
+# governance.yml runs fold_ledger.py: a pinned grader must be declared in
+# field_coverage.mjs, which is itself pinned, so the pull request adding one
+# could not pass (#1847). Its protection is ownership instead: CODEOWNERS names
+# tools/audit/archscore/, so a pull request that edits the instrument to pass
+# its own check needs the owner's review, and a metric change that moves a
+# calibrated verdict moves the owned expected.json besides.
 
 name: Architecture score
 
@@ -42,19 +45,6 @@ jobs:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           fetch-depth: 0
-
-      - name: Restore the check source from the base commit
-        env:
-          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
-        run: |
-          set -euo pipefail
-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
-            'tools/audit/archscore/' \
-            'tests/structure.py' > "$RUNNER_TEMP/pinned.list"
-          test -s "$RUNNER_TEMP/pinned.list"
-          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
 
       # A queue entry carries no pull request: named from the queue branch and
       # its second parent, as budget-raise-gate.yml does, and the API must

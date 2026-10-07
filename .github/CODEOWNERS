@@ -154,9 +154,10 @@
 # is the Python graders' move-map lookup (R9-RO-2): a grader the base pins loads it.
 /tests/layout.json                        @tvofi
 /tests/layout.py                          @tvofi
-# The architecture score's frozen weights, its pinned verdicts and the check
-# that pins them (R9-EG-A1): a weight or a verdict that moves is a policy change.
-/tools/audit/archscore/weights.json       @tvofi
-/tools/audit/archscore/weights.sha256     @tvofi
-/tools/audit/archscore/calibration/expected.json  @tvofi
+# The architecture score (R9-EG-A1), a required check since R9-EG-A4: the
+# workflow runs the pull request's own copy, as governance.yml runs
+# fold_ledger.py (a pinned grader cannot be added by its own pull request,
+# #1847), so the whole instrument is owned -- weights, pinned verdicts, the
+# metrics and the gate -- with the check that pins its calibration.
+/tools/audit/archscore/                   @tvofi
 /tests/arch_score.py                      @tvofi
