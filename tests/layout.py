@@ -19,6 +19,7 @@ written (tvofi's D2). Four arms, each counted separately:
     python3 tests/layout.py --enforce     # exit 1 on any finding (R9-RO-9 flips to this)
     python3 tests/layout.py --self-test   # the null controls below, in a throwaway repo
     python3 tests/layout.py --guard [--base REF]  # the diff from the merge base only
+    python3 tests/layout.py --stale       # every live line citing a landed move
     python3 tests/layout.py --verbose     # every finding, not the first few per arm
     python3 tests/layout.py --gen-retired INVENTORY.tsv   # print the `retired` list
 
@@ -381,16 +382,23 @@ def guard_base(root: Path, ref: str) -> str | None:
     return base
 
 
-def guard(root: Path, manifest: dict, base: str) -> list[str]:
-    """The guard's findings for the index at `root` against commit `base`."""
+def listing(root: Path, rev: str) -> list[str]:
+    return [p for p in git(root, "ls-tree", "-r", "-z", "--name-only", rev).decode().split("\0") if p]
+
+
+def guard(root: Path, manifest: dict, base: str, rev: str | None = None) -> list[str]:
+    """The guard's findings for the index at `root` (or commit `rev`) against
+    commit `base`."""
     retired, cats = manifest["retired"], compiled(manifest)
     skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
-    files = tracked(root)
-    then = [p for p in git(root, "ls-tree", "-r", "-z", "--name-only", base).decode().split("\0") if p]
+    files = tracked(root) if rev is None else listing(root, rev)
+    then = listing(root, base)
     now, before = landed(files, retired), landed(then, retired)
     fresh = [r for r in now if r not in before]
     planned = [r for r in retired if r not in now]
-    diff = git(root, "diff", "--cached", "-M", "--name-status", "-z", base).decode().split("\0")
+    diff = git(root, "diff", *(["--cached", base] if rev is None else [base, rev]),
+               "-M", "--name-status", "-z").decode().split("\0")
+    at = "" if rev is None else rev
     found: list[str] = []
     read: list[tuple[str, str, str]] = []
     i = 0
@@ -411,9 +419,9 @@ def guard(root: Path, manifest: dict, base: str) -> list[str]:
                              "add it where its kind belongs, or a category for the kind")
         if not path.startswith(skip):
             read.append((status[:1], src, path))
-    text = blobs(root, [f":{p}" for _, _, p in read] + [f"{base}:{s}" for st, s, _ in read if st != "A"])
+    text = blobs(root, [f"{at}:{p}" for _, _, p in read] + [f"{base}:{s}" for st, s, _ in read if st != "A"])
     for st, src, path in read:
-        head = text[f":{path}"]
+        head = text[f"{at}:{path}"]
         if head is None:
             continue
         was = text[f"{base}:{src}"] if st != "A" else ""
@@ -427,14 +435,27 @@ def guard(root: Path, manifest: dict, base: str) -> list[str]:
                 found.append(f"new-reference: {path} cites retired path {o}: {line.strip()[:120]}")
     if fresh:
         pats = "\n".join(r["old"].rstrip("/") for r in fresh) + "\n"
-        proc = subprocess.run(["git", "grep", "--cached", "-z", "-n", "-I", "-F", "-f", "-", "--", ".",
+        proc = subprocess.run(["git", "grep", *(["--cached"] if rev is None else []), "-z", "-n", "-I", "-F",
+                               "-f", "-", *([] if rev is None else [rev]), "--", ".",
                                *(f":(exclude,literal){x}" for x in skip)],
                               cwd=root, input=pats.encode(), capture_output=True)
         for rec in proc.stdout.decode(errors="replace").splitlines():
-            path, line, text = rec.split("\0", 2)
-            for o, _ in stale_lines(text, fresh):
+            path, line, body = rec.split("\0", 2)
+            if rev is not None:
+                path = path.split(":", 1)[1]
+            for o, _ in stale_lines(body, fresh):
                 found.append(f"unswept: {path}:{line} cites {o}, which this diff moves")
     return found
+
+
+def stale(root: Path, manifest: dict) -> list[str]:
+    """Every live line in the index citing a landed path: what the guard
+    keeps from growing, listed whole (historical and exempt text skipped)."""
+    files = tracked(root)
+    now = landed(files, manifest["retired"])
+    skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
+    text = blobs(root, [f":{p}" for p in files if not p.startswith(skip)])
+    return [f"{k[1:]}: {o} | {line.strip()[:120]}" for k, t in text.items() if t for o, line in stale_lines(t, now)]
 
 
 def guard_self_test() -> int:
@@ -684,10 +705,31 @@ def main() -> int:
     ap.add_argument("--enforce", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--guard", action="store_true")
+    ap.add_argument("--stale", action="store_true")
+    ap.add_argument("--replay", type=int, metavar="N",
+                    help="the guard over the last N first-parent commits of --base, each against its parent")
     ap.add_argument("--base", default=os.environ.get("GOLDEN_REF") or "origin/main")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--gen-retired", metavar="INVENTORY")
     a = ap.parse_args()
+    if a.replay:
+        for c in git(ROOT, "rev-list", "--first-parent", "-n", str(a.replay), a.base).decode().split():
+            try:
+                m = json.loads(git(ROOT, "show", f"{c}:{MANIFEST}"))
+            except subprocess.CalledProcessError:
+                print(f"{c[:10]} no {MANIFEST}")
+                continue
+            got = guard(ROOT, m, f"{c}^1", c)
+            kinds = {k: sum(f.startswith(k + ":") for f in got) for k in ("new-reference", "unswept", "placement")}
+            print(f"{c[:10]} {kinds} {git(ROOT, 'log', '-1', '--format=%s', c).decode().strip()[:60]}")
+            for f in got if a.verbose else []:
+                print(f"    {f}")
+        return 0
+    if a.stale:
+        lines = stale(ROOT, load(ROOT))
+        print("\n".join(lines))
+        print(f"layout: {len(lines)} live line(s) cite a landed retired path")
+        return 0
     if a.gen_retired:
         print(json.dumps(gen_retired(Path(a.gen_retired), ROOT), indent=1))
         return 0
