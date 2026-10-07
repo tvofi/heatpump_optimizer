@@ -16,7 +16,7 @@ This is round 2. Round 1 was blocked at `e6e9b775` for three reasons: the fork a
 
 **Effect on the nightly's total budget.** `mutation-nightly` uses `--budget-minutes 270` with a 330-minute job timeout. The 270-minute deadline admits a mutant only if its estimated sweep fits, and the estimate comes from measured seconds, not from the timeout. So the larger limit admits no extra work. It matters only if a mutant hangs the replay. A replay started at the deadline could then run up to 4903 s, and 270 + 82 = 352 minutes would pass the 330-minute job timeout. Under the old limit the same worst case was 270 + 26 = 296. In the ordinary case the precedent is the 2026-10-06 nightly, which ran this script's baseline at 1627 s (job 112192036397). That job took 09:03:06 to 12:55:11, about 232 minutes, and ended `MUTATION TABLE PASSED (partial: 27 evaluated, 0 timed out, 13 not started for the budget)`. The replay's coverage is not trimmed to fit.
 
-**`inert_reads`.** `tests/harness_headers.py` reads every file in `tools/audit/harnesses/`, and this branch adds two. The dispatched `closures` job 112864782144 failed with `INERT READS UNDER-APPROXIMATED` on `tools/audit/harnesses/boost_replay_fork_parity.py` and `tools/audit/harnesses/ci_script_seconds.py`. Both are now under `inert_reads["tests/harness_headers.py"]`, the same route #2022 took for `eg_b7_seam_hubs.py`. #2015 will move `tools/audit/harnesses/` to `dev/audit/harnesses/`, and these two entries are re-keyed when that lands (by merge, never rebase).
+**`inert_reads`.** `tests/harness_headers.py` reads every file in `dev/audit/harnesses/`, and this branch adds two. The dispatched `closures` job 112864782144 failed with `INERT READS UNDER-APPROXIMATED` on `dev/audit/harnesses/boost_replay_fork_parity.py` and `dev/audit/harnesses/ci_script_seconds.py`. Both are now under `inert_reads["tests/harness_headers.py"]`, the same route #2022 took for `eg_b7_seam_hubs.py`. #2015 will move `dev/audit/harnesses/` to `dev/audit/harnesses/`, and these two entries are re-keyed when that lands (by merge, never rebase).
 
 **The fork guard now checks behaviour.** `check_fork` still checks that `fork_cycle()` is the first boosting cycle. It now also drives each surface's arm through `cycle()` itself over the pre-fork cycles, with one real production plan returned for every solve (`_OneSolve`). Each arm's per-cycle trace must equal the surface-free arm's (`prefix_trace`: action, mode, overlay held state, freeze reason, fold counts and scale, the true house, the accuracy record's last sample). An arm-specific action or input planted ahead of the window now fails the guard, which the shared prefix would otherwise erase silently. The check costs one solve.
 
@@ -28,7 +28,11 @@ This is round 2. Round 1 was blocked at `e6e9b775` for three reasons: the fork a
 
 ## Head
 
-`baa6c237fc4591bb3b57d71310fb93613ed78889`
+`73fdec9b4a5e0a513d08d56df39f18377f799b4f`
+
+**Delta since `baa6c237fc4591bb3b57d71310fb93613ed78889`.**
+
+The previous head merged `origin/main` at `e0f0b6fb`. `origin/main` has since moved to `09ba95d0` (#2015, RO-8), which renamed `tools/audit/harnesses/` to `dev/audit/harnesses/`. Merging it conflicted on this branch's two new files, which git placed under the new directory. The merge commit `73fdec9b` keeps them there and re-keys every reference: `boost_replay_fork_parity.py` and `ci_script_seconds.py` now live at `dev/audit/harnesses/`; their `tests/closures.json` `inert_reads` keys for `tests/harness_headers.py` are re-keyed to the new paths (the list otherwise equals main's, plus these two); the docstring usage lines and the reference in `tests/boost_drift_replay.py` name the new paths. The commands below name the new paths too. No logic changed. The CI figures cited below are from `baa6c237` and describe this branch before the merge; the replay's code is byte-identical at `73fdec9b`. Cheap scope at `73fdec9b`: `python3 tests/structure.py` passed, `tests/entities.py` (venv-ci Python 3.14) reported 2198 checks passed, `tests/env_drift.py` reported no unclaimed drift and no stale fixture. The old-path grep over the whole tree for these two names finds nothing.
 
 ## Mutation proof
 
@@ -44,11 +48,11 @@ The guard's arithmetic half also fails at `fork_cycle()` minus 1 (round 1, uncha
 ## Null control
 
 - With nothing planted, the behavioural guard passes (above). The surface arms' pre-fork traces equal the surface-free arm's over all 254 cycles.
-- `PYTHONPATH=tests/hastub:tests:custom_components python3 tools/audit/harnesses/boost_replay_fork_parity.py` at `dca94a6475383dd15e1c72e78420b589ec9f8502`, whose `replay`/`cycle` code this head keeps: `fork: PARITY (fork=1)`, `control: DIFFERS (fork=2)`, `BOOST REPLAY FORK PARITY PASSED`, exit 0. The reviewer's own equivalence harness separately read 5/5 arms EQUAL over the full 9-day schedule with a stub solver, and 3/3 EQUAL with production solves on a 12-cycle schedule (round-1 verdict).
+- `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/boost_replay_fork_parity.py` at `dca94a6475383dd15e1c72e78420b589ec9f8502`, whose `replay`/`cycle` code this head keeps: `fork: PARITY (fork=1)`, `control: DIFFERS (fork=2)`, `BOOST REPLAY FORK PARITY PASSED`, exit 0. The reviewer's own equivalence harness separately read 5/5 arms EQUAL over the full 9-day schedule with a stub solver, and 3/3 EQUAL with production solves on a 12-cycle schedule (round-1 verdict).
 
 ## Figures
 
-- `python3 tools/audit/harnesses/ci_script_seconds.py 2026-10-04 tests/boost_drift_replay.py tests/features.py tests/stress.py`, run 2026-10-07T15:05Z: `rows=73 unreadable=3`. 38 rows carry a replay time, the first `81071813` at 887 s. Over those 38: replay 817 to 1756 s, replay/features 2.49 to 2.87, and the replay was the slowest of the three in 38 of 38. The ratios are worked from the printed rows.
+- `python3 dev/audit/harnesses/ci_script_seconds.py 2026-10-04 tests/boost_drift_replay.py tests/features.py tests/stress.py`, run 2026-10-07T15:05Z: `rows=73 unreadable=3`. 38 rows carry a replay time, the first `81071813` at 887 s. Over those 38: replay 817 to 1756 s, replay/features 2.49 to 2.87, and the replay was the slowest of the three in 38 of 38. The ratios are worked from the printed rows.
 - CI at round 1's code (`dca94a64` / `e6e9b775`), read from the job logs and API: `mutation-nightly` job 112864826007 `baseline tests/boost_drift_replay.py: rc=124 failed=0 1576s`. `fast (3.14)` job 112889727516 `ok python3 tests/boost_drift_replay.py (1534s)`. `closures` job 112864782144 recorded the replay 15:29:18 to 15:53:56 (1478 s). `closures` job 112889923161's `closure-recordings` artifact gives `seconds=1634.2`.
 - `driver_timeout(1200, 1634.2)` = 4903, against `driver_timeout(1200, 525.3)` = 1576 at the base.
 - Job 112192036397 (2026-10-06 nightly): `2026-10-06T09:03:06Z` to `2026-10-06T12:55:11Z`, from `gh api repos/tvofi/heatpump_optimizer/actions/jobs/112192036397`.
@@ -68,7 +72,6 @@ The guard's arithmetic half also fails at `fork_cycle()` minus 1 (round 1, uncha
 ## Forward-carry
 
 - The detector under **Root cause**: compare `fast` per-script seconds with `3 x recorded.seconds` after a merge. Handed to the orchestrator for a `root-cause.md` seat.
-- #2015 (RO-8) moves `tools/audit/harnesses/`. This branch's two new harness files and their `inert_reads` keys move with it. Whichever of #2015 and this PR merges second carries the re-key.
 
 ## Friction
 
