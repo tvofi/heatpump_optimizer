@@ -42,6 +42,18 @@ PERTURBATION OUTPUT (`--perturb`): arm A no SECURITY.md -> 0, arm B SECURITY.md
 -> 1, restored -> 0. The tree is left byte-identical (`git status` clean).
 MACHINE: 8-core Apple M1, 8 GB, python3 3.11.5.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import json
 import os
 import re
@@ -53,7 +65,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 HERE = Path(__file__).resolve().parent
 BASELINE = "ae36eff19d8e542bc351b1ab31ad4167ec8e4ea1"
 SINCE = "2026-08-27T21:02:51+00:00"

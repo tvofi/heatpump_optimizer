@@ -39,6 +39,18 @@ window's merged pull requests could not be enumerated`,
 At origin/main: the first two read `clean`, `arms_in_step=2 count`.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import argparse
 import os
@@ -49,7 +61,7 @@ from pathlib import Path
 
 STEP = "Report the refusal on the run summary"
 REL = ".github/workflows/governance.yml"
-ROOT = Path(__file__).resolve().parents[4]  # <root>/tools/audit/round7-fix/governance/
+ROOT = repo_root(__file__)  # <root>/tools/audit/round7-fix/governance/
 # label, refusal outcome, which capture, (self-test outcome, filer outcome)
 CASES = [
     ("refusal-clean", "success", "healthy", ("success", "success")),

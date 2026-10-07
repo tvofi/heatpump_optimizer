@@ -35,9 +35,23 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+async function repoRoot(start) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  let dir = path.resolve(start);
+  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("no repository root above " + start);
+    dir = parent;
+  }
+}
+
+
 const HERE = dirname(fileURLToPath(import.meta.url))
 const FIX = process.env.FIXTURE_DIR ?? join(HERE, 'fixtures')
-const ROOT = join(HERE, '..', '..', '..', '..', '..')
+const ROOT = await repoRoot(HERE)
 
 // -- extract VERDICT_RE from web-fix-wave.js (template literals concatenated,
 // then unescaped: the source's `\\s` is the runtime's `\s` -- template-literal
