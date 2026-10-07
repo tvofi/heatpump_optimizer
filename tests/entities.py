@@ -25985,7 +25985,10 @@ R.check(
                       # A base retarget moves the merge base the gate reads;
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
-                      "budget-raise-gate.yml": ["budget-raise-gate"]},
+                      "budget-raise-gate.yml": ["budget-raise-gate"],
+                      # R9-EG-A4: the required score check reads the body, so
+                      # a body edit is the answer to its red; one job, no `if:`.
+                      "arch-score.yml": ["arch-score"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "

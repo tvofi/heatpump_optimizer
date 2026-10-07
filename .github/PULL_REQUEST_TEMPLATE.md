@@ -20,12 +20,8 @@ What the unmodified tree does.
 
 `none`, or one line per figure the body states, with the command that printed it;
 name the instrument rather than restate what it prints. `pr-contract` refuses a
-command that does not resolve, and never re-runs one.
-
-The required check `arch-score` scores the change (`python3 tools/audit/archscore/score.py --diff
-origin/main`). A gate metric that rises passes only when a `## Architecture score` section below has
-one line per risen metric, naming it and saying why, as a budget raise is argued; delete the section
-when nothing rises. The score is a review trigger, never a target.
+command that does not resolve, and never re-runs one. Required check `arch-score`:
+a gate rise passes only explained under `## Architecture score`, one line per metric.
 
 ## Red checks
 
