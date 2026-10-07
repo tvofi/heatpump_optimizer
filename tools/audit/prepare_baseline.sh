@@ -59,15 +59,17 @@ finder_wall() {
   local root="$1"
   rm -f "$root"/docs/audit-*.md \
         "$root"/dev/archive/audits/audit-*.md \
-        "$root"/dev/archive/backlog.md
+        "$root"/dev/archive/backlog.md \
+        "$root"/dev/programme/register/audit-*.md
 }
 if [ "${1:-}" = "--wall-self-test" ]; then
   plant() {
     local d="$1"
-    mkdir -p "$d/docs" "$d/dev/archive/audits"
+    mkdir -p "$d/docs" "$d/dev/archive/audits" "$d/dev/programme/register"
     printf s > "$d/docs/audit-2026-09.md"
     printf a > "$d/dev/archive/audits/audit-2026-08.md"
     printf b > "$d/dev/archive/backlog.md"
+    printf r > "$d/dev/programme/register/audit-2026-09.md"
     printf k > "$d/docs/setup.md"
   }
   old_wall() { rm -f "$1"/docs/audit-*.md "$1"/docs/backlog.md; }
@@ -75,11 +77,13 @@ if [ "${1:-}" = "--wall-self-test" ]; then
   [ ! -e "$d1/docs/audit-2026-09.md" ] || { echo "FAIL old wall kept the live register"; exit 1; }
   [ -e "$d1/dev/archive/audits/audit-2026-08.md" ] || { echo "FAIL old wall removed the archived register; the control no longer shows the miss"; exit 1; }
   [ -e "$d1/dev/archive/backlog.md" ] || { echo "FAIL old wall removed the archived backlog; the control no longer shows the miss"; exit 1; }
+  [ -e "$d1/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL old wall removed the programme register; the control no longer shows the miss"; exit 1; }
   [ -e "$d1/docs/setup.md" ] || { echo "FAIL old wall removed a reader doc"; exit 1; }
   d2=$(mktemp -d); plant "$d2"; finder_wall "$d2"
   [ ! -e "$d2/docs/audit-2026-09.md" ] || { echo "FAIL wall kept the live register"; exit 1; }
   [ ! -e "$d2/dev/archive/audits/audit-2026-08.md" ] || { echo "FAIL wall kept the archived register"; exit 1; }
   [ ! -e "$d2/dev/archive/backlog.md" ] || { echo "FAIL wall kept the archived backlog"; exit 1; }
+  [ ! -e "$d2/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL wall kept the programme register"; exit 1; }
   [ -e "$d2/docs/setup.md" ] || { echo "FAIL wall removed a reader doc"; exit 1; }
   rm -rf "$d1" "$d2"
   echo "RESULT finder_wall=ok"

@@ -121,8 +121,8 @@ REGION_END = "<!-- delivery-status:end -->"
 #: satisfies `record`, and this must agree with it or the two tell a seat
 #: different things about the same merge.
 DISPOSITION_FILES = (
-    "docs/plan-2026-09-open-issues.md",
-    "docs/HANDOVER.md",
+    "dev/programme/plan-2026-09-open-issues.md",
+    "dev/programme/HANDOVER.md",
 )
 
 OK = "OK"
@@ -506,7 +506,7 @@ def gather(repo: str,
 #: One file per pull request, `docs/delivery/<N>.md`: a row there is read only
 #: through a line anchoring <N> itself, as `policy_lint.mjs`'s `recordRegion`
 #: reads it, so a misnamed file rows nobody and the two cannot disagree.
-ROW_DIR = "docs/delivery"
+ROW_DIR = "dev/programme/delivery"
 ROW_ANCHOR = re.compile(r"^\s*[-*]\s+\[#(\d+)\]\((?:[^()\s]*/pull/)(\d+)\)")
 
 
@@ -530,10 +530,12 @@ def read_texts() -> list[str]:
         for line in path.read_text().splitlines()
         if anchored(int(path.stem), line)
     ]
-    return [
-        (ROOT / locate(name)).read_text() for name in DISPOSITION_FILES
-        if (ROOT / name).exists()
-    ] + ["\n".join(rows)]
+    texts = []
+    for name in DISPOSITION_FILES:
+        path = ROOT / locate(name)
+        if path.is_file():
+            texts.append(path.read_text())
+    return texts + ["\n".join(rows)]
 
 
 # ----------------------------------------------------------------------- main

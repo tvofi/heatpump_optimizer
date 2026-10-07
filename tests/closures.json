@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 179.7,
+   "seconds": 192.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -487,7 +487,6 @@
    "tests/profiles.py"
   ],
   "tests/entities.py": [
-   ".claude/workflows/cfr_exclusions.json",
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
    ".github/workflows/budget-raise-gate-rerun.yml",
@@ -587,7 +586,8 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
-   "docs/HANDOVER.md",
+   "dev/governance/config/cfr_exclusions.json",
+   "dev/programme/HANDOVER.md",
    "docs/architecture.md",
    "docs/automations.md",
    "docs/configuration.md",
@@ -2945,7 +2945,7 @@
  "inert_reads": {
   "tests/harness_headers.py": [
    "LICENSE",
-   "docs/audit-2026-09.md",
+   "dev/programme/register/audit-2026-09.md",
    "tools/audit/ci-version-edit/pr_contract_shapes.py",
    "tools/audit/ci-version-edit/recheck_stamp_forgery.py",
    "tools/audit/harnesses/d1_s3_02_queued_apply.py",
