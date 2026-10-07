@@ -4,11 +4,7 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
-aadd1de4804fac2f71de5c46d3f1f3b092b4de00
-
-`21a62c10a03f5bd684d529aa70d8ff7ef6938471` merges the authored code head `b4172f56f109341f1297ac276529c86d54670785` and then merges origin/main `bcea7488` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-b4172f56f109341f1297ac276529c86d54670785
+`0f67647bb95713447db7bc400cdc01e1c064eef6` merges origin/main `be0cb821` into the previous handoff head `aadd1de4804fac2f71de5c46d3f1f3b092b4de00` (which is the PR head `21a62c10a03f5bd684d529aa70d8ff7ef6938471` plus origin/main `421c77f9`). This merge is automatic, with no hand resolution: a three-way merge of main's #2009 and #2005 changes with this PR's, and no conflict markers remain. The authored code head is `b4172f56f109341f1297ac276529c86d54670785`.
 
 ## Mutation proof
 
