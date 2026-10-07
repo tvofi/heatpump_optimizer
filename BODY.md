@@ -4,6 +4,8 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
+`21a62c10a03f5bd684d529aa70d8ff7ef6938471` merges the authored code head `b4172f56f109341f1297ac276529c86d54670785` and then merges origin/main `bcea7488` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 b4172f56f109341f1297ac276529c86d54670785
 
 ## Mutation proof
@@ -56,6 +58,8 @@ PYTHONPATH=tests/hastub:custom_components:tests python3 -c 'from datetime import
 `mutation`. Job 112597999835 exited 1 in `pip install --require-hashes -r tests/requirements-ci.txt`. The log line is `No matching distribution found for aiohttp==3.14.3`. No table output was uploaded, so the log names no site. Cheaper detector for an unpinned site: `python3 tests/mutation_table.py --pin-killed --base origin/main`. At this head it prints `PIN KILLED: nothing to pin`. Cheaper detector for the install failure: none.
 
 `mutation-autofix`. Summary line `skip-no-measurement`. Job 112598224753 exited 1 on "Report whether the repair happened". No bot pin is coming. That line's command is the same `--pin-killed` run, and it has nothing to pin. Cheaper detector: none.
+
+`pr-contract`. Job 112598702771 on 47e6dab020c89ffed44e02d4ee05af003f448b22 failed because `## Red checks` did not name `mutation-autofix`. Jobs 112614399885 and 112613659112 on 21a62c10a03f5bd684d529aa70d8ff7ef6938471 succeeded. Cheaper detector: `node tools/policy/policy_lint.mjs --pr-body`. Standing cost is one body lint.
 
 `coverage-ratchet`. Job 112604091360. notifier.py 78.63 %, pump_arbiter.py 79.86 %, sysid.py 92.98 %. `tests/features.py` exited 1 at 358s on `AttributeError` in `_flow_inlet_c` (`inp.state.floor_return_temperature`). Main's coverage job 112591811045 ran the same scripts and `tests/features.py` exited 0 at 856s. notifier.py and sysid.py are absent from this diff; main's artifact has the same statement counts and clears both. Cheaper detector: none.
 
