@@ -368,7 +368,7 @@ def replay(arms: dict, two_zone: bool = False,
     so they run once and every arm continues from a deep copy of that one
     state; ``fork=0`` replays every arm from its own fresh start, which is
     the unshared replay the shared one must equal
-    (``tools/audit/harnesses/boost_replay_fork_parity.py``)."""
+    (``dev/audit/harnesses/boost_replay_fork_parity.py``)."""
     import copy
 
     n_cycles = int(DAYS * 24 * 60 / DT_MIN)
@@ -385,8 +385,46 @@ def replay(arms: dict, two_zone: bool = False,
     return outs
 
 
+class _OneSolve:
+    """The solve ``check_fork`` drives every arm with: one real production
+    plan, returned for every cycle. The guard asks whether a SURFACE acts
+    before the fork, not what the solver says, so one plan stands for all
+    and the guard costs one solve instead of three prefixes'."""
+
+    def __init__(self, result) -> None:
+        self.result = result
+
+    def optimize(self, *, inputs):
+        return self.result
+
+
+def prefix_trace(st: dict, i: int) -> tuple:
+    """What one cycle left behind that any arm-specific act would move: the
+    action and mode the surfaces write, the overlay's held state, the freeze
+    reason, the learners' fold and the true house's answer."""
+    coord = st["coord"]
+    held = boost_mod.held_for(coord)
+    samples = coord._accuracy.samples
+    return (
+        i, repr(sorted(coord._current_action.items())), coord._mode,
+        repr(sorted(held.until.items())), repr(held.space_settle_until),
+        coord._learning_frozen("sensor.indoor"),
+        coord._house_heat_loss_samples, coord._house_heat_loss_scale,
+        st["house_state"].room_temperature, st["draw"],
+        st["folds_frozen"], st["folds_outside"], st["mode_is_boost"],
+        len(samples), repr(samples[-1].as_dict()) if samples else None,
+    )
+
+
 def check_fork() -> None:
-    """The shared prefix's precondition, asserted rather than assumed."""
+    """The shared prefix's precondition, asserted rather than assumed.
+
+    Two halves. The arithmetic: ``fork_cycle`` is exactly the first cycle
+    ``boosting_at`` opens. The behaviour: every surface's arm, driven
+    through ``cycle`` itself over the cycles before the fork, leaves the
+    same trace as the surface-free arm -- so an action or input planted on
+    one surface ahead of its window (which the arithmetic cannot see, and
+    which the shared prefix would silently erase) fails here."""
     R.section("shared pre-boost prefix")
     fork = fork_cycle()
     first = None
@@ -399,11 +437,34 @@ def check_fork() -> None:
             first = i
             break
     R.check(
-        "the arms share exactly the cycles before the first boosting one "
-        "(no surface acts earlier, so one prefix stands for all three)",
+        "the fork is the first boosting cycle of the schedule",
         first == fork,
         f"fork={fork} first boosting cycle={first}",
     )
+    solved = None
+    traces = {}
+    for surface in ("none", "channel", "mode"):
+        st = start_state()
+        if solved is None:
+            cycle(st, 0, surface)
+            solved = _OneSolve(st["coord"]._optimization_result)
+            st = start_state()
+        st["optimizer"] = solved
+        trace = []
+        for i in range(fork):
+            cycle(st, i, surface)
+            trace.append(prefix_trace(st, i))
+        traces[surface] = trace
+    for surface in ("channel", "mode"):
+        diverged = next((a[0] for a, b in zip(traces["none"], traces[surface])
+                         if a != b), None)
+        R.check(
+            f"the {surface} surface acts on nothing before the fork (its "
+            f"pre-fork trace equals the surface-free arm's, so one prefix "
+            f"stands for it)",
+            diverged is None and len(traces[surface]) == fork,
+            f"first differing cycle {diverged} of {fork}",
+        )
 
 
 def check_arm(
