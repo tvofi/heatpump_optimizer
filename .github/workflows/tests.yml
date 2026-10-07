@@ -2712,11 +2712,12 @@ jobs:
   #
   # THE REVIEW IS A PREDICATE (tvofi, 2026-10-07, superseding the manual
   # review #1952 kept): a record pull request the automerge guard passes is
-  # approved by the approver App and queued for auto-merge, and while one is
+  # approved by the approver App and merged by the author App, pinned to the
+  # head the guard judged, once its required checks pass there; while one is
   # open and passing the beat holds it rather than rebuilding it -- the
   # rebuild on every main merge is what staled each review and left
-  # delivery-status OVERDUE on main. One the guard refuses keeps the manual
-  # review. KEPT MANUAL, deliberately: the living handover's updated-for line
+  # delivery-status OVERDUE on main. One the guard refuses has the approver
+  # App's approvals dismissed and keeps the manual review. KEPT MANUAL, deliberately: the living handover's updated-for line
   # -- tied to merges that change owed work, not every beat, which this job
   # would over-write; the job never touches that file. tests/entities.py pins
   # both: the review only behind the guard, and the handover untouched.
@@ -2787,13 +2788,13 @@ jobs:
             > "$RUNNER_TEMP/merges.json"
 
       # Two installation tokens from one minting routine. The author App's
-      # writes the rows, the pull request and the #201 comment, and enables
-      # auto-merge on its own pull request, so the merge is the App's and its
-      # push to main fires main's workflows (a GITHUB_TOKEN merge would not).
+      # writes the rows, the pull request and the #201 comment, and merges
+      # its own pull request, so the merge is the App's and its push to main
+      # fires main's workflows (a GITHUB_TOKEN merge would not).
       # The approver App's, minted only when HPO_APPROVER_PEM/APPID are set in
       # this main-only environment, is the one non-author identity decision
-      # 0011 lets approve a pull request no code owner owns; it posts one
-      # review and is revoked in the step that uses it.
+      # 0011 lets approve a pull request no code owner owns; it posts at most
+      # one review, and the job's last token step revokes both.
       - name: Mint the record-writer App token
         id: mint
         env:
@@ -3075,18 +3076,21 @@ jobs:
             "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
           echo "pr=$NUM" >> "$GITHUB_OUTPUT"
 
-      # THE AUTOMERGE (tvofi, 2026-10-07). A record pull request the guard
-      # passes merges with no review seat: `record_row.py --automerge-check`
-      # re-generates every row from the API's facts at the live head and
-      # refuses anything else -- another file, an edited or deleted row, an
-      # unmerged or mis-cited pull request, another author. On a pass the
-      # approver App reviews that exact commit and the author App enables
-      # auto-merge with the head pinned, so GitHub merges once the required
-      # checks pass: the ruleset grades the checks, not this step. On a
-      # refusal auto-merge is disabled and the pull request keeps the manual
-      # path. A refusal, or no approver secrets, is green here; the report
-      # step reddens a beat that did not land, which is a different fact.
-      - name: Approve and queue a row-only record pull request
+      # THE MERGE IS A PREDICATE (tvofi, 2026-10-07). A record pull request
+      # the guard passes merges with no review seat: `record_row.py
+      # --automerge-check` re-generates every row from the API's facts at the
+      # live head and refuses anything else -- another file, a non-canonical
+      # path, an edited or deleted row, an unmerged or mis-cited pull
+      # request, another author. On a pass the approver App reviews that
+      # exact commit; once every required context has passed AT that commit,
+      # the author App merges it with `sha` set to it, so a head that moved
+      # after the guard read it makes the merge fail closed (#2029 review,
+      # round 1: no auto-merge, which merged later on a head nobody judged).
+      # While checks run, the next beat (a main push, or the nightly) retries.
+      # On a refusal the approver App's approvals are dismissed, so a refused
+      # head cannot be hand-merged on the bot's word. Every outcome here is
+      # green; the report step reddens a beat that did not land.
+      - name: Approve and merge a row-only record pull request
         id: automerge
         if: steps.record.outputs.status == 'pushed' || steps.record.outputs.status == 'held'
         env:
@@ -3102,51 +3106,77 @@ jobs:
           API=https://api.github.com
           ACCEPT='Accept: application/vnd.github+json'
           AUTH="Authorization: Bearer $TOKEN"
-          # The approver token is revoked on every path out of this step.
-          trap '[ -z "$APPROVER" ] || curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" "$API/installation/token"' EXIT
           say() { echo "AUTOMERGE: $1"; echo "status=$1" >> "$GITHUB_OUTPUT"; }
           pr_field() {
             curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM" \
               | python3 -I -c "import sys,json; d=json.load(sys.stdin); print($1)"
           }
-          gql() {
-            python3 -I -c 'import json,sys; print(json.dumps({"query": sys.argv[1]}))' "$1" \
-              | curl -fsS -X POST -H "$AUTH" -H "$ACCEPT" -d @- "$API/graphql"
+          guard() {
+            GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+              --automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD" "$@"
           }
-          unqueue() {
-            gql "mutation { disablePullRequestAutoMerge(input: {pullRequestId: \"$NODE\"}) { clientMutationId } }" \
-              > /dev/null 2>&1 || true
+          dismiss_bot() {
+            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; [print(r["id"]) for r in json.load(sys.stdin) if r.get("state") == "APPROVED" and (r.get("user") or {}).get("login") == "hpo-approver[bot]"]' \
+              | while read -r rid; do
+                  curl -fsS -o /dev/null -X PUT -H "$AUTH" -H "$ACCEPT" \
+                    -d '{"message":"The automerge guard refused this head; its review is manual.","event":"DISMISS"}' \
+                    "$API/repos/$REPO/pulls/$NUM/reviews/$rid/dismissals" \
+                    || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
+                done
           }
-          HEAD=$(pr_field 'd["head"]["sha"]') && NODE=$(pr_field 'd["node_id"]') || {
+          HEAD=$(pr_field 'd["head"]["sha"]') || {
             echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
-          if ! GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
-               --automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"; then
-            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual path"
-            unqueue; say refused; exit 0
+          if ! guard; then
+            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
+            dismiss_bot; say refused; exit 0
           fi
-          [ -n "$APPROVER" ] || { say skip-no-approver; exit 0; }
-          # One approving review per head: a held beat sees the same head again.
-          have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
-            | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
-            || { say skip-unread; exit 0; }
-          if [ "$have" != True ]; then
-            python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
-              > "$RUNNER_TEMP/review.json"
-            curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
-              -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
-              echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+          if [ -n "$APPROVER" ]; then
+            # One approving review per head: a held beat sees the same head again.
+            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
+              || { say skip-unread; exit 0; }
+            if [ "$have" != True ]; then
+              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
+                > "$RUNNER_TEMP/review.json"
+              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
+                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+            fi
           fi
-          if [ "$(pr_field 'd["auto_merge"] is None')" = True ]; then
-            gql "mutation { enablePullRequestAutoMerge(input: {pullRequestId: \"$NODE\", mergeMethod: MERGE, expectedHeadOid: \"$HEAD\"}) { clientMutationId } }" \
-              > "$RUNNER_TEMP/am.json" && ! grep -q '"errors"' "$RUNNER_TEMP/am.json" || {
-              echo "::warning::enabling auto-merge on #$NUM failed"; cat "$RUNNER_TEMP/am.json" || true
-              say skip-queue-refused; exit 0; }
+          guard --require-green; rc=$?
+          case "$rc" in
+            0) ;;
+            3) say approved-pending; exit 0 ;;
+            *) dismiss_bot; say refused; exit 0 ;;
+          esac
+          python3 -I -c 'import json,sys; print(json.dumps({"sha": sys.argv[1], "merge_method": "merge"}))' "$HEAD" \
+            > "$RUNNER_TEMP/merge.json"
+          code=$(curl -sS -o "$RUNNER_TEMP/merge-resp.json" -w '%{http_code}' -X PUT -H "$AUTH" -H "$ACCEPT" \
+            -d @"$RUNNER_TEMP/merge.json" "$API/repos/$REPO/pulls/$NUM/merge") || code=000
+          if [ "$code" = 200 ]; then
+            say merged
+          else
+            echo "::warning::merging #$NUM at $HEAD returned HTTP $code; response follows"
+            cat "$RUNNER_TEMP/merge-resp.json" || true
+            say skip-merge-refused
           fi
-          # A head that moved while this step ran was not the head judged.
-          if [ "$(pr_field 'd["head"]["sha"]')" != "$HEAD" ]; then
-            unqueue; say head-moved; exit 0
-          fi
-          say queued
+
+      # Both installation tokens die with the beat, on every path through it:
+      # the approver's is minted whenever its secrets exist, including beats
+      # where the step above never runs (#2029 review, round 1).
+      - name: Revoke the App installation tokens
+        if: always()
+        env:
+          TOKEN: ${{ steps.mint.outputs.token }}
+          APPROVER: ${{ steps.mint.outputs.approver_token }}
+        run: |
+          { set +x; } 2>/dev/null
+          for t in "$APPROVER" "$TOKEN"; do
+            [ -z "$t" ] || curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $t" \
+              -H 'Accept: application/vnd.github+json' https://api.github.com/installation/token \
+              || echo "::warning::revoking an installation token failed; it expires within the hour"
+          done
 
       # As in mutation-ledger-push and the other autofix lanes (#523): the
       # status reaches the run, and a beat owed and not landed reddens this

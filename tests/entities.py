@@ -24580,6 +24580,18 @@ def _raf_review_gated(job: str) -> bool:
     return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
 
 
+# The merge is the beat's own, pinned to the head the guard judged (#2029
+# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
+# the guard's `--require-green` call, and never GitHub's auto-merge, which
+# merges later on a head nobody judged.
+def _raf_merge_pinned(job: str) -> bool:
+    g = job.find("guard --require-green")
+    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
+    return (0 < g < put
+            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
+            and "AutoMerge" not in job)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -24600,7 +24612,8 @@ def _raf_job_ok(job: str) -> bool:
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
         and "--automerge-check --hold" in job
-        and _raf_review_gated(job))
+        and _raf_review_gated(job)
+        and _raf_merge_pinned(job))
 
 
 R.check(
@@ -24631,12 +24644,15 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
-        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1)),
+        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
+    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
     "that runs only after NUM is known, or dropping the automerge guard "
-    "ahead of the review, or posting it with the author's token -- must "
+    "ahead of the review, or posting it with the author's token, or the "
+    "merge's green gate or its sha pin -- must "
     "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
