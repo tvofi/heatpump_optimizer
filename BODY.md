@@ -12,6 +12,8 @@ Part of #2016 (items 1-3; item 4 is R9-UX-10). Items 1-3 here: the `flow_meter_e
 
 ## Head
 
+`8912f55e61f80b31f18aec79d0d0c7e822220ac0` merges the authored code head `bb410745a1d87075654e266ed9142799130aea99` and then merges origin/main `143e2d0a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 bb410745a1d87075654e266ed9142799130aea99
 
 The code head merges origin/main 8d7903e6 into the handoff head 2581479b (commit 703af1e7) and adds two fix commits, f5810852 and bb410745.
@@ -76,17 +78,17 @@ All figures are at this head unless stated otherwise. The venv-ci Python 3.14 is
 
 `mutation` at 7cab991c (job 112901417777) refused 11 sites this diff adds, and `tools/pr/ci_predict.py` at this head lists the same 11. Each one is pinned by mutation-autofix (awaiting R9-CI-1):
 
-- `custom_components/heatpump_optimizer/flow_meter.py:31` GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/flow_meter.py:36` CMP_BOUND: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:278` GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:281` RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:821` GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:825` CMP_BOUND: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:825` GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:827` GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:831` RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/inputs.py:833` RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
-- `custom_components/heatpump_optimizer/thermal_model.py:1286` RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/flow_meter.py:31 GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/flow_meter.py:36 CMP_BOUND: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:278 GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:281 RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:821 GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:825 CMP_BOUND: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:825 GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:827 GUARD_OFF: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:831 RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/inputs.py:833 RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
+- custom_components/heatpump_optimizer/thermal_model.py:1286 RETURN_DEL: pinned by mutation-autofix (awaiting R9-CI-1)
 
 The two `flow_meter.py` sites could not be measured at 7cab991c (`recorded closure reaches ... flow_meter.py ... stays unpinned`), because no committed closure listed the module. This head lists it in 21 closures, so the drivers now reach those sites. If a site survives every driver after the bot commit, I owe it a killing check or a `survivor_triage` verdict.
 
