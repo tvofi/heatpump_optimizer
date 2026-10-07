@@ -17,8 +17,8 @@
     },
     "record": {
       "opens": [
-        "docs/plan-2026-09-open-issues.md",
-        "docs/HANDOVER.md",
+        "dev/programme/plan-2026-09-open-issues.md",
+        "dev/programme/HANDOVER.md",
         ".claude/workflows/wave-4-groups.json"
       ],
       "cap": 6904
