@@ -20,7 +20,7 @@ read with `git show`) or `--roster-file`, nothing about a session hardcoded.
 
 WHAT STAYS MANUAL, by design (issue #1952, owner-approved 2026-10-04): the
 approving labelled review on the record pull request, and the
-`docs/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
+`dev/programme/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
 work, not every beat, which a job would over-write. This module's write set
 cannot express either: `write_rows` refuses every path that is not
 `dev/programme/delivery/<N>.md`, so a row can never be appended to the plan's
