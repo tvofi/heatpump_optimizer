@@ -121,7 +121,18 @@ export function derivations() {
   if (b) d.budgets = Object.keys(JSON.parse(b)).filter((k) => k !== 'recorded_at').length
   d.scripts = jsonKeys('tests/closures.json', 'closures')
   d.rules = git(['ls-files', '.cursor/rules/*.mdc']).trim().split('\n').filter(Boolean).length
-  d.briefs = lsFiles('tools/audit/briefs/D*.md').length
+  // `ls-files` of a missing glob was 0. `readdir` of a directory the
+  // `--corpus-filter` and `--pr-body` fixtures do not have throws, and `main`
+  // calls this before either mode returns, so those fixtures never reach the
+  // filter. A missing directory is zero briefs; any other error still throws.
+  let dimNames
+  try {
+    dimNames = fs.readdirSync(at('dev/governance/dimensions'))
+  } catch (err) {
+    if (err?.code !== 'ENOENT') throw err
+    dimNames = []
+  }
+  d.briefs = dimNames.filter((f) => f.endsWith('.md')).length
   d.jobs = countMatches('.github/workflows/tests.yml', /^ {2}[a-z0-9-]+:$/gm)
   const card = read('tests/card_drift.mjs')
   if (card) {
@@ -131,7 +142,7 @@ export function derivations() {
   d.services = countMatches('custom_components/heatpump_optimizer/services.yaml', /^[a-z_]+:/gm)
   d.modules = git(['ls-files', 'custom_components/heatpump_optimizer/']).trim().split('\n').filter((f) => f.endsWith('.py')).length
   d.goldens = git(['ls-files', 'tests/golden/*.json']).trim().split('\n').filter(Boolean).length
-  const pb = read('.claude/workflows/policy_budgets.json')
+  const pb = read('dev/governance/config/policy_budgets.json')
   d.caps = pb ? JSON.parse(pb).files : null
   return d
 }
