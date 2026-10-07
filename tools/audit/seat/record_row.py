@@ -437,7 +437,7 @@ def automerge_refusals(pr: dict, files: list[dict],
         path = str(f.get("filename") or "")
         m = ROW_PATH.match(path)
         if not m or f.get("previous_filename"):
-            why.append(f"{path}: outside dev/programme/delivery/<N>.md")
+            why.append(f"{path}: renamed, or outside dev/programme/delivery/<N>.md")
             continue
         lines = added_lines(f.get("patch") or "")
         if f.get("status") != "added" or lines is None or len(lines) != 1:
@@ -808,12 +808,26 @@ def self_test() -> int:
         "foreign head branch": (_pr(head={"ref": "fix/x", "repo": {
             "full_name": DEFAULT_REPO}}), _good, _facts),
         "self row for another number": (_pr(number=2004), _good, _facts),
+        "an altered self row": (_pr(), _good[:1] + [_file(
+            2002, open_row_line(2002, "record: anything"))], _facts),
         "empty diff": (_pr(), [], _facts),
         "conflicting": (_pr(mergeable=False), _good, _facts),
+        # Each of these three is a clean one-line add in every other field,
+        # so only the path, rename or status arm can refuse it.
+        "a one-line file outside the row directory": (
+            _pr(), [dict(_good[0], filename=HANDOVER_FILE)], _facts),
+        "a renamed row": (_pr(), [dict(_good[0],
+                                       previous_filename=row_path(1))],
+                          _facts),
+        "a row added to an existing empty file": (
+            _pr(), [dict(_good[0], status="modified")], _facts),
     }
     for _name, (_p, _fs, _fx) in _bad.items():
-        ok(f"automerge refuses: {_name}",
-           bool(automerge_refusals(_p, _fs, _fx)))
+        try:
+            _refused = bool(automerge_refusals(_p, _fs, _fx))
+        except Exception:  # noqa: BLE001 -- a crash is not a refusal
+            _refused = False
+        ok(f"automerge refuses: {_name}", _refused)
     ok("failed_required ignores a red that is not required",
        failed_required([{"name": "delivery-status", "conclusion": "failure"},
                         {"name": "fast (3.14)", "conclusion": "success"}],
