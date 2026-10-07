@@ -1,2 +1,0 @@
-handover_prompt self-test: 13 checks, 1 failed
-FAIL every repository path the prompt names exists (missing: tools/audit/briefs/) (got: )

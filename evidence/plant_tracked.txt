@@ -1,0 +1,5 @@
+--- moved_paths: walk ignores tracked set
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a directory argument walks its tracked files, recursively, and skips untracked ones
+  FAIL a walked directory's files are scanned
+moved_paths self-test: 9 checks, 2 failed

@@ -3,10 +3,11 @@ failure	delivery-status
 failure	nightly-status
 in_progress	Analyze (python)
 in_progress	browser
+in_progress	closures
+in_progress	coverage
 in_progress	env-matrix
 in_progress	fast (3.14)
 neutral	CodeQL
-skipped	closures-autofix
 skipped	delivery-status-publish
 skipped	mutation-autofix
 skipped	mutation-ledger
@@ -22,10 +23,6 @@ success	Analyze (javascript-typescript)
 success	briefs
 success	budget-raise-gate
 success	closure-scope
-success	closures
-success	coverage
-success	coverage-ratchet
-success	graders-head-copy
 success	hassfest
 success	instrument-self-tests
 success	mutation

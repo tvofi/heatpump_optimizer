@@ -1,0 +1,27 @@
+tools/audit/seat/INSTRUMENTS.md:5: [STALE?] .claude/rules/ -> dev/governance/rules/ | `CLAUDE.md` and `.claude/rules/`; nothing here adds one. Every `--self-test`
+tools/audit/seat/bus.sh:86: [FALLBACK] tools/audit/app_comment.sh -> tools/pr/app_comment.sh | if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
+tools/audit/seat/bus.sh:388: [FALLBACK] tools/audit/app_comment.sh -> tools/pr/app_comment.sh | grep -qxF '  if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
+tools/audit/seat/handoff_push.sh:76: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/handoff_push.sh:96: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/handoff_push.sh:111: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/handover_prompt.py:14: [STALE?] .claude/rules/ -> dev/governance/rules/ | Read first     -- the rules-first pointer: CLAUDE.md, the .claude/rules/
+tools/audit/seat/handover_prompt.py:76: [STALE?] .claude/rules/ -> dev/governance/rules/ | "the obligation each carries. Then the `.claude/rules/` file each "
+tools/audit/seat/merge_pr.sh:10: [FALLBACK] tools/audit/app_comment.sh -> tools/pr/app_comment.sh | if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh $R $PR $D/v/verdict-$PR.md 2>&1; else bash tools/pr/app_comment.sh $R $PR 
+tools/audit/seat/merge_pr.sh:18: [FALLBACK] tools/audit/app_approve.sh -> tools/pr/app_approve.sh | if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh $R $PR $S 2>&1; else bash tools/pr/app_approve.sh $R $PR $S 2>&1; fi| tail
+tools/audit/seat/merge_pr.sh:37: [FALLBACK] tools/audit/preflight.sh -> tools/pr/preflight.sh | gh pr view $PR --json title --jq .title | if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh "$@" 2>&1; else bash tools/pr/prefli
+tools/audit/seat/merge_train.py:84: [FALLBACK] tools/audit/app_approve.sh -> tools/pr/app_approve.sh | "app_approve": ("tools/audit/app_approve.sh", "tools/pr/app_approve.sh"),
+tools/audit/seat/merge_train.py:85: [FALLBACK] tools/audit/preflight.sh -> tools/pr/preflight.sh | "preflight": ("tools/audit/preflight.sh", "tools/pr/preflight.sh"),
+tools/audit/seat/merge_train.py:160: [STALE?] .claude/workflows/policy_lint.mjs -> tools/policy/policy_lint.mjs | _pl = ROOT / ".claude/workflows/policy_lint.mjs"
+tools/audit/seat/open_pr.sh:43: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/open_pr.sh:60: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/remerge_main.sh:31: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+tools/audit/seat/roster_edit.py:31: [STALE?] .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs | `TOTAL: 0 error(s)`. That is `.claude/workflows/brief_lint.mjs` when the
+tools/audit/seat/roster_edit.py:73: [STALE?] .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs | BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
+tools/audit/seat/roster_edit.py:456: [STALE?] .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs | (seed / ".claude/workflows/brief_lint.mjs").write_text(
+tools/audit/seat/roster_edit.py:623: [STALE?] .claude/workflows/brief_lint.mjs -> tools/policy/brief_lint.mjs | (seed2 / ".claude/workflows/brief_lint.mjs").write_text(
+tools/audit/seat/tmp_paths.py:16: [STALE?] docs/decisions/ -> dev/governance/decisions/ | (and `docs/decisions/*.md`, their home before the lift),
+tools/audit/seat/tmp_paths.py:19: [STALE?] tools/audit/handoff/ -> dev/archive/handoff/ | write-once round evidence under `tools/audit/round*/`, `tools/audit/handoff/`
+tools/audit/seat/tmp_paths.py:46: [STALE?] .claude/rules/ -> dev/governance/rules/ | `.claude/rules/gate-scoping.md` defines, with nothing appended;
+tools/audit/seat/tmp_paths.py:219: [STALE?] docs/decisions/ -> dev/governance/decisions/ | one("docs/decisions/0012-x.md", "(`/private/tmp/audit-7/r8prog/design.md`)") != [])
+tools/audit/seat/update_pr.sh:28: [FALLBACK] tools/audit/app_push.sh -> tools/pr/app_push.sh | if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+moved_paths: 145 moved path(s) from tests/layout.json, 26 hit(s) in 25 file(s)

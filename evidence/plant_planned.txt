@@ -1,0 +1,4 @@
+--- moved_paths: planned-dir clause removed
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a retired directory with tracked files under it is a planned move
+moved_paths self-test: 9 checks, 1 failed
