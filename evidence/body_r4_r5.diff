@@ -1,0 +1,9 @@
+29a30,31
+> `82f2641aa964dfcc4f9a16ac4c242a70ec6d7577` merges origin/main `e0f0b6fb` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+> 
+37c39
+< - `dev/audit/harnesses/eg_b7_seam_hubs.py`: #2017 added it under `tools/audit/harnesses/` (merged as `b281a4c3`), inside the directory this pull request moves. It is at `dev/audit/harnesses/` beside the rest; its usage line names that path. Its `since` is `2015` through the directory entry `tools/audit/harnesses/` in `tests/layout.json`, which this pull request already set; no new retired entry is needed. No `closures.json` entry and no harness README row names it: `git grep -n eg_b7_seam_hubs` returns only the file itself. The README index row that the R9-RO-9 carry covers will point at the new path.
+---
+> - `dev/audit/harnesses/eg_b7_seam_hubs.py`: #2017 added it under `tools/audit/harnesses/` (merged as `b281a4c3`), inside the directory this pull request moves. It is at `dev/audit/harnesses/` beside the rest; its usage line names that path. Its `since` is `2015` through the directory entry `tools/audit/harnesses/` in `tests/layout.json`, which this pull request already set; no new retired entry is needed. One `tests/closures.json` entry names it: `inert_reads["tests/harness_headers.py"]`, re-pointed to the new path, as the next bullet records. No harness README row names it. The README index row that the R9-RO-9 carry covers will point at the new path.
+103a106
+> 
