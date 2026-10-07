@@ -27,12 +27,25 @@ typical_slab refused by downstream guards.
 MACHINE: Apple M1 (8-core), macOS 25.6.0, CPython 3.11
 (/Library/Frameworks/Python.framework/Versions/3.11/bin/python3).
 
-Root rule: resolves the repository root from __file__ (parents[5]), so it
-measures THIS tree's production code. No Node, so no HPO_PLANDATA needed.
+Root rule: walks up from __file__ to the directory holding
+custom_components/heatpump_optimizer/manifest.json, so it measures THIS
+tree's production code. No Node, so no HPO_PLANDATA needed.
 No production or test file is modified: the plant is the production
 ThermalModel, the identifier is the production SystemIdentification, and
 perturbed plants are in-memory ThermalParameters copies.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 
 for _v in (
@@ -50,7 +63,7 @@ import time
 from datetime import datetime, timedelta
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[5]
+ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT / "custom_components"))
 
 import numpy as np  # noqa: E402  (after the thread pin)

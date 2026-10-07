@@ -43,6 +43,18 @@ Machine: cloud 4-vCPU container (see BASELINE.md); this is a pure-Python
 count, no timing, so it needs no load1/thread_factor.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -60,7 +72,7 @@ import sys
 import traceback
 from datetime import datetime, timezone
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+sys.path.insert(0, str(repo_root(__file__)))
 
 from custom_components.heatpump_optimizer import open_meteo as om  # noqa: E402
 
