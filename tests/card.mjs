@@ -2437,6 +2437,71 @@ check("the hand-scheduled reason has a label",
     /12%/.test(savingsFilled) &&
     /estimated/.test(savingsFilled));
 
+  // R9-UX-6: the closed month's receipt, where its spot money went, and
+  // yesterday's plan against what was measured -- all from the backend.
+  const rcpStates = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+  const rcpRoom = Array.from({ length: 97 }, (_, i) => 21 - 0.01 * i);
+  const rcpCost = Array.from({ length: 97 }, (_, i) => 0.5 * i);
+  rcpStates["sensor.heat_pump_optimizer_monthly_savings"] = {
+    state: "100.00",
+    attributes: {
+      unit_of_measurement: "SEK",
+      savings_months: [
+        { month: "2026-01", baseline_sek: 800, actual_sek: 652, savings_sek: 148, savings_pct: 18.5, estimated: false },
+        { month: "2026-02", baseline_sek: 800, actual_sek: 700, savings_sek: 100, savings_pct: 12, estimated: true },
+      ],
+      receipts: [{
+        month: "2026-01",
+        lines: {
+          spot: { kwh: 1238, sek: 498 }, grid_fee: { kwh: 1238, sek: 74 },
+          capacity: { kwh: 0, sek: 40 }, space: { kwh: 900, sek: 360 },
+          savings_baseline: { kwh: 1300, sek: 646 },
+        },
+        basis: ["spot", "grid_fee", "capacity"],
+        total_sek: 612, capacity_peak_kw: 5.8, compressor_starts: 212,
+        reasons: { scheduled: { kwh: 200, sek: 96 }, cheap_price: { kwh: 900, sek: 312 } },
+      }],
+      plan_replay: {
+        day: "2026-02-14", start: "2026-02-14T00:05:00+01:00", step_minutes: 15,
+        room: rcpRoom, cost: rcpCost,
+        measured: { t: [6, 12, 24], room: [20.7, 20.4, 20.0], cost: [13, 25, 50] },
+      },
+    },
+  };
+  const rcp = build(rcpStates);
+  rcp._onCardClick({});
+  rcp.dialog.page = "savings";
+  rcp._render();
+  const rcpPage = collect(rcp.shadowRoot).join("\n");
+  check("UX-6: the receipt shows the backend's total and the lines it adds",
+    /612\.00 SEK/.test(rcpPage) && /Spot energy/.test(rcpPage) &&
+    /Grid energy fee/.test(rcpPage) && /Capacity charge/.test(rcpPage) &&
+    /peak 5\.8 kW/.test(rcpPage) && !/360\.00/.test(rcpPage) && !/646\.00/.test(rcpPage),
+    "space and savings_baseline restate spot; the receipt must not list them");
+  check("UX-6: unpriced wear says so instead of a zero",
+    /Compressor wear/.test(rcpPage) && /212 starts/.test(rcpPage) && /not priced/.test(rcpPage));
+  check("UX-6: the note names what the total covers",
+    /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares spot cost only\./.test(rcpPage));
+  check("UX-6: the saving against a thermostat is the month's own row",
+    /Saved 148\.00 SEK \(19 %\) against a plain thermostat/.test(rcpPage));
+  check("UX-6: the money goes by reason, largest first",
+    /Where the money went/.test(rcpPage) &&
+    rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
+  check("UX-6: yesterday's replay names the promise and the measurement",
+    /Yesterday: the plan against reality/.test(rcpPage) &&
+    /Promised by the plan at 00:05/.test(rcpPage) && /Measured/.test(rcpPage) &&
+    /It cost 50\.00 SEK against 48\.00 SEK promised\./.test(rcpPage) &&
+    (rcpPage.match(/stroke-dasharray="6 4"/g) || []).length >= 2);
+  check("UX-6: the monthly table and its estimate badge still draw",
+    /2026-02/.test(rcpPage) && /estimated/.test(rcpPage) && /12%/.test(rcpPage));
+  delete rcpStates["sensor.heat_pump_optimizer_monthly_savings"].attributes.plan_replay.measured.cost;
+  const rcpNoMeter = build(rcpStates);
+  rcpNoMeter._onCardClick({});
+  rcpNoMeter.dialog.page = "savings";
+  rcpNoMeter._render();
+  check("UX-6: without a power meter the replay says the cost was not measured",
+    /No power meter, so the cost was not measured\./.test(collect(rcpNoMeter.shadowRoot).join("\n")));
+
   su.dialog.page = "setup";
   su._render();
   const setupPage = collect(su.shadowRoot).join("\n");
