@@ -1,0 +1,7 @@
+RESULT 'control canonical path': PASS (not refused)
+RESULT 'arabic-indic digits': PASS (not refused)
+RESULT 'fullwidth digits': PASS (not refused)
+RESULT 'leading zero': PASS (not refused)
+RESULT 'trailing newline in name': PASS (not refused)
+RESULT 'other dir': REFUSED: dev/programme/delivery2/1995.md: renamed, or outside dev/programme/delivery/<N>.md
+RESULT duplicate row for one PR at two paths: PASS (not refused)
