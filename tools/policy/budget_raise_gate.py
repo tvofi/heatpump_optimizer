@@ -160,7 +160,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("type_ignores",), MAX),
         (("ruler", "**"), FROZEN),
     ],
-    ".claude/workflows/policy_budgets.json": [
+    "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
         (("_*",), FREE),
         (("always_loaded_tokens",), MAX),
@@ -250,6 +250,18 @@ def _leaf_raise(kind: str, key: str, old, new, have_old: bool, have_new: bool,
     return f"{key}: unknown kind {kind!r}"
 
 
+def _schema(path: str) -> list:
+    """The rules for `path`. The key is the path the file has; `gate` spells a
+    moved file by its old path (`canon`) before it asks, and `locate` is the
+    other direction."""
+    if path in SCHEMA:
+        return SCHEMA[path]
+    for alt in (locate(path), canon(path)):
+        if alt in SCHEMA:
+            return SCHEMA[alt]
+    return []
+
+
 def file_raises(path: str, old_text: str | None, new_text: str | None,
                 head_has=lambda p: True) -> list[str]:
     """Every raise in one budget file between the base's text and the head's
@@ -266,7 +278,7 @@ def file_raises(path: str, old_text: str | None, new_text: str | None,
         except ValueError as e:
             return [f"{path}: does not parse at the {side} ({e}); nothing can be signed as routine"]
     old, new = (flatten(d) for d in docs)
-    rules = SCHEMA.get(path, [])
+    rules = _schema(path)
     out = []
     for leaf in sorted(set(old) | set(new)):
         key = ".".join(leaf)
