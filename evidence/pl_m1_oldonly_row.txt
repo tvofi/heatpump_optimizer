@@ -1,0 +1,9 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 40 policy file(s)
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (a merged row deleted): red ["delivery-status"] over paths ["dev/programme/delivery/1570.md"] owed answers for [], not ["delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+
+FIXTURE VACUOUS: MAIN_STATE_REPORTERS (no existing list): red ["delivery-status"] over paths ["tests/x.py","dev/programme/delivery/9999.md"] owed answers for [], not ["delivery-status"]; the exemption covers exactly the two reporters, and only while the diff leaves what they read alone
+rc=1
