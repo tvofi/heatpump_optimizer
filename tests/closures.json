@@ -134,7 +134,7 @@
    "rc": 0
   },
   "tests/debug_collect.py": {
-   "seconds": 3.5,
+   "seconds": 2.2,
    "rc": 0
   }
  },
@@ -3087,7 +3087,6 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/diagnosis.py",
-   "custom_components/heatpump_optimizer/diagnostics.py",
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
@@ -3129,7 +3128,6 @@
    "tests/hastub/homeassistant/__init__.py",
    "tests/hastub/homeassistant/components/__init__.py",
    "tests/hastub/homeassistant/components/button.py",
-   "tests/hastub/homeassistant/components/diagnostics.py",
    "tests/hastub/homeassistant/components/mqtt.py",
    "tests/hastub/homeassistant/components/repairs.py",
    "tests/hastub/homeassistant/config_entries.py",
@@ -3151,8 +3149,7 @@
    "tests/hastub/homeassistant/helpers/update_coordinator.py",
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
-   "tests/hastub/homeassistant/util/dt.py",
-   "tests/nightly_ha.py"
+   "tests/hastub/homeassistant/util/dt.py"
   ]
  },
  "inert_reads": {
