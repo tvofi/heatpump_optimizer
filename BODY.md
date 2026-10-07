@@ -6,17 +6,21 @@ The batch then builds proof commits P_i over `origin/main`. Each P_i is GitHub's
 
 When the proof is red, the train drops the one entry whose files are in the closure of every script the red jobs name, and proves the rest again. When no single entry owns the failure, it proves every all-but-one set side by side and keeps the green set that drops the latest entry. When the batch is down to two entries, the later one goes serial. Each merge goes ahead only while `main`'s tree equals P_(i-1)'s, and the train stops unless `main`'s tree equals P_i's afterwards. Routed and dropped entries then go through the existing serial `run`.
 
-**D.** A batch of one is not proved. `main`'s FULL push run is its gate, and a red there is reverted first. `orchestrator.md` section 11 and `nudge.md` now name the batch alongside the fast path. Both edits are policy (`## Approval`). `wait-ci` now reads CI once every five minutes, following tvofi's quota rule of 2026-10-07.
+**D.** A batch of one is not proved. `main`'s FULL push run is its gate, and a red there is reverted first.
+
+**Main-green gate (round 1 review).** D's bound holds only on a green `main`. The batch now reads every required context at `main`'s tip before it admits anything, and stops if any is not complete and green. It reads them again right before the first merge. Later merges in a proved batch land on trees the batch's own green proof graded. After a D merge, the train waits for `main`'s push run on that merge before the serial path lands anything, so a red push run always names one merge. A pair on a red `main` is refused before any proof is built and is never bisected. The spent `batch/` branches are deleted when a batch completes.
+
+**Policy.** `orchestrator.md` section 11 and `nudge.md` section 18 now agree that the batch is the only bypass of the CI wait. `merge_fastpath.py` is no longer listed in either. The section 11 words are paid from section 11's own text, and the file stays at 4096 of its 4096-token cap. Both edits are policy (`## Approval`). `wait-ci` now reads CI once every five minutes, following tvofi's quota rule of 2026-10-07.
 
 Motivating instance, on main while this ran: `1101a2fb` brought `fixer.md` back under its token cap "after #2027 and #2030 combined". Each of those two pull requests was green alone, and together they went over the cap. A batch proof would have caught that before the merge.
 
 ## Head
 
-`3f726397af99b9d53eb5147d27285a3984b8c393`. It merges origin/main `2d8cab3f` into `2bb7281c`, an automatic merge with no resolution. The live rehearsals below ran code `2b9417f9`. `2bb7281c` adds only `--allow-escape-sequences` to the job-log read, a defect the live proof itself found (see Figures).
+`8911527f72a3057cdc43e5f103f5ab66649b4f4a`, measured below unless a line says otherwise. Round 2 is one commit on top of `3f726397`: the main-green gate, its self-tests and mutants, the `batch/` branch deletion and the policy alignment. `3f726397` merged origin/main `2d8cab3f`, with no resolution. The live rehearsals below ran code `2b9417f9`. `2bb7281c` added only `--allow-escape-sequences` to the job-log read, a defect the live proof itself found. The live proofs did not exercise the main-green gate, because their `batch/` bases have no push runs. The self-tests below exercise it.
 
 ## Mutation proof
 
-The mutation drive is `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`. It removes one predicate per mutant, runs the self-test and restores the file. Every mutant goes red, measured at `2bb7281c`:
+The mutation drive is `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`. It removes one predicate per mutant, runs the self-test and restores the file. Every mutant goes red, measured at `8911527f`:
 
 - M1, no driver override: `a merge driver configured in the clone does not reach the proof` FAIL.
 - M2, no post-merge tree check: `a merge whose tree is not the proof's stops the batch` FAIL.
@@ -28,6 +32,11 @@ The mutation drive is `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`. It re
 - M8, no conflict route: `an entry that conflicts with one before it goes serial` FAIL.
 - M9, no admission CI check: `an entry red at its own head is refused at admission` FAIL.
 - M10, the log read without `--allow-escape-sequences`: the culprit check FAIL.
+- M11, no gate at admission: `a pair on a red main merges nothing and is not bisected` FAIL.
+- M12, no re-check before the first merge: `main's tip going red after the proof and before the first merge stops it` FAIL.
+- M13, no wait after a D merge: `after an unproved merge the train waits for main's run on it` FAIL.
+- M14, the gate ignores red: 4 checks FAIL.
+- M5 and M6 now end in `IndexError`, so the governance grep for `0 failed` refuses. M6 strands every batch at the main gate, on contexts no push writes.
 
 `app_push.sh`: deleting the `batch/` guard turns `REFUSE: --branch-only on a fix branch` red. Running prepr under `--branch-only` turns `--branch-only pushes a batch/ branch without a body` red, because that case sets `prepr-fails`.
 
@@ -39,15 +48,17 @@ The **live perturbation** used base `batch/proof-base-ro12-p`. It is main plus o
 
 The **live null control** used base `batch/proof-base-ro12-n`, which is main `f637d24a`. #2037 (`b11645cc`) and #2038 (`9b3a94da`) are clean. The proof at `cb9b1831` came back `red=[]`. The train merged #2037 as `ddf33d15`, whose tree equals proof `ba884d63`, then #2038 as `7ad7026d`, whose tree equals proof `cb9b1831`. TRAIN DONE. #2036 was closed unmerged. #2035, #2037 and #2038 were merged into their throwaway `batch/` bases only, and `main` was not touched. The `batch/proof-base-ro12-*`, `batch/ro12*-1` and `proof/ro12-*` branches are left for the reviewer and can be deleted after review.
 
+The reviewer's probe `review-2044/evidence/probe_red_main.py` was run against `8911527f`. Its lone and pair cases now merge nothing: `rc=1 merged=[]`, with the stop reading `not green (policy-docs) before admission`. Its null control, the same pair on a green `main`, still merges `[1, 2]`. The probe's self-test reads 82 checks, 0 failed. The same cases are now in the PR's own self-test.
+
 The self-test reruns both cases against real git, with a remote that plays GitHub: `git merge --no-ff` and no driver. The checks are named `batch null control: ... the base's tree equal to P_i after each` and `PERTURBATION: two pull requests each green alone, together past the ratchet`.
 
 ## Figures
 
-- merge_train self-test, 74 checks and 0 failed at the head: `python3 tools/audit/seat/merge_train.py --self-test`.
+- merge_train self-test, 80 checks and 0 failed at the head: `python3 tools/audit/seat/merge_train.py --self-test`.
 - merge_fastpath self-test, 35 checks and 0 failed: `python3 tools/audit/merge_fastpath.py --self-test`.
 - app_push self-test, 60 checks and 0 failed: `bash tools/pr/app_push.sh --self-test`.
-- Mutation drive, 10 of 10 mutants red against an M0 baseline of 0 failed: `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`.
-- Policy caps: `orchestrator.md` is at 4096 of its 4096-token cap and `nudge.md` at 3804 of 3814. `policy_lint` exits 0. Command: `node tools/policy/policy_lint.mjs --budgets`.
+- Mutation drive, 14 of 14 mutants red against an M0 baseline of 0 failed: `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`.
+- Policy caps: `orchestrator.md` is at 4096 of its 4096-token cap and `nudge.md` at 3776 of 3814. `policy_lint` exits 0. Command: `node tools/policy/policy_lint.mjs --budgets`.
 - Gate scope: `MODE: SCOPED -- 0 script(s) run`, because every changed file is outside every measured closure. Command: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`.
 - `python3 tests/structure.py` passes. `python3 tests/layout.py --guard --base origin/main` reports 0 refusals. `python3 -I tools/audit/seat/tmp_paths.py --check` refuses 0 paths.
 - The two live proofs read `red=['env-matrix', 'policy-docs']` and `red=[]`. These are CI's check-runs at `d8f8d050` and `cb9b1831`, read by the train's `wait_ci`.
@@ -55,11 +66,17 @@ The self-test reruns both cases against real git, with a remote that plays GitHu
 
 ## Red checks
 
-none
+At round 1's head `79ca6b47`, the red check-runs were `delivery-status` and `nightly-status`. The reviewer read them on 2026-10-08. `nightly-status` grades the last scheduled run on `main`, which this diff cannot reach. `delivery-status` reads the delivery rows, and the only thing of this PR's it reads is its own row, `dev/programme/delivery/2044.md`, which `open_pr.sh` writes. Its cheaper detector is the row lint the orchestrator already runs, so no new countermeasure is owed. Both stand to be re-read at the new head.
 
 ## Forward-carry
 
 none. A dispatched proof costs one full closure re-record, because `closures` runs unscoped on `workflow_dispatch`. That bounds a proof's wall clock at about main's push run, which is measured here as about 45 minutes per proof. It is a cost of B as chosen, not a finding a later stage must act on.
+
+## Residual risks
+
+- GitHub's merge API takes no expected base, so another merge can land between the guard and ours. Only the after-merge tree check catches that, and it fires after the fact.
+- The after-check compares `main`'s tip, not our own merge commit, so a commit landing just after ours stops the train falsely. That is the safe direction.
+- A merge driver named only in the checkout's `.gitattributes`, and not in the base's, is not overridden. The after-check is the backstop for that too.
 
 ## Friction
 
