@@ -367,6 +367,17 @@ DATA = {
     "capacity_envelope": {"buckets": {"-9": [4.8, 12]}},
     "solar_aperture": {"scale": 1.15, "samples": 40},
     "internal_gains_profile": None,
+    # The rest of the learning view the model-status sensor reads (R9-UX-7).
+    "house_heat_loss_effective": 0.142,
+    "house_heat_loss_scale": 1.08,
+    "house_heat_loss_samples": 21,
+    "house_heat_loss_learned": True,
+    "lower_floor_loss_ratio": 0.38,
+    "lower_floor_loss_samples": 14,
+    "lower_floor_loss_learned": True,
+    "dhw_cooling_rate": 0.9,
+    "dhw_cooling_samples": 30,
+    "dhw_cooling_rate_learned": True,
     "heat_curve": {"bias_k": -0.4, "comfortable_days": 1, "resets": 0},
     "insight": {
         "narrative": {
@@ -5392,6 +5403,126 @@ R.check(
     _records_period == [sensor.TotalCostSensor],
     f"recorded on {sorted(c.__name__ for c in _records_period)!r} instead of "
     "just TotalCostSensor",
+)
+
+# --- R9-UX-7 (#1795): model status and the next-interval prediction ---------
+#
+# The learning view the coordinator already publishes had no reader but the
+# diagnostics dump: heat loss, lower floor, solar aperture, tank cooling, COP
+# health, internal gains, the capacity envelope and system identification.
+# One sensor reads it; the bulky parts stay out of the recorder. The plan's
+# next-interval room prediction -- the figure the accuracy tracker files and
+# scores -- gets a recorded sensor of its own, so history keeps what was
+# predicted beside what happened. Looked up by name so a tree without the
+# classes fails these checks instead of aborting the section.
+_ux7_status_cls = getattr(sensor, "ModelStatusSensor", None)
+_ux7_pred_cls = getattr(sensor, "PredictedIndoorTempSensor", None)
+
+
+def _ux7_status(data):
+    return _ux7_status_cls(FakeCoordinator(data), ENTRY) if _ux7_status_cls else None
+
+
+def _ux7_attrs(entity):
+    try:
+        return dict(entity.extra_state_attributes or {}) if entity else {}
+    except Exception as err:  # noqa: BLE001 -- a raise is a failed check here
+        return {"__raised__": repr(err)}
+
+
+_ux7_s = _ux7_status(DATA)
+_ux7_a = _ux7_attrs(_ux7_s)
+R.check(
+    "UX-7: the model status reads the learned heat loss in W/K, and each learner's evidence",
+    _ux7_s is not None
+    and _ux7_a.get("heat_loss_w_per_k") == 142.0
+    and _ux7_a.get("heat_loss") == {"scale": 1.08, "samples": 21, "learned": True}
+    and _ux7_a.get("lower_floor") == {"ratio": 0.38, "samples": 14, "learned": True}
+    and _ux7_a.get("tank_cooling")
+    == {"rate_c_per_h": 0.9, "samples": 30, "learned": True}
+    and (_ux7_a.get("solar_aperture") or {}).get("samples") == 40
+    and (_ux7_a.get("cop") or {}).get("alarm") is False
+    and (_ux7_a.get("cop") or {}).get("samples") == 12,
+    f"{_ux7_a!r}",
+)
+R.check(
+    "UX-7: the solar row says how much evidence the learner needs, from the learner's own constant",
+    (_ux7_a.get("solar_aperture") or {}).get("needed")
+    == const.SOLAR_APERTURE_MIN_SAMPLES,
+    f"{_ux7_a.get('solar_aperture')!r}",
+)
+_ux7_states = {
+    "learned": _ux7_s.native_value if _ux7_s else None,
+    "learning": getattr(
+        _ux7_status({**DATA, "house_heat_loss_learned": False,
+                     "house_heat_loss_samples": 0}), "native_value", None),
+    "attention": getattr(
+        _ux7_status({**DATA, "cop_health": {"watched_buckets": 2, "alarm": True,
+                                            "evidence": ["x"]}}),
+        "native_value", None),
+}
+R.check(
+    "UX-7: the status is learned, still learning, or needs attention on a COP alarm",
+    all(k == v for k, v in _ux7_states.items())
+    and set(getattr(_ux7_status_cls, "_attr_options", None) or ())
+    == {"learning", "learned", "attention"},
+    f"{_ux7_states!r} options={getattr(_ux7_status_cls, '_attr_options', None)!r}",
+)
+_ux7_unrec = getattr(_ux7_status_cls, "_unrecorded_attributes", frozenset())
+R.check(
+    "UX-7: the bulky learner state stays out of the recorder; the compact rows are recorded",
+    {"internal_gains_kw", "capacity_envelope", "system_identification"} <= _ux7_unrec
+    and not ({"heat_loss", "heat_loss_w_per_k", "cop"} & _ux7_unrec),
+    f"unrecorded={sorted(_ux7_unrec)!r}",
+)
+_ux7_nodhw = _ux7_attrs(_ux7_status({**DATA, "dhw_enabled": False}))
+R.check(
+    "UX-7: a plant with no hot water publishes no tank-cooling row",
+    "tank_cooling" in _ux7_nodhw and _ux7_nodhw["tank_cooling"] is None
+    and _ux7_a.get("tank_cooling") is not None,
+    f"no-DHW tank_cooling={_ux7_nodhw.get('tank_cooling')!r}",
+)
+_ux7_gains = [0.3] * 18 + [0.6] * 6
+_ux7_g = _ux7_attrs(_ux7_status({**DATA, "internal_gains_profile": _ux7_gains}))
+R.check(
+    "UX-7: the internal-gains profile is published per hour, in kW, as the learner holds it",
+    _ux7_g.get("internal_gains_kw") == _ux7_gains
+    and _ux7_a.get("internal_gains_kw") is None,
+    f"{_ux7_g.get('internal_gains_kw')!r}",
+)
+_ux7_none = _ux7_status(None)
+R.check(
+    "UX-7: before the first update the model status is unknown and does not raise",
+    _ux7_none is not None
+    and getattr(_ux7_none, "native_value", "x") is None
+    and "__raised__" not in _ux7_attrs(_ux7_none),
+    f"{_ux7_attrs(_ux7_none)!r}",
+)
+
+
+def _ux7_pred(value):
+    if _ux7_pred_cls is None:
+        return None
+    coord = FakeCoordinator(DATA, _predicted_next_room_temp=lambda: value)
+    return _ux7_pred_cls(coord, ENTRY)
+
+
+_ux7_p = _ux7_pred(21.437)
+_ux7_p_off = _ux7_pred(None)
+R.check(
+    "UX-7: the predicted indoor temperature is the plan's next-interval prediction, recorded",
+    _ux7_p is not None
+    and _ux7_p.available
+    and _ux7_p.native_value == 21.44
+    and getattr(_ux7_pred_cls, "_attr_state_class", None)
+    == SensorStateClass.MEASUREMENT
+    and not getattr(_ux7_pred_cls, "_unrecorded_attributes", frozenset()),
+    f"value={getattr(_ux7_p, 'native_value', None)!r}",
+)
+R.check(
+    "UX-7: and unavailable while no plan governs the room, rather than a stale number",
+    _ux7_p_off is not None and not _ux7_p_off.available,
+    f"available={getattr(_ux7_p_off, 'available', None)!r}",
 )
 
 # --- unknown-versus-broken --------------------------------------------------
@@ -10897,6 +11028,10 @@ _expected_diagnostic = {
     # #1936: the drift alarm's restart points. Enabled — an ordinary install
     # always has a heat-loss scale — and Diagnostic, like the other advisors.
     "model_restart_advisor",
+    # R9-UX-7 (#1795): what the learners believe, and the plan's prediction
+    # for the next interval -- the model's own machinery, like the accuracy.
+    "model_status",
+    "indoor_temp_predicted",
 }
 _actually_diagnostic = {
     s._key
@@ -11644,6 +11779,11 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "MoldFloorBreachBinarySensor": frozenset({
         "floor_c", "shortfall_c", "space_blocked"
     }),
+    "ModelStatusSensor": frozenset({
+        "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
+        "internal_gains_kw", "lower_floor", "solar_aperture",
+        "system_identification", "tank_cooling"
+    }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
@@ -11670,6 +11810,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "PowerHeadroomSensor": frozenset({
         "baseline_source", "headroom_kw", "horizon_headroom_kw", "limit_kw"
     }),
+    "PredictedIndoorTempSensor": frozenset(),
     "PredictedSavingsSensor": frozenset({"stat_kind"}),
     "PredictionAccuracySensor": frozenset({
         "last_diagnosis", "temperature_bias", "temperature_mae", "trust",
@@ -12585,8 +12726,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "the sensor platform builds 60 entities, the model restart advisor included",
-    len(sensors) == 60,
+    "the sensor platform builds 62 entities, the model status and the predicted indoor temperature included",
+    len(sensors) == 62,
     str(len(sensors)),
 )
 R.check(
@@ -22172,6 +22313,104 @@ R.check(
         for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
     ),
     repr({k: _diag_duck_snap[k] for k in ("solve_failures", "cop_scale")}),
+)
+
+
+# --- R9-UX-7 (#1795): the bundle a bug report needs, without the household ---
+#
+# The download adds the last diagnosis, the input states, a plan summary and
+# the published learning view. The away presence and holiday calendar ids
+# name people and a family calendar, so they leave the instance redacted
+# wherever they sit: in the entry, or echoed in an input problem. The
+# controls: an ordinary sensor id survives in the same lists, and the plan
+# summary carries no per-step series.
+_UX7_PERSON = "person.anna_lindqvist"
+_UX7_RETURN = "person.erik_lindqvist"
+_UX7_CAL = "calendar.familjen_lindqvist"
+_ux7_data = {
+    **_DIAG_DATA,
+    const.CONF_AWAY_PRESENCE_ENTITY: _UX7_PERSON,
+    const.CONF_HOLIDAY_CALENDAR_ENTITY: _UX7_CAL,
+}
+_ux7_options = {**_DIAG_OPTIONS, const.CONF_AWAY_RETURN_ENTITY: _UX7_RETURN}
+_ux7_entry = FakeEntry(data=dict(_ux7_data), options=dict(_ux7_options))
+_ux7_entry.runtime_data = integration.HeatPumpOptimizerCoordinator(
+    FakeHass(), FakeEntry(data=dict(_ux7_data), options=dict(_ux7_options))
+)
+_UX7_STEP = {"t": "2026-02-01T10:00:00+01:00", "room": 21.2, "space_power": 1.5}
+_ux7_entry.runtime_data.data = {
+    **DATA,
+    "input_problems": [
+        *DATA["input_problems"],
+        {"input": "away_presence_entity", "entity_id": _UX7_PERSON,
+         "problem": "unavailable", "age_minutes": None, "max_age_minutes": None},
+    ],
+    "problem_inputs": ["sensor.indoor", _UX7_PERSON],
+    "space_plan": {
+        "forecast": [dict(_UX7_STEP) for _ in range(4)],
+        "slots": [{"start": "2026-02-01T10:00:00+01:00", "kwh": 1.5}],
+        "total_energy_kwh": 6.2,
+        "total_cost": 8.4,
+        "active_now": False,
+    },
+}
+_ux7_diag = asyncio.run(
+    _diag_mod.async_get_config_entry_diagnostics(FakeHass(), _ux7_entry)
+)
+_ux7_blob = _json.dumps(_ux7_diag, default=str)
+_ux7_space = _diag_at(_ux7_diag, "plan", "space") or {}
+R.check(
+    "UX-7: the bundle carries the last diagnosis, the input states and the learning view",
+    _diag_at(_ux7_diag, "last_diagnosis") == DATA["insight"]["last_diagnosis"]
+    and _diag_at(_ux7_diag, "inputs", "input_health") == DATA["input_health"]
+    and _diag_at(_ux7_diag, "inputs", "input_ages_minutes")
+    == DATA["input_ages_minutes"]
+    and _diag_at(_ux7_diag, "inputs", "learner_freeze_reason")
+    == DATA["learner_freeze_reason"]
+    and _diag_at(_ux7_diag, "learning", "house_heat_loss_effective") == 0.142
+    and _diag_at(_ux7_diag, "learning", "solar_aperture")
+    == DATA["solar_aperture"],
+    f"top-level keys {sorted(_ux7_diag)!r}",
+)
+R.check(
+    "UX-7: the plan summary counts steps and slots and carries the totals, not the series",
+    _ux7_space.get("steps") == 4
+    and _ux7_space.get("slots") == 1
+    and _ux7_space.get("total_energy_kwh") == 6.2
+    and _ux7_space.get("total_cost") == 8.4
+    and _ux7_space.get("active_now") is False
+    and "forecast" not in _ux7_space
+    and _diag_at(_ux7_diag, "plan", "mode") == "auto",
+    f"plan={_diag_at(_ux7_diag, 'plan')!r}",
+)
+_ux7_leaks = [i for i in (_UX7_PERSON, _UX7_RETURN, _UX7_CAL) if i in _ux7_blob]
+R.check(
+    "UX-7: no person or calendar id leaves the instance, from the entry or an input problem",
+    not _ux7_leaks
+    and _diag_at(_ux7_diag, "config", const.CONF_AWAY_PRESENCE_ENTITY) == _HA_REDACTED
+    and _diag_at(_ux7_diag, "config", const.CONF_HOLIDAY_CALENDAR_ENTITY)
+    == _HA_REDACTED,
+    f"leaked: {_ux7_leaks!r}",
+)
+R.check(
+    "UX-7: the over-redaction control -- an ordinary sensor id survives beside them",
+    _diag_at(_ux7_diag, "inputs", "problem_inputs", 0) == "sensor.indoor"
+    and _diag_at(_ux7_diag, "inputs", "input_problems", 0, "entity_id")
+    == "sensor.indoor"
+    and _diag_at(_ux7_diag, "config", "indoor_temp_entity")
+    == _CRED_DATA["indoor_temp_entity"],
+    f"inputs={_diag_at(_ux7_diag, 'inputs', 'problem_inputs')!r}",
+)
+_ux7_bare = asyncio.run(
+    _diag_mod.async_get_config_entry_diagnostics(FakeHass(), _diag_entry)
+)
+R.check(
+    "UX-7: a coordinator that has not published yet still downloads, with empty sections",
+    _diag_at(_ux7_bare, "last_diagnosis") is None
+    and _diag_at(_ux7_bare, "inputs") == {}
+    and _diag_at(_ux7_bare, "learning") == {}
+    and isinstance(_diag_at(_ux7_bare, "plan"), dict),
+    f"{ {k: _ux7_bare.get(k) for k in ('last_diagnosis', 'inputs', 'learning', 'plan')}!r}",
 )
 
 
