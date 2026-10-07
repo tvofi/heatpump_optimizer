@@ -1891,7 +1891,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         if _is_real_file(name)
         and name not in table.get("inert_reads", {}).get(script, ()))
     if missed:
-        print("INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the")
+        print(f"{_INERT_READS_HEAD} a recording opened an INERT file the")
         print("  committed `inert_reads` does not list for it; the merge fast path")
         print("  would treat a change to it as unread (R9-F10.9d). Re-derive:")
         print("  ./tests/derive_closures.sh --single <script>")
@@ -2034,10 +2034,10 @@ _AUTOFIX_STATUS_REMEDY = {
         "Fix the failing script first; the closures job re-records on the next\n"
         "push and this repair then happens on its own.\n",
     "skip-manual-repair-owed":
-        "The closures job's check failed, and not on UNDER-SCOPED, the only\n"
-        "failure this job repairs. Repair it by hand from the closures log:\n"
-        "INERT READS: --single the script it names, commit tests/closures.json;\n"
-        "PHANTOM: python3 tests/closure.py prune.\n",
+        "The closures job's check failed, and not on UNDER-SCOPED or INERT\n"
+        "READS, the only failures this job repairs. Repair it by hand from the\n"
+        "closures log: PHANTOM: python3 tests/closure.py prune; NOT A FILE or an\n"
+        "INERT pair: fix the recording or the INERT list it contradicts.\n",
     "skip-classifier-disagrees":
         "The closures job (this PR's tests/closure.py) printed UNDER-SCOPED;\n"
         "the base's copy this job is pinned to stops before that comparison\n"
@@ -2099,8 +2099,28 @@ def _autofix_report_cmd(job: str, status: str) -> int:
     return rc
 
 
+_INERT_READS_HEAD = "INERT READS UNDER-APPROXIMATED:"
+
+
+def stale_scripts(check_output: str) -> set[str]:
+    """The scripts `check` named as under-approximated: each UNDER-SCOPED
+    line's, and each entry under the INERT READS heading."""
+    names = set(re.findall(r"^UNDER-SCOPED: (\S+)", check_output, re.M))
+    inert = False
+    for line in check_output.splitlines():
+        if line.startswith(_INERT_READS_HEAD):
+            inert = True
+        elif inert and (m := re.match(r"^    (\S+): ", line)):
+            names.add(m.group(1))
+        elif inert and not line.startswith("  "):
+            inert = False
+    return names
+
+
 def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
-    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
+    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED
+    or INERT READS UNDER-APPROXIMATED -- the two failures a merge of the
+    Linux recordings repairs (#1886 for the second; R9-CI-1 made it the bot's).
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
     skip-classifier-disagrees, skip-failed-recording, skip-manual-repair-owed,
@@ -2151,7 +2171,8 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-merge-failed"
     if rc == 0:
         return "skip-clean"
-    if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
+    said = out.getvalue() + err.getvalue()
+    if "UNDER-SCOPED" not in said and _INERT_READS_HEAD not in said:
         # This job runs the BASE's closure.py (D11-s1-03); the closures job
         # ran the PR's and tee'd it to check.txt. Quiet is true only where
         # that check PASSED (its success line). UNDER-SCOPED there is #1846;
@@ -2175,8 +2196,28 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     # itself be an artefact of the failure (an error path reads files the
     # clean path does not), which is why the remedy is "fix the script", not
     # "re-derive it".
-    if any(r.get("rc", 0) != 0 for r in records):
+    #
+    # Only a failed recording OF a stale script refuses (R9-CI-1): one of an
+    # unrelated script -- stress.py on a timing verdict, a consumer whose
+    # producer the scoped lane recorded late (#1146) -- truncates only its own
+    # trace, which is left out of the merge below, so it cannot under-scope
+    # the closure being repaired. A driven child counts as its driver, whose
+    # closure it folds into.
+    failed = {r.get("script") for r in records if r.get("rc", 0) != 0}
+    failed |= {f"tests/{DRIVEN_BY_OTHERS[Path(s).name]}" for s in set(failed)
+               if s and Path(s).name in DRIVEN_BY_OTHERS}
+    if failed & stale_scripts(said):
         return "skip-failed-recording"
+    if failed:
+        print(f"closures-autofix: left out {len(failed)} failed recording(s) of "
+              f"script(s) the check did not name: {', '.join(sorted(failed))}",
+              file=sys.stderr)
+        good = in_dir / "recorded-cleanly"
+        good.mkdir(exist_ok=True)
+        for i, r in enumerate(records):
+            if r.get("rc", 0) == 0:
+                (good / f"{i:04d}.json").write_text(json.dumps(r))
+        in_dir = good
 
     mout, merr = io.StringIO(), io.StringIO()
     try:
