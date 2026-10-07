@@ -3066,7 +3066,7 @@
         "origin/handoff/r9-rc2-user-state-durable:tools/audit/handoff/r9-rc2-user-state-durable.md",
         "https://github.com/tvofi/heatpump_optimizer/pull/1641"
       ],
-      "in_tree_home": "tools/audit/rca/R9-RC2-bug5-reboot.md"
+      "in_tree_home": "dev/audit/rca/R9-RC2-bug5-reboot.md"
     },
     "R9-1638-clobbered-store": {
       "class": "N-restart",
@@ -3104,7 +3104,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p2.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1644"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P2.md"
+      "in_tree_home": "dev/audit/rca/R9-P2.md"
     },
     "R9-I5": {
       "class": "I5",
@@ -3123,7 +3123,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i5.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1645"
       ],
-      "in_tree_home": "tools/audit/rca/R9-I5.md"
+      "in_tree_home": "dev/audit/rca/R9-I5.md"
     },
     "R9-I1": {
       "class": "I1",
@@ -3142,7 +3142,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i1.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1646"
       ],
-      "in_tree_home": "tools/audit/rca/R9-I1.md"
+      "in_tree_home": "dev/audit/rca/R9-I1.md"
     },
     "R9-P1": {
       "class": "P1",
@@ -3161,7 +3161,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p1.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1647"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P1.md"
+      "in_tree_home": "dev/audit/rca/R9-P1.md"
     },
     "R9-I3": {
       "class": "I3",
@@ -3181,7 +3181,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i3.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1648"
       ],
-      "in_tree_home": "tools/audit/rca/R9-I3.md"
+      "in_tree_home": "dev/audit/rca/R9-I3.md"
     },
     "R9-P11": {
       "class": "P11",
@@ -3200,7 +3200,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p11.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1649"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P11.md"
+      "in_tree_home": "dev/audit/rca/R9-P11.md"
     },
     "R9-I4": {
       "class": "I4",
@@ -3220,7 +3220,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/i4.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1650"
       ],
-      "in_tree_home": "tools/audit/rca/R9-I4.md"
+      "in_tree_home": "dev/audit/rca/R9-I4.md"
     },
     "R9-P6": {
       "class": "P6",
@@ -3239,7 +3239,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p6.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1651"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P6.md"
+      "in_tree_home": "dev/audit/rca/R9-P6.md"
     },
     "R9-P9": {
       "class": "P9",
@@ -3258,7 +3258,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p9.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1652"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P9.md"
+      "in_tree_home": "dev/audit/rca/R9-P9.md"
     },
     "R9-N-solve-recompute": {
       "class": "N-solve-recompute",
@@ -3277,7 +3277,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/avoidable-interpreter-bound-recomputation.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1653"
       ],
-      "in_tree_home": "tools/audit/rca/R9-N-solve-recompute.md"
+      "in_tree_home": "dev/audit/rca/R9-N-solve-recompute.md"
     },
     "R9-P3": {
       "class": "P3",
@@ -3296,7 +3296,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p3.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1654"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P3.md"
+      "in_tree_home": "dev/audit/rca/R9-P3.md"
     },
     "R9-P5": {
       "class": "P5",
@@ -3315,7 +3315,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/p5.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1655"
       ],
-      "in_tree_home": "tools/audit/rca/R9-P5.md"
+      "in_tree_home": "dev/audit/rca/R9-P5.md"
     },
     "R9-N-cpu-gate-blind": {
       "class": "I1",
@@ -3334,7 +3334,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/cpu-gate-blind.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1656"
       ],
-      "in_tree_home": "tools/audit/rca/R9-N-cpu-gate-blind.md"
+      "in_tree_home": "dev/audit/rca/R9-N-cpu-gate-blind.md"
     },
     "R9-N-future-instant": {
       "class": "N-future-instant",
@@ -3353,7 +3353,7 @@
         "origin/handoff/audit-r9-issues@788de96d:tools/audit/round9/issues/persisted-future-instant-trusted-without-bound.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1660"
       ],
-      "in_tree_home": "tools/audit/rca/R9-N-future-instant.md"
+      "in_tree_home": "dev/audit/rca/R9-N-future-instant.md"
     },
     "R9-RCA-1736": {
       "class": "N-shared-config",
@@ -3370,7 +3370,7 @@
         "origin/handoff/r9-eg-b0:handoff/round9/state/alt/RCA-1736.md",
         "https://github.com/tvofi/heatpump_optimizer/issues/1736#issuecomment-5877263448"
       ],
-      "in_tree_home": "tools/audit/rca/R9-RCA-1736.md"
+      "in_tree_home": "dev/audit/rca/R9-RCA-1736.md"
     },
     "R9-RCA-1869": {
       "class": "P11",
@@ -3386,7 +3386,7 @@
       "doc": [
         "https://github.com/tvofi/heatpump_optimizer/pull/1869"
       ],
-      "in_tree_home": "tools/audit/rca/R9-RCA-1869.md"
+      "in_tree_home": "dev/audit/rca/R9-RCA-1869.md"
     },
     "R9-1728-stamp-invariant": {
       "class": null,
@@ -3460,7 +3460,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P7": {
       "class": "P7",
@@ -3476,7 +3476,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P8": {
       "class": "P8",
@@ -3492,7 +3492,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-1.md"
     },
     "BULK-1-P10": {
       "class": "P10",
@@ -3508,7 +3508,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-1.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-1.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-1.md"
     },
     "BULK-2-I2": {
       "class": "I2",
@@ -3524,7 +3524,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-2.md"
     },
     "BULK-2-N-structure-blind": {
       "class": "N-structure-blind",
@@ -3540,7 +3540,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-2.md"
     },
     "BULK-2-R-register": {
       "class": null,
@@ -3556,7 +3556,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-2.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-2.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-2.md"
     },
     "BULK-3-1721": {
       "class": "P11",
@@ -3572,7 +3572,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-1545": {
       "class": "I5",
@@ -3588,7 +3588,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-1070": {
       "class": null,
@@ -3604,7 +3604,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
     },
     "BULK-3-v660-freeze": {
       "class": "P10",
@@ -3620,7 +3620,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
     },
     "BULK-4-N-name-sort": {
       "class": "N-name-sort",
@@ -3636,7 +3636,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-4.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-4.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-4.md"
     },
     "BULK-3-1041-rerun": {
       "class": "N-silent-zero",
@@ -3652,7 +3652,7 @@
       "doc": [
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
-      "in_tree_home": "tools/audit/rca/RCA-BULK-3.md"
+      "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
     }
   }
 }

@@ -467,6 +467,15 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          # The base driver names '.claude/workflows/policy_lint.mjs'. A checkout
+          # that no longer has the program there fails every arm before it
+          # measures. This pull request's driver resolves the file the checkout
+          # has; the programs it runs stay the restored copies. Once the base
+          # driver resolves the file itself, the grep misses and the pin stands.
+          if ! test -f .claude/workflows/policy_lint.mjs \
+             && grep -F -q "'.claude/workflows/policy_lint.mjs'" tools/policy/policy_lint_envmatrix.mjs; then
+            git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+          fi
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
           git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
@@ -586,7 +595,7 @@ jobs:
 
       # Class R-register (round 9, #1759): every in-tree judge survivor sits in
       # exactly one class, every class that met an adopted trigger carries a
-      # barrier or an rca document under tools/audit/rca, and the counts the
+      # barrier or an rca document under dev/audit/rca, and the counts the
       # ledger carries are the ones its instances derive. The checker is the
       # pull request's own copy, not a pinned one: a pinned grader must be
       # declared in field_coverage.mjs, which is itself pinned, so the pull
