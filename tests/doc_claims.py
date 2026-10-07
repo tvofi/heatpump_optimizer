@@ -2351,8 +2351,8 @@ def check_docs_subpages() -> None:
             "; ".join(b["fails"][:4]) + (f" (+{len(b['fails']) - 4})" if len(b["fails"]) > 4 else ""))
     # the README row set is derived, so a new row is built and a missing one fails; the product page is not one
     rows = set(re.findall(r"^\|\s*\[[^\]]+\]\(([^)#]+\.md)\)", _site_sections(README).get("documentation", ""), flags=re.M))
-    missing = sorted((rows | {"README.md"}) - set(b["pages"]) - {"docs/backlog.md"})
-    R.check("every README Documentation row but the archive is a built page", not missing, ", ".join(missing))
+    missing = sorted((rows | {"README.md"}) - set(b["pages"]))
+    R.check("every README Documentation row is a built page", not missing, ", ".join(missing))
     bad = [f"{n}: {m}" for n, h in sorted(b["html"].items()) for _, m in subpage_findings(h)]
     R.check("no built page requests anything from a third party", bool(b["html"]) and not bad,
             "; ".join(bad[:4]) + (f" (+{len(bad) - 4})" if len(bad) > 4 else "") or "no page built")
@@ -2423,9 +2423,9 @@ def check_docs_build_controls() -> None:
 
     def corpus(readme_doc: str | None = "# A\n\nText [self](#a).\n", git: bool = True, readme: bool = True) -> pathlib.Path:
         d = pathlib.Path(tempfile.mkdtemp())
-        files = {"docs/site/docs.css": "", "docs/a.md": readme_doc or "", "docs/backlog.md": "# Archive\n"}
+        files = {"docs/site/docs.css": "", "docs/a.md": readme_doc or ""}
         if readme:
-            files["README.md"] = "# T\n\n## Documentation\n\n| Document | What is in it |\n|---|---|\n| [docs/a.md](docs/a.md) | The a page |\n| [docs/backlog.md](docs/backlog.md) | The archive |\n"
+            files["README.md"] = "# T\n\n## Documentation\n\n| Document | What is in it |\n|---|---|\n| [docs/a.md](docs/a.md) | The a page |\n"
         for name, text in files.items():
             (d / name).parent.mkdir(parents=True, exist_ok=True)
             (d / name).write_text(text)
@@ -2448,7 +2448,9 @@ def check_docs_build_controls() -> None:
     (dup / "docs" / "x").mkdir()
     (dup / "docs" / "x" / "a.md").write_text("# A2\n\nNo anchors here.\n")
     (dup / "docs" / "a.md").write_text("# A\n\nNo anchors here.\n")
-    readme = (dup / "README.md").read_text().replace("| [docs/backlog.md]", "| [docs/x/a.md](docs/x/a.md) | A second a |\n| [docs/backlog.md]")
+    readme = (dup / "README.md").read_text().replace(
+        "| [docs/a.md](docs/a.md) | The a page |",
+        "| [docs/a.md](docs/a.md) | The a page |\n| [docs/x/a.md](docs/x/a.md) | A second a |")
     (dup / "README.md").write_text(readme)
     subprocess.run(["git", "add", "-A"], cwd=dup, check=True)
     dupb = docs_build(dup)

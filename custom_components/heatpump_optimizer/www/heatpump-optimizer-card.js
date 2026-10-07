@@ -12793,7 +12793,7 @@ function parseConfig(config) {
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
-// This class is being taken apart (docs/plan-card-decomposition.md): each
+// This class is being taken apart (dev/archive/plans/plan-card-decomposition.md): each
 // feature -- the plan source, the chart, the zoom window, the slot lanes,
 // the what-if panel, the setup page, the dialog -- leaves as a collaborator
 // that is handed THIS object and may use only what is listed here:
@@ -12835,7 +12835,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // The collaborators (dev/archive/plans/plan-card-decomposition.md), in dependency
     // order. Each is handed this element and uses only the host contract.
     this.plan = new PlanSource(this);
     this.view = new ViewWindow(this);

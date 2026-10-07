@@ -4805,7 +4805,7 @@ R.check(
 # snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
 # being unknown; `python3 tests/ha_floor.py record` re-records it, and the
 # nightly floor container re-asks every answer of Home Assistant itself.
-# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+# Root cause and cost test: dev/audit/rca/R9-RCA-1869.md.
 R.section("P11: every Home Assistant name production reaches exists at the floor")
 
 import ha_floor as _p11  # noqa: E402
@@ -19817,8 +19817,8 @@ R.check(
 # INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
 # 62799e4 -- the gap is the skip, not a different baseline SHA.
 _493_FILES = [
-    ".claude/workflows/wave-4-groups.json",
-    ".claude/workflows/wave-5-groups.json",
+    "dev/archive/rosters/wave-4-groups.json",
+    "dev/archive/rosters/wave-5-groups.json",
     "docs/plan-2026-09-open-issues.md",
 ]
 _493_CARD = {
@@ -19979,8 +19979,8 @@ _h493_card = (
 _h493_root, _h493_base = _hygiene_git(
     _h493_card,
     {
-        ".claude/workflows/wave-4-groups.json": "{}\n",
-        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "dev/archive/rosters/wave-4-groups.json": "{}\n",
+        "dev/archive/rosters/wave-5-groups.json": "{}\n",
         "docs/plan-2026-09-open-issues.md": "# plan\n",
     },
     py_touch=False,
@@ -21015,6 +21015,14 @@ R.check(
     and not [f for f in _tools_outside_audit if _closure.is_inert(f)],
     f"{_tools_outside_audit}; inert among them "
     f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
+)
+_pr_note = (Path(_closure.ROOT) / "tools/pr/README.md").read_text()
+R.check(
+    "the pull-request note names the gate lease and the seat instruments",
+    ".claude/rules/gate-scoping.md" in _pr_note
+    and "tools/audit/seat/INSTRUMENTS.md" in _pr_note,
+    "tools/pr/README.md is a tools/ file outside tools/audit/, so the "
+    "narrowing above classifies it by a read rather than by INERT",
 )
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks

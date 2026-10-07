@@ -1328,4 +1328,4 @@ does raising your minimum temperature. Both work.
 - [dashboard-card.md](dashboard-card.md) — the card, its options, the plan
   editor and the Setup page.
 - [ecl110.md](ecl110.md) — the optional ECL110 MQTT control path.
-- [backlog.md](backlog.md) — the delivered archive and the open findings.
+- [the archive](../dev/archive/backlog.md) — the delivered archive and the open findings.
