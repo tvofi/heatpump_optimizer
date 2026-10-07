@@ -1,125 +1,130 @@
-R9-RO-10 (lane RO, roster group R9-RO-10, no tracking issue): re-points the references to retired paths whose move has landed where something executes or follows them, and adds a guard to `tests/layout.py`. The guard refuses each pull request's own additions: a stale citation, an unswept move, or a misplaced file. It folds in the RCA-2004 docstring carry from R9-RO-9.
+R9-RO-10 (lane RO, roster group R9-RO-10, no tracking issue). This PR does two things:
+- It re-points references to retired paths whose move has landed, where something executes or follows them. It folds in the RCA-2004 docstring carry from R9-RO-9.
+- It adds a guard to `tests/layout.py` that refuses each pull request's own new stale citations, its unswept moves and its misplaced files.
 
-**Must merge after #2014 and #2015.** If this guard lands first, it refuses both of them. #2014 adds fixture lines that build the old layout. #2015 lands moves while live citations of the moved paths remain. Each of those would need re-pointing or a `layout:old` marker.
+Round 2 answers the round-1 block at `43883893`.
 
-**Executed defects at main, each re-pointed here:**
-- Rule `paths:` globs: 14 matched no tracked file, so the harness loaded those rules for no read. 12 are re-pointed. `ratchet-budgets.md` gains `dev/audit/README.md` beside its canon-spelt `tools/audit/README.md`, because `policy_lint`'s rule-binding check binds canon names. The 14th glob is in `defect-root-cause.md`, which #2014 edits.
-- `fix-review.md`'s pre-step 1 diffed `tools/audit/briefs/`. That directory is empty since RO-5, so the diff always came back empty and every review read itself as current.
-- The wave scripts' agent prompts sent seats to read the retired brief paths.
-- The stop hook and `push.sh` printed commands at retired paths.
-- `app_approve.sh` posted a review body naming its retired path.
+**The roster carry (closure.py).** `check()`'s PHANTOM refusal and `prune()` now read `inert_reads` as well as `closures`. `prune` also drops a key that is left with no reads, which is the shape `_fold_inert_reads` writes.
 
-**The guard (part two)** reads only the diff from the merge base, which is `GOLDEN_REF`, or the first parent on a push to `main`. It refuses three things:
-- **new-reference:** a changed file gains a line citing a landed retired path, or a directory those moves emptied.
-- **unswept:** this diff lands a move, and a live line still cites the moved path.
-- **placement:** an added file sits outside every `tests/layout.json` category (unless it is under a planned move), or at a path whose move had landed at the base.
+**The guard's exemptions are keyed to one path.** A line is not a citation of an old path when it does one of three things:
+- names that entry's new path;
+- passes that old path as the literal argument of `locate(` or `canon(`;
+- carries `layout:old=<that old path>`.
 
-A line is exempt when it also names the entry's new path, resolves it through `locate(`/`canon(`, or carries the marker `layout:old`. That marker is an allow-list keyed on one line, so a reviewer sees each use in the diff (`fixer.md` step 14). The guard skips the `historical` prefixes plus `dev/governance/config/` and `dev/audit/rca/`: the first is canon-keyed on purpose until RO-9, and the second holds RCA records, whose subject is often the old path. `tools/audit/seat/moved_paths.py` now calls the same `landed()` function, so the seat enumeration and the gate cannot disagree.
+None of the three exempts any other path on the same line. A bare `layout:old`, a `locate(` of some other path, and prose that merely names the marker are all refused.
 
-**Placement limit.** A live roster at `roster_lib.py`'s `ROSTER_PATH` matches no layout category, so adding one on `main` would be refused.
+**The finder wall has one definition.** `prepare_baseline.sh --strip` now applies `finder_wall` before the earlier-round strip. The two `audit-find.js` prompts call the script instead of listing globs. Their hand-written list stopped at `docs/`, but the live register now lives at `dev/programme/register/`.
 
-**Alternatives considered:**
-- A recorded allow-list of today's citations. It would be keyed on (file, path), so a new line in an already-listed file would pass.
-- An absolute zero on the whole tree. 2226 live lines cite landed paths today, and most of them are records, fixtures or dual-path fallbacks that RO-9 removes.
+**Merged with main at `09ba95d0`** (#2015). This branch edits five lines that cite the audit config paths #2015 landed, and those lines are re-pointed.
+- `check-wave-script.mjs` pins the register writer's prompt by its `rotation.json` literal.
+- policy-docs runs the base copy of that checker against this branch's `audit-verify.js`.
+- So the prompt names the new path and keeps the old one in a parenthetical. Both checkers print 170 passed, and R9-RO-9 drops the parenthetical.
+
+**Rule globs.**
+- `tools/audit/briefs/**` used to cover 8 role contracts and 15 dimension briefs. The round-1 re-point to `dev/governance/roles/**` dropped the dimension briefs.
+- `brief-citations`, `finding-propagation`, `writing-for-agents` and `defect-root-cause` now name `dev/governance/**` instead. That is one glob, with no added line or token. The cost is that these rules also load on edits to rules, decisions and config, and that over-breadth is reported, not refused.
+- `defect-root-cause.md` keeps its canon `tools/audit/briefs/**` glob beside the new one. `policy_lint`'s rule-binding check binds the 23 role and dimension files by that canon name, and dropping the glob gave 23 rule-binding ERRORs.
+- The extra line is paid for by cutting step 1's restatement of `fixer.md`.
+- The guard now skips the generated rule copies under `.claude/rules/` and `.cursor/rules/`. `rules_sync --check` ties each copy to its source, and the guard checks the sources.
+
+**Merge order.** #2014 is still open. If #2014 lands after this PR, the guard refuses 2 of its lines. The figure comes from simulating #2014 merged onto this head and running the guard against it. Both lines are fallbacks that build or probe the old layout:
+- `tests/entities.py`: `(d / ".claude/workflows/policy_lint.mjs").unlink()`;
+- `tools/pr/preflight.sh`: `lint="$1/.claude/workflows/policy_lint.mjs"`.
+
+Either #2014 merges first, or each of those lines carries `# layout:old=.claude/workflows/policy_lint.mjs`. #2014 owns `preflight.sh:135`, the `r9_fr3` harness and `friction_issues.mjs`. I name it as their owner and did not edit those files.
+
+**Placement limit.** The live roster at `roster_lib.py`'s `ROSTER_PATH` matches no layout category. A roster added on `main` would be refused.
 
 ## Head
 
-`bcb2a10c5d5f17b826d7efc4fb7c92a82d99c0bd` (merge base `e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf`).
+`f4d102a0ac3b184527f4836dd5312a88fca21657` (merge base `09ba95d08157e40950104d28a34c94dc899d4be1`).
 
 ## Mutation proof
 
-Each mutant was applied to `tests/layout.py` at `6c317939` and restored from git. The command was `python3 tests/layout.py --self-test`:
-- M1, `stale_lines` appends nothing: 5 cases red. They are "a doc gains a citation of a landed path", "a second copy of an old citation", "the retired top-level name itself", "a citation of a directory the moves emptied", and "a move landed, a citation left".
-- M2, the placement predicate set to `False`: 1 red, "a file outside every category".
-- M3, the unswept arm set to `if False`: 1 red, "a move landed, a citation left".
+**Guard predicates.** Each mutant was applied to `tests/layout.py` at the head, then restored, and `python3 tests/layout.py --self-test` was run. The driver is a scratch loop over the seven replacements.
+
+| mutant | cases red |
+|---|---|
+| M1 `stale_lines` appends nothing | 10 |
+| M2 placement predicate `False` | 2 |
+| M3 unswept arm `False` | 1 ("a move landed, a citation left") |
+| M4 placement `!= 1` changed to `== 0` | 1 ("a file in two categories") |
+| M5 emptied-directory dedupe off | 1 ("… counted once") |
+| M6 marker unkeyed (`"layout:old" in line`) | 3: marker names another path, unkeyed marker, prose naming the marker |
+| M7 `locate(`/`canon(` unkeyed | 1 ("a stale command beside a locate of another path") |
+
+**closure.py.** `python3 tests/closure.py selftest` was run after each mutant:
+- The PHANTOM sweep reads `("closures",)` only: 1 red, "check fails on a phantom in the committed inert_reads (R9-RO-10)".
+- `prune` reads `("closures",)` only: 1 red, "prune drops dead inert_reads entries…".
+
+**Finder wall.** Without `finder_wall` in `--strip`, `bash tools/audit/prepare_baseline.sh --wall-self-test` prints `FAIL --strip kept the programme register`. This arm was added in this round.
 
 ## Null control
 
-At the head, `python3 tests/layout.py --guard` prints `layout: GUARD: 0 refusal(s) against e0f0b6fb397b`.
+- `python3 tests/layout.py --guard` at the head prints `layout: GUARD: 0 refusal(s) against 09ba95d08157`.
+- On the real index I planted three things together:
+  - the line "Run `bash tools/audit/prepr.sh` first." in `docs/setup.md`;
+  - the line `bash tools/audit/app_push.sh x  # layout:old` in the same file;
+  - a new file, `misc/p.txt`.
+- With all three staged, the guard printed 3 refusals (2 new-reference, 1 placement), rc=1. With them removed, it printed 0, rc=0.
+- The second planted line passed the round-1 guard.
 
-Perturbation on the real index:
-1. Append "Run `bash tools/audit/prepr.sh` first." to `docs/setup.md`.
-2. Add `misc/planted.txt`.
-3. Stage both. The guard prints 2 refusals, one `new-reference` and one `placement`, rc=1.
-4. Unstage and remove both. It prints 0, rc=0.
+**Simulated finder export.** I ran `git archive origin/main dev docs tests tools` into a temp directory, then `--strip <export> 10` on it:
+- With main's `prepare_baseline.sh`, `register_survives=yes`.
+- With this head's, `register_survives=no`.
+- `docs/setup.md` is kept in both runs.
+- Each run prints `RESULT stripped_earlier_rounds=11 files_removed=1313 files_kept=305`.
 
-The same plant at the merge base gives rc=0 from `python3 tests/layout.py --report`, which is the failing-first state.
+**closure.py null control.** The table without the planted dead path passes `check`. `prune` on a copy of `tests/closures.json` at `09ba95d0` prints `pruned 0 phantom entry(ies)`. It re-sorts the one list #2015 left out of order, so main has no dead `inert_reads` entry to remove.
 
 ## Figures
 
-All figures were measured at head `82e2ab34` unless they name another revision. The two later commits, ending at `bcb2a10c`, change only the policy role's `opens` list and `carry-1922.json`; the guard, `policy_lint` and `brief_lint` were re-run at `bcb2a10c`.
+- `python3 tests/layout.py --stale` reports 873 live lines citing a landed retired path at the head. Head's `layout.py` staged onto `09ba95d0` reports 1052. Both counts exclude the `historical` prefixes and the guard's exempt prefixes.
+- The dead-rule-glob loop prints 2 at the head:
 
-**Live citations.** `python3 tests/layout.py --stale` reports 2226 live lines citing a landed retired path at the head. Head's `layout.py` staged onto the merge base reports 2407. Rule: every line `stale_lines` returns over the index, minus the `historical` prefixes and the guard's exempt prefixes.
+  ```
+  for f in dev/governance/rules/*.md; do awk '/^---/{n++;next} n==1 && /^  - /{gsub(/^  - "|"$/,"");print}' $f | while read g; do [ "$(git ls-files -- ":(glob)$g" | wc -l)" -eq 0 ] && echo "DEAD $f: $g"; done; done
+  ```
 
-**What remains, by class.** At the head, the residue splits as follows:
-- Files #2014 or #2015 own: 1806 lines. #2015 owns 1694 of them and moves 1471 of those into `dev/audit/`. #2014 owns 19, and the remaining 93 are in files both PRs edit.
-- Records: 400 lines, under the plan, register, carries, rosters, handover, archscore corpus and `handoff/`.
-- Fixtures under `tools/policy/fixtures/`: 17 lines.
-- Other: 72 lines. Each is a dual-path fallback split across lines (RO-9's removal), a test fixture building the old tree, a canon-spelt key, narrative about the move, or `docs/architecture.md`'s nested `icon.png` tree row (a census false positive).
-- Census rule: file-prefix classes over the `--stale` set, with `dev/governance/config/` and `dev/audit/rca/` included. The classifier is a scratch probe, so these class counts are unverified.
-
-**Dead rule globs.** This loop prints 14 lines at the merge base and 2 at the head:
-
-```
-for f in dev/governance/rules/*.md; do awk '/^---/{n++;next} n==1 && /^  - /{gsub(/^  - "|"$/,"");print}' $f | while read g; do [ "$(git ls-files -- ":(glob)$g" | wc -l)" -eq 0 ] && echo "DEAD $f: $g"; done; done
-```
-
-The 2 left at the head are `defect-root-cause.md` (#2014's file) and the kept canon `tools/audit/README.md` glob.
-
-**fix-review vacuity.** For the diff from `421c77f9` (the parent of #2005, which edited `dev/governance/roles/`) to `45142cc3`:
-- `git diff 421c77f9...45142cc3 -- tools/audit/briefs/ | wc -l` gives 0.
-- `git diff 421c77f9...45142cc3 -- dev/governance/roles/ | wc -l` gives 135.
-
-**Quoted commands, old spelling against new.**
-- `python3 .claude/workflows/contract_rerun.py --self-test` exits 2; `python3 tools/pr/contract_rerun.py --self-test` exits 0.
-- `node .claude/workflows/rules_sync.mjs --check` exits 1; `node tools/policy/rules_sync.mjs --check` exits 0.
-- `bash tools/audit/prepr.sh --help` exits 127.
-
-**Guard precision.** `python3 tests/layout.py --replay 25 --base origin/main` read 25 first-parent commits at `e0f0b6fb`, each against its own manifest and parent.
-- 4 of the 21 non-move merges are refused, with 28 refusals in all.
-- 15 are true positives: #2005's `nudge.md` told the orchestrator to run `tools/audit/app_push.sh`, `approve_held_runs.sh` and `app_approve.sh`, none of which exist.
-- 3 are placement refusals of `tools/audit/repo_root.{py,mjs,sh}` in RO-7's merge `bcea7488`, a gap in the map. The proposed addition is under Forward-carry.
-- 10 are narrative lines that would need the new path named beside them or a `layout:old` marker. They are 6 in carries 1921/1922, 1 in `tmp_paths.py`, 2 in #2011's comments, and 1 in a `CODEOWNERS` comment at `bcea7488`.
-- The 4 move merges (RO-3 `bab72287`, RO-4 `1fa713f7`, RO-5 `618d014f`, RO-6 `6001b09a`) would have been refused with 45, 371+8+1, 1116+29 and 1033+38 findings. Those are their own unswept citations, which is the class this guard exists for.
-
-**Cost.** `layout.py` is already `run_always` in `tests/run.sh`, so the guard adds 0 scripts to any scope. The marginal wall time was measured with `python3 -c` timing `guard()` and `guard_self_test()` in isolation, at a 1-minute load average of 49 on the seat Mac:
-- `guard()` on this 66-file diff: 2.0 to 3.0 s over 3 runs.
-- The guard self-test, 20 cases in one repo: 5.6 to 5.9 s.
-
-**Budgets.**
-- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
-- `node tools/policy/policy_lint.mjs --budgets`: every per-file cap and aggregate is within cap (plus `_band` where it applies), and no cap moves. The payments are listed in commit `4cf637ca`'s message.
+  Both are kept canon globs: `defect-root-cause.md`'s `tools/audit/briefs/**` and `ratchet-budgets.md`'s `tools/audit/README.md`. `policy_lint` binds by them. Both are carried to R9-RO-9.
+- `python3 tests/layout.py --replay 25 --base origin/main` refuses 4 of the 20 non-move commits in that window (the 5 moves are RO-3, RO-4, RO-5, RO-6 and #2015), with the same 28 refusals as round 1.
+  - 15 are true positives in #2005's `nudge.md`.
+  - 3 are placement refusals of `tools/audit/repo_root.*`, a map gap carried to R9-RO-9.
+  - 10 are narrative lines.
+  - The move merges are refused as unswept. #2015 itself would draw 10 new-reference and 136 unswept refusals.
+- Cost, from `python3 -c` timing over 3 runs at a 1-minute load average of 28:
+  - `guard()` on this diff: 2.3 to 4.7 s.
+  - The guard self-test, 27 cases in one repo: 7.7 to 10.2 s.
+  - Scripts added to any scope: 0, because `layout.py` is already `run_always` in `tests/run.sh`.
+- `node tools/policy/policy_lint.mjs --budgets`: every per-file cap and aggregate is within cap (plus `_band` where it applies), and no cap moves. Payments are in the commit messages (`4cf637ca`, `f4d102a0`).
 - `node tools/policy/policy_lint.mjs` prints `TOTAL: 0 error(s)` and `FIXTURE ok`.
-
-**Other local checks.**
-- `PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python tests/entities.py` prints `ALL 2198 ENTITY CHECKS PASSED` at `4cf637ca`.
-- `node tools/policy/check-wave-script.mjs` prints `170 passed, 0 failed`.
-- `node tools/policy/rules_sync.mjs --check` passes.
-- `python3 tools/audit/seat/moved_paths.py --self-test` reports 9 checks, 0 failed.
-- `bash .claude/hooks/stop-selfcheck.sh --self-test` reports 26 passed.
-
-**Scope.** `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL`, because `.github/workflows/tests.yml` comment lines changed. The heavy scripts are CI's.
+- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python tests/entities.py` prints `ALL 2198 ENTITY CHECKS PASSED`.
+- `node tools/policy/check-wave-script.mjs` prints `170 passed, 0 failed`, and `main`'s copy of the checker on this branch does too.
+- The following report no failures: `python3 tests/closure.py selftest`, `bash tools/audit/prepare_baseline.sh --wall-self-test`, `--strip-self-test`, `node tools/policy/rules_sync.mjs --check`, `bash .claude/hooks/stop-selfcheck.sh --self-test`, and `python3 tools/audit/seat/moved_paths.py --self-test`.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: FULL`, so the heavy scripts are left to CI.
 
 ## Red checks
 
-- delivery-status: no row for this PR. The orchestrator writes it at the merge (`delivery-status-tracking.md`), and a fixer writes none.
-- nightly-status: inherited from main and not touched by this diff. This branch changes no nightly script or input.
-- prepr's policy-corpus pre-flight prints `NOT compared`. That is the `tools/pr/preflight.sh` corpus-filter path defect, which #2014 fixes; it is not refused here.
-- Nothing else has run at this head; CI's check-runs at it are the record.
+- delivery-status: inherited from main's unread rows. The orchestrator writes this PR's row.
+- nightly-status: inherited from main. This branch changes no nightly script or input.
+- budget-raise-gate: round 1's head had a cancelled run beside a successful twin. The cancelled run needs a rerun; it is not a raise.
+- Nothing else has run at this head yet. CI's check-runs at the head are the record.
 
 ## Forward-carry
 
-`dev/programme/carries/carry-1922.json`, R9-RO-9's in-tree destination. Its roster group is on `handoff/audit-r9-fixplan` and is not in this tree. The new first entry says it is newer than R9-RO-5's "not before" on rule globs, and carries three things:
+The destination is `dev/programme/carries/carry-1922.json`, R9-RO-9's in-tree carry file. Its first entry, updated this round, carries:
+- the canon bindings to undo when canon retires:
+  - the `tools/audit/README.md` glob, and the `tools/audit/briefs/**` glob in `defect-root-cause.md`, measured at 23 ERRORs without it;
+  - the citations of `docs/decisions/0010` and `0011`;
+  - the old `fixer.md` entry in `opens`;
+  - `dev/governance/config/` in `GUARD_EXEMPT`;
+- the map additions: `tools/audit/archscore/**` and the loose `tools/audit/*.py` instruments, plus `dev/audit/rca/` moving into `historical`;
+- the guard's rule for RO moves.
 
-1. `policy_lint.mjs` binds the corpus, earned citations and role samples by canon spelling, so re-pointing those breaks the binding. Measured on this branch:
-   - Re-pointing `tools/audit/README.md`'s glob alone gave a `rule-binding` ERROR.
-   - Re-pointing `docs/decisions/0010` and `0011` turned `FIXTURE VACUOUS` (citation-presence) red.
-   - Dropping the old `opens` entry is a budget raise.
-   R9-RO-9 undoes all three in the same change that retires canon.
-2. The map additions for `tests/layout.json`, which #2015 owns: `tools/audit/archscore/**` and `tools/audit/{fastpath_census.py,fold_ledger.py,merge_fastpath.py,repo_root.py,repo_root.mjs,repo_root.sh}` go in the `tools` category, and `dev/audit/rca/` moves from `GUARD_EXEMPT` into `historical`.
-3. The guard refuses an RO move that leaves a live citation of the moved path.
+`node tools/policy/brief_lint.mjs dev/programme/carries/carry-1922.json` prints `TOTAL: 0 error(s)`. The `audit-verify.js` parenthetical is R9-RO-9's to drop once main's checker carries the new literal.
 
-`node tools/policy/brief_lint.mjs dev/programme/carries/carry-1922.json` prints `TOTAL: 0 error(s)`. The guard refused this entry's first draft for citing `docs/decisions/` without its new home.
+The roster carry on R9-RO-10 (inert_reads) is delivered in this PR.
 
 ## Friction
 
@@ -128,11 +133,11 @@ none
 ## Approval
 
 This PR edits policy files:
-- the six rule sources under `dev/governance/rules/` and their generated copies;
+- the rule sources under `dev/governance/rules/` and their generated copies;
 - `dev/governance/roles/{fix-review,fixer,orchestrator,COMMON,nudge}.md`;
 - `dev/governance/dimensions/D11.md`;
-- `dev/governance/config/policy_budgets.json`, where the policy role's `opens` sample gains `dev/governance/roles/fixer.md` (the sample may only grow, so the canon spelling stays) and no cap moves;
+- `dev/governance/config/policy_budgets.json`, where the `opens` sample grows by one entry and no cap moves;
 - `.github/PULL_REQUEST_TEMPLATE.md`;
 - `.claude/skills/steward/SKILL.md`.
 
-Each edit re-points a retired path or pays for one. Under the owner's programme mandate 5951564627, this needs tvofi's approving review at the head before merging.
+It also edits code-owned `tests/closure.py`. Under the owner's programme mandate 5951564627, this needs tvofi's approving review at the head before merging.
