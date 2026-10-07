@@ -1,0 +1,17 @@
+{
+  "_comment": [
+    "Carry to R9-RO-9 (#1922) from R9-RO-5. The round-9 roster is not on main, so this file is the in-tree destination.",
+    "While this and the roster brief disagree, the newer is right."
+  ],
+  "issue": 1922,
+  "stage": "R9-RO-9",
+  "carries": [
+    {
+      "from": "R9-RO-5, the governance lift",
+      "effect": "narrows",
+      "control": "Run, at your merge base, a listing of git ls-files spelled through canon (counts.mjs canonList) and the same listing unspelled, and test the globs tools/audit/briefs/** and dev/governance/roles/** against each. On the R9-RO-5 head the old glob matched the canon spelling and none of the real paths, and the new glob matched the real paths and none of the canon spelling. The null is the other column: a glob that matches the real tree and not the canon list is what rule-binding reports as matching no tracked file, because that check reads the canon list. Re-run the same two columns. When they agree, this constraint is spent.",
+      "remeasure": "Do not trust the column result above. Re-run it at your merge base before editing a rule paths glob. policy-docs restores policy_lint.mjs and brief_lint.mjs from the base, and rule-binding walks the canon spelling.",
+      "brief": "R9-RO-9 drops the old-path lookup. In that same change, and not before, move each rule's paths globs off the canon spelling (tools/audit/briefs, docs/HANDOVER.md, docs/delivery, docs/plan) onto the paths the files have after R9-RO-5. A glob written only at the new path, while canon still spells listings the old way, is reported by rule-binding as matching no tracked file, on the restored grader as well as on the branch. Leaving the globs on the old spelling after canon is removed is the other failure: they then match nothing. The two edits are one edit."
+    }
+  ]
+}
