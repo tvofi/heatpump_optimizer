@@ -1,3 +1,0 @@
-handover_prompt self-test: 13 checks, 2 failed
-FAIL done criteria (got: )
-FAIL every repository path the prompt names exists (missing: docs/delivery/<N>.md) (got: )

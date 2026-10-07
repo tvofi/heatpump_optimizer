@@ -1,8 +1,0 @@
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2012/wt2/tests/entities.py", line 46, in <module>
-    from harness import (
-    ...<9 lines>...
-    )
-  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2012/wt2/tests/harness.py", line 24, in <module>
-    from homeassistant.config_entries import ConfigEntryState
-ModuleNotFoundError: No module named 'homeassistant'
