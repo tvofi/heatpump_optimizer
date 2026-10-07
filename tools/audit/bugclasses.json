@@ -3653,6 +3653,22 @@
         "handoff/audit-r9-alt:handoff/round9/state/alt/rca/RCA-BULK-3.md"
       ],
       "in_tree_home": "dev/audit/rca/RCA-BULK-3.md"
+    },
+    "R9-RCA-2004": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2004 harness friction key at 5 PRs: a parent verdict class over four reviewer obligations; class-open the only child at threshold; the filer itself red on main since #1919",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) key and class-open; (d) moved program paths",
+      "countermeasure": "friction_issues.mjs and preflight.sh find policy_lint.mjs where the tree keeps it, each pinned by a check shown failing first; fixer.md step-8 alignment refused by the cost test; sub-keying recommended to D13",
+      "landed": null,
+      "doc": [
+        "handoff/r9-rca-2004:dev/audit/rca/R9-RCA-2004.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-2004.md"
     }
   }
 }
