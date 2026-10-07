@@ -1,2 +1,0 @@
-  ok       policy corpus -- current with origin/main (2 file(s) authored here, not stale)
-  clean    no refusal (the 'check' lines above are yours to answer)

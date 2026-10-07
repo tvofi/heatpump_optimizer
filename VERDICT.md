@@ -1,31 +1,34 @@
-Fix review: blocked 3d31fc52565e96b08a330ba55b8c0027e2c42a5b harness: class-open tools/audit/harnesses/r9_fr3_family_consumer.mjs:43
+Fix review: blocked 064c5aae08e9c58ff1458978c9d6484aa8527d94 harness: class-open tools/audit/seat/merge_train.py:146,210,237 and .github/workflows/governance.yml:220
 
-bus-nonce: 933bbfca5aa7663fd6e21b00e0aec849
-Reviewer: r9c-rev-2014, round 1, detached worktree at 3d31fc52565e96b08a330ba55b8c0027e2c42a5b (live PR head re-read at posting time: same SHA). Merge base 59b5ac6e4594b42cd5579cca182a743c25f4c48d. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence
+bus-nonce: 44baaaafd257f0edb9f1bd9ce7e68570
+Reviewer: r9c-rev-2014, round 2. Detached worktree at 064c5aae08e9c58ff1458978c9d6484aa8527d94; I re-read the live head at posting time and it is the same SHA. Merge base 17f30f9c. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence/r2
 
-## The block (step 6, open the class)
+## The block (step 6; step 8 on the completeness claim)
 
-The body and dev/audit/rca/R9-RCA-2004.md section 4 name the class "moved program paths executed at the old spelling (d)" and say the search found three executed-and-broken seams (friction_issues.mjs STATS_TOOL, preflight.sh corpus_filter, the env-matrix base driver) plus two frozen round harnesses. The class reaches one more live seam that is neither in the diff nor dispositioned:
+RCA section 4 states the widened rule and then says: "every other executed hit is cleared ... The `git show` / `git cat-file` reads in `prepr.sh` and `governance.yml` name the old path at a pinned base ref, with the new spelling tried second." I implemented that rule myself (widened_rule.py, my own script, not the fixer's). Over 140 retired-old paths absent at HEAD it returns 56 hits not cleared by a new-path, locate() or shim within 4 lines (widened_rule_head.txt). Most are prose, fixtures or the docstrings already carried. Two executed seams are broken and are neither in the diff nor dispositioned:
 
-- `tools/audit/harnesses/r9_fr3_family_consumer.mjs:43` reads `path.join(ROOT, '.claude/workflows/friction_issues.mjs')` and imports a stripped copy of it. That is the R9-FR-3 consumer harness for the file this PR edits. It is not under a frozen `tools/audit/round*/` directory.
-- RESULT fr3_consumer head: rc=1, `ENOENT ... .claude/workflows/friction_issues.mjs` (fr3_consumer_head.txt). The same line is present at the merge base, so this is pre-existing since #1919 and was not introduced by the diff.
-- No gate catches it. tests/closures.json lists it only as an `inert_reads` entry of tests/harness_headers.py, which checks the header and does not run the file.
-- The body's enumeration rule misses it. That rule covers string constants matching `^(export )?const [A-Z_]+ *= *'` and spawn/exec/node/python3 lines; this line is a `readFileSync` + dynamic import inside a `const src =` expression. I re-ran the rule over the 140 tests/layout.json retired-old paths absent at HEAD, and it tags this line NEITHER (body_rule_enumeration.txt). The rule is narrower than the class it claims to enumerate, so the RCA's "executed and broken: three" cannot be re-derived as complete (step 8).
-- The forward-carry does not cover it. The R9-RO-8 roster entry on handoff/audit-r9-fixplan carries (a) since-null and (b) old-path launches "for every unit this group moves". RO-8 is the audit-evidence move, and friction_issues.mjs was moved by RO-6 (#1919).
+1. `tools/audit/seat/merge_train.py:146` and `:210` spawn `bash tools/audit/app_approve.sh`, and `:237` spawns `bash tools/audit/preflight.sh`. All three run with cwd=ROOT (repo root, parents[3]). tests/layout.json retires both paths (to tools/pr/app_approve.sh and tools/pr/preflight.sh, since: null). Running them gives `No such file or directory`, rc=127 (merge_train_spawns.txt). Consequences: the merge train's approve, carry and preflight gates cannot pass, and the preflight gate's output is a bash error. The same lines are present at the merge base. This seam sits next to the PR's own preflight.sh fix: it is the same moved program, spawned at the old spelling.
+2. `.github/workflows/governance.yml:220`: `git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"`. No new spelling is tried second, which contradicts section 4's sentence. Every base after #1919 therefore takes the "skipped" branch, and the field-coverage check is dark on every PR, push and schedule. CI shows it: main governance run 37626923348 (2026-10-07T13:14Z) prints `field coverage: the base does not carry it, so there is no pinned copy to run; skipped` (field_coverage_ci.txt).
 
-Remedy (any one): repoint line 43 to the sibling path the way this diff does for STATS_TOOL (one line, beside the file it reads); or disposition it by name in the body and the RCA section 4 with an owner; and widen the stated rule to cover read/import of an old path, or say why it does not.
+Remedy: repoint the three merge_train spawns to tools/pr/; give line 220 the tools/policy/ fallback at the pinned ref. Or disposition each by name with an owner. Then correct section 4's "every other executed hit is cleared" sentence and the count "Four broken seams". This is the second class-open in the same class; fixer.md's three-round rule applies from the next round.
 
-## Everything else checked, and it passes
+## The delta items asked about
 
-- Step 1 mutation, friction_issues.mjs: STATS_TOOL_PATH resolved back to `.claude/workflows/policy_lint.mjs` gives self-test rc=1 with `FAIL the stats tool this lane spawns and quotes is a file`, `100 passed, 1 failed`. Restored gives rc=0, `101 passed, 0 failed` (selftest_mut.txt, selftest_head.txt).
-- Step 1 mutation, preflight.sh: corpus_filter's lint path reverted to `.claude/workflows/` gives `check policy corpus -- NOT compared`. Head gives `ok policy corpus -- current with origin/main` (preflight_mut.txt, preflight_head.txt). The tests/entities.py arm 5 was not run, because load was about 250 against the 80 gate; I cite CI's run.
-- Step 2, the finder's harness (#2004: policy_lint --stats plus the filer dry-run), same stats file at both ends:
-  - stats: `harness` 6 / 8 over 59 merged PRs. The body says 5 / 7 over 57; the window gained 2 merges since, so this is not a contradiction (stats.txt).
-  - base filer (59b5ac6e's friction_issues.mjs): rc=1, `refusing: .claude/workflows/policy_lint.mjs --normalize-friction-keys did not answer` (dryrun_base.txt).
-  - head filer: rc=0, would update #1985 / #1990 / #2004 and file `other` and `conflict` (dryrun_head.txt).
-- Step 4: no claim file is in the diff. Step 5: VERSION, the manifest and the notes heading are untouched.
-- Step 7: the body's Head names 3d31fc52..., the head I measured.
-- Step 10: the R9-RO-8 roster entry carries since-null and old-path launches, with a null control.
-- Step 11: check-runs at head (checkruns_head.tsv, 36 runs). Red: nightly-status and delivery-status, both named and answered in the body as main's (the diff reaches only its own delivery row). budget-raise-gate is **cancelled**, not red; the orchestrator should rerun the cancelled twin before merge. coverage and CodeQL Analyze (python) were still in progress at review time. Earlier heads had no failed runs.
-- Step 13: `git merge-tree --write-tree origin/main HEAD` rc=0.
-- Policy edit: defect-root-cause.md now names dev/audit/rca/, which matches fold_ledger RCA_DIR, and the generated copies match it.
+- (a) PASS. `r9_fr3_family_consumer.mjs:43` now reads tools/policy/. At the head it exits rc=0 (fr3_head.txt). With the old path restored it gives rc=1 ENOENT (fr3_mut.txt).
+- (b) The rule as stated is the right shape, but its completeness claim fails: see the block. Carry destinations:
+  - The docstring carry is at 4a3adfc2, in R9-RO-9's `carry`, with the widened rule as its control.
+  - The coordinator's premise that RO-8 merged is false: #2015 is OPEN (state OPEN, mergedAt null). The body's R9-RO-8 carry, for since-null (67 landed entries still null at this head, since_null_head.txt) and old-path launches, is still a live destination, and the RO-8 roster brief carries it.
+  - The body still lists the docstrings under R9-RO-8 while the roster put them in RO-9. Fix that sentence in the re-cut. It does not block on its own.
+- (c) In scope and proven. At the merge base, after #2011, the spawn used the probed STATS_RUN, but STATS_TOOL stayed `.claude/workflows/policy_lint.mjs`. That constant is the one quoted in a filed issue's `derivation command` and `keying rule` lines (friction_issues.mjs:437-438) and in the die() messages, so a filed issue carried a non-existent command. That is #2004's own symptom.
+  - At the head: 102 passed, 0 failed.
+  - With STATS_TOOL reverted and the #2011 probe kept: 101/1, failing the new arm (st_mut_tool.txt).
+  - With both reverted: 100/2 (st_mut_both.txt).
+  - With the new arm deleted: 101/0. The arm is not vacuous.
+  - The coordinator's "new arm reverted" means the STATS_TOOL fix reverted, not the arm itself.
+- (d) PASS. bugclasses.json `_rca` holds both R9-RCA-1985 and R9-RCA-2004 (98 entries). `fold_ledger.py check`: 98 rca entries, 0 violation(s).
+
+## Other steps
+
+- Step 11: the head's check-runs (34) show no red except nightly-status and delivery-status (main's, answered in the body). budget-raise-gate is cancelled again, so the orchestrator should rerun its twin. pr-contract, closures, fast, coverage, browser and CodeQL were still in progress at review time. The fixer commits 64c1744d and 79d5ff6c and the merges ff75696e and af62b2b8 have no failed runs.
+- Step 13: `git merge-tree --write-tree origin/main HEAD` exits 0.
+- Step 5: the delta does not touch VERSION, the manifest or the notes heading, and no claim file is in the PR diff.

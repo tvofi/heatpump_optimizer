@@ -1,4 +1,3 @@
-  ok   the stats tool this lane spawns and quotes is a file: tools/policy/policy_lint.mjs
   ok   a completed histogram with one would-open line parses
   ok   and yields exactly one entry
   ok   the friction key is read out of the quoted title
@@ -51,6 +50,7 @@
   ok   two CLOSED rows, an old window and this one: the later row disposed this window, so nothing is filed
   ok   null control: the same two rows with this window disposed at a LOWER count still file
   ok   and a closed row whose body cannot be read refuses rather than filing beside it
+  ok   the spawned stats tool exists on disk (tools/policy/policy_lint.mjs), whichever of its two homes the checkout has
   ok   the body is a pure function of the measurement (same inputs, byte-identical body)
   ok   a moved count produces a different body (the in-place update has something to carry)
   ok   the body carries the data a disposer needs: histogram line: `INFO    [stats] (window): would open "[poli...
