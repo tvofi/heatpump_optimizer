@@ -4,14 +4,14 @@
 # -- the author identity decision 0011 built this tool for, with the body's
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
-#   tools/audit/app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
-#   tools/audit/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
-#   tools/audit/app_push.sh --self-test
+#   tools/pr/app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
+#   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
+#   tools/pr/app_push.sh --self-test
 #
 # WHY THIS EXISTS. The seat account that authored pull requests is spam-flagged:
 # its #1256 returned 201 then 404 within about a minute and left branch
 # `fix/d11-gov` wedged, and about eleven of its merged pull requests now 404
-# retroactively (docs/decisions/0011). Authorship moves to the `hpo-author`
+# retroactively (dev/governance/decisions/0011). Authorship moves to the `hpo-author`
 # App and MINTING IS ORCHESTRATOR-CENTRAL: seats never hold the App's key,
 # hand their branch off locally, and the orchestrator runs this script. The
 # trailing issue numbers are the ones the body INTENDS to close; they go to
@@ -20,7 +20,7 @@
 # IT REFUSES, AND TOUCHES NOTHING REMOTE, UNLESS ALL OF THESE HOLD:
 #   - the App id file holds digits only and the private key file exists
 #     (fail closed, before any call);
-#   - `tools/audit/prepr.sh <body.md> <issues...>` passes, run from the
+#   - `tools/pr/prepr.sh <body.md> <issues...>` passes, run from the
 #     worktree, BEFORE anything is minted (#678's ordering: nothing reaches
 #     the remote until the body passes);
 #   - the worktree's HEAD is exactly the branch's committed tip and the

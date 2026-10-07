@@ -1,6 +1,6 @@
 # The orchestrator nudge
 
-This file binds a Cursor orchestrator on grok and a Cursor orchestrator on qwen. Any other agent uses it as the reference for a timer, a heartbeat, and one turn's scan. The role contract is `tools/audit/briefs/orchestrator.md`. This file is the turn that contract names.
+This file binds a Cursor orchestrator on grok and a Cursor orchestrator on qwen. Any other agent uses it as the reference for a timer, a heartbeat, and one turn's scan. The role contract is `dev/governance/roles/orchestrator.md`. This file is the turn that contract names.
 
 Run the numbered steps every turn, in order. Do not stop the turn on a log line, a pending check, or a sentence that names work nobody is doing.
 
@@ -14,7 +14,7 @@ You dispatch fixers, reviewers, and root-cause seats. You post verdicts, approve
 
 Opus seats that die are replaced by a new Task on grok-4.7-high. Do not resume a dead Opus agent. Sonnet seats use cursor-grok-4.6-high. Haiku seats use composer-2.5.
 
-Pull requests are authored by the hpo-author App through `tools/audit/app_push.sh`. The login that reads GitHub is tvofi. The hpo-approver App posts verdicts. A code-owned path needs a tvofi review citing the session mandate. `tools/audit/app_approve.sh` refuses those paths. A merge verdict on a path that is not code-owned is approved with that script. A record pull request that only touches `docs/delivery` is not code-owned. The ruleset still requires one approving review, so that record pull request is approved as tvofi and then merged.
+Pull requests are authored by the hpo-author App through `tools/pr/app_push.sh`. The login that reads GitHub is tvofi. The hpo-approver App posts verdicts. A code-owned path needs a tvofi review citing the session mandate. `tools/pr/app_approve.sh` refuses those paths. A merge verdict on a path that is not code-owned is approved with that script. A record pull request that only touches `dev/programme/delivery` is not code-owned. The ruleset still requires one approving review, so that record pull request is approved as tvofi and then merged.
 
 Do not push `main` with the deploy key. Do not merge with the admin flag. Do not edit `VERSION`, the manifest version, or the `RELEASE_NOTES.md` heading except through `tools/release/stamp.py`. A merge message must not close #201. Write `Leaves #201 open`. Never the negated form. Do not run a full `tests/derive_closures.sh` off Darwin. Use that script's single-script mode. Touch a claim file only when the branch is claiming drift. Compare a branch with three dots, never two. Run the train under `python3 -u` so its log is not block-buffered.
 
@@ -42,7 +42,7 @@ Find a live `tools/audit/seat/merge_train.py` and read its log. A live process h
 
 `TRAIN DONE` means that queue finished. Do not reload it. `TRAIN STOPPED` names the pull request, the step, and the reason. Later entries were not graded. Do not reload that queue. A head that does not contain `origin/main` after the ci step is the one restart the script names: run the train again on the pulls it had not merged. Do not restart a queue whose entries are already merged.
 
-Load a new train only when no train is running, fewer than four preprs are running, and at least two open pull requests are verdicted for the train. Verdicted means the newest posted fix review is merge for this 40-hex head, or `tools/audit/app_approve.sh` carry says the verdict carries. The train waits for CI in its own ci step, so do not wait for required checks to go green before loading. Order the queue by creation time, oldest first. Each entry carries the pull request number, the 40-hex the merge verdict names, the comment id (the comment must cite an absolute evidence path), and the issues the body intends to close.
+Load a new train only when no train is running, fewer than four preprs are running, and at least two open pull requests are verdicted for the train. Verdicted means the newest posted fix review is merge for this 40-hex head, or `tools/pr/app_approve.sh` carry says the verdict carries. The train waits for CI in its own ci step, so do not wait for required checks to go green before loading. Order the queue by creation time, oldest first. Each entry carries the pull request number, the 40-hex the merge verdict names, the comment id (the comment must cite an absolute evidence path), and the issues the body intends to close.
 
 Leave off the train: a change to a `*_budgets.json` file, a policy path as `policy_lint.mjs --corpus-filter` defines it, and a `record:` pull request. One remaining pull request is not a train. Merge it directly. There is no `tools/audit/merge_train.py`. The instrument is `tools/audit/seat/merge_train.py`. Never pass `--allow-red`.
 
@@ -70,11 +70,11 @@ Before loading a train, direct-merge what step 3 leaves off the train and what i
 
 ## 8. Prepr slots
 
-This machine runs up to four `prepr.sh` at a time. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, and `tools/audit/app_push.sh` each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
+This machine runs up to four `prepr.sh` at a time. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, and `tools/pr/app_push.sh` each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry. Do not start the train when four preprs are already running.
 
 ## 9. Conflicting or DIRTY
 
-Run `git merge-tree --write-tree origin/main <head>` first. Exit 0 and no train running: merge `origin/main` and push with `tools/audit/app_push.sh`, then `tools/audit/approve_held_runs.sh`. A content conflict stops. Name the path and return it to the fixer who owns the branch. Do not resolve it yourself. Use `tools/audit/merge_fastpath.py` only when no train is running.
+Run `git merge-tree --write-tree origin/main <head>` first. Exit 0 and no train running: merge `origin/main` and push with `tools/pr/app_push.sh`, then `tools/pr/approve_held_runs.sh`. A content conflict stops. Name the path and return it to the fixer who owns the branch. Do not resolve it yourself. Use `tools/audit/merge_fastpath.py` only when no train is running.
 
 ## 10. A refusal with nobody on it
 
@@ -82,11 +82,11 @@ If a push or an open is refused and no fixer is working on that group, dispatch 
 
 ## 11. Stalled runs, autofix, and a red main
 
-Zero check runs is stalled zero-runs. Run `tools/audit/approve_held_runs.sh` after every App push. CodeQL on a tools-evidence diff is `tools/audit/seat/codeql-triage-poll.sh`, not a new fixer. Read the autofix summary before dispatching a fixer. `changed` means wait for the bot commit. `skip-failed-recording` means fix the script and do not re-derive. `skip-manual-repair-owed` means closures failed and the job was not under-scoped, so no bot commit is coming and the check itself is the repair. `skip-clean` means the check passed and no bot commit is coming. A selectable script with no recording is not under-scoped: add it to a derive lane or record it alone. A red Tests run on `main` outranks the queue. Revert a merge that reddened `main` only when that diff can reach the failure. Never pass `--allow-red`.
+Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after every App push. CodeQL on a tools-evidence diff is `tools/audit/seat/codeql-triage-poll.sh`, not a new fixer. Read the autofix summary before dispatching a fixer. `changed` means wait for the bot commit. `skip-failed-recording` means fix the script and do not re-derive. `skip-manual-repair-owed` means closures failed and the job was not under-scoped, so no bot commit is coming and the check itself is the repair. `skip-clean` means the check passed and no bot commit is coming. A selectable script with no recording is not under-scoped: add it to a derive lane or record it alone. A red Tests run on `main` outranks the queue. Revert a merge that reddened `main` only when that diff can reach the failure. Never pass `--allow-red`.
 
 ## 12. After each merge
 
-Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `.claude/workflows/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `docs/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
 
 ## 13. Stamps
 
@@ -98,7 +98,7 @@ Do not resume a seat the session overlay names as handed off. A later refusal on
 
 ## 15. CI watch
 
-Each turn, read the required contexts from ruleset `main-protect-checks`, as step 4 says. For every open pull request, take the latest check run of each required context on the head oid. A conclusion of failure returns that pull request to its original fixer this turn, with the job URL and the failure line. `tools/audit/seat/ci-watch.sh` alerts only on a new signature and then exits. A red it already printed is still owed, so the signature file is not this check. Do not return a pull request for `nightly-status` or `delivery-status`. Pending is not a return. Zero check runs is stalled zero-runs: `tools/audit/approve_held_runs.sh`, not a fixer. Read the autofix summary before returning a closures or mutation failure, under the same words as step 11. Do not start a second fixer when that group's fixer worktree was written in the last 15 minutes. A pull request the overlay holds is not returned by this step.
+Each turn, read the required contexts from ruleset `main-protect-checks`, as step 4 says. For every open pull request, take the latest check run of each required context on the head oid. A conclusion of failure returns that pull request to its original fixer this turn, with the job URL and the failure line. `tools/audit/seat/ci-watch.sh` alerts only on a new signature and then exits. A red it already printed is still owed, so the signature file is not this check. Do not return a pull request for `nightly-status` or `delivery-status`. Pending is not a return. Zero check runs is stalled zero-runs: `tools/pr/approve_held_runs.sh`, not a fixer. Read the autofix summary before returning a closures or mutation failure, under the same words as step 11. Do not start a second fixer when that group's fixer worktree was written in the last 15 minutes. A pull request the overlay holds is not returned by this step.
 
 ## 16. Unblocked groups
 
@@ -106,10 +106,10 @@ Load the roster through `tools/audit/seat/roster_lib.py` at the ref `tools/audit
 
 ## 17. State
 
-When the roster or the open pull-request set changed, run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. That regenerates the plan table, the resume, and the next-session prompt on the plan ref that script writes. It is not `docs/HANDOVER.md`. Fetch `origin/main` at the start of the turn and measure how many commits `HEAD` lacks. An ancestor checkout is not current.
+When the roster or the open pull-request set changed, run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `/Users/timmalmstrom/hpo-orch/state`. That regenerates the plan table, the resume, and the next-session prompt on the plan ref that script writes. It is not `dev/programme/HANDOVER.md`. Fetch `origin/main` at the start of the turn and measure how many commits `HEAD` lacks. An ancestor checkout is not current.
 
 ## 18. After the merge, and the instruments
 
-After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/audit/app_approve.sh` when its carry predicate holds. Only `tools/audit/seat/merge_train.py batch` or an eligible `tools/audit/merge_fastpath.py` skips the CI wait after `main` moves. Never clear a live gate lease. `tools/audit/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `/Users/timmalmstrom/hpo-orch`. Do not start a second.
+After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/pr/app_approve.sh` when its carry predicate holds. Only `tools/audit/seat/merge_train.py batch` or an eligible `tools/audit/merge_fastpath.py` skips the CI wait after `main` moves. Never clear a live gate lease. `tools/pr/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `/Users/timmalmstrom/hpo-orch`. Do not start a second.
 
 A background update that has exited 0 since the last turn is that notification: dispatch the reviewer for its printed HEAD before ending. A required check that failed since the last turn is the same kind of notification: return that pull request to its fixer before ending.

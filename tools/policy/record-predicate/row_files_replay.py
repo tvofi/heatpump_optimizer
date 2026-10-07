@@ -12,11 +12,11 @@ conflicted in the plan of record. Each such conflict is then replayed twice with
 
   as-is   the file as it was -- the null control; it must conflict every time.
   files   a row whose identity is absent at the merge base leaves the plan for
-          `docs/delivery/<N>.md`, keyed by the pull request that added it; a row
+          `dev/programme/delivery/<N>.md`, keyed by the pull request that added it; a row
           re-truthed in place stays in the table. Conflicting means the plan
           still conflicts, or both sides wrote the same row file differently.
 
-    python3 tools/audit/record-predicate/row_files_replay.py [branch-ref ...]
+    python3 tools/policy/record-predicate/row_files_replay.py [branch-ref ...]
 """
 import re
 import subprocess

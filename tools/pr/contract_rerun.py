@@ -17,8 +17,8 @@ case in which its red list can have missed it. A re-run re-grades from nothing
 (the body and the check runs are read live), so this writes no verdict; and a
 contract run is never a trigger, so a re-run cannot start another.
 
-    python3 -I .claude/workflows/contract_rerun.py --rerun RUN_ID [--repo O/R]
-    python3 .claude/workflows/contract_rerun.py --self-test
+    python3 -I tools/pr/contract_rerun.py --rerun RUN_ID [--repo O/R]
+    python3 tools/pr/contract_rerun.py --self-test
 """
 from __future__ import annotations
 

@@ -4,7 +4,7 @@ Everything the per-dimension audit runs on, so that a finding can be
 re-measured by someone who was not there: the briefs each auditor receives,
 the schema every finding must satisfy, the harness contract, and the three
 harnesses a judge still re-runs (the instruments section below). The register
-that records what came of it is `docs/audit-2026-09.md`; the orchestration
+that records what came of it is `dev/programme/register/audit-2026-09.md`; the orchestration
 scripts are `.claude/workflows/audit-*.js`.
 
 Almost nothing here is read by the gate. `tests/closure.py`'s `INERT` tuple and
@@ -199,7 +199,7 @@ commit and not against a current `main` tree.
 write-once evidence for three closed rounds: reports, panel and judge verdicts,
 mutant patches, quiet-window logs, `.out` files. Nothing in the gate reads them
 (`tools/audit/` is `INERT` in `tests/closure.py`), and every number they carry
-that anything still acts on is in `docs/audit-2026-09.md`, which stays.
+that anything still acts on is in `dev/programme/register/audit-2026-09.md`, which stays.
 
 They are reachable in full at **`d5d8c4a72fa7be7aebecc9e58d55002be17cac08`**
 — `origin/main` at v6.3.18, the commit this archival was cut from, and
