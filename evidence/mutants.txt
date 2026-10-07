@@ -1,0 +1,30 @@
+== M0 baseline: merge_train self-test: 74 checks, 0 failed
+== M1-no-driver-override: merge_train self-test: 74 checks, 1 failed
+       FAIL a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
+== M2-no-post-merge-tree-check: merge_train self-test: 74 checks, 1 failed
+       FAIL a merge whose tree is not the proof's stops the batch
+== M3-no-pre-merge-guard: merge_train self-test: 74 checks, 1 failed
+       FAIL the base moving between two merges stops the batch before the second
+== M4-no-serial-routing: merge_train self-test: 74 checks, 1 failed
+       FAIL workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
+== M5-no-proof: IndexError: list index out of range
+       FAIL batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
+== M6-no-pr-only: merge_train self-test: 74 checks, 10 failed
+       FAIL batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
+       FAIL a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
+       FAIL PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
+       FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+       FAIL a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges
+       FAIL workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
+       FAIL an entry that conflicts with one before it goes serial; the rest are proved and merge
+       FAIL the base moving between two merges stops the batch before the second
+       FAIL a merge whose tree is not the proof's stops the batch
+       FAIL on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)
+== M7-no-culprit: merge_train self-test: 74 checks, 1 failed
+       FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+== M8-no-conflict-route: merge_train self-test: 74 checks, 1 failed
+       FAIL an entry that conflicts with one before it goes serial; the rest are proved and merge
+== M9-no-admission-ci: merge_train self-test: 74 checks, 1 failed
+       FAIL an entry red at its own head is refused at admission (pr-contract not ignored here)
+== M10-log-read-without-escapes: merge_train self-test: 74 checks, 1 failed
+       FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
