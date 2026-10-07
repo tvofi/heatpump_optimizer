@@ -48,19 +48,29 @@
 // rather than filing nothing in silence. A missing `WOULD OPEN:` summary line
 // means the file is not a histogram at all, and that refuses too.
 //
-//   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref>
-//   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref> --dry-run
-//   node .claude/workflows/friction_issues.mjs --self-test
+//   node tools/policy/friction_issues.mjs --stats-file <path> --since <ref>
+//   node tools/policy/friction_issues.mjs --stats-file <path> --since <ref> --dry-run
+//   node tools/policy/friction_issues.mjs --self-test
 //
 // --dry-run performs the read-only half against the live repository (the
 // search) and prints the decision and the exact body it would file, writing
 // nothing. --self-test drives the decisions offline over fixture shapes,
 // network-free, the same pattern as push.sh's and gh_comment.py's.
 import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
 
 const FRICTION_PREFIX = '[policy] recurring friction: '
-const STATS_TOOL = '.claude/workflows/policy_lint.mjs'
+// The stats tool is this script's sibling in every layout the tree has had
+// (.claude/workflows/, then tools/policy/ after #1919), so it is found beside
+// this file rather than at a spelt path: a spelt path stayed behind when the
+// pair moved, and every governance `record` run after it refused at the
+// normalizer (#2004, dev/audit/rca/R9-RCA-2004.md). It is spawned by its
+// absolute path and quoted relative to the working directory, which is the
+// checkout root wherever the lane and its documented commands run.
+const STATS_TOOL_PATH = path.join(path.dirname(fileURLToPath(import.meta.url)), 'policy_lint.mjs')
+const STATS_TOOL = path.relative(process.cwd(), STATS_TOOL_PATH).split(path.sep).join('/')
 
 // --- the pure decisions ------------------------------------------------------
 // Everything a run decides, decided here so the self-test can drive it without
@@ -547,7 +557,7 @@ function loadNormalizedLookup() {
   const rawKeys = [...new Set(issueKeys(rows))]
   let normalize = new Map()
   if (rawKeys.length) {
-    const n = spawnSync('node', [STATS_TOOL, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_TOOL_PATH, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${rawKeys.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
@@ -671,7 +681,7 @@ function sweepBelowThreshold(parsed, since, dryRun) {
   const sent = issueKeys(rows)
   let normalize = new Map()
   if (sent.length) {
-    const n = spawnSync('node', [STATS_TOOL, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_TOOL_PATH, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${sent.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
