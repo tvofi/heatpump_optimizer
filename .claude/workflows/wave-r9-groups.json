@@ -7447,9 +7447,9 @@
     "R9-SW-1"
    ],
    "resume": {
-    "stage": "in-flight",
+    "stage": "done",
     "branch": "handoff/r9-sw6",
-    "commit": null,
+    "commit": "59b5ac6e4594b42cd5579cca182a743c25f4c48d",
     "last_step": null,
     "next_step": "PRE-STUDY FIRST (owner requirement 2026-10-04): verify each of (a)-(d) with smoke tests and measurements before writing any production line; report findings to the orchestrator for owner confirmation before implementation",
     "note_file": "handoff/round9/fix/resume/SW-6.md",
