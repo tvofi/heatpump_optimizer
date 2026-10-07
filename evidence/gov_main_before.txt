@@ -1,0 +1,2 @@
+policy-docs	Refuse a governance check input field no check reads	2026-10-07T13:14:47.4278995Z field coverage: the base does not carry it, so there is no pinned copy to run; skipped
+wave-script	Refuse two readers of one concept that disagree	2026-10-07T13:14:33.6302282Z agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped

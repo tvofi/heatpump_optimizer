@@ -1,22 +1,21 @@
-retired.old absent at HEAD: 140
-shape hits cleared by new-path/locate within +-4 lines: 98
-UNCLEARED: 56
+retired.old absent at HEAD: 156
+shape hits cleared by new-path/locate within +-4 lines: 105
+UNCLEARED: 63
 .claude/hooks/stop-selfcheck.sh:200: [tools/audit/prepr.sh] printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/audit/prepr.sh` before opening or updating a pull request.\
+.claude/workflows/audit-find.js:222: [tools/audit/scopes.json] YOUR CELLS. Your scope is ${seat.id} in tools/audit/scopes.json: ${JSON.stringify(seat.blocks)}. List them resolved with \`python3 ${repo}/tools/audit/check_scopes.py --r
 .claude/workflows/audit-fix.js:25: [tools/audit/README.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
 .claude/workflows/audit-fix.js:25: [tools/audit/briefs/fixer.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
+.claude/workflows/audit-verify.js:237: [tools/audit/bugclasses.json] `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${
+.claude/workflows/audit-verify.js:237: [tools/audit/finding.schema.json] `Fold audit round ${round} into the bug-class register. In ${repo} on ${branch}, from the repository root, run exactly: python3 tools/audit/fold_ledger.py fold --round ${
 .claude/workflows/audit-verify.js:248: [.claude/workflows/brief_lint.mjs] One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write tools/audit/round${round}/ISSUES.json: per class {class, title: "[R${r
 .claude/workflows/audit-wave.js:48: [tools/audit/README.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
 .claude/workflows/audit-wave.js:48: [tools/audit/briefs/fixer.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
 .claude/workflows/web-fix-wave.js:304: [tools/audit/briefs/fix-review.md] Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one
 .claude/workflows/web-fix-wave.js:342: [tools/audit/app_approve.sh] - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/audit/app_approve.sh --c
-.github/workflows/governance.yml:220: [.claude/workflows/field_coverage.mjs] if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
 .github/workflows/pr-contract.yml:279: [.claude/workflows/policy_lint.mjs] node .claude/workflows/policy_lint.mjs \
 custom_components/heatpump_optimizer/prefill_offer.py:21: [tools/measure_prefill_corpus.py] PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
 tests/entities.py:17465: [tools/audit/preflight.sh] ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
 tests/entities.py:17619: [tools/audit/preflight.sh] ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
-tools/audit/seat/merge_train.py:146: [tools/audit/app_approve.sh] code, o = self.run(["bash", "tools/audit/app_approve.sh", self.repo, str(pr), h])
-tools/audit/seat/merge_train.py:210: [tools/audit/app_approve.sh] o = self.run(["bash", "tools/audit/app_approve.sh", "--carry", v, h])[1]
-tools/audit/seat/merge_train.py:237: [tools/audit/preflight.sh] pf = self.run(["bash", "tools/audit/preflight.sh", *map(str, item.get("issues", []))], stdin=title + "\n")[1]
 tools/coverage/partition.py:43: [tools/audit/w5-partition/] python3 tools/audit/w5-partition/partition.py --coverage $W/out/coverage.json
 tools/devices/measure_prefill_corpus.py:8: [tools/measure_prefill_corpus.py] PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
 tools/policy/agreement.mjs:29: [.claude/workflows/agreement.mjs] //   node .claude/workflows/agreement.mjs [--only pairs|discovery]
@@ -28,6 +27,14 @@ tools/policy/budget_raise_gate.py:57: [.claude/workflows/budget_raise_gate.py] p
 tools/policy/budget_raise_gate.py:58: [.claude/workflows/budget_raise_gate.py] python3 .claude/workflows/budget_raise_gate.py --self-test
 tools/policy/budget_raise_gate.py:59: [.claude/workflows/budget_raise_gate.py] python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
 tools/policy/check-wave-script.mjs:11: [.claude/workflows/check-wave-script.mjs] //     node .claude/workflows/check-wave-script.mjs
+tools/policy/check-wave-script.mjs:692: [tools/audit/rotation.json] const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:735: [tools/audit/finding.schema.json] const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:753: [tools/audit/bugclasses.json] const ids = Object.keys(JSON.parse(fs.readFileSync(at('tools/audit/bugclasses.json'), 'utf8'))).filter((k) => !k.startsWith('_'))
+tools/policy/check-wave-script.mjs:766: [tools/audit/scopes.json] const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:767: [tools/audit/rotation.json] const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:808: [tools/audit/scopes.json] const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:809: [tools/audit/rotation.json] const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+tools/policy/check-wave-script.mjs:954: [tools/audit/finding.schema.json] const S = JSON.parse(fs.readFileSync(at('tools/audit/finding.schema.json'), 'utf8'))
 tools/policy/field_coverage.mjs:39: [.claude/workflows/field_coverage.mjs] //   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
 tools/policy/field_coverage.mjs:41: [.claude/workflows/field_coverage.mjs] //   node .claude/workflows/field_coverage.mjs --self-test
 tools/policy/field_coverage.mjs:119: [.claude/workflows/policy_lint.mjs] const { code, out } = await run('node', [at('.claude/workflows/policy_lint.mjs'), '--hooks', path.relative(ROOT, f)])

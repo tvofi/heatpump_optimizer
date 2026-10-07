@@ -1,0 +1,2 @@
+policy-docs	Refuse a governance check input field no check reads	2026-10-07T17:47:52.0719593Z   none     pinned .claude/workflows/agreement.mjs: the agreement lane; its corpora are live instances of registered concepts, 
+policy-docs	Refuse a governance check input field no check reads	2026-10-07T17:47:52.0729766Z FIELD COVERAGE ok

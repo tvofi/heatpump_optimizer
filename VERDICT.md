@@ -1,34 +1,31 @@
-Fix review: blocked 064c5aae08e9c58ff1458978c9d6484aa8527d94 harness: class-open tools/audit/seat/merge_train.py:146,210,237 and .github/workflows/governance.yml:220
+Fix review: merge 1d494f01c492d497b0457ec5486380becac1886c
 
-bus-nonce: 44baaaafd257f0edb9f1bd9ce7e68570
-Reviewer: r9c-rev-2014, round 2. Detached worktree at 064c5aae08e9c58ff1458978c9d6484aa8527d94; I re-read the live head at posting time and it is the same SHA. Merge base 17f30f9c. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence/r2
+bus-nonce: 376068b8a134de7ef9837f070eabf061
+Reviewer: r9c-rev-2014, round 3. Fresh detached worktree /Users/timmalmstrom/hpo-seats/r9c-rev-2014-r3 at 1d494f01c492d497b0457ec5486380becac1886c; I re-read the live head at posting time and it is the same SHA. Merge base c327da7f. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence/r3
 
-## The block (step 6; step 8 on the completeness claim)
+## Round-2 block, resolved
+- governance.yml:220 (field coverage) and :602 (agreement lane) now probe `$PINNED:tools/policy/<tool>.mjs` first and the old spelling second. Both ends come from CI logs:
+  - main run 37626923348 (13:14Z) printed `field coverage: the base does not carry it ... skipped` and `agreement lane: the base does not carry it ... skipped` (gov_main_before.txt).
+  - This head's governance run 37661658656 prints `FIELD COVERAGE ok` and `AGREEMENT ok` (policy_docs_head_log.txt). policy-docs is success.
+- merge_train.py:146,210,237: fixed on main by #2012 (RCA-1990, merged 14:21Z), which this head contains (a `tool()` map, merge_train.py:84-85).
+- My own widened rule (widened_rule.py, now also skipping dev/audit/rounds/) at this head (widened_rule_head.txt): 156 retired-old paths absent at HEAD, 105 hits cleared, 63 uncleared.
+  - Neither round-2 seam is returned any more.
+  - The new uncleared hits come from paths retired by RO-8's merge: check-wave-script.mjs reads through `at()`, and `node tools/policy/check-wave-script.mjs` gives rc=0, 170/0. The others are prompt strings in audit-find.js and audit-verify.js. No executed seam is left uncleared.
+- RCA section 4 now states seven broken seams (six fixed here or on main, one owned by #2012), with the triage of the uncleared hits. I re-derived it with my rule; it holds.
 
-RCA section 4 states the widened rule and then says: "every other executed hit is cleared ... The `git show` / `git cat-file` reads in `prepr.sh` and `governance.yml` name the old path at a pinned base ref, with the new spelling tried second." I implemented that rule myself (widened_rule.py, my own script, not the fixer's). Over 140 retired-old paths absent at HEAD it returns 56 hits not cleared by a new-path, locate() or shim within 4 lines (widened_rule_head.txt). Most are prose, fixtures or the docstrings already carried. Two executed seams are broken and are neither in the diff nor dispositioned:
+## Re-checked at this head
+- The FR-3 consumer, now at dev/audit/harnesses/ after RO-8, exits rc=0.
+- `friction_issues.mjs --self-test`: 102 passed, 0 failed.
+- `preflight.sh`: `ok policy corpus -- current with origin/main`.
+- `rules_sync --check` rc=0. `fold_ledger.py check`: 99 rca entries, 0 violation(s). R9-RCA-2004 is in dev/audit/config/bugclasses.json; RCA_DIR is dev/audit/rca.
+- Step 13: `merge-tree` against origin/main rc=0. Step 5: no VERSION, manifest, notes heading or claim file in the diff.
+- Step 11 (check-runs at 1d494f01, checkruns_head.tsv, 34 runs):
+  - Red: delivery-status and nightly-status, both answered in the body as main's.
+  - closures was red at 064c5aae, and main 17f30f9c's own closures is also failure, which confirms the body's account. closures-autofix is downstream of it, and the body names both.
+  - budget-raise-gate is **cancelled** again; rerun its twin before merge.
+  - Still in progress at review time: closures, browser, fast (3.14), coverage, env-matrix, CodeQL. The merge is conditional on these finishing green; I did not watch them.
+  - Fixer commits da21eb93 and 44f5103c and merge 55a1aee9: no failed runs (checkruns_range.txt).
 
-1. `tools/audit/seat/merge_train.py:146` and `:210` spawn `bash tools/audit/app_approve.sh`, and `:237` spawns `bash tools/audit/preflight.sh`. All three run with cwd=ROOT (repo root, parents[3]). tests/layout.json retires both paths (to tools/pr/app_approve.sh and tools/pr/preflight.sh, since: null). Running them gives `No such file or directory`, rc=127 (merge_train_spawns.txt). Consequences: the merge train's approve, carry and preflight gates cannot pass, and the preflight gate's output is a bash error. The same lines are present at the merge base. This seam sits next to the PR's own preflight.sh fix: it is the same moved program, spawned at the old spelling.
-2. `.github/workflows/governance.yml:220`: `git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"`. No new spelling is tried second, which contradicts section 4's sentence. Every base after #1919 therefore takes the "skipped" branch, and the field-coverage check is dark on every PR, push and schedule. CI shows it: main governance run 37626923348 (2026-10-07T13:14Z) prints `field coverage: the base does not carry it, so there is no pinned copy to run; skipped` (field_coverage_ci.txt).
-
-Remedy: repoint the three merge_train spawns to tools/pr/; give line 220 the tools/policy/ fallback at the pinned ref. Or disposition each by name with an owner. Then correct section 4's "every other executed hit is cleared" sentence and the count "Four broken seams". This is the second class-open in the same class; fixer.md's three-round rule applies from the next round.
-
-## The delta items asked about
-
-- (a) PASS. `r9_fr3_family_consumer.mjs:43` now reads tools/policy/. At the head it exits rc=0 (fr3_head.txt). With the old path restored it gives rc=1 ENOENT (fr3_mut.txt).
-- (b) The rule as stated is the right shape, but its completeness claim fails: see the block. Carry destinations:
-  - The docstring carry is at 4a3adfc2, in R9-RO-9's `carry`, with the widened rule as its control.
-  - The coordinator's premise that RO-8 merged is false: #2015 is OPEN (state OPEN, mergedAt null). The body's R9-RO-8 carry, for since-null (67 landed entries still null at this head, since_null_head.txt) and old-path launches, is still a live destination, and the RO-8 roster brief carries it.
-  - The body still lists the docstrings under R9-RO-8 while the roster put them in RO-9. Fix that sentence in the re-cut. It does not block on its own.
-- (c) In scope and proven. At the merge base, after #2011, the spawn used the probed STATS_RUN, but STATS_TOOL stayed `.claude/workflows/policy_lint.mjs`. That constant is the one quoted in a filed issue's `derivation command` and `keying rule` lines (friction_issues.mjs:437-438) and in the die() messages, so a filed issue carried a non-existent command. That is #2004's own symptom.
-  - At the head: 102 passed, 0 failed.
-  - With STATS_TOOL reverted and the #2011 probe kept: 101/1, failing the new arm (st_mut_tool.txt).
-  - With both reverted: 100/2 (st_mut_both.txt).
-  - With the new arm deleted: 101/0. The arm is not vacuous.
-  - The coordinator's "new arm reverted" means the STATS_TOOL fix reverted, not the arm itself.
-- (d) PASS. bugclasses.json `_rca` holds both R9-RCA-1985 and R9-RCA-2004 (98 entries). `fold_ledger.py check`: 98 rca entries, 0 violation(s).
-
-## Other steps
-
-- Step 11: the head's check-runs (34) show no red except nightly-status and delivery-status (main's, answered in the body). budget-raise-gate is cancelled again, so the orchestrator should rerun its twin. pr-contract, closures, fast, coverage, browser and CodeQL were still in progress at review time. The fixer commits 64c1744d and 79d5ff6c and the merges ff75696e and af62b2b8 have no failed runs.
-- Step 13: `git merge-tree --write-tree origin/main HEAD` exits 0.
-- Step 5: the delta does not touch VERSION, the manifest or the notes heading, and no claim file is in the PR diff.
+## Body corrections owed (not blocking; they do not change the code or the verdict)
+- `## Red checks` says the diff touches none of the red checks' inputs, and lists `governance.yml` among them. Since da21eb93 the diff does edit governance.yml, at lines 220 and 602. The delivery-status job is at governance.yml:906 and is untouched, so the conclusion (main's red) still holds, but the sentence is false as written.
+- RCA section 4 calls #2012 "open"; it merged at 14:21Z and its fix is in this head. Its path citations (tools/audit/harnesses/..., tools/audit/bugclasses.json) predate RO-8's move to dev/audit/.
