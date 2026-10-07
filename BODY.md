@@ -44,17 +44,39 @@ Taken at `e23f87122f177d532a515cc17ff6a35d53190f22`, 2026-10-07T09:11:40Z, `orig
 
 ## Red checks
 
-At `95ad5034`, run 37564484318:
+The set below comes from `gh api repos/tvofi/heatpump_optimizer/commits/<sha>/check-runs` over the 32 commits in `git rev-list --first-parent e23f8712 ^origin/main` and `git rev-list 95ad5034 ^618d014f`. Every call answered (0 API failures). It holds every check-run with conclusion `failure`. Each cause is read from that job's log, and from the `closure-recordings` artifact where a recording failed.
 
-`closures`. Job 112609045485: `UNDER-SCOPED: tests/debug_collect.py really reads 1 file(s) the committed closure does not list: custom_components/heatpump_optimizer/quiet_windows.py`. Main moved quiet-window composition into a module that the coordinator imports, after this script's closure had been recorded. Cheaper detector: `./tests/derive_closures.sh --single tests/debug_collect.py` after each main merge. It takes seconds for this script. `tools/pr/prepr.sh` does not run it. Repaired in this head (see `## Figures`).
+`closures`, 7 heads.
+- `8f756547` (job 112237571054): `UNDER-SCOPED: tests/features.py` reads `custom_components/heatpump_optimizer/services.yaml`. It is in the committed closure from a later head on.
+- `fca0bea0`, `058a5f80` and `50a36f79` (jobs 112362556983, 112408061804, 112436237942): `selectable script(s) with NO recording this run: tests/debug_collect.py`. The new script was in no derive lane. `fca0bea0`'s `fast` red, below, is the same gap.
+- `cf9de4e2`, `705c3be3` and `95ad5034` (jobs 112484666778, 112529758058, 112609045485): `UNDER-SCOPED: tests/debug_collect.py` reads `custom_components/heatpump_optimizer/quiet_windows.py`. Main moved quiet-window composition into that module after the closure was recorded. Repaired in this head (`--single`, `## Figures`).
+- Cheaper detector: `./tests/derive_closures.sh --single <script>` after each main merge, which takes seconds for these scripts. `tools/pr/prepr.sh` does not run it. Nothing before CI compares selectable scripts against the derive lanes.
 
-`mutation` (expected on this head, not yet run): the one added unpinned site above. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It ran here, and its site is killed by `tests/manual_plan.py`.
+`closures-autofix`, 4 heads, all `AUTOFIX: skip-failed-recording`, so no bot commit came.
+- `8f756547` (job 112253526031): the run's artifact records `tests/harness_headers.py` with `rc=1`. Its `fast` red, below, is the same failure.
+- `cf9de4e2`, `705c3be3` and `95ad5034` (jobs 112503452843, 112543035083, 112620088047): the artifacts record `tests/stress.py` with `rc=1`. At `95ad5034`, `stress.py.out` has `1 of 104 STRESS CHECKS FAILED` on its CPU-per-solve budget (329x against 268x) while being recorded under the audit hook. `fast (3.14)` and `mutation` were green in that run, and this diff touches neither `stress.py` nor the solver.
+- Cheaper detector: none that runs before CI. The failure exists only under recording. It is `ci-autofix.md`'s third unclosed path, a script that fails only while recorded. Three heads with the same `stress.py` recording failure make a recurrence; see `## Friction`.
 
-`closures-autofix`. Job 112620088047: `AUTOFIX: skip-failed-recording`, `THE REPAIR DID NOT HAPPEN`. By `ci-autofix.md` no bot commit was coming, so the repair above was made here. The failed recording was `tests/stress.py`: the downloaded `closure-recordings` artifact has `rc=1` in `stress.py.json`, and `stress.py.out` has `1 of 104 STRESS CHECKS FAILED` on `FAIL every scenario's solve costs what it should, in CPU, for this machine  [shoulder/tariff+pv+cycle used 18728 ms of CPU = 329x the 56.9 ms reference measured beside it (budget 268x)]`. That is a CPU budget measured while the recorder's audit hook was attached. `fast (3.14)` and `mutation` were green in that run, and this diff does not touch `stress.py` or the solver. Cheaper detector: none that runs before CI. The failure exists only while a script is being recorded. The class it belongs to is the third unclosed path in `ci-autofix.md`, a script that fails only under recording. This instance is a timing budget, not a truncation, which that rule does not yet name. See `## Friction`.
+`fast (3.14)`, 2 heads.
+- `8f756547` (job 112237478738): `tests/env_drift.py --all` failed with `STALE config_flow` and `1 UNCLAIMED DRIFT(S)`, because the learning page's new option moved the `config_flow` capture. `tests/harness_headers.py` printed `5 of 105 HARNESS HEADER CHECKS FAILED` on the `option_doc_coverage.py` and `claims.py` headers, each one count behind the new option and module. The fixture and headers were re-taken on later heads. `fast` was green at `95ad5034`.
+- `fca0bea0` (job 112362400100): `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh`. `tests/run.sh` now runs it in `lane_units`.
+- Cheaper detector: `tests/env_drift.py --claims-only` and `tests/harness_headers.py` for the first. They are seconds to minutes, are in `tests/run.sh`, and are not in `prepr.sh`. For the second, the `UNWIRED TEST` grep at the start of `tests/run.sh`.
 
-`delivery-status`. Job 112608980070: `DELIVERY STATUS UNCHECKED`. Its pending rows are main's `#1917`, `#2001` and `#2003`, and the merge-collection skip lists main's merge subjects. This branch's row, `dev/programme/delivery/1987.md`, is on main. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. The red belongs to main's record.
+`mutation`, 3 heads.
+- `8f756547` and `9da596f2` (jobs 112237478695, 112303713384): `ADDED UNPINNED` sites in `button.py` and `debugger.py`, the new collector code. They were pinned by a `--pin-killed` drive with `tests/debug_collect.py` on a later head.
+- `cf9de4e2` (job 112484566102): `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`. It is pinned under `killed_by` for `tests/manual_plan.py` (`configured_specs.RETURN_DEL.a8227ccf`).
+- This head adds one more site, `quiet_windows.py:507 GUARD_OFF` (`## Mutation proof`).
+- Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It is not in `prepr.sh`.
 
-`nightly-status`. Job 112608980459: `NIGHTLY FAILED: record-autofix failed last night.` That grades main's nightly. This diff does not touch `tests/nightly_status.py`, the workflows, or the record-autofix lane.
+`mutation-autofix`, 3 heads. `8f756547` (job 112239901173) printed `AUTOFIX: skip-measure-failed`, and `9da596f2` and `cf9de4e2` (jobs 112305445205, 112486109066) printed `AUTOFIX: skip-no-measurement`. The repair did not happen, so the pins came from the drives named under `mutation`. Cheaper detector: the same ratchet command as for `mutation`.
+
+`env-matrix`, `705c3be3` (job 112529653069): `Error: Cannot find module '/home/runner/work/_temp/envmatrix/shallow/.claude/workflows/policy_lint.mjs'`. The matrix still started the old path after `policy_lint.mjs` moved to `tools/policy/`, and `b5cbc740` points it at the new path. Cheaper detector: `node tools/policy/policy_lint_envmatrix.mjs`, seconds. It is named in a comment in `tools/pr/prepr.sh` and is not one of its steps.
+
+`pr-contract`, 2 heads. `8f756547` (job 112253716391): `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. `705c3be3` (job 112543221828): it did not name `env-matrix`. This section names all of them. Cheaper detector: `tools/pr/prepr.sh <body> 1939`, whose `ancestry reds` step reads the same check-runs.
+
+`delivery-status`, 9 heads, each `DELIVERY STATUS UNCHECKED`. The pending rows and the merge-collection skip are over main's merge subjects (at `95ad5034`: main's `#1917`, `#2001`, `#2003`). This PR's row, `dev/programme/delivery/1987.md`, is on main. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. The red belongs to main's record.
+
+`nightly-status`, 9 heads, each `NIGHTLY FAILED: record-autofix failed last night.` (2 of them `1 night ago`). That grades main's nightly lane. This diff does not touch `tests/nightly_status.py`, the workflows or the record-autofix lane.
 
 ## Forward-carry
 
@@ -62,6 +84,6 @@ none
 
 ## Friction
 
-ci-autofix.md: unenforced: `closures-autofix` reports `skip-failed-recording` for a `tests/stress.py` recording whose only failure is its CPU budget under the audit hook (run 37564484318), so a single real UNDER-SCOPED on an unrelated script waited on a human repair.
+ci-autofix.md: unenforced: on three heads of this PR (`cf9de4e2`, `705c3be3`, `95ad5034`), `closures-autofix` reported `skip-failed-recording` because `tests/stress.py` failed its CPU budget only under the recorder's audit hook. Each time, a real UNDER-SCOPED on an unrelated script (`tests/debug_collect.py`) waited on a human repair. This is a third instance, so it triggers `root-cause.md`.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
