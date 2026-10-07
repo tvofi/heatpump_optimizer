@@ -1,0 +1,4 @@
+usage: closure.py [-h]
+                  {record,merge,check,autofix,autofix-report,prune,select,affected,not-run,coverage-split,show,no-copies,selftest}
+                  ...
+closure.py: error: the following arguments are required: cmd

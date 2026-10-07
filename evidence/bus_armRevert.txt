@@ -1,2 +1,0 @@
-  FAIL a verdict posts as a comment through app_comment.sh, never as an approving review
-bus self-test: 45 checks, 1 failed
