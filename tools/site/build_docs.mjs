@@ -20,9 +20,12 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createRequire } from 'node:module'
+import { fileURLToPath } from 'node:url'
 
 const require = createRequire(import.meta.url)
-const MarkdownIt = require('../../.claude/workflows/vendor/markdown-it.min.js')
+const _vendorOld = new URL('../../.claude/workflows/vendor/markdown-it.min.js', import.meta.url)
+const _vendorNew = new URL('../policy/vendor/markdown-it.min.js', import.meta.url)
+const MarkdownIt = require(fileURLToPath(fs.existsSync(_vendorOld) ? _vendorOld : _vendorNew))
 
 const args = Object.fromEntries(process.argv.slice(2).reduce((a, v, i, all) => (v.startsWith('--') ? [...a, [v.slice(2), all[i + 1]]] : a), []))
 const ROOT = args.root, OUT = args.out, MERMAID = args.mermaid || 'site/mermaid/mermaid.min.js'
@@ -31,7 +34,7 @@ const TREE_DIRS = new Set([...TREE].flatMap((p) => p.split('/').slice(0, -1).map
 const BLOB = 'https://github.com/tvofi/heatpump_optimizer/blob/main/'
 const TREEURL = 'https://github.com/tvofi/heatpump_optimizer/tree/main/'
 // Rows of the README Documentation table the site links to GitHub instead of rendering, each with its reason.
-const EXCLUDE = { 'docs/backlog.md': 'an archive of what was built, not a reader doc (R9-RO-4 archives it)' }
+const EXCLUDE = {}
 const errors = []
 const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, badges: 0, external: 0, mermaid: 0 }
 

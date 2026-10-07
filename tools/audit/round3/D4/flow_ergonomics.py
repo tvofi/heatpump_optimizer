@@ -23,8 +23,19 @@ are read off the results those handlers really return, never off the source.
 
 ``--json <path>`` writes the whole per-page record.
 """
-
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -42,9 +53,7 @@ import asyncio  # noqa: E402
 import json  # noqa: E402
 import sys  # noqa: E402
 
-ROOT = os.path.dirname(os.path.abspath(__file__))
-for _ in range(4):
-    ROOT = os.path.dirname(ROOT)
+ROOT = str(repo_root(__file__))
 sys.path.insert(0, os.path.join(ROOT, "tests"))
 sys.path.insert(0, os.path.join(ROOT, "custom_components"))
 

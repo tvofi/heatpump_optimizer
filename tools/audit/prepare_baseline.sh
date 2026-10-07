@@ -51,6 +51,44 @@ PY
 # (and the leads seat's own export) run it, so the driver and this script cannot
 # disagree on what the wall leaves in (R9 box B1's wall breach: the driver copied
 # tools/audit/ whole and nothing stripped it).
+# The finder wall. docs/audit-2026-09.md is still under docs/; the August
+# register and the backlog moved to dev/archive/ (R9-RO-4). A glob that names
+# only the old directory removes nothing once the file has moved, and the
+# export then carries the register the wall exists to keep out.
+finder_wall() {
+  local root="$1"
+  rm -f "$root"/docs/audit-*.md \
+        "$root"/dev/archive/audits/audit-*.md \
+        "$root"/dev/archive/backlog.md \
+        "$root"/dev/programme/register/audit-*.md
+}
+if [ "${1:-}" = "--wall-self-test" ]; then
+  plant() {
+    local d="$1"
+    mkdir -p "$d/docs" "$d/dev/archive/audits" "$d/dev/programme/register"
+    printf s > "$d/docs/audit-2026-09.md"
+    printf a > "$d/dev/archive/audits/audit-2026-08.md"
+    printf b > "$d/dev/archive/backlog.md"
+    printf r > "$d/dev/programme/register/audit-2026-09.md"
+    printf k > "$d/docs/setup.md"
+  }
+  old_wall() { rm -f "$1"/docs/audit-*.md "$1"/docs/backlog.md; }
+  d1=$(mktemp -d); plant "$d1"; old_wall "$d1"
+  [ ! -e "$d1/docs/audit-2026-09.md" ] || { echo "FAIL old wall kept the live register"; exit 1; }
+  [ -e "$d1/dev/archive/audits/audit-2026-08.md" ] || { echo "FAIL old wall removed the archived register; the control no longer shows the miss"; exit 1; }
+  [ -e "$d1/dev/archive/backlog.md" ] || { echo "FAIL old wall removed the archived backlog; the control no longer shows the miss"; exit 1; }
+  [ -e "$d1/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL old wall removed the programme register; the control no longer shows the miss"; exit 1; }
+  [ -e "$d1/docs/setup.md" ] || { echo "FAIL old wall removed a reader doc"; exit 1; }
+  d2=$(mktemp -d); plant "$d2"; finder_wall "$d2"
+  [ ! -e "$d2/docs/audit-2026-09.md" ] || { echo "FAIL wall kept the live register"; exit 1; }
+  [ ! -e "$d2/dev/archive/audits/audit-2026-08.md" ] || { echo "FAIL wall kept the archived register"; exit 1; }
+  [ ! -e "$d2/dev/archive/backlog.md" ] || { echo "FAIL wall kept the archived backlog"; exit 1; }
+  [ ! -e "$d2/dev/programme/register/audit-2026-09.md" ] || { echo "FAIL wall kept the programme register"; exit 1; }
+  [ -e "$d2/docs/setup.md" ] || { echo "FAIL wall removed a reader doc"; exit 1; }
+  rm -rf "$d1" "$d2"
+  echo "RESULT finder_wall=ok"
+  exit 0
+fi
 if [ "${1:-}" = "--strip" ]; then
   PYTHON="${PYTHON:-python3}"; ROUND="${3:?round}"
   strip_earlier_rounds "$(cd "${2:?export dir}" && pwd)"
@@ -87,7 +125,7 @@ git archive "$FULL" | tar -x -C "$EXPORT"
 # died with FileNotFoundError before a finder's first measurement. COMMON.md and
 # audit-find.js both say to keep it. The `finders_can_start` refusal below is the
 # general form of that lesson and fires on any other file a test opens this way.
-rm -f "$EXPORT"/docs/audit-*.md "$EXPORT"/docs/backlog.md
+finder_wall "$EXPORT"
 mkdir -p "$EXPORT/tools/audit"
 cp -R "$SRC/tools/audit/." "$EXPORT/tools/audit/"     # current briefs, README, schema
 mkdir -p "$EXPORT/tools/audit/round${ROUND}"
@@ -148,7 +186,8 @@ done
 # THE REFUSAL THAT WOULD HAVE CAUGHT BOTH DEFECTS ABOVE, in its general form.
 # Every literal path a tests/*.py script hands to Path(...) or open() must still
 # exist in the finder tree if it exists in the source checkout. That is what
-# separates a deliberate wall (docs/audit-*.md, docs/backlog.md -- which no test
+# separates a deliberate wall (docs/audit-*.md, dev/archive/audits/audit-*.md,
+# dev/archive/backlog.md -- which no test
 # opens, checked) from a file the preparation dropped by accident.
 #
 # WHAT IT CANNOT SEE, stated rather than left to be discovered: a path built at

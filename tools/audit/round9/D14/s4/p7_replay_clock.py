@@ -27,6 +27,18 @@ EXPECTED at 1936d5ca: default replay_wrong_sites=0 on spring and autumn;
 Machine: Linux container, 4 cores, python 3.14 (box B9).
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 import sys
@@ -64,7 +76,7 @@ def main() -> int:
     total = set()
     for day in ("spring", "autumn", "plain"):
         path = tmp / f"dst-{day}.json"
-        path.write_text(json.dumps(dst_fixture.build(day, HERE.parents[4])))
+        path.write_text(json.dumps(dst_fixture.build(day, repo_root(HERE))))
         before = {k: v["wrong"] for k, v in tr.REC.items()}
         out = replay.run_fixture(path, None)
         wrong = {k[:2] for k, v in tr.REC.items() if v["wrong"] > before.get(k, 0)}

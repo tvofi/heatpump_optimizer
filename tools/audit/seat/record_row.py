@@ -23,7 +23,7 @@ approving labelled review on the record pull request, and the
 `docs/HANDOVER.md` `updated-for:` line -- tied to merges that change owed
 work, not every beat, which a job would over-write. This module's write set
 cannot express either: `write_rows` refuses every path that is not
-`docs/delivery/<N>.md`, so a row can never be appended to the plan's
+`dev/programme/delivery/<N>.md`, so a row can never be appended to the plan's
 Delivery-status table (a row at the table's end conflicts every open branch,
 and past the freeze `policy_lint` refuses it) nor to the handover.
 
@@ -54,10 +54,10 @@ SELF = "tools/audit/seat/record_row.py"
 DEFAULT_REPO = "tvofi/heatpump_optimizer"
 
 #: Where a row lives, and the WHOLE write surface. The digits are load-bearing:
-#: `docs/delivery/<N>.md` rows <N> through a line anchoring <N> itself, as
+#: `dev/programme/delivery/<N>.md` rows <N> through a line anchoring <N> itself, as
 #: `tests/delivery_status.py`'s `ROW_ANCHOR` and `policy_lint.mjs`'s
 #: `rowAnchor` read it, so a misnamed file rows nobody.
-ROW_PATH = re.compile(r"^docs/delivery/(\d+)\.md$")
+ROW_PATH = re.compile(r"^dev/programme/delivery/(\d+)\.md$")
 #: The pre-merge row's title. It names no other pull request. `mentions`
 #: reads the whole anchored line, so a second number on it would row a merge
 #: this file does not anchor, while `has_row` would still plan that merge.
@@ -68,8 +68,8 @@ OPEN_ROW_TITLE = "record: delivery rows (autofix)"
 #: table's end, conflicts every open branch, and past the freeze policy_lint
 #: refuses it (delivery-status-tracking.md). They are named here so the guard's
 #: refusal can name what it refused.
-PLAN_FILE = "docs/plan-2026-09-open-issues.md"
-HANDOVER_FILE = "docs/HANDOVER.md"
+PLAN_FILE = "dev/programme/plan-2026-09-open-issues.md"
+HANDOVER_FILE = "dev/programme/HANDOVER.md"
 
 #: The programme's tracking issue; the beat posts its coordination comment
 #: there (delivery-status-tracking.md item 3).
@@ -91,7 +91,7 @@ class Refuse(Exception):
 
 def row_line(number: int, title: str, merge_sha: str,
              group: str | None) -> str:
-    """The one-line row, in `docs/delivery/<N>.md`'s established shape.
+    """The one-line row, in `dev/programme/delivery/<N>.md`'s established shape.
 
     `- [#N](url) — **merged `sha7`**, <title> (<GROUP>).` The title is a
     GitHub API fact and may carry pipes or newlines: a `|` would read as a
@@ -106,7 +106,7 @@ def row_line(number: int, title: str, merge_sha: str,
 
 
 def row_path(number: int) -> str:
-    return f"docs/delivery/{number}.md"
+    return f"dev/programme/delivery/{number}.md"
 
 
 def open_row_line(number: int, title: str) -> str:
@@ -193,7 +193,7 @@ def plan_merges(merges: list[dict], root: Path,
 def write_rows(rows: list[dict], root: Path) -> list[str]:
     """Write row files behind the guarded write set; returns what was written.
 
-    Every path must match `docs/delivery/<N>.md` -- the plan table, the
+    Every path must match `dev/programme/delivery/<N>.md` -- the plan table, the
     handover, and any other path are refused, not skipped -- and a row file
     that already exists is left alone (the plan was stale, the tree won).
     Each file is exactly one line and a trailing newline: one line can
@@ -294,7 +294,7 @@ def pr_body(head_sha: str, base_sha: str, rows: list[dict]) -> str:
         "## Mutation proof",
         "",
         "n/a: record-only diff -- every file in this pull request is a "
-        "`docs/delivery/<N>.md` row file; there is no production, test or "
+        "`dev/programme/delivery/<N>.md` row file; there is no production, test or "
         "check code here to mutate.",
         "",
         "## Null control",
@@ -447,7 +447,7 @@ def self_test() -> int:
         # refusal here would read exactly like a passing path guard.
         _good_line = row_line(2052, "fix: one", "a" * 40, None)
         (root / "docs/delivery").mkdir(parents=True)
-        for _bad in (PLAN_FILE, HANDOVER_FILE, "docs/delivery/1.md.bak"):
+        for _bad in (PLAN_FILE, HANDOVER_FILE, "dev/programme/delivery/1.md.bak"):
             try:
                 write_rows([{"number": 2052, "path": _bad,
                              "line": _good_line}], root)
@@ -455,7 +455,7 @@ def self_test() -> int:
             except Refuse:
                 pass
         try:
-            write_rows([{"number": 1, "path": "docs/delivery/1.md",
+            write_rows([{"number": 1, "path": "dev/programme/delivery/1.md",
                          "line": "not anchored"}], root)
             ok("unanchored line refused", False)
         except Refuse:
@@ -471,12 +471,12 @@ def self_test() -> int:
         ok("plan both", [r["number"] for r in plan1] == [2052, 2053])
         ok("plan paths", all(ROW_PATH.match(r["path"]) for r in plan1))
         wrote = write_rows(plan1, root)
-        ok("wrote both", wrote == ["docs/delivery/2052.md",
-                                   "docs/delivery/2053.md"])
+        ok("wrote both", wrote == ["dev/programme/delivery/2052.md",
+                                   "dev/programme/delivery/2053.md"])
         ok("re-plan empty", plan_merges(merges, root, roster=None) == [])
         ok("re-apply empty", write_rows(plan1, root) == [])
         # a row file the anchor does not read is not a disposition
-        (root / "docs/delivery/2060.md").write_text(
+        (root / "dev/programme/delivery/2060.md").write_text(
             "| [#2060](https://github.com/o/r/pull/2060) | merged |\n")
         ok("table shape not a row",
            [r["number"] for r in plan_merges(
@@ -550,7 +550,7 @@ def self_test() -> int:
         except Refuse:
             _self_wrote = _self_again = None
         ok("self row written",
-           _self_wrote == ["docs/delivery/2002.md"])
+           _self_wrote == ["dev/programme/delivery/2002.md"])
         ok("self row already there", _self_again == [])
         saved_root = delivery_status.ROOT
         delivery_status.ROOT = root
@@ -617,7 +617,7 @@ def main() -> int:
     ap.add_argument("--print-comment", action="store_true",
                     help="print the #201 comment for --plan-file and --pr")
     ap.add_argument("--write-self-row", action="store_true",
-                    help="write docs/delivery/<--pr>.md for the open record "
+                    help="write dev/programme/delivery/<--pr>.md for the open record "
                          "pull request, anchoring its number and carrying no "
                          "merge SHA")
     ap.add_argument("--self-test", action="store_true")
