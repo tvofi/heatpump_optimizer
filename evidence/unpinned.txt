@@ -1,7 +1,0 @@
-form_problems 0
-completeness_problems 0
-rbase 6001b09a557259f37319b400d219cf83e02c563f
-  4695 unpinned site(s) of 5687 candidate sites, 4695 at the ratchet base 6001b09a557259f37319b400d219cf83e02c563f
-added 0
-configured_specs RETURN_DEL sites 1
-line370 custom_components/heatpump_optimizer/quiet_windows.py:configured_specs RETURN_DEL a8227ccf None     return out unpinned False
