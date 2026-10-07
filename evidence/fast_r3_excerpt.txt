@@ -1,0 +1,4 @@
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  ok   a timing miss fails a graded run and only prints under the closure recorder, where a pass still counts (#1987)
+  ok   with HPO_CLOSURE_RECORDING unset a timing miss fails, and only "1" exempts it -- the environment, not a default, decides (#2018)
+ALL 106 STRESS CHECKS PASSED

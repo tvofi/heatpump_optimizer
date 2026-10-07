@@ -1,4 +1,3 @@
-223f88c24cb52a33ff7a04799d60e5e3ee8e004f
 On PR #1987, `closures-autofix` returned `skip-failed-recording` three times, at heads `cf9de4e2`, `705c3be3` and `95ad5034`. Each time it masked a real UNDER-SCOPED, and the repair waited for a human. The UNDER-SCOPED was `tests/debug_collect.py` reading `quiet_windows.py`.
 
 The only failing recording was `tests/stress.py`, with `rc` 1. It ran to its end, and every check it failed was a CPU-ratio verdict, for example 329x against a 268x budget. The recorder runs stress.py beside two other lanes under an audit hook, so the ratio measures the recorder rather than the solver. In the same run, the gate ran stress.py alone on the box, read 247.5x, and passed.
@@ -11,9 +10,9 @@ This is a root-cause seat's countermeasure, state (c). The analysis, the class s
 
 ## Head
 
-`223f88c24cb52a33ff7a04799d60e5e3ee8e004f` merges the authored code head `e62b8b63c2d6545ce598d78ff3d1672772ef945f` and then merges origin/main `38c03d94` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`b956925c59005584c8543db2bee5974e5b385c59` merges origin/main `17f30f9c` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-e62b8b63c2d6545ce598d78ff3d1672772ef945f is the head. It merges `origin/main` 38c03d94 into 00834c66, and 00834c66 is a fast-forward of 7e197a6f, the round-1 review head, which added the delivery row. The commits are:
+223f88c24cb52a33ff7a04799d60e5e3ee8e004f is the pull request's head: the orchestrator's merge of e62b8b63 onto 7e197a6f. Its tree, d5f40a12, is identical to the tree of e62b8b63c2d6545ce598d78ff3d1672772ef945f. e62b8b63 merges `origin/main` 38c03d94 into 00834c66, and 00834c66 is a fast-forward of 7e197a6f, the round-1 review head, which added the delivery row. The commits are:
 
 - acf186b7 holds the code.
 - c799f329 adds the RCA document and the bugclasses entry.
@@ -70,6 +69,7 @@ Merge base `origin/main` 38c03d94. Re-run at e62b8b63, one after another:
 
 - `delivery-status` grades `main`, and this diff touches nothing it reads. It is red because main's `record-autofix` staged the old delivery path. #2011 fixes that.
 - `nightly-status` grades `main`, and this diff touches nothing it reads either.
+- `closures` (job 112810272267) and `closures-autofix` (job 112820973686, `skip-manual-repair-owed`) are red because of a failure inherited from main. Main's own `closures` run at 38c03d94 (job 112789710707) fails on the same line: `tests/harness_headers.py` reads `eg_b7_seam_hubs.py`, which #2017 added without a recording. A separate repair PR is in progress. Neither file is in this diff.
 
 ## Approval
 

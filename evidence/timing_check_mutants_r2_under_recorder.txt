@@ -1,6 +1,0 @@
-RESULT mutant='none' pin_checks=2 pin_failures=0 -> baseline
-RESULT mutant='T1 exempt passes too' pin_checks=2 pin_failures=1 -> killed
-RESULT mutant='T2 env read inverted' pin_checks=2 pin_failures=1 -> killed
-RESULT mutant='T3 env default to recording' pin_checks=2 pin_failures=1 -> killed
-RESULT mutant='T4 never exempt' pin_checks=2 pin_failures=2 -> killed
-RESULT env after pin: '1'

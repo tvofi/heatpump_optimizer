@@ -1,0 +1,430 @@
+diff --git a/dev/audit/rca/R9-RCA-stress-recording.md b/dev/audit/rca/R9-RCA-stress-recording.md
+new file mode 100644
+index 00000000..9b29527d
+--- /dev/null
++++ b/dev/audit/rca/R9-RCA-stress-recording.md
+@@ -0,0 +1,166 @@
++# R9-RCA-stress-recording: a stress.py timing miss read as a truncated recording
++
++The root-cause seat `r9c-rca-stress`. It ran beside PR **#1987** (`fix/r9-dbg-1`) and not
++inside it (`dev/governance/roles/root-cause.md`, `dev/governance/rules/defect-root-cause.md`).
++
++**Trigger.** This was the third instance on one PR, so it is a recurrence. At heads
++`cf9de4e2`, `705c3be3` and `95ad5034`, `closures` printed a real UNDER-SCOPED. The cause was
++that `tests/debug_collect.py` reads
++`custom_components/heatpump_optimizer/quiet_windows.py`. `closures-autofix` answered
++`skip-failed-recording` every time, so it never re-recorded the closure. The under-scope
++waited for a human for three pushes, from 20:26Z on 2026-10-06 to 02:57Z on 2026-10-07.
++
++**Class.** I2 (`bugclasses.json`, barriered): a closure diverges from the real dependency
++graph. This instance did not escape the barrier, because `closures` caught it. What failed
++was the repair path behind the barrier.
++
++## 1. Cause (reproduced from the runs' own artifacts)
++
++The three runs are Tests 37526452102, 37539776088 and 37564484318. In each, the
++`closure-recordings` artifact (`gh run download <run> -p closure-recordings`) holds
++`stress.py.json` with `"rc": 1`. It is the only recording with a nonzero rc. Each
++`stress.py.out` ends `N of 104 STRESS CHECKS FAILED`. Every `FAIL` line in those files is a
++CPU-ratio verdict:
++
++| run | head | stress.py FAIL lines (all timing) | recorded seconds |
++|---|---|---|---|
++| 37526452102 | cf9de4e2 | own-budget: typical_slab/winter 16.2x vs 11.3x | 825.2 |
++| 37539776088 | 705c3be3 | own-budget (3 scenarios); sweep 54.59x vs 52.44x | 756.4 |
++| 37564484318 | 95ad5034 | per-scenario CPU: 329x vs 268x | 1082.4 |
++
++The run reached its last line, so the recording is complete. The rc says nothing about
++truncation here. It reports a timing verdict made in a different environment from the
++gate:
++
++- **The gate** runs stress.py "alone on the box". In the `fast (3.14)` job of 37564484318 it
++  passed in 281 s with reference solve 28.2 ms. The worst scenario was 247.5x against the
++  268x budget.
++- **The recorder** runs stress.py under `tests/derive_closures.sh`'s lane 1. That lane runs
++  beside lanes 2 and 3, and an audit hook fires on every open. Under those conditions the
++  reference solve was 53.8 to 112.9 ms, and the worst scenario reached 178x to 329x.
++
++`apply_under_scoped_recordings` (`tests/closure.py`) returns `skip-failed-recording` for any
++`rc != 0` once UNDER-SCOPED is printed. `merge(allow_failures=False)` refuses the same
++records.
++
++**Contributing cause: the log line was wrong.** `derive_closures.sh`'s `rec()` printed
++`done $script (exit $?)` in one echo with `$(date ...)`. The `$?` it printed was therefore
++the date substitution's status, always 0. Every `closures` log in the table above prints
++`done tests/stress.py (exit 0)`. That is the log `ci-autofix.md` sends the reader to: "On
++`skip-failed-recording` the script named in the `closures` log stopped". The log named no
++script. A one-line bash reproduction shows this:
++`false; echo "[$(date +%H)] (exit $?)"` prints `(exit 0)`.
++
++## 2. Process state: (c), followed and wrong
++
++Each step worked as written. The recorder kept the rc. The autofix classified it and went
++red, as `#528` meant it to. The rule told the reader to fix the named script. The defect is
++in the unit the autofix uses: **`rc != 0` stands for "stopped early"**, and stress.py breaks
++that equivalence. It is the one recorded script whose verdicts depend on the machine it runs
++on.
++
++This is not (b), because nothing was skipped. It is not (d) either, because the precondition
++never held:
++
++- stress.py's CPU budgets date from #77 (2026-08-28).
++- Lane 1 has run stress.py beside the other lanes since #84 (2026-08-28).
++- `skip-failed-recording` dates from #528 (2026-09-06).
++
++What changed was the headroom, not the rule. The constants were re-derived against the
++alone-on-box ruler in F2.5 (`0e3dc0a3`, 2026-09-28), and the budgets in F10.2 (`3d844990`,
++2026-10-01). The gate's own margin is now 8% (247.5x against 268x). The recording
++environment crosses that margin, and every attributable instance is dated 2026-10-05 or
++later. The rule also already describes this kind of failure: `ci-autofix.md`'s truncation
++bullet says a script "that fails *only* under recording" would not redden `fast`. A firmer
++instruction would therefore add nothing. The countermeasure has to change the unit.
++
++## 3. How far the class reaches
++
++The seat searched `pull_request` Tests runs since 2026-09-27: 700 runs, 0 API page
++failures. It used `gh api .../actions/workflows/tests.yml/runs` and `.../runs/<id>/jobs`.
++Results:
++
++- **28** red `closures-autofix` jobs, and **17** of them were `skip-failed-recording`.
++- **8** of those 17 still have a `closure-recordings` artifact.
++- **5** were stress.py alone with every FAIL a timing verdict:
++  - fix/r9-dbg-1 ×3: the three runs in section 1.
++  - fix/r9-sw-5: 37525837411. Per-scenario CPU 306x.
++  - fix/r9-sw-model-pr: 37360319023. Own-budget winter/1z/dhw.
++- **1** was stress.py's timing failures together with four scripts that genuinely failed:
++  fix/r9-sw-model-pr, 37251378678 (config_flow_steps, doc_claims, entities,
++  harness_headers).
++- **1** was a genuine failure in harness_headers.py: 37453972072, with header figures off by
++  one.
++- **9** could not be attributed. No artifact remains, and the log printed `exit 0` for every
++  script.
++
++So of the 8 that can be attributed, 5 were false positives, and all 5 were caused by
++stress.py's timing verdicts. Other scripts that read a clock: `replay.py` and
++`nightly_ha.py` are not recorded, and `structure.py` reads only a thread factor. stress.py is
++the whole known reach.
++
++## 4. Cost test
++
++Each side is measured in wall-clock time per release cycle.
++
++- **cost(defect)** is at least one extra full CI cycle per occurrence. On #1987 that was
++  three pushes over 6.5 h, and each `closures` job took about 45 min. A seat must also
++  diagnose the cause by hand. With the log reporting `exit 0`, that meant downloading
++  artifacts. Taking 70 min per occurrence as a floor, and the measured frequency of 5
++  occurrences in 2.1 days since 2026-10-05, gives about **2.4 occurrences a day, or about
++  165 min a day**.
++- **cost(countermeasure, recurring)**:
++  - One `os.environ.get` per timing verdict, which is negligible.
++  - stress.py's own pin, which takes milliseconds.
++  - Four `closure.py selftest` pins. The selftest runs on every gate (`run_always` in
++    `run.sh`). Three runs each at `origin/main` and at the head, with machine load around
++    450, gave medians of 5.44 s and 9.14 s. That is **+3.7 s per gate run** at that load.
++    At about 70 PR runs a day, that is about **4.3 min a day**.
++
++4.3 min a day is less than 165 min a day, so the countermeasure is built. The bound holds:
++no budget changes, and no check is weakened where the suite grades.
++
++## 5. Countermeasure (this branch)
++
++It addresses state (c). The rc returns to meaning only "the run reached its end".
++
++1. `tests/closure.py` `record()` sets `HPO_CLOSURE_RECORDING=1` (`RECORDING_ENV`) in the
++   environment of the script it records.
++2. `tests/stress.py` adds `timing_check()`, which replaces `R.check` at its six CPU and
++   wall-clock verdicts:
++   - per-scenario CPU
++   - own-budget
++   - dramatically-cheaper
++   - kernel per-call
++   - sweep
++   - pathological wall ceiling
++
++   Under the recorder a miss prints `note ... not graded under the closure recorder` and
++   is not counted. Everywhere else it fails as before. Every other check still counts under
++   the recorder, so a genuine stress.py failure still reddens the recording.
++3. `tests/derive_closures.sh` captures `rc` on its own line, so the `done` line reports the
++   recording's real exit.
++
++**Demonstrated, failing on the defect and passing once fixed** (evidence in the seat's
++`evidence/`):
++
++- *End-to-end on the real recordings.* The base `apply_under_scoped_recordings` ran at the
++  #1987 head `95ad5034`, replaying each run's artifact. The artifact as CI wrote it gives
++  **`skip-failed-recording`** for all three runs. With stress.py's rc set to what the
++  countermeasure yields, the result is **`changed`**. The rc becomes 0 because every FAIL
++  line is one of the six timing checks, and the non-timing count was 0 in all three. The
++  re-recorded closure of `tests/debug_collect.py` then lists `quiet_windows.py`.
++- *Selftest pins, mutation-proven.*
++  - Reverting `derive_closures.sh` to main fails `done line reports a recording's exit 3`,
++    because main prints `(exit 0)` for a stub that exits 3.
++  - Dropping the env assignment fails `record() runs the script with
++    HPO_CLOSURE_RECORDING=1`, because the probe saw `''`.
++  - The head passes 36 of 36.
++- *Null controls.*
++  - The `exit 0` arm of the derive pin still passes at main, so the pin is not
++    reading the stub's absence.
++  - stress.py's pin checks that a graded miss still fails (`(1, 0, 1)`), so the recorder's
++    exemption cannot make the gate green by skipping.
++
++**Residual, left open.** The 9 unattributable runs remain unexplained. From now on, the
++corrected `done` line names the failing script in the `closures` log itself.
+diff --git a/dev/programme/delivery/2018.md b/dev/programme/delivery/2018.md
+new file mode 100644
+index 00000000..82208308
+--- /dev/null
++++ b/dev/programme/delivery/2018.md
+@@ -0,0 +1 @@
++- [#2018](https://github.com/tvofi/heatpump_optimizer/pull/2018) — **open**, fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit (R9-RCA-stress)
+diff --git a/tests/closure.py b/tests/closure.py
+index 9b91ebac..893a9ff0 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -1145,12 +1145,22 @@ def _warm_index() -> None:
+             time.sleep(0.5)
+ 
+ 
++RECORDING_ENV = "HPO_CLOSURE_RECORDING"
++
++
+ def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
+     _warm_index()
+     out_dir.mkdir(parents=True, exist_ok=True)
+     out = out_dir / (Path(script).name + ".json")
+     env = dict(os.environ)
+     env["PYTHONPATH"] = str(ROOT / "tests" / "hastub") + os.pathsep + env.get("PYTHONPATH", "")
++    # Tells the script it is being recorded, not graded: stress.py then prints
++    # a CPU or wall-clock miss instead of failing on it, because beside two
++    # other recording lanes and this hook the ratio measures the recorder. A
++    # run that reached its end and exited 1 on a timing verdict otherwise
++    # reads as truncated, and `skip-failed-recording` left a real UNDER-SCOPED
++    # for a human three times on #1987 (dev/audit/rca/R9-RCA-stress-recording.md).
++    env[RECORDING_ENV] = "1"
+     if script.endswith(".mjs"):
+         return _record_node(script, str(out), env)
+     cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
+@@ -3138,6 +3148,33 @@ def selftest() -> int:
+             buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
+             repr(buf.getvalue()))
+ 
++    print("\n=== a recording's rc says whether it ended, and the log says it (#1987) ===")
++    with tempfile.TemporaryDirectory() as td:
++        td_path = Path(td)
++        seen = td_path / "seen"
++        probe = td_path / "probe.py"
++        probe.write_text("import os, sys\n"
++                         f"open(sys.argv[1], 'w').write(os.environ.get({RECORDING_ENV!r}, ''))\n")
++        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
++            record(str(probe), td_path / "rec", [str(seen)])
++        got = seen.read_text() if seen.is_file() else None
++        pin(f"record() runs the script with {RECORDING_ENV}=1, the flag stress.py "
++            "keys its timing verdicts on", got == "1", f"the script saw {got!r}")
++        pin("stress.py reads the same variable name",
++            f'CLOSURE_RECORDING_ENV = "{RECORDING_ENV}"'
++            in (ROOT / "tests" / "stress.py").read_text())
++        for code in (3, 0):
++            stub = td_path / f"py{code}"
++            stub.write_text(f"#!/bin/sh\nexit {code}\n")
++            stub.chmod(0o755)
++            res = subprocess.run(
++                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
++                 "--record-only", "--out-dir", str(td_path / f"d{code}")],
++                cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
++                capture_output=True, text=True)
++            pin(f"derive_closures.sh's done line reports a recording's exit {code}",
++                f"done   tests/x.py (exit {code})" in res.stdout, res.stdout[-300:])
++
+     if failed:
+         print(f"\n{failed} of {n} closure shrink pins FAILED")
+         return 1
+diff --git a/tests/derive_closures.sh b/tests/derive_closures.sh
+index bfbc6013..6f92da88 100755
+--- a/tests/derive_closures.sh
++++ b/tests/derive_closures.sh
+@@ -78,7 +78,11 @@ rec() {
+   echo "  [$(date +%H:%M:%S)] record $script $*"
+   $PYTHON tests/closure.py record "$script" --out-dir "$OUTDIR" --args "$@" \
+     > "$OUTDIR/$(basename "$script").out" 2>&1
+-  echo "  [$(date +%H:%M:%S)] done   $script (exit $?)"
++  # Captured on its own line: inside the echo below, $? would already be the
++  # $(date) substitution's status, and every script read "exit 0" -- a stress.py
++  # recording that exited 1 included, the one skip-failed-recording names.
++  local rc=$?
++  echo "  [$(date +%H:%M:%S)] done   $script (exit $rc)"
+ }
+ 
+ if [ -n "$SINGLE" ]; then
+diff --git a/tests/stress.py b/tests/stress.py
+index a5c90803..302c31e4 100644
+--- a/tests/stress.py
++++ b/tests/stress.py
+@@ -32,6 +32,7 @@ import ast
+ import contextlib
+ import copy
+ import inspect
++import io
+ import itertools
+ import json
+ import os
+@@ -768,6 +769,30 @@ from heatpump_optimizer.thermal_model import (
+ 
+ R = Results("Stress and economics")
+ 
++#: Set by `tests/closure.py record`, and by nothing that grades. A recording
++#: wants this run's file reads; its CPU and wall-clock verdicts measure the
++#: recorder instead -- two other lanes on the runner and an audit hook on every
++#: open (PR #1987: 329x against the 268x budget where the gate, alone on the
++#: box, read 247.5x). Failing on one exits 1 from a run that reached its end,
++#: which `closures-autofix` reads as a truncated recording.
++CLOSURE_RECORDING_ENV = "HPO_CLOSURE_RECORDING"
++
++
++def timing_check(name, condition, detail="", *, results=None, recording=None):
++    """`R.check` for a verdict on this machine's CPU time or wall clock.
++
++    Binding wherever the suite grades. Under the closure recorder a miss is
++    printed and not counted, so the recording's rc says only whether the run
++    got to its end; every other check still counts there.
++    """
++    results = R if results is None else results
++    if recording is None:
++        recording = os.environ.get(CLOSURE_RECORDING_ENV) == "1"
++    if recording and not condition:
++        print(f"  note {name} -- not graded under the closure recorder  [{detail}]")
++        return False
++    return results.check(name, condition, detail)
++
+ START = datetime(2026, 1, 15, 0, 0)
+ 
+ # Season -> (price profile, weather profile). Paired because a summer price
+@@ -3256,6 +3281,41 @@ if __name__ == "__main__":
+         "a sweep of one no-valve plant must leave the valve axes unsampled",
+     )
+ 
++    # The recorder's exemption, narrow in both directions: a timing miss fails
++    # a graded run, is printed and not counted under the closure recorder, and
++    # a pass counts in both -- so a recording still says the run got to its end.
++    with contextlib.redirect_stdout(io.StringIO()):
++        _graded, _recorded = Results("graded"), Results("recorded")
++        timing_check("probe", False, results=_graded, recording=False)
++        timing_check("probe", False, results=_recorded, recording=True)
++        timing_check("probe", True, results=_recorded, recording=True)
++        # ...and the default, which is what every real call site uses: the
++        # environment alone decides, unset grading and "1" recording.
++        _saved = os.environ.pop(CLOSURE_RECORDING_ENV, None)
++        try:
++            _env_graded, _env_recorded = Results("env unset"), Results("env 1")
++            timing_check("probe", False, results=_env_graded)
++            os.environ[CLOSURE_RECORDING_ENV] = "1"
++            timing_check("probe", False, results=_env_recorded)
++        finally:
++            os.environ.pop(CLOSURE_RECORDING_ENV, None)
++            if _saved is not None:
++                os.environ[CLOSURE_RECORDING_ENV] = _saved
++    R.check(
++        "a timing miss fails a graded run and only prints under the closure "
++        "recorder, where a pass still counts (#1987)",
++        (_graded.failures, _recorded.failures, _recorded.checks) == (1, 0, 1),
++        f"graded {_graded.failures} failure(s); recorded "
++        f"{_recorded.failures} of {_recorded.checks}",
++    )
++    R.check(
++        f"with {CLOSURE_RECORDING_ENV} unset a timing miss fails, and only "
++        "\"1\" exempts it -- the environment, not a default, decides (#2018)",
++        (_env_graded.failures, _env_recorded.failures) == (1, 0),
++        f"unset: {_env_graded.failures} failure(s); set to 1: "
++        f"{_env_recorded.failures}",
++    )
++
+     # ===========================================================================
+     # The single-scenario detection statistic (#346), compared in one
+     # environment rather than against a recorded table (#387)
+@@ -4468,7 +4528,7 @@ if __name__ == "__main__":
+         f"{_worst[0]:.1f}x its {_worst[3]:.1f} ms reference; budget is "
+         f"{live_solve_budget_ratio():.0f}x"
+     )
+-    R.check(
++    timing_check(
+         "every scenario's solve costs what it should, in CPU, for this machine",
+         not slow,
+         "; ".join(slow),
+@@ -4506,12 +4566,12 @@ if __name__ == "__main__":
+             )
+             for _line in _re_measured:
+                 print(f"  {_line}")
+-        R.check(
++        timing_check(
+             "no scenario exceeds its own recorded cost by the budget factor",
+             not over_budget,
+             "; ".join(over_budget),
+         )
+-        R.check(
++        timing_check(
+             "no scenario got dramatically cheaper without a re-record",
+             not stale_cheap,
+             "; ".join(stale_cheap),
+@@ -4658,7 +4718,7 @@ if __name__ == "__main__":
+             "batched gradient at 1.0000x of the evaluation count and "
+             "1.9868x of this one)",
+         )
+-        R.check(
++        timing_check(
+             "no scenario's simulate kernel got slower per call on an "
+             "unchanged plan (round-5 D9-07)",
+             not drift.cost_over,
+@@ -5087,7 +5147,7 @@ if __name__ == "__main__":
+         f"{sweep_reference_ms / 1000.0:.1f} s of reference CPU = "
+         f"{_sweep_ratio:.2f}x; budget is {SWEEP_BUDGET_RATIO:.2f}x"
+     )
+-    R.check(
++    timing_check(
+         "the sweep as a whole costs what it has always cost, relative to this machine",
+         _sweep_ratio <= SWEEP_BUDGET_RATIO,
+         f"{sweep_solve_ms / 1000.0:.1f} s of solver CPU vs "
+@@ -5346,7 +5406,7 @@ if __name__ == "__main__":
+     # consume no CPU and would sail through every check above while making the
+     # gate take an hour longer. The wall clock is the only thing that sees them,
+     # which is why this ceiling stays on the wall clock and stays in the file.
+-    R.check(
++    timing_check(
+         "no scenario hits the absolute pathological-solve ceiling",
+         not pathological,
+         f"wall-clock ceiling {SOLVE_CEILING_MS:.0f} ms: " + "; ".join(pathological),
+diff --git a/tools/audit/bugclasses.json b/tools/audit/bugclasses.json
+index 71af53a2..580e6199 100644
+--- a/tools/audit/bugclasses.json
++++ b/tools/audit/bugclasses.json
+@@ -924,7 +924,8 @@
+     "status": "barriered",
+     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
+     "rca": [
+-      "BULK-2-I2"
++      "BULK-2-I2",
++      "R9-RCA-stress-recording"
+     ],
+     "rca_planned": [],
+     "trigger": {
+@@ -3669,6 +3670,22 @@
+         "dev/audit/rca/R9-RCA-1985.md"
+       ],
+       "in_tree_home": "dev/audit/rca/R9-RCA-1985.md"
++    },
++    "R9-RCA-stress-recording": {
++      "class": "I2",
++      "level": "instance-or-process",
++      "subject": "#1987 closures-autofix answered skip-failed-recording three times over a real UNDER-SCOPED because tests/stress.py exited 1 on CPU-ratio verdicts only under the closure recorder",
++      "trigger": "recurrence (3rd instance on #1987; 5 of 8 attributable skip-failed-recording runs since 2026-09-27)",
++      "date": "2026-10-07",
++      "status": "done",
++      "parts_missing": [],
++      "process_state": "(c)",
++      "countermeasure": "closure.py record sets HPO_CLOSURE_RECORDING=1; stress.py's six CPU/wall verdicts print rather than count under it (timing_check); derive_closures.sh reports the recording's real exit; pinned in closure.py selftest and stress.py",
++      "landed": null,
++      "doc": [
++        "handoff/r9-rca-stress-recording"
++      ],
++      "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
+     }
+   }
+ }

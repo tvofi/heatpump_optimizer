@@ -1,5 +1,0 @@
-tests/closure.py same_patch=yes
-tests/derive_closures.sh same_patch=yes
-dev/audit/rca/R9-RCA-stress-recording.md same_patch=yes
-dev/programme/delivery/2018.md same_patch=yes
-tree(223f88c2)==tree(e62b8b63)
