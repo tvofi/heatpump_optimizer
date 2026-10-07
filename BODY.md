@@ -14,6 +14,8 @@ Main was merged in three times (3910026e, 38c03d94, e0f0b6fb). Each resolution k
 
 ## Head
 
+`0d45191fe0243cf48c711a7f46d1cac82b634ca1` merges the authored code head `d81907ad872378051cab14f0145487eb1cdd47a4` and then merges origin/main `f637d24a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 d81907ad872378051cab14f0145487eb1cdd47a4
 
 Delta since d15fc0ae (the previous handoff head), four commits: the merge and three follow-ups. The first merges `origin/main` 8d7903e6 (after #1987 R9-DBG-1 and R9-SW-1's quiet-window refactor). Six files conflicted:
@@ -26,6 +28,35 @@ Delta since d15fc0ae (the previous handoff head), four commits: the merge and th
 Two things the merge itself needed. `python3 tools/pr/ci_predict.py` (from `origin/fix/r9-ro-11-pr`, run from a scratch copy) predicted `closures UNDER-SCOPED`: `tests/debug_collect.py` (main's, new) reaches `entry_config.py` through the coordinator and its closure omitted it; added, and the predictor then printed no closures red. `tests/structure.py` failed `max_class_loc` 8823 > 8821, because the two parents' budget cuts are additive and main's added coordinator lines are not; the fix is code, not a raise: the `dhw_schedule_enabled` assignment and the `async_set_cooling_rate` call are one line each (-4 lines in the class). A first attempt that collapsed `configured_quiet_windows`'s `return out` was reverted: `entities.py`'s mutation-ledger check refused it, because main's `RETURN_DEL` pin names that exact line. The class now measures 8819 and the budget is recorded 8821 -> 8819 (down only; no raise).
 
 `tests/entities.py` also needed one disposition: main's `debugger.py` reads `entry.options.get(CONF_DEBUG_COLLECT, ...)`, an options-only flag `EntryConfig` does not declare, so it is listed in `_EC_RESIDUAL` with the reason (`UNCLASSIFIED ['debugger.py']` before).
+
+## Mutation proof
+
+Applied in place to the committed head tree, `PYTHONPATH=tests/hastub python3 tests/entities.py` run, then `git checkout -- custom_components` (tree clean after each). The baseline at 057028f3 failed 1 check: the deployment-shape selection-cost note. That commit fixes it; the mutants ran before it.
+
+- M1, `_number` keeps a non-finite value (`return result`): 2 of 2210 failed. The added one is "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 reads the default volume; null control: 7.5 and 150 pass through", with `non-finite=[nan, inf, -inf]`.
+- M7, `_nonzero_number` keeps 0 (`return _number(value, default)`): 2 of 2210 failed. The added one is the same check, with `tank=0.0`.
+- RETURN_DEL on `IndoorTempSensor.extra_state_attributes` (`pass`): 5 of 2210 failed, among them "the indoor sensor publishes its thermometer's id, None without one" and "IndoorTempSensor publishes exactly its pinned attribute keys (#373)".
+
+The live quiet apply is pinned by `entities.py`'s check "a stored None quiet spec reads unset, and a quiet window set by the service applies live through a new parse that equals the saved entry (no reload), the old parse untouched". The two restored `apply_config_keys` pins name it as killed by `tests/features.py` on main's measurement.
+
+Disposition of the mutation lane:
+- **Unmeasured added sites.** CI's mutation job at a390f589 (job 112880877079) started none of the 55 sites this diff added: "55 not started for --budget-minutes". This round adds a few more. They are left to CI's chain: `mutation-autofix` pins what it kills once the lane measures, and no site is pinned or triaged locally (fixer.md step 2).
+- **Seven deleted killed_by pins.** Each was keyed to the text of a line this diff rewrote from a mapping read to a parsed-field read, so its anchor names a line that no longer exists:
+  - `HeatPumpOptimizerCoordinator._pv_export_price` RETURN_DEL: the return now reads `self.effective_config.pv_export_price`.
+  - `HeatPumpOptimizerCoordinator._solve_record` GUARD_OFF: the guard now reads `ctx._config.fuse_guard_enabled`.
+  - `HeatPumpOptimizerCoordinator.target_temperature` RETURN_DEL: the return now reads `EntryConfig.from_mapping(...).target_temperature`.
+  - `_grid_fee_entity_value` RETURN_DEL: the return now reads `.grid_fee_entity`.
+  - `_price_feed` RETURN_DEL: the return now reads `cfg.price_entity`.
+  - `pump_arbiter.duty_mode` RETURN_DEL: the return now reads `.pump_duty_mode`; the clamp to `PUMP_DUTY_MODES` moved into `EntryConfig`'s `_one_of`.
+  - `IndoorTempSensor.extra_state_attributes` RETURN_DEL: re-earned locally above (5 checks), and left to `mutation-autofix` to pin.
+
+  The other six are each the same mutation on the rewritten line, killed on main by `tests/features.py`. That script is CI's under the owner's 2026-10-07 rule, so their re-pins are CI's chain's.
+
+## Null control
+
+- The reviewer's `quiet_reload_driver.py` (round 1 evidence) at 057028f3, real call: `live_spec='09:00-09:30' live_off_steps=2 live_fraction=0.8`, `reloaded=0`. The empty call: `reloaded=0`, no spec. These are main's figures in the reviewer's run. The reviewer's run at a390f589 read `live_spec=''` and `reloaded=1`.
+- `closure.py check --partial` was run against stand-in recordings: one per script CI named, each listing a390f589's committed closure plus the files CI said it really reads. Against this head's `tests/closures.json`: rc=0, "committed closures cover every file this run touched". Against a390f589's: rc=1, 21 `UNDER-SCOPED` lines.
+- The M1/M7 check carries its own null arm: 7.5 and 150 pass through unchanged.
 
 ## Figures
 
