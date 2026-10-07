@@ -585,6 +585,31 @@ R.check(
     stale.self_tests is None and stale.final is False,
     str(stale.self_tests)[:200],
 )
+async def _overtaken():
+    pending: list = []
+    collector = debugger.DebugCollector(FakeHass(), "dbg", pending.append)
+    collector._read = lambda: _no_stores()
+    coord = _SimCoord()
+    collector.record(coord, {"mode": "auto"}, T0)
+    collector.finalize(coord)
+    first = pending[-1]
+    collector.restart()
+    collector.record(coord, {"mode": "auto"}, T0 + timedelta(days=1))
+    collector.finalize(coord)
+    await first
+    for coro in pending:
+        if coro is not first:
+            coro.close()
+    return collector
+
+
+overtaken = asyncio.run(_overtaken())
+R.check(
+    "the first collection's self-tests, finishing after a second collection was also "
+    "finalized, are discarded",
+    overtaken.final and overtaken.self_tests is None,
+    str(overtaken.self_tests)[:200],
+)
 cleared, _ = _collector()
 cleared.started_at, cleared.final, cleared.self_tests = T0, True, {"feeds": {"ms": 1.0}}
 cleared.restart()

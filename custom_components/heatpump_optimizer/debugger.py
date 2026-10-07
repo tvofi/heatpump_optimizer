@@ -223,10 +223,12 @@ def spread(values: list[float]) -> dict[str, Any] | None:
 
 
 def _longest_flat(values: list[Any]) -> int:
+    """The longest run of one unchanged reading: a sensor that stopped updating."""
     longest = run = 0
-    for index, value in enumerate(values):
-        run = run + 1 if index and value == values[index - 1] else 1
-        longest = max(longest, run)
+    previous: Any = object()
+    for value in values:
+        run = run + 1 if value == previous else 1
+        longest, previous = max(longest, run), value
     return longest
 
 
