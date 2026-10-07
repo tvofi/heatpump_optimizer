@@ -37,29 +37,32 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 90
+records every read, so this lane's recorded closure is the package: all 91
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (89 until R9-EG-B11's ``entry_config.py``, 88 until R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+alike (90 until R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 112 of the 496 script pairs (32 choose 2) sharing 0.80 or more
-of their production-module closure, all 112 among the 378 pairs whose two
+recording finds 120 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure, all 120 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
 R9 F10.3's strace instrument recorded its round-harness children's imports;
 doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
 added icons.json and services.yaml to doc_claims.py's closure; #1935's
-tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80; R9-EG-B11's
-entry_config.py, recorded in every closure that imports it, added 6 more).
-Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
-(80 shared production files), structure.py/typing_ruler.py (72),
-finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (72
-each), plan_view.py/solar_alignment.py (55), the optimality.py/validate.py/
-edge.py/backtest.py four (20, six pairs), golden.py/env_drift.py (88),
-card.mjs/card_drift.mjs (56) -- and which
+tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
+``tests/debug_collect.py`` joined when the debug-collector pin driver was
+recorded, adding 7 pairs at >= 0.80).
+Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py
+(91 shared production files), entities.py/harness_headers.py,
+doc_claims.py/entities.py and doc_claims.py/harness_headers.py (81 each),
+structure.py/typing_ruler.py (73), finite_boundary.py/structure.py and
+finite_boundary.py/typing_ruler.py (73 each), plan_view.py/solar_alignment.py,
+boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
+(55 each), the optimality.py/validate.py/edge.py/backtest.py four (20, six
+pairs), golden.py/env_drift.py (89), card.mjs/card_drift.mjs (56) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here

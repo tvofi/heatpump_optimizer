@@ -5487,6 +5487,13 @@ class _AllGates:
 _healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken.last_update_success = False
+# The finalize button's gate is a running collection, not a payload field.
+# Both coordinators hold one, so a forgotten ``super().available and`` is the
+# only thing that would leave the button up after a failed refresh.
+from heatpump_optimizer.debugger import DebugCollector as _DbgCollector
+from heatpump_optimizer.debugger import _COLLECTORS as _DBG_HELD
+for _coord in (_healthy, _broken):
+    _DBG_HELD[_coord] = _DbgCollector(_coord.hass, ENTRY.entry_id, lambda coro: None)
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
 # a user reaches for when the last refresh failed -- but a press during an
@@ -6502,11 +6509,12 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
+R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
     "Learning Reset Comfort Weight",
+    "Learning Finalize Debug Collection",
     "Prediction Accuracy Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
@@ -11548,6 +11556,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "hours_until_return", "recovery_active", "return_time", "source"
     }),
     "ComfortWeightSensor": frozenset({"configured", "learned", "overrides"}),
+    "DebugFinalizeButton": frozenset({"waiting_for"}),
     "CompressorStartsSensor": frozenset({
         "lifetime", "month", "wear_price_per_start"
     }),
@@ -12093,6 +12102,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "plan_dhw_heating": "Plan ",
     },
     "button": {
+        "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
     },
@@ -14587,6 +14597,13 @@ R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
 )
+_dbg_status = _svc_call(const.SERVICE_DEBUG_COLLECT, {"action": "status"})
+R.check(
+    "debug_collect status with nothing collecting reports idle",
+    _dbg_status["debug"][_svc_entry.entry_id]["active"] is False
+    and _dbg_status["debug"][_svc_entry.entry_id]["rows"] == 0,
+    str(_dbg_status),
+)
 R.check(
     "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
     "diagnose" in _svc_log
@@ -14611,6 +14628,7 @@ _svc_covered = {
     const.SERVICE_CLEAR_MANUAL_PLAN,
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
+    const.SERVICE_DEBUG_COLLECT,
 }
 R.check(
     "every registered service was invoked above",
