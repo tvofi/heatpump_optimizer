@@ -5782,7 +5782,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets its
             # sample count, so the learner starts from it again.
-            await self._dhw_learner.async_set_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
+            await self._dhw_learner.async_set_cooling_rate(
+                float(params[CONF_DHW_COOLING_RATE])
+            )
 
         # The displace limits are mirrored for the MQTT publisher, which
         # clamps against them without going through the model.
@@ -5795,7 +5797,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 setattr(self, attribute, params[name])
 
         if CONF_DHW_SCHEDULE_ENABLED in params:
-            ctx._thermal_params.dhw_schedule_enabled = bool(params[CONF_DHW_SCHEDULE_ENABLED])
+            ctx._thermal_params.dhw_schedule_enabled = bool(
+                params[CONF_DHW_SCHEDULE_ENABLED]
+            )
         self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
         if CONF_DHW_WINDOWS in params:
             try:
@@ -8437,12 +8441,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _fuse_kw(self) -> float | None:
         """The main fuse's continuous capacity, or None when unconfigured."""
-        config = self.effective_config
-        amps = config.main_fuse_amperes
-        if amps <= 0:
-            return None
-        phases = int(config.main_fuse_phases)
-        return amps * max(1, phases) * 230.0 / 1000.0
+        return self.effective_config.fuse_kw()
     def _power_headroom(self) -> PowerHeadroom:
         """How many kW the house can draw right now without new cost (#5).
 
@@ -8560,8 +8559,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             return
 
-        phases = int(self.effective_config.main_fuse_phases)
-        candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
+        candidate_kw = self.effective_config.fuse_kw_at(smaller)
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
         # Solve on the card's harness, never on its budget (#1753): with
