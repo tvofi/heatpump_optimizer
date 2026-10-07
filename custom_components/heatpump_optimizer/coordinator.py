@@ -5782,9 +5782,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if CONF_DHW_COOLING_RATE in params:
             # An explicit value replaces the learned one and resets its
             # sample count, so the learner starts from it again.
-            await self._dhw_learner.async_set_cooling_rate(
-                float(params[CONF_DHW_COOLING_RATE])
-            )
+            await self._dhw_learner.async_set_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))
 
         # The displace limits are mirrored for the MQTT publisher, which
         # clamps against them without going through the model.
@@ -7603,7 +7601,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return format_windows(params.dhw_windows)
 
     def configured_quiet_windows(self) -> dict[str, str]:
-        return quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
+        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
+        return out
 
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.

@@ -4192,6 +4192,9 @@ _EC_DISPOSITIONS = {
 _EC_RESIDUAL = {
     "away.py": "config_from_mapping builds AwayConfig, the away subsystem's own parsed "
                "object; _migrate_helpers pops keys off the stored options it rewrites",
+    "debugger.py": "the collector switch is an options-only flag, read from the entry's own "
+                   "options at setup and written back through an options update; EntryConfig "
+                   "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
