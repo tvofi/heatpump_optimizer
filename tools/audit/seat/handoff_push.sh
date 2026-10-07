@@ -2,9 +2,9 @@
 # handoff_push.sh <handoff-topic> <code-sha-full> "<title>" [merge-main]
 # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
 # retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
-# row here because it is the seat that learns N (.claude/rules/delivery-status-tracking.md).
+# row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
 # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
-# docs/HANDOVER.md names it.
+# dev/programme/HANDOVER.md names it.
 set -uo pipefail
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
 # The main checkout is the one this script's checkout shares its object store with; a PR's
@@ -17,7 +17,7 @@ git fetch -q origin "handoff/$TOPIC" || { echo "no handoff/$TOPIC"; exit 1; }
 T="origin/handoff/$TOPIC"
 git merge-base --is-ancestor "$CODE" "$T" || { echo "code head $CODE is not under $T"; exit 1; }
 CODE=$(git rev-parse "$CODE")
-git diff --name-only "$CODE" "$T" | grep -vqE '^(tools/audit/handoff/|handoff/)' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
 # The body: BODY.md at the tip of the orphan ref handoff-body/$TOPIC (body_push.sh), else the legacy
 # transport commit above the code head, until no open handoff carries one.
 if git fetch -q origin "refs/heads/handoff-body/$TOPIC" 2>/dev/null; then

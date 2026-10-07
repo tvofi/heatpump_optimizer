@@ -333,7 +333,7 @@ def _self_test() -> int:
             if "--corpus-filter" in a:
                 if world.get("broken_filter"):
                     return 0, ""
-                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "tools/audit/briefs/fixer.md"))
+                return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -390,11 +390,11 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"files": ["custom_components/x.py", f"{ROW_DIR}/7.md",
-                                     "tools/audit/briefs/fixer.md"],
-                           "approve": (1, "REFUSE: #7 touches code-owned paths (tools/audit/briefs/fixer.md); the owner's")},
+                                     "dev/governance/roles/fixer.md"],
+                           "approve": (1, "REFUSE: #7 touches code-owned paths (dev/governance/roles/fixer.md); the owner's")},
                           mandate="mandate 1 (tvofi)")
     check("a policy pull request is never approved, even under a mandate", rc == 1 and "policy:" in lines[-1]
-          and "tools/audit/briefs/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
+          and "dev/governance/roles/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
           and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
     rc, lines, calls = go({"heads": [H0, H1]})
     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]

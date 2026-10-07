@@ -75,7 +75,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
          "`CLAUDE.md` at the checkout root -- the index: every policy file and "
          "the obligation each carries. Then the `.claude/rules/` file each "
          "task touches, loaded when it binds. Then the seat brief your work "
-         "names under `tools/audit/briefs/` (the fixer's is `fixer.md`). "
+         "names under `dev/governance/roles/` (the fixer's is `fixer.md`). "
          "Call the owner tvofi.", "",
          "## Load the state", "",
          "```bash",
@@ -216,6 +216,16 @@ def _self_test() -> int:
     check("done criteria", "resume.stage" in text and "dev/programme/delivery/" in text)
     check("resume steps", "Claim one ready group" in text
           and "#201" in text)
+    # Every repository path the prompt names is in the tree (#1990's RCA: a
+    # move left `tools/audit/briefs/` here after its contracts went to
+    # dev/governance/roles/). A templated `<N>` file is checked by its directory.
+    import re as _re
+    _root = Path(__file__).resolve().parents[3]
+    _named = sorted(set(_re.findall(r"`((?:tools|dev|docs|tests|\.claude)/[^`\s]*)`", text)))
+    _gone = [q for q in _named
+             if not (_root / (q.rsplit("/", 1)[0] if "<" in q else q)).exists()]
+    check("every repository path the prompt names exists"
+          + (f" (missing: {', '.join(_gone)})" if _gone else ""), _named and not _gone)
 
     # empty roster: no in-flight block, ready-next says none.
     empty = render({"groups": [], "repo": "r"}, "fixture", "", "",
