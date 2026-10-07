@@ -1,31 +1,22 @@
-Fix review: merge 1d494f01c492d497b0457ec5486380becac1886c
+Fix review: merge 22eab552c61d34943b7d314f964c2959ab36b4ef
 
-bus-nonce: 376068b8a134de7ef9837f070eabf061
-Reviewer: r9c-rev-2014, round 3. Fresh detached worktree /Users/timmalmstrom/hpo-seats/r9c-rev-2014-r3 at 1d494f01c492d497b0457ec5486380becac1886c; I re-read the live head at posting time and it is the same SHA. Merge base c327da7f. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence/r3
+bus-nonce: bfa854c448faf2e873a2d584cc2284fa
+Reviewer: r9c-rev-2014, round 4. This is a delta review of 1d494f01..22eab552; the round-3 merge verdict at 1d494f01 stands for the code. Fresh detached worktree /Users/timmalmstrom/hpo-seats/r9c-rev-2014-r4; I re-read the live head at posting time and it is the same SHA. Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2014-evidence/r4
 
-## Round-2 block, resolved
-- governance.yml:220 (field coverage) and :602 (agreement lane) now probe `$PINNED:tools/policy/<tool>.mjs` first and the old spelling second. Both ends come from CI logs:
-  - main run 37626923348 (13:14Z) printed `field coverage: the base does not carry it ... skipped` and `agreement lane: the base does not carry it ... skipped` (gov_main_before.txt).
-  - This head's governance run 37661658656 prints `FIELD COVERAGE ok` and `AGREEMENT ok` (policy_docs_head_log.txt). policy-docs is success.
-- merge_train.py:146,210,237: fixed on main by #2012 (RCA-1990, merged 14:21Z), which this head contains (a `tool()` map, merge_train.py:84-85).
-- My own widened rule (widened_rule.py, now also skipping dev/audit/rounds/) at this head (widened_rule_head.txt): 156 retired-old paths absent at HEAD, 105 hits cleared, 63 uncleared.
-  - Neither round-2 seam is returned any more.
-  - The new uncleared hits come from paths retired by RO-8's merge: check-wave-script.mjs reads through `at()`, and `node tools/policy/check-wave-script.mjs` gives rc=0, 170/0. The others are prompt strings in audit-find.js and audit-verify.js. No executed seam is left uncleared.
-- RCA section 4 now states seven broken seams (six fixed here or on main, one owned by #2012), with the triage of the uncleared hits. I re-derived it with my rule; it holds.
+## Resolution delta (a main merge, so it is judged as its resolution only)
+- dfe2bb79 merges main 8d7903e6 into the round-3 head 1d494f01, and 22eab552 merges dfe2bb79 into 1d494f01. No authored code change.
+- Simulation: `git merge-tree --write-tree 1d494f01 8d7903e6` gives rc=1, conflicting only on dev/audit/config/bugclasses.json (merge_tree_sim.txt). The head's tree differs from the simulated tree only in that file, by the removed conflict markers (`4 +---`).
+- Semantic check: the head's bugclasses.json equals main's file plus the PR's own changes (merge base c327da7f), key for key. That is 133 keys, equal=True, with no extra or lost entry. Both R9-RCA-2004 (PR) and R9-RCA-stress-recording (main) are kept.
+- `fold_ledger.py check`: 0 violation(s). `git merge-tree` against origin/main: rc=0.
+- Spot re-checks at the head: `friction_issues.mjs --self-test` 102/0; FR-3 consumer rc=0.
 
-## Re-checked at this head
-- The FR-3 consumer, now at dev/audit/harnesses/ after RO-8, exits rc=0.
-- `friction_issues.mjs --self-test`: 102 passed, 0 failed.
-- `preflight.sh`: `ok policy corpus -- current with origin/main`.
-- `rules_sync --check` rc=0. `fold_ledger.py check`: 99 rca entries, 0 violation(s). R9-RCA-2004 is in dev/audit/config/bugclasses.json; RCA_DIR is dev/audit/rca.
-- Step 13: `merge-tree` against origin/main rc=0. Step 5: no VERSION, manifest, notes heading or claim file in the diff.
-- Step 11 (check-runs at 1d494f01, checkruns_head.tsv, 34 runs):
-  - Red: delivery-status and nightly-status, both answered in the body as main's.
-  - closures was red at 064c5aae, and main 17f30f9c's own closures is also failure, which confirms the body's account. closures-autofix is downstream of it, and the body names both.
-  - budget-raise-gate is **cancelled** again; rerun its twin before merge.
-  - Still in progress at review time: closures, browser, fast (3.14), coverage, env-matrix, CodeQL. The merge is conditional on these finishing green; I did not watch them.
-  - Fixer commits da21eb93 and 44f5103c and merge 55a1aee9: no failed runs (checkruns_range.txt).
+## Body corrections asked for in round 3
+- `## Red checks` now says the diff does edit governance.yml at lines 220 and 602. Done.
+- The body now records #2012 as merged at 14:21Z. Done. The in-tree RCA (dev/audit/rca/R9-RCA-2004.md:129) still reads "Owned by open PR #2012". That was true when the document was written, so it is not blocking; a later RO-9 or record pass can update it.
+- Small inaccuracy: the body's `## Head` says 22eab552 "merges the authored code head dfe2bb79 and then merges origin/main 8d7903e6". In fact dfe2bb79 is the main merge into 1d494f01, and 22eab552 merges it into 1d494f01. No authored commit is in the delta. Not blocking.
 
-## Body corrections owed (not blocking; they do not change the code or the verdict)
-- `## Red checks` says the diff touches none of the red checks' inputs, and lists `governance.yml` among them. Since da21eb93 the diff does edit governance.yml, at lines 220 and 602. The delivery-status job is at governance.yml:906 and is untouched, so the conclusion (main's red) still holds, but the sentence is false as written.
-- RCA section 4 calls #2012 "open"; it merged at 14:21Z and its fix is in this head. Its path citations (tools/audit/harnesses/..., tools/audit/bugclasses.json) predate RO-8's move to dev/audit/.
+## CI (check-runs at 22eab552, checkruns_head.tsv, 34 runs)
+- Red: nightly-status and delivery-status only, both main's and answered in the body.
+- budget-raise-gate has one **success** (run 37675921397) and one **cancelled** twin (run 37675921045). The cancelled one needs a rerun before the merge train; I did not rerun it, because seats make no GitHub writes.
+- Still in progress at review time: pr-contract (queued), closures, browser, fast (3.14), coverage, env-matrix, instrument-self-tests, CodeQL (js and python). The merge is conditional on these finishing green; I did not watch them.
+- Round-3 head 1d494f01 finished with only delivery-status and nightly-status failed, so its closures, coverage, fast, browser and env-matrix concluded green. dfe2bb79 has no failed runs.
