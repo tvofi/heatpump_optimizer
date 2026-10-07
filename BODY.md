@@ -31,7 +31,9 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`d33cc8e4c4a2349e2f43bba9d9e7e024d50967a5` is the authored code head. It adds four commits to `6fe488c9`, where the mutation probe and most figures below were taken. `88023a27` reads the accuracy summary by literal keys (the `typing` red). `37975a23` carries this PR's delivery row. `868c2814` moves the restart guard's comment onto its own line. `d33cc8e4` holds the mutation pins.
+`a21b872ff9d75c72511efadd285326e371c90777` merges the authored code head `d33cc8e4c4a2349e2f43bba9d9e7e024d50967a5` and then merges origin/main `143e2d0a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`d7b11df13373cf3eb5ce1c53c23efdef11077aef` is the authored code head. It adds five commits to `6fe488c9`, where the mutation probe and most figures below were taken. `88023a27` reads the accuracy summary by literal keys (the `typing` red). `37975a23` carries this PR's delivery row. `868c2814` moves the restart guard's comment onto its own line. `d33cc8e4` holds the mutation pins. `d7b11df1` re-records `tests/debug_collect.py`'s closure.
 
 ## Mutation proof
 
@@ -85,7 +87,7 @@ Read from `gh api repos/tvofi/heatpump_optimizer/commits/b256880d1905ce6e9c5fd18
 - `delivery-status` (job 113008566506): `DELIVERY STATUS UNCHECKED — 64 rowed, 0 pending, 0 overdue`. Its merge-collection step skipped 9 merge commits on main that name no pull request. That grades main's record. This PR's row is `dev/programme/delivery/2041.md` (`37975a23`).
 - `nightly-status` (job 113008566115): `NIGHTLY FAILED: mutation-ledger, mutation-nightly, record-autofix failed last night.` That grades main's nightly lanes. This diff touches none of them.
 
-`closures` was not red at `b256880d`. `tests/debug_collect.py` now imports `tests/nightly_ha.py` and drives `diagnostics.py`. If `closures` reports UNDER-SCOPED at the new head, `closures-autofix` re-records the closure.
+`closures` was not red at `b256880d`. Against `origin/main` `143e2d0a`, prepr's `ci predict` step predicted one red on it: `tests/debug_collect.py` now imports `tests/nightly_ha.py` and drives `diagnostics.py`. `d7b11df1` repairs that ahead of CI. `./tests/derive_closures.sh --single tests/debug_collect.py`, a Python lane that `ci-autofix.md` says Darwin records soundly, added `tests/nightly_ha.py`, `custom_components/heatpump_optimizer/diagnostics.py` and `tests/hastub/homeassistant/components/diagnostics.py`. It kept `silent_mode.py`, which this run did not read.
 
 ## Forward-carry
 
