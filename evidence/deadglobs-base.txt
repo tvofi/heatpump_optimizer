@@ -1,0 +1,14 @@
+DEAD dev/governance/rules/brief-citations.md: docs/plan*.md
+DEAD dev/governance/rules/brief-citations.md: docs/HANDOVER.md
+DEAD dev/governance/rules/brief-citations.md: tools/audit/briefs/**
+DEAD dev/governance/rules/comment-readback.md: .claude/workflows/gh_comment.py
+DEAD dev/governance/rules/defect-root-cause.md: tools/audit/briefs/**
+DEAD dev/governance/rules/delivery-status-tracking.md: docs/plan*.md
+DEAD dev/governance/rules/delivery-status-tracking.md: docs/HANDOVER.md
+DEAD dev/governance/rules/delivery-status-tracking.md: docs/delivery/**
+DEAD dev/governance/rules/finding-propagation.md: tools/audit/briefs/**
+DEAD dev/governance/rules/ratchet-budgets.md: .claude/workflows/policy_budgets.json
+DEAD dev/governance/rules/ratchet-budgets.md: tools/audit/README.md
+DEAD dev/governance/rules/writing-for-agents.md: docs/HANDOVER.md
+DEAD dev/governance/rules/writing-for-agents.md: docs/plan*.md
+DEAD dev/governance/rules/writing-for-agents.md: tools/audit/briefs/**

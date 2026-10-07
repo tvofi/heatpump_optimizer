@@ -1,0 +1,6 @@
+RESULT guard_on_merge_into 09ba95d08157 {'new-reference': 5}
+new-reference: .claude/workflows/audit-verify.js cites retired path tools/audit/bugclasses.json: `You are the class-sweep seat for class ${cls} of audit round ${round} (PLAN phase D). Fresh worktree f
+new-reference: .claude/workflows/audit-verify.js cites retired path tools/audit/bugclasses.json: `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${r
+new-reference: .claude/workflows/audit-verify.js cites retired path tools/audit/rotation.json: `Record the outcome of audit round ${round} verification. In ${repo} on ${branch}: update the Round ${rou
+new-reference: .claude/workflows/audit-verify.js cites retired path tools/audit/bugclasses.json: `The round record of audit round ${round} is branch ${branch} in ${repo}: the folded register (tools/au
+new-reference: tools/policy/check-wave-script.mjs cites retired path tools/audit/scopes.json: // dev/governance/roles/COMMON.md walls a finder into the cells tools/audit/scopes.json
