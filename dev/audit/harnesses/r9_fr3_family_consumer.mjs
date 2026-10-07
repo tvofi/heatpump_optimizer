@@ -40,7 +40,7 @@ async function repoRoot(start) {
 
 
 const ROOT = await repoRoot(path.dirname(new URL(import.meta.url).pathname))
-const src = fs.readFileSync(path.join(ROOT, '.claude/workflows/friction_issues.mjs'), 'utf8')
+const src = fs.readFileSync(path.join(ROOT, 'tools/policy/friction_issues.mjs'), 'utf8')
 const entry = 'run(argv)'
 if (!src.includes(entry)) {
   console.error('consumer harness: friction_issues.mjs no longer dispatches via run(argv); re-point the strip')

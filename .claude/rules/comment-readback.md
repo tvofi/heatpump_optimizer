@@ -1,7 +1,7 @@
 ---
 description: Post a comment with the poster that reads it back, and never end a post without a read-back
 paths:
-  - ".claude/workflows/gh_comment.py"
+  - "tools/pr/gh_comment.py"
   - ".claude/workflows/web-fragments.md"
   - ".claude/skills/steward/SKILL.md"
   - ".github/PULL_REQUEST_TEMPLATE.md"

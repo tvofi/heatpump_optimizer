@@ -7,8 +7,8 @@
 // generated `.claude` copy as it treats `.cursor`: the source is what is
 // measured, and an edit at the generated path is this script's refusal.
 //
-//   node .claude/workflows/rules_sync.mjs           # regenerate
-//   node .claude/workflows/rules_sync.mjs --check   # refuse if out of date
+//   node tools/policy/rules_sync.mjs           # regenerate
+//   node tools/policy/rules_sync.mjs --check   # refuse if out of date
 //
 // The `.claude` copy is the source bytes. The `.cursor` copy is the same body
 // with Cursor's frontmatter. Only the frontmatter differs there, because the

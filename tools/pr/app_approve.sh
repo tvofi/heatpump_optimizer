@@ -3,14 +3,14 @@
 # Approve a pull request as the App `hpo-approver`, at one exact head SHA, and
 # only on a `merge` verdict for that SHA from an allowlisted account.
 #
-#   tools/audit/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
-#   tools/audit/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
-#   tools/audit/app_approve.sh --self-test
+#   tools/pr/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
+#   tools/pr/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
+#   tools/pr/app_approve.sh --self-test
 #
 # WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
 # ruleset requires one approving review, and GitHub never lets an author
 # approve their own pull request. An ordinary pull request's review comes from
-# the App after a `merge` verdict (`tools/audit/briefs/orchestrator.md`
+# the App after a `merge` verdict (`dev/governance/roles/orchestrator.md`
 # section 11); a policy pull request's comes from the owner, on GitHub, and
 # this script refuses one.
 #
@@ -27,7 +27,7 @@
 #     request's head fetched into this checkout. Every other comment is ignored, so an outsider's later line neither
 #     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
 #     (decision 0013, amending 0011: the orchestrator posts the reviewer
-#     seat's text with `tools/audit/app_comment.sh`; never as the author App,
+#     seat's text with `tools/pr/app_comment.sh`; never as the author App,
 #     #1233's defect, and no longer as `tvofi`). The id pin replaces the
 #     author_association guard this line carried while verdicts were
 #     `tvofi`'s: an App's association reads NONE (measured on the ten
@@ -375,7 +375,7 @@ open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" 
   python3 -c 'import sys,json
 sha, url, f, v = sys.argv[1:5]
 json.dump({"commit_id": sha, "event": "APPROVE",
-  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/audit/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
+  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
   open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" "$evsha" || die "could not write the review payload"
   local resp
   resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \

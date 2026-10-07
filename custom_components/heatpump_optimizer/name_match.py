@@ -34,7 +34,7 @@ This module is the fallback, and it guesses, so it is built to be boring:
   ``Heat Exchanger Outlet Water Temperature (Tout)``, and only one of them is
   the supply.
 
-The two constants are **measured, not chosen**: ``tools/measure_prefill_corpus.py``
+The two constants are **measured, not chosen**: ``tools/devices/measure_prefill_corpus.py``
 sweeps them over the labelled corpus and prints the grid the shipped pair
 comes from, and ``tests/features.py`` asserts the corpus has no wrong
 suggestion at that pair. Raising the threshold buys precision and spends
@@ -65,7 +65,7 @@ from .const import (
 SOURCE = "name match"
 
 #: The decision rule. Both are read off the corpus sweep in
-#: ``tools/measure_prefill_corpus.py``; the pair below is the widest-recall
+#: ``tools/devices/measure_prefill_corpus.py``; the pair below is the widest-recall
 #: cell of the grid that reports **no** wrong suggestion.
 THRESHOLD = 0.60
 MARGIN = 0.08
