@@ -680,6 +680,20 @@ def _forget(held: ArbiterState) -> None:
     held.written, held.misses, held.retry = {}, {}, {}
 
 
+def _service(slot: str, state: Any, value: Any) -> tuple[str, dict[str, Any]] | None:
+    """The service and its data that write ``value`` to ``slot``.
+
+    ``None`` for a set-point, which goes through ``_write_setpoint``.
+    """
+    if slot == "mode":
+        return "select_option", {"option": _option_for(state, value)}
+    if slot == "silent":
+        return ("turn_on" if value else "turn_off"), {}
+    if slot in _NIGHT_KEYS:
+        return "set_value", {"value": int(value)}
+    return None
+
+
 async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
     held = state_for(coord)
     entity = _slot_entity(inp.config, slot)
@@ -694,30 +708,14 @@ async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: dat
     domain = entity.split(".", 1)[0]
     if slot == "mode" and domain not in _MODE_DOMAINS:
         return  # a read-only mode slot is read, never written (D12-s2-02)
+    service = _service(slot, state, value)
     try:
-        if slot == "mode":
-            await inp.hass.services.async_call(
-                domain,
-                "select_option",
-                {"entity_id": entity, "option": _option_for(state, value)},
-                blocking=True,
-            )
-        elif slot == "silent":
-            await inp.hass.services.async_call(
-                domain,
-                "turn_on" if value else "turn_off",
-                {"entity_id": entity},
-                blocking=True,
-            )
-        elif slot in _NIGHT_KEYS:
-            await inp.hass.services.async_call(
-                domain,
-                "set_value",
-                {"entity_id": entity, "value": int(value)},
-                blocking=True,
-            )
-        else:
+        if service is None:
             await _write_setpoint(coord.hass, entity, temperature_from_c(value, state_unit(state)))
+        else:
+            await inp.hass.services.async_call(
+                domain, service[0], {"entity_id": entity, **service[1]}, blocking=True,
+            )
     except Exception as err:  # noqa: BLE001 - retried on the next tick
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
