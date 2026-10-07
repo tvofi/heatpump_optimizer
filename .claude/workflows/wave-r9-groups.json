@@ -7727,6 +7727,29 @@
    "carry": [
     "From the #2015 round-3 review: tests/closure.py's guard against entries that name files which do not exist does not cover inert_reads. A move can therefore leave a dead old-path entry in tests/closures.json with no warning; the #2015 merge kept tools/audit/harnesses/eg_b7_seam_hubs.py after the file moved. The RO-10 guard owns this: extend the dead-path refusal to inert_reads, add a perturbation (plant a dead inert_reads path and the check goes red), and remove any dead inert_reads entries on main."
    ]
+  },
+  {
+   "group": "R9-RO-11",
+   "lane": "RO",
+   "issues": [],
+   "fixes": [],
+   "covers": [],
+   "class": "governance",
+   "wave": 14,
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "fixer_why": "pre-study weighs designs and the predictor needs a null control; sonnet cannot judge which reds are predictable"
+   },
+   "effort": "medium",
+   "blocked_on": [],
+   "after": [],
+   "brief": "Round-9 governance PR RO-11 (lane RO, pre-push CI predictor). Owner-approved fold 2026-10-07: tvofi asked for items 1 and 3 with a small pre-study, adjusting if better options exist. Fixers repeatedly hand off heads that CI then reddens on closures (unclassified or under-approximated reads) and on unpinned mutation sites; seen this round on the EG-B11, UX-9, DBG-1 and #2007 pull requests. Pre-study first, recorded in the PR body: list the reds at handoff across this round's fix PRs, classify which a cheap static check could have predicted, and compare at least a prepr predictor, a handoff gate that waits for the CI autofix chain, and any better option found; implement the cheapest one that would have caught most of them. Default deliverable: a predictor step in tools/pr/prepr.sh that, from the three-dot diff, lists changed tracked files in no measured closure and not on tests/closure.py INERT, and changed lines no mutation pin covers, in seconds and without running heavy scripts; plus a fixer.md edit so it defers local --pin-killed to ci-autofix.md. Policy change: merges only on tvofi's approving review.",
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
