@@ -10,7 +10,13 @@ This is a root-cause seat's countermeasure, state (c). The analysis, the class s
 
 ## Head
 
-acf186b7556307964acbea3e61d555681a12aca5 holds the code. c799f329f4647437fecd092709a8988e45325dcd adds the RCA document and the bugclasses entry. Every figure below is measured at c799f329, on base `origin/main` 59b5ac6e.
+00834c662a8b135cdba893bcc349f00966b80f23 is the head. It is a fast-forward of 7e197a6f, the round-1 review head, which added the delivery row. The commits are:
+
+- acf186b7 holds the code.
+- c799f329 adds the RCA document and the bugclasses entry.
+- 00834c66 pins `timing_check`'s default environment read, the review's finding 1.
+
+Merge base `origin/main` 59b5ac6e. The figures from the earlier rounds were measured at c799f329. 00834c66 changes only the `tests/stress.py` pin, and its figures are under Mutation proof.
 
 ## Mutation proof
 
@@ -19,12 +25,18 @@ acf186b7556307964acbea3e61d555681a12aca5 holds the code. c799f329f4647437fecd092
 - **End to end, on the defect's own recordings.** `apply_under_scoped_recordings` replayed the `closure-recordings` artifacts of Tests runs 37526452102, 37539776088 and 37564484318 at the #1987 head `95ad5034`.
   - As CI wrote them, all three return `skip-failed-recording`.
   - With stress.py's rc set to what this change yields, all three return `changed`, and `tests/debug_collect.py`'s closure then lists `quiet_windows.py`. That rc is 0, because each run had 0 FAIL lines outside the six timing verdicts.
-- The stress.py arm of the pin is left to CI's stress run. `fixer.md` step 5 says not to run stress.py locally per mutant.
+- **stress.py's pins, round 2.** The harness `pin_mutants.py` (seat evidence `pin_mutants_r2.txt`) imports stress.py and replays the two `timing_check` pins against mutants of the function, without running the sweep:
+  - The head passes 2 of 2.
+  - `!= "1"` (the review's T2) is killed: with the variable unset, 0 failures are counted.
+  - `recording = True` (the review's T3) is killed for the same reason.
+  - Removing the recording branch is killed by both pins.
+
+  Before this round, the review's `timing_check_mutants.py` showed T2 and T3 surviving the `(1, 0, 1)` pin, because every call passed `recording=` explicitly.
 
 ## Null control
 
 - On main's derive line (the first mutation above), the `exit 0` arm passes and only the `exit 3` arm fails. So the pin reads the real exit and does not fail on every line.
-- `timing_check` with `recording=False` still counts a miss: 1 failure out of 1 check. With `recording=True`, a miss counts nothing (0 of 0), and a pass is still counted (0 failures of 1). stress.py's own new check pins that tuple, `(1, 0, 1)`, so the exemption cannot make a graded run green.
+- `timing_check` with `recording=False` still counts a miss: 1 failure out of 1 check. With `recording=True`, a miss counts nothing (0 of 0), and a pass is still counted (0 failures of 1). stress.py pins that tuple, `(1, 0, 1)`. A second pin calls `timing_check` with `recording` omitted, which is how all six real call sites call it. With `HPO_CLOSURE_RECORDING` unset it must count 1 failure, and with it set to `"1"` it must count 0. That pin restores the environment afterwards. Together the two pins mean the exemption cannot make a graded run green.
 - No stress.py check outside the six timing verdicts changed.
 
 ## Figures
@@ -37,7 +49,9 @@ acf186b7556307964acbea3e61d555681a12aca5 holds the code. c799f329f4647437fecd092
   - 28 red `closures-autofix` jobs, 17 of them `skip-failed-recording`.
   - 8 of those 17 still have an artifact. In 5, stress.py's timing verdicts alone caused the status.
   - 9 cannot be attributed, because the log printed `exit 0` for every script.
-- Standing cost, `python3 tests/closure.py selftest` timed 3 times at each tree with machine load around 450: median 5.44 s at main and 9.14 s at this head.
+- Standing cost, `python3 tests/closure.py selftest`, depends on machine load:
+  - With load around 450, timed 3 times at each tree: median 5.44 s at main and 9.14 s at the head, so +3.7 s.
+  - The round-1 reviewer, with load around 216: 1.96 s at the base and 2.55 s at the head, so +0.6 s.
 
 ## Red checks
 
@@ -46,7 +60,15 @@ acf186b7556307964acbea3e61d555681a12aca5 holds the code. c799f329f4647437fecd092
 
 ## Approval
 
-This branch changes no file under `CODEOWNERS` and no policy file. `dev/governance/rules/ci-autofix.md` is unchanged: its `skip-failed-recording` remedy still holds for a real truncation, and this change makes stress.py's timing misses stop producing that status. If a reviewer reads any part of this as policy, the orchestrator holds the owner's mandate 5951564627 to approve it.
+**Code-owner approval is owed.** `.github/CODEOWNERS` assigns three files in this diff to @tvofi:
+
+- `/tests/closure.py` (line 138)
+- `/tests/derive_closures.sh` (line 140)
+- `/tests/stress.py` (line 150)
+
+So the PR needs @tvofi's approving review as code owner. The orchestrator holds the owner's mandate 5951564627.
+
+No policy file is changed. `dev/governance/rules/ci-autofix.md` is unchanged, and the round-1 reviewer agrees this is not a policy change. That rule's `skip-failed-recording` remedy still holds for a real truncation. This branch stops stress.py's timing misses from producing that status, and makes the `closures` log name the failing script.
 
 ## Forward-carry
 
