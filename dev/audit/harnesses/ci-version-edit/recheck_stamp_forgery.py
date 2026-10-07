@@ -2,7 +2,7 @@
 """Second path: does a single-parent PR-branch head shaped like a stamp pass `fast`'s claims hygiene?
 
 Usage (from a checkout of this repository):
-  python3 tools/audit/ci-version-edit/recheck_stamp_forgery.py <commit-ish>
+  python3 dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py <commit-ish>
 
 Builds a scratch clone whose base carries one claim (`config_flow`), then a
 branch commit forging a stamp: VERSION and manifest bumped, a notes heading,

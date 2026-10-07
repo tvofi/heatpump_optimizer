@@ -98,14 +98,14 @@ def _discover() -> tuple[str, ...]:
     # capped, over the 214-file corpus, because the read dominates and the
     # slice only adds work.
     live = {
-        "tools/audit/round3/D2/dst_window_factors.py",
-        "tools/audit/round3/D2/window_size_sweep.py",
-        "tools/audit/round3/D5/option_doc_coverage.py",
+        "dev/audit/rounds/round3/D2/dst_window_factors.py",
+        "dev/audit/rounds/round3/D2/window_size_sweep.py",
+        "dev/audit/rounds/round3/D5/option_doc_coverage.py",
     }
     marked = tuple(
         sorted(
             str(p.relative_to(ROOT))
-            for p in (ROOT / "tools" / "audit").glob("round*/D*/*.py")
+            for p in (ROOT / "dev" / "audit" / "rounds").glob("round*/D*/*.py")
             if p.name != "__init__.py"
             and "live-header" in p.read_text()
             and p.relative_to(ROOT).as_posix() not in live
@@ -126,7 +126,7 @@ def _discover() -> tuple[str, ...]:
 # worktree, where uncommitted work is the ordinary state; a check that reds on
 # every dirty tree is one a seat learns to route around -- and a seat that
 # routes around this one loses the header comparison with it.
-REGISTER_DIRS = ("tools/audit/round4/D6",)
+REGISTER_DIRS = ("dev/audit/rounds/round4/D6",)
 
 
 def dirty_registers() -> tuple[bool, str]:
@@ -158,7 +158,7 @@ def declared_live() -> list[str]:
     """
     return sorted(
         str(p.relative_to(ROOT))
-        for p in (ROOT / "tools" / "audit").glob("round*/D*/*.py")
+        for p in (ROOT / "dev" / "audit" / "rounds").glob("round*/D*/*.py")
         if p.name != "__init__.py" and "live-header" in p.read_text()
     )
 
@@ -178,7 +178,7 @@ def printed_from(stdout: str) -> dict[str, str]:
 # control on #1808 twice. A harness blocked on I/O spends no CPU, so the wall cap
 # bounds that one, below mutation_table.py's 1200 s per-driver timeout.
 #
-# A CPU second is not load-independent either: tools/audit/round4/D7/
+# A CPU second is not load-independent either: dev/audit/rounds/round4/D7/
 # sysid_estimator_frontier.py costs 96.8 CPU-s serially on the CI runner (`slow`,
 # run 37130986490) and was SIGXCPU'd at 240 inside mutation_table.py's --jobs 3
 # pool (mutation-ledger, run 37108891698, BLAS pins in place) -- the same work
@@ -193,7 +193,7 @@ def printed_from(stdout: str) -> dict[str, str]:
 # grows it, before the kernel kills one that prints nothing.
 CPU_LIMIT_S = 60
 CPU_LIMIT_OVERRIDES_S = {
-    "tools/audit/round4/D7/sysid_estimator_frontier.py": 480,
+    "dev/audit/rounds/round4/D7/sysid_estimator_frontier.py": 480,
 }
 WALL_LIMIT_S = 900
 CPU_HEADROOM = 0.5
@@ -298,19 +298,28 @@ def _fn_text(text: str, name: str) -> str | None:
 
 
 def _scope_paths() -> list[Path]:
-    base = ROOT / "tools" / "audit"
+    """The RO-7 root-finder corpus, at the paths R9-RO-8 moved it to.
+
+    ``judge_batch.py`` stayed under ``tools/audit/``. A scan of only the old
+    homes returns no javascript or shell copy, and the check then passes on
+    an empty set if the zero-count arm is dropped.
+    """
+    homes = []
+    rounds = ROOT / "dev" / "audit" / "rounds"
+    if rounds.is_dir():
+        homes.extend(p for p in rounds.iterdir() if p.is_dir() and p.name.startswith("round"))
+    homes.append(ROOT / "dev" / "audit" / "harnesses")
+    homes.append(ROOT / "dev" / "audit" / "waves" / "w5-g5-195-coverage")
     found = []
-    for p in base.iterdir():
+    for p in homes:
         if not p.is_dir():
             continue
-        if p.name.startswith("round") or p.name in (
-            "harnesses", "ci-version-edit", "w5-g5-195-coverage"):
-            found.extend(
-                f for f in p.rglob("*")
-                if f.is_file() and f.suffix in {".py", ".mjs", ".js", ".sh"}
-                and "__pycache__" not in f.parts
-            )
-    found.append(base / "judge_batch.py")
+        found.extend(
+            f for f in p.rglob("*")
+            if f.is_file() and f.suffix in {".py", ".mjs", ".js", ".sh"}
+            and "__pycache__" not in f.parts
+        )
+    found.append(ROOT / "tools" / "audit" / "judge_batch.py")
     return found
 
 

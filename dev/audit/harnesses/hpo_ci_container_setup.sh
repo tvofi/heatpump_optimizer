@@ -13,10 +13,10 @@
 # env_drift.py; the wheel provisioning below itself needs no git repo):
 #   docker run -d --name hpo-ci -v <worktree>:/repo -v /Users:/Users \
 #       python:3.14.7-slim sleep infinity
-#   docker exec -w /repo hpo-ci bash tools/audit/harnesses/hpo_ci_container_setup.sh
+#   docker exec -w /repo hpo-ci bash dev/audit/harnesses/hpo_ci_container_setup.sh
 # Run an instrument in it, kernel-pinned (the harness reports the kernel it got):
 #   docker exec -e OPENBLAS_CORETYPE=Sandybridge -w /repo hpo-ci \
-#       bash -c 'PYTHONPATH=tests/hastub python3 tools/audit/harnesses/k1725_blas_kernel_gap.py'
+#       bash -c 'PYTHONPATH=tests/hastub python3 dev/audit/harnesses/k1725_blas_kernel_gap.py'
 #
 # REPO_MOUNT is the mount point inside the container (default /repo).
 set -e

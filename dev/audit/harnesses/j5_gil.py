@@ -9,7 +9,7 @@ Prefix (required; OpenBLAS reads the pin at import):
 
     PYTHONPATH=tests/hastub OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \\
       MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 \\
-      python3 tools/audit/harnesses/j5_gil.py
+      python3 dev/audit/harnesses/j5_gil.py
 
 Routes:
   J5_ROUTE=thread       ThreadPoolExecutor(1) + run_in_executor (pre-fix)

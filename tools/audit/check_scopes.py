@@ -95,7 +95,14 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
     ap.add_argument("--ref", default="HEAD")
-    ap.add_argument("--scopes", default=str(Path(__file__).with_name("scopes.json")))
+    _repo = Path(__file__).resolve().parent
+    for _cand in (_repo, *_repo.parents):
+        if (_cand / "custom_components/heatpump_optimizer/manifest.json").is_file():
+            _repo = _cand
+            break
+    sys.path.insert(0, str(_repo / "tests"))
+    from layout import locate as _locate_scopes
+    ap.add_argument("--scopes", default=str(_repo / _locate_scopes("tools/audit/scopes.json", root=_repo)))
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--seat", help="print the cells this seat (D<k>-s<n>) owns and exit")
     a = ap.parse_args()
