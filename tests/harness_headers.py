@@ -298,19 +298,28 @@ def _fn_text(text: str, name: str) -> str | None:
 
 
 def _scope_paths() -> list[Path]:
-    base = ROOT / "tools" / "audit"
+    """The RO-7 root-finder corpus, at the paths R9-RO-8 moved it to.
+
+    ``judge_batch.py`` stayed under ``tools/audit/``. A scan of only the old
+    homes returns no javascript or shell copy, and the check then passes on
+    an empty set if the zero-count arm is dropped.
+    """
+    homes = []
+    rounds = ROOT / "dev" / "audit" / "rounds"
+    if rounds.is_dir():
+        homes.extend(p for p in rounds.iterdir() if p.is_dir() and p.name.startswith("round"))
+    homes.append(ROOT / "dev" / "audit" / "harnesses")
+    homes.append(ROOT / "dev" / "audit" / "waves" / "w5-g5-195-coverage")
     found = []
-    for p in base.iterdir():
+    for p in homes:
         if not p.is_dir():
             continue
-        if p.name.startswith("round") or p.name in (
-            "harnesses", "ci-version-edit", "w5-g5-195-coverage"):
-            found.extend(
-                f for f in p.rglob("*")
-                if f.is_file() and f.suffix in {".py", ".mjs", ".js", ".sh"}
-                and "__pycache__" not in f.parts
-            )
-    found.append(base / "judge_batch.py")
+        found.extend(
+            f for f in p.rglob("*")
+            if f.is_file() and f.suffix in {".py", ".mjs", ".js", ".sh"}
+            and "__pycache__" not in f.parts
+        )
+    found.append(ROOT / "tools" / "audit" / "judge_batch.py")
     return found
 
 
