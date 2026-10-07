@@ -467,7 +467,7 @@ What the second form can suggest, and where each value comes from:
 | Hot water temperature you need | DHW economic setpoint (0196H) | register × 0.1 |
 | When you need hot water | DHW schedule start and stop (02C8H, 02C9H) | each register is hour × 256 + minute; only while the DHW schedule (02C7H) has a day set. Saving it turns hot water planning on. |
 | Anti-legionella interval | Anti-legionella schedule days (02CAH) | 7 days divided by the number of days set, rounded down |
-| Heat pump silent mode schedule | Night mode start and end (0206H, 0207H) | hour × 256 + minute |
+| Pump's own night-mode schedule | Night mode start and end (0206H, 0207H) | hour × 256 plus minute |
 | Heat pump max power (kW) | Unit capacity (1006H) | the unit's thermal capacity divided by the nominal COP in force |
 | What that set-point entity expects | Control mode (100DH) | *flow* when the unit runs on water temperature control |
 | What the control entity expects | Control mode (100DH) | *flow* on water temperature control, and only where the two-zone model the building page requires for it is configured |
@@ -569,14 +569,18 @@ writes, at every 15-minute plan step:
 | Neither (idle) | left as it is | the same | the space gate |
 | Every fallback | *Heating + DHW* | the same | the hold value |
 
-- **For a *Flow temperature* entity** the heating value is 55 °C, or the
-  entity's maximum if that is lower. The pump's own water thermostat then
-  never cuts a planned heating step short, and the optimizer decides when
-  the house is heated. The supply only gets as hot as your radiators or
-  floor can take the pump's output, so in mild weather it stays well below
-  55 °C. The space gate is the entity's minimum, never below 25 °C. The hold
-  value, for when the plan is not in charge, is 35 °C (the flow the pump's
-  rated COP assumes), or the model's weather curve where that is higher.
+- **For a *Flow temperature* entity** the heating value follows the planned
+  power. At full power it is 55 °C (the `flow_heat_c` option, when set), or
+  the entity's maximum if that is lower. A lower planned level moves the
+  target toward the return-water temperature, or toward 35 °C when no return
+  sensor is configured, so the pump's own water thermostat can deliver that
+  level. A fixed 55 °C never cycles, and a slot the plan priced below the
+  pump's minimum then runs at that minimum. The supply only gets as hot as
+  your radiators or floor can take the pump's output, so in mild weather it
+  stays below the ceiling. The space gate is the entity's minimum, never
+  below 25 °C. The hold value, for when the plan is not in charge, is 35 °C
+  (the flow the pump's rated COP assumes), or the model's weather curve where
+  that is higher, and never above the heating ceiling.
   The model's weather curve is a pricing curve, not a set-point: written
   as one, it held the pump at 25 °C and underheated the house.
 - **For an *Indoor temperature* entity** each of the three is the step's
@@ -621,7 +625,7 @@ writes, at every 15-minute plan step:
   step: *Boost Space Heating* alone writes *Heating*, *DHW Boost* alone
   writes *DHW (Hot Water)*, and a step that also wants the other duty
   writes *Heating + DHW*. Boost mode writes *Heating + DHW* with the
-  heating flow set-point (55 °C) rather than the fallback's.
+  heating-flow ceiling (55 °C, or `flow_heat_c`) rather than the fallback's.
 - **While Optimizer active is on, the optimizer holds what it wrote.** A
   reading of those three entities that differs from what the optimizer wrote —
   a change made on the pump, in an app, by a schedule, or the pump's own reset —
@@ -838,7 +842,7 @@ opt-in learners are on **Advanced learning features**.
 | Keep the plan under the main fuse | off | on/off | Caps planned power at what the fuse leaves after the rest of the house. If a cap would make the comfort floor unreachable, the plan says so instead of silently going cold. |
 | Live peak guard | off | on/off | Watches the power meter and, when the current metering window is projected to set a new billed peak, holds back electric hot water and nudges the heat curve down for the rest of that window. Needs a power meter. |
 | Peak guard margin | 0.5 kW | 0.0–3.0, 0.1 steps | How far below the billed threshold the guard starts acting. Larger catches more peaks and intervenes more often. |
-| Heat pump silent mode schedule | empty | time frames, like the hot water ones | When the pump's own silent or night mode caps the compressor, for example `22:00-06:00`; day selectors such as `weekend 23:00-08:00` work too. The schedule lives in the pump's controller, where the optimizer cannot read it, so without this the plan counts on full power in those hours and may buy cheap night quarters the pump will not use. A frame shorter than one 15-minute planning step is refused. Leave empty to plan without it. |
+| Pump's own night-mode schedule | empty | time frames, like the hot water ones | When the pump's own silent or night mode caps the compressor, for example `22:00-06:00`; day selectors such as `weekend 23:00-08:00` work too. The schedule lives in the pump's controller, where the optimizer cannot read it, so without this the plan counts on full power in those hours and may buy cheap night quarters the pump will not use. Distinct from the card's Silent windows, which are your wish about noise. A frame shorter than one 15-minute planning step is refused. Leave empty to plan without it. |
 | Power kept in silent mode | 1.0 | 0.6–1.0, 0.05 steps | The share of the pump's maximum electrical power it still runs at inside that schedule. Inside those hours the plan's power ceiling is this share of the maximum; where the fuse cap or the measured capacity limit is lower, the lower one applies. 1.0 caps nothing. The range stops at 0.6, the same floor as *Plan within measured heat pump capacity*, so this can trim the plan but never leave the house without heat. The *Capacity limited (night mode)* sensor slot is the other half: it keeps the learners off the capped intervals, while this schedule tells the plan about the hours ahead. |
 
 ### Transfer fees and contract

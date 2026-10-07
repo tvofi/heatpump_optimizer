@@ -25,6 +25,18 @@ Perturbation: --fix applies the same four-heading renumber s1_stepnum.py
 applies (in a temp copy only; README.md is never touched), and
 positional_mismatches must drop to 0.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import re
 import sys
@@ -35,7 +47,7 @@ for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     os.environ.setdefault(v, "1")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.abspath(os.path.join(ROOT, "..", "..", "..", ".."))
+REPO = str(repo_root(__file__))
 
 # Numbered diagram nodes only (unnumbered nodes like the finish menu M, the
 # questionnaire branches E/F/G/H, and the terminal J are skipped by design --

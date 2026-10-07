@@ -85,6 +85,10 @@ _TENTHS = (404, 405, 406)
 #: derived rather than listed: 404 is ``0194H``.
 _RAW_ADDRESSES = (404, 405, 406, 518, 519, 601, 711, 712, 713, 714, 4109)
 
+#: Register 68's read-only flag; the slug after the prefix identifies the
+#: package, and the four writable night-mode numbers share that prefix.
+_NIGHT_FLAG_SUFFIX = "_night_mode_frequency_reduction_active"
+
 #: The named entities read, as the entity id the package's name slugs to.
 _NAMED = {
     "unit_capacity": "sensor.{p}_unit_capacity",
@@ -103,6 +107,40 @@ _DAY_BITS = 0b11111110
 
 #: Control mode register 4109: 0 is water temperature control.
 _WATER_TEMPERATURE_CONTROL = 0
+
+
+def package_prefix(entity_id: Any) -> str | None:
+    """The GCHV package prefix, or ``None`` when ``entity_id`` is not that flag.
+
+    True only for ``binary_sensor.{prefix}_night_mode_frequency_reduction_active``
+    with a non-empty prefix. A Tuya night-mode switch and a flag that does
+    not carry that suffix are not this package (#1913).
+    """
+    if not isinstance(entity_id, str) or "." not in entity_id:
+        return None
+    domain, slug = entity_id.split(".", 1)
+    if domain.strip().lower() != "binary_sensor":
+        return None
+    slug = slug.strip().lower()
+    if not slug.endswith(_NIGHT_FLAG_SUFFIX):
+        return None
+    prefix = slug[: -len(_NIGHT_FLAG_SUFFIX)]
+    return prefix or None
+
+
+def night_mode_write_ids(prefix: str) -> dict[str, str]:
+    """The four writable hour/minute numbers for night-mode registers 518/519.
+
+    The package exposes start and end as hour and minute number entities,
+    not the Home Assistant time platform; hour then minute is one register.
+    """
+    p = prefix.strip().lower()
+    return {
+        "start_hour": f"number.{p}_night_mode_start_hour",
+        "start_minute": f"number.{p}_night_mode_start_minute",
+        "end_hour": f"number.{p}_night_mode_end_hour",
+        "end_minute": f"number.{p}_night_mode_end_minute",
+    }
 
 
 def candidates(prefix: str) -> dict[str, ResolvedRole]:

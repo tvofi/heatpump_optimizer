@@ -38,6 +38,18 @@ Perturbation checks (instrumentation grant, restore after):
 Root rule: resolves the repository root from __file__ (measures the tree
 the file lives in).
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -47,8 +59,7 @@ import time
 import argparse
 from datetime import datetime
 
-ROOT = os.path.dirname(os.path.abspath(os.path.join(
-    __file__, *[os.pardir] * 5)))
+ROOT = str(repo_root(__file__))
 sys.path.insert(0, os.path.join(ROOT, "tests"))
 sys.path.insert(0, os.path.join(ROOT, "custom_components"))
 

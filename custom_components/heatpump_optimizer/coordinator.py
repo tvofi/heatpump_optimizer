@@ -91,7 +91,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_SILENT_MODE_FRACTION,
     CONF_PRICE_ENTITY,
     CONF_PRICE_SOURCE,
@@ -466,6 +465,7 @@ from .thermal_model import (
     ThermalState,
     learner_newton_step,
     mold_safe_room_floor,
+    learner_unmetered,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -2587,6 +2587,18 @@ def _space_pump_to_drive(coord: Any) -> str | None:
         return None
     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
     return str(entity) if entity else None
+
+
+def _tail_freeze(coord: Any) -> str | None:
+    """The unmetered-power freeze, after the boost gate (#1955).
+
+    A frequency install, a measured-power install and an explicit clamp
+    opt-out stay on today's gate. The boost line above this return is
+    its own gate and stays the one the ledger pinned.
+    """
+    return learner_unmetered(
+        getattr(getattr(coord, "_ctx", coord), "_config", None)
+    )
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
@@ -6493,7 +6505,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # starve the detector of its feed.
         if boost.space_learning_frozen(self):
             return boost.FREEZE_REASON
-        return None
+        return _tail_freeze(self)
 
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).
@@ -7864,7 +7876,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return format_windows(params.dhw_windows)
 
     def configured_quiet_windows(self) -> dict[str, str]:
-        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config)
+        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
         return out
 
     def describe_setup(self) -> dict[str, Any]:

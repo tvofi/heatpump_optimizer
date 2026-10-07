@@ -869,8 +869,8 @@ that toggles it, hovering a slot shows why it was planned, and the stretch of th
 horizon whose prices are estimated rather than published is shaded. Click the
 card to enlarge it: the plan becomes two editable lanes you can drag, stretch,
 add to and remove from, with a running total and an **Apply this plan** button
-that pins your arrangement. Below that, a panel lets you move the heating day and
-the hot-water windows, price the change with **Simulate these slots**, and commit
+that pins your arrangement. Below that, a panel lets you move the heating day,
+the hot-water windows and silent or off windows, price the change with **Simulate these slots**, and commit
 it with **Save as my schedule**. A Setup tab draws your configured system with
 live sensor readings in place, where clicking a sensor assigns or clears it. A
 Savings tab settles the months so far in one table, and an Advisor tab ranks the
