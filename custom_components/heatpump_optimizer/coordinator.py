@@ -32,7 +32,7 @@ from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from collections.abc import Callable, Mapping
-from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn
+from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
 import numpy as np
@@ -48,6 +48,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from .payload import (
+    AwayFold,
     Battery,
     ContractComparison,
     CurrentAction,
@@ -91,7 +92,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
@@ -468,6 +468,7 @@ from .thermal_model import (
     ThermalState,
     learner_newton_step,
     mold_safe_room_floor,
+    learner_unmetered,
     on_threshold_kw,
     planned_draw_runs,
 )
@@ -1782,7 +1783,7 @@ def _whatif_banded(state: Any) -> bool:
     return bool(state.active and not state.recovery_active)
 
 
-def _fold_away(state: Any, data: dict[str, Any]) -> dict[str, Any]:
+def _fold_away(state: away_mode.AwayState, data: Mapping[str, object]) -> AwayFold:
     """The away view, and the floor the plan solved against while away.
 
     ``min_temperature`` in ``data`` is the configured floor. During a setback
@@ -1790,7 +1791,7 @@ def _fold_away(state: Any, data: dict[str, Any]) -> dict[str, Any]:
     that floor and names the configured one beside it. With no setback the
     view is the away dict alone, so the payload keeps the key it had.
     """
-    view = state.as_dict()
+    view = cast(AwayFold, state.as_dict())
     if not view.get("away_active") or view.get("away_recovery_active"):
         return view
     configured = data.get("min_temperature")
@@ -2624,6 +2625,18 @@ def _space_pump_to_drive(coord: Any) -> str | None:
         return None
     entity = getattr(coord, "_ctx", coord)._config.get(CONF_SPACE_PUMP_ENTITY)
     return str(entity) if entity else None
+
+
+def _tail_freeze(coord: Any) -> str | None:
+    """The unmetered-power freeze, after the boost gate (#1955).
+
+    A frequency install, a measured-power install and an explicit clamp
+    opt-out stay on today's gate. The boost line above this return is
+    its own gate and stays the one the ledger pinned.
+    """
+    return learner_unmetered(
+        getattr(getattr(coord, "_ctx", coord), "_config", None)
+    )
 
 
 class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
@@ -3946,7 +3959,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # the new one (issue #86). The KNOWN DEFECT note that was here
             # is resolved by _reanchor_house_heat_loss_scale; the shape of
             # the fix and the four attempts that did not ship are recorded
-            # in docs/backlog.md's "Open" entry and its decisions.
+            # in dev/archive/backlog.md's "Open" entry and its decisions.
             "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
@@ -4916,7 +4929,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         An options edit reloads the entry with a new nameplate while the
         store still holds a scale fitted against the old one; restoring
         it verbatim left the model up to 1.94x wrong (issue #86, four
-        prior attempts recorded in docs/backlog.md). The law, from the
+        prior attempts recorded in dev/archive/backlog.md). The law, from the
         recorded decisions:
 
         ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
@@ -6544,7 +6557,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # starve the detector of its feed.
         if boost.space_learning_frozen(self):
             return boost.FREEZE_REASON
-        return None
+        return _tail_freeze(self)
 
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).
@@ -7740,7 +7753,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Reports learned=True and an effective figure that the defect
             # noted at _thermal_learning_payload can leave ~2x wrong after an
             # options edit. The confidence shown here is in the sample count,
-            # not in the number. See docs/backlog.md, "Open".
+            # not in the number. See dev/archive/backlog.md, "Open".
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
@@ -7935,8 +7948,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
         }
-        if out["quiet_silent_windows_spec"] and not quiet_windows.silent_control_usable(
-            cfg.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+        if quiet_windows.silent_unenforceable(
+            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
         ):
             out["quiet_silent_not_enforced"] = "true"
         return out

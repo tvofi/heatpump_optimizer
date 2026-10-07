@@ -31,12 +31,23 @@ Run from the repository root, against a baseline ref that is not HEAD:
 Force the contended condition by starting load beside it first; the PR that
 added this names the command it used.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import sys
 import time
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+ROOT = str(repo_root(__file__))
 os.chdir(ROOT)
 for _part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
     sys.path.insert(0, os.path.join(ROOT, _part))

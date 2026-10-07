@@ -17,6 +17,9 @@ each panel with its own scale:
     recorded state history, which every install has), and the commanded power
     in kW above it on installs whose action sensor publishes a `power_kw`
     attribute
+  - **Silent window** and **Off window** — a band along the top of the panel
+    for steps the plan assumed as silent or off, from the plan sensor's
+    resolved actions. The chips appear only while those steps exist.
 - **Temperatures** (°C)
   - **Outdoor temperature** (smooth dashed-blue line)
   - **DHW tank temperature** (smooth line, with the prediction's expected
@@ -471,6 +474,22 @@ spec. When overrides are in force the plan honours them instead, and the
 [resolved band](#the-two-kinds-of-dashed-line) on the chart is what follows
 that.
 
+Directly under those hot-water rows sits a **Silent windows** list. Each row
+is the same day selector, start, end and remove, plus an action: **Silent**
+or **Off**. Silent caps the compressor in those hours at the power-fraction
+slider that appears under the list whenever any row is Silent (the existing
+`silent_mode_power_fraction`, 0.6 to 1.0, pre-filled from the plan sensor).
+Off means the plan schedules no space heating and no hot water in the window;
+nothing extra is written, and those steps are ordinary idle. An Off row may
+not overlap a hot-water window on the same day; Silent may. Silent and Off
+may not overlap each other. The card refuses those overlaps before it calls
+the host. A Silent row the backend cannot enforce (no writable silent
+control) is marked on the row. Switching the optimizer off inside a window
+undoes nothing.
+
+The heating-power panel draws the resolved silent and off steps as a band
+along the top of the panel, from the plan sensor's `quiet_actions`.
+
 Editing only builds a draft inside the card. Two buttons act on it: **Simulate
 these slots** prices the draft against the plan currently in force, and **Save
 as my schedule** writes it into the configuration through `apply_schedule`,
@@ -792,8 +811,8 @@ The form offers every documented option:
 - **Show the schedule editor** and **Show the headline stats**, as toggles.
 - **Currency**, as a dropdown of the likely codes that still accepts any other
   ISO code typed in.
-- **Series shown by default**, as an expandable group of the eight per-series
-  toggles, labelled with the same names the legend uses.
+- **Series shown by default**, as an expandable group of one toggle per
+  series, labelled with the same names the legend uses.
 
 Field labels follow the frontend language, like the rest of the card.
 
@@ -825,6 +844,8 @@ series:                                  # optional, initial per-series visibili
   dhw_slots: true
   space_slots: true
   actioned: true
+  quiet_silent: true
+  quiet_off: true
   outdoor: true
   dhw_temp: true
   house_temp: true
@@ -842,7 +863,7 @@ series:                                  # optional, initial per-series visibili
 | `what_if`      | boolean | `true`                         | Show the slot lanes and schedule editor in the enlarged view. Editing is local to the card; only the Simulate, Save and Apply buttons reach Home Assistant. |
 | `currency`     | string  | plan sensor's, else HA's, else `SEK` | Unit shown on the price axis and cost figures. The card first uses the currency the integration publishes on the plan sensors (v4.1.0+), then Home Assistant's configured currency, then `SEK`. Only override this if your price feed disagrees with all of them. It relabels rather than converts, and it does not relabel a savings figure: the headline and the savings page keep the unit their own sensor declares. |
 | `show_stats`   | boolean | `true`                         | Show the headline row (projected savings, optimization score, plan narrative) under the card header. It hides itself, entirely, when the backend publishes none of those sensors. |
-| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
+| `series`       | map     | all `true`                     | Initial visibility per series key. Keys: `price`, `dhw_slots`, `space_slots`, `actioned`, `quiet_silent`, `quiet_off`, `outdoor`, `dhw_temp`, `house_temp`, `solar`. |
 
 ### Entity discovery
 

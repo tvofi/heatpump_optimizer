@@ -75,7 +75,7 @@ import {
   METRIC_LITERAL_RE,
   NEGATION_RE,
 } from './brief_lint.mjs'
-import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, locate } from './counts.mjs'
+import { checkCounts, derivations, liveRequiredContexts, liveRequiredContextsWhy, checkRequiredContexts, requiredContextsDrift, TOKEN_HIDDEN_SKIP_RE, canon, canonList, excludeMoved, listDir, at, moves, locate } from './counts.mjs'
 import { inspectRender } from './render_md.mjs'
 
 // brief_lint's CODE_EXTS has no `mdc`, because a wave roster never cites one.
@@ -248,13 +248,16 @@ const POLICY_GLOBS = [
   // bodies are identical by construction -- makes `duplicates` refuse all five.
   // The source is linted; the output is compared.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
+  // R9-RO-5: the canonical copies. `trackedFiles` still spells a moved path
+  // by its old name (canon) until R9-RO-9, so the patterns above keep matching
+  // that spelling. These match a listing that has not been canon'd, and the
+  // coverage probe below.
+  /^dev\/governance\/rules\/[a-z0-9-]+\.md$/,
+  /^dev\/governance\/roles\/[A-Za-z0-9_.-]+\.md$/,
+  /^dev\/governance\/dimensions\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/briefs\/[A-Za-z0-9_.-]+\.md$/,
   /^tools\/audit\/README\.md$/,
-  // The live instruments' own README, which `tools/audit/README.md` names. It
-  // arrived with the archive pass and the widened basename resolution reported
-  // it immediately: a seat-facing document outside every cap is the corpus
-  // escape this check exists for, whether or not anyone meant it as one.
-  /^tools\/audit\/harnesses\/README\.md$/,
+  /^dev\/audit\/README\.md$/,
   /^tests\/README\.md$/,
   /^\.claude\/workflows\/web-fragments\.md$/,
   // A skill is seat-facing text loaded by the harness at the moment a pull
@@ -294,13 +297,15 @@ function isAlwaysLoaded(rel) {
 // would still have printed `TOTAL: 0`. This is the same argument
 // closure.orphan_files() makes about the gate -- a file that is neither matched
 // nor deliberately excluded is an oversight, not a pass.
-const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//]
+const POLICY_DIRS = [/^\.cursor\/rules\//, /^\.claude\/rules\//, /^\.claude\/skills\//, /^tools\/audit\/briefs\//, /^dev\/governance\//]
 // The one deliberate exclusion: write-once evidence committed under briefs/.
 const POLICY_DIR_EXCLUDE = [
   /^tools\/audit\/briefs\/.*\.(json|txt|png|svg)$/,
   // Generated from `.claude/rules/` and byte-compared by `rules_sync --check`,
   // which is a stronger guarantee than linting it a second time would give.
   /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
+  // Generated from dev/governance/rules/ (D1). The source is the measured copy.
+  /^\.claude\/rules\/[a-z0-9-]+\.md$/,
 ]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
@@ -454,7 +459,7 @@ const CORPUS_EXCLUDED = new Set([
   'docs/audit-2026-09.md',            // evidence register
   'docs/plan-2026-09-open-issues.md', // plan of record
   'DISCLAIMER.md',                    // user-facing, same ground as README.md
-  'docs/backlog.md',                  // superseded record, kept for history
+  'dev/archive/README.md',            // archive index, not policy; a seat is not sent here to learn a rule
   // The living handover left POLICY_GLOBS by the owner's decision of 2026-09-16
   // (#201 comment 5702401684): it carries state, not rules, changes with nearly
   // every record PR, and so owes no `## Approval` and no code-owner review. Its
@@ -589,8 +594,20 @@ const CORPUS_EXCLUDED = new Set([
 // branch that added them, one restore step later. The `deadExcluded` pin below
 // still holds every merged entry to a tracked file, so a vacuous entry in the
 // data file is refused exactly as a vacuous entry in the Set was.
-const CORPUS_EXCLUDED_DATA = '.claude/workflows/corpus_excluded.json'
+const CORPUS_EXCLUDED_DATA = 'dev/governance/config/corpus_excluded.json'
 for (const rel of roundEvidenceExclusions()) CORPUS_EXCLUDED.add(rel)
+// A moved document keeps its old exclusion key, because canon still spells the
+// listing that way, and gains the new path so a citation of the destination
+// is classified too. Derived from the move map, not a second hand list.
+for (const [oldPath, newPath] of moves()) {
+  if (!oldPath.endsWith('/')) {
+    if (CORPUS_EXCLUDED.has(oldPath)) CORPUS_EXCLUDED.add(newPath)
+    continue
+  }
+  for (const rel of [...CORPUS_EXCLUDED]) {
+    if (rel.startsWith(oldPath)) CORPUS_EXCLUDED.add(newPath + rel.slice(oldPath.length))
+  }
+}
 
 function roundEvidenceExclusions() {
   const raw = read(CORPUS_EXCLUDED_DATA)
@@ -636,7 +653,7 @@ const CORPUS_EXCLUDED_PREFIX = [
 // corpus. This applies whatever the extension, which is exactly why it is
 // separate -- writing `.cursor/rules/` into the list above would have silently
 // re-excused a document by location.
-const GENERATED_PREFIX = ['.cursor/rules/']
+const GENERATED_PREFIX = ['.cursor/rules/', '.claude/rules/']
 
 // AN ALLOWLIST OF DOCUMENT EXTENSIONS CANNOT BE COMPLETE, and three review
 // rounds proved it one extension at a time: `.MD` and `.txt`, then `.rst`, then
@@ -657,7 +674,6 @@ const GENERATED_PREFIX = ['.cursor/rules/']
 // `--check`, so they cannot carry prose their source does not have. One prefix
 // entry below, and the whole inversion costs nothing.
 const NOT_A_DOCUMENT = new Set([
-  'donotdelete',
   'gitattributes',
   'gitignore',
   'js',
@@ -1490,7 +1506,7 @@ function printedPattern(span) {
 // an "improved and not yet recorded" refusal on prose would punish deletion,
 // which is the behaviour this audit wants.
 
-const BUDGET_FILE = '.claude/workflows/policy_budgets.json'
+const BUDGET_FILE = 'dev/governance/config/policy_budgets.json'
 
 function policyBudgets() {
   const raw = read(BUDGET_FILE)
@@ -1914,7 +1930,7 @@ function resolvePrFromCommit(subject, rows) {
 // half of the split, free to post at any moment and not in the tree, so a check
 // that accepted it would be satisfiable by something no later seat can read
 // from a checkout.
-const DISPOSITION_FILES = ['docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md']
+const DISPOSITION_FILES = ['dev/programme/plan-2026-09-open-issues.md', 'dev/programme/HANDOVER.md']
 
 // AND ONE FILE PER PULL REQUEST, `docs/delivery/<N>.md` -- the owner's choice on
 // #201 (comment 5704121269) of the countermeasure costed in 5704098870. Every
@@ -1922,7 +1938,7 @@ const DISPOSITION_FILES = ['docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md
 // every open branch DIRTY: 31 row-only conflicts over 40 merges. A file per
 // number shares no seam with any other. A file speaks for <N> only through a
 // line anchoring <N> itself (`rowAnchor`), so a misnamed file dispositions nobody.
-const ROW_DIR = 'docs/delivery'
+const ROW_DIR = 'dev/programme/delivery'
 // The listing is swappable, as `rowFreezeSource` is, so the acceptance drives
 // `rowFiles` and `recordRegionOverTree` themselves: emptying either, or dropping
 // `rowFiles()` from the region, refuses every row file and survived #1081's review.
@@ -2281,8 +2297,11 @@ function speaksFor(line) {
 // The acceptance arm names the copy, so the two drifting apart is visible.
 const RECORD_CLASS_RES = [
   /^docs\/delivery\/[^/]+\.md$/,
+  /^dev\/programme\/delivery\/[^/]+\.md$/,
   /^\.claude\/workflows\/carry-[^/]+\.json$/,
+  /^dev\/programme\/carries\/carry-[^/]+\.json$/,
   /^docs\/plan-[^/]+\.md$/,
+  /^dev\/programme\/plan-[^/]+\.md$/,
 ]
 
 // True when every changed path is one of the three record classes above, and
@@ -3241,7 +3260,7 @@ function detectorFires(friction) {
 // error too, so a fix must delete its entry and the list can only shrink.
 // Growing it is possible only by editing this file in a diff a reviewer reads.
 
-const KNOWN_BAD_FILE = '.claude/workflows/policy_known_bad.json'
+const KNOWN_BAD_FILE = 'dev/governance/config/policy_known_bad.json'
 
 function knownBad() {
   const raw = read(KNOWN_BAD_FILE)
@@ -4068,12 +4087,16 @@ function assertAcceptance(derived) {
   // restores the obligation on its own: an existing row edited or deleted, a
   // reporter's own script, no `existing` list (every row counts), no paths.
   const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
-  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
+  const OWN_ROW = ['tests/x.py', 'dev/programme/delivery/9999.md']
   const REPORTER_CASES = [
     ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
       OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
     ['a merged row deleted', ['delivery-status'],
+      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['delivery-status']],
+    ['a merged row deleted, old spelling', ['delivery-status'],
       ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+    ['the moved plan edited', ['delivery-status'],
+      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['delivery-status']],
     ["the reporter's own script", ['nightly-status'],
       ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
     ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
@@ -5273,18 +5296,35 @@ function assertAcceptance(derived) {
   // ready-made destination for prose leaving every cap at once.
   pins += 1
   const { set: liveTree, list: liveList } = trackedFiles()
+  // canon spells a moved file by its old path, so an exclusion written at the
+  // new path is live when that old spelling is tracked or the file is there.
+  const exclusionLive = (f) => liveTree.has(f) || liveTree.has(canon(f)) || fs.existsSync(at(f))
   const deadExcluded = [
-    ...[...CORPUS_EXCLUDED].filter((f) => !liveTree.has(f)),
-    ...CORPUS_EXCLUDED_PREFIX.filter((p) => !liveList.some((f) => f.startsWith(p))),
+    ...[...CORPUS_EXCLUDED].filter((f) => !exclusionLive(f)),
+    ...CORPUS_EXCLUDED_PREFIX.filter((p) => !liveList.some((f) => f.startsWith(p) || f.startsWith(canon(p)))),
   ]
   if (deadExcluded.length) {
     console.log(`\nFIXTURE VACUOUS: ${JSON.stringify(deadExcluded)} in CORPUS_EXCLUDED or CORPUS_EXCLUDED_PREFIX match no tracked file. An exclusion that names nothing is a destination waiting to be used: a file written there later leaves every cap with no diff to this file.`)
     return 1
   }
 
-  const deadWeight = [...NOT_A_DOCUMENT].filter((e) => !treeExts.has(e))
+  const missingExtensions = (exts) => [...exts].filter((e) => !treeExts.has(e))
+  const deadWeight = missingExtensions(NOT_A_DOCUMENT)
   if (deadWeight.length) {
     console.log(`\nFIXTURE VACUOUS: NOT_A_DOCUMENT lists ${deadWeight.length} extensions no tracked file has (${deadWeight.slice(0, 6).join(', ')}...). A blocklist that is not bounded by the tree is an allowlist wearing a different name.`)
+    return 1
+  }
+  // The live list is bounded, so the refusal above is silent here and would
+  // stay silent if its predicate stopped seeing a dead entry. The fixture
+  // names an extension no tracked file has.
+  pins += 1
+  const deadFixtureRel = '.claude/workflows/fixtures/not_a_document_dead.json'
+  let deadFixture = null
+  try { deadFixture = JSON.parse(read(deadFixtureRel) ?? 'null') } catch { deadFixture = null }
+  const planted = Array.isArray(deadFixture) ? deadFixture.filter((e) => typeof e === 'string' && e) : []
+  const wouldRefuse = missingExtensions(new Set([...NOT_A_DOCUMENT, ...planted]))
+  if (!planted.length || !planted.every((e) => wouldRefuse.includes(e))) {
+    console.log(`\nFIXTURE VACUOUS: ${deadFixtureRel} does not make the blocklist bound refuse an extension no tracked file has (got ${JSON.stringify(planted)}). Deleting that bound would then change nothing this acceptance measures.`)
     return 1
   }
   // ... and the same list bounded from BELOW. Without this, `NOT_A_DOCUMENT`
@@ -5413,6 +5453,23 @@ function assertAcceptance(derived) {
   }
   if (covOk.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported ${covOk.length} finding(s) on a covered file, e.g. ${JSON.stringify(covOk[0].where)}`)
+    return 1
+  }
+  // R9-RO-5. A file under dev/governance/ that no glob names is the coverage
+  // arm. Dropping `^dev/governance/` from POLICY_DIRS makes covStray empty,
+  // which is the vacuous pass the directory constant existed to close. A
+  // source rule the glob does name stays silent.
+  const strayGov = 'dev/governance/notes.md'
+  const sourceRule = 'dev/governance/rules/gate-scoping.md'
+  const covStray = drive([strayGov])
+  const covSource = drive([sourceRule])
+  pins += 2
+  if (covStray.length !== 1 || covStray[0].where !== strayGov || covStray[0].check !== 'coverage') {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${strayGov}. A policy file outside every POLICY_GLOBS pattern is the coverage arm; a directory constant that does not see dev/governance/ leaves it unread.`)
+    return 1
+  }
+  if (covSource.length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported the rules source ${sourceRule}: ${JSON.stringify(covSource[0].message)}`)
     return 1
   }
 
@@ -5971,8 +6028,11 @@ const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
   '.github/workflows/tests.yml', '.github/workflows/governance.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+  'dev/programme/plan-2026-09-open-issues.md', 'dev/programme/HANDOVER.md',
 ])
-const DELIVERY_ROW = /^docs\/delivery\/[^/]+\.md$/
+// Both homes, as RECORD_CLASS_RES does: rows moved to dev/programme/delivery/
+// and a reader of an older base still sees docs/delivery/.
+const DELIVERY_ROW = /^(?:docs|dev\/programme)\/delivery\/[^/]+\.md$/
 
 function reporterInputsTouched(paths, existing) {
   if (!paths.length) return ['(no changed-path list, so none can be ruled out)']

@@ -28,6 +28,18 @@ must drop to 0. (README.md itself is never modified; the fixed copy is a
 temp file under TMPDIR, so this harness needs no finally-restore of
 production.)
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import re
 import sys
@@ -39,7 +51,7 @@ for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     os.environ.setdefault(v, "1")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-REPO = os.path.abspath(os.path.join(ROOT, "..", "..", "..", ".."))
+REPO = str(repo_root(__file__))
 
 DIAGRAM_NODE_RE = re.compile(r'[\[{]"(\d+)\s*\xb7\s*([^"<]+?)(?:<br/>|")', re.M)
 PROSE_HEADING_RE = re.compile(r'^\*\*(\d+)\s*\xb7\s*([^*]+?)\.?\*\*', re.M)

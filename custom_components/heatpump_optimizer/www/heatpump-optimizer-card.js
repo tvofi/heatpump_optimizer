@@ -216,6 +216,8 @@ const STRINGS = {
     "series.dhw_slots": "DHW heating",
     "series.space_slots": "Space heating",
     "series.actioned": "Actioned power",
+    "series.quiet_silent": "Silent window",
+    "series.quiet_off": "Off window",
     "tooltip.actioned": "Actioned",
     "series.outdoor": "Outdoor temperature",
     "series.dhw_temp": "DHW tank temperature",
@@ -403,6 +405,20 @@ const STRINGS = {
       "No windows: hot water is never required, so the tank is only kept " +
       "above its idle minimum.",
     "whatif.add_window": "+ Add window",
+    "whatif.quiet_windows": "Silent windows",
+    "whatif.quiet_hint":
+      "Silent caps the compressor in those hours. Off means the plan " +
+      "schedules no space heating and no hot water in the window — " +
+      "nothing extra is written.",
+    "whatif.quiet_action_silent": "Silent",
+    "whatif.quiet_action_off": "Off",
+    "whatif.quiet_action_aria": "Window {n} action",
+    "whatif.quiet_not_enforced": "not enforced",
+    "whatif.quiet_frac": "Power kept in silent mode",
+    "whatif.quiet_frac_note":
+      "The power fraction is still 1.0, so silent rows cap nothing until you lower it.",
+    "whatif.add_quiet": "+ Add window",
+    "whatif.no_quiet_hint": "No silent or off windows.",
     "whatif.wood": "Wood fire",
     "whatif.wood_liters": "Liters",
     "whatif.add_wood_slot": "Add a wood slot",
@@ -836,6 +852,8 @@ const STRINGS = {
     "series.dhw_slots": "Varmvattenberedning",
     "series.space_slots": "Uppvärmning",
     "series.actioned": "Utförd effekt",
+    "series.quiet_silent": "Tyst fönster",
+    "series.quiet_off": "Av-fönster",
     "tooltip.actioned": "Utfört",
     "series.outdoor": "Utetemperatur",
     "series.dhw_temp": "Varmvattentankens temperatur",
@@ -997,6 +1015,20 @@ const STRINGS = {
       "Inga fönster: varmvatten krävs aldrig, så tanken hålls bara över " +
       "sitt vilominimum.",
     "whatif.add_window": "+ Lägg till fönster",
+    "whatif.quiet_windows": "Tysta fönster",
+    "whatif.quiet_hint":
+      "Tyst begränsar kompressorn de timmarna. Av betyder att planen " +
+      "inte lägger någon rumsuppvärmning eller något varmvatten i " +
+      "fönstret — ingenting extra skrivs.",
+    "whatif.quiet_action_silent": "Tyst",
+    "whatif.quiet_action_off": "Av",
+    "whatif.quiet_action_aria": "Fönster {n} åtgärd",
+    "whatif.quiet_not_enforced": "verkställs inte",
+    "whatif.quiet_frac": "Effekt som behålls i tyst läge",
+    "whatif.quiet_frac_note":
+      "Effektandelen är fortfarande 1.0, så tysta rader begränsar ingenting förrän du sänker den.",
+    "whatif.add_quiet": "+ Lägg till fönster",
+    "whatif.no_quiet_hint": "Inga tysta eller av-fönster.",
     "whatif.wood": "Vedeldning",
     "whatif.wood_liters": "Liter",
     "whatif.add_wood_slot": "Lägg till ett vedpass",
@@ -1424,6 +1456,35 @@ const SERIES_DEFS = [
     sensor: "action",
     field: "action_power",
     style: "stepBars",
+  },
+  {
+    // R9-SW-3 (#1912): the user's quiet windows, drawn as a band in the
+    // power panel from the plan sensor's resolved actions. Style `band`
+    // is not a seriesPath branch, so an empty chip is skipped and the
+    // eight-series legend stays eight when no rows exist.
+    key: "quiet_silent",
+    labelKey: "series.quiet_silent",
+    axis: "power",
+    unit: "kW",
+    panel: "power",
+    color: "#6b2fa0",
+    colorDark: "#9333ea",
+    sensor: "action",
+    field: "quiet_silent",
+    style: "band",
+  },
+  {
+    key: "quiet_off",
+    labelKey: "series.quiet_off",
+    axis: "power",
+    unit: "kW",
+    panel: "power",
+    color: "#5c5346",
+    colorDark: "#c4b8a0",
+    sensor: "action",
+    field: "quiet_off",
+    style: "band",
+    dash: "4 3",
   },
   {
     key: "outdoor",
@@ -2417,6 +2478,116 @@ function formatWindows(windows) {
       return `${days}${w.start}-${w.end}`;
     })
     .join(", ");
+}
+
+/** Quiet specs the service call should send. Empty strings are the clear:
+ * `_canonical_quiet_updates({})` is `{}` (an omitted key leaves the stored
+ * spec), and both specs as `""` writes those empties. Same as `dhw_windows`
+ * in `overrides()`: an empty draft is the user removing the last window. */
+function quietServiceFields(draft) {
+  const silent = formatWindows(
+    (draft.quietWindows || []).filter((w) => w.action !== "off")
+  );
+  const off = formatWindows(
+    (draft.quietWindows || []).filter((w) => w.action === "off")
+  );
+  return {
+    quiet_silent_windows: silent,
+    quiet_off_windows: off,
+    silent_mode_power_fraction: Number.isFinite(Number(draft.silentFraction))
+      ? Number(draft.silentFraction)
+      : 1,
+  };
+}
+
+const QUIET_DAY_NAMES = [
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+];
+
+/** Same-day intervals for one spec, wrap split the way `windows_for_day` does. */
+function windowsOnDay(spec, day) {
+  const out = [];
+  for (const w of parseWindows(spec || "")) {
+    if (!daysNamed(w.days).includes(day)) continue;
+    const start = hhmmToHour(w.start);
+    const end = hhmmToHour(w.end);
+    if (start == null || end == null) continue;
+    if (start < end) out.push([start, end]);
+    else if (start > end) {
+      out.push([start, 24]);
+      if (end > 0) out.push([0, end]);
+    } else if (start === 0) {
+      out.push([0, 24]);
+    }
+  }
+  return out;
+}
+
+/** The first cross-spec overlap the card must refuse, or null.
+ *
+ * Mirrors `quiet_windows.overlap_problem`: an off window may not overlap a
+ * hot-water window on the same day; silent and off may not overlap; silent
+ * may overlap hot water. */
+function quietOverlapProblem(silentSpec, offSpec, dhwSpec) {
+  const fmt = (h) => {
+    const minutes = Math.round(h * 60) % (24 * 60);
+    const hh = String(Math.floor(minutes / 60)).padStart(2, "0");
+    const mm = String(minutes % 60).padStart(2, "0");
+    return `${hh}:${mm}`;
+  };
+  const overlaps = (a, b) => a[0] < b[1] && b[0] < a[1];
+  for (let day = 0; day < 7; day++) {
+    const offDay = windowsOnDay(offSpec, day);
+    if (!offDay.length) continue;
+    const dhwDay = windowsOnDay(dhwSpec, day);
+    const silentDay = windowsOnDay(silentSpec, day);
+    for (const window of offDay) {
+      for (const other of dhwDay) {
+        if (overlaps(window, other)) {
+          return (
+            `off window ${fmt(window[0])}-${fmt(window[1])} overlaps ` +
+            `the hot-water window ${fmt(other[0])}-${fmt(other[1])} ` +
+            `on ${QUIET_DAY_NAMES[day]}`
+          );
+        }
+      }
+      for (const other of silentDay) {
+        if (overlaps(window, other)) {
+          return (
+            `off window ${fmt(window[0])}-${fmt(window[1])} overlaps ` +
+            `the silent window ${fmt(other[0])}-${fmt(other[1])} ` +
+            `on ${QUIET_DAY_NAMES[day]}`
+          );
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** Consecutive silent/off steps on the forecast clock, as chart band runs. */
+function quietRunsFromActions(forecast, actions) {
+  if (!Array.isArray(actions) || !forecast || !forecast.length) return [];
+  const step = forecastStepMs(forecast);
+  const n = Math.min(actions.length, forecast.length);
+  const runs = [];
+  let cur = null;
+  for (let i = 0; i < n; i++) {
+    const code = Number(actions[i]) || 0;
+    const name = code === 1 ? "silent" : code === 2 ? "off" : null;
+    const t = Date.parse(forecast[i].t);
+    if (!name || !Number.isFinite(t)) {
+      cur = null;
+      continue;
+    }
+    if (cur && cur.action === name) {
+      cur.end = t + step;
+    } else {
+      cur = { action: name, start: t, end: t + step };
+      runs.push(cur);
+    }
+  }
+  return runs;
 }
 
 /** Display-only window list. `"always"` is a full-day horizon; anything
@@ -4536,6 +4707,20 @@ function cardStyleBlock(darkMode) {
       .whatif .wi-window {
         display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
       }
+      .whatif .wi-quiet {
+        flex: 1 1 16em; min-width: 14em;
+        display: flex; flex-direction: column; gap: 0.4em;
+      }
+      .whatif .wi-quiet-window {
+        display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
+      }
+      /* Colour from reached DHW rules (wi-win-days, wi-hint, .whatif button). */
+      .whatif .wi-quiet-unenforced { font-size: 0.8em; }
+      .whatif .wi-quiet-frac-note { font-size: 0.85em; }
+      .whatif .wi-quiet-remove {
+        border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
+      }
+      .whatif .wi-add-quiet { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-win-days {
         font: inherit; font-size: 0.9em; max-width: 8.5em;
         border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.3em;
@@ -6733,6 +6918,35 @@ function renderChart(frame, opts) {
     }
   }
 
+  // R9-SW-3: silent and off steps as a band along the top of the power
+  // panel, from the plan's resolved actions, sharing the chart's x-scale.
+  if (opts.quietRuns) {
+    const powerP = panelOf("power");
+    if (powerP) {
+      const bandH = 8 * marginScale;
+      for (const run of opts.quietRuns()) {
+        const key = run.action === "off" ? "quiet_off" : "quiet_silent";
+        const q = series.find((s) => s.key === key);
+        if (!q || !q.visible) continue;
+        const bx1 = Math.max(plotL, scaleX(Math.max(run.start, windowStart)));
+        const bx2 = Math.min(plotR, scaleX(Math.min(run.end, windowEnd)));
+        if (bx2 <= bx1) continue;
+        const dash = q.dash
+          ? ` stroke-dasharray="${q.dash}"`
+          : "";
+        parts.push(
+          `<rect class="quiet-band" data-action="${run.action}" pointer-events="none" x="${bx1.toFixed(
+            2
+          )}" y="${powerP.top.toFixed(2)}" width="${(bx2 - bx1).toFixed(
+            2
+          )}" height="${bandH.toFixed(2)}" fill="${q.color}" fill-opacity="0.3" stroke="${
+            q.color
+          }" stroke-width="1"${dash}/>`
+        );
+      }
+    }
+  }
+
   // The lanes, into the geometry measured above.
   if (geom) {
     parts.push(`<g class="lanes">${overlay(geom)}</g>`);
@@ -7671,6 +7885,7 @@ class Legend {
     const chips = SERIES_DEFS.map((def) => {
       const s = series.find((x) => x.key === def.key);
       const hasData = s ? s.hasData : false;
+      if (def.style === "band" && !hasData) return "";
       const hidden = !!this.hidden[def.key];
       const cls = "chip" + (hidden ? " off" : "") + (hasData ? "" : " nodata");
       const label = L(def.labelKey);
@@ -10134,6 +10349,8 @@ class WhatIfPanel {
     this.onSlotEdit = this.onSlotEdit.bind(this);
     this.onAddWindow = this.onAddWindow.bind(this);
     this.onRemoveWindow = this.onRemoveWindow.bind(this);
+    this.onAddQuietWindow = this.onAddQuietWindow.bind(this);
+    this.onRemoveQuietWindow = this.onRemoveQuietWindow.bind(this);
     this.onAddWood = this.onAddWood.bind(this);
     this.onRemoveWood = this.onRemoveWood.bind(this);
     this.onWoodEdit = this.onWoodEdit.bind(this);
@@ -10268,6 +10485,7 @@ class WhatIfPanel {
               L("whatif.add_window")
             )}</button>
           </div>
+          ${this.quietGroupHtml(draft)}
         </div>
 
         <div class="wi-row wi-actions">
@@ -10348,6 +10566,8 @@ class WhatIfPanel {
         dayStart: this.host.plan.attr("day_start_hour", 7),
         dayEnd: this.host.plan.attr("day_end_hour", 22),
         dhwWindows: this.currentDhwWindows(),
+        quietWindows: this.currentQuietWindows(),
+        silentFraction: this.currentSilentFraction(),
         woodSlots: [],
       };
     }
@@ -10487,6 +10707,97 @@ class WhatIfPanel {
     }));
   }
 
+  currentQuietWindows() {
+    const silent = this.host.plan.attrRaw("quiet_silent_windows_spec", "") || "";
+    const off = this.host.plan.attrRaw("quiet_off_windows_spec", "") || "";
+    const asRows = (spec, action) =>
+      parseWindows(spec).map((w) => ({
+        days: w.days,
+        start: endOfDayAsMidnight(w.start),
+        end: endOfDayAsMidnight(w.end),
+        action,
+      }));
+    return asRows(silent, "silent").concat(asRows(off, "off"));
+  }
+
+  currentSilentFraction() {
+    return this.host.plan.attr("silent_mode_power_fraction", 1);
+  }
+
+  quietGroupHtml(draft) {
+    const rows = draft.quietWindows || [];
+    const notEnforced = this.host.plan.attrRaw("quiet_silent_not_enforced", false);
+    const markSilent = notEnforced && notEnforced !== "false";
+    const hasSilent = rows.some((w) => w.action === "silent");
+    const frac = Number(draft.silentFraction);
+    const fracVal = Number.isFinite(frac) ? frac : 1;
+    const rowHtml = rows.length
+      ? rows
+          .map((w, i) => {
+            const silent = w.action !== "off";
+            return `
+                <div class="wi-quiet-window" data-index="${i}">
+                  <select class="wi-quiet-days wi-win-days" aria-label="${esc(
+                    L("whatif.window_days_aria", { n: i + 1 })
+                  )}">${daysOptionsHtml(w.days)}</select>
+                  <input type="time" class="wi-quiet-start" step="900"
+                    value="${esc(w.start)}" aria-label="${esc(
+                      L("whatif.window_start_aria", { n: i + 1 })
+                    )}">
+                  <span>–</span>
+                  <input type="time" class="wi-quiet-end" step="900"
+                    value="${esc(w.end)}" aria-label="${esc(
+                      L("whatif.window_end_aria", { n: i + 1 })
+                    )}">
+                  <select class="wi-quiet-action wi-win-days" aria-label="${esc(
+                    L("whatif.quiet_action_aria", { n: i + 1 })
+                  )}">
+                    <option value="silent"${silent ? " selected" : ""}>${esc(
+                      L("whatif.quiet_action_silent")
+                    )}</option>
+                    <option value="off"${silent ? "" : " selected"}>${esc(
+                      L("whatif.quiet_action_off")
+                    )}</option>
+                  </select>
+                  <button type="button" class="wi-quiet-remove" data-index="${i}"
+                    title="${esc(L("whatif.remove"))}" aria-label="${esc(
+                      L("whatif.remove_window_aria", { n: i + 1 })
+                    )}">×</button>
+                  ${
+                    silent && markSilent
+                      ? `<span class="wi-quiet-unenforced wi-hint wi-warn">${esc(
+                          L("whatif.quiet_not_enforced")
+                        )}</span>`
+                      : ""
+                  }
+                </div>`;
+          })
+          .join("")
+      : `<div class="wi-hint">${L("whatif.no_quiet_hint")}</div>`;
+    const slider = hasSilent
+      ? `<label class="wi-field">
+              <span>${esc(L("whatif.quiet_frac"))}</span>
+              <input type="range" class="wi-quiet-frac" min="0.6" max="1" step="0.05"
+                value="${fracVal}" aria-label="${esc(L("whatif.quiet_frac"))}">
+              <span class="wi-value">${fracVal.toFixed(2)}</span>
+            </label>${
+              fracVal >= 1
+                ? `<div class="wi-quiet-frac-note wi-hint">${L("whatif.quiet_frac_note")}</div>`
+                : ""
+            }`
+      : "";
+    return `
+          <div class="wi-quiet">
+            <div class="wi-group-title">${esc(L("whatif.quiet_windows"))}</div>
+            <div class="wi-hint">${L("whatif.quiet_hint")}</div>
+            ${rowHtml}
+            <button type="button" class="wi-add-quiet">${esc(
+              L("whatif.add_quiet")
+            )}</button>
+            ${slider}
+          </div>`;
+  }
+
   /** Wire the what-if controls, if the panel is present. */
   attach(root) {
     const panel = root.querySelector(".whatif");
@@ -10510,6 +10821,20 @@ class WhatIfPanel {
     });
     const add = root.querySelector(".wi-add");
     if (add) add.addEventListener("click", this.onAddWindow);
+    const addQuiet = root.querySelector(".wi-add-quiet");
+    if (addQuiet) addQuiet.addEventListener("click", this.onAddQuietWindow);
+    root
+      .querySelectorAll(".wi-quiet-remove")
+      .forEach((el) => el.addEventListener("click", this.onRemoveQuietWindow));
+    root.querySelectorAll(".wi-quiet-days, .wi-quiet-action").forEach((el) => {
+      el.addEventListener("click", stop);
+      el.addEventListener("change", this.onSlotEdit);
+    });
+    const frac = root.querySelector(".wi-quiet-frac");
+    if (frac) {
+      frac.addEventListener("click", stop);
+      frac.addEventListener("change", this.onSlotEdit);
+    }
     const addWood = root.querySelector(".wi-add-wood");
     if (addWood) addWood.addEventListener("click", this.onAddWood);
     root
@@ -10575,6 +10900,22 @@ class WhatIfPanel {
       start: (row.querySelector(".wi-win-start") || {}).value || "00:00",
       end: (row.querySelector(".wi-win-end") || {}).value || "00:00",
     }));
+    draft.quietWindows = [...root.querySelectorAll(".wi-quiet-window")].map(
+      (row) => ({
+        days: (row.querySelector(".wi-quiet-days") || {}).value || "daily",
+        start: (row.querySelector(".wi-quiet-start") || {}).value || "00:00",
+        end: (row.querySelector(".wi-quiet-end") || {}).value || "00:00",
+        action:
+          (row.querySelector(".wi-quiet-action") || {}).value === "off"
+            ? "off"
+            : "silent",
+      })
+    );
+    const fracEl = root.querySelector(".wi-quiet-frac");
+    if (fracEl) {
+      const frac = Number(fracEl.value);
+      if (Number.isFinite(frac)) draft.silentFraction = frac;
+    }
 
     // An armed confirmation refers to the values that were on screen when it
     // was armed. Only disarm if they actually changed — the save handler
@@ -10594,6 +10935,10 @@ class WhatIfPanel {
       d.dayStart,
       d.dayEnd,
       d.dhwWindows.map((w) => `${w.days || "daily"} ${w.start}-${w.end}`),
+      (d.quietWindows || []).map(
+        (w) => `${w.days || "daily"} ${w.start}-${w.end} ${w.action || "silent"}`
+      ),
+      d.silentFraction,
     ]);
   }
 
@@ -10610,6 +10955,29 @@ class WhatIfPanel {
     const index = Number(ev.currentTarget.getAttribute("data-index"));
     const draft = this.draft();
     if (Number.isFinite(index)) draft.dhwWindows.splice(index, 1);
+    this.host.renderForced();
+  }
+
+  onAddQuietWindow(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+    const d = this.draft();
+    if (!Array.isArray(d.quietWindows)) d.quietWindows = [];
+    d.quietWindows.push({
+      days: "daily",
+      start: "22:00",
+      end: "06:00",
+      action: "silent",
+    });
+    this.host.renderForced();
+  }
+
+  onRemoveQuietWindow(ev) {
+    stop(ev);
+    this.onSlotEdit(ev);
+    const index = Number(ev.currentTarget.getAttribute("data-index"));
+    const draft = this.draft();
+    if (Number.isFinite(index)) draft.quietWindows.splice(index, 1);
     this.host.renderForced();
   }
 
@@ -10654,12 +11022,24 @@ class WhatIfPanel {
     const draft = this.draft();
     const invalid = draft.dhwWindows.find(
       (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    ) || (draft.quietWindows || []).find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
     );
     if (invalid) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.invalid_window_time", {
         window: `${invalid.start}-${invalid.end}`,
       });
+      return;
+    }
+    const clash = quietOverlapProblem(
+      formatWindows((draft.quietWindows || []).filter((w) => w.action !== "off")),
+      formatWindows((draft.quietWindows || []).filter((w) => w.action === "off")),
+      formatWindows(draft.dhwWindows)
+    );
+    if (clash) {
+      out.className = "wi-result dearer";
+      out.textContent = clash;
       return;
     }
     if (draft.dayStart === draft.dayEnd) {
@@ -10690,6 +11070,7 @@ class WhatIfPanel {
         day_start_hour: draft.dayStart,
         day_end_hour: draft.dayEnd,
         dhw_windows: formatWindows(draft.dhwWindows),
+        ...quietServiceFields(draft),
         comfort_temp_day: draft.comfort,
         target_temperature: draft.comfort,
         dhw_min_temperature: draft.dhwMin,
@@ -10737,6 +11118,7 @@ class WhatIfPanel {
       // thing to price, and it is how a user asks "what if I stopped
       // guaranteeing hot water at fixed times?"
       dhw_windows: formatWindows(draft.dhwWindows),
+      ...quietServiceFields(draft),
     };
     const slots = (draft.woodSlots || []).filter(
       (s) => s.liters > 0 && s.start && s.end
@@ -10759,12 +11141,24 @@ class WhatIfPanel {
     const draft = this.draft();
     const invalid = draft.dhwWindows.find(
       (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
+    ) || (draft.quietWindows || []).find(
+      (w) => hourOf(w.start, null) === null || hourOf(w.end, null) === null
     );
     if (invalid) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.invalid_window_time", {
         window: `${invalid.start}-${invalid.end}`,
       });
+      return;
+    }
+    const clash = quietOverlapProblem(
+      formatWindows((draft.quietWindows || []).filter((w) => w.action !== "off")),
+      formatWindows((draft.quietWindows || []).filter((w) => w.action === "off")),
+      formatWindows(draft.dhwWindows)
+    );
+    if (clash) {
+      out.className = "wi-result dearer";
+      out.textContent = clash;
       return;
     }
 
@@ -12457,7 +12851,7 @@ function parseConfig(config) {
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
-// This class is being taken apart (docs/plan-card-decomposition.md): each
+// This class is being taken apart (dev/archive/plans/plan-card-decomposition.md): each
 // feature -- the plan source, the chart, the zoom window, the slot lanes,
 // the what-if panel, the setup page, the dialog -- leaves as a collaborator
 // that is handed THIS object and may use only what is listed here:
@@ -12499,7 +12893,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // The collaborators (dev/archive/plans/plan-card-decomposition.md), in dependency
     // order. Each is handed this element and uses only the host contract.
     this.plan = new PlanSource(this);
     this.view = new ViewWindow(this);
@@ -13057,6 +13451,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
       priceUnit: this.plan.priceUnit(),
       estimatedFrom: this.plan.estimatedPricesFrom(),
       actionRuns: () => this.histSource.actionRuns(),
+      quietRuns: () => {
+        const fc = this.plan.forecast(this.plan.resolveEntity("space")) || [];
+        return quietRunsFromActions(fc, this.plan.attrRaw("quiet_actions", null));
+      },
       editing: this.manual.enabled(),
       title: this._title(),
       now: Date.now(),
@@ -13455,6 +13853,16 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // series, so it is the band that decides the chip.
     if (hist && this.histSource.actionRuns().length) {
       const s = built.series.find((x) => x.key === "actioned");
+      if (s) s.hasData = true;
+    }
+    const quietRuns = quietRunsFromActions(
+      spFc,
+      plan.attrRaw("quiet_actions", null)
+    );
+    for (const run of quietRuns) {
+      if (run.end <= view.start || run.start >= view.end) continue;
+      const key = run.action === "off" ? "quiet_off" : "quiet_silent";
+      const s = built.series.find((x) => x.key === key);
       if (s) s.hasData = true;
     }
     return built;

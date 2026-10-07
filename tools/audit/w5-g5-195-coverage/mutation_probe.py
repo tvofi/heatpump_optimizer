@@ -25,6 +25,18 @@ run that leaves the tree dirty is visible rather than assumed.
     PYTHONPATH=tests/hastub python3 tools/audit/w5-g5-195-coverage/mutation_probe.py
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import hashlib
 import os
@@ -35,7 +47,7 @@ import subprocess
 import sys
 import tempfile
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+ROOT = repo_root(__file__)
 SRC = ROOT / "custom_components" / "heatpump_optimizer"
 OPEN_METEO = SRC / "open_meteo.py"
 FRONTEND = SRC / "frontend.py"

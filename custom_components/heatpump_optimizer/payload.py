@@ -763,6 +763,17 @@ class AwayView(TypedDict, total=False):
     away_hours_until_return: float | None
 
 
+class AwayFold(AwayView, total=False):
+    """Away keys plus the floor published while a setback is in force.
+
+    ``min_temperature`` is the floor the solve used. ``configured_min_temperature``
+    is present only when that floor is below the configured one.
+    """
+
+    min_temperature: float
+    configured_min_temperature: float
+
+
 class EnergyTotals(TypedDict, total=False):
     space_energy_kwh: float
     dhw_energy_kwh: float

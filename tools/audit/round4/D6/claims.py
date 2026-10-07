@@ -309,7 +309,7 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 76 entities are created on every install",
+eq("C1", "README.md:Entities", "All 78 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
 eq("C2", "README.md:### Sensors", "Sensors (60 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
@@ -436,9 +436,10 @@ eq("C13", "README.md:### Buttons", "the button table names exactly the buttons t
    "platform constructs", CMD, sorted(r[0] for r in _bt_rows),
    sorted(display("button", e) for e in CENSUS["button"]))
 
-eq("C14", "README.md:Switches", "Optimizer Active, Away, DHW Boost and Boost "
-   "Space Heating are the switches", CMD,
-   ["Away", "Boost Space Heating", "DHW Boost", "Optimizer Active"],
+eq("C14", "README.md:Switches", "Optimizer Active, Away, Block DHW, Block Space "
+   "Heating, DHW Boost and Boost Space Heating are the switches", CMD,
+   ["Away", "Block DHW", "Block Space Heating", "Boost Space Heating",
+    "DHW Boost", "Optimizer Active"],
    sorted(display("switch", e) for e in CENSUS["switch"]))
 
 # --- C15..C22 services -----------------------------------------------------
@@ -1188,10 +1189,12 @@ claim("C108", "README.md + docs/*.md",
 claim("C109", "README.md + docs/how-it-works.md",
       "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md "
       "resolve",
-      CMD, "those three files are removed from the round-4 export by "
-      "tools/audit/prepare_baseline.sh; this tree cannot answer",
+      CMD, "finder_wall in tools/audit/prepare_baseline.sh removes "
+      "docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; "
+      "this tree cannot answer",
       "unverifiable",
-      "not checkable in the export -- COMMON.md's wall removes exactly these files")
+      "not checkable in the export -- finder_wall removes docs/audit-*.md, "
+      "dev/archive/audits/audit-*.md and dev/archive/backlog.md")
 
 _imgs = []
 for _f in _doc_files:

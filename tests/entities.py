@@ -2349,6 +2349,56 @@ R.check(
     f"keys={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_on_attrs)} -- "
     "flipping only dhw_enabled must bring the whole block back",
 )
+# Review of #2009: the quiet spread sat inside `if dhw_configured` on the
+# populated plan branch, so a space-only house that published the keys
+# before the first plan omitted them once a plan existed. The card then
+# saved empty specs over the stored rows. The DHW block stays gated.
+_QUIET_PUB_KEYS = (
+    "quiet_silent_windows_spec",
+    "quiet_off_windows_spec",
+    "silent_mode_power_fraction",
+)
+
+
+class _QuietNoDhwCoord(FakeCoordinator):
+    def configured_quiet_windows(self):
+        return {
+            "quiet_silent_windows_spec": "22:00-06:00",
+            "quiet_off_windows_spec": "14:00-15:00",
+        }
+
+
+def _quiet_pub_keys(attrs):
+    return [k for k in _QUIET_PUB_KEYS if k in attrs]
+
+
+_quiet_no_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(_NO_DHW_DATA), ENTRY
+).extra_state_attributes
+_quiet_no_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY
+).extra_state_attributes
+_quiet_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(
+        {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "a plant with no hot water still publishes quiet keys before a plan exists",
+    _quiet_pub_keys(_quiet_no_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_plan_attrs)}",
+)
+R.check(
+    "and still publishes them once a space plan exists (#2009)",
+    _quiet_pub_keys(_quiet_no_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_dhw_plan_attrs)}",
+)
+R.check(
+    "the same payload with hot water configured still publishes the quiet keys",
+    _quiet_pub_keys(_quiet_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_dhw_plan_attrs)}",
+)
 R.check(
     "the plan sensor publishes wood_fuel for the card (#463)",
     space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],
@@ -4755,7 +4805,7 @@ R.check(
 # snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
 # being unknown; `python3 tests/ha_floor.py record` re-records it, and the
 # nightly floor container re-asks every answer of Home Assistant itself.
-# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+# Root cause and cost test: dev/audit/rca/R9-RCA-1869.md.
 R.section("P11: every Home Assistant name production reaches exists at the floor")
 
 import ha_floor as _p11  # noqa: E402
@@ -9894,7 +9944,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
+R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -10021,6 +10071,72 @@ try:
 finally:
     _boost_mod.persist = _boost_persist_real
 
+dhw_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_dhw"
+)
+space_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_space"
+)
+R.check(
+    "the block switches pin block_dhw and block_space",
+    dhw_block_sw._attr_unique_id.endswith("_block_dhw")
+    and space_block_sw._attr_unique_id.endswith("_block_space")
+    and dhw_block_sw.entity_id == "switch.heat_pump_optimizer_block_dhw"
+    and space_block_sw.entity_id == "switch.heat_pump_optimizer_block_space",
+    f"{dhw_block_sw._attr_unique_id} {space_block_sw.entity_id}",
+)
+R.check(
+    "the block switches are named Block DHW and Block Space Heating",
+    display_name("switch", dhw_block_sw) == "Block DHW"
+    and display_name("switch", space_block_sw) == "Block Space Heating",
+    f"{display_name('switch', dhw_block_sw)} / {display_name('switch', space_block_sw)}",
+)
+R.check(
+    "Block DHW is gated like the DHW boost switch",
+    isinstance(dhw_block_sw, _DHWGate) and not isinstance(space_block_sw, _DHWGate),
+)
+_block_persisted = []
+_block_held = _boost_mod.held_for(dhw_block_sw.coordinator)
+_block_held.until.clear()
+_block_held.blocked.clear()
+
+
+async def _block_persist_recorder(coord):
+    held = _boost_mod.held_for(coord)
+    _block_persisted.append((sorted(held.until), sorted(held.blocked)))
+
+
+_boost_mod.persist = _block_persist_recorder
+try:
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "turning Block DHW on holds the block channel and not the boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "a later DHW boost press clears the DHW block",
+        _block_persisted[-1:] == [(["dhw"], [])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "a later Block DHW press clears the DHW boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_off())
+    R.check(
+        "turning Block DHW off releases the block channel",
+        _block_persisted[-1:] == [([], [])],
+        str(_block_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
+
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
 # starts at the real coordinator's default (auto) or the restored mode -- not
@@ -10056,9 +10172,11 @@ _sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
 _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
-                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
 }
-for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
+                 "BlockDhwSwitch", "BlockSpaceSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -15063,16 +15181,16 @@ R.check(
 # and five repeats.
 _handovers = sorted(
     f for f in _subprocess.run(
-        ["git", "ls-files", "docs"], cwd=_closure.ROOT,
+        ["git", "ls-files", "-z"], cwd=_closure.ROOT,
         capture_output=True, text=True,
-    ).stdout.split()
-    if _closure.is_handover(f)
+    ).stdout.split("\0")
+    if f and _closure.is_handover(f)
 )
 R.check(
     "exactly one handover, with no date in its name",
-    _handovers == ["docs/HANDOVER.md"],
+    _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "docs/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -15080,13 +15198,13 @@ R.check(
 # the line names the merge the text reflects, which is always an ancestor.
 _uf = _re.search(
     r"^updated-for:[ \t]*([0-9a-f]{7,40})[ \t]*$",
-    Path("docs/HANDOVER.md").read_text(),
+    Path("dev/programme/HANDOVER.md").read_text(),
     _re.M,
-) if Path("docs/HANDOVER.md").exists() else None
+) if Path("dev/programme/HANDOVER.md").exists() else None
 R.check(
     "the handover names the commit it reflects",
     _uf is not None,
-    "docs/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
+    "dev/programme/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
     "was last written against",
 )
 R.check(
@@ -17984,7 +18102,7 @@ R.check(
 # it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["docs/audit-2026-09.md", "LICENSE", "SECURITY.md"])
+    ["dev/programme/register/audit-2026-09.md", "LICENSE", "SECURITY.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
@@ -19795,8 +19913,8 @@ R.check(
 # INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
 # 62799e4 -- the gap is the skip, not a different baseline SHA.
 _493_FILES = [
-    ".claude/workflows/wave-4-groups.json",
-    ".claude/workflows/wave-5-groups.json",
+    "dev/archive/rosters/wave-4-groups.json",
+    "dev/archive/rosters/wave-5-groups.json",
     "docs/plan-2026-09-open-issues.md",
 ]
 _493_CARD = {
@@ -19957,8 +20075,8 @@ _h493_card = (
 _h493_root, _h493_base = _hygiene_git(
     _h493_card,
     {
-        ".claude/workflows/wave-4-groups.json": "{}\n",
-        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "dev/archive/rosters/wave-4-groups.json": "{}\n",
+        "dev/archive/rosters/wave-5-groups.json": "{}\n",
         "docs/plan-2026-09-open-issues.md": "# plan\n",
     },
     py_touch=False,
@@ -20993,6 +21111,14 @@ R.check(
     and not [f for f in _tools_outside_audit if _closure.is_inert(f)],
     f"{_tools_outside_audit}; inert among them "
     f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
+)
+_pr_note = (Path(_closure.ROOT) / "tools/pr/README.md").read_text()
+R.check(
+    "the pull-request note names the gate lease and the seat instruments",
+    ".claude/rules/gate-scoping.md" in _pr_note
+    and "tools/audit/seat/INSTRUMENTS.md" in _pr_note,
+    "tools/pr/README.md is a tools/ file outside tools/audit/, so the "
+    "narrowing above classifies it by a read rather than by INERT",
 )
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks
@@ -24309,20 +24435,20 @@ with _ds_tf.TemporaryDirectory() as _raf_tmp2:
     # here reads exactly like a passing path guard.
     _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
     for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
-                 "docs/delivery/2052.md.bak", "docs/delivery/sub/2052.md"):
+                 "dev/programme/delivery/2052.md.bak", "dev/programme/delivery/sub/2052.md"):
         try:
             _rr.write_rows([{"number": 2052, "path": _bad,
                              "line": _raf_line}], Path(_raf_tmp2))
             _raf_guard.append(f"{_bad}=ACCEPTED")
         except _rr.Refuse:
             _raf_guard.append(f"{_bad}=refused")
-    _rr.write_rows([{"number": 2052, "path": "docs/delivery/2052.md",
+    _rr.write_rows([{"number": 2052, "path": "dev/programme/delivery/2052.md",
                      "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
                    Path(_raf_tmp2))
-    _raf_text = (Path(_raf_tmp2) / "docs/delivery/2052.md").read_text()
+    _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
     _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
 R.check(
-    "the generator's write set is docs/delivery/<N>.md and nothing else",
+    "the generator's write set is dev/programme/delivery/<N>.md and nothing else",
     all(g.endswith("=refused") for g in _raf_guard)
     and _raf_text == _raf_want,
     f"guard={_raf_guard}, written={_raf_text!r}; a row appended to the "
@@ -24458,6 +24584,12 @@ _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
 _RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+# The write set's directory is the generator's own row path, not a second
+# spelling: the job staged `docs/delivery` after the rows moved to
+# `dev/programme/delivery`, so `git add` matched nothing, every beat read
+# "nothing-owed", and `record` stayed red on main.
+_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
+                         if "_rr" in globals() else "?")
 
 
 def _raf_job_ok(job: str) -> bool:
@@ -24469,7 +24601,7 @@ def _raf_job_ok(job: str) -> bool:
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
         and job.count('git commit -q -m "ci: record delivery rows"') == 2
-        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and adds == [_RAF_ADD, _RAF_ADD]
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
@@ -24503,8 +24635,7 @@ R.check(
         "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
         'git commit -q -m "ci: record delivery rows"', "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
-                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
@@ -27217,7 +27348,7 @@ R.check(
 # are now driven with NO argument and through `main()`'s own call, so what is
 # pinned is the read the instrument actually performs.
 try:
-    _CFR_ARTIFACT = _closure.ROOT / ".claude/workflows/cfr_exclusions.json"
+    _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
     _CFR = json.loads(_CFR_ARTIFACT.read_text())
     _CFR_EXCL = _CFR.get("excluded_jobs") or {}
     # The quote the record entry's citation has to carry, read out of the
@@ -27314,7 +27445,7 @@ try:
         for _r in _cfr_reads
     )
     _CFR_INSTR_OK = bool(
-        _cfr.EXCLUSION_ARTIFACT == ".claude/workflows/cfr_exclusions.json"
+        _cfr.EXCLUSION_ARTIFACT == "dev/governance/config/cfr_exclusions.json"
         and _cfr_default_path
         == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
         and _cfr_default_map == _CFR_EXCL
@@ -27545,7 +27676,7 @@ R.check(
 # not a widening.
 try:
     _cfr_now = json.loads(
-        (_closure.ROOT / ".claude/workflows/cfr_exclusions.json").read_text())
+        (_closure.ROOT / "dev/governance/config/cfr_exclusions.json").read_text())
     _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
     _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
     _MUT_QUOTE = "unpinned site(s)"

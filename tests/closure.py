@@ -231,11 +231,17 @@ INERT = (
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
     "NOTICE",
-    "icon.png",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
     # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
     "docs/",
+    # R9-RO-5: the governance corpus and the programme record moved out of
+    # docs/, .claude/rules/ and tools/audit/briefs/. They are prose. The
+    # living handover is the hole is_handover cuts, under dev/programme/ as
+    # well as under docs/ so a second copy put back in the old place is
+    # unclassified rather than inert.
+    "dev/governance/",
+    "dev/programme/",
     # tests/README.md was here until #938: entities.py now reads the
     # manual's per-script size annotations and pins them against the
     # code's own counts, and a file a gate script reads is a dependency,
@@ -276,7 +282,13 @@ INERT = (
     # file that is in no closure and on no list, and tests/entities.py fails
     # when that set is not empty. So a new file has to be classified once,
     # deliberately, instead of silently making every gate full.
-    ".abacus.donotdelete",
+    # The reorganisation's archive and the audit record that has already
+    # moved (R9-RO-4). Same claim as tools/audit/: prose and evidence no gate
+    # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
+    # _is_header_corpus before a live harness lands under dev/audit/, or the
+    # move would declare a file the gate reads as unread.
+    "dev/archive/",
+    "dev/audit/",
     ".claude/",
     # R9-RO-6: policy, PR, coverage and device instruments left the
     # INERT prefixes they were under. The directory stays unread except
@@ -437,21 +449,29 @@ GATE_FILES = (
 # and on no list, so `select` refuses to skip anything (MODE: FULL) and
 # `orphan_files` reports it. A second handover is therefore refused on the pull
 # request that adds it, not on the push to main that follows.
-HANDOVER_DIR = "docs/"
+# The living file is dev/programme/HANDOVER.md (R9-RO-5). docs/ stays a hole:
+# a handover put back there is not inert, so it is an orphan and forces FULL.
+HANDOVER_DIRS = ("dev/programme/", "docs/")
+HANDOVER_DIR = HANDOVER_DIRS[0]
 HANDOVER_STEM = "handover"
 
 
 def is_handover(rel: str) -> bool:
-    """Anything under `docs/` whose first path segment starts with `handover`.
+    """A path whose first segment under a handover directory starts with `handover`.
 
     Deliberately wider than the one filename: it also catches a dated sibling
-    and the `docs/handovers/` directory someone reaches for once the flat name
-    is refused, which is the shape the ban would otherwise be one rename from.
+    and a `handovers/` directory someone reaches for once the flat name is
+    refused, which is the shape the ban would otherwise be one rename from.
+    Both directories count, so the living file and a copy put back under
+    docs/ are the same class.
     """
-    if not rel.startswith(HANDOVER_DIR):
-        return False
-    first = rel[len(HANDOVER_DIR):].lower().split("/", 1)[0]
-    return first.startswith(HANDOVER_STEM)
+    for directory in HANDOVER_DIRS:
+        if not rel.startswith(directory):
+            continue
+        first = rel[len(directory):].lower().split("/", 1)[0]
+        if first.startswith(HANDOVER_STEM):
+            return True
+    return False
 
 
 # tools/audit/ is INERT because it holds write-once evidence nothing in the gate
@@ -485,6 +505,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
+    # (R9-RO-6). Left inside the prefix the note is declared unread while
+    # being read, and check refuses the committed table before it compares
+    # a recording (#357).
+    "tools/pr/README.md",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -564,6 +589,18 @@ INERT_EXCEPT = (
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/render_md.mjs",
+    # tests/entities.py opens these. Left on the tools/policy/ prefix they
+    # are declared unread while being read: the recording files them under
+    # inert_reads and also in the closure, and merge refuses that pair.
+    # An edit selects entities.py, the policy_lint.mjs route.
+    "tools/policy/agreement.mjs",
+    "tools/policy/check-wave-script.mjs",
+    "tools/policy/field_coverage.mjs",
+    "tools/policy/figure_census.mjs",
+    "tools/policy/fragments_sync.mjs",
+    "tools/policy/friction_issues.mjs",
+    "tools/policy/policy_lint_mutants.mjs",
+    "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to
@@ -593,7 +630,7 @@ INERT_EXCEPT = (
     # `.json` artifact is under the `.claude/` prefix and never matches
     # `_is_header_corpus` at all. An edit to either now selects
     # tests/entities.py instead of skipping it.
-    ".claude/workflows/cfr_exclusions.json",
+    "dev/governance/config/cfr_exclusions.json",
     "tools/audit/round5/D13/seat-a/dora_cfr.py",
     # The 9 fixtures that harness READS, on the same #1303 route. The check
     # drives `dora_cfr.main()` with `git` patched to raise at its first call,
@@ -637,6 +674,27 @@ INERT_EXCEPT = (
     # leaves the prefix the way roster_lib.py did, so an edit selects
     # tests/entities.py.
     "tools/audit/round6/D11/fix/codeowners_gap.py",
+    # R9-RO-7: tests/harness_headers.py imports repo_root.py. Three path
+    # parts, so `_is_header_corpus` (five) does not reach it and the
+    # tools/audit/ prefix would keep it INERT while this gate script reads
+    # it. It leaves the prefix the way judge_batch.py did. The mjs and sh
+    # copies stay on the prefix: the scan's child opens them, strace -f
+    # records that under inert_reads, and the hook does not follow the child.
+    "tools/audit/repo_root.py",
+    # R9-RO-7: tests/entities.py opens these eight tools/policy scripts.
+    # The tools/policy/ prefix kept them INERT. Filing them under
+    # inert_reads left them out of the closure, and merge refuses the pair
+    # of INERT and recorded. closures job 112576325018 was UNDER-SCOPED on
+    # that read. They leave the prefix the way figure_lint.mjs did, so an
+    # edit selects tests/entities.py.
+    "tools/policy/agreement.mjs",
+    "tools/policy/check-wave-script.mjs",
+    "tools/policy/field_coverage.mjs",
+    "tools/policy/figure_census.mjs",
+    "tools/policy/fragments_sync.mjs",
+    "tools/policy/friction_issues.mjs",
+    "tools/policy/policy_lint_mutants.mjs",
+    "tools/policy/rules_sync.mjs",
 )
 
 
