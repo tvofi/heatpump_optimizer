@@ -1,24 +1,45 @@
-Fix review: merge b956925c59005584c8543db2bee5974e5b385c59
+Fix review: merge 189b57b614807bd9900bc2af02f7a033e0c3d90e
 
-bus-nonce: ac6545a1da0c94a74a8a35fcaf5fb508
+bus-nonce: 524f41df97c6d3f88ce3352bdb4c3e08
 
-Reviewer seat r9c-rev-2018, round 3, judging only the delta since 223f88c2. The measured head, b956925c59005584c8543db2bee5974e5b385c59, was still the live head when I posted.
+## Delta Review
 
-1. **The code delta is only an automatic main merge.**
-   - b956925c merges main 17f30f9c into 223f88c2.
-   - `git merge-tree --write-tree 223f88c2 17f30f9c` gives tree 0103e142, the head's own tree, so nothing was resolved by hand.
-   - The PR's three-dot patch is byte-identical at both heads: `cmp` of `git diff <mb>...<head>` reports PATCH IDENTICAL, with merge bases 38c03d94 and 17f30f9c.
-   - The only files the merge adds are main's `tools/pr/prepr.sh` and `dev/programme/delivery/2021.md`.
-   - `merge-tree` against current origin/main 45142cc3 exits 0.
-2. **`## Red checks` now names both reds.** It lists `closures` (112810272267) and `closures-autofix` (112820973686, `skip-manual-repair-owed`) as inherited from main, citing main's run 112789710707 at 38c03d94 and naming eg_b7_seam_hubs.py.
-   - The citations are the round-2 head's jobs, which is correct for when the body was written.
-   - At this head the same failure recurs in new jobs: `closures` 112845374722 fails on the identical `INERT READS UNDER-APPROXIMATED: tests/harness_headers.py: tools/audit/harnesses/eg_b7_seam_hubs.py`, and `closures-autofix` 112857546455 reports `AUTOFIX: skip-manual-repair-owed`.
-   - The body's statement that #2017 added the file is right: #2017's merge, b281a4c3, brought in 286733c7.
-3. **Nothing else regressed.** The commit check-runs endpoint returned HTTP 500 on all 4 pages tried (failure count 4), so I read the Actions jobs API for the head's runs instead.
-   - Tests 37636857833: `fast (3.14)` 112845243316 succeeded. stress.py's two pins passed (#1987 and #2018), and the run ended `ALL 106 STRESS CHECKS PASSED`.
-   - The only reds are `closures` and `closures-autofix`, both inherited, and `delivery-status` and `nightly-status`, both grading main and both already answered in the body.
-   - Every other job succeeded or was skipped.
-   - The other workflows succeeded: PR contract (twice), Hassfest, Validate, CodeQL, and Budget raise gate 37636859471. Its cancelled twin, 37636857865, is superseded by that success.
-   - The `closures` log at this head shows `done tests/stress.py (exit 0)`.
+The head moved from b956925c to 189b57b6 due to an automatic merge of main after PR #2015 (R9-RO-8) moved `tools/audit/bugclasses.json` to `dev/audit/config/bugclasses.json`.
 
-`closures` stays red until the main repair, #2022, lands; it is not this PR's. The code-owner approval from @tvofi is still owed, as `## Approval` states.
+### Mechanical Check 1: Three-dot diffs (old vs new heads)
+
+All files except `bugclasses.json` have identical added and removed lines (301 additions/removals each):
+- closure.py: code changes preserved despite line number shifts due to file structure changes in the merge
+- stress.py: code changes preserved
+
+For bugclasses.json, the same content appears at different paths:
+- Old head (b956925c): at `tools/audit/bugclasses.json`
+- New head (189b57b6): at `dev/audit/config/bugclasses.json`
+
+The R9-RCA-stress-recording citation was added identically in both versions:
+- BULK-2-I2 entry now includes "R9-RCA-stress-recording" in the rca array
+- New R9-RCA-stress-recording entry with full I2 definition present in both
+
+### Mechanical Check 2: New head state at 189b57b6
+
+✓ `dev/audit/config/bugclasses.json` parses and has no conflict markers
+✓ `tools/audit/bugclasses.json` does not exist
+✓ `python3 tools/audit/fold_ledger.py check` reports 0 violations
+
+### Mechanical Check 3: Merge tree
+
+✓ `git merge-tree --write-tree origin/main 189b57b6` exits 0 (no conflicts)
+
+### Mechanical Check 4: CI check-runs at 189b57b6
+
+In progress (non-blocking):
+- pr-contract, closures, Analyze (python), browser, instrument-self-tests, env-matrix, Analyze (javascript-typescript), typing, coverage, fast (3.14)
+
+Failures (non-blocking per task):
+- delivery-status: main's status, not this PR's responsibility
+- nightly-status: main's status, not this PR's responsibility
+- budget-raise-gate: cancelled (expected after merge of #2015)
+
+## Conclusion
+
+All mechanical gates pass. The delta is purely the file path move of bugclasses.json from tools/audit to dev/audit/config, with identical content and code changes preserved.
