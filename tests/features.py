@@ -59036,7 +59036,60 @@ R.check(
 )
 
 
+# --- #1956 the card recommends a feedback sensor on an unmetered install ---
+# The probe is #1955's own: power and frequency come from ``probe_install``;
+# the energy entity is the one class the probe does not carry. A water mass
+# flow meter has no config key, so it is not a class the recommendation can
+# name (the issue's "if configurable").
+from harness import FakeCoordinator as _fb_coord  # noqa: E402
+from harness import FakeEntry as _fb_entry  # noqa: E402
+from heatpump_optimizer import const as _fb_const  # noqa: E402
+from heatpump_optimizer.sensor import SensorGapAdvisorSensor as _FbGapSensor  # noqa: E402
+from heatpump_optimizer.thermal_model import feedback_gaps as _fb_gaps  # noqa: E402
+
+_FB_KEYS = {
+    _fb_const.CONF_POWER_ENTITY,
+    _fb_const.CONF_ENERGY_ENTITY,
+    _fb_const.CONF_COMPRESSOR_FREQ_SENSOR,
+}
+_fb_bare = _fb_gaps({})
+R.check(
+    "an install with no power, energy or frequency signal is told which three classes to add",
+    {g["key"] for g in _fb_bare} == _FB_KEYS
+    and {g["class"] for g in _fb_bare} == {"power", "energy", "frequency"},
+    f"{_fb_bare}",
+)
+R.check(
+    "any one of the signals silences the recommendation (null control: each alone)",
+    all(
+        _fb_gaps({_fb_key: "sensor.x"}) == []
+        for _fb_key in (
+            _fb_const.CONF_POWER_ENTITY,
+            _fb_const.CONF_ENERGY_ENTITY,
+            _fb_const.CONF_COMPRESSOR_FREQ_ENTITY,
+            _fb_const.CONF_COMPRESSOR_FREQ_SENSOR,
+        )
+    ),
+)
+R.check(
+    "an unrelated entity does not count as feedback",
+    len(_fb_gaps({_fb_const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp"})) == 3,
+)
+
+
+def _fb_attr(cfg):
+    coord = _fb_coord({}, _config=dict(cfg))
+    gap = _FbGapSensor(coord, _fb_entry())
+    gap.hass = FakeHass()
+    return gap.extra_state_attributes
+
+
+R.check(
+    "the gap advisor publishes the probe's list for the card to read",
+    _fb_attr({}).get("feedback_gaps") == _fb_bare
+    and _fb_attr({_fb_const.CONF_POWER_ENTITY: "sensor.p"}).get("feedback_gaps") == [],
+    f"{_fb_attr({}).get('feedback_gaps')}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
-

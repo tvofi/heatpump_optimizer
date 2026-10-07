@@ -11354,7 +11354,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
-    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
+    "SensorGapAdvisorSensor": frozenset({"feedback_gaps", "gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),

@@ -1281,6 +1281,30 @@ def probe_install(config: Any) -> InstallCapability:
     )
 
 
+def feedback_gaps(config: Any) -> list[dict[str, str]]:
+    """The sensor classes to add when nothing feeds back (#1956).
+
+    Empty when the probe sees a power entity or a frequency entity or
+    sensor, or the config carries an energy entity (the one class the probe
+    does not hold). Otherwise one row per class with the config key that
+    would use it. A water mass-flow meter has no config key, so it is not a
+    class this can name.
+    """
+    cfg = config or {}
+    cap = probe_install(cfg)
+    return (
+        []
+        if cap.measured_power
+        or cap.frequency
+        or cfg.get(const.CONF_ENERGY_ENTITY)
+        else [
+            {"class": "power", "key": const.CONF_POWER_ENTITY},
+            {"class": "energy", "key": const.CONF_ENERGY_ENTITY},
+            {"class": "frequency", "key": const.CONF_COMPRESSOR_FREQ_SENSOR},
+        ]
+    )
+
+
 def duty_cycle_realizable(config: Any) -> bool:
     """The duty-cycle reading stands for this config.
 

@@ -201,6 +201,14 @@ const STRINGS = {
     "advisor.optin_wood": "Wood-stove timing",
     "advisor.optin_fuse": "Fuse size",
     "advisor.optin_frequency": "Compressor frequency",
+    // The feedback-sensor recommendation (R9-UX-9, #1956).
+    "advisor.feedback_title": "Add a heat pump power, energy or frequency sensor",
+    "advisor.feedback_detail":
+      "Without one the planner cannot see what the pump really draws, and no reliable estimate exists without it. Any one is enough: {list}.",
+    "advisor.feedback_power": "power",
+    "advisor.feedback_energy": "energy",
+    "advisor.feedback_frequency": "compressor frequency",
+    "advisor.act_dismiss": "Dismiss",
     "savings.col_month": "Month",
     "savings.col_baseline": "Baseline",
     "savings.col_actual": "Actual",
@@ -831,6 +839,13 @@ const STRINGS = {
     "advisor.optin_wood": "Vedpannans timing",
     "advisor.optin_fuse": "Huvudsäkring",
     "advisor.optin_frequency": "Kompressorfrekvens",
+    "advisor.feedback_title": "Lägg till en givare för värmepumpens effekt, energi eller frekvens",
+    "advisor.feedback_detail":
+      "Utan en kan planeraren inte se vad pumpen faktiskt drar, och ingen pålitlig uppskattning finns utan den. En räcker: {list}.",
+    "advisor.feedback_power": "effekt",
+    "advisor.feedback_energy": "energi",
+    "advisor.feedback_frequency": "kompressorfrekvens",
+    "advisor.act_dismiss": "Avfärda",
     "savings.col_month": "Månad",
     "savings.col_baseline": "Referens",
     "savings.col_actual": "Faktisk",
@@ -8486,15 +8501,55 @@ function advisorRowHtml(host, row) {
     </div>`;
 }
 
+// The feedback recommendation (R9-UX-9, #1956): the backend lists the sensor
+// classes an install with no power, energy or frequency signal could add, on
+// the gap advisor it already publishes. Dismissal is a per-browser
+// convenience, so it lives in localStorage and never in the plan.
+const FEEDBACK_DISMISS_KEY = `${CARD_TAG}:advice-dismissed:feedback`;
+
+function feedbackDismissed() {
+  try {
+    return typeof localStorage !== "undefined"
+      && localStorage.getItem(FEEDBACK_DISMISS_KEY) === "1";
+  } catch (_err) { return false; }
+}
+
+function dismissFeedback() {
+  try {
+    if (typeof localStorage !== "undefined") localStorage.setItem(FEEDBACK_DISMISS_KEY, "1");
+  } catch (_err) { /* storage off: the row returns on the next load */ }
+}
+
+/** The classes still worth adding, or none: an older backend publishes no
+ * list, a metered install an empty one, and a dismissed row nothing. */
+function feedbackGaps(plan) {
+  const st = plan.statEntity(ADVISOR_SUFFIXES.gap);
+  const gaps = st && st.state !== "unavailable" && st.attributes && st.attributes.feedback_gaps;
+  return Array.isArray(gaps) && !feedbackDismissed()
+    ? gaps.filter((g) => g && g.class && g.key) : [];
+}
+
+function feedbackRowHtml(gaps) {
+  const list = gaps.map((g) => `${L(`advisor.feedback_${g.class}`)} (${g.key})`).join(", ");
+  return `<div class="adv-inbox-row" data-advice="feedback">
+      <span class="adv-text">${esc(L("advisor.feedback_title"))}<span class="adv-sub">${esc(L("advisor.feedback_detail", { list }))}</span></span>
+      <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
+      <button type="button" class="adv-act" data-act="dismiss_feedback">${esc(L("advisor.act_dismiss"))}</button>
+    </div>`;
+}
+
 function advisorInboxHtml(host) {
   const rows = advisorRows(host);
+  const feedback = feedbackGaps(host.plan);
   const optIn = (priceTiles(host.plan) ? ADVISOR_OPT_IN : ["degree", ...ADVISOR_OPT_IN]).map((id) => `<div class="adv-inbox-row">
       <span class="adv-text">${esc(L(`advisor.optin_${id}`))}</span>
       <button type="button" class="adv-act" data-act="settings">${esc(L("advisor.act_settings"))}</button>
     </div>`).join("");
   return `<div class="adv-head"><span class="adv-title">${esc(L("advisor.inbox_heading"))}</span></div>
-    ${rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
-      : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`}
+    ${(rows.length ? rows.map((r) => advisorRowHtml(host, r)).join("")
+      : feedback.length ? ""
+        : `<div class="empty">${esc(L("advisor.inbox_empty"))}</div>`)
+      + (feedback.length ? feedbackRowHtml(feedback) : "")}
     <div class="adv-head"><span class="adv-title">${esc(L("advisor.optin_heading"))}</span></div>
     ${optIn}`;
 }
@@ -8773,6 +8828,10 @@ function attachAdvisorInbox(host, root) {
         host.dialog.scroll = 0;
         host._render();
         host.whatIf.run();
+        return;
+      } else if (act === "dismiss_feedback") {
+        dismissFeedback();
+        host._render();
         return;
       } else if (act === "settings" || act === "diagnostics") {
         navigateTo(SETTINGS_PATH);

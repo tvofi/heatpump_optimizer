@@ -53,6 +53,7 @@ from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 from .payload import Payload
 from .mixing_valve import is_throttling
+from .thermal_model import feedback_gaps
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -2913,7 +2914,11 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         gaps = self._gaps()
         top = next((g for g in gaps if g.get("empty") and g.get("sek_per_month")), None)
-        return {"gaps": gaps, "top_slot": None if top is None else top.get("key")}
+        return {
+            "gaps": gaps,
+            "top_slot": None if top is None else top.get("key"),
+            "feedback_gaps": feedback_gaps(self.coordinator.effective_config),
+        }
 
 
 class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
