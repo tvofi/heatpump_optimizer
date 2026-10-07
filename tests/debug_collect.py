@@ -482,6 +482,18 @@ R.check(
     and ran["slow"]["error"] == "timeout" and ran["late"] == {"skipped": "budget"},
     str(ran),
 )
+# A frozen clock reaches the budget's boundary exactly; restored at once,
+# because asyncio's loop clock reads the same ``time.monotonic``.
+debugger.time.monotonic = lambda: 100.0
+try:
+    spent = asyncio.run(debugger.run_self_tests([("fine", _fine)], 0.0))
+finally:
+    debugger.time.monotonic = real_monotonic
+R.check(
+    "a budget with exactly nothing left starts no further self-test",
+    spent == {"fine": {"skipped": "budget"}},
+    str(spent),
+)
 R.check(
     "the self-tests' budget is the owner's fifteen minutes",
     debugger.SELF_TEST_BUDGET == timedelta(minutes=15),
