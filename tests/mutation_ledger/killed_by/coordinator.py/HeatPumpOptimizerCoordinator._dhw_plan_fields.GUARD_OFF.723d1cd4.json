@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_plan_fields GUARD_OFF 723d1cd4",
+  "killed_by": "tests/features.py",
+  "old": "        if params.dhw_enabled and params.dhw_windows_active and ctx._config.dhw_quantile_targets_enabled:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against e7479ad19f9643a59dd61cfaca5e871c75bc1a6d: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
