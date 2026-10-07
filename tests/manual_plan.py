@@ -102,6 +102,7 @@ from heatpump_optimizer.dhw_planner import (
     _place_legionella_step,
 )
 from heatpump_optimizer import quiet_windows as _qw
+from heatpump_optimizer.entry_config import EntryConfig
 from heatpump_optimizer.sensor import MonthlyPeakSensor, _quiet_windows_attributes
 from heatpump_optimizer.services import (
     _canonical_quiet_spec,
@@ -645,8 +646,8 @@ class _QuietCoord:
         return self._specs
 
     @property
-    def effective_config(self) -> dict:
-        return {}
+    def effective_config(self) -> EntryConfig:
+        return EntryConfig()
 
 
 class _PowerState:

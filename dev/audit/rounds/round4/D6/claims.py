@@ -75,7 +75,7 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=71       (70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_modules_on_disk=72       (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
@@ -101,7 +101,7 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=71            (70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_map_listed=72            (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
@@ -925,9 +925,14 @@ eq("C68", "README.md", "Wood Cheaper Than Heat Pump needs furnace efficiency 10-
 ECL = DOCS["ecl110.md"]
 # R5-D12-01: the topics have no shipped default any more. Each claim pins the
 # three-way agreement the fix established -- the heat_curve form suggests
-# empty, and the coordinator maps an absent AND an explicitly blank topic to
-# the same arm-off value -- against the doc sentence that says so.
-from heatpump_optimizer.coordinator import _ecl110_topic as _ecl_topic
+# empty, and an absent topic and an explicitly blank one parse to the same
+# arm-off value -- against the doc sentence that says so. The parse is
+# EntryConfig's (#1745); the coordinator helper that used to do it is gone.
+from heatpump_optimizer.entry_config import EntryConfig
+
+
+def _ecl_topic(mapping, key):
+    return getattr(EntryConfig.from_mapping(mapping), key)
 
 
 def _hc_default(key):

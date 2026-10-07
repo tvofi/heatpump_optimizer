@@ -86,6 +86,7 @@ from .const import (
     CONF_HEAT_PUMP_ONLINE_ENTITY,
     MODE_LAST_GOOD_MAX_AGE_MINUTES,
 )
+from .entry_config import EntryConfig
 from .payload import ElectricHeatSignals, HeatPumpSignals
 from .pump_mode import FULL_CAPABILITY, ModeCapability
 
@@ -389,7 +390,7 @@ def read(
     # An entity that declares its own state among its options -- a select, or
     # an input_select somebody built to list the pump's modes -- can be taken
     # at face value. A plain sensor cannot: see ``pump_mode._STATUS_AMBIGUOUS``.
-    mode_entity = reader.config.get(CONF_HEAT_PUMP_MODE_ENTITY)
+    mode_entity = EntryConfig.from_mapping(reader.config).heat_pump_mode_entity
     mode_state = reader.hass.states.get(mode_entity) if mode_entity else None
     mode_validator = pump_mode.validator_for(mode_state)
     strict = mode_validator is not pump_mode.is_known

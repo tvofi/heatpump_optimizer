@@ -29,11 +29,10 @@ from homeassistant.loader import async_get_integration
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    CONF_OPTIMIZATION_INTERVAL,
     CONFIG_ENTRY_VERSION,
-    DEFAULT_OPTIMIZATION_INTERVAL,
     DOMAIN,
 )
+from .entry_config import EntryConfig
 
 # Bound here, not via ``_lazy``. Home Assistant 2026 evaluates
 # ``async_setup_entry``'s annotations with ``get_type_hints``, which looks
@@ -174,11 +173,10 @@ def _handover_interval_minutes(config: Mapping[str, Any]) -> float:
 
     The entry's merged data and options, passed explicitly (#1739): the
     freshness decision below compares an age against the interval the
-    coordinator was built with, which is this same mapping.
+    coordinator was built with, which is this same mapping, parsed by the
+    same declaration (#1745).
     """
-    return float(
-        config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL)
-    )
+    return EntryConfig.from_mapping(config).optimization_interval
 
 
 def _take_fresh_handover(

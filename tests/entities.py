@@ -3555,11 +3555,31 @@ def _p2_conf(e):
     return None
 
 
+try:
+    from heatpump_optimizer.entry_config import EntryConfig as _EntryConfig
+except ImportError:
+    _EntryConfig = None
+#: A parsed entry field read is the same read as ``.get`` of its stored key
+#: (#1745): field name -> the CONF_ name whose value it is.
+_P2_TYPED_READS = {
+    getattr(const, n): n for n in dir(const)
+    if n.startswith("CONF_") and _EntryConfig is not None
+    and getattr(const, n) in {f.name for f in fields(_EntryConfig) if f.metadata}
+}
+_P2_CONFIG_RECEIVER = re.compile(
+    r"(^|\.)(_config|effective_config|cfg|config)$|^EntryConfig\.from_mapping\(")
+
+
 def _p2_conf_read(n):
-    """``x.get(K)``, ``x[K]`` (a load) or ``K in x``: the CONF_ name read."""
+    """``x.get(K)``, ``x[K]`` (a load), ``K in x``, or the parsed field
+    ``<config>.<key>`` of an ``EntryConfig``: the CONF_ name read."""
     if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
             and n.func.attr == "get" and n.args:
         return _p2_conf(n.args[0])
+    if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load) \
+            and n.attr in _P2_TYPED_READS \
+            and _P2_CONFIG_RECEIVER.search(ast.unparse(n.value)):
+        return _P2_TYPED_READS[n.attr]
     if isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
         return _p2_conf(n.slice)
     if isinstance(n, ast.Compare) and len(n.ops) == 1 \
@@ -3735,7 +3755,6 @@ def _p2_registry(sources):
                  "coordinator.py::HeatPumpOptimizerCoordinator._dhw_probe_temperature":
                      "probe presence",
                  "topology.py::rank_sensor_gaps": "probe presence",
-                 "sensor.py::_gap_probe_terms": "a volume default",
                  "services.py::handle_set_thermal_params": "service data write",
                  "services.py::handle_apply_topology": "service data write",
                  "services.py::handle_apply_schedule": "service data write",
@@ -3983,6 +4002,257 @@ R.check(
     == {"p2_dead", "p2_dead_proxy"}
     and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+
+# ===========================================================================
+# #1745: the entry's configuration is parsed once
+# ===========================================================================
+# Readers took each key off the merged entry dict with a default and a
+# coercion of their own: optimization_interval was read raw, through float()
+# and through _as_float, so a stored "15" crashed one reader, was 15 to
+# another and the default to a third. EntryConfig declares each key's one
+# default and one coercion; the coordinator parses it once, at construction.
+R.section("#1745: one entry configuration, parsed once, one default and one coercion per key")
+R.check("EntryConfig is importable from heatpump_optimizer.entry_config", _EntryConfig is not None)
+
+
+def _ec_build(extra=None, options=None):
+    entry = FakeEntry(data={
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        **(extra or {}),
+    }, options=options)
+    return entry, HeatPumpOptimizerCoordinator(FakeHass(), entry)
+
+
+def _ec_readers(extra):
+    """Two keys as four readers in three modules take them, or the error."""
+    try:
+        entry, coord = _ec_build(extra)
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        return f"{type(err).__name__}: {err}"
+    return (
+        coord.update_interval,
+        integration._handover_interval_minutes({**entry.data, **entry.options}),
+        coord._ctx._opt_config.comfort_weight,
+        coord._comfort_learner.configured_weight,
+    )
+
+
+_ec_default = (timedelta(minutes=const.DEFAULT_OPTIMIZATION_INTERVAL),
+               const.DEFAULT_OPTIMIZATION_INTERVAL, const.DEFAULT_COMFORT_WEIGHT,
+               const.DEFAULT_COMFORT_WEIGHT)
+_ec_stored = (timedelta(minutes=15), 15.0, 7.0, 7.0)
+_ec_bad = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: "soon", const.CONF_COMFORT_WEIGHT: "heavy"})
+_ec_text = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: "15", const.CONF_COMFORT_WEIGHT: "7"})
+_ec_good = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: 15, const.CONF_COMFORT_WEIGHT: 7.0})
+R.check(
+    "a stored value no reader can parse builds, and every reader takes the one declared default",
+    _ec_bad == _ec_default, f"got {_ec_bad!r}, want {_ec_default!r}",
+)
+R.check(
+    "a number stored as text is the same number to every reader",
+    _ec_text == _ec_stored, f"got {_ec_text!r}, want {_ec_stored!r}",
+)
+R.check(
+    "null control: a well-formed stored value reaches all four readers",
+    _ec_good == _ec_stored and _ec_stored != _ec_default, f"got {_ec_good!r}",
+)
+
+if _EntryConfig is not None:
+    _ec_parses = []
+    _ec_parse = _EntryConfig.from_mapping.__func__
+
+    def _ec_counting(cls, merged):
+        if not isinstance(merged, _EntryConfig):
+            _ec_parses.append(1)
+        return _ec_parse(cls, merged)
+
+    _EntryConfig.from_mapping = classmethod(_ec_counting)
+    try:
+        _ec_entry, _ec_coord = _ec_build(
+            {const.CONF_PV_ENABLED: True}, options={const.CONF_TARGET_TEMP: 22.5})
+    finally:
+        _EntryConfig.from_mapping = classmethod(_ec_parse)
+    _ec_cfg = _ec_coord._ctx._config
+    from operator import setitem as _ec_setitem
+    _ec_refusals = []
+    for _ec_write in (
+        lambda: setattr(_ec_cfg, "pv_enabled", False),
+        lambda: _ec_setitem(_ec_cfg, const.CONF_PV_ENABLED, False),
+        lambda: _ec_setitem(_ec_cfg.raw, const.CONF_PV_ENABLED, False),
+    ):
+        try:
+            _ec_write()
+        except (FrozenInstanceError, TypeError):
+            _ec_refusals.append(True)
+    R.check(
+        "the coordinator parses its entry once, into one EntryConfig",
+        type(_ec_cfg) is _EntryConfig and len(_ec_parses) == 1,
+        f"type={type(_ec_cfg).__name__} parses={len(_ec_parses)}",
+    )
+    R.check(
+        "the parsed configuration is frozen: a field, an item and the raw mapping refuse a write",
+        len(_ec_refusals) == 3 and _ec_cfg.pv_enabled is True, f"refused {len(_ec_refusals)} of 3",
+    )
+    R.check(
+        "it is still the merged entry (options over data), which the no-op-save reload skip compares",
+        _ec_coord.effective_config == {**_ec_entry.data, **_ec_entry.options}
+        and _ec_cfg.target_temperature == 22.5,
+        f"{dict(_ec_cfg)!r}",
+    )
+    _ec_fields = [f for f in fields(_EntryConfig) if f.metadata]
+    _ec_keys = {v for n, v in vars(const).items() if n.startswith("CONF_") and isinstance(v, str)}
+    R.check(
+        "every declared field is named for a stored key",
+        bool(_ec_fields) and {f.name for f in _ec_fields} <= _ec_keys,
+        f"not a key: {sorted({f.name for f in _ec_fields} - _ec_keys)}",
+    )
+    _ec_unstable = [
+        f.name for f in _ec_fields
+        if (lambda got: type(got) is not type(f.default) or got != f.default)(
+            getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name))
+    ]
+    R.check(
+        "every declared default survives its own key's parse, type included",
+        not _ec_unstable, f"{_ec_unstable}",
+    )
+
+    # A non-finite stored number is refused like text, and a stored tank
+    # volume of 0 is an unset field (a zero tank would divide the DHW model
+    # by zero), each falling to the one declared default.
+    _ec_nf = [
+        _EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: bad}).comfort_weight
+        for bad in (float("nan"), float("inf"), "-inf")
+    ]
+    _ec_tank = _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 0}).dhw_tank_volume
+    _ec_ok = (_EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: 7.5}).comfort_weight,
+              _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 150}).dhw_tank_volume)
+    R.check(
+        "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 "
+        "reads the default volume; null control: 7.5 and 150 pass through",
+        _ec_nf == [const.DEFAULT_COMFORT_WEIGHT] * 3
+        and _ec_tank == const.DEFAULT_DHW_TANK_VOLUME and _ec_ok == (7.5, 150.0)
+        and const.DEFAULT_DHW_TANK_VOLUME != 0,
+        f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
+    )
+
+    # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
+    # slot are parsed fields, a blank or None spec reading "" (unset) and an
+    # empty slot None. A set_thermal_parameters call carrying a spec applies
+    # live, as on main: the coordinator swaps in a new parse with the keys
+    # folded in, never writing into the frozen one, and that parse equals the
+    # entry after the options write, so the update listener skips the reload.
+    _ec_qentry, _ec_qcoord = _ec_build({
+        const.CONF_QUIET_OFF_WINDOWS: None,
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
+    })
+
+    async def _ec_no_refresh():
+        return None
+
+    _ec_qcoord.async_request_refresh = _ec_no_refresh
+    _ec_qbefore = _ec_qcoord._ctx._config
+    try:
+        asyncio.run(_ec_qcoord.async_update_thermal_params(
+            {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
+        _ec_qerr = None
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_qerr = f"{type(err).__name__}: {err}"
+    _ec_qcfg = _ec_qcoord._ctx._config
+    R.check(
+        "a stored None quiet spec reads unset, and a quiet window set by the service applies "
+        "live through a new parse that equals the saved entry (no reload), the old parse untouched",
+        _ec_qerr is None
+        and _ec_qbefore.quiet_off_windows == "" and _ec_qbefore.quiet_silent_windows == ""
+        and _ec_qbefore.heat_pump_capacity_limited_entity is None
+        and _ec_qcfg is not _ec_qbefore and type(_ec_qcfg) is _EntryConfig
+        and _ec_qcfg.quiet_silent_windows == "22:00-06:00"
+        and _ec_qcoord.configured_quiet_windows()["quiet_silent_windows_spec"] == "22:00-06:00"
+        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00"
+        and _ec_qcoord.effective_config == {**_ec_qentry.data, **_ec_qentry.options},
+        f"error={_ec_qerr} live={_ec_qcfg.quiet_silent_windows!r} "
+        f"options={dict(_ec_qentry.options or {})!r}",
+    )
+
+
+# The barrier: no reader in a migrated module takes a key off a mapping.
+# The shape is P2's (_p2_conf_read without the typed arm): x.get(K), x[K],
+# K in x. Blind spot, stated: a key passed to a helper that reads it
+# (reader.read(K), the input slots, which name a slot rather than parse a
+# value) is not a mapping read and is not returned.
+#: (module, function, CONF name) -> why the read is not an entry-config read.
+_EC_DISPOSITIONS = {
+    ("coordinator.py", "async_update_thermal_params", key): "the set_thermal_params service's call data"
+    for key in ("CONF_BUFFER_COOLING_RATE", "CONF_DHW_COOLING_RATE",
+                "CONF_DHW_SCHEDULE_ENABLED", "CONF_DHW_WINDOWS")
+}
+#: Modules whose readers still take the merged mapping, and why.
+_EC_RESIDUAL = {
+    "away.py": "config_from_mapping builds AwayConfig, the away subsystem's own parsed "
+               "object; _migrate_helpers pops keys off the stored options it rewrites",
+    "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
+    "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
+    "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
+                        "overridden_config folds the call's quiet keys into",
+    "thermal_model.py": "ThermalParameters.from_config, the solver's own parsed object, "
+                        "rebuilt only by set_thermal_params",
+    "topology.py": "describe_setup and rank_sensor_gaps also describe the setup flow's answers",
+    "wood_fuel.py": "the wood readers also judge the options form's answers, and layer "
+                    "the service's overrides on the mapping",
+}
+#: Modules that read form answers, service data or the options being built,
+#: not a loaded entry's configuration.
+_EC_NOT_ENTRY = {
+    "config_flow.py", "quick_setup.py", "modbus_prefill.py", "services.py",
+    "device_prefill.py", "prefill_offer.py", "const.py",
+}
+_EC_MIGRATED = {
+    "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
+    "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
+    "setpoint_check.py", "silent_mode.py",
+}
+
+
+def _ec_mapping_reads(sources):
+    """(module, innermost function, CONF name) for every mapping read of a key."""
+    out = []
+    for name, text in sources.items():
+        tree = ast.parse(text)
+        parents = {c: n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        for n in ast.walk(tree):
+            key = None
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                    and n.func.attr == "get" and n.args:
+                key = _p2_conf(n.args[0])
+            elif isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
+                key = _p2_conf(n.slice)
+            elif isinstance(n, ast.Compare) and len(n.ops) == 1 \
+                    and isinstance(n.ops[0], (ast.In, ast.NotIn)):
+                key = _p2_conf(n.left)
+            if not key:
+                continue
+            fn = n
+            while fn in parents and not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                fn = parents[fn]
+            out.append((name, getattr(fn, "name", "<module>"), key))
+    return out
+
+
+_ec_hits = _ec_mapping_reads(_P2_SOURCES)
+_ec_stray = sorted({h for h in _ec_hits if h[0] in _EC_MIGRATED and h not in _EC_DISPOSITIONS})
+_ec_stale = sorted(set(_EC_DISPOSITIONS) - set(_ec_hits))
+_ec_unclassified = sorted(
+    {h[0] for h in _ec_hits} - _EC_MIGRATED - set(_EC_RESIDUAL) - _EC_NOT_ENTRY)
+_ec_residual_stale = sorted(set(_EC_RESIDUAL) - {h[0] for h in _ec_hits})
+R.check(
+    "no migrated module reads a key off a mapping outside a dispositioned site; every "
+    "module with a mapping read is migrated, residual or not an entry reader; no entry is stale",
+    not (_ec_stray or _ec_stale or _ec_unclassified or _ec_residual_stale),
+    f"STRAY {_ec_stray} STALE {_ec_stale} UNCLASSIFIED {_ec_unclassified} "
+    f"RESIDUAL-STALE {_ec_residual_stale} (hits={len(_ec_hits)})",
 )
 
 
