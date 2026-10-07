@@ -484,16 +484,19 @@ def compose_with_silent(
     )
 
 
-def configured_specs(config: Mapping[str, Any]) -> dict[str, str]:
+def configured_specs(
+    config: Mapping[str, Any], get_state: Callable[[str], Any] | None = None
+) -> dict[str, str]:
     """The quiet-window specs as configured, one per action (#1910).
 
     The card's editor edits the configuration, so it needs the configuration
     -- in the shared grammar, empty string for "no rows" -- not the plan's
     reading of it. The specs are stored canonical by the services that write
-    them, so they are handed back as stored. A silent spec with no control
-    that can hold it carries the not-enforced marker, decided from the
-    entity ID's domain and never the state, so a switch that has not
-    reported yet (state ``unknown``) is not dropped: unknown is not off.
+    them, so they are handed back as stored. A silent spec no control can
+    fully hold carries the not-enforced marker; ``silent_unenforceable``
+    decides it -- a switch from its entity ID's domain and never its state,
+    so one that has not reported yet (state ``unknown``) is not dropped:
+    unknown is not off.
     """
     out: dict[str, str] = {
         "quiet_silent_windows_spec": str(
@@ -501,9 +504,7 @@ def configured_specs(config: Mapping[str, Any]) -> dict[str, str]:
         ),
         "quiet_off_windows_spec": str(config.get(CONF_QUIET_OFF_WINDOWS) or ""),
     }
-    if out["quiet_silent_windows_spec"] and not silent_control_usable(
-        config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
-    ):
+    if silent_unenforceable(config, get_state):
         out["quiet_silent_not_enforced"] = "true"
     return out
 
