@@ -4138,6 +4138,42 @@ if _EntryConfig is not None:
         f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
     )
 
+    # A parsed configuration rides inside state that is deep-copied (the boost
+    # drift replay forks its replay state) or pickled; the read-only view of
+    # the stored values cannot be, so EntryConfig copies by value (#1745).
+    import copy as _ec_copy
+    import pickle as _ec_pickle
+    _ec_orig = _EntryConfig.from_mapping({
+        const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
+        const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
+    })
+    _ec_copies, _ec_copy_err = [], None
+    try:
+        _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_copy_err = f"{type(err).__name__}: {err}"
+    R.check(
+        "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
+        "its parsed fields kept, its stored values still read-only",
+        _ec_copy_err is None and len(_ec_copies) == 2
+        and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
+                and c.pv_enabled is True and c.quiet_off_windows == ""
+                and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
+        f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
+    )
+    # The fuse's continuous capacity is the configuration's, not the
+    # coordinator's: amps x phases x 230 V, None with no fuse configured.
+    _ec_fuse = (
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
+    )
+    R.check(
+        "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
+        abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
+        f"{_ec_fuse}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
     # empty slot None. A set_thermal_parameters call carrying a spec applies
