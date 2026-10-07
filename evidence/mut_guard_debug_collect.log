@@ -1,0 +1,34 @@
+
+=== debug collection guards (#1939) ===
+  ok   the debug store opens at version 1
+  ok   a datetime in a payload is its ISO text, and a set is a list
+  ok   a cycle row omits fields the cycle did not carry
+  FAIL a stored row inside its domain is kept, and one outside it is dropped
+  ok   a row whose only field is its stamp is inside the domain
+  ok   a row whose stamp does not parse is dropped
+  ok   a row with no accuracy sample is kept; an empty or non-dict sample is dropped; a sample's stamp is stored aware
+  ok   a stored item that is not a dict is dropped and does not stop the ring loading
+  ok   a store document on disk is its version and data; a bad file is skipped
+  ok   an update that is not a running solve does not start the solve clock
+  ok   a solve's wall is the span from the running edge to the stopped edge
+  ok   a listener call that publishes no new payload adds no row
+  ok   a listener call with no payload adds no row
+  ok   a final collection records nothing more
+  ok   a collection stops at exactly seven days and does not store the row past the span
+  ok   a payload snapshot is taken on the first row and again at exactly one day
+  ok   the ring is saved on the first row and again at exactly one hour
+  ok   a ring with no start stays empty even when the document says it is final
+  ok   with the option off nothing collects and a stored ring is deleted
+  ok   unload closes the collector and drops it
+  ok   status with no collection is idle, and start on that entry turns the option on
+  ok   status of a live collection reports its rows
+  ok   status of a final collection reports it and does not clear it
+  ok   stop finalizes the live collection
+  ok   start on a final collection clears it
+  ok   stop with no collection is refused
+  ok   the finalize button is available while a collection is open, names why it is dark otherwise, and a press finalizes
+  ok   a node that declares one value is that domain, and one with another key is not
+  ok   a dict stored where one value belongs is that value, not a walk of its keys
+  ok   a real flag still reaches its declared domain
+
+1 of 30 DEBUG COLLECT CHECKS FAILED
