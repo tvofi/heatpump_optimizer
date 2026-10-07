@@ -1155,12 +1155,22 @@ def _warm_index() -> None:
             time.sleep(0.5)
 
 
+RECORDING_ENV = "HPO_CLOSURE_RECORDING"
+
+
 def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
     _warm_index()
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / (Path(script).name + ".json")
     env = dict(os.environ)
     env["PYTHONPATH"] = str(ROOT / "tests" / "hastub") + os.pathsep + env.get("PYTHONPATH", "")
+    # Tells the script it is being recorded, not graded: stress.py then prints
+    # a CPU or wall-clock miss instead of failing on it, because beside two
+    # other recording lanes and this hook the ratio measures the recorder. A
+    # run that reached its end and exited 1 on a timing verdict otherwise
+    # reads as truncated, and `skip-failed-recording` left a real UNDER-SCOPED
+    # for a human three times on #1987 (dev/audit/rca/R9-RCA-stress-recording.md).
+    env[RECORDING_ENV] = "1"
     if script.endswith(".mjs"):
         return _record_node(script, str(out), env)
     cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
@@ -3158,6 +3168,33 @@ def selftest() -> int:
         pin("coverage-split reads .coverage.<n> and <n>.nodata as base data",
             buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
             repr(buf.getvalue()))
+
+    print("\n=== a recording's rc says whether it ended, and the log says it (#1987) ===")
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        seen = td_path / "seen"
+        probe = td_path / "probe.py"
+        probe.write_text("import os, sys\n"
+                         f"open(sys.argv[1], 'w').write(os.environ.get({RECORDING_ENV!r}, ''))\n")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            record(str(probe), td_path / "rec", [str(seen)])
+        got = seen.read_text() if seen.is_file() else None
+        pin(f"record() runs the script with {RECORDING_ENV}=1, the flag stress.py "
+            "keys its timing verdicts on", got == "1", f"the script saw {got!r}")
+        pin("stress.py reads the same variable name",
+            f'CLOSURE_RECORDING_ENV = "{RECORDING_ENV}"'
+            in (ROOT / "tests" / "stress.py").read_text())
+        for code in (3, 0):
+            stub = td_path / f"py{code}"
+            stub.write_text(f"#!/bin/sh\nexit {code}\n")
+            stub.chmod(0o755)
+            res = subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(td_path / f"d{code}")],
+                cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+                capture_output=True, text=True)
+            pin(f"derive_closures.sh's done line reports a recording's exit {code}",
+                f"done   tests/x.py (exit {code})" in res.stdout, res.stdout[-300:])
 
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")

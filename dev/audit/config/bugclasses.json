@@ -924,7 +924,8 @@
     "status": "barriered",
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
-      "BULK-2-I2"
+      "BULK-2-I2",
+      "R9-RCA-stress-recording"
     ],
     "rca_planned": [],
     "trigger": {
@@ -3701,6 +3702,22 @@
         "handoff/r9-rca-2004:dev/audit/rca/R9-RCA-2004.md"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-2004.md"
+    },
+    "R9-RCA-stress-recording": {
+      "class": "I2",
+      "level": "instance-or-process",
+      "subject": "#1987 closures-autofix answered skip-failed-recording three times over a real UNDER-SCOPED because tests/stress.py exited 1 on CPU-ratio verdicts only under the closure recorder",
+      "trigger": "recurrence (3rd instance on #1987; 5 of 8 attributable skip-failed-recording runs since 2026-09-27)",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "closure.py record sets HPO_CLOSURE_RECORDING=1; stress.py's six CPU/wall verdicts print rather than count under it (timing_check); derive_closures.sh reports the recording's real exit; pinned in closure.py selftest and stress.py",
+      "landed": null,
+      "doc": [
+        "handoff/r9-rca-stress-recording"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
     }
   }
 }
