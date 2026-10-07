@@ -14,7 +14,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`5b1ea517a43740d0236caa35b76df21f645e8e40`
+`93ddd53eab19d396ebb6960c97ea9684bf0a792c`
 
 ## Mutation proof
 
@@ -22,24 +22,24 @@ Each mutant was applied in place to a committed tree, run, and then reverted wit
 
 - Mutant A: `configured_quiet_windows` passes `None` instead of the state getter. `PYTHONPATH=tests/hastub python3 tests/features.py` printed `FAIL configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced` with the marker present, beside the seat's standing `R9-F2.1 P3` failure, and exited 1.
 - Mutant B: `configured_specs` goes back to the pre-#1913 predicate, `out["quiet_silent_windows_spec"] and not silent_control_usable(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))`. `tests/features.py` printed the same `configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced` FAIL, beside `R9-F2.1 P3`, and exited 1.
-- Mutant C: `if silent_unenforceable(config, get_state):` becomes `if False:`. `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `FAIL configured_specs returns the stored rows and the not-enforced marker  [got {'quiet_silent_windows_spec': '22:00-06:00', 'quiet_off_windows_spec': '09:00-09:30'}]` and exited 1. That mutant is the inventory's `quiet_windows.py:507 GUARD_OFF` site. `python3 tests/mutation_table.py --scope changed --base origin/main` lists it as this diff's one `ADDED UNPINNED` site, killed by `tests/manual_plan.py`. Pinning it is `mutation-autofix`'s job (`ci-autofix.md`). No local `--pin-killed` was run.
+- Mutant C: `if silent_unenforceable(config, get_state):` becomes `if False:`. `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `FAIL configured_specs returns the stored rows and the not-enforced marker  [got {'quiet_silent_windows_spec': '22:00-06:00', 'quiet_off_windows_spec': '09:00-09:30'}]` and exited 1. That mutant is the inventory's `quiet_windows.py:507 GUARD_OFF` site. `python3 tests/mutation_table.py --scope changed --base origin/main` lists it as this diff's one `ADDED UNPINNED` site, killed by `tests/manual_plan.py`. `mutation-autofix` printed `skip-no-measurement` for it at `4e3f09b6` (job 112772526098), so no bot pin came. Under `ci-autofix.md` ("When `mutation-autofix` goes red, run `--pin-killed` yourself") the fixer committed the pin in `93ddd53e`: `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --scripts tests/manual_plan.py` printed `pinned quiet_windows.py:507 GUARD_OFF -- killed by tests/manual_plan.py` and `PIN KILLED: 1 pinned, 0 left unpinned`. It wrote `tests/mutation_ledger/killed_by/quiet_windows.py/configured_specs.GUARD_OFF.b6ab8a95.json`.
 
 ## Null control
 
-At `5b1ea517a43740d0236caa35b76df21f645e8e40`, `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `ALL 129 manual plan checks PASSED`.
+At `93ddd53eab19d396ebb6960c97ea9684bf0a792c`, `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `ALL 129 manual plan checks PASSED`.
 
 At `1919f6312eacb7bfe77896abee323692069f3570`, unmodified, `PYTHONPATH=tests/hastub python3 tests/features.py` printed `1 of 3815 FEATURE CHECKS FAILED`. The one failure is `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]`. That is a storage-solve objective comparison on this arm64 seat. Neither `configured_specs` nor `configured_quiet_windows` is on its path. The previous body reported the same check red on this seat at an earlier head. CI's `fast (3.14)` was green at `95ad5034`. A mutant counts as killed only by a FAIL line that is not this one.
 
 ## Figures
 
-Taken at `5b1ea517a43740d0236caa35b76df21f645e8e40`, 2026-10-07T10:56:23Z, `origin/main` `59b5ac6e4594b42cd5579cca182a743c25f4c48d`, except where another SHA is named.
+Taken at `93ddd53eab19d396ebb6960c97ea9684bf0a792c`, 2026-10-07T13:32:30Z, `origin/main` `59b5ac6e4594b42cd5579cca182a743c25f4c48d`, except where another SHA is named.
 
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. At `a8d2e78e` the same command printed `FAIL dead_top_level_symbols 2 > 1 (+1)` and `FAIL max_class_loc 9070 > 9048 (+22)`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`: at `1919f631`: `MODE: FULL -- every test script runs, nothing is scoped out.` The reason given was `tests/derive_closures.sh changes the gate itself`. The suite was not run unscoped locally. What did run is the set of scripts whose committed closure lists `quiet_windows.py`, minus `boost_drift_replay.py`, `harness_headers.py`, `entities.py`, `finite_boundary.py`, `golden.py`, `env_drift.py` and `arch_score_head.py`, which are left to CI. At `1919f631`, each script that ran printed its pass line and exited 0, except `features.py` (see `## Null control`): `manual_plan.py`, `guard_pins.py`, `debug_collect.py`, `plan_view.py`, `config_flow_steps.py`, `deployment_shape.py`, `doc_claims.py`, `solar_alignment.py`, `typing_ruler.py`, `wood_advisor.py`, `structure.py`, `card.mjs` and `card_drift.mjs`.
 - At this head, `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`, and `PYTHONPATH=tests/hastub python3` on `tests/manual_plan.py`, `tests/debug_collect.py` and `tests/guard_pins.py` printed `ALL 129 manual plan checks PASSED`, `ALL 30 DEBUG COLLECT CHECKS PASSED` and `ALL 47 GUARD PIN CHECKS PASSED`.
 - `./tests/derive_closures.sh --single tests/debug_collect.py` at `1919f631`: exit 0. It added `quiet_windows.py` and `modbus_prefill.py` to that script's closure and kept `silent_mode.py`, which this run did not read. The same command at `e23f8712` and again at this head changed only the recorded `seconds`, and each time that change was discarded. The file set is unchanged, so the closure needs no further edit.
 - `uvx ruff check --select F` on `coordinator.py` and `quiet_windows.py`, compared with the same files at `95ad5034` after stripping line numbers: no new finding. One finding is gone: the unused `CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY` import, which main removed.
-- `python3 tests/mutation_table.py --scope changed --base origin/main`: exit 1, `4695 unpinned site(s) against 4694 at the ratchet base 59b5ac6e4594b42cd5579cca182a743c25f4c48d, 1 of them added by this diff`, which is `quiet_windows.py:507 GUARD_OFF` (see `## Mutation proof`).
+- `python3 tests/mutation_table.py --scope changed --base origin/main`: its first line is `4694 unpinned site(s) of 5743 candidate sites, 4694 at the ratchet base 59b5ac6e4594b42cd5579cca182a743c25f4c48d; the ledger agrees with the deterministic inventory`, and the output holds no `REFUSED`. At `4e3f09b6` it printed 4695 against 4694, refusing on `quiet_windows.py:507 GUARD_OFF`. The drive of the 8 changed-scope mutants that follows was stopped at this load (over 170), so its per-driver results are not claimed.
 - `CLAIM_HEAD=$(git rev-parse HEAD) PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`: `claims hygiene: 59b5ac6e4594b42cd5579cca182a743c25f4c48d ok`.
 
 ## Red checks
@@ -65,7 +65,7 @@ The set below comes from `gh api repos/tvofi/heatpump_optimizer/commits/<sha>/ch
 `mutation`, 3 heads.
 - `8f756547` and `9da596f2` (jobs 112237478695, 112303713384): `ADDED UNPINNED` sites in `button.py` and `debugger.py`, the new collector code. They were pinned by a `--pin-killed` drive with `tests/debug_collect.py` on a later head.
 - `cf9de4e2` (job 112484566102): `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`. It is pinned under `killed_by` for `tests/manual_plan.py` (`configured_specs.RETURN_DEL.a8227ccf`).
-- This head adds one more site, `quiet_windows.py:507 GUARD_OFF` (`## Mutation proof`).
+- `4e3f09b6` added one more site, `quiet_windows.py:507 GUARD_OFF`, which `93ddd53e` pins (`## Mutation proof`).
 - Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It is not in `prepr.sh`.
 
 `mutation-autofix`, 3 heads. `8f756547` (job 112239901173) printed `AUTOFIX: skip-measure-failed`, and `9da596f2` and `cf9de4e2` (jobs 112305445205, 112486109066) printed `AUTOFIX: skip-no-measurement`. The repair did not happen, so the pins came from the drives named under `mutation`. Cheaper detector: the same ratchet command as for `mutation`.
