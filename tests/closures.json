@@ -126,7 +126,7 @@
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 525.3,
+   "seconds": 1634.2,
    "rc": 0
   },
   "tests/block_duty.py": {
@@ -3680,7 +3680,9 @@
    "dev/programme/register/audit-2026-09.md",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
    "tools/audit/repo_root.mjs",
-   "tools/audit/repo_root.sh"
+   "tools/audit/repo_root.sh",
+   "dev/audit/harnesses/boost_replay_fork_parity.py",
+   "dev/audit/harnesses/ci_script_seconds.py"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
