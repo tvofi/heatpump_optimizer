@@ -1,1 +1,0 @@
-ALL 36 closure shrink pins PASSED
