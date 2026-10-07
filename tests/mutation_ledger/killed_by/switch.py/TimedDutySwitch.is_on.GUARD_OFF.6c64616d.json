@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/switch.py:TimedDutySwitch.is_on GUARD_OFF 6c64616d",
+  "killed_by": "tests/block_duty.py",
+  "old": "        if self._block:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: GUARD_OFF (`if False:`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}

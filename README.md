@@ -438,7 +438,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 76 entities appear and the first plan is solved within one
+- **Immediately.** All 78 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -633,8 +633,17 @@ recovery heat in the cheapest hours before it. Both are also driven by the
 channel for two hours: the planner's DHW ceiling, or nameplate space heat with
 the comfort ceiling and full curve displace. They expire on their own and do
 not switch the optimizer into the global boost mode. Without hot water
-configured, DHW Boost is unavailable and disabled by default, and applies no
-heat.
+configured, DHW Boost and Block DHW are unavailable and disabled by default,
+and apply no heat.
+
+**Block DHW** and **Block Space Heating** are the opposite, for the same two
+hours: the blocked duty is held at zero and the pump arbiter drops it. The
+later press wins when a block and a boost share a channel. A safety floor
+releases the block and the switch says why: an anti-legionella cycle that is
+due or a disinfection hold, the tank at its minimum inside a demand window,
+the room at the economy floor, the house below its plan while it is cold
+outside, a measurement experiment, or a stale plan. A block does not switch
+the heat pump's supply off.
 
 The **climate entity** is a virtual thermostat with HVAC modes (off, heat, auto)
 and presets (auto, comfort, economy, boost). Its target temperature is *your*

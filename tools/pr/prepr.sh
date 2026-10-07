@@ -1050,6 +1050,10 @@ if [ "${1:-}" = "--self-test" ]; then
     set -e; cd "$RA"; git init -q -b main .
     git config user.name st; git config user.email st@st
     git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+    # The identity is pinned through the environment, not only `git config`:
+    # GIT_AUTHOR_NAME in a seat's ambient environment outranks user.name and
+    # changes both commit SHAs, so every fixture below went unfound (7 rows).
+    export GIT_AUTHOR_NAME=st GIT_AUTHOR_EMAIL=st@st GIT_COMMITTER_NAME=st GIT_COMMITTER_EMAIL=st@st
     export GIT_AUTHOR_DATE='2005-04-07T22:13:13 +0000'
     export GIT_COMMITTER_DATE='2005-04-07T22:13:13 +0000'
     echo a > code; git add -A; git -c commit.gpgsign=false commit -qm base
