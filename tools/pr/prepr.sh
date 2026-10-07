@@ -391,6 +391,29 @@ PY
   return 1
 }
 
+# Step 6d's whole body: tools/pr/ci_predict.py, CI's own functions over the
+# three-dot diff, read statically -- no test, recording or mutant runs, so it
+# costs seconds where step 6b's recordings cost the scoped scripts' run time
+# and are left to CI under the owner's heavy-scripts rule (2026-10-07). It
+# predicts `closures`'s UNDER-SCOPED, INERT READS and NO RECORDING, entities'
+# unclassified file and `mutation`'s ADDED UNPINNED, which R9-RO-11's
+# pre-study measured reddening this round's fix heads after the handoff while
+# the autofix jobs repaired none of them. The PREDICT lines print above the
+# step line; the step line is the predictor's last.
+predict_line() { # base ref; rc 0 none, 1 predicted, 3 skipped
+  local out r
+  if [ ! -f tools/pr/ci_predict.py ]; then
+    echo "tools/pr/ci_predict.py is not in this tree"; return 3
+  fi
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" 2>&1); r=$?
+  case "$r" in
+    0) printf '%s\n' "$out" | tail -1; return 0 ;;
+    1) printf '%s\n' "$out" | grep '^PREDICT' | sed 's/^/           /' >&2
+       printf '%s\n' "$out" | tail -1; return 1 ;;
+    *) echo "the predictor did not run: $(printf '%s\n' "$out" | tail -1)"; return 1 ;;
+  esac
+}
+
 # Steps 6a and 6b whole, as the lines the step prints: the step is `step
 # <name> $? <line>` over these, so `--self-test` drives the decisions the
 # step makes rather than a copy of them (the #1591 review: 10 of 12 mutants
@@ -1508,6 +1531,45 @@ PY
   st $? 0 "and the step's refusal names the venv build command"
   [ ! -s "$CLM/pylog" ]
   st $? 0 "and nothing recorded under the refused interpreter"
+  # Step 6d over a throwaway clone, through `predict_line`: a null branch (a
+  # comment in a selectable script) must stay quiet, and each red the
+  # predictor names is planted alone on its own branch and must trip it with
+  # its own PREDICT line -- R9-RO-11's perturbation, one arm per class.
+  PDX=$(mktemp -d)
+  (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+    && $G checkout -q --detach && $G checkout -q -b pfork \
+    && git update-ref refs/remotes/origin/main pfork \
+    && cp "$OLDPWD/tools/pr/ci_predict.py" tools/pr/ci_predict.py \
+    && $G add -A && $G commit -qm predictor --allow-empty \
+    && git update-ref refs/remotes/origin/main HEAD \
+    && $G checkout -q -b pnull && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pnull \
+    && $G checkout -q -b porphan origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && $G add -A && $G commit -qm porphan \
+    && $G checkout -q -b pimport origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && echo "from . import zz_planted  # planted" >> custom_components/heatpump_optimizer/away.py \
+    && $G add -A && $G commit -qm pimport \
+    && $G checkout -q -b pinert origin/main && echo "# planted" > tools/audit/harnesses/zz_planted.py \
+    && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
+    && $G add -A && $G commit -qm plane \
+    && $G checkout -q -b pmut origin/main \
+    && printf '\n\ndef _zz_planted(x):\n    if x > 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
+    && $G commit -qam pmut) >/dev/null 2>&1
+  predict_at() { (cd "$PDX/r" && git checkout -q "$1" && predict_line origin/main 2>&1 >/dev/null; echo "rc=$?"); }
+  got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
+  got=$(predict_at porphan); grep -q 'PREDICT fast .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
+  st $? 0 "6d predicts entities' refusal of a new file in no closure and not on INERT"
+  got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED .*zz_planted.py (a new import from custom_components/heatpump_optimizer/away.py)' <<<"$got"
+  st $? 0 "6d predicts UNDER-SCOPED for a new import from a file a closure lists"
+  got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: tools/audit/harnesses/zz_planted.py' <<<"$got"
+  st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
+  got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
+  st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
+  got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
+  st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
+  grep -q '^rc=1$' <<<"$got"
+  st $? 0 "and the step refuses on a prediction"
+  rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
 
@@ -1882,6 +1944,14 @@ else
     *) step "closures" 1 "$CLOSURES_LINE" ;;
   esac
 fi
+
+# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
+PREDICT_LINE=$(predict_line origin/main)
+case $? in
+  3) say skip "ci predict" "$PREDICT_LINE" ;;
+  0) step "ci predict" 0 "$PREDICT_LINE" ;;
+  *) step "ci predict" 1 "$PREDICT_LINE" ;;
+esac
 
 # --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
 # before the push. `copies_line` above. The scan reads the whole tree, so it
