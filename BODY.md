@@ -8,37 +8,64 @@ _Requested by **tvofi**_.
 
 ## Head
 
-495accb541325529d87be63ff94e8af37bfb12c2
+97f89cdaf5fb7fbcc046b40d0d26f16164f3e88e
+
+Measured against origin/main 17f30f9cedf2a442592d3db01d1d2e708a55425b at 2026-10-07T14:21:02Z. Since the blocked head ace05371ed47a6a9d378883c9fefbad08315c343 (verdict comment 6027912894): `_fold_away` is typed against the away state and returns a new `AwayFold` TypedDict in `payload.py`; `tests/features.py` gains value checks on the idle-reason helpers, the away fold and the comfort cause; one equivalent `RETURN_DEL` is triaged under `tests/mutation_ledger/survivor_triage/notifier.py/`; the advisor and plan-why pages are regenerated at the merged tree; origin/main is merged twice, and the delivery row now sits at `dev/programme/delivery/2010.md`. A spread of the local view inside `_fold_away` was tried and reverted (c0a3e641): `tests/entities.py` EG-B3 resolves a payload merge source by its call and reported `[['view']]` unresolved.
 
 ## Mutation proof
 
-In `idle_reason`, the fuse branch's return was replaced with the bare idle code and the classifier probe was re-run. The step whose cap is shut came back idle, which is the red result of the features check "UX-5 an idle step whose fuse cap leaves no room says the fuse". The return was restored and the same probe came back the fuse sub-code.
+In `idle_reason`, `return REASON_IDLE_FUSE` was replaced with `return REASON_IDLE`. In `_fold_away`, the two lines `if floor == float(configured): return view` were deleted. A probe ran the inputs of the features checks "UX-5 an idle step whose fuse cap leaves no room says the fuse" and "UX-5 a setback equal to the floor does not name a second one" against a `git archive` of this head, mutated and restored:
+
+    MUTANT RESULT fuse-check got=idle want=idle_fuse pass=False
+    MUTANT RESULT fold-equal-floor second_floor=True pass=False
+    RESTORED RESULT fuse-check got=idle_fuse want=idle_fuse pass=True
+    RESTORED RESULT fold-equal-floor second_floor=False pass=True
+
+The typing fix: `tests/typing_ruler.py --mypy` under the pinned toolchain printed, at ace05371, `FAIL errors did not grow [recorded 0, measured 5 (+5)]` with `by_code[arg-type]` +1, `by_code[no-any-return]` +3 and `by_code[typeddict-item]` +1; at this head `ALL 9 typing-ruler checks PASSED`.
+
+Pinning is not done. `mutation_table.py --pin-killed --base origin/main` refuses on this Mac: driven by every closure driver, the `tests/env_drift.py` baseline timed out at 1200 s (host load average above 200); driven by `--scripts tests/features.py` alone, the baseline is red on R9-F2.1 P3 and the run printed `MUTATION TABLE INCONCLUSIVE`. The CI pin step at the previous head printed `47 not started for --budget-minutes`. The diff-added sites are therefore still unpinned at this head, and `mutation` will refuse them again unless the orchestrator routes a Linux pin drive.
 
 ## Null control
 
-An idle step at the floor, cheaper than an hour that ran, stays idle. Without an away setback the what-if band and the published floor stay the configured values, and `configured_min_temperature` is absent. A comfort payload with no space-plan forecast still fires, with no cause. A hot-water advisor row already at the recommendation calls no service.
+The same probe on the same inputs without a fuse cap returned `idle` (`RESULT null no-cap got=idle want=idle pass=True`), and an away state that is home published neither `min_temperature` nor `configured_min_temperature` (`RESULT null home keys_has_min=False pass=True`), mutated and restored alike. A setback below the floor publishes 16.0 with the configured 19.0 beside it in both arms. The pinned typing ruler at origin/main's tree is the recorded zero the head is compared with.
 
 ## Figures
 
-`PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main`
+`git merge-base origin/main HEAD` is 17f30f9cedf2a442592d3db01d1d2e708a55425b.
 
-`node tests/card_drift.mjs origin/main`
+`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 26 script(s) run, 5 scoped out` at the first merge; scripts run locally at this head, `PYTHONPATH=tests/hastub`:
 
-`PYTHONPATH=tests/hastub python3 tests/entities.py`
+`python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`.
 
-`PYTHONPATH=tests/hastub python3 tests/features.py`
+`python3 tests/entities.py` -- `ALL 2200 ENTITY CHECKS PASSED`.
 
-`node tests/card.mjs`
+`node tests/card.mjs` -- `ALL CARD CHECKS PASSED`.
 
-`python3 tests/structure.py`
+`node tests/card_drift.mjs origin/main` -- `2 state(s) moved and claimed, 38 identical`.
 
-`python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`
+`node tests/md_tables.mjs` -- `doc_misrendered_lines=0`.
 
-The drift comparison's unclaimed leaves, before the claims, were `space_reasons` and `dhw_reasons` only. `flat_prices` captured on this tree and on origin/main differed in those two fields and in no other. `tests/stress.py` was left to CI.
+`python3 tests/doc_claims.py` -- `ALL 160 checks PASSED`.
+
+`.venv-typing/bin/python tests/typing_ruler.py --mypy` -- `ALL 9 typing-ruler checks PASSED`.
+
+`python3 tests/env_drift.py --all origin/main` -- `NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main` and `NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes`.
+
+`python3 tests/features.py` at the first merge (13fc4a45, whose test file this head keeps) -- `1 of 3833 FEATURE CHECKS FAILED`, the one being R9-F2.1 P3; 41 UX-5 checks passed.
+
+`HPO_PAGES_OUT=<dir> node tests/card_browser.mjs` with `tests/pwlane`'s Playwright -- the advisor and plan-why pages written into `docs/img/card/`; the run's one failure, `P9 grid: no two text runs share ink` (`text "2" x text "3"`), fails identically on a `git archive` of origin/main 3910026e on this Mac. At the first merge the generator reproduced the committed advisor and plan-why PNGs byte for byte (`cmp`).
+
+The heavy scope.run scripts (`tests/stress.py`, `tests/golden.py`, `tests/boost_drift_replay.py`, `tests/optimality.py`, `tests/backtest.py` and the rest) are left to CI on #2010 at this head, by tvofi's 2026-10-07 rule that heavy scripts run in CI; their results are CI's check-runs, not figures in this body. Before that rule, `tests/arch_score_head.py` and `tests/backtest.py` exited 0 locally at 13fc4a45.
 
 ## Red checks
 
-`R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it` — red on this branch and on origin/main, same objective pair from the isolated two-zone storage solve. This diff does not turn it red. Cheaper detector: that isolated solve, about a minute, and it fails on the merge base, so no countermeasure belongs to this change.
+`typing` -- red at ace05371, answered above. The cheaper detector is the pinned ruler run locally: about 90 s once the venv exists. It is not in `scope.run`'s local habit because it needs its own venv; `tools/audit/seat/` has no recipe for it, so a fixer meets it only in CI.
+
+`mutation` and `mutation-autofix` -- red at ace05371 and unrepaired here; see Mutation proof. No cheaper detector exists on a Mac, whose features.py baseline is red.
+
+`pr-contract` -- red at ace05371 because `env-matrix` was red and this body did not name it. `env-matrix` is red on origin/main (governance run 37531301054 at 6001b09a); this diff does not touch it.
+
+`R9-F2.1 P3` inside `tests/features.py` -- red on this Mac at this head and at origin/main; the Mac BLAS solve, not this diff.
 
 ## Forward-carry
 
@@ -46,4 +73,4 @@ none
 
 ## Friction
 
-none
+fixer.md-step-2: unenforced: `mutation_table.py --pin-killed` cannot measure a diff whose sites only `tests/features.py` drives -- CI's 35-minute budget admits none, and a Mac's red baseline refuses the local run.
