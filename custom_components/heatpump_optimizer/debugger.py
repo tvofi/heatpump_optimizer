@@ -65,7 +65,6 @@ SELF_TEST_BUDGET = timedelta(minutes=15)
 #: compact JSON Home Assistant writes, so the file itself stays under it.
 INLINE_CAP_BYTES = 8 * 1024 * 1024
 _INPUTS = ("indoor_temp", "outdoor_temp", "dhw_temp")
-_MONITOR = ("samples", "temperature_bias", "temperature_mae", "trust")
 _HEALTH = ("problem_inputs", "input_ages_minutes", "learners_frozen")
 
 #: Keyed by the coordinator, as ``pump_arbiter`` keeps its state: the
@@ -211,9 +210,15 @@ def accuracy_report(document: Any, live: AccuracyTracker) -> dict[str, Any]:
         "window": "the store keeps the newest 192 samples; the live tracker more",
         "stored_samples": len(raw) if isinstance(raw, list) else 0,
         "restored_samples": len(restored.samples),
-        "store": {k: restored.summary()[k] for k in _MONITOR},
-        "live": {k: live.summary()[k] for k in _MONITOR},
+        "store": _monitor(restored),
+        "live": _monitor(live),
     }
+
+
+def _monitor(tracker: AccuracyTracker) -> dict[str, Any]:
+    summary = tracker.summary()
+    return {"samples": summary["samples"], "temperature_bias": summary["temperature_bias"],
+            "temperature_mae": summary["temperature_mae"], "trust": summary["trust"]}
 
 
 def spread(values: list[float]) -> dict[str, Any] | None:
