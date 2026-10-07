@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_write GUARD_OFF 9db598da",
-  "killed_by": "tests/features.py",
-  "old": "        elif slot == \"silent\":",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: GUARD_OFF (`elif False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}
