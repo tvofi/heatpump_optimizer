@@ -12,7 +12,7 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a`
+`95ad5034d4e41b5440b3c08350a2964c57867a84`
 
 ## Mutation proof
 
@@ -78,7 +78,7 @@ Merge of `00da22db` (`#1960`). The eight content conflicts are resolved. The cla
 
 `fast (3.14)`. On `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`. This head has `run "$PYTHON" tests/debug_collect.py` in `lane_units`.
 
-`delivery-status`. The diff adds `docs/delivery/1987.md`. The earlier red was `DELIVERY STATUS UNCHECKED` over main's merge subjects. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's.
+`delivery-status`. The row is `dev/programme/delivery/1987.md`. The earlier red was `DELIVERY STATUS UNCHECKED` over main's merge subjects. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's.
 
 `pr-contract` was red on an earlier head because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This section names them. Cheaper detector: `tools/audit/prepr.sh`.
 
