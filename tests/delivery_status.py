@@ -503,7 +503,7 @@ def gather(repo: str,
     return collect(parse_log(log))
 
 
-#: One file per pull request, `docs/delivery/<N>.md`: a row there is read only
+#: One file per pull request, `dev/programme/delivery/<N>.md`: a row there is read only
 #: through a line anchoring <N> itself, as `policy_lint.mjs`'s `recordRegion`
 #: reads it, so a misnamed file rows nobody and the two cannot disagree.
 ROW_DIR = "dev/programme/delivery"
