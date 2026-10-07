@@ -59471,6 +59471,64 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+# R9-UX-6: money and memory -- the receipt, the capacity line, the replay
+# ---------------------------------------------------------------------------
+from harness import FakeEntry as _ux6_Entry, FakeHass as _ux6_Hass  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _ux6_Coord,
+)
+
+_UX6_MARCH = datetime(2026, 3, 15, 12, 0, tzinfo=UTC)
+
+
+def _ux6_coord(**config):
+    data = {"tibber_token": "x", "weather_entity": "weather.home", **config}
+    return _ux6_Coord(_ux6_Hass(), _ux6_Entry(data=data))
+
+
+def _ux6_book(coord, *, splits=True):
+    """One month of every line the settlement path books.
+
+    The money the month cost is spot 150 + grid fee 25 + immersion 7.5 +
+    wear 12 = 194.5. ``space``/``dhw`` split the same energy as ``spot``,
+    the ``reason:`` lines partition it, and the two savings lines compare it
+    with a thermostat; none of them is money spent a second time.
+    """
+    led = coord._ledger
+    led.add(_UX6_MARCH, "spot", kwh=100.0, sek=150.0)
+    led.add(_UX6_MARCH, "grid_fee", kwh=105.0, sek=25.0)
+    led.add(_UX6_MARCH, "immersion", kwh=5.0, sek=7.5)
+    led.add(_UX6_MARCH, "wear", kwh=0.0, sek=12.0)
+    if splits:
+        led.add(_UX6_MARCH, "space", kwh=80.0, sek=120.0)
+        led.add(_UX6_MARCH, "dhw", kwh=25.0, sek=37.5)
+        led.add(_UX6_MARCH, "reason:cheap_hours", kwh=100.0, sek=150.0)
+        led.add(_UX6_MARCH, "savings_baseline", kwh=120.0, sek=200.0)
+        led.add(_UX6_MARCH, "savings_actual", kwh=105.0, sek=157.5)
+
+
+# The defect (PRE-STUDY-UX item 3): total_sek summed every line but the
+# reasons, so spot was counted again under space and dhw and twice more under
+# the savings lines -- 709.5 for a month that cost 194.5.
+_ux6_split = _ux6_coord()
+_ux6_book(_ux6_split)
+_ux6_receipt = _ux6_split._freeze_month_report("2026-03")
+R.check(
+    "UX-6: a receipt's total is the money the month cost, not its splits again",
+    abs(_ux6_receipt["total_sek"] - 194.5) < 1e-9,
+    f"total_sek={_ux6_receipt['total_sek']}; spot is split by space/dhw and "
+    "compared by the savings lines, so adding them counts it up to four times",
+)
+# Null control: without the split and comparison lines the old sum and the
+# right one agree, so the check above moves only on the double count.
+_ux6_plain = _ux6_coord()
+_ux6_book(_ux6_plain, splits=False)
+R.check(
+    "UX-6 null control: a month with only billed lines totals 194.5 either way",
+    abs(_ux6_plain._freeze_month_report("2026-03")["total_sek"] - 194.5) < 1e-9,
+    f"{_ux6_plain._freeze_month_report('2026-03')}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
