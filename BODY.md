@@ -14,6 +14,8 @@ Main was merged in three times (3910026e, 38c03d94, e0f0b6fb). Each resolution k
 
 ## Head
 
+`70fff51d70ffc729db5a10f03a7b31481b3d092c` merges the authored code head `d81907ad872378051cab14f0145487eb1cdd47a4` and then merges origin/main `143e2d0a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `0d45191fe0243cf48c711a7f46d1cac82b634ca1` merges the authored code head `d81907ad872378051cab14f0145487eb1cdd47a4` and then merges origin/main `f637d24a` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 d81907ad872378051cab14f0145487eb1cdd47a4
@@ -90,6 +92,67 @@ Every non-green check-run at a390f589, read through the commit's check-runs API:
 - `budget-raise-gate` (job 112880302977): cancelled, not failed. This diff raises no budget leaf.
 
 Locally only: `tests/features.py` R9-F2.1 P3 (two-zone) prints shipped 110.4366 and seeded 110.1297 on this machine for the branch and for the base package alike. CI's Linux lane decides it.
+
+## Unpinned sites
+
+The mutation lane measures nothing at this head (the `mutation` red above, awaiting R9-CI-1), so no site below was killed or survived on a measurement. Each is a line this diff adds, in `entry_config.py` or a migrated reader that now reads the parsed object. Disposition for all 56, from `python3 tools/pr/ci_predict.py` at this head: unpinned; `mutation-autofix` owns pinning (`ci-autofix.md`) once R9-CI-1 lets the lane measure, and no survivor is triaged by hand here.
+
+- custom_components/heatpump_optimizer/__init__.py:179 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/binary_sensor.py:174 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:822 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:1764 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:1801 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:2327 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:3167 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:3275 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:4141 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:4187 BOOLOP: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:5051 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:5462 BOOLOP: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:5483 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6466 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6836 BOOLOP: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6836 CMP_BOUND: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6836 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6871 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:6930 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:7120 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8126 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8156 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8294 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8630 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8725 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8785 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8816 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8871 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8903 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8936 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:8967 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:9019 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:9421 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:9811 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10146 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10533 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10606 BOOLOP: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10606 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10778 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10793 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/coordinator.py:10826 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/disinfection.py:116 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/disinfection.py:121 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:37 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:43 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:52 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:55 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:75 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:80 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:97 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:255 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:260 BOOLOP: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/entry_config.py:262 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/legionella.py:194 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/sensor.py:704 RETURN_DEL: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
+- custom_components/heatpump_optimizer/silent_mode.py:104 GUARD_OFF: unpinned; pinned by mutation-autofix once the lane measures (R9-CI-1)
 
 ## Forward-carry
 
