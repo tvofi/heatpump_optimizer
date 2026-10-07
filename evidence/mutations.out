@@ -1,0 +1,22 @@
+== M1-merged
+1 self-test check(s) failed: automerge refuses: unmerged PR
+== M4-status
+1 self-test check(s) failed: automerge refuses: a row added to an existing empty file
+== M5b-rename
+1 self-test check(s) failed: automerge refuses: a renamed row
+== M8-branch
+1 self-test check(s) failed: automerge refuses: foreign head branch
+== M10-selfrow
+1 self-test check(s) failed: automerge refuses: an altered self row
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('!= \\\\\n            (RECORD_AUTHOR, "Bot", RECORD_AUTHOR_ID)', 0)
+== Mx-author
+record_row self-test: all checks passed
+== Mx-mergeable
+1 self-test check(s) failed: automerge refuses: conflicting
+== Mx-headmoved
+record_row self-test: all checks passed
+== Mx-author-tuple
+2 self-test check(s) failed: automerge refuses: non-bot author, automerge refuses: lookalike bot id
+== Mx-headmoved: survives (automerge_check's head pin has no self-test)

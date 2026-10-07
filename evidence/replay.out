@@ -1,0 +1,14 @@
+#1989 rc=0 AUTOMERGE OK #1989 at (live head)
+#1991 rc=0 AUTOMERGE OK #1991 at (live head)
+#1992 rc=0 AUTOMERGE OK #1992 at (live head)
+#1998 rc=0 AUTOMERGE OK #1998 at (live head)
+#2000 rc=0 AUTOMERGE OK #2000 at (live head)
+#2001 rc=0 AUTOMERGE OK #2001 at (live head)
+#2002 rc=0 AUTOMERGE OK #2002 at (live head)
+#1993 rc=1 AUTOMERGE REFUSE #1993: not record/autofix -> main within one repository
+#1994 rc=1 AUTOMERGE REFUSE #1994: not record/autofix -> main within one repository
+#1995 rc=1 AUTOMERGE REFUSE #1995: not record/autofix -> main within one repository
+#1997 rc=1 AUTOMERGE REFUSE #1997: not record/autofix -> main within one repository
+#1999 rc=1 AUTOMERGE REFUSE #1999: not record/autofix -> main within one repository
+AUTOMERGE OK #2002 at (live head)
+hold rc=0
