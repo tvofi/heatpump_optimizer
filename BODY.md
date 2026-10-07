@@ -1,0 +1,72 @@
+R9-RO-12 (lane RO, batch merge). tvofi chose options B and D of the merge-batching pre-study on 2026-10-07.
+
+**B.** `tools/audit/seat/merge_train.py batch <queue.json>` merges a queue without re-merging `main` into each head. Every entry must be green at its verdicted head, carry its verdict, have its row and change no policy. An entry goes **serial** when its own files carry one of `merge_fastpath.py`'s classes: workflow, claim, grader, or any `*_budgets.json`. The class code is the new `file_class`, which `decide` now calls too, so the two tools share it rather than holding copies. An entry that does not merge cleanly onto the entries before it also goes serial, which covers every pairwise conflict.
+
+The batch then builds proof commits P_i over `origin/main`. Each P_i is GitHub's merge of P_(i-1) and head i. Every `.gitattributes` merge driver is replaced by git's own text merge, because GitHub runs none. The train pushes P_n to `batch/<tag>-<n>` as the App, using the new `app_push.sh --branch-only`, which refuses any branch outside `batch/`. It then dispatches tests, governance, codeql, hassfest and validate on that branch. It waits for every required context of `main-protect-checks` except the three that only a pull-request event writes: `closure-scope`, `pr-contract` and `budget-raise-gate`.
+
+When the proof is red, the train drops the one entry whose files are in the closure of every script the red jobs name, and proves the rest again. When no single entry owns the failure, it proves every all-but-one set side by side and keeps the green set that drops the latest entry. When the batch is down to two entries, the later one goes serial. Each merge goes ahead only while `main`'s tree equals P_(i-1)'s, and the train stops unless `main`'s tree equals P_i's afterwards. Routed and dropped entries then go through the existing serial `run`.
+
+**D.** A batch of one is not proved. `main`'s FULL push run is its gate, and a red there is reverted first. `orchestrator.md` section 11 and `nudge.md` now name the batch alongside the fast path. Both edits are policy (`## Approval`). `wait-ci` now reads CI once every five minutes, following tvofi's quota rule of 2026-10-07.
+
+Motivating instance, on main while this ran: `1101a2fb` brought `fixer.md` back under its token cap "after #2027 and #2030 combined". Each of those two pull requests was green alone, and together they went over the cap. A batch proof would have caught that before the merge.
+
+## Head
+
+`3f726397af99b9d53eb5147d27285a3984b8c393`. It merges origin/main `2d8cab3f` into `2bb7281c`, an automatic merge with no resolution. The live rehearsals below ran code `2b9417f9`. `2bb7281c` adds only `--allow-escape-sequences` to the job-log read, a defect the live proof itself found (see Figures).
+
+## Mutation proof
+
+The mutation drive is `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`. It removes one predicate per mutant, runs the self-test and restores the file. Every mutant goes red, measured at `2bb7281c`:
+
+- M1, no driver override: `a merge driver configured in the clone does not reach the proof` FAIL.
+- M2, no post-merge tree check: `a merge whose tree is not the proof's stops the batch` FAIL.
+- M3, no pre-merge guard: `the base moving between two merges stops the batch before the second` FAIL.
+- M4, no serial routing: `workflow, claim, budget and grader changes go serial` FAIL.
+- M5, no proof: the self-test dies with `IndexError`, so the governance grep for `0 failed` refuses.
+- M6, `PR_ONLY` not subtracted: 10 checks FAIL, each proof timing out on contexts no dispatch writes.
+- M7, no culprit: `a red fast job naming a script owned by one entry's files drops that entry` FAIL.
+- M8, no conflict route: `an entry that conflicts with one before it goes serial` FAIL.
+- M9, no admission CI check: `an entry red at its own head is refused at admission` FAIL.
+- M10, the log read without `--allow-escape-sequences`: the culprit check FAIL.
+
+`app_push.sh`: deleting the `batch/` guard turns `REFUSE: --branch-only on a fix branch` red. Running prepr under `--branch-only` turns `--branch-only pushes a batch/ branch without a body` red, because that case sets `prepr-fails`.
+
+## Null control
+
+The **live perturbation** used base `batch/proof-base-ro12-p`. It is main plus one commit that gives `D12.md` and `D13.md` per-file headroom and leaves the corpus aggregate at its recorded 59591 tokens, with a cap of 60091. #2035 (head `2b3fae2d`) adds 383 tokens to `D12.md`. #2036 (head `9e7adf3f`) adds 384 tokens to `D13.md`. At their own heads, both are green on `policy-docs` and `env-matrix` in CI.
+
+`batch --base batch/proof-base-ro12-p` proved them together at `d8f8d050`. CI returned `red=['env-matrix', 'policy-docs']`. The policy-docs log reads `about 60358 tokens exceeds the cap of 60091`, and also `[duplicates] D13.md:81 repeats 12 words from D12.md:73`, a second interaction that exists only on the merged tree. The train dropped #2036 to serial and merged #2035 alone under D, as `a39528cc`. Its tree `1d7a815b` equals that of proof `1f262197`. TRAIN DONE.
+
+The **live null control** used base `batch/proof-base-ro12-n`, which is main `f637d24a`. #2037 (`b11645cc`) and #2038 (`9b3a94da`) are clean. The proof at `cb9b1831` came back `red=[]`. The train merged #2037 as `ddf33d15`, whose tree equals proof `ba884d63`, then #2038 as `7ad7026d`, whose tree equals proof `cb9b1831`. TRAIN DONE. #2036 was closed unmerged. #2035, #2037 and #2038 were merged into their throwaway `batch/` bases only, and `main` was not touched. The `batch/proof-base-ro12-*`, `batch/ro12*-1` and `proof/ro12-*` branches are left for the reviewer and can be deleted after review.
+
+The self-test reruns both cases against real git, with a remote that plays GitHub: `git merge --no-ff` and no driver. The checks are named `batch null control: ... the base's tree equal to P_i after each` and `PERTURBATION: two pull requests each green alone, together past the ratchet`.
+
+## Figures
+
+- merge_train self-test, 74 checks and 0 failed at the head: `python3 tools/audit/seat/merge_train.py --self-test`.
+- merge_fastpath self-test, 35 checks and 0 failed: `python3 tools/audit/merge_fastpath.py --self-test`.
+- app_push self-test, 60 checks and 0 failed: `bash tools/pr/app_push.sh --self-test`.
+- Mutation drive, 10 of 10 mutants red against an M0 baseline of 0 failed: `bash dev/audit/harnesses/r9_ro12_batch_mutants.sh`.
+- Policy caps: `orchestrator.md` is at 4096 of its 4096-token cap and `nudge.md` at 3804 of 3814. `policy_lint` exits 0. Command: `node tools/policy/policy_lint.mjs --budgets`.
+- Gate scope: `MODE: SCOPED -- 0 script(s) run`, because every changed file is outside every measured closure. Command: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`.
+- `python3 tests/structure.py` passes. `python3 tests/layout.py --guard --base origin/main` reports 0 refusals. `python3 -I tools/audit/seat/tmp_paths.py --check` refuses 0 paths.
+- The two live proofs read `red=['env-matrix', 'policy-docs']` and `red=[]`. These are CI's check-runs at `d8f8d050` and `cb9b1831`, read by the train's `wait_ci`.
+- The job-log defect: `gh api repos/tvofi/heatpump_optimizer/actions/jobs/113021400185/logs` prints `the response contains terminal escape sequences` and 99 bytes. The same call with `--allow-escape-sequences` returns 62677 bytes.
+
+## Red checks
+
+none
+
+## Forward-carry
+
+none. A dispatched proof costs one full closure re-record, because `closures` runs unscoped on `workflow_dispatch`. That bounds a proof's wall clock at about main's push run, which is measured here as about 45 minutes per proof. It is a cost of B as chosen, not a finding a later stage must act on.
+
+## Friction
+
+- `ratchet-budgets`: cost: `orchestrator.md` sits at 4096 of its 4096-token cap after the section 11 rewrite. The next edit there must pay first.
+
+## Approval
+
+This changes `dev/governance/roles/orchestrator.md` section 11 and `dev/governance/roles/nudge.md` section 18, both of them policy. It merges only on tvofi's approving review.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
