@@ -8,7 +8,7 @@ Closes #1985
 
 ## Head
 
-18158b84c9678c740d6d23e6687102b8e04f7cef, measured against `origin/main` 3910026e on 2026-10-07.
+1dad91c6d872c27c8666fd61fc03977e97b43a59. The analysis was measured against `origin/main` 3910026e on 2026-10-07; this head adds this PR's delivery row and merges `origin/main`.
 
 ## Mutation proof
 
@@ -30,7 +30,8 @@ n/a: no detector is built. I did run a control on the measurement itself. The de
 
 ## Red checks
 
-none
+- `delivery-status`: red because it grades `main`. It reads main's merges that have no delivery row after the move from `docs/delivery/` to `dev/programme/delivery/`; #2011 is fixing that on `main`. This diff reaches nothing it reads except its own new row, `dev/programme/delivery/2013.md`. Cheaper detector: none for this PR. The cause is on `main`, and its owner is #2011.
+- `nightly-status`: red because it grades `main`. Main's scheduled Tests run failed only at `record-autofix`, which is the same delivery-row defect #2011 fixes. This diff reaches nothing `nightly-status` reads. Cheaper detector: none for this PR. The cause is on `main`, and its owner is #2011.
 
 ## Forward-carry
 
