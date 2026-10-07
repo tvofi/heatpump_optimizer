@@ -53695,6 +53695,11 @@ def _p5_feeders(tree):
             if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Name)
                     and x.func.id == "_sysid_step_off_loop"):
                 hit.add("_sysid.step")
+            # #2016: the flow-bias fold goes through flow_meter.observe_water,
+            # the same sink the call it replaced fed.
+            if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Name)
+                    and x.func.id == "observe_water"):
+                hit.add("_flow_bias.observe_temps")
         if hit and name != "_learning_frozen":
             feeders[name] = hit
     open_seams = {
