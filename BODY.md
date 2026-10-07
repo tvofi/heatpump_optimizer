@@ -15,7 +15,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Head
 
-`1476699242afca9129a6f7e4ff39c704930cac99`
+`3df5d91c15679f00e26437ae6f9bb3aea4699d6d`
 
 ## Mutation proof
 
@@ -49,7 +49,7 @@ Analysis: `dev/audit/rca/R9-RCA-2004.md`, registered as `_rca["R9-RCA-2004"]` in
 
 ## Red checks
 
-None on this head yet. No CI has run.
+`delivery-status` and `nightly-status` grade `main`. On `main`, record-autofix staged the old delivery path, and #2011 fixes that. This diff reaches neither check's inputs (their scripts, `tests.yml`, `governance.yml`, the plan, `dev/programme/HANDOVER.md`) except this pull request's own row, `dev/programme/delivery/2014.md`. A red on either is `main`'s and is not answered here. No other check has run red on a commit of this branch.
 
 ## Forward-carry
 
