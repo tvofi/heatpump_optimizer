@@ -202,7 +202,7 @@ const STRINGS = {
     "advisor.optin_fuse": "Fuse size",
     "advisor.optin_frequency": "Compressor frequency",
     // The feedback-sensor recommendation (R9-UX-9, #1956).
-    "advisor.feedback_title": "Add a heat pump power, energy or frequency sensor",
+    "advisor.feedback_title": "Add a heat pump power, energy, frequency or flow sensor",
     "advisor.feedback_detail":
       "Without one the planner cannot see what the pump really draws, and no reliable estimate exists without it. Any one is enough: {list}.",
     "advisor.feedback_power": "power",
@@ -840,7 +840,7 @@ const STRINGS = {
     "advisor.optin_wood": "Vedpannans timing",
     "advisor.optin_fuse": "Huvudsäkring",
     "advisor.optin_frequency": "Kompressorfrekvens",
-    "advisor.feedback_title": "Lägg till en givare för värmepumpens effekt, energi eller frekvens",
+    "advisor.feedback_title": "Lägg till en givare för värmepumpens effekt, energi, frekvens eller flöde",
     "advisor.feedback_detail":
       "Utan en kan planeraren inte se vad pumpen faktiskt drar, och ingen pålitlig uppskattning finns utan den. En räcker: {list}.",
     "advisor.feedback_power": "effekt",
