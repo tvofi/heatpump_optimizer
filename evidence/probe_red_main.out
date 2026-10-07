@@ -1,6 +1,6 @@
-PROBE lone entry, main red: rc=0 merged=[1] pushed=0 last='TRAIN DONE'
-  FAIL PROBE-1 a lone entry is NOT merged while main's tip is red
-PROBE pair, main red: rc=0 merged=[1] pushed=1 lines=['#2 dropped to serial: the proof is red at policy-docs', "#1 D: a batch of one merges at its verdicted head, unproved; batch/base's FULL push run is its gate, and a red there is reverted first"]
-  FAIL PROBE-2 a pair whose proof is red only because main is red merges nothing
+PROBE lone entry, main red: rc=1 merged=[] pushed=0 last='TRAIN STOPPED main: batch/base at 1c075cdecd85 is not green (policy-docs) before admission; nothing more lands'
+  ok   PROBE-1 a lone entry is NOT merged while main's tip is red
+PROBE pair, main red: rc=1 merged=[] pushed=0 lines=[]
+  ok   PROBE-2 a pair whose proof is red only because main is red merges nothing
 PROBE null control, main green: rc=0 merged=[1, 2]
-merge_train self-test: 76 checks, 2 failed
+merge_train self-test: 82 checks, 0 failed
