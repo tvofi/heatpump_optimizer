@@ -1917,7 +1917,7 @@ KERNEL_ARM_BATCHES = 3
 #: and judged on the median of KERNEL_DOUBT_ROUNDS interleaved readings.
 #: The floor sits under that lowest real-2x reading, and above the highest
 #: reading of an unchanged solve on the same load
-#: (tools/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
+#: (dev/audit/harnesses/d907_kernel_band.py's clean arm), so a clean
 #: tree is not re-solved. It only decides what gets measured again; the
 #: factor alone decides what fails.
 #: Since #1947 a single reading OVER the factor is re-measured the same
@@ -2270,7 +2270,7 @@ def install():
 # wrapper would sit INSIDE the tree's own meter, and its call and clock
 # reads were charged to the baseline's kernel seconds and never to the
 # in-process sweep it is compared with, which pulled a real 2x toward the
-# factor (tools/audit/harnesses/d907_kernel_band.py prints both drivers'
+# factor (dev/audit/harnesses/d907_kernel_band.py prints both drivers'
 # readings side by side).
 _tree_meters_kernel = "kernel_ms" in vars(stress.SolverWork())
 if not _tree_meters_kernel and hasattr(
@@ -4216,7 +4216,7 @@ if __name__ == "__main__":
     # with every seam call's CPU tripled -- and confirmed on the medians.
     # Tripled, not doubled: this pins the re-solve's WIRING, and a 2x
     # rides the 1.11x margin whose miss rate under load is
-    # tools/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
+    # dev/audit/harnesses/d907_kernel_band.py's to measure, not a gate's.
     # The second reading, 2.13x, is OVER the factor -- the nightly null's
     # reading (#1947) -- and pins that the over-factor re-route takes the
     # same real re-solve and still confirms a genuinely slower kernel on

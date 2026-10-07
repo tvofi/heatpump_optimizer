@@ -286,7 +286,7 @@ for _tz in (False, True):
 # options dict), restart restored to 1e-6, mirroring that round's
 # single-site mutation exactly. That arm's landing point turned out not
 # to be a function of the check's inputs: measured with
-# tools/audit/harnesses/k1725_blas_kernel_gap.py at fab17619, same tree,
+# dev/audit/harnesses/k1725_blas_kernel_gap.py at fab17619, same tree,
 # same wheels, only the OpenBLAS DYNAMIC_ARCH kernel varying, the arm
 # read 63.47 SEK on Haswell, 63.48 on Sandybridge, 61.09 on Nehalem
 # (the kernel Rosetta actually selects), 60.54 on Apple Accelerate, and

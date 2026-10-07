@@ -12,7 +12,8 @@ ruling the same day: a tool the programme reruns is a tracked file, and a
 session-local copy is a defect. This is the mechanical half of that ruling.
 
 WHAT IT SCANS, at <ref> (default HEAD) through `git grep`, so a ref can be
-graded without a checkout: `.github/workflows/*.yml`, `docs/decisions/*.md`,
+graded without a checkout: `.github/workflows/*.yml`, `dev/governance/decisions/*.md`
+(and `docs/decisions/*.md`, their home before the lift),
 `.claude/settings.json` (its hooks run commands), and every `.sh .py .mjs .js
 .cjs` under `tools/`, `tests/` and `.claude/` plus the seat shims, except the
 write-once round evidence under `tools/audit/round*/`, `tools/audit/handoff/`
@@ -114,17 +115,17 @@ ALLOW = (
     ("tools/policy/friction_issues.mjs", "process.env.RUNNER_TEMP ?? '/tmp'}/friction-issue-body.md",
      "a workflow program: RUNNER_TEMP is set on the runner; /tmp is a one-shot body's local fallback"),
     ("tests/plan_view.py", '"/tmp", "plandata-%s.json" % hashlib.sha256',
-     "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (tools/audit/README.md)"),
+     "the plan payload named per checkout by a hash, overridable by HPO_PLANDATA (dev/audit/README.md)"),
     (SELF, "", "this file names every class in its own patterns, docstring and fixtures"),
 )
 
 
 def scope(path: str) -> bool:
-    if re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*)/", path):
+    if re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*)/|dev/audit/(?:rounds|waves)/", path):
         return False
     return bool(re.match(r"\.github/workflows/[^/]+\.ya?ml$", path)
-                or re.match(r"docs/decisions/[^/]+\.md$", path)
-                or re.match(r"(?:tools|tests|\.claude)/.*\.(?:sh|py|mjs|js|cjs)$", path)
+                or re.match(r"(?:docs|dev/governance)/decisions/[^/]+\.md$", path)
+                or re.match(r"(?:tools|tests|\.claude|dev/audit/harnesses)/.*\.(?:sh|py|mjs|js|cjs)$", path)
                 or re.match(r"tools/audit/seat/shims/", path)
                 or path == ".claude/settings.json")
 
@@ -186,7 +187,7 @@ def classify(lines: list[tuple[str, int, str]], allow=ALLOW) -> tuple[list[str],
 def grep(ref: str) -> list[tuple[str, int, str]]:
     r = subprocess.run(
         ["git", "grep", "-n", "-I", "-E", r"/tmp|/Users/|/home/|~/|\$HOME/|\$\{HOME\}/|TMPDIR|gettempdir", ref, "--",
-         ".github/workflows", "docs/decisions", "tools", "tests", ".claude"],
+         ".github/workflows", "docs/decisions", "dev/governance/decisions", "tools", "tests", ".claude"],
         cwd=ROOT, capture_output=True, text=True)
     if r.returncode not in (0, 1):
         raise SystemExit(f"tmp_paths: git grep failed: {r.stderr.strip()}")
@@ -216,6 +217,11 @@ def self_test() -> int:
     check("an instrument run from $HOME is refused", one(s, 'export PATH=$HOME/hpo-seats/bin:$PATH') != [])
     check("a decision record citing /private/tmp is refused",
           one("docs/decisions/0012-x.md", "(`/private/tmp/audit-7/r8prog/design.md`)") != [])
+    # The governance lift moved the decisions under dev/governance/ and the
+    # scope kept only the old directory, so every decision went unscanned and
+    # the check above, on the old path, stayed green (#1990's RCA, round 3).
+    check("a decision record at its lifted home citing /private/tmp is refused",
+          one("dev/governance/decisions/0012-x.md", "(`/private/tmp/audit-7/r8prog/design.md`)") != [])
     check("a workflow invoking a ~/ instrument is refused", one(".github/workflows/x.yml", "run: bash ~/tools/x.sh") != [])
     check("a repo-relative path passes (null control)", one(s, "bash tools/audit/seat/remerge_main.sh") == [])
     check("a $TMPDIR default passes", one(s, 'f="${TMPDIR:-/tmp}/body_push.$$"') == [])
@@ -226,7 +232,10 @@ def self_test() -> int:
           one("tests/x.py", "/tmp/hpo-gate.lock and /tmp/state") != [])
     check("the state root passes", one(s, 'exec "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin/python3"') == [])
     check("the cloud checkout root passes", one(s, "REPO=${HPO_REPO:-/home/user/heatpump_optimizer}") == [])
-    check("round evidence is out of scope", one("tools/audit/round9/D1/x.py", "/private/tmp/audit-7/x") == [])
+    check("round evidence is out of scope", one("dev/audit/rounds/round9/D1/x.py", "/private/tmp/audit-7/x") == [])
+    check("a harness under dev/audit/harnesses is scanned and a wave record is not",
+          one("dev/audit/harnesses/x.py", "/private/tmp/audit-7/x") != []
+          and one("dev/audit/waves/w5/x.sh", "/private/tmp/audit-7/x") == [])
     allow = ((s, "/tmp/fixture", "why"),)
     check("an allow entry excuses only its own file", one(s, "/tmp/fixture", allow) == []
           and one("tools/audit/seat/y.sh", "/tmp/fixture", allow) != [])

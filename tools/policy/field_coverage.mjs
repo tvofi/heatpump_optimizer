@@ -47,7 +47,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { execFileSync, spawn, spawnSync } from 'node:child_process'
-import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips, at, canon } from './counts.mjs'
+import { RULESET_VOLATILE, RULESET_TOKEN_HIDDEN, TOKEN_HIDDEN_SKIP_RE, unexpectedSkips, at, canon, locate } from './counts.mjs'
 import { checkBudgets, sizes, policyBudgets, CHECKS } from './policy_lint.mjs'
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
@@ -348,7 +348,7 @@ const DECLARED = {
 
 function derivedSet(report) {
   const set = CHECKS.map((c) => `check ${c.name}`)
-  const cg = spawnSync('python3', ['-I', 'tools/audit/round6/D11/fix/codeowners_gap.py'], { cwd: ROOT, encoding: 'utf8' })
+  const cg = spawnSync('python3', ['-I', locate('tools/audit/round6/D11/fix/codeowners_gap.py')], { cwd: ROOT, encoding: 'utf8' })
   const pinned = [...new Set((cg.stdout || '').split('\n').map((l) => /^#\s+PINNED (\S+)$/.exec(l)).filter(Boolean).map((m) => canon(m[1])))]
   if (cg.status !== 0 || !pinned.length) report.refused.push(`registry: codeowners_gap.py yielded no PINNED program (exit ${cg.status})`)
   set.push(...pinned.map((f) => `pinned ${f}`))

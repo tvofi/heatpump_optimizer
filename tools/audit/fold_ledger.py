@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fold an audit round into tools/audit/bugclasses.json, and check the register.
+"""Fold an audit round into dev/audit/config/bugclasses.json, and check the register.
 
   fold_ledger.py fold  --round N [--root DIR] [--dry-run]
   fold_ledger.py check [--root DIR] [--ledger FILE] [--judge FILE ...]
@@ -7,7 +7,7 @@
   fold_ledger.py --self-test
 
 `fold` is run by .claude/workflows/audit-verify.js after the class sweep. It
-reads tools/audit/round<N>/JUDGE.json and every sweep-<class>.json beside it
+reads dev/audit/rounds/round<N>/JUDGE.json and every sweep-<class>.json beside it
 and appends, to each survivor's class, `R<N> <finding id>`, and, for each sweep
 seam marked `beyond_finding: true`, `R<N> sw:<file>::<symbol>`. A seam marked
 false is the judged site itself and counts nowhere. It recomputes rounds,
@@ -25,7 +25,7 @@ which check-wave-script.mjs holds equal to the ledger.
 
 `check` runs in the wave-script lane of governance.yml (one pass, under a
 second) and refuses, printing one line each:
-  UNPLACED/DOUBLE     an in-tree judge survivor (tools/audit/round*/JUDGE.json,
+  UNPLACED/DOUBLE     an in-tree judge survivor (dev/audit/rounds/round*/JUDGE.json,
                       verdict verified or weakened) in no class, or in two;
   UNPARSED            an instance that is not `R<n> <id>`;
   DRIFT               rounds, per_round, total, max_per_round or trigger that
@@ -55,8 +55,8 @@ SURVIVES = ("verified", "weakened")
 CLASS_ID = re.compile(r"^(?:[PI]\d+|N-[a-z0-9]+(?:-[a-z0-9]+)*)$")
 INSTANCE = re.compile(r"^R(\d+) (\S+)$")
 RCA_DIR = "dev/audit/rca"
-LEDGER = "tools/audit/bugclasses.json"
-SCHEMA = "tools/audit/finding.schema.json"
+LEDGER = "dev/audit/config/bugclasses.json"
+SCHEMA = "dev/audit/config/finding.schema.json"
 
 
 def classes(led):
@@ -132,7 +132,7 @@ def refresh(root):
 def survivors(root, judge_files=None):
     """{(round, id): file} of every judge survivor in the tree."""
     out = {}
-    files = judge_files if judge_files is not None else sorted(glob.glob(os.path.join(root, "tools/audit/round*/JUDGE.json")))
+    files = judge_files if judge_files is not None else sorted(glob.glob(os.path.join(root, "dev/audit/rounds/round*/JUDGE.json")))
     for f in files:
         j = json.load(open(f))
         for v in j.get("verdicts", []):
@@ -202,7 +202,7 @@ def _why(t):
 
 
 def fold(root, rnd, dry=False):
-    d = os.path.join(root, f"tools/audit/round{rnd}")
+    d = os.path.join(root, f"dev/audit/rounds/round{rnd}")
     jp = os.path.join(d, "JUDGE.json")
     lp = os.path.join(root, LEDGER)
     raw = open(lp).read()
@@ -287,13 +287,15 @@ def fold(root, rnd, dry=False):
 
 def _plant(root, ledger, judge=None, sweep=None, docs=()):
     os.makedirs(os.path.join(root, RCA_DIR), exist_ok=True)
-    os.makedirs(os.path.join(root, "tools/audit/round2"), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.join(root, LEDGER)), exist_ok=True)
+    os.makedirs(os.path.dirname(os.path.join(root, SCHEMA)), exist_ok=True)
+    os.makedirs(os.path.join(root, "dev/audit/rounds/round2"), exist_ok=True)
     json.dump(ledger, open(os.path.join(root, LEDGER), "w"), indent=2, ensure_ascii=False)
     open(os.path.join(root, SCHEMA), "w").write('{"class_guess": {"enum": ["P1", "P2", "new"], "description": "x"}}\n')
     if judge is not None:
-        json.dump(judge, open(os.path.join(root, "tools/audit/round2/JUDGE.json"), "w"))
+        json.dump(judge, open(os.path.join(root, "dev/audit/rounds/round2/JUDGE.json"), "w"))
     if sweep is not None:
-        json.dump(sweep, open(os.path.join(root, "tools/audit/round2/sweep-P1.json"), "w"))
+        json.dump(sweep, open(os.path.join(root, "dev/audit/rounds/round2/sweep-P1.json"), "w"))
     for dname in docs:
         open(os.path.join(root, RCA_DIR, dname), "w").write("# rca\n")
 
@@ -379,6 +381,7 @@ def self_test():
     outside = _settle({"P1": _entry(["R2 D1-01"], rca=["Z"]), "_rca": {"Z": {"level": "class", "in_tree_home": "tools/audit/elsewhere.md"}}})
     with tempfile.TemporaryDirectory() as t:
         _plant(t, outside, J)
+        os.makedirs(os.path.join(t, "tools/audit"), exist_ok=True)
         open(os.path.join(t, "tools/audit/elsewhere.md"), "w").write("# not an rca\n")
         import io
         import contextlib

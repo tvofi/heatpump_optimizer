@@ -21,7 +21,7 @@
 # to the checks themselves. The surface is DERIVED, never carried: the
 # `.github/workflows/*.yml`, the scripts their non-comment lines execute and
 # what those import (#1515), the hooks, and their wiring. Re-derive it with
-# `python3 tools/audit/round6/D11/fix/codeowners_gap.py`, which prints the
+# `python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py`, which prints the
 # surface size and how many of its files an owner-carrying pattern matches:
 # against the pre-#1402 file that second count is zero, against this one it is
 # the surface size. A new check script is covered only once it is owned below,
