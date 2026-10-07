@@ -2,87 +2,59 @@ Closes #1939
 
 Leaves #201 open.
 
-Successor of `705c3be37fe94feb37be1600b57403e129c382f8`. That commit merged the pin `19391406563cf785e723be51ceb7b9b34a850511` with `origin/main` `6001b09a557259f37319b400d219cf83e02c563f`. This commit points the env-matrix at `tools/policy/policy_lint.mjs`.
+The R9-DBG-1 debug collector (#1939): a week of what the install saw and did, behind the learning page's option, handed to Home Assistant's diagnostics download as an `hpo-debug/1` bundle. This body is a re-cut (`fixer.md`, past three rounds). Figures from earlier rounds are dropped. The only figures here were taken on this head.
 
-Merge `origin/main` `1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872` into `058a5f8018e87cb7861477c8e7382ba9c7daada8`. `f07cd253c52f1012427d9869a808f1df39dafb93` is an ancestor of that tip; the commits above it add `docs/delivery/2000.md` only.
+This head merges `origin/main` `be0cb82134bd3a008e59127da6f2b67fb1c77e98` into the PR's head `95ad5034d4e41b5440b3c08350a2964c57867a84`. It goes through `a8d2e78ec189a5a8bb547df8ab7c23a426ec55ff`, an earlier merge of `421c77f950072f218d856dcf60f753e5f80ef10b`. After that come `3910026e` and `be0cb821`, which merged without conflict. There were content conflicts in `coordinator.py` and `tests/features.py`:
 
-The mermaid and the D6 census keep both additions. Main adds the Model Restart Advisor (60 sensors). This branch adds the finalize button (5 buttons). The platforms construct 77 entities. The claim list kept is `config_flow`. `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` are origin/main's list; those fixture files match origin/main, and a `coord_minimal` capture differs from that file only in value leaves. `tests/structure.py` measures `max_class_loc` at the ledger sum, so the cap is not raised.
+- `tests/features.py`. Both sides appended a block at the end of the file: this branch's DBG-1 checks and main's #1913 SW-4 checks. `a8d2e78e` keeps both and closes the DBG-1 `R.check(` call between them. Compared with the conflict file with its markers stripped, `diff` shows only that closing `)` and a blank line.
+- `coordinator.py`, `configured_quiet_windows`. This branch had moved the body to `quiet_windows.configured_specs` to pay the structure ratchet. Main (#1913) changed that body's predicate from `silent_control_usable(entity)` to `silent_unenforceable(config, get_state)`, so a GCHV schedule can count as holdable. `a8d2e78e` took main's side whole, which re-inlined the body in the coordinator. That left `configured_specs` dead, still on the old predicate, and `tests/structure.py` failed (`max_class_loc 9070 > 9048`, `dead_top_level_symbols 2 > 1`). `c3d7f89f` keeps the move and applies main's change where the body now lives. `configured_specs(config, get_state=None)` calls `silent_unenforceable(config, get_state)`. The coordinator method passes `hass.states.get` with the same guard main used. It keeps the `out = ...` / `return out` shape both parents had, because main's ledger row `HeatPumpOptimizerCoordinator.configured_quiet_windows.RETURN_DEL.7edb83fa` pins that `return out`. When the call was returned directly, `tests/mutation_table.py` refused that row as naming no site (`347721aa`). Its docstring now says the predicate reads a GCHV schedule's numbers, so the old claim that the marker is decided "never from the state" is gone.
+- `tests/closures.json`. `tests/debug_collect.py` was re-derived with `--single`, which adds `quiet_windows.py` and `modbus_prefill.py`. See `## Red checks`.
 
 _Requested by **tvofi**_.
 
 ## Head
 
-`a8d2e78ec189a5a8bb547df8ab7c23a426ec55ff`
+`e23f87122f177d532a515cc17ff6a35d53190f22`
 
 ## Mutation proof
 
-`configured_specs` in `quiet_windows.py` ends with `return out`. Replacing that line with `pass` and running `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `FAIL configured_specs returns the stored rows and the not-enforced marker  [got None]` and `1 of 129 manual plan checks FAILED`. The line was restored before the commit.
+Each mutant was applied in place to a committed tree, run, and then reverted with `git checkout`. Mutants A and B ran at `1919f6312eacb7bfe77896abee323692069f3570`. Between that commit and this head, the only changes are `347721aa` (the call result bound to `out`, then `return out`) and main's `be0cb821`, which touches neither `configured_specs` nor `configured_quiet_windows`. `tests/features.py` takes over an hour on this seat at the current load, so it was not re-run at this head.
 
-`python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 1 --scripts tests/manual_plan.py` pinned `custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL`, killed by `tests/manual_plan.py`. The row is `tests/mutation_ledger/killed_by/quiet_windows.py/configured_specs.RETURN_DEL.a8227ccf.json`. Its reason text says `failed=2`. On this tree, replacing `return out` with `pass` and running `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `1 of 129 manual plan checks FAILED`. The line was restored. The script's summary is 1.
-
-`tests/features.py` also calls `configured_quiet_windows`, which calls `configured_specs`. `--pin-killed --scripts tests/features.py` was inconclusive: baseline `rc=1 failed=2`, the named check `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it`. No pin was written from that run.
-
-`debugger.py`, `button.py` and `tests/debug_collect.py` are unchanged from the pin commit `6d5d796e955275cb76226bbae4d2cbc8150cabd0`. The pins recorded there still name those lines. `store.py` gains `evidence_since` on the accuracy domain from origin/main; that domain is not the debug store.
-
-Replacing `60 sensors` with `59 sensors` in the mermaid and running `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` prints `FALSE C5`. Restoring the line prints `claims_false=0`.
-
-The earlier drive, `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3 --scripts tests/debug_collect.py` on `6d5d796e955275cb76226bbae4d2cbc8150cabd0`, pinned 51 sites. `_repair`'s `if stamp is None` guard is `survivor_triage`, verdict equivalent: applying GUARD_OFF left `tests/debug_collect.py` at rc=0.
+- Mutant A: `configured_quiet_windows` passes `None` instead of the state getter. `PYTHONPATH=tests/hastub python3 tests/features.py` printed `FAIL configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced` with the marker present, beside the seat's standing `R9-F2.1 P3` failure, and exited 1.
+- Mutant B: `configured_specs` goes back to the pre-#1913 predicate, `out["quiet_silent_windows_spec"] and not silent_control_usable(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))`. `tests/features.py` printed the same `configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced` FAIL, beside `R9-F2.1 P3`, and exited 1.
+- Mutant C: `if silent_unenforceable(config, get_state):` becomes `if False:`. `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `FAIL configured_specs returns the stored rows and the not-enforced marker  [got {'quiet_silent_windows_spec': '22:00-06:00', 'quiet_off_windows_spec': '09:00-09:30'}]` and exited 1. That mutant is the inventory's `quiet_windows.py:507 GUARD_OFF` site. `python3 tests/mutation_table.py --scope changed --base origin/main` lists it as this diff's one `ADDED UNPINNED` site, killed by `tests/manual_plan.py`. Pinning it is `mutation-autofix`'s job (`ci-autofix.md`). No local `--pin-killed` was run.
 
 ## Null control
 
-Restoring `return out` and running `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `ALL 129 manual plan checks PASSED`.
+At `e23f87122f177d532a515cc17ff6a35d53190f22`, `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` printed `ALL 129 manual plan checks PASSED`.
 
-The pin drive's comment-only edit, `quiet_windows.py:389 NULL_COMMENT`, survived `tests/manual_plan.py`. Baseline of that drive: `rc=0 failed=0`.
-
-The same C5 run: the documented tuple is `(77, 59, 6, 5, 4, 1, 1)` and the measured tuple stays `(77, 60, 6, 5, 4, 1, 1)`.
-
-`config_flow`'s capture matches the committed fixture (0 leaf diffs) and differs from origin/main's fixture by `_seed.debug_collect_enabled`, `_seeded.learning.debug_collect_enabled` and `learning.debug_collect_enabled`.
-
-The earlier pin drive's null control, on `6d5d796e955275cb76226bbae4d2cbc8150cabd0`: `null control custom_components/heatpump_optimizer/store.py:73 NULL_COMMENT survived tests/debug_collect.py`.
+At `1919f6312eacb7bfe77896abee323692069f3570`, unmodified, `PYTHONPATH=tests/hastub python3 tests/features.py` printed `1 of 3815 FEATURE CHECKS FAILED`. The one failure is `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]`. That is a storage-solve objective comparison on this arm64 seat. Neither `configured_specs` nor `configured_quiet_windows` is on its path. The previous body reported the same check red on this seat at an earlier head. CI's `fast (3.14)` was green at `95ad5034`. A mutant counts as killed only by a FAIL line that is not this one.
 
 ## Figures
 
-Taken at `b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a`, 2026-10-06T22:49:49Z, ratchet base `6001b09a557259f37319b400d219cf83e02c563f`.
+Taken at `e23f87122f177d532a515cc17ff6a35d53190f22`, 2026-10-07T09:11:40Z, `origin/main` `be0cb82134bd3a008e59127da6f2b67fb1c77e98`, except where another SHA is named.
 
-- `python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`. `RESULT max_class_loc=9048 count`. `RESULT seam_cut_total=766 count`.
-- `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 1 --scripts tests/manual_plan.py` — `pinned custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL -- killed by tests/manual_plan.py`. `PIN KILLED: 1 pinned, 0 left unpinned`. Exit 0.
-- `PYTHONPATH=tests/hastub python3 tests/manual_plan.py` — `ALL 129 manual plan checks PASSED`.
-- `/usr/bin/time -p python3 tests/mutation_table.py --scope changed --base origin/main` at `cf9de4e2a50332c608d854de900108afe890039a`, before this pin — exit 1, `real 4.52`. The refusal names one added site, `quiet_windows.py:370 RETURN_DEL`.
-- `tests/mutation_table.py` `ratchet_base("changed", "origin/main")`, `unpinned_sites`, `added_unpinned` at this head: base `6001b09a557259f37319b400d219cf83e02c563f`, 4695 unpinned against 4695 there, 0 added.
-- `node tools/policy/policy_lint_envmatrix.mjs` with this checkout, a fresh work directory, and `HEAD` — `16 declared outcome(s) held, 0 did not, across 6 environment shape(s)`. Exit 0.
-
-Taken at `205943f950645b72866385d8c852e61a70cd3413`, 2026-10-06T20:20:03Z, origin/main `00da22db537a688efe6a7a9518a9fc91767c3a5a`. `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` was run at that head. `git merge-tree --write-tree origin/main HEAD` at this head exits 0.
-
-Merge of `00da22db` (`#1960`). The eight content conflicts are resolved. The claim table is the regenerated one, not a union of the two texts. Quiet-window composition lives in `quiet_windows.py`.
-
-- `./tests/derive_closures.sh --single tests/debug_collect.py` — exit 0. `git diff` on `tests/closures.json` changes only the recorded `seconds` for that script.
-- `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT claims_true=123 claims`. `RESULT claims_false=0 claims`.
-- `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` — `ALL 30 DEBUG COLLECT CHECKS PASSED`.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` — `MODE: FULL -- every test script runs, nothing is scoped out.` Reason: `tests/run.sh` changes the gate itself. `tests/run.sh` was not run unscoped.
-- `git merge-tree --write-tree origin/main HEAD` — exit 0.
-- `CLAIM_HEAD=$(git rev-parse HEAD) PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)` — `claims hygiene: 1b1bbaad57bc4bb5fa710efe2c510b0b4bc64872 ok`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. At `a8d2e78e` the same command printed `FAIL dead_top_level_symbols 2 > 1 (+1)` and `FAIL max_class_loc 9070 > 9048 (+22)`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`: at `1919f631`: `MODE: FULL -- every test script runs, nothing is scoped out.` The reason given was `tests/derive_closures.sh changes the gate itself`. The suite was not run unscoped locally. What did run is the set of scripts whose committed closure lists `quiet_windows.py`, minus `boost_drift_replay.py`, `harness_headers.py`, `entities.py`, `finite_boundary.py`, `golden.py`, `env_drift.py` and `arch_score_head.py`, which are left to CI. At `1919f631`, each script that ran printed its pass line and exited 0, except `features.py` (see `## Null control`): `manual_plan.py`, `guard_pins.py`, `debug_collect.py`, `plan_view.py`, `config_flow_steps.py`, `deployment_shape.py`, `doc_claims.py`, `solar_alignment.py`, `typing_ruler.py`, `wood_advisor.py`, `structure.py`, `card.mjs` and `card_drift.mjs`.
+- At this head, `PYTHONPATH=tests/hastub python3` on `tests/manual_plan.py`, `tests/debug_collect.py` and `tests/guard_pins.py` printed `ALL 129 manual plan checks PASSED`, `ALL 30 DEBUG COLLECT CHECKS PASSED` and `ALL 47 GUARD PIN CHECKS PASSED`.
+- `./tests/derive_closures.sh --single tests/debug_collect.py` at `1919f631`: exit 0. It added `quiet_windows.py` and `modbus_prefill.py` to that script's closure and kept `silent_mode.py`, which this run did not read. The same command at this head changed only the recorded `seconds`, and that change was discarded. The file set is unchanged, so the closure needs no further edit.
+- `uvx ruff check --select F` on `coordinator.py` and `quiet_windows.py`, compared with the same files at `95ad5034` after stripping line numbers: no new finding. One finding is gone: the unused `CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY` import, which main removed.
+- `python3 tests/mutation_table.py --scope changed --base origin/main`: exit 1, `4696 unpinned site(s) against 4695 at the ratchet base be0cb82134bd3a008e59127da6f2b67fb1c77e98, 1 of them added by this diff`, which is `quiet_windows.py:507 GUARD_OFF` (see `## Mutation proof`).
+- `CLAIM_HEAD=$(git rev-parse HEAD) PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`: `claims hygiene: be0cb82134bd3a008e59127da6f2b67fb1c77e98 ok`.
 
 ## Red checks
 
-`env-matrix`. Job 112529653069, run 37539776169, on `705c3be37fe94feb37be1600b57403e129c382f8`. The shallow row: `Error: Cannot find module '/home/runner/work/_temp/envmatrix/shallow/.claude/workflows/policy_lint.mjs'`. The same missing module is the `rc=1 pins=null` on `pr`, `push-main` and `no-remote`, and the absent `skip checkProvenance-pin` line. Cheaper detector: `node tools/policy/policy_lint_envmatrix.mjs` on the checkout. It is named in a comment in `tools/pr/prepr.sh` and is not one of that script's steps. A pass of it on this tree printed `16 declared outcome(s) held, 0 did not`. This head `b5cbc740e59ea0d16f4088399d6ba5e82cbbfb4a` starts `tools/policy/policy_lint.mjs`, and the env-matrix job keeps that file across the base restore.
+At `95ad5034`, run 37564484318:
 
-`mutation`. Job 112484566102, run 37526452102, on `cf9de4e2a50332c608d854de900108afe890039a`: `ADDED UNPINNED custom_components/heatpump_optimizer/quiet_windows.py:370 RETURN_DEL: return out`. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which returns at that ratchet before any mutant is cloned. Standing cost on that head, while the site was unpinned: `/usr/bin/time -p` `real 4.52`. The command is not in `tools/pr/prepr.sh` or `.claude/hooks`. The kill is recorded at `19391406563cf785e723be51ceb7b9b34a850511` under `killed_by` for `tests/manual_plan.py`.
+`closures`. Job 112609045485: `UNDER-SCOPED: tests/debug_collect.py really reads 1 file(s) the committed closure does not list: custom_components/heatpump_optimizer/quiet_windows.py`. Main moved quiet-window composition into a module that the coordinator imports, after this script's closure had been recorded. Cheaper detector: `./tests/derive_closures.sh --single tests/debug_collect.py` after each main merge. It takes seconds for this script. `tools/pr/prepr.sh` does not run it. Repaired in this head (see `## Figures`).
 
-`mutation-autofix`. Job 112486109066 printed `AUTOFIX: skip-no-measurement` and the repair did not happen. The site was not started: it would have overrun `--budget-minutes`, so there was no kill to apply. Cheaper detector: the mutation job's ratchet, same command and standing cost as above. No bot commit was waited on.
+`mutation` (expected on this head, not yet run): the one added unpinned site above. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, about 5 s. It ran here, and its site is killed by `tests/manual_plan.py`.
 
-`closures`. Job 112436237942, run 37512253135, on `50a36f792eb32913607bc003408c4b6661e41a73`: `selectable script(s) with NO recording this run: tests/debug_collect.py`. The committed closure already listed it. The full arm re-derives from the lanes in `tests/derive_closures.sh`, and those lanes did not record it. Cheaper detector: none. The roster check is `tests/closure.py check` on that full re-derive; nothing in the tree compares selectable scripts to the `rec` lines before CI.
+`closures-autofix`. Job 112620088047: `AUTOFIX: skip-failed-recording`, `THE REPAIR DID NOT HAPPEN`. By `ci-autofix.md` no bot commit was coming, so the repair above was made here. The failed recording was `tests/stress.py`: the downloaded `closure-recordings` artifact has `rc=1` in `stress.py.json`, and `stress.py.out` has `1 of 104 STRESS CHECKS FAILED` on `FAIL every scenario's solve costs what it should, in CPU, for this machine  [shoulder/tariff+pv+cycle used 18728 ms of CPU = 329x the 56.9 ms reference measured beside it (budget 268x)]`. That is a CPU budget measured while the recorder's audit hook was attached. `fast (3.14)` and `mutation` were green in that run, and this diff does not touch `stress.py` or the solver. Cheaper detector: none that runs before CI. The failure exists only while a script is being recorded. The class it belongs to is the third unclosed path in `ci-autofix.md`, a script that fails only under recording. This instance is a timing budget, not a truncation, which that rule does not yet name. See `## Friction`.
 
-`closures`. Under-scoped `tests/features.py` by `services.yaml` on an earlier head. The Linux recording's rc is 0 and that path is in the committed closure. Cheaper detector: the recording JSON's `rc` plus `tests/closure.py check`, both already produced by the job. No cheaper detector exists for a file a completed run newly opens.
+`delivery-status`. Job 112608980070: `DELIVERY STATUS UNCHECKED`. Its pending rows are main's `#1917`, `#2001` and `#2003`, and the merge-collection skip lists main's merge subjects. This branch's row, `dev/programme/delivery/1987.md`, is on main. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. The red belongs to main's record.
 
-`closures-autofix`. Job 112457301514 printed `allowed=True` and `AUTOFIX: skip-clean`. No bot commit. An earlier head printed `skip-failed-recording` on `tests/harness_headers.py`. Cheaper detector: `option_doc_coverage.py` and `claims.py`, seconds, for that earlier recording failure. `skip-clean` is the job's own summary line.
-
-`fast (3.14)`. On `fca0bea0c9ab864d087a6ee8939500b833f7d32c`: `UNWIRED TEST: tests/debug_collect.py is not referenced by tests/run.sh`. Cheaper detector: the `UNWIRED TEST` grep at the start of `tests/run.sh`. This head has `run "$PYTHON" tests/debug_collect.py` in `lane_units`.
-
-`delivery-status`. The row is `dev/programme/delivery/1987.md`. The earlier red was `DELIVERY STATUS UNCHECKED` over main's merge subjects. Cheaper detector: `python3 tests/delivery_status.py --check`, the check itself. Those subjects are main's.
-
-`pr-contract` was red on an earlier head because `## Red checks` did not name `closures`, `closures-autofix`, `fast (3.14)`, `mutation` or `mutation-autofix`. This section names them. Cheaper detector: `tools/audit/prepr.sh`.
-
-`nightly-status` graded main. This diff does not change `tests/nightly_status.py`, `tests.yml`, `governance.yml`, the plan or `docs/HANDOVER.md`.
+`nightly-status`. Job 112608980459: `NIGHTLY FAILED: record-autofix failed last night.` That grades main's nightly. This diff does not touch `tests/nightly_status.py`, the workflows, or the record-autofix lane.
 
 ## Forward-carry
 
@@ -90,4 +62,6 @@ none
 
 ## Friction
 
-none
+ci-autofix.md: unenforced: `closures-autofix` reports `skip-failed-recording` for a `tests/stress.py` recording whose only failure is its CPU budget under the audit hook (run 37564484318), so a single real UNDER-SCOPED on an unrelated script waited on a human repair.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
