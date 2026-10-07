@@ -1,0 +1,10 @@
+.claude/rules/defect-root-cause.md
+.cursor/rules/defect-root-cause.mdc
+dev/audit/rca/R9-RCA-2004.md
+dev/governance/rules/defect-root-cause.md
+dev/programme/delivery/2014.md
+tests/entities.py
+tools/audit/bugclasses.json
+tools/audit/harnesses/r9_fr3_family_consumer.mjs
+tools/policy/friction_issues.mjs
+tools/pr/preflight.sh

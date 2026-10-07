@@ -1,0 +1,2 @@
+DEAD dev/governance/rules/defect-root-cause.md: tools/audit/briefs/**
+DEAD dev/governance/rules/ratchet-budgets.md: tools/audit/README.md

@@ -1,0 +1,27 @@
+== P1 stale citation
+    new-reference: docs/setup.md cites retired path .claude/workflows/rules_sync.mjs: Run `node .claude/workflows/rules_sync.mjs --check` first.
+layout: GUARD: 1 refusal(s) against e0f0b6fb397b
+rc=1
+== P2 move with leftover citation
+fatal: renaming 'tools/audit/rotation.json' failed: No such file or directory
+.claude/workflows/audit-find.js:7
+.claude/workflows/audit-verify.js:2
+dev/governance/decisions/0012-process-diet-and-round-cadence.md:1
+tests/layout.json:1
+tools/audit/finding.schema.json:1
+    unswept: tools/policy/check-wave-script.mjs:684 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:692 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:767 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:809 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:1236 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:1269 cites tools/audit/rotation.json, which this diff moves
+    unswept: tools/policy/check-wave-script.mjs:1270 cites tools/audit/rotation.json, which this diff moves
+layout: GUARD: 21 refusal(s) against e0f0b6fb397b
+rc=1
+== P3 misplaced file
+    placement: misc/planted.txt is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
+layout: GUARD: 1 refusal(s) against e0f0b6fb397b
+rc=1
+== clean
+layout: GUARD: 0 refusal(s) against e0f0b6fb397b
+rc=0

@@ -1,0 +1,3 @@
+{'new-reference': 2}
+new-reference: tests/entities.py cites retired path .claude/workflows/policy_lint.mjs: (d / ".claude/workflows/policy_lint.mjs").unlink()
+new-reference: tools/pr/preflight.sh cites retired path .claude/workflows/policy_lint.mjs: test -f "$lint" || lint="$1/.claude/workflows/policy_lint.mjs"
