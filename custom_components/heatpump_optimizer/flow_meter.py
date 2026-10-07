@@ -38,10 +38,15 @@ def thermal_output_kw(
     )
 
 
-def read_heat_output_kw(reader: Any, config: Any) -> float | None:
+def read_heat_output_kw(
+    reader: Any,
+    config: Any,
+    temps: tuple[float | None, float | None] | None = None,
+) -> float | None:
     """This cycle's thermal output, or ``None`` when it is not to be used.
 
-    ``None`` when the flow key is unset, when a power or frequency signal
+    ``temps`` is the cycle's (supply, return) when already read, so the
+    two slots are not read twice. ``None`` when the flow key is unset, when a power or frequency signal
     exists, or when the flow, supply or return cannot be read.
     """
     cfg = config or {}
@@ -53,7 +58,14 @@ def read_heat_output_kw(reader: Any, config: Any) -> float | None:
     ):
         return None
     flow = reader.read_flow_kg_s(const.CONF_FLOW_METER_ENTITY)
-    supply, returned = read_water_temps(reader)
+    supply, returned = temps or read_water_temps(reader)
     return thermal_output_kw(
         flow.value if flow.ok else None, supply, returned
     )
+
+
+def observe_water(bias: Any, reader: Any, config: Any) -> None:
+    """Fold this cycle's supply, return and flow into the flow-bias holder."""
+    temps = read_water_temps(reader)
+    bias.observe_temps(*temps)
+    bias.heat_output_kw = read_heat_output_kw(reader, config, temps)
