@@ -2,7 +2,7 @@ Main's Governance `record` and `record-autofix` stayed red after the delivery ro
 
 ## Head
 
-575990af6d319c4851aec6c802b786cf46bef4ec
+e1531dbb832acf793a4c92572694aa1dee79ea21
 
 ## Mutation proof
 
@@ -18,6 +18,8 @@ Unmodified main: run 37577849702 `record` job fails on #1995/#2003 and on the fr
 - `PYTHONPATH=tests/hastub python3 tests/entities.py` prints `ALL 2188 ENTITY CHECKS PASSED`
 - `node tools/policy/friction_issues.mjs --self-test` prints `101 passed, 0 failed`
 - `python3 tools/audit/seat/record_row.py --self-test` prints `all checks passed`
+- Class enumeration: `git grep -nE 'docs/delivery|docs/HANDOVER\.md' -- ':!dev/audit' ':!tools/audit/round*' ':!tools/audit/bugclasses.json' ':!dev/programme' ':!RELEASE_NOTES.md'` after merging origin/main. Fixed: `tools/audit/fastpath_census.py:58`, `tools/audit/seat/record_row.py:449` (self-test fixture dir). Closed by handoff/r9-rca-1990: `tools/audit/seat/merge_train.py`, `bus.sh`, `open_pr.sh`, `handoff_push.sh`, `handover_prompt.py`. Left as written, deliberately: `tools/release/stamp.py` and `tools/policy/policy_lint.mjs` record-class regexes (already carry both spellings), `tools/policy/brief_lint.mjs:1103` (probes both), `tools/policy/record-predicate/*` and `tests/layout.json` (old-to-new map), fixtures and self-test inputs in `tools/audit/merge_fastpath.py`, `tools/pr/prepr.sh`, `tools/pr/app_approve.sh`, `tools/audit/seat/state_docs.py` (path-independent), historical prose in decisions, RCAs, `tests/entities.py` comments and `INSTRUMENTS.md`; `.claude/rules`, `.cursor/rules` and `dev/governance/rules` `paths:` globs, which carry-1922 sequences with R9-RO-9 (policy, owner-approved edit); `docs/HANDOVER.md` mentions in tests/card.mjs, hooks and CODEOWNERS comment (policy or fixtures, outside this fix).
+- Row: `dev/programme/delivery/2011.md`.
 - Scoped gate: `GATE_SCOPE=auto ./tests/run.sh` printed `MODE: FULL` (tests.yml is a gate file); not run to completion locally, CI is authoritative.
 
 ## Red checks
