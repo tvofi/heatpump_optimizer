@@ -1,11 +1,13 @@
-"""Timed boost overlays for hot water and space heating.
+"""Timed boost and block overlays for hot water and space heating.
 
-Each channel is a two-hour maximum-heat overlay on the live action. Space
-boost matches the global boost mode (nameplate electrical power, the
-comfort ceiling, full ECL displace). DHW boost matches the planner's own
-hot-water ceiling (80 % of nameplate). The channels are independent: one
-does not rewrite the other, and neither stomps comfort or economy the way
-selecting the global boost mode does.
+Each channel is a two-hour maximum-heat overlay on the live action, or a
+two-hour block that zeroes that duty. Space boost matches the global boost
+mode (nameplate electrical power, the comfort ceiling, full ECL displace).
+DHW boost matches the planner's own hot-water ceiling (80 % of nameplate).
+The channels are independent: one does not rewrite the other, and neither
+stomps comfort or economy the way selecting the global boost mode does. A
+block and a boost on one channel exclude each other. A safety floor releases
+a block; there is no separate frost-protection feature.
 
 State lives in a Store next to the away override, and in a weak map keyed
 by coordinator so the coordinator class does not grow another attribute.
@@ -26,7 +28,13 @@ from homeassistant.util import dt as dt_util
 
 from . import away as away_mode
 from .accuracy import utc_elapsed_seconds, utc_shift
-from .const import DOMAIN, MODE_BOOST
+from .const import (
+    DOMAIN,
+    ECONOMY_ABSOLUTE_FLOOR,
+    MODE_BOOST,
+    SPACE_PUMP_FLOOR_MARGIN_C,
+)
+from .dhw_schedule import DHWWindowError, hour_in_windows, parse_windows
 from .drift import stored_instant
 from .entity import has_hot_water
 from .payload import CurrentAction
@@ -34,7 +42,20 @@ from .payload import CurrentAction
 _LOGGER = logging.getLogger(__name__)
 BOOST_STORE_VERSION = 1
 BOOST_HOURS = 2
-_MAX_LEAD = timedelta(hours=BOOST_HOURS)
+#: A block is the opposite of a boost: the same two hours, the duty zeroed.
+BLOCK_HOURS = 2
+_MAX_LEAD = timedelta(hours=max(BOOST_HOURS, BLOCK_HOURS))
+_BLOCK_LEAD = timedelta(hours=BLOCK_HOURS)
+#: Why a safety floor released a block, published on the switch.
+RELEASE_LEGIONELLA = "anti-legionella cycle is due"
+RELEASE_DISINFECTION = "disinfection is running"
+RELEASE_TANK = "the tank is at its minimum inside a demand window"
+RELEASE_ROOM = "the room is at the safety floor"
+RELEASE_COLD = "the house is below its plan while it is cold outside"
+RELEASE_SYSID = "a measurement experiment is running"
+RELEASE_STALE = "the plan is stale"
+#: Installed by the pump arbiter. boost does not import that module.
+_cold_lease: Any = None
 #: #1935: how long after a space overlay ends the interval learners stay
 #: frozen. The replay integrates from a plant state propagated open-loop
 #: from the PLAN's trajectory, so the slab heat the overlay added -- real in
@@ -80,6 +101,9 @@ class BoostState:
     """Per-channel expiry. A missing key is off."""
 
     until: dict[str, datetime] = field(default_factory=dict)
+    #: Per-duty block expiry. Same channel names as ``until``; a block and a
+    #: boost on one channel are never both set.
+    blocked: dict[str, datetime] = field(default_factory=dict)
     #: #1935: when the space overlay's settling tail ends -- set when the
     #: overlay ends (expiry or cancel) and when the global boost mode is
     #: left. In-memory only: a restart mid-tail also loses
@@ -90,6 +114,33 @@ class BoostState:
     def active(self, channel: str, now: datetime) -> bool:
         end = self.until.get(channel)
         return end is not None and utc_elapsed_seconds(end, now) > 0
+
+    def block_active(self, channel: str, now: datetime) -> bool:
+        end = self.blocked.get(channel)
+        return end is not None and utc_elapsed_seconds(end, now) > 0
+
+    def _expire_one(
+        self,
+        slots: dict[str, datetime],
+        channel: str,
+        end: datetime,
+        now: datetime,
+        lead: timedelta,
+        *,
+        settle: bool,
+    ) -> None:
+        if utc_elapsed_seconds(end, now) <= 0:
+            slots.pop(channel, None)
+            if settle and channel == CHANNEL_SPACE:
+                # Anchored to the window's own end, not to when this
+                # expiry was observed: re-equilibration starts when the
+                # heat stopped (#1935).
+                self.space_settle_until = utc_shift(end, SPACE_SETTLE_TAIL)
+        elif utc_elapsed_seconds(end, now) > lead.total_seconds():
+            # The clock stepped back since the window was set: the two-hour
+            # maximum is a duration, not an instant (D1-s3-05), so it is
+            # held to two hours from now rather than for the step as well.
+            slots[channel] = utc_shift(now, lead)
 
     def expire(self, now: datetime) -> None:
         for channel, end in list(self.until.items()):
@@ -105,19 +156,44 @@ class BoostState:
                 # maximum is a duration, not an instant (D1-s3-05), so it is
                 # held to two hours from now rather than for the step as well.
                 self.until[channel] = utc_shift(now, _MAX_LEAD)
+        for channel, end in list(self.blocked.items()):
+            self._expire_one(
+                self.blocked, channel, end, now, _BLOCK_LEAD, settle=False
+            )
 
-    def set(self, channel: str, active: bool, now: datetime) -> None:
+    def _note_space_boost_ended(self, now: datetime) -> None:
+        # A cancel leaves the same diverged plant state an expiry does
+        # (#1935), so it owes the same settling tail.
+        self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
+
+    def _set_blocked(self, channel: str, active: bool, now: datetime) -> None:
+        if active:
+            # The later press wins. Cancelling a live space boost owes the
+            # settling tail a cancel from the switch owes.
+            if channel == CHANNEL_SPACE and self.active(channel, now):
+                self._note_space_boost_ended(now)
+            self.until.pop(channel, None)
+            self.blocked[channel] = utc_shift(now, _BLOCK_LEAD)
+        else:
+            self.blocked.pop(channel, None)
+
+    def set(
+        self, channel: str, active: bool, now: datetime, *, block: bool = False
+    ) -> None:
         if channel not in CHANNELS:
             raise ValueError(channel)
+        if block:
+            self._set_blocked(channel, active, now)
+            return
         if active:
+            # A boost press clears a block on the same channel.
+            self.blocked.pop(channel, None)
             self.until[channel] = utc_shift(now, _MAX_LEAD)
         else:
             was_live = self.active(channel, now)
             self.until.pop(channel, None)
             if channel == CHANNEL_SPACE and was_live:
-                # A cancel leaves the same diverged plant state an expiry
-                # does (#1935), so it owes the same settling tail.
-                self.space_settle_until = utc_shift(now, SPACE_SETTLE_TAIL)
+                self._note_space_boost_ended(now)
 
     def as_dict(self) -> dict[str, Any]:
         self.expire(dt_util.now())
@@ -264,6 +340,25 @@ def overlay(
         # publish a false Heat Pump Action (#1499).
         if action.get("mode") in (None, "off", "idle"):
             action["mode"] = "hot_water"
+    _zero_blocked(action, held)
+
+
+def _zero_blocked(action: CurrentAction, held: BoostState) -> None:
+    """Zero a blocked duty on the action copy. Never the power switch.
+
+    A single-channel block leaves ``heat_pump_on`` as the plan wrote it.
+    ``_apply_action`` commands the supply switch from that flag, and it
+    skips OFF only when the pump's own mode blocks both channels or is
+    cooling. Zeroing the flag here would switch the supply off for one
+    duty. The arbiter drops that duty and serves the idle row instead.
+    """
+    if CHANNEL_SPACE in held.blocked:
+        action["power"] = 0.0
+        if "power_normalized" in action:
+            action["power_normalized"] = 0.0
+    if CHANNEL_DHW in held.blocked:
+        action["dhw_power"] = 0.0
+        action["dhw_heating_active"] = False
 
 
 def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
@@ -280,9 +375,12 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
     held = held_for(coord)
     held.expire(now)
     if not has_hot_water(coord):
-        # No tank to heat: a DHW boost set or restored anyway is dropped here,
-        # the one place it could reach the action (#1527).
+        # No tank to heat: a DHW boost or block set or restored anyway is
+        # dropped here, the one place it could reach the action (#1527).
         held.until.pop(CHANNEL_DHW, None)
+        held.blocked.pop(CHANNEL_DHW, None)
+    snap = _floor_snap(coord)
+    released = snap is not None and release_blocked(coord, snap, now)
     base = _PLAN_BASES.get(coord)
     action: CurrentAction = {**base} if base else {}
     overlay(
@@ -293,6 +391,8 @@ def apply(coord: _BoostCoord, specs: BoostOverlay) -> None:
         ecl_max=specs.ecl_max,
     )
     coord.adopt_action(action)
+    if released:
+        _schedule_persist(coord)
 
 
 def _store(coord: _BoostCoord) -> QuarantiningStore[dict[str, Any]]:
@@ -311,12 +411,17 @@ def _parse_until(raw: Any) -> datetime | None:
 
 async def persist(coord: _BoostCoord) -> None:
     try:
-        await _store(coord).async_save(
-            {
-                channel: {"until": end.isoformat()}
-                for channel, end in held_for(coord).until.items()
-            }
-        )
+        held = held_for(coord)
+        payload = {
+            channel: {"until": end.isoformat()}
+            for channel, end in held.until.items()
+        }
+        # Absent when no block is set, so a boost-only store is unchanged.
+        payload.update({
+            f"block_{channel}": {"until": end.isoformat()}
+            for channel, end in held.blocked.items()
+        })
+        await _store(coord).async_save(payload)
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist boost state: %s", err)
 
@@ -329,15 +434,25 @@ async def restore(coord: Any) -> None:
     held = held_for(coord)
     for channel in CHANNELS:
         payload = raw.get(channel)
-        if not isinstance(payload, Mapping):
-            continue
-        parsed = _parse_until(payload.get("until"))
+        if isinstance(payload, Mapping):
+            parsed = _parse_until(payload.get("until"))
+        else:
+            parsed = None
         # Both sides through as_utc (#1299's rule): the loader keeps a naive
         # stamp naive when no zone is configured (F3.1's recorded decision),
         # and comparing it straight against an aware now is the TypeError the
-        # store boundary exists to make unreachable.
+        # store boundary exists to make unreachable. The comparison stays the
+        # line the mutation pins name.
         if parsed is not None and dt_util.as_utc(parsed) > dt_util.as_utc(now):
             held.until[channel] = parsed
+        block = raw.get(f"block_{channel}")
+        if isinstance(block, Mapping):
+            parsed_block = _parse_until(block.get("until"))
+            if (
+                parsed_block is not None
+                and dt_util.as_utc(parsed_block) > dt_util.as_utc(now)
+            ):
+                held.blocked[channel] = parsed_block
 
 
 async def restore_session(
@@ -362,3 +477,141 @@ async def set_channel(
     await persist(coord)
     if refresh:
         await coord.async_request_refresh()
+
+
+async def set_block(
+    coord: Any, channel: str, active: bool, *, refresh: bool = True
+) -> None:
+    """Turn a block on or off. A live safety floor refuses the on-press."""
+    now = dt_util.now()
+    if active and block_release_reason(coord, channel, now) is not None:
+        held_for(coord).blocked.pop(channel, None)
+    else:
+        held_for(coord).set(channel, active, now, block=True)
+    await persist(coord)
+    if refresh:
+        await coord.async_request_refresh()
+
+
+def bind_cold_lease(fn: Any) -> None:
+    """The arbiter registers the cold-rail test. No import the other way."""
+    global _cold_lease
+    _cold_lease = fn
+
+
+def _floor_snap(coord: Any) -> Any:
+    fn = getattr(coord, "arbiter_inputs", None)
+    if not callable(fn):
+        return None
+    return fn()
+
+
+def _schedule_persist(coord: Any) -> None:
+    coord.hass.async_create_task(persist(coord))
+
+
+def _due_inside_horizon(coord: Any) -> bool:
+    """Whether the anti-legionella hard deadline falls inside this horizon.
+
+    ``dhw_legionella_due_in_hours`` is ``legionella.due_in_hours``: hours
+    left before the cycle is required. The planner places that cycle when
+    the same remainder, in steps, is still inside the horizon
+    (``deadline_step < n_steps``). Equal to the horizon is the next
+    horizon, so the comparison is strict.
+    """
+    data = getattr(coord, "data", None)
+    if not isinstance(data, Mapping):
+        return False
+    due = data.get("dhw_legionella_due_in_hours")
+    if due is None:
+        return False
+    horizon = data.get("horizon_hours", 24.0)
+    try:
+        return float(due) < float(horizon)
+    except (TypeError, ValueError):
+        return False
+
+
+def _window_open(snap: Any, now: datetime) -> bool:
+    info = getattr(snap.plan, "predictive_info", None) or {}
+    planned = info.get("dhw_windows") if snap.plan is not None else None
+    windows = None
+    if planned:
+        try:
+            windows = parse_windows(planned)
+        except DHWWindowError:
+            windows = None
+    if not windows:
+        windows = list(getattr(snap.params, "dhw_demand_windows", None) or [])
+    if not windows:
+        return False
+    hour = now.hour + now.minute / 60.0
+    return hour_in_windows(hour, windows)
+
+
+def _dhw_floor(coord: Any, snap: Any, now: datetime) -> str | None:
+    if snap.disinfecting:
+        return RELEASE_DISINFECTION
+    if _due_inside_horizon(coord):
+        return RELEASE_LEGIONELLA
+    temp = getattr(snap.state, "dhw_temperature", None)
+    floor = getattr(snap.params, "dhw_min_temp", None)
+    if (
+        temp is not None
+        and floor is not None
+        and float(temp) <= float(floor)
+        and _window_open(snap, now)
+    ):
+        return RELEASE_TANK
+    return None
+
+
+def _space_floor(snap: Any, now: datetime) -> str | None:
+    room = getattr(snap.state, "room_temperature", None)
+    if (
+        room is not None
+        and float(room) <= ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C
+    ):
+        return RELEASE_ROOM
+    if _cold_lease is not None and _cold_lease(snap, now):
+        return RELEASE_COLD
+    return None
+
+
+def block_release_reason(
+    coord: Any, channel: str, now: datetime | None = None, snap: Any = None
+) -> str | None:
+    """Why this block cannot hold, or None when the press may stand."""
+    now = now or dt_util.now()
+    if snap is None:
+        snap = _floor_snap(coord)
+    if snap is None:
+        return None
+    if channel == CHANNEL_DHW:
+        why = _dhw_floor(coord, snap, now)
+        if why is not None:
+            return why
+    elif channel == CHANNEL_SPACE:
+        why = _space_floor(snap, now)
+        if why is not None:
+            return why
+    action = snap.action or {}
+    if action.get("mode") == "system_identification":
+        return RELEASE_SYSID
+    if snap.plan_stale:
+        return RELEASE_STALE
+    return None
+
+
+def release_blocked(coord: Any, snap: Any, now: datetime) -> bool:
+    """Drop every live block a safety floor forbids. True if one dropped."""
+    held = held_for(coord)
+    released = False
+    for channel in list(held.blocked):
+        if not held.block_active(channel, now):
+            continue
+        if block_release_reason(coord, channel, now, snap) is None:
+            continue
+        held.blocked.pop(channel, None)
+        released = True
+    return released

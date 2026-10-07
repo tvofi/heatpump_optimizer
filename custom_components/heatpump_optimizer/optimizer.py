@@ -27,7 +27,9 @@ chatter is `cycling_cost`'s job, and that is denominated in currency per
 start-stop cycle, so the trade against electricity is one the user can read.
 
 subject to 0 ≤ P_space[k] ≤ P_max − P_dhw[k] (the pump can be off; values
-below its modulation floor read as duty cycling within the step) and the
+below its modulation floor read as duty cycling within the step, unless the
+install probe says the write surface cannot realize that and
+``clamp_planned_levels`` projects them onto ``{0} ∪ [p_min, p_max]``) and the
 thermal dynamics of the configured model. Comfort bounds are soft penalties,
 not constraints — a hard band could make a cold morning infeasible.
 
@@ -95,8 +97,10 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    levels_clamped,
     planned_draw_runs,
     planned_draws_run,
+    project_planned_levels,
     weather_or_calm,
     wood_share,
 )
@@ -113,6 +117,41 @@ from .tariff import (
 from .dhw_schedule import format_resolved_day_spec
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _duty_floor(opt: HeatPumpOptimizer) -> float | None:
+    """``p_min`` on a clamped install, else ``None`` (the duty-cycle reading)."""
+    return (
+        float(opt.model.params.min_electrical_power)
+        if opt.config.clamp_planned_levels
+        else None
+    )
+
+
+def _published_levels(
+    clamp: bool, power: np.ndarray, p_min: float, p_max: float
+) -> np.ndarray:
+    """The schedule that ships: identity unless the install cannot duty-cycle."""
+    return (
+        project_planned_levels(power, p_min, p_max) if clamp else power
+    )
+
+
+def _realize_draw(
+    clamp: bool,
+    space: np.ndarray,
+    dhw: np.ndarray | None,
+    p_min: float,
+    p_max: float,
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Space and, when present, DHW at the power the write surface can deliver."""
+    return (
+        _published_levels(clamp, space, p_min, p_max),
+        (
+            None if dhw is None
+            else _published_levels(clamp, dhw, p_min, p_max)
+        ),
+    )
 
 
 def _padded_nonneg(values: Any, n_steps: int) -> np.ndarray:
@@ -1416,6 +1455,10 @@ class OptimizationResult:
     #: keys at all.
     mode_blocked_space: bool = False
     mode_blocked_dhw: bool = False
+    #: ``p_min`` when this solve projected unrealizable levels (#1955).
+    #: Absent (None) keeps ``step_duty``'s duty-cycle reading. Not a
+    #: caller argument: the plan carries the floor it was solved under.
+    duty_floor_kw: float | None = None
 
 
 @dataclass
@@ -1501,6 +1544,11 @@ class OptimizationConfig:
     #: prior-filled steps at the mean, exactly as before.
     price_risk_lambda: float = DEFAULT_PRICE_RISK_LAMBDA
 
+    #: Project a planned level in ``(0, p_min)`` up to ``p_min`` (#1955).
+    #: Default off: a direct config and a fully metered install keep the
+    #: duty-cycle bounds, so their plans stay byte-identical.
+    clamp_planned_levels: bool = False
+
     @property
     def n_steps(self) -> int:
         """Number of optimization steps."""
@@ -1557,6 +1605,7 @@ class OptimizationConfig:
             holiday_day_end_hour=_opt_int(CONF_HOLIDAY_DAY_END_HOUR),
             price_weight=config.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
             comfort_weight=config.get(CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT),
+            clamp_planned_levels=levels_clamped(config),
         )
 
     def _comfort_pair(
@@ -2587,6 +2636,7 @@ class HeatPumpOptimizer:
             pv_surplus=self._pv_surplus_list(h.n_steps),
             pv_self_consumed_kwh=self._pv_self_consumed(total_power, h.dt),
             predictive_info=predictive_info or {},
+            duty_floor_kw=_duty_floor(self),
         )
 
     def _co_optimize(
@@ -4036,6 +4086,10 @@ class HeatPumpOptimizer:
             dhw_plan_power: np.ndarray | None = None,
         ) -> float:
             """Compute the total cost with predictive weather anticipation."""
+            space_power, dhw_plan_power = _realize_draw(
+                self.config.clamp_planned_levels, space_power, dhw_plan_power,
+                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
+            )
             room_temps, slab_temps, upper_temps, lower_temps, buffer_temps, _, _ = (
                 _space_traj(space_power)
             )
@@ -4103,6 +4157,10 @@ class HeatPumpOptimizer:
             asserted by test, because a divergence here would move plans
             silently.
             """
+            space_matrix, dhw_plan_power = _realize_draw(
+                self.config.clamp_planned_levels, space_matrix, dhw_plan_power,
+                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
+            )
             traj = self.model.simulate_trajectory_batch(
                 initial_state=initial_state,
                 power_matrix=space_matrix,
@@ -4257,7 +4315,9 @@ class HeatPumpOptimizer:
                 objective, starts, bounds, maxiter=200,
                 batch_objective=objective_batch, move_starts=move_starts,
             )
-            optimal_power = result.x
+            optimal_power = _published_levels(
+                self.config.clamp_planned_levels, result.x, p_min, p_max
+            )
             status = _solver_status(result, objective, initial_power)
         except Exception as e:
             _LOGGER.error("Optimization failed: %s", e)
@@ -4533,6 +4593,12 @@ class HeatPumpOptimizer:
             solve_space=solve_space,
             p_max=p_max,
             planner=planner,
+        )
+        optimal_space = _published_levels(
+            self.config.clamp_planned_levels, optimal_space, p_min, p_max
+        )
+        optimal_dhw = _published_levels(
+            self.config.clamp_planned_levels, optimal_dhw, p_min, p_max
         )
 
         # Simulate with optimal schedule
