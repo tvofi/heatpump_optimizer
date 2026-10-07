@@ -5,7 +5,7 @@ ret=[r for r in L.get('retired',[]) if isinstance(r,dict) and 'old' in r]
 olds={r['old']:r.get('new') for r in ret if not os.path.exists(r['old'])}
 print('retired.old absent at HEAD:',len(olds))
 files=subprocess.run(['git','ls-files','*.mjs','*.js','*.py','*.sh','*.yml'],capture_output=True,text=True).stdout.split()
-files=[f for f in files if not re.match(r'(tools/audit/round[^/]*/|dev/archive/)',f)]
+files=[f for f in files if not re.match(r"(tools/audit/round[^/]*/|dev/archive/|dev/audit/rounds/)",f)]
 shape=re.compile(r"^\s*(export )?const [A-Z_]+ *= *'|spawn|exec|\bnode\b|python3|\bbash\b|readFileSync|readFile|open\(|read_text|import\(|require\(|git show|git cat-file")
 hits=[];cleared=0
 for f in files:

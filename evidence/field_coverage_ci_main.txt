@@ -1,3 +1,0 @@
-policy-docs	UNKNOWN STEP	2026-10-06T21:05:37.3184703Z ^[[36;1m  echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"^[[0m
-policy-docs	UNKNOWN STEP	2026-10-06T21:05:37.3186289Z ^[[36;1m  echo "field coverage: no input changed since $SINCE; skipped"^[[0m
-policy-docs	UNKNOWN STEP	2026-10-06T21:05:37.3327280Z field coverage: the base does not carry it, so there is no pinned copy to run; skipped

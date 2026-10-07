@@ -1,0 +1,9 @@
+fr3 rc=0
+102 passed, 0 failed
+  ok       policy corpus -- current with origin/main (2 file(s) authored here, not stale)
+/Library/Frameworks/Python.framework/Versions/3.11/Resources/Python.app/Contents/MacOS/Python: can't open file '/Users/timmalmstrom/hpo-seats/r9c-rev-2014-r3/dev/audit/fold_ledger.py': [Errno 2] No such file or directory
+merge-tree rc=0
+rules_sync rc=0
+version/claims touched: none above
+fold_ledger: 28 classes, 549 instances, 39 in-tree judge survivors (rounds [8]), 99 rca entries
+fold_ledger: 0 violation(s)
