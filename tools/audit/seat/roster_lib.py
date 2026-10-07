@@ -5,13 +5,13 @@
 
 This module is the one place the roster schema is read: the wave computation is
 `gen_table_rev3.py`'s (handoff/audit-r9-alt:handoff/round9/state/alt), the
-critical path is `tools/audit/round9/fixplan/gen.py`'s `longest_chain()`, and
+critical path is `dev/audit/rounds/round9/fixplan/gen.py`'s `longest_chain()`, and
 the open-group rule is its own: a group is OPEN while
 `resume.stage not in DONE_STAGES`, so a done group's after-edges count as
 satisfied and stop constraining the groups behind them. Nothing here shells out
 or touches the network; the roster reaches a tool as a parsed dict.
 
-Roster shape (tools/audit/round9/fixplan/gen.py writes it):
+Roster shape (dev/audit/rounds/round9/fixplan/gen.py writes it):
   {"groups": [{"group", "lane", "issues", "fixes", "wave", "after", "brief",
                "fixerModel", "reviewerModel", "owner_gate", "resume": {...},
                ...}], "repo", "session", ...}
