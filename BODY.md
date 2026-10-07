@@ -16,7 +16,7 @@ Part of #201. Requested by **tvofi**.
 
 ## Head
 
-`e90e57891ef903476d83f72189eab093abb4d9a1`, measured against the stacked base `d15fc0ae57da63645d6b8d4381ffe83db3a831de` (three-dot), 2026-10-07T20:46Z.
+`b5a31679890484f56dd80974c5d19d4efcfb567f`, measured against the stacked base `d15fc0ae57da63645d6b8d4381ffe83db3a831de` (three-dot), 2026-10-07. Two commits follow the first handoff (`e90e5789`): `store.py` declares the restated receipt fields, and the `max_class_loc` record.
 
 ## Mutation proof
 
@@ -41,7 +41,8 @@ The UX-6 checks are a block at the end of `tests/features.py`. `features.py` is 
 
 ## Figures
 
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `max_class_loc` gains (lower) and is not yet recorded. It is recorded after the main merge, at the real merge base, so as not to carry a number from the stacked base. A first draft raised `functions_cc_over_25` by 1 (`AccuracyTracker.from_dict`). That was paid by moving the promise loader into `_stored_promises`, not by a raise.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` after `--record`. `max_class_loc` drops 8877 to 8804 because the freeze moved out of the coordinator class, and the commit message says so. Before the record the script exited 2 (improved, not recorded). It is re-measured after the main merge. A first draft raised `functions_cc_over_25` by 1 (`AccuracyTracker.from_dict`). That was paid by moving the promise loader into `_stored_promises`, not by a raise.
+- `PYTHONPATH=tests/hastub python3 tests/finite_boundary.py`: `ALL 83 FINITE BOUNDARY CHECKS PASSED`. At `e90e5789` it failed 1 of 83 with 3 unreached in-domain probes on `month_reports/*/total_sek` and `basis`, because `restate_total` re-derives both on load. Both are now declared `unread` with that reason in `store.py`, as `house_heat_loss_anchor` is.
 - `node tests/card.mjs`: `ALL CARD CHECKS PASSED` (needs `PYTHONPATH=tests/hastub python3 tests/plan_view.py` first).
 - `node tests/card_drift.mjs d15fc0ae57da63645d6b8d4381ffe83db3a831de`: `identical in all 40 states`.
 - `PYTHONPATH=tests/hastub python3 tests/typing_ruler.py`: `ALL 11 typing-ruler source checks PASSED`.
@@ -52,6 +53,8 @@ The UX-6 checks are a block at the end of `tests/features.py`. `features.py` is 
 - `python3 tools/pr/ci_predict.py --base d15fc0ae57da63645d6b8d4381ffe83db3a831de` (taken from `origin/fix/r9-ro-11-pr`): 1 predicted closures red and 39 added unpinned sites (below).
 
 ## Red checks
+
+Local, at the first handoff `e90e5789`: `tests/finite_boundary.py` (3 unreached probes) and `tests/structure.py` rc 2 (an unrecorded gain). Both are fixed at this head. The cheaper detector for both is running the scoped scripts before the push, which I did not wait for at the first handoff.
 
 Predicted, not yet observed: `closures` UNDER-SCOPED. `store.py` now imports `ledger.py` (`BILLED_LINES`, the receipt basis domain), and `tests/guard_pins.py`'s closure omits `ledger.py`. That is `closures-autofix`'s repair by `ci-autofix.md`. The cheaper detector is `ci_predict.py`, which named it before any push.
 
@@ -67,7 +70,7 @@ none. U3, the household power budget, stays deferred. R9-UX-7, the sibling with 
 
 - Merge `origin/main` (never rebase). Re-run steps 2 to 8 at the new merge base, then re-take this body.
 - Claim the coordinator captures, add-only, in `tests/golden/claimed_drift.txt`: `coord_*` gain `receipts` and `plan_replay` in the published payload and on `sensors.monthly_savings`. No plan, schedule or solver leaf moves. This is deferred because the claim file's contents and `claims-for:` depend on main at the merge.
-- Re-record `max_class_loc` at the merge base, with the reason in the commit message.
+- Re-measure `tests/structure.py` at the merge base. Re-record only if a row moves.
 - Regenerate the Savings screenshots, light and dark, with the browser test's page-screenshot mode, into `docs/img/card/`. Update the `<picture>` alt text and the product page's gallery slot (DESIGN-SITE.md). The fixture behind the page-screenshot mode needs `receipts` and `plan_replay` for the new sections to appear.
 - Land the standalone block runner as a harness (`tools/audit/harnesses/`, which exists on main and not on this base) and classify it.
 
