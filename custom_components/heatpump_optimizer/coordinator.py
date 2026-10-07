@@ -1750,6 +1750,20 @@ def _ctx_of(coord: Any) -> CoordinatorContext:
     return ctx
 
 
+def _with_quiet_keys(config: EntryConfig, params: Mapping[str, Any]) -> EntryConfig:
+    """``config`` with a parameter write's quiet keys folded in (#1910, #1745).
+
+    The configuration is frozen, so the fold lands on a copy and a new parse
+    replaces it: the next solve composes from the new windows at once, and
+    the options write that persists them then equals the configuration the
+    coordinator holds, so the update listener skips the reload (main's live
+    apply). Unrelated keys pass through untouched.
+    """
+    folded = dict(config)
+    quiet_windows.apply_config_keys(folded, params)
+    return EntryConfig.from_mapping(folded)
+
+
 def _hub(name: str) -> property:
     """Facade for a write-once hub. Tests that ``object.__new__`` a
     coordinator and duck-typed harnesses without ``_ctx`` still resolve."""
@@ -5800,6 +5814,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._thermal_params.dhw_schedule_enabled = bool(
                 params[CONF_DHW_SCHEDULE_ENABLED]
             )
+        self._ctx = replace(_ctx_of(self), _config=_with_quiet_keys(ctx._config, params))  # #1910
         if CONF_DHW_WINDOWS in params:
             try:
                 ctx._thermal_params.dhw_windows = parse_windows(
@@ -6466,7 +6481,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _solar_forecast_source(self) -> str:
         """Configured irradiance source."""
-        return getattr(self, "_ctx", self)._config.solar_forecast_source
+        return self.effective_config.solar_forecast_source
 
     def _solar_location(self) -> tuple[float, float] | None:
         """Coordinate to request irradiance for.
@@ -7240,7 +7255,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         age = self._plan_age_minutes()
         if age is None:
             return False
-        interval = getattr(self, "_ctx", self)._config.optimization_interval
+        interval = self.effective_config.optimization_interval
         return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
 
     async def _apply_action(self) -> None:
@@ -8461,13 +8476,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _fuse_kw(self) -> float | None:
         """The main fuse's continuous capacity, or None when unconfigured."""
-        ctx = getattr(self, "_ctx", self)
-        amps = ctx._config.main_fuse_amperes
+        config = self.effective_config
+        amps = config.main_fuse_amperes
         if amps <= 0:
             return None
-        phases = int(
-            ctx._config.main_fuse_phases
-        )
+        phases = int(config.main_fuse_phases)
         return amps * max(1, phases) * 230.0 / 1000.0
     def _power_headroom(self) -> PowerHeadroom:
         """How many kW the house can draw right now without new cost (#5).
@@ -8586,9 +8599,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             return
 
-        phases = int(
-            ctx._config.main_fuse_phases
-        )
+        phases = int(self.effective_config.main_fuse_phases)
         candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
@@ -9446,7 +9457,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         live = _entity_price(self.hass, entity_id) if entity_id else None
         if live is not None:
             return live
-        return ctx._config.pv_export_price
+        return self.effective_config.pv_export_price
     def _pv_measured_production(self, config: pv_model.PVConfig) -> float | None:
         """Live production in kW from the configured entity, if readable."""
         entity_id = config.production_entity
@@ -10170,7 +10181,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         configured value.
         """
         ctx = getattr(self, "_ctx", self)
-        cost = ctx._config.compressor_cycling_cost
+        cost = self.effective_config.compressor_cycling_cost
         if ctx._config.wear_autotune_enabled:
             cost = max(cost, self._wear_price())
         return cost

@@ -16,7 +16,7 @@ schedule, the topology).
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Container, Iterator, Mapping
 from dataclasses import dataclass, field, fields
 from types import MappingProxyType
 from typing import Any
@@ -88,7 +88,7 @@ def _as_stored(value: Any, default: Any) -> Any:
     return value
 
 
-def _one_of(allowed: frozenset[str]) -> Parse:
+def _one_of(allowed: Container[str]) -> Parse:
     return lambda value, default: value if value in allowed else default
 
 

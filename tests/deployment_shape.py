@@ -44,21 +44,22 @@ images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
 lane. That is a selection cost, not a duplicate-assertion one: the same
-recording finds 106 of the 496 script pairs (32 choose 2) sharing 0.80 or more
-of their production-module closure, all 106 among the 378 pairs whose two
+recording finds 112 of the 496 script pairs (32 choose 2) sharing 0.80 or more
+of their production-module closure, all 112 among the 378 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
 R9 F10.3's strace instrument recorded its round-harness children's imports;
 doc_claims.py/manual_plan.py left it, 0.81 to 0.79, when R9 F10.4's I5 arms
 added icons.json and services.yaml to doc_claims.py's closure; #1935's
-tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80).
+tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80; R9-EG-B11's
+entry_config.py, recorded in every closure that imports it, added 6 more).
 Thirteen of the pairs sit at exactly 1.00 -- entities.py/harness_headers.py
-(77 shared production files), structure.py/typing_ruler.py (69),
-finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (69
-each), plan_view.py/solar_alignment.py (52), the optimality.py/validate.py/
-edge.py/backtest.py four (16, six pairs), golden.py/env_drift.py (85),
-card.mjs/card_drift.mjs (53) -- and which
+(80 shared production files), structure.py/typing_ruler.py (72),
+finite_boundary.py/structure.py and finite_boundary.py/typing_ruler.py (72
+each), plan_view.py/solar_alignment.py (55), the optimality.py/validate.py/
+edge.py/backtest.py four (20, six pairs), golden.py/env_drift.py (88),
+card.mjs/card_drift.mjs (56) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here

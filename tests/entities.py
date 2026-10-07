@@ -4119,11 +4119,31 @@ if _EntryConfig is not None:
         not _ec_unstable, f"{_ec_unstable}",
     )
 
+    # A non-finite stored number is refused like text, and a stored tank
+    # volume of 0 is an unset field (a zero tank would divide the DHW model
+    # by zero), each falling to the one declared default.
+    _ec_nf = [
+        _EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: bad}).comfort_weight
+        for bad in (float("nan"), float("inf"), "-inf")
+    ]
+    _ec_tank = _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 0}).dhw_tank_volume
+    _ec_ok = (_EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: 7.5}).comfort_weight,
+              _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 150}).dhw_tank_volume)
+    R.check(
+        "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 "
+        "reads the default volume; null control: 7.5 and 150 pass through",
+        _ec_nf == [const.DEFAULT_COMFORT_WEIGHT] * 3
+        and _ec_tank == const.DEFAULT_DHW_TANK_VOLUME and _ec_ok == (7.5, 150.0)
+        and const.DEFAULT_DHW_TANK_VOLUME != 0,
+        f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
-    # empty slot None. A set_thermal_parameters call carrying a spec persists
-    # it through the options write, whose reload parses it; it does not write
-    # into the frozen configuration, which raises.
+    # empty slot None. A set_thermal_parameters call carrying a spec applies
+    # live, as on main: the coordinator swaps in a new parse with the keys
+    # folded in, never writing into the frozen one, and that parse equals the
+    # entry after the options write, so the update listener skips the reload.
     _ec_qentry, _ec_qcoord = _ec_build({
         const.CONF_QUIET_OFF_WINDOWS: None,
         const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
@@ -4133,6 +4153,7 @@ if _EntryConfig is not None:
         return None
 
     _ec_qcoord.async_request_refresh = _ec_no_refresh
+    _ec_qbefore = _ec_qcoord._ctx._config
     try:
         asyncio.run(_ec_qcoord.async_update_thermal_params(
             {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
@@ -4141,15 +4162,17 @@ if _EntryConfig is not None:
         _ec_qerr = f"{type(err).__name__}: {err}"
     _ec_qcfg = _ec_qcoord._ctx._config
     R.check(
-        "a stored None quiet spec reads unset, and a quiet window set by the service persists "
-        "through the options write while the parsed configuration stays as built",
+        "a stored None quiet spec reads unset, and a quiet window set by the service applies "
+        "live through a new parse that equals the saved entry (no reload), the old parse untouched",
         _ec_qerr is None
-        and _ec_qcfg.quiet_off_windows == "" and _ec_qcfg.quiet_silent_windows == ""
-        and _ec_qcfg.heat_pump_capacity_limited_entity is None
-        and _ec_qcoord.configured_quiet_windows() == {
-            "quiet_silent_windows_spec": "", "quiet_off_windows_spec": ""}
-        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00",
-        f"error={_ec_qerr} off={_ec_qcfg.quiet_off_windows!r} "
+        and _ec_qbefore.quiet_off_windows == "" and _ec_qbefore.quiet_silent_windows == ""
+        and _ec_qbefore.heat_pump_capacity_limited_entity is None
+        and _ec_qcfg is not _ec_qbefore and type(_ec_qcfg) is _EntryConfig
+        and _ec_qcfg.quiet_silent_windows == "22:00-06:00"
+        and _ec_qcoord.configured_quiet_windows()["quiet_silent_windows_spec"] == "22:00-06:00"
+        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00"
+        and _ec_qcoord.effective_config == {**_ec_qentry.data, **_ec_qentry.options},
+        f"error={_ec_qerr} live={_ec_qcfg.quiet_silent_windows!r} "
         f"options={dict(_ec_qentry.options or {})!r}",
     )
 

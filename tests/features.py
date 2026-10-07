@@ -28238,6 +28238,13 @@ R.check(
     },
     "the what-if fold touches only the three quiet keys",
 )
+_qw_cfg_fold: dict = {"keep": 1}
+_qw.apply_config_keys(_qw_cfg_fold, {"quiet_off_windows": "09:00-09:30"})
+R.check(
+    "apply_config_keys writes the named quiet keys and nothing else",
+    _qw_cfg_fold == {"keep": 1, "quiet_off_windows": "09:00-09:30"},
+    f"{_qw_cfg_fold}",
+)
 
 
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
@@ -33414,20 +33421,14 @@ _et_quiet_set = _et_call(
     "set_thermal_parameters",
     {"quiet_off_windows": "09:00-09:30", "silent_mode_power_fraction": 0.8},
 )
-# The coordinator's configuration is parsed once and frozen (#1745): the
-# quiet keys reach the plan through the options write, which differs from
-# the configuration the coordinator was built from and so reloads the entry,
-# whose new coordinator parses them.
-_et_quiet_merged = {**_et_quiet_entry.data, **_et_quiet_entry.options}
-_et_quiet_next = EntryConfig.from_mapping(_et_quiet_merged)
 R.check(
-    "set_thermal_parameters routes the quiet keys into the options, whose reload parses them",
+    "set_thermal_parameters routes the quiet keys into the live config and the options",
     _et_quiet_set is None
-    and _et_quiet_entry.options.get("quiet_off_windows") == "09:00-09:30"
-    and _et_quiet_coord.effective_config != _et_quiet_merged
-    and _et_quiet_next.quiet_off_windows == "09:00-09:30"
-    and _et_quiet_next.silent_mode_power_fraction == 0.8,
-    f"raised {_et_quiet_set!r}, next {_et_quiet_next.quiet_off_windows!r}, "
+    and _et_quiet_coord._config.get("quiet_off_windows") == "09:00-09:30"
+    and _et_quiet_coord._config.get("silent_mode_power_fraction") == 0.8
+    and _et_quiet_entry.options.get("quiet_off_windows") == "09:00-09:30",
+    f"raised {_et_quiet_set!r}, config "
+    f"{_et_quiet_coord._config.get('quiet_off_windows')!r}, "
     f"options {dict(_et_quiet_entry.options)}",
 )
 _et_quiet_sim = _et_call(

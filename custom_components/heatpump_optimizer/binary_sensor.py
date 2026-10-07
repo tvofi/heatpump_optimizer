@@ -170,7 +170,8 @@ class MoldFloorBreachBinarySensor(_OptimizerBinarySensorBase):
 
     def _margin_c(self) -> float:
         """The breach margin, °C: a noisily jittering reading must not fire."""
-        return self.coordinator.effective_config.mold_floor_breach_margin
+        margin: float = self.coordinator.effective_config.mold_floor_breach_margin
+        return margin
 
     def _floor(self) -> tuple[float | None, float | None]:
         """``(floor_c, shortfall_c)`` against the measured room, or ``(None, None)``.

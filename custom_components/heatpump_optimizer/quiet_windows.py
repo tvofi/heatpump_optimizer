@@ -480,6 +480,24 @@ def overridden_config(
     return out
 
 
+def apply_config_keys(config: dict[str, Any], params: Mapping[str, Any]) -> None:
+    """Fold a parameter write's quiet keys into the live config (#1910).
+
+    The specs and the silent fraction are configuration, not physics, so
+    ``set_thermal_parameters`` routes them here: into the config mapping
+    the next solve composes from, with the persistence itself done by the
+    options write the caller already makes.
+    """
+    for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
+        if key in params:
+            config[key] = params[key]
+    fraction = params.get(
+        CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION
+    )
+    if fraction != DEFAULT_SILENT_MODE_FRACTION:
+        config.update({CONF_SILENT_MODE_FRACTION: fraction})
+
+
 def _parse_spec_pair(
     silent_spec: str | None, off_spec: str | None
 ) -> tuple[
