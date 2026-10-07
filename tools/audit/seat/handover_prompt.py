@@ -217,7 +217,7 @@ def _self_test() -> int:
     check("resume steps", "Claim one ready group" in text
           and "#201" in text)
     # Every repository path the prompt names is in the tree (#1990's RCA: a
-    # move left `tools/audit/briefs/` here after its contracts went to
+    # move left the retired briefs directory here after its contracts went to
     # dev/governance/roles/). A templated `<N>` file is checked by its directory.
     import re as _re
     _root = Path(__file__).resolve().parents[3]

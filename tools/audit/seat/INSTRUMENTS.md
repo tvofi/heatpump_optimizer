@@ -126,6 +126,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--match-head-commit`. When: any merge queue — queued PRs merge through
   this, never by hand. Refusal: a head that moved under the review, or red
   checks the queue was not told to ignore, stop the train.
+- `moved_paths.py` — lists every line in the given files that names a path
+  `tests/layout.json` marks moved: a retired file, its emptied directory, or
+  a lifted prefix. Each hit is tagged FALLBACK when the line also names the
+  new path. When: a move, or a review of one, before the push; a reader
+  dispositions every STALE? hit. Refusal: none; it enumerates and always
+  exits 0.
 - `open_pr.sh` — opens a draft PR from `handoff/<topic>` as `hpo-author`,
   adds its own delivery row, re-pushes, prints N and the head. When: the
   orchestrator opens a seat's handed-off branch. Refusal: no BODY.md at
