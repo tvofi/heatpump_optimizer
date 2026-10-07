@@ -7723,7 +7723,10 @@
    "resume": {
     "stage": "not-started",
     "branch": null
-   }
+   },
+   "carry": [
+    "From the #2015 round-3 review: tests/closure.py's guard against entries that name files which do not exist does not cover inert_reads. A move can therefore leave a dead old-path entry in tests/closures.json with no warning; the #2015 merge kept tools/audit/harnesses/eg_b7_seam_hubs.py after the file moved. The RO-10 guard owns this: extend the dead-path refusal to inert_reads, add a perturbation (plant a dead inert_reads path and the check goes red), and remove any dead inert_reads entries on main."
+   ]
   }
  ]
 }
