@@ -1,88 +1,68 @@
-Block DHW and Block Space Heating are two-hour switches, the opposite of the boost pair. A block zeroes that duty on the copy of the plan action, the arbiter drops it (idle when nothing remains; the supply switch is not written), and the later press wins against a boost on the same channel. A safety floor releases the block and the switch publishes why. State stays in `boost.py`'s weak map. The four duty switches share one base. No coordinator attribute was added, and the structure ratchet did not move.
+Block DHW and Block Space Heating are two-hour switches. A block zeroes that duty on the copy of the plan action, and a safety floor releases it. State stays in the boost store's weak map.
 
 Closes #1926
 
-Leaves #201 open
+Leaves #201 open.
 
 _Requested by **tvofi**_.
-
-The release conditions are enumerated by `PYTHONPATH=tests/hastub python3 tests/block_duty.py`. Each one has a failing direction in that script: a due or overdue anti-legionella cycle (`a due or overdue cycle inside the horizon releases DHW`), a disinfection hold, the tank at its minimum inside a demand window and not outside one (`00:00-01:00` at 12:00), the room floor, the cold-rail lease, system identification, and a stale plan.
 
 ## Head
 
 `2a503e10424f37f60f38d626f09cb5625f623f8a`
 
-`2a503e10424f37f60f38d626f09cb5625f623f8a` merges origin/main `bcea74883bec1e3395377ff70d8640737c97fc3e` into `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b`. `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b` adds `custom_components/heatpump_optimizer/quiet_windows.py` to the `tests/block_duty.py` closure. That recording's own `rc` is 0. `51dcc90d8dee9279a682dc67f5dfe75198f23c3f` merges origin/main `618d014f0b91ac39d77250bf887618002f628307` into `78852922691f6ba3f1cc312d64c189e15b36f514` and places the row at `dev/programme/delivery/1997.md`. `docs/delivery/1997.md` is absent from the tree. `git merge-tree --write-tree bcea74883bec1e3395377ff70d8640737c97fc3e 2a503e10424f37f60f38d626f09cb5625f623f8a` exited 0. Measured `date -u`: 2026-10-07T03:02:10Z. This is not a stamp.
-
-`78852922691f6ba3f1cc312d64c189e15b36f514`
-
-`78852922691f6ba3f1cc312d64c189e15b36f514` merges origin/main `a28fd0aee6651a24161fa38e3295d4ac2d906d57` into `edc8fa5dbb14ee4065b4383e5e94d4e35b0952e3`. The only content conflict was `tests/deployment_shape.py`. The selection-cost sentence is the merged `tests/closures.json` re-derived: 106 of the 496 pairs, 378 comparable, all 89 production files. `git merge-tree --write-tree a28fd0aee6651a24161fa38e3295d4ac2d906d57 78852922691f6ba3f1cc312d64c189e15b36f514` exited 0.
-
-`63aebe893e572c9ae558cae7049613b23a2c8f6b`
-
-`63aebe893e572c9ae558cae7049613b23a2c8f6b` puts `tests/block_duty.py` on a `run` line in `tests/run.sh` and a `rec` line in `tests/derive_closures.sh`, and writes the selection-cost counts `tests/entities.py` derived from `tests/closures.json` into `tests/deployment_shape.py`. Parent `aa1a661584d66722c4167c00b995c7609c4cf7cf`. Measured `date -u`: 2026-10-06T19:02:19Z. This is not a stamp.
-
-`aa1a661584d66722c4167c00b995c7609c4cf7cf`
-
-`3560b69668e171c91cac0fbcf1db35490795306e` merges origin/main `f07cd253` into `aedd50be`. The entity census keeps both additions: 78 entities, 60 sensors, 6 switches.
-
-`b89154264a7eb6cca52d4605b902f4238d23240d`
-
-`6132233c4a1a8dc1fda61aa142624d1a4f8af38c` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/1997.md`. The authored code head is `3301d6197d15cfbf58543f4af82fc7980c012996`.
-
-`de8ccc657ccd9fe5acdcfc6b800d02d70c6ee9e5` merges origin/main `6b1ccb68` into the authored code head `3301d6197d15cfbf58543f4af82fc7980c012996` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
-
-`3301d6197d15cfbf58543f4af82fc7980c012996`
-
-The window check was measured at `aa1a661584d66722c4167c00b995c7609c4cf7cf` (`date -u`: 2026-10-06T18:46:09Z). This is not a stamp. origin/main in that merge is `f07cd253c52f1012427d9869a808f1df39dafb93`. The unpinned count below was taken at `b8915426` against `6b1ccb685e51903e7e524995a84d831d3904da9f`, `62f604eb062bf88d3dc4b0f4ec85ca17359af229` and `0a60e06585640fd79ca321c65a9b8f13bc0030a4`.
+Measured `date -u` 2026-10-07T03:39:19Z against origin/main `bcea74883bec1e3395377ff70d8640737c97fc3e`. `git merge-tree --write-tree origin/main HEAD` exited 0. The row is `dev/programme/delivery/1997.md`. `git cat-file -e HEAD:docs/delivery/1997.md` exits 128. `tests/closures.json` records `tests/block_duty.py` with `rc` 0 and lists `custom_components/heatpump_optimizer/quiet_windows.py` among 81 files.
 
 ## Mutation proof
 
-`PYTHONPATH=tests/hastub python3 tests/mutation_table.py --scope changed --base origin/main --pin-killed --scripts tests/block_duty.py` drove the sites this diff added. `tests/block_duty.py` killed 68 of them (the last run's line was `PIN KILLED: 2 pinned, 10 left unpinned` after 66 were already recorded). The 10 that stayed green are equivalent, and each has a `survivor_triage` row: dropping `max` of two constants that are both 2, guards whose body cannot run, a comparison that writes the instant the slot already holds, and a trailing `return None` replaced by `pass`.
+Replacing `action["power"] = 0.0` in `_zero_blocked` with `action["power"] = action["power"]` made `PYTHONPATH=tests/hastub python3 tests/block_duty.py` exit 1. It printed `FAIL a space block zeroes space power and not the supply switch` and `FAIL a space block does not invent power_normalized` (2 of 46). Restored, the same command exited 0.
 
-The overlay assignment `action["power"] = 0.0` replaced with `action["power"] = action["power"]` left power at 1.2 under the check `a space block zeroes space power and leaves the supply switch and DHW alone`. Restored, that check printed `ok`.
-
-Deleting `and _window_open(snap, now)` from `_dhw_floor` made `PYTHONPATH=tests/hastub python3 tests/block_duty.py` exit 1: `FAIL the tank at its minimum outside a demand window does not release` (1 of 46). A 45 °C tank, minimum 45 °C, windows `00:00-01:00`, at 12:00. Restored, the same command printed `ALL 46 BLOCK DUTY CHECKS PASSED` and that check `ok`.
+Deleting `and _window_open(snap, now)` from `_dhw_floor` made that command exit 1. It printed `FAIL the tank at its minimum outside a demand window does not release` (1 of 46). Restored, the same command exited 0.
 
 ## Null control
 
-With no block set, `boost.overlay` adds no key and changes no value (`tests/features.py`: `with no block set the overlay adds no key and changes no value`, printed `ok`). A boost-only store payload has no `block_dhw` or `block_space` key (printed `ok`). `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt` are not in the diff. `tests/env_drift.py --all` against `62f604eb` printed `NO UNCLAIMED DRIFT`.
+With the tree restored, `PYTHONPATH=tests/hastub python3 tests/block_duty.py` exited 0 and printed `ok` for `no block leaves the action unchanged` and `ALL 46 BLOCK DUTY CHECKS PASSED`. `PYTHONPATH=tests/hastub python3 /tmp/hpo-r9-sw-5-rec/release_probe.py` calls `block_release_reason` and `overlay` and printed `PROBE 32 of 32`.
 
 ## Figures
 
-- `PYTHONPATH=tests/hastub python3 tests/block_duty.py` — `ALL 46 BLOCK DUTY CHECKS PASSED` at `aa1a661584d66722c4167c00b995c7609c4cf7cf`. The same command with `and _window_open(snap, now)` deleted exited 1 on `the tank at its minimum outside a demand window does not release`.
-- Unpinned ratchet, `tests/mutation_table.py`'s `unpinned_sites` / `added_unpinned` / `ratchet_refusal` against `6b1ccb685e51903e7e524995a84d831d3904da9f`, `62f604eb062bf88d3dc4b0f4ec85ca17359af229` and `0a60e06585640fd79ca321c65a9b8f13bc0030a4` — unpinned 4698, base 4699, added 0, refusal None
-- `python3 tests/closure.py select --diff origin/main` — `MODE: SCOPED -- 21 script(s) run, 10 scoped out` at the code head before `tests/block_duty.py`
-- `PYTHONPATH=tests/hastub python3 tests/structure.py` — `STRUCTURE RATCHET PASSED`
-- `PYTHONPATH=tests/hastub python3 tests/ha_floor.py check` — `RESULT checked=147 missing=0 unrecorded=0 undecidable=0`
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` — `ALL 2190 ENTITY CHECKS PASSED` at `3301d619`, before this pin commit
-- `PYTHONPATH=tests/hastub python3 tests/features.py` — `1 of 3721 FEATURE CHECKS FAILED` on this machine, the storage-plan check in Red checks. The block checks printed `ok`
-- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 62f604eb062bf88d3dc4b0f4ec85ca17359af229` — `NO UNCLAIMED DRIFT: 56 scenario(s) checked` and `NO STALE FIXTURE`
-- `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` — `ALL 160 checks PASSED`
-- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` — `ALL 105 HARNESS HEADER CHECKS PASSED`
-- `PYTHONPATH=tests/hastub python3 tests/boost_drift_replay.py` — `ALL 43 BOOST DRIFT CHECKS PASSED`
-- `PYTHONPATH=tests/hastub GOLDEN_MODE=drift GOLDEN_REF=62f604eb062bf88d3dc4b0f4ec85ca17359af229 python3 tests/plan_view.py` — `plan reason codes, price provenance and slot energy OK`
-- `node tests/card.mjs` — `ALL CARD CHECKS PASSED`
-- `node tests/card_drift.mjs` — `card_drift: identical in all 40 states`
-- `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT claims_true=123 claims` and `RESULT claims_false=0 claims`
+```
+PYTHONPATH=tests/hastub python3 tests/block_duty.py
+```
+
+```
+git merge-tree --write-tree origin/main HEAD
+```
+
+```
+git cat-file -e HEAD:dev/programme/delivery/1997.md
+```
+
+```
+git cat-file -e HEAD:docs/delivery/1997.md
+```
+
+```
+python3 -c 'import json; p=json.load(open("tests/closures.json")); r=p["recorded"]["tests/block_duty.py"]; print(r["rc"], "custom_components/heatpump_optimizer/quiet_windows.py" in p["closures"]["tests/block_duty.py"], len(p["closures"]["tests/block_duty.py"]))'
+```
+
+```
+PYTHONPATH=tests/hastub python3 /tmp/hpo-r9-sw-5-rec/release_probe.py
+```
 
 ## Red checks
 
-`closures` failed at `78852922691f6ba3f1cc312d64c189e15b36f514`, job 112482614284, run 37525837411. It printed `UNDER-SCOPED: tests/block_duty.py really reads custom_components/heatpump_optimizer/quiet_windows.py`. The recording JSON for `tests/block_duty.py` in artifact 11444341958 has `rc` 0. The line `done tests/block_duty.py (exit 0)` is the wrapper in `tests/derive_closures.sh`. Cheaper detector: `closures_verdict` in `tools/pr/prepr.sh`, which reads that JSON `rc` and runs `tests/closure.py check --partial`. Standing cost is one `./tests/derive_closures.sh --single` of the script the log names. `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b` commits that recording.
+`closures` job 112482614284 printed `UNDER-SCOPED: tests/block_duty.py really reads 1 file(s) the committed closure does not list:` and named `custom_components/heatpump_optimizer/quiet_windows.py`. The record step printed `done tests/block_duty.py (exit 0)`. That script's recording JSON has `rc` 0. Cheaper detector: `closures_verdict` in `tools/pr/prepr.sh`, which reads that JSON `rc` and runs `tests/closure.py check --partial`. Standing cost is one `./tests/derive_closures.sh --single` of the script the log names.
 
-`closures-autofix` failed on the same run, job 112501591072. It printed `AUTOFIX: skip-failed-recording` and `THE REPAIR DID NOT HAPPEN`. `apply_under_scoped_recordings` returns that status when any recording in the artifact has `rc` other than 0. The only such recording in artifact 11444341958 is `tests/stress.py` (`rc` 1). `tests/block_duty.py` has `rc` 0, so the under-scope is a completed read. Cheaper detector: the same `closures_verdict`, which refuses a non-zero JSON `rc` as `failed while being recorded`. Standing cost is a read of the recordings the `closures` job already uploaded. No bot commit follows that status.
+`closures-autofix` job 112501591072 printed `AUTOFIX: skip-failed-recording` and `THE REPAIR DID NOT HAPPEN`. In that artifact `tests/stress.py` has `rc` 1 and `tests/block_duty.py` has `rc` 0. Cheaper detector: the same `closures_verdict`, which refuses a non-zero JSON `rc` as `failed while being recorded`. Standing cost is a read of the recordings the `closures` job already uploaded.
 
-`closures` failed at `3560b69668e171c91cac0fbcf1db35490795306e`, job 112424468392. The job printed `closure: selectable script(s) with NO recording this run:` and `tests/block_duty.py`. `closures-autofix` on the same run, job 112436474265, printed `closures-autofix: skip-clean -- nothing owed to a human.` A script the derive lanes never run is not UNDER-SCOPED, so no bot commit comes. Cheaper detector: `tests/run.sh` prints `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh` before any lane. That scan is the start of `fast`; it adds no standing cost of its own. `63aebe89` adds the script to both lane files.
+`delivery-status` job 112612505848 printed `DELIVERY STATUS UNCHECKED`. Cheaper detector: none. The check grades `main`.
 
-`fast (3.14)` failed at the same head, job 112424333780. The run printed `3 TEST SCRIPT(S) FAILED`. The three lines are `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh`, `FAILED python3 tests/entities.py` (`FAIL and the lane's docstring records those measured numbers as the selection-cost note (#1218)`, `missing markers -> ['103 of the 496', '378 pairs']`), and `TEST NEVER RAN: tests/block_duty.py is wired into tests/run.sh but no lane executed it and no lane skipped it on purpose.` Cheaper detector for the wiring: the unwired line, already the start of this job. For the note: none. `tests/entities.py` re-derives the pair counts and is the detector. `63aebe89` writes `103 of the 496` and `378 pairs` into the note (`all 88 files` was already there).
+`nightly-status` job 112612505878 failed in the step `Report the last scheduled run's conclusion`. Cheaper detector: none. The check grades `main`.
 
-`mutation` went red at `6132233c4a1a8dc1fda61aa142624d1a4f8af38c`. First error line: `MUTATION TABLE REFUSED -- 4776 unpinned site(s) against 4699 at the ratchet base 6b1ccb685e51903e7e524995a84d831d3904da9f, 78 of them added by this diff.` The same job's pin step then printed `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 78 not started for --budget-minutes`. Cheaper detector: `tests/mutation_table.py`'s source inventory, which prints that refusal before any driver and costs seconds. The 68 kills and the 10 equivalent rows are in `b8915426`. At `3560b696` the `mutation` job succeeded.
+`fast (3.14)` job 112424333780 printed `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh`, `FAILED python3 tests/entities.py`, and `TEST NEVER RAN: tests/block_duty.py is wired into tests/run.sh but no lane executed it and no lane skipped it on purpose`. Cheaper detector for the unwired line: that line, printed at the start of the job, so it adds no standing cost of its own. For the entities failure: none. `tests/entities.py` is the detector.
 
-`mutation-autofix` went red at `6132233c4a1a8dc1fda61aa142624d1a4f8af38c`. First error line: `mutation-autofix: skip-no-measurement -- THE REPAIR DID NOT HAPPEN.` The pin step had measured nothing, so the job had no rows to apply. Cheaper detector: that summary line, which is this job reading the mutation job. The dispositions are in `b8915426`. At `3560b696` the job was skipped.
+`mutation` job 112361301163 printed `MUTATION TABLE REFUSED` for unpinned sites the diff added. Cheaper detector: `tests/mutation_table.py`'s inventory, which prints that refusal before it drives a mutant. Standing cost is that inventory.
 
-`nightly-status` grades `main`. At `3560b696`, job 112424333066, pinned `f07cd253c52f1012427d9869a808f1df39dafb93`, it printed `NIGHTLY FAILED: record-autofix failed last night.` and `scheduled run 37440269774, 2026-10-06T09:03:01+00:00, head cff39da, run conclusion 'failure'`. Cheaper detector: none. The check is the detector. This diff does not touch `tests/nightly_status.py`, `.github/workflows/tests.yml`, `.github/workflows/governance.yml`, `docs/plan-2026-09-open-issues.md`, or `docs/HANDOVER.md`.
-
-`delivery-status` grades `main`. At `3560b696`, job 112424332787, pinned `f07cd253c52f1012427d9869a808f1df39dafb93`, it printed `DELIVERY STATUS UNCHECKED — 39 rowed, 1 pending, 0 overdue (overdue at 12 commits)` and `pending  #2001 1b1bbaa 0 commit(s) since — record: delivery rows for #2000 (autofix)`. Cheaper detector: none. The check is the detector. This diff does not touch `tests/delivery_status.py`.
+`mutation-autofix` job 112363593627 printed `AUTOFIX: skip-no-measurement`. Cheaper detector: that summary line, which is this job reading the `mutation` job. Standing cost is the `mutation` job it already ran.
 
 ## Forward-carry
 
