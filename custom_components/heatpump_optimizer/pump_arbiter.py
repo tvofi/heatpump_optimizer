@@ -40,6 +40,10 @@ into Heating + DHW, so the planned anti-legionella run can make hot water.
 :func:`_share`: DHW only for the step's hot-water share of its 15 minutes,
 then Heating, each through its own row above; a share under
 :data:`SPLIT_MIN_MINUTES` goes to the other duty (tvofi, 2026-09-27).
+A block drops its duty out of :func:`_planned_duty` and again out of
+whatever :func:`_share` and the hot-water lease return, so a blocked
+duty is served as idle and a lease expiry cannot hand it back. The
+power switch is not written.
 
 **Two transports, one logic.** The Tuya fork offers DHW-only and Heating,
 so the mode is the gate there. The GCHV/Rotenso Modbus package's mode
@@ -569,6 +573,48 @@ def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
     return "both" if space and dhw else "space" if space else "dhw"
 
 
+def _without_block(coord: Any, duty: str | None, now: datetime) -> str | None:
+    """Drop a blocked duty. No block leaves ``duty`` unchanged, including None."""
+    held = boost.held_for(coord)
+    space_off = held.block_active(boost.CHANNEL_SPACE, now)
+    dhw_off = held.block_active(boost.CHANNEL_DHW, now)
+    if not space_off and not dhw_off:
+        return duty
+    if duty == "idle":
+        return "idle"
+    # None is the baseline row: both duties. Idle is already neither.
+    if duty is None:
+        space, dhw = not space_off, not dhw_off
+    else:
+        space = duty in ("space", "both") and not space_off
+        dhw = duty in ("dhw", "both") and not dhw_off
+    if space and dhw:
+        return "both"
+    if space:
+        return "space"
+    if dhw:
+        return "dhw"
+    return "idle"
+
+
+def block_cold_lease(inp: ArbiterInputs, now: datetime) -> bool:
+    """Whether the cold rail would hand space heat back.
+
+    Outdoor below :data:`COLD_RAIL_C` and the room below the plan's
+    temperature for this step — the pair :func:`_leased` consults, without
+    the lease timer. An unknown room or plan while it is that cold counts,
+    so a block cannot keep space heat off on a missing reading.
+    """
+    outdoor = getattr(inp.state, "outdoor_temperature", None)
+    if outdoor is None or float(outdoor) >= COLD_RAIL_C:
+        return False
+    room = getattr(inp.state, "room_temperature", None)
+    planned = _planned_room(None if inp.plan_stale else inp.plan, now)
+    if room is None or planned is None:
+        return True
+    return float(room) < float(planned)
+
+
 def _ran_kw(inp: ArbiterInputs) -> float:
     """The MEASURED draw above which this step's ledger row counts a run.
 
@@ -830,12 +876,20 @@ async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: s
             await _persist(coord)
         if inp.mode == MODE_OFF:
             return
-    duty = _leased(inp, held, _planned_duty(coord, inp, now), now)
+    if boost.release_blocked(coord, inp, now):
+        await boost.persist(coord)
+    duty = _leased(
+        inp, held, _without_block(coord, _planned_duty(coord, inp, now), now), now,
+    )
     _observe(held, inp, duty, now)
     if mode != DUTY_CONTROL or _pump_off(inp):
         return
     hold(coord, now)
-    await _command(coord, inp, desired(coord, inp, _share(coord, inp, duty, now), now), now)
+    await _command(
+        coord, inp,
+        desired(coord, inp, _without_block(coord, _share(coord, inp, duty, now), now), now),
+        now,
+    )
     await _write_night_schedule(coord, inp, now)
 
 
@@ -963,6 +1017,9 @@ def _writable(slot: str, value: Any) -> bool:
     if slot in _NIGHT_KEYS:
         return isinstance(value, int) and not isinstance(value, bool)
     return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+boost.bind_cold_lease(block_cold_lease)
 
 
 def diagnostics_view(coord: Any) -> dict[str, Any]:

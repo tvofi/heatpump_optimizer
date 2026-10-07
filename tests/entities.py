@@ -1747,7 +1747,7 @@ R.check(
 # The mechanism was that nothing executed against the register at all.
 # These checks read it, so a quality_scale.yaml edit selects this script
 # (the register leaves closure.py's INERT list in the same pull request),
-# and tools/audit/round4/D10/qs_rules.py -- wired into
+# and dev/audit/rounds/round4/D10/qs_rules.py -- wired into
 # tests/harness_headers.py, which runs on every pull request -- alarms on
 # drift in every row measurable without a toolchain. These two rows are
 # the toolchain rows; they are keyed to standing records, not to quoted
@@ -9952,7 +9952,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
+R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -10079,6 +10079,72 @@ try:
 finally:
     _boost_mod.persist = _boost_persist_real
 
+dhw_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_dhw"
+)
+space_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_space"
+)
+R.check(
+    "the block switches pin block_dhw and block_space",
+    dhw_block_sw._attr_unique_id.endswith("_block_dhw")
+    and space_block_sw._attr_unique_id.endswith("_block_space")
+    and dhw_block_sw.entity_id == "switch.heat_pump_optimizer_block_dhw"
+    and space_block_sw.entity_id == "switch.heat_pump_optimizer_block_space",
+    f"{dhw_block_sw._attr_unique_id} {space_block_sw.entity_id}",
+)
+R.check(
+    "the block switches are named Block DHW and Block Space Heating",
+    display_name("switch", dhw_block_sw) == "Block DHW"
+    and display_name("switch", space_block_sw) == "Block Space Heating",
+    f"{display_name('switch', dhw_block_sw)} / {display_name('switch', space_block_sw)}",
+)
+R.check(
+    "Block DHW is gated like the DHW boost switch",
+    isinstance(dhw_block_sw, _DHWGate) and not isinstance(space_block_sw, _DHWGate),
+)
+_block_persisted = []
+_block_held = _boost_mod.held_for(dhw_block_sw.coordinator)
+_block_held.until.clear()
+_block_held.blocked.clear()
+
+
+async def _block_persist_recorder(coord):
+    held = _boost_mod.held_for(coord)
+    _block_persisted.append((sorted(held.until), sorted(held.blocked)))
+
+
+_boost_mod.persist = _block_persist_recorder
+try:
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "turning Block DHW on holds the block channel and not the boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "a later DHW boost press clears the DHW block",
+        _block_persisted[-1:] == [(["dhw"], [])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "a later Block DHW press clears the DHW boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_off())
+    R.check(
+        "turning Block DHW off releases the block channel",
+        _block_persisted[-1:] == [([], [])],
+        str(_block_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
+
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
 # starts at the real coordinator's default (auto) or the restored mode -- not
@@ -10114,9 +10180,11 @@ _sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
 _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
-                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
 }
-for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
+                 "BlockDhwSwitch", "BlockSpaceSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -11691,7 +11759,7 @@ R.check(
 )
 
 # #797: English entity names follow one house style. The D8-03 instrument
-# (tools/audit/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
+# (dev/audit/rounds/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
 # sentence-case when a content word after the first starts lower-case.
 # Stop-words and parentheticals are excluded because both conventions
 # lower-case them. Read the registered strings, not a roster we supply.
@@ -14949,7 +15017,7 @@ R.check(
 # gate's tracer records every read -- so every diff touching any production
 # file selects the lane. The same recording pairs 53 of the 276 scripts at
 # 0.80 or more of shared production-module closure. The numbers are
-# re-derived here exactly as tools/audit/round5/D3/resource_r5.py derived
+# re-derived here exactly as dev/audit/rounds/round5/D3/resource_r5.py derived
 # them (Jaccard over the closure files under
 # custom_components/heatpump_optimizer/, empty sets skipped), and the lane's
 # docstring records them as this repository's selection-cost note. A
@@ -19007,7 +19075,7 @@ R.check(
     f"{_version} -- lower CARD_VERSION in {_card_path} or bump VERSION",
 )
 
-# The D6 register (tools/audit/round4/D6/) is the committed output of
+# The D6 register (dev/audit/rounds/round4/D6/) is the committed output of
 # claims.py, and one of its rows -- C42, "manifest version equals VERSION" --
 # is a snapshot of the VERSION the register was generated at. The stamp is the
 # only commit that moves VERSION, so it is the only commit that can stale that
@@ -19018,7 +19086,7 @@ R.check(
 # 6.6.3 -- so this pins the register against the live VERSION, the invariant
 # the stamp has to keep. That the stamp keeps it is pinned separately in
 # stamp.py's own --self-test, which reads main()'s write region.
-_d6_json = Path("tools/audit/round4/D6/claims.json")
+_d6_json = Path("dev/audit/rounds/round4/D6/claims.json")
 _d6_c42 = next(
     (row for row in json.loads(_d6_json.read_text()) if row.get("id") == "C42"), None
 )
@@ -19029,7 +19097,7 @@ R.check(
     f"{_d6_json}'s C42 records {(_d6_c42 or {}).get('result')!r}, VERSION is "
     f"{_version!r} -- a stamp moved VERSION without re-recording the register, "
     "so tests/harness_headers.py is red at this head. Run "
-    "`PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` and "
+    "`PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` and "
     "commit its output.",
 )
 
@@ -24506,6 +24574,12 @@ _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
 _RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+# The write set's directory is the generator's own row path, not a second
+# spelling: the job staged `docs/delivery` after the rows moved to
+# `dev/programme/delivery`, so `git add` matched nothing, every beat read
+# "nothing-owed", and `record` stayed red on main.
+_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
+                         if "_rr" in globals() else "?")
 
 
 def _raf_job_ok(job: str) -> bool:
@@ -24517,7 +24591,7 @@ def _raf_job_ok(job: str) -> bool:
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
         and job.count('git commit -q -m "ci: record delivery rows"') == 2
-        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and adds == [_RAF_ADD, _RAF_ADD]
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
@@ -24551,8 +24625,7 @@ R.check(
         "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
         'git commit -q -m "ci: record delivery rows"', "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
-                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
@@ -24920,11 +24993,11 @@ R.check(
 # the pathspec does not.
 _PT_SCRIPT = next(str(_s.get("run")) for _s in _PT_JOB_CANON["steps"] if _s.get("id") == "changed")
 _PT_FIRES = {_f: _pt_trigger(_PT_SCRIPT, _f) for _f in (
-    ".claude/workflows/x.mjs", "tools/audit/round6/D11/fix/codeowners_gap.py", "README.md")}
+    ".claude/workflows/x.mjs", "dev/audit/rounds/round6/D11/fix/codeowners_gap.py", "README.md")}
 R.check(
     "and the arm's trigger fires on a restored path and only there",
     _PT_FIRES == {".claude/workflows/x.mjs": "true",
-                  "tools/audit/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"},
+                  "dev/audit/rounds/round6/D11/fix/codeowners_gap.py": "true", "README.md": "false"},
     f"planted diff -> governance: {_PT_FIRES}",
 )
 R.check(
@@ -25517,7 +25590,7 @@ R.check(
 # above fails on a merge that has no row -- the protocol's steady state, since
 # the row is promised in a batch. So an unguarded step after it never runs, and
 # the pair that separates the guard from the failure is measured by
-# `tools/audit/round7-fix/governance/skipped_step_seams.py`: the filer steps are
+# `dev/audit/rounds/round7-fix/governance/skipped_step_seams.py`: the filer steps are
 # returned as skipped and the two `always()` steps of the same job are not.
 # Derived, not listed: every step after the refusal, and the report step's own
 # reader of their outcomes.
@@ -27074,11 +27147,11 @@ _STATS_REWORK = json.loads(subprocess.run(
      "{ body: '', comments: bodies.map((b) => ({ body: b })) }]]) });"
      "console.log(JSON.stringify({"
      "key: m.REWORK_CLASS,"
-     "base: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "base: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
      "'head-moved'),"
-     "reshaped: cell(load('tools/audit/round6/D13/fixtures/reshaped.json'), "
+     "reshaped: cell(load('dev/audit/rounds/round6/D13/fixtures/reshaped.json'), "
      "'head-moved'),"
-     "mergeBase: cell(load('tools/audit/round6/D13/fixtures/window_base.json'), "
+     "mergeBase: cell(load('dev/audit/rounds/round6/D13/fixtures/window_base.json'), "
      "'merge'),"
      "sameHead: cell(synth(['Fix review: merge ' + sha('a'),"
      "'Fix review: merge ' + sha('a')]), 'head-moved'),"
@@ -27304,7 +27377,7 @@ try:
     import importlib.util as _cfr_util
     import io as _cfr_io
     import os as _cfr_os
-    _CFR_INSTR = _closure.ROOT / "tools/audit/round5/D13/seat-a/dora_cfr.py"
+    _CFR_INSTR = _closure.ROOT / "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py"
     _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
     _cfr = _cfr_util.module_from_spec(_cfr_spec)
     _cfr_spec.loader.exec_module(_cfr)
@@ -27429,7 +27502,7 @@ R.check(
 # of the window's 67 merge commits but is SKIPPED at all 67 pull-request heads,
 # so dropping it moves the merge-keyed rate and leaves the head-keyed rate --
 # the surface a merge is actually gated on -- exactly where it was. The
-# instrument now reports both keyings (tools/audit/round4/D11/dora_keys.py,
+# instrument now reports both keyings (dev/audit/rounds/round4/D11/dora_keys.py,
 # `cfr_keyings`), and this drives that production symbol on the window the
 # finding recorded. Nothing is added to the exclusion list: `nightly-status`
 # (7 of 67 heads) is a real head-keyed red, and excluding it would hide exactly
@@ -27450,7 +27523,7 @@ _D13_WINDOW_SIGS = (
 )
 try:
     import importlib.util as _d13_util
-    _D13_INSTR = _closure.ROOT / "tools/audit/round4/D11/dora_keys.py"
+    _D13_INSTR = _closure.ROOT / "dev/audit/rounds/round4/D11/dora_keys.py"
     _d13_spec = _d13_util.spec_from_file_location(
         "hpo_d13_keys", str(_D13_INSTR))
     _d13 = _d13_util.module_from_spec(_d13_spec)
@@ -27659,7 +27732,7 @@ R.check(
 # differing in one rule and one bypass actor returned BYTE-IDENTICAL JSON -- a
 # change to the ruleset the merge boundary runs was invisible to the tree's only
 # reader of it. Driven the way the finding's harness drives it
-# (tools/audit/round5/D11/ruleset.py): a stubbed `gh` answering the two calls the
+# (dev/audit/rounds/round5/D11/ruleset.py): a stubbed `gh` answering the two calls the
 # reader makes, with the two ruleset documents differing only in the
 # `pull_request` rule and the bypass actor. The import is the production symbol
 # and the answer comes from production, never from a copy of its logic here.
@@ -31852,7 +31925,7 @@ Metric: count of widgets.
 Expected at baseline:
   RESULT count={base}
 JUDGE-RUN: {run}
-{perturb}JUDGE-NULL: {py} tools/audit/round9/D1/{name}.py --null
+{perturb}JUDGE-NULL: {py} dev/audit/rounds/round9/D1/{name}.py --null
 \"\"\"
 import os
 import sys
@@ -31890,7 +31963,7 @@ def _jb_run() -> dict:
     spec.loader.exec_module(judge_batch)
     with _tempfile.TemporaryDirectory() as td:
         repo = Path(td) / "repo"
-        hdir = repo / "tools" / "audit" / "round9" / "D1"
+        hdir = repo / "dev" / "audit" / "rounds" / "round9" / "D1"
         hdir.mkdir(parents=True)
         lock_dir = Path(td) / "lock"
         (repo / "pkg").mkdir()
@@ -31926,9 +31999,9 @@ def _jb_run() -> dict:
         }
         findings = []
         for name, (base, got, pert, direction, has_p) in cases.items():
-            perturb = (f"JUDGE-PERTURB: {sys.executable} tools/audit/round9/D1/{name}.py --perturb\n"
+            perturb = (f"JUDGE-PERTURB: {sys.executable} dev/audit/rounds/round9/D1/{name}.py --perturb\n"
                        if has_p else "")
-            run = f"{sys.executable} tools/audit/round9/D1/{name}.py"
+            run = f"{sys.executable} dev/audit/rounds/round9/D1/{name}.py"
             (hdir / f"{name}.py").write_text(_JB_HARNESS.format(
                 base=base, got=got, perturbed=pert, perturb=perturb,
                 py=sys.executable, name=name,
@@ -31937,7 +32010,7 @@ def _jb_run() -> dict:
                 tf="1.20" if name == "hot" else "1.00"))
             findings.append({
                 "id": f"D1-s1-{name}",
-                "evidence": {"harness_path": f"tools/audit/round9/D1/{name}.py",
+                "evidence": {"harness_path": f"dev/audit/rounds/round9/D1/{name}.py",
                              "command": "false", "tolerance": "exact"},
                 "perturbation": {"change": "--perturb", "expected_direction": direction},
                 **({"judge_batch": "not an object"} if name == "badjb" else {}),

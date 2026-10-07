@@ -639,7 +639,7 @@ function roundEvidenceExclusions() {
 // none -- the healthy tree stays at TOTAL 0 with every fixture pin intact.
 const CORPUS_EXCLUDED_PREFIX = [
   'tests/',                            // suite data: fixtures, claim files, requirements
-  'tools/audit/w5-g5-195-coverage/',   // wave-5 evidence, kept until that wave closes
+  'dev/audit/waves/w5-g5-195-coverage/',   // wave-5 evidence, kept until that wave closes
 ]
 
 // A SECOND, DIFFERENT KIND OF EXCLUSION, and it must not be folded into the
@@ -737,7 +737,7 @@ const ALWAYS_A_DOCUMENT = /\.(?!txt$)[A-Za-z0-9]+$/i
 const corpusExcluded = (rel) =>
   CORPUS_EXCLUDED.has(rel) ||
   GENERATED_PREFIX.some((p) => rel.startsWith(p)) ||
-  (!ALWAYS_A_DOCUMENT.test(rel) && CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p)))
+  (!ALWAYS_A_DOCUMENT.test(rel) && CORPUS_EXCLUDED_PREFIX.some((p) => rel.startsWith(p) || rel.startsWith(canon(p))))
 
 // THE ESCAPE THIS CLOSES. `corpus_tokens` sums the CAPPED files, so prose moved
 // into a file that has no cap leaves the corpus and buys headroom in every cap
@@ -1488,8 +1488,8 @@ let _printerSource = null
 function printerSource() {
   if (_printerSource == null) {
     const policy = new Set(policyFiles())
-    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor']).split('\n'))
-      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round'))
+    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!dev/audit/rounds', ':!.cursor']).split('\n'))
+      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round') && !f.startsWith('dev/audit/rounds/'))
       .map((f) => read(f) ?? '').join('\n')
   }
   return _printerSource
@@ -4087,12 +4087,16 @@ function assertAcceptance(derived) {
   // restores the obligation on its own: an existing row edited or deleted, a
   // reporter's own script, no `existing` list (every row counts), no paths.
   const unnamed = path.relative(ROOT, path.join(prepr, 'unnamed-red.md'))
-  const OWN_ROW = ['tests/x.py', 'docs/delivery/9999.md']
+  const OWN_ROW = ['tests/x.py', 'dev/programme/delivery/9999.md']
   const REPORTER_CASES = [
     ['exempt, own row added', ['nightly-status', 'delivery-status', 'typing', 'delivery-status-publish', 'Nightly-Status'],
       OWN_ROW, ['tests/x.py'], ['typing', 'delivery-status-publish', 'Nightly-Status']],
     ['a merged row deleted', ['delivery-status'],
+      ['dev/programme/delivery/1570.md'], ['dev/programme/delivery/1570.md'], ['delivery-status']],
+    ['a merged row deleted, old spelling', ['delivery-status'],
       ['docs/delivery/1570.md'], ['docs/delivery/1570.md'], ['delivery-status']],
+    ['the moved plan edited', ['delivery-status'],
+      ['dev/programme/plan-2026-09-open-issues.md'], ['dev/programme/plan-2026-09-open-issues.md'], ['delivery-status']],
     ["the reporter's own script", ['nightly-status'],
       ['tests/nightly_status.py'], ['tests/nightly_status.py'], ['nightly-status']],
     ['no existing list', ['delivery-status'], OWN_ROW, null, ['delivery-status']],
@@ -6024,8 +6028,11 @@ const REPORTER_INPUTS = new Set([
   'tests/delivery_status.py', 'tests/nightly_status.py',
   '.github/workflows/tests.yml', '.github/workflows/governance.yml',
   'docs/plan-2026-09-open-issues.md', 'docs/HANDOVER.md',
+  'dev/programme/plan-2026-09-open-issues.md', 'dev/programme/HANDOVER.md',
 ])
-const DELIVERY_ROW = /^docs\/delivery\/[^/]+\.md$/
+// Both homes, as RECORD_CLASS_RES does: rows moved to dev/programme/delivery/
+// and a reader of an older base still sees docs/delivery/.
+const DELIVERY_ROW = /^(?:docs|dev\/programme)\/delivery\/[^/]+\.md$/
 
 function reporterInputsTouched(paths, existing) {
   if (!paths.length) return ['(no changed-path list, so none can be ruled out)']

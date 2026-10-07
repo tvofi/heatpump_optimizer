@@ -120,6 +120,10 @@ p2=$!
 # Lane 3: everything else, in one sequence. plan_view.py writes the payload
 # card.mjs reads, so that pair keeps its order here exactly as in run.sh.
 (
+  # Block-switch mutants (R9-SW-5), in run.sh's lane order after entities.py.
+  # A selectable script the lanes never recorded fails the closures job with
+  # "NO recording this run" however complete the committed table is.
+  rec tests/block_duty.py
   # #1413: the doc-claims-vs-code-facts detector. A selectable script the
   # lanes never recorded fails the closures job on main with "NO recording
   # this run" however complete the committed table is -- the same trap

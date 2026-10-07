@@ -319,18 +319,18 @@ def self_test() -> int:
         # THE GUARD: a write outside the three files refuses, in both the
         # direct check and a real write_tree call over the live tip.
         try:
-            check_write_set({"docs/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
+            check_write_set({"dev/programme/HANDOVER.md": "x", WRITE_SET[0]: "ok"})
             ok("guard refuses a path outside the write set", False)
         except Refuse:
             pass
         try:
             write_tree(str(drv), {**{p: "x" for p in WRITE_SET},
-                                  "docs/HANDOVER.md": "x"}, tip)
+                                  "dev/programme/HANDOVER.md": "x"}, tip)
             ok("write_tree refuses an outside path", False)
         except Refuse:
             pass
         ok("guard refused before the tree carried the bad path",
-           "docs/HANDOVER.md" not in git("-C", str(drv), "ls-tree", "-r",
+           "dev/programme/HANDOVER.md" not in git("-C", str(drv), "ls-tree", "-r",
                                          "--name-only", "HEAD"))
         # idempotence: a re-run over a current tip moves nothing
         rc = main(common + ["--push"])
