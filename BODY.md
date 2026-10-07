@@ -1,4 +1,4 @@
-Block DHW and Block Space Heating are two-hour switches. A block zeroes that duty on the copy of the plan action, and a safety floor releases it. State stays in the boost store's weak map.
+Block DHW and Block Space Heating are two-hour switches. A block zeroes that duty on the copy of the plan action, and a safety floor releases it. The arbiter pass still drops a blocked duty, and it also holds the GCHV night-mode window. State stays in the boost store's weak map.
 
 Closes #1926
 
@@ -8,9 +8,9 @@ _Requested by **tvofi**_.
 
 ## Head
 
-`2a503e10424f37f60f38d626f09cb5625f623f8a`
+`43cc1031b4ceefb43061fd982ae28955057bb2dd`
 
-Measured `date -u` 2026-10-07T03:39:19Z against origin/main `bcea74883bec1e3395377ff70d8640737c97fc3e`. `git merge-tree --write-tree origin/main HEAD` exited 0. The row is `dev/programme/delivery/1997.md`. `git cat-file -e HEAD:docs/delivery/1997.md` exits 128. `tests/closures.json` records `tests/block_duty.py` with `rc` 0 and lists `custom_components/heatpump_optimizer/quiet_windows.py` among 81 files.
+Measured `date -u` 2026-10-07T03:48:01Z against origin/main `421c77f950072f218d856dcf60f753e5f80ef10b`. `git merge-tree --write-tree origin/main HEAD` exited 0. The row is `dev/programme/delivery/1997.md`. `git cat-file -e HEAD:docs/delivery/1997.md` exits 128. `tests/closures.json` records `tests/block_duty.py` with `rc` 0 and lists `custom_components/heatpump_optimizer/quiet_windows.py` and `custom_components/heatpump_optimizer/modbus_prefill.py` among 82 files.
 
 ## Mutation proof
 
@@ -41,7 +41,7 @@ git cat-file -e HEAD:docs/delivery/1997.md
 ```
 
 ```
-python3 -c 'import json; p=json.load(open("tests/closures.json")); r=p["recorded"]["tests/block_duty.py"]; print(r["rc"], "custom_components/heatpump_optimizer/quiet_windows.py" in p["closures"]["tests/block_duty.py"], len(p["closures"]["tests/block_duty.py"]))'
+python3 -c 'import json; p=json.load(open("tests/closures.json")); r=p["recorded"]["tests/block_duty.py"]; files=p["closures"]["tests/block_duty.py"]; print(r["rc"], "custom_components/heatpump_optimizer/quiet_windows.py" in files, "custom_components/heatpump_optimizer/modbus_prefill.py" in files, len(files))'
 ```
 
 ```
@@ -50,19 +50,21 @@ PYTHONPATH=tests/hastub python3 /tmp/hpo-r9-sw-5-rec/release_probe.py
 
 ## Red checks
 
-`closures` job 112482614284 printed `UNDER-SCOPED: tests/block_duty.py really reads 1 file(s) the committed closure does not list:` and named `custom_components/heatpump_optimizer/quiet_windows.py`. The record step printed `done tests/block_duty.py (exit 0)`. That script's recording JSON has `rc` 0. Cheaper detector: `closures_verdict` in `tools/pr/prepr.sh`, which reads that JSON `rc` and runs `tests/closure.py check --partial`. Standing cost is one `./tests/derive_closures.sh --single` of the script the log names.
+Failure conclusions across `git rev-list $(git merge-base origin/main HEAD)..HEAD`, `pr-contract` excluded: `closures`, `closures-autofix`, `delivery-status`, `fast (3.14)`, `mutation`, `mutation-autofix`, `nightly-status`. The two unpushed commits in that range answer 422 and have no runs.
 
-`closures-autofix` job 112501591072 printed `AUTOFIX: skip-failed-recording` and `THE REPAIR DID NOT HAPPEN`. In that artifact `tests/stress.py` has `rc` 1 and `tests/block_duty.py` has `rc` 0. Cheaper detector: the same `closures_verdict`, which refuses a non-zero JSON `rc` as `failed while being recorded`. Standing cost is a read of the recordings the `closures` job already uploaded.
+`closures` — a `--record-only` recording of `tests/block_duty.py` after the absorb had `rc` 0 and read `custom_components/heatpump_optimizer/modbus_prefill.py`, and `tests/closure.py check --partial` printed `UNDER-SCOPED` until that file was committed. Cheaper detector: `closures_verdict` in `tools/pr/prepr.sh`, which reads the recording JSON `rc` and runs that check. Standing cost is one `./tests/derive_closures.sh --single` of the script the log names.
 
-`delivery-status` job 112612505848 printed `DELIVERY STATUS UNCHECKED`. Cheaper detector: none. The check grades `main`.
+`closures-autofix` — the closures artifact's only recording with `rc` 1 is `tests/stress.py`. `tests/block_duty.py` in that artifact has `rc` 0. The job printed `AUTOFIX: skip-failed-recording` and `THE REPAIR DID NOT HAPPEN`. Cheaper detector: the same `closures_verdict`, which refuses a non-zero JSON `rc` as `failed while being recorded`. Standing cost is a read of the recordings the `closures` job already uploaded.
 
-`nightly-status` job 112612505878 failed in the step `Report the last scheduled run's conclusion`. Cheaper detector: none. The check grades `main`.
+`delivery-status` grades `main`. Cheaper detector: none.
 
-`fast (3.14)` job 112424333780 printed `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh`, `FAILED python3 tests/entities.py`, and `TEST NEVER RAN: tests/block_duty.py is wired into tests/run.sh but no lane executed it and no lane skipped it on purpose`. Cheaper detector for the unwired line: that line, printed at the start of the job, so it adds no standing cost of its own. For the entities failure: none. `tests/entities.py` is the detector.
+`nightly-status` grades `main`. Cheaper detector: none.
 
-`mutation` job 112361301163 printed `MUTATION TABLE REFUSED` for unpinned sites the diff added. Cheaper detector: `tests/mutation_table.py`'s inventory, which prints that refusal before it drives a mutant. Standing cost is that inventory.
+`fast (3.14)` — cheaper detector for an unwired script: the `UNWIRED TEST` line printed at the start of the job, which adds no standing cost of its own. For an entities failure in the same job: none. `tests/entities.py` is the detector.
 
-`mutation-autofix` job 112363593627 printed `AUTOFIX: skip-no-measurement`. Cheaper detector: that summary line, which is this job reading the `mutation` job. Standing cost is the `mutation` job it already ran.
+`mutation` — cheaper detector: `tests/mutation_table.py`'s inventory, which prints `MUTATION TABLE REFUSED` for unpinned sites before it drives a mutant. Standing cost is that inventory.
+
+`mutation-autofix` — the job printed `AUTOFIX: skip-no-measurement`. Cheaper detector: that summary line, which is this job reading the `mutation` job. Standing cost is the `mutation` job it already ran.
 
 ## Forward-carry
 
