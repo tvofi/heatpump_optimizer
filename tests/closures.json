@@ -3685,7 +3685,8 @@
    "dev/audit/waves/w5-g5-195-coverage/mutation_probe.py",
    "dev/programme/register/audit-2026-09.md",
    "tools/audit/repo_root.mjs",
-   "tools/audit/repo_root.sh"
+   "tools/audit/repo_root.sh",
+   "dev/audit/harnesses/r9_dbg2_selftest_price.py"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"

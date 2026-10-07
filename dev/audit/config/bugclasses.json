@@ -3718,6 +3718,22 @@
         "handoff/r9-rca-stress-recording"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
+    },
+    "R9-RCA-bugclasses": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "_rca appends conflict: 4 hand-resolved merges of the register on 2026-10-07 (#2012, #2018, #2014 twice); every RCA PR appends after the same last entry",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "route dev/audit/config/bugclasses.json to the ledgermerge driver (_rca merges entry by entry; a class record both sides changed refuses); replay of 27 merges: 4 conflicts without, 0 with, JSON equal to every recorded resolution",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/R9-RCA-bugclasses.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-bugclasses.md"
     }
   }
 }
