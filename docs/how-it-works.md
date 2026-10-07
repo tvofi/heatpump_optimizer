@@ -480,6 +480,17 @@ document. Leave the field empty and the frames are derived from the
 learned hourly usage profile instead. Switch the schedule off entirely to
 require hot water around the clock.
 
+### Silent windows
+
+Separate from the pump's own night-mode schedule (the options field labelled
+for that hardware fact), the card's Silent windows are your wish about noise.
+Each row is a day selector, start, end and an action: **Silent** caps the
+compressor in those hours; **Off** means the plan schedules no space heating
+and no hot-water slots in the window, with nothing extra written. An Off
+window may not overlap a hot-water demand frame on the same day; a Silent
+window may (the tank just charges slower). Switching the optimizer off
+inside a window undoes nothing.
+
 ### How the schedule is produced
 
 ![A decay curve: degrees per thermal kWh still present in the hot water tank against how long ago the kWh was delivered, falling from 2.87 to about three quarters of that over 24 hours](img/model/dhw-store-decay.svg)
