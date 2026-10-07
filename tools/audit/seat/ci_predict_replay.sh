@@ -18,9 +18,17 @@ set -uo pipefail
 here=$(cd "$(dirname "$0")/../../.." && pwd)
 scratch=${1:?scratch dir}; shift
 repo=${REPO:-tvofi/heatpump_optimizer}
-mkdir -p "$scratch"
+mkdir -p "$scratch"; scratch=$(cd "$scratch" && pwd)  # `worktree add` runs from $here
 fails=0
 for pr in "$@"; do
+  # A merged pull request is an ancestor of origin/main, so its fork point
+  # with the tip is the commit itself and the diff reads empty: compare with
+  # main as it stood before the merge, the merge commit's first parent.
+  base=origin/main
+  mc=$(gh api "repos/$repo/pulls/$pr" -q '.merge_commit_sha // empty' 2>/dev/null)
+  if [ -n "$mc" ] && [ "$(gh api "repos/$repo/pulls/$pr" -q .merged 2>/dev/null)" = true ]; then
+    git -C "$here" cat-file -e "$mc^1" 2>/dev/null && base="$mc^1"
+  fi
   for sha in $(gh api "repos/$repo/pulls/$pr/commits" --paginate -q '.[].sha'); do
     runs=$(gh api "repos/$repo/commits/$sha/check-runs?per_page=100" --paginate \
       -q '.check_runs[]|[.name,(.conclusion // "pending")]|@tsv' 2>/dev/null) || { fails=$((fails+1)); continue; }
@@ -29,7 +37,7 @@ for pr in "$@"; do
     [ -n "$cl$mu" ] || continue
     wt="$scratch/wt-$sha"
     [ -d "$wt" ] || git -C "$here" worktree add -q --detach "$wt" "$sha" 2>/dev/null || { fails=$((fails+1)); continue; }
-    out=$(cd "$wt" && python3 "$here/tools/pr/ci_predict.py" --base origin/main 2>&1)
+    out=$(cd "$wt" && python3 "$here/tools/pr/ci_predict.py" --base "$base" 2>&1)
     pc=$(printf '%s\n' "$out" | grep -c '^PREDICT closures')
     pm=$(printf '%s\n' "$out" | grep -c '^PREDICT mutation')
     pf=$(printf '%s\n' "$out" | grep -c '^PREDICT fast')
