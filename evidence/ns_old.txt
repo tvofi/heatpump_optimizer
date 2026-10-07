@@ -9,6 +9,7 @@ R098	tools/audit/ci-version-edit/recheck_stamp_forgery.py	dev/audit/harnesses/ci
 R097	tools/audit/harnesses/d1_s3_02_queued_apply.py	dev/audit/harnesses/d1_s3_02_queued_apply.py
 R098	tools/audit/harnesses/d907_kernel_band.py	dev/audit/harnesses/d907_kernel_band.py
 R096	tools/audit/harnesses/dual_path.py	dev/audit/harnesses/dual_path.py
+R098	tools/audit/harnesses/eg_b7_seam_hubs.py	dev/audit/harnesses/eg_b7_seam_hubs.py
 R099	tools/audit/harnesses/h8_single_scenario.py	dev/audit/harnesses/h8_single_scenario.py
 R099	tools/audit/harnesses/h9_basin_coverage.py	dev/audit/harnesses/h9_basin_coverage.py
 R090	tools/audit/harnesses/hpo_ci_container_setup.sh	dev/audit/harnesses/hpo_ci_container_setup.sh

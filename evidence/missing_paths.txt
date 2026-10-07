@@ -1,0 +1,4 @@
+RESULT closures missing-path entries 0 []
+RESULT inert_reads missing-path entries 0 []
+keys: closures 32 inert_reads 3 inert entries 533
+RESULT control (old path planted in memory) inert_reads missing 1 [('tests/harness_headers.py', 'tools/audit/harnesses/eg_b7_seam_hubs.py')]

@@ -1,0 +1,836 @@
+closures	Set up job	﻿2026-10-07T16:01:03.2740387Z Current runner version: '2.337.0'
+closures	Set up job	2026-10-07T16:01:03.2778231Z ##[group]Runner Image Provisioner
+closures	Set up job	2026-10-07T16:01:03.2779971Z Hosted Compute Agent
+closures	Set up job	2026-10-07T16:01:03.2781238Z Version: 20261002.596
+closures	Set up job	2026-10-07T16:01:03.2782478Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+closures	Set up job	2026-10-07T16:01:03.2783963Z Build Date: 2026-10-02T22:28:27Z
+closures	Set up job	2026-10-07T16:01:03.2785221Z Worker ID: {085f59d6-d2dd-477d-b677-1ab9414dba4b}
+closures	Set up job	2026-10-07T16:01:03.2786576Z Region: eastus2
+closures	Set up job	2026-10-07T16:01:03.2787682Z Cloud: Azure
+closures	Set up job	2026-10-07T16:01:03.2788748Z ##[endgroup]
+closures	Set up job	2026-10-07T16:01:03.2791561Z ##[group]Operating System
+closures	Set up job	2026-10-07T16:01:03.2792676Z Ubuntu
+closures	Set up job	2026-10-07T16:01:03.2793604Z 24.04.5
+closures	Set up job	2026-10-07T16:01:03.2794561Z LTS
+closures	Set up job	2026-10-07T16:01:03.2795430Z ##[endgroup]
+closures	Set up job	2026-10-07T16:01:03.2796319Z ##[group]Runner Image
+closures	Set up job	2026-10-07T16:01:03.2797368Z Image: ubuntu-24.04
+closures	Set up job	2026-10-07T16:01:03.2798369Z Version: 20261004.327.1
+closures	Set up job	2026-10-07T16:01:03.2800645Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+closures	Set up job	2026-10-07T16:01:03.2803617Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+closures	Set up job	2026-10-07T16:01:03.2805552Z ##[endgroup]
+closures	Set up job	2026-10-07T16:01:03.2807586Z ##[group]GITHUB_TOKEN Permissions
+closures	Set up job	2026-10-07T16:01:03.2810940Z Contents: read
+closures	Set up job	2026-10-07T16:01:03.2812028Z Metadata: read
+closures	Set up job	2026-10-07T16:01:03.2813134Z ##[endgroup]
+closures	Set up job	2026-10-07T16:01:03.2816133Z Secret source: Actions
+closures	Set up job	2026-10-07T16:01:03.2817891Z Cache mode: write
+closures	Set up job	2026-10-07T16:01:03.2820091Z Prepare workflow directory
+closures	Set up job	2026-10-07T16:01:03.3413645Z Prepare all required actions
+closures	Set up job	2026-10-07T16:01:03.3464126Z Getting action download info
+closures	Set up job	2026-10-07T16:01:03.6103454Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+closures	Set up job	2026-10-07T16:01:03.7013989Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+closures	Set up job	2026-10-07T16:01:03.8358555Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+closures	Set up job	2026-10-07T16:01:03.9673096Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+closures	Set up job	2026-10-07T16:01:04.2039286Z Complete job name: closures
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-07T16:01:04.2828227Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2829398Z with:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2830083Z   fetch-depth: 0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2830579Z   repository: tvofi/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2834360Z   token: ***
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2834798Z   ssh-strict: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2835240Z   ssh-user: git
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2835692Z   persist-credentials: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2836184Z   clean: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2836641Z   sparse-checkout-cone-mode: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2837170Z   fetch-tags: false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2837618Z   show-progress: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2838091Z   lfs: false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2838511Z   submodules: false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2838961Z   set-safe-directory: true
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2839470Z   allow-unsafe-pr-checkout: false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2840451Z env:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2840917Z   DOCS_ONLY_FAST: false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.2841390Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3978187Z Syncing repository: tvofi/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3981270Z ##[group]Getting Git version info
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3982624Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3984519Z [command]/usr/bin/git version
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3985337Z git version 2.55.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3991457Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.3998395Z Temporarily overriding HOME='/home/runner/work/_temp/b5a7f8bb-b5f6-402c-b562-a109294a9faf' before making global git config changes
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4001109Z Adding repository directory to the temporary git global config as a safe directory
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4005134Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4066777Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4072326Z ##[group]Initializing the repository
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4079015Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4199295Z hint: Using 'master' as the name for the initial branch. This default branch name
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4201595Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4203656Z hint: to use in all of your new repositories, which will suppress this warning,
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4207339Z hint: call:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4208476Z hint:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4209512Z hint: 	git config --global init.defaultBranch <name>
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4210952Z hint:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4211984Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4213680Z hint: 'development'. The just-created branch can be renamed via this command:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4215166Z hint:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4216023Z hint: 	git branch -m <name>
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4216966Z hint:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4218080Z hint: Disable this message with "git config set advice.defaultBranchName false"
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4220299Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4223482Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4272178Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4273541Z ##[group]Disabling automatic garbage collection
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4277664Z [command]/usr/bin/git config --local gc.auto 0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4313647Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4315048Z ##[group]Setting up auth
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4322009Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4373045Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4769028Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.4811936Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5054850Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5096474Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5332739Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5376163Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5377235Z ##[group]Fetching the repository
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:04.5387540Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +7cbc640cf84a28e79226957d2ea6cbf77e90c7a1:refs/remotes/pull/2015/merge
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9809182Z From https://github.com/tvofi/heatpump_optimizer
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9811694Z  * [new branch]        bus/approvals           -> origin/bus/approvals
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9817308Z  * [new branch]        cursor/r9-eg-entry-config-9aac -> origin/cursor/r9-eg-entry-config-9aac
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9818595Z  * [new branch]        cursor/r9-sw-1-resume-826f -> origin/cursor/r9-sw-1-resume-826f
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9819576Z  * [new branch]        cursor/r9-sw-2-actuation-6d19 -> origin/cursor/r9-sw-2-actuation-6d19
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9820716Z  * [new branch]        fix/r9-dbg-1            -> origin/fix/r9-dbg-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9821478Z  * [new branch]        fix/r9-eg-entry-config  -> origin/fix/r9-eg-entry-config
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9822551Z  * [new branch]        fix/r9-rca-2004         -> origin/fix/r9-rca-2004
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9823786Z  * [new branch]        fix/r9-rca-stress-recording -> origin/fix/r9-rca-stress-recording
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9825041Z  * [new branch]        fix/r9-ro-8             -> origin/fix/r9-ro-8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9826110Z  * [new branch]        fix/r9-sw-actuation     -> origin/fix/r9-sw-actuation
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9827258Z  * [new branch]        fix/r9-ux-actions       -> origin/fix/r9-ux-actions
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9828184Z  * [new branch]        fix/r9-ux9              -> origin/fix/r9-ux9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9829389Z  * [new branch]        handoff-body/r9-closures-eg-b7 -> origin/handoff-body/r9-closures-eg-b7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9830954Z  * [new branch]        handoff-body/r9-dbg-1   -> origin/handoff-body/r9-dbg-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9832385Z  * [new branch]        handoff-body/r9-eg-b7-harness -> origin/handoff-body/r9-eg-b7-harness
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9834000Z  * [new branch]        handoff-body/r9-eg-coordinator-seams -> origin/handoff-body/r9-eg-coordinator-seams
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9835643Z  * [new branch]        handoff-body/r9-eg-entry-config -> origin/handoff-body/r9-eg-entry-config
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9837185Z  * [new branch]        handoff-body/r9-eg-solve-inputs -> origin/handoff-body/r9-eg-solve-inputs
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9838644Z  * [new branch]        handoff-body/r9-nightly-bdr -> origin/handoff-body/r9-nightly-bdr
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9840464Z  * [new branch]        handoff-body/r9-prepr-selftest -> origin/handoff-body/r9-prepr-selftest
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9842054Z  * [new branch]        handoff-body/r9-rca-1985 -> origin/handoff-body/r9-rca-1985
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9843502Z  * [new branch]        handoff-body/r9-rca-1990 -> origin/handoff-body/r9-rca-1990
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9844789Z  * [new branch]        handoff-body/r9-rca-2004 -> origin/handoff-body/r9-rca-2004
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9846135Z  * [new branch]        handoff-body/r9-rca-stress-recording -> origin/handoff-body/r9-rca-stress-recording
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9847548Z  * [new branch]        handoff-body/r9-record-path -> origin/handoff-body/r9-record-path
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9848704Z  * [new branch]        handoff-body/r9-ro-8    -> origin/handoff-body/r9-ro-8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9849993Z  * [new branch]        handoff-body/r9-sw-5    -> origin/handoff-body/r9-sw-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9851473Z  * [new branch]        handoff-body/r9-sw-actuation -> origin/handoff-body/r9-sw-actuation
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9852787Z  * [new branch]        handoff-body/r9-sw6     -> origin/handoff-body/r9-sw6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9853975Z  * [new branch]        handoff-body/r9-ux-actions -> origin/handoff-body/r9-ux-actions
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9854663Z  * [new branch]        handoff-body/r9-ux9     -> origin/handoff-body/r9-ux9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9855287Z  * [new branch]        handoff/audit-r9-alt    -> origin/handoff/audit-r9-alt
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9855951Z  * [new branch]        handoff/audit-r9-evidence -> origin/handoff/audit-r9-evidence
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9856642Z  * [new branch]        handoff/audit-r9-find-B1 -> origin/handoff/audit-r9-find-B1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9857329Z  * [new branch]        handoff/audit-r9-find-B10 -> origin/handoff/audit-r9-find-B10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9857994Z  * [new branch]        handoff/audit-r9-find-B2 -> origin/handoff/audit-r9-find-B2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9858663Z  * [new branch]        handoff/audit-r9-find-B3 -> origin/handoff/audit-r9-find-B3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9859338Z  * [new branch]        handoff/audit-r9-find-B4 -> origin/handoff/audit-r9-find-B4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9860254Z  * [new branch]        handoff/audit-r9-find-B5 -> origin/handoff/audit-r9-find-B5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9860900Z  * [new branch]        handoff/audit-r9-find-B6 -> origin/handoff/audit-r9-find-B6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9861534Z  * [new branch]        handoff/audit-r9-find-B7 -> origin/handoff/audit-r9-find-B7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9862742Z  * [new branch]        handoff/audit-r9-find-B8 -> origin/handoff/audit-r9-find-B8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9864371Z  * [new branch]        handoff/audit-r9-find-B9 -> origin/handoff/audit-r9-find-B9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9865532Z  * [new branch]        handoff/audit-r9-fixplan -> origin/handoff/audit-r9-fixplan
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9866669Z  * [new branch]        handoff/audit-r9-issues -> origin/handoff/audit-r9-issues
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9868121Z  * [new branch]        handoff/audit-r9-judge  -> origin/handoff/audit-r9-judge
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9869265Z  * [new branch]        handoff/audit-r9-leads  -> origin/handoff/audit-r9-leads
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9870604Z  * [new branch]        handoff/audit-r9-leads-l2 -> origin/handoff/audit-r9-leads-l2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9871995Z  * [new branch]        handoff/audit-r9-leads-l3 -> origin/handoff/audit-r9-leads-l3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9873549Z  * [new branch]        handoff/audit-r9-leads-l4 -> origin/handoff/audit-r9-leads-l4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9874907Z  * [new branch]        handoff/audit-r9-leads-lc -> origin/handoff/audit-r9-leads-lc
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9876152Z  * [new branch]        handoff/audit-r9-plan   -> origin/handoff/audit-r9-plan
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9877586Z  * [new branch]        handoff/audit-r9-register -> origin/handoff/audit-r9-register
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9878526Z  * [new branch]        handoff/audit-r9-runner-1 -> origin/handoff/audit-r9-runner-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9879236Z  * [new branch]        handoff/audit-r9-sweep-s1 -> origin/handoff/audit-r9-sweep-s1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9880192Z  * [new branch]        handoff/audit-r9-sweep-s2 -> origin/handoff/audit-r9-sweep-s2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9881004Z  * [new branch]        handoff/audit-r9-sweep-s3 -> origin/handoff/audit-r9-sweep-s3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9881683Z  * [new branch]        handoff/audit-r9-sweep-s4 -> origin/handoff/audit-r9-sweep-s4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9882354Z  * [new branch]        handoff/audit-r9-sweep-s5 -> origin/handoff/audit-r9-sweep-s5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9883138Z  * [new branch]        handoff/audit-r9-sweep-s6 -> origin/handoff/audit-r9-sweep-s6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9883842Z  * [new branch]        handoff/audit-r9-sweep-s7 -> origin/handoff/audit-r9-sweep-s7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9884576Z  * [new branch]        handoff/audit-r9-verify-g1-v1 -> origin/handoff/audit-r9-verify-g1-v1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9885339Z  * [new branch]        handoff/audit-r9-verify-g1-v2 -> origin/handoff/audit-r9-verify-g1-v2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9886264Z  * [new branch]        handoff/audit-r9-verify-g1-v3 -> origin/handoff/audit-r9-verify-g1-v3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9887237Z  * [new branch]        handoff/audit-r9-verify-g2-v1 -> origin/handoff/audit-r9-verify-g2-v1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9887966Z  * [new branch]        handoff/audit-r9-verify-g2-v2 -> origin/handoff/audit-r9-verify-g2-v2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9888695Z  * [new branch]        handoff/audit-r9-verify-g2-v3 -> origin/handoff/audit-r9-verify-g2-v3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9889422Z  * [new branch]        handoff/audit-r9-verify-g3-v1 -> origin/handoff/audit-r9-verify-g3-v1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9890523Z  * [new branch]        handoff/audit-r9-verify-g3-v2 -> origin/handoff/audit-r9-verify-g3-v2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9891367Z  * [new branch]        handoff/audit-r9-verify-g3-v3 -> origin/handoff/audit-r9-verify-g3-v3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9892165Z  * [new branch]        handoff/audit-r9-verify-g4-v1 -> origin/handoff/audit-r9-verify-g4-v1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9892881Z  * [new branch]        handoff/audit-r9-verify-g4-v2 -> origin/handoff/audit-r9-verify-g4-v2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9893961Z  * [new branch]        handoff/audit-r9-verify-g4-v3 -> origin/handoff/audit-r9-verify-g4-v3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9895397Z  * [new branch]        handoff/r9-closures-eg-b7 -> origin/handoff/r9-closures-eg-b7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9896727Z  * [new branch]        handoff/r9-dbg-0        -> origin/handoff/r9-dbg-0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9897945Z  * [new branch]        handoff/r9-dbg-1        -> origin/handoff/r9-dbg-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9899014Z  * [new branch]        handoff/r9-dbg-3        -> origin/handoff/r9-dbg-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9900321Z  * [new branch]        handoff/r9-diag-1       -> origin/handoff/r9-diag-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9901704Z  * [new branch]        handoff/r9-diag-2s      -> origin/handoff/r9-diag-2s
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9903021Z  * [new branch]        handoff/r9-eg-archscore -> origin/handoff/r9-eg-archscore
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9904217Z  * [new branch]        handoff/r9-eg-b0        -> origin/handoff/r9-eg-b0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9905400Z  * [new branch]        handoff/r9-eg-b7-harness -> origin/handoff/r9-eg-b7-harness
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9906834Z  * [new branch]        handoff/r9-eg-collaborator-interfaces -> origin/handoff/r9-eg-collaborator-interfaces
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9908328Z  * [new branch]        handoff/r9-eg-coordinator-seams -> origin/handoff/r9-eg-coordinator-seams
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9910020Z  * [new branch]        handoff/r9-eg-dhw-closure-dedupe-v2 -> origin/handoff/r9-eg-dhw-closure-dedupe-v2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9911402Z  * [new branch]        handoff/r9-eg-dhw-planner -> origin/handoff/r9-eg-dhw-planner
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9912775Z  * [new branch]        handoff/r9-eg-entry-config -> origin/handoff/r9-eg-entry-config
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9913484Z  * [new branch]        handoff/r9-eg-one-copy  -> origin/handoff/r9-eg-one-copy
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9914160Z  * [new branch]        handoff/r9-eg-param-objects -> origin/handoff/r9-eg-param-objects
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9914857Z  * [new branch]        handoff/r9-eg-register-fold -> origin/handoff/r9-eg-register-fold
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9915546Z  * [new branch]        handoff/r9-eg-solve-inputs -> origin/handoff/r9-eg-solve-inputs
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9916221Z  * [new branch]        handoff/r9-eg-store-version -> origin/handoff/r9-eg-store-version
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9916953Z  * [new branch]        handoff/r9-eg-surface-identity -> origin/handoff/r9-eg-surface-identity
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9917682Z  * [new branch]        handoff/r9-eg-typed-payload -> origin/handoff/r9-eg-typed-payload
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9918407Z  * [new branch]        handoff/r9-eg-typed-payload-b -> origin/handoff/r9-eg-typed-payload-b
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9919145Z  * [new branch]        handoff/r9-f1-coordinator-10 -> origin/handoff/r9-f1-coordinator-10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9920122Z  * [new branch]        handoff/r9-f1-coordinator-2 -> origin/handoff/r9-f1-coordinator-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9921389Z  * [new branch]        handoff/r9-f1-coordinator-3 -> origin/handoff/r9-f1-coordinator-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9922539Z  * [new branch]        handoff/r9-f1-coordinator-4 -> origin/handoff/r9-f1-coordinator-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9923533Z  * [new branch]        handoff/r9-f1-coordinator-5 -> origin/handoff/r9-f1-coordinator-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9924208Z  * [new branch]        handoff/r9-f1-coordinator-7 -> origin/handoff/r9-f1-coordinator-7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9924965Z  * [new branch]        handoff/r9-f1-coordinator-7-review -> origin/handoff/r9-f1-coordinator-7-review
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9925672Z  * [new branch]        handoff/r9-f10-12       -> origin/handoff/r9-f10-12
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9926245Z  * [new branch]        handoff/r9-f10-13       -> origin/handoff/r9-f10-13
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9926817Z  * [new branch]        handoff/r9-f10-14       -> origin/handoff/r9-f10-14
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9927368Z  * [new branch]        handoff/r9-f10-15       -> origin/handoff/r9-f10-15
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9927918Z  * [new branch]        handoff/r9-f10-16       -> origin/handoff/r9-f10-16
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9928541Z  * [new branch]        handoff/r9-f10-ci-efficiency -> origin/handoff/r9-f10-ci-efficiency
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9929316Z  * [new branch]        handoff/r9-f10-claims-baseline-rca -> origin/handoff/r9-f10-claims-baseline-rca
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9930528Z  * [new branch]        handoff/r9-f10-closure-runalways -> origin/handoff/r9-f10-closure-runalways
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9931370Z  * [new branch]        handoff/r9-f10-gate-infra-1 -> origin/handoff/r9-f10-gate-infra-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9932153Z  * [new branch]        handoff/r9-f10-gate-infra-1d -> origin/handoff/r9-f10-gate-infra-1d
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9933564Z  * [new branch]        handoff/r9-f10-gate-infra-4 -> origin/handoff/r9-f10-gate-infra-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9935255Z  * [new branch]        handoff/r9-f10-gate-infra-5 -> origin/handoff/r9-f10-gate-infra-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9936651Z  * [new branch]        handoff/r9-f10-gate-infra-6 -> origin/handoff/r9-f10-gate-infra-6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9938011Z  * [new branch]        handoff/r9-f10-harness-timeout -> origin/handoff/r9-f10-harness-timeout
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9939444Z  * [new branch]        handoff/r9-f10-loop-heartbeat -> origin/handoff/r9-f10-loop-heartbeat
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9941134Z  * [new branch]        handoff/r9-f10-merge-queue -> origin/handoff/r9-f10-merge-queue
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9942494Z  * [new branch]        handoff/r9-f11-governance-1 -> origin/handoff/r9-f11-governance-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9943787Z  * [new branch]        handoff/r9-f11-governance-3 -> origin/handoff/r9-f11-governance-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9945003Z  * [new branch]        handoff/r9-f11-governance-4 -> origin/handoff/r9-f11-governance-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9946333Z  * [new branch]        handoff/r9-f11-governance-4-review -> origin/handoff/r9-f11-governance-4-review
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9947682Z  * [new branch]        handoff/r9-f11-governance-5 -> origin/handoff/r9-f11-governance-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9948894Z  * [new branch]        handoff/r9-f11-governance-6 -> origin/handoff/r9-f11-governance-6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9950527Z  * [new branch]        handoff/r9-f11-governance-7 -> origin/handoff/r9-f11-governance-7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9951235Z  * [new branch]        handoff/r9-f2-solver-1  -> origin/handoff/r9-f2-solver-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9951861Z  * [new branch]        handoff/r9-f2-solver-3  -> origin/handoff/r9-f2-solver-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9952477Z  * [new branch]        handoff/r9-f2-solver-4  -> origin/handoff/r9-f2-solver-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9953075Z  * [new branch]        handoff/r9-f2-solver-5  -> origin/handoff/r9-f2-solver-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9953660Z  * [new branch]        handoff/r9-f3-stores-1  -> origin/handoff/r9-f3-stores-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9954270Z  * [new branch]        handoff/r9-f3-stores-3  -> origin/handoff/r9-f3-stores-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9954939Z  * [new branch]        handoff/r9-f4-inputs-sysid-1 -> origin/handoff/r9-f4-inputs-sysid-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9955654Z  * [new branch]        handoff/r9-f4-inputs-sysid-2 -> origin/handoff/r9-f4-inputs-sysid-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9956336Z  * [new branch]        handoff/r9-f5-config-text-1 -> origin/handoff/r9-f5-config-text-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9957218Z  * [new branch]        handoff/r9-f6-card-1    -> origin/handoff/r9-f6-card-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9958289Z  * [new branch]        handoff/r9-f6-card-2    -> origin/handoff/r9-f6-card-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9959445Z  * [new branch]        handoff/r9-f6-card-4    -> origin/handoff/r9-f6-card-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9960402Z  * [new branch]        handoff/r9-f7-entities-1 -> origin/handoff/r9-f7-entities-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9961036Z  * [new branch]        handoff/r9-f7-entities-2 -> origin/handoff/r9-f7-entities-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9961694Z  * [new branch]        handoff/r9-f7-family-splits -> origin/handoff/r9-f7-family-splits
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9962350Z  * [new branch]        handoff/r9-f8-docs-1    -> origin/handoff/r9-f8-docs-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9962936Z  * [new branch]        handoff/r9-f8-docs-2    -> origin/handoff/r9-f8-docs-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9963506Z  * [new branch]        handoff/r9-f8-docs-3    -> origin/handoff/r9-f8-docs-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9964136Z  * [new branch]        handoff/r9-f9-test-pins-2 -> origin/handoff/r9-f9-test-pins-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9964792Z  * [new branch]        handoff/r9-f9-test-pins-3 -> origin/handoff/r9-f9-test-pins-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9965399Z  * [new branch]        handoff/r9-fr-10        -> origin/handoff/r9-fr-10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9966013Z  * [new branch]        handoff/r9-friction-study -> origin/handoff/r9-friction-study
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9966658Z  * [new branch]        handoff/r9-nightly-bdr  -> origin/handoff/r9-nightly-bdr
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9967371Z  * [new branch]        handoff/r9-nightly-status-k5uati -> origin/handoff/r9-nightly-status-k5uati
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9968338Z  * [new branch]        handoff/r9-prepr-selftest -> origin/handoff/r9-prepr-selftest
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9968959Z  * [new branch]        handoff/r9-proc-1       -> origin/handoff/r9-proc-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9969527Z  * [new branch]        handoff/r9-proc-3       -> origin/handoff/r9-proc-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9970329Z  * [new branch]        handoff/r9-proc-4       -> origin/handoff/r9-proc-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9970889Z  * [new branch]        handoff/r9-proc-5       -> origin/handoff/r9-proc-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9971526Z  * [new branch]        handoff/r9-rc-prcontract-fix -> origin/handoff/r9-rc-prcontract-fix
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9972339Z  * [new branch]        handoff/r9-rca-1985     -> origin/handoff/r9-rca-1985
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9972918Z  * [new branch]        handoff/r9-rca-1990     -> origin/handoff/r9-rca-1990
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9973487Z  * [new branch]        handoff/r9-rca-2004     -> origin/handoff/r9-rca-2004
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9974529Z  * [new branch]        handoff/r9-rca-avoidable-interpreter-bound-recomputation -> origin/handoff/r9-rca-avoidable-interpreter-bound-recomputation
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9975521Z  * [new branch]        handoff/r9-rca-cpu-gate-blind -> origin/handoff/r9-rca-cpu-gate-blind
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9976163Z  * [new branch]        handoff/r9-rca-i1       -> origin/handoff/r9-rca-i1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9976723Z  * [new branch]        handoff/r9-rca-i3       -> origin/handoff/r9-rca-i3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9977275Z  * [new branch]        handoff/r9-rca-i4       -> origin/handoff/r9-rca-i4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9977822Z  * [new branch]        handoff/r9-rca-i5       -> origin/handoff/r9-rca-i5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9978377Z  * [new branch]        handoff/r9-rca-p1       -> origin/handoff/r9-rca-p1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9978939Z  * [new branch]        handoff/r9-rca-p11      -> origin/handoff/r9-rca-p11
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9979510Z  * [new branch]        handoff/r9-rca-p2       -> origin/handoff/r9-rca-p2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9980354Z  * [new branch]        handoff/r9-rca-p3       -> origin/handoff/r9-rca-p3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9980943Z  * [new branch]        handoff/r9-rca-p5       -> origin/handoff/r9-rca-p5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9981525Z  * [new branch]        handoff/r9-rca-p6       -> origin/handoff/r9-rca-p6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9982125Z  * [new branch]        handoff/r9-rca-p9       -> origin/handoff/r9-rca-p9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9983302Z  * [new branch]        handoff/r9-rca-persisted-future-instant-trusted-without-bound -> origin/handoff/r9-rca-persisted-future-instant-trusted-without-bound
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9984412Z  * [new branch]        handoff/r9-rca-stress-recording -> origin/handoff/r9-rca-stress-recording
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9985161Z  * [new branch]        handoff/r9-record-path  -> origin/handoff/r9-record-path
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9985791Z  * [new branch]        handoff/r9-ro-1         -> origin/handoff/r9-ro-1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9986381Z  * [new branch]        handoff/r9-ro-2         -> origin/handoff/r9-ro-2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9986973Z  * [new branch]        handoff/r9-ro-3         -> origin/handoff/r9-ro-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9987564Z  * [new branch]        handoff/r9-ro-4         -> origin/handoff/r9-ro-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9988144Z  * [new branch]        handoff/r9-ro-5         -> origin/handoff/r9-ro-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9988724Z  * [new branch]        handoff/r9-ro-6         -> origin/handoff/r9-ro-6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9989310Z  * [new branch]        handoff/r9-ro-7         -> origin/handoff/r9-ro-7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9990112Z  * [new branch]        handoff/r9-ro-8         -> origin/handoff/r9-ro-8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9990698Z  * [new branch]        handoff/r9-sw-5         -> origin/handoff/r9-sw-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9991322Z  * [new branch]        handoff/r9-sw-actuation -> origin/handoff/r9-sw-actuation
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9991958Z  * [new branch]        handoff/r9-sw-card      -> origin/handoff/r9-sw-card
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9992570Z  * [new branch]        handoff/r9-sw-gchv      -> origin/handoff/r9-sw-gchv
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9993371Z  * [new branch]        handoff/r9-sw-model     -> origin/handoff/r9-sw-model
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9993983Z  * [new branch]        handoff/r9-sw6          -> origin/handoff/r9-sw6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9994595Z  * [new branch]        handoff/r9-ux-actions   -> origin/handoff/r9-ux-actions
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9995229Z  * [new branch]        handoff/r9-ux-events    -> origin/handoff/r9-ux-events
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9995870Z  * [new branch]        handoff/r9-ux-health    -> origin/handoff/r9-ux-health
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9996536Z  * [new branch]        handoff/r9-ux-insight-text -> origin/handoff/r9-ux-insight-text
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9997200Z  * [new branch]        handoff/r9-ux9          -> origin/handoff/r9-ux9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9997792Z  * [new branch]        handoff/r9-web-3        -> origin/handoff/r9-web-3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9998383Z  * [new branch]        handoff/r9-web-4        -> origin/handoff/r9-web-4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9998960Z  * [new branch]        handoff/r9-web-5        -> origin/handoff/r9-web-5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:11.9999578Z  * [new branch]        handoff/r9-web-page     -> origin/handoff/r9-web-page
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0000443Z  * [new branch]        handoff/rca-1747        -> origin/handoff/rca-1747
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0001082Z  * [new branch]        handoff/repo-reorg-plan -> origin/handoff/repo-reorg-plan
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0001804Z  * [new branch]        handoff/silent-windows-plan -> origin/handoff/silent-windows-plan
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0002443Z  * [new branch]        main                    -> origin/main
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0003028Z  * [new branch]        record/autofix          -> origin/record/autofix
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0003597Z  * [new branch]        review/1987             -> origin/review/1987
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0004152Z  * [new branch]        review/1997             -> origin/review/1997
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0004706Z  * [new branch]        review/2002             -> origin/review/2002
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0005249Z  * [new branch]        review/2006             -> origin/review/2006
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0005798Z  * [new branch]        review/2007             -> origin/review/2007
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0006335Z  * [new branch]        review/2010             -> origin/review/2010
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0006878Z  * [new branch]        review/2011             -> origin/review/2011
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0007428Z  * [new branch]        review/2012             -> origin/review/2012
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0008124Z  * [new branch]        review/2013             -> origin/review/2013
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0008666Z  * [new branch]        review/2014             -> origin/review/2014
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0009211Z  * [new branch]        review/2015             -> origin/review/2015
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0010007Z  * [new branch]        review/2017             -> origin/review/2017
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0010577Z  * [new branch]        review/2018             -> origin/review/2018
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0011122Z  * [new branch]        review/2021             -> origin/review/2021
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0011677Z  * [new branch]        review/2022             -> origin/review/2022
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0012223Z  * [new branch]        verdict/1987            -> origin/verdict/1987
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0012775Z  * [new branch]        verdict/1997            -> origin/verdict/1997
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0013321Z  * [new branch]        verdict/2002            -> origin/verdict/2002
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0013889Z  * [new branch]        verdict/2006            -> origin/verdict/2006
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0014558Z  * [new branch]        verdict/2007            -> origin/verdict/2007
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0015123Z  * [new branch]        verdict/2010            -> origin/verdict/2010
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0015670Z  * [new branch]        verdict/2011            -> origin/verdict/2011
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0016219Z  * [new branch]        verdict/2012            -> origin/verdict/2012
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0016769Z  * [new branch]        verdict/2013            -> origin/verdict/2013
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0017461Z  * [new branch]        verdict/2014            -> origin/verdict/2014
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0018007Z  * [new branch]        verdict/2015            -> origin/verdict/2015
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0018550Z  * [new branch]        verdict/2017            -> origin/verdict/2017
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0019106Z  * [new branch]        verdict/2018            -> origin/verdict/2018
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0019852Z  * [new branch]        verdict/2021            -> origin/verdict/2021
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0020469Z  * [new branch]        verdict/2022            -> origin/verdict/2022
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0021041Z  * [new tag]           audit-round2-evidence   -> audit-round2-evidence
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0021586Z  * [new tag]           v2.3.0-beta.1           -> v2.3.0-beta.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0022184Z  * [new tag]           v2.4.0                  -> v2.4.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0022648Z  * [new tag]           v2.4.1                  -> v2.4.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0023103Z  * [new tag]           v2.5.0                  -> v2.5.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0023566Z  * [new tag]           v2.6.0                  -> v2.6.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0024023Z  * [new tag]           v2.6.1                  -> v2.6.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0024480Z  * [new tag]           v2.7.0                  -> v2.7.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0024931Z  * [new tag]           v2.8.0                  -> v2.8.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0025386Z  * [new tag]           v3.0.0                  -> v3.0.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0025849Z  * [new tag]           v3.1.0                  -> v3.1.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0026299Z  * [new tag]           v3.1.1                  -> v3.1.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0026749Z  * [new tag]           v3.1.2                  -> v3.1.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0027209Z  * [new tag]           v3.14.0                 -> v3.14.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0027672Z  * [new tag]           v3.16.0                 -> v3.16.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0028128Z  * [new tag]           v3.2.0                  -> v3.2.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0028580Z  * [new tag]           v3.3.0                  -> v3.3.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0029040Z  * [new tag]           v3.3.1                  -> v3.3.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0029497Z  * [new tag]           v3.4.0                  -> v3.4.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0030163Z  * [new tag]           v3.4.1                  -> v3.4.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0030624Z  * [new tag]           v3.5.0                  -> v3.5.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0031072Z  * [new tag]           v3.6.0                  -> v3.6.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0031676Z  * [new tag]           v3.6.1                  -> v3.6.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0032136Z  * [new tag]           v3.7.0                  -> v3.7.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0032593Z  * [new tag]           v3.7.1                  -> v3.7.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0033048Z  * [new tag]           v3.8.0                  -> v3.8.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0033499Z  * [new tag]           v4.0.0                  -> v4.0.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0033956Z  * [new tag]           v4.0.1                  -> v4.0.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0034409Z  * [new tag]           v4.0.2                  -> v4.0.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0034868Z  * [new tag]           v4.0.3                  -> v4.0.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0035318Z  * [new tag]           v4.0.4                  -> v4.0.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0035773Z  * [new tag]           v4.0.5                  -> v4.0.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0036226Z  * [new tag]           v4.0.6                  -> v4.0.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0036688Z  * [new tag]           v4.0.7                  -> v4.0.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0037151Z  * [new tag]           v4.1.0                  -> v4.1.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0037617Z  * [new tag]           v4.2.0                  -> v4.2.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0038074Z  * [new tag]           v4.3.0                  -> v4.3.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0038535Z  * [new tag]           v5.0.0                  -> v5.0.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0038996Z  * [new tag]           v5.1.0                  -> v5.1.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0039449Z  * [new tag]           v5.1.1                  -> v5.1.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0040169Z  * [new tag]           v5.1.10                 -> v5.1.10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0040797Z  * [new tag]           v5.1.2                  -> v5.1.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0041256Z  * [new tag]           v5.1.3                  -> v5.1.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0041714Z  * [new tag]           v5.1.4                  -> v5.1.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0042174Z  * [new tag]           v5.1.5                  -> v5.1.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0042635Z  * [new tag]           v5.1.6                  -> v5.1.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0043086Z  * [new tag]           v5.1.7                  -> v5.1.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0043536Z  * [new tag]           v5.1.9                  -> v5.1.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0043989Z  * [new tag]           v5.2.0                  -> v5.2.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0044442Z  * [new tag]           v5.3.0                  -> v5.3.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0044895Z  * [new tag]           v5.4.0                  -> v5.4.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0045346Z  * [new tag]           v5.4.1                  -> v5.4.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0045798Z  * [new tag]           v5.5.0                  -> v5.5.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0046281Z  * [new tag]           v5.6.0                  -> v5.6.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0046734Z  * [new tag]           v5.6.1                  -> v5.6.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0047181Z  * [new tag]           v5.6.2                  -> v5.6.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0047633Z  * [new tag]           v5.7.0                  -> v5.7.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0048099Z  * [new tag]           v5.7.1                  -> v5.7.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0048554Z  * [new tag]           v6.0.0                  -> v6.0.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0049005Z  * [new tag]           v6.0.1                  -> v6.0.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0049463Z  * [new tag]           v6.0.2                  -> v6.0.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0050160Z  * [new tag]           v6.0.3                  -> v6.0.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0050631Z  * [new tag]           v6.0.4                  -> v6.0.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0051085Z  * [new tag]           v6.0.5                  -> v6.0.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0051540Z  * [new tag]           v6.0.6                  -> v6.0.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0052006Z  * [new tag]           v6.0.7                  -> v6.0.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0052461Z  * [new tag]           v6.0.8                  -> v6.0.8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0052919Z  * [new tag]           v6.0.9                  -> v6.0.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0053374Z  * [new tag]           v6.1.0                  -> v6.1.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0053977Z  * [new tag]           v6.1.1                  -> v6.1.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0054434Z  * [new tag]           v6.1.2                  -> v6.1.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0054895Z  * [new tag]           v6.2.0                  -> v6.2.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0055353Z  * [new tag]           v6.2.1                  -> v6.2.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0055814Z  * [new tag]           v6.2.10                 -> v6.2.10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0056279Z  * [new tag]           v6.2.11                 -> v6.2.11
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0056743Z  * [new tag]           v6.2.12                 -> v6.2.12
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0057203Z  * [new tag]           v6.2.13                 -> v6.2.13
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0057667Z  * [new tag]           v6.2.14                 -> v6.2.14
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0058132Z  * [new tag]           v6.2.15                 -> v6.2.15
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0058600Z  * [new tag]           v6.2.16                 -> v6.2.16
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0059057Z  * [new tag]           v6.2.17                 -> v6.2.17
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0059530Z  * [new tag]           v6.2.2                  -> v6.2.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0060218Z  * [new tag]           v6.2.3                  -> v6.2.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0060680Z  * [new tag]           v6.2.4                  -> v6.2.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0061137Z  * [new tag]           v6.2.5                  -> v6.2.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0061592Z  * [new tag]           v6.2.6                  -> v6.2.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0062044Z  * [new tag]           v6.2.7                  -> v6.2.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0062495Z  * [new tag]           v6.2.8                  -> v6.2.8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0063097Z  * [new tag]           v6.2.9                  -> v6.2.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0063551Z  * [new tag]           v6.3.0                  -> v6.3.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0064009Z  * [new tag]           v6.3.1                  -> v6.3.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0064469Z  * [new tag]           v6.3.10                 -> v6.3.10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0064929Z  * [new tag]           v6.3.11                 -> v6.3.11
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0065397Z  * [new tag]           v6.3.12                 -> v6.3.12
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0065859Z  * [new tag]           v6.3.13                 -> v6.3.13
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0066323Z  * [new tag]           v6.3.14                 -> v6.3.14
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0066778Z  * [new tag]           v6.3.15                 -> v6.3.15
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0067244Z  * [new tag]           v6.3.16                 -> v6.3.16
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0067709Z  * [new tag]           v6.3.17                 -> v6.3.17
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0068166Z  * [new tag]           v6.3.18                 -> v6.3.18
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0068629Z  * [new tag]           v6.3.19                 -> v6.3.19
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0069084Z  * [new tag]           v6.3.2                  -> v6.3.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0069538Z  * [new tag]           v6.3.20                 -> v6.3.20
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0070213Z  * [new tag]           v6.3.3                  -> v6.3.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0070672Z  * [new tag]           v6.3.4                  -> v6.3.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0071128Z  * [new tag]           v6.3.5                  -> v6.3.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0071586Z  * [new tag]           v6.3.6                  -> v6.3.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0072034Z  * [new tag]           v6.3.7                  -> v6.3.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0072479Z  * [new tag]           v6.3.8                  -> v6.3.8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0072925Z  * [new tag]           v6.3.9                  -> v6.3.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0073370Z  * [new tag]           v6.4.0                  -> v6.4.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0073809Z  * [new tag]           v6.4.1                  -> v6.4.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0074255Z  * [new tag]           v6.4.2                  -> v6.4.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0074705Z  * [new tag]           v6.4.3                  -> v6.4.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0075159Z  * [new tag]           v6.4.4                  -> v6.4.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0075621Z  * [new tag]           v6.5.0                  -> v6.5.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0076071Z  * [new tag]           v6.5.1                  -> v6.5.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0076657Z  * [new tag]           v6.6.0                  -> v6.6.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0077104Z  * [new tag]           v6.6.1                  -> v6.6.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0077550Z  * [new tag]           v6.6.10                 -> v6.6.10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0078003Z  * [new tag]           v6.6.11                 -> v6.6.11
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0078460Z  * [new tag]           v6.6.12                 -> v6.6.12
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0078910Z  * [new tag]           v6.6.2                  -> v6.6.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0079356Z  * [new tag]           v6.6.3                  -> v6.6.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0080065Z  * [new tag]           v6.6.4                  -> v6.6.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0080524Z  * [new tag]           v6.6.5                  -> v6.6.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0080962Z  * [new tag]           v6.6.6                  -> v6.6.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0081401Z  * [new tag]           v6.6.7                  -> v6.6.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0081853Z  * [new tag]           v6.6.8                  -> v6.6.8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0082294Z  * [new tag]           v6.6.9                  -> v6.6.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0082735Z  * [new tag]           v6.7.0                  -> v6.7.0
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0083173Z  * [new tag]           v6.7.1                  -> v6.7.1
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0083630Z  * [new tag]           v6.7.10                 -> v6.7.10
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0084077Z  * [new tag]           v6.7.11                 -> v6.7.11
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0084521Z  * [new tag]           v6.7.12                 -> v6.7.12
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0084959Z  * [new tag]           v6.7.13                 -> v6.7.13
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0085551Z  * [new tag]           v6.7.14                 -> v6.7.14
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0085995Z  * [new tag]           v6.7.15                 -> v6.7.15
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0086437Z  * [new tag]           v6.7.16                 -> v6.7.16
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0086886Z  * [new tag]           v6.7.2                  -> v6.7.2
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0087336Z  * [new tag]           v6.7.3                  -> v6.7.3
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0087786Z  * [new tag]           v6.7.4                  -> v6.7.4
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0088227Z  * [new tag]           v6.7.5                  -> v6.7.5
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0088665Z  * [new tag]           v6.7.6                  -> v6.7.6
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0089107Z  * [new tag]           v6.7.7                  -> v6.7.7
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0089544Z  * [new tag]           v6.7.8                  -> v6.7.8
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0090227Z  * [new tag]           v6.7.9                  -> v6.7.9
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0090776Z  * [new ref]           7cbc640cf84a28e79226957d2ea6cbf77e90c7a1 -> pull/2015/merge
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0092600Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0093171Z ##[group]Determining the checkout info
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0093761Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0094140Z [command]/usr/bin/git sparse-checkout disable
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0095134Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0096339Z ##[group]Checking out the ref
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.0096868Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2015/merge
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.4999569Z Note: switching to 'refs/remotes/pull/2015/merge'.
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5000322Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5000586Z You are in 'detached HEAD' state. You can look around, make experimental
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5001130Z changes and commit them, and you can discard any commits you make in this
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5001625Z state without impacting any branches by switching back to a branch.
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5001917Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5002139Z If you want to create a new branch to retain commits you create, you may
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5002604Z do so (now or later) by using -c with the switch command. Example:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5002883Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003002Z   git switch -c <new-branch-name>
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003185Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003317Z Or undo this operation with:
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003729Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003839Z   git switch -
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5003973Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5004255Z Turn off this advice by setting config variable advice.detachedHead to false
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5004583Z 
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5004963Z HEAD is now at 7cbc640c Merge 82f2641aa964dfcc4f9a16ac4c242a70ec6d7577 into e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5048332Z ##[endgroup]
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5099442Z [command]/usr/bin/git log -1 --format=%H
+closures	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:01:12.5127142Z 7cbc640cf84a28e79226957d2ea6cbf77e90c7a1
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	﻿2026-10-07T16:01:12.5422430Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5422934Z with:
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5423142Z   python-version: 3.13
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5423382Z   check-latest: false
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5425839Z   token: ***
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5426063Z   update-environment: true
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5426318Z   allow-prereleases: false
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5426558Z   freethreaded: false
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5426778Z env:
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5426969Z   DOCS_ONLY_FAST: false
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.5427183Z ##[endgroup]
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.6753044Z ##[group]Installed versions
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.6850135Z Successfully set up CPython (3.13.16)
+closures	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-07T16:01:12.6851110Z ##[endgroup]
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	﻿2026-10-07T16:01:12.7052831Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7053280Z with:
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7053522Z   node-version: 22
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7053742Z   always-auth: false
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7053966Z   check-latest: false
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7056411Z   token: ***
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7056645Z   package-manager-cache: true
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7057079Z env:
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7057271Z   DOCS_ONLY_FAST: false
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7057566Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7058043Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7058498Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7058892Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7059298Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7059885Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.7060225Z ##[endgroup]
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.8697528Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.8703923Z (node:2322) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.8706107Z (Use `node --trace-deprecation ...` to show where the warning was created)
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:12.8707757Z ##[group]Environment details
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:13.2995527Z node: v22.23.3
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:13.2995876Z npm: 10.9.9
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:13.2996080Z yarn: 1.22.22
+closures	Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:01:13.2997361Z ##[endgroup]
+closures	Install pinned test dependencies	﻿2026-10-07T16:01:13.3163685Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3164666Z ^[[36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt^[[0m
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3482346Z shell: /usr/bin/bash -e {0}
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3482699Z env:
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3482954Z   DOCS_ONLY_FAST: false
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3483349Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3483950Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3484560Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3485091Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3485643Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3486182Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Install pinned test dependencies	2026-10-07T16:01:13.3486632Z ##[endgroup]
+closures	Install pinned test dependencies	2026-10-07T16:01:14.3273652Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+closures	Install pinned test dependencies	2026-10-07T16:01:14.4031994Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:14.9175543Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+closures	Install pinned test dependencies	2026-10-07T16:01:14.9261390Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.0385498Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 18.9 MB/s  0:00:00
+closures	Install pinned test dependencies	2026-10-07T16:01:15.0564181Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.0649514Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.0818929Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.0899757Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.1592377Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.1674278Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.2703317Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.2786169Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.5174119Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.5254488Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.7226287Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+closures	Install pinned test dependencies	2026-10-07T16:01:15.7313836Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+closures	Install pinned test dependencies	2026-10-07T16:01:15.9671546Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 72.2 MB/s  0:00:00
+closures	Install pinned test dependencies	2026-10-07T16:01:16.0527222Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+closures	Install pinned test dependencies	2026-10-07T16:01:16.0723996Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:16.1143491Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+closures	Install pinned test dependencies	2026-10-07T16:01:16.1261174Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:16.2655578Z   Installing build dependencies: started
+closures	Install pinned test dependencies	2026-10-07T16:01:17.4447236Z   Installing build dependencies: finished with status 'done'
+closures	Install pinned test dependencies	2026-10-07T16:01:17.4455734Z   Getting requirements to build wheel: started
+closures	Install pinned test dependencies	2026-10-07T16:01:19.1028553Z   Getting requirements to build wheel: finished with status 'done'
+closures	Install pinned test dependencies	2026-10-07T16:01:19.1038931Z   Preparing metadata (pyproject.toml): started
+closures	Install pinned test dependencies	2026-10-07T16:01:19.3410316Z   Preparing metadata (pyproject.toml): finished with status 'done'
+closures	Install pinned test dependencies	2026-10-07T16:01:19.4620182Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+closures	Install pinned test dependencies	2026-10-07T16:01:19.4701080Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+closures	Install pinned test dependencies	2026-10-07T16:01:19.6241248Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 231.6 MB/s  0:00:00
+closures	Install pinned test dependencies	2026-10-07T16:01:19.6829344Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+closures	Install pinned test dependencies	2026-10-07T16:01:19.6917804Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:19.7110334Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+closures	Install pinned test dependencies	2026-10-07T16:01:19.7193176Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:19.9821485Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+closures	Install pinned test dependencies	2026-10-07T16:01:19.9900447Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+closures	Install pinned test dependencies	2026-10-07T16:01:20.0114271Z Building wheels for collected packages: pyyaml
+closures	Install pinned test dependencies	2026-10-07T16:01:20.0122409Z   Building wheel for pyyaml (pyproject.toml): started
+closures	Install pinned test dependencies	2026-10-07T16:01:22.8560829Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+closures	Install pinned test dependencies	2026-10-07T16:01:22.8567402Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=11cf452abc2ee99220dedb4d7bb0e7a2a98196b23d0cca99821d62df5c06fd3f
+closures	Install pinned test dependencies	2026-10-07T16:01:22.8569099Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+closures	Install pinned test dependencies	2026-10-07T16:01:22.8587552Z Successfully built pyyaml
+closures	Install pinned test dependencies	2026-10-07T16:01:22.9172078Z Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+closures	Install pinned test dependencies	2026-10-07T16:01:29.4946286Z 
+closures	Install pinned test dependencies	2026-10-07T16:01:29.4969228Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+closures	Install strace	﻿2026-10-07T16:01:29.7983783Z ##[group]Run sudo apt-get update && sudo apt-get install -y strace
+closures	Install strace	2026-10-07T16:01:29.7984309Z ^[[36;1msudo apt-get update && sudo apt-get install -y strace^[[0m
+closures	Install strace	2026-10-07T16:01:29.8047306Z shell: /usr/bin/bash -e {0}
+closures	Install strace	2026-10-07T16:01:29.8047565Z env:
+closures	Install strace	2026-10-07T16:01:29.8047764Z   DOCS_ONLY_FAST: false
+closures	Install strace	2026-10-07T16:01:29.8048070Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install strace	2026-10-07T16:01:29.8048538Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Install strace	2026-10-07T16:01:29.8048992Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install strace	2026-10-07T16:01:29.8049395Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install strace	2026-10-07T16:01:29.8049948Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Install strace	2026-10-07T16:01:29.8050352Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Install strace	2026-10-07T16:01:29.8050687Z ##[endgroup]
+closures	Install strace	2026-10-07T16:01:29.8799942Z Get:1 file:/etc/apt/apt-mirrors.txt Mirrorlist [144 B]
+closures	Install strace	2026-10-07T16:01:29.9116452Z Hit:2 http://azure.archive.ubuntu.com/ubuntu noble InRelease
+closures	Install strace	2026-10-07T16:01:29.9161183Z Get:3 http://azure.archive.ubuntu.com/ubuntu noble-updates InRelease [126 kB]
+closures	Install strace	2026-10-07T16:01:29.9177286Z Get:4 http://azure.archive.ubuntu.com/ubuntu noble-backports InRelease [126 kB]
+closures	Install strace	2026-10-07T16:01:29.9203308Z Get:6 https://packages.microsoft.com/ubuntu/24.04/prod noble InRelease [3600 B]
+closures	Install strace	2026-10-07T16:01:29.9204919Z Get:5 http://azure.archive.ubuntu.com/ubuntu noble-security InRelease [126 kB]
+closures	Install strace	2026-10-07T16:01:30.0371754Z Get:7 http://azure.archive.ubuntu.com/ubuntu noble-updates/main amd64 Packages [1375 kB]
+closures	Install strace	2026-10-07T16:01:30.0561347Z Get:8 http://azure.archive.ubuntu.com/ubuntu noble-updates/main Translation-en [306 kB]
+closures	Install strace	2026-10-07T16:01:30.0581199Z Get:9 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe amd64 Packages [1702 kB]
+closures	Install strace	2026-10-07T16:01:30.0681413Z Get:10 http://azure.archive.ubuntu.com/ubuntu noble-updates/universe Translation-en [341 kB]
+closures	Install strace	2026-10-07T16:01:30.0697844Z Get:11 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted amd64 Packages [1730 kB]
+closures	Install strace	2026-10-07T16:01:30.0818683Z Get:12 http://azure.archive.ubuntu.com/ubuntu noble-updates/restricted Translation-en [396 kB]
+closures	Install strace	2026-10-07T16:01:30.0823944Z Get:13 http://azure.archive.ubuntu.com/ubuntu noble-updates/multiverse Translation-en [13.3 kB]
+closures	Install strace	2026-10-07T16:01:30.1511017Z Get:14 https://packages.microsoft.com/ubuntu/24.04/prod noble/main arm64 Packages [463 kB]
+closures	Install strace	2026-10-07T16:01:30.1600905Z Get:15 https://packages.microsoft.com/ubuntu/24.04/prod noble/main amd64 Packages [519 kB]
+closures	Install strace	2026-10-07T16:01:30.2028046Z Get:16 http://azure.archive.ubuntu.com/ubuntu noble-security/main amd64 Packages [1073 kB]
+closures	Install strace	2026-10-07T16:01:30.2078628Z Get:17 http://azure.archive.ubuntu.com/ubuntu noble-security/main Translation-en [223 kB]
+closures	Install strace	2026-10-07T16:01:30.2093498Z Get:18 http://azure.archive.ubuntu.com/ubuntu noble-security/universe amd64 Packages [1218 kB]
+closures	Install strace	2026-10-07T16:01:30.2562781Z Get:19 http://azure.archive.ubuntu.com/ubuntu noble-security/universe Translation-en [245 kB]
+closures	Install strace	2026-10-07T16:01:30.2579408Z Get:20 http://azure.archive.ubuntu.com/ubuntu noble-security/multiverse Translation-en [11.6 kB]
+closures	Install strace	2026-10-07T16:01:32.9492637Z Fetched 9996 kB in 1s (9704 kB/s)
+closures	Install strace	2026-10-07T16:01:33.7823781Z Reading package lists...
+closures	Install strace	2026-10-07T16:01:33.8126474Z Reading package lists...
+closures	Install strace	2026-10-07T16:01:34.0306958Z Building dependency tree...
+closures	Install strace	2026-10-07T16:01:34.0314834Z Reading state information...
+closures	Install strace	2026-10-07T16:01:34.2190214Z strace is already the newest version (6.8-0ubuntu2).
+closures	Install strace	2026-10-07T16:01:34.2190999Z strace set to manually installed.
+closures	Install strace	2026-10-07T16:01:34.2191732Z 0 upgraded, 0 newly installed, 0 to remove and 11 not upgraded.
+closures	Re-record the closures	﻿2026-10-07T16:01:34.2266118Z ##[group]Run REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
+closures	Re-record the closures	2026-10-07T16:01:34.2266724Z ^[[36;1mREF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2267247Z ^[[36;1m# --record-only, on both paths: merging here would overwrite the^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2267753Z ^[[36;1m# committed tests/closures.json with what this run just measured, and^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2268236Z ^[[36;1m# the check below would then compare the file against itself.^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2268622Z ^[[36;1mif [ "$SCOPE_CASE" = "scoped" ]; then^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2268995Z ^[[36;1m  printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2269454Z ^[[36;1m  echo "Scoped re-derive; every other closure is left as committed:"^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2270147Z ^[[36;1m  cat "$RUNNER_TEMP/rederive.txt"^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2270446Z ^[[36;1m  while read -r s; do^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2270697Z ^[[36;1m    [ -n "$s" ] || continue^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2271039Z ^[[36;1m    GOLDEN_REF="$REF" ./tests/derive_closures.sh \^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2271473Z ^[[36;1m      --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2271877Z ^[[36;1m  done < "$RUNNER_TEMP/rederive.txt"^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2272332Z ^[[36;1melse^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2272594Z ^[[36;1m  GOLDEN_REF="$REF" ./tests/derive_closures.sh \^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2272993Z ^[[36;1m    --out-dir "$RUNNER_TEMP/closures" --record-only^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2273318Z ^[[36;1mfi^[[0m
+closures	Re-record the closures	2026-10-07T16:01:34.2336936Z shell: /usr/bin/bash -e {0}
+closures	Re-record the closures	2026-10-07T16:01:34.2337206Z env:
+closures	Re-record the closures	2026-10-07T16:01:34.2337405Z   DOCS_ONLY_FAST: false
+closures	Re-record the closures	2026-10-07T16:01:34.2337709Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Re-record the closures	2026-10-07T16:01:34.2338161Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Re-record the closures	2026-10-07T16:01:34.2338597Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Re-record the closures	2026-10-07T16:01:34.2338986Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Re-record the closures	2026-10-07T16:01:34.2339383Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Re-record the closures	2026-10-07T16:01:34.2340045Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Re-record the closures	2026-10-07T16:01:34.2340398Z   OMP_NUM_THREADS: 1
+closures	Re-record the closures	2026-10-07T16:01:34.2340628Z   OPENBLAS_NUM_THREADS: 1
+closures	Re-record the closures	2026-10-07T16:01:34.2340858Z   MKL_NUM_THREADS: 1
+closures	Re-record the closures	2026-10-07T16:01:34.2341061Z   SCOPE_CASE: full
+closures	Re-record the closures	2026-10-07T16:01:34.2341261Z   SCOPE_SCRIPTS: 
+closures	Re-record the closures	2026-10-07T16:01:34.2341463Z ##[endgroup]
+closures	Re-record the closures	2026-10-07T16:01:34.2526556Z   [16:01:34] record tests/stress.py 
+closures	Re-record the closures	2026-10-07T16:01:34.2527760Z   [16:01:34] record tests/features.py 
+closures	Re-record the closures	2026-10-07T16:01:34.2528965Z   [16:01:34] record tests/block_duty.py 
+closures	Re-record the closures	2026-10-07T16:01:38.2307808Z   [16:01:38] done   tests/block_duty.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:01:38.2326612Z   [16:01:38] record tests/doc_claims.py 
+closures	Re-record the closures	2026-10-07T16:01:48.0779615Z   [16:01:48] done   tests/doc_claims.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:01:48.0797195Z   [16:01:48] record tests/md_tables.mjs 
+closures	Re-record the closures	2026-10-07T16:01:48.3662204Z   [16:01:48] done   tests/md_tables.mjs (exit 0)
+closures	Re-record the closures	2026-10-07T16:01:48.3677794Z   [16:01:48] record tests/wood_advisor.py 
+closures	Re-record the closures	2026-10-07T16:01:50.7919241Z   [16:01:50] done   tests/wood_advisor.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:01:50.7937180Z   [16:01:50] record tests/config_flow_steps.py 
+closures	Re-record the closures	2026-10-07T16:02:26.4608184Z   [16:02:26] done   tests/config_flow_steps.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:02:26.4625991Z   [16:02:26] record tests/structure.py 
+closures	Re-record the closures	2026-10-07T16:02:48.0185556Z   [16:02:48] done   tests/structure.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:02:48.0203789Z   [16:02:48] record tests/arch_score.py --smoke
+closures	Re-record the closures	2026-10-07T16:08:45.7313427Z   [16:08:45] done   tests/arch_score.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:08:45.7330204Z   [16:08:45] record tests/arch_score_head.py 
+closures	Re-record the closures	2026-10-07T16:09:25.2695816Z   [16:09:25] done   tests/arch_score_head.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:09:25.2711153Z   [16:09:25] record tests/typing_ruler.py 
+closures	Re-record the closures	2026-10-07T16:09:26.4330762Z   [16:09:26] done   tests/typing_ruler.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:09:26.4360951Z   [16:09:26] record tests/edge.py 
+closures	Re-record the closures	2026-10-07T16:10:22.7526659Z   [16:10:22] done   tests/edge.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:10:22.7560873Z   [16:10:22] record tests/validate.py 
+closures	Re-record the closures	2026-10-07T16:11:19.5130280Z   [16:11:19] done   tests/validate.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:11:19.5144216Z   [16:11:19] record tests/backtest.py 
+closures	Re-record the closures	2026-10-07T16:14:19.1730615Z   [16:14:19] done   tests/backtest.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:14:19.1748257Z   [16:14:19] record tests/boost_drift_replay.py 
+closures	Re-record the closures	2026-10-07T16:15:29.8701962Z   [16:15:29] done   tests/features.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:15:29.8720923Z   [16:15:29] record tests/entities.py 
+closures	Re-record the closures	2026-10-07T16:16:39.5080280Z   [16:16:39] done   tests/stress.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:21:14.7008960Z   [16:21:14] done   tests/entities.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:24.7208614Z   [16:34:24] done   tests/boost_drift_replay.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:24.7220675Z   [16:34:24] record tests/ha_contract.py 
+closures	Re-record the closures	2026-10-07T16:34:25.4158958Z   [16:34:25] done   tests/ha_contract.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:25.4171082Z   [16:34:25] record tests/manual_plan.py 
+closures	Re-record the closures	2026-10-07T16:34:35.1431025Z   [16:34:35] done   tests/manual_plan.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:35.1443114Z   [16:34:35] record tests/open_meteo.py 
+closures	Re-record the closures	2026-10-07T16:34:35.8227206Z   [16:34:35] done   tests/open_meteo.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:35.8240366Z   [16:34:35] record tests/solar_alignment.py 
+closures	Re-record the closures	2026-10-07T16:34:37.6978693Z   [16:34:37] done   tests/solar_alignment.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:37.6991524Z   [16:34:37] record tests/guard_pins.py 
+closures	Re-record the closures	2026-10-07T16:34:39.4661025Z   [16:34:39] done   tests/guard_pins.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:34:39.4673017Z   [16:34:39] record tests/finite_boundary.py 
+closures	Re-record the closures	2026-10-07T16:36:06.6818175Z   [16:36:06] done   tests/finite_boundary.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:36:06.6830846Z   [16:36:06] record tests/harness_headers.py 
+closures	Re-record the closures	2026-10-07T16:39:52.4488886Z   [16:39:52] done   tests/harness_headers.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:39:52.4501070Z   [16:39:52] record tests/layout.py 
+closures	Re-record the closures	2026-10-07T16:40:05.3222357Z   [16:40:05] done   tests/layout.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:40:05.3234664Z   [16:40:05] record tests/deployment_shape.py 
+closures	Re-record the closures	2026-10-07T16:40:09.4138954Z   [16:40:09] done   tests/deployment_shape.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:40:09.4151540Z   [16:40:09] record tests/optimality.py 
+closures	Re-record the closures	2026-10-07T16:43:16.5754431Z   [16:43:16] done   tests/optimality.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:43:16.5767362Z   [16:43:16] record tests/dst_checks.py 
+closures	Re-record the closures	2026-10-07T16:44:49.4510161Z   [16:44:49] done   tests/dst_checks.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:44:49.4522997Z   [16:44:49] record tests/golden.py --only __no_such_scenario__
+closures	Re-record the closures	2026-10-07T16:44:50.8588673Z   [16:44:50] done   tests/golden.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:44:50.8601201Z   [16:44:50] record tests/env_drift.py --cache-key e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf --all
+closures	Re-record the closures	2026-10-07T16:44:52.2550042Z   [16:44:52] done   tests/env_drift.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:44:52.2561641Z   [16:44:52] record tests/plan_view.py 
+closures	Re-record the closures	2026-10-07T16:44:54.3424766Z   [16:44:54] done   tests/plan_view.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:44:54.3436738Z   [16:44:54] record tests/frontend.py 
+closures	Re-record the closures	2026-10-07T16:44:54.7203866Z   [16:44:54] done   tests/frontend.py (exit 0)
+closures	Re-record the closures	2026-10-07T16:44:54.7216006Z   [16:44:54] record tests/card.mjs 
+closures	Re-record the closures	2026-10-07T16:45:13.6070257Z   [16:45:13] done   tests/card.mjs (exit 0)
+closures	Re-record the closures	2026-10-07T16:45:13.6084029Z   [16:45:13] record tests/card_drift.mjs 
+closures	Re-record the closures	2026-10-07T16:45:19.0464891Z   [16:45:19] done   tests/card_drift.mjs (exit 0)
+closures	Re-record the closures	2026-10-07T16:45:19.0466144Z 
+closures	Re-record the closures	2026-10-07T16:45:19.0467589Z recorded into /home/runner/work/_temp/closures; tests/closures.json left untouched (--record-only)
+closures	Fail if tests/closures.json under-approximates	﻿2026-10-07T16:45:19.0511898Z ##[group]Run # --partial drops one check and one only: "a selectable script with
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0512513Z ^[[36;1m# --partial drops one check and one only: "a selectable script with^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0513015Z ^[[36;1m# no recording at all", which a scoped re-derive fails by^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0513492Z ^[[36;1m# construction. The under-approximation comparison -- the thing this^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0513981Z ^[[36;1m# job exists for -- is identical on both paths. The output goes to^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0514481Z ^[[36;1m# check.txt in the uploaded recordings: closures-autofix runs the^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0514953Z ^[[36;1m# base's closure.py, and reddens where this one printed UNDER-SCOPED^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0515356Z ^[[36;1m# and that one did not (#1846).^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0515636Z ^[[36;1mset -o pipefail^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0515892Z ^[[36;1mif [ "$SCOPE_CASE" = "scoped" ]; then^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0516497Z ^[[36;1m  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0517097Z ^[[36;1melse^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0517546Z ^[[36;1m  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0518052Z ^[[36;1mfi^[[0m
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0581694Z shell: /usr/bin/bash -e {0}
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0581960Z env:
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0582160Z   DOCS_ONLY_FAST: false
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0582462Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0582907Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0583344Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0583930Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0584319Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0584703Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0585040Z   PYTHONPATH: tests/hastub
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0585273Z   SCOPE_CASE: full
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.0585481Z ##[endgroup]
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2635962Z note: tests/card_drift.mjs lists 3 file(s) this run did not touch (safe: over-scoped)
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2638514Z note: tests/entities.py lists 1 file(s) this run did not touch (safe: over-scoped)
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2661385Z note: tests/env_drift.py lists 1 file(s) this run did not touch (safe: over-scoped)
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2662680Z note: tests/golden.py lists 1 file(s) this run did not touch (safe: over-scoped)
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2663841Z note: tests/harness_headers.py lists 2 file(s) this run did not touch (safe: over-scoped)
+closures	Fail if tests/closures.json under-approximates	2026-10-07T16:45:19.2665033Z closure: committed closures cover every file this run touched
+closures	Fail if a test file re-implements a production symbol	﻿2026-10-07T16:45:19.2781712Z ##[group]Run python tests/closure.py no-copies
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2782380Z ^[[36;1mpython tests/closure.py no-copies^[[0m
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2869525Z shell: /usr/bin/bash -e {0}
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2870429Z env:
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2870725Z   DOCS_ONLY_FAST: false
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2871141Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2871740Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2872332Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2872852Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2873358Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2873838Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2874254Z   PYTHONPATH: tests/hastub
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:19.2874532Z ##[endgroup]
+closures	Fail if a test file re-implements a production symbol	2026-10-07T16:45:21.7767797Z closure: no test file defines a symbol production also defines
+closures	Upload closure recordings	﻿2026-10-07T16:45:21.8018250Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+closures	Upload closure recordings	2026-10-07T16:45:21.8018737Z with:
+closures	Upload closure recordings	2026-10-07T16:45:21.8018950Z   name: closure-recordings
+closures	Upload closure recordings	2026-10-07T16:45:21.8019216Z   path: /home/runner/work/_temp/closures
+closures	Upload closure recordings	2026-10-07T16:45:21.8019500Z   if-no-files-found: ignore
+closures	Upload closure recordings	2026-10-07T16:45:21.8020064Z   retention-days: 3
+closures	Upload closure recordings	2026-10-07T16:45:21.8020299Z   compression-level: 6
+closures	Upload closure recordings	2026-10-07T16:45:21.8020516Z   overwrite: false
+closures	Upload closure recordings	2026-10-07T16:45:21.8020737Z   include-hidden-files: false
+closures	Upload closure recordings	2026-10-07T16:45:21.8020970Z env:
+closures	Upload closure recordings	2026-10-07T16:45:21.8021154Z   DOCS_ONLY_FAST: false
+closures	Upload closure recordings	2026-10-07T16:45:21.8021437Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Upload closure recordings	2026-10-07T16:45:21.8021884Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+closures	Upload closure recordings	2026-10-07T16:45:21.8022322Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Upload closure recordings	2026-10-07T16:45:21.8022705Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Upload closure recordings	2026-10-07T16:45:21.8023101Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+closures	Upload closure recordings	2026-10-07T16:45:21.8023542Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+closures	Upload closure recordings	2026-10-07T16:45:21.8023864Z ##[endgroup]
+closures	Upload closure recordings	2026-10-07T16:45:21.9832425Z With the provided path, there will be 67 files uploaded
+closures	Upload closure recordings	2026-10-07T16:45:21.9833514Z Artifact name is valid!
+closures	Upload closure recordings	2026-10-07T16:45:21.9834047Z Root directory input is valid!
+closures	Upload closure recordings	2026-10-07T16:45:22.1938428Z Beginning upload of artifact content to blob storage
+closures	Upload closure recordings	2026-10-07T16:45:22.3455212Z Uploaded bytes 255242
+closures	Upload closure recordings	2026-10-07T16:45:22.3568139Z Finished uploading artifact content to blob storage!
+closures	Upload closure recordings	2026-10-07T16:45:22.3570081Z SHA256 digest of uploaded artifact zip is 5e8760f08608af6af13c204a59c4c1ae92e7da5d08d7883bedd4188a6f7b8ed0
+closures	Upload closure recordings	2026-10-07T16:45:22.3571220Z Finalizing artifact upload
+closures	Upload closure recordings	2026-10-07T16:45:22.6275194Z Artifact closure-recordings.zip successfully finalized. Artifact ID 11497717907
+closures	Upload closure recordings	2026-10-07T16:45:22.6277480Z Artifact closure-recordings has been successfully uploaded! Final size is 255242 bytes. Artifact ID is 11497717907
+closures	Upload closure recordings	2026-10-07T16:45:22.6281697Z Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/37648625296/artifacts/11497717907
+closures	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	﻿2026-10-07T16:45:22.6522385Z Post job cleanup.
+closures	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:45:22.7812863Z (node:10255) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+closures	Post Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444	2026-10-07T16:45:22.7813891Z (Use `node --trace-deprecation ...` to show where the warning was created)
+closures	Post Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	﻿2026-10-07T16:45:22.8010174Z Post job cleanup.
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-07T16:45:22.9529200Z Post job cleanup.
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0467114Z [command]/usr/bin/git version
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0510110Z git version 2.55.0
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0551913Z Temporarily overriding HOME='/home/runner/work/_temp/7d338276-287c-46da-85ce-9b94c0a4117c' before making global git config changes
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0552971Z Adding repository directory to the temporary git global config as a safe directory
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0561312Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0594887Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0632676Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0902153Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.0930462Z http.https://github.com/.extraheader
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.1001052Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.1052193Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.1256016Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+closures	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-07T16:45:23.1303988Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+closures	Complete job	﻿2026-10-07T16:45:23.1858431Z Cleaning up orphan processes

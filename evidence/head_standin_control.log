@@ -1,0 +1,2 @@
+note: tests/harness_headers.py lists 143 file(s) this run did not touch (safe: over-scoped)
+closure: committed closures cover every file this run touched

@@ -1,0 +1,2477 @@
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Price entity is empty
+Unknown DSO catalog product not_a_swedish_dso_2026; not writing
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
+Failed to publish ECL110 displace command: mqtt unreachable
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Config entry version 8 is newer than the supported version 7; downgrade is not supported
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/Users/timmalmstrom/hpo-seats/r9c-rev-2015/wt/tests/harness.py:547: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+gate_lock: waiting for the lease held by other until 2026-10-07 16:07:25.784698+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-07 16:07:26.434215+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-07 16:07:26.434215+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-07 16:07:26.434215+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-07 16:07:28.216553+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-07 16:07:28.951903+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-07 16:07:43.788730+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
+gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+
+=== Entities and platforms ===
+
+-- Platform registration
+  ok   PLATFORMS and PLATFORM_LIST agree
+  ok   every member of the test stub's Platform exists in Home Assistant's own
+  ok   every entry of PLATFORMS is a real Home Assistant platform
+  ok   every entry of PLATFORM_LIST is a real Home Assistant platform
+  ok   diagnostics.py exists
+  ok   diagnostics is NOT forwarded as a platform
+  ok   the binary_sensor platform is registered
+  ok   the binary_sensor module exists and sets up entries
+  ok   the button platform is registered
+  ok   the button module exists and sets up entries
+  ok   the sensor platform declares PARALLEL_UPDATES = 0
+  ok   the binary_sensor platform declares PARALLEL_UPDATES = 0
+  ok   the button platform declares PARALLEL_UPDATES = 0
+  ok   the climate platform declares PARALLEL_UPDATES = 1
+  ok   the switch platform declares PARALLEL_UPDATES = 1
+  ok   the datetime platform declares PARALLEL_UPDATES = 1
+
+-- Sensors
+  ok   all sensors are constructible
+  ok   the README's sensors count is right
+  ok   the README's binary sensors count is right
+  ok   the README's binary sensors table lists every one of them
+  ok   the README's buttons count is right
+  ok   the README's buttons table lists every one of them
+  ok   the README's wood_cheaper notes name the billed-price gate
+  ok   the README's options-page count matches _OPTION_PAGES
+  ok   the README names every options page by its real menu label
+  ok   the Modbus pre-fill page labels every suggested key as its own page does
+  ok   the README does not list Enable away mode as an options-page field
+  ok   the Quick start prose step numbers agree with the diagram's
+  ok   the diagram's 'how do you want to' step pairs with the prose's 'how to describe' step (#1535 label-wording gap)
+  ok   every Quick start prose heading number is used exactly once
+  ok   the configuration reference names every shipped options field
+  ok   only the unbounded cell keeps Cost Power Headroom unavailable
+  ok   automations.md names every state the Cost Power Headroom sensor publishes
+  ok   the README's total entity count covers every registered platform
+
+=== Stress and economics ===
+  ok   tests/README.md's stress annotation states the sweep's real size
+  ok   the stress annotation's edge-case count is the dict's real size
+  ok   env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)
+  ok   stress.py's per-scenario budget verdict is importable and refuses a scenario over its own budget (R9 D7-s1-02)
+  ok   the validate annotation's scenario count is the module's real size
+  ok   tests/README.md's golden.py line names the run its default mode makes
+  ok   closures.json's comment discloses the differential guards' stub seconds
+  ok   architecture.md's opening counts name the package it describes
+  ok   architecture.md's module map lists every module in the package
+  ok   architecture.md's HA boundary names exactly the module-level importers
+  ok   architecture.md's one function-level toucher is the only one
+  ok   architecture.md's HA-free count is the tree's
+  ok   architecture.md's option-page count matches _OPTION_PAGES
+  ok   architecture.md's __init__.py service count matches services.yaml
+  ok   architecture.md's services.py service count matches services.yaml
+  ok   architecture.md's services.yaml service count matches services.yaml
+  ok   architecture.md's sensor count matches the platform census
+  ok   architecture.md's switch.py names every entity it constructs
+  ok   architecture.md's binary_sensor.py names every entity it constructs
+  ok   architecture.md's entity diagram counts match the census
+  ok   every README mermaid fence sits inside <details>, so HACS shows a label rather than raw diagram source
+  ok   no README <img> carries a relative src, which HACS blanks
+  ok   no README image with a relative target wraps its alt text across lines, which stops HACS rewriting it and leaves the src blank
+  ok   every relative README image survives HACS's rewriter, judged in the span the rewriter's own global scan gives it: inline, that span's first '(' is the src's own, and no '.md' anywhere in it
+  ok   the README hero is the Playwright screenshot, not B4's interim SVG
+  ok   every sensor the platform builds has a row in the README, and every row is a sensor it builds
+  ok   no sensor is documented in two groups
+  ok   the sensor section is still split into labelled groups
+  ok   unique ids are unique
+  ok   the README has a Removal section, under Installation
+  ok   it names the standard delete path
+  ok   it says the card's Lovelace resource stays behind, and where to remove it
+  ok   it says the code is uninstalled through HACS or by deleting the folder
+  ok   the store files it says are left under .storage are exactly the ones the coordinator keeps
+  ok   the README's store-file count is the census, not a carried ten
+  ok   the README's requirement line states the Home Assistant floor hacs.json declares
+  ok   and the README badge agrees
+  ok   hacs.json's Home Assistant floor is at least 2025.2.0 (the first release whose own requires-python is >=3.13.0)
+  ok   the README states the lowest Python version CI actually runs on
+  ok   the README names exactly the interpreters the SUITE runs on, neither more nor fewer
+  ok   the Python badge agrees with that floor
+  ok   the README carries a level-2 'Known limitations' section (#952)
+  ok   the Known limitations section describes constraints, not a heading with a caption
+  ok   the register's test-coverage row agrees with the recorded coverage floors
+  ok   the register's config-flow-test-coverage row agrees with the recorded config-flow floor
+  ok   the register's docs-examples row is done: the blueprints are listed in the home-assistant.io Blueprints Exchange
+  ok   the docs-examples row cites the listing in its resolving /t/ form
+  ok   README.md and docs/automations.md link the same blueprints
+  ok   neither coverage row quotes figures of its own
+  ok   the carried tier partition covers the register's rows exactly, once each
+  ok   the manifest declares the tier the register supports cumulatively
+  ok   the Measured Power sensor exists
+  ok   the Learning Observed COP sensor exists
+  ok   the Lifetime Space Heating Energy sensor exists
+  ok   the DHW Energy (lifetime) sensor exists
+  ok   the Lifetime Total Energy sensor exists
+  ok   the Lifetime Space Heating Cost sensor exists
+  ok   the DHW Cost (lifetime) sensor exists
+  ok   the Lifetime Total Heating Cost sensor exists
+  ok   the Prediction Accuracy sensor exists
+  ok   the Cost Monthly Peak Power sensor exists
+  ok   the Solar Surplus Forecast sensor exists
+  ok   the Thermal Battery Charge sensor exists
+  ok   the Thermal Battery Energy sensor exists
+  ok   the Learning Comfort Weight sensor exists
+  ok   measured power is distinguishable from recommended power
+  ok   measured power reads the measurement
+  ok   measured power keeps the commanded value alongside
+  ok   observed COP is published
+  ok   Lifetime Space Heating Energy is TOTAL_INCREASING
+  ok   DHW Energy (lifetime) is TOTAL_INCREASING
+  ok   Lifetime Total Energy is TOTAL_INCREASING
+  ok   Lifetime Space Heating Cost is a TOTAL in a currency
+  ok   DHW Cost (lifetime) is a TOTAL in a currency
+  ok   Lifetime Total Heating Cost is a TOTAL in a currency
+  ok   the DHW/space split is described rather than implied
+  ok   the energy split reconciles with the total
+  ok   the accumulators state their period in words
+  ok   and carry this month's figures next to the lifetime state
+  ok   and the date they started counting, when the store has one
+  ok   the plan sensors say their numbers are projections, not history
+  ok   accuracy is published
+  ok   the accuracy bias is published alongside the magnitude
+  ok   the billed peak is published
+  ok   the free headroom threshold is explained
+  ok   the fuse advisor's monthly answer is published
+  ok   outage recovery is visible while it is active
+  ok   the Cost Power Headroom sensor exists
+  ok   headroom is the state, in kW, ready for a charger automation
+  ok   the headroom sensor is available exactly when a limit exists
+  ok   the headroom attributes carry the limit, source and horizon
+  ok   the setpoint advisor recommends in °C with the sweep alongside
+  ok   the tank is translated into shower terms
+  ok   the heavy-day sensor reports the worst learned window
+  ok   PV surplus is published
+  ok   the battery reports state of charge
+  ok   the learned comfort weight is visible
+  ok   the solar sensor advertises a plan_kind marker
+  ok   the plan sensor publishes the manual-plan window for the card
+  ok   the plan sensor publishes its currency for the card
+  ok   and still publishes it before the first plan exists
+  ok   a plan sensor reads 'no plan' before a plan exists, 'no heating planned' for an empty one
+  ok   the plan sensor publishes the configured hot-water windows for the card
+  ok   and it differs from the plan's own reading of the windows
+  ok   and the plan branch really carries both, differing
+  ok   and publishes it before the first plan exists
+  ok   and keeps it out of the recorder, like the windows it explains
+  ok   a plant with no hot water publishes no hot-water attributes, either plan branch (#1237)
+  ok   the same payload with hot water configured still publishes the block (#1237 control)
+  ok   a plant with no hot water still publishes quiet keys before a plan exists
+  ok   and still publishes them once a space plan exists (#2009)
+  ok   the same payload with hot water configured still publishes the quiet keys
+  ok   the plan sensor publishes wood_fuel for the card (#463)
+  ok   and keeps wood_fuel out of the recorder
+  ok   the measured power sensor goes unavailable without an entity
+  ok   the observed COP sensor goes unavailable too
+  ok   the peak sensor is unavailable without a capacity tariff
+  ok   the PV sensor is unavailable without an array
+  ok   no sensor crashes before the first update
+  ok   the narrative sensor states the biggest non-idle reason
+  ok   the narrative's items and rendered lines ride in attributes
+  ok   the score sensor states the overall grade with the parts in attributes
+  ok   the score sensor is unavailable before any grade has evidence
+  ok   the starts sensor counts lifetime with the month and wear price along
+  ok   no power meter means no start counter, not a frozen zero
+  ok   the monthly receipt rides the contract comparison sensor
+  ok   the last diagnosis rides the prediction accuracy sensor
+  ok   the frequency advisor states the recommendation with the map along
+  ok   without a frequency entity the advisor is unavailable, not zero
+
+-- A published number is a reading or it is nothing
+
+-- S0 CoordinatorContext (#377)
+  ok   CoordinatorContext is importable from heatpump_optimizer.coordinator
+  ok   CoordinatorContext is a frozen dataclass over the five write-once hubs
+  ok   _current_action is not a CoordinatorContext field
+  ok   a real coordinator constructs _ctx in the existing assignment order
+  ok   _ctx holds the same write-once objects the coordinator still exposes
+  ok   CoordinatorContext rejects writes (frozen)
+  ok   _current_action stays a mutable slot on the coordinator
+  ok   the six hub names still resolve on the coordinator instance
+
+-- S1 hub refs via _ctx (#377)
+  ok   the four write-once hubs are not raw instance attributes
+  ok   coordinator methods read those hubs through _ctx, not raw self
+  ok   facade symbols stay importable from heatpump_optimizer.coordinator
+
+-- S2 zero-state helpers at module level (#193)
+  ok   _liquid_fraction is a module-level FunctionDef, not a class method
+  ok   _solve_anchor is a module-level FunctionDef, not a class method
+
+-- S5 thermal-learning state outside the dhw seam (#193)
+  ok   _init_thermal_learning exists, in the learning seam, and initialises state
+  ok   no dhw-seam method assigns house or buffer learning state (#193 S5)
+  ok   _effective_house_heat_loss is a module-level FunctionDef, not a class method
+
+-- S6 inverter-frequency state outside the grid seam (#193)
+  ok   _init_frequency exists, outside the grid seam, and initialises state
+  ok   no grid-seam method assigns inverter-frequency state (#193 S6)
+  ok   _grid_fee_entity_value is a module-level FunctionDef, not a class method
+
+-- S8 COP-health watch state outside the core seam (#193)
+  ok   the COP-health watch state is initialised in the learning seam (#193 S8)
+  ok   no core-seam method assigns COP-health watch state (#193 S8)
+  ok   with no tank sensor the published tank temperature is the model default
+  ok   with no buffer probe the published buffer temperature is the default too
+  ok   with no lower-floor sensor the lower floor IS the indoor temperature
+  ok   and the upper floor is the indoor temperature, always
+  ok   nothing reading the hot water tank means that sensor is unavailable
+  ok   nothing reading the buffer tank means that sensor is unavailable
+  ok   nothing reading the slab means that sensor is unavailable
+  ok   nothing reading the lower floor means that sensor is unavailable
+  ok   nothing reading the floor return means that sensor is unavailable
+  ok   the indoor sensor, which IS read, keeps reporting
+  ok   the indoor sensor publishes its thermometer's id, None without one
+  ok   the upper floor is available exactly while the indoor thermometer reads
+  ok   and a stale indoor thermometer publishes the model default, as before
+  ok   without an indoor reading the indoor sensor is unavailable, not 21.0 available
+  ok   without an indoor reading climate does not publish the constructor default
+  ok   the upper floor names where its number comes from
+  ok   the upper floor ships disabled by default (#1669)
+  ok   the indoor sensor it duplicates stays enabled (#1669 control)
+  ok   DHWTemperatureSensor reports its sensor once one is configured
+  ok   BufferTankTempSensor reports its sensor once one is configured
+  ok   FloorReturnTempSensor reports its sensor once one is configured
+  ok   LowerFloorTempSensor reports its sensor once one is configured
+  ok   the slab estimate lives while the return temperature drives it
+  ok   a stale tank sensor still publishes its last number
+  ok   but the entity goes unavailable rather than holding it out as current
+  ok   mixed hot water follows the thermometer it is computed from
+  ok   and it is still available when the tank really is being read
+
+-- Constructor defaults on the install the flow actually produces
+  ok   the shipping flow, every form untouched, configures no thermometer at all
+  ok   and stores the 200 L tank the page pre-fills, with hot water OFF: an untouched wizard answers the presence question no (R9 D12-s3-01)
+  ok   at CYCLE 1 nothing in D8-01's entities publishes a constructor default
+  ok   and at STEADY STATE (cycle 10, past the slab seed's decay) the residual stays empty: climate is gated, so the solve-derived money is not published
+
+-- P2: one fact, one owner (round-9 class barrier)
+  ok   P2 owners: two_zone_enabled is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: wood_furnace_on is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: dhw_enabled is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: state_age is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: on_threshold_kw is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: entity_write_domain is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: fenced_cycle_step is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: plan_running_rule is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+  ok   P2 owners: every census a shapeless fact rests on is still in its script
+  ok   and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+
+-- P6: every read has a producer (round-9 class barrier)
+  ok   the payload carries the optimizer's own horizon, so the plan sensors publish 12 h for a 12 h plan rather than a constant 24 (D14-s1-02)
+  ok   every coordinator.data key a platform reads is one production writes (P6 K)
+  ok   every entity id a blueprint, the card or the package names is one a platform builds (P6 B)
+  ok   every getattr/hasattr probe names what production or upstream defines (P6 G)
+  ok   every error code a flow can return is in that flow's error table, in every catalogue (P6 E)
+  ok   every non-standard mode an entity offers is translated and iconed (P6 P)
+  ok   every field the pre-fill preview can render has a label and a description, in both flows and every catalogue (P6 F)
+  ok   no solve seed stays at its constructor default unless declared, and no declaration is stale (P6 S)
+  ok   and each P6 arm fires on its own planted defect (null controls)
+  ok   the climate entity's dhw_temperature attribute is None where nothing reads it
+  ok   the climate entity's slab_temperature attribute is None where nothing reads it
+  ok   the climate entity's lower_floor_temperature attribute is None where nothing reads it
+  ok   the climate entity's upper_floor_temperature attribute is None where nothing reads it
+  ok   the climate entity's floor_return_temperature attribute is None where nothing reads it
+  ok   the outdoor attribute is the forecast the plan uses, not the 5.0 default
+  ok   the forecast step is the entry covering now, not the list's first
+  ok   and a forecast that has not started yet reads its first entry
+  ok   the Outdoor sensor follows the forecast rather than going unavailable
+  ok   and says so, so the number is never mistaken for a thermometer
+  ok   Learning Estimated COP is the COP at that forecast, not at the 5.0 default
+  ok   ThermalBatterySensor is unavailable when no store is sensed at all
+  ok   ThermalBatteryEnergySensor is unavailable when no store is sensed at all
+  ok   the view names every store it only modelled, rather than dropping them
+  ok   and the reported charge drops the non-store buffer from its denominator
+  ok   the energy sensor carries the same disclosure in its own attributes
+  ok   a stale floor return still publishes its last number in the payload
+  ok   but the climate attribute reports it as unknown, not as current
+  ok   a configured thermometer's live reading still reaches climate.dhw_temperature
+  ok   a configured thermometer's live reading still reaches climate.lower_floor_temperature
+  ok   a configured thermometer's live reading still reaches climate.upper_floor_temperature
+  ok   a configured thermometer's live reading still reaches climate.floor_return_temperature
+  ok   the slab estimate still reaches the climate entity while its return reads
+  ok   the Outdoor sensor prefers its thermometer over the forecast
+  ok   ThermalBatterySensor is available again once a store is sensed
+  ok   ThermalBatteryEnergySensor is available again once a store is sensed
+  ok   and the view reports every store as measured there
+  ok   an install with only an indoor thermometer keeps its thermal battery
+  ok   with the stores it only modelled named rather than dropped
+
+-- P11: every Home Assistant name production reaches exists at the floor
+  ok   the floor snapshot is recorded at the floor hacs.json declares
+  ok   every Home Assistant name production reaches unguarded exists at the floor, and every one is recorded (P11 floor)
+  ok   and the P11 floor arm names each planted defect, passes each guarded or typing-only one, and fails an unrecorded import closed (null controls)
+
+-- Hot water entities exist only where there is hot water
+  ok   a config with no hot water publishes dhw_enabled False
+  ok   DHWEnergySensor is unavailable with hot water switched off
+  ok   DHWCostSensor is unavailable with hot water switched off
+  ok   DHWTemperatureSensor is unavailable with hot water switched off
+  ok   DHWScheduleSensor is unavailable with hot water switched off
+  ok   DHWHeatingCostSensor is unavailable with hot water switched off
+  ok   DHWHeatingPlanSensor is unavailable with hot water switched off
+  ok   the Energy dashboard is offered a hot water meter only when there is one
+  ok   DHWEnergySensor is available again once hot water is configured
+  ok   DHWCostSensor is available again once hot water is configured
+  ok   DHWScheduleSensor is available again once hot water is configured
+  ok   DHWHeatingCostSensor is available again once hot water is configured
+  ok   DHWHeatingPlanSensor is available again once hot water is configured
+  ok   DHWTemperatureSensor is available again once hot water is configured
+  ok   DHWScheduleSensor is disabled by default with no hot water (#1398)
+  ok   DHWScheduleSensor is enabled by default once hot water is configured (#1398)
+  ok   DHWHeatingCostSensor is disabled by default with no hot water (#1398)
+  ok   DHWHeatingCostSensor is enabled by default once hot water is configured (#1398)
+  ok   DHWHeatingPlanSensor is disabled by default with no hot water (#1398)
+  ok   DHWHeatingPlanSensor is enabled by default once hot water is configured (#1398)
+  ok   DHWEnergySensor is disabled by default with no hot water (#1398)
+  ok   DHWEnergySensor is enabled by default once hot water is configured (#1398)
+  ok   DHWCostSensor is disabled by default with no hot water (#1398)
+  ok   DHWCostSensor is enabled by default once hot water is configured (#1398)
+  ok   the probe-gated temperature sensor stays off with hot water but no tank probe
+  ok   the real coordinator derives the same off default from config (#1398)
+  ok   the real coordinator derives the same on default from config (#1398)
+  ok   the setpoint advisor is wrapped in the DHW gate like its siblings (#1461)
+  ok   the hot-water census reaches more than the sensor platform (#1527)
+  ok   every named exception is a hot-water entity the census found
+  ok   every hot-water entity takes the one gate (#1461, #1527)
+  ok   no gated hot-water entity carries a static default beside the gate (#1542)
+  ok   no hot-water entity is available on a plant with no hot water
+  ok   no hot-water entity is enabled by default on a plant with no hot water
+  ok   every gated hot-water entity is on by default with hot water and its probe (#1542)
+  ok   a probe-keyed entity stays off by default until its probe is configured (#1335)
+  ok   a hot-water entity reading a probe keys its default on that probe's slot
+  ok   the boost overlay drops hot-water power where the plant has no hot water (#1527)
+  ok   the boost overlay keeps hot-water power where the plant has hot water (#1527)
+  ok   PredictiveInsightSensor keeps its series-shaped dhw_usage_profile out of the recorder (#1462)
+  ok   ThermalBatterySensor keeps its series-shaped components out of the recorder (#1462)
+  ok   DHWSetpointAdvisorSensor keeps its series-shaped candidates out of the recorder (#1462)
+  ok   SensorGapAdvisorSensor keeps its series-shaped gaps out of the recorder (#1462)
+  ok   period/split_method are recorded once, on one accumulator (#1462)
+
+-- Waiting for evidence is not the same as broken
+  ok   ObservedCOPSensor is unavailable while its evidence is missing
+  ok   ObservedCOPSensor names what it is waiting for
+  ok   ObservedCOPSensor is available, and waiting for nothing, once it lands
+  ok   FrequencyAdvisorSensor is unavailable while its evidence is missing
+  ok   FrequencyAdvisorSensor names what it is waiting for
+  ok   FrequencyAdvisorSensor is available, and waiting for nothing, once it lands
+  ok   ContractComparisonSensor is unavailable while its evidence is missing
+  ok   ContractComparisonSensor names what it is waiting for
+  ok   ContractComparisonSensor is available, and waiting for nothing, once it lands
+  ok   an unconfigured source is distinguished from a missing sample
+
+-- A failed refresh reaches every entity
+  ok   every entity is available against a payload that satisfies every gate
+  ok   and none of them is available after a failed coordinator refresh
+
+-- No published attribute is non-finite, in any configuration
+  ok   no entity publishes a non-finite state or attribute, in any configuration
+  ok   the sweep's fixtures really do feed non-finite numbers in
+  ok   the free headroom threshold is None, not +inf, when there is no reference
+  ok   and a real threshold still comes through untouched
+
+-- Power headroom survives the turn of the month
+  ok   the tracker really has no reference peak at the turn of the month
+  ok   the headroom entity still exists on the 1st with no fuse configured
+  ok   and answers 0 kW free, because the month's bill is set from zero
+  ok   the headroom sensor is available and numeric there
+  ok   and the measured threshold takes over once a window has closed
+  ok   with no fuse and no capacity tariff there is still nothing to report
+
+-- Device classes on the three that were bare
+  ok   DHW Setpoint Advisor declares device class temperature
+  ok   DHW Mixed Water declares device class volume_storage
+  ok   Thermal Battery Energy declares device class energy_storage
+  ok   no sensor pairs a device class with a state class HA forbids
+  ok   ECL110 Displace stays bare: it is a parallel shift, not a temperature
+  ok   Prediction Accuracy stays bare for the same reason: it is a mean error
+  ok   a device class with no state class is legal, so the valve target is fine
+  ok   Solar Surplus Forecast stays bare: a forecast is not a consumption meter
+  ok   DHW Heavy Day Demand stays bare: a learned p90 quantile is not a meter either
+
+-- The one device is a service device
+  ok   the shared device declares itself a service device
+  ok   and it is identified by the config entry, not by anything physical
+  ok   the shared device names the publisher, not the placeholder
+  ok   the shared device links to this entry's configuration page
+  ok   every sensor entity sits on the service device
+  ok   every binary_sensor entity sits on the service device
+  ok   every button entity sits on the service device
+  ok   every switch entity sits on the service device
+  ok   every climate entity sits on the service device
+  ok   every datetime entity sits on the service device
+
+-- Binary sensors
+  ok   six binary sensors are added
+  ok   a stale input raises the problem flag
+  ok   the problem names the input
+  ok   the frozen learners are reported with a reason
+  ok   a healthy install does not flag a problem
+  ok   a healthy cycle publishes no problem sources
+  ok   a stale tank sensor is the named source of the problem
+  ok   a unavailable tank sensor is the named source of the problem
+  ok   a missing_entity tank sensor is the named source of the problem
+  ok   a not_numeric tank sensor is the named source of the problem
+  ok   a failing sensor.power slot names its entity and class
+  ok   a failing sensor.mode slot names its entity and class
+  ok   a failing sensor.defrost slot names its entity and class
+  ok   two failures at once name both entities
+  ok   with one line per failure, in the evidence's own order
+  ok   the older attributes are unchanged by the new ones
+  ok   a healthy tank publishes no sources
+  ok   the stale tank becomes the named source
+  ok   and recovery empties the sources again
+  ok   the external heat sensor reflects the detector
+  ok   its evidence is published so a user can check the reasoning
+  ok   suppression is reported separately from detection
+  ok   away mode is reflected
+  ok   the return time is published
+  ok   the open-window sensor reflects the detector
+  ok   its evidence is published, same contract as external heat
+  ok   the open-window sensor stays quiet without the detector key
+  ok   the cheaper sensor is unavailable until fuel is ready
+  ok   and cheaper is false when not ready
+  ok   ready with a cheaper hour is on
+  ok   ready with an idle plan is off
+  ok   ready makes the cheaper sensor available
+  ok   cheaper attributes are sek_per_kwh and cheaper_hour_count
+  ok   the mold-floor breach is off while the guard is disabled
+  ok   a cold damp room below its floor fires the breach
+  ok   the breach carries the computed floor and the shortfall
+  ok   a configured margin above the shortfall keeps the breach quiet
+  ok   a room above its floor stays quiet
+  ok   a seeded (not measured) room publishes no floor
+  ok   the breach is off without a live humidity and carries no floor
+  ok   a disabled mold guard publishes no floor, even for a cold damp room
+  ok   a damp house held at its target publishes the capped floor and stays quiet
+  ok   the floor is taken at the plan step covering now, not the plan's first step
+  ok   a covering step with a non-finite outdoor publishes no floor
+  ok   a plan step with no parseable label publishes no floor
+  ok   a stale plan, or no plan yet, publishes no floor for the cold damp room
+  ok   the breach floor is the solve's own floor at the forecast step covering now
+  ok   the breach attribute reports a space block
+  ok   no binary sensor crashes before the first update
+
+-- Buttons
+  ok   four buttons are added
+  ok   the Optimize Now button exists
+  ok   the Learning Run System Identification button exists
+  ok   the Learning Reset Comfort Weight button exists
+  ok   the Prediction Accuracy Diagnose Last Interval button exists
+  ok   the run button is available when idle
+  ok   pressing it forces a run
+  ok   the run button is unavailable while a run is in flight
+  ok   the experiment button is unavailable while one is running
+  ok   the reset button reaches the coordinator, then asks for one refresh
+
+-- Options flow
+  ok   every menu entry has a handler behind it
+  ok   the building_preset page is offered in the menu
+  ok   the grid page is offered in the menu
+  ok   the solar_pv page is offered in the menu
+  ok   the away page is offered in the menu
+  ok   the learning page is offered in the menu
+  ok   the thermal_model page is offered in the menu
+  ok   the top and advanced menus partition the pages exactly
+  ok   'advanced' is a menu, not a page
+  ok   the top menu is the everyday pages plus Advanced
+  ok   the advanced submenu offers exactly the advanced pages
+  ok   heat_pump_power_entity can be cleared again once set
+  ok   heat_pump_energy_entity can be cleared again once set
+  ok   house_power_entity can be cleared again once set
+  ok   external_heat_entity can be cleared again once set
+  ok   pv_production_entity can be cleared again once set
+  ok   away_presence_entity can be cleared again once set
+  ok   grid_fee_entity can be cleared again once set
+  ok   saving the entities page leaves external_heat_entity alone
+  ok   saving the entities page leaves mixing_valve_target_entity alone
+  ok   saving the entities page leaves pv_production_entity alone
+  ok   saving the entities page leaves pv_export_price_entity alone
+  ok   saving the entities page leaves away_presence_entity alone
+  ok   saving the entities page leaves away_return_entity alone
+  ok   the entities page still clears its own absent fields
+  ok   heat_pump_mode_entity is offered on the entities_pump page
+  ok   heat_pump_mode_entity is optional
+  ok   heat_pump_mode_entity can be cleared again once set
+  ok   heat_pump_defrost_entity is offered on the entities_pump page
+  ok   heat_pump_defrost_entity is optional
+  ok   heat_pump_defrost_entity can be cleared again once set
+  ok   heat_pump_online_entity is offered on the entities_pump page
+  ok   heat_pump_online_entity is optional
+  ok   heat_pump_online_entity can be cleared again once set
+  ok   heat_pump_fault_entity is offered on the entities_pump page
+  ok   heat_pump_fault_entity is optional
+  ok   heat_pump_fault_entity can be cleared again once set
+  ok   heat_pump_backup_heater_entity is offered on the entities_pump page
+  ok   heat_pump_backup_heater_entity is optional
+  ok   heat_pump_backup_heater_entity can be cleared again once set
+  ok   heat_pump_dhw_booster_entity is offered on the entities_pump page
+  ok   heat_pump_dhw_booster_entity is optional
+  ok   heat_pump_dhw_booster_entity can be cleared again once set
+  ok   heat_pump_capacity_limited_entity is offered on the entities_pump page
+  ok   heat_pump_capacity_limited_entity is optional
+  ok   heat_pump_capacity_limited_entity can be cleared again once set
+  ok   heat_pump_supply_temp_entity is offered on the entities_pump page
+  ok   heat_pump_supply_temp_entity is optional
+  ok   heat_pump_supply_temp_entity can be cleared again once set
+  ok   heat_pump_return_temp_entity is offered on the entities_pump page
+  ok   heat_pump_return_temp_entity is optional
+  ok   heat_pump_return_temp_entity can be cleared again once set
+  ok   heat_pump_mode_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_mode_entity offers exactly its slot's domains
+  ok   heat_pump_defrost_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_defrost_entity offers exactly its slot's domains
+  ok   heat_pump_online_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_online_entity offers exactly its slot's domains
+  ok   heat_pump_fault_entity is a topology slot, so the card and the service agree
+  ok   the picker for heat_pump_fault_entity offers exactly its slot's domains
+  ok   heat_pump_backup_heater_entity is options-only, not a card slot
+  ok   the picker for heat_pump_backup_heater_entity offers the shared flag domains
+  ok   heat_pump_dhw_booster_entity is options-only, not a card slot
+  ok   the picker for heat_pump_dhw_booster_entity offers the shared flag domains
+  ok   heat_pump_capacity_limited_entity is options-only, not a card slot
+  ok   the picker for heat_pump_capacity_limited_entity offers the shared flag domains
+  ok   heat_pump_supply_temp_entity is options-only, not a card slot
+  ok   the picker for heat_pump_supply_temp_entity is a temperature sensor picker
+  ok   heat_pump_return_temp_entity is options-only, not a card slot
+  ok   the picker for heat_pump_return_temp_entity is a temperature sensor picker
+  ok   and it really narrows: a flag slot on the same page offers no device class
+  ok   and the flag-domain tuple really is the one the card slots use
+  ok   dhw_disinfection_switch_entity is offered on the hot_water_tank page, optional
+  ok   dhw_disinfection_switch_entity is options-only, not a card slot
+  ok   dhw_disinfection_mode is offered on the hot_water_tank page, optional
+  ok   dhw_disinfection_mode is options-only, not a card slot
+  ok   the disinfection switch can be cleared again once set
+  ok   the disinfection switch picker offers switch and input_boolean only
+  ok   the disinfection mode reuses the frequency stage's two words, observe by default
+  ok   the entities_pump page reaches a close-save
+  ok   heat_pump_mode_entity survives a save of the page it lives on
+  ok   heat_pump_defrost_entity survives a save of the page it lives on
+  ok   heat_pump_online_entity survives a save of the page it lives on
+  ok   heat_pump_fault_entity survives a save of the page it lives on
+  ok   heat_pump_backup_heater_entity survives a save of the page it lives on
+  ok   heat_pump_dhw_booster_entity survives a save of the page it lives on
+  ok   heat_pump_capacity_limited_entity survives a save of the page it lives on
+  ok   heat_pump_supply_temp_entity survives a save of the page it lives on
+  ok   heat_pump_return_temp_entity survives a save of the page it lives on
+  ok   a configured signal comes back as the field's pre-fill
+  ok   and clearing every one of them sticks
+  ok   an install that configures none of them stores none of them set
+  ok   and sees them as four empty slots on the heat pump, not as faults
+  ok   every slot says what it is asking for, even when the answer is nothing
+  ok   indoor_temp_entity asks for a temperature probe
+  ok   outdoor_temp_entity asks for a temperature probe
+  ok   dhw_temp_entity asks for a temperature probe
+  ok   buffer_tank_temp_entity asks for a temperature probe
+  ok   lower_floor_temp_entity asks for a temperature probe
+  ok   heat_pump_power_entity asks for a power probe
+  ok   heat_pump_energy_entity asks for a energy probe
+  ok   house_power_entity asks for a power probe
+  ok   solar_radiation_entity asks for a irradiance probe
+  ok   pv_production_entity asks for a power probe
+  ok   a slot with no narrower answer than its domains says so, not a guess
+
+-- Tibber Pulse auto-bind (#703)
+  ok   an empty house_power_entity is suggested from a Pulse-shaped power sensor
+  ok   a pre-set house_power_entity is left alone
+  ok   a non-power Pulse-named sensor is not suggested
+  ok   the metering page suggests Pulse when house_power_entity is empty
+  ok   the metering page keeps a stored house_power_entity
+  ok   and nothing asks for a class its own domains could never carry
+
+-- Nord Pool / price entity (#701)
+  ok   a Nord Pool entity with 24+24 hourly rows parses
+  ok   a Nord Pool entity with 96+96 quarter-hour rows parses
+  ok   VAT and surcharge are value × VAT + surcharge
+  ok   an empty price entity is a failed fetch, not a guess
+  ok   the entity source never asks for Tibber reauth
+  ok   a 24+24 entity series becomes coordinator prices
+  ok   an empty entity source raises UpdateFailed and does not start reauth
+
+-- DSO tariff catalog (#698)
+  ok   ellevio_villa_effekt_2026 round-trips parse_rules and writes peak keys
+  ok   goteborg_energi_effekt_2026 round-trips parse_rules and writes peak keys
+  ok   an unknown catalog id writes nothing
+  ok   none writes nothing
+
+-- Weekend and holiday comfort/DHW (#700)
+  ok   Saturday uses the weekend daytime comfort
+  ok   Thursday still uses the weekday daytime comfort
+  ok   a holiday date uses the holiday comfort pair
+  ok   a calendar-on day uses holiday DHW windows
+  ok   Saturday without holiday keeps the weekend DHW windows
+  ok   comfort_band.violations rejects a weekend night above day
+  ok   comfort_band.violations rejects a holiday night above day
+
+-- Sensor-gap euro advisor (#699)
+  ok   an empty house meter ranks the peak-term miss from metering_windows
+  ok   a blind peak above the true peak prices zero, never a negative rebate
+  ok   count=0 spreads the miss over one month instead of dividing by zero
+  ok   an empty outdoor slot ranks the COP miss
+  ok   an empty DHW probe ranks the coasting miss
+  ok   a configured slot ranks 0 extra (null control)
+  ok   the sensor-gap advisor is a diagnostic sensor
+  ok   an empty outdoor slot ranks its COP miss on the production advisor (#1226)
+  ok   an empty DHW probe ranks its coasting miss on the production advisor (#1226)
+  ok   the advisor's state is the top empty slot's rank (#1226)
+  ok   both probe rows read the resolved price, and the COP row the load (#1226)
+  ok   a fully wired install ranks every row 0, load and price included (#1226)
+  ok   with no measured power series the advisor ranks no probe (#1226)
+  ok   a heat-pump series carrying a None ranks as its clean twin (#1226)
+  ok   a heat-pump series carrying an unparsed string ranks as its clean twin (#1226)
+  ok   a house series carrying a None ranks as its clean twin (#1226)
+  ok   a house series carrying an unparsed string ranks as its clean twin (#1226)
+  ok   a hole in a spiked series is dropped, not priced as a 0.00 house row (#1226)
+  ok   the payload publishes the pump's measured window (#1460)
+  ok   and the whole-house window, from the whole-house meter's own reading (#1460)
+  ok   with no whole-house meter the house window is empty rather than the pump's own draw under the house's name (#1460)
+  ok   with no meter the realised peak folds the step's whole ask, DHW included (#1499)
+  ok   the advisor prices an empty outdoor slot from the payload's own window (#1460)
+  ok   describe_setup on a Swedish hass labels the slots in Swedish (D4-s2-81)
+  ok   describe_setup's layout catalog label, description and requirement are Swedish on a Swedish hass (D4-s2-81)
+  ok   describe_setup's sensor gap labels are Swedish on a Swedish hass (D4-s2-81)
+  ok   the gap advisor sensor ranks with Swedish labels on a Swedish hass (D4-s2-81)
+  ok   every payload key the gap advisor reads is one `_build_data_dict` writes (#1460)
+
+-- Sensor advisor: unconfigured sensors ranked by model spread (#1269)
+  ok   the advisor ranks the unconfigured optional temperature slots (#1269)
+  ok   an already-configured sensor appears nowhere in the ranking (null control)
+  ok   priced rows are sorted by spread, descending (#1269)
+  ok   every unpriced row sits after every priced one (#1269)
+  ok   the ranking is deterministic in the config (#1269)
+  ok   with a measured power series the replay is driven by history (#1269)
+  ok   with no measured series the replay says so (config basis, #1269)
+  ok   a sensor no model term reads ranks exactly 0.0 and last (null control)
+  ok   a fully wired install publishes no advisor payload at all (null control)
+  ok   the plan sensor publishes the ranking as an attribute (#1269)
+  ok   a fully wired install's plan sensor publishes no advisor key (#1269)
+  ok   D9-s2-01: both plan sensors publish the cycle's cached ranking without re-ranking it, and the cycle drops the series' holes as the sensor did
+  ok   _with_sensor_advisor ranks with Swedish labels on a Swedish hass (D4-s2-81)
+  ok   the advisor attribute is unrecorded like its siblings (#1269)
+  ok   the building page clears its own absent mixing_valve_target_entity
+  ok   the building page clears its own absent wood_tank_top_entity
+  ok   an untouched thermal model form submits nothing at all
+  ok   an untouched save leaves a legacy entry single-zone
+  ok   and leaves hot water off too
+  ok   an edited number saves without touching the zone inference
+  ok   an explicit zone value is what turns two-zone on
+  ok   turning two-zone off reaches the save
+  ok   the mode select can turn two-zone off despite stored zone keys
+  ok   turning two-zone on reaches the save
+  ok   and can turn two-zone on for a legacy entry with no zone keys
+  ok   an untouched save of the comfort page cannot flip two-zone
+  ok   an untouched save of the hot_water page cannot flip two-zone
+  ok   an untouched save of the tuning page cannot flip two-zone
+  ok   an untouched save of the grid page cannot flip two-zone
+  ok   an untouched save of the away page cannot flip two-zone
+  ok   an untouched save of the modbus_prefill page cannot flip two-zone
+  ok   an untouched save of the entities page cannot flip two-zone
+  ok   an untouched save of the entities_metering page cannot flip two-zone
+  ok   an untouched save of the entities_pump page cannot flip two-zone
+  ok   an untouched save of the building page cannot flip two-zone
+  ok   an untouched save of the building_preset page cannot flip two-zone
+  ok   an untouched save of the thermal_model page cannot flip two-zone
+  ok   an untouched save of the thermal_model_zones page cannot flip two-zone
+  ok   an untouched save of the hot_water_tank page cannot flip two-zone
+  ok   an untouched save of the hot_water_pumps page cannot flip two-zone
+  ok   an untouched save of the solar_pv page cannot flip two-zone
+  ok   an untouched save of the learning page cannot flip two-zone
+  ok   an untouched save of the learning_features page cannot flip two-zone
+  ok   an untouched save of the grid_connection page cannot flip two-zone
+  ok   an untouched save of the grid_fees page cannot flip two-zone
+  ok   an untouched save of the heat_curve page cannot flip two-zone
+  ok   every options page answers an untouched submit with the menu
+  ok   and every saving page wrote its settings through before returning
+  ok   the untouched-save sweep exercised every page
+  ok   a stored value is suggested back rather than defaulted
+
+-- Option page schemas
+  ok   every menu page renders a schema
+  ok   the away page can be submitted untouched
+  ok   the building page can be submitted untouched
+  ok   the building_preset page can be submitted untouched
+  ok   the comfort page can be submitted untouched
+  ok   the entities page can be submitted untouched
+  ok   the entities_metering page can be submitted untouched
+  ok   the entities_pump page can be submitted untouched
+  ok   the grid page can be submitted untouched
+  ok   the grid_connection page can be submitted untouched
+  ok   the grid_fees page can be submitted untouched
+  ok   the heat_curve page can be submitted untouched
+  ok   the hot_water page can be submitted untouched
+  ok   the hot_water_pumps page can be submitted untouched
+  ok   the hot_water_tank page can be submitted untouched
+  ok   the learning page can be submitted untouched
+  ok   the learning_features page can be submitted untouched
+  ok   the modbus_prefill page can be submitted untouched
+  ok   the quick_setup page can be submitted untouched
+  ok   the setup_overview page can be submitted untouched
+  ok   the solar_pv page can be submitted untouched
+  ok   the thermal_model page can be submitted untouched
+  ok   the thermal_model_zones page can be submitted untouched
+  ok   the tuning page can be submitted untouched
+  ok   entity pickers use filter= rather than the legacy domain key
+  ok   every entity picker is narrowed to a domain
+  ok   the wood-furnace toggle is on the building page even when off
+  ok   toggle off hides the DHW wood-coil option
+  ok   the DHW wood-coil option is offered when the furnace is on
+  ok   and it is off unless asked for
+  ok   the wood-on building page can be submitted untouched
+  ok   the ten wide options pages group their fields with section()
+  ok   a one-level selector walk misses the entities page's pickers
+  ok   and the recursive walk still names every entities picker
+
+-- Stored values and field ranges
+  ok   setup and the expert page agree on every shared field's range
+  ok   no thermal-mass field accepts a value the model would clamp away
+  ok   every value derivable for a 40-400 m² house fits its field (25,920 cases)
+  ok   any house the questionnaire can describe can still save the expert page (4,800 round trips)
+  ok   an expert edit sticks on a radiator house (slab mass 0.16, page floor was 1)
+  ok   and reaches the save rather than dying in the schema
+  ok   every options page accepts the values it displays, on a full configuration
+  ok   every setup page accepts the values it displays
+  ok   the field holding an out-of-range value (132.5) widens to admit it
+  ok   the widened field is named to the user, not silently patched
+  ok   a page with nothing out of range reports no error at all
+  ok   and no other field on the page moves
+  ok   a comfort value stored by apply_schedule can still be shown and saved
+  ok   an out-of-range stored comfort value is flagged on its own field
+  ok   and a band contradiction is still reported when one is submitted
+
+-- Derived values and the questionnaire
+  ok   the derived-key roster is exactly what presets.derive writes
+  ok   a no-op Submit leaves the derivation exactly as it was
+  ok   and changes nothing it wrote back
+  ok   re-typing a derived value unchanged is not an override
+  ok   editing a field the questionnaire does not own leaves it armed
+  ok   changing a derived value switches the derivation off, so the value keeps
+  ok   and the questionnaire still recalculates after a no-op Submit
+  ok   the expert page warns while the derivation is armed
+  ok   and says nothing when it is off
+  ok   strings.json gives the warning somewhere to appear
+  ok   strings.json does not carry the text as a step key
+  ok   en.json gives the warning somewhere to appear
+  ok   en.json does not carry the text as a step key
+  ok   sv.json gives the warning somewhere to appear
+  ok   sv.json does not carry the text as a step key
+  ok   the warning is carried in code, in both languages
+  ok   and an unknown language falls back to English rather than a KeyError
+  ok   strings.json config scales the house-mass advice by area
+  ok   strings.json options scales the house-mass advice by area
+  ok   en.json config scales the house-mass advice by area
+  ok   en.json options scales the house-mass advice by area
+  ok   sv.json config scales the house-mass advice by area
+  ok   sv.json options scales the house-mass advice by area
+  ok   strings.json points the derivation at the page it actually overwrites
+  ok   en.json points the derivation at the page it actually overwrites
+  ok   sv.json points the derivation at the page it actually overwrites
+
+-- Translations
+  ok   strings: the disinfection write-failure repair, its options and its refusal are translated
+  ok   en: the disinfection write-failure repair, its options and its refusal are translated
+  ok   sv: the disinfection write-failure repair, its options and its refusal are translated
+  ok   en.json matches strings.json exactly
+  ok   sv.json matches strings.json exactly
+  ok   strings.json: no translation leaf carries a double-escaped \u sequence
+  ok   en.json: no translation leaf carries a double-escaped \u sequence
+  ok   sv.json: no translation leaf carries a double-escaped \u sequence
+  ok   every labelled flow field has a data_description
+  ok   the reauth token field points at developer.tibber.com
+  ok   and the Swedish reauth pointer is actually translated
+  ok   the ECL110 MQTT QoS label is actually translated in Swedish
+  ok   the out-of-range warning has a config message
+  ok   and the Swedish config message is actually translated
+  ok   the out-of-range warning has a options message
+  ok   and the Swedish options message is actually translated
+  ok   the two menus in strings.json match the flow, in order
+  ok   the Swedish init menu is actually translated
+  ok   the Swedish advanced menu is actually translated
+  ok   every setup handler renders for the label walk
+  ok   the label walk reaches grouped fields in both flows
+  ok   the label walk renders every step the catalogue labels
+  ok   every flow field has a label where the frontend looks, in strings.json
+  ok   every flow field has a description where the frontend looks, in strings.json
+  ok   every section has a name translation, in strings.json
+  ok   every flow field has a label where the frontend looks, in en.json
+  ok   every flow field has a description where the frontend looks, in en.json
+  ok   every section has a name translation, in en.json
+  ok   every flow field has a label where the frontend looks, in sv.json
+  ok   every flow field has a description where the frontend looks, in sv.json
+  ok   every section has a name translation, in sv.json
+  ok   the DHW wood-coil option has a data entry
+  ok   and its Swedish data is a real translation
+  ok   the DHW wood-coil option has a data_description entry
+  ok   and its Swedish data_description is a real translation
+  ok   the building_structure dropdown has labels
+  ok   the building_era dropdown has labels
+  ok   the building_foundation dropdown has labels
+  ok   the emitter dropdown has labels
+
+-- Services
+  ok   the README Services table is services.yaml's keys, not a carried count
+  ok   the README's registered-service count is derived from services.yaml
+  ok   simulate_plan is documented
+  ok   its fields are documented for the UI
+  ok   the service schema accepts what the card sends
+  ok   apply_schedule is documented
+  ok   apply_schedule is registered under the name the card calls
+  ok   its schema covers both schedules and the comfort window
+  ok   every documented apply_schedule field exists in the schema
+  ok   apply_schedule accepts the hot water minimum the card now sends
+  ok   the hot water minimum is documented for the UI form too
+  ok   the deadband margin is a named constant, not a literal
+  ok   the default minimum still clears the default setpoint's deadband
+  ok   apply_schedule takes no required field, so a partial edit is allowed
+  ok   apply_manual_plan is documented
+  ok   apply_manual_plan is registered under the name the card calls
+  ok   its schema covers both channels, the expiry and the entry filter
+  ok   every documented apply_manual_plan field exists in the schema
+  ok   apply_manual_plan takes no required field, so an omitted channel is allowed
+  ok   the documented apply_manual_plan example passes the service's own schema
+  ok   and its slot examples are structured lists, not folded strings
+  ok   clear_manual_plan is documented
+  ok   clear_manual_plan is registered under the name the card calls
+  ok   clear_manual_plan takes no required field
+  ok   restore_learned_snapshot is documented
+  ok   restore_learned_snapshot is registered under the documented name
+  ok   diagnose_interval is documented
+  ok   diagnose_interval is registered under the documented name
+
+-- Climate and switch platforms
+  ok   the climate platform adds exactly one entity
+  ok   the climate unique id is prefixed with the entry id
+  ok   the climate entity is device-named (name None with has_entity_name)
+  ok   the climate entity pins the corrected object id for new installs
+  ok   the climate hvac modes are off, heat and auto
+  ok   the thermostat shows the user's target, not the per-step setpoint
+  ok   current temperature reads the published payload
+  ok   setting hvac off reaches the coordinator as mode off
+  ok   a preset selection maps onto the optimizer mode
+  ok   a target change is recorded as override evidence, then persisted
+  ok   the thermostat's slider stops at the comfort ceiling
+  ok   and starts at the comfort floor, not a degree below it
+  ok   every position the slider offers is one the band will accept
+  ok   a refused setpoint trains nothing
+  ok   hvac_action reports HEATING while the compressor runs at high power
+  ok   hvac_action reports IDLE while auto but the compressor is not running
+  ok   hvac_action reports HEATING for a space step at minimum modulation
+  ok   hvac_action reports HEATING while only the DHW tank is heating
+  ok   hvac_action reports IDLE in a system-identification off phase over an eco step
+  ok   Heat Pump Action power_kw is space plus DHW, and None with no power (#1499)
+  ok   Recommended Power, climate recommended_power_kw and Measured Power's recommended_power are the step's whole ask, space plus DHW (#1499)
+  ok   R9-F2.4 P2: no entity publishes a draw at a step the same action declares off, and one that declares it on still publishes the whole ask (#1499)
+  ok   R9-F2.4 P2: the idle action's power placeholder is not a draw
+  ok   hvac_action reports OFF for the off mode with a zeroed action
+  ok   hvac_action is None with no coordinator data at all
+  ok   hvac_action reports HEATING for a space boost overlay while mode is off (#1683)
+  ok   hvac_action follows the live mode, not the stale payload's, while a refresh is still in flight (#1683)
+  ok   hvac_mode maps 'auto' to auto
+  ok   hvac_mode maps 'comfort' to heat
+  ok   hvac_mode maps 'economy' to heat
+  ok   hvac_mode maps 'off' to off
+  ok   hvac_mode maps 'boost' to heat
+  ok   hvac_mode falls back to AUTO with no coordinator data
+  ok   preset_mode reports None for the off mode rather than an invalid preset
+  ok   preset_mode reports a real preset unchanged
+  ok   preset_mode falls back to auto with no coordinator data
+  ok   current_temperature is None with no coordinator data
+  ok   a failed ECL110 publish is caught, not propagated, and the mode change still lands
+  ok   setting hvac AUTO reaches the coordinator as mode auto and publishes
+  ok   setting hvac HEAT reaches the coordinator as mode comfort and publishes
+  ok   async_turn_on selects auto and publishes
+  ok   async_turn_off selects off and publishes
+  ok   the switch platform adds the optimizer, away, boost and block switches
+  ok   the switch unique id is prefixed with the entry id
+  ok   the switch entity is named through its translation key
+  ok   the switch pins today's object id for new installs
+  ok   the switch is on while the mode is not off
+  ok   turning on an already-on optimizer does not stomp the live mode
+  ok   turning it off reaches the coordinator
+  ok   the switch is off in mode off
+  ok   turning on from off selects auto
+  ok   the switch's mode attribute follows the live mode, not the stale payload's, while a refresh is still in flight (#1683)
+  ok   the away switch pins today's object id
+  ok   the away switch is off when the override is off
+  ok   the DHW boost switch pins today's object id
+  ok   the space boost switch pins today's object id
+  ok   the DHW boost switch is named through its translation key
+  ok   the space boost switch is named through its translation key
+  ok   both boost switches are off when no overlay is live
+  ok   turning DHW boost on holds and persists the DHW channel
+  ok   turning space boost on holds and persists the space channel
+  ok   turning DHW boost off releases and persists the DHW channel
+  ok   the block switches pin block_dhw and block_space
+  ok   the block switches are named Block DHW and Block Space Heating
+  ok   Block DHW is gated like the DHW boost switch
+  ok   turning Block DHW on holds the block channel and not the boost
+  ok   a later DHW boost press clears the DHW block
+  ok   a later Block DHW press clears the DHW boost
+  ok   turning Block DHW off releases the block channel
+  ok   with no coordinator data at all the switch reads the live mode, not crashes
+  ok   and its extra attributes degrade to empty rather than raising
+  ok   turning the away switch on reaches the coordinator's away setter
+  ok   turning it back off reaches the same setter with the opposite flag
+  ok   every switch turned off shows off at once, while the published payload still says on
+  ok   and every switch turned back on shows on at once
+  ok   the action sweep reaches every platform the integration forwards
+  ok   every entity action has a row or a stated exemption
+  ok   every entity action publishes its own result at once, while the payload still holds the old one, before the one refresh it asks for starts
+  ok   the datetime platform adds exactly one entity
+  ok   the return datetime pins today's object id
+
+-- Sensor metadata
+  ok   exactly the ordinary-install-dead sensors are disabled by default
+
+-- Entity organisation and typing hygiene (audit B4)
+  ok   no numpy scalar leaves any sensor's state or attributes (#173)
+  ok   the schedule's solar gain is published as a plain float
+  ok   np.float64, a float subclass, is converted rather than waved through
+  ok   np.bool_ becomes a plain bool
+  ok   the finite scrub converts an ndarray recursively, non-finite to None
+  ok   the hot-water domain is the nine dhw-keyed sensors
+  ok   every hot-water sensor suggests a dhw_ object id (#174)
+  ok   DHW Energy (lifetime) suggests sensor.heat_pump_optimizer_dhw_energy on new installs
+  ok   DHW Energy (lifetime) keeps unique id ..._dhw_energy, so existing installs keep their entity id
+  ok   DHW Cost (lifetime) suggests sensor.heat_pump_optimizer_dhw_cost on new installs
+  ok   DHW Cost (lifetime) keeps unique id ..._dhw_cost_total, so existing installs keep their entity id
+  ok   DHW Mixed Water suggests sensor.heat_pump_optimizer_dhw_mixed_water on new installs
+  ok   DHW Mixed Water keeps unique id ..._dhw_mixed_water, so existing installs keep their entity id
+  ok   the stat_kind headline family is four sensors
+  ok   the stat_kind family shares one entity_category (#175)
+  ok   and that category is primary, not Diagnostic: the card's headline is the product
+  ok   prediction accuracy is unavailable until an interval has been scored (#176)
+  ok   and names what it is waiting for
+  ok   a real fresh coordinator's accuracy sensor is unavailable, not Unknown
+  ok   with a scored interval it is available and waits for nothing
+  ok   exactly the machinery sensors are Diagnostic (#177, #179)
+  ok   the disabled roster is platform-wide: sensors plus the wood pair (#1335)
+  ok   every disabled-by-default entity is dead on the ordinary install, the ECL110 pair included (#177, #1335)
+  ok   the alive-while-disabled exception is the duplicate, not a dead sensor (#1669)
+  ok   no enabled entity ships dead on the ordinary install (#1335)
+  ok   the valve readout is on and available where a throttling valve is configured (#1644)
+  ok   and off and unavailable where none is (#1644)
+  ok   a configured non-throttling mode gates the same as none (#1644 control)
+  ok   the configured-input census finds the probe temperatures and ECL110
+  ok   every entity whose default should follow a configured input takes the gate
+  ok   every named input-gate exception is still in the census and still ungated
+  ok   no input-gated entity carries a static default beside the gate
+  ok   an input-gated entity reading a probe is keyed on that probe's slot
+  ok   an input-gated entity is off and unavailable with its input unconfigured
+  ok   and on and available once its input is configured (#1542)
+  ok   nothing the card addresses is disabled by default (#1335)
+  ok   nothing the README's first-hour rows name is disabled by default (#1335)
+  ok   the optimization score is unavailable before any sub-score has evidence (#1335)
+  ok   and names what it is waiting for (#1335)
+  ok   with evidence it is available, enabled and waits for nothing
+  ok   MonthlySavingsSensor is unavailable before any booked month
+  ok   MonthlySavingsSensor names settled_savings_month while empty
+  ok   MonthlySavingsSensor state is the open month's estimated savings_sek
+  ok   every class that publishes attributes is in the pinned roster (#373)
+  ok   AwayModeBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   ComfortWeightSensor publishes exactly its pinned attribute keys (#373)
+  ok   CompressorStartsSensor publishes exactly its pinned attribute keys (#373)
+  ok   ContractComparisonSensor publishes exactly its pinned attribute keys (#373)
+  ok   CurrentSetpointSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWHeatingPlanSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWHeavyDaySensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWScheduleSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWSetpointAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   DHWTemperatureSensor publishes exactly its pinned attribute keys (#373)
+  ok   ECL110EffectiveDisplaceSensor publishes exactly its pinned attribute keys (#373)
+  ok   ExternalHeatBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   FrequencyAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   HeatPumpActionSensor publishes exactly its pinned attribute keys (#373)
+  ok   HeatPumpOptimizerClimate publishes exactly its pinned attribute keys (#373)
+  ok   IndoorTempSensor publishes exactly its pinned attribute keys (#373)
+  ok   InputHealthBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   MeasuredPowerSensor publishes exactly its pinned attribute keys (#373)
+  ok   MixedHotWaterSensor publishes exactly its pinned attribute keys (#373)
+  ok   ModelRestartAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   MoldFloorBreachBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   MonthlyPeakSensor publishes exactly its pinned attribute keys (#373)
+  ok   MonthlySavingsSensor publishes exactly its pinned attribute keys (#373)
+  ok   ObservedCOPSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizationScoreSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizationStatusSensor publishes exactly its pinned attribute keys (#373)
+  ok   OptimizerEnableSwitch publishes exactly its pinned attribute keys (#373)
+  ok   OutdoorTempSensor publishes exactly its pinned attribute keys (#373)
+  ok   PVSurplusSensor publishes exactly its pinned attribute keys (#373)
+  ok   PlanNarrativeSensor publishes exactly its pinned attribute keys (#373)
+  ok   PowerHeadroomSensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictedSavingsSensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictionAccuracySensor publishes exactly its pinned attribute keys (#373)
+  ok   PredictiveInsightSensor publishes exactly its pinned attribute keys (#373)
+  ok   SavingsPercentageSensor publishes exactly its pinned attribute keys (#373)
+  ok   ScheduleSensor publishes exactly its pinned attribute keys (#373)
+  ok   SensorGapAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   SolarHeatGainSensor publishes exactly its pinned attribute keys (#373)
+  ok   SolarIrradianceSensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   SpaceHeatingPlanSensor publishes exactly its pinned attribute keys (#373)
+  ok   ThermalBatteryEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   ThermalBatterySensor publishes exactly its pinned attribute keys (#373)
+  ok   TotalCostSensor publishes exactly its pinned attribute keys (#373)
+  ok   TotalEnergySensor publishes exactly its pinned attribute keys (#373)
+  ok   UpperFloorTempSensor publishes exactly its pinned attribute keys (#373)
+  ok   ValveTargetRecommendationSensor publishes exactly its pinned attribute keys (#373)
+  ok   VentilationBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   WoodBurnAdvisorSensor publishes exactly its pinned attribute keys (#373)
+  ok   WoodCheaperBinarySensor publishes exactly its pinned attribute keys (#373)
+  ok   the pinned attribute surface is the whole measured one (#373)
+  ok   data-driven attribute publishers are named in the holes list (#405)
+  ok   data-driven attribute publishers are not exact-set pinned (#405)
+  ok   every predictive signal reaches the published attributes under its own name (#246)
+  ok   and the published set is exactly those signals, nothing dropped or added (#246)
+  ok   the state summarises the same signals, and says so when there are none (#246)
+  ok   SpaceHeatingPlanSensor publishes exactly the pinned EMPTY-plan key set (#395)
+  ok   SpaceHeatingPlanSensor publishes exactly the pinned POPULATED-plan key set (#395)
+  ok   DHWHeatingPlanSensor publishes exactly the pinned EMPTY-plan key set (#395)
+  ok   DHWHeatingPlanSensor publishes exactly the pinned POPULATED-plan key set (#395)
+  ok   config_flow._translated_text stays deleted (#178)
+  ok   const.ATTR_DHW_COOLING_RATE stays deleted (#178)
+  ok   const.ATTR_BUFFER_COOLING_RATE stays deleted (#178)
+  ok   presets._floor_heated_area stays deleted (#178)
+  ok   topology._CONDITIONAL_PLACES stays deleted (#178)
+
+-- Naming, translation keys and id stability (v5.0.0)
+  ok   every entity carries a translation key
+  ok   no entity carries a literal _attr_name any more
+  ok   the binary_sensor translation roster matches the entities exactly
+  ok   the button translation roster matches the entities exactly
+  ok   the climate translation roster matches the entities exactly
+  ok   the datetime translation roster matches the entities exactly
+  ok   the sensor translation roster matches the entities exactly
+  ok   the switch translation roster matches the entities exactly
+  ok   the translation files carry no platforms without entities
+  ok   the Swedish entity names are actually translated
+  ok   English entity display names are Title Case
+  ok   sensor.cost_baseline clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_contract_comparison clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_current_electricity_price clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_monthly_peak_power clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_power_headroom clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_predicted clusters under the 'Cost ' prefix (#945)
+  ok   sensor.cost_total_heating clusters under the 'Lifetime ' prefix (#945)
+  ok   sensor.learning_comfort_weight clusters under the 'Learning ' prefix (#945)
+  ok   sensor.learning_estimated_cop clusters under the 'Learning ' prefix (#945)
+  ok   sensor.learning_observed_cop clusters under the 'Learning ' prefix (#945)
+  ok   sensor.plan_dhw_heating clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_monthly_savings clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_narrative clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_optimization_score clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_predicted_savings clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_savings_percentage clusters under the 'Plan ' prefix (#945)
+  ok   sensor.plan_space_heating clusters under the 'Plan ' prefix (#945)
+  ok   button.learning_reset_comfort_weight clusters under the 'Learning ' prefix (#945)
+  ok   button.learning_run_system_identification clusters under the 'Learning ' prefix (#945)
+  ok   switch.dhw_boost clusters under the 'DHW ' prefix (#945)
+  ok   accuracy stays split: sensor.prediction_accuracy takes no cluster prefix (#945)
+  ok   accuracy stays split: button.diagnose_last_interval takes no cluster prefix (#945)
+  ok   every family override names a shipped translation key (anchor)
+  ok   the family-check roster is populated (anchor)
+  ok   the declaration resolves to a real roster of families (anchor)
+  ok   the prediction family is the accuracy sensor plus its button (anchor)
+  ok   every accumulating sensor sits in a declared family (#1668's classes)
+  ok   every declared family sorts as one contiguous run in en and sv (#1760)
+  ok   renaming one member re-splits its family (null control)
+  ok   every entity pre-assigns its suggested object id
+  ok   Solar Irradiance keeps its v4.x entity id on new installs
+  ok   Plan Space Heating (next 24 h) keeps its v4.x entity id on new installs
+  ok   Plan DHW Heating (next 24 h) keeps its v4.x entity id on new installs
+  ok   Plan Predicted Savings keeps its v4.x entity id on new installs
+  ok   Plan Monthly Savings keeps its v4.x entity id on new installs
+  ok   Plan Savings Percentage keeps its v4.x entity id on new installs
+  ok   Plan Optimization Score keeps its v4.x entity id on new installs
+  ok   Plan Narrative keeps its v4.x entity id on new installs
+  ok   Optimal Setpoint keeps its v4.x entity id on new installs
+  ok   Recommended Power keeps its v4.x entity id on new installs
+  ok   DHW Cost (lifetime) keeps its v4.x entity id on new installs
+  ok   the card's suffix derivation for _plan_predicted_savings stays valid
+  ok   the card's suffix derivation for _plan_savings_percentage stays valid
+  ok   the card's suffix derivation for _plan_optimization_score stays valid
+  ok   the card's suffix derivation for _plan_monthly_savings stays valid
+  ok   the card's suffix derivation for _plan_narrative stays valid
+  ok   the card keeps a legacy suffix for every #1227-renamed headline stat
+  ok   Cost Baseline suggests sensor.heat_pump_optimizer_cost_baseline on new installs (#1227)
+  ok   Cost Baseline keeps unique id ..._baseline_cost, so existing installs keep their entity id
+  ok   Cost Contract Comparison suggests sensor.heat_pump_optimizer_cost_contract_comparison on new installs (#1227)
+  ok   Cost Contract Comparison keeps unique id ..._contract_comparison, so existing installs keep their entity id
+  ok   Cost Electricity Price (now) suggests sensor.heat_pump_optimizer_cost_current_electricity_price on new installs (#1227)
+  ok   Cost Electricity Price (now) keeps unique id ..._current_price, so existing installs keep their entity id
+  ok   Cost Monthly Peak Power suggests sensor.heat_pump_optimizer_cost_monthly_peak_power on new installs (#1227)
+  ok   Cost Monthly Peak Power keeps unique id ..._monthly_peak, so existing installs keep their entity id
+  ok   Cost Power Headroom suggests sensor.heat_pump_optimizer_cost_power_headroom on new installs (#1227)
+  ok   Cost Power Headroom keeps unique id ..._power_headroom, so existing installs keep their entity id
+  ok   Cost Predicted suggests sensor.heat_pump_optimizer_cost_predicted on new installs (#1227)
+  ok   Cost Predicted keeps unique id ..._predicted_cost, so existing installs keep their entity id
+  ok   Lifetime Total Heating Cost suggests sensor.heat_pump_optimizer_cost_total_heating on new installs (#1227)
+  ok   Lifetime Total Heating Cost keeps unique id ..._total_cost, so existing installs keep their entity id
+  ok   Learning Comfort Weight suggests sensor.heat_pump_optimizer_learning_comfort_weight on new installs (#1227)
+  ok   Learning Comfort Weight keeps unique id ..._comfort_weight, so existing installs keep their entity id
+  ok   Learning Estimated COP suggests sensor.heat_pump_optimizer_learning_estimated_cop on new installs (#1227)
+  ok   Learning Estimated COP keeps unique id ..._current_cop, so existing installs keep their entity id
+  ok   Learning Observed COP suggests sensor.heat_pump_optimizer_learning_observed_cop on new installs (#1227)
+  ok   Learning Observed COP keeps unique id ..._observed_cop, so existing installs keep their entity id
+  ok   Plan Monthly Savings suggests sensor.heat_pump_optimizer_plan_monthly_savings on new installs (#1227)
+  ok   Plan Monthly Savings keeps unique id ..._monthly_savings, so existing installs keep their entity id
+  ok   Plan Optimization Score suggests sensor.heat_pump_optimizer_plan_optimization_score on new installs (#1227)
+  ok   Plan Optimization Score keeps unique id ..._optimization_score, so existing installs keep their entity id
+  ok   Plan Predicted Savings suggests sensor.heat_pump_optimizer_plan_predicted_savings on new installs (#1227)
+  ok   Plan Predicted Savings keeps unique id ..._predicted_savings, so existing installs keep their entity id
+  ok   Plan Savings Percentage suggests sensor.heat_pump_optimizer_plan_savings_percentage on new installs (#1227)
+  ok   Plan Savings Percentage keeps unique id ..._savings_percentage, so existing installs keep their entity id
+  ok   Learning Reset Comfort Weight suggests button.heat_pump_optimizer_learning_reset_comfort_weight on new installs (#1227)
+  ok   Learning Reset Comfort Weight keeps unique id ..._reset_comfort_weight, so existing installs keep their entity id
+  ok   Learning Run System Identification suggests button.heat_pump_optimizer_learning_run_system_identification on new installs (#1227)
+  ok   Learning Run System Identification keeps unique id ..._system_identification, so existing installs keep their entity id
+  ok   Plan Space Heating (next 24 h) suggests sensor.heat_pump_optimizer_plan_space_heating on new installs (#1333)
+  ok   Plan Space Heating (next 24 h) keeps unique id ..._space_heating_plan, so existing installs keep their entity id
+  ok   Plan DHW Heating (next 24 h) suggests sensor.heat_pump_optimizer_plan_dhw_heating on new installs (#1333)
+  ok   Plan DHW Heating (next 24 h) keeps unique id ..._dhw_heating_plan, so existing installs keep their entity id
+  ok   the card's plan discovery tries the current id before the pre-#1333 one
+  ok   the card's plan derivation tries the current id before the pre-#1333 one
+  ok   the card's current space plan id matches a built sensor (#1333)
+  ok   the card's current dhw plan id matches a built sensor (#1333)
+  ok   the Swedish button names 'Learning ' leads keep a lead token too (#1334)
+  ok   the Swedish sensor names 'Cost ' leads keep a lead token too (#1334)
+  ok   the Swedish sensor names 'Learning ' leads keep a lead token too (#1334)
+  ok   the Swedish sensor names 'Plan ' leads keep a lead token too (#1334)
+  ok   the Swedish dhw_* family's names keep a lead token (#1334)
+  ok   the Swedish learning_* family's names keep a lead token (#1334)
+  ok   the Swedish ecl110_* family's names keep a lead token (#1334)
+  ok   the Swedish solar_* family's names keep a lead token (#1334)
+  ok   Plan Predicted Savings advertises stat_kind=predicted_savings
+  ok   Plan Savings Percentage advertises stat_kind=savings_percentage
+  ok   Plan Optimization Score advertises stat_kind=optimization_score
+  ok   Plan Narrative advertises stat_kind=plan_narrative
+  ok   the SolarRadiationSensor class no longer exists
+  ok   no sensor claims the retired solar_radiation unique id
+  ok   the sensor platform builds 60 entities, the model restart advisor included
+  ok   the survivor still publishes the shared irradiance value
+  ok   the survivor keeps its own unique id, so history stays put
+  ok   setup removes the retired solar_radiation registry entry
+  ok   and leaves the surviving irradiance entry alone
+  ok   and never touches another config entry's entities
+  ok   the cleanup is idempotent across reloads
+  ok   monetary units follow the resolved currency
+  ok   the sensor-gap advisor publishes its money-per-month state in the currency (#940)
+  ok   unit prices follow it too
+  ok   an instance with no configured currency falls back to SEK
+  ok   the coordinator publishes the currency for the card
+  ok   Plan Predicted Savings stays MEASUREMENT without a MONETARY device class
+  ok   Cost Predicted stays MEASUREMENT without a MONETARY device class
+  ok   Cost Baseline stays MEASUREMENT without a MONETARY device class
+  ok   DHW Heating Cost (next 24 h) stays MEASUREMENT without a MONETARY device class
+  ok   the mixed hot water sensor uses the volume unit constant
+  ok   every sensor with a numeric unit suggests a display precision
+
+-- Entity icons (icon translations, audit D10-13)
+  ok   icons.json exists in the integration root
+  ok   icons.json parses as JSON
+  ok   every icons.json entry is the hassfest shape with a valid mdi slug
+  ok   every registered service has an icons.json services entry with a valid mdi slug
+  ok   no entity class pins _attr_icon any more
+  ok   the sensor icon registry covers every translation key exactly
+  ok   the binary_sensor icon registry covers every translation key exactly
+  ok   the button icon registry covers every translation key exactly
+  ok   the switch icon registry covers every translation key exactly
+  ok   the datetime icon registry covers every translation key exactly
+
+-- Initial config flow
+  ok   the identity is the same for the same answers, whatever their order
+  ok   a different name is the same plant
+  ok   a different solar forecast source is the same plant
+  ok   a different heat pump switch is a different plant
+  ok   an extra sensor is a different plant
+  ok   a different Tibber account is a different plant
+  ok   the token cannot be read back out of the identity
+  ok   the first flow with these answers offers finish-setup-now
+  ok   and carries the plant identity as its unique id
+  ok   finish-setup-now after the second screen shows the setup overview
+  ok   confirming the overview creates the entry
+  ok   the same answers a second time abort as already configured
+  ok   a second heat pump on the same Tibber account proceeds
+  ok   continuing setup after the menu lands on temperature
+  ok   the abort reason has a string to show
+  ok   the first screen no longer carries the ECL110 MQTT fields
+  ok   the sensor step offers the four heat-pump signal slots too
+  ok   and offers them optionally, so setup still completes without a pump
+  ok   an untouched sensor step configures none of them
+  ok   the options heat-curve page still owns all eight ECL110 fields
+  ok   a valid temperature step leads to the building branch menu
+  ok   the questionnaire leads to the small heat-pump follow-up form
+  ok   the derived physics land where the thermal step would have written them
+  ok   the questionnaire answers themselves are stored for the options page
+  ok   the describe path never writes the two-zone presence keys
+  ok   the follow-up form continues into the DHW step
+  ok   the nameplate answers are stored
+  ok   the building menu offers the direct thermal path
+  ok   the direct path keeps the verbatim thermal-to-zones sequence
+
+-- Cross-field validation
+  ok   initial temperature step rejects min above target
+  ok   options comfort page rejects min above target
+  ok   initial temperature step rejects target above max
+  ok   options comfort page rejects target above max
+  ok   initial temperature step rejects night above day
+  ok   options comfort page rejects night above day
+  ok   initial temperature step rejects day window empty
+  ok   options comfort page rejects day window empty
+  ok   initial temperature step rejects a day comfort below the band floor
+  ok   options comfort page rejects a day comfort below the band floor
+  ok   initial temperature step rejects a day comfort above the band ceiling
+  ok   options comfort page rejects a day comfort above the band ceiling
+  ok   initial temperature step rejects a night comfort above the band ceiling
+  ok   options comfort page rejects a night comfort above the band ceiling
+  ok   initial temperature step rejects a night comfort below the band floor
+  ok   options comfort page rejects a night comfort below the band floor
+  ok   a consistent temperature step passes
+  ok   a band floor above the night selector still submits
+  ok   every floor/ceiling pair the sliders can produce has a submittable form
+  ok   an untouched comfort page still saves -- through the menu return
+
+-- Config-flow validation and currency (audit B3)
+  ok   the per-kWh money fields carry the instance currency as their unit
+  ok   and so does the compressor replacement cost
+  ok   the grid fees page hands the currency to its descriptions as a placeholder
+  ok   every placeholder the grid fees page's strings name is supplied by its render
+  ok   an unconfigured instance keeps the SEK every existing install has shown
+  ok   no field label, description or repair notice hardcodes SEK
+  ok   every translation names exactly the placeholders strings.json names
+  ok   a negative rule rate is refused with its own error
+  ok   a rate above the implausibility bound is refused too
+  ok   and the error message's bound and currency are supplied to it
+  ok   a rate at the bound still saves
+  ok   and the rule the grammar documents still saves
+  ok   an unreadable spec keeps its original error
+  ok   both new fee errors are translated in every language
+  ok   the setup day sliders can express every start<end schedule
+  ok   and the setup sliders stop where no schedule exists
+  ok   the options day sliders can express every start<end schedule
+  ok   and the options sliders stop where no schedule exists
+  ok   an empty day reaches comfort_band on the options page as day_window_empty
+  ok   and on the setup flow
+  ok   an afternoon-only heating day, impossible before, saves
+  ok   the shortest accepted window is exactly one planning step
+  ok   a one-minute window is refused on both flows, by name
+  ok   and the error message's minimum is supplied to it
+  ok   a window of exactly one step saves on both
+  ok   a wrapping ten-minute window is measured across midnight, not as 23 hours
+  ok   a weekly spec is judged segment by segment
+  ok   an unreadable spec keeps its original error
+  ok   the default windows every install ships with still save
+  ok   the too-short error is translated on both flows in every language
+  ok   initial thermal step rejects a modulation floor above the ceiling
+  ok   the questionnaire's follow-up form enforces the same rule
+  ok   options thermal model rejects a floor above the stored ceiling
+  ok   and saves a floor that fits under it
+  ok   the setup flow rejects a DHW minimum inside the required margin
+  ok   a safely-spaced DHW minimum is accepted, so this is not a blanket rejector
+  ok   the options flow enforces the same deadband against the stored setpoint
+  ok   the options flow's boundary case still saves
+
+-- The options dialog stays open after a save
+  ok   a save returns to the section menu and writes through at once
+  ok   the after-save choice itself never persists
+  ok   an advanced page returns to the advanced menu
+  ok   the close choice ends the dialog with a create_entry, as before
+  ok   strings.json carries the config error texts
+  ok   strings.json carries the options error texts
+  ok   en.json carries the config error texts
+  ok   en.json carries the options error texts
+  ok   sv.json carries the config error texts
+  ok   sv.json carries the options error texts
+
+-- Config entry migration
+  ok   the current version is a no-op that reports success
+  ok   an old entry is stamped forward without touching its data
+  ok   a downgrade is refused rather than mangled
+
+-- Service registration (action-setup)
+  ok   the integration has an async_setup that succeeds without any entry
+  ok   async_setup registers every service services.yaml documents, with no entry loaded
+  ok   an entry's setup hands its coordinator to the entry as runtime_data
+  ok   an entry's setup defers the first solve to one entry background task, which Home Assistant cancels at unload
+  ok   an entry's setup registers nothing and replaces no handler
+  ok   every service is still registered after the last entry unloads
+  ok   a call with no loaded entry is refused, naming the reason
+
+-- Service handlers
+  ok   setup produced a live coordinator behind the services
+  ok   every documented service example passes the schema its service registered
+  ok   the set_thermal_parameters schema still rejects 0 for both fields
+  ok   services.yaml's selectors floor both fields at POSITIVE_PARAM_FLOOR, not 0
+  ok   all four config-flow forms floor the same two fields at POSITIVE_PARAM_FLOOR, not 0
+  ok   a ThermalParameters constructed with 0 for either field is clamped off it
+  ok   an untargeted call reaches every loaded entry
+  ok   an entry_id-targeted call reaches only that entry
+  ok   an entry_id nobody has is refused by name
+  ok   an entry that exists but is not loaded is refused as not loaded
+  ok   after the unload an untargeted call reaches only the entry still loaded
+  ok   run_optimization reaches the coordinator
+  ok   set_away reaches the coordinator
+  ok   set_mode changes the coordinator mode
+  ok   set_thermal_parameters lands on the live parameters
+  ok   simulate_plan returns per-entry results
+  ok   assign_entity writes the slot into the entry options
+  ok   assign_entity still writes a valve-target entity when one is given
+  ok   assign_entity on an identity slot re-derives the entry's unique id (D10-s1-01)
+  ok   an identity edit whose id another entry holds leaves the id alone; a free id is still written (#1799 B1)
+  ok   a dumb mixing valve persists the manual setpoint without an entity
+  ok   and from_config uses that persisted number as the valve target
+  ok   apply_topology stores the validated layout
+  ok   apply_topology stores tank flags and seeds a missing DHW volume
+  ok   apply_topology can turn DHW off and wood on
+  ok   apply_schedule persists the window into options
+  ok   apply_schedule refuses a daytime temperature below the stored night one
+  ok   and nothing was written when it refused
+  ok   a daytime temperature that clears the band still writes
+  ok   a call touching no band field survives a contradiction already stored
+  ok   and the write it asked for actually happened
+  ok   but a NEW violation is still refused on the same broken entry
+  ok   a stored contradiction raises a repair issue instead
+  ok   and correcting the band clears it across the reload
+  ok   the empty-day-window rule survived the move into the shared rules
+  ok   the climate entity cannot store a target above the comfort ceiling
+  ok   and the in-memory target is untouched by the refusal
+  ok   a target inside the band is stored as before
+  ok   apply_manual_plan reaches the coordinator
+  ok   clear_manual_plan reaches the coordinator
+  ok   restore_learned_snapshot reports what it restored
+  ok   diagnose_interval returns the per-entry report
+  ok   diagnose_interval runs the button's snapshot path, not a thread (#1529)
+  ok   every registered service was invoked above
+
+-- Release metadata
+  ok   an expired lease is taken without forensics
+  ok   renew extends the lease past the original expiry
+  ok   a live agent between commands keeps the lock
+  ok   a crashed hold lets take('successor') steal
+  ok   a lease whose named owner process is gone is stolen (#1143)
+  ok   run.sh leases a FULL or stress run itself, for stress.py alone, and a second one waits
+  ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
+  ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
+  ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
+  ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
+  ok   the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased
+  ok   run.sh's lane_stress waits for the lease and its other scripts do not
+  ok   a seat label never taken fails at once; a held one re-queues behind a waiter
+  ok   an expired same-label take rewrites the lease
+  ok   same-label return clears holding
+  ok   the drift capture's closure excludes the bundled card
+  ok   and still covers every python file of the integration
+  ok   a card-only change does not select the drift capture
+  ok   and lists the card's payload producer before the card (#1146)
+  ok   an integration python change still does
+  ok   the widening rule itself leaves the card out
+  ok   while still widening to the rest of the integration
+  ok   the widening rule leaves the quality-scale register out too
+  ok   the deployment-shape lane's closure is the whole tracked package, so any production diff selects it (#1218)
+  ok   and the lane's docstring records those measured numbers as the selection-cost note (#1218)
+  ok   the overlap predicate counts equal sets, skips empty ones and holds the 0.80 boundary (#1218)
+  ok   every tracked file is either measured or deliberately classified
+  ok   exactly one handover, with no date in its name
+  ok   the handover names the commit it reflects
+  ok   and that commit is reachable from HEAD
+  ok   and reachable from origin/main, so a squash cannot orphan it
+  ok   probe  [a measurement]
+  ok   the nightly lane keeps a check's detail when the check PASSES
+  ok   the nightly A4 check lets an in-flight CancelledError propagate past a failed recovery
+  ok   the nightly A4 check lets an in-flight KeyboardInterrupt propagate past a failed recovery
+  ok   a Home Assistant loop-protection report fails the nightly
+  ok   a pinned offender the run did not produce fails the nightly
+  ok   the nightly's loose anchor claims a real report blaming this package
+  ok   and does not claim another integration's report
+  ok   and another integration's blocking call fails nothing here
+  ok   a report this lane cannot parse fails it instead of emptying the pin
+  ok   a clean log still passes the blocking ratchet
+  ok   a clean log without a probe window fails the positive control
+  ok   and a passing check still says what it measured
+  ok   every check the outer half emits is declared in OUTSIDE_CHECKS
+  ok   and the lane demands that roster of itself
+  ok   and that demand is satisfiable, not simply always-red
+  ok   and it demands the roster on a run that already failed
+  ok   A3 named escapes are unique E-identifiers counted at this merge base
+  ok   the nightly demands A3 published-state checks by name
+  ok   A3 is not merged with A4
+  ok   the A3 roster is derived from collect() over PLATFORM_LIST, not a second literal
+  ok   the committed A3 roster is the entity_id set collect() produces
+  ok   a3:roster  [78 registered, 78 in the committed collect() roster; missing=[]; extra=[]]
+  ok   a3:roster passes when HA's registry matches collect()
+  FAIL a3:roster  [1 registered, 78 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sensor.heat_pump_optimizer_open_window_detected', 'binary_sensor.heat_pump_optimizer_wood_cheaper', 'button.heat_pump_optimizer_diagnose_last_interval', 'button.heat_pump_optimizer_learning_reset_comfort_weight', 'button.heat_pump_optimizer_learning_run_system_identification', 'button.heat_pump_optimizer_optimize_now', 'climate.heat_pump_optimizer', 'datetime.heat_pump_optimizer_away_return', 'sensor.heat_pump_optimizer_buffer_tank_temperature_model', 'sensor.heat_pump_optimizer_compressor_frequency_advisor', 'sensor.heat_pump_optimizer_compressor_starts', 'sensor.heat_pump_optimizer_cost_baseline', 'sensor.heat_pump_optimizer_cost_contract_comparison', 'sensor.heat_pump_optimizer_cost_current_electricity_price', 'sensor.heat_pump_optimizer_cost_monthly_peak_power', 'sensor.heat_pump_optimizer_cost_power_headroom', 'sensor.heat_pump_optimizer_cost_predicted', 'sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'sensor.heat_pump_optimizer_ecl110_displace', 'sensor.heat_pump_optimizer_ecl110_effective_displace', 'sensor.heat_pump_optimizer_floor_heating_return_temperature', 'sensor.heat_pump_optimizer_heat_pump_action', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer', 'sensor.heat_pump_optimizer_last_optimization', 'sensor.heat_pump_optimizer_learning_comfort_weight', 'sensor.heat_pump_optimizer_learning_estimated_cop', 'sensor.heat_pump_optimizer_learning_observed_cop', 'sensor.heat_pump_optimizer_lower_floor_temperature', 'sensor.heat_pump_optimizer_measured_power', 'sensor.heat_pump_optimizer_model_restart_advisor', 'sensor.heat_pump_optimizer_next_optimization', 'sensor.heat_pump_optimizer_optimal_setpoint', 'sensor.heat_pump_optimizer_optimization_mode', 'sensor.heat_pump_optimizer_optimization_schedule', 'sensor.heat_pump_optimizer_optimization_schedule_steps', 'sensor.heat_pump_optimizer_optimization_status', 'sensor.heat_pump_optimizer_outdoor_temperature_optimizer', 'sensor.heat_pump_optimizer_plan_dhw_heating', 'sensor.heat_pump_optimizer_plan_monthly_savings', 'sensor.heat_pump_optimizer_plan_narrative', 'sensor.heat_pump_optimizer_plan_optimization_score', 'sensor.heat_pump_optimizer_plan_predicted_savings', 'sensor.heat_pump_optimizer_plan_savings_percentage', 'sensor.heat_pump_optimizer_plan_space_heating', 'sensor.heat_pump_optimizer_prediction_accuracy', 'sensor.heat_pump_optimizer_predictive_optimization_insight', 'sensor.heat_pump_optimizer_recommended_power', 'sensor.heat_pump_optimizer_sensor_gap_advisor', 'sensor.heat_pump_optimizer_slab_temperature_estimated', 'sensor.heat_pump_optimizer_solar_heat_gain', 'sensor.heat_pump_optimizer_solar_irradiance', 'sensor.heat_pump_optimizer_solar_surplus_forecast', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_thermal_battery_charge', 'sensor.heat_pump_optimizer_thermal_battery_energy', 'sensor.heat_pump_optimizer_total_energy', 'sensor.heat_pump_optimizer_upper_floor_temperature', 'sensor.heat_pump_optimizer_valve_target_recommendation', 'sensor.heat_pump_optimizer_wood_burn_advisor', 'switch.heat_pump_optimizer_away', 'switch.heat_pump_optimizer_block_dhw', 'switch.heat_pump_optimizer_block_space', 'switch.heat_pump_optimizer_boost_space', 'switch.heat_pump_optimizer_dhw_boost', 'switch.heat_pump_optimizer_optimizer_active']; extra=['sensor.not_ours']]
+  ok   a3:roster fails when the registered ids are not collect()'s set
+  ok   a3:orjson serialises through Home Assistant's json_bytes
+  ok   a3:orjson  [0 failed HA json_bytes]
+  FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+  ok   a3:orjson fails a payload orjson rejects, and passes a finite one
+  ok   a3:orjson  [0 failed HA json_bytes]
+  ok   json_bytes_ha returning b"{}" leaves a3:orjson green on an orjson-illegal payload
+  FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+  ok   a3:finite  [0 non-finite]
+  ok   a3:finite fails a non-finite attribute and passes a finite one
+  ok   a3:device_class_state_class reads DEVICE_CLASS_STATE_CLASSES
+  FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+  ok   a3:device_class_state_class  [0 forbidden pair(s)]
+  ok   a3:device_class_state_class fails a pair the HA table forbids
+  ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+  FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]
+  FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['climate.heat_pump_optimizer.current_temperature=21.0']]
+  FAIL a3:no_constructor_defaults  [3 constructor default(s) published as available: ['sensor.heat_pump_optimizer_dhw_temperature:temperature=55.0', "sensor.heat_pump_optimizer_dhw_mixed_water:available volume_storage='270.0'", 'climate.heat_pump_optimizer.dhw_temperature=55.0']]
+  FAIL a3:no_constructor_defaults  [empty sweep: no published states were judged]
+  ok   a3:no_constructor_defaults fails an empty sweep
+  ok   a3:no_constructor_defaults passes unavailable records
+  ok   a3:no_constructor_defaults fails available indoor at the constructor default
+  ok   a3:no_constructor_defaults fails climate current_temperature at the constructor default
+  ok   a3:no_constructor_defaults fails an available ThermalState default
+  ok   A3(e) numeric defaults are read from the ThermalState constructor fields
+  ok   A3(e) is a second seed, not collapsed into the thermometer boot
+  ok   and a passing A3 check still keeps its detail
+  ok   A4 named escapes are the §4 A4 row, listed
+  ok   the nightly demands A4 fault-injection checks by name
+  ok   A4 breaks the price source; it does not poke last_update_success
+  ok   a4:failed  [last_update_success=False]
+  FAIL a4:failed  [last_update_success=True]
+  ok   a4:failed fails when last_update_success stayed True
+  ok   a4:unavailable  [2 unavailable]
+  FAIL a4:unavailable  [0 still published: []]
+  FAIL a4:unavailable  [1 still published: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  ok   a4:unavailable fails an empty sweep and a leftover available state
+  ok   a4:buttons  [1 button(s) unavailable]
+  FAIL a4:buttons  [clickable after fail: ['button.heat_pump_optimizer_run_optimization']]
+  FAIL a4:buttons  [no button entity in the enabled roster]
+  ok   a4:buttons fails a clickable button and a roster with no button
+  ok   a4:no_stale  [2 pre-break value(s) gone]
+  FAIL a4:no_stale  [stale: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  FAIL a4:no_stale  [no available value before the break]
+  ok   a4:no_stale fails a leftover pre-break value and an empty before-set
+  ok   a4:recovered  [recovered 2 after last_update_success=True]
+  FAIL a4:recovered  [last_update_success=True stuck=['button.heat_pump_optimizer_run_optimization', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  FAIL a4:recovered  [last_update_success=False stuck=none-published-before]
+  ok   a4:recovered fails a stuck entity and a coordinator that stayed failed
+  ok   and passing A4 checks still keep their detail
+  ok   the nightly demands A10 privacy checks by name
+  ok   A10 is not merged with A4
+  ok   A10's location rule is the issue's two-decimal bound
+  ok   a10:no_credential  [no demanded token in payload]
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  ok   a10:no_credential fails a payload that still carries the token
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  ok   a10:no_precise_location fails a coordinate beyond two decimals
+  ok   and a passing A10 check still keeps its detail
+  ok   A5/A8/A9 named escapes are unique E-identifiers
+  ok   the nightly demands A5/A8/A9 checks by name
+  ok   A5/A8/A9 are not merged with A4
+  ok   A5 walks _OPTION_PAGES plus the two menus, not a carried 23
+  ok   A8's catalog is services.yaml's keys, not a carried 11
+  ok   a5:pages_ok  [25 step(s) save-or-menu]
+  FAIL a5:pages_ok  [raised=['learning:KeyError'] missing=['init', 'advanced', 'setup_overview', 'comfort', 'hot_water', 'tuning'] extra=[] not-save-or-menu=['learning:raise']]
+  ok   a5:pages_ok fails a raise or a short walk, and passes a complete save-or-menu walk
+  ok   option_resubmit posts the sectioned shape the comfort schema validates
+  ok   option_resubmit nests weather_entity under the credentials section
+  ok   option_resubmit posts the sectioned shape the entities schema validates
+  ok   modbus_prefill resubmits twice: one submit opens the preview, two save
+  ok   a5:byte_unchanged  [65B identical]
+  FAIL a5:byte_unchanged  [stored bytes moved: before=65B after=7B; added=[] changed=[] dropped=['external_heat_entity']]
+  ok   a5:byte_unchanged fails the #542 wipe and ignores a new None optional
+  FAIL a5:byte_unchanged  [stored bytes moved: before=39B after=36B; added=['fresh'] changed=["moved: 'before'->'after'"] dropped=['gone']]
+  ok   a5:byte_unchanged names the keys that moved, in all three directions
+  ok   the probe marker is emitted as a log record, not appended to the log file
+  ok   a5:service_examples  [7 example(s) accepted]
+  FAIL a5:service_examples  [1 example(s) rejected: ["set_mode: MultipleInvalid: value must be one of ['auto', 'boost', 'comfort', 'economy', 'off'] for dictionary value @ data['mode']"]]
+  ok   a5:service_examples fails a rejected example and passes the registered catalog
+  ok   a5:service_bounds  [90 bound(s) accepted]
+  FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
+  ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
+  ok   a8:register_once  [12 registered after two entries; catalog 12; extra=[]; missing=[]]
+  FAIL a8:register_once  [15 registered after two entries; catalog 12; extra=['diagnose_interval__dup', 'restore_learned_snapshot__dup', 'set_thermal_parameters__dup']; missing=[]]
+  ok   a8:register_once fails a doubled catalog and passes the yaml set
+  ok   a8:deregister  [12 registered after unload; catalog 12; extra=[]; missing=[]]
+  FAIL a8:deregister  [0 registered after unload; catalog 12; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
+  FAIL a8:deregister  [13 registered after unload; catalog 12; extra=['leftover']; missing=[]]
+  ok   a8:deregister fails an empty catalog and leftover names, and passes the yaml set
+  ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+  FAIL a8:already_configured  [duplicate setup aborted as None]
+  ok   a8:already_configured fails a missing abort and passes already_configured
+  ok   A8's ConfigEntry construction names discovery_keys and subentries_data
+  ok   A8 surfaces InvalidData.schema_errors instead of the path-only message
+  ok   A8 sensors payload nests indoor under indoor; omits weather_entity
+  ok   the nightly seed stores every concrete option-field default
+  ok   a no-op options walk does not persist computed defaults the seed never stored
+  ok   an already-stored or edited computed value is not dropped on save
+  ok   a no-op write keeps the stored type so effective JSON does not move
+  ok   a select that retypes a stored digit string keeps the stored type
+  ok   a full no-op options walk leaves stored effective bytes unchanged
+  ok   _save_or_menu omits unstored computed defaults before persist
+  ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+  FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  ok   a9:reload_loaded fails a short or not-loaded series
+  ok   a9:roster_unchanged  [1 id(s) unchanged]
+  FAIL a9:roster_unchanged  [before=1 after=2 only_before=[] only_after=['sensor.b']]
+  ok   a9:roster_unchanged fails a grown roster
+  ok   a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=1/4/1]
+  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]
+  ok   a9:no_growth  [ceiling tasks=0 listeners=0 stop=0; max t/l/s=0/0/0]
+  ok   a9:no_growth fails the #540 neutered series and passes the shipped dip
+  ok   A9's growth ceiling is the first sample, not a hard zero
+  ok   and passing A5/A8/A9 checks still keep their detail
+
+-- Nightly A15 loop-stall heartbeat (#1758)
+  ok   the nightly demands the heartbeat checks by name
+  ok   stop() ends the tick chain: no tick lands after it
+  ok   the heartbeat measures a CPU stall it did not cause and dumps the frame
+  ok   and on an idle loop it ticks, reports no such gap and dumps nothing
+  ok   a stall past hang_after calls on_hang once, from the watching thread
+  ok   every heartbeat save changes the value, and the burst ends changed
+  ok   the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW
+  ok   a heartbeat save posts the changed key in its section with the after-save choice
+  ok   hb:changed_save  [max gap 999.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]
+  ok   hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want False)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 0 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  ok   hb:changed_save  [max gap 10.0 ms over 1 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True); raised KeyError: x]
+  ok   hb scenario passes under the freeze bound and fails at it, on a reload mismatch, on no ticks, and on a raise
+  ok   hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; py-spy rc=0 names it: True]
+  FAIL hb:positive_control  [a 600 ms spin read as 599.0 ms; dump names the spin: True; py-spy rc=0 names it: True]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: False; py-spy rc=0 names it: False]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; py-spy rc=0 names it: False]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; py-spy rc=0 names it: False]
+  ok   hb:positive_control passes at the spin, and fails just under it, without the spin's frame, or without py-spy's own rc=0 section naming it
+  ok   the heartbeat container may ptrace itself for py-spy; the A3-A13 one may not
+  ok   the real heartbeat run is staged with py-spy and launched with SYS_PTRACE
+  ok   every heartbeat scenario dwells before it settles, and py-spy never pauses the loop
+  ok   the host's py-spy is staged executable beside the driver, and none is staged without one
+  ok   a third run's checks reach the one merged marker
+
+-- Nightly leftover A6/A11/A12/A13
+  ok   the nightly demands A6/A11/A12/A13 checks by name
+  ok   A6/A11/A12/A13 are not merged with A4
+  ok   a6:list  [corrupt payload dropped]
+  FAIL a6:list  [raised=True applied=False]
+  FAIL a6:list  [raised=False applied=True]
+  ok   a6:loaded  [entry loaded after corrupt stores]
+  FAIL a6:loaded  [entry down after corrupt stores]
+  ok   a6:list fails a raise or an applied corrupt payload, and a6:loaded fails a down entry
+  ok   A6 stages four corrupt stores, not a carried anecdote
+  ok   a11:invalid  [service raised]
+  FAIL a11:invalid  [service no-op]
+  ok   a11:invalid fails a silent no-op and passes a raise
+  ok   a12:migrates  [after=7 expected=7]
+  FAIL a12:migrates  [after=1 expected=7]
+  ok   a12:migrates fails an unstamped older version and passes the current stamp
+  ok   A12 seeds an older schema version than CONFIG_ENTRY_VERSION
+  ok   a13:currency  [coordinator='EUR' instance='EUR']
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  ok   a13:currency fails a hardcoded SEK on an EUR instance
+  ok   A13's instance currency is not the SEK fallback
+  ok   write_corrupt_stores emits one HA store file per A6 case
+  ok   A6 writes corrupt stores at boot; A11 runs before A8 unload
+  ok   A12 and A13 run on the loaded entry, not after A8 unload
+  ok   the nightly demands the blocking positive control by name
+  ok   the blocking positive control is not A4 and not #587
+  ok   a real report inside the probe window satisfies the positive control
+  ok   an empty probe window fails the positive control and keeps the pin green
+  ok   a leading-phrase reword inside the window fails the positive control
+  ok   a report before the window fails the pin and not the control by itself
+  ok   a report after END stays in the pin half
+  ok   an unwindowed second stream stays in the pin (a3e log must not hide)
+  ok   A4's UpdateFailed traceback is not log:no_integration_traceback
+  ok   HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy
+  ok   the entry alias is parametrised over the coordinator for the checker
+  ok   the runtime entry alias stays bare, so get_type_hints resolves it
+  ok   no coordinator import executes at package import
+  ok   the imported package binds the alias to the ConfigEntry class
+  ok   get_type_hints resolves all three entry points' annotations
+  ok   _async_lazy offloads import_module itself, not the _lazy wrapper
+  ok   __getattr__ does not import_module a sibling already in sys.modules
+  ok   the blocking probe calls _lazy so a cached sibling still trips the detector
+  ok   the orchestrator pre-flight refuses an undeclared closing keyword
+  ok   the pre-flight refuses a conclusion echoed after ';'
+  ok   and it refuses the four commonest reference forms, not only #N
+  ok   and passes a declared one, so it is not simply always-red
+  ok   a transcript pasted in a fenced block refuses, backticks or not
+  ok   while the same shape quoted inline in prose stays advisory
+  ok   the pre-flight names a policy file main moved and this branch did not touch
+  ok   and reports a policy file it authored as authored, not as stale
+  ok   and does not mention a policy file only this branch touched
+  ok   and stays silent on a branch that authors a policy edit (null control)
+  ok   and on a checkout level with origin/main (second null control)
+  ok   the mirror-age proxy is silent on a fresh fetch of a day-old tip
+  ok   and fires where the ref itself has not moved in this clone for a day
+  ok   and says it could not compare where policy_lint.mjs predates the mode
+  ok   repairs.py is imported so the dynamically loaded platform is classified
+  ok   setpoint_check.evaluate is the consistency detector
+  ok   the documentation link is the one the manifest publishes
+  ok   a repair notice raised through the helper carries the documentation link
+  ok   an explicit documentation link is not overwritten
+  ok   a hand-run QA script does not drag the whole suite in
+  ok   but changing how the closures are derived still runs everything
+  ok   changing the portable node recorder invalidates every closure
+  ok   node recording works without strace
+  ok   the portable node recorder sees repo files the script opened
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpp9d1fb91/closures.json
+  tests/card.mjs                4 files
+  ok   a Darwin node re-record unions instead of replacing
+  ok   the gate's own workflow is a gate file
+  ok   hassfest.yml is not a gate file, and is classified
+  ok   validate.yml is not a gate file, and is classified
+  ok   codeql.yml is not a gate file, and is classified
+  ok   pr-contract.yml is not a gate file, and is classified
+  ok   budget-raise-gate.yml is not a gate file, and is classified
+  ok   budget-raise-gate-rerun.yml is not a gate file, and is classified
+  ok   pr-contract-rerun.yml is not a gate file, and is classified
+  ok   governance.yml is read by the gate, so it is scoped rather than inert or full
+  ok   release.yml is read by the gate, so it is scoped rather than inert or full
+  ok   no directory prefix in GATE_FILES can swallow a non-gate workflow
+  ok   a change to a non-gate workflow costs the gate its readers, never FULL
+  ok   and no non-gate workflow forces the FULL suite, whatever else it does
+  ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
+  ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-ymrcbz_l/closures.json
+  tests/layout.py               2 files
+  ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
+  ok   a docs-only change still costs the closures check nothing
+  ok   a quality_scale.yaml edit selects this script, not a skip (#951)
+  ok   manufactured case: table presence outranks INERT regardless of which file it is
+  ok   no file is both INERT and inside a recorded closure
+  ok   a gate file re-derives everything, as it does for selection
+  ok   a file in no recorded closure re-derives everything, wherever it lives
+  ok   an empty diff re-derives everything rather than nothing
+  ok   a failed same-repo PR closures job may autofix
+  ok   autofix does not run on a push to main
+  ok   autofix does not run on a fork PR
+  ok   autofix does not run when closures passed
+  ok   autofix does not loop on its own commit
+  ok   UNDER-SCOPED recordings merge into the committed closure
+  ok   a recording that matches the committed list is not an autofix
+  ok   one failed recording beside a real under-approximation reddens, not skips
+  ok   a failed recording with nothing under-scoped stays quiet
+  ok   a recording naming a path the autofix tree lacks still repairs the under-scoped script (#1569)
+  ok   and a recorded directory is kept for NOT A FILE, not dropped (#365, #1569)
+  ok   a pinned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)
+  ok   a closures check that failed without UNDER-SCOPED reddens naming the owed manual repair (#1864 INERT READS)
+  ok   and stays quiet only when the closures check passed, or no check.txt exists
+  ok   unreadable recordings do not rewrite closures.json
+  ok   a driven child's recording repairs its driver's closure (R9-F10.9)
+  ok   a merge that still fails check is restored, not pushed
+  ok   a GITHUB_TOKEN autofix push must retrigger Tests
+  ok   a PAT autofix push must not also dispatch
+  ok   no retrigger when autofix did not push
+  ok   claims autofix may run after a closures autofix commit
+  ok   a closures autofix that attempted a repair and failed reddens its job
+  ok   a merge that changed no bytes between a failing and a passing check reddens
+  ok   the ordinary closures autofix no-ops stay quiet
+  ok   an unrecognised status or job reddens rather than passing by default
+  ok   every status claims-autofix can return stays quiet
+  ok   every status the two apply functions return is classified here
+  ok   the closures job tees its check to check.txt beside the recordings
+  ok   closures-autofix reports its status to a human
+  ok   closures-autofix reports even when the repair step failed or was skipped
+  ok   closures-autofix reports after it has pushed, not before
+  ok   claims-autofix reports its status to a human
+  ok   claims-autofix reports even when the repair step failed or was skipped
+  ok   claims-autofix reports after it has pushed, not before
+  ok   mutation-autofix reports its status to a human
+  ok   mutation-autofix reports even when the repair step failed or was skipped
+  ok   mutation-autofix reports after it has pushed, not before
+  ok   closures-autofix dispatches every workflow owning a required context but Governance
+  ok   closures-autofix dispatches from the push step only
+  ok   claims-autofix dispatches every workflow owning a required context but Governance
+  ok   claims-autofix dispatches from the push step only
+  ok   mutation-autofix dispatches every workflow owning a required context but Governance
+  ok   mutation-autofix dispatches from the push step only
+  ok   codeql.yml accepts the autofix jobs' dispatch
+  ok   nightly-ha installs the dependencies its host-side driver imports
+  ok   nightly-ha installs the py-spy the A15 heartbeat stages (#1758)
+  ok   nightly-ha re-asks the floor-names snapshot in the floor's own image
+  ok   a change to a subprocess-driven script re-derives its driver and itself
+  ok   the recorder measures the table as a dependency, never the instrument
+  ok   a closures.json change runs the scripts whose entry moved, either way
+  ok   a closures.json change is measured against the merge base's table, not HEAD's
+  ok   the NOT RUN block lists what did not run, and only that (R9-F10.9)
+  ok   a diff inside one closure re-derives one entry, not eighteen
+  ok   a scoped re-derive pulls in the producer of anything it selects
+  ok   and lists the producer before the consumer that reads its output (#1146)
+  ok   the files the workflow reads carry the plan the predicate made
+  ok   a one-script re-derive is refused unless it says it is partial
+  ok   and is accepted when it does
+  ok   but a partial check still fails on a closure that under-approximates
+  ok   a selectable script with no closure forces the full re-derivation
+  ok   VERSION holds a plain X.Y.Z release number
+  ok   manifest.json carries the release version
+  ok   RELEASE_NOTES.md opens with this release
+  ok   the drift claim file is stamped for this release
+  ok   the card declares a valid CARD_VERSION
+  ok   CARD_VERSION does not run ahead of VERSION
+  ok   the D6 register records the live VERSION (the stamp re-records it)
+  ok   a claim file stamped for another release is rejected
+  ok   an unstamped claim file is rejected, prose mention and all
+  ok   a claims-for: value that is not a version is rejected, tree and all
+  ok   a claims-for: value that is not a version is named as malformed
+  ok   a claim file stamped for this release is accepted
+  ok   the stamp parses as a declaration, not as a claimed scenario
+  ok   a claim list identical to the baseline's is refused as inherited
+  ok   an inherited claim list names the ref it was inherited from
+  ok   claiming nothing, or claiming something else, is not inheritance
+  ok   a claim map carries every line a scenario has, not just the last
+  ok   a fresh claim added beside an inherited line is not an inherited list
+  ok   and the inherited-claims autofix leaves it alone
+  ok   the #996 arm separates a stale claim this branch wrote from one it inherited line for line
+  ok   a baseline with no claim file cannot have written any of them
+  ok   the fail-fast message names the class, the judge of record, the decision tree and the retry loop it forbids
+  ok   the fail-fast message says the third recorded instance re-opens the grammar decision
+  ok   the fail-fast message shows the instance marker only inside prose, never at column 0
+  ok   main() wires the fail-fast arm: it asks the discriminator and prints the named signature
+  ok   the counter reads a fixture thread: two recorded instances, and quotes, indented pastes or mid-line mentions record none
+  ok   the re-open verdict is silent below the threshold and fires the owner's line at three and beyond
+  ok   the counter's CLI reads a fixture thread: exit 0 with the count at two, exit 2 and the re-open line at three
+  ok   a solver-only three-dot can move a solver golden and not a card state, and the card the reverse
+  ok   a solver-only branch that leaves main's card claims exactly as found is not refused for them
+  ok   null control: a branch that CAN move a card state is still refused an inherited card list
+  ok   a solver-only branch that DELETED main's card claims is refused
+  ok   a solver-only branch with an inherited SOLVER list is still refused
+  ok   a three-dot that can move neither keeps the record-PR rule and message
+  ok   a release stamp that empties a baseline claim it did not write passes
+  ok   a claim deletion with VERSION unchanged, moving backwards, or unreadable at the baseline is refused
+  ok   a VERSION bump that ADDS a claim, or deletes only some, is refused
+  ok   a VERSION bump whose solver claims-for is not the new VERSION is refused
+  ok   a VERSION bump whose card claims-for is not the new VERSION is refused
+  ok   a stamp-shaped commit with two parents (a pull request's merge ref, or its merge into main) or none (a graft root) is refused
+  ok   a stamp is recognised only on main's ref inside Actions, and outside Actions as before
+  ok   a VERSION bump that also touches a file stamp.py never writes is refused
+  ok   inherited claim lines are dropped and may-drift is kept
+  ok   a rewritten reason is not an inherited-claims autofix
+  ok   an empty list is not an inherited-claims autofix
+  ok   both inherited claim files are emptied in one apply
+  ok   two branches' notes both survive a claim-file merge
+  ok   a merged claim file keeps its stamp, its header and its may-drift lines
+  ok   a comment-only merge claims nothing it was not given
+  ok   a claim list both sides rewrote is refused, not unioned
+  ok   the inherited-claims guard cannot catch a unioned claim list
+  ok   a claim list only one side touched is carried, not refused
+  ok   merging a file with itself returns it byte-identical
+  ok   a may-drift line added on one side survives the merge
+  ok   git resolves a real two-branch note conflict through the driver
+  ok   and it leaves a conflict for a claim list both sides rewrote
+  ok   the merge verification passes the file the merge actually produced
+  ok   the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers
+  ok   .gitattributes routes both claim files to the merge driver
+  ok   a .gitattributes that routes only one claim file is refusedAccuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+
+  ok   tools/merge/ledger_merge.py --self-test passes
+  ok   #493-shaped roster-only still scopes card_drift and env_drift out
+  ok   roster-only #493 with copied card claims is refused
+  ok   empty claims on a roster-only three-dot pass
+  ok   a claim-bearing change that touches solver fixtures is not a record-PR violation
+  ok   a claim-bearing change that touches the card is not a record-PR violation
+  ok   a claim-bearing change to the capture code is not a record-PR violation
+  ok   a test file that is NOT a capture source still cannot justify a claim
+  ok   run.sh always runs env_drift.py --claims-only through run_always
+  ok   run_always never consults in_scope
+  ok   a roster-only three-dot that leaves the baseline's card claims alone passes
+  ok   a roster-only three-dot that DELETES the baseline's card claims is refused
+  ok   the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires
+  ok   CLAIM_HEAD reads the branch's own empty list, so a no-drift branch over a claiming main passes
+  ok   CLAIM_HEAD pointing at an edited file that kept the list still fires the inherited check (the real-defect arm)
+  ok   CLAIM_HEAD pointing at a byte-identical file is the no-claim state (R9-F10.8)
+  ok   a claim-untouching branch whose head and fork agree passes though ref moved
+  ok   check_claims_hygiene passes a release stamp and refuses the same deletion without the VERSION bump
+  ok   check_claims_hygiene refuses the same stamp forged as a merged pull request
+  ok   check_claims_hygiene refuses the same one-parent stamp on a branch dispatch
+  ok   the autofix refuses a three-dot that moves nothing claimable, and writes nothing
+  ok   the autofix still empties an inherited card list on a branch that moved the card
+  ok   the autofix leaves an inherited CARD list alone on a branch that moved only solver files, and writes nothing
+  ok   a branch that only merged a claiming main passes claims hygiene
+  ok   the autofix leaves a claim file the branch never edited byte-identical
+  ok   an untouched claim file is not an inherited-claims rewrite
+  ok   lines a branch inherited excuse no drift and go stale for nobody
+  ok   a claim line written beside an inherited one is the branch's own
+  DRIFT wood_coil: 1 leaves moved vs 135eef17b3aa63f63e133938af5e29f5468ffa8e
+         wood_coil.v: 1 vs 2
+  ok   a carried claim line does not excuse a moved fixture
+  ok   main() judges drift and staleness with excusing_claims, not the raw file
+  CLAIMED wood_coil: 1 leaves moved (F6.4: another lane's claim; this lane moves it too)
+         wood_coil.v: 1 vs 2
+  ok   a claim line the branch wrote excuses its moved fixture
+  ok   the autofix judges an untouched file against the fork point, not main's tip
+  ok   a branch that edited the claim file and kept main's list is still inherited
+  ok   a stale claim is not judged on a branch that moves nothing claimable
+  ok   and it IS judged on a branch that moved a fixture (null control)
+  ok   check_claims_hygiene accepts empty claims on a roster-only three-dot
+  ok   an unanswerable three-dot still judges staleness, rather than quietly passing
+  ok   a comparison ref with no merge base is refused, not read as no claim owed
+  ok   and the same fixture still answers an ordinary comparison (null control)
+  ok   check_claims_hygiene accepts a real claim-bearing PR that moves solver fixtures
+  ok   the same solver PR that also EMPTIED the baseline's card list is refused for the card file
+  ok   a stamp that leaves claims behind is refused
+  ok   the stamped-with-claims message names both versions and the fixture
+  ok   a stamp claiming nothing is accepted
+  ok   a branch behind the baseline's version may still claim its own drift
+  ok   a malformed version is left to the rule that owns it
+  ok   may-drift accepts the fixtures the gate calls non-reproducible
+  ok   may-drift also accepts the owner-sanctioned #1208 movers and nothing else
+  ok   may-drift also accepts the #1207 directive's movers and nothing else
+  ok   and refuses every fixture whose floats DO travel
+  ok   the refusal names both the stray entry and the category's real scope
+  ok   a scenario cannot be claimed and may-drift at once
+  ok   an empty may-drift list is always fine
+  ok   this tree's may-drift entries parse, with reasons, and every allowed name is may-drift or claimed for this VERSION
+  ok   and the relaxed rule still refuses a sensitive fixture that is neither may-drift nor claimed, or claimed only for another VERSION
+  ok   and none of them leaks into the claim list
+  ok   this tree's own claim file passes the scope check
+  ok   env_drift itself refuses an allowed name that is neither may-drift nor claimed for this VERSION, and the null control holds
+  ok   env_drift's coverage rule counts only a claim for this VERSION
+  ok   and env_drift runs the coverage rule in both CLI paths, --claims-only included -- the path the stamp's self-check execs on the post-stamp tree
+  ok   may-drift judged keys are exactly the forecast and baseline fields
+  ok   may_drift_judged_diffs keeps baseline_cost and drops plan schedules
+  ok   may_drift_exempt_diffs is the complement on mixed diffs
+  ok   tools/release/stamp.py's --self-test passes
+  ok   a claim file stamp.py rewrites passes env_drift's claims guard on the push to main, and both agree on the files a stamp writes
+  ok   stamp.py is no longer INERT: closure.py must classify it
+  ok   narrowing INERT leaves every non-audit tools/ file in the must-classify set
+  ok   the pull-request note names the gate lease and the seat instruments
+  ok   the committed table records stamp.py in tests/entities.py's own closure
+  ok   a change to stamp.py selects tests/entities.py
+
+-- Committed-fixture staleness (#347)
+  ok   a key the committed fixture lacks is structural staleness
+  ok   and so is a key the fixture has that the code no longer produces
+  ok   and so is a leaf whose JSON type changed
+  ok   a float that moved with the solver basin is not staleness
+  ok   nor is an integer that flipped with it
+  ok   nor is a boolean schedule that flipped
+  ok   nor is a plan-derived list whose LENGTH moved
+  ok   nor is a schedule this basin never populated at all
+  ok   a payload with a float anywhere is not exact-comparable
+  ok   the config-flow fixture is float-free, so the exact level covers it
+  ok   and a solver fixture is not, so the exact level leaves it alone
+  ok   a real fixture with every float, int and bool moved is not stale
+  ok   and every one of those moves is still counted for the nightly
+  ok   while the same payload with one key added IS stale
+  ok   the exact level catches a string-valued move the structure cannot see
+  ok   the gate fails on the float-free fixture's string move
+  ok   and on the fixture that grew a key
+  ok   and on a captured scenario with no committed fixture at all
+  ok   but NOT on the solver fixture whose floats merely moved
+  ok   which is still reported, because a nightly can act on it
+  ok   and the gate's verdict counts only what it fails on
+  ok   and the verdict NAMES every stale fixture
+  ok   and says how many, how to re-record, and which need care
+
+-- Reauthentication (D10-08)
+  ok   a refused token starts the reauth flow once, not per cycle
+  ok   recovery re-arms the flow for a future revocation
+  ok   the reauth flow opens a confirm form asking for the token
+  ok   a valid token is written through and the entry reloads
+
+-- Coordinator config_entry (R3-D10-04)
+  ok   super().__init__ is passed config_entry=entry
+
+-- Reconfigure (D10-14)
+  ok   an entry for this handler reports reconfigure support the way HA 2024.6 discovers it
+  ok   the config flow carries the reconfigure step
+  ok   reconfigure reopens the first screen rather than a fresh wizard
+  ok   the reopened screen is prefilled with this entry's answers
+  ok   the reopened sensor step carries this entry's picks
+  ok   a slot this entry leaves empty is not invented
+  ok   re-submitting this entry's own identity updates it instead of aborting
+  ok   the entry reloads on the new answers
+  ok   a rename is written through, title and all
+  ok   a slot the user cleared is dropped, not silently kept
+  ok   and the entry's unique id follows the picks, as a delete-and-recreate would
+  ok   reconfiguring into another entry's plant is refused
+  ok   the reconfigure success abort has a string to show
+
+-- Diagnostics (D10-12)
+  ok   the Tibber token never leaves the instance
+  ok   no precise coordinate leaves the instance, from data or from options
+  ok   the coordinate survives as a coarse cell rather than as a hole
+  ok   the documented coordinate precision is one decimal place
+  ok   the coarsening reaches a coordinate nested below the top level
+  ok   a coordinate that is not a number is redacted rather than published
+  ok   a non-coordinate member of the location dict is left alone
+  ok   the installation name the user typed never leaves the instance
+  ok   the entity ids and the MQTT topic survive redaction
+  ok   the payload is plain JSON and names the coordinator's state
+  ok   the learner summaries are present
+  ok   the coordinator snapshot carries the live counter values, not None placeholders
+  ok   a coordinator without the view reports None fields and no learner keys
+  ok   a learner without a callable summary is omitted; one that raises reports unavailable
+
+-- Entity base classes (D10-08)
+  ok   entity.py exists and defines HeatPumpOptimizerEntity
+  ok   the shared base is a CoordinatorEntity declaring the plumbing exactly once
+  ok   the sensor platform imports the shared base from .entity
+  ok   the binary_sensor platform imports the shared base from .entity
+  ok   the button platform imports the shared base from .entity
+  ok   the climate platform imports the shared base from .entity
+  ok   the switch platform imports the shared base from .entity
+  ok   the datetime platform imports the shared base from .entity
+  ok   no CoordinatorEntity base classes remain in the platform files
+  ok   sensor.HeatPumpOptimizerSensorBase still exists and builds on the shared base
+  ok   binary_sensor._OptimizerBinarySensorBase still exists and builds on the shared base
+  ok   button._OptimizerButtonBase still exists and builds on the shared base
+  ok   climate.HeatPumpOptimizerClimate still exists and builds on the shared base
+  ok   switch.OptimizerEnableSwitch still exists and builds on the shared base
+  ok   datetime.AwayReturnDateTime still exists and builds on the shared base
+  ok   an entity from sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from binary_sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from climate keeps has_entity_name and the coordinator's device_info
+  ok   an entity from switch keeps has_entity_name and the coordinator's device_info
+  ok   an entity from button keeps has_entity_name and the coordinator's device_info
+  ok   an entity from datetime keeps has_entity_name and the coordinator's device_info
+
+-- #284 singular schedule and plan states
+  ok   one DHW heating step is a period, not periods (#284)
+  ok   two DHW heating periods keep the plural (#284)
+  ok   one plan slot is a slot, not slots (#284)
+  ok   two plan slots keep the plural (#284)
+  ok   DHW Heating Schedule's period count is DHW Heating Plan's slot count (#1644)
+  ok   and the schedule sensor still answers for a schedule with no plan dict (#1644)
+
+-- #558 D3 enumerated sensor states
+  ok   optimization_mode declares the enum device class
+  ok   optimization_mode declares exactly its measured states as options
+  ok   optimization_mode carries no unit of measurement
+  ok   optimization_mode carries no state class
+  ok   heat_pump_action declares the enum device class
+  ok   heat_pump_action declares exactly its measured states as options
+  ok   heat_pump_action carries no unit of measurement
+  ok   heat_pump_action carries no state class
+  ok   plan_narrative declares the enum device class
+  ok   plan_narrative declares exactly its measured states as options
+  ok   plan_narrative carries no unit of measurement
+  ok   plan_narrative carries no state class
+  ok   every declared state survives Home Assistant's own enum validation
+  ok   and an undeclared state raises, so the check above can fail
+  ok   a None native_value is unknown, not an enum violation
+  ok   the mode options are OPERATION_MODES plus the no-data fallback
+  ok   the action options cover every mode its producers actually write
+  ok   and declares nothing beyond them but the no-data fallback
+  ok   every optimizer REASON_ constant has a narrative template
+  ok   every enum option is a legal Home Assistant translation key
+  ok   every enum option has an English and a translated Swedish state name
+  ok   OptimizationStatusSensor stays bare: it embeds SciPy and exception text
+  ok   PredictiveInsightSensor stays bare: it emits 'no forecast', which is not a slug
+  ok   no icons.json state key falls outside its sensor's enum options (#558 D4)
+  ok   and the unbounded status strings really are unbounded
+
+-- #558 D4 icon state translations
+  ok   every enum option has its own icon
+  ok   only the enum sensors carry a state section
+  ok   and no state icon merely repeats its own default
+  ok   and each state section actually distinguishes states
+  ok   production raises repair notices only through the helper that adds the docs link
+  ok   no bound coordinator method is handed to a thread (P12, #1529)
+  ok   the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls
+  ok   no live hub is handed to a thread or the process worker (#1736)
+  ok   the hub barrier refuses a live hub in every hand-off and passes its copies
+  ok   the derived producer set covers the four D3 named by hand
+  ok   and the action options cover every mode the derived producers write
+  ok   which is the same answer the named scan gave, so neither is doing it alone
+
+-- #558 D5 service translations
+  ok   every service and field is named and described in all three catalogues
+  ok   and services.yaml keeps structure only, not text
+  ok   the Swedish service text is actually translated
+  ok   the documented services are exactly the registered ones
+  ok   every translation string is a legal format string for hassfest
+
+-- #558 D6 numeric schedule companion
+  ok   the deprecated sensor still publishes exactly what it shipped
+  ok   including the ungrammatical '1 steps', which is shipped and so is frozen
+  ok   the companion publishes the step count as an integer
+  ok   and separates no-data from an empty schedule, which the sentence cannot
+  ok   the two sensors describe the same schedule
+  ok   the companion records no long-term statistics
+  ok   and stays diagnostic, beside the sensor it replaces
+  ok   the deprecated sensor says so, and names its replacement
+  ok   and it is still registered, because removing it is the breaking change D6 was reshaped to avoid
+  ok   every job driving a history-reading script checks out the history
+  ok   the nightly reporter is wired into a job that runs on pull requests
+  ok   and passes it no argument that would pin its answer
+  ok   exactly four jobs override the workflow's read-only floor
+  ok   and the nightly reporter's own widening is read-only
+  ok   the reporter watches exactly the lanes a pull request cannot see
+  ok   the reporter separates failed, passed, still-running and never-ran
+  ok   no run, a stale run and a run whose lanes were skipped are all ABSENT
+  ok   an unrecognised job conclusion is reported, not waved through
+  ok   a newer in-flight run annotates the verdict and does not become it
+  ok   and every state says in the report that it blocks nothing
+  ok   the reporter is classified: NOT_A_TEST, and not on INERT
+  ok   run.sh's two script-accounting exclusion lists name the same scripts
+  ok   every script run.sh skips is one closure.py already refuses to select
+  ok   and a script closure.py will not select is either skipped by run.sh or run by it
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  ok   and when no job failed the report names the run's conclusion as the evidence
+  ok   pick_runs picks the newest concluded and newest in-flight by created_at, not by listing order
+  ok   a run carrying no created_at is UNREADABLE, not a KeyError and not a verdict
+  ok   a jobs page that does not carry every job of the run is UNREADABLE, not a partial answer
+  ok   a stale first listing is corroborated before the nightly is called ABSENT, and a nightly every listing agrees is old stays ABSENT
+  ok   the staleness boundary is the one the constant's comment defends
+  ok   a rowless merge is PENDING until the threshold, and OVERDUE at it
+  ok   an EMPTY window is its own verdict and is not reported as a pass
+  ok   a row file rows its own pull request and no other
+  ok   both merge-subject conventions are collected, and neither direct push is
+  ok   a merge commit's title comes from its body, not from the branch it names
+  ok   a subject that only MENTIONS a pull request is not taken as being it
+  ok   a title-subject merge is numbered from a body Merge pull request line
+  ok   an unattributable merge is UNCHECKED, loudly, and never EMPTY
+  ok   a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on parents
+  ok   the OVERDUE alarm is reachable from a first-parent LOG, not only from hand-built entries
+  ok   the ledger and the record lane pick the window with the same tag filter
+  ok   --check raises OVERDUE and UNCHECKED, and passes OK and EMPTY
+  ok   --require-rows refuses a PENDING window, and every red --check raises
+  ok   a disposition is matched on the whole number, in both spellings
+  ok   the #201 region is replaced in place, and the issue's own text survives
+  ok   the ledger is wired into a job that runs on pull requests
+  ok   and the pull-request lane passes no --since that would pin its answer
+  ok   exactly three governance jobs override the workflow's read-only floor
+  ok   and the contract lane's widening is the one read it needs
+  ok   the contract lane reads the body off the API at run time, not the payload
+  ok   the contract lane passes the head's red checks to the body check
+  ok   the red-check listing stays fail-closed (pipefail guard, jq filter, output pinned)
+  ok   and a listing with the guard and the RED filter stripped is not (null control)
+  ok   the contract lane refuses a version edit on every pull request
+  ok   the instrument self-test job runs both App identity self-tests
+  ok   and a job with the poster's step removed is not (null control)
+  ok   tools/audit/seat/record_row.py --self-test passes
+  ok   a merged pull request's branch answers for its roster group, and only its group
+  ok   the generator's row is read by the tree's own row reader, and a table-row shape is not
+  ok   the generator's write set is dev/programme/delivery/<N>.md and nothing else
+  ok   a pull request whose row already exists plans and writes nothing
+  ok   the generated record body passes policy_lint --pr-body and figure_lint
+  ok   and the generated prose closes nothing and never emits a table row
+  ok   the record beat's sections: head named, red named, approval kept manual, handover untouched
+  ok   tests.yml's record-autofix job: main-only, its own environment, loop-guarded ci: subject, guarded write set
+  ok   and the pin reads the job's own lines, not its name (null controls)
+  ok   tests.yml's record-autofix finds its own open pull request by head=<owner>:record/autofix
+  ok   and the lookup pin refuses the repository-form filter (null control)
+  ok   every pinned grader given a token runs its own copy under the Actions token on the pull request
+  ok   and the arm fires on exactly the pathspec policy-docs restores from the base
+  ok   and any edit to the arm's job, or to what reaches it, disarms it (null control)
+  ok   and the arm's trigger fires on a restored path and only there
+  ok   and a trigger whose firing branch writes false is refused (null control)
+  ok   the delivery_status stubs are owner-executable and neither group nor world accessible
+  ok   graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE
+  ok   a `## Friction` opening with `none` that then carries a malformed entry is refused
+  ok   frictionEntries reads the entries after a leading `none`, not an empty section
+  ok   and `none` alone stays zero entries while a stray entry is refused (null controls)
+  ok   a trailer block pasted under `none` is not friction and refuses nothing
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+  ok   and the drop buys no amnesty: junk still refuses, trailer words mid-evidence still parse (null controls)
+  ok   the friction id grammar admits a leading dot, so a repo-relative path parses (#1305)
+  ok   and the leading dot buys no amnesty: `none` is zero entries and a line naming no rule still yields no id (null controls)
+  ok   pr-contract accepts #1107's autofix commits on top of the head the body names
+  ok   and a body naming the real head passes with no autofix line (null control)
+  ok   and refuses every chain that is not purely the bot's own repair
+  ok   and its bot identity, messages and paths are the ones the autofix jobs commit
+  ok   and the publishing lane's grant is the one write it uses
+  ok   the publishing lane writes nothing that lands on main, so its own write cannot re-run it
+  ok   the cron lane's grant is its two reads plus the one owner-approved write
+  ok   the friction filer is the record lane's deliberate filing arm and the informational lanes stay suppressed
+  ok   no step of the record job is skipped by the disposition refusal's failure
+  ok   the record job's summary names every step of its own record
+  ok   the record summary's verdict is not the exit code alone
+  ok   the governance-cost GOV set names only jobs the workflow files define, and every job of every governance workflow file
+  ok   and the split survives: the code gate's own jobs are not governance (null control)
+  ok   a body edit starts a run of the contract job and the budget gate, and of no other job
+  ok   and #1484's shape -- `edited` listed, a second job guarded -- is refused (null control)
+  ok   no required context can be re-reported as skipped by a body edit
+  ok   and #1484's guard reads as skipping under that event (null control)
+  ok   a superseded long-job pull-request run is cancelled; pr-contract same-SHA twins are not
+  ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+  ok   pr-contract does not cancel two author-app pull_request events at one SHA
+  ok   tests.yml cancels a superseded older SHA
+  ok   and a pr-contract.yml that cancels same-SHA twins is refused (null control)
+  ok   no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)
+  ok   and a leading `always()` is refused, `!cancelled()` is not (null control)
+  ok   every required context runs on a merge-queue entry (process review item 2)
+  ok   and tests.yml without merge_group is refused for each context it produces (null control)
+  ok   the coverage job reuses only an entry main's push run saved, keyed on the runner's OS
+  ok   the budget-raise gate is one unguarded job that re-runs on a review and grades with the base's copy of its program
+  ok   and the same file with its restore removed is refused (null control)
+  ok   the gate's stale-verdict re-run fires on a passing review run only, holds `actions: write` and nothing it does not use, and runs the default branch's program
+  ok   and the same file checking out the pull request's head is refused (null control)
+  ok   no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)
+  ok   and the same tests.yml with its restores and token hygiene undone is refused on each of the three autofix jobs (null control)
+  ok   and a report run from the working tree after the push step's pull is refused on each of the three autofix jobs, though the program was restored (null control)
+  ok   and an indented `import a, b` names both modules (null control: the finder's reader missed mutation_table this way)
+  ok   every base-restoring step names each file it restores at the path tests/layout.json moves it to, listed so that a PINNED holding either path restores and one holding neither fails
+  ok   and the pathspec matcher selects what `git ls-files` selects on every restore it reads (its precondition)
+  ok   and on a planted tree the predicate passes the listed form and refuses an old path alone, a direct checkout of a path the base lacks, and a listing not checked out next (null controls)
+  ok   a red that lands after pr-contract ran re-runs it: the follower watches every pull-request workflow but the contract, fires on a red run only, holds `actions: write` and runs the default branch's program (D13-s1-03)
+  ok   and the same file checking out the pull request's head, or missing a pull-request workflow, is refused (null control)
+  ok   the stats histogram reads the wave script's VERDICT_CLASSES as its block-class set
+  ok   and an unreadable grammar yields null rather than a guessed class set (null control)
+  ok   a verdict histogram whose block-class grammar is unreadable withholds the proposal and says why
+  ok   a blocked verdict whose shape the wave refuses is outside the grammar, not folded into `other` (#1304)
+  ok   and the bare blocked verdict still routes to `other` (null control)
+  ok   the stats histogram names the population it saw beside the window's merge count, so a merge carrying no verdict is visible rather than absorbed (#1406)
+  ok   and the coverage line tracks the histogram rather than a constant (null control)
+  ok   the stats histogram classifies exactly the grammar the wave script's own VERDICT_RE parses, over `Fix review:` FIRST LINES (#1472)
+  ok   and it classifies a comment BODY exactly as the wave script's own `parseVerdict` reads it, both readers driven (#1480)
+  ok   and the two shapes the extractions disagreed on are closed in their own directions (#1480)
+  ok   a verdict posted as a pull-request review is counted, and the census names the endpoint it arrived on (#1471)
+  ok   and the same verdict posted as an issue comment, and a window with no reviews at all, are the null controls (#1471)
+  ok   the window reader asks the reviews endpoint and joins what it answers into its map (#1471)
+  ok   and it asks whether or not the window posted a review, with the body and comment reads as the ledger's null control (#1471)
+  ok   the --sunset mode prints the marker census its zero is a zero of, beside the corpus count (#1469)
+  ok   the rework key is the class the wave teaches, so the histogram cannot key a word no reviewer is told to write (#1405)
+  ok   the stats histogram keys a rework round on a moved head as `head-moved`, the class the wave defines for it and the passing verdict hides (#1405)
+  ok   and the rework count tracks the window rather than a constant (null control; the finder's own perturbation)
+  ok   and the passing row is left exactly as it was, so the rework key adds a figure rather than moving one (#1405)
+  ok   and a verdict naming the same head twice, or a first line the grammar refuses, is not rework (null control)
+  ok   the head-moved row counts a re-verification of a head that moved after a `merge` verdict, once per round, and not a repair or a repeat (#1549)
+  ok   and every round after a merge's first is split by the verdict before it: re-verification, repair, repeat (#1549)
+  ok   and the split tracks the verdict before the round rather than a constant (null control: #3's block rewritten as a merge)
+  ok   the stats mode prints the one-round yield beside the first-verdict yield, each named for its rule (#1549)
+  ok   and the one-round yield moves with the window (null control: #3 flipped to a first `merge` raises the first-verdict yield only)
+  ok   the publishing lane runs on main alone, never on a pull request
+  ok   the ledger script is classified: NOT_A_TEST, and not on INERT
+  ok   the by-design-red exclusion list is in-tree, with a reason per job and a citation that resolves (#1303)
+  ok   and the CFR instrument reads that registered artifact, not a copy beside itself (#1303)
+  ok   and the list excludes only what it names (null control)
+  ok   the change-failure instrument reports the merge-keyed AND the PR-head-keyed rate (#1407)
+  ok   the change-failure instrument publishes the rate per check-run NAME at both keyings, so the name that separates them is visible (#1476)
+  ok   and the exclusion artifact records `mutation` as deliberately NOT excluded, with a reason and a citation the tree carries (#1476)
+  ok   the disposition refusal can set the record job's conclusion
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+  ok   the template arm turns the acceptance red on a template that fails its own contract (and the real template keeps it green)
+  ok   `policy-docs` restores its graders from the base commit before it grades
+  ok   the release lane's grant is the owner-approved attestation grant and nothing more
+  ok   the attested subject is the tag's tree, not an artefact that does not exist
+  ok   the coverage ratchet is wired into a job that runs on pull requests
+  ok   and no CI job passes either instrument --record
+  ok   the pull-request lane scopes to what the diff tested, the nightly does not
+  ok   and the scoped lane checks out the history its own diff needs
+  ok   the coverage floor sits at or below its ceiling
+  ok   the pragma cap is not slack: no exemption is pre-authorised
+  ok   both mutation caps are saturable fractions that hold their last measurement
+  ok   the mutation budget defers on no lane the workflow already defines
+  ok   and it refuses the deferral, not the lane's name
+  ok   the kill rule finds a failure count buried under trailing output
+  ok   and reads no failure out of a clean run
+  ok   a structure run that only IMPROVED a metric is not a kill
+  ok   and a structure run that BREACHED a budget still is
+  ok   a status is a kill for no driver unless the output names a failing check
+  ok   the structure ratchet refuses a non-finite or malformed cap by name
+  ok   every grader's copy of the barrier is the original, character for character
+  ok   the mutation table refuses a non-finite or malformed survivor cap
+  ok   the coverage ratchet refuses a non-finite or malformed floor or cap
+  ok   and main() runs it before comparing anything
+  ok   the stress budget table refuses a non-finite or malformed recorded cost
+  ok   and load_budget_table refuses such a table instead of returning it
+  ok   an env_drift refusal before capture is not a kill (#1521)
+  ok   and its drift verdict, its stale fixtures and a crash still are
+  ok   every driver's failing-check form reads as its count
+  ok   a driver printing no failing-check form the rule reads is reported
+  ok   any uncaught exception on a red run is a kill, whatever its class
+  ok   the null control is scored over every driver, never the first kill only
+  ok   the null control edits a whole-line comment and nothing else
+  ok   a run whose null control did not survive is refused
+  ok   the drift cache key takes exactly the tree variables a capture reads
+  ok   and the derivation sees a new read, a prefix read and nothing else
+  ok   a variable no capture reads leaves the key; one it reads moves it
+  ok   every operator fires on a module written to carry one of each
+  ok   and every mutant it generates leaves the module parseable
+  ok   the sole statement of a block is never deleted
+  ok   CMP_BOUND moves each ordering bound by one, one mutant per operator
+  ok   a comparison spanning more than one line yields no CMP_BOUND site (C7)
+  ok   and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted inventory
+  ok   --list counts a CMP_BOUND anchor unpinned until the ledger covers it
+  ok   cap_problems refuses a cap that cannot fail, and passes a saturable one
+  ok   inventory() is deterministic and returns the full candidate set
+  ok   unpinned_sites counts a site unpinned until it carries a disposition
+  ok   ratchet_refusal refuses growth over the base count, and an unreadable base
+  ok   added_unpinned refuses a site traded in at an unchanged count, and keeps a re-indented or moved site the base's (#1646, #1748)
+  ok   the inventory sees elif, else-carrying, commented and numpy/math guard shapes, and not a multi-line test (R9 D14-s5-02)
+  ok   completeness_problems refuses a stale mark and an empty inventory
+  ok   a line shift keeps every disposition; an edit to the pinned text drops it
+  ok   the ledger's canonical form is enforced, and --normalize reaches it
+  ok   an anchor's ordinal counts identical lines within one def, and only there
+  ok   base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent
+  ok   the mutation budget commits no unpinned-site count; the base supplies it
+  ok   the ledger pre-pass runs in the driver before the sampled pool (#1412)
+  ok   --pin-killed drives only the sites the diff added and records the measured kill
+  ok   --pin-killed is wired: new sites from the base's own unpinned list, a pin only from a recorded kill run
+  ok   --pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left
+  ok   mutation-autofix applies only a measured pin whose anchor, text and head this tree still has
+  ok   the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read
+  ok   the row ledger: a deleted row leaves the disk, and a misplaced or non-canonical row is refused
+  ok   the row ledger: --carry-rows refuses a row both sides changed differently, and carries one only the branch changed
+  ok   mutation's measure step grades a run by its own summary, not by the ledger diff
+  ok   mutation-autofix stays quiet exactly on a repair made or none owed
+  ok   every status mutation-autofix's two functions return is classified
+  ok   mutation's measure step runs the base's tool, hidden, and grades by measurement()
+  ok   mutation-autofix runs only after a failed mutation lane on a same-repo pull request
+  ok   --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed
+  ok   mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer still reaches the mutated module
+  ok   mutation-ledger-push lands a drained slice on a main whose merges touched every killer's closure, and drops only the pins whose site or driver the head lost
+MUTATION LEDGER: changed -- nothing owed
+MUTATION LEDGER: skip-unchanged -- nothing owed
+MUTATION LEDGER: skip-nothing-killed -- nothing owed
+MUTATION LEDGER: skip-nothing-drivable -- nothing owed
+MUTATION LEDGER: (no status) -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-measurement -- a measured slice did not reach main
+MUTATION LEDGER: skip-head-moved -- a measured slice did not reach main
+MUTATION LEDGER: skip-write-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-push-refused -- a measured slice did not reach main
+MUTATION LEDGER: skip-fetch-failed -- a measured slice did not reach main
+MUTATION LEDGER: skip-apply-crashed -- a measured slice did not reach main
+MUTATION LEDGER: skip-commit-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-writer -- a measured slice did not reach main
+MUTATION LEDGER: measured -- a measured slice did not reach main
+  ok   the ledger writer may only add killed_by rows, and its job reddens a slice that did not land
+  ok   --drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched
+  ok   mutation-ledger measures without a write grant and mutation-ledger-push writes only rows
+  ok   a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both
+  ok   one schedule cron; required lanes share that run (#1930 (d))
+  ok   the ledger writer's secrets are read by mutation-ledger-push alone, in the ledger environment
+  ok   mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed
+  ok   the ledger writer's token and auth header are masked before their first use
+  ok   a mutant is driven only by the scripts whose closure reaches its file
+  ok   the default driver list can reach tests/manual_plan.py's module (#1225)
+  ok   and the default list still drives nothing into a file no closure reaches
+  ok   the driver net is the recorded gate set minus named exclusions (#1211)
+  ok   the differential golden step is drivable as the gate drives it (#1211)
+  ok   the ref-driven pair skips by the gate's own rule, not a vacuous run (#1211)
+  ok   and ref-driven drivers get run.sh's own resolution (#1211)
+  ok   a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)
+  ok   survivor_gaps unpacks equivalent beside gaps (#1885)
+  ok   and only an `equivalent` verdict applies, pinned line text and all (#1217)
+  ok   a triage entry without a verdict, reason or line pin is refused (#1217)
+  ok   the recorded triage marks the D3-07 equivalent, verdict and reason (#1217)
+  ok   and every mark still names a mutant this tree generates, pin and all (#1217)
+  ok   both instruments are classified: NOT_A_TEST, and not on INERT
+  ok   a red baseline on the pull-request scope is INCONCLUSIVE, not a failure
+  ok   and it names the red script, because the report is useless without it
+  ok   and it names each red CHECK, not only the script that carries it (#1134)
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   the nightly scope still refuses with exit 1 on the same baseline
+  ok   a green baseline takes no verdict at either scope; the table proceeds
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   and a passing run yields no failing check name
+  ok   off CI a mutant's stress.py run waits for the gate lease; on a CI runner it runs at once (null control)
+  ok   the baseline drives its drivers over every worker tree at once
+  ok   and the ref-driven shared drivers start first, stress.py last and alone
+  ok   the stress.py baseline shares the runner with no other driver
+  ok   the harness_headers.py baseline shares the runner with no other driver, and only stress.py takes the gate lease
+  ok   a mutant's stress.py run shares the runner with no other driver, and only a mutant no shared driver killed pays for one
+  ok   a deferred stress.py baseline runs only once a mutant survives every shared driver, once, before that mutant's stress.py run
+  ok   a changed-scope run defers stress.py's baseline, the nightly never does, and main() takes its deferral from that rule
+  ok   a changed-scope run makes every shared, non-ref driver lazy; the nightly none, and main() takes its lazy set from that rule
+  ok   env_drift stays eager: recorded seconds time the stub, not CI --all (#1930 (b))
+  ok   a lazy driver's green run settles nothing; its first red runs settle its baseline once and are judged kills against it
+  ok   a lazy baseline or null control that refuses stops the table: no kill, the refusal's status kept, and no later driver settled
+  ok   a mutant's drivers sweep in the ledger's kill-rate order, every one kept
+  ok   an idle worker helps drive a survivor's remaining drivers
+  ok   a mutant is not LIVES while a helper's driver is still running
+  ok   every verdict is the serial sweep's: killed iff a driver kills it, LIVES only after every driver ran once
+  ok   a mutant whose driver only overran its timeout is not killed, not LIVES, and never pinned (R9-F10.12)
+  ok   and a null control whose driver timed out still refuses the run
+  ok   a driver's timeout scales from its own measured seconds over the fixed floor, and main() times every baseline, null and mutant run with it
+  ok   a budget too small for its pool starts mutants only while they fit, names the rest SKIP-BUDGET, and reserves the EXCLUSIVE runs it owes
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+
+MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not started for --budget-minutes
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+  ok   a run the budget let evaluate no mutant is refused; one that evaluated some, or skipped none for the budget, is not
+  ok   mutation-nightly, mutation-ledger and the pin step each pass a budget
+  ok   a budget cut falls on an anchor boundary, so no anchor is split and no killed twin is listed for a human verdict
+  ok   a mutant whose driver timed out runs no further driver
+  ok   a twin granted with its anchor is started even after a dearer site between them closes the pool
+  ok   the drain lists no site of an anchor the budget split
+  ok   a timed-out mutant releases the EXCLUSIVE run it reserved
+  ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+  ok   the pin drive holds four (mutant, driver) runs in flight at once -- the split exists, and is not drive_pool's one-mutant-at-a-time schedule
+  ok   the split's verdicts and pins are byte-identical to the serial schedule's, the named killer included
+  ok   under the split a timed-out driver is never a kill: the mutant runs nothing further, reads SKIP-TIMED-OUT, and pins nothing
+  ok   the split's budget admission divides the outstanding work by the workers, measuring a pool the serial estimate closes after two
+  ok   main() routes the pin-measurement phase through the split and every other mode through drive_pool
+  ok   a site holding a survivor_triage mark is recognised as triaged; a moved line, an unmarked site and an empty triage are not (R9-F10.13)
+  ok   the nightly reports a pin its script did not kill, and never reads a site the budget, a timeout or another driver left unrun as re-verified (R9-F10.13)
+  ok   a triage-marked site is driven by every driver but the one that judges the marks, and left out when that is its only driver; an unmarked site keeps it (R9-F10.13)
+  ok   a pinned site's killer is driven first however dear it is; an unpinned site and a stale pin keep the cost order (R9-F10.13)
+  ok   --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)
+  ok   mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)
+  ok   a changed-scope pool draws only sites on lines the diff modified
+  ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
+  ok   and --scope full still draws from every site
+  ok   the null control is drawn from a file of the line-scoped pool, on a line the diff never touched
+  ok   and an empty pool passes before a null control is sought
+  ok   the null run's tree differs from the baseline tree on exactly the null comment's line, and main() drives it through null_edit
+  ok   the null control runs under every driver in the baseline phase, and its stress.py run shares the runner with nothing
+  .. P8 site ('coordinator.py', '_on_power_event', 'float(raw_state)'): normalize_power_kw
+  .. P8 site ('coordinator.py', '_indoor_humidity_value', 'float(state.state)'): None
+  .. P8 site ('coordinator.py', '_pv_measured_production', 'float(state.state)'): normalize_power_kw
+  ok   every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)
+  ok   null control: a bare read, direct or through a local, is refused
+  ok   const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, not a bare MIN_POWER shorthand
+  ok   optimizer.py names the real min_electrical_power attribute at all (the symbol the comment should point readers at)
+  ok   and optimizer.py's baseline comment itself uses the real name
+  ok   every dependency install in every workflow is hash-pinned (#1548)
+  ok   hash-pin barrier arm: the finder's version-pinned install -> 1 refusal(s)
+  ok   hash-pin barrier arm: a bare package spec beside the flags -> 1 refusal(s)
+  ok   hash-pin barrier arm: a lock generated at run time -> 1 refusal(s)
+  ok   hash-pin barrier arm: an install with no build constraint -> 1 refusal(s)
+  ok   hash-pin barrier arm: a continued npm install and npx -> 2 refusal(s)
+  ok   hash-pin barrier arm: the hashed installs this workflow uses -> 0 refusal(s)
+  ok   hash-pin barrier arm: a hashed install narrowed by --no-deps -> 0 refusal(s)
+  ok   hash-pin barrier arm: an install named only in a comment -> 0 refusal(s)
+  ok   hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   replay control:finite
+  ok   replay control:unit
+  ok   replay control:no_default
+  ok   replay control:agreement:attribute
+  ok   replay control:agreement:plan
+  ok   replay control:agreement:power
+  ok   replay control:agreement:climate
+  ok   replay control:not_frozen
+  ok   replay control:cycle_cost:cpu
+  ok   replay control:cycle_cost:memory
+  ok   replay control:cycle_cost:loose_budget
+  ok   replay control:cycle_cost:unrecorded
+  ok   replay control:cycle_cost:loop_thread
+  ok   replay control:cycle_cost:coverage
+  ok   replay sanitised:synthetic-dhw-only.json
+  ok   replay a10_location:synthetic-dhw-only.json
+  ok   replay control:sanitiser_refuses
+  ok   replay control:sanitise_clears
+  ok   replay leak_probe:capital_Latitude:export_drops
+  ok   replay leak_probe:capital_Latitude:check_refuses
+  ok   replay leak_probe:lat_lon_short:export_drops
+  ok   replay leak_probe:lat_lon_short:check_refuses
+  ok   replay leak_probe:coord_list:export_drops
+  ok   replay leak_probe:coord_list:check_refuses
+  ok   replay leak_probe:coord_string:export_drops
+  ok   replay leak_probe:coord_string:check_refuses
+  ok   replay leak_probe:basic_auth_url:export_drops
+  ok   replay leak_probe:basic_auth_url:check_refuses
+  ok   replay leak_probe:apikey_query:export_drops
+  ok   replay leak_probe:apikey_query:check_refuses
+  ok   replay leak_probe:pin_code:export_drops
+  ok   replay leak_probe:pin_code:check_refuses
+  ok   replay leak_probe:psk:export_drops
+  ok   replay leak_probe:psk:check_refuses
+  ok   replay leak_probe:email:export_drops
+  ok   replay leak_probe:email:check_refuses
+  ok   replay leak_probe:serial_mac:export_drops
+  ok   replay leak_probe:serial_mac:check_refuses
+  ok   replay leak_probe:entry_address:export_drops
+  ok   replay leak_probe:entry_address:check_refuses
+  ok   replay leak_probe:entry_url_in_allowed_key:export_drops
+  ok   replay leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   replay leak_probe:state_address:export_drops
+  ok   replay leak_probe:state_address:check_refuses
+  ok   replay leak_probe:n1_options_dict:export_drops
+  ok   replay leak_probe:n1_options_dict:check_refuses
+  ok   replay leak_probe:n2_currency_name:export_drops
+  ok   replay leak_probe:n2_currency_name:check_refuses
+  ok   replay leak_probe:n3_options_address:export_drops
+  ok   replay leak_probe:n3_options_address:check_refuses
+  ok   replay leak_probe:n4_token_in_series:export_drops
+  ok   replay leak_probe:n4_token_in_series:check_refuses
+  ok   replay leak_probe:state_n10_host_path:export_drops
+  ok   replay leak_probe:state_n10_host_path:check_refuses
+  ok   replay leak_probe:n11_host_path_unit:export_drops
+  ok   replay leak_probe:n11_host_path_unit:check_refuses
+  ok   replay leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   replay leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   replay leak_probe:n14_mac_no_colons:export_drops
+  ok   replay leak_probe:n14_mac_no_colons:check_refuses
+  ok   replay synthetic_reproduces
+  ok   the nightly slow job runs the replay lane as its own step
+  ok   the nightly slow job is the unique scripts, not a second full suite (#1930 (c))
+  ok   P10: on a replayed day no model kernel runs on the event loop or an executor thread; every one runs in the process worker
+  ok   P10: with the process route unusable the kernels land on the executor (the #511 trade, counted), never on the loop
+  ok   P10: an armed system identification sizes, gates and fits its night in the process worker, never on the loop
+
+-- The debugger harness: ingest, store seed, week generator
+  ok   debug ingest: schema, stores, accuracy, bias, planted leak
+  ok   debug ingest: --corrupt accuracy is refused by the loader
+  ok   debug ingest: planted credential is the null control
+  ok   debug replay: store keys remap onto FakeEntry's test_entry
+  ok   debug replay: seeded energy document is on the stub disk
+  ok   debug replay: a key outside DOMAINS is not seeded
+  ok   debug replay: trim_replay shortens the window and keeps states
+  ok   debug replay: trim_replay carries sparse export attributes forward
+  ok   debug generator: schema id is hpo-debug/1
+  ok   debug generator: extend_fixture(1) keeps the committed window
+  ok   debug generator: extend_fixture(2) doubles state rows and shifts end
+  ok   debug generator: --out default is empty so the CLI mkdtemps
+
+-- Round 9: the judge's batch re-runner
+  ok   judge_batch: a harness whose perturbation moves in the stated direction is reproduced and not void, measured under the gate lease
+  ok   judge_batch: the null control -- a harness whose perturbation does not move is void (judge.md step 2), and one that moves the wrong way is void too
+  ok   judge_batch: no perturbation command is left to the judge by hand, never passed; a number outside the header's tolerance is not reproduced
+  ok   judge_batch: every row carries the harness's load1 and thread_factor, one table row per finding, and the lease is released after the batch
+  ok   judge_batch: to_zero means reaching zero -- 3 -> 1 moves the wrong way and is void; a thread_factor over 1.05 is flagged for a re-take, 1.00 is not
+  ok   judge_batch: a judge_batch override that is not an object is ignored and flagged on its own row, and the batch goes on
+  ok   judge_batch: absolute and relative tolerances hold inside the bound and fail outside it (±0.5: 10.4 yes, 10.6 no; ±5 %: 209 yes, 211 no)
+  ok   judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint shards whose union is the input
+  ok   judge_batch: a perturbation that edits a tracked file is flagged on its row and put back, so the next finding reads the tree it would read alone, and the tree is clean after the batch
+  ok   judge_batch: an edit the command STAGED is restored from HEAD, not from the index it staged, and a new EMPTY file (and its new directory) is noticed and removed; the row says restored only when the re-snapshot agrees
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+  ok   EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options
+  ok   EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins (the scan's null control)
+  ok   EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file
+  ok   EG-B2: every coordinator view the surfaces read is a read-only property
+  ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
+  ok   EG-B6: no collaborator module reaches a coordinator private member; its inputs arrive as explicit parameters or a published view (#1739)
+  ok   EG-B6: the collaborator reach scan names a planted reach of each spelling and none of their published twins (the scan's null control)
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
+  ok   the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file
+  ok   and a staging that copies docs/ wholesale, or a guard that refuses nothing, is refused (null controls)
+  ok   pages.yml is not a gate file, and is classified
+  ok   and a deploy outside the github-pages environment, or a build job that inherits the deploy grant, is refused (null controls)
+  ok   and an `if:` calling any status function is refused, one planted spelling each (null controls)
+  ok   EG-B3b: every view the assembler merges returns a slice Payload inherits
+  ok   EG-B3b: _build_data_dict returns Payload and casts nothing
+  ok   EG-B3b: every payload key an entity reads is declared in Payload
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+
+ALL 2198 ENTITY CHECKS PASSED
