@@ -1,0 +1,14 @@
+node:fs:453
+    return binding.readFileUtf8(path, stringToFlags(options.flag));
+                   ^
+
+Error: ENOENT: no such file or directory, open '/Users/timmalmstrom/hpo-seats/r9c-rev-2014/.claude/workflows/friction_issues.mjs'
+    at Object.readFileSync (node:fs:453:20)
+    at file:///Users/timmalmstrom/hpo-seats/r9c-rev-2014/tools/audit/harnesses/r9_fr3_family_consumer.mjs:43:16 {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/Users/timmalmstrom/hpo-seats/r9c-rev-2014/.claude/workflows/friction_issues.mjs'
+}
+
+Node.js v20.10.0

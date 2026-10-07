@@ -1,0 +1,91 @@
+retired old paths absent at HEAD: 140
+SPAWN .claude/hooks/stop-selfcheck.sh:198:OUT=$(if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs 2>&1; else node tools/policy/policy_lint.mjs 2>&1; fi); RC=$?
+SPAWN .claude/workflows/audit-fix.js:25:  `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-
+SPAWN .claude/workflows/audit-verify.js:248:One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write tools/audit/round${round}/ISSUES.json: per class {class, title
+SPAWN .claude/workflows/audit-wave.js:48:  `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix
+SPAWN .claude/workflows/web-fix-wave.js:304:Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wr
+SPAWN .claude/workflows/web-stamp.js:153:Update the Delivery-status record: each wave row in docs/plan-2026-09-open-issues.md's frozen table gets its release and a status; a merged pull request no row recor
+SPAWN custom_components/heatpump_optimizer/prefill_offer.py:21:    PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
+SPAWN tests/entities.py:24432:            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
+SPAWN tests/entities.py:24436:            ["node", __import__("layout").locate(".claude/workflows/figure_lint.mjs"), "--pr-body",
+SPAWN tests/entities.py:25060:                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
+SPAWN tests/entities.py:25144:                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
+SPAWN tests/entities.py:25287:            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
+SPAWN tests/entities.py:27025:        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--sunset", "--since", ref],
+SPAWN tests/entities.py:27749:            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
+SPAWN tests/entities.py:27752:        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
+SPAWN tools/audit/harnesses/dual_path.py:63:    ("rules_sync --check", _either("node", ".claude/workflows/rules_sync.mjs", "tools/policy/rules_sync.mjs", "--check")),
+SPAWN tools/audit/harnesses/dual_path.py:65:    ("policy_lint", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
+SPAWN tools/audit/harnesses/dual_path.py:66:    ("fragments_sync", _either("node", ".claude/workflows/fragments_sync.mjs", "tools/policy/fragments_sync.mjs")),
+SPAWN tools/audit/harnesses/dual_path.py:67:    ("policy_lint --report", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--report")),
+SPAWN tools/audit/harnesses/dual_path.py:68:    ("policy_lint --hooks", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--hooks")),
+SPAWN tools/audit/harnesses/dual_path.py:69:    ("field_coverage", _either("node", ".claude/workflows/field_coverage.mjs", "tools/policy/field_coverage.mjs")),
+SPAWN tools/audit/harnesses/dual_path.py:70:    ("check-wave-script", _either("node", ".claude/workflows/check-wave-script.mjs", "tools/policy/check-wave-script.mjs")),
+SPAWN tools/audit/harnesses/dual_path.py:71:    ("agreement_py", _either("python3 -I", ".claude/workflows/agreement_py.py", "tools/policy/agreement_py.py", "--out $T/agreement.json")),
+SPAWN tools/audit/harnesses/dual_path.py:72:    ("agreement", _either("node", ".claude/workflows/agreement.mjs", "tools/policy/agreement.mjs", "--py-json $T/agreement.json")),
+SPAWN tools/audit/harnesses/dual_path.py:73:    ("brief_lint", _either("node", ".claude/workflows/brief_lint.mjs", "tools/policy/brief_lint.mjs")),
+SPAWN tools/audit/harnesses/dual_path.py:74:    ("budget_raise_gate", _either("python3 -I", ".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py", "--base HEAD~1 --head HEAD --pr 0")
+SPAWN tools/audit/harnesses/dual_path.py:75:    ("policy_lint --pr-body", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--pr-body $T/body.md --head $HEAD")),
+SPAWN tools/audit/harnesses/dual_path.py:76:    ("figure_lint --pr-body", _either("node", ".claude/workflows/figure_lint.mjs", "tools/policy/figure_lint.mjs", "--pr-body $T/body.md")),
+NEITHER tools/audit/harnesses/r9_fr3_family_consumer.mjs:43:const src = fs.readFileSync(path.join(ROOT, '.claude/workflows/friction_issues.mjs'), 'utf8')
+SPAWN tools/coverage/partition.py:43:    python3 tools/audit/w5-partition/partition.py --coverage $W/out/coverage.json
+SPAWN tools/devices/measure_prefill_corpus.py:8:    PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
+SPAWN tools/policy/agreement.mjs:29://   node .claude/workflows/agreement.mjs [--only pairs|discovery]
+SPAWN tools/policy/agreement.mjs:69:    if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I .claude/workflows/agreement_py.py --run`')
+SPAWN tools/policy/agreement_py.py:3:    python3 -I .claude/workflows/agreement_py.py --out FILE   # writes the JSON
+SPAWN tools/policy/agreement_py.py:4:    python3 -I .claude/workflows/agreement_py.py --run        # writes it, then runs agreement.mjs on it
+SPAWN tools/policy/brief_lint.mjs:40://   node .claude/workflows/brief_lint.mjs [files...]
+SPAWN tools/policy/budget_raise_gate.py:57:    python3 -I .claude/workflows/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
+SPAWN tools/policy/budget_raise_gate.py:58:    python3 .claude/workflows/budget_raise_gate.py --self-test
+SPAWN tools/policy/budget_raise_gate.py:59:    python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
+SPAWN tools/policy/check-wave-script.mjs:11://     node .claude/workflows/check-wave-script.mjs
+SPAWN tools/policy/field_coverage.mjs:39://   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+SPAWN tools/policy/field_coverage.mjs:41://   node .claude/workflows/field_coverage.mjs --self-test
+SPAWN tools/policy/field_coverage.mjs:119:    const { code, out } = await run('node', [at('.claude/workflows/policy_lint.mjs'), '--hooks', path.relative(ROOT, f)])
+SPAWN tools/policy/figure_census.mjs:170:  ok(templated('node .claude/workflows/policy_lint.mjs --budgets') === null,
+SPAWN tools/policy/policy_lint.mjs:41://   node .claude/workflows/policy_lint.mjs            # lint + acceptance (CI)
+SPAWN tools/policy/policy_lint.mjs:42://   node .claude/workflows/policy_lint.mjs --list     # every check + fixture
+SPAWN tools/policy/policy_lint.mjs:43://   node .claude/workflows/policy_lint.mjs --budgets  # sizes vs caps
+SPAWN tools/policy/policy_lint.mjs:44://   node .claude/workflows/policy_lint.mjs --hooks [settings.json]  # wired and self-testing
+SPAWN tools/policy/policy_lint.mjs:45://   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
+SPAWN tools/policy/policy_lint.mjs:46://   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
+SPAWN tools/policy/policy_lint.mjs:47://   node .claude/workflows/policy_lint.mjs <files...> # lint just these
+SPAWN tools/policy/policy_lint.mjs:48://   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
+SPAWN tools/policy/policy_lint.mjs:49://   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
+SPAWN tools/policy/policy_lint.mjs:50://   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
+SPAWN tools/policy/policy_lint.mjs:51://   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
+SPAWN tools/policy/policy_lint.mjs:52://   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
+CONST tools/policy/policy_lint.mjs:1032:const FIXTURE_CAP_PREFIX = '.claude/workflows/fixtures/'
+CONST tools/policy/policy_lint.mjs:1052:const REQUIRED_CONTEXT_FIXTURE = '.claude/workflows/fixtures/required-contexts.json'
+SPAWN tools/policy/record-predicate/row_files_replay.py:19:    python3 tools/audit/record-predicate/row_files_replay.py [branch-ref ...]
+SPAWN tools/policy/rules_sync.mjs:10://   node .claude/workflows/rules_sync.mjs           # regenerate
+SPAWN tools/policy/rules_sync.mjs:11://   node .claude/workflows/rules_sync.mjs --check   # refuse if out of date
+SPAWN tools/pr/contract_rerun.py:20:    python3 -I .claude/workflows/contract_rerun.py --rerun RUN_ID [--repo O/R]
+SPAWN tools/pr/contract_rerun.py:21:    python3 .claude/workflows/contract_rerun.py --self-test
+SPAWN tools/pr/prepr.sh:256:  if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body "$1"; else node tools/policy/figure_lint.mjs --pr-body "$1"; fi
+SPAWN tools/pr/prepr.sh:516:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+SPAWN tools/pr/prepr.sh:556:exec(compile(open(src).read(), f"{base[:12]}:.claude/workflows/budget_raise_gate.py", "exec"), m.__dict__)
+SPAWN tools/pr/prepr.sh:929:    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/$f.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_l
+SPAWN tools/pr/prepr.sh:932:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/unnamed-red.md" --head "$ZERO" --red 'fast (3.14)' >/dev/null 2>&1; else
+SPAWN tools/pr/prepr.sh:941:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_l
+SPAWN tools/pr/prepr.sh:943:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$D/good-none.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/pol
+SPAWN tools/pr/prepr.sh:951:    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mj
+SPAWN tools/pr/prepr.sh:954:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks >/dev/null 2>&
+SPAWN tools/pr/prepr.sh:964:    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mj
+SPAWN tools/pr/prepr.sh:1698:if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs >/tmp/prepr-policy.$$ 2>&1; else node tools/policy/policy_lint.mjs >/tmp/prepr-policy.$
+SPAWN tools/pr/prepr.sh:1706:if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs >/tmp/prepr-mutants.$$ 2>&1; else node tools/policy/policy_lint_mutants
+SPAWN tools/pr/prepr.sh:1711:if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check >/tmp/prepr-rules.$$ 2>&1; else node tools/policy/rules_sync.mjs --check >/tmp/pr
+SPAWN tools/pr/prepr.sh:1716:if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs >/tmp/prepr-frag.$$ 2>&1; else node tools/policy/fragments_sync.mjs >/tmp/prepr-f
+SPAWN tools/pr/prepr.sh:1721:if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; else node tools/policy/policy_lint.mjs --hooks >/tmp
+SPAWN tools/pr/prepr.sh:1740:  if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs >/tmp/prepr-briefs.$$ 2>&1; else node tools/policy/brief_lint.mjs >/tmp/prepr-briefs.$$
+SPAWN tools/pr/prepr.sh:1750:if test -f .claude/workflows/contract_rerun.py; then python3 -I .claude/workflows/contract_rerun.py --self-test >/tmp/prepr-crr.$$ 2>&1; else python3 -I tools/pr/contract_rerun.
+SPAWN tools/pr/prepr.sh:1757:if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs >/tmp/prepr-fc.$$ 2>&1; else node tools/policy/field_coverage.mjs >/tmp/prepr-fc.
+SPAWN tools/pr/prepr.sh:1765:  python3 -I .claude/workflows/agreement_py.py --out /tmp/prepr-ag.$$.json >/tmp/prepr-ag.$$ 2>&1
+SPAWN tools/pr/prepr.sh:1769:  && if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json /tmp/prepr-ag.$$.json >>/tmp/prepr-ag.$$ 2>&1; else node tools/policy/agreem
+SPAWN tools/pr/prepr.sh:1831:  if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs >/tmp/prepr-wave.$$ 2>&1; else node tools/policy/check-wave-script.mjs >/
+SPAWN tools/pr/push.sh:381:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.
+SPAWN tools/pr/push.sh:385:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/b.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_lint.
+SPAWN tools/pr/push.sh:435:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_l
+SPAWN tools/pr/push.sh:437:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/prose.md" --head "$OLD" >/dev/null 2>&1; else node tools/policy/policy_li
+SPAWN tools/pr/push.sh:460:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/abbrev.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_
+SPAWN tools/pr/push.sh:468:  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --pr-body "$W/nosha.md" --head "$ZERO" >/dev/null 2>&1; else node tools/policy/policy_l
