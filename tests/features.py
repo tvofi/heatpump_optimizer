@@ -28192,6 +28192,21 @@ R.check(
     _qw_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
     f"{_qw_acc.configured_quiet_windows()}",
 )
+from heatpump_optimizer import sensor as _qw_sensor  # noqa: E402
+_qw_acc._config[_QW_FRAC] = 0.8
+_qw_pub = _qw_sensor._quiet_windows_attributes(_qw_acc, {})
+R.check(
+    "the plan sensor publishes the fraction beside the specs when rows exist",
+    _qw_pub.get("silent_mode_power_fraction") == 0.8
+    and "quiet_silent_windows_spec" in _qw_pub,
+    f"{_qw_pub}",
+)
+_qw_bare_pub = _qw_sensor._quiet_windows_attributes(_solve_coord(), {})
+R.check(
+    "an install with no quiet rows publishes no fraction on the plan sensor",
+    "silent_mode_power_fraction" not in _qw_bare_pub,
+    f"{_qw_bare_pub}",
+)
 # The remaining module arms, each pinned so the coverage floor and the
 # mutation table have a driver through it.
 R.check(
