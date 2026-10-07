@@ -69,7 +69,7 @@ Deliberately not changed, each with the reason:
 - `python3 tools/release/stamp.py --self-test`: `RESULT stamp_self_test=pass`. `python3 dev/audit/rounds/round4/D6/claims.py` leaves `claims.json` and `claims.md` byte-identical to the committed files.
 - `python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`; `--self-test` passes.
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`; `node tools/policy/check-wave-script.mjs`: 170 passed, 0 failed; `node tools/policy/field_coverage.mjs`: `FIELD COVERAGE ok`; `node tools/policy/rules_sync.mjs --check` ok; `python3 -I tools/policy/agreement_py.py --run`: `AGREEMENT ok`; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `bash tools/pr/prepr.sh --self-test`: 186 passed, 7 failed, the same 7 (and the same three `AssertionError`s) as at the head before this work and on a machine with no GitHub reach.
+- `bash tools/pr/prepr.sh --self-test`: `193 passed, 0 failed` at this head (see Red checks).
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL` because `tests/closure.py` changes the gate.
 
 ## Red checks
