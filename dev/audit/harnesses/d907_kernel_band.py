@@ -25,7 +25,7 @@ a trial the medians did not carry over the factor.
 
 Run from the repository root, against a baseline ref that is not HEAD:
 
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/d907_kernel_band.py \\
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/d907_kernel_band.py \\
         [trials] [ref]
 
 Force the contended condition by starting load beside it first; the PR that

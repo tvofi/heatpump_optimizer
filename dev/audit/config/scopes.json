@@ -598,6 +598,7 @@
    ".claude/**",
    ".cursor/**",
    "tools/**",
+   "dev/audit/**",
    "docs/decisions/**",
    "CLAUDE.md",
    "AGENTS.md"
@@ -620,6 +621,7 @@
      "files": [
       ".github/**",
       "tools/**",
+      "dev/audit/**",
       ".claude/hooks/**",
       ".claude/workflows/**"
      ]

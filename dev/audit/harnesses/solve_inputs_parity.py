@@ -39,7 +39,7 @@ hand-off shape (the positional one before #1736, the record after):
 Usage, from the root of the tree under test (copy the file into a base tree
 to measure it -- the root is the cwd):
 
-    PYTHONPATH=tests/hastub:custom_components:tests python3 tools/audit/harnesses/solve_inputs_parity.py
+    PYTHONPATH=tests/hastub:custom_components:tests python3 dev/audit/harnesses/solve_inputs_parity.py
 
 Measured at the merge base 9fed34071 (M1, python 3.14.7):
   hub_fields_moved_in_solve=12, _null=4; hub_fields_moved_after_solve=7, _null=4

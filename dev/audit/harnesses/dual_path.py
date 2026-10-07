@@ -31,7 +31,7 @@ restore step restores from a base that holds its graders at either location.
             at neither. Expected: rc 0, 0, non-zero; every file the step's
             pathspecs match in PINNED restored byte-identical.
 
-    python3 tools/audit/harnesses/dual_path.py [--arm graders|neither|ci|shadow|restore] [--base REF] [--keep]
+    python3 dev/audit/harnesses/dual_path.py [--arm graders|neither|ci|shadow|restore] [--base REF] [--keep]
 
 Baseline: the merge base with origin/main (`--base`, default `origin/main`).
 Machine: any; node and python3 on PATH, no network (a grader that would reach
@@ -61,7 +61,7 @@ def _either(interp: str, old: str, new: str, args: str = "") -> str:
     return f"if test -f {old}; then {interp} {old}{tail}; else {interp} {new}{tail}; fi"
 COMMANDS = [
     ("rules_sync --check", _either("node", ".claude/workflows/rules_sync.mjs", "tools/policy/rules_sync.mjs", "--check")),
-    ("codeowners_gap --check", "python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check"),
+    ("codeowners_gap --check", _either("python3 -I", "dev/audit/rounds/round6/D11/fix/codeowners_gap.py", "dev/audit/rounds/round6/D11/fix/codeowners_gap.py", "--check")),
     ("policy_lint", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs")),
     ("fragments_sync", _either("node", ".claude/workflows/fragments_sync.mjs", "tools/policy/fragments_sync.mjs")),
     ("policy_lint --report", _either("node", ".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs", "--report")),
@@ -79,7 +79,7 @@ COMMANDS = [
 ]
 # One data file per grader that reads one, deleted for the `neither` arm.
 NEITHER = [".claude/workflows/policy_budgets.json", ".claude/workflows/fixtures/required-contexts.json",
-           "tools/audit/rotation.json", "tools/audit/bugclasses.json", ".claude/rules/gate-scoping.md"]
+           "dev/audit/config/rotation.json", "dev/audit/config/bugclasses.json", ".claude/rules/gate-scoping.md"]
 # Rows whose text differs for a reason the arm does not measure; the rc must
 # still agree. Each names why, so a reader can see what was set aside.
 EXPECTED = {
@@ -88,7 +88,10 @@ EXPECTED = {
     ("neither", "agreement"): "its grammar census counts the regexes HEAD's graders add",
     ("neither", "brief_lint"): "HEAD's brief_lint prints its LOCATE acceptance line",
 }
-_spec = importlib.util.spec_from_file_location("codeowners_gap", ROOT / "tools/audit/round6/D11/fix/codeowners_gap.py")
+sys.path.insert(0, str(ROOT / "tests"))
+from layout import locate  # noqa: E402  old path while a restore has put the base copy there
+_spec = importlib.util.spec_from_file_location(
+    "codeowners_gap", ROOT / locate("dev/audit/rounds/round6/D11/fix/codeowners_gap.py", root=ROOT))
 CG = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(CG)  # the pin reader policy-docs runs: its restore grammar and its execution grammar
 spec_hit = CG.spec_hit

@@ -7,7 +7,7 @@ row. Owned attributes are the ones a seam stores. The second tree is main
 immediately before the #1887 merge, archived so the function text of
 ``seam_metrics`` is the one this tree runs on both.
 
-    python3 tools/audit/harnesses/eg_b7_seam_hubs.py
+    python3 dev/audit/harnesses/eg_b7_seam_hubs.py
 """
 from __future__ import annotations
 

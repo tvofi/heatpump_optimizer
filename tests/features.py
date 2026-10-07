@@ -1374,7 +1374,7 @@ R.check(
     ),
     f"{[(n, [(lv, msg[:40]) for lv, msg in rows]) for n, rows in _f15_fence_rows.items()]} "
     f"completed={_f15_fence_ok} -- the sweep measured 5 of 5 sites silent "
-    "at the merge base (tools/audit/round9/D1/s2/guards.py)",
+    "at the merge base (dev/audit/rounds/round9/D1/s2/guards.py)",
 )
 
 
@@ -42507,7 +42507,7 @@ R.check(
 # real ramp, the ΔT column then carries it into UA, and the confidence gate
 # adopted that minority -- the round-5 D2 harness prices the cell at median
 # |UA bias| 0.281 and max 0.316 with 4 of 30 admitted at 0.10 C/h of drift,
-# against a no-drift cell at median 0.026 (tools/audit/round5/D2/seat-b/
+# against a no-drift cell at median 0.026 (dev/audit/rounds/round5/D2/seat-b/
 # sysid_bias.py: drift010_30min vs white002_30min) -- and the R3-D2-03
 # settle cross-check refuses the HONEST fits (its precondition selects a
 # fitted drift below the prior) while skipping the biased ones, a selection
@@ -42631,7 +42631,7 @@ R.check(
     "completes and the adoption gate takes it, and what it takes is the "
     "one-state regression applied to the two-state plant the experiment was "
     "armed on. The size of that bias is the finder's measurement, not this "
-    "check's: tools/audit/round5/D7/seat-a/sysid_step_bias.py, RESULT "
+    "check's: dev/audit/rounds/round5/D7/seat-a/sysid_step_bias.py, RESULT "
     "gap_settle_bias_heavy_old, at both ends of this fix",
 )
 # R9 D2-s4-81: light_new's own noise-free night cannot pass the adoption bar,
