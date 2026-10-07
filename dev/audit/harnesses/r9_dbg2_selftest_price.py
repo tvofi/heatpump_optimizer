@@ -16,7 +16,7 @@ stand-in answers at once and the row reads as the orchestration's own cost.
 The pre-study priced the solve itself (``reference_solve``, 20.2 ms).
 
     git show origin/handoff/r9-dbg-0:tools/audit/round9/prestudy/runs/week/bundle.json.gz > week.json.gz
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/r9_dbg2_selftest_price.py --bundle week.json.gz
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r9_dbg2_selftest_price.py --bundle week.json.gz
 
 RESULT lines: ``selftest_<name>_ms``, ``selftest_total_ms``, ``bundle_bytes``,
 ``bundle_inline`` (1 or 0). Perturbation: ``--repeat N`` repeats the week's
