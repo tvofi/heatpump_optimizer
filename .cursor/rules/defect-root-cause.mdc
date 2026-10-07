@@ -116,7 +116,7 @@ check is in the derived set and registers its input or declares none.
 
 ## Where it is recorded
 
-The analysis is `tools/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`:
+The analysis is `dev/audit/rca/<id>.md`, cited by `rca` in `bugclasses.json`:
 a class has no issue, and a pull-request body or comment can be deleted or its
 author retired. The qualifying defect's issue carries a short **Root cause**
 section: the state (a-d) with its evidence, the cost-test numbers, the
