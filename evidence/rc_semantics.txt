@@ -1,0 +1,3 @@
+# bash rc semantics
+[14] old (exit 0)
+[14] new (exit 1)

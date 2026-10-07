@@ -1,0 +1,7 @@
+RESULT timing_check sites at head: 6
+RESULT run=37526452102 arm=before fails=1 non_timing=0 status=skip-failed-recording adds_quiet_windows=False
+RESULT run=37526452102 arm=after fails=1 non_timing=0 status=changed adds_quiet_windows=True
+RESULT run=37539776088 arm=before fails=2 non_timing=0 status=skip-failed-recording adds_quiet_windows=False
+RESULT run=37539776088 arm=after fails=2 non_timing=0 status=changed adds_quiet_windows=True
+RESULT run=37564484318 arm=before fails=1 non_timing=0 status=skip-failed-recording adds_quiet_windows=False
+RESULT run=37564484318 arm=after fails=1 non_timing=0 status=changed adds_quiet_windows=True
