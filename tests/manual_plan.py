@@ -644,6 +644,10 @@ class _QuietCoord:
     def configured_quiet_windows(self) -> dict:
         return self._specs
 
+    @property
+    def effective_config(self) -> dict:
+        return {}
+
 
 class _PowerState:
     def __init__(self, state: str, unit: str | None = "W") -> None:
