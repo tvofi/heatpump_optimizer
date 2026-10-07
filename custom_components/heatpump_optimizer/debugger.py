@@ -21,11 +21,12 @@ ride the bundle's manifest. Download diagnostics carries the bundle inline up to
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 import statistics
 import time
-from collections.abc import Awaitable, Callable, Coroutine
+from collections.abc import Callable, Coroutine
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -257,10 +258,6 @@ def feed_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def _resolved(value: Any) -> Any:
-    return value
-
-
 async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
     """One what-if solve with no override, which the live plan should equal."""
     began = time.monotonic()
@@ -275,9 +272,13 @@ async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[st
 
 
 async def run_self_tests(
-    checks: list[tuple[str, Callable[[], Awaitable[Any]]]], budget: float
+    checks: list[tuple[str, Callable[[], Any]]], budget: float
 ) -> dict[str, Any]:
-    """Each check in turn inside what is left of ``budget`` seconds; one failing stops none."""
+    """Each check in turn inside what is left of ``budget`` seconds; one failing stops none.
+
+    A check returns its result, or an awaitable of it; only an awaited one can
+    be cut off at the budget.
+    """
     deadline = time.monotonic() + budget
     out: dict[str, Any] = {}
     for name, check in checks:
@@ -288,7 +289,8 @@ async def run_self_tests(
         began = time.monotonic()
         try:
             async with asyncio.timeout(left):
-                outcome = {"result": await check()}
+                result = check()
+                outcome = {"result": await result if inspect.isawaitable(result) else result}
         except TimeoutError:
             outcome = {"error": "timeout"}
         except Exception as err:  # noqa: BLE001 - one broken self-test must not hide the rest
@@ -406,11 +408,11 @@ class DebugCollector:
 
         tests = await run_self_tests([
             ("stores", read_stores),
-            ("accuracy", lambda: _resolved(accuracy_report(
-                stores.get(accuracy_key, (None, None))[1], coordinator.accuracy))),
+            ("accuracy", lambda: accuracy_report(
+                stores.get(accuracy_key, (None, None))[1], coordinator.accuracy)),
             ("solver", lambda: _solver_smoke(coordinator, rows)),
-            ("sensors", lambda: _resolved(sensor_sanity(rows, coordinator.data))),
-            ("feeds", lambda: _resolved(feed_health(rows))),
+            ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
+            ("feeds", lambda: feed_health(rows)),
         ], SELF_TEST_BUDGET.total_seconds())
         if self.final and self.started_at == started_at:  # not restarted meanwhile
             self.self_tests = tests
