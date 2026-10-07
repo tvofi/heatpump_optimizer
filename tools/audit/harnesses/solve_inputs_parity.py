@@ -77,6 +77,12 @@ for _p in ("tests", os.path.join("tests", "hastub"), "custom_components"):
 
 import numpy as np  # noqa: E402
 from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
+
+try:  # a tree with the frozen EntryConfig (#1745) rebuilds it; a base tree writes the dict
+    from harness import with_config  # noqa: E402
+except ImportError:
+    def with_config(holder, changes):
+        holder._config.update(changes)
 from homeassistant.util import dt as dt_util  # noqa: E402
 
 from heatpump_optimizer import const  # noqa: E402
@@ -141,8 +147,10 @@ def make(name, *, away=False, economy=False, learned=False, dhw=False):
         learner.profile_weekend = learner.normalize_profile(spike[::-1])
         learner.daytype_samples = [30, 30]
     if learned:
-        coord._config[const.CONF_SOLAR_APERTURE_LEARNING_ENABLED] = True
-        coord._config[const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+        with_config(coord, {
+            const.CONF_SOLAR_APERTURE_LEARNING_ENABLED: True,
+            const.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True,
+        })
         coord._solar_aperture.update(scale=1.3, n=1.0e6)
         coord._internal_gains_profile = [0.35] * 24
         coord._external_heat_active = True
@@ -194,7 +202,7 @@ def views_arm():
 
 def band_arm(**kw):
     coord = make("band", **kw)
-    coord._config[const.CONF_COMFORT_LEARNING_ENABLED] = True
+    with_config(coord, {const.CONF_COMFORT_LEARNING_ENABLED: True})
     bands = []
     real = coord._comfort_learner.record_quiet_period
 

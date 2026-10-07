@@ -27739,7 +27739,7 @@ R.check(
 # composed limits.
 def _qw_plan(config, simulate=None):
     coord = _solve_coord()
-    coord._config.update(config)
+    with_config(coord, config)
     sink = []
     real = _coord_mod._await_optimize
 
@@ -27824,7 +27824,7 @@ R.check(
 # it calls the method on a real coordinator, where a NameError is a red
 # check and not a typing job.
 _qw_acc = _solve_coord()
-_qw_acc._config.update({
+with_config(_qw_acc, {
     _QW_LIMITED: "switch.pump_night_mode",
     _QW_SILENT: "22:00-06:00", _QW_OFF: "09:00-09:30",
 })
@@ -27837,7 +27837,7 @@ R.check(
     },
     f"{_qw_acc_specs}",
 )
-_qw_acc._config[_QW_LIMITED] = "binary_sensor.gchv_night"
+with_config(_qw_acc, {_QW_LIMITED: "binary_sensor.gchv_night"})
 R.check(
     "a read-only capacity-limited slot marks the silent rows not enforced",
     _qw_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
@@ -58732,13 +58732,13 @@ R.check(
 
 _sw4_acc = _solve_coord()
 _sw4_acc.hass = FakeHass(_SW4_STATES)
-_sw4_acc._config.update(_SW4_CFG)
+with_config(_sw4_acc, _SW4_CFG)
 R.check(
     "configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced",
     "quiet_silent_not_enforced" not in _sw4_acc.configured_quiet_windows(),
     f"{_sw4_acc.configured_quiet_windows()}",
 )
-_sw4_acc._config[_QW_SILENT] = "12:00-13:00,22:00-06:00"
+with_config(_sw4_acc, {_QW_SILENT: "12:00-13:00,22:00-06:00"})
 R.check(
     "configured_quiet_windows marks a two-window GCHV spec not-enforced for the rest",
     _sw4_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
@@ -58769,9 +58769,7 @@ def _sw4_night_writes(coord):
 
 def _sw4_coord(silent="22:00-06:00", off="", duty="control"):
     coord = _PaCoord(_PA_MODBUS, duties="----", duty=duty)
-    coord._config[_QW_LIMITED] = _SW4_FLAG
-    coord._config[_QW_SILENT] = silent
-    coord._config[_QW_OFF] = off
+    with_config(coord, {_QW_LIMITED: _SW4_FLAG, _QW_SILENT: silent, _QW_OFF: off})
     coord.hass.states.set(_SW4_FLAG, FakeState("off"))
     for entity_id, state in _SW4_STATES.items():
         if entity_id != _SW4_FLAG:

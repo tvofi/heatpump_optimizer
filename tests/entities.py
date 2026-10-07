@@ -4069,6 +4069,40 @@ if _EntryConfig is not None:
         not _ec_unstable, f"{_ec_unstable}",
     )
 
+    # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
+    # slot are parsed fields, a blank or None spec reading "" (unset) and an
+    # empty slot None. A set_thermal_parameters call carrying a spec persists
+    # it through the options write, whose reload parses it; it does not write
+    # into the frozen configuration, which raises.
+    _ec_qentry, _ec_qcoord = _ec_build({
+        const.CONF_QUIET_OFF_WINDOWS: None,
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
+    })
+
+    async def _ec_no_refresh():
+        return None
+
+    _ec_qcoord.async_request_refresh = _ec_no_refresh
+    try:
+        asyncio.run(_ec_qcoord.async_update_thermal_params(
+            {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
+        _ec_qerr = None
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_qerr = f"{type(err).__name__}: {err}"
+    _ec_qcfg = _ec_qcoord._ctx._config
+    R.check(
+        "a stored None quiet spec reads unset, and a quiet window set by the service persists "
+        "through the options write while the parsed configuration stays as built",
+        _ec_qerr is None
+        and _ec_qcfg.quiet_off_windows == "" and _ec_qcfg.quiet_silent_windows == ""
+        and _ec_qcfg.heat_pump_capacity_limited_entity is None
+        and _ec_qcoord.configured_quiet_windows() == {
+            "quiet_silent_windows_spec": "", "quiet_off_windows_spec": ""}
+        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00",
+        f"error={_ec_qerr} off={_ec_qcfg.quiet_off_windows!r} "
+        f"options={dict(_ec_qentry.options or {})!r}",
+    )
+
 
 # The barrier: no reader in a migrated module takes a key off a mapping.
 # The shape is P2's (_p2_conf_read without the typed arm): x.get(K), x[K],
