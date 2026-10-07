@@ -120,11 +120,11 @@ ALLOW = (
 
 
 def scope(path: str) -> bool:
-    if re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*)/", path):
+    if re.match(r"tools/audit/(?:round\d+|handoff|w5-[^/]*)/|dev/audit/(?:rounds|waves)/", path):
         return False
     return bool(re.match(r"\.github/workflows/[^/]+\.ya?ml$", path)
-                or re.match(r"docs/decisions/[^/]+\.md$", path)
-                or re.match(r"(?:tools|tests|\.claude)/.*\.(?:sh|py|mjs|js|cjs)$", path)
+                or re.match(r"(?:docs/decisions|dev/governance/decisions)/[^/]+\.md$", path)
+                or re.match(r"(?:tools|tests|\.claude|dev/audit/harnesses)/.*\.(?:sh|py|mjs|js|cjs)$", path)
                 or re.match(r"tools/audit/seat/shims/", path)
                 or path == ".claude/settings.json")
 
@@ -226,7 +226,10 @@ def self_test() -> int:
           one("tests/x.py", "/tmp/hpo-gate.lock and /tmp/state") != [])
     check("the state root passes", one(s, 'exec "${HPO_STATE_DIR:-$HOME/.local/state/hpo}/venv-ci/bin/python3"') == [])
     check("the cloud checkout root passes", one(s, "REPO=${HPO_REPO:-/home/user/heatpump_optimizer}") == [])
-    check("round evidence is out of scope", one("tools/audit/round9/D1/x.py", "/private/tmp/audit-7/x") == [])
+    check("round evidence is out of scope", one("dev/audit/rounds/round9/D1/x.py", "/private/tmp/audit-7/x") == [])
+    check("a harness under dev/audit/harnesses is scanned and a wave record is not",
+          one("dev/audit/harnesses/x.py", "/private/tmp/audit-7/x") != []
+          and one("dev/audit/waves/w5/x.sh", "/private/tmp/audit-7/x") == [])
     allow = ((s, "/tmp/fixture", "why"),)
     check("an allow entry excuses only its own file", one(s, "/tmp/fixture", allow) == []
           and one("tools/audit/seat/y.sh", "/tmp/fixture", allow) != [])

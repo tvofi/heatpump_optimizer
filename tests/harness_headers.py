@@ -178,7 +178,7 @@ def printed_from(stdout: str) -> dict[str, str]:
 # control on #1808 twice. A harness blocked on I/O spends no CPU, so the wall cap
 # bounds that one, below mutation_table.py's 1200 s per-driver timeout.
 #
-# A CPU second is not load-independent either: tools/audit/round4/D7/
+# A CPU second is not load-independent either: dev/audit/rounds/round4/D7/
 # sysid_estimator_frontier.py costs 96.8 CPU-s serially on the CI runner (`slow`,
 # run 37130986490) and was SIGXCPU'd at 240 inside mutation_table.py's --jobs 3
 # pool (mutation-ledger, run 37108891698, BLAS pins in place) -- the same work

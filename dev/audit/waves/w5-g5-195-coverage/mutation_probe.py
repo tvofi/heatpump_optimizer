@@ -22,7 +22,7 @@ For every repaired check it runs, in order:
 The production file's md5 is captured before and after every mutation, so a
 run that leaves the tree dirty is visible rather than assumed.
 
-    PYTHONPATH=tests/hastub python3 tools/audit/w5-g5-195-coverage/mutation_probe.py
+    PYTHONPATH=tests/hastub python3 dev/audit/waves/w5-g5-195-coverage/mutation_probe.py
 """
 from __future__ import annotations
 def repo_root(start):

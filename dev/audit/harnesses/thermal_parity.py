@@ -17,9 +17,9 @@ through the scalar path, the DHW path, and the stability sub-step count over
 twenty wind/precipitation draws. Every random draw is seeded.
 
     # from the root of each tree under test, with that tree's own hastub:
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/thermal_parity.py capture <out.npz>
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/thermal_parity.py capture <ctl.npz> --perturb
-    python3 tools/audit/harnesses/thermal_parity.py compare <base.npz> <head.npz> [<ctl.npz>]
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/thermal_parity.py capture <out.npz>
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/thermal_parity.py capture <ctl.npz> --perturb
+    python3 dev/audit/harnesses/thermal_parity.py compare <base.npz> <head.npz> [<ctl.npz>]
 
 Copy this file into the tree under test (tools/audit/README.md: a harness
 measures the tree it is run from only if it resolves the root from the cwd,

@@ -23,7 +23,7 @@
 #
 # Command (from the export root):
 #   PYTHON=python3 D10_COV_PREFIX=/tmp/d10-cov \
-#     tools/audit/w5-g5-195-coverage/coverage_suite.sh
+#     dev/audit/waves/w5-g5-195-coverage/coverage_suite.sh
 set -u
 if [ ! -f custom_components/heatpump_optimizer/manifest.json ]; then
   echo "run from the export root" >&2; exit 2

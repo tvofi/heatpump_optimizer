@@ -1488,8 +1488,8 @@ let _printerSource = null
 function printerSource() {
   if (_printerSource == null) {
     const policy = new Set(policyFiles())
-    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!.cursor']).split('\n'))
-      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round'))
+    _printerSource = canonList(git(['ls-files', '--', '*.py', '*.mjs', '*.js', '*.sh', ':!tools/audit/round*', ':!dev/audit/rounds', ':!.cursor']).split('\n'))
+      .filter((f) => f && !policy.has(f) && !f.startsWith('.claude/workflows/fixtures/') && !f.startsWith('tools/audit/round') && !f.startsWith('dev/audit/rounds/'))
       .map((f) => read(f) ?? '').join('\n')
   }
   return _printerSource

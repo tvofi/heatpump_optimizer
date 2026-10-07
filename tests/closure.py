@@ -261,7 +261,7 @@ INERT = (
     # classify, so a test that imports it pulls its closure in on its own --
     # no exemption, no hidden call site. The prefix no longer covers the
     # round harness .py corpus itself (#995): harness_headers.py's discovery
-    # opens every tools/audit/round*/D*/*.py, so those files are read by
+    # opens every dev/audit/rounds/round*/D*/*.py, so those files are read by
     # the gate and `_is_header_corpus` below takes them out of this claim.
     "tools/audit/",
     # Seat hand-off notes (`handoff/<round>/...`), tracked on a fix branch
@@ -317,7 +317,7 @@ INERT = (
     # script read it, so the INERT listing was honest. #951 ended that --
     # tests/entities.py now reads the register to pin its coverage-bearing
     # rows against the tree, and tests/harness_headers.py executes
-    # tools/audit/round4/D10/qs_rules.py, which reads it too -- so the file
+    # dev/audit/rounds/round4/D10/qs_rules.py, which reads it too -- so the file
     # moved to entities.py's recorded closure, and this entry was removed
     # rather than kept beside a read (the #357 contradiction). hassfest
     # still skips it for custom repos; that is about the external checker,
@@ -519,7 +519,7 @@ INERT_EXCEPT = (
     # The round-harness exceptions that used to sit here -- #817's three
     # round-3 files and #951's qs_rules.py -- moved to `_is_header_corpus`
     # below when #995's dynamic discovery made the read set the whole
-    # tools/audit/round*/D*/*.py corpus: exact-match entries cannot follow
+    # dev/audit/rounds/round*/D*/*.py corpus: exact-match entries cannot follow
     # a glob, and 212 of them was the shape of a list nobody would keep
     # honest. Same refusal either way: declaring the prefix unread while
     # the gate opens the files is #357.
@@ -573,7 +573,7 @@ INERT_EXCEPT = (
     "blueprints/automation/notifications.yaml",
     ".gitignore",
     # #995, the .gitignore story one lane later: the live-header harness check
-    # executes tools/audit/round4/D6/claims.py, whose re-run rewrites these two
+    # executes dev/audit/rounds/round4/D6/claims.py, whose re-run rewrites these two
     # caches beside it (set-iteration order churn), and card_drift.mjs --
     # recorded after it in the same lane -- answers `git diff --name-only HEAD`
     # (threeDotFiles), so git hashes the now stat-dirty pair. strace -f records
@@ -898,7 +898,7 @@ def _rel(path: str) -> str | None:
         # A .pyc open is a source read in disguise (#1309). On a warm cache
         # the import machinery opens only the bytecode, never the .py -- and
         # a module loaded the way tests/entities.py loads
-        # tools/audit/round4/D11/governance_cost.py and tools/release/stamp.py
+        # dev/audit/rounds/round4/D11/governance_cost.py and tools/release/stamp.py
         # (spec_from_file_location + exec_module, never inserted into
         # sys.modules) is invisible to the end-of-run sweep as well, so a
         # warm-box re-derivation recorded the dependency as absent and

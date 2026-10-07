@@ -191,7 +191,7 @@ mkdir -p "$EXPORT/dev/audit/rounds/round${ROUND}"
 #      child of tests/entities.py, are in none. A literal naming a whole round
 #      directory is ignored.
 # Everything else in an earlier round -- reports, verdicts, ledgers, logs -- is
-# removed. The instruments that survive are the ones tools/audit/harnesses/
+# removed. The instruments that survive are the ones dev/audit/harnesses/
 # README.md's rule would keep live anyway: evidence is archived, instruments
 # are kept.
 strip_earlier_rounds "$EXPORT"
