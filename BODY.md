@@ -1,14 +1,14 @@
 Root-cause analysis for #1985, the friction key `root-cause-unanswered`. It adds `dev/audit/rca/R9-RCA-1985.md`, its raw evidence under `dev/audit/rca/1985/`, and one `_rca` entry in `tools/audit/bugclasses.json`. It changes no production, workflow or policy file.
 
-**Process state: (c).** I reproduced the count: 12 PRs and 17 verdicts in `v6.7.16..origin/main`. 13 of the 17 verdicts name a lane that tests the fix's own code (typing, mutation, closures, fast, env-matrix, CodeQL and others). The other 4 are body-only debt. The cause is that the body is written at the handoff, when the fixer pushes, and CI's reds arrive after it. `fix-review.md` step 11 sends every red the body does not answer to the one word `root-cause-unanswered`.
+**Process state: (c).** I reproduced the count: 12 PRs and 17 verdicts in `v6.7.16..origin/main`. 13 of the 17 verdicts name a lane that tests the fix's own code (typing, mutation, closures, fast, env-matrix, CodeQL and others). The other 4 name only procedural reds: `budget-raise-gate` awaiting the owner, and `nightly-status`/`delivery-status` grading main. The cause is that the body is written at the handoff, when the fixer pushes, and CI's reds arrive after it. `fix-review.md` step 11 sends every red the body does not answer to the one word `root-cause-unanswered`.
 
-The cheaper detector already exists: `pr-contract` with its re-run workflow. It fired on 17 of 17 entries, 11 before the verdict and 6 when the `Tests` workflow completed. So no check is built. A separate `red-check` verdict class was also considered and declined, by the orchestrator under mandate 5951564627. It would leave the key at the threshold (12 to 3 PRs), and its value is direction, not hours. Both refusals share one revisit trigger: body-only repairs reaching 3 PRs in one window.
+The cheaper detector already exists: `pr-contract` with its re-run workflow. It fired on 17 of 17 entries, 11 before the verdict and 6 when the `Tests` workflow completed. So no check is built. A separate `red-check` verdict class was also considered and declined, by the orchestrator under mandate 5951564627. It would leave the key at the threshold (12 to 3 procedural-only PRs), and its value is direction, not hours. Both refusals share one revisit trigger: body-only repairs, meaning the PR's next verdict is `merge` at the same head, reaching 3 PRs in one window. This window measured 2 (#1975, #1979; 10.0 min of rework), so the trigger is not met. #1942 merged at its blocked head with no second verdict; it is outside the rule and disclosed in the document.
 
 Closes #1985
 
 ## Head
 
-1dad91c6d872c27c8666fd61fc03977e97b43a59. The analysis was measured against `origin/main` 3910026e on 2026-10-07; this head adds this PR's delivery row and merges `origin/main`.
+f122622f011a220ecca80e1e40957d1154630f54. The analysis was measured against `origin/main` 3910026e on 2026-10-07; this head adds this PR's delivery row and merges `origin/main`.
 
 ## Mutation proof
 
