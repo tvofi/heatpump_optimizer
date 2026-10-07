@@ -460,6 +460,9 @@
     "restore_learned_snapshot_no_snapshot": {
       "message": "Ingen inlärd ögonblicksbild uppfyller kraven för återställning för {entry_ids}: en ögonblicksbild kräver friska indata och noggrannhet inom bandet när den togs"
     },
+    "restore_learned_snapshot_no_refit": {
+      "message": "Ingen omanpassning av värmeförlusten finns att godta för {entry_ids}: den kräver ett aktivt driftlarm och tre lugna dagar med underlag"
+    },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
     },
@@ -474,6 +477,18 @@
     },
     "tibber_fetch_failed": {
       "message": "Elpriserna kunde inte hämtas: {error}"
+    },
+    "apply_schedule_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "set_thermal_params_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "simulate_plan_invalid_quiet_windows": {
+      "message": "Ogiltiga tysta fönster: {error}"
+    },
+    "quiet_windows_overlap": {
+      "message": "Överlappande tysta fönster: {overlap}"
     }
   },
   "options": {
@@ -1637,11 +1652,11 @@
     },
     "accuracy_drift": {
       "title": "Den inlärda modellen driver",
-      "description": "Optimerarens prognoser har varit konsekvent fel i flera dagar, vilket oftast betyder att något i huset eller systemet ändrats snabbare än inlärningen hinner följa. Kontrollera att sensorerna visar rimliga värden. Om planen blivit märkbart sämre rullar tjänsten \"Återställ inlärd ögonblicksbild\" tillbaka modellen till den senaste kända bra veckokopian."
+      "description": "Optimerarens prognoser har varit konsekvent fel i flera dagar, vilket oftast betyder att något i huset eller systemet ändrats snabbare än inlärningen hinner följa. Kontrollera att sensorerna visar rimliga värden. Om planen blivit märkbart sämre rullar tjänsten \"Återställ inlärd ögonblicksbild\" tillbaka modellen till den senaste kända bra veckokopian. Givaren Råd om omstart av modellen och fliken Rådgivare i kortet erbjuder den kopian och, när tre lugna dagar med underlag finns, en omanpassad skala för husets värmeförlust med en osäkerhet på ungefär ±7-10 %. Ingenting tillämpas förrän du godtar ett av dem."
     },
     "accuracy_drift_rolled_back": {
       "title": "Den inlärda modellen återställdes från en ögonblicksbild",
-      "description": "Optimerarens prognoser drev utanför bandet i flera dagar trots att alla indata såg friska ut, så den inlärda modellen rullades automatiskt tillbaka till den senaste kända bra veckokopian. Inget krävs av dig; meddelandet finns för att ändringen ska synas. Var driften verklig — nya radiatorer, ändrad isolering — lär sig modellen helt enkelt om från den återställda punkten."
+      "description": "Optimerarens prognoser drev utanför bandet i flera dagar trots att alla indata såg friska ut, så den inlärda modellen rullades automatiskt tillbaka till den senaste kända bra veckokopian. Inget krävs av dig; meddelandet finns för att ändringen ska synas. Var driften verklig — nya radiatorer, ändrad isolering — lär sig modellen helt enkelt om från den återställda punkten. Förblir prognoserna fel erbjuder Råd om omstart av modellen en omanpassad skala för husets värmeförlust efter tre lugna dagar med underlag, med en osäkerhet på ungefär ±7-10 %; ingenting tillämpas förrän du godtar den."
     },
     "freq_watchdog": {
       "title": "Frekvensstyrningen har ställts ner",
@@ -1730,6 +1745,10 @@
     "store_version": {
       "title": "Sparad inlärning kunde inte läsas",
       "description": "Optimerarens sparade data {store} kan inte läsas: {detail}. Den här versionen kan inte flytta över den, så den delen av det inlärda börjar om från standardvärden. Det händer när en äldre version installeras över en nyare, eller en nyare som ändrade hur datan sparas. Inget behöver göras för att optimeraren ska fortsätta köras. Om datan sparades av en nyare version lämnas den orörd och den här versionen sparar inget över den: installera den nyare versionen igen för att få tillbaka den, eller, för att behålla den här versionen, radera filen {store} i mappen .storage och starta om."
+    },
+    "quiet_silent_not_enforced": {
+      "title": "Tysta fönster genomförs inte",
+      "description": "Tysta fönster är konfigurerade, men kapacitetsbegränsningsplatsen ({entity}) är inte en brytare som integrationen kan hålla, så planen begränsas inte för dem och värmepumpen ombeds aldrig köra tyst. Tilldela värmepumpens egna natt-/tystlägesbrytare som kapacitetsbegränsad entitet, eller ta bort de tysta raderna."
     }
   },
   "entity": {
@@ -1959,6 +1978,9 @@
       },
       "wood_burn_advisor": {
         "name": "Vedeldning, natt råd"
+      },
+      "model_restart_advisor": {
+        "name": "Råd om omstart av modellen"
       }
     },
     "binary_sensor": {
@@ -2159,6 +2181,18 @@
         "ecl110_displace_max": {
           "name": "ECL110 största parallellförskjutning",
           "description": "Den högsta parallellförskjutning optimeringen får begära, i °C."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },
@@ -2229,6 +2263,18 @@
         "wood_furnace_efficiency": {
           "name": "Vedpannans verkningsgrad",
           "description": "Tänk om-värde för pannans verkningsgrad i procent."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },
@@ -2307,6 +2353,18 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa ändringen till en konfigurationspost. Lämna tomt för att tillämpa den på varje konfigurerad värmepump, vilket är vad en installation med en enda värmepump vill ha."
+        },
+        "quiet_silent_windows": {
+          "name": "Tysta fönster",
+          "description": "Tidsramar då värmepumpen ska köras tyst, i samma grammatik som varmvattenfönstren, t.ex. \"22:00-06:00\". Planen begränsar elektrisk effekt inom dem till den tysta effektfaktorn av märkeffekten. En tom sträng tar bort de tysta raderna."
+        },
+        "quiet_off_windows": {
+          "name": "Av-fönster",
+          "description": "Tidsramar då inget planeras alls: ingen uppvärmning och inga varmvattenluckor, t.ex. \"weekend 23:00-07:00\". Planen förvärmer innan dem. Ett av-fönster får inte överlappa ett varmvattenfönster. En tom sträng tar bort av-raderna."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Tyst effektfaktor",
+          "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
         }
       }
     },
@@ -2344,11 +2402,15 @@
     },
     "restore_learned_snapshot": {
       "name": "Återställ inlärd ögonblicksbild",
-      "description": "Rulla tillbaka varje inlärningsmodell till den senaste veckovisa ögonblicksbild som togs medan alla insignaler var friska och prognosträffsäkerheten låg inom sitt band. Använd detta om den inlärda modellen synbart har gått fel — till exempel efter att en givare matat skräp en tid. Driftvakten gör samma sak automatiskt när den kan bevisa att insignalerna var friska hela tiden; den här tjänsten är det manuella ingreppet för när du ser vad den inte kan se. Ingenting går förlorat permanent: inlärningen fortsätter helt enkelt från den återställda punkten. Anropet svarar med ett fel när ingen ögonblicksbild kvalificerar sig, i stället för att svara med en tom återställning.",
+      "description": "Rulla tillbaka varje inlärningsmodell till den senaste veckovisa ögonblicksbild som togs medan alla insignaler var friska och prognosträffsäkerheten låg inom sitt band. Använd detta om den inlärda modellen synbart har gått fel — till exempel efter att en givare matat skräp en tid. Driftvakten gör samma sak automatiskt när den kan bevisa att insignalerna var friska hela tiden; den här tjänsten är det manuella ingreppet för när du ser vad den inte kan se. Ingenting går förlorat permanent: inlärningen fortsätter helt enkelt från den återställda punkten. Anropet svarar med ett fel när ingen ögonblicksbild kvalificerar sig, i stället för att svara med en tom återställning. Med källan satt till värmeförlustens omanpassning godtar den i stället driftrådgivarens nyanpassade skala för husets värmeförlust, som erbjuds medan driftlarmet är aktivt och tre lugna dagar med underlag finns.",
       "fields": {
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa återställningen till en konfigurationspost. Lämna tomt för att återställa varje konfigurerad värmepump."
+        },
+        "source": {
+          "name": "Omstartspunkt",
+          "description": "Veckokopian (standard), eller driftrådgivarens omanpassning av värmeförlusten."
         }
       }
     },

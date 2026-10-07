@@ -108,6 +108,7 @@ import asyncio
 import bisect
 import logging
 from collections import Counter, deque
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -121,7 +122,7 @@ from homeassistant.helpers.event import (
 )
 from homeassistant.util import dt as dt_util
 
-from . import boost, pump_mode, setpoint_check
+from . import boost, pump_mode, quiet_windows, setpoint_check
 from .const import (
     DOMAIN,
     MODE_AUTO,
@@ -131,7 +132,9 @@ from .const import (
     PUMP_DUTY_MODES,
 )
 from .entry_config import EntryConfig
+from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import state_unit, temperature_c, temperature_from_c
+from .payload import CurrentAction
 from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
@@ -204,9 +207,42 @@ class ArbiterState:
     lock: asyncio.Lock = field(default_factory=asyncio.Lock)
 
 
+@dataclass(frozen=True)
+class ArbiterInputs:
+    """One pass's read-only inputs from the coordinator (#1739).
+
+    The coordinator builds a snapshot per arbitration pass through its
+    published ``arbiter_inputs``; the arbiter names no private member.
+    ``plan`` rides along ungated beside ``plan_stale`` because the share
+    split and the baseline read it without the staleness gate, exactly as
+    the privates did.
+    """
+
+    hass: Any
+    config: Mapping[str, Any]
+    mode: str
+    plan: Any
+    plan_stale: bool
+    entry_released: bool
+    state: Any
+    thermal: Any
+    params: Any
+    action: CurrentAction
+    measured_power_kw: float | None
+    disinfecting: bool
+
+
 _STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
 _OWN_MODES = frozenset((pump_mode.MODE_HEAT, pump_mode.MODE_DHW, pump_mode.MODE_HEAT_DHW))
 _SLOTS = ("mode", "dhw_setpoint", "space_setpoint")
+#: GCHV night-mode registers 518/519 as hour then minute per register (#1913).
+_NIGHT_KEYS = {
+    "night_start_hour": "start_hour",
+    "night_start_minute": "start_minute",
+    "night_end_hour": "end_hour",
+    "night_end_minute": "end_minute",
+}
+_NIGHT_SLOTS = tuple(_NIGHT_KEYS)
 #: The mode slot's writable domains; its third, ``sensor``, is read-only.
 _MODE_DOMAINS = frozenset(("select", "input_select"))
 
@@ -219,6 +255,14 @@ def _entities(config: Any) -> dict[str, Any]:
         "dhw_setpoint": cfg.dhw_setpoint_entity,
         "space_setpoint": cfg.space_setpoint_entity,
     }
+
+
+def _slot_entity(config: Any, slot: str) -> Any:
+    """The entity id for ``slot``, including the GCHV night-mode numbers."""
+    if slot in _NIGHT_KEYS:
+        prefix = package_prefix(EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity)
+        return None if not prefix else night_mode_write_ids(prefix).get(_NIGHT_KEYS[slot])
+    return _entities(config).get(slot)
 
 
 def _flow_unit(config: Any) -> bool:
@@ -272,16 +316,17 @@ def own(coord: Any, signals: Any) -> Any:
     rewritten within a tick. With the optimizer off the reading blocks
     again, since the pump is the person's then.
     """
-    if duty_mode(coord._config) != DUTY_CONTROL or coord._mode == MODE_OFF:
+    inp = coord.arbiter_inputs()
+    if duty_mode(inp.config) != DUTY_CONTROL or inp.mode == MODE_OFF:
         return signals
     if signals.mode.key not in _OWN_MODES:
         return signals
     return replace(signals, mode_owned=True)
 
 
-def _slot_state(coord: Any, slot: str) -> Any:
-    entity = _entities(coord._config)[slot]
-    return coord.hass.states.get(entity) if entity else None
+def _slot_state(inp: ArbiterInputs, slot: str) -> Any:
+    entity = _entities(inp.config)[slot]
+    return inp.hass.states.get(entity) if entity else None
 
 
 def _option_for(state: Any, key: str) -> str | None:
@@ -310,11 +355,11 @@ def _planned_room(result: Any, now: datetime) -> float | None:
     return points[i] if 0 <= i < len(points) else None
 
 
-def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> float | None:
+def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | None) -> float | None:
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
-    state = _slot_state(coord, "space_setpoint")
-    if _flow_unit(coord._config):
-        return _flow_target(coord, state, duty)
+    state = _slot_state(inp, "space_setpoint")
+    if _flow_unit(inp.config):
+        return _flow_target(inp, state, duty)
     room = _planned_room(result, now)
     low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
     if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
@@ -324,13 +369,13 @@ def _space_target(coord: Any, result: Any, now: datetime, duty: str | None) -> f
         _LOGGER.warning(
             "Pump duty: %s is declared an indoor set-point but its minimum is "
             "%.1f degC; set its unit to Flow temperature. Not writing it.",
-            _entities(coord._config)["space_setpoint"], low,
+            _entities(inp.config)["space_setpoint"], low,
         )
         return None
     return _bounded(state, room)
 
 
-def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
+def _flow_target(inp: ArbiterInputs, state: Any, duty: str | None) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
     The model's weather curve is a pricing curve, not a set-point: it sizes
@@ -347,25 +392,25 @@ def _flow_target(coord: Any, state: Any, duty: str | None) -> float | None:
         return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
     if duty is not None:
         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
-    outdoor = float(coord._current_state.outdoor_temperature)
-    curve = coord._thermal_model.curve_flow_temp(outdoor)
+    outdoor = float(inp.state.outdoor_temperature)
+    curve = inp.thermal.curve_flow_temp(outdoor)
     hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
     return _bounded(state, hold, FLOW_GATE_C)
 
 
-def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
+def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
     """The row of the module table for ``duty``; ``None`` is the baseline."""
-    result = getattr(coord, "_optimization_result", None)
-    mode_state = _slot_state(coord, "mode")
-    space_state = _slot_state(coord, "space_setpoint")
-    dhw = _bounded(_slot_state(coord, "dhw_setpoint"), float(coord._thermal_params.dhw_setpoint))
+    result = inp.plan
+    mode_state = _slot_state(inp, "mode")
+    space_state = _slot_state(inp, "space_setpoint")
+    dhw = _bounded(_slot_state(inp, "dhw_setpoint"), float(inp.params.dhw_setpoint))
     if pump_mode.capability(getattr(mode_state, "state", None)).cooling:
         # Cooling is the user's season, not a duty the plan chose: hands off.
         return PumpCommand(None, None, None)
     both = pump_mode.MODE_HEAT_DHW if _option_for(mode_state, pump_mode.MODE_HEAT_DHW) else None
-    if duty == "space" and _disinfecting(coord):
+    if duty == "space" and inp.disinfecting:
         duty = "both"
-    space = _space_target(coord, result, now, duty)
+    space = _space_target(inp, result, now, duty)
     if duty == "idle":
         # No mode write. The mode last written served the duty that just
         # finished, whose thermostat the plan has just satisfied, so it is
@@ -377,20 +422,14 @@ def desired(coord: Any, duty: str | None, now: datetime) -> PumpCommand:
     if duty == "space":
         if _option_for(mode_state, pump_mode.MODE_HEAT):
             return PumpCommand(pump_mode.MODE_HEAT, dhw, space)
-        return PumpCommand(both, _bounded(_slot_state(coord, "dhw_setpoint"), DHW_GATE_C), space)
+        return PumpCommand(both, _bounded(_slot_state(inp, "dhw_setpoint"), DHW_GATE_C), space)
     if duty != "dhw":
         return PumpCommand(both, dhw, space)
     if _option_for(mode_state, pump_mode.MODE_DHW):
         return PumpCommand(pump_mode.MODE_DHW, dhw, space)
-    if _flow_unit(coord._config):
+    if _flow_unit(inp.config):
         return PumpCommand(both, dhw, space)
     return PumpCommand(both, dhw, None if space is None else _bounded(space_state, 5.0))
-
-
-def _disinfecting(coord: Any) -> bool:
-    """Whether the integration holds the disinfection switch on right now."""
-    switch = getattr(getattr(coord, "_legionella", None), "disinfect", None)
-    return getattr(switch, "memo", None) is True
 
 
 def dhw_gated(coord: Any, reading: float | None) -> bool:
@@ -398,14 +437,11 @@ def dhw_gated(coord: Any, reading: float | None) -> bool:
     written = state_for(coord).written.get("dhw_setpoint")
     if reading is None or written is None or _differs("dhw_setpoint", reading, written[0]):
         return False
-    configured = float(coord._thermal_params.dhw_setpoint)
+    configured = float(coord.arbiter_inputs().params.dhw_setpoint)
     return bool(written[0] < configured - SETPOINT_TOLERANCE)
 
 
-setpoint_check.dhw_gated = dhw_gated
-
-
-def _planned_duty(coord: Any, now: datetime) -> str | None:
+def _planned_duty(coord: Any, inp: ArbiterInputs, now: datetime) -> str | None:
     """The duty to serve now, or ``None`` for the baseline.
 
     A boost adds its duty to the plan's step, not the baseline (tvofi,
@@ -416,14 +452,14 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
     wants the other duty too. The global boost mode plans no hot water, so
     it is ``both``: the heating flow, not the baseline's hold.
     """
-    if coord._mode == MODE_BOOST:
+    if inp.mode == MODE_BOOST:
         return "both"
-    if coord._mode not in (MODE_AUTO, MODE_ECONOMY):
+    if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
         return None
-    if (coord._current_action or {}).get("mode") == "system_identification":
+    if (inp.action or {}).get("mode") == "system_identification":
         return None
     held = boost.held_for(coord)
-    result = None if coord._plan_is_stale() else getattr(coord, "_optimization_result", None)
+    result = None if inp.plan_stale else inp.plan
     duty = None if result is None else step_duty(result, now)
     space = held.active(boost.CHANNEL_SPACE, now)
     dhw = held.active(boost.CHANNEL_DHW, now)
@@ -434,19 +470,20 @@ def _planned_duty(coord: Any, now: datetime) -> str | None:
     return "both" if space and dhw else "space" if space else "dhw"
 
 
-def _ran_kw(coord: Any) -> float:
+def _ran_kw(inp: ArbiterInputs) -> float:
     """The MEASURED draw above which this step's ledger row counts a run.
 
     The meter's question, owned by ``thermal_model.on_threshold_kw`` and not
-    the plan's: this reads ``coord._measured_power``, so half the modulation
+    the plan's: this reads the pass's measured draw
+    (``ArbiterInputs.measured_power_kw``), so half the modulation
     floor is the right separator, and the plan's own running rule (which the
     duty above takes) would count a standby draw as a run. One formula answered
     both until R9 D12-s2-01; the two names are what keeps them apart.
     """
-    return on_threshold_kw(coord._thermal_model.params)
+    return on_threshold_kw(inp.thermal.params)
 
 
-def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> str | None:
+def _leased(inp: ArbiterInputs, held: ArbiterState, duty: str | None, now: datetime) -> str | None:
     """``duty``, or ``None`` once a hot-water-only stretch outlives its lease.
 
     An idle step keeps whatever mode is on the pump, so it keeps counting.
@@ -455,18 +492,22 @@ def _leased(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> 
         held.dhw_since = None
         return duty
     held.dhw_since = held.dhw_since or now
-    cold = float(coord._current_state.outdoor_temperature) < COLD_RAIL_C
+    cold = float(inp.state.outdoor_temperature) < COLD_RAIL_C
     cap = COLD_LEASE_MINUTES if cold else LEASE_MINUTES
     if now - held.dhw_since <= timedelta(minutes=cap):
         return duty
-    room = getattr(coord._current_state, "room_temperature", None)
-    planned = _planned_room(getattr(coord, "_optimization_result", None), now)
+    room = getattr(inp.state, "room_temperature", None)
+    planned = _planned_room(inp.plan, now)
     warm = room is not None and planned is not None and float(room) >= float(planned)
     return duty if warm else None
 
 
 def _differs(slot: str, observed: Any, value: Any) -> bool:
     """``observed`` is the select's state for the mode, degC for a set-point."""
+    if slot in _NIGHT_KEYS:
+        if observed is None or value is None:
+            return False
+        return int(observed) != int(value)
     if slot == "mode":
         return bool(pump_mode.resolve(observed) != value)
     if observed is None or value is None:
@@ -474,13 +515,21 @@ def _differs(slot: str, observed: Any, value: Any) -> bool:
     return bool(abs(observed - value) > SETPOINT_TOLERANCE)
 
 
-def _observed(coord: Any, slot: str) -> Any:
+def _observed(inp: ArbiterInputs, slot: str) -> Any:
     """The reading, or ``None`` when there is none: an unavailable select is not a mode."""
-    entity = _entities(coord._config)[slot]
+    entity = _slot_entity(inp.config, slot)
+    if slot in _NIGHT_KEYS:
+        raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
+        if raw is None:
+            return None
+        try:
+            return int(round(float(raw)))
+        except (TypeError, ValueError):
+            return None
     if slot == "mode":
-        raw = getattr(coord.hass.states.get(entity) if entity else None, "state", None)
+        raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
         return raw if pump_mode.resolve(raw) is not None else None
-    return setpoint_check._read_setpoint(coord.hass, entity)
+    return setpoint_check._read_setpoint(inp.hass, entity)
 
 
 def hold(coord: Any, now: datetime) -> None:
@@ -490,8 +539,9 @@ def hold(coord: Any, now: datetime) -> None:
     after that rewrite is warned about and retried every few minutes.
     """
     held = state_for(coord)
+    inp = coord.arbiter_inputs()
     for slot, (value, at) in list(held.written.items()):
-        observed = _observed(coord, slot)
+        observed = _observed(inp, slot)
         if observed is None or utc_elapsed_seconds(now, at) < ECHO_GRACE_S:
             continue
         if not _differs(slot, observed, value):
@@ -502,7 +552,7 @@ def hold(coord: Any, now: datetime) -> None:
         del held.written[slot]
         held.misses[slot] = held.misses.get(slot, 0) + 1
         if held.misses[slot] > 1:
-            entity = _entities(coord._config)[slot]
+            entity = _slot_entity(inp.config, slot)
             _not_held(coord, held, slot, f"{entity}: {observed} (set by the optimizer: {value})", now)
 
 
@@ -532,11 +582,14 @@ def _forget(held: ArbiterState) -> None:
     held.written, held.misses, held.retry = {}, {}, {}
 
 
-async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
+async def _write(coord: Any, inp: ArbiterInputs, slot: str, value: Any, now: datetime) -> None:
     held = state_for(coord)
-    state, entity = _slot_state(coord, slot), _entities(coord._config)[slot]
+    entity = _slot_entity(inp.config, slot)
+    state = inp.hass.states.get(entity) if entity else None
     recorded = held.written.get(slot)
-    if value is None or state is None or (recorded and not _differs(slot, recorded[0], value)):
+    if value is None or entity is None or state is None or (
+        recorded and not _differs(slot, recorded[0], value)
+    ):
         return
     if slot in held.retry and utc_elapsed_seconds(now, held.retry[slot]) < 0:
         return
@@ -545,10 +598,17 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
         return  # a read-only mode slot is read, never written (D12-s2-02)
     try:
         if slot == "mode":
-            await coord.hass.services.async_call(
+            await inp.hass.services.async_call(
                 domain,
                 "select_option",
                 {"entity_id": entity, "option": _option_for(state, value)},
+                blocking=True,
+            )
+        elif slot in _NIGHT_KEYS:
+            await inp.hass.services.async_call(
+                domain,
+                "set_value",
+                {"entity_id": entity, "value": int(value)},
                 blocking=True,
             )
         else:
@@ -556,31 +616,69 @@ async def _write(coord: Any, slot: str, value: Any, now: datetime) -> None:
     except Exception as err:  # noqa: BLE001 - retried on the next tick
         _LOGGER.warning("Pump duty: writing %s to %s failed: %s", value, entity, err)
         return
-    held.written[slot] = (value, now)
+    held.written[slot] = (int(value) if slot in _NIGHT_KEYS else value, now)
     await _persist(coord)
 
 
-async def _command(coord: Any, command: PumpCommand, now: datetime) -> None:
+async def _command(coord: Any, inp: ArbiterInputs, command: PumpCommand, now: datetime) -> None:
     for slot in _SLOTS:
-        await _write(coord, slot, getattr(command, slot), now)
+        await _write(coord, inp, slot, getattr(command, slot), now)
 
 
-def _observe(coord: Any, held: ArbiterState, duty: str | None, now: datetime) -> None:
+def _night_clock(hour: float) -> tuple[int, int]:
+    minutes = int(round(hour * 60.0)) % (24 * 60)
+    return minutes // 60, minutes % 60
+
+
+async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -> None:
+    """Hold the GCHV night-mode start/end for the next silent window (#1913).
+
+    Off windows write nothing extra (D1). start==end is not a documented
+    disable, so a daytime pass still holds tonight's window rather than
+    emptying the registers. At most the four numbers, and only when the
+    window changes.
+    """
+    held = state_for(coord)
+    spec = EntryConfig.from_mapping(inp.config).quiet_silent_windows
+    if not spec or not quiet_windows.gchv_schedule_ready(
+        inp.config, inp.hass.states.get
+    ):
+        for slot in _NIGHT_SLOTS:
+            held.written.pop(slot, None)
+        return
+    nxt = quiet_windows.next_gchv_window(now, spec)
+    if nxt is None:
+        return
+    start_h, start_m = _night_clock(nxt[0])
+    end_h, end_m = _night_clock(nxt[1])
+    if (start_h, start_m) == (end_h, end_m):
+        return
+    values = {
+        "night_start_hour": start_h,
+        "night_start_minute": start_m,
+        "night_end_hour": end_h,
+        "night_end_minute": end_m,
+    }
+    for slot in _NIGHT_SLOTS:
+        await _write(coord, inp, slot, values[slot], now)
+
+
+def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: datetime) -> None:
     """Fold this pass into the current step's ledger row; close the last one."""
     held.last_duty = duty
     start = now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)
-    tank = getattr(coord._current_state, "dhw_temperature", None)
+    tank = getattr(inp.state, "dhw_temperature", None)
     row = held.step
     if row is None or row["start"] != start:
         if row is not None:
             held.log.append(_verdict(row, tank))
         held.step = row = {"start": start, "planned": duty, "tank": tank,
                            "measured": False, "ran": False, "dhw_mode": False}
-    power = getattr(coord, "_measured_power", None)
+    power = inp.measured_power_kw
     if power is not None:
         row["measured"] = True
-        row["ran"] = row["ran"] or float(power) >= _ran_kw(coord)
-    mode = pump_mode.resolve(getattr(_slot_state(coord, "mode"), "state", None))
+        row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
+    mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
     row["dhw_mode"] = row["dhw_mode"] or mode == pump_mode.MODE_DHW
 
 
@@ -609,20 +707,21 @@ async def apply(coord: Any, now: datetime | None = None) -> None:
     """One arbitration pass; safe to call from the cycle and from the tick."""
     now = now or dt_util.now()
     held = state_for(coord)
-    mode = duty_mode(coord._config)
+    mode = duty_mode(coord.arbiter_inputs().config)
     if mode == DUTY_OFF:
         release_listeners(coord)
         return
     async with held.lock:
         await _load(coord)
-        if getattr(coord, "_entry_released", False):
+        inp = coord.arbiter_inputs()
+        if inp.entry_released:
             return  # queued before the unload: arm and write nothing (D1-s3-02)
         _listen(coord)
-        await _arbitrate(coord, held, mode, now)
+        await _arbitrate(coord, held, inp, mode, now)
 
 
-async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -> None:
-    if coord._mode == MODE_OFF or mode != DUTY_CONTROL:
+async def _arbitrate(coord: Any, held: ArbiterState, inp: ArbiterInputs, mode: str, now: datetime) -> None:
+    if inp.mode == MODE_OFF or mode != DUTY_CONTROL:
         # Off writes nothing, not even the baseline (tvofi, 2026-09-26): the
         # pump is the person's the moment the optimizer lets go of it.
         if held.written or held.retry:
@@ -630,17 +729,18 @@ async def _arbitrate(coord: Any, held: ArbiterState, mode: str, now: datetime) -
             _forget(held)
             _clear(coord, ISSUE_IGNORED)
             await _persist(coord)
-        if coord._mode == MODE_OFF:
+        if inp.mode == MODE_OFF:
             return
-    duty = _leased(coord, held, _planned_duty(coord, now), now)
-    _observe(coord, held, duty, now)
-    if mode != DUTY_CONTROL or _pump_off(coord):
+    duty = _leased(inp, held, _planned_duty(coord, inp, now), now)
+    _observe(held, inp, duty, now)
+    if mode != DUTY_CONTROL or _pump_off(inp):
         return
     hold(coord, now)
-    await _command(coord, desired(coord, _share(coord, duty, now), now), now)
+    await _command(coord, inp, desired(coord, inp, _share(coord, inp, duty, now), now), now)
+    await _write_night_schedule(coord, inp, now)
 
 
-def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
+def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> str | None:
     """On a planned both step, hot water first for its share, then heating.
 
     Heating + DHW leaves the split to the pump's own two thermostats (tvofi,
@@ -648,10 +748,10 @@ def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
     A boost, a disinfection hold or a non-plan mode keeps Heating + DHW.
     """
     held = boost.held_for(coord)
-    if (duty != "both" or coord._mode not in (MODE_AUTO, MODE_ECONOMY) or _disinfecting(coord)
+    if (duty != "both" or inp.mode not in (MODE_AUTO, MODE_ECONOMY) or inp.disinfecting
             or held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now)):
         return duty
-    result = coord._optimization_result
+    result = inp.plan
     i = bisect.bisect_right(result.timestamps, now) - 1
     space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
     dhw_min = 15.0 * dhw / (space + dhw)
@@ -662,15 +762,15 @@ def _share(coord: Any, duty: str | None, now: datetime) -> str | None:
     return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
 
 
-def _pump_off(coord: Any) -> bool:
+def _pump_off(inp: ArbiterInputs) -> bool:
     """Whether the configured power switch reads off.
 
     Switched off, the pump reports set-points of its own (tvofi's reads 25
     degC), so nothing is compared or written until it is on again; then a
     reset that is still there is rewritten like any other difference.
     """
-    entity = coord._config.heat_pump_switch_entity
-    power = coord.hass.states.get(entity) if entity else None
+    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
+    power = inp.hass.states.get(entity) if entity else None
     return bool(getattr(power, "state", None) == "off")
 
 
@@ -678,8 +778,9 @@ async def release(coord: Any) -> None:
     """Unload: write the baseline over anything still owned, then let go."""
     release_listeners(coord)
     held = state_for(coord)
-    if held.written and duty_mode(coord._config) == DUTY_CONTROL and coord._mode != MODE_OFF:
-        await _command(coord, desired(coord, None, dt_util.now()), dt_util.now())
+    inp = coord.arbiter_inputs()
+    if held.written and duty_mode(inp.config) == DUTY_CONTROL and inp.mode != MODE_OFF:
+        await _command(coord, inp, desired(coord, inp, None, dt_util.now()), dt_util.now())
 
 
 def release_listeners(coord: Any) -> None:
@@ -693,6 +794,7 @@ def _listen(coord: Any) -> None:
     if held.unsubs:
         return
     hass = coord.hass
+    inp = coord.arbiter_inputs()
 
     async def _tick(_now: Any = None) -> None:
         await apply(coord)
@@ -702,7 +804,10 @@ def _listen(coord: Any) -> None:
         hass.async_create_task(apply(coord))
 
     held.unsubs.append(async_track_time_interval(hass, _tick, _TICK))
-    entities = [e for e in _entities(coord._config).values() if e]
+    entities = [e for e in _entities(inp.config).values() if e]
+    prefix = package_prefix(EntryConfig.from_mapping(inp.config).heat_pump_capacity_limited_entity)
+    if prefix:
+        entities.extend(night_mode_write_ids(prefix).values())
     if entities:
         held.unsubs.append(async_track_state_change_event(hass, entities, _changed))
 
@@ -756,6 +861,8 @@ def _writable(slot: str, value: Any) -> bool:
     """
     if slot == "mode":
         return isinstance(value, str) and value in _OWN_MODES
+    if slot in _NIGHT_KEYS:
+        return isinstance(value, int) and not isinstance(value, bool)
     return slot in _SLOTS and isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
@@ -763,7 +870,7 @@ def diagnostics_view(coord: Any) -> dict[str, Any]:
     """The diagnostics view."""
     held = state_for(coord)
     return {
-        "duty_mode": duty_mode(coord._config),
+        "duty_mode": duty_mode(coord.arbiter_inputs().config),
         "last_duty": held.last_duty,
         "misses": dict(held.misses),
         "retrying": sorted(held.retry),

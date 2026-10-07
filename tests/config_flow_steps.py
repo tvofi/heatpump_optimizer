@@ -6036,7 +6036,7 @@ async def options_modbus_prefill():
 # modbus_prefill.infer() is unchanged. tests/features.py pins the mapping;
 # this pins what the page does with it.
 # ---------------------------------------------------------------------------
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools"))
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "tools/devices"))
 import gen_device_fixtures as _g7b_gen  # noqa: E402
 
 _G7B_FIXTURE = _g7b_gen.load("tuya_heat_pump_000004k4z6.json")

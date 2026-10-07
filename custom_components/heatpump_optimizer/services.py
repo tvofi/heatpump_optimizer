@@ -28,8 +28,9 @@ from homeassistant.util import dt as dt_util
 
 from . import comfort_band
 from . import mixing_valve
+from . import quiet_windows
 from . import topology
-from .accuracy import utc_shift
+from .accuracy import REFIT_SETTLED_DAYS, utc_shift
 from .const import (
     DOMAIN,
     CONF_COMFORT_TEMP_DAY,
@@ -42,6 +43,10 @@ from .const import (
     CONF_DHW_WINDOWS,
     CONF_MIXING_VALVE_TARGET,
     CONF_MIXING_VALVE_TARGET_ENTITY,
+    CONF_QUIET_OFF_WINDOWS,
+    CONF_QUIET_SILENT_WINDOWS,
+    CONF_SILENT_MODE_FRACTION,
+    DEFAULT_SILENT_MODE_FRACTION,
     CONF_WOOD_FURNACE_ENABLED,
     DEFAULT_DHW_TANK_VOLUME,
     MANUAL_PLAN_WINDOW_HOURS,
@@ -68,7 +73,11 @@ from .const import (
     topology_layout_valid,
 )
 from .config_flow import identity_update
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    async_adopt_heat_loss_refit,
+)
 from .dhw_schedule import (
     DHWWindowError,
     format_weekly_windows,
@@ -106,6 +115,14 @@ SERVICE_SCHEMA_SIMULATE_PLAN = vol.Schema(
         # windows at all, so it must survive the "drop empty values" filter in
         # the handler below.
         vol.Optional("dhw_windows"): cv.string,
+        # #1910 (SW-1): the quiet windows price into the what-if too, with
+        # the same empty-string-is-a-value rule (it simulates removing the
+        # rows), and the fraction a silent row keeps.
+        vol.Optional("quiet_silent_windows"): cv.string,
+        vol.Optional("quiet_off_windows"): cv.string,
+        vol.Optional("silent_mode_power_fraction"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
         vol.Optional("wood_slots"): [dict],
         vol.Optional("wood_type"): vol.In(WOOD_TYPES),
         vol.Optional("wood_packing"): vol.In(WOOD_PACKINGS),
@@ -200,6 +217,14 @@ SERVICE_SCHEMA_APPLY_SCHEDULE = vol.Schema(
         # An empty string is meaningful: it means "no guaranteed hot water
         # windows at all", so it must not be filtered out as a blank.
         vol.Optional("dhw_windows"): cv.string,
+        # #1910 (SW-1): the quiet windows, one spec per action, and the
+        # fraction a silent row keeps. Same empty-string rule as above: ""
+        # removes the rows.
+        vol.Optional("quiet_silent_windows"): cv.string,
+        vol.Optional("quiet_off_windows"): cv.string,
+        vol.Optional("silent_mode_power_fraction"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
         vol.Optional("comfort_temp_day"): vol.All(
             vol.Coerce(float), vol.Range(min=5, max=30)
         ),
@@ -243,6 +268,8 @@ SERVICE_SCHEMA_CLEAR_MANUAL_PLAN = vol.Schema(
 SERVICE_SCHEMA_RESTORE_SNAPSHOT = vol.Schema(
     {
         vol.Optional("entry_id"): cv.string,
+        # #1936: the drift advisor's two restart points.
+        vol.Optional("source", default="snapshot"): vol.In(("snapshot", "refit")),
     }
 )
 
@@ -261,6 +288,129 @@ SERVICE_SCHEMA_DIAGNOSE_INTERVAL = vol.Schema(
 # zero" line holds on every path a value can arrive by.
 def _positive(upper: float) -> vol.All:
     return vol.All(vol.Coerce(float), vol.Range(min=POSITIVE_PARAM_FLOOR, max=upper))
+
+
+# #1910 (SW-1): one canonicalisation and one cross-spec rule for the quiet
+# windows, shared by every service that accepts them, so a what-if, a saved
+# schedule and a parameter write cannot disagree about what a quiet row may
+# look like. The plan's section 2.1 rules live in ``quiet_windows`` itself;
+# this is only the plumbing that refuses a call before anything is stored.
+def _canonical_quiet_spec(raw: str) -> str:
+    """A quiet spec round-tripped into the grammar's canonical form.
+
+    Weekly specs keep their day selectors through their own round trip; the
+    flat formatter would silently drop them -- the same reason the hot-water
+    canonicalisation above branches the way it does.
+    """
+    weekly = parse_weekly_windows(raw)
+    if weekly is not None:
+        return format_weekly_windows(weekly)
+    return format_windows(parse_windows(raw))
+
+
+def _canonical_quiet_updates(data: dict[str, Any]) -> dict[str, str]:
+    """The quiet spec fields of ``data``, canonicalised; may raise."""
+    out: dict[str, str] = {}
+    for key in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS):
+        raw = data.get(key)
+        if raw is None:
+            continue
+        out[key] = _canonical_quiet_spec(raw)
+    return out
+
+
+def _quiet_schedule_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """The call's quiet fields as canonical updates (#1910).
+
+    Both specs round-tripped through the grammar — an empty string removes
+    the rows, and is a real value — plus the silent power fraction as
+    given. Refuses an unparseable spec with the apply-schedule error key.
+    """
+    out: dict[str, Any] = _refuse_quiet(
+        data, "apply_schedule_invalid_quiet_windows", "", "", ""
+    )
+    # The fraction stores only when the call moved it off its default --
+    # absent and an explicit 1.0 are the same setting, so an untouched
+    # page's default post changes nothing.
+    fraction = data.get(CONF_SILENT_MODE_FRACTION, DEFAULT_SILENT_MODE_FRACTION)
+    if fraction != DEFAULT_SILENT_MODE_FRACTION:
+        out = {**out, CONF_SILENT_MODE_FRACTION: fraction}
+    return out
+
+
+def _refuse_quiet_conflicts(
+    updates: dict[str, Any], targets: list[Any]
+) -> None:
+    """Refuse quiet/hot-water overlaps against every entry's stored specs.
+
+    The call's quiet rows over each entry's stored ones, and the hot-water
+    spec the call may itself be changing — checked on every target before
+    any write, like the deadband rule, so a refused call leaves every
+    entry untouched.
+    """
+    if not any(
+        k in updates for k in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS)
+    ):
+        return
+    for entry in targets:
+        stored = {**entry.data, **entry.options}
+        _refuse_quiet(
+            updates, "apply_schedule_invalid_quiet_windows",
+            str(stored.get(CONF_QUIET_SILENT_WINDOWS) or ""),
+            str(stored.get(CONF_QUIET_OFF_WINDOWS) or ""),
+            str(stored.get(CONF_DHW_WINDOWS) or ""),
+            dhw_override=updates.get(CONF_DHW_WINDOWS),
+        )
+
+
+def _refuse_quiet(
+    data: dict[str, Any],
+    translation_key: str,
+    stored_silent: str,
+    stored_off: str,
+    stored_dhw: str,
+    dhw_override: str | None = None,
+) -> dict[str, str]:
+    """Canonical quiet updates, refusing an unparseable or overlapping spec.
+
+    The overlap is judged against the EFFECTIVE specs (call over stored,
+    hot-water override included), because a call may update one half of a
+    conflicting pair -- the same effective-value rule the comfort band
+    check applies for the same reason.
+    """
+    try:
+        updates = _canonical_quiet_updates(data)
+    except DHWWindowError as err:
+        raise ServiceValidationError(
+            f"Invalid quiet windows: {err}",
+            translation_domain=DOMAIN,
+            translation_key=translation_key,
+            translation_placeholders={"error": str(err)},
+        ) from err
+    effective = {
+        CONF_QUIET_SILENT_WINDOWS: str(
+            updates.get(CONF_QUIET_SILENT_WINDOWS, stored_silent) or ""
+        ),
+        CONF_QUIET_OFF_WINDOWS: str(
+            updates.get(CONF_QUIET_OFF_WINDOWS, stored_off) or ""
+        ),
+        CONF_DHW_WINDOWS: str(
+            dhw_override if dhw_override is not None else stored_dhw or ""
+        ),
+    }
+    overlap = quiet_windows.overlap_problem(
+        effective[CONF_QUIET_SILENT_WINDOWS],
+        effective[CONF_QUIET_OFF_WINDOWS],
+        effective[CONF_DHW_WINDOWS],
+    )
+    if overlap is not None:
+        raise ServiceValidationError(
+            f"Overlapping quiet windows: {overlap}",
+            translation_domain=DOMAIN,
+            translation_key="quiet_windows_overlap",
+            translation_placeholders={"overlap": overlap},
+        )
+    return updates
 
 
 SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
@@ -295,6 +445,13 @@ SERVICE_SCHEMA_SET_THERMAL_PARAMS = vol.Schema(
         vol.Optional("buffer_cooling_rate"): _positive(50),
         vol.Optional("dhw_schedule_enabled"): cv.boolean,
         vol.Optional("dhw_windows"): cv.string,
+        # #1910 (SW-1): the quiet windows and the silent fraction, writable
+        # here so an automation can schedule them without the card.
+        vol.Optional("quiet_silent_windows"): cv.string,
+        vol.Optional("quiet_off_windows"): cv.string,
+        vol.Optional("silent_mode_power_fraction"): vol.All(
+            vol.Coerce(float), vol.Range(min=0.0, max=1.0)
+        ),
         vol.Optional("dhw_idle_min_temperature"): vol.All(
             vol.Coerce(float), vol.Range(min=5, max=60)
         ),
@@ -465,6 +622,26 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
                 },
             ) from err
 
+    # #1910: the quiet specs get the same pre-write refusal, canonicalised
+    # so what is stored is what the optimizer will read back, plus the
+    # cross-spec overlap rule judged against each coordinator's effective
+    # hot-water spec. The stored quiet rows come from the published
+    # config view (#1739), the same interface the deadband pair below uses.
+    if any(
+        params.get(k) is not None
+        for k in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS)
+    ):
+        for _entry_id, coord in targets:
+            stored = coord.effective_config
+            _refuse_quiet(
+                params, "set_thermal_params_invalid_quiet_windows",
+                str(stored.get(CONF_QUIET_SILENT_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_OFF_WINDOWS) or ""),
+                coord.configured_dhw_windows(),
+                dhw_override=params.get(CONF_DHW_WINDOWS),
+            )
+        params = {**params, **_canonical_quiet_updates(params)}
+
     # Same deadband rule apply_schedule enforces, checked against the
     # *effective* pair per coordinator before anything is written — the
     # schema cannot express a cross-field rule, and a minimum at or above
@@ -474,15 +651,19 @@ async def handle_set_thermal_params(hass: HomeAssistant, call: ServiceCall) -> N
     wanted_set = params.get("dhw_setpoint")
     if wanted_min is not None or wanted_set is not None:
         for _entry_id, coord in targets:
+            # Each coordinator's effective pair, read through the published
+            # read-only view (#1739): the service is invoked by Home
+            # Assistant far from the coordinator, so the view is the
+            # interface here, not an injected parameter.
             setpoint = (
                 wanted_set
                 if wanted_set is not None
-                else coord._thermal_params.dhw_setpoint
+                else coord.thermal_params.dhw_setpoint
             )
             minimum = (
                 wanted_min
                 if wanted_min is not None
-                else coord._thermal_params.dhw_min_temp
+                else coord.thermal_params.dhw_min_temp
             )
             ceiling = float(setpoint) - DHW_MIN_TEMP_SETPOINT_MARGIN
             if float(minimum) > ceiling:
@@ -525,6 +706,21 @@ async def handle_simulate_plan(hass: HomeAssistant, call: ServiceCall) -> dict[s
     overrides = {k: v for k, v in call.data.items() if v is not None}
     results: dict[str, Any] = {}
     for entry_id, coord in _loaded_coordinators(hass):
+        # #1910: refuse an overlapping or unparseable what-if the same way
+        # the save path refuses it, before the solve runs -- judged against
+        # the coordinator's published config view (#1739) with the call's
+        # rows folded in.
+        if any(
+            k in overrides for k in (CONF_QUIET_SILENT_WINDOWS, CONF_QUIET_OFF_WINDOWS)
+        ):
+            stored = coord.effective_config
+            overrides = {**overrides, **_refuse_quiet(
+                overrides, "simulate_plan_invalid_quiet_windows",
+                str(stored.get(CONF_QUIET_SILENT_WINDOWS) or ""),
+                str(stored.get(CONF_QUIET_OFF_WINDOWS) or ""),
+                coord.configured_dhw_windows(),
+                dhw_override=overrides.get(CONF_DHW_WINDOWS),
+            )}
         results[entry_id] = await coord.async_simulate(overrides)
     errors = {
         entry_id: answer["error"]
@@ -758,6 +954,8 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
                 },
             ) from err
 
+    updates.update(_quiet_schedule_fields(data))  # #1910: quiet rows + fraction
+
     if not updates:
         return {"updated": {}, "reason": "nothing to apply"}
 
@@ -839,6 +1037,8 @@ async def handle_apply_schedule(hass: HomeAssistant, call: ServiceCall) -> dict[
                         "ceiling": f"{ceiling:g}",
                     },
                 )
+
+    _refuse_quiet_conflicts(updates, targets)  # #1910: overlaps, per entry
 
     updated: dict[str, Any] = {}
     for entry in targets:
@@ -942,15 +1142,35 @@ async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dic
     rollback from a completed one. The qualifying-snapshot rule stays in
     the coordinator; the raise lives here because that is where the
     caller is.
+
+    ``source: refit`` accepts the drift advisor's heat-loss refit instead
+    (#1936), through the same restore machinery and refused the same way
+    when none is on offer.
     """
-    target_entry = dict(call.data).get("entry_id")
+    data = dict(call.data)
+    target_entry = data.get("entry_id")
+    from_refit = data.get("source") == "refit"
     restored: list[str] = []
     unqualified: list[str] = []
     for entry_id, coord in _manual_targets(hass, target_entry):
-        if await coord.async_restore_learned_snapshot():
+        if await (
+            async_adopt_heat_loss_refit(coord)
+            if from_refit
+            else coord.async_restore_learned_snapshot()
+        ):
             restored.append(entry_id)
         else:
             unqualified.append(entry_id)
+    if unqualified and from_refit:
+        entry_ids = ", ".join(unqualified)
+        raise HomeAssistantError(
+            f"No heat-loss refit is on offer for {entry_ids}: a refit needs "
+            f"an active drift alarm and {REFIT_SETTLED_DAYS:g} settled days "
+            "of evidence",
+            translation_domain=DOMAIN,
+            translation_key="restore_learned_snapshot_no_refit",
+            translation_placeholders={"entry_ids": entry_ids},
+        )
     if unqualified:
         entry_ids = ", ".join(unqualified)
         raise HomeAssistantError(

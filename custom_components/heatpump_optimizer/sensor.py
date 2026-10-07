@@ -38,7 +38,11 @@ from .const import (
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
 )
-from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
+from .coordinator import (
+    HeatPumpOptimizerConfigEntry,
+    HeatPumpOptimizerCoordinator,
+    model_restart_advice,
+)
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw
@@ -93,6 +97,31 @@ def _resolved_dhw_attribute(resolved_spec: Any) -> dict[str, str]:
     feature and the card keeps its fallback chain.
     """
     return {"dhw_windows_resolved": resolved_spec} if resolved_spec else {}
+
+
+def _quiet_windows_attributes(coordinator: Any, data: Any) -> dict[str, Any]:
+    """The #1910 quiet-window attributes, published only when rows exist.
+
+    The two configured specs (with their not-enforced marker when a silent
+    spec has no control that can hold it), so the card's editor works
+    before a solve; and the resolved per-step action the last solve
+    actually assumed, out of the plan's predictive info. Absent -- not
+    null -- whenever no row is configured, so an unchanged install
+    publishes exactly the attributes it did before the feature.
+    """
+    specs = coordinator.configured_quiet_windows()
+    if not (
+        specs.get("quiet_silent_windows_spec")
+        or specs.get("quiet_off_windows_spec")
+    ):
+        return {}
+    out: dict[str, Any] = dict(specs)
+    if specs.get("quiet_silent_not_enforced"):
+        out["quiet_silent_not_enforced"] = True
+    actions = (data.get("predictive_info") or {}).get("quiet_actions")
+    if actions:
+        out["quiet_actions"] = actions
+    return out
 
 
 def _sensor_advisor_attribute(coordinator: Any) -> dict[str, Any]:
@@ -264,6 +293,7 @@ async def async_setup_entry(
         FrequencyAdvisorSensor(coordinator, entry),
         SensorGapAdvisorSensor(coordinator, entry),
         WoodBurnAdvisorSensor(coordinator, entry),
+        ModelRestartAdvisorSensor(coordinator, entry),
     ]
 
     async_add_entities(entities)
@@ -1505,6 +1535,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     if dhw_configured
                     else {}
                 ),
+                **_quiet_windows_attributes(self.coordinator, self._data()),  # #1910
                 # The currency every cost figure on this device is priced in,
                 # published so the dashboard card labels its axis from the
                 # integration's own answer rather than guessing from the
@@ -1581,6 +1612,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     # editor above keeps `dhw_windows_spec`, the
                     # configuration it writes back; this one is read-only.
                     **_resolved_dhw_attribute(resolved_spec),
+                    **_quiet_windows_attributes(self.coordinator, data),  # #1910
                     "dhw_min_temperature": data.get("dhw_min_temperature"),
                     "dhw_setpoint": data.get("dhw_setpoint"),
                     # The ceiling the hot water minimum has to stay under,
@@ -2917,3 +2949,32 @@ class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase)
             "when": advice.get("when"),
             "reason": advice.get("reason") or "",
         }
+
+
+class ModelRestartAdvisorSensor(HeatPumpOptimizerSensorBase):
+    """The drift alarm's restart points, recommend-only (R9-DIAG-2S, #1936).
+
+    The state is the ``house_heat_loss_scale`` the advisor recommends: the
+    refit while one is on offer, otherwise the scale in use -- nothing to
+    change. The attributes carry both restart points for the card's inbox;
+    accepting either goes through ``restore_learned_snapshot``.
+    """
+
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 3
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(
+            coordinator, entry, "model_restart_advisor", "model_restart_advisor"
+        )
+
+    @property
+    def native_value(self) -> float | None:
+        advice = model_restart_advice(self.coordinator)
+        refit = (advice["refit"] or {}).get("scale")
+        scale = refit if refit is not None else advice["current_scale"]
+        return None if scale is None else float(scale)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return model_restart_advice(self.coordinator)

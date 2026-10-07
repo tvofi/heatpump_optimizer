@@ -25,5 +25,10 @@ open(p,'w').write(s)
 E
 ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')
 # shellcheck disable=SC2086 # $ISS is a word list of issue numbers
-PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash tools/audit/app_push.sh tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 | grep -E 'REFUSE|PUSHED' | tail -1 | cut -c1-120
+# Every REFUSE line, not the last 120 characters. app_push's die is the last
+# line and does not name the prepr step; the step line is the one before it.
+# tail -1 | cut -c1-120 kept only the die (measured on #1974 and #1975).
+if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
+push_out=$(PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS 2>&1 || true)
+printf '%s\n' "$push_out" | grep -E 'REFUSE|PUSHED' || true
 sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"

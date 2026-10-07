@@ -75,7 +75,7 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=71       (70 until R9-EG-B11's entry_config.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_modules_on_disk=72       (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
@@ -101,7 +101,7 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=71            (70 until R9-EG-B11's entry_config.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_map_listed=72            (71 until R9-EG-B11's entry_config.py; 70 until R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
@@ -309,18 +309,26 @@ BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
-eq("C1", "README.md:Entities", "All 75 entities are created on every install",
+eq("C1", "README.md:Entities", "All 76 entities are created on every install",
    CMD, int(re.search(r"All (\d+) entities", README).group(1)), TOTAL)
-eq("C2", "README.md:### Sensors", "Sensors (59 total)", CMD,
+eq("C2", "README.md:### Sensors", "Sensors (60 total)", CMD,
    int(re.search(r"### Sensors \((\d+) total\)", README).group(1)), COUNTS["sensor"])
 eq("C3", "README.md:### Binary Sensors", "Binary Sensors (6 total)", CMD,
    int(re.search(r"### Binary Sensors \((\d+) total\)", README).group(1)),
    COUNTS["binary_sensor"])
 eq("C4", "README.md:### Buttons", "Buttons (4 total)", CMD,
    int(re.search(r"### Buttons \((\d+) total\)", README).group(1)), COUNTS["button"])
-eq("C5", "docs/architecture.md:mermaid", "75 entities / 59 sensors / 6 binary sensors / "
-   "4 buttons / 4 switches / 1 climate / 1 datetime", CMD,
-   (75, 59, 6, 4, 4, 1, 1),
+_arch_diagram = re.search(
+    r"(\d+) entities<br/>(\d+) sensors, (\d+) binary sensors,<br/>"
+    r"(\d+) buttons, (\d+) switches,<br/>(\d+) climate, (\d+) datetime",
+    DOCS["architecture.md"],
+)
+_arch_doc = tuple(int(g) for g in _arch_diagram.groups())
+eq("C5", "docs/architecture.md:mermaid",
+   f"{_arch_doc[0]} entities / {_arch_doc[1]} sensors / {_arch_doc[2]} binary sensors / "
+   f"{_arch_doc[3]} buttons / {_arch_doc[4]} switches / {_arch_doc[5]} climate / "
+   f"{_arch_doc[6]} datetime",
+   CMD, _arch_doc,
    (TOTAL, COUNTS["sensor"], COUNTS["binary_sensor"], COUNTS["button"],
     COUNTS["switch"], COUNTS["climate"], COUNTS["datetime"]))
 
@@ -467,10 +475,10 @@ eq("C17", "README.md:## Services", "the Services table names exactly services.ya
    sorted(m.group(1) for m in re.finditer(r"^\| `([a-z_]+)` \|",
           re.search(r"^## Services\n(.*?)(?=^## )", README, re.M | re.S).group(1), re.M)),
    sorted(SERVICES_YAML))
-eq("C18", "README.md + docs/configuration.md", "set_thermal_parameters takes 28 fields",
-   CMD, 28, len(schema_keys(SCHEMAS["set_thermal_parameters"])))
-eq("C19", "docs/configuration.md", "simulate_plan takes 16 optional fields", CMD,
-   16, len(schema_keys(SCHEMAS["simulate_plan"])))
+eq("C18", "README.md + docs/configuration.md", "set_thermal_parameters takes 31 fields",
+   CMD, 31, len(schema_keys(SCHEMAS["set_thermal_parameters"])))
+eq("C19", "docs/configuration.md", "simulate_plan takes 19 optional fields", CMD,
+   19, len(schema_keys(SCHEMAS["simulate_plan"])))
 eq("C20", "docs/configuration.md", "seven services accept an optional entry_id", CMD,
    7, sum(1 for s in SCHEMAS.values() if "entry_id" in schema_keys(s)))
 _sch_vs_yaml = {
@@ -777,7 +785,7 @@ eq("C37", "docs/architecture.md:module map", "__init__.py -- the 11 services", C
 eq("C38", "docs/architecture.md:module map", "services.yaml -- The 11 service definitions",
    CMD, int(re.search(r"The (\d+) service definitions", DOCS["architecture.md"]).group(1)),
    len(SERVICES_YAML), "services.yaml defines {m} services")
-eq("C39", "docs/architecture.md:module map", "sensor.py -- 59 sensors", CMD,
+eq("C39", "docs/architecture.md:module map", "sensor.py -- 60 sensors", CMD,
    int(re.search(r"# (\d+) sensors", DOCS["architecture.md"]).group(1)), COUNTS["sensor"])
 # #939: the map comments now name every constructed entity, and the long ones
 # wrap onto `│ ...` continuation lines (button.py's precedent), so an entry's
@@ -1185,10 +1193,12 @@ claim("C108", "README.md + docs/*.md",
 claim("C109", "README.md + docs/how-it-works.md",
       "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md "
       "resolve",
-      CMD, "those three files are removed from the round-4 export by "
-      "tools/audit/prepare_baseline.sh; this tree cannot answer",
+      CMD, "finder_wall in tools/audit/prepare_baseline.sh removes "
+      "docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; "
+      "this tree cannot answer",
       "unverifiable",
-      "not checkable in the export -- COMMON.md's wall removes exactly these files")
+      "not checkable in the export -- finder_wall removes docs/audit-*.md, "
+      "dev/archive/audits/audit-*.md and dev/archive/backlog.md")
 
 _imgs = []
 for _f in _doc_files:

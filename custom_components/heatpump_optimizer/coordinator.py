@@ -27,7 +27,7 @@ import subprocess
 import sys
 import threading
 from bisect import bisect_right
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -215,6 +215,8 @@ from .accuracy import (
     AccuracySample,
     AccuracyTracker,
     delivered_ratio,
+    REFIT_SETTLED_DAYS,
+    heat_loss_refit,
     utc_elapsed_seconds,
     utc_shift,
 )
@@ -222,7 +224,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_arbiter, pump_signals
 from . import setpoint_check
-from . import silent_mode
+from . import quiet_windows, silent_mode
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -280,7 +282,7 @@ from .open_meteo import OpenMeteoSolar
 from .wood_fuel import (
     simulate_wood_slots,
     wood_furnace_on,
-    wood_fuel_from_coordinator,
+    wood_fuel_from_parts,
 )
 from .thermal_model import (
     TANK_ROOM_AMBIENT_TEMP,
@@ -890,6 +892,103 @@ def _settle_interval_diag(
         },
         "actual": float(sample.actual_temp),
     }
+
+
+def _house_loss_terms(params: ThermalParameters) -> tuple[float, float]:
+    """``(base_u, capacity)`` the house heat-loss scale is fitted about.
+
+    Two-zone fits from the upper zone alone, matching the indoor sensor the
+    residual is read from. The scale still multiplies both zones -- it owns
+    the overall *level* -- while ``lower_floor_loss_ratio`` owns the split
+    and is fitted separately from the lower zone. Splitting the jobs this
+    way is what keeps the two identifiable: the ratio does not touch the
+    upper zone, so this fit is unaffected by it.
+    """
+    if params.two_zone_enabled:
+        return params.upper_floor_heat_loss, params.upper_floor_thermal_mass
+    return params.heat_loss_coefficient, params.room_thermal_mass
+
+
+async def _async_save_restored(coord: Any) -> None:
+    """Persist every learner a snapshot restore rewrote, each by its own store."""
+    await coord._async_save_thermal_learning()
+    await coord._dhw_learner.async_save_profile()
+    await coord._dhw_learner.async_save_draws()
+    await coord._async_save_price_model()
+    await coord._async_save_accuracy()
+
+
+def model_restart_advice(coord: Any) -> dict[str, Any]:
+    """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
+
+    Nothing until the #42 alarm is raised. Then the last known-good
+    snapshot (``best_restore``: healthy, in band, pre-streak) and a batch
+    refit of the heat-loss scale from the tracker's settled pairs -- the
+    evidence that raised the alarm. Recommend-only: nothing here applies
+    anything; the restore service does, on an explicit request.
+    """
+    ctx = getattr(coord, "_ctx", coord)
+    ring = getattr(coord, "_snapshot_ring", None)
+    scale = getattr(coord, "_house_heat_loss_scale", None)
+    advice: dict[str, Any] = {
+        "drift_alarm": bool(getattr(ring, "alarmed", False)),
+        "current_scale": None if scale is None else round(float(scale), 3),
+        "refit": None,
+        "restore": None,
+    }
+    if ring is None or not ring.alarmed:
+        return advice
+    snap = ring.best_restore()
+    if snap is not None:
+        thermal = (snap.get("learners") or {}).get("thermal_learning") or {}
+        advice["restore"] = {
+            "taken_at": snap.get("taken_at"),
+            "scale": thermal.get("house_heat_loss_scale"),
+        }
+    base_u, capacity = _house_loss_terms(ctx._thermal_params)
+    advice["refit"] = heat_loss_refit(
+        coord._accuracy.samples,
+        current_scale=float(coord._house_heat_loss_scale),
+        base_u=base_u,
+        capacity=capacity,
+        dt_hours=ctx._config.optimization_interval / 60.0,
+        min_delta=HOUSE_LOSS_MIN_DELTA,
+        max_residual=HOUSE_LOSS_MAX_RESIDUAL,
+        settle=boost.SPACE_SETTLE_TAIL,
+        since=coord._accuracy.evidence_since,
+    )
+    return advice
+
+
+async def async_adopt_heat_loss_refit(coord: Any) -> bool:
+    """Accept the drift advisor's heat-loss refit (#1936); True when applied.
+
+    Through ``_apply_learner_payloads`` -- the path every snapshot restore
+    takes -- with the thermal store's own current payload and only the scale
+    replaced, so nothing else moves. The restore restarts the evidence,
+    which is what keeps the pairs this refit came from out of the next one.
+    """
+    refit = model_restart_advice(coord)["refit"]
+    scale = refit["scale"] if refit else None
+    if scale is None:
+        _LOGGER.warning(
+            "No heat-loss refit is on offer: it needs an active drift alarm "
+            "and %g settled days of evidence", REFIT_SETTLED_DAYS,
+        )
+        return False
+    previous = coord._house_heat_loss_scale
+    thermal = coord._thermal_learning_payload()
+    thermal["house_heat_loss_scale"] = scale
+    coord._apply_learner_payloads({"thermal_learning": thermal})
+    _LOGGER.info(
+        "House heat-loss scale restarted from the drift refit on request: "
+        "%.3f -> %.3f (estimator band about +/-7-10%%)",
+        previous, coord._house_heat_loss_scale,
+    )
+    await coord._async_save_thermal_learning()
+    await coord._async_save_accuracy()
+    coord.async_update_listeners()
+    return True
 
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
@@ -1589,6 +1688,56 @@ class CoordinatorContext:
     _opt_config: OptimizationConfig
 
 
+@dataclass(frozen=True)
+class CoordinatorDiagnostics:
+    """The collaborator view ``diagnostics.py`` publishes about this instance.
+
+    The live counters a bug report needs and the learners' own summaries,
+    read here -- inside the class -- so ``diagnostics.py`` names no private
+    member (#1739). Fields default ``None`` where the value has no meaning
+    yet; a member that cannot be read at all reports the same way.
+    """
+
+    tibber_outage_cycles: int | None = None
+    tibber_reauth_started: bool | None = None
+    solve_failures: int | None = None
+    cop_scale: float | None = None
+    cop_samples: int | None = None
+    house_heat_loss_scale: float | None = None
+    learner_summaries: Mapping[str, Any] = field(default_factory=dict)
+
+    LEARNERS = ("_accuracy", "_comfort_learner", "_curve_learner", "_price_model")
+
+    @classmethod
+    def of(cls, coord: Any) -> "CoordinatorDiagnostics":
+        """Read ``coord``'s live counters and learner summaries into a view.
+
+        Lives beside the fields it fills, so a member diagnostics needs and
+        a field here go stale together, not apart. A learner whose
+        ``summary()`` raises reports ``"summary unavailable"``, as the
+        per-field fallback in ``diagnostics.py`` did before the view.
+        """
+        summaries: dict[str, Any] = {}
+        for name in cls.LEARNERS:
+            obj = getattr(coord, name, None)
+            summary = getattr(obj, "summary", None)
+            if not callable(summary):
+                continue
+            try:
+                summaries[name.lstrip("_")] = summary()
+            except Exception:  # noqa: BLE001 -- diagnostics never breaks
+                summaries[name.lstrip("_")] = "summary unavailable"
+        return cls(
+            tibber_outage_cycles=getattr(coord, "_tibber_outage_cycles", None),
+            tibber_reauth_started=getattr(coord, "_tibber_reauth_started", None),
+            solve_failures=getattr(coord, "_solve_failures", None),
+            cop_scale=getattr(coord, "_cop_scale", None),
+            cop_samples=getattr(coord, "_cop_samples", None),
+            house_heat_loss_scale=getattr(coord, "_house_heat_loss_scale", None),
+            learner_summaries=summaries,
+        )
+
+
 def _ctx_of(coord: Any) -> CoordinatorContext:
     """The five hubs of ``coord``, typed: ``coord`` itself where it has no ``_ctx``.
 
@@ -2262,8 +2411,23 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
 
-    def __init__(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
-        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``."""
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        entry: HeatPumpOptimizerConfigEntry,
+        *,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """Initialize. ``_init_*`` create state in order; hubs live on ``_ctx``.
+
+        ``skip_first_solve`` and ``reload_handover`` are the setup entry's two
+        one-shot writes (#1739): the first refresh must not run the full MPC
+        solve inside ``async_setup_entry``, and a plan stashed by an
+        in-process reload is handed over here rather than patched on after
+        construction -- state arrives initialised, so a
+        ``ConfigEntryNotReady`` retry reconstructs cleanly.
+        """
         self.entry = entry
         config = EntryConfig.from_mapping({**entry.data, **entry.options})
         # The feed's code where it declares one (#1657), adopted per cycle.
@@ -2280,7 +2444,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         thermal_params, opt_config = self._init_model(config)
         current_state = ThermalState()
-        self._init_runtime_state()
+        self._init_runtime_state(skip_first_solve, reload_handover)
         self._ctx = CoordinatorContext(
             config, thermal_params, self.hass, current_state, opt_config)
         self._init_dhw_learning(hass, entry)
@@ -2318,7 +2482,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._async_load_manual_plan,
         ):
             self._spawn(load())
-        self._spawn(boost.restore_session(self))
+        self._spawn(boost.restore_session(
+            self, self._away_state, config, self._entity_state
+        ))
 
     @callback
     def _release_registrations(self) -> None:
@@ -2428,8 +2594,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimizer = HeatPumpOptimizer(self._thermal_model, opt_config)
         return thermal_params, opt_config
 
-    def _init_runtime_state(self) -> None:
-        """What the current update cycle is working with."""
+    def _init_runtime_state(
+        self,
+        skip_first_solve: bool = False,
+        reload_handover: Payload | None = None,
+    ) -> None:
+        """What the current update cycle is working with.
+
+        ``skip_first_solve`` and ``reload_handover`` arrive from the setup
+        entry through the constructor (#1739); everything else starts empty.
+        """
         self._mode: str = MODE_AUTO
         # #6: last commanded pump states, so actuation is transitions-only.
         # Initialised here since W5-G9: it is core state and was misplaced in
@@ -2477,16 +2651,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._optimization_running: bool = False
         # #1754: a mid-solve refresh is recorded, not dropped; the finally re-runs it.
         self._optimization_rerun_requested: bool = False
-        # Set by ``async_setup_entry`` — and by nothing else — just before the
+        # Set by ``async_setup_entry`` -- and by nothing else -- just before the
         # first refresh: that refresh runs inside setup, where a full cold
         # solve stalls the whole instance. Consumed on the next update cycle,
         # so every subsequent refresh (and every direct test call) solves
         # exactly as it always has.
-        self._skip_solve_once: bool = False
+        self._skip_solve_once = skip_first_solve
         # The previous plan, handed over by ``async_unload_entry`` across an
         # in-process reload so the flag-lightened first refresh can republish
         # it instantly, without even a network fetch. Never persisted.
-        self._reload_handover: Payload | None = None
+        self._reload_handover = reload_handover
 
     def _init_dhw_learning(self, hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> None:
         """Hot water: the profile/draw learner, the tank reading and the legionella timer."""
@@ -2835,6 +3009,55 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     def mode(self) -> str:
         """Return current operation mode."""
         return self._mode
+
+    # -- collaborator interfaces (#1739) --------------------------------------
+    #
+    # The collaborators used to reach these private members directly; each
+    # write now has its one owner here, and what a collaborator reads it
+    # receives as an explicit input or a published view.
+
+    def adopt_action(self, action: CurrentAction) -> None:
+        """Take ``action`` as the running action.
+
+        The one writer of ``_current_action``: the solve, the fixed modes and
+        the sysid override adopt their plans through ``boost.adopt_plan``,
+        and the boost overlay publishes its rebuilt copy here, so no foreign
+        module assigns the slot (#1739).
+        """
+        self._current_action = action
+
+    def arbiter_inputs(self) -> pump_arbiter.ArbiterInputs:
+        """One pass's read-only inputs for the pump arbiter (#1739).
+
+        Built at each arbitration pass -- the cycle, the one-minute tick and
+        the entity-change listener all enter through ``pump_arbiter.apply``,
+        which asks for a fresh snapshot, so a boost set or a mode change
+        between passes is seen by the next one. ``plan_stale`` is the gate
+        ``_plan_is_stale`` owns; the plan itself rides along because the
+        share split and the baseline read it ungated.
+        """
+        ctx = _ctx_of(self)
+        return pump_arbiter.ArbiterInputs(
+            hass=self.hass,
+            config=ctx._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self._plan_is_stale(),
+            entry_released=self._entry_released,
+            state=ctx._current_state,
+            thermal=self._thermal_model,
+            params=ctx._thermal_params,
+            action=self._current_action,
+            measured_power_kw=self._measured_power,
+            disinfecting=getattr(
+                getattr(self._legionella, "disinfect", None), "memo", None
+            )
+            is True,
+        )
+
+    def diagnostics_state(self) -> CoordinatorDiagnostics:
+        """What diagnostics may read about this instance, as one view (#1739)."""
+        return CoordinatorDiagnostics.of(self)
 
     async def _async_setup_ecl110_state_subscription(self) -> None:
         """Subscribe to ECL110 MQTT state updates if MQTT integration is available."""
@@ -3460,7 +3683,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # the new one (issue #86). The KNOWN DEFECT note that was here
             # is resolved by _reanchor_house_heat_loss_scale; the shape of
             # the fix and the four attempts that did not ship are recorded
-            # in docs/backlog.md's "Open" entry and its decisions.
+            # in dev/archive/backlog.md's "Open" entry and its decisions.
             "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
@@ -4408,7 +4631,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         An options edit reloads the entry with a new nameplate while the
         store still holds a scale fitted against the old one; restoring
         it verbatim left the model up to 1.94x wrong (issue #86, four
-        prior attempts recorded in docs/backlog.md). The law, from the
+        prior attempts recorded in dev/archive/backlog.md). The law, from the
         recorded decisions:
 
         ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
@@ -4735,19 +4958,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
         # Current effective coefficient, i.e. what actually produced the
         # prediction, so the Newton step is taken about the right point.
-        #
-        # Two-zone fits from the upper zone alone, matching the residual above.
-        # The scale still multiplies both zones -- it owns the overall *level* --
-        # while `lower_floor_loss_ratio` owns the split and is fitted separately
-        # from the lower zone. Splitting the jobs this way is what keeps the two
-        # identifiable: the ratio does not touch the upper zone, so this fit is
-        # unaffected by it.
-        if params.two_zone_enabled:
-            base_u = params.upper_floor_heat_loss
-            capacity = params.upper_floor_thermal_mass
-        else:
-            base_u = params.heat_loss_coefficient
-            capacity = params.room_thermal_mass
+        base_u, capacity = _house_loss_terms(params)
         step = learner_newton_step(
             self._house_heat_loss_scale,
             base_u, capacity, residual, delta_t, dt_h,
@@ -5038,7 +5249,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 _LOGGER.debug("Shutdown requested mid-cycle; not actuating")
                 return self._build_data_dict()
 
-            boost.apply(self)
+            boost.apply(
+                self,
+                boost.BoostOverlay(
+                    max_power=float(
+                        self._thermal_model.params.max_electrical_power),
+                    max_temp=float(ctx._opt_config.max_temp),
+                    ecl_max=float(self._ecl110_displace_max),
+                ),
+            )
             await self._apply_action()
 
             # T7 #61 (control stage only): translate the commanded kW into
@@ -5248,6 +5467,19 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             caps, ctx._config, solve_now, n, config.dt_hours,
             params.max_electrical_power,
         )
+        # #1910 (SW-1): the user's quiet windows, composed on the loop
+        # because the measured figure reads hass state. Silent rows cap
+        # through the same power_caps_extra channel; off rows come back as
+        # the per-step mask the solver zeroes space with and the planner
+        # forces hot water off with. The gate is here, not in the solver:
+        # D2 says nothing is planned for a window while the optimizer is
+        # off, and a silent row needs a control that can be held.
+        quiet = quiet_windows.compose(
+            caps, ctx._config, ctx.hass.states.get, solve_now, n,
+            config.dt_hours, params.max_electrical_power,
+            optimizer_active=self._mode != MODE_OFF,
+        )
+        caps = quiet.caps
         humidity = horizon.humidity
         return SolveRecord(config, params, SolveInputs(
             state=state,
@@ -5282,6 +5514,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # with no mode entity plans exactly as before.
                 space_blocked=self._pump_signals.space_blocked,
                 dhw_blocked=self._pump_signals.dhw_blocked,
+                off_steps=quiet.off_steps,
+                quiet_actions=quiet.actions,
             ),
         ))
 
@@ -5813,7 +6047,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._pump_mode_last_good = self._pump_signals.mode
             self._pump_mode_last_good_at = _mode_now
         self._check_pump_mode_expired()
-        setpoint_check.evaluate(self)
+        # The arbiter's own gate, wired here: the coordinator owns both
+        # sides of the seam, so setpoint_check needs no import-time hook
+        # back into pump_arbiter (#1739).
+        setpoint_check.evaluate(
+            self, gated=lambda pump: pump_arbiter.dhw_gated(self, pump)
+        )
         # Flag level once per cycle; the listener only sees transitions.
         self._defrost_window.observe(dt_util.now(), self._pump_signals.defrosting)
 
@@ -7179,7 +7418,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Reports learned=True and an effective figure that the defect
             # noted at _thermal_learning_payload can leave ~2x wrong after an
             # options edit. The confidence shown here is in the sample count,
-            # not in the number. See docs/backlog.md, "Open".
+            # not in the number. See dev/archive/backlog.md, "Open".
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
@@ -7352,6 +7591,30 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return format_weekly_windows(weekly)
         return format_windows(params.dhw_windows)
 
+    def configured_quiet_windows(self) -> dict[str, str]:
+        """The quiet-window specs as CONFIGURED, one per action (#1910).
+
+        The silent-windows counterpart of ``configured_dhw_windows``: the
+        card's editor edits the configuration, so it needs the
+        configuration -- in the shared grammar, empty string for "no rows"
+        -- not the plan's reading of it. The specs are stored canonical by
+        the services that write them, so they are handed back as stored.
+        A silent spec with no control that can hold it carries the
+        not-enforced marker beside it, decided from the entity ID's domain
+        and never the state, so a switch that has not reported yet (state
+        ``unknown``) is not dropped: unknown is not off.
+        """
+        cfg = getattr(self, "_ctx", self)._config
+        out: dict[str, str] = {
+            "quiet_silent_windows_spec": cfg.quiet_silent_windows,
+            "quiet_off_windows_spec": cfg.quiet_off_windows,
+        }
+        if quiet_windows.silent_unenforceable(
+            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
+        ):
+            out["quiet_silent_not_enforced"] = "true"
+        return out
+
     def describe_setup(self) -> dict[str, Any]:
         """The configured topology, for every picture of the system.
 
@@ -7452,7 +7715,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # diagnosis — one additive block, present even while everything in
         # it is gated off (it reads as empty/inert).
         data["insight"], data["freq_control"], data["currency"] = self._insight_view(), self._freq_view(), self.currency
-        data["wood_fuel"] = wood_fuel_from_coordinator(self, result)
+        ctx = _ctx_of(self)
+        data["wood_fuel"] = wood_fuel_from_parts(
+            ctx._config,
+            external_heat=self._external_heat,
+            opt_config=ctx._opt_config,
+            thermal_params=ctx._thermal_params,
+            thermal_model=self._thermal_model,
+            current_state=ctx._current_state,
+            result=result,
+        )
         # Only surface the manual-plan key while an override is actually active,
         # so a plan-free solve (the golden fixtures included) is byte-for-byte
         # unchanged from before this feature existed.
@@ -8913,6 +9185,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
+            if (tracker := getattr(self, "_accuracy", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936
             for setter, key in (
                 (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
                 (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
@@ -9075,11 +9348,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     BIAS_TRIP_DAYS,
                     snap.get("taken_at"),
                 )
-                await self._async_save_thermal_learning()
-                await self._dhw_learner.async_save_profile()
-                await self._dhw_learner.async_save_draws()
-                await self._async_save_price_model()
-                await self._async_save_accuracy()
+                await _async_save_restored(self)
         _create_issue(
             self.hass,
             DOMAIN,
@@ -9111,11 +9380,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "Learned state restored from the snapshot taken %s",
             snap.get("taken_at"),
         )
-        await self._async_save_thermal_learning()
-        await self._dhw_learner.async_save_profile()
-        await self._dhw_learner.async_save_draws()
-        await self._async_save_price_model()
-        await self._async_save_accuracy()
+        await _async_save_restored(self)
         self.async_update_listeners()
         return True
 
@@ -9246,7 +9511,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self._away_state.override_return_iso = (
                 ret.isoformat() if ret else None
             )
-            self._spawn(away_mode.persist_override(self))
+            self._spawn(away_mode.persist_override(self, self._away_state))
         presence_raw, presence_attrs = self._entity_state(config.presence_entity)
         self._away_state = away_mode.resolve(
             config,
@@ -9289,7 +9554,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         self._away_state.override_active = on
         self._away_state.override_return_iso = ret.isoformat() if ret else None
-        await away_mode.persist_override(self)
+        await away_mode.persist_override(self, self._away_state)
         if refresh:
             await self.async_request_refresh()
 
@@ -10873,6 +11138,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             cap_extra, ctx._config, solve_at, len(horizon.prices),
             scratch_config.dt_hours, scratch_params.max_electrical_power,
         )
+        # #1910: and the same quiet windows, with the call's own spec and
+        # fraction overrides folded onto the configuration first.
+        _quiet = quiet_windows.compose(
+            cap_extra, quiet_windows.overridden_config(ctx._config, overrides),
+            ctx.hass.states.get, solve_at, len(horizon.prices),
+            scratch_config.dt_hours, scratch_params.max_electrical_power,
+            optimizer_active=self._mode != MODE_OFF,
+        )
+        cap_extra = _quiet.caps
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,
@@ -10940,6 +11214,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     # smaller main fuse.
                     space_blocked=self._pump_signals.space_blocked,
                     dhw_blocked=self._pump_signals.dhw_blocked,
+                    # #1910: the what-if inherits the quiet windows the live
+                    # plan assumed — same reason as the mode block above.
+                    off_steps=_quiet.off_steps,
+                    quiet_actions=_quiet.actions,
                 ),
             ))
         except Exception as err:  # noqa: BLE001 - a what-if must never break ops

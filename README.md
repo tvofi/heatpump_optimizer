@@ -15,7 +15,7 @@ hours.
 
 [Product page](https://tvofi.github.io/heatpump_optimizer/): the project at a glance, every sentence of it quoted from this README and the docs.
 
-![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card-plan-chart.png)
+![The dashboard card's plan chart: 24 hours of spot price, forecast temperature and solar, over the heating and hot-water slots the optimizer chose](docs/img/card/card-plan-chart.png)
 
 *The next 24 hours as the optimizer sees them — price, forecast, solar, and the
 slots it picked for heating and for hot water. Screenshot of the shipped card
@@ -438,7 +438,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 75 entities appear and the first plan is solved within one
+- **Immediately.** All 76 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -470,7 +470,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (59 total)
+### Sensors (60 total)
 
 `CUR` is your Home Assistant instance currency. The code's own fallback is SEK,
 used only where no currency is readable — a normal Home Assistant instance always
@@ -577,6 +577,7 @@ every sensor is created on every install regardless of which group it is in.
 | Valve Target Recommendation | °C | What to set a manual mixing valve to, and why | Diagnostic; disabled by default and unavailable until a throttling mixing-valve mode is configured (manual, smart read or smart write) — a valve-less install gets neither a hidden sensor nor one stuck at unknown |
 | Sensor-Gap Advisor | CUR | Estimated extra cost per month, in your currency, from the highest-value empty sensor slot | Diagnostic; outdoor, house meter, DHW probe |
 | Wood-Burn Night Advisor | — | 48 h light/skip advice when the wood furnace is on | Diagnostic; disabled by default; advisory only — never lights the stove |
+| Model Restart Advisor | — | A refitted house heat-loss scale, and the last known-good snapshot, while predictions are drifting | Diagnostic; the Advisor tab offers both; nothing is applied until you accept one; the refit's own uncertainty is about ±7-10 % |
 
 Disabled by default: Buffer Tank Temperature (Model), Compressor Frequency
 Advisor, Compressor Starts, Cost Contract Comparison, Cost Monthly Peak Power,
@@ -678,7 +679,7 @@ that deliver them.
 ## Services
 
 12 services are registered under the `heatpump_optimizer` domain. Field-level
-detail for each — including all 28 fields of `set_thermal_parameters` — is in
+detail for each — including all 31 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](docs/configuration.md). Worked automation examples — an
 EV charger following the Cost Power Headroom sensor, mode switching on price — are in
 [docs/automations.md](docs/automations.md).
@@ -940,28 +941,8 @@ PI/PID lag handling are documented in [docs/ecl110.md](docs/ecl110.md).
 
 ## Project status
 
-The v4.0.0 feature program — 36 selected proposals, delivered as tranches T0
-through T8 and recorded in
-[docs/plan-v4.0.0-program.md](docs/plan-v4.0.0-program.md) — is complete, and
-every release since has been an audit train on top of it: a full-codebase
-review (August 2026, [docs/audit-2026-08.md](docs/audit-2026-08.md)), then an
-per-dimension audit repeated round by round
-([docs/audit-2026-09.md](docs/audit-2026-09.md)) alongside the open-issues
-program ([docs/plan-2026-09-open-issues.md](docs/plan-2026-09-open-issues.md),
-which supersedes the complete [docs/plan-open-issues.md](docs/plan-open-issues.md))
-and the card
-decomposition program
-([docs/plan-card-decomposition.md](docs/plan-card-decomposition.md)), each
-finding fixed and released one PR at a time under the standing gate protocol
-(see [tests/README.md](tests/README.md) for that gate). The running state of
-that programme — decisions taken, traps hit, owed work — is the durable
-handover at [docs/HANDOVER.md](docs/HANDOVER.md), and each wave keeps a plan
-of record written before execution and kept as written, such as
-[docs/plan-1067-rotenso-inputs.md](docs/plan-1067-rotenso-inputs.md) for
-issue #1067. Every v6.0.0 or later
-release has its detail in [RELEASE_NOTES.md](RELEASE_NOTES.md); what remains
-open — findings judged real and deliberately not built — is the short list at
-the top of `docs/backlog.md`.
+Finished plans, the August 2026 audit, the backlog and the closed wave
+rosters are in [dev/archive/README.md](dev/archive/README.md).
 
 ## Written with AI, and what that costs
 
@@ -1017,7 +998,6 @@ before installing; it applies with full force.
 | [docs/automations.md](docs/automations.md) | Complete automation examples using only the entities and services the integration creates |
 | [docs/architecture.md](docs/architecture.md) | Module map and how a plan is made, for anyone reading or changing the code |
 | [docs/ecl110.md](docs/ecl110.md) | ECL110 MQTT control |
-| [docs/backlog.md](docs/backlog.md) | The archive of what was built and why, plus what is open |
 | [DISCLAIMER.md](DISCLAIMER.md) | The full disclaimer |
 
 ## Disclaimer

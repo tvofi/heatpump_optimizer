@@ -131,18 +131,34 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Refuse a Cursor rule that is not the generated form of its source
-        run: node .claude/workflows/rules_sync.mjs --check
+        run: if test -f .claude/workflows/rules_sync.mjs; then node .claude/workflows/rules_sync.mjs --check; else node tools/policy/rules_sync.mjs --check; fi
 
       # #1515: a file a workflow executes, or one such a file imports, that no
       # CODEOWNERS pattern owns is a check a pull request can rewrite without
@@ -165,23 +181,23 @@ jobs:
       - name: Lint the policy corpus
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs; else node tools/policy/policy_lint.mjs; fi
 
       # A workflow script cannot import another, so the five web-*.js each carry
       # their own copy of the shared prompt block and web-fragments.md said to
       # keep them in sync by hand. The copy was not byte-identical in the commit
       # that created it, and stayed that way.
       - name: Refuse a prompt fragment that has drifted from its canonical text
-        run: node .claude/workflows/fragments_sync.mjs
+        run: if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs; else node tools/policy/fragments_sync.mjs; fi
 
       - name: Report what the linter found
         if: always()
-        run: node .claude/workflows/policy_lint.mjs --report || true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --report; else node tools/policy/policy_lint.mjs --report; fi|| true
 
       # Last: the base's checker drives the hooks' own self-tests, which are the
       # pull request's (owned) copies -- so nothing graded runs after them.
       - name: Refuse a hook that is missing, unwired, or fails its own self-test
-        run: node .claude/workflows/policy_lint.mjs --hooks
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks; else node tools/policy/policy_lint.mjs --hooks; fi
 
       # Field coverage (class I3, round 9): every field of a governance check's
       # input is read by that check or ignored with a reason, and every check
@@ -206,7 +222,7 @@ jobs:
           elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
           else
-            node .claude/workflows/field_coverage.mjs
+            if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs; else node tools/policy/field_coverage.mjs; fi
           fi
 
   # THE INSTRUMENTS' OWN SELF-TESTS, run from the pull request's copies
@@ -247,16 +263,16 @@ jobs:
       # on the pull request that lands it rather than by the next adversarial
       # reader.
       - name: Refuse a corpus or record-mode check that survives its own deletion
-        run: node .claude/workflows/policy_lint_mutants.mjs
+        run: if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs; else node tools/policy/policy_lint_mutants.mjs; fi
 
       - name: Show the fragment check refusing its own perturbation
-        run: node .claude/workflows/fragments_sync.mjs --self-test
+        run: if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs --self-test; else node tools/policy/fragments_sync.mjs --self-test; fi
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
       - name: Show field coverage refusing each shape it exists to refuse
-        run: node .claude/workflows/field_coverage.mjs --self-test
+        run: if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
 
       # `gh api -f body=@FILE` posts the literal path, exits 0, and returns a
       # well-formed comment object (#541 comment 5625671141). The countermeasure
@@ -266,7 +282,7 @@ jobs:
       # This step drives all thirty-five named arms offline on every
       # pull request -- the same argument as the fragment self-test above.
       - name: Show the comment poster refusing every body it cannot vouch for
-        run: python3 .claude/workflows/gh_comment.py self-test
+        run: if test -f .claude/workflows/gh_comment.py; then python3 .claude/workflows/gh_comment.py self-test; else python3 tools/pr/gh_comment.py self-test; fi
 
       # The `record` predicate was narrowed (#752) only because a sweep measured
       # what each candidate would refuse, and that sweep stays in the tree so the
@@ -285,23 +301,23 @@ jobs:
       # asserting any of them would be asserting the calendar. A check that
       # cannot fail for a reason is the defect this step exists to catch.
       - name: Show the record-predicate sweep refusing its own perturbations
-        run: node tools/audit/record-predicate/sweep.mjs --self-test
+        run: if test -f tools/audit/record-predicate/sweep.mjs; then node tools/audit/record-predicate/sweep.mjs --self-test; else node tools/policy/record-predicate/sweep.mjs --self-test; fi
 
       - name: Show the pre-PR self-check refusing its own fixtures
-        run: bash tools/audit/prepr.sh --self-test
+        run: if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi
 
       - name: Show the push script's decisions refusing their own fixtures
-        run: bash tools/audit/push.sh --self-test
+        run: if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
 
       # The App approval's refusals and token cleanup, over stubbed gh, curl
       # and openssl: no network, no key.
       - name: Show the App approval refusing its own fixtures
-        run: bash tools/audit/app_approve.sh --self-test
+        run: if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi
 
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
-        run: bash tools/audit/app_comment.sh --self-test
+        run: if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh --self-test; else bash tools/pr/app_comment.sh --self-test; fi
 
       # The verdict bus (round-9 process review item 9): the reviewer's
       # verdict push and the orchestrator's ref watcher, over a local bare
@@ -318,7 +334,7 @@ jobs:
       - name: Show the budget-raise gate refusing its own fixtures
         run: |
           set -o pipefail
-          python3 .claude/workflows/budget_raise_gate.py --self-test | tee "$RUNNER_TEMP/brg-self-test.txt"
+          if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
 
       # The contract's re-run follower (D13-s1-03): which completed run makes
@@ -327,7 +343,7 @@ jobs:
       - name: Show the contract re-run deciding its own fixtures
         run: |
           set -o pipefail
-          python3 .claude/workflows/contract_rerun.py --self-test | tee "$RUNNER_TEMP/crr-self-test.txt"
+          if test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"
           grep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"
 
       # The merge fast path (round-9 process review item 2B): each refusal class
@@ -368,11 +384,11 @@ jobs:
 
       - name: Show the figure check refusing its own fixtures
         if: always()
-        run: node .claude/workflows/figure_lint.mjs --self-test
+        run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
 
       - name: Show the figure census pinning its counting rule
         if: always()
-        run: node .claude/workflows/figure_census.mjs --self-test
+        run: if test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi
 
       # The pin rule's allowlist (#1589 review, round 3): every probe step --
       # an install, `bash -c`, `sudo`, a `$GITHUB_PATH` shim, a github-script
@@ -428,15 +444,56 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          # policy_lint_envmatrix.mjs is omitted. The base blob calls
+          # .claude/workflows/policy_lint.mjs, which is not a file, so restoring
+          # it makes this job run that blob. The pull request's copy is what
+          # calls tools/policy/policy_lint.mjs. It is owned, not pinned.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/agreement.mjs' \
+            'tools/policy/brief_lint.mjs' \
+            'tools/policy/check-wave-script.mjs' \
+            'tools/policy/counts.mjs' \
+            'tools/policy/field_coverage.mjs' \
+            'tools/policy/figure_census.mjs' \
+            'tools/policy/figure_lint.mjs' \
+            'tools/policy/fragments_sync.mjs' \
+            'tools/policy/friction_issues.mjs' \
+            'tools/policy/policy_lint.mjs' \
+            'tools/policy/policy_lint_mutants.mjs' \
+            'tools/policy/render_md.mjs' \
+            'tools/policy/rules_sync.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          # The base driver names '.claude/workflows/policy_lint.mjs'. A checkout
+          # that no longer has the program there fails every arm before it
+          # measures. This pull request's driver resolves the file the checkout
+          # has; the programs it runs stay the restored copies. Once the base
+          # driver resolves the file itself, the grep misses and the pin stands.
+          if ! test -f .claude/workflows/policy_lint.mjs \
+             && grep -F -q "'.claude/workflows/policy_lint.mjs'" tools/policy/policy_lint_envmatrix.mjs; then
+            git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
+          fi
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
           git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
 
       # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
@@ -449,7 +506,7 @@ jobs:
       - name: Require each declared environment shape to produce its declared outcome
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"
+        run: if test -f .claude/workflows/policy_lint_envmatrix.mjs; then node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; else node tools/policy/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; fi
 
   wave-script:
     # The control flow a wave resume rests on. `.claude/` is INERT in
@@ -483,7 +540,10 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
@@ -498,12 +558,27 @@ jobs:
             'tests/replay.py' \
             'tests/structure.py' \
             'tools/audit/round4/D11/d11lib.py' \
-            'tools/audit/round4/D11/governance_cost.py'
+            'tools/audit/round4/D11/governance_cost.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' \
+            'dev/audit/rounds/round4/D11/d11lib.py' \
+            'dev/audit/rounds/round4/D11/governance_cost.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Drive the wave script's branching
-        run: node .claude/workflows/check-wave-script.mjs
+        run: if test -f .claude/workflows/check-wave-script.mjs; then node .claude/workflows/check-wave-script.mjs; else node tools/policy/check-wave-script.mjs; fi
 
       # Class I4 (round 9): two readers of one governance concept must give one
       # answer, and a regex grammar written in two governance files must be
@@ -527,16 +602,16 @@ jobs:
           if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
             echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
           else
-            python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"
-            node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"
+            if test -f .claude/workflows/agreement_py.py; then python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; else python3 -I tools/policy/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; fi
+            if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"; else node tools/policy/agreement.mjs --py-json "$RUNNER_TEMP/agreement.json"; fi
           fi
 
       - name: Show the agreement lane refusing each shape it exists to refuse
-        run: node .claude/workflows/agreement.mjs --self-test
+        run: if test -f .claude/workflows/agreement.mjs; then node .claude/workflows/agreement.mjs --self-test; else node tools/policy/agreement.mjs --self-test; fi
 
       # Class R-register (round 9, #1759): every in-tree judge survivor sits in
       # exactly one class, every class that met an adopted trigger carries a
-      # barrier or an rca document under tools/audit/rca, and the counts the
+      # barrier or an rca document under dev/audit/rca, and the counts the
       # ledger carries are the ones its instances derive. The checker is the
       # pull request's own copy, not a pinned one: a pinned grader must be
       # declared in field_coverage.mjs, which is itself pinned, so the pull
@@ -639,7 +714,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -o pipefail
-          node .claude/workflows/policy_lint.mjs --record \
+          if test -f .claude/workflows/policy_lint.mjs; then _pl=.claude/workflows/policy_lint.mjs; else _pl=tools/policy/policy_lint.mjs; fi
+          node "$_pl" --record \
             --since "${{ steps.window.outputs.since }}" \
             2>&1 | tee "$RUNNER_TEMP/record.txt"
 
@@ -656,7 +732,7 @@ jobs:
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1 | tee "$RUNNER_TEMP/stats.txt" || true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; else node tools/policy/policy_lint.mjs --stats --since "${{ steps.window.outputs.since }}" 2>&1; fi| tee "$RUNNER_TEMP/stats.txt" || true
 
       # THE LANES THAT CAN REDDEN THIS JOB (#959, D11-04). The step below is one
       # path in this job allowed to ACT, and it runs WITHOUT `|| true`: a filing
@@ -683,7 +759,7 @@ jobs:
       - name: Show the friction filer refusing its own fixtures
         id: filer_selftest
         if: always()
-        run: node .claude/workflows/friction_issues.mjs --self-test
+        run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --self-test; else node tools/policy/friction_issues.mjs --self-test; fi
 
       # The trigger text is the histogram's own line: this step parses the
       # would-open verdicts out of the captured output and files one issue per
@@ -699,14 +775,14 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"
+        run: if test -f .claude/workflows/friction_issues.mjs; then node .claude/workflows/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; else node tools/policy/friction_issues.mjs --stats-file "$RUNNER_TEMP/stats.txt" --since "${{ steps.window.outputs.since }}"; fi
 
       - name: Rules that have outlived their reason
         id: sunset
         if: always()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}" || true
+        run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; else node tools/policy/policy_lint.mjs --sunset --since "${{ steps.window.outputs.since }}"; fi|| true
 
       # THE REPORT, AND IT COMES LAST. It reports on the steps above it, so it
       # has to be after them -- the ordering `tests/entities.py` pins for the
@@ -864,7 +940,8 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           git checkout "$PINNED" -- \
-            'tests/delivery_status.py'
+            'tests/delivery_status.py' \
+            'tests/layout.py'
           test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
           git fetch --no-tags --quiet origin main
           python -I -S tests/delivery_status.py --check

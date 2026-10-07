@@ -18,6 +18,18 @@ Expected: RESULT qs_exception_missing_translation_v1=4 (cross-check against
 s1's AST count of 4) ± 0
 Baseline SHA: cdf82daabcfe3777d98b31489f36df5555ec9d82
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 for v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
           "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -28,7 +40,7 @@ import re
 import time
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(ROOT, "..", "..", "..", ".."))
+REPO_ROOT = str(repo_root(__file__))
 PKG = os.path.join(REPO_ROOT, "custom_components", "heatpump_optimizer")
 
 EXC_NAMES = {

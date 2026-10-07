@@ -133,7 +133,10 @@ class Train:
         return ["TIMEOUT"]
 
     def policy_paths(self, files: list[str]) -> list[str]:
-        filt = ["node", str(ROOT / ".claude/workflows/policy_lint.mjs"), "--corpus-filter"]
+        _pl = ROOT / ".claude/workflows/policy_lint.mjs"
+        if not _pl.is_file():
+            _pl = ROOT / "tools/policy/policy_lint.mjs"
+        filt = ["node", str(_pl), "--corpus-filter"]
         probe = self.run(filt, stdin="CLAUDE.md\ntools/audit/not-a-policy-path.zzz\n")[1].split()
         if probe != ["CLAUDE.md"]:
             raise Stop("policy", "policy_lint.mjs --corpus-filter failed its sentinel probe, so what is policy is undefined here")
@@ -194,7 +197,9 @@ class Train:
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             if "PUSHED" not in o:
-                raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-200:])
+                # The refusal is several lines (each prepr step, then app_push's
+                # die). The last 200 characters were only the die.
+                raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
             h = self.head(pr)
             self.log(f"#{pr} recarry: main merged, head {h[:8]}")
         red = [n for n in self.wait_ci(h) if n not in self.ignore]
@@ -216,6 +221,11 @@ class Train:
         if code:
             raise Stop("files", "git diff failed: " + out.strip()[-160:])
         files = out.split()
+        row = f"docs/delivery/{pr}.md"
+        if row not in files:
+            raise Stop("row", f"#{pr} has no {row} in the three-dot diff; "
+                       "the train writes none and the stamp's --require-rows "
+                       "bar refuses an unrowed merge")
         pol = self.policy_paths(files)
         if pol:
             raise Stop("policy", f"policy paths changed ({', '.join(pol)}): only the owner's own review approves it")
@@ -290,8 +300,12 @@ def _self_test() -> int:
                     return world["diff_fail"]
                 if "renamed" in world:  # git lists a rename's old path only with --no-renames
                     old, new = world["renamed"]
-                    return 0, f"{old}\n{new}" if "--no-renames" in argv else new
-                return 0, "\n".join(world.get("files", ["custom_components/x.py"]))
+                    names = f"{old}\n{new}" if "--no-renames" in argv else new
+                    return 0, names + "\ndocs/delivery/7.md"
+                return 0, "\n".join(world.get(
+                    "files",
+                    ["custom_components/x.py", "docs/delivery/7.md",
+                     "docs/delivery/8.md"]))
             if "--corpus-filter" in a:
                 if world.get("broken_filter"):
                     return 0, ""
@@ -334,6 +348,10 @@ def _self_test() -> int:
 
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
+    rc, lines, calls = go({"files": ["custom_components/x.py"]})
+    check("a pull request with no docs/delivery/<N>.md row is refused",
+          rc == 1 and "row:" in lines[-1] and "docs/delivery/7.md" in lines[-1]
+          and not merged(calls))
     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
     rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
     check("a red required check stops the train before any approval", rc == 1 and "ci:" in lines[-1] and not merged(calls)
@@ -347,7 +365,8 @@ def _self_test() -> int:
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
-    rc, lines, calls = go({"files": ["custom_components/x.py", "tools/audit/briefs/fixer.md"],
+    rc, lines, calls = go({"files": ["custom_components/x.py", "docs/delivery/7.md",
+                                     "tools/audit/briefs/fixer.md"],
                            "approve": (1, "REFUSE: #7 touches code-owned paths (tools/audit/briefs/fixer.md); the owner's")},
                           mandate="mandate 1 (tvofi)")
     check("a policy pull request is never approved, even under a mandate", rc == 1 and "policy:" in lines[-1]
@@ -367,7 +386,9 @@ def _self_test() -> int:
     b = w["approve_body"]
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
-    rc, lines, calls = go({"approve": owned, "files": ["tests/structure_budgets.json"]}, mandate="m")
+    rc, lines, calls = go({"approve": owned,
+                           "files": ["tests/structure_budgets.json", "docs/delivery/7.md"]},
+                          mandate="m")
     check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
     check("a missing-evidence refusal is not overridden by a mandate", rc == 1 and "app_approve.sh refused: REFUSE: the verdict cites" in lines[-1] and not approved(calls))

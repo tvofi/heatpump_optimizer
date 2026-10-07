@@ -51,11 +51,8 @@ def _optional_number(value: Any, default: float | None) -> float | None:
     """A finite float, or the default. An empty string is absent, not zero."""
     if value == "":
         return None
-    try:
-        result = float(value)
-    except (TypeError, ValueError, OverflowError):
-        return default
-    return result if math.isfinite(result) else default
+    result = _refused_number(value, math.nan)
+    return default if result is None else result
 
 
 def _whole(value: Any, default: int | None) -> int | None:
@@ -76,6 +73,11 @@ def _text(value: Any, default: str) -> str:
 def _entity(value: Any, default: None) -> str | None:
     """An entity id, or None where the slot is empty."""
     return str(value) if value else None
+
+
+def _spec(value: Any, default: str) -> str:
+    """A window spec as text, "" where none is stored: blank is unset."""
+    return str(value) if value else ""
 
 
 def _or_default(value: Any, default: Any) -> Any:
@@ -115,6 +117,7 @@ class EntryConfig(Mapping[str, Any]):
     dhw_setpoint_entity: str | None = _entity_slot()
     dhw_temp_entity: str | None = _entity_slot()
     grid_fee_entity: str | None = _entity_slot()
+    heat_pump_capacity_limited_entity: str | None = _entity_slot()
     heat_pump_defrost_entity: str | None = _entity_slot()
     heat_pump_mode_entity: str | None = _entity_slot()
     heat_pump_power_entity: str | None = _entity_slot()
@@ -235,6 +238,8 @@ class EntryConfig(Mapping[str, Any]):
     peak_tariff_hours: str = _key(const.DEFAULT_PEAK_TARIFF_HOURS, _text)
     peak_tariff_months: str = _key(const.DEFAULT_PEAK_TARIFF_MONTHS, _text)
     price_source: str = _key(const.DEFAULT_PRICE_SOURCE, _text)
+    quiet_off_windows: str = _key("", _spec)
+    quiet_silent_windows: str = _key("", _spec)
     pump_duty_mode: str = _key(const.DEFAULT_PUMP_DUTY_MODE, _one_of(frozenset(const.PUMP_DUTY_MODES)))
     silent_mode_windows: Any = _key(const.DEFAULT_SILENT_MODE_WINDOWS, _or_default)
     solar_forecast_source: str = _key(const.DEFAULT_SOLAR_FORECAST_SOURCE, _text)

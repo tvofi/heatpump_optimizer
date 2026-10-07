@@ -197,6 +197,8 @@
   "_weather_fetch_failed": "fetch",
   "_weather_fetch_recovered": "fetch",
   "_weather_series": "fetch",
+  "adopt_action": "core",
+  "arbiter_inputs": "views",
   "async_apply_manual_plan": "core",
   "async_arm_system_identification": "core",
   "async_clear_manual_plan": "core",
@@ -213,6 +215,7 @@
   "async_simulate": "core",
   "async_update_thermal_params": "core",
   "configured_dhw_windows": "dhw",
+  "coordinator._async_save_restored": "learning",
   "coordinator._cop_fold_blocked": "learning",
   "coordinator._ctx_of": "core",
   "coordinator._diagnose_payload": "core",
@@ -230,6 +233,7 @@
   "describe_setup": "core",
   "device_info": "core",
   "dhw_temperature": "dhw",
+  "diagnostics_state": "views",
   "effective_config": "core",
   "mode": "core",
   "month_channel_totals": "core",
@@ -238,6 +242,7 @@
   "record_setpoint_override": "core",
   "system_identification_active": "core",
   "target_temperature": "core",
-  "weather_stale_hours": "fetch"
+  "weather_stale_hours": "fetch",
+  "configured_quiet_windows": "dhw"
  }
 }

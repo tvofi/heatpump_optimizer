@@ -23,7 +23,7 @@
 // committed PNG (Chromium raster is not bit-stable across machines).
 // Regenerate after a card change that should move the picture:
 //
-//   HPO_HERO_OUT=docs/img/card-plan-chart.png node tests/card_browser.mjs
+//   HPO_HERO_OUT=docs/img/card/card-plan-chart.png node tests/card_browser.mjs
 //
 // R9-UI-3 (decision U5): the hero mode generalised into a page-screenshot
 // mode, which renders the dashboard tile and each dialog page (Plan, Setup,

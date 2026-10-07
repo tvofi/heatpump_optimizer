@@ -24,6 +24,18 @@ PERTURBATION: delete ``_attr_has_entity_name = True`` from entity.py:27 and
 missing_has_entity_name goes from 0 to entities_total (direction: up).
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -37,7 +49,7 @@ import json
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 os.chdir(ROOT)
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")

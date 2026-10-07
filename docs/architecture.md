@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 71 modules, of which 26 import the
+knows nothing about Home Assistant: 72 modules, of which 26 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -34,7 +34,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["75 entities<br/>59 sensors, 6 binary sensors,<br/>4 buttons, 4 switches,<br/>1 climate, 1 datetime"]
+        ent["76 entities<br/>60 sensors, 6 binary sensors,<br/>4 buttons, 4 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -128,6 +128,9 @@ custom_components/heatpump_optimizer/
 │                         #   sits from the model's own weather curve
 ├── silent_mode.py        # The pump's silent-mode schedule as a ceiling on
 │                         #   the plan's power
+├── quiet_windows.py      # The user's silent and off windows: per-step
+│                         #   actions, the silent cap, the off mask, and
+│                         #   the save-time overlap rules
 ├── modbus_prefill.py     # Option values a GCHV pump's Modbus registers
 │                         #   suggest, for the options flow's pre-fill page
 ├── device_prefill.py     # The same suggestions from a heat-pump DEVICE's
@@ -155,7 +158,7 @@ custom_components/heatpump_optimizer/
 │
 │   # Home Assistant entities and frontend
 ├── entity.py             # The shared entity base every platform builds on
-├── sensor.py             # 59 sensors
+├── sensor.py             # 60 sensors
 ├── binary_sensor.py      # Away Mode, External Heat Source, Input Problem,
 │                         #   Mold Floor Breach, Open Window Detected,
 │                         #   Wood Cheaper Than Heat Pump
@@ -182,7 +185,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-26 of the 71 modules import `homeassistant` at module level: `__init__`,
+26 of the 72 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
@@ -191,7 +194,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `defrost`,
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 44 modules are deliberately free of it, so each can be driven
+The other 45 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output

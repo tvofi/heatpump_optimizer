@@ -427,6 +427,17 @@ class FakeCoordinator:
     def configured_dhw_windows(self) -> str:
         return self.configured_windows
 
+    def configured_quiet_windows(self) -> dict[str, str]:
+        """What `configured_quiet_windows()` answers: the quiet-window
+        specs as configured (#1910). Empty by default -- the fake
+        configures no rows, which is the real coordinator's answer for an
+        install that sets none, and keeps the sensor's quiet attributes
+        absent exactly as on such an install."""
+        return {
+            "quiet_silent_windows_spec": "",
+            "quiet_off_windows_spec": "",
+        }
+
     def describe_setup(self) -> dict:
         """The topology the plan sensors publish for the card's setup page."""
         return {"two_zone": False, "dhw": False, "slots": []}

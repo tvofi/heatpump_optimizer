@@ -36,6 +36,13 @@ import tempfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from layout import canon as _layout_canon, locate as _layout_locate
+
+# Dynamic import of a moved instrument. The string is the path while the file
+# is still there, otherwise the path the move map records, so a module import
+# follows the same file the `node <locate>` invocations already run.
+_PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
+_COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
     EagerHass,
     FakeCoordinator,
@@ -1433,20 +1440,20 @@ R.check(
 )
 
 # B12 replaces B4's interim chart SVG with a screenshot this repository's
-# Playwright lane writes (`HPO_HERO_OUT=docs/img/card-plan-chart.png node
+# Playwright lane writes (`HPO_HERO_OUT=docs/img/card/card-plan-chart.png node
 # tests/card_browser.mjs`). The path is the pin: reverting it to `.svg`
 # puts the interim asset back. The PNG lives under `docs/` (INERT);
 # this check reads README.md only, so it does not pull `docs/` into a
 # measured closure. The hero must stay a single-line `![alt](src)` —
 # the HACS rewriter checks above are why.
 _hero = _re.search(
-    r"^!\[[^\n]*\]\((docs/img/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
+    r"^!\[[^\n]*\]\((docs/img/card/card-plan-chart\.[A-Za-z0-9]+)\)\s*$",
     readme,
     _re.M,
 )
 R.check(
     "the README hero is the Playwright screenshot, not B4's interim SVG",
-    _hero is not None and _hero.group(1) == "docs/img/card-plan-chart.png",
+    _hero is not None and _hero.group(1) == "docs/img/card/card-plan-chart.png",
     f"hero src: {_hero.group(1) if _hero else None}",
 )
 
@@ -3701,6 +3708,10 @@ def _p2_registry(sources):
                  "services.py::handle_set_thermal_params": "service data write",
                  "services.py::handle_apply_topology": "service data write",
                  "services.py::handle_apply_schedule": "service data write",
+                 # #1910: the quiet-overlap refusal reads the stored
+                 # hot-water SPEC to judge an off window against it; it
+                 # never answers whether hot water is enabled.
+                 "services.py::_refuse_quiet_conflicts": "overlap validation",
                  "coordinator.py::HeatPumpOptimizerCoordinator.async_update_thermal_params":
                      "windows update",
                  "quick_setup.py::stored_answers": answer,
@@ -3968,12 +3979,12 @@ def _ec_build(extra=None, options=None):
 def _ec_readers(extra):
     """Two keys as four readers in three modules take them, or the error."""
     try:
-        _, coord = _ec_build(extra)
+        entry, coord = _ec_build(extra)
     except Exception as err:  # noqa: BLE001 - the refusal is the measurement
         return f"{type(err).__name__}: {err}"
     return (
         coord.update_interval,
-        integration._handover_interval_minutes(coord),
+        integration._handover_interval_minutes({**entry.data, **entry.options}),
         coord._ctx._opt_config.comfort_weight,
         coord._comfort_learner.configured_weight,
     )
@@ -4077,6 +4088,8 @@ _EC_RESIDUAL = {
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
+    "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
+                        "overridden_config folds the call's quiet keys into",
     "thermal_model.py": "ThermalParameters.from_config, the solver's own parsed object, "
                         "rebuilt only by set_thermal_params",
     "topology.py": "describe_setup and rank_sensor_gaps also describe the setup flow's answers",
@@ -4955,7 +4968,7 @@ R.check(
 # snapshot does not hold FAILS as unrecorded, so a new name cannot pass by
 # being unknown; `python3 tests/ha_floor.py record` re-records it, and the
 # nightly floor container re-asks every answer of Home Assistant itself.
-# Root cause and cost test: tools/audit/rca/R9-RCA-1869.md.
+# Root cause and cost test: dev/audit/rca/R9-RCA-1869.md.
 R.section("P11: every Home Assistant name production reaches exists at the floor")
 
 import ha_floor as _p11  # noqa: E402
@@ -5223,7 +5236,10 @@ for _label, _coord, _want in (
 ):
     _coord._current_action = {}
     _boost_mod.held_for(_coord).set(_boost_mod.CHANNEL_DHW, True, dt_util.now())
-    _boost_mod.apply(_coord)
+    _boost_mod.apply(_coord, _boost_mod.BoostOverlay(
+        float(_coord._thermal_model.params.max_electrical_power),
+        0.0, float(_coord._ecl110_displace_max),
+    ))
     _got = float(_coord._current_action.get("dhw_power") or 0.0) > 0.0
     R.check(
         f"the boost overlay {_label} hot-water power where the plant "
@@ -10703,6 +10719,9 @@ _expected_diagnostic = {
     "frequency_advisor",
     "sensor_gap_advisor",
     "wood_burn_advisor",
+    # #1936: the drift alarm's restart points. Enabled — an ordinary install
+    # always has a heat-loss scale — and Diagnostic, like the other advisors.
+    "model_restart_advisor",
 }
 _actually_diagnostic = {
     s._key
@@ -11443,6 +11462,9 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "MixedHotWaterSensor": frozenset({
         "litres_40c", "shower_minutes", "tank_temperature"
+    }),
+    "ModelRestartAdvisorSensor": frozenset({
+        "current_scale", "drift_alarm", "refit", "restore"
     }),
     "MoldFloorBreachBinarySensor": frozenset({
         "floor_c", "shortfall_c", "space_blocked"
@@ -12388,8 +12410,8 @@ R.check(
     not [s for s in sensors if s._attr_unique_id.endswith("_solar_radiation")],
 )
 R.check(
-    "there are exactly 59 sensors after the merge",
-    len(sensors) == 59,
+    "the sensor platform builds 60 entities, the model restart advisor included",
+    len(sensors) == 60,
     str(len(sensors)),
 )
 R.check(
@@ -15226,16 +15248,16 @@ R.check(
 # and five repeats.
 _handovers = sorted(
     f for f in _subprocess.run(
-        ["git", "ls-files", "docs"], cwd=_closure.ROOT,
+        ["git", "ls-files", "-z"], cwd=_closure.ROOT,
         capture_output=True, text=True,
-    ).stdout.split()
-    if _closure.is_handover(f)
+    ).stdout.split("\0")
+    if f and _closure.is_handover(f)
 )
 R.check(
     "exactly one handover, with no date in its name",
-    _handovers == ["docs/HANDOVER.md"],
+    _handovers == ["dev/programme/HANDOVER.md"],
     f"found {_handovers or 'none'}; durable state belongs in the single "
-    "docs/HANDOVER.md and volatile state on #201, never in both",
+    "dev/programme/HANDOVER.md and volatile state on #201, never in both",
 )
 # `updated-for:` is the staleness half: a handover nobody has re-pointed since
 # the merge it describes is the failure mode, not one that has been deleted.
@@ -15243,13 +15265,13 @@ R.check(
 # the line names the merge the text reflects, which is always an ancestor.
 _uf = _re.search(
     r"^updated-for:[ \t]*([0-9a-f]{7,40})[ \t]*$",
-    Path("docs/HANDOVER.md").read_text(),
+    Path("dev/programme/HANDOVER.md").read_text(),
     _re.M,
-) if Path("docs/HANDOVER.md").exists() else None
+) if Path("dev/programme/HANDOVER.md").exists() else None
 R.check(
     "the handover names the commit it reflects",
     _uf is not None,
-    "docs/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
+    "dev/programme/HANDOVER.md needs a line `updated-for: <sha>` naming the merge it "
     "was last written against",
 )
 R.check(
@@ -17389,7 +17411,7 @@ R.check(
 # a check nothing reads is exactly what let the nightly lane's blocking pin go
 # stale in silence (#533). Both arms, so this cannot become a check that passes
 # whatever the script does.
-_preflight = Path("tools/audit/preflight.sh")
+_preflight = Path("tools/pr/preflight.sh")
 R.check(
     "the orchestrator pre-flight refuses an undeclared closing keyword",
     _preflight.is_file()
@@ -17506,7 +17528,7 @@ def _copy_policy_lint_tree(dst):
     """
     import shutil
 
-    wf = Path(".claude/workflows")
+    wf = Path("tools/policy")
     need, seen = ["policy_lint.mjs"], set()
     while need:
         f = need.pop()
@@ -18147,7 +18169,7 @@ R.check(
 # it selects this script rather than skipping. SECURITY.md keeps the third
 # slot a genuinely inert document still fills.
 _A_DOCS = _closure.affected(
-    ["docs/audit-2026-09.md", "LICENSE", "SECURITY.md"])
+    ["dev/programme/register/audit-2026-09.md", "LICENSE", "SECURITY.md"])
 R.check(
     "a docs-only change still costs the closures check nothing",
     _A_DOCS["case"] == "skip",
@@ -19958,8 +19980,8 @@ R.check(
 # INHERITED CLAIMS on whatif_edited / whatif_weekly. The PR merge-base WAS
 # 62799e4 -- the gap is the skip, not a different baseline SHA.
 _493_FILES = [
-    ".claude/workflows/wave-4-groups.json",
-    ".claude/workflows/wave-5-groups.json",
+    "dev/archive/rosters/wave-4-groups.json",
+    "dev/archive/rosters/wave-5-groups.json",
     "docs/plan-2026-09-open-issues.md",
 ]
 _493_CARD = {
@@ -20120,8 +20142,8 @@ _h493_card = (
 _h493_root, _h493_base = _hygiene_git(
     _h493_card,
     {
-        ".claude/workflows/wave-4-groups.json": "{}\n",
-        ".claude/workflows/wave-5-groups.json": "{}\n",
+        "dev/archive/rosters/wave-4-groups.json": "{}\n",
+        "dev/archive/rosters/wave-5-groups.json": "{}\n",
         "docs/plan-2026-09-open-issues.md": "# plan\n",
     },
     py_touch=False,
@@ -21127,17 +21149,28 @@ R.check(
     "narrowing INERT to tools/audit/ (#372) must not still cover "
     "tools/release/stamp.py, or the recorder has nothing to pull it into",
 )
-# Every tools/ file outside tools/audit/ must be classified. This replaced an
-# equality against the single-element list ["tools/release/stamp.py"] (#1067
+# Every tools/ file outside the inert homes must be classified. This replaced
+# an equality against the single-element list ["tools/release/stamp.py"] (#1067
 # G7b-1, which added tools/gen_device_fixtures.py): that literal said "there
 # is one such file", which is not the property #372's narrowing bought. The
-# property is that narrowing INERT leaves every non-audit tools/ file for the
-# recorder to classify, and it holds for any number of them.
+# property is that narrowing INERT leaves every such file for the recorder to
+# classify, and it holds for any number of them. tools/audit/ is the evidence
+# home #372 named. The instrument directories R9-RO-6 moved out of `.claude/`
+# and `tools/audit/` are inert homes of the same kind: unread except the files
+# INERT_EXCEPT names. A blanket `tools/` prefix would still hide stamp.py, and
+# that file staying in this set is what refuses it.
+_INERT_TOOL_HOMES = (
+    "tools/audit/",
+    "tools/policy/",
+    "tools/pr/",
+    "tools/coverage/",
+    "tools/devices/",
+)
 _tools_outside_audit = [
     f for f in __import__("subprocess").run(
         ["git", "ls-files", "tools/"], cwd=_closure.ROOT,
         capture_output=True, text=True).stdout.split()
-    if not f.startswith("tools/audit/")
+    if not f.startswith(_INERT_TOOL_HOMES)
 ]
 R.check(
     "narrowing INERT leaves every non-audit tools/ file in the must-classify set",
@@ -21145,6 +21178,14 @@ R.check(
     and not [f for f in _tools_outside_audit if _closure.is_inert(f)],
     f"{_tools_outside_audit}; inert among them "
     f"{[f for f in _tools_outside_audit if _closure.is_inert(f)]}",
+)
+_pr_note = (Path(_closure.ROOT) / "tools/pr/README.md").read_text()
+R.check(
+    "the pull-request note names the gate lease and the seat instruments",
+    ".claude/rules/gate-scoping.md" in _pr_note
+    and "tools/audit/seat/INSTRUMENTS.md" in _pr_note,
+    "tools/pr/README.md is a tools/ file outside tools/audit/, so the "
+    "narrowing above classifies it by a read rather than by INERT",
 )
 # The claim above ("now shows up in this script's own recorded closure") was
 # stated but never asserted -- issue #372's own acceptance criterion 4 asks
@@ -21922,6 +21963,63 @@ R.check(
         for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
     ),
     "none of the four learner summaries appeared",
+)
+
+# The snapshot's wiring, at the values (not just the keys): a delegate that
+# stopped calling the view, or a view that stopped reading its members,
+# leaves the keys in place with None behind them (R9-EG-B6, #1739).
+R.check(
+    "the coordinator snapshot carries the live counter values, not None placeholders",
+    _diag["coordinator"].get("solve_failures") == 0
+    and _diag["coordinator"].get("tibber_outage_cycles") == 0
+    and _diag["coordinator"].get("tibber_reauth_started") is False
+    and _diag["coordinator"].get("cop_samples") is not None,
+    f"counters: " + repr({
+        k: _diag["coordinator"].get(k)
+        for k in ("solve_failures", "tibber_outage_cycles",
+                  "tibber_reauth_started", "cop_samples")
+    }),
+)
+
+# The view's tolerance, both ends: a coordinator that cannot produce the
+# view reports None fields and no learner keys, and a learner whose
+# summary is absent or raises is omitted or reported, never raised.
+_diag_duck = type("Duck", (), {"mode": "auto", "last_update_success": True})()
+_diag_duck_snap = _diag_mod._coordinator_snapshot(_diag_duck)
+R.check(
+    "a coordinator without the view reports None fields and no learner keys",
+    _diag_duck_snap["solve_failures"] is None
+    and _diag_duck_snap["cop_scale"] is None
+    and _diag_duck_snap["house_heat_loss_scale"] is None
+    and _diag_duck_snap["tibber_outage_cycles"] is None
+    and not any(
+        k in _diag_duck_snap
+        for k in ("accuracy", "comfort_learner", "curve_learner", "price_model")
+    ),
+    repr({k: _diag_duck_snap[k] for k in ("solve_failures", "cop_scale")}),
+)
+
+
+from heatpump_optimizer.coordinator import (
+    CoordinatorDiagnostics as _DiagView,  # noqa: E402
+)
+
+
+class _DiagLearners:
+    """A coordinator stub whose learners sit at both ends of of()'s guard."""
+
+
+_diag_learners_stub = _DiagLearners()
+_diag_learners_stub._accuracy = object()  # no summary attribute at all
+_diag_learners_stub._comfort_learner = type(
+    "L", (), {"summary": lambda self: (_ for _ in ()).throw(RuntimeError("boom"))}
+)()
+_diag_of = _DiagView.of(_diag_learners_stub)
+R.check(
+    "a learner without a callable summary is omitted; one that raises reports unavailable",
+    "accuracy" not in _diag_of.learner_summaries
+    and _diag_of.learner_summaries.get("comfort_learner") == "summary unavailable",
+    repr(_diag_of.learner_summaries),
 )
 
 # --- D10-08: the shared entity base lives in entity.py ----------------------
@@ -23793,6 +23891,52 @@ R.check(
     "recording, and report a row as written by the commit that failed to "
     "write it",
 )
+# Deploy-key merges on main have used the pull request TITLE as the subject,
+# with the number only on a body line `Merge pull request #N`. `subject_number`
+# reading the subject alone reports those as UNCHECKED; option (a) reads that
+# body line. `Fixes #N` is an issue close, not that line — the same window
+# holds both, and taking the issue number would file the wrong merge.
+_DS_TITLE_WINDOW = [
+    _ds_commit(
+        "50e1f11",
+        "record: delivery rows for #1969 (autofix)",
+        body="Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
+    ),
+    _ds_commit(
+        "8107181",
+        "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
+        body="Fixes #1935\n",
+    ),
+    _ds_commit("ccccccc", "v6.7.16: stamp", parents=1),
+]
+_ds_title_merges, _ds_title_blind = _ds.collect(_DS_TITLE_WINDOW)
+try:
+    _ds_from_body = _ds.subject_number(
+        "record: delivery rows for #1969 (autofix)",
+        "Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
+    )
+    _ds_from_fixes = _ds.subject_number(
+        "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
+        "Fixes #1935\n",
+    )
+except TypeError:
+    _ds_from_body = _ds_from_fixes = None
+R.check(
+    "a title-subject merge is numbered from a body Merge pull request line",
+    [m["number"] for m in _ds_title_merges] == [1970]
+    and (_ds_title_merges[0]["title"] if _ds_title_merges else None)
+    == "record: delivery rows for #1969 (autofix)"
+    and [b["sha"] for b in _ds_title_blind] == ["8107181"]
+    and _ds.subject_number("record: delivery rows for #1969 (autofix)") is None
+    and _ds_from_body == 1970
+    and _ds_from_fixes is None,
+    f"collected {[m['number'] for m in _ds_title_merges]} title "
+    f"{(_ds_title_merges[0]['title'] if _ds_title_merges else None)!r}; "
+    f"unattributed {_ds_title_blind}; subject_number(title, body-line)="
+    f"{_ds_from_body!r}. The subject-only call is the null control: option "
+    "(a) reads the body's `Merge pull request #N` line and does not take "
+    "`Fixes #N` as that line",
+)
 # The guard: a merge commit no rule can attribute. THIS is what separates a run
 # that could not look from a run that looked and found nothing -- the two were
 # byte-identical before, and the second is a legitimate green right after a
@@ -24209,8 +24353,15 @@ _IST_JOB = "\n".join(
 
 
 def _runs_selftest(job: str, script: str) -> bool:
+    """True when a step runs `script --self-test` at either home.
+
+    The job prefers the copy restored at `tools/audit/` and otherwise runs the
+    one this move put at `tools/pr/`. Either invocation is the self-test; a
+    step that names the script and does not pass `--self-test` is not.
+    """
     return any(
-        f"\n        run: bash tools/audit/{script} --self-test" in "\n" + _blk
+        f"bash tools/audit/{script} --self-test" in _blk
+        or f"bash tools/pr/{script} --self-test" in _blk
         for _blk in job.split("\n      - name: ")[1:])
 
 
@@ -24218,15 +24369,16 @@ R.check(
     "the instrument self-test job runs both App identity self-tests",
     _runs_selftest(_IST_JOB, "app_approve.sh")
     and _runs_selftest(_IST_JOB, "app_comment.sh"),
-    "governance.yml's instrument-self-tests must run `bash tools/audit/"
-    "app_approve.sh --self-test` and `bash tools/audit/app_comment.sh "
-    "--self-test` as steps; without them the approver-only verdict allowlist "
-    "and the poster's read-back are unpinned",
+    "governance.yml's instrument-self-tests must run `app_approve.sh "
+    "--self-test` and `app_comment.sh --self-test`, at `tools/audit/` when "
+    "that copy is restored and at `tools/pr/` otherwise; without them the "
+    "approver-only verdict allowlist and the poster's read-back are unpinned",
 )
 R.check(
     "and a job with the poster's step removed is not (null control)",
     not _runs_selftest(
-        _IST_JOB.replace("run: bash tools/audit/app_comment.sh", "run: true", 1),
+        _IST_JOB.replace("bash tools/audit/app_comment.sh --self-test", "true", 1)
+        .replace("bash tools/pr/app_comment.sh --self-test", "true", 1),
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
@@ -24350,20 +24502,20 @@ with _ds_tf.TemporaryDirectory() as _raf_tmp2:
     # here reads exactly like a passing path guard.
     _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
     for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
-                 "docs/delivery/2052.md.bak", "docs/delivery/sub/2052.md"):
+                 "dev/programme/delivery/2052.md.bak", "dev/programme/delivery/sub/2052.md"):
         try:
             _rr.write_rows([{"number": 2052, "path": _bad,
                              "line": _raf_line}], Path(_raf_tmp2))
             _raf_guard.append(f"{_bad}=ACCEPTED")
         except _rr.Refuse:
             _raf_guard.append(f"{_bad}=refused")
-    _rr.write_rows([{"number": 2052, "path": "docs/delivery/2052.md",
+    _rr.write_rows([{"number": 2052, "path": "dev/programme/delivery/2052.md",
                      "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
                    Path(_raf_tmp2))
-    _raf_text = (Path(_raf_tmp2) / "docs/delivery/2052.md").read_text()
+    _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
     _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
 R.check(
-    "the generator's write set is docs/delivery/<N>.md and nothing else",
+    "the generator's write set is dev/programme/delivery/<N>.md and nothing else",
     all(g.endswith("=refused") for g in _raf_guard)
     and _raf_text == _raf_want,
     f"guard={_raf_guard}, written={_raf_text!r}; a row appended to the "
@@ -24422,11 +24574,11 @@ def _raf_body_fixture():
         pf = Path(td) / "paths.txt"
         pf.write_text("docs/delivery/1893.md\ndocs/delivery/1894.md\n")
         r1 = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(p), "--head", "a" * 40, "--paths-file", str(pf)],
             capture_output=True, text=True)
         r2 = subprocess.run(
-            ["node", ".claude/workflows/figure_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/figure_lint.mjs"), "--pr-body",
              str(p)],
             capture_output=True, text=True)
         out["policy_rc"], out["policy_out"] = r1.returncode, r1.stdout
@@ -24485,7 +24637,8 @@ R.check(
 # comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
 # a grant would accept the sentence that explains the grant. Pinned: main
 # only, its own environment, the `ci:` commit subject the loop guard keys on,
-# the guarded `git add docs/delivery` write set, the re-derive loop, the
+# the guarded `git add docs/delivery` write set (the rows commit, and the
+# self-row commit after NUM exists), the re-derive loop, the
 # #201 comment, and the report step that reddens a beat owed and not landed.
 # The record push's one force is a LEASE anchored on the tip the same try
 # fetched (a re-run's sibling commit made the fast-forward-only push of run
@@ -24508,8 +24661,9 @@ def _raf_job_ok(job: str) -> bool:
         bool(job)
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
-        and 'git commit -q -m "ci: record delivery rows"' in job
-        and adds == ["git add docs/delivery"]
+        and job.count('git commit -q -m "ci: record delivery rows"') == 2
+        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
         and "issues/201/comments" in job
@@ -24546,11 +24700,46 @@ R.check(
                                          "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
-    "--force-with-lease or a bare --force -- must each turn the pin red -- "
+    "--force-with-lease or a bare --force, or dropping the self-row write "
+    "that runs only after NUM is known -- must each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
+)
+# The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
+# API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open
+# record pull request and the create POST was refused 422 "A pull request
+# already exists" (run 37343172583, PR #1970 open). Every lookup's filter is
+# the owner form, the owner coming from github.repository_owner.
+_RAF_HEADS = re.findall(r"pulls\?head=([^&\"\s]+)", _RAF_JOB)
+
+
+def _raf_lookup_ok(job: str) -> bool:
+    heads = re.findall(r"pulls\?head=([^&\"\s]+)", job)
+    return (bool(heads)
+            and all(h == "${OWNER}:record/autofix" for h in heads)
+            and "OWNER: ${{ github.repository_owner }}" in job)
+
+
+R.check(
+    "tests.yml's record-autofix finds its own open pull request by "
+    "head=<owner>:record/autofix",
+    _raf_lookup_ok(_RAF_JOB),
+    f"head filters={_RAF_HEADS}, owner env="
+    f"{'OWNER: ${{ github.repository_owner }}' in _RAF_JOB}; the pulls "
+    "endpoint's head filter is `user:ref-name`, and an `<owner>/<repo>:` "
+    "filter matches nothing, so the job POSTs a duplicate and is refused",
+)
+R.check(
+    "and the lookup pin refuses the repository-form filter (null control)",
+    not _raf_lookup_ok(_RAF_JOB.replace(
+        "head=${OWNER}:record/autofix", "head=$REPO:record/autofix"))
+    and not _raf_lookup_ok(_RAF_JOB.replace(
+        "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
+    "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
+    "the repository's full name, must each turn the lookup pin red",
 )
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
@@ -24598,7 +24787,7 @@ def _pt_seams(docs: dict) -> "set[str]":
             for _s in _steps:
                 if not {"GITHUB_TOKEN", "GH_TOKEN"} & set(_s.get("env") or {}):
                     continue
-                out |= {_g for _g in _PT_PROG.findall(str(_s.get("run") or ""))
+                out |= {_layout_canon(_g) for _g in _PT_PROG.findall(str(_s.get("run") or ""))
                         if any(_pt_fnmatch.fnmatch(_g, _p) or _g.startswith(_p + "/") for _p in _pins)}
     return out
 
@@ -24654,7 +24843,18 @@ steps:
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
           'tools/audit/record-predicate' \
-          'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+          'tools/audit/round6/D11/fix/codeowners_gap.py' \
+          'tools/policy/*.mjs' \
+          'tools/policy/*.py' \
+          'tools/pr/*.py' \
+          'tools/policy/vendor' \
+          'tools/pr/*.sh' \
+          'tools/seat/*.sh' \
+          'tools/coverage/*.sh' \
+          'dev/audit/*.sh' \
+          'tools/policy/record-predicate' \
+          'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+          'tests/layout.py'; then
         echo "governance=false" >> "$GITHUB_OUTPUT"
       else
         echo "governance=true" >> "$GITHUB_OUTPUT"
@@ -24677,7 +24877,42 @@ steps:
     if: always() && steps.changed.outputs.delivery_status == 'true'
     run: |
       git fetch --no-tags --quiet origin main
-      python tests/delivery_status.py --check
+      # A non-zero exit shared with the base copy on this tree is that
+      # copy's own. Exit with the pull request's code only when the two
+      # differ, and exit 1 when this copy prints OVERDUE and the base
+      # copy does not: both of those exits are 1, so the codes alone
+      # cannot separate them.
+      head_copy="$RUNNER_TEMP/delivery_status.head.py"
+      cp tests/delivery_status.py "$head_copy"
+      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+      base_rc=$?
+      set -e
+      cp "$head_copy" tests/delivery_status.py
+      set +e
+      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+      head_rc=$?
+      set -e
+      cat "$RUNNER_TEMP/delivery_status.base.out"
+      echo "----- head copy -----"
+      cat "$RUNNER_TEMP/delivery_status.head.out"
+      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+      head_overdue=0
+      base_overdue=0
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+        head_overdue=1
+      fi
+      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+        base_overdue=1
+      fi
+      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+        exit 1
+      fi
+      if [ "$head_rc" -ne "$base_rc" ]; then
+        exit "$head_rc"
+      fi
+      exit 0
 
   - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -24688,13 +24923,13 @@ steps:
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/policy_lint.mjs
+    run: node tools/policy/policy_lint.mjs
 
   - name: The pull request's field_coverage.mjs, under the Actions token
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    run: node .claude/workflows/field_coverage.mjs
+    run: node tools/policy/field_coverage.mjs
 ''')
 _PT_WF_PERMS = {"contents": "read"}
 _PT_ARM_ENV = {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"}
@@ -24734,7 +24969,7 @@ def _pt_armed(docs: dict) -> "set[str]":
     """The graders the arm runs as the Actions token: the literal's, or none on any mismatch."""
     if _pt_arm_mismatch(docs):
         return set()
-    return {_m.group(1) for _s in _PT_JOB_CANON["steps"]
+    return {_layout_canon(_m.group(1)) for _s in _PT_JOB_CANON["steps"]
             if _s.get("env") == _PT_ARM_ENV and _s.get("if") == _PT_ARM_IF
             for _m in [re.fullmatch(r"node ([\w./-]+\.mjs)", str(_s.get("run") or ""))] if _m}
 
@@ -24794,7 +25029,7 @@ def _pt_arm_mutant(edit) -> "set[str]":
     _wf = _d["tests.yml"]
     _job = _wf["jobs"]["graders-head-copy"]
     _step = next((_s for _s in _job.get("steps") or []
-                  if _s.get("run") == "node .claude/workflows/policy_lint.mjs"), None)
+                  if _s.get("run") == "node tools/policy/policy_lint.mjs"), None)
     if _step is None:  # no arm step to silence: nothing is armed (the check's first conjunct)
         return set()
     edit(_wf, _job, _step)
@@ -24843,6 +25078,100 @@ R.check(
                 ".claude/workflows/x.mjs") == "false",
     "the trigger check must execute the script, not read the pathspec",
 )
+
+
+def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
+              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
+    """Run the delivery_status step under bash -e with stub git and python.
+
+    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
+    code for whichever copy the step has in tests/delivery_status.py, so the
+    step's own comparison is what the return code measures.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "tests").mkdir()
+        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
+        (root / "rt").mkdir()
+        bindir = root / "bin"
+        bindir.mkdir()
+        (bindir / "git").write_text(
+            "#!/bin/sh\n"
+            "case \"$1\" in\n"
+            "  fetch) exit 0 ;;\n"
+            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
+            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
+            "esac\n")
+        (bindir / "python").write_text(
+            "#!/bin/sh\n"
+            "f=$(cat tests/delivery_status.py)\n"
+            "case \"$f\" in\n"
+            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
+            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
+            "esac\n"
+            "case \"$f\" in\n"
+            f"  HEAD*) exit {head_rc} ;;\n"
+            f"  BASE*) exit {base_rc} ;;\n"
+            "  *) echo unreadable copy >&2; exit 9 ;;\n"
+            "esac\n")
+        os.chmod(bindir / "git", 0o700)
+        os.chmod(bindir / "python", 0o700)
+        _pt_ds_rc.modes = (
+            (bindir / "git").stat().st_mode & 0o777,
+            (bindir / "python").stat().st_mode & 0o777,
+        )
+        env = {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ["PATH"],
+               "RUNNER_TEMP": str(root / "rt")}
+        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
+                              capture_output=True, text=True)
+        return proc.returncode
+
+
+_PT_DS_RUN = next(
+    str(_s.get("run") or "")
+    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
+    if "tests/delivery_status.py" in str(_s.get("run") or ""))
+_PT_DS_CASES = {
+    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
+    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
+    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
+    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
+    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
+    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
+    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
+}
+R.check(
+    "the delivery_status stubs are owner-executable and neither group nor world accessible",
+    _pt_ds_rc.modes == (0o700, 0o700),
+    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
+)
+_PT_DS_DROP_EXIT = (
+    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
+_PT_DS_DROP_OVERDUE = (
+    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
+    '  exit 1\nfi\n')
+_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
+_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
+_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
+R.check(
+    "graders-head-copy's delivery_status step is red only when this copy's "
+    "exit differs from the base copy's, or this copy alone prints OVERDUE",
+    _PT_DS_CASES == {
+        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
+        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
+    }
+    and _PT_DS_SAME != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
+    and _PT_DS_ZERO != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
+    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
+    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
+    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
+    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
+    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
+    f"OVERDUE line makes a head-only OVERDUE green "
+    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
+)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -24873,7 +25202,7 @@ def _friction_none_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -24889,7 +25218,7 @@ R.check(
 )
 _FRICTION_PARSED = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "none_then: m.frictionEntries('None\\n`CLAUDE.md`: cost: real')"
      ".filter((e) => e.id === 'CLAUDE.md').length,"
@@ -24957,7 +25286,7 @@ def _friction_trailer_fixture():
         }.items():
             p.write_text(body(friction))
             r = subprocess.run(
-                ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+                ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
                  str(p), "--head", sha],
                 capture_output=True, text=True)
             out[key] = (r.returncode, r.stdout)
@@ -24967,7 +25296,7 @@ def _friction_trailer_fixture():
 _FT = _friction_trailer_fixture()
 _FRICTION_TRAILER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "attribution: m.frictionEntries('none\\n\\n- 🤖 Generated with [Claude Code](https://claude.com/claude-code)').length,"
      "coauthor: m.frictionEntries('none\\n\\nCo-Authored-By: Claude <noreply@anthropic.com>').length,"
@@ -25022,7 +25351,7 @@ R.check(
 # and a line naming no rule still yields no id.
 _FRICTION_DOT = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const ids = (t) => m.frictionEntries(t).map((e) => e.id);"
      "console.log(JSON.stringify({"
      "path: ids('`.claude/skills/steward/SKILL.md`: cost: the skill named by its path'),"
@@ -25100,15 +25429,16 @@ def _autofix_head_fixture():
     def run(head, names):
         (d / "body.md").write_text(body(f"`{names}`"))
         p = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs", "--pr-body",
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--pr-body",
              str(d / "body.md"), "--head", head],
             cwd=str(d), capture_output=True, text=True)
         return p.returncode, p.stdout
 
     try:
-        (d / ".claude/workflows").mkdir(parents=True)
+        _pl = Path(_layout_locate(".claude/workflows/policy_lint.mjs"))
+        (d / _pl.parent).mkdir(parents=True)
         (d / "tests/golden").mkdir(parents=True)
-        _copy_policy_lint_tree(d / ".claude/workflows")
+        _copy_policy_lint_tree(d / _pl.parent)
         (d / "tests/closures.json").write_text('{"closures": {}}\n')
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
@@ -25201,7 +25531,7 @@ R.check(
 # what it is excused for. So agreement is pinned here instead.
 _AH_CONST = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS ?? null)))"],
     capture_output=True, text=True).stdout or "null")
 _AH_TESTS_YML = Path(".github/workflows/tests.yml").read_text()
@@ -25504,8 +25834,9 @@ R.check(
 # reader cannot decide, is a required context a body edit can re-report as
 # skipped at an existing head. The mapping must cover every context, so the
 # check cannot pass by mapping none.
-_RC_CONTEXTS = json.loads(Path(
-    ".claude/workflows/fixtures/required-contexts.json").read_text())["contexts"]
+_RC_CONTEXTS = json.loads(next(Path(p) for p in (
+    ".claude/workflows/fixtures/required-contexts.json",
+    "tools/policy/fixtures/required-contexts.json") if Path(p).is_file()).read_text())["contexts"]
 _RC_DOCS = {_wf.name: _yaml.safe_load(_wf.read_text()) or {}
             for _wf in sorted(Path(".github/workflows").glob("*.y*ml"))}
 
@@ -25569,15 +25900,24 @@ R.check(
     f"{_RC_OWN}; an "
     "undecidable expression -> None, which the check above counts as skippable",
 )
-# --- round-9 process review item 3: a superseded pull-request run is cancelled,
-# and nothing else is. Every workflow a pull request starts declares one
-# top-level `concurrency:`; each `${{ }}` in it is evaluated here under the
-# events the file lists. Two `pull_request` runs of one pull request share a
-# group and cancel; two runs of any other event -- a push to main, a merge
+# --- round-9 process review item 3, shrunk: a superseded long-job
+# pull-request run is an older SHA replaced by a newer one in the same
+# group, and that pair is cancelled; two events at one SHA of the
+# required short contract job are not (R9-RC-PRCONTRACT). Every workflow
+# a pull request starts declares one top-level `concurrency:`; each
+# `${{ }}` in it is evaluated here under the events the file lists. Two
+# `pull_request` runs of one pull request share a group. `tests.yml` and
+# the other long `on: pull_request` workflows cancel the older SHA;
+# `pr-contract.yml` shares the group and does not cancel, so an `edited`
+# twin at the live SHA finishes instead of writing a cancelled required
+# context. Only `pr-contract.yml` lists `edited`, so only it can receive
+# that twin. Two runs of any other event -- a push to main, a merge
 # queue entry, the nightly, an autofix push or dispatch, a review -- get
-# groups of their own, because a group they shared would queue them, and a newer
-# pending run cancels the older pending one whatever `cancel-in-progress`
-# says. Main's FULL push gate must never be the run that is dropped.
+# groups of their own, because a group they shared would queue them, and
+# a newer pending run cancels the older pending one whatever
+# `cancel-in-progress` says. Main's FULL push gate must never be the run
+# that is dropped. The SHA on the event pair is read: a pair with no SHA,
+# or a long-job pair whose two SHAs are equal, is a problem.
 def _cc_value(expr, event: "dict[str, object]"):
     """A `${{ }}`-bearing string under `event`, each expression replaced by its
     value; None when one cannot be decided (literals, `==`, `&&`, `||` only)."""
@@ -25600,6 +25940,17 @@ _CC_EVENTS = ("pull_request", "pull_request_review", "push", "merge_group",
               "schedule", "workflow_dispatch")
 
 
+def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
+    """One modelled Actions event. `sha` is None when the model carries none."""
+    event = {"github.event_name": ev, "github.workflow": doc.get("name"),
+             "github.run_id": run_id, "github.event.sender.login": who,
+             "github.event.pull_request.number":
+                 7 if ev.startswith("pull_request") else None}
+    if sha is not None:
+        event["github.sha"] = sha
+    return event
+
+
 def _cc_problems(name: str, doc: dict) -> "list[str]":
     on = doc.get("on", doc.get(True)) or {}
     events = [on] if isinstance(on, str) else list(on)
@@ -25611,25 +25962,34 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
     out = []
     for ev in [e for e in _CC_EVENTS if e in events]:
         for who in ("hpo-author[bot]", "github-actions[bot]"):
+            # A superseded pair is sha-1 replaced by sha-2, not two events
+            # at one SHA. An autofix push never cancels.
             def at(run_id, ev=ev, who=who):
-                return {"github.event_name": ev, "github.workflow": doc.get("name"),
-                        "github.run_id": run_id, "github.event.sender.login": who,
-                        "github.event.pull_request.number":
-                            7 if ev.startswith("pull_request") else None}
-            # Only a pull request's own push supersedes; an autofix push does not.
-            want = ev == "pull_request" and who != "github-actions[bot]"
-            cancel = _cc_value(cc.get("cancel-in-progress"), at(1))
-            a, b = _cc_value(cc.get("group"), at(1)), _cc_value(cc.get("group"), at(2))
-            if cancel != str(want):
+                return _cc_pr_event(doc, run_id, f"sha-{run_id}", who=who, ev=ev)
+            share = ev == "pull_request" and who != "github-actions[bot]"
+            cancel_want = share and name != "pr-contract.yml"
+            older, newer = at(1), at(2)
+            cancel = _cc_value(cc.get("cancel-in-progress"), older)
+            a, b = (_cc_value(cc.get("group"), older),
+                    _cc_value(cc.get("group"), newer))
+            if cancel != str(cancel_want):
                 out.append(f"{name}: cancel-in-progress under {ev} by {who} is {cancel!r}")
-            if None in (a, b) or (a == b) != want:
+            if None in (a, b) or (a == b) != share:
                 out.append(f"{name}: two {ev} runs by {who} get groups {a!r} and {b!r}")
+            if share:
+                sa, sb = older.get("github.sha"), newer.get("github.sha")
+                if not sa or not sb:
+                    out.append(f"{name}: pull_request pair by {who} carries no SHA")
+                elif name != "pr-contract.yml" and sa == sb:
+                    out.append(f"{name}: superseded pair by {who} is one SHA, "
+                               "not an older SHA replaced by a newer")
     return out
 
 
 _CC_FOUND = [p for n, d in _RC_DOCS.items() for p in _cc_problems(n, d)]
 R.check(
-    "only a pull request's superseded run is cancelled (process review item 3)",
+    "a superseded long-job pull-request run is cancelled; "
+    "pr-contract same-SHA twins are not",
     not _CC_FOUND and any(_cc_problems(n, {**d, "concurrency": None})
                           for n, d in _RC_DOCS.items()),
     f"{_CC_FOUND or 'none'}",
@@ -25641,6 +26001,49 @@ R.check(
     "and a group keyed on the ref, cancelling everything, is refused (null control)",
     len(_cc_problems("null.yml", _CC_NULL)) == 6,
     f"{_cc_problems('null.yml', _CC_NULL)}",
+)
+_PC_DOC = _RC_DOCS["pr-contract.yml"]
+_TS_DOC = _RC_DOCS["tests.yml"]
+_CC_TWIN_SHA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+_CC_OLD_SHA = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+_CC_NEW_SHA = "cccccccccccccccccccccccccccccccccccccccc"
+_CC_PC_TWIN = (_cc_pr_event(_PC_DOC, 1, _CC_TWIN_SHA),
+               _cc_pr_event(_PC_DOC, 2, _CC_TWIN_SHA))
+_CC_TS_SUPERSEDE = (_cc_pr_event(_TS_DOC, 1, _CC_OLD_SHA),
+                    _cc_pr_event(_TS_DOC, 2, _CC_NEW_SHA))
+_CC_PC_CC = (_PC_DOC.get("concurrency") or {})
+_CC_TS_CC = (_TS_DOC.get("concurrency") or {})
+R.check(
+    "pr-contract does not cancel two author-app pull_request events at one SHA",
+    _CC_PC_TWIN[0].get("github.sha") == _CC_PC_TWIN[1].get("github.sha") == _CC_TWIN_SHA
+    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[0]) == "False"
+    and _cc_value(_CC_PC_CC.get("cancel-in-progress"), _CC_PC_TWIN[1]) == "False"
+    and _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[0])
+    == _cc_value(_CC_PC_CC.get("group"), _CC_PC_TWIN[1]),
+    f"sha={_CC_PC_TWIN[0].get('github.sha')!r}/{_CC_PC_TWIN[1].get('github.sha')!r} "
+    f"cancel={_cc_value(_CC_PC_CC.get('cancel-in-progress'), _CC_PC_TWIN[0])!r}",
+)
+R.check(
+    "tests.yml cancels a superseded older SHA",
+    _CC_TS_SUPERSEDE[0].get("github.sha") == _CC_OLD_SHA
+    and _CC_TS_SUPERSEDE[1].get("github.sha") == _CC_NEW_SHA
+    and _CC_OLD_SHA != _CC_NEW_SHA
+    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[0]) == "True"
+    and _cc_value(_CC_TS_CC.get("cancel-in-progress"), _CC_TS_SUPERSEDE[1]) == "True"
+    and _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[0])
+    == _cc_value(_CC_TS_CC.get("group"), _CC_TS_SUPERSEDE[1]),
+    f"sha={_CC_TS_SUPERSEDE[0].get('github.sha')!r}/{_CC_TS_SUPERSEDE[1].get('github.sha')!r} "
+    f"cancel={_cc_value(_CC_TS_CC.get('cancel-in-progress'), _CC_TS_SUPERSEDE[0])!r}",
+)
+_PC_CANCEL_TRUE = {**_PC_DOC, "concurrency": {
+    **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": True}}
+R.check(
+    "and a pr-contract.yml that cancels same-SHA twins is refused (null control)",
+    any("cancel-in-progress" in p for p in _cc_problems("pr-contract.yml",
+                                                       _PC_CANCEL_TRUE))
+    and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
+        **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
+    f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
@@ -26039,6 +26442,136 @@ R.check(
     _prw_executed("          import subprocess, mutation_table\n") == {"tests/mutation_table.py"},
     f"read: {_prw_executed('          import subprocess, mutation_table')}",
 )
+
+
+# --- every base restore names each file at both its paths (R9-RO-2b, #1931).
+# Lane RO moves what the base-restoring steps check out (tests/layout.json),
+# and PINNED holds the old path until a move merges, then the new one, so a
+# step names both. Only the listed form can: a direct `git checkout "$PINNED"
+# --` fails on a pathspec PINNED lacks, where `git diff --name-only -z` against
+# the empty tree lists what PINNED holds of them. `test -s` on the list refuses
+# a PINNED holding neither, and the checkout of that list comes next -- the
+# only shape codeowners_gap.py credits (#1886 review, round 1). Pathspecs are
+# git's glob, where `*` crosses `/`; the matcher is held to `git ls-files` on
+# every step it reads. A direct checkout is judged against this tree, the base
+# the next pull request restores from.
+import fnmatch as _twp_fnmatch  # noqa: E402
+import shlex as _twp_shlex  # noqa: E402
+
+import layout as _twp_layout  # noqa: E402
+
+_TWP_RESTORE = re.compile(
+    r'git (checkout|diff --name-only -z "\$\(git hash-object -t tree /dev/null\)") "\$PINNED" -- (.*)')
+_TWP_OPS = (">", ";", "&&", "||", "|")
+
+
+def _twp_hit(spec: str, path: str) -> bool:
+    if any(ch in spec for ch in "*?["):
+        return _twp_fnmatch.fnmatchcase(path, spec)
+    return path == spec or path.startswith(spec.rstrip("/") + "/")
+
+
+def _twp_restores(run: str):
+    """(listed, pathspecs, list file, the next two lines) per restore in `run`."""
+    lines = [ln.strip() for ln in run.replace("\\\n", " ").splitlines()
+             if ln.strip() and not ln.lstrip().startswith("#")]
+    for i, ln in enumerate(lines):
+        m = _TWP_RESTORE.search(ln)
+        if not m:
+            continue
+        toks = _twp_shlex.split(m.group(2))
+        cut = next((k for k, t in enumerate(toks) if t.startswith(_TWP_OPS)), len(toks))
+        dest = toks[cut][1:] or "".join(toks[cut + 1:cut + 2]) if cut < len(toks) and toks[cut].startswith(">") else ""
+        yield m.group(1) != "checkout", toks[:cut], dest, lines[i + 1:i + 3]
+
+
+def _twp_steps(texts: dict):
+    for name, text in sorted(texts.items()):
+        for jid, job in ((_yaml.safe_load(text) or {}).get("jobs") or {}).items():
+            for s in (job or {}).get("steps") or []:
+                for r in _twp_restores(str(s.get("run") or "")):
+                    yield f"{name}:{jid}", *r
+
+
+def _twp_defects(texts: dict, tracked: "list[str]", moves: "list[dict]") -> "list[str]":
+    out = []
+    for where, listed, specs, dest, after in _twp_steps(texts):
+        lost = [(f, t) for f in tracked if any(_twp_hit(p, f) for p in specs)
+                for t in [_twp_layout.target(f, moves)]
+                if t and t != f and not any(_twp_hit(p, t) for p in specs)]
+        if lost:
+            out.append(f"{where} restores {len(lost)} file(s) at the old path only, e.g. "
+                       f"{lost[0][0]} and not {lost[0][1]}")
+        if not listed:
+            out += [f"{where} checks out {p}, which no tracked file matches: a PINNED without it fails "
+                    "the step, so list it" for p in specs if not any(_twp_hit(p, f) for f in tracked)]
+        elif not dest or after != [f'test -s "{dest}"', 'git checkout "$PINNED" '
+                                   f'--pathspec-from-file="{dest}" --pathspec-file-nul']:
+            out.append(f"{where} lists to {dest or 'stdout'} without `test -s` on it and its checkout "
+                       "on the next two lines")
+    return out
+
+
+_TWP_TRACKED = subprocess.run(["git", "ls-files"], capture_output=True, text=True,
+                              check=True).stdout.splitlines()
+_TWP_MOVES = [{"old": o, "new": n} for o, n in _twp_layout.moves()]
+_TWP_LIVE = list(_twp_steps(_PRW_TEXTS))
+_TWP_DEFECTS = _twp_defects(_PRW_TEXTS, _TWP_TRACKED, _TWP_MOVES)
+R.check(
+    "every base-restoring step names each file it restores at the path tests/layout.json moves "
+    "it to, listed so that a PINNED holding either path restores and one holding neither fails",
+    _TWP_DEFECTS == [] and any(r[1] for r in _TWP_LIVE),
+    f"defects: {_TWP_DEFECTS}; listed restores read: {sum(1 for r in _TWP_LIVE if r[1])}",
+)
+_TWP_MATCHER_OFF = sorted(
+    w for w, _l, specs, _d, _a in _TWP_LIVE
+    if sorted(f for f in _TWP_TRACKED if any(_twp_hit(p, f) for p in specs)) != sorted(subprocess.run(
+        ["git", "ls-files", "--", *specs], capture_output=True, text=True, check=True).stdout.splitlines()))
+R.check(
+    "and the pathspec matcher selects what `git ls-files` selects on every restore it reads "
+    "(its precondition)",
+    _TWP_LIVE != [] and _TWP_MATCHER_OFF == [],
+    f"restores read: {len(_TWP_LIVE)}; the matcher disagrees with git on: {_TWP_MATCHER_OFF}",
+)
+
+
+def _twp_wf(*lines: str) -> dict:
+    return {"probe.yml": "jobs:\n  probe:\n    steps:\n      - run: |\n"
+            + "".join(f"          {ln}\n" for ln in lines)}
+
+
+_TWP_LIST = ('git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \\',
+             "  '.claude/workflows/*.py' \\", "  'tools/policy/*.py' > \"$RUNNER_TEMP/p.list\"")
+_TWP_TEST = 'test -s "$RUNNER_TEMP/p.list"'
+_TWP_CHECKOUT = 'git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/p.list" --pathspec-file-nul'
+_TWP_PROBES = {
+    "the listed form": (_twp_wf(*_TWP_LIST, _TWP_TEST, _TWP_CHECKOUT), ""),
+    "a direct checkout of a file that does not move": (
+        _twp_wf('git checkout "$PINNED" -- tests/keep.py'), ""),
+    "a direct checkout of the old path alone": (
+        _twp_wf('git checkout "$PINNED" -- \\', "  '.claude/workflows/*.py'"), "at the old path only"),
+    "a direct checkout of both paths": (
+        _twp_wf('git checkout "$PINNED" -- \\', "  '.claude/workflows/*.py' 'tools/policy/*.py'"),
+        "no tracked file matches"),
+    "a listing with no emptiness test": (_twp_wf(*_TWP_LIST, _TWP_CHECKOUT), "without `test -s`"),
+    "a listing rewritten before its checkout": (
+        _twp_wf(*_TWP_LIST, _TWP_TEST, 'echo > "$RUNNER_TEMP/p.list"', _TWP_CHECKOUT), "without `test -s`"),
+    "a listing whose checkout reads another list": (_twp_wf(*_TWP_LIST, _TWP_TEST, _TWP_CHECKOUT.replace(
+        "p.list", "other.list")), "without `test -s`"),
+    "a listing to stdout": (_twp_wf(*_TWP_LIST[:2], "  'tools/policy/*.py'", _TWP_TEST, _TWP_CHECKOUT),
+                            "lists to stdout"),
+}
+_TWP_GOT = {k: _twp_defects(wf, [".claude/workflows/g.py", "tests/keep.py"],
+                            [{"old": ".claude/workflows/", "new": "tools/policy/"}])
+            for k, (wf, _w) in _TWP_PROBES.items()}
+_TWP_WRONG = sorted(k for k, (_wf, want) in _TWP_PROBES.items()
+                    if (_TWP_GOT[k] != [] if not want else not any(want in d for d in _TWP_GOT[k])))
+R.check(
+    "and on a planted tree the predicate passes the listed form and refuses an old path alone, "
+    "a direct checkout of a path the base lacks, and a listing not checked out next (null controls)",
+    _TWP_WRONG == [],
+    f"wrong verdicts: {[(k, _TWP_GOT[k]) for k in _TWP_WRONG]}",
+)
 # --- D13-s1-03: `pr-contract` lists the reds at the head when it runs, about
 # fifteen seconds after a push, and nothing re-ran it when a red it could not
 # yet see finished later (typing, fast, mutation). pr-contract-rerun.yml is
@@ -26129,7 +26662,7 @@ _VC_WORDS = (re.findall(r"'([a-z][a-z0-9-]*)'", _VC_ARR.group(1))
              if _VC_ARR else [])
 _BLOCK_CLASSES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+     _PL_IMPORT + ".then((m) => " +
      "console.log(JSON.stringify({"
      "fromScript: m.blockClasses ? m.blockClasses() : null,"
      "guard: m.blockClasses ? m.blockClasses('// no array here') : null"
@@ -26161,7 +26694,7 @@ R.check(
 # acceptance drives only the healthy extraction.
 _SHA40 = "0" * 40
 _STATS_JS = (
-    "import('./.claude/workflows/policy_lint.mjs').then((m) => "
+    _PL_IMPORT + ".then((m) => " +
     "console.log(m.statsFindings ? JSON.stringify(m.statsFindings({"
     "prs: [{pr: 1}, {pr: 2}, {pr: 3}],"
     "fetched: new Map([[1, {body: 'x', comments: ["
@@ -26202,7 +26735,7 @@ R.check(
 # control -- the fix must not over-refuse it.
 _STATS_BLOCKFOLD = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const call = (bodies) => {"
      "const prs = bodies.map((_, i) => ({ pr: i + 1 }));"
@@ -26257,7 +26790,7 @@ R.check(
 # outside-grammar report instead of the population this check measures.
 _STATS_COVER = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const head = (i) => String(i).padStart(2, '0').repeat(20);"
      "const mk = (n, verdicts) => ({"
      "prs: Array.from({ length: n }, (_, i) => ({ pr: String(i + 1) })),"
@@ -26314,8 +26847,8 @@ R.check(
 # reader that classifies nothing.
 _STATS_GRAMMAR = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const src = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const key = 'const VERDICT_RE = ';"
      "const start = src.indexOf(key) + key.length;"
@@ -26382,8 +26915,8 @@ R.check(
 # accepts that the histogram neither counts nor reports.
 _STATS_BODIES = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const waveText = fs.readFileSync('.claude/workflows/web-fix-wave.js', 'utf8');"
      "const reKey = 'const VERDICT_RE = ';"
      "const reEnd = waveText.indexOf('\\n)', waveText.indexOf(reKey)) + 2;"
@@ -26481,7 +27014,7 @@ R.check(
 # a window that posted none -- a constant census satisfies neither direction.
 _STATS_REVIEWS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const run = (second) => {"
      "const h = m.statsHistogram([{ pr: 1 }, { pr: 2 }], new Map(["
@@ -26572,7 +27105,7 @@ def _fetch_ledger(reviews: str):
            "HPO_STUB_REVIEWS": reviews}
     run = subprocess.run(
         ["node", "--input-type=module", "-e",
-         "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+         _PL_IMPORT + ".then((m) => {" +
          "const r = m.fetchWindow([{ pr: 7001 }]);"
          "const f = r.fetched.get(7001) || {};"
          "console.log(JSON.stringify({ error: r.fetchError,"
@@ -26634,7 +27167,7 @@ def _sunset_drive():
                       capture_output=True, text=True).returncode != 0:
         ref = "HEAD"
     return subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs", "--sunset", "--since", ref],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs"), "--sunset", "--since", ref],
         capture_output=True, text=True, env={**_os.environ, "GITHUB_TOKEN": ""})
 
 
@@ -26671,8 +27204,8 @@ R.check(
 # re-derived rather than transcribed.
 _STATS_REWORK = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import fs from 'node:fs';"
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     "import fs from 'node:fs';" +
+     _PL_IMPORT + ".then((m) => {" +
      "const load = (f) => { const d = JSON.parse(fs.readFileSync(f, 'utf8'));"
      "return { prs: d.records.map((r) => ({ pr: r.pr })),"
      "fetched: new Map(d.records.map((r) => "
@@ -26765,7 +27298,7 @@ R.check(
 # (4), and a reviewer's own `blocked <sha> head-moved` on a moved head (5).
 _STATS_ROUNDS = json.loads(subprocess.run(
     ["node", "--input-type=module", "-e",
-     "import('./.claude/workflows/policy_lint.mjs').then((m) => {"
+     _PL_IMPORT + ".then((m) => {" +
      "const sha = (c) => c.repeat(40);"
      "const M = (c) => 'Fix review: merge ' + sha(c);"
      "const B = (c, k) => 'Fix review: blocked ' + sha(c) + ' ' + k + ': x';"
@@ -26877,7 +27410,7 @@ R.check(
 # are now driven with NO argument and through `main()`'s own call, so what is
 # pinned is the read the instrument actually performs.
 try:
-    _CFR_ARTIFACT = _closure.ROOT / ".claude/workflows/cfr_exclusions.json"
+    _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
     _CFR = json.loads(_CFR_ARTIFACT.read_text())
     _CFR_EXCL = _CFR.get("excluded_jobs") or {}
     # The quote the record entry's citation has to carry, read out of the
@@ -26974,7 +27507,7 @@ try:
         for _r in _cfr_reads
     )
     _CFR_INSTR_OK = bool(
-        _cfr.EXCLUSION_ARTIFACT == ".claude/workflows/cfr_exclusions.json"
+        _cfr.EXCLUSION_ARTIFACT == "dev/governance/config/cfr_exclusions.json"
         and _cfr_default_path
         == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
         and _cfr_default_map == _CFR_EXCL
@@ -27205,7 +27738,7 @@ R.check(
 # not a widening.
 try:
     _cfr_now = json.loads(
-        (_closure.ROOT / ".claude/workflows/cfr_exclusions.json").read_text())
+        (_closure.ROOT / "dev/governance/config/cfr_exclusions.json").read_text())
     _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
     _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
     _MUT_QUOTE = "unpinned site(s)"
@@ -27301,7 +27834,7 @@ def _ruleset_reader_fixture():
                    "PATH": f"{td / 'bin'}:{os.environ['PATH']}"}
             r = subprocess.run(
                 ["node", "--input-type=module", "-e",
-                 "import('./.claude/workflows/counts.mjs').then((m) => "
+                 _COUNTS_IMPORT + ".then((m) => " +
                  "console.log(JSON.stringify(m.liveRequiredContexts())))"],
                 capture_output=True, text=True, env=env)
             return r.returncode, r.stdout.strip()
@@ -27358,10 +27891,10 @@ def _template_arm_fixture():
         # own root, the same way it resolves the real template.
         env = {**os.environ, "POLICY_LINT_TEMPLATE": os.path.relpath(p, root)}
         rc_broken = subprocess.run(
-            ["node", ".claude/workflows/policy_lint.mjs"],
+            ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
             capture_output=True, text=True, env=env).returncode
     rc_live = subprocess.run(
-        ["node", ".claude/workflows/policy_lint.mjs"],
+        ["node", __import__("layout").locate(".claude/workflows/policy_lint.mjs")],
         capture_output=True, text=True).returncode
     return rc_broken, rc_live
 
@@ -29304,6 +29837,16 @@ R.check(
     not _REACH,
     f"(event, ref, recheck, measured, pushed, push alone) wrong: {_REACH}",
 )
+_CRONS = re.findall(r'cron: "([^"]+)"', _TESTS_YML.split("\njobs:", 1)[0])
+R.check(
+    "one schedule cron; required lanes share that run (#1930 (d))",
+    _CRONS == ["17 2 * * *"]
+    and "github.event.schedule" not in _MUTN_JOB
+    and "github.event.schedule" not in _ml_meas
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
+    and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
+    f"crons={_CRONS!r}",
+)
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
 # and that job runs in the `ledger` environment, whose deployment branches the
@@ -29540,6 +30083,11 @@ R.check(
     f"{_MUT_GAPS([_EQ_MUT, _GAP_MUT], _TRIAGE_FIXTURE)!r} -- the marked line "
     "leaves the numerator; the unmarked survivor stays in it, because the "
     "default has to stay guilty until a reason moves it",
+)
+R.check(
+    "survivor_gaps unpacks equivalent beside gaps (#1885)",
+    "gaps, equivalent = survivor_gaps(survivors, triage)" in _MUT_BODY,
+    "the equivalent unpack is gone from mutation_table.py",
 )
 # The line pin is half the mark: a production edit changes text under the
 # same key, and the mark must not follow it. The line NUMBER is not part of the
@@ -30019,6 +30567,19 @@ R.check(
     and "hit = verdicts.killed(w, s, run)" in _MUT_MAIN_DEFER
     and "LAZY AND NEVER RUN" in _MUT_MAIN_DEFER,
     f"lazy={_mut_lazy(_MUT_L_NET, 'changed') if _mut_lazy else 'absent'!r}",
+)
+# #1930 (b) rejected making tests/env_drift.py lazy: its recorded seconds
+# time the cheap stub (closure.py #934), not the CI --all run.
+_MUT_ED_SEC = getattr(_mut, "recorded_seconds", lambda: {})().get(
+    "tests/env_drift.py")
+R.check(
+    "env_drift stays eager: recorded seconds time the stub, not CI --all "
+    "(#1930 (b))",
+    "tests/env_drift.py" in getattr(_mut, "REF_DRIVEN", ())
+    and _MUT_ED_SEC is not None and _MUT_ED_SEC < 10.0
+    and (_mut_lazy(_MUT_L_NET, "changed") == ["tests/a.py"]
+         if _mut_lazy else False),
+    f"recorded={_MUT_ED_SEC!r} REF_DRIVEN={getattr(_mut, 'REF_DRIVEN', None)!r}",
 )
 _MUT_L_RED = _mut.ScriptRun(1, 1, 0.0, "  FAIL x\n1 of 2 checks FAILED\n")
 _MUT_L_GREEN = _mut.ScriptRun(0, 0, 0.0)
@@ -31386,6 +31947,18 @@ R.check(
     "run: python3 tests/replay.py" in _workflow_job(_tests_workflow, "slow"),
     "tests.yml's `slow` job has no `python3 tests/replay.py` step",
 )
+_SLOW_STEPS = _workflow_job(_tests_workflow, "slow")
+R.check(
+    "the nightly slow job is the unique scripts, not a second full suite "
+    "(#1930 (c))",
+    "run: python3 tests/rolling.py" in _SLOW_STEPS
+    and "run: python3 tests/replay.py" in _SLOW_STEPS
+    and "DRIFT_VALUE_REPORT" in _SLOW_STEPS
+    and "tests/env_drift.py --all" in _SLOW_STEPS
+    and "./tests/run.sh" not in _SLOW_STEPS
+    and "GATE_SCOPE: full" not in _SLOW_STEPS,
+    "slow still re-runs run.sh, or dropped rolling/replay/the value report",
+)
 
 # P10 (#1658): the replayed day's model kernels, counted by the route they ran
 # on, in three arms (the tree, the process route made unusable, a sysid night
@@ -31795,6 +32368,78 @@ R.check(
 )
 
 
+# --- R9-EG-B6 (#1739 collaborator half): no private reach from a collaborator.
+# The same scan that pins the surfaces pins the collaborator modules, minus
+# the data/options spread rule: a service or the setup entry legitimately
+# reads ``{**entry.data, **entry.options}`` -- that rule is about the
+# platforms' merged COPY, not about a private. What a collaborator may not
+# do is touch a coordinator private: its inputs arrive as explicit
+# parameters (the pump arbiter's snapshot, boost's overlay numbers, away's
+# state and entity reader, wood fuel's parts) or through a view the
+# coordinator publishes (the B2 views, the diagnostics state).
+def _egb6_private_reads(tree: ast.AST) -> list[str]:
+    found = []
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Attribute)
+            and node.attr.startswith("_")
+            and not node.attr.startswith("__")
+            and _egb2_is_coord(node.value)
+        ):
+            found.append(f"{node.lineno}:.{node.attr}")
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id in ("getattr", "hasattr", "setattr")
+            and len(node.args) >= 2
+            and _egb2_is_coord(node.args[0])
+            and isinstance(node.args[1], ast.Constant)
+            and str(node.args[1].value).startswith("_")
+        ):
+            found.append(f"{node.lineno}:{node.func.id}({node.args[1].value!r})")
+    return found
+
+
+_EGB6_COLLABORATORS = (
+    "pump_arbiter.py", "boost.py", "away.py", "wood_fuel.py",
+    "diagnostics.py", "setpoint_check.py", "services.py", "__init__.py",
+)
+_egb6_trees = {n: ast.parse((ROOT / n).read_text()) for n in _EGB6_COLLABORATORS}
+_egb6_reads = {
+    n: r for n, r in ((n, _egb6_private_reads(t)) for n, t in _egb6_trees.items()) if r
+}
+R.check(
+    "EG-B6: no collaborator module reaches a coordinator private member; "
+    "its inputs arrive as explicit parameters or a published view (#1739)",
+    not _egb6_reads,
+    repr(_egb6_reads),
+)
+# The scan's own null control, keyed to the collaborator spellings the fix
+# removed: the arbiter's snapshot reads, the getattr fallbacks and the
+# three in-place writes each plant a hit, and the public twin of each line
+# plants none.
+_egb6_planted = ast.parse(
+    "x = coord._config\n"
+    "y = getattr(coord, '_optimization_result', None)\n"
+    "coord._current_action = {}\n"
+    "coordinator._skip_solve_once = True\n"
+)
+_egb6_public = ast.parse(
+    "x = coord.arbiter_inputs().config\n"
+    "y = getattr(coord, 'arbiter_inputs', None)\n"
+    "coord.adopt_action({})\n"
+    "coordinator.diagnostics_state().solve_failures\n"
+)
+R.check(
+    "EG-B6: the collaborator reach scan names a planted reach of each "
+    "spelling and none of their published twins (the scan's null control)",
+    len(_egb6_private_reads(_egb6_planted)) == 4
+    and not _egb6_private_reads(_egb6_public),
+    f"planted={_egb6_private_reads(_egb6_planted)!r} "
+    f"public={_egb6_private_reads(_egb6_public)!r}",
+)
+
+
 # EG-B3: the published key set, enumerated from the producers, equals Payload.
 # Rule: the keys of every dict a producer returns, assigns to what it publishes
 # or passes to ``update``, plus ``data["k"] =`` stores; a ``**x`` / ``update(x)``
@@ -32000,7 +32645,7 @@ _PG_TREE = {
     "docs/site/notes.markdown": "# the other markdown extension",
     "docs/img/a.png": "p",
     "docs/img/card/b-dark.png": "p",
-    "docs/setup/c.svg": "<svg/>",
+    "docs/img/setup/c.svg": "<svg/>",
     "docs/how-it-works.md": "# reader doc",
     "docs/HANDOVER.MD": "# record, upper-case extension",
     "docs/tool.py": "print()",
@@ -32011,7 +32656,7 @@ _PG_TREE = {
 }
 _PG_WANT = {"index.html", "site/docs.css", "site/fonts/a.woff2",
             "site/fonts/OFL-A.txt", "img/a.png", "img/card/b-dark.png",
-            "setup/c.svg"}
+            "img/setup/c.svg"}
 
 
 def _pg_run(script: str, cwd: Path) -> int:

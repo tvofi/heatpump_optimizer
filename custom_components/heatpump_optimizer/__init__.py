@@ -16,6 +16,7 @@ from __future__ import annotations
 import importlib
 import logging
 import sys
+from collections.abc import Mapping
 from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
@@ -50,7 +51,7 @@ from .entry_config import EntryConfig
 # lookup the comment above documents would raise ``NameError`` at setup
 # (measured in round 4). The coordinator import stays inside
 # ``TYPE_CHECKING``, so importing the package still executes none of the
-# 45-module graph the closure note below forbids.
+# coordinator graph the closure note below forbids.
 if TYPE_CHECKING:
     from .coordinator import HeatPumpOptimizerCoordinator
 
@@ -59,14 +60,19 @@ else:
     HeatPumpOptimizerConfigEntry = ConfigEntry
 
 # Importing this package must not execute the coordinator's module graph.
-# ``coordinator`` and ``services`` reach 45 of the integration's modules
-# between them, and a plain ``from .coordinator import ...`` here put every
-# one of them inside the MEASURED closure of anything that imports the
-# package -- including ``tests/stress.py``, whose only production entry
-# points are the solver and the models under it. That made a change to the
-# coordinator, the frontend or the narrative select a forty-minute stress
-# run the change could not affect. Home Assistant reaches everything below
-# through ``async_setup``/``async_setup_entry``, which run long after import.
+# ``coordinator`` and ``services`` between them pull in nearly every other
+# module of the integration -- the count moves whenever a module joins or
+# leaves that graph, so it is not written here; the walk that measures it
+# is: import the two siblings with PYTHONPATH=tests/hastub, then count the
+# ``heatpump_optimizer.`` keys of ``sys.modules`` (59 at the 2026-10-05
+# re-derivation, against the 45 this note carried from PR #1252). A plain
+# ``from .coordinator import ...`` here would put every one of them inside
+# the MEASURED closure of anything that imports the package -- including
+# ``tests/stress.py``, whose only production entry points are the solver
+# and the models under it. That made a change to the coordinator, the
+# frontend or the narrative select a forty-minute stress run the change
+# could not affect. Home Assistant reaches everything below through
+# ``async_setup``/``async_setup_entry``, which run long after import.
 _LAZY_ATTRS = {
     "HeatPumpOptimizerCoordinator": "coordinator",
     # The four service schemas the test suite pokes through the package root
@@ -162,9 +168,15 @@ def _handover_stamps(hass: HomeAssistant) -> dict[str, Any]:
     return stamps
 
 
-def _handover_interval_minutes(coordinator: Any) -> float:
-    config: EntryConfig = getattr(coordinator, "_config", None) or EntryConfig()
-    return config.optimization_interval
+def _handover_interval_minutes(config: Mapping[str, Any]) -> float:
+    """The entry's update interval, from the same config the coordinator takes.
+
+    The entry's merged data and options, passed explicitly (#1739): the
+    freshness decision below compares an age against the interval the
+    coordinator was built with, which is this same mapping, parsed by the
+    same declaration (#1745).
+    """
+    return EntryConfig.from_mapping(config).optimization_interval
 
 
 def _take_fresh_handover(
@@ -272,8 +284,27 @@ async def async_setup_entry(
     # not versioned by the config entry.
     _async_remove_retired_entities(hass, entry)
 
+    # The two setup-time writes the coordinator takes at construction (#1739):
+    # the first refresh must not run the full MPC solve -- it executes inside
+    # ``async_setup_entry``, and on modest hardware the sensor reads, the
+    # network fetches and a Python-heavy cold solve add up to minutes during
+    # which the whole instance is unresponsive (the solve holds the GIL even
+    # from the executor thread) -- and, if this setup is the second half of an
+    # in-process reload, the plan the unload handler stashed. Always popped --
+    # a stale payload must never outlive the one reload it was made for -- and
+    # dropped when the stamp is older than one update interval. Otherwise the
+    # first refresh republishes it instantly.
+    config = {**entry.data, **entry.options}
+    handover = _take_fresh_handover(
+        hass, entry.entry_id, _handover_interval_minutes(config)
+    )
     coordinator_module = await _async_lazy(hass, "coordinator")
-    coordinator = coordinator_module.HeatPumpOptimizerCoordinator(hass, entry)
+    coordinator = coordinator_module.HeatPumpOptimizerCoordinator(
+        hass,
+        entry,
+        skip_first_solve=True,
+        reload_handover=handover,
+    )
     # The solve worker is a process global, so its reap belongs to the
     # instance rather than to this entry; the listener is dropped with the
     # entry all the same, so a reload does not stack them up (#525).
@@ -284,25 +315,6 @@ async def async_setup_entry(
     except Exception:  # noqa: BLE001 - version is cosmetic, never block setup
         _LOGGER.debug("Could not resolve integration version", exc_info=True)
 
-    # If this setup is the second half of an in-process reload, the unload
-    # handler stashed the previous plan. Always pop — a stale payload must
-    # never outlive the one reload it was made for — and drop it when the
-    # stamp is older than one update interval. Otherwise hand it over so
-    # the first refresh can republish it instantly.
-    handover = _take_fresh_handover(
-        hass, entry.entry_id, _handover_interval_minutes(coordinator)
-    )
-    if handover is not None:
-        coordinator._reload_handover = handover
-
-    # The first refresh must not run the full MPC solve: it executes inside
-    # ``async_setup_entry``, and on modest hardware the sensor reads, the
-    # network fetches and a Python-heavy cold solve add up to minutes during
-    # which the whole instance is unresponsive (the solve holds the GIL even
-    # from the executor thread). The flag is set here and ONLY here; the
-    # coordinator consumes it on the next refresh, so every later cycle —
-    # and every existing test path — solves exactly as before.
-    coordinator._skip_solve_once = True
     await coordinator.async_config_entry_first_refresh()
 
     # The coordinator is the entry's runtime data (runtime-data, Bronze):

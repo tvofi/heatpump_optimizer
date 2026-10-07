@@ -95,10 +95,10 @@ dashed lines mean, with the full explanation further down this page.
 
 ## Reading the chart
 
-![The plan chart with every series, the now marker, the editable slot lanes and the time axis numbered, and a key naming each one](img/chart-anatomy.svg)
+![The plan chart with every series, the now marker, the editable slot lanes and the time axis numbered, and a key naming each one](img/card/chart-anatomy.svg)
 
 Every figure on this page is the card's own drawing, not an artist's: the chart
-figures come from `docs/img/make_card_figures.mjs` and the schematics further
+figures come from `docs/img/card/make_card_figures.mjs` and the schematics further
 down from `tests/setup_qa_render.mjs`, both run against a plan
 `tests/plan_view.py` solved. The two photographs further down — the weekly
 band and the Advisor page — are the shipped card itself, rendered in a
@@ -110,7 +110,7 @@ how the card used to look.
 Two series draw a dashed pair beside their solid curve, and they mean entirely
 different things.
 
-![Two chart details side by side: the house temperature's dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them; the hot-water tank's dashed pair is one expected-error band that widens with lead time, its lower edge floored at the window minimum inside a demand window](img/chart-dashed-lines.svg)
+![Two chart details side by side: the house temperature's dashed pair is the upper and lower floor, two real predicted temperatures with the whole-house curve between them; the hot-water tank's dashed pair is one expected-error band that widens with lead time, its lower edge floored at the window minimum inside a demand window](img/card/chart-dashed-lines.svg)
 
 The **house temperature**'s dashed lines are the **upper and lower floor**: two
 real predicted temperatures, one per zone, drawn whenever the house is
@@ -141,7 +141,7 @@ weekday — resolves to one day's windows at a time, so the floored stretch
 follows each timestamp's own weekday across midnight instead of repeating
 one day's pattern:
 
-![The enlarged chart across a Friday and a Saturday: the hot-water tank's dashed lower edge is held at the 45-degree minimum inside Friday's 07:30-08:30 morning window and clamped flat to it across Saturday's 19:00-21:00 evening window, while Friday's evening edge runs free below it; Saturday's prices are shaded as estimates](img/card-dhw-band-weekly.png)
+![The enlarged chart across a Friday and a Saturday: the hot-water tank's dashed lower edge is held at the 45-degree minimum inside Friday's 07:30-08:30 morning window and clamped flat to it across Saturday's 19:00-21:00 evening window, while Friday's evening edge runs free below it; Saturday's prices are shaded as estimates](img/model/card-dhw-band-weekly.png)
 
 *One resolved schedule — `weekdays 07:30-08:30, weekend 19:00-21:00` — two
 days of it. Friday's dashed edge is held at or above the 45 °C minimum
@@ -644,25 +644,25 @@ small connection dots at their endpoints and a chevron showing flow
 direction.
 
 These are three real layouts, drawn by the card's own renderer rather than by
-hand — `HPO_QA_OUTDIR=docs/img HPO_QA_PREFIX=hydronic- node tests/setup_qa_render.mjs`,
+hand — `HPO_QA_OUTDIR=docs/img/model HPO_QA_PREFIX=hydronic- node tests/setup_qa_render.mjs`,
 the same script designers use to review the schematic.
 
 **One buffer, wood furnace feeding it.** The wood tank charges the buffer; the
 mixing valve serves both zones from there.
 
-![The setup schematic for a single buffer tank: heat pump and wood furnace tank both feed the buffer, a mixing valve feeds the upper floor and the slab, and the heat pump also feeds a separate hot water tank](img/hydronic-single-buffer.svg)
+![The setup schematic for a single buffer tank: heat pump and wood furnace tank both feed the buffer, a mixing valve feeds the upper floor and the slab, and the heat pump also feeds a separate hot water tank](img/model/hydronic-single-buffer.svg)
 
 **Two tanks on a four-way valve.** The wood tank feeds the valve directly
 instead of the buffer, so the valve blends two sources and gains its own target
 and outlet-temperature slots.
 
-![The same house with the wood furnace tank feeding the four-way mixing valve directly rather than the buffer, and the valve carrying target and outlet temperature slots](img/hydronic-two-tank.svg)
+![The same house with the wood furnace tank feeding the four-way mixing valve directly rather than the buffer, and the valve carrying target and outlet temperature slots](img/model/hydronic-two-tank.svg)
 
 **…and the wood tank pre-heating hot water through a coil.** The coil is drawn
 as a spring on the tank's upper-right wall with its own connector stubs, and
 the hot-water pipe departs from it.
 
-![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank, drawn as a spring on the tank wall](img/hydronic-coil.svg)
+![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank, drawn as a spring on the tank wall](img/model/hydronic-coil.svg)
 
 Each shape stretches with the sensor rows inside it, and every row is the
 same assignment slot it always was: click a row — or tab to it and press

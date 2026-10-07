@@ -33,8 +33,8 @@ carried.
 
 **A PR comment, an issue comment, and the record are not propagation.** They
 record the finding; they do not deliver it. The test is **where the seat who needs this will be looking**: its own brief, the
-role contract under `tools/audit/briefs/`, `CLAUDE.md`. It will not read the comments
-of a PR that merged several stages before it started. A finding that lives only
+role contract under `dev/governance/roles/`, `CLAUDE.md`. It will not read the comments
+of a PR that merged stages before it started. A finding that lives only
 in the PR that produced it will be re-derived by the next stage, or — the usual
 outcome — not derived at all, and the refused technique gets attempted again.
 
@@ -60,7 +60,7 @@ outcome — not derived at all, and the refused technique gets attempted again.
   session hands its seats. Carrying to the scratch copy alone leaves the tree
   unchanged, and the tree is what survives the session.
 - **Constrains every seat** → the **role contract** it belongs to under
-  `tools/audit/briefs/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**.
+  `dev/governance/roles/` (`fixer.md`, `fix-review.md`, `judge.md`), **once**.
   That is the in-tree file every seat of that role reads, so it is the
   destination a reviewer can open. Do not copy it into each stage's brief:
   duplication goes stale unevenly, and a reader who finds two versions trusts

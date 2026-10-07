@@ -64,10 +64,18 @@ jobs:
         run: |
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
-          git checkout "$PINNED" -- \
-            '.claude/workflows/*.py'
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.py' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/budget_raise_gate.py
+          test -f .claude/workflows/budget_raise_gate.py || test -f tools/policy/budget_raise_gate.py
 
       # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
       # carries no pull request in its payload, so the entry is named from the
@@ -109,5 +117,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number || steps.pr.outputs.number }}
         run: |
           set -euo pipefail
-          python3 -I .claude/workflows/budget_raise_gate.py \
-            --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          if test -f .claude/workflows/budget_raise_gate.py; then
+            python3 -I .claude/workflows/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          else
+            python3 -I tools/policy/budget_raise_gate.py \
+              --base "$PR_BASE" --head "$PR_HEAD" --pr "$PR_NUMBER"
+          fi

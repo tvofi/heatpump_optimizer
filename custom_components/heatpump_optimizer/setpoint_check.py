@@ -18,6 +18,7 @@ from .const import (
 )
 from .entry_config import EntryConfig
 from .inputs import state_unit, temperature_c, temperature_from_c
+from .quiet_windows import silent_unenforceable
 
 # Manifest ``documentation`` — the URL every repair notice links to (#558 F2).
 DOCUMENTATION_URL = "https://github.com/tvofi/heatpump_optimizer"
@@ -26,10 +27,10 @@ _LOGGER = logging.getLogger(__name__)
 
 ISSUE_DHW = "dhw_setpoint_below_disinfection"
 ISSUE_SPACE = "space_setpoint_unreadable"
-#: ``(coord, reading degC) -> bool``: whether the reading is the pump-duty
-#: arbiter's own hot-water gate. ``pump_arbiter`` installs it at import; it
-#: cannot be imported here, because it imports this module.
-dhw_gated: Callable[[Any, float], bool] = lambda _coord, _reading: False
+#: #1910 (SW-1): silent rows configured with no control that can hold
+#: them. A warning, not a fix -- the remedy is an assignment only the
+#: setup diagram (or SW-4's Modbus schedule) can make.
+ISSUE_QUIET = "quiet_silent_not_enforced"
 _INVALID = ("unknown", "unavailable", "none", "")
 
 
@@ -39,25 +40,49 @@ def create_issue(hass: Any, domain: str, issue_id: str, **kwargs: Any) -> None:
     ir.async_create_issue(hass, domain, issue_id, **kwargs)
 
 
-def evaluate(coord: Any) -> None:
+def evaluate(coord: Any, gated: Callable[[float], bool] | None = None) -> None:
     """Read optional set-point entities and raise or clear the two issues.
 
     Stateless and idempotent: no coordinator attribute. A second call with
     the same inputs leaves ``hass.issues`` at one entry per issue id.
     Never raises into the caller — a balky entity must not break a solve.
+    ``gated`` is the pump-duty arbiter's own hot-water gate (wired by the
+    coordinator, which owns both sides of the seam, #1739): a reading that
+    is the arbiter's own write is a step decision, not a mis-set point.
     """
     try:
-        _evaluate(coord)
+        _evaluate(coord, gated)
     except Exception as err:  # noqa: BLE001 - never break a solve
         _LOGGER.debug("Set-point consistency check skipped: %s", err)
 
 
-def _evaluate(coord: Any) -> None:
+def _evaluate(coord: Any, gated: Callable[[float], bool] | None) -> None:
     hass = coord.hass
-    config = coord._config
-    params = coord._thermal_params
-    _dhw(hass, config, params, lambda pump: dhw_gated(coord, pump))
+    config = coord.effective_config
+    params = coord.thermal_params
+    _dhw(hass, config, params, gated)
     _space(hass, config)
+    _quiet(hass, config)
+
+
+def _quiet(hass: Any, config: dict[str, Any]) -> None:
+    """#1910: one warning when silent rows cannot be enforced.
+
+    tvofi's chosen fallback (2026-09-30): normal operation with a warning.
+    The plan is not capped for silent rows the optimizer cannot hold --
+    planning for silence the pump will not deliver would buy the wrong
+    hours. A switch is decided from the entity ID's domain alone, so one
+    that has not reported yet (state ``unknown``) does not raise it:
+    unknown is not off. A GCHV night-mode schedule that is only partly
+    holdable (two windows, or days that differ) raises it too (#1913).
+    """
+    entity_id = EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity
+    _set_issue(
+        hass,
+        ISSUE_QUIET,
+        silent_unenforceable(config, hass.states.get),
+        placeholders={"entity": entity_id or ""},
+    )
 
 
 def _dhw_floor(params: Any) -> float:

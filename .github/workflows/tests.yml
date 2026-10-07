@@ -71,9 +71,11 @@ name: Tests
 #   custom_components/, so a change to what a test reads was checked one
 #   merge too late -- five times (#354).
 #
-# * slow — nightly and on demand. Same suite plus SLOW=1, which adds
-#   tests/rolling.py (the closed-loop learner simulation, ~15 minutes),
-#   then tests/replay.py (recorded days through the real coordinator).
+# * slow — nightly and on demand. Only what a push to main's `fast` job
+#   does not already run: tests/rolling.py (SLOW-gated in run.sh, closed-loop
+#   ~15 minutes), tests/replay.py (recorded days), and env_drift.py's
+#   DRIFT_VALUE_REPORT (level 3, report-only). The rest of the suite is the
+#   last push's GATE_SCOPE=full `fast` run (#1930 (c)).
 #
 # * nightly-ha — nightly and on demand. The only lane that runs the
 #   integration inside a real Home Assistant instead of tests/hastub, in
@@ -485,18 +487,34 @@ jobs:
           set -euo pipefail
           git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
           rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Lint every wave roster's citations
-        run: node .claude/workflows/brief_lint.mjs
+        run: if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs; else node tools/policy/brief_lint.mjs; fi
 
   # The pinned, stub-free typing ruler (#303). Three numbers -- the error
   # count, its per-code split, and the `# type: ignore` count -- and none of
@@ -616,7 +634,7 @@ jobs:
           fi
           PY=$(python -c 'import sys; print(sys.version.split()[0])')
           echo "base=$BASE" >> "$GITHUB_OUTPUT"
-          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
 
       # An exact key and no restore-keys: data from any other commit is a miss.
       - name: Restore the base's per-script coverage
@@ -700,7 +718,11 @@ jobs:
           else
             echo "No per-script coverage for ${{ steps.covkey.outputs.base }}: measuring every script."
           fi
-          tools/audit/w5-partition/coverage_tree.sh fast || true
+          if test -f tools/audit/w5-partition/coverage_tree.sh; then
+            tools/audit/w5-partition/coverage_tree.sh fast || true
+          else
+            tools/coverage/coverage_tree.sh fast || true
+          fi
           test -s "$W5P_WORK/out/coverage.json" || {
             echo "The instrument produced no coverage.json. That is this job"
             echo "failing, not the ratchet: there is no measurement to judge."
@@ -1233,10 +1255,6 @@ jobs:
         with:
           python-version: "3.13"
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
-        with:
-          node-version: "22"
-
       - name: Install pinned test dependencies
         run: >-
           pip install --require-hashes
@@ -1261,31 +1279,25 @@ jobs:
           }
           echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
 
-      - name: Run the suite including the closed-loop simulation
+      # Unique to this job vs a push-to-main `fast` run: the committed-fixture
+      # value report (#347, level 3), per fixture rather than as a count.
+      # `fast` already ran the rest of the suite on the last merge. Levels 1
+      # and 2 gate there; this never fails anything: the numbers are the
+      # runner's own.
+      - name: Report committed-fixture drift values
         env:
           GOLDEN_MODE: drift
-          SLOW: "1"
-          # Said out loud even though it is the default: the nightly is one
-          # of the runs the scoped gate is measured against, so it never
-          # scopes.
-          GATE_SCOPE: full
-          # The committed-fixture value report (#347, level 3), per fixture
-          # rather than as a count. Only a canonical environment can honestly
-          # re-record a float-bearing fixture -- a dev box would poison it,
-          # which is exactly why claims exist instead of re-records -- so
-          # this run is where the list belongs. It never fails anything: the
-          # numbers in it are the runner's own. Levels 1 and 2 gate, in this
-          # job and in `fast`, because they do not depend on the machine.
           DRIFT_VALUE_REPORT: "1"
-          # See the fast job: the solve-time guard calibrates against this
-          # runner rather than against a stopwatch, and threads are pinned
-          # so process CPU time means the same thing here as anywhere else.
-          # The nightly ref is HEAD^1 and moves every night, so there is no
-          # baseline worth caching here either.
+          PYTHONPATH: tests/hastub
+        run: python3 tests/env_drift.py --all "$GOLDEN_REF"
+
+      - name: Closed-loop simulation
+        env:
+          PYTHONPATH: tests/hastub
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
           MKL_NUM_THREADS: "1"
-        run: ./tests/run.sh
+        run: python3 tests/rolling.py
 
       # Recorded days (tests/replay/*.json, written by tools/replay/export.py)
       # fed through the real coordinator cycle by cycle, every published
@@ -1295,6 +1307,8 @@ jobs:
       # pull request until a week of real data has been timed.
       - name: Replay recorded days through the real coordinator
         if: success() || failure()
+        env:
+          PYTHONPATH: tests/hastub
         run: python3 tests/replay.py
 
   # Real Home Assistant, in the container an installation actually runs
@@ -1533,7 +1547,18 @@ jobs:
               '.claude/workflows/vendor' \
               'tools/audit/*.sh' \
               'tools/audit/record-predicate' \
-              'tools/audit/round6/D11/fix/codeowners_gap.py'; then
+              'tools/audit/round6/D11/fix/codeowners_gap.py' \
+              'tools/policy/*.mjs' \
+              'tools/policy/*.py' \
+              'tools/pr/*.py' \
+              'tools/policy/vendor' \
+              'tools/pr/*.sh' \
+              'tools/seat/*.sh' \
+              'tools/coverage/*.sh' \
+              'dev/audit/*.sh' \
+              'tools/policy/record-predicate' \
+              'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+              'tests/layout.py'; then
             echo "governance=false" >> "$GITHUB_OUTPUT"
           else
             echo "governance=true" >> "$GITHUB_OUTPUT"
@@ -1556,7 +1581,42 @@ jobs:
         if: always() && steps.changed.outputs.delivery_status == 'true'
         run: |
           git fetch --no-tags --quiet origin main
-          python tests/delivery_status.py --check
+          # A non-zero exit shared with the base copy on this tree is that
+          # copy's own. Exit with the pull request's code only when the two
+          # differ, and exit 1 when this copy prints OVERDUE and the base
+          # copy does not: both of those exits are 1, so the codes alone
+          # cannot separate them.
+          head_copy="$RUNNER_TEMP/delivery_status.head.py"
+          cp tests/delivery_status.py "$head_copy"
+          git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+          set +e
+          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+          base_rc=$?
+          set -e
+          cp "$head_copy" tests/delivery_status.py
+          set +e
+          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+          head_rc=$?
+          set -e
+          cat "$RUNNER_TEMP/delivery_status.base.out"
+          echo "----- head copy -----"
+          cat "$RUNNER_TEMP/delivery_status.head.out"
+          echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+          head_overdue=0
+          base_overdue=0
+          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+            head_overdue=1
+          fi
+          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+            base_overdue=1
+          fi
+          if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+            exit 1
+          fi
+          if [ "$head_rc" -ne "$base_rc" ]; then
+            exit "$head_rc"
+          fi
+          exit 0
 
       - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -1567,13 +1627,13 @@ jobs:
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/policy_lint.mjs
+        run: node tools/policy/policy_lint.mjs
 
       - name: The pull request's field_coverage.mjs, under the Actions token
         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: node .claude/workflows/field_coverage.mjs
+        run: node tools/policy/field_coverage.mjs
 
   # The closures the scoped PR gate trusts, re-derived from real runs and
   # compared against what is committed. A closure that MISSES a file a run
@@ -2644,7 +2704,11 @@ jobs:
   # this job's), commits under the `ci:` subject the loop guard keys on, pushes
   # the record branch, and opens or updates the record pull request as the
   # hpo-author App with a generated body, then posts its #201 coordination
-  # comment.
+  # comment. The pull request number exists only after that open or lookup.
+  # The same write set then gains docs/delivery/<that number>.md. The line
+  # anchors the number and carries no merge SHA: the SHA does not exist until
+  # the merge. The next run finds the row and stops at nothing-owed. A real
+  # unrowed merge is still a row; skipping the beat is not.
   #
   # KEPT MANUAL, deliberately: the approving labelled review on the record pull
   # request, and the living handover's updated-for line — tied to merges that
@@ -2847,6 +2911,7 @@ jobs:
         if: steps.record.outputs.status == 'pushed'
         env:
           REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
           TOKEN: ${{ steps.mint.outputs.token }}
           BASE_SHA: ${{ github.sha }}
         run: |
@@ -2867,7 +2932,10 @@ jobs:
           echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
           API=https://api.github.com
           ACCEPT='Accept: application/vnd.github+json'
-          HEAD_SHA=$(git rev-parse HEAD)
+          # The self-row push leases on the rows commit this step's parent
+          # already pushed. AUTH is the bearer header; BASIC is the push.
+          BASIC=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          echo "::add-mask::$BASIC"
           # Every write below reports its own evidence: URL, HTTP status and,
           # on any non-2xx, the response body -- deliberately without curl's
           # -f, which discarded all three. This is what turned the 401s from
@@ -2902,7 +2970,10 @@ jobs:
           # from the orchestrator's box; the CI 401s masked it) -- so the
           # create payload adds them: head is the branch the lookup below
           # keys on, base is main. PATCH takes title and body only.
-          python3 -I - "$HEAD_SHA" "$BASE_SHA" <<'PY' > /dev/null
+          # The python is indented with the run block: YAML strips that
+          # common indent, and a further indent would be a Python error.
+          write_payload() {
+            python3 -I - "$1" "$BASE_SHA" <<'PY' > /dev/null
           import json, os, subprocess, sys
           head, base = sys.argv[1], sys.argv[2]
           plan = os.environ["RUNNER_TEMP"] + "/plan.json"
@@ -2919,20 +2990,38 @@ jobs:
                      "head": "record/autofix", "base": "main"},
                     open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
           PY
+          }
           # Open or update: the beat's own open pull request from a previous
           # unmerged beat is updated in place (fresh rows commit, regenerated
-          # body naming the new head), never duplicated.
+          # body naming the new head), never duplicated. The head filter is
+          # `<owner>:<branch>`: `<owner>/<repo>:<branch>` answers [] and sent
+          # run 37343172583 to a create the API refused 422.
           NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
-            "$API/repos/$REPO/pulls?head=$REPO:record/autofix&state=open" \
+            "$API/repos/$REPO/pulls?head=${OWNER}:record/autofix&state=open" \
             | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
-          if [ -n "$NUM" ]; then
-            curl_json "record-pr update" PATCH \
-              "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
-          else
+          if [ -z "$NUM" ]; then
+            write_payload "$(git rev-parse HEAD)"
             curl_json "record-pr open" POST \
               "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
             NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
           fi
+          # NUM exists only now. The rows commit does not contain this pull
+          # request's row. The merge SHA does not exist yet, so the line
+          # anchors the number and says open. The lease is the rows commit
+          # the previous step pushed, which is HEAD until this commit.
+          PARENT=$(git rev-parse HEAD)
+          python3 -I tools/audit/seat/record_row.py \
+            --write-self-row --pr "$NUM" --root .
+          git add docs/delivery
+          if ! git diff --cached --quiet; then
+            git commit -q -m "ci: record delivery rows"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $BASIC" \
+              push --force-with-lease=refs/heads/record/autofix:"$PARENT" \
+              origin HEAD:refs/heads/record/autofix
+          fi
+          write_payload "$(git rev-parse HEAD)"
+          curl_json "record-pr update" PATCH \
+            "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
           # The beat's #201 coordination comment, naming the pull request it
           # opened (delivery-status-tracking item 3); one per beat.
           python3 -I tools/audit/seat/record_row.py \

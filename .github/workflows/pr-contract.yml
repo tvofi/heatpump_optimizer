@@ -29,11 +29,13 @@ on:
 permissions:
   contents: read
 
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
+# The forty-minute gate in tests.yml still cancels a superseded pull-request
+# run (round-9 process review item 3). This required job is short, and
+# cancelling two events at one SHA (synchronize + edited) left a cancelled
+# required context at the live head (R9-RC-PRCONTRACT). Do not cancel here.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+  cancel-in-progress: false
 
 jobs:
   pr-contract:
@@ -89,15 +91,31 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf .claude/workflows/vendor
-          git checkout "$PINNED" -- \
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
             '.claude/workflows/*.mjs' \
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
             'tools/audit/record-predicate' \
-            'tools/audit/round6/D11/fix/codeowners_gap.py'
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
-          test -f .claude/workflows/policy_lint.mjs
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
       # carries no pull request in its payload, so the entry is named from the
@@ -257,19 +275,27 @@ jobs:
           if [ -f /tmp/pr-title.txt ]; then
             PR_TITLE=$(cat /tmp/pr-title.txt)
           fi
-          node .claude/workflows/policy_lint.mjs \
-            --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
-            --author "$(cat /tmp/pr-author.txt)" \
-            --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
-            "${RED_ARGS[@]}"
+          if test -f .claude/workflows/policy_lint.mjs; then
+            node .claude/workflows/policy_lint.mjs \
+              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+              --author "$(cat /tmp/pr-author.txt)" \
+              --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
+              "${RED_ARGS[@]}"
+          else
+            node tools/policy/policy_lint.mjs \
+              --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \
+              --author "$(cat /tmp/pr-author.txt)" \
+              --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \
+              "${RED_ARGS[@]}"
+          fi
 
       - name: Every figure's command resolves at this head
         if: always()
-        run: node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md
+        run: if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
 
       - name: Pre-flight the body for unmeasured claims
         if: always()
-        run: bash tools/audit/preflight.sh < /tmp/pr-body.md || true
+        run: if test -f tools/audit/preflight.sh; then bash tools/audit/preflight.sh < /tmp/pr-body.md; else bash tools/pr/preflight.sh < /tmp/pr-body.md; fi|| true
 
       # CLAUDE.md rule 4, refused where it binds. `prepr.sh` step 5 held this
       # check and ran only on a seat's own machine; the self-test above drives
@@ -295,4 +321,4 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"
+          if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi

@@ -6,6 +6,18 @@
 Exists so updating the resume state costs one command rather than an edit a
 tiring session skips. Run from the branch checkout's root.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import re
 import shutil
 import subprocess
@@ -23,7 +35,7 @@ SUBJECT = {
 }
 
 dim, status, note = sys.argv[1], sys.argv[2], sys.argv[3]
-root = Path(__file__).resolve().parents[3]
+root = repo_root(__file__)
 worktrees = root.parent
 
 src = worktrees / TREES.get(dim, "audit-r4-baseline") / "tools" / "audit" / "round4" / dim

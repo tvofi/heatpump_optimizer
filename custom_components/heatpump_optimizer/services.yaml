@@ -193,6 +193,24 @@ set_thermal_parameters:
       example: 06:00-08:30, 17:00-22:00
       selector:
         text: null
+    quiet_silent_windows:
+      required: false
+      example: 22:00-06:00
+      selector:
+        text: null
+    quiet_off_windows:
+      required: false
+      example: weekend 23:00-07:00
+      selector:
+        text: null
+    silent_mode_power_fraction:
+      required: false
+      example: 0.7
+      selector:
+        number:
+          min: 0.6
+          max: 1.0
+          step: 0.05
     dhw_idle_min_temperature:
       required: false
       example: 20
@@ -340,6 +358,18 @@ simulate_plan:
     dhw_windows:
       selector:
         text: null
+    quiet_silent_windows:
+      selector:
+        text: null
+    quiet_off_windows:
+      selector:
+        text: null
+    silent_mode_power_fraction:
+      selector:
+        number:
+          min: 0.6
+          max: 1.0
+          step: 0.05
     wood_slots:
       selector:
         object: null
@@ -422,6 +452,18 @@ apply_schedule:
     dhw_windows:
       selector:
         text: null
+    quiet_silent_windows:
+      selector:
+        text: null
+    quiet_off_windows:
+      selector:
+        text: null
+    silent_mode_power_fraction:
+      selector:
+        number:
+          min: 0.6
+          max: 1.0
+          step: 0.05
     comfort_temp_day:
       selector:
         number:
@@ -470,6 +512,13 @@ restore_learned_snapshot:
     entry_id:
       selector:
         text: null
+    source:
+      example: snapshot
+      selector:
+        select:
+          options:
+          - snapshot
+          - refit
 diagnose_interval:
   fields:
     entry_id:

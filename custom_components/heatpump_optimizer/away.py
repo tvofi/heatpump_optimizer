@@ -21,7 +21,7 @@ a margin before the stated return, and the estimate itself is rounded up.
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
@@ -134,12 +134,11 @@ class _SetbackThermal(Protocol):
 class _AwayCoord(Protocol):
     hass: Any
     entry: Any
-    _away_state: AwayState
-    _config: EntryConfig
 
-    def _entity_state(
-        self, entity_id: str | None
-    ) -> tuple[str | None, dict[str, Any]]: ...
+
+#: The coordinator's entity reader, passed in (#1739): the one
+#: coordinator-owned capability the one-off helper migration needs.
+EntityReader = Callable[[str | None], tuple[str | None, dict[str, Any]]]
 
 
 # States that switch a toggle-style away entity OFF and ON respectively. Named
@@ -353,14 +352,25 @@ def apply_override_payload(state: AwayState, payload: dict[str, Any]) -> None:
     state.migrated_helpers = bool(payload.get("migrated_helpers"))
 
 
-async def persist_override(coord: _AwayCoord) -> None:
+async def persist_override(coord: _AwayCoord, state: AwayState) -> None:
+    """Save ``state`` -- the coordinator's away state, passed in (#1739)."""
     try:
-        await _away_store(coord).async_save(_override_payload(coord._away_state))
+        await _away_store(coord).async_save(_override_payload(state))
     except Exception as err:  # noqa: BLE001
         _LOGGER.debug("Could not persist away override: %s", err)
 
 
-async def restore_override(coord: _AwayCoord) -> None:
+async def restore_override(
+    coord: _AwayCoord,
+    state: AwayState,
+    config: Mapping[str, Any],
+    read_entity: EntityReader,
+) -> None:
+    """Load the stored override into ``state`` (#1739).
+
+    ``config`` and ``read_entity`` serve the one-off helper migration, which
+    reads the configured presence and return entities exactly once.
+    """
     raw = await load_mapping(_away_store(coord), "away override")
     payload = empty_override()
     if raw is not None:
@@ -369,19 +379,23 @@ async def restore_override(coord: _AwayCoord) -> None:
         payload["return_time"] = parsed.isoformat() if parsed else None
         payload["migrated_helpers"] = bool(raw.get("migrated_helpers"))
     if not payload["migrated_helpers"]:
-        payload = await _migrate_helpers(coord, payload)
-        apply_override_payload(coord._away_state, payload)
-        await persist_override(coord)
+        payload = await _migrate_helpers(coord, config, read_entity, payload)
+        apply_override_payload(state, payload)
+        await persist_override(coord, state)
         return
-    apply_override_payload(coord._away_state, payload)
+    apply_override_payload(state, payload)
 
 
 async def _migrate_helpers(
-    coord: _AwayCoord, payload: dict[str, Any]
+    coord: _AwayCoord,
+    config: Mapping[str, Any],
+    read_entity: EntityReader,
+    payload: dict[str, Any],
 ) -> dict[str, Any]:
-    presence = coord._config.away_presence_entity
-    presence_raw, presence_attrs = coord._entity_state(presence)
-    return_raw, _ = coord._entity_state(coord._config.away_return_entity)
+    cfg = EntryConfig.from_mapping(config)
+    presence = cfg.away_presence_entity
+    presence_raw, presence_attrs = read_entity(presence)
+    return_raw, _ = read_entity(cfg.away_return_entity)
     mig = migrate_helper_override(
         presence, presence_raw, presence_attrs, return_raw
     )

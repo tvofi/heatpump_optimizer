@@ -11,13 +11,25 @@ and judge, so a reviewer re-runs the figures rather than trusts them.
 Run from the repository root under PYTHONPATH=tests/hastub. Each capture solves
 the population once in a fresh interpreter; history is 22 of them.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import json
 import os
 import subprocess
 import sys
 import tempfile
 
-ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+ROOT = str(repo_root(__file__))
 sys.path[:0] = [os.path.join(ROOT, "tests"), os.path.join(ROOT, "custom_components")]
 import stress  # noqa: E402
 

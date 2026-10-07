@@ -2,18 +2,18 @@
  {
   "id": "C1",
   "source": "README.md:Entities",
-  "claim": "All 75 entities are created on every install",
+  "claim": "All 76 entities are created on every install",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=75 measured=75",
+  "result": "documented=76 measured=76",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C2",
   "source": "README.md:### Sensors",
-  "claim": "Sensors (59 total)",
+  "claim": "Sensors (60 total)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=59 measured=59",
+  "result": "documented=60 measured=60",
   "verdict": "true",
   "truth": ""
  },
@@ -38,9 +38,9 @@
  {
   "id": "C5",
   "source": "docs/architecture.md:mermaid",
-  "claim": "75 entities / 59 sensors / 6 binary sensors / 4 buttons / 4 switches / 1 climate / 1 datetime",
+  "claim": "76 entities / 60 sensors / 6 binary sensors / 4 buttons / 4 switches / 1 climate / 1 datetime",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=(75, 59, 6, 4, 4, 1, 1) measured=(75, 59, 6, 4, 4, 1, 1)",
+  "result": "documented=(76, 60, 6, 4, 4, 1, 1) measured=(76, 60, 6, 4, 4, 1, 1)",
   "verdict": "true",
   "truth": ""
  },
@@ -67,7 +67,7 @@
   "source": "README.md:### Sensors",
   "claim": "the sensor table names exactly the sensors the platform constructs",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lifetime Space Heating Cost', 'Lifetime Space Heating Energy', 'Lifetime Total Energy', 'Lifetime Total Heating Cost', 'Lower Floor Temperature', 'Measured Power', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan DHW Heating (next 24 h)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Plan Space Heating (next 24 h)', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor'] measured=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lifetime Space Heating Cost', 'Lifetime Space Heating Energy', 'Lifetime Total Energy', 'Lifetime Total Heating Cost', 'Lower Floor Temperature', 'Measured Power', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan DHW Heating (next 24 h)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Plan Space Heating (next 24 h)', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor']",
+  "result": "documented=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lifetime Space Heating Cost', 'Lifetime Space Heating Energy', 'Lifetime Total Energy', 'Lifetime Total Heating Cost', 'Lower Floor Temperature', 'Measured Power', 'Model Restart Advisor', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan DHW Heating (next 24 h)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Plan Space Heating (next 24 h)', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor'] measured=['Buffer Tank Temperature (Model)', 'Compressor Frequency Advisor', 'Compressor Starts', 'Cost Baseline', 'Cost Contract Comparison', 'Cost Electricity Price (now)', 'Cost Monthly Peak Power', 'Cost Power Headroom', 'Cost Predicted', 'DHW Cost (lifetime)', 'DHW Energy (lifetime)', 'DHW Heating Cost (next 24 h)', 'DHW Heating Schedule', 'DHW Heavy Day Demand', 'DHW Mixed Water', 'DHW Setpoint Advisor', 'DHW Temperature', 'ECL110 Displace', 'ECL110 Effective Displace', 'Floor Heating Return Temperature', 'Heat Pump Action', 'Indoor Temperature (Optimizer)', 'Last Optimization', 'Learning Comfort Weight', 'Learning Estimated COP', 'Learning Observed COP', 'Lifetime Space Heating Cost', 'Lifetime Space Heating Energy', 'Lifetime Total Energy', 'Lifetime Total Heating Cost', 'Lower Floor Temperature', 'Measured Power', 'Model Restart Advisor', 'Next Optimization', 'Optimal Setpoint', 'Optimization Mode', 'Optimization Schedule', 'Optimization Schedule Steps', 'Optimization Status', 'Outdoor Temperature (Optimizer)', 'Plan DHW Heating (next 24 h)', 'Plan Monthly Savings', 'Plan Narrative', 'Plan Optimization Score', 'Plan Predicted Savings', 'Plan Savings Percentage', 'Plan Space Heating (next 24 h)', 'Prediction Accuracy', 'Predictive Optimization Insight', 'Recommended Power', 'Sensor-Gap Advisor', 'Slab Temperature (Estimated)', 'Solar Heat Gain', 'Solar Irradiance', 'Solar Surplus Forecast', 'Thermal Battery Charge', 'Thermal Battery Energy', 'Upper Floor Temperature', 'Valve Target Recommendation', 'Wood-Burn Night Advisor']",
   "verdict": "true",
   "truth": ""
  },
@@ -76,7 +76,7 @@
   "source": "README.md:### Sensors",
   "claim": "every sensor row's Unit column is the unit the entity publishes (CUR = the instance currency)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "59 rows checked, mismatches=[]",
+  "result": "60 rows checked, mismatches=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -155,18 +155,18 @@
  {
   "id": "C18",
   "source": "README.md + docs/configuration.md",
-  "claim": "set_thermal_parameters takes 28 fields",
+  "claim": "set_thermal_parameters takes 31 fields",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=28 measured=28",
+  "result": "documented=31 measured=31",
   "verdict": "true",
   "truth": ""
  },
  {
   "id": "C19",
   "source": "docs/configuration.md",
-  "claim": "simulate_plan takes 16 optional fields",
+  "claim": "simulate_plan takes 19 optional fields",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=16 measured=16",
+  "result": "documented=19 measured=19",
   "verdict": "true",
   "truth": ""
  },
@@ -283,7 +283,7 @@
   "source": "docs/architecture.md",
   "claim": "45 modules",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=71 measured=71",
+  "result": "documented=72 measured=72",
   "verdict": "true",
   "truth": ""
  },
@@ -292,7 +292,7 @@
   "source": "docs/architecture.md",
   "claim": "the module map is the package's module list",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "on disk=71, listed=71, missing=[], phantom=[]",
+  "result": "on disk=72, listed=72, missing=[], phantom=[]",
   "verdict": "true",
   "truth": "0 modules are absent from the map: "
  },
@@ -344,9 +344,9 @@
  {
   "id": "C39",
   "source": "docs/architecture.md:module map",
-  "claim": "sensor.py -- 59 sensors",
+  "claim": "sensor.py -- 60 sensors",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "documented=59 measured=59",
+  "result": "documented=60 measured=60",
   "verdict": "true",
   "truth": ""
  },
@@ -965,9 +965,9 @@
  {
   "id": "C108",
   "source": "README.md + docs/*.md",
-  "claim": "every relative link resolves (91 links)",
+  "claim": "every relative link resolves (81 links)",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "91 links, broken=[], of which removed-by-the-export=[]",
+  "result": "81 links, broken=[], of which removed-by-the-export=[]",
   "verdict": "true",
   "truth": ""
  },
@@ -976,9 +976,9 @@
   "source": "README.md + docs/how-it-works.md",
   "claim": "the links to docs/audit-2026-08.md, docs/audit-2026-09.md and docs/backlog.md resolve",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "those three files are removed from the round-4 export by tools/audit/prepare_baseline.sh; this tree cannot answer",
+  "result": "finder_wall in tools/audit/prepare_baseline.sh removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md; this tree cannot answer",
   "verdict": "unverifiable",
-  "truth": "not checkable in the export -- COMMON.md's wall removes exactly these files"
+  "truth": "not checkable in the export -- finder_wall removes docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md"
  },
  {
   "id": "C110",
@@ -1030,7 +1030,7 @@
   "source": "README.md",
   "claim": "the Swedish translation actually differs from the English entity names",
   "command": "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py",
-  "result": "0 of 75 entity names identical in sv and en",
+  "result": "0 of 76 entity names identical in sv and en",
   "verdict": "true",
   "truth": ""
  },

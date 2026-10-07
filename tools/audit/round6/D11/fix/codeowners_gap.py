@@ -59,7 +59,8 @@ its `if:` names `github.event_name` only against other events; a job whose
 the pull request's instruments and grades nothing, and is skipped -- `--check`
 refuses one that a required context names. In every other reachable job, each
 execution of the file must come after a step of the form
-`git checkout "$PINNED" -- '<pathspec>' ...` whose pathspecs match it (git's
+`git checkout "$PINNED" -- '<pathspec>' ...`, or its listed form (`RESTORE`),
+whose pathspecs match it (git's
 glob, where `*` crosses `/`), and a pinned `.py` must run under `python3 -I`,
 so a module the pull request adds beside it cannot shadow an import. The
 workflows, hooks and settings (A, C, D) are never pinned: GitHub runs the pull
@@ -119,13 +120,25 @@ sys.path, and a pull request that adds `subprocess.py` beside it runs its own
 module before the check (#1515 review, round 1).
 """
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[5]
+ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT / "tests"))
 from layout import locate  # noqa: E402  the reorganisation's move map (R9-RO-2)
 CODEOWNERS = ".github/CODEOWNERS"
@@ -381,6 +394,17 @@ def _substitutions(text: str) -> "tuple[str, list[str]] | None":
     return "".join(out), inner
 
 
+
+def _retired_new(target: str) -> str | None:
+    """The new path when `target` is a retired old path, else None."""
+    from layout import _swap, moves
+    for old, new in moves(ROOT):
+        got = _swap(target, old, new)
+        if got:
+            return got
+    return None
+
+
 def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bool:
     """True when every command on this logical `run:` line is on the allowlist."""
     import shlex
@@ -478,7 +502,18 @@ def admitted(line: str, have: set[str], specs: list[str], _depth: int = 0) -> bo
             if not target:
                 return False
             target = os.path.normpath(target)
-            if target not in have or not any(spec_hit(sp, target) for sp in specs):
+            if target not in have:
+                # `if test -f old; then` / `node old` are separate lines, so the
+                # new path is not on this one. An interpreter aimed at a retired
+                # path that is not in the tree does not run. A bare command of
+                # that path still refuses: the coverage_tree.sh probes are that
+                # command, and admitting one leaves the grader pinned.
+                # A space means the word is a command string (`bash -c 'old.sh fast'`),
+                # not the retired path. That probe must still taint.
+                if INTERP.match(w) and " " not in target and _retired_new(target):
+                    continue
+                return False
+            if not any(spec_hit(sp, target) for sp in specs):
                 return False
             if target.endswith(".py") and "-I" not in flags:
                 return False
@@ -895,6 +930,11 @@ def self_test() -> int:
             print(f"  {'ok  ' if ok else 'FAIL'} {kind:5} {name}: grader {'PINNED' if got else 'not pinned'}")
     # The surface's top-level directories: an instrument the reorganisation
     # moves under dev/ stays on it (R9-RO-2); docs/ is the null control.
+    both = ("if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs; else node tools/policy/policy_lint.mjs; fi")
+    got = EXEC.findall(both)
+    ok = got == [".claude/workflows/policy_lint.mjs", "tools/policy/policy_lint.mjs"]
+    bad += not ok
+    print(f"  {'ok  ' if ok else 'FAIL'} EXEC  if/then prefers the old path: {got}")
     for line, want in (("python3 -I dev/audit/rounds/x/fix.py --check", "dev/audit/rounds/x/fix.py"),
                        ("python3 -I tools/audit/x.py", "tools/audit/x.py"), ("python3 -I docs/x.py", None)):
         m = EXEC.search(line)

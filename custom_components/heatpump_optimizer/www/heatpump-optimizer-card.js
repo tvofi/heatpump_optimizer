@@ -186,6 +186,18 @@ const STRINGS = {
     "advisor.optin_degree": "Price of a degree",
     "advisor.applied": "Valve target set to {to} °C.",
     "advisor.apply_failed": "Could not apply: {error}",
+    // The drift alarm's restart points (R9-DIAG-2S, #1936).
+    "advisor.refit_title": "Restart the heat-loss model at {to} (now {from})",
+    "advisor.refit_detail":
+      "Refitted from {days} settled days ({pairs} intervals) since the last boost or restore; about ±7-10 % uncertain. Nothing changes until you accept.",
+    "advisor.refit_wait_title": "Heat-loss refit pending",
+    "advisor.refit_wait_detail":
+      "Predictions are drifting. A refit needs {need} settled days of evidence; {days} so far.",
+    "advisor.restore_title": "Restore the model from {when}",
+    "advisor.restore_detail": "The last known-good learned state, captured before the drift began.",
+    "advisor.act_adopt": "Adopt refit",
+    "advisor.act_restore": "Restore",
+    "advisor.restarted": "Learned model restarted.",
     "advisor.optin_wood": "Wood-stove timing",
     "advisor.optin_fuse": "Fuse size",
     "advisor.optin_frequency": "Compressor frequency",
@@ -789,6 +801,17 @@ const STRINGS = {
     "advisor.optin_degree": "Pris på en grad",
     "advisor.applied": "Ventilmålet satt till {to} °C.",
     "advisor.apply_failed": "Kunde inte verkställa: {error}",
+    "advisor.refit_title": "Starta om värmeförlustmodellen på {to} (nu {from})",
+    "advisor.refit_detail":
+      "Omanpassad från {days} lugna dagar ({pairs} intervall) sedan senaste boost eller återställning; osäkerhet ungefär ±7-10 %. Ingenting ändras förrän du godtar.",
+    "advisor.refit_wait_title": "Omanpassning av värmeförlusten väntar",
+    "advisor.refit_wait_detail":
+      "Prognoserna driver. En omanpassning kräver {need} lugna dagar med underlag; {days} hittills.",
+    "advisor.restore_title": "Återställ modellen från {when}",
+    "advisor.restore_detail": "Senaste kända bra inlärda läge, taget innan driften började.",
+    "advisor.act_adopt": "Godta omanpassning",
+    "advisor.act_restore": "Återställ",
+    "advisor.restarted": "Den inlärda modellen startades om.",
     "advisor.optin_wood": "Vedpannans timing",
     "advisor.optin_fuse": "Huvudsäkring",
     "advisor.optin_frequency": "Kompressorfrekvens",
@@ -8087,6 +8110,7 @@ const ADVISOR_SUFFIXES = {
   gap: "_sensor_gap_advisor",
   dhw: "_dhw_setpoint_advisor",
   valve: "_valve_target_recommendation",
+  restart: "_model_restart_advisor",
 };
 const ADVISOR_OPT_IN = ["wood", "fuse", "frequency"];
 // Shown only while the score sensor publishes no price_tiles (their switch is off).
@@ -8146,10 +8170,39 @@ function dhwCostPerDay(candidates, setpoint) {
   return y0 + ((y1 - y0) * (setpoint - x0)) / (x1 - x0);
 }
 
+/** The drift alarm's restart points (R9-DIAG-2S, #1936): nothing until the
+ * alarm is raised, then a refit row (or its progress) and a restore row, each
+ * one action through `restore_learned_snapshot`. Recommend-only: a row is
+ * advice until its button is pressed. */
+function restartRows(plan) {
+  const head = advisorRow(plan, "restart", () => ({}));
+  if (!head || head.status !== "ready") return head ? [head] : [];
+  const attrs = plan.statEntity(ADVISOR_SUFFIXES.restart).attributes || {};
+  if (!attrs.drift_alarm) return [];
+  const row = (act, title, detail) => ({ kind: "restart", status: "ready", value: null, act, title, detail });
+  const refit = attrs.refit;
+  const rows = [];
+  if (refit && typeof refit.scale === "number" && Number.isFinite(refit.scale)) {
+    rows.push(row("adopt_refit",
+      L("advisor.refit_title", { to: Number(refit.scale).toFixed(2), from: Number(attrs.current_scale).toFixed(2) }),
+      L("advisor.refit_detail", { days: Number(refit.settled_days).toFixed(1), pairs: refit.pairs })));
+  } else if (refit) {
+    rows.push(row("", L("advisor.refit_wait_title"),
+      L("advisor.refit_wait_detail", { need: refit.required_days, days: Number(refit.settled_days).toFixed(1) })));
+  }
+  if (attrs.restore) {
+    rows.push(row("restore_snapshot",
+      L("advisor.restore_title", { when: String(attrs.restore.taken_at || "").slice(0, 10) }),
+      L("advisor.restore_detail")));
+  }
+  return rows;
+}
+
 function advisorRows(host) {
   const plan = host.plan;
   const tiles = priceTiles(plan);
   const rows = [
+    ...restartRows(plan),
     advisorRow(plan, "gap", (value, attrs) => {
       if (!(value > 0) || !attrs.top_slot) return null;
       const gap = (attrs.gaps || []).find((g) => g.key === attrs.top_slot) || {};
@@ -8199,6 +8252,7 @@ function advisorRowHtml(host, row) {
   const act = {
     assign: "advisor.act_assign", open_schedule: "advisor.act_schedule",
     apply_valve: "advisor.act_apply", try_degree: "advisor.act_degree",
+    adopt_refit: "advisor.act_adopt", restore_snapshot: "advisor.act_restore",
   };
   if (row.status !== "ready") {
     const text = row.status === "waiting"
@@ -8515,6 +8569,15 @@ function attachAdvisorInbox(host, root) {
             key: "mixing_valve_target_entity", entity_id: "", manual_setpoint: to,
           });
           note(L("advisor.applied", { to }));
+        } catch (err) {
+          note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
+        }
+        return;
+      } else if (act === "adopt_refit" || act === "restore_snapshot") {
+        try {
+          await host.hass.callService("heatpump_optimizer", "restore_learned_snapshot",
+            act === "adopt_refit" ? { source: "refit" } : {});
+          note(L("advisor.restarted"));
         } catch (err) {
           note(L("advisor.apply_failed", { error: (err && err.message) || String(err) }));
         }
@@ -12337,7 +12400,7 @@ function parseConfig(config) {
 // ===========================================================================
 // The card element, and the contract its collaborators get.
 //
-// This class is being taken apart (docs/plan-card-decomposition.md): each
+// This class is being taken apart (dev/archive/plans/plan-card-decomposition.md): each
 // feature -- the plan source, the chart, the zoom window, the slot lanes,
 // the what-if panel, the setup page, the dialog -- leaves as a collaborator
 // that is handed THIS object and may use only what is listed here:
@@ -12379,7 +12442,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: "open" });
-    // The collaborators (docs/plan-card-decomposition.md), in dependency
+    // The collaborators (dev/archive/plans/plan-card-decomposition.md), in dependency
     // order. Each is handed this element and uses only the host contract.
     this.plan = new PlanSource(this);
     this.view = new ViewWindow(this);

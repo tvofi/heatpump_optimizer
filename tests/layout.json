@@ -95,8 +95,8 @@
    "globs": [
     "tools/policy/**",
     "tools/pr/**",
-    "tools/seat/**",
-    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py}",
+    "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh}",
+    "tools/audit/seat/**",
     "tools/coverage/**",
     "tools/devices/**",
     "tools/release/**",
@@ -132,6 +132,16 @@
   {
    "old": ".abacus.donotdelete",
    "new": null,
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/agreement.mjs",
+   "new": "tools/policy/agreement.mjs",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/agreement_py.py",
+   "new": "tools/policy/agreement_py.py",
    "since": null
   },
   {
@@ -147,77 +157,77 @@
   {
    "old": ".claude/workflows/carry-1067.json",
    "new": "dev/archive/carries/carry-1067.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1295.json",
    "new": "dev/archive/carries/carry-1295.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1300.json",
    "new": "dev/archive/carries/carry-1300.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1308.json",
    "new": "dev/archive/carries/carry-1308.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1320.json",
    "new": "dev/archive/carries/carry-1320.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1330.json",
    "new": "dev/archive/carries/carry-1330.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1336.json",
    "new": "dev/archive/carries/carry-1336.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1395.json",
    "new": "dev/archive/carries/carry-1395.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1398.json",
    "new": "dev/archive/carries/carry-1398.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1412.json",
    "new": "dev/archive/carries/carry-1412.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1454.json",
    "new": "dev/archive/carries/carry-1454.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1459.json",
    "new": "dev/archive/carries/carry-1459.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1463.json",
    "new": "dev/archive/carries/carry-1463.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1617.json",
    "new": "dev/archive/carries/carry-1617.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1644.json",
-   "new": "dev/programme/carries/carry-1644.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1644.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1645.json",
@@ -226,67 +236,107 @@
   },
   {
    "old": ".claude/workflows/carry-1646.json",
-   "new": "dev/programme/carries/carry-1646.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1646.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1647.json",
-   "new": "dev/programme/carries/carry-1647.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1647.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1648.json",
    "new": "dev/archive/carries/carry-1648.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1649.json",
-   "new": "dev/programme/carries/carry-1649.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1649.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1651.json",
-   "new": "dev/programme/carries/carry-1651.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1651.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1652.json",
-   "new": "dev/programme/carries/carry-1652.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1652.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1653.json",
-   "new": "dev/programme/carries/carry-1653.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1653.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1654.json",
-   "new": "dev/programme/carries/carry-1654.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1654.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1655.json",
-   "new": "dev/programme/carries/carry-1655.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1655.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1659.json",
    "new": "dev/archive/carries/carry-1659.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1660.json",
-   "new": "dev/programme/carries/carry-1660.json",
-   "since": null
+   "new": "dev/archive/carries/carry-1660.json",
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1668.json",
    "new": "dev/archive/carries/carry-1668.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-1686.json",
-   "new": "dev/programme/carries/carry-1686.json",
+   "new": "dev/archive/carries/carry-1686.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1743.json",
+   "new": "dev/archive/carries/carry-1743.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1747.json",
+   "new": "dev/archive/carries/carry-1747.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1757.json",
+   "new": "dev/archive/carries/carry-1757.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1774.json",
+   "new": "dev/programme/carries/carry-1774.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1776.json",
+   "new": "dev/archive/carries/carry-1776.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1791.json",
+   "new": "dev/archive/carries/carry-1791.json",
+   "since": "1995"
+  },
+  {
+   "old": ".claude/workflows/carry-1795.json",
+   "new": "dev/programme/carries/carry-1795.json",
+   "since": null
+  },
+  {
+   "old": ".claude/workflows/carry-1921.json",
+   "new": "dev/programme/carries/carry-1921.json",
    "since": null
   },
   {
@@ -297,22 +347,22 @@
   {
    "old": ".claude/workflows/carry-681.json",
    "new": "dev/archive/carries/carry-681.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-752.json",
    "new": "dev/archive/carries/carry-752.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-932.json",
    "new": "dev/archive/carries/carry-932.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/carry-962.json",
    "new": "dev/archive/carries/carry-962.json",
-   "since": null
+   "since": "1995"
   },
   {
    "old": ".claude/workflows/cfr_exclusions.json",
@@ -415,36 +465,6 @@
    "since": null
   },
   {
-   "old": ".claude/workflows/wave-3l-groups.json",
-   "new": "dev/archive/rosters/wave-3l-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-4-groups.json",
-   "new": "dev/archive/rosters/wave-4-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-5-groups.json",
-   "new": "dev/archive/rosters/wave-5-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-d11-groups.json",
-   "new": "dev/archive/rosters/wave-d11-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-r8-groups.json",
-   "new": "dev/archive/rosters/wave-r8-groups.json",
-   "since": null
-  },
-  {
-   "old": ".claude/workflows/wave-ux-groups.json",
-   "new": "dev/archive/rosters/wave-ux-groups.json",
-   "since": null
-  },
-  {
    "old": "docs/HANDOVER.md",
    "new": "dev/programme/HANDOVER.md",
    "since": null
@@ -452,7 +472,7 @@
   {
    "old": "docs/audit-2026-08.md",
    "new": "dev/archive/audits/audit-2026-08.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/audit-2026-09.md",
@@ -462,7 +482,7 @@
   {
    "old": "docs/backlog.md",
    "new": "dev/archive/backlog.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/decisions/",
@@ -482,72 +502,72 @@
   {
    "old": "docs/img/card-dhw-band-weekly.png",
    "new": "docs/img/model/card-dhw-band-weekly.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/card-plan-chart.png",
    "new": "docs/img/card/card-plan-chart.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/chart-anatomy.svg",
    "new": "docs/img/card/chart-anatomy.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/chart-dashed-lines.svg",
    "new": "docs/img/card/chart-dashed-lines.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/dhw-demand-windows.svg",
    "new": "docs/img/model/dhw-demand-windows.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/dhw-store-decay.svg",
    "new": "docs/img/model/dhw-store-decay.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-coil.svg",
    "new": "docs/img/model/hydronic-coil.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-single-buffer.svg",
    "new": "docs/img/model/hydronic-single-buffer.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/hydronic-two-tank.svg",
    "new": "docs/img/model/hydronic-two-tank.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/make_card_figures.mjs",
    "new": "docs/img/card/make_card_figures.mjs",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/make_model_figures.py",
    "new": "docs/img/model/make_model_figures.py",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/marginal-cop.svg",
    "new": "docs/img/model/marginal-cop.svg",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/img/options-hot-water-by-day.png",
    "new": "docs/img/card/options-hot-water-by-day.png",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/plan-1067-rotenso-inputs.md",
    "new": "dev/archive/plans/plan-1067-rotenso-inputs.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/plan-2026-09-open-issues.md",
@@ -557,62 +577,62 @@
   {
    "old": "docs/plan-card-decomposition.md",
    "new": "dev/archive/plans/plan-card-decomposition.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/plan-open-issues.md",
    "new": "dev/archive/plans/plan-open-issues.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/plan-v4.0.0-program.md",
    "new": "dev/archive/plans/plan-v4.0.0-program.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "docs/setup/",
    "new": "docs/img/setup/",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-away-plan-toggle.md",
    "new": "docs/design/2026-09-05-away-plan-toggle/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-monthly-savings-history.md",
    "new": "docs/design/2026-09-05-monthly-savings-history/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/plans/2026-09-05-wood-furnace-economics.md",
    "new": "docs/design/2026-09-05-wood-furnace-economics/plan.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-away-plan-toggle-design.md",
    "new": "docs/design/2026-09-05-away-plan-toggle/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-monthly-savings-history-design.md",
    "new": "docs/design/2026-09-05-monthly-savings-history/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "docs/superpowers/specs/2026-09-05-wood-furnace-economics-design.md",
    "new": "docs/design/2026-09-05-wood-furnace-economics/design.md",
-   "since": null
+   "since": 1994
   },
   {
    "old": "icon.png",
    "new": null,
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/README.md",
    "new": "dev/audit/README.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/app_approve.sh",
@@ -730,6 +750,11 @@
    "since": null
   },
   {
+   "old": "tools/audit/briefs/nudge.md",
+   "new": "dev/governance/roles/nudge.md",
+   "since": null
+  },
+  {
    "old": "tools/audit/briefs/orchestrator.md",
    "new": "dev/governance/roles/orchestrator.md",
    "since": null
@@ -762,22 +787,22 @@
   {
    "old": "tools/audit/handoff/r9-f2-solver-4/",
    "new": "dev/archive/handoff/r9-f2-solver-4/",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/handoff/r9-f2-solver-5/",
    "new": "dev/archive/handoff/r9-f2-solver-5/",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/handoff/r9-frictions/",
    "new": "dev/archive/handoff/r9-frictions/",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/handoff/v6612-root-cause.md",
    "new": "dev/audit/rca/v6612-root-cause.md",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/harnesses/",
@@ -787,7 +812,7 @@
   {
    "old": "tools/audit/ledger-layout/",
    "new": "dev/archive/experiments/ledger-layout/",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/preflight.sh",
@@ -807,7 +832,7 @@
   {
    "old": "tools/audit/rca/",
    "new": "dev/audit/rca/",
-   "since": null
+   "since": "1995"
   },
   {
    "old": "tools/audit/record-predicate/",
@@ -875,11 +900,6 @@
    "since": null
   },
   {
-   "old": "tools/audit/seat/",
-   "new": "tools/seat/",
-   "since": null
-  },
-  {
    "old": "tools/audit/w5-g5-195-coverage/",
    "new": "dev/audit/waves/w5-g5-195-coverage/",
    "since": null
@@ -887,11 +907,6 @@
   {
    "old": "tools/audit/w5-partition/",
    "new": "tools/coverage/",
-   "since": null
-  },
-  {
-   "old": "tools/audit/worktree_gc.sh",
-   "new": "tools/seat/worktree_gc.sh",
    "since": null
   },
   {

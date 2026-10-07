@@ -460,6 +460,9 @@
     "restore_learned_snapshot_no_snapshot": {
       "message": "No learner snapshot qualifies for restore for {entry_ids}: a snapshot needs healthy inputs and in-band accuracy at its capture time"
     },
+    "restore_learned_snapshot_no_refit": {
+      "message": "No heat-loss refit is on offer for {entry_ids}: a refit needs an active drift alarm and three settled days of evidence"
+    },
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
     },
@@ -474,6 +477,18 @@
     },
     "tibber_fetch_failed": {
       "message": "Electricity prices could not be fetched: {error}"
+    },
+    "apply_schedule_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "set_thermal_params_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "simulate_plan_invalid_quiet_windows": {
+      "message": "Invalid quiet windows: {error}"
+    },
+    "quiet_windows_overlap": {
+      "message": "Overlapping quiet windows: {overlap}"
     }
   },
   "options": {
@@ -1637,11 +1652,11 @@
     },
     "accuracy_drift": {
       "title": "Learned model is drifting",
-      "description": "The optimizer's predictions have been consistently off for several days, which usually means something about the house or the system changed faster than the learners can follow. Check that sensors read sensibly. If the plan has become noticeably worse, the \"Restore learned snapshot\" service rolls the learned model back to the last known-good weekly snapshot."
+      "description": "The optimizer's predictions have been consistently off for several days, which usually means something about the house or the system changed faster than the learners can follow. Check that sensors read sensibly. If the plan has become noticeably worse, the \"Restore learned snapshot\" service rolls the learned model back to the last known-good weekly snapshot. The Model Restart Advisor sensor and the card's Advisor tab offer that snapshot and, once three settled days of evidence exist, a refit of the house heat-loss scale with its uncertainty of about ±7-10 %. Nothing is applied until you accept one."
     },
     "accuracy_drift_rolled_back": {
       "title": "Learned model was restored from a snapshot",
-      "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point."
+      "description": "The optimizer's predictions drifted out of band for several days while all inputs looked healthy, so the learned model was automatically rolled back to the most recent known-good weekly snapshot. Nothing is required from you; this notice is here so the change is visible. If the drift was real — new radiators, changed insulation — the learners will simply relearn from the restored point. If predictions stay off, the Model Restart Advisor offers a refit of the house heat-loss scale after three settled days of evidence, with its uncertainty of about ±7-10 %; nothing is applied until you accept it."
     },
     "freq_watchdog": {
       "title": "Frequency control stood down",
@@ -1730,6 +1745,10 @@
     "store_version": {
       "title": "Stored learning could not be read",
       "description": "The optimizer's stored data {store} cannot be read: {detail}. This release has no migration for it, so that part of what it had learned starts again from defaults. This happens after installing an older version over a newer one, or a newer one that changed how the data is stored. Nothing needs to be done for the optimizer to keep running. If the data was saved by a newer version, it is left as it is and this version saves nothing over it: reinstall the newer version to get it back, or, to keep this version, delete the file {store} in the .storage folder and restart."
+    },
+    "quiet_silent_not_enforced": {
+      "title": "Silent windows are not enforced",
+      "description": "Silent windows are configured, but the capacity-limited slot ({entity}) is not a switch this integration can hold on, so the plan is not capped for them and the heat pump is never asked to run silently. Assign the heat pump's own night/silent-mode switch as the capacity-limited entity, or remove the silent rows."
     }
   },
   "entity": {
@@ -1959,6 +1978,9 @@
       },
       "wood_burn_advisor": {
         "name": "Wood-Burn Night Advisor"
+      },
+      "model_restart_advisor": {
+        "name": "Model Restart Advisor"
       }
     },
     "binary_sensor": {
@@ -2159,6 +2181,18 @@
         "ecl110_displace_max": {
           "name": "ECL110 displace maximum",
           "description": "Highest parallel shift the optimizer may command, in °C."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2229,6 +2263,18 @@
         "wood_furnace_efficiency": {
           "name": "Wood furnace efficiency",
           "description": "What-if furnace efficiency in percent."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2307,6 +2353,18 @@
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the change to one config entry. Leave empty to apply to every configured heat pump, which is what a single-heat-pump install wants."
+        },
+        "quiet_silent_windows": {
+          "name": "Silent windows",
+          "description": "Time frames to run the heat pump silently, in the same grammar as the hot water windows, e.g. \"22:00-06:00\". The plan caps electrical power inside them at the silent power fraction of nameplate. An empty string removes the silent rows."
+        },
+        "quiet_off_windows": {
+          "name": "Off windows",
+          "description": "Time frames in which nothing is planned at all: no space heating and no hot-water slots, e.g. \"weekend 23:00-07:00\". The plan pre-heats before them. An off window may not overlap a hot-water window. An empty string removes the off rows."
+        },
+        "silent_mode_power_fraction": {
+          "name": "Silent power fraction",
+          "description": "The fraction of nameplate electrical power the heat pump keeps inside a silent window, 0.6 to 1.0. 1.0 shows the rows but caps nothing."
         }
       }
     },
@@ -2344,11 +2402,15 @@
     },
     "restore_learned_snapshot": {
       "name": "Restore Learned Snapshot",
-      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore.",
+      "description": "Roll every learner back to the most recent weekly snapshot that was captured while all inputs were healthy and prediction accuracy was in band. Use this if the learned model has visibly gone wrong — after a sensor fed garbage for a while, for example. The drift watchdog does the same thing automatically when it can prove the inputs were healthy throughout; this service is the manual override for when you can see what it cannot. Nothing is lost permanently: learning simply continues from the restored point. The call fails with an error when no snapshot qualifies, instead of answering with an empty restore. With the source set to the heat-loss refit, it instead accepts the drift advisor's refit of the house heat-loss scale, offered while the drift alarm is raised and three settled days of evidence exist.",
       "fields": {
         "entry_id": {
           "name": "Config entry",
           "description": "Restrict the restore to one config entry. Leave empty to restore every configured heat pump."
+        },
+        "source": {
+          "name": "Restart point",
+          "description": "The weekly snapshot (default), or the drift advisor's heat-loss refit."
         }
       }
     },

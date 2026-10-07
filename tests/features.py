@@ -17134,6 +17134,375 @@ R.check(
     "weekly save",
 )
 
+# --- R9-DIAG-2S (#1936): the restart recommendation at drift-warning time ----
+#
+# At the accuracy_drift alarm the advisor offers up to two restart points:
+# the last known-good snapshot, and a batch refit of house_heat_loss_scale
+# from settled evidence -- the interval learner's own Newton relation pooled
+# over the tracker's pairs instead of 2 % a sample for days. Recommend-only:
+# the refit applies through _apply_learner_payloads on an explicit accept.
+# The oracle below is the learner's own per-sample step
+# (``learner_newton_step``) with its walk and trust region opened wide: a
+# batch of identical pairs must land exactly on that step's target.
+from heatpump_optimizer import accuracy as _rs_acc  # noqa: E402
+from heatpump_optimizer import sensor as _rs_sensor  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HOUSE_LOSS_MAX_RESIDUAL as _RS_MAX_RES,
+    HOUSE_LOSS_MIN_DELTA as _RS_MIN_DT,
+    async_adopt_heat_loss_refit as _rs_adopt,
+    model_restart_advice as _rs_advice,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    learner_newton_step as _rs_newton,
+)
+
+_RS_T0 = datetime(2026, 1, 10, 0, 0, tzinfo=UTC)
+
+
+def _rs_rows(start, days, residual, *, dt_h=0.5, pred=21.0, outdoor=-4.0,
+             boosted=None):
+    """``days`` of pairs after ``start``, one per ``dt_h``: observed minus
+    predicted is ``residual`` at a constant outdoor. ``boosted`` is a
+    (from, to) span whose rows carry the #1935 tag and no prediction, as
+    ``_record_accuracy`` writes them."""
+    out = []
+    for i in range(1, int(round(days * 24 / dt_h)) + 1):
+        when = start + timedelta(hours=dt_h * i)
+        tag = boosted is not None and boosted[0] <= when < boosted[1]
+        out.append(AccuracySample(
+            when=when, predicted_temp=None if tag else pred,
+            actual_temp=pred + residual, outdoor_temp=outdoor,
+            boost_space=tag,
+        ))
+    return out
+
+
+def _rs_target(current, base_u, capacity, residual, *, dt_h=0.5, pred=21.0,
+               outdoor=-4.0):
+    """The learner's one-sample Newton target for such a pair, about the
+    pair's mean indoor temperature."""
+    delta_t = pred + residual / 2.0 - outdoor
+    return _rs_newton(
+        current, base_u, capacity, residual, delta_t, dt_h,
+        trust_region=1e9, alpha=1.0, max_step_fraction=1e9,
+    )[0]
+
+
+def _rs_fit(rows, *, since=None, current=1.0, base_u=0.15, capacity=10.0,
+            dt_h=0.5, settle=boost_mod.SPACE_SETTLE_TAIL):
+    return _rs_acc.heat_loss_refit(
+        rows, current_scale=current, base_u=base_u, capacity=capacity,
+        dt_hours=dt_h, min_delta=_RS_MIN_DT, max_residual=_RS_MAX_RES,
+        settle=settle, since=since,
+    )
+
+
+_rs_one = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03))
+R.check(
+    "#1936: a batch of identical settled pairs lands on the learner's own "
+    "Newton target for one of them",
+    _rs_one["scale"] is not None
+    and abs(_rs_one["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9,
+    f"refit={_rs_one} target={_rs_target(1.0, 0.15, 10.0, -0.03):.4f}",
+)
+R.check(
+    "#1936: the refit states its own band and the evidence behind it",
+    _rs_one["band_percent"] == 10
+    and _rs_one["band_percent"] == _rs_acc.REFIT_BAND_PERCENT
+    and _rs_one["pairs"] == 192
+    and _rs_one["required_days"] == _rs_acc.REFIT_SETTLED_DAYS
+    and abs(_rs_one["settled_days"] - 4.0) < 0.05,
+    f"{_rs_one}",
+)
+_rs_lo = _rs_target(1.0, 0.15, 10.0, -0.03)
+_rs_hi = _rs_target(1.0, 0.15, 10.0, -0.06)
+_rs_mix = _rs_fit(
+    _rs_rows(_RS_T0, 2.0, -0.03)
+    + _rs_rows(_RS_T0 + timedelta(days=2), 2.0, -0.06)
+)
+R.check(
+    "#1936: two kinds of pair pool to a value strictly between their targets",
+    _rs_mix["scale"] is not None and _rs_lo < _rs_mix["scale"] < _rs_hi,
+    f"{_rs_lo:.4f} < {_rs_mix['scale']} < {_rs_hi:.4f}",
+)
+_rs_short = _rs_fit(_rs_rows(_RS_T0, 2.5, -0.03))
+R.check(
+    "#1936: under three settled days there is no refit, only the progress",
+    _rs_short["scale"] is None and abs(_rs_short["settled_days"] - 2.5) < 0.05,
+    f"{_rs_short}",
+)
+# dt_hours of 0 is the clamp's own input: the pair floor stays the 1e-6
+# stand-in, and the call returns a dict instead of dividing by the interval.
+_rs_zero_dt = _rs_fit(_rs_rows(_RS_T0, 4.0, -0.03), dt_h=0.0)
+R.check(
+    "#1936: a zero interval still answers a dict -- the pair floor stays finite",
+    _rs_zero_dt["scale"] is None and _rs_zero_dt["pairs"] > 0,
+    f"{_rs_zero_dt}",
+)
+# The admission bounds are closed on the admitted side. A pair on the floor
+# or on the residual ceiling is evidence; one step the other way is not.
+_rs_on_floor = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=15.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a pair sitting on the indoor/outdoor floor is admitted",
+    _rs_on_floor == (0.0, _RS_MIN_DT),
+    f"{_rs_on_floor}",
+)
+_rs_on_ceiling = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=22.0,
+                   outdoor_temp=10.0),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a pair sitting on the residual ceiling is admitted",
+    _rs_on_ceiling == (_RS_MAX_RES, 11.5),
+    f"{_rs_on_ceiling}",
+)
+_rs_tagged_pair = _rs_acc._refit_pair(
+    AccuracySample(when=_RS_T0, predicted_temp=21.0, actual_temp=21.0,
+                   outdoor_temp=10.0, boost_space=True),
+    _RS_MIN_DT, _RS_MAX_RES,
+)
+R.check(
+    "#1936: a boost-tagged pair is refused before it can move the step",
+    _rs_tagged_pair is None,
+    f"{_rs_tagged_pair}",
+)
+
+
+def _rs_clip(**over):
+    args = dict(current_scale=1.0, num=1.0, den=10.0, pairs=100, days=4.0,
+                base_u=0.15, dt_hours=0.5)
+    args.update(over)
+    return _rs_acc._clipped_refit_scale(**args)
+
+
+R.check(
+    "#1936: exactly three settled days is enough evidence",
+    _rs_clip(days=3.0) is not None,
+    f"{_rs_clip(days=3.0)}",
+)
+R.check(
+    "#1936: a day's worth of pairs, exactly, is enough evidence",
+    _rs_clip(pairs=48) is not None,
+    f"{_rs_clip(pairs=48)}",
+)
+R.check(
+    "#1936: a zero indoor/outdoor sum is not a step",
+    _rs_clip(den=0.0) is None,
+    f"{_rs_clip(den=0.0)}",
+)
+R.check(
+    "#1936: a base loss at the floor is not a step",
+    _rs_clip(base_u=1e-6) is None,
+    f"{_rs_clip(base_u=1e-6)}",
+)
+R.check(
+    "#1936: a non-finite step is not a recommendation",
+    _rs_clip(num=float("nan")) is None,
+    f"{_rs_clip(num=float('nan'))}",
+)
+# A boost window on day 1, then 12 h of diverged plant state: the rows
+# before the window's end plus the tail carry a large cold residual, the
+# settled rows after it a small one. Only the settled rows may answer.
+_rs_boost_from = _RS_T0 + timedelta(days=1)
+_rs_boost_to = _rs_boost_from + timedelta(hours=boost_mod.BOOST_HOURS)
+# A row's stamp is its interval's END, so the last tagged row is the one
+# settling half an hour before the window's own end.
+_rs_settled = (_rs_boost_to - timedelta(minutes=30)
+               + boost_mod.SPACE_SETTLE_TAIL)
+_rs_pre = [
+    r for r in _rs_rows(_RS_T0, 5.0, -0.3,
+                        boosted=(_rs_boost_from, _rs_boost_to))
+    if r.when <= _rs_settled
+]
+_rs_post = [r for r in _rs_rows(_RS_T0, 5.0, -0.03) if r.when > _rs_settled]
+_rs_b = _rs_fit(_rs_pre + _rs_post)
+R.check(
+    "#1936: evidence starts after the last boost-tagged row plus the settling "
+    "tail -- the window and its diverged tail answer nothing",
+    _rs_b["scale"] is not None
+    and abs(_rs_b["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9
+    and _rs_b["settled_since"] == _rs_settled.isoformat(),
+    f"{_rs_b}",
+)
+_rs_b_short = _rs_fit(_rs_pre + [r for r in _rs_post
+                                 if r.when < _rs_settled + timedelta(days=2)])
+R.check(
+    "#1936: and the three days are counted from there, not from the oldest row",
+    _rs_b_short["scale"] is None,
+    f"{_rs_b_short}",
+)
+_rs_since = _RS_T0 + timedelta(days=1)
+_rs_s = _rs_fit(
+    _rs_rows(_RS_T0, 1.0, -0.3) + _rs_rows(_rs_since, 3.5, -0.03),
+    since=_rs_since,
+)
+R.check(
+    "#1936: a restore boundary excludes every pair before it",
+    _rs_s["scale"] is not None
+    and abs(_rs_s["scale"] - round(_rs_target(1.0, 0.15, 10.0, -0.03), 3))
+    < 1e-9,
+    f"{_rs_s}",
+)
+_rs_g = _rs_fit(
+    _rs_rows(_RS_T0, 4.0, -0.03)
+    + _rs_rows(_RS_T0, 1.0, -0.5, outdoor=18.0)
+    + _rs_rows(_RS_T0, 1.0, -1.5)
+)
+R.check(
+    "#1936: the learner's own admission guards hold -- a pair under the "
+    "minimum indoor/outdoor difference, or past the residual cap, is refused",
+    _rs_g["pairs"] == 192
+    and _rs_g["scale"] == _rs_one["scale"],
+    f"{_rs_g}",
+)
+_rs_thin = _rs_fit(
+    _rs_rows(_RS_T0, 4.0, -0.03, outdoor=18.0)
+    + _rs_rows(_RS_T0 + timedelta(days=3.6), 0.4, -0.03)
+)
+R.check(
+    "#1936: three settled days with under a day of admitted pairs is not "
+    "evidence",
+    _rs_thin["scale"] is None and 0 < _rs_thin["pairs"] < 48,
+    f"{_rs_thin}",
+)
+_rs_tr = _rs_acc.AccuracyTracker()
+_rs_tr.restart_evidence(_rs_since)
+R.check(
+    "#1936: the restore boundary survives the store round trip",
+    _rs_acc.AccuracyTracker.from_dict(_rs_tr.as_dict()).evidence_since
+    == _rs_since
+    and _rs_acc.AccuracyTracker.from_dict({}).evidence_since is None,
+    f"{_rs_tr.as_dict().get('evidence_since')!r}",
+)
+
+# The coordinator: nothing to say until the alarm; at the alarm, both
+# restart points, and a refit only from evidence after the rollback.
+_rs_quiet = _t2_coord()
+_rs_qa = _rs_advice(_rs_quiet)
+R.check(
+    "#1936: with no drift alarm the advisor offers nothing",
+    _rs_qa["drift_alarm"] is False
+    and _rs_qa["refit"] is None and _rs_qa["restore"] is None
+    and _rs_qa["current_scale"] == round(_rs_quiet._house_heat_loss_scale, 3),
+    f"{_rs_qa}",
+)
+_rs_c = _drift_run()
+_rs_rolled_at = datetime(2026, 3, 1, 3, 0, tzinfo=UTC) + timedelta(days=5)
+_rs_p = _rs_c._thermal_params
+_rs_dt = 30 / 60.0
+for _rs_row in (
+    _rs_rows(_rs_rolled_at - timedelta(days=2), 2.0, -0.3, dt_h=_rs_dt)
+    + _rs_rows(_rs_rolled_at, 3.5, -0.03, dt_h=_rs_dt)
+):
+    _rs_c._accuracy.record(_rs_row)
+_rs_want = round(_rs_target(
+    _rs_c._house_heat_loss_scale, _rs_p.heat_loss_coefficient,
+    _rs_p.room_thermal_mass, -0.03, dt_h=_rs_dt,
+), 3)
+_rs_ca = _rs_advice(_rs_c)
+R.check(
+    "#1936: at the alarm the advisor offers the last known-good snapshot",
+    _rs_ca["drift_alarm"] is True
+    and _rs_ca["restore"] is not None
+    and _rs_ca["restore"]["taken_at"]
+    == _rs_c._snapshot_ring.best_restore()["taken_at"],
+    f"{_rs_ca}",
+)
+R.check(
+    "#1936: and a refit from the pairs after the auto-rollback only -- the "
+    "rollback restarted the evidence",
+    _rs_ca["refit"] is not None and _rs_ca["refit"]["scale"] == _rs_want,
+    f"refit={_rs_ca['refit']} want={_rs_want}",
+)
+_rs_p.two_zone_enabled = True
+_rs_want2 = round(_rs_target(
+    _rs_c._house_heat_loss_scale, _rs_p.upper_floor_heat_loss,
+    _rs_p.upper_floor_thermal_mass, -0.03, dt_h=_rs_dt,
+), 3)
+_rs_ca2 = _rs_advice(_rs_c)
+_rs_p.two_zone_enabled = False
+R.check(
+    "#1936: two-zone refits about the upper zone, as the learner does",
+    _rs_ca2["refit"]["scale"] == _rs_want2 and _rs_want2 != _rs_want,
+    f"refit={_rs_ca2['refit']} want={_rs_want2}",
+)
+_rs_sensor_entity = _rs_sensor.ModelRestartAdvisorSensor(_rs_c, _FakeEntry(data={}))
+R.check(
+    "#1936: the advisor sensor reads the recommended scale and both options",
+    _rs_sensor_entity.native_value == _rs_want
+    and _rs_sensor_entity.extra_state_attributes["refit"]["scale"] == _rs_want
+    and _rs_sensor_entity.extra_state_attributes["restore"] is not None
+    and _rs_sensor_entity.entity_category == _rs_sensor.EntityCategory.DIAGNOSTIC,
+    f"{_rs_sensor_entity.native_value} {_rs_sensor_entity.extra_state_attributes}",
+)
+R.check(
+    "#1936: with no alarm the sensor reads the scale in use (nothing to change)",
+    _rs_sensor.ModelRestartAdvisorSensor(_rs_quiet, _FakeEntry(data={}))
+    .native_value == round(_rs_quiet._house_heat_loss_scale, 3),
+)
+_rs_before = _rs_c._house_heat_loss_scale
+_real_now_rs = _dt_mod_t4b.now
+try:
+    _dt_mod_t4b.now = lambda: _rs_rolled_at + timedelta(days=3, hours=13)
+    _asyncio.run(_rs_c._async_watch_learning_drift())
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+R.check(
+    "#1936: recommend-only -- a heartbeat with a refit on offer applies nothing",
+    _rs_c._house_heat_loss_scale == _rs_before
+    and _rs_advice(_rs_c)["refit"]["scale"] == _rs_want,
+    f"scale {_rs_c._house_heat_loss_scale}",
+)
+_rs_payload_before = _rs_c._thermal_learning_payload()
+_rs_accept_at = _rs_rolled_at + timedelta(days=3, hours=14)
+try:
+    _dt_mod_t4b.now = lambda: _rs_accept_at
+    _rs_ok = _asyncio.run(_rs_adopt(_rs_c))
+finally:
+    _dt_mod_t4b.now = _real_now_rs
+_rs_payload_after = _rs_c._thermal_learning_payload()
+R.check(
+    "#1936: accepting applies the refit through the restore path",
+    _rs_ok is True and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
+    f"ok={_rs_ok} scale={_rs_c._house_heat_loss_scale}",
+)
+# ``updated_at`` is the payload's own write stamp, not learned state.
+_rs_moved = sorted(
+    k for k in set(_rs_payload_before) | set(_rs_payload_after)
+    if _rs_payload_after.get(k) != _rs_payload_before.get(k)
+)
+R.check(
+    "#1936: and moves nothing else the thermal store carries",
+    _rs_moved == ["house_heat_loss_scale", "updated_at"],
+    f"moved {_rs_moved}",
+)
+_rs_after_adv = _rs_advice(_rs_c)
+R.check(
+    "#1936: an accepted refit restarts the evidence -- the pairs it was fitted "
+    "from cannot be applied a second time",
+    _rs_c._accuracy.evidence_since == _rs_accept_at
+    and _rs_after_adv["refit"]["scale"] is None,
+    f"since={_rs_c._accuracy.evidence_since} refit={_rs_after_adv['refit']}",
+)
+R.check(
+    "#1936: with no refit on offer, accepting refuses and changes nothing",
+    _asyncio.run(_rs_adopt(_rs_c)) is False
+    and round(_rs_c._house_heat_loss_scale, 3) == _rs_want,
+)
+_rs_quiet_scale = _rs_quiet._house_heat_loss_scale
+R.check(
+    "#1936: and with no alarm there is nothing to accept",
+    _asyncio.run(_rs_adopt(_rs_quiet)) is False
+    and _rs_quiet._house_heat_loss_scale == _rs_quiet_scale,
+)
+
 # --- persistence: the detectors' memory rides the thermal store ----------------------
 _cp = _t2_coord()
 _cp._vent_cusum.stat = 0.66
@@ -20289,6 +20658,7 @@ _SVC_KEYS = {
     "simulate_plan_invalid_windows": ({"windows", "error"}, "sve"),
     "simulate_plan_failed": ({"entry_ids", "error"}, "hae"),
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
+    "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
 }
 
@@ -20454,6 +20824,26 @@ _svc_check(
     "operational error",
     _svc_call(_svc_hass, "restore_learned_snapshot", {}),
     "restore_learned_snapshot_no_snapshot",
+)
+_svc_check(
+    "#1936: restore_learned_snapshot from the refit with none on offer raises "
+    "a translated operational error",
+    _svc_call(_svc_hass, "restore_learned_snapshot", {"source": "refit"}),
+    "restore_learned_snapshot_no_refit",
+)
+from heatpump_optimizer import services as _svc_mod_rs  # noqa: E402
+import voluptuous as _svc_vol_rs  # noqa: E402
+
+try:
+    _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "bogus"})
+    _svc_rs_refused = False
+except _svc_vol_rs.Invalid:
+    _svc_rs_refused = True
+R.check(
+    "#1936: the restore source is one of the two restart points, nothing else",
+    _svc_rs_refused
+    and _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "snapshot"})
+    and _svc_mod_rs.SERVICE_SCHEMA_RESTORE_SNAPSHOT({"source": "refit"}),
 )
 _svc_check(
     "set_thermal_parameters with unparseable windows refuses the call "
@@ -26994,6 +27384,497 @@ R.check(
 )
 
 
+R.section("#1910 SW-1 — the user's quiet windows: silent caps, an off mask")
+from heatpump_optimizer import quiet_windows as _qw  # noqa: E402
+
+_QW_SILENT = _g4_const.CONF_QUIET_SILENT_WINDOWS
+_QW_OFF = _g4_const.CONF_QUIET_OFF_WINDOWS
+_QW_FRAC = _g4_const.CONF_SILENT_MODE_FRACTION
+_QW_LIMITED = _g4_const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY
+_QW_POWER = _g4_const.CONF_POWER_ENTITY
+_QW_FLOOR = _g4_const.CAPACITY_FLOOR_FRACTION
+_QW_NONE, _QW_S, _QW_O = _qw.ACTION_NONE, _qw.ACTION_SILENT, _qw.ACTION_OFF
+
+# The actions. Same clock discipline as the pump's own schedule: a window
+# binds the steps whose OWN start falls in it, per that step's weekday.
+_qw_acts = _qw.step_actions(_g4_eve, 96, 0.25, "22:00-06:00", "09:00-09:30")
+R.check(
+    "a midnight-wrapping silent window and a morning off window mark exactly their own steps",
+    _qw_acts is not None
+    and [i for i, a in enumerate(_qw_acts) if a == _QW_S] == list(range(8, 40))
+    and [i for i, a in enumerate(_qw_acts) if a == _QW_O] == list(range(52, 54)),
+    f"silent {[i for i, a in enumerate(_qw_acts if _qw_acts is not None else []) if a == _QW_S][:3]}.., "
+    f"off {[i for i, a in enumerate(_qw_acts if _qw_acts is not None else []) if a == _QW_O]}",
+)
+R.check(
+    "no rows is None, and a spec the horizon never reaches is None too",
+    _qw.step_actions(_g4_eve, 96, 0.25, "", "") is None
+    and _qw.step_actions(_g4_eve, 4, 0.25, "02:00-03:00", "") is None,
+)
+# DST: the off mask counts the real hours on the transition nights, exactly
+# as the pump's own schedule does -- wall-clock counting gives 12 each time.
+_qw_dst = {
+    label: int(np.sum(_qw.step_actions(
+        datetime(2026, month, day, 0, 0, tzinfo=_G4Zone("Europe/Stockholm")),
+        96, 0.25, "", "01:00-04:00",
+    ) == _QW_O))
+    for label, month, day in (("spring", 3, 29), ("plain", 3, 30), ("autumn", 10, 25))
+}
+R.check(
+    "on the DST nights the off window marks the real hours: 8 spring, 12 plain, 16 autumn",
+    _qw_dst == {"spring": 8, "plain": 12, "autumn": 16},
+    f"{_qw_dst}",
+)
+# Day selectors follow the step's own weekday (an off row that would
+# collide with a hot-water row is refused at save, not here).
+_qw_sat2 = datetime(2026, 1, 17, 0, 0, tzinfo=_G4Zone("Europe/Stockholm"))
+R.check(
+    "a weekend-only off window marks Saturday and not Monday",
+    int(np.sum(_qw.step_actions(_qw_sat2, 96, 0.25, "", "weekend 01:00-02:00") == _QW_O)) == 4
+    and _qw.step_actions(
+        datetime(2026, 1, 19, 0, 0, tzinfo=_G4Zone("Europe/Stockholm")),
+        96, 0.25, "", "weekend 01:00-02:00",
+    ) is None,
+)
+
+# The gate and the caps. A usable silent control is the capacity-limited
+# slot being a switch -- decided from the entity ID, never the state, so
+# the unknown-at-start arm below is the same configuration as a reporting
+# one. The get_state here serves the MEASURED figure only.
+def _qw_states(mapping):
+    return lambda entity_id: mapping.get(entity_id)
+
+_qw_switch = {_QW_LIMITED: "switch.pump_night_mode", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7}
+_qw_comp = _qw.compose(
+    None, _qw_switch, _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+    optimizer_active=True,
+)
+R.check(
+    "a silent row with a switch control caps the window at the fraction of nameplate",
+    _qw_comp.caps is not None
+    and _g4_capped(_qw_comp.caps) == list(range(8, 40))
+    and abs(float(_qw_comp.caps[8]) - 3.5) < 1e-9
+    and _qw_comp.off_steps is None
+    and _qw_comp.silent_dropped is False,
+    f"caps {None if _qw_comp.caps is None else sorted(set(np.round(_qw_comp.caps, 4).tolist()))}, "
+    f"dropped {_qw_comp.silent_dropped}",
+)
+# The Rotenso arm (tvofi, 2026-10-04): a night-mode switch that transmits
+# on change only reads unknown until its first report. Unknown is not off:
+# the domain is the verdict, the state never enters it.
+_qw_unknown = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.rotenso_night_mode", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7},
+    _qw_states({"switch.rotenso_night_mode": FakeState("unknown")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a switch still unknown at solve time enforces the window (unknown is not off)",
+    _qw_unknown.caps is not None
+    and _g4_capped(_qw_unknown.caps) == list(range(8, 40))
+    and _qw_unknown.silent_dropped is False,
+    f"capped {None if _qw_unknown.caps is None else len(_g4_capped(_qw_unknown.caps))} steps, "
+    f"dropped {_qw_unknown.silent_dropped}",
+)
+# A read-only flag cannot be held: silent rows drop (with the marker for
+# the card and the repair), off rows do not need a control and stay.
+_qw_sensor = _qw.compose(
+    None,
+    {_QW_LIMITED: "binary_sensor.gchv_night", _QW_SILENT: "22:00-06:00",
+     _QW_OFF: "09:00-09:30", _QW_FRAC: 0.7},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a read-only capacity-limited slot drops the silent cap and keeps the off mask",
+    _qw_sensor.caps is None
+    and _qw_sensor.silent_dropped is True
+    and _qw_sensor.off_steps is not None
+    and [i for i, v in enumerate(_qw_sensor.off_steps) if v] == [52, 53],
+    f"caps {_qw_sensor.caps}, dropped {_qw_sensor.silent_dropped}, "
+    f"off {[i for i, v in enumerate(_qw_sensor.off_steps if _qw_sensor.off_steps is not None else []) if v]}",
+)
+# D2: while the optimizer is off, quiet windows plan nothing at all.
+_qw_modeoff = _qw.compose(
+    None, _qw_switch, _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+    optimizer_active=False,
+)
+R.check(
+    "while the optimizer is off no window plans anything (D2)",
+    _qw_modeoff.caps is None and _qw_modeoff.off_steps is None
+    and _qw_modeoff.actions is None and _qw_modeoff.silent_dropped is True,
+    f"caps {_qw_modeoff.caps}, off {_qw_modeoff.off_steps}, "
+    f"dropped {_qw_modeoff.silent_dropped}",
+)
+# Inert when unset: the caller's array comes back as the SAME object.
+_qw_other_cap = np.array([4.0] * 96)
+R.check(
+    "unset, compose hands the other cap back untouched, the same object",
+    _qw.compose(_qw_other_cap, {}, _qw_states({}), _g4_eve, 96, 0.25, 5.0).caps
+    is _qw_other_cap
+    and _qw.compose(None, {}, _qw_states({}), _g4_eve, 96, 0.25, 5.0).caps is None,
+)
+R.check(
+    "a stored spec this version cannot read caps nothing rather than raising",
+    _qw.compose(None, {_QW_SILENT: "garbage", _QW_FRAC: 0.7}, _qw_states({}),
+                _g4_eve, 96, 0.25, 5.0).caps is None,
+)
+# The floor, and the fraction taken exactly as configured (tvofi 2026-10-04
+# ask 2): 1.0 shows rows but caps nothing; below the floor it floors.
+_qw_floor = _qw.compose(
+    None, {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+_qw_one = _qw.compose(
+    None, {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 1.0},
+    _qw_states({}), _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a fraction below the floor floors at CAPACITY_FLOOR_FRACTION; 1.0 caps nothing but the rows still resolve",
+    _qw_floor.caps is not None
+    and abs(float(np.min(_qw_floor.caps)) - _QW_FLOOR * 5.0) < 1e-9
+    and _qw_one.caps is None
+    and _qw_one.actions is not None
+    and int(np.sum(_qw_one.actions == _QW_S)) == 32,
+    f"floor {None if _qw_floor.caps is None else float(np.min(_qw_floor.caps))}, "
+    f"at 1.0 caps {_qw_one.caps}, silent steps "
+    f"{0 if _qw_one.actions is None else int(np.sum(_qw_one.actions == _QW_S))}",
+)
+# Measured power preferred (ask 3): a power entity in W, a frequency
+# reading scaled by its range -- each INSTEAD of the configured fraction.
+# Figures sit above the floor (0.6 of the 5 kW nameplate here), because
+# the floor holds for a measured figure exactly as for a configured one.
+_qw_meas_w = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+     _QW_POWER: "sensor.hp_power"},
+    _qw_states({"sensor.hp_power": FakeState("3500", unit="W")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+_qw_meas_hz = _qw.compose(
+    None,
+    {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+     _g4_const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hp_hz",
+     _g4_const.CONF_COMPRESSOR_FREQ_MAX_HZ: 120.0},
+    _qw_states({"sensor.hp_hz": FakeState("90")}),
+    _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a measured power figure replaces the configured reduction: 3500 W reads 3.5 kW, 90 of 120 Hz reads 3.75 kW",
+    _qw_meas_w.caps is not None and abs(float(_qw_meas_w.caps[8]) - 3.5) < 1e-9
+    and _qw_meas_hz.caps is not None
+    and abs(float(_qw_meas_hz.caps[8]) - 3.75) < 1e-9,
+    f"W arm {None if _qw_meas_w.caps is None else float(_qw_meas_w.caps[8])}, "
+    f"Hz arm {None if _qw_meas_hz.caps is None else float(_qw_meas_hz.caps[8])}",
+)
+R.check(
+    "a measured figure below the floor still floors -- the floor is the envelope's, not the fraction's",
+    _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.3,
+         _QW_POWER: "sensor.hp_power"},
+        _qw_states({"sensor.hp_power": FakeState("1400", unit="W")}),
+        _g4_eve, 96, 0.25, 5.0,
+    ).caps is not None,
+    "a 1.4 kW reading on a 5 kW nameplate must cap at the 3.0 kW floor",
+)
+R.check(
+    "an unreadable unit is no reading rather than a guess: 3500 with no unit falls back to the fraction",
+    _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7,
+         _QW_POWER: "sensor.hp_power"},
+        _qw_states({"sensor.hp_power": FakeState("3500")}),
+        _g4_eve, 96, 0.25, 5.0,
+    ).caps is not None,
+    "the fallback arm must cap at the fraction (3.5 kW), not at 3500 kW",
+)
+
+# The save-time refusals (plan section 2.1).
+R.check(
+    "an off window overlapping a hot-water window is refused with the overlap named",
+    _qw.overlap_problem("", "05:00-07:00", "06:00-08:30")
+    is not None
+    and "05:00" in _qw.overlap_problem("", "05:00-07:00", "06:00-08:30"),
+    f"{_qw.overlap_problem('', '05:00-07:00', '06:00-08:30')!r}",
+)
+R.check(
+    "a silent window may overlap a hot-water one; a silent/off overlap is refused",
+    _qw.overlap_problem("05:00-07:00", "", "06:00-08:30") is None
+    and _qw.overlap_problem("05:00-07:00", "06:00-07:30", "") is not None,
+    f"silent/dhw {_qw.overlap_problem('05:00-07:00', '', '06:00-08:30')!r}, "
+    f"silent/off {_qw.overlap_problem('05:00-07:00', '06:00-07:30', '')!r}",
+)
+R.check(
+    "the overlap rule reads day selectors: disjoint days pass, the same named day refuses",
+    _qw.overlap_problem("", "weekend 08:00-09:00", "weekdays 08:00-08:30") is None
+    and _qw.overlap_problem("", "weekend 08:00-09:00", "weekend 08:30-08:45") is not None,
+    f"disjoint {_qw.overlap_problem('', 'weekend 08:00-09:00', 'weekdays 08:00-08:30')!r}, "
+    f"same day {_qw.overlap_problem('', 'weekend 08:00-09:00', 'weekend 08:30-08:45')!r}",
+)
+
+# End to end. An off window in a cold horizon: nothing planned inside it,
+# the plan pre-heats before it, and the shortfall the window prices is
+# published rather than hidden.
+def _qw_solve(off_spec, silent_spec=None, fraction=None, dhw_temp=48.0, **over):
+    _cfg = _grad_house(two_zone=False, dhw=True)
+    _cfg.update(over)
+    _p = ThermalParameters.from_config(_cfg)
+    _o = _PvOpt(ThermalModel(_p), _PvOptCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=17.0, max_temp=23.0,
+    ))
+    _start = datetime(2026, 1, 15, 4, 0, tzinfo=_G4Zone("Europe/Stockholm"))
+    _pr = _grad_prices("winter_typical", _start)
+    _ot, _wi, _ra, _so = _grad_weather("winter_cold", _start)
+    _st = ThermalState(
+        room_temperature=21.0, slab_temperature=22.0,
+        outdoor_temperature=float(_ot[0]), dhw_temperature=dhw_temp,
+        dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
+    )
+    _quiet = _qw.compose(
+        None,
+        {_QW_LIMITED: "switch.n", _QW_SILENT: silent_spec or "",
+         _QW_OFF: off_spec, _QW_FRAC: fraction if fraction is not None else 0.6},
+        _qw_states({}), _start, 96, 0.25, float(_p.max_electrical_power),
+    )
+    _res = _o.optimize(inputs=solve_inputs(
+        initial_state=_st, prices=_pr, outdoor_temps=_ot,
+        wind_speeds=_wi, precipitation=_ra, solar_radiation=_so,
+        start_time=_start,
+        power_caps_extra=_quiet.caps,
+        off_steps=_quiet.off_steps,
+        quiet_actions=_quiet.actions,
+    ))
+    return _res, _quiet, _o
+
+# 04:00 start, off 06:00-08:00: steps 8 through 15. Hot water only in the
+# evening, so the off window crosses no demand window.
+_qw_off_res, _qw_off_quiet, _ = _qw_solve("06:00-08:00", dhw_windows="17:00-22:00")
+_qw_off_idx = list(range(8, 16))
+_qw_space = np.asarray(_qw_off_res.power_schedule, dtype=float)
+_qw_dhw = np.asarray(_qw_off_res.dhw_power_schedule, dtype=float)
+R.check(
+    "an off window plans no space heat and no hot water in exactly its steps",
+    float(np.max(_qw_space[_qw_off_idx])) == 0.0
+    and float(np.max(_qw_dhw[_qw_off_idx])) == 0.0
+    and float(np.max(_qw_space[:8])) > 0.0,
+    f"in-window space {float(np.max(_qw_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_dhw[_qw_off_idx]))}, "
+    f"pre-window space {float(np.max(_qw_space[:8]))}",
+)
+R.check(
+    "the off window's shortfall is published and the resolved actions ride the payload",
+    "power_cap_breach_c" in _qw_off_res.predictive_info
+    and _qw_off_res.predictive_info.get("quiet_actions") is not None
+    and [a for a in _qw_off_res.predictive_info["quiet_actions"][8:12]] == [_QW_O] * 4,
+    f"breach {_qw_off_res.predictive_info.get('power_cap_breach_c')}, "
+    f"actions[8:12] {_qw_off_res.predictive_info.get('quiet_actions', [None])[8:12]}",
+)
+# The null control: the same solve with no windows at all must be free to
+# plan inside those steps -- the zeros above are the window's, not the
+# weather's or the price profile's.
+_qw_free_res, _, _ = _qw_solve("", dhw_windows="17:00-22:00")
+_qw_free_space = np.asarray(_qw_free_res.power_schedule, dtype=float)
+_qw_free_dhw = np.asarray(_qw_free_res.dhw_power_schedule, dtype=float)
+R.check(
+    "with no window configured the same steps carry heat (the null control)",
+    float(np.max(_qw_free_space[_qw_off_idx])) > 0.0
+    or float(np.max(_qw_free_dhw[_qw_off_idx])) > 0.0,
+    f"space {float(np.max(_qw_free_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_free_dhw[_qw_off_idx]))}",
+)
+R.check(
+    "and the null solve carries neither the breach key nor the quiet actions",
+    "quiet_actions" not in _qw_free_res.predictive_info,
+    f"keys {sorted(_qw_free_res.predictive_info)}",
+)
+# The off window's hot-water half must be PLANNED AROUND, not clipped after
+# the fact. The off window below covers the horizon's cheapest hour
+# (04:00-05:00 at 0.62 SEK), with the demand window opening at the 07:00
+# peak and a cold tank: the plan must re-buy that energy in the 0.95 SEK
+# hours before the window, so the requirement is still met. A clip deletes
+# the energy instead of moving it and the tank arrives short. (This is the
+# check the mutation proof's m5 -- forced-off merge deleted, terminal
+# zeroing left -- exists to kill.)
+_qw_rebuy_res, _qw_rebuy_quiet, _qw_rebuy_opt = _qw_solve(
+    "04:00-05:00", dhw_windows="07:00-09:00", dhw_temp=40.0,
+)
+_qw_rebuy_req = np.asarray(_qw_rebuy_opt._dhw_requirement, dtype=float)
+_qw_rebuy_temps = np.asarray(
+    _qw_rebuy_res.dhw_temp_trajectory, dtype=float
+)
+_qw_rebuy_gaps = (
+    _qw_rebuy_req[12:19] - _qw_rebuy_temps[13:20]
+    if _qw_rebuy_req.size and _qw_rebuy_temps.size > 20
+    else np.array([9.9])
+)
+_qw_rebuy_energy = float(np.sum(
+    np.asarray(_qw_rebuy_res.dhw_power_schedule, dtype=float)[4:12]
+))
+R.check(
+    "an off window's hot-water energy is re-bought before it: the demand window after it still meets its requirement",
+    float(np.max(_qw_rebuy_gaps)) <= 0.5 and _qw_rebuy_energy > 0.0,
+    f"worst shortfall {float(np.max(_qw_rebuy_gaps)):.2f} K against the "
+    f"requirement over 07:00-09:00, re-bought energy after the window "
+    f"{_qw_rebuy_energy:.2f} kWh (a clip, not a re-plan, reads short and zero)",
+)
+# A silent window end to end: both channels stay under the cap in the
+# window's steps -- the DHW block included, which today is bounded only
+# through the planner's horizon-minimum run cap.
+_qw_sil_res, _qw_sil_quiet, _ = _qw_solve("", silent_spec="06:00-08:00", fraction=0.6)
+_qw_sil_space = np.asarray(_qw_sil_res.power_schedule, dtype=float)
+_qw_sil_dhw = np.asarray(_qw_sil_res.dhw_power_schedule, dtype=float)
+R.check(
+    "a silent window keeps space heating and hot water under the cap in its steps",
+    _qw_sil_quiet.caps is not None
+    and float(np.max(_qw_sil_space[_qw_off_idx])) <= float(np.min(_qw_sil_quiet.caps[_qw_off_idx])) + 1e-6
+    and float(np.max(_qw_sil_dhw[_qw_off_idx])) <= float(np.min(_qw_sil_quiet.caps[_qw_off_idx])) + 1e-6,
+    f"space {float(np.max(_qw_sil_space[_qw_off_idx]))}, "
+    f"dhw {float(np.max(_qw_sil_dhw[_qw_off_idx]))}, "
+    f"cap {None if _qw_sil_quiet.caps is None else float(np.min(_qw_sil_quiet.caps[_qw_off_idx]))}",
+)
+
+# The production wiring, driven through the coordinator the way the #1067
+# leg above drives it: the plan's solve and the what-if both receive the
+# composed limits.
+def _qw_plan(config, simulate=None):
+    coord = _solve_coord()
+    coord._config.update(config)
+    sink = []
+    real = _coord_mod._await_optimize
+
+    async def _spy(hass, optimizer, inputs):
+        sink.append((inputs.limits, inputs.start_time))
+        return await real(hass, optimizer, inputs)
+
+    _coord_mod._await_optimize = _spy
+    try:
+        _asyncio.run(coord.async_run_optimization())
+        if simulate is not None:
+            coord._last_simulation = None
+            _asyncio.run(coord.async_simulate(simulate))
+    finally:
+        _coord_mod._await_optimize = real
+    return coord, sink
+
+
+def _qw_steps_where(start, n, pred):
+    """Steps whose local start satisfies ``pred``, walked in UTC."""
+    if start is None:
+        return []
+    utc = start.astimezone(timezone.utc)
+    return [
+        i for i in range(n)
+        if pred((utc + timedelta(minutes=15 * i)).astimezone(start.tzinfo))
+    ]
+
+
+def _qw_len(limits):
+    """The horizon a solve's quiet fields cover; 0 when none reached it."""
+    for arr in (limits.power_caps_extra, limits.quiet_actions, limits.off_steps):
+        if arr is not None:
+            return len(arr)
+    return 0
+
+
+_qw_w_cfg = {
+    _QW_LIMITED: "switch.pump_night_mode",
+    _QW_SILENT: "00:00-06:00", _QW_OFF: "22:00-23:00", _QW_FRAC: 0.6,
+}
+_qw_wc, _qw_runs = _qw_plan(_qw_w_cfg, simulate={"quiet_off_windows": "23:30-23:45"})
+_qw_wpmax = float(_qw_wc._thermal_params.max_electrical_power)
+_qw_w0_limits, _qw_w0_start = _qw_runs[0]
+_qw_w1_limits, _qw_w1_start = _qw_runs[1]
+_qw_w0_n = _qw_len(_qw_w0_limits)
+_qw_w0_night = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour < 6)
+_qw_w0_off = _qw_steps_where(_qw_w0_start, _qw_w0_n, lambda d: d.hour == 22)
+_qw_w1_off = _qw_steps_where(
+    _qw_w1_start, _qw_len(_qw_w1_limits), lambda d: (d.hour, d.minute) == (23, 30),
+)
+R.check(
+    "the plan's solve carries the silent cap and the off mask; the what-if honours its own off override",
+    len(_qw_runs) == 2
+    and _qw_w0_limits.power_caps_extra is not None
+    and _qw_w0_limits.off_steps is not None
+    and _qw_w0_limits.quiet_actions is not None
+    and _g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax) == _qw_w0_night
+    and sorted(i for i, v in enumerate(_qw_w0_limits.off_steps) if v) == _qw_w0_off
+    and _qw_w1_limits.off_steps is not None
+    and sorted(i for i, v in enumerate(_qw_w1_limits.off_steps) if v) == _qw_w1_off,
+    f"plan capped {len(_g4_capped(_qw_w0_limits.power_caps_extra, _qw_wpmax))} (want {len(_qw_w0_night)}), "
+    f"plan off {0 if _qw_w0_limits.off_steps is None else int(np.sum(_qw_w0_limits.off_steps))} "
+    f"(want {len(_qw_w0_off)}), what-if off "
+    f"{0 if _qw_runs[1][0].off_steps is None else int(np.sum(_qw_runs[1][0].off_steps))} "
+    f"(want {len(_qw_w1_off)})",
+)
+# And the wiring's null: with nothing configured, both solves carry no
+# off mask and no actions, whatever else caps them.
+_qw_wc2, _qw_runs2 = _qw_plan({}, simulate={"target_temp": 20.5})
+R.check(
+    "with no quiet windows configured neither solve carries an off mask or resolved actions",
+    len(_qw_runs2) == 2
+    and all(limits.off_steps is None and limits.quiet_actions is None
+            for limits, _ in _qw_runs2),
+    f"{[(l.off_steps is None, l.quiet_actions is None) for l, _ in _qw_runs2]}",
+)
+# The REAL coordinator accessor, driven directly (#1960 round 2): the
+# harness stub answers for the entity classes, so the first proof never
+# executed the production method -- and an unresolved name in it reached
+# CI before any local lane caught it. This check is the cheap detector:
+# it calls the method on a real coordinator, where a NameError is a red
+# check and not a typing job.
+_qw_acc = _solve_coord()
+_qw_acc._config.update({
+    _QW_LIMITED: "switch.pump_night_mode",
+    _QW_SILENT: "22:00-06:00", _QW_OFF: "09:00-09:30",
+})
+_qw_acc_specs = _qw_acc.configured_quiet_windows()
+R.check(
+    "the real coordinator's configured_quiet_windows answers both specs and the not-enforced marker by domain",
+    _qw_acc_specs == {
+        "quiet_silent_windows_spec": "22:00-06:00",
+        "quiet_off_windows_spec": "09:00-09:30",
+    },
+    f"{_qw_acc_specs}",
+)
+_qw_acc._config[_QW_LIMITED] = "binary_sensor.gchv_night"
+R.check(
+    "a read-only capacity-limited slot marks the silent rows not enforced",
+    _qw_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
+    f"{_qw_acc.configured_quiet_windows()}",
+)
+# The remaining module arms, each pinned so the coverage floor and the
+# mutation table have a driver through it.
+R.check(
+    "a power entity with no state and a non-string control are no readings, never guesses",
+    _qw.measured_ceiling_kw(
+        {_QW_POWER: "sensor.gone"}, _qw_states({}), 5.0,
+    ) is None
+    and _qw.silent_control_usable(None) is False
+    and _qw.silent_control_usable("not-an-entity") is False
+    and _qw.silent_control_usable("Switch.Upper") is True,
+    "domain-only verdicts; a missing state falls through to frequency and then to the fraction",
+)
+R.check(
+    "a non-numeric power state and a zero horizon are inert, not errors",
+    _qw._power_entity_kw(
+        "sensor.hp", _qw_states({"sensor.hp": FakeState("offline", unit="W")}),
+    ) is None
+    and _qw.step_actions(_g4_eve, 0, 0.25, "22:00-06:00", "") is None
+    and _qw.silent_cap_kw({}, None, 0.0) is None,
+    "each degenerate input reads as nothing rather than raising",
+)
+R.check(
+    "an unparseable stored hot-water spec is no overlap judgement, and config folds only named keys",
+    _qw.overlap_problem("", "05:00-07:00", "garbage") is None
+    and _qw.overridden_config({"a": 1}, {"b": 2}) == {"a": 1}
+    and _qw.overridden_config({"a": 1}, {"quiet_silent_windows": "x"}) == {
+        "a": 1, "quiet_silent_windows": "x",
+    },
+    "the what-if fold touches only the three quiet keys",
+)
+
+
 R.section("v5.3.0 — defrost: duty is measured, the derate is physics")
 
 # Establish the premise first, because it inverts what the flag looks like it
@@ -29144,6 +30025,11 @@ class _SysIdHost:
 
     def _get_current_price(self):
         return 0.2
+
+    def adopt_action(self, action):
+        # boost.adopt_plan publishes through the coordinator's one writer
+        # (#1739); the stub holds the same slot the real class does.
+        self._current_action = action
 
 
 _COOLING = pump_signals.PumpSignals(
@@ -31959,6 +32845,12 @@ _ET_KEYS = {
     "assign_entity_wrong_domain": {"entity_id", "domain", "key", "domains"},
     "apply_topology_unsupported": {"layout", "requirement"},
     "apply_schedule_invalid_dhw_windows": {"windows", "error"},
+    # #1910 (SW-1): the quiet-window refusals, one per accepting service
+    # plus the shared overlap key.
+    "apply_schedule_invalid_quiet_windows": {"error"},
+    "set_thermal_params_invalid_quiet_windows": {"error"},
+    "simulate_plan_invalid_quiet_windows": {"error"},
+    "quiet_windows_overlap": {"overlap"},
     "apply_schedule_comfort_band_violation": {"violations"},
     "apply_schedule_dhw_min_no_deadband": {"minimum", "setpoint", "ceiling"},
     "manual_plan_invalid_expires_at": {"expires_at"},
@@ -31970,6 +32862,7 @@ _ET_KEYS = {
     "simulate_plan_invalid_windows": {"error", "windows"},
     "simulate_plan_failed": {"error", "entry_ids"},
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
+    "restore_learned_snapshot_no_refit": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
     # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
@@ -32092,6 +32985,88 @@ _et_check(
     "apply_schedule with a deadband-less hot water minimum raises a translatable error",
     _et_call(_et_hass, "apply_schedule", {"dhw_min_temperature": 51}),
     "apply_schedule_dhw_min_no_deadband",
+)
+# #1910 (SW-1): the quiet-window service arms. The refusals on the shared
+# rig (a refused call writes nothing); the accepted writes on a fresh entry
+# so no later check reads them.
+_et_check(
+    "apply_schedule with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "apply_schedule", {"quiet_silent_windows": "25-99"}),
+    "apply_schedule_invalid_quiet_windows",
+)
+_et_check(
+    "set_thermal_parameters with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "set_thermal_parameters", {"quiet_off_windows": "25-99"}),
+    "set_thermal_params_invalid_quiet_windows",
+)
+_et_check(
+    "simulate_plan with unparseable quiet windows raises a translatable error",
+    _et_call(_et_hass, "simulate_plan", {"quiet_silent_windows": "25-99"}),
+    "simulate_plan_invalid_quiet_windows",
+)
+_et_quiet_hass = FakeHass()
+_seed_prices(_et_quiet_hass)
+_et_quiet_entry = FakeEntry(data=_LC_DATA)
+_asyncio.run(_ha_setup_entry(_integ, _et_quiet_hass, _et_quiet_entry))
+_et_check(
+    "apply_schedule whose off window overlaps the hot-water windows the same call stores raises a translatable error",
+    _et_call(
+        _et_quiet_hass,
+        "apply_schedule",
+        {"dhw_windows": "06:00-08:30", "quiet_off_windows": "05:00-07:00"},
+    ),
+    "quiet_windows_overlap",
+)
+
+
+async def _qw_et_no_refresh(*_a, **_k):
+    return None
+
+
+_et_quiet_coord = _et_quiet_entry.runtime_data
+_et_quiet_coord.async_request_refresh = _qw_et_no_refresh
+_et_quiet_applied = _et_call(
+    _et_quiet_hass,
+    "apply_schedule",
+    {
+        "quiet_silent_windows": "22:00-06:00",
+        "quiet_off_windows": "weekend 14:00-15:00",
+        "silent_mode_power_fraction": 0.7,
+    },
+)
+R.check(
+    "apply_schedule accepts valid quiet rows and the fraction, canonicalised into the entry's options",
+    _et_quiet_applied is None
+    and _et_quiet_entry.options.get("quiet_silent_windows")
+    == "00:00-06:00, 22:00-24:00"
+    and _et_quiet_entry.options.get("quiet_off_windows")
+    == "weekend 14:00-15:00"
+    and _et_quiet_entry.options.get("silent_mode_power_fraction") == 0.7,
+    f"raised {_et_quiet_applied!r}, stored {dict(_et_quiet_entry.options)}",
+)
+_et_quiet_set = _et_call(
+    _et_quiet_hass,
+    "set_thermal_parameters",
+    {"quiet_off_windows": "09:00-09:30", "silent_mode_power_fraction": 0.8},
+)
+R.check(
+    "set_thermal_parameters routes the quiet keys into the live config and the options",
+    _et_quiet_set is None
+    and _et_quiet_coord._config.get("quiet_off_windows") == "09:00-09:30"
+    and _et_quiet_coord._config.get("silent_mode_power_fraction") == 0.8
+    and _et_quiet_entry.options.get("quiet_off_windows") == "09:00-09:30",
+    f"raised {_et_quiet_set!r}, config "
+    f"{_et_quiet_coord._config.get('quiet_off_windows')!r}, "
+    f"options {dict(_et_quiet_entry.options)}",
+)
+_et_quiet_sim = _et_call(
+    _et_quiet_hass, "simulate_plan", {"quiet_silent_windows": "23:00-23:30"},
+)
+R.check(
+    "simulate_plan with valid quiet rows runs past quiet validation and refuses on the missing plan, its own next lane",
+    getattr(_et_quiet_sim, "translation_key", None) == "simulate_plan_no_plan",
+    f"{_et_quiet_sim!r} -- a quiet-validation refusal here would name "
+    "quiet_windows_overlap or simulate_plan_invalid_quiet_windows instead",
 )
 _et_check(
     "apply_manual_plan with an unparseable expires_at raises a translatable error",
@@ -35773,7 +36748,7 @@ R.check(
 from heatpump_optimizer.thermal_model import ThermalParameters as _WfTP
 from heatpump_optimizer.wood_fuel import (
     build_wood_fuel_view as _wf_view,
-    wood_fuel_from_coordinator as _wf_from_coord,
+    wood_fuel_from_parts as _wf_from_coord,
     wood_tank_soc_from_probes as _wf_soc,
 )
 
@@ -35909,7 +36884,7 @@ R.check(
     repr(_wf_idle_pub.get("wood_fuel")),
 )
 R.check(
-    "wood_fuel_from_coordinator is the publish helper",
+    "wood_fuel_from_parts is the publish helper",
     _wf_from_coord is not None,
 )
 
@@ -36001,14 +36976,30 @@ _wf_probe_result = _WfNS(
     power_schedule=[0.0] * 48,
     dhw_power_schedule=[0.0] * 48,
 )
-_wf_from_probes = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_probes = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator uses the live wood-tank temperature",
     (_wf_from_probes.get("night_advice") or {}).get("action") == "light",
     repr(_wf_from_probes.get("night_advice")),
 )
 _wf_probe_coord._current_state.wood_tank_temperature = None
-_wf_from_empty = _wf_from_coord(_wf_probe_coord, _wf_probe_result)
+_wf_from_empty = _wf_from_coord(
+    _wf_probe_coord._config,
+    external_heat=_wf_probe_coord._external_heat,
+    opt_config=_wf_probe_coord._opt_config,
+    thermal_params=_wf_probe_coord._thermal_params,
+    thermal_model=_wf_probe_coord._thermal_model,
+    current_state=_wf_probe_coord._current_state,
+    result=_wf_probe_result,
+)
 R.check(
     "from_coordinator without a tank temperature attaches nothing",
     "night_advice" not in _wf_from_empty,
@@ -37275,7 +38266,7 @@ async def _rc2_prelude(coord, what, value):
     elif what == "away":
         coord._away_state.override_active = value
         coord._away_state.override_return_iso = None
-        await away_mode.persist_override(coord)
+        await away_mode.persist_override(coord, coord._away_state)
     elif what == "comfort":
         coord._comfort_learner.evidence = value
         await coord._async_save_accuracy()
@@ -37288,7 +38279,9 @@ async def _rc2_boot(entry):
     coord = HeatPumpOptimizerCoordinator(FakeHass(), entry)
     coord.hass.config_entries.entries.append(entry)
     await coord._async_load_accuracy()
-    await boost_mod.restore_session(coord)
+    await boost_mod.restore_session(
+        coord, coord._away_state, coord._config, coord._entity_state
+    )
     await coord._async_load_manual_plan()
     return coord
 
@@ -37532,6 +38525,12 @@ _F14_PARAM_VALUES = {
     "ecl110_pid_time_constant_hours": 0.6,
     "ecl110_displace_min": -3.0,
     "ecl110_displace_max": 5.0,
+    # #1910 (SW-1): the quiet fields, one per schema key like the rest.
+    # Flat on this rig by design -- they are configuration, not physics,
+    # and land in the config mapping rather than a params attribute.
+    "quiet_silent_windows": "22:00-06:00",
+    "quiet_off_windows": "09:00-09:30",
+    "silent_mode_power_fraction": 0.7,
 }
 
 
@@ -43979,7 +44978,7 @@ class _G8SpBoom:
     hass = _G8SpHass()
 
     @property
-    def _config(self):
+    def effective_config(self):
         raise RuntimeError("entry is being reloaded")
 
 
@@ -44342,7 +45341,9 @@ try:
     _G8AwayStore.raise_save = True
     _g8_save_coord = _G8AwayCoord()
     _g8_save_coord._away_state.override_active = True
-    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(_g8_save_coord))
+    _g8_save_err = _t6_call(_asyncio.run, _g8_away.persist_override(
+        _g8_save_coord, _g8_save_coord._away_state
+    ))
     _g8_save_attempted = list(_G8AwayStore.saved)
     _G8AwayStore.raise_save = False
 
@@ -44353,7 +45354,10 @@ try:
     _g8_load_coord = _G8AwayCoord(config={_G8_AWAY_PRES: "input_boolean.away_mode"},
                                   options={_G8_AWAY_ON: True, _G8_AWAY_RET: "x"},
                                   entity_states={"input_boolean.away_mode": ("on", {})})
-    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(_g8_load_coord))
+    _g8_load_err = _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_load_coord, _g8_load_coord._away_state, _g8_load_coord._config,
+        _g8_load_coord._entity_state,
+    ))
     _g8_load_saved = list(_G8AwayStore.saved)
     _G8AwayStore.raise_load = False
 
@@ -44364,7 +45368,10 @@ try:
         "migrated_helpers": True,
     }
     _g8_done_coord = _G8AwayCoord(options={_G8_AWAY_ON: True})
-    _t6_call(_asyncio.run, _g8_away.restore_override(_g8_done_coord))
+    _t6_call(_asyncio.run, _g8_away.restore_override(
+        _g8_done_coord, _g8_done_coord._away_state, _g8_done_coord._config,
+        _g8_done_coord._entity_state,
+    ))
     _g8_done_saved = list(_G8AwayStore.saved)
     _G8AwayStore.payload = None
 finally:
@@ -46670,13 +47677,13 @@ import json as _g7b_json  # noqa: E402
 import pathlib as _g7b_pathlib  # noqa: E402
 import sys as _g7b_sys  # noqa: E402
 
-_g7b_sys.path.insert(0, str(_g7b_pathlib.Path(__file__).resolve().parent.parent / "tools"))
+_g7b_sys.path.insert(0, str(_g7b_pathlib.Path(__file__).resolve().parent.parent / "tools/devices"))
 import gen_device_fixtures as _g7b_gen  # noqa: E402
 
 from heatpump_optimizer import device_prefill as _g7b_dp  # noqa: E402
 
 # The records are read from the generated fixture, never typed here: it is
-# built by tools/gen_device_fixtures.py from tvofi/tuya_heat_pump's own model
+# built by tools/devices/gen_device_fixtures.py from tvofi/tuya_heat_pump's own model
 # file at the commit the fixture records, so a key this repository mistypes
 # cannot agree with itself. Honest scope: the fixture proves the mapping
 # against those definitions at that commit, not against a live pump.
@@ -46876,7 +47883,7 @@ R.check(
 # ---------------------------------------------------------------------------
 # #1067 W1067-G7b-2: the tuya_local table, and the localtuya decision.
 #
-# Both fixtures are generated, never typed: tools/gen_device_fixtures.py reads
+# Both fixtures are generated, never typed: tools/devices/gen_device_fixtures.py reads
 # make-all/tuya-local at tag 2026.9.1 (commit 4551357) and both maintained
 # localtuya lines at their own pins, and the suite reads only what it wrote.
 # Honest scope: they prove the mapping against those definitions at those
@@ -47188,7 +48195,7 @@ R.check(
 R.check(
     "the corpus is generated, records where it was read from, and marks its "
     "hand-shaped sets",
-    _G7B3_CORPUS["_generated_by"] == "tools/gen_device_fixtures.py"
+    _G7B3_CORPUS["_generated_by"] == "tools/devices/gen_device_fixtures.py"
     and any(device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
     and any(not device["hand_shaped"] for device in _G7B3_CORPUS["devices"])
     and all(
@@ -50085,6 +51092,38 @@ class _PaCoord:
     def _plan_is_stale(self):
         return self.stale
 
+    @property
+    def effective_config(self):
+        # setpoint_check.evaluate reads the published views (#1739).
+        return self._config
+
+    @property
+    def thermal_params(self):
+        return self._thermal_params
+
+    def arbiter_inputs(self):
+        # Every field read live, so a test that reaches into the stub's
+        # privates (a disinfection hold, a meter sample, the unload latch)
+        # is seen by the next pass, exactly as the real coordinator's
+        # published builder reads its own.
+        return _pa.ArbiterInputs(
+            hass=self.hass,
+            config=self._config,
+            mode=self._mode,
+            plan=self._optimization_result,
+            plan_stale=self.stale,
+            entry_released=getattr(self, "_entry_released", False),
+            state=self._current_state,
+            thermal=self._thermal_model,
+            params=self._thermal_params,
+            action=self._current_action,
+            measured_power_kw=getattr(self, "_measured_power", None),
+            disinfecting=getattr(
+                getattr(getattr(self, "_legionella", None), "disinfect", None),
+                "memo", None,
+            ) is True,
+        )
+
     async def async_set_mode(self, mode):
         self.set_modes.append(mode)
         self._mode = mode
@@ -50238,6 +51277,23 @@ R.check(
     "below the cold rail the lease is 30 minutes",
     _pa_cold.writes()[-2] == ("select", "select_option", "Heating + DHW"),
     f"{_pa_cold.writes()}",
+)
+
+# The rail's edge itself: at exactly COLD_RAIL_C the day is not below it, so
+# the 90-minute lease still holds and minute 31 writes nothing. The ordering
+# bound is pinned here because the mutation table flips it (`<` -> `<=`) and
+# only this line separates the two leases.
+_pa_cold_edge = _PaCoord(_PA_TUYA, duties="d" * 12)
+_pa_cold_edge._current_state.outdoor_temperature = -10.0
+_pa_run(_pa_cold_edge, 0)
+_pa_cold_edge.device("select.pump_mode", "DHW (Hot Water)")
+_pa_cold_edge.device("number.dhw_set", "48")
+_pa_cold_edge.device("number.water_set", "25")
+_pa_run(_pa_cold_edge, 31)
+R.check(
+    "at exactly the cold rail the lease is the 90-minute one, not the cold one",
+    len(_pa_cold_edge.writes()) == 3,
+    f"{_pa_cold_edge.writes()}",
 )
 _pa_stale = _PaCoord(_PA_TUYA)
 _pa_stale.stale = True
@@ -50549,12 +51605,12 @@ _pa_mbs._thermal_params = _PaNS(
     dhw_setpoint=48.0, dhw_min_temp=45.0, dhw_legionella_enabled=True, dhw_legionella_temp=60.0
 )
 _pa_settled(_pa_mbs, 1)
-_p8_sp.evaluate(_pa_mbs)
+_p8_sp.evaluate(_pa_mbs, lambda pump: _pa.dhw_gated(_pa_mbs, pump))
 _pa_mbs_issues = [i for i in getattr(_pa_mbs.hass, "issues", []) if i[1] == _p8_sp.ISSUE_DHW]
 _pa_mbs_null = _PaCoord(_PA_MODBUS, duties="s", duty="observe")
 _pa_mbs_null._thermal_params = _pa_mbs._thermal_params
 _pa_mbs_null.device("number.dhw_set", "40")
-_p8_sp.evaluate(_pa_mbs_null)
+_p8_sp.evaluate(_pa_mbs_null, lambda pump: _pa.dhw_gated(_pa_mbs_null, pump))
 R.check(
     "with no heating-only mode (GCHV Modbus) the hot-water set-point is the gate, at the entity's minimum",
     _pa_mbs.hass.states.get("number.dhw_set").state == "40.0"
@@ -50843,6 +51899,22 @@ R.check(
     len(_pa_day_log) == 96
     and _pa_day_log[-1]["start"] == (_PA_T0 + timedelta(minutes=15 * 98)).isoformat(),
     f"{len(_pa_day_log)=}",
+)
+# The run boundary itself: a draw exactly at the meter's threshold (half the
+# 0.4 kW modulation floor = 0.2 kW) counts as a run, one hair below does not.
+# The ordering bound is pinned here because the mutation table flips it
+# (`>=` -> `>`) and only this line separates a delivered step from idle.
+_pa_edge = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
+_pa_edge._current_state.dhw_temperature = 45.0
+for _pa_m, _pa_kw in ((1, 0.2), (16, 0.19)):
+    _pa_edge._measured_power = _pa_kw
+    _pa_run(_pa_edge, _pa_m)
+_pa_run(_pa_edge, 31)  # closes the second step into the log
+_pa_edge_log = _pa.diagnostics_view(_pa_edge)["ledger"]["steps"]
+R.check(
+    "a draw exactly at the meter's threshold is a run; one hair below is not",
+    [r["verdict"] for r in _pa_edge_log] == ["delivered", "idle-instead"],
+    f"{_pa_edge_log}",
 )
 _pa_nometer = _PaCoord(_PA_TUYA, duties="ss", duty="observe")
 _pa_nometer._current_state.dhw_temperature = 45.0
@@ -51645,6 +52717,47 @@ R.check(
     "after it (D1-s3-02); a live coordinator re-arms both (null control)",
     _f32_live["released"] == (0, 0) and _f32_live["null"][0] == 2,
     f"{_f32_live}",
+)
+
+# The check above sets the latch, then calls apply. Home Assistant's queued
+# pass is the other order: apply is already waiting on held.lock when unload
+# or Off happens. Snapshotting ArbiterInputs before those waits keeps the
+# pre-wait latch and mode, so the guard and Off write-nothing both miss.
+async def _f32_queued(arm):
+    coord = _PaCoord(_PA_TUYA)
+    await _pa.apply(coord, _PA_T0 + timedelta(minutes=1))
+    held = _pa.state_for(coord)
+    await held.lock.acquire()
+    queued = _pa_aio.ensure_future(
+        _pa.apply(coord, _PA_T0 + timedelta(minutes=16)))
+    for _ in range(5):
+        await _pa_aio.sleep(0)
+    if arm == "unload":
+        coord._entry_released = True
+        await _pa.release(coord)
+    elif arm == "off":
+        await coord.async_set_mode(_PA_OFF)
+    coord.hass.services.calls.clear()
+    held.lock.release()
+    await queued
+    return len(held.unsubs), len(coord.writes())
+
+
+_f32_queued_live = {}
+dt_util.freeze(_PA_T0 + timedelta(minutes=10))
+try:
+    for _f32_arm in ("unload", "off", "null"):
+        _f32_queued_live[_f32_arm] = _pa_aio.run(_f32_queued(_f32_arm))
+finally:
+    dt_util.freeze(None)
+R.check(
+    "an apply queued behind the lock across an unload arms no listener and "
+    "writes nothing; one queued across Off writes nothing (D1-s3-02); a live "
+    "coordinator still writes (null control)",
+    _f32_queued_live["unload"] == (0, 0)
+    and _f32_queued_live["off"] == (2, 0)
+    and _f32_queued_live["null"] == (2, 3),
+    f"{_f32_queued_live}",
 )
 
 # D1-s3-03: a record of any other shape is not restored, and the next pass
@@ -55350,7 +56463,7 @@ R.check(
 # 0.15 kW step the plan books as running is below what a meter sample proves,
 # which is the whole reason one formula could not answer both.
 _f24_meter = _f24_NS(
-    _thermal_model=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
+    thermal=_f24_NS(params=_f24_NS(min_electrical_power=0.4))
 )
 R.check(
     "R9-F2.4 P2 (null arm): the meter's threshold is unchanged -- half the "
@@ -55358,7 +56471,7 @@ R.check(
     callable(_f24_ran_kw)
     and _f24_ran_kw(_f24_meter) == 0.2
     and callable(_f24_meter_kw)
-    and _f24_meter_kw(_f24_meter._thermal_model.params) == 0.2
+    and _f24_meter_kw(_f24_meter.thermal.params) == 0.2
     and _f24_meter_kw(_f24_NS(min_electrical_power=0.1)) == 0.1
     and _f24_ran_kw(_f24_meter) > 0.15 > _f24_floor,
     f"_ran_kw={_f24_ran_kw!r} on_threshold_kw={_f24_meter_kw!r} "
@@ -57527,4 +58640,244 @@ R.check(
 )
 
 
+R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
+# The GCHV package has no silent on/off register. Night mode is one daily
+# window in holding registers 518/519, exposed as writable hour/minute
+# numbers (the package's "time entities"), and register 68's binary sensor
+# is the capacity-limited slot. Off windows write nothing extra (D1).
+
+_SW4_FLAG = "binary_sensor.hp_night_mode_frequency_reduction_active"
+_SW4_START_H = "number.hp_night_mode_start_hour"
+_SW4_START_M = "number.hp_night_mode_start_minute"
+_SW4_END_H = "number.hp_night_mode_end_hour"
+_SW4_END_M = "number.hp_night_mode_end_minute"
+_SW4_NUMBERS = (_SW4_START_H, _SW4_START_M, _SW4_END_H, _SW4_END_M)
+_SW4_STATES = {
+    _SW4_FLAG: FakeState("off"),
+    _SW4_START_H: FakeState("21", attributes={"min": 0, "max": 23}),
+    _SW4_START_M: FakeState("0", attributes={"min": 0, "max": 59}),
+    _SW4_END_H: FakeState("5", attributes={"min": 0, "max": 23}),
+    _SW4_END_M: FakeState("0", attributes={"min": 0, "max": 59}),
+}
+_SW4_CFG = {
+    _QW_LIMITED: _SW4_FLAG, _QW_SILENT: "22:00-06:00", _QW_FRAC: 0.7,
+}
+
+R.check(
+    "the GCHV prefix is the binary-sensor slug before night_mode_frequency_reduction_active",
+    _g7_mp.package_prefix(_SW4_FLAG) == "hp"
+    and _g7_mp.package_prefix("binary_sensor.gchv_night") is None
+    and _g7_mp.package_prefix("switch.hp_night_mode") is None,
+    f"{_g7_mp.package_prefix(_SW4_FLAG)!r}",
+)
+R.check(
+    "night-mode start/end resolve by that prefix to the package's hour and minute numbers",
+    _g7_mp.night_mode_write_ids("hp") == {
+        "start_hour": _SW4_START_H, "start_minute": _SW4_START_M,
+        "end_hour": _SW4_END_H, "end_minute": _SW4_END_M,
+    },
+    f"{_g7_mp.night_mode_write_ids('hp')}",
+)
+R.check(
+    "the schedule is usable only when the flag matches and all four numbers resolve",
+    _qw.gchv_schedule_ready(_SW4_CFG, _qw_states(_SW4_STATES)) is True
+    and _qw.gchv_schedule_ready(_SW4_CFG, _qw_states({_SW4_FLAG: FakeState("off")})) is False
+    and _qw.gchv_schedule_ready(
+        {_QW_LIMITED: "binary_sensor.gchv_night", _QW_SILENT: "22:00-06:00"},
+        _qw_states(_SW4_STATES),
+    ) is False,
+)
+
+_sw4_one = _qw.compose(
+    None, _SW4_CFG, _qw_states(_SW4_STATES), _g4_eve, 96, 0.25, 5.0,
+)
+R.check(
+    "a GCHV flag with resolved start/end numbers enforces one daily silent window (the next)",
+    _sw4_one.caps is not None
+    and _g4_capped(_sw4_one.caps) == list(range(8, 40))
+    and _sw4_one.silent_dropped is False,
+    f"capped {None if _sw4_one.caps is None else _g4_capped(_sw4_one.caps)[:3]}.. "
+    f"dropped {_sw4_one.silent_dropped}",
+)
+
+# Two windows on one day: at 20:00 the 12:00-13:00 row has passed, so the
+# next is 22:00-06:00. Tomorrow's noon row is in the horizon (step 64) and
+# must stay uncapped -- the pump holds one window.
+_sw4_two = _qw.compose(
+    None, {**_SW4_CFG, _QW_SILENT: "12:00-13:00,22:00-06:00"},
+    _qw_states(_SW4_STATES), _g4_eve, 96, 0.25, 5.0,
+)
+_sw4_two_caps = [] if _sw4_two.caps is None else _g4_capped(_sw4_two.caps)
+R.check(
+    "two silent windows: the next is capped and the rest are marked not enforced",
+    _sw4_two.silent_dropped is True
+    and _sw4_two_caps == list(range(8, 40))
+    and 64 not in _sw4_two_caps,
+    f"dropped {_sw4_two.silent_dropped} capped {_sw4_two_caps[:3]}.. n={len(_sw4_two_caps)}",
+)
+R.check(
+    "inside a wrapping window that shares the day with a later same-day window, the wrap is still next",
+    _qw.next_gchv_window(
+        datetime(2026, 1, 16, 2, 0, tzinfo=timezone.utc),
+        "22:00-06:00,12:00-13:00",
+    ) == (22.0, 6.0),
+)
+R.check(
+    "days that differ (weekdays-only) are partial: the next window is capped, the rest dropped",
+    _qw.compose(
+        None, {**_SW4_CFG, _QW_SILENT: "weekdays 22:00-06:00"},
+        _qw_states(_SW4_STATES), _g4_eve, 96, 0.25, 5.0,
+    ).silent_dropped is True,
+)
+
+_sw4_acc = _solve_coord()
+_sw4_acc.hass = FakeHass(_SW4_STATES)
+_sw4_acc._config.update(_SW4_CFG)
+R.check(
+    "configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced",
+    "quiet_silent_not_enforced" not in _sw4_acc.configured_quiet_windows(),
+    f"{_sw4_acc.configured_quiet_windows()}",
+)
+_sw4_acc._config[_QW_SILENT] = "12:00-13:00,22:00-06:00"
+R.check(
+    "configured_quiet_windows marks a two-window GCHV spec not-enforced for the rest",
+    _sw4_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
+    f"{_sw4_acc.configured_quiet_windows()}",
+)
+
+# Compressor frequency is already a named GCHV slot; the package has no
+# electrical power (W/kW) register -- unit capacity is nameplate thermal kW.
+R.check(
+    "the GCHV named slots already include the compressor-frequency sensor and not a fabricated power entity",
+    _g7_c.CONF_COMPRESSOR_FREQ_SENSOR in _g7_mp._NAMED
+    and _g7_mp._NAMED[_g7_c.CONF_COMPRESSOR_FREQ_SENSOR]
+    == "sensor.{p}_actual_compressor_frequency"
+    and _g7_c.CONF_POWER_ENTITY not in _g7_mp._NAMED,
+    f"{sorted(_g7_mp._NAMED)}",
+)
+
+
+def _sw4_night_writes(coord):
+    """number.set_value calls aimed at the GCHV night-mode hour/minute entities."""
+    out = []
+    for domain, service, data in coord.hass.services.calls:
+        entity = (data or {}).get("entity_id") or ""
+        if entity in _SW4_NUMBERS:
+            out.append((entity, (data or {}).get("value")))
+    return out
+
+
+def _sw4_coord(silent="22:00-06:00", off="", duty="control"):
+    coord = _PaCoord(_PA_MODBUS, duties="----", duty=duty)
+    coord._config[_QW_LIMITED] = _SW4_FLAG
+    coord._config[_QW_SILENT] = silent
+    coord._config[_QW_OFF] = off
+    coord.hass.states.set(_SW4_FLAG, FakeState("off"))
+    for entity_id, state in _SW4_STATES.items():
+        if entity_id != _SW4_FLAG:
+            coord.hass.states.set(entity_id, FakeState(
+                state.state, attributes=dict(state.attributes),
+            ))
+    return coord
+
+
+_sw4_on = _sw4_coord()
+_pa_run(_sw4_on, 0)
+_sw4_first = _sw4_night_writes(_sw4_on)
+R.check(
+    "a GCHV silent window writes start and end hour/minute for the next window, once",
+    (_SW4_START_H, 22) in _sw4_first
+    and (_SW4_START_M, 0) in _sw4_first
+    and (_SW4_END_H, 6) in _sw4_first
+    and (_SW4_END_M, 0) in _sw4_first
+    and len(_sw4_first) == 4,
+    f"{_sw4_first}",
+)
+# Echo the write onto the numbers so a re-pass sees the pump holding it.
+for _sw4_eid, _sw4_val in _sw4_first:
+    _sw4_on.device(_sw4_eid, str(_sw4_val))
+_sw4_on.hass.services.calls.clear()
+_pa_run(_sw4_on, 1)
+R.check(
+    "the same window is not rewritten: at most two registers (four numbers) a day, only when it changes",
+    _sw4_night_writes(_sw4_on) == [],
+    f"{_sw4_night_writes(_sw4_on)}",
+)
+
+_sw4_off = _sw4_coord(silent="", off="09:00-09:30")
+_pa_run(_sw4_off, 0)
+R.check(
+    "an Off window writes nothing to the night-mode numbers (D1: no extra writes)",
+    _sw4_night_writes(_sw4_off) == [],
+    f"{_sw4_night_writes(_sw4_off)}",
+)
+
+_sw4_modeoff = _sw4_coord()
+_sw4_modeoff._mode = _PA_OFF
+_pa_run(_sw4_modeoff, 0)
+R.check(
+    "while the optimizer is off the GCHV schedule is not written (D2)",
+    _sw4_night_writes(_sw4_modeoff) == [],
+    f"{_sw4_night_writes(_sw4_modeoff)}",
+)
+
+_sw4_unset = _sw4_coord(silent="", off="")
+_pa_run(_sw4_unset, 0)
+R.check(
+    "unset silent rows write no night-mode numbers (the null control)",
+    _sw4_night_writes(_sw4_unset) == [],
+    f"{_sw4_night_writes(_sw4_unset)}",
+)
+
+# Outside a silent window the package does not document start==end as
+# disabled (prefill treats it as no window, the yaml does not). Leave the
+# registers: a 10:00 pass of a 22:00-06:00 spec still holds 22:00-06:00,
+# and never writes 10:00-10:00.
+_sw4_day = _sw4_coord()
+# _PA_T0 is 06:00; +4h = 10:00, well outside 22:00-06:00.
+_pa_aio.run(_pa.apply(_sw4_day, _PA_T0 + timedelta(hours=4)))
+_sw4_day_writes = _sw4_night_writes(_sw4_day)
+R.check(
+    "outside the silent window the registers are left (start==end is not a documented disable)",
+    (_SW4_START_H, 10) not in _sw4_day_writes
+    and not any(v == 10 for _, v in _sw4_day_writes),
+    f"{_sw4_day_writes}",
+)
+# At 10:00 the next window is still tonight 22:00-06:00, so a write of that
+# pair is the enforcement, not an empty schedule.
+R.check(
+    "a daytime pass still holds tonight's window rather than emptying the schedule",
+    (_SW4_START_H, 22) in _sw4_day_writes and (_SW4_END_H, 6) in _sw4_day_writes,
+    f"{_sw4_day_writes}",
+)
+
+# Hold: a differing reading past the echo grace is rewritten.
+_sw4_hold = _sw4_coord()
+_pa_run(_sw4_hold, 0)
+for _sw4_eid, _sw4_val in _sw4_night_writes(_sw4_hold):
+    _sw4_hold.device(_sw4_eid, str(_sw4_val))
+_sw4_hold.device(_SW4_START_H, "21")
+_sw4_hold.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(_sw4_hold, _PA_T0 + timedelta(seconds=5)))
+R.check(
+    "a differing GCHV night-mode reading inside the echo window is not rewritten yet",
+    _sw4_night_writes(_sw4_hold) == [],
+    f"{_sw4_night_writes(_sw4_hold)}",
+)
+_pa_aio.run(_pa.apply(_sw4_hold, _PA_T0 + timedelta(seconds=60)))
+R.check(
+    "past the echo grace a GCHV night-mode number the pump dropped is written back",
+    (_SW4_START_H, 22) in _sw4_night_writes(_sw4_hold),
+    f"{_sw4_night_writes(_sw4_hold)}",
+)
+
+_sw4_gone = _sw4_coord()
+_sw4_gone.hass.states._states.pop(_SW4_START_H, None)
+R.check(
+    "a missing GCHV night-mode number is observed as none",
+    _pa._observed(_sw4_gone.arbiter_inputs(), "night_start_hour") is None,
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
+

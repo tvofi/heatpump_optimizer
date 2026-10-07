@@ -25,7 +25,7 @@ set -uo pipefail
 # Deliberately a PREFIX list rather than the linter's own globs: this decides
 # whether to RUN the linter, so it may be wider than what the linter reads, and
 # a prefix that is too narrow is the failure that matters.
-POLICY_PREFIXES='^(CLAUDE\.md|\.claude/|\.cursor/|tools/audit/|tests/README\.md|docs/HANDOVER\.md|\.github/)'
+POLICY_PREFIXES='^(CLAUDE\.md|\.claude/|\.cursor/|tools/audit/|tests/README\.md|docs/HANDOVER\.md|\.github/|dev/governance/|dev/programme/)'
 
 touches_policy() { # $1 the newline-separated changed-file list
   printf '%s\n' "$1" | grep -qE "$POLICY_PREFIXES"
@@ -54,6 +54,9 @@ if [ "${1:-}" = "--self-test" ]; then
   touches_policy '.github/workflows/governance.yml'            ; st $? 0 "a workflow turn runs it"
   touches_policy 'docs/HANDOVER.md'                            ; st $? 0 "the handover runs it"
   touches_policy 'docs/plan-2026-09-open-issues.md'            ; st $? 1 "another docs/ file does not -- the prefix list names only the handover there"
+  touches_policy 'dev/governance/rules/gate-scoping.md'        ; st $? 0 "the rules source runs it"
+  touches_policy 'dev/programme/HANDOVER.md'                   ; st $? 0 "the moved handover runs it"
+  touches_policy 'dev/programme/register/audit-2026-09.md'     ; st $? 0 "the register runs it"
   printf 'a\ncustom_components/x.py\n.claude/rules/y.md\nb\n' >/dev/null
   touches_policy "$(printf 'custom_components/x.py\n.claude/rules/y.md')"; st $? 0 "one policy path among several is enough"
 
@@ -192,7 +195,7 @@ touches_policy "$CHANGED" || exit 0
 # No node, no verdict. Refusing a turn because the checker is absent would
 # block a seat on a fact about its box rather than about its diff.
 command -v node >/dev/null 2>&1 || exit 0
-OUT=$(node .claude/workflows/policy_lint.mjs 2>&1); RC=$?
+OUT=$(if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs 2>&1; else node tools/policy/policy_lint.mjs 2>&1; fi); RC=$?
 [ "$RC" -eq 0 ] && exit 0
 printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/audit/prepr.sh` before opening or updating a pull request.\n' \
   "$(printf '%s' "$OUT" | grep -E '^\s+(ERROR|WARN)|^TOTAL' | head -20)" >&2

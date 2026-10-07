@@ -1,5 +1,5 @@
 {
-  "_generated_by": "tools/gen_device_fixtures.py",
+  "_generated_by": "tools/devices/gen_device_fixtures.py",
   "upstream_repo": "make-all/tuya-local",
   "upstream_tag": "2026.9.1",
   "upstream_commit": "4551357adb34b6cf3073af8deada6a9bf13c94f0",

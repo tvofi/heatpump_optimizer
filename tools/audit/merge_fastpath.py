@@ -23,7 +23,7 @@ WHAT IT REFUSES, every class conservative:
   * workflow   -- either side touches `.github/`: the gate itself moved.
   * claim      -- either side touches a golden claim file (`claim-files.md`).
   * grader     -- either side touches a path a required job restores from the
-                  base (the `git checkout "$PINNED" --` pathspecs): a grader on
+                  base (the pathspecs `codeowners_gap.RESTORE` reads): a grader on
                   one side and what it grades on the other is the semantic
                   conflict a merge-tree cannot see (#1589 against #1592).
   * budget     -- either side touches a `*_budgets.json` no closure records
@@ -102,7 +102,7 @@ def _codeowners_gap():
 
 
 def grader_specs(workflow_texts: list[str]) -> list[str]:
-    """Every pathspec a `git checkout "$PINNED" --` restore names."""
+    """Every pathspec a restore names, checked out or listed."""
     restore = _codeowners_gap().RESTORE
     specs: set[str] = set()
     for text in workflow_texts:
@@ -315,7 +315,7 @@ def self_test() -> int:
         check("an unrecorded file on main's side alone refuses too",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
         rt = {"closures": table["closures"],
-              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/backlog.md"]}}
+              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/setup.md"]}}
         rtabs = {"main": rt, "head": rt}
         check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
               "is eligible once the table records the INERT reads",
@@ -323,7 +323,7 @@ def self_test() -> int:
         check("... and the pull request's own delivery row beside a code change main made",
               classes(["docs/delivery/2.md"], ["custom_components/x/one.py"], t=rtabs), [])
         check("a doc a run_always script opened still refuses (null control for the pair above)",
-              classes(["tests/golden/b.json"], ["docs/backlog.md"], t=rtabs), ["unrecorded"])
+              classes(["tests/golden/b.json"], ["docs/setup.md"], t=rtabs), ["unrecorded"])
         check("... on the pull request's side too",
               classes(["SECURITY.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
         check("a new page beside the docs a script opened refuses: it may glob the folder",
