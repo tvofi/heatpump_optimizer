@@ -10,9 +10,13 @@ The release conditions are enumerated by `PYTHONPATH=tests/hastub python3 tests/
 
 ## Head
 
+`2a503e10424f37f60f38d626f09cb5625f623f8a`
+
+`2a503e10424f37f60f38d626f09cb5625f623f8a` merges origin/main `bcea74883bec1e3395377ff70d8640737c97fc3e` into `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b`. `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b` adds `custom_components/heatpump_optimizer/quiet_windows.py` to the `tests/block_duty.py` closure. That recording's own `rc` is 0. `51dcc90d8dee9279a682dc67f5dfe75198f23c3f` merges origin/main `618d014f0b91ac39d77250bf887618002f628307` into `78852922691f6ba3f1cc312d64c189e15b36f514` and places the row at `dev/programme/delivery/1997.md`. `docs/delivery/1997.md` is absent from the tree. `git merge-tree --write-tree bcea74883bec1e3395377ff70d8640737c97fc3e 2a503e10424f37f60f38d626f09cb5625f623f8a` exited 0. Measured `date -u`: 2026-10-07T03:02:10Z. This is not a stamp.
+
 `78852922691f6ba3f1cc312d64c189e15b36f514`
 
-`78852922691f6ba3f1cc312d64c189e15b36f514` merges origin/main `a28fd0aee6651a24161fa38e3295d4ac2d906d57` into `edc8fa5dbb14ee4065b4383e5e94d4e35b0952e3`. The only content conflict was `tests/deployment_shape.py`. The selection-cost sentence is the merged `tests/closures.json` re-derived: 106 of the 496 pairs, 378 comparable, all 89 production files. `git merge-tree --write-tree origin/main 78852922691f6ba3f1cc312d64c189e15b36f514` exited 0.
+`78852922691f6ba3f1cc312d64c189e15b36f514` merges origin/main `a28fd0aee6651a24161fa38e3295d4ac2d906d57` into `edc8fa5dbb14ee4065b4383e5e94d4e35b0952e3`. The only content conflict was `tests/deployment_shape.py`. The selection-cost sentence is the merged `tests/closures.json` re-derived: 106 of the 496 pairs, 378 comparable, all 89 production files. `git merge-tree --write-tree a28fd0aee6651a24161fa38e3295d4ac2d906d57 78852922691f6ba3f1cc312d64c189e15b36f514` exited 0.
 
 `63aebe893e572c9ae558cae7049613b23a2c8f6b`
 
@@ -63,6 +67,10 @@ With no block set, `boost.overlay` adds no key and changes no value (`tests/feat
 - `PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py` — `RESULT claims_true=123 claims` and `RESULT claims_false=0 claims`
 
 ## Red checks
+
+`closures` failed at `78852922691f6ba3f1cc312d64c189e15b36f514`, job 112482614284, run 37525837411. It printed `UNDER-SCOPED: tests/block_duty.py really reads custom_components/heatpump_optimizer/quiet_windows.py`. The recording JSON for `tests/block_duty.py` in artifact 11444341958 has `rc` 0. The line `done tests/block_duty.py (exit 0)` is the wrapper in `tests/derive_closures.sh`. Cheaper detector: `closures_verdict` in `tools/pr/prepr.sh`, which reads that JSON `rc` and runs `tests/closure.py check --partial`. Standing cost is one `./tests/derive_closures.sh --single` of the script the log names. `a2b7eecf6eb7227cec6691e7bdeedf16a9e4e21b` commits that recording.
+
+`closures-autofix` failed on the same run, job 112501591072. It printed `AUTOFIX: skip-failed-recording` and `THE REPAIR DID NOT HAPPEN`. `apply_under_scoped_recordings` returns that status when any recording in the artifact has `rc` other than 0. The only such recording in artifact 11444341958 is `tests/stress.py` (`rc` 1). `tests/block_duty.py` has `rc` 0, so the under-scope is a completed read. Cheaper detector: the same `closures_verdict`, which refuses a non-zero JSON `rc` as `failed while being recorded`. Standing cost is a read of the recordings the `closures` job already uploaded. No bot commit follows that status.
 
 `closures` failed at `3560b69668e171c91cac0fbcf1db35490795306e`, job 112424468392. The job printed `closure: selectable script(s) with NO recording this run:` and `tests/block_duty.py`. `closures-autofix` on the same run, job 112436474265, printed `closures-autofix: skip-clean -- nothing owed to a human.` A script the derive lanes never run is not UNDER-SCOPED, so no bot commit comes. Cheaper detector: `tests/run.sh` prints `UNWIRED TEST: tests/block_duty.py is not referenced by tests/run.sh` before any lane. That scan is the start of `fast`; it adds no standing cost of its own. `63aebe89` adds the script to both lane files.
 
