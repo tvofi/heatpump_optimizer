@@ -35,7 +35,33 @@ Each line restored after the run. The instrument is the production function the 
 
 ## Figures
 
-none
+```
+python3 -c 'exec("import ast\nfrom pathlib import Path\nroot = Path(\"custom_components/heatpump_optimizer\")\nfacts = {\"(a)\": {\"project_planned_levels\", \"levels_clamped\", \"_published_levels\", \"_realize_draw\"}, \"(b)\": {\"flow_setpoint_for_level\", \"configured_flow_heat_c\", \"FLOW_HEAT_C\"}, \"(c)\": {\"learner_unmetered\", \"_tail_freeze\"}, \"(d)\": {\"planned_draw_runs\", \"planned_draws_run\"}}\ndef enc(parents, n):\n    own = n.name if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) else \"\"\n    cur, parts = n, []\n    while cur in parents:\n        cur = parents[cur]\n        if isinstance(cur, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):\n            parts.append(cur.name)\n    parts = list(reversed(parts))\n    if own:\n        parts.append(own)\n    return \".\".join(parts) or \"<module>\"\ndef under_import(parents, n):\n    cur = n\n    while cur in parents:\n        cur = parents[cur]\n        if isinstance(cur, (ast.Import, ast.ImportFrom)):\n            return True\n    return False\nrows = set()\nfor path in sorted(root.glob(\"*.py\")):\n    if path.name == \"const.py\":\n        continue\n    tree = ast.parse(path.read_text())\n    parents = {}\n    for n in ast.walk(tree):\n        for c in ast.iter_child_nodes(n):\n            parents[c] = n\n    for n in ast.walk(tree):\n        if under_import(parents, n):\n            continue\n        name = n.name if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) else n.id if isinstance(n, ast.Name) else n.attr if isinstance(n, ast.Attribute) else (n.func.id if isinstance(n, ast.Call) and isinstance(n.func, ast.Name) else n.func.attr if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) else None)\n        if not name:\n            continue\n        for label, keys in facts.items():\n            if name in keys:\n                rows.add(\"%s %s::%s\" % (label, path.name, enc(parents, n)))\nprint(\"\\n\".join(sorted(rows)))\n")' 
+```
+
+(a) thermal_model.py::project_planned_levels — closed in this diff: the projection onto {0} union [p_min, p_max].
+(a) thermal_model.py::levels_clamped — closed in this diff: the probe gate from_mapping reads.
+(a) optimizer.py::_published_levels — closed in this diff: calls project_planned_levels.
+(a) optimizer.py::_realize_draw — closed in this diff: calls _published_levels for the objective.
+(a) optimizer.py::HeatPumpOptimizer._solve_objectives.objective — closed in this diff: calls _realize_draw.
+(a) optimizer.py::HeatPumpOptimizer._solve_objectives.objective_batch — closed in this diff: calls _realize_draw.
+(a) optimizer.py::HeatPumpOptimizer._optimize_space_only — closed in this diff: calls _realize_draw.
+(a) optimizer.py::HeatPumpOptimizer._optimize_with_dhw — closed in this diff: calls _published_levels on the published levels.
+(a) optimizer.py::OptimizationConfig.from_mapping — closed in this diff: calls levels_clamped.
+(b) thermal_model.py::flow_setpoint_for_level — closed in this diff: the level-following flow.
+(b) thermal_model.py::configured_flow_heat_c — closed in this diff: the configured ceiling.
+(b) pump_arbiter.py::_flow_target — closed in this diff: heating steps call flow_setpoint_for_level; the duty-None hold clamps to configured_flow_heat_c.
+(b) pump_arbiter.py::<module> — already guarded: FLOW_HEAT_C = 55.0 is the default configured_flow_heat_c falls back to.
+(c) thermal_model.py::learner_unmetered — closed in this diff: the unmetered-power freeze.
+(c) coordinator.py::_tail_freeze — closed in this diff: calls learner_unmetered.
+(c) coordinator.py::HeatPumpOptimizerCoordinator._learning_frozen — closed in this diff: returns _tail_freeze after the boost gate.
+(d) thermal_model.py::planned_draw_runs — closed in this diff: the modulation-floor gate.
+(d) pump_arbiter.py::step_duty — closed in this diff: sets that floor around the two owner calls.
+(d) pump_arbiter.py::_release_duty_floor._wrapped — already guarded: clears the floor step_duty set and does not decide a step.
+(d) thermal_model.py::planned_draws_run — already guarded: the batch form of the same comparison; the levels it is handed were projected by _published_levels when the install clamps.
+(d) optimizer.py::HeatPumpOptimizer._power_to_heat_pump_schedule — already guarded: calls planned_draws_run on those projected levels.
+(d) optimizer.py::HeatPumpOptimizer.get_current_action — already guarded: prefers heat_pump_on_schedule from that call.
+(d) coordinator.py::_apply_result_payload — already guarded: prefers heat_pump_on_schedule the same way.
 
 ## Red checks
 
