@@ -1,0 +1,5 @@
+  ok   post retries a refused verdict by hand
+  ok   watch reports a deleted ref
+  ok   watch without --once exits on its first event
+  ok   watch without --once keeps waiting while nothing changes
+bus self-test: 45 checks, 0 failed

@@ -1,4 +1,0 @@
---- tmp_paths scope old regex
- 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL a decision record at its lifted home citing /private/tmp is refused
-tmp_paths self-test: 42 checks, 1 failed

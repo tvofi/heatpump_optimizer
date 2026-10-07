@@ -1,18 +1,68 @@
-Fix review: merge bb3634f62bbf0ae86967df3eb44f330d551156b1
+Fix review: merge 5efb428db16496dad6a81795fbe53b22415c2e20
+bus-nonce: 62e4416348eca0697adbb7e593d78f9c
 
-Round 3. Seat r9c-rev-2012, fresh detached worktree at bb3634f62bbf0ae86967df3eb44f330d551156b1. Delta judged: 7cef1c32..bb3634f62bbf0ae86967df3eb44f330d551156b1 (d1e37730, 8fe1ca12, f607a349 + the orchestrator's no-ff merge). origin/main has moved to 59b5ac6e (not contained); git merge-tree --write-tree origin/main bb3634f62bbf0ae86967df3eb44f330d551156b1 exits 0. Live head at posting: bb3634f62bbf0ae86967df3eb44f330d551156b1.
+## Mechanical Review
 
-RESULT self-tests at head: moved_paths 9/0, open_pr 1/0, handoff_push 1/0, tmp_paths 42/0, merge_train 49/0, handover_prompt 13/0, bus 45/0, state_docs and record_row all passed (selftests.txt)
-RESULT tmp_paths --check (python3 -I): 0 refused, 0 stale allow entries, with dev/governance/decisions/ now in scope
-RESULT the carries' command `python3 tools/audit/seat/moved_paths.py tools/audit/seat/*`: rc 0, 26 hits in 25 files, 14 FALLBACK + 12 STALE? -- matches the body; each STALE? checked against its disposition (lifted .claude/rules/ whose copy exists; merge_train:160 and roster_edit BRIEF_LINT_OLD split fallbacks; tmp_paths docs/decisions old-home scope + its self-test; tmp_paths:19 exclusion of the now-absent tools/audit/handoff/, inert because dev/archive/ is outside the scan scope) (carry_cmd.txt)
-RESULT plant open_pr.sh ROW_DIR=docs/delivery: 1 checks, 1 failed (plant_openpr.txt)
-RESULT plant handoff_push.sh ROW_DIR=docs/delivery: 1 checks, 1 failed (plant_handoff.txt)
-RESULT plant moved_paths expand() without the directory walk: self-test rc 1, IsADirectoryError on the directory arm (plant_walk_full.txt)
-RESULT plant moved_paths walk ignoring the tracked set: 9 checks, 2 failed (plant_tracked.txt)
-RESULT plant moved_paths without the all-tracked-dir planned-move clause: 9 checks, 1 failed (plant_planned.txt)
-RESULT plant tmp_paths scope back to docs/decisions only: 42 checks, 1 failed, the lifted-home case (plant_tmp.txt)
-RESULT comment/fixture re-points in INSTRUMENTS.md, record_row.py, roster_lib.py, state_docs.py: text only plus state_docs self-test fixtures; state_docs self-test passes.
-RESULT check-runs at head when posted: 14 success, 10 skipped, 1 neutral, 6 in_progress (CodeQL, browser, closures, coverage, env-matrix, fast 3.14), budget-raise-gate cancelled; red delivery-status and nightly-status are main's, answered in the body. The gate lanes were still running: this verdict does not certify them, and the merge train's CI step owes their green.
-RESULT not re-measured by me: prepr --self-test 186/7 (orchestrator reports it reproduces on clean main); tests/entities.py (no homeassistant module locally; the body cites ALL 2191 PASSED, and CI fast lane owes it).
+### Check 1: Three-dot diff integrity
 
-bus-nonce: 66ab5005b1e0a717f98806df77c6c659
+**Status: PASS**
+
+Compared PR's three-dot diffs at both commit heads:
+- Old head (bb3634f6): 1040 lines
+- New head (5efb428d): 1040 lines
+
+Apart from `tools/audit/bugclasses.json`, all files have identical added/removed lines. Only context line numbers changed due to merge resolution (expected).
+
+File differences in hunk headers:
+```
+index 44f314e2..3a7992f0 100644  (old)
+index 71af53a2..a013cb53 100644  (new)
+
+@@ -3653,6 +3653,22 @@  (old)
+@@ -3654,6 +3654,22 @@  (new)
+```
+
+These are harmless re-indexing and line-number shifts from the merge.
+
+### Check 2: bugclasses.json integrity
+
+**Status: PASS**
+
+- JSON parsing: Valid
+- Conflict markers: None
+- Key preservation: All 84 existing `_rca` keys preserved
+- New entries: Single addition of `R9-RCA-1990` (as required)
+
+Main _rca entries: 84
+New _rca entries: 85 (added R9-RCA-1990 only)
+
+### Check 3: Merge tree cleanness
+
+**Status: PASS**
+
+```
+$ git merge-tree --write-tree origin/main 5efb428d
+3d2ef5b7e086fa53942846dde2b354dc077f7a46
+Exit code: 0
+```
+
+No conflicts, tree merges cleanly.
+
+### Check 4: CI check-runs at new head (5efb428d)
+
+**Status: PASS**
+
+Failures and cancellations:
+- `delivery-status`: failure (inherited from main, does not block)
+- `nightly-status`: failure (inherited from main, does not block)
+- `budget-raise-gate`: cancelled (not triggered on main; cancellation is not a blocking failure)
+
+All other checks: success, skipped, or neutral.
+
+No non-inherited red checks that would block merge.
+
+## Summary
+
+All four mechanical checks pass. The PR merges cleanly from origin/main with only the expected bugclasses.json merge resolution (addition of R9-RCA-1990 to the _rca registry, matching the new RCA document). CI shows only inherited reds that do not block per the merge policy.
+
+**Verdict: Ready to merge at commit 5efb428d.**

@@ -68,27 +68,11 @@ owner's.
 
 ## Head
 
-`bb3634f62bbf0ae86967df3eb44f330d551156b1` merges the authored code head `f607a349f1a8b6336d62fb6d36394197b996cd94` and then merges origin/main `be0cb821` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`6f3609a4a17c7367263dadaa07889bc8aafbb8fa` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2012.md`. The authored code head is `277cc786bc5820086eeadce901818225ab7d1bba`.
 
-`f607a349f1a8b6336d62fb6d36394197b996cd94`, at merge base `be0cb821` (`origin/main`). This is round 3. PR head `6f3609a4` (round 1 plus its row commit) is merged in. Three commits answer round 1's block, and three answer round 2's block and the row report that followed it.
+`8ed1eb589478457c1023fae4bddd9e821225988d` merges origin/main `be0cb821` into the authored code head `277cc786bc5820086eeadce901818225ab7d1bba` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below).
 
-Round 2 blocked with `harness`: the carries' command `moved_paths.py tools/audit/seat/*` crashed with `IsADirectoryError` on the tracked directory `tools/audit/seat/shims/`. A directory argument is now walked: every tracked file under it is scanned, recursively, and untracked files are skipped. A self-test case covers this. A `layout.json` directory entry whose files are still tracked now counts as a planned move, not a moved one. The carry command is unchanged; its seat-wide run is in `## Figures`. That run found one functional defect, now fixed:
-
-- `tmp_paths.py` scanned only `docs/decisions/`, so no decision record has been scanned since the governance lift.
-- Its self-test case sat on the old path and stayed green.
-- The scope now includes `dev/governance/decisions/`, with a self-test case at the new home. `--check` at that scope refuses nothing.
-
-Stale comments, a reason string and a fixture path in `INSTRUMENTS.md`, `record_row.py`, `roster_lib.py`, `state_docs.py` and `tmp_paths.py` are re-pointed.
-
-The orchestrator also reported rows for #2013 and #2014 landing at the retired `docs/delivery/<N>.md`. `7cef1c32`'s `open_pr.sh` named only `dev/programme/delivery/`, and `origin/main`'s copy names only `docs/delivery/`, so the run that wrote those rows used main's copy. Neither copy had a fallback for the row write. Both `open_pr.sh` and `handoff_push.sh` now write the row through one `write_row` function. It always targets `dev/programme/delivery/<N>.md`, and creates the directory for a branch that predates the lift. Each script gains a `--self-test` that drives that function. The old path is never written.
-
-Round 1 blocked with `class-open`: `handover_prompt.py:78` still sent every generated prompt to `tools/audit/briefs/`, a directory the governance lift emptied into `dev/governance/roles/`. Round 1's search matched script paths only (`.sh`, `.py`, `.mjs`), so it could not find a directory. Round 2 lands that search as `tools/audit/seat/moved_paths.py`. It reads every path `tests/layout.json` marks moved: each retired file no longer tracked, its emptied parent directory, and each lifted prefix. It reports every line that names one. Re-pointed in round 2:
-
-- `handover_prompt.py:78`, to the contracts' directory. Its self-test now requires every backticked repository path in the generated prompt to exist.
-- `handoff_push.sh`: its rule citation, the `HANDOVER.md` comment on line 7, and a note filter that excused the retired `tools/audit/handoff/`.
-- `merge_train.py`: four self-test fixture lines that modelled a policy path at `tools/audit/briefs/fixer.md`.
-
-The R9-RO-8 and R9-RO-9 carries now name `moved_paths.py` in their re-measurement.
+`277cc786bc5820086eeadce901818225ab7d1bba`, at merge base `3910026e` (`origin/main`).
 
 ## Mutation proof
 
@@ -114,19 +98,6 @@ Functional arm, on #1980's pair `569e0e63` → `356eb015`:
 - Main's carry argv prints `bash: tools/audit/app_approve.sh: No such file or directory` and no `CARRY` line.
 - The fixed `tool("app_approve")` resolves to `tools/pr/app_approve.sh` and prints `CARRY: yes`.
 
-Round 2:
-
-- `handover_prompt.py:78` restored to `tools/audit/briefs/`: `handover_prompt self-test: 13 checks, 1 failed`, the check `every repository path the prompt names exists (missing: tools/audit/briefs/)`. Fixed: `13 checks, 0 failed`.
-- `moved_paths.py` over round 1's five files (PR head `6f3609a4`) finds the reviewer's line, `handover_prompt.py:78 [STALE?] tools/audit/briefs/ -> dev/governance/roles/`, among 20 hits. Over this head it finds 12.
-
-Round 3:
-
-- `moved_paths.py` as of round 2 (`7cef1c32`), over `tools/audit/seat/*`, prints `IsADirectoryError: [Errno 21] Is a directory: 'tools/audit/seat/shims'`.
-- Round 3's self-test with directory walking switched off (`if p.is_dir():` replaced by `if False:`) prints `FAIL a directory argument walks its tracked files, recursively, and skips untracked ones`, then the same `IsADirectoryError`. Fixed: `9 checks, 0 failed`.
-- `tmp_paths.py` with main's `docs/decisions/`-only scope restored: `tmp_paths self-test: 42 checks, 1 failed`, the check `a decision record at its lifted home citing /private/tmp is refused`. Fixed: `42 checks, 0 failed`.
-
-- `open_pr.sh` and `handoff_push.sh` with `ROW_DIR` set back to main's `docs/delivery`: each prints `FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/` and `1 checks, 1 failed`. Fixed: `1 checks, 0 failed`.
-
 ## Null control
 
 - `origin/main`'s own `merge_train.py` self-test prints
@@ -145,30 +116,11 @@ Round 3:
 - handover prompt 12 checks, 0 failed: `python3 tools/audit/seat/handover_prompt.py --self-test`
 - ledger 0 violations, 97 rca entries: `python3 tools/audit/fold_ledger.py check`
 - tmp paths 0 refused: `python3 -I tools/audit/seat/tmp_paths.py --check`
-- handover prompt 13 checks, 0 failed (round 2): `python3 tools/audit/seat/handover_prompt.py --self-test`
-- moved-path enumeration 9 checks, 0 failed: `python3 tools/audit/seat/moved_paths.py --self-test`
-- tmp paths self-test 42 checks, 0 failed: `python3 -I tools/audit/seat/tmp_paths.py --self-test`
-- row write 1 check, 0 failed: `bash tools/audit/seat/open_pr.sh --self-test`
-- row write 1 check, 0 failed: `bash tools/audit/seat/handoff_push.sh --self-test`
-- moved-path references, 12 hits in the five instruments, every one dispositioned below: `python3 tools/audit/seat/moved_paths.py tools/audit/seat/merge_train.py tools/audit/seat/bus.sh tools/audit/seat/open_pr.sh tools/audit/seat/handoff_push.sh tools/audit/seat/handover_prompt.py`
-  - 9 are FALLBACK: an old-path-first fallback with the new path on the same line. They are `merge_train.py:84` and `:85`, `bus.sh:86` and `:388`, `open_pr.sh:27` and `:44`, and `handoff_push.sh:60`, `:80` and `:95`.
-  - `merge_train.py:160` (`.claude/workflows/policy_lint.mjs`) is the same fallback split across lines: `:161`–`:162` fall back to `tools/policy/policy_lint.mjs`.
-  - `handover_prompt.py:14` and `:76` (`.claude/rules/`): `tests/layout.json` lists this prefix as lifted, not retired. The generated copy stays, and the harness loads it when it binds, which is what the prompt says.
-- the carries' command, seat-wide, 26 hits in 25 files, every one dispositioned below: `python3 tools/audit/seat/moved_paths.py tools/audit/seat/*`
-  - 14 are FALLBACK lines that name the new path. They are the 9 above, plus `merge_pr.sh` (3), `remerge_main.sh` (1) and `update_pr.sh` (1).
-  - From the five files: `merge_train.py:160`, `handover_prompt.py:14` and `:76`, as above.
-  - `INSTRUMENTS.md:5` and `tmp_paths.py:46` name `.claude/rules/`. That prefix is lifted and its generated copy stays, as above.
-  - `roster_edit.py:31`, `:73`, `:456` and `:623` are the `BRIEF_LINT_OLD`/`BRIEF_LINT_NEW` old-first fallback, split across lines, and the self-test seeds that exercise it.
-  - `tmp_paths.py:16` and `:219` name `docs/decisions/` on purpose. They are the docstring's "their home before the lift" and the self-test case for the old home, which the scope still covers.
-  - `tmp_paths.py:19` is the docstring for the round-evidence exclusion, which names the retired `tools/audit/handoff/`. The exclusion of a directory that no longer exists is inert.
-- gate `MODE: SCOPED -- 1 script(s) run, 30 scoped out`, the one script being `tests/entities.py`: `python3 tests/closure.py select --diff be0cb821 --workdir <dir>`
-- entities `ALL 2191 ENTITY CHECKS PASSED` (Python 3.14): `PYTHONPATH=tests/hastub python3 tests/entities.py`
+- gate `MODE: SCOPED -- 0 script(s) run, 31 scoped out`: `python3 tests/closure.py select --diff 3910026e --workdir <dir>`
 
 ## Red checks
 
-`delivery-status` is red at PR head `6f3609a4` (job 112676885167). It printed `DELIVERY STATUS UNCHECKED — 46 rowed, 3 pending, 0 overdue`. The 3 pending are #1917, #2003 and #2001, and the unread commits are main's own (`618d014`, `0a60e06` and others). None of them is #2012. The diff's one record file is #2012's own row, `dev/programme/delivery/2012.md`, which the orchestrator's row commit added. The check grades `main` and is not a required context. Cheaper detector: none. The finding is that main's record backlog is the orchestrator's to drain, and it would be red on any pull request in this window.
-
-`nightly-status` is red at PR head `6f3609a4` (job 112676884784). It printed `NIGHTLY FAILED: record-autofix failed last night`: scheduled run 37440269774 at main `cff39da`, the `record-autofix` job. That is a main lane, and this diff does not touch it or what it runs. The diff's one record file is #2012's own row. Fixing that lane and dispatching `tests.yml` on `main` is the orchestrator's (`defect-root-cause.md`, Enforcement). Cheaper detector: none from this pull request.
+none
 
 ## Forward-carry
 
