@@ -24630,7 +24630,7 @@ steps:
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
           'tools/audit/record-predicate' \
-          'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+          'tools/audit/round6/D11/fix/codeowners_gap.py' \
           'tools/policy/*.mjs' \
           'tools/policy/*.py' \
           'tools/pr/*.py' \
@@ -31822,7 +31822,7 @@ def _jb_run() -> dict:
     spec.loader.exec_module(judge_batch)
     with _tempfile.TemporaryDirectory() as td:
         repo = Path(td) / "repo"
-        hdir = repo / "tools" / "audit" / "round9" / "D1"
+        hdir = repo / "dev" / "audit" / "rounds" / "round9" / "D1"
         hdir.mkdir(parents=True)
         lock_dir = Path(td) / "lock"
         (repo / "pkg").mkdir()
