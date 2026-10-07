@@ -585,6 +585,13 @@ R.check(
     stale.self_tests is None and stale.final is False,
     str(stale.self_tests)[:200],
 )
+cleared, _ = _collector()
+cleared.started_at, cleared.final, cleared.self_tests = T0, True, {"feeds": {"ms": 1.0}}
+cleared.restart()
+R.check(
+    "starting a finished collection again clears its self-test results",
+    cleared.self_tests is None and "self_tests" not in cleared.as_dict(),
+)
 R.check(
     "a loaded ring whose self-test text does not parse carries no results",
     debugger._parsed("{") is None,
@@ -660,6 +667,10 @@ R.check(
     _a16(whole, big) == {"a16:debug_inline": True, "a16:debug_capped": True}
     and _a16(big, whole) == {"a16:debug_inline": False, "a16:debug_capped": False}
     and _a16(whole, big, _refuse) == {"a16:debug_inline": False, "a16:debug_capped": False},
+)
+R.check(
+    "the nightly A16 judge fails a download over the cap that does not say it is a summary",
+    _a16(whole, {k: v for k, v in big.items() if k != "inline"})["a16:debug_capped"] is False,
 )
 R.check(
     "the nightly lane demands both A16 checks by name",
