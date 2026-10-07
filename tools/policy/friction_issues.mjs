@@ -735,6 +735,14 @@ export function selfTest() {
     else { fail += 1; console.log(`  FAIL ${what} (got ${JSON.stringify(got)}, wanted ${JSON.stringify(want)})`) }
   }
 
+  // The tool this lane spawns (`--normalize-friction-keys`) and quotes as an
+  // issue's derivation command is a file, read from the working directory the
+  // way the spawn reads it (#2004, dev/audit/rca/R9-RCA-2004.md). #1919 moved
+  // policy_lint.mjs out of .claude/workflows/ and this constant stayed behind:
+  // every governance `record` run after it refused at the normalizer, and the
+  // derivation command #2004 carries did not run.
+  st(fs.existsSync(STATS_TOOL), true, `the stats tool this lane spawns and quotes is a file: ${STATS_TOOL}`)
+
   // The trigger line, exactly as printFindings emits it: two leading spaces,
   // severity padded to 7, the [stats] check tag, the (window) where.
   const LINE = (key, kind, n) =>
