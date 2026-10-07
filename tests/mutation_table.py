@@ -68,7 +68,7 @@ triage has called equivalent, and an unmarked survivor stays a gap (#1217).
     python3 tests/mutation_table.py --scope full --jobs 4
     python3 tests/mutation_table.py --scope changed --record --reason "..."
 
-Prior art, deliberately not imported: `tools/audit/round3/D3/mutant_pool.py` and
+Prior art, deliberately not imported: `dev/audit/rounds/round3/D3/mutant_pool.py` and
 its `prescreen.py` measure the same property over a hand-recorded mutant list at
 a frozen baseline SHA. That is audit evidence and has to keep answering for the
 tree it was run against; a gate has to follow the tree instead. Six of the

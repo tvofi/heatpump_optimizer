@@ -34,7 +34,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["77 entities<br/>60 sensors, 6 binary sensors,<br/>5 buttons, 4 switches,<br/>1 climate, 1 datetime"]
+        ent["79 entities<br/>60 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -164,7 +164,8 @@ custom_components/heatpump_optimizer/
 │                         #   weight, diagnose last interval; finalize the
 │                         #   debug collection while that option is on
 ├── climate.py            # Virtual climate entity: modes, presets, DHW status
-├── switch.py             # Away, DHW Boost, Boost Space Heating, Optimizer Active
+├── switch.py             # Away, Block DHW, Block Space Heating,
+│                         #   Boost Space Heating, DHW Boost, Optimizer Active
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
 ├── services.py           # The domain's 13 services: schemas, handlers and registration

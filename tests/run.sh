@@ -427,6 +427,10 @@ lane_units() {
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
   run "$PYTHON" tests/entities.py
+  # The block-switch mutants, without features.py's solves (R9-SW-5). A
+  # selectable script left out of every lane fails the gate twice: unwired
+  # at the start, and never-ran at the accounting.
+  run "$PYTHON" tests/block_duty.py
   # #1413: derive the claim set from the reader docs and the fact set from
   # code, fail-closed on a contradiction -- the stale-prose class (D5-01/D6-01/
   # D6-03). Own script so the claim shapes are scanned, not enumerated.
@@ -493,7 +497,7 @@ lane_units() {
   run "$PYTHON" tests/finite_boundary.py
   # #817: a harness header's EXPECTED RESULT lines must match what it prints.
   # Still run_always after R9-F10.3's strace saw its children (R9-F10.9b
-  # re-measured, #1812): tools/audit/round4/D6/claims.py opens INERT docs
+  # re-measured, #1812): dev/audit/rounds/round4/D6/claims.py opens INERT docs
   # (docs/backlog.md, docs/audit-2026-09.md) and DISCLAIMER.md under this script,
   # and an INERT path is in no closure, so a docs-only diff that moves one of
   # its RESULT lines would select nothing that runs it.
