@@ -36,9 +36,9 @@ second) and refuses, printing one line each:
                       >=3 in one round, >=3 over three consecutive rounds, >=5
                       while not barriered, or any instance of a barriered
                       class) and carries neither a barrier nor an rca whose
-                      document is in tools/audit/rca;
+                      document is in dev/audit/rca;
   UNKNOWN-RCA/DANGLING  a cited rca not in `_rca`, or an `in_tree_home` that is
-                      not an existing file under tools/audit/rca.
+                      not an existing file under dev/audit/rca.
 The default root is the repository this file lives in. The wave-script lane runs
 the branch's own copy of this file, not a pinned one, so a branch could edit the
 grader it is graded by; the only protection is ownership (CODEOWNERS names it).
@@ -54,7 +54,7 @@ import tempfile
 SURVIVES = ("verified", "weakened")
 CLASS_ID = re.compile(r"^(?:[PI]\d+|N-[a-z0-9]+(?:-[a-z0-9]+)*)$")
 INSTANCE = re.compile(r"^R(\d+) (\S+)$")
-RCA_DIR = "tools/audit/rca"
+RCA_DIR = "dev/audit/rca"
 LEDGER = "tools/audit/bugclasses.json"
 SCHEMA = "tools/audit/finding.schema.json"
 
@@ -355,7 +355,7 @@ def self_test():
     expect("three instances in one round with no barrier and no rca is OWED", "OWED: P1" in out)
     owed = _settle({"P1": _entry(["R2 D1-01", "R2 a", "R2 b"], rca=["X"]), "_rca": {"X": {"level": "class", "in_tree_home": f"{RCA_DIR}/X.md"}}})
     rc, out = run_check(owed, J, docs=("X.md",))
-    expect("an rca whose document is in tools/audit/rca answers it", rc == 0)
+    expect("an rca whose document is in the rca directory answers it", rc == 0)
     rc, out = run_check(owed, J)
     expect("the same rca with its document missing is DANGLING and the class OWED", "DANGLING: _rca[X]" in out and "OWED: P1" in out)
     rc, out = run_check(_settle({"P1": _entry(["R2 D1-01", "R2 a", "R2 b"], barrier="a check"), "_rca": {}}), J)
@@ -385,7 +385,7 @@ def self_test():
         buf = io.StringIO()
         with contextlib.redirect_stdout(buf):
             check(t)
-    expect("an in_tree_home that is an existing file outside tools/audit/rca is DANGLING", "DANGLING: _rca[Z]" in buf.getvalue())
+    expect("an in_tree_home that is an existing file outside the rca directory is DANGLING", "DANGLING: _rca[Z]" in buf.getvalue())
     rc, out = run_check(_settle({"P1": _entry(["R2 D1-01", "bad"]), "_rca": {}}), J)
     expect("an instance that is not R<n> <id> is UNPARSED", "UNPARSED: P1" in out)
     twin = _settle({"P1": _entry(["R2 D1-01"], nearest_existing="P2", minted="R2"), "P3": _entry(["R2 a", "R2 b"], nearest_existing="P2", minted="R2"),

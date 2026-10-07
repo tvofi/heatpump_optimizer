@@ -1,0 +1,14 @@
+{
+  "_comment": "Carry from R9-RO-4 into R9-RO-8 (#1921). No live roster group on main covers #1921; the r9 roster lives on its handoff branch. Shape: .claude/rules/finding-propagation.md.",
+  "issue": 1921,
+  "stage": "R9-RO-8, the audit-evidence move",
+  "carries": [
+    {
+      "from": "R9-RO-4 put dev/archive/ and dev/audit/ on tests/closure.py's INERT list when it created those directories",
+      "effect": "narrows",
+      "control": "A file under an INERT prefix that a gate script reads is the skip that leaves main red: tests/closure.py's _is_header_corpus takes tools/audit/round*/D*/*.py out of the tools/audit/ claim because tests/harness_headers.py opens them. dev/audit/ holds only the merged README and the RCA documents after this move, and neither is a round harness. The perturbation: move one live-header harness under dev/audit/ without extending _is_header_corpus and python3 tests/closure.py's inert-and-recorded check goes red, or, if the read is not yet in a closure, orphan classification stays green while select skips the harness.",
+      "remeasure": "At your merge base, read tests/closure.py's INERT tuple and _is_header_corpus. If dev/audit/ is still a bare prefix, extend the header carve-out in the same commit that moves a round harness under it, and show the inert-and-recorded check red on a planted harness path before the carve-out and green after.",
+      "brief": "dev/audit/ is INERT. A live harness moved there is unread until _is_header_corpus (or INERT_EXCEPT) names it. Do that in the move commit, not after."
+    }
+  ]
+}

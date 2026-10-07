@@ -696,6 +696,7 @@
    "tools/policy/render_md.mjs",
    "tools/policy/vendor/markdown-it.LICENSE",
    "tools/policy/vendor/markdown-it.min.js",
+   "tools/pr/README.md",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/dbg_bundle_gen.py",
@@ -2936,9 +2937,7 @@
  "inert_reads": {
   "tests/harness_headers.py": [
    "LICENSE",
-   "docs/audit-2026-08.md",
    "docs/audit-2026-09.md",
-   "docs/backlog.md",
    "tools/audit/ci-version-edit/pr_contract_shapes.py",
    "tools/audit/ci-version-edit/recheck_stamp_forgery.py",
    "tools/audit/harnesses/d1_s3_02_queued_apply.py",

@@ -315,7 +315,7 @@ def self_test() -> int:
         check("an unrecorded file on main's side alone refuses too",
               classes(["tests/golden/b.json"], ["docs/delivery/1.md"]), ["unrecorded"])
         rt = {"closures": table["closures"],
-              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/backlog.md"]}}
+              "inert_reads": {"tests/h.py": ["SECURITY.md", "docs/setup.md"]}}
         rtabs = {"main": rt, "head": rt}
         check("R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, "
               "is eligible once the table records the INERT reads",
@@ -323,7 +323,7 @@ def self_test() -> int:
         check("... and the pull request's own delivery row beside a code change main made",
               classes(["docs/delivery/2.md"], ["custom_components/x/one.py"], t=rtabs), [])
         check("a doc a run_always script opened still refuses (null control for the pair above)",
-              classes(["tests/golden/b.json"], ["docs/backlog.md"], t=rtabs), ["unrecorded"])
+              classes(["tests/golden/b.json"], ["docs/setup.md"], t=rtabs), ["unrecorded"])
         check("... on the pull request's side too",
               classes(["SECURITY.md"], ["tools/audit/README.md"], t=rtabs), ["unrecorded"])
         check("a new page beside the docs a script opened refuses: it may glob the folder",

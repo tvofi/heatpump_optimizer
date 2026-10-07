@@ -71,13 +71,6 @@
 /.claude/workflows/contract_rerun.py      @tvofi
 /tools/policy/budget_raise_gate.py        @tvofi
 /tools/pr/contract_rerun.py               @tvofi
-# The env-matrix job runs this pull request's policy_lint_envmatrix.mjs.
-# The base copy calls .claude/workflows/policy_lint.mjs, so restoring it
-# grades with a script that cannot start. The pull request's copy is the
-# one the job runs, and it loads counts.mjs on that run, which is then
-# not a pinned run. Ownership is the review on both.
-/tools/policy/counts.mjs                  @tvofi
-/tools/policy/policy_lint_envmatrix.mjs   @tvofi
 # The merge fast path decides when a pull request merges without a fresh CI
 # run (round-9 process review item 2B); the orchestrator runs main's copy, and
 # its self-test cannot stop a pull request that weakens a class and its fixture
@@ -117,6 +110,13 @@
 /.claude/workflows/audit-find.js          @tvofi
 /.claude/workflows/audit-verify.js        @tvofi
 /.claude/workflows/web-fix-wave.js        @tvofi
+# The env-matrix restore pathspec omits policy_lint_envmatrix.mjs, so the
+# job executes this pull request's copy. Its arms call
+# tools/policy/policy_lint.mjs. The base blob 40bac880 names
+# .claude/workflows/policy_lint.mjs and is not what the job runs. The
+# driver loads counts.mjs. Ownership is the review on both.
+/tools/policy/counts.mjs                  @tvofi
+/tools/policy/policy_lint_envmatrix.mjs   @tvofi
 # The test scripts the gate's jobs execute directly -- by interpreter or by
 # their own `./` path -- and the modules those import (#1515), where no pin can
 # hold (decision 0013, amended 2026-09-24): the suite (`run.sh` and what `fast`

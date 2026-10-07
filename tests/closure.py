@@ -231,7 +231,6 @@ INERT = (
     # file forced the FULL suite and failed the orphan check on #819.
     "SECURITY.md",
     "NOTICE",
-    "icon.png",
     # docs/ except the handover (HANDOVER_DIR below) and the pages a gate
     # script pins (INERT_EXCEPT below, #937 and #939) -- the same split
     # README.md, RELEASE_NOTES.md and tests/README.md needed before it.
@@ -276,7 +275,13 @@ INERT = (
     # file that is in no closure and on no list, and tests/entities.py fails
     # when that set is not empty. So a new file has to be classified once,
     # deliberately, instead of silently making every gate full.
-    ".abacus.donotdelete",
+    # The reorganisation's archive and the audit record that has already
+    # moved (R9-RO-4). Same claim as tools/audit/: prose and evidence no gate
+    # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
+    # _is_header_corpus before a live harness lands under dev/audit/, or the
+    # move would declare a file the gate reads as unread.
+    "dev/archive/",
+    "dev/audit/",
     ".claude/",
     # R9-RO-6: policy, PR, coverage and device instruments left the
     # INERT prefixes they were under. The directory stays unread except
@@ -485,6 +490,11 @@ def is_handover(rel: str) -> bool:
 # INERT-and-recorded pair #357 exists to refuse, so the bot returns skip-still-fails.
 INERT_EXCEPT = (
     "tools/pr/preflight.sh",
+    # R9-RO-4: tests/entities.py reads tools/pr/README.md. tools/pr/ is INERT
+    # (R9-RO-6). Left inside the prefix the note is declared unread while
+    # being read, and check refuses the committed table before it compares
+    # a recording (#357).
+    "tools/pr/README.md",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
