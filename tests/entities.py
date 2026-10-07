@@ -22346,6 +22346,9 @@ _ux7_entry.runtime_data.data = {
          "problem": "unavailable", "age_minutes": None, "max_age_minutes": None},
     ],
     "problem_inputs": ["sensor.indoor", _UX7_PERSON],
+    "problem_messages": [
+        *DATA["problem_messages"], f"{_UX7_PERSON}: unavailable",
+    ],
     "space_plan": {
         "forecast": [dict(_UX7_STEP) for _ in range(4)],
         "slots": [{"start": "2026-02-01T10:00:00+01:00", "kwh": 1.5}],
@@ -22395,6 +22398,10 @@ R.check(
 R.check(
     "UX-7: the over-redaction control -- an ordinary sensor id survives beside them",
     _diag_at(_ux7_diag, "inputs", "problem_inputs", 0) == "sensor.indoor"
+    and _diag_at(_ux7_diag, "inputs", "problem_messages", 0)
+    == DATA["problem_messages"][0]
+    and _diag_at(_ux7_diag, "inputs", "problem_messages", 1)
+    == f"{_HA_REDACTED}: unavailable"
     and _diag_at(_ux7_diag, "inputs", "input_problems", 0, "entity_id")
     == "sensor.indoor"
     and _diag_at(_ux7_diag, "config", "indoor_temp_entity")

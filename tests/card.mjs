@@ -10891,7 +10891,7 @@ check("without an indoor reading the corner now label is absent",
     const at = p.indexOf("health-model");
     return at < 0 ? "" : p.slice(at, p.indexOf("health-support", at) < 0 ? undefined : p.indexOf("health-support", at));
   };
-  const rowOf = (m, id) => (new RegExp(`data-model-row="${id}"[\\s\\S]*?</div>\\s*</div>`).exec(m) || [""])[0];
+  const rowOf = (m, id) => (new RegExp(`data-model-row="${id}"[\\s\\S]*?</div>`).exec(m) || [""])[0];
   const mp = modelOf(modelStates());
   check("UX-7: the Health page has a 'What the model has learned' block from the model status sensor",
     /What the model has learned/.test(mp), mp.slice(0, 300));
