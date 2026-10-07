@@ -1529,7 +1529,7 @@ PY
   grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' "$PREPR_PATH" > "$WF/deleted.sh"
   [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^if test -f .*codeowners_gap\.py --check >/tmp/prepr-owners.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
+  sed 's|^if test -f .*codeowners_gap\.py --check >.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
   [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
