@@ -4,7 +4,7 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
-804e7f7189f0072212a64e0514175c2caf587951
+47e6dab020c89ffed44e02d4ee05af003f448b22
 
 ## Mutation proof
 
@@ -57,7 +57,7 @@ PYTHONPATH=tests/hastub:custom_components:tests python3 -c 'from datetime import
 
 `env-matrix`. Cheaper detector: the job. It checks `tools/policy/*.mjs` out from the base before it runs.
 
-`delivery-status`. It grades main. `docs/delivery/2006.md` is in this diff, so the red is answered here. Cheaper detector: none. The job is `python -I -S tests/delivery_status.py --check`.
+`delivery-status`. It grades main. `dev/programme/delivery/2006.md` is in this diff, so the red is answered here. Cheaper detector: none. The job is `python -I -S tests/delivery_status.py --check`.
 
 `nightly-status`. It grades main. Cheaper detector: none.
 
