@@ -4,6 +4,8 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
+aadd1de4804fac2f71de5c46d3f1f3b092b4de00
+
 `21a62c10a03f5bd684d529aa70d8ff7ef6938471` merges the authored code head `b4172f56f109341f1297ac276529c86d54670785` and then merges origin/main `bcea7488` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 b4172f56f109341f1297ac276529c86d54670785
