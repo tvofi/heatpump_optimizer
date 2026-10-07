@@ -4,7 +4,7 @@ A switch-plus-setpoint install with no frequency entity cannot duty-cycle. (a) p
 
 ## Head
 
-47e6dab020c89ffed44e02d4ee05af003f448b22
+b4172f56f109341f1297ac276529c86d54670785
 
 ## Mutation proof
 
@@ -56,6 +56,8 @@ PYTHONPATH=tests/hastub:custom_components:tests python3 -c 'from datetime import
 `mutation`. Job 112597999835 exited 1 in `pip install --require-hashes -r tests/requirements-ci.txt`. The log line is `No matching distribution found for aiohttp==3.14.3`. No table output was uploaded, so the log names no site. Cheaper detector for an unpinned site: `python3 tests/mutation_table.py --pin-killed --base origin/main`. At this head it prints `PIN KILLED: nothing to pin`. Cheaper detector for the install failure: none.
 
 `mutation-autofix`. Summary line `skip-no-measurement`. Job 112598224753 exited 1 on "Report whether the repair happened". No bot pin is coming. That line's command is the same `--pin-killed` run, and it has nothing to pin. Cheaper detector: none.
+
+`coverage-ratchet`. Job 112604091360. notifier.py 78.63 %, pump_arbiter.py 79.86 %, sysid.py 92.98 %. `tests/features.py` exited 1 at 358s on `AttributeError` in `_flow_inlet_c` (`inp.state.floor_return_temperature`). Main's coverage job 112591811045 ran the same scripts and `tests/features.py` exited 0 at 856s. notifier.py and sysid.py are absent from this diff; main's artifact has the same statement counts and clears both. Cheaper detector: none.
 
 `env-matrix`. Cheaper detector: the job. It checks `tools/policy/*.mjs` out from the base before it runs.
 
