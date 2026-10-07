@@ -147,6 +147,26 @@ def inert_read_dirs(tables: dict[str, dict], always) -> "tuple[set[str], set[str
     return files, {str(Path(f).parent) for f in files}
 
 
+def file_class(f: str, graders: list[str], measured: "set[str] | frozenset[str]" = frozenset()) -> str | None:
+    """The refusal class one changed file carries whatever the other side did:
+    workflow, claim, grader or budget, else None. With `measured` empty every
+    `*_budgets.json` is a budget: merge_train.py's batch routes them all serial."""
+    if f.startswith(".github/"):
+        return "workflow"
+    if f in CLAIM_FILES:
+        return "claim"
+    if any(_spec_hit(s, f) for s in graders):
+        return "grader"
+    if f.endswith("_budgets.json") and closure.unit_of(f) not in measured:
+        return "budget"
+    return None
+
+
+FILE_CLASS_DETAIL = {"workflow": "", "claim": "",
+                     "grader": ", a grader required jobs restore from the base",
+                     "budget": ", a cap no closure measures"}
+
+
 def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
            graders: list[str], conflict: str | None,
            always: "list[str] | tuple[str, ...]" = ()) -> list[tuple[str, str]]:
@@ -161,14 +181,9 @@ def decide(pr_files: list[str], main_files: list[str], tables: dict[str, dict],
     measured = {f for t in tables.values() for fs in t["closures"].values() for f in fs}
     both = [("pull request", f) for f in pr_files] + [("main", f) for f in main_files]
     for side, f in both:
-        if f.startswith(".github/"):
-            out.append(("workflow", f"{side} changes {f}"))
-        elif f in CLAIM_FILES:
-            out.append(("claim", f"{side} changes {f}"))
-        elif any(_spec_hit(s, f) for s in graders):
-            out.append(("grader", f"{side} changes {f}, a grader required jobs restore from the base"))
-        elif f.endswith("_budgets.json") and closure.unit_of(f) not in measured:
-            out.append(("budget", f"{side} changes {f}, a cap no closure measures"))
+        cls = file_class(f, graders, measured)
+        if cls:
+            out.append((cls, f"{side} changes {f}{FILE_CLASS_DETAIL[cls]}"))
         elif always and closure.unit_of(f) not in measured and (
                 reads is None or not closure.is_inert(f)
                 or f in reads[0] or str(Path(f).parent) in reads[1]):
@@ -198,6 +213,15 @@ def _git(*args: str) -> str:
     if r.returncode != 0:
         raise RuntimeError(f"git {' '.join(args)}: {r.stderr.strip()[:200]}")
     return r.stdout
+
+
+def workflow_texts(rev: str, git=None) -> list[str]:
+    """Every workflow file at <rev>: what `grader_specs` reads its restores from.
+    `git(*args) -> stdout` defaults to this module's; merge_train.py passes its own."""
+    git = git or _git
+    return [git("show", f"{rev}:.github/workflows/{p}")
+            for p in git("ls-tree", "--name-only", f"{rev}:.github/workflows").split()
+            if p.endswith((".yml", ".yaml"))]
 
 
 def _is_ancestor(a: str, b: str) -> bool:
@@ -230,9 +254,7 @@ def run(head: str, main: str, ci_base: str | None) -> int:
     if mt.returncode != 0:
         named = [ln for ln in mt.stdout.splitlines()[1:] if ln] or [mt.stderr.strip()]
         conflict = "merge-tree reports a conflict: " + ", ".join(named)[:300]
-    wf = [_git("show", f"{rev}:.github/workflows/{p}") for rev in (tip, head)
-          for p in _git("ls-tree", "--name-only", f"{rev}:.github/workflows").split()
-          if p.endswith((".yml", ".yaml"))]
+    wf = [t for rev in (tip, head) for t in workflow_texts(rev)]
     tables = {"main": json.loads(_git("show", f"{tip}:tests/closures.json")),
               "head": json.loads(_git("show", f"{head}:tests/closures.json"))}
     print(f"pull request changes {len(pr_files)} file(s) ({fork[:12]}...{head[:12]}); "
@@ -301,6 +323,14 @@ def self_test() -> int:
                       t={"main": {"closures": {**table["closures"], "tests/a.py": [
                           *table["closures"]["tests/a.py"], "tests/a_budgets.json"]}},
                          "head": table}), [])
+        check("file_class with nothing measured calls every budget file a budget "
+              "(merge_train.py's batch routing)",
+              [file_class(f, graders) for f in ("tests/a_budgets.json", ".github/x.yml",
+                                                 "tests/golden/claimed_drift.txt",
+                                                 "tools/audit/x.sh", "tests/a.py")],
+              ["budget", "workflow", "claim", "grader", None])
+        check("... and a measured one is no class of its own (null control)",
+              file_class("tests/a_budgets.json", graders, {"tests/a_budgets.json"}), None)
         check("a gate file in the pull request is FULL and refuses",
               classes(["tests/run.sh"], ["docs/delivery/1.md"], always=()), ["full"])
         check("an unmeasured file in the pull request is FULL and refuses",

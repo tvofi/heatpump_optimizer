@@ -126,6 +126,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--match-head-commit`. When: any merge queue — queued PRs merge through
   this, never by hand. Refusal: a head that moved under the review, or red
   checks the queue was not told to ignore, stop the train.
+  `batch` merges the queue without re-merging main: the entries' merges are
+  proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
+  and workflow, claim, grader, budget or conflicting entries go serial. When:
+  the default for a queue. Refusal: a red proof drops its entry to serial,
+  and main's tree differing from the proof's before or after a merge stops it.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the

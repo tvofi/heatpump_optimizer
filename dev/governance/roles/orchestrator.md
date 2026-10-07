@@ -239,11 +239,11 @@ shape that lets a real error be waved through.
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
   <head>` names miss the branch's own diff, and the claim files equal
   `origin/main`'s. Anything else is a resolution delta for the same reviewer.
-- CI green at a head containing current `origin/main`: if main moved, merge it in
-  (a carry or resolution delta) and wait, watching CI from a background task
-  (`fixer.md`), never a timer.
-  **Except** `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE: you merge
-  it, the queue's one bypass.
+- CI green at the verdicted head, landed by `tools/audit/seat/merge_train.py
+  batch` (tvofi, 2026-10-07): a proved batch merges while `main`'s tree equals
+  its proof's; a batch of one merges unproved, gated by `main`'s FULL push run
+  below. A workflow, claim, grader, budget or conflicting change takes `run`:
+  `main` merged in, CI green again, watched from a background task.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).

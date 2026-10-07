@@ -5,6 +5,7 @@
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
 #   tools/audit/app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
+#   tools/audit/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
 #   tools/audit/app_push.sh --self-test
 #
 # WHY THIS EXISTS. The seat account that authored pull requests is spam-flagged:
@@ -71,6 +72,11 @@
 # `store`/`erase`, so the token is persisted nowhere.
 #
 # --dry-run runs every refusal above, then stops before signing anything.
+#
+# --branch-only pushes a `batch/` branch and opens nothing: merge_train.py's
+# proof commit, a merge of pull requests already past prepr, so there is no
+# body to check and no pull request to open. Any other branch name refuses,
+# so the flag cannot carry a fix branch past prepr.
 set -uo pipefail
 
 API=https://api.github.com
@@ -106,8 +112,14 @@ else:
 }
 
 push_and_open() {
-  local dry=0
+  local dry=0 bonly=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
+  if [ "${1:-}" = "--branch-only" ]; then
+    bonly=1; shift
+    [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
+    [[ ${3:-} == batch/* ]] || die "--branch-only pushes a batch/ branch only, never '${3:-}'"
+    set -- "$1" "$2" "$3" /dev/null
+  fi
   [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
   local repo=$1 wt=$2 br=$3 body=$4
   shift 4
@@ -126,7 +138,7 @@ push_and_open() {
   body_abs=$(cd "$(dirname -- "$body")" 2>/dev/null && printf '%s/%s\n' "$(pwd)" "$(basename -- "$body")") \
     || die "no body at $body"
   body=$body_abs
-  [ -f "$body" ] || die "no body file at $body"
+  [ "$bonly" = 1 ] || [ -f "$body" ] || die "no body file at $body"
   wt=$(cd "$wt" 2>/dev/null && pwd) || die "cannot enter worktree '$wt'"
 
   local idir="${HPO_IDENTITY_DIR:-$HOME/.zcode}"
@@ -141,7 +153,7 @@ push_and_open() {
   # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
   local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
-  ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
+  [ "$bonly" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
     || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
@@ -162,14 +174,16 @@ push_and_open() {
   # string but `gh api` passes the path through unexamined, and asking for
   # `head=o:fix/x` and being handed GitHub's reading of `o:fix` is a silence,
   # not an answer.
+  local owner=${repo%/*} listing prnum=none
+  [ "$bonly" = 1 ] || {
   command -v gh >/dev/null 2>&1 || die "no gh on PATH, so the open-pull-request query cannot be asked and NOTHING was pushed (push.sh's no-answer rule)"
-  local owner=${repo%/*} listing prnum
   local headq; headq=$(printf '%s:%s' "$owner" "$br" | sed 's|:|%3A|g; s|/|%2F|g')
   listing=$(gh api "repos/$repo/pulls?head=$headq&state=open" 2>/dev/null) \
     || die "could not ask whether a pull request is open on $br (gh exited $?), so NOTHING was minted or pushed"
   prnum=$(pr_from_listing "$listing")
   [ "$prnum" != "unknown" ] \
     || die "the open-pull-request query on $br answered <<$listing>>, which names no pull request and states none is open; NOTHING was minted or pushed"
+  }
 
   if [ "$dry" = 1 ]; then
     if [ "$prnum" = "none" ]; then
@@ -222,6 +236,10 @@ HELPER
   GIT_TERMINAL_PROMPT=0 git -C "$wt" -c credential.helper= -c "credential.helper=$PRIV/credhelper.sh" \
     -c http.postBuffer=64m push "https://github.com/$repo.git" "$br" \
     || die "the App's push of $br to $repo was refused; no pull request was opened or re-bodied"
+  if [ "$bonly" = 1 ]; then
+    printf 'app_push: PUSHED %s to %s:%s as the App; --branch-only, no pull request\n' "$head" "$repo" "$br"
+    return 0
+  fi
 
   local num url
   if [ "$prnum" = "none" ]; then
@@ -503,6 +521,17 @@ st "$(grep -c '^git .*push' "$W/dry/log")" 0 "and pushes nothing"
 st "$(grep -c '^app_push: DRY-RUN' "$W/dry/out")" 1 "reporting what it would do"
 mkcase dryfail; : > "$W/dryfail/prepr-fails"
 run dryfail --dry-run o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "--dry-run still refuses what a real run would"
+
+# --branch-only: merge_train.py's batch proof. It pushes a batch/ branch and
+# nothing else; prepr-fails is set, so a prepr call would refuse it.
+mkcase bonly; : > "$W/bonly/prepr-fails"
+run bonly --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 0 "--branch-only pushes a batch/ branch without a body"
+st "$(grep -c ' push https://github.com/o/r.git batch/proof-1' "$W/bonly/log")" 1 "through the App's helper, once"
+st "$(grep -c '^curl \(POST\|PATCH\|GET\) repos/o/r/pulls' "$W/bonly/log")$(calls bonly prepr)$(calls bonly gh)" 000 "and opens, re-bodies and reads no pull request, runs no prepr and asks gh nothing"
+st "$(calls bonly 'curl DELETE installation/token')$(leftover bonly)$(leaks bonly)" 100 "the token is revoked, the private directory gone, nothing leaked"
+mkcase bonlyfix
+run bonlyfix --branch-only o/r "$W/tool-wt" "$BR"; st $? 1 "REFUSE: --branch-only on a fix branch, which would skip its prepr"
+st "$(wc -l < "$W/bonlyfix/log" | tr -d ' ')" 0 "before any call (null control for the pair above: same flag, another branch)"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
