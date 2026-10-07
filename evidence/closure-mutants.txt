@@ -1,0 +1,4 @@
+RESULT Mc1 check reads closures only: rc=1 red=1 ["  FAIL check fails on a phantom in the committed inert_reads (R9-RO-10)  [rc=0 log='closure: committed closures cover every file this run touched\\n']"]
+RESULT Mc2 prune reads closures only: rc=1 red=1 ["  FAIL prune drops dead inert_reads entries, and a key left with none (R9-RO-10)  [inert_reads after={'tests/open_meteo.py': ['tests/record_status.py', 'tests/harness.py'], 'only-dead': ['tests/record_status.py']}]"]
+RESULT Mc3 prune keeps empty key: rc=1 red=1 ["  FAIL prune drops dead inert_reads entries, and a key left with none (R9-RO-10)  [inert_reads after={'tests/open_meteo.py': ['tests/harness.py'], 'only-dead': []}]"]
+RESULT Mc4 prune drops empty closures key too: rc=0 red=0 []

@@ -1,0 +1,9 @@
+RESULT 2027 onto main c327: refusals=0 {}
+RESULT 2014 after 2027: refusals=2 {'new-reference': 2}
+    new-reference: tests/entities.py cites retired path .claude/workflows/policy_lint.mjs: (d / ".claude/workflows/policy_lint.mjs").unlink()
+    new-reference: tools/pr/preflight.sh cites retired path .claude/workflows/policy_lint.mjs: test -f "$lint" || lint="$1/.claude/workflows/policy_lint.mjs"
+RESULT 2014 onto main (no 2027): refusals=2 {'new-reference': 2}
+    new-reference: tests/entities.py cites retired path .claude/workflows/policy_lint.mjs: (d / ".claude/workflows/policy_lint.mjs").unlink()
+    new-reference: tools/pr/preflight.sh cites retired path .claude/workflows/policy_lint.mjs: test -f "$lint" || lint="$1/.claude/workflows/policy_lint.mjs"
+RESULT 2027 after 2014: refusals=0 {}
+2014 head 1d494f01c492d497b0457ec5486380becac1886c

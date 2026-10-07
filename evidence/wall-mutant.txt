@@ -1,0 +1,2 @@
+MUTANT no-wall-in-strip: FAIL --strip kept the programme register
+MUTANT no-wall-in-strip: rc=1

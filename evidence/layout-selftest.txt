@@ -1,0 +1,5 @@
+  ok   guard self-test: a file re-added at a landed path: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a move landed, a citation left: {'new-reference': 0, 'unswept': 1, 'placement': 0}
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+layout self-test: ok
+rc=0

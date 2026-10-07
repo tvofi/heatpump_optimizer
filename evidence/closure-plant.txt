@@ -1,0 +1,10 @@
+PHANTOM: a committed closure lists a file that does not exist;
+  no run can open it, so nothing re-records it, and `select`
+  reads the dead entry as a measurement that never happened
+  (#1310). Repair the table without a re-derivation:
+    tests/doc_claims.py (inert_reads): tools/audit/eg_b7_seam_hubs.py
+  python3 tests/closure.py prune
+rc=1
+closure: no fresh recordings to check against
+rc=1
+RESULT main_c327_dead_inert_reads=0 []

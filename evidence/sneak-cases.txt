@@ -1,0 +1,20 @@
+entry {'old': '.claude/workflows/policy_lint.mjs', 'new': 'tools/policy/policy_lint.mjs', 'since': None}
+entry {'old': 'tools/audit/app_push.sh', 'new': 'tools/pr/app_push.sh', 'since': None}
+entry {'old': 'tools/audit/briefs/fixer.md', 'new': 'dev/governance/roles/fixer.md', 'since': None}
+entry {'old': 'tools/audit/rotation.json', 'new': 'dev/audit/config/rotation.json', 'since': '2015'}
+RESULT 'bare marker': refused=1 ['tools/audit/app_push.sh']
+RESULT 'marker other path': refused=1 ['tools/audit/app_push.sh']
+RESULT 'marker prefix of path': refused=1 ['tools/audit/app_push.sh']
+RESULT 'marker extended path': refused=1 ['tools/audit/app_push.sh']
+RESULT 'marker keyed (control)': refused=0 []
+RESULT "marker no '=' but space": refused=1 ['tools/audit/app_push.sh']
+RESULT 'locate other': refused=1 ['tools/audit/app_push.sh']
+RESULT 'locate same + exec': refused=0 []
+RESULT 'relocate same': refused=1 ['tools/audit/app_push.sh']
+RESULT 'locate unquoted var': refused=1 ['tools/audit/app_push.sh']
+RESULT 'canon same (control)': refused=0 []
+RESULT 'new path in comment': refused=0 []
+RESULT 'marker for dir with slash': refused=0 []
+RESULT 'marker for dir no slash': refused=0 []
+RESULT 'two paths one marker': refused=1 ['tools/audit/rotation.json']
+RESULT 'prose marker word': refused=1 ['tools/audit/app_push.sh']

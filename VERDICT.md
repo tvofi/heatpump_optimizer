@@ -1,107 +1,122 @@
-Fix review: blocked 43883893cd3d5a03f9d0b19b464388547b69e61c carry-missing: roster carry (dead inert_reads guard in tests/closure.py) unaddressed; guard layout:old exemption matches prose; class-open: audit-find.js finder wall misses dev/programme/register; red on merge into main 09ba95d0
-bus-nonce: 52ef3f5f11b52b2ee7cf9dd36837fe78
+Fix review: merge d760cbe35ec9114d58ae4d2e329512b270e95428
+bus-nonce: 13598ff1fb74a140fe0311a3780b1453
 
-Reviewer seat r9c-rev-2027, round 1. I measured head 43883893cd3d at merge base e0f0b6fb397b, working from a detached worktree. The head was unchanged at posting. Main moved to 09ba95d0 (#2015 merged) during the review, and the last block item was measured against that main. Evidence is in /Users/timmalmstrom/hpo-seats/r9c-rev-2027-ev.
+Reviewer seat review-2027-r2, **round 2** of PR #2027 (R9-RO-10). I measured head d760cbe35ec9 from a detached worktree. The head's tree is identical to the code head f4d102a0, and its merge base is 09ba95d0. Main is now c327da7f (#2002); merge-tree against it exits 0. The head was unchanged when I posted. Evidence is in /Users/timmalmstrom/hpo-seats/review-2027-r2/ev.
 
-## Blocking
+## Round-1 blocks: each one re-checked
 
-1. **Carry not addressed (carry-missing).** The R9-RO-10 roster entry on handoff/audit-r9-fixplan carries one owed item, added in 8cefe802. It asks for three things:
-   - extend tests/closure.py's dead-path refusal (the PHANTOM check) to `inert_reads`;
-   - a perturbation that plants a dead `inert_reads` path and turns the check red;
-   - removal of any dead `inert_reads` entries on main.
+**1. Dead `inert_reads` (closure.py check and prune): resolved.**
+- `check()`'s PHANTOM sweep and `prune()` now iterate over `closures` and `inert_reads`.
+- `prune` drops an `inert_reads` key that is left empty. That matches `_fold_inert_reads`, which writes no key for a script that read nothing.
+- My mutants on `tests/closure.py selftest` (`closure-mutants.txt`):
+  - check reads `closures` only: 1 red.
+  - prune reads `closures` only: 1 red.
+  - prune keeps the empty key: 1 red.
+- I planted a dead `inert_reads` path in the real `tests/closures.json` (`tests/doc_claims.py` -> `tools/audit/eg_b7_seam_hubs.py`). `closure.py check` printed `PHANTOM ... tests/doc_claims.py (inert_reads): ...` with rc=1, and `prune` removed exactly that entry. With the plant restored away, check got past the phantom stage.
+- Dead `inert_reads` entries number 0 at the head and 0 on main c327.
+- All three parts of the roster carry are delivered.
 
-   The diff does not touch tests/closure.py, and the body does not disposition the carry. The new guard cannot cover it, because `tests/closures.json` is under `historical` and the guard skips it. The carry landed about two minutes before the fixer's last authored commit, so the fixer may not have seen it. It is still owed.
+**2. The guard's exemptions are keyed per path: resolved.**
+- I called `stale_lines` directly against the real retired entries (`sneak-cases.txt`). Each of these is refused:
+  - a bare `# layout:old`;
+  - a marker naming another path;
+  - a marker naming a prefix of the path, or a longer path;
+  - `layout:old= <path>` with a space;
+  - `locate()` of another path;
+  - `relocate(<same path>)`;
+  - an unquoted `locate(path)`;
+  - prose that names the marker word;
+  - a two-path line whose marker covers only one path (the other path is refused).
+- The keyed marker and `canon("<path>")` pass, as intended.
+- No retired entry's new path is a substring of its old path (0 of 158).
+- Layout mutants against `--self-test` (`layout-mutants.txt`):
+  - M6, the unkeyed marker: 3 cases red.
+  - M7, the unkeyed `locate`: 1 red.
+  - Dropping the new-path arm: 1 red.
 
-2. **The guard's escape hatch is wider than the body says.**
-   - `FALLBACK` exempts every retired path on a line when the substring `layout:old`, `locate(` or `canon(` appears anywhere on that line. The marker is not tied to any path, and it does not have to be a deliberate marker.
-   - The PR's own carry-1922 brief line passes only because its prose mentions the marker name ("mark a fixture line layout:old"). With that word changed, the line cites two landed paths without their new homes: `tools/audit/README.md` and `tools/audit/briefs/fixer.md`. See RESULT lines in `marker-hole.txt`.
-   - An executed stale command passes too: `bash tools/audit/app_push.sh ... # layout:old` gives refused=False, and so does a `locate(x); ... tools/audit/app_push.sh` line.
-   - The body's "a reviewer sees each use in the diff" is therefore false for an incidental mention.
-   - Wanted: key the marker to the path, for example `layout:old=<path>`, or require a comment-form marker. Then re-word the carry line so it names the new paths.
+**3. The finder wall in `prepare_baseline.sh --strip`: resolved.**
+- `--strip` now calls `finder_wall`, and the wall covers `dev/programme/register/audit-*.md`.
+- Both `audit-find.js` prompts call the script instead of a hand-written list.
+- No other live wave script lists the wall's globs. I grepped `.claude`, `tools`, `dev/governance`, `docs`, `CLAUDE.md` and `AGENTS.md`.
+- Mutant, `finder_wall` removed from `--strip`: `--wall-self-test` prints `FAIL --strip kept the programme register`, rc=1.
+- Simulated export of `git archive origin/main` (c327) put through the head's `--strip`: `register_survives=no`, `setup_kept=yes`.
 
-3. **Class-open seam in the wave scripts.** The live findings register moved from `docs/audit-2026-09.md` to `dev/programme/register/audit-2026-09.md`.
-   - `.claude/workflows/audit-find.js:198` (the Prepare prompt) and `:301` (the leads prompt, which this PR edited) still build the finder wall as "delete docs/audit-*.md, dev/archive/audits/audit-*.md, dev/archive/backlog.md".
-   - `prepare_baseline.sh --strip` runs only `strip_earlier_rounds`, not `finder_wall`. So the next round's finder export keeps the live register: RESULT register_survives_audit_find_wall=yes (`wall-sim.txt`).
-   - prepare_baseline.sh's own comment describes exactly this breach.
-   - The guard cannot see glob citations, and neither #2014 nor #2015 touches audit-find.js.
+**4. The five re-pointed lines and the `rotation.json` handling: resolved.**
+- `dev/audit/config/{bugclasses,finding.schema,rotation,scopes}.json` all exist.
+- The head's `check-wave-script.mjs` prints 170 passed, and main's (c327) copy on the head tree also prints 170 passed.
+- I tested the writer-prompt parenthetical both ways (`cws-mutants.txt`):
+  - with the parenthetical dropped, main's checker fails 2;
+  - with only the old path, the head's checker fails 2.
 
-4. **Red on the stated merge order, which has now happened.** #2015 merged as 09ba95d0. Merging this head into that main makes the PR's own guard return 5 new-reference refusals (`guard-on-live-main-09ba95d0.txt`):
-   - `audit-verify.js`: three lines citing `tools/audit/bugclasses.json`, one of them also citing `tools/audit/rotation.json`;
-   - `check-wave-script.mjs`: one line citing `tools/audit/scopes.json`.
+  So the dual spelling is required while policy-docs grades with the base checker.
+- Guard simulation of this PR merged onto main c327: 0 refusals.
 
-   The fixer owes a re-point at the main merge. The body's merge-order section did not predict it.
+**5 and 6. Rule globs, including the kept `tools/audit/briefs/**`: resolved.**
+- `dev/governance/**` covers the 15 dimension and 8 role files.
+- I dropped the canon `tools/audit/briefs/**` glob from `defect-root-cause.md` and regenerated the copies with `rules_sync`. `policy_lint` then printed `TOTAL: 23 error(s)`, all of them rule-binding. That is the body's figure, re-derived.
+- At the head:
+  - `policy_lint` prints TOTAL 0 and FIXTURE ok;
+  - `rules_sync --check` prints ok;
+  - the dead-glob loop prints exactly the 2 kept canon globs.
 
-## Non-blocking, to fix in the same round
+  Their retirement is carried in `carry-1922.json` (`brief_lint` 0).
 
-5. **Rule globs narrowed without saying so.** `tools/audit/briefs/**` was re-pointed to `dev/governance/roles/**` in brief-citations, finding-propagation and writing-for-agents. Before the lift, that directory held 8 role contracts and 15 dimension briefs. The 15 dimension briefs now under `dev/governance/dimensions/` drop out of all three rules, and the body does not say so. Either add `dev/governance/dimensions/**` or state why they are dropped.
+**Merge-order note with #2014: confirmed**, against #2014's current head 1d494f01 (`merge-order-sim.txt`):
 
-6. **The 14th dead glob has no owner who fixes it.** The body attributes the `tools/audit/briefs/**` glob in defect-root-cause.md to #2014. #2014 (head 064c5aae) edits that file, but only its prose at line 121: its diff changes no `paths:` line. No carry exists either. After both PRs merge, the glob stays dead. Carry it to #2014's group, or re-point it here.
-
-7. **Surviving mutants of my own.**
-   - Ml: drop the HEAD^1 fallback in `guard_base`. It survives, but it is equivalent in CI, because on a push GOLDEN_REF is HEAD^1.
-   - Mk: the multi-category placement case (`!=1` changed to `==0`). It survives, untested.
-   - Mj: the emptied-directory dedupe. It survives; it affects only the count.
-
-## Verified
-
-**Guard plants on the real index** (`perturb.txt`). Each plant was removed afterwards.
-
-| plant | result |
+| order | guard refusals |
 |---|---|
-| stale citation of `.claude/workflows/rules_sync.mjs` in docs/setup.md | 1 new-reference, rc=1 |
-| `git mv` of `tools/audit/rotation.json`, citations left | 21 unswept, rc=1 |
-| `misc/planted.txt` | 1 placement, rc=1 |
-| all removed | 0 refusals, rc=0 |
+| this PR onto main | 0 |
+| #2014 after this PR | 2 new-reference, exactly the body's `tests/entities.py` and `tools/pr/preflight.sh` lines |
+| this PR after #2014 | 0 |
 
-**Mutants killed by `--self-test`** (`mutants.txt`): 9 of my 12 mutants were killed, namely fallback, new-path exemption, base multiset, lookbehind, re-add hit, planned exemption, fresh, skip, and emptied directories.
+## Other checks
 
-**Replay** (`--replay 25`, `replay25.txt`): 28 refusals in 4 non-move merges, matching the body. My judgement of them:
-- #2005's 15 nudge.md refusals are true positives.
-- RO-7's 3 placement refusals are a map gap.
-- 10 are narrative. Re-pointing them, or naming the new path beside the old, is cheap.
+- VERSION, the manifest, the RELEASE_NOTES heading and both claim files are untouched (three-dot diff).
+- The `custom_components` edits are comment and docstring path re-points only.
+- `structure.py` prints PASSED.
+- The layout self-test is ok. `--guard` against 09ba95d0 gives 0 refusals.
 
-**Sweep:**
-- The dead-glob loop prints 14 lines at the base and 2 at the head.
-- Rule-binding is live for new-path globs: I planted `dev/governance/rolesXX/**` and got an ERROR.
-- fix-review vacuity: `tools/audit/briefs/` has 0 tracked files at the base, and the diff is 0 against 135 for `dev/governance/roles/`.
-- `tools/audit/prepr.sh` is absent and `tools/pr/prepr.sh` exists.
-- stop-selfcheck self-test: 26 passed. app_approve self-test: 145 checks, 0 failed.
-- check-wave-script: 170 passed. rules_sync: ok.
-- No code parses the approval text that app_approve.sh posts.
+## Non-blocking, for the fixer's discretion
 
-**#2005 (nudge.md):** fixed. Every script it now cites exists, apart from a deliberate "There is no tools/audit/merge_train.py".
+- **Surviving mutants, all in self-tests.**
+  - M8: dropping the marker's `(?![\w./-])` boundary survives `--self-test`. The code is correct (my sneak case refuses a longer-path marker), but nothing pins it.
+  - M10: dropping `.claude/rules/` and `.cursor/rules/` from GUARD_EXEMPT survives the self-test. The real diff does catch it: 1 refusal on the `.cursor` `globs:` line.
+  - Mc4: `prune` also deleting an empty `closures` key survives `selftest`.
+- **Exemptions the body accepts by design**, keyed to the same path:
+  - a line that also carries `locate('<old>')` passes an executed citation of that same old path;
+  - a stale command with the new path in a trailing comment passes.
+- **Two body inaccuracies, neither of which moves a figure.**
+  - The body says R9-RO-9 drops the `audit-verify.js` "(tools/audit/rotation.json before R9-RO-8)" parenthetical. Neither `carry-1922.json` nor the roster carries that. It is harmless cleanup, droppable by anyone once this PR's checker is main's, so it is not a carry-missing.
+  - The Head section says d760 merges origin/main. Its parents are actually 43883893 and f4d102a0, and the two trees are identical.
 
-**Budgets:**
-- No cap moved; `policy_lint --budgets` output was diffed base against head.
-- The added `opens` entry keeps the role measurement honest. Without it, the policy role falls from 9993 to 6938, which would be a gamed drop.
-- The sentence trimmed from delivery-status-tracking ("Never touch VERSION…") is CLAUDE.md rule 4, so no obligation is lost.
-- policy_lint: TOTAL 0, FIXTURE ok. structure.py: PASSED.
+## CI at the head (check-runs API, final)
 
-**Carry-1922 override of R9-RO-5:** sound. R9-RO-5 assumed that rule-binding reads only the canon list, and that no longer holds. The exceptions are measured and carried.
+- 24 success, 12 skipped, 2 failure.
+- Success includes:
+  - fast (3.14), closures, coverage, coverage-ratchet and mutation;
+  - CodeQL, including Analyze (python);
+  - Validate, Hassfest and PR contract;
+  - budget-raise-gate ×2.
+- budget-raise-gate: the cancelled twin (run 37661198391) was rerun by me with `gh run rerun` and is now success.
+- delivery-status: red on main's unread rows (#1989, #1991, #1992, #1998 and others), not this PR's.
+- nightly-status: inherited.
 
-**Ownership census:** with `--no-renames` file lists, I count #2015 1700, #2014 19 and both 94, against the body's 1694, 19 and 93. That is my own rule, so the body's figures are close but not re-derived exactly.
-
-**Merge order:** if this PR had landed first, its guard would refuse #2014 (2 new-reference) and #2015 (8 new-reference and 134 unswept).
-
-**Other:** VERSION, the manifest, RELEASE_NOTES and the claim files are untouched. merge-tree against 09ba95d0 exits 0. The head in the PR body matches the head I measured.
-
-## CI at the head (check-runs API)
-
-- fast (3.14), closures and mutation: success.
-- coverage was still in progress when I posted.
-- budget-raise-gate has one cancelled run and a successful twin. The cancelled run still needs a re-run, because a cancelled run blocks the merge.
-- delivery-status (main's unread rows) and nightly-status are red. Neither is this PR's, and the body answers both.
-- The gate is MODE: FULL, from comment-only changes to tests.yml.
+  The body answers both reds.
+- mutation: the production diff is comments only, so no production mutants were drawn.
 
 ## RESULT
 
 ```
-RESULT guard_plants stale=1 unswept=21 placement=1 clean=0
-RESULT reviewer_mutants killed=9 survived=3 (Mj count-only, Mk untested, Ml CI-equivalent)
-RESULT replay25 nonmove_refusals=28
-RESULT dead_globs base=14 head=2
-RESULT marker_hole carry1922_line hidden=2 executed_line_with_marker refused=False
-RESULT finder_wall register_survives=yes
-RESULT guard_on_merge_into_09ba95d0 new_reference=5
-RESULT role_policy with_opens_add=9993 without=6938
+RESULT closure_mutants killed=3 survived=1 (Mc4 pre-existing closures arm, untested)
+RESULT closure_real_plant phantom_inert_reads rc=1 pruned=1; dead_inert_reads head=0 main_c327=0
+RESULT guard_sneaks refused=all unkeyed/other-path/prefix/extended/space/relocate/unquoted/prose; keyed=0
+RESULT layout_mutants killed=3 (M6,M7,new-path) survived=2 (M8 boundary, M10 copies-exempt: real diff catches)
+RESULT wall_mutant no_wall_in_strip=FAIL rc=1; sim_export_main_c327 register_survives=no
+RESULT check_wave_script head=170/0 main_checker_on_head=170/0; parenthetical_needed=both arms 2 failed
+RESULT policy_lint head=0 drop_canon_briefs_glob=23 rule-binding
+RESULT dead_globs head=2 (kept canon, carried)
+RESULT merge_order 2027_onto_main=0 2014_after_2027=2 2027_after_2014=0
+RESULT ci_head success=24 skipped=12 failure=2 (delivery-status, nightly-status: inherited)
 ```
+
+My verdict covers correctness only. This PR edits policy and code-owned `tests/closure.py`, so it still needs tvofi's approving review at the head.

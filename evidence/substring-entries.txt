@@ -1,0 +1,2 @@
+retired entries 158
+RESULT new_substring_of_old 0 []
