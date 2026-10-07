@@ -217,7 +217,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
           elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
@@ -599,7 +599,7 @@ jobs:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
             echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
           else
             if test -f .claude/workflows/agreement_py.py; then python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; else python3 -I tools/policy/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; fi
