@@ -257,7 +257,7 @@ def feed_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-async def _now(value: Any) -> Any:
+async def _resolved(value: Any) -> Any:
     return value
 
 
@@ -406,11 +406,11 @@ class DebugCollector:
 
         tests = await run_self_tests([
             ("stores", read_stores),
-            ("accuracy", lambda: _now(accuracy_report(
+            ("accuracy", lambda: _resolved(accuracy_report(
                 stores.get(accuracy_key, (None, None))[1], coordinator.accuracy))),
             ("solver", lambda: _solver_smoke(coordinator, rows)),
-            ("sensors", lambda: _now(sensor_sanity(rows, coordinator.data))),
-            ("feeds", lambda: _now(feed_health(rows))),
+            ("sensors", lambda: _resolved(sensor_sanity(rows, coordinator.data))),
+            ("feeds", lambda: _resolved(feed_health(rows))),
         ], SELF_TEST_BUDGET.total_seconds())
         if self.final and self.started_at == started_at:  # not restarted meanwhile
             self.self_tests = tests
