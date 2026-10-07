@@ -3660,10 +3660,10 @@
       "subject": "#1985 friction key root-cause-unanswered: 12 PRs / 17 verdicts in v6.7.16..origin/main",
       "trigger": "recurring friction",
       "date": "2026-10-07",
-      "status": "refused-check; grammar split owner-gated",
+      "status": "done",
       "parts_missing": [],
       "process_state": "(c)",
-      "countermeasure": "no check (pr-contract + rerun fired on 17/17); proposed to owner: split a red-check verdict class from root-cause-unanswered (0 s standing); owed: web-fix-wave.js root-cause route also needs a body-repair round",
+      "countermeasure": "refused: no check (pr-contract + rerun fired on 17/17); red-check grammar split declined (orchestrator, mandate 5951564627); revisit at >=3 body-only repairs in one window; owed: web-fix-wave.js root-cause route also needs a body-repair round",
       "landed": null,
       "doc": [
         "dev/audit/rca/R9-RCA-1985.md"
