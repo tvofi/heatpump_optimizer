@@ -1,0 +1,20 @@
+diff --git a/dev/governance/roles/fixer.md b/dev/governance/roles/fixer.md
+index 4ded3f7d..3fe9c883 100644
+--- a/dev/governance/roles/fixer.md
++++ b/dev/governance/roles/fixer.md
+@@ -53,7 +53,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
+ 
+    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
+    `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
+-   to CI; `tests/README.md` ("The scoped gate") says why that is safe. So
++   to CI; `tests/README.md` ("The scoped gate") says why. So
+    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+    doc — not an instruction to reproduce CI. An untracked scratch file is one:
+    keep the body outside the worktree.
+diff --git a/dev/programme/delivery/2042.md b/dev/programme/delivery/2042.md
+new file mode 100644
+index 00000000..659e2e21
+--- /dev/null
++++ b/dev/programme/delivery/2042.md
+@@ -0,0 +1 @@
++- [#2042](https://github.com/tvofi/heatpump_optimizer/pull/2042) — **open**, fix(policy): fixer.md back under its token cap after #2027 and #2030 (none)
