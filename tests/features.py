@@ -52224,10 +52224,19 @@ R.check(
 # hold it barely heats. Every stub above hands the arbiter 34.2 degC.
 from heatpump_optimizer.thermal_model import (  # noqa: E402
     ThermalModel as _PaTM, ThermalParameters as _PaTP,
+    flow_setpoint_for_level as _pa_flow_for_level,
 )
 
 _pa_real = _PaTM(_PaTP())
 _pa_real.params.min_electrical_power = 0.4
+_pa_flow_level = _pa_flow_for_level(
+    1.5,
+    _pa_real.params.min_electrical_power,
+    _pa_real.params.max_electrical_power,
+    _pa.FLOW_HEAT_C,
+    _pa.FLOW_HOLD_C,
+)
+_pa_flow_written = round(_pa_flow_level * 2.0) / 2.0
 _pa_rheat = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rheat._thermal_model = _pa_real
 _pa_rheat._current_state.outdoor_temperature = 5.0
@@ -52237,11 +52246,12 @@ _pa_rboth._thermal_model = _pa_real
 _pa_rboth._current_state.outdoor_temperature = 5.0
 _pa_run(_pa_rboth, 10)
 R.check(
-    "on the real curve a heating-plus-hot-water step's heating share writes Heating and the heating flow",
+    "on the real curve a heating-plus-hot-water step's heating share writes Heating and the level's flow",
     ("select", "select_option", "Heating") in _pa_rboth.writes()
-    and ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rboth.writes()
+    and ("number", "set_value", _pa_flow_written) in _pa_rboth.writes()
+    and _pa.FLOW_HOLD_C < _pa_flow_written < _pa.FLOW_HEAT_C
     and ("number", "set_value", _pa.FLOW_GATE_C) not in _pa_rboth.writes(),
-    f"{_pa_rboth.writes()}",
+    f"{_pa_rboth.writes()} level {_pa_flow_level}",
 )
 _pa_rbase = _PaCoord(_PA_TUYA, duties="ss")
 _pa_rbase._thermal_model = _pa_real
@@ -52254,10 +52264,11 @@ R.check(
     f"{_pa_real.curve_flow_temp(5.0)=}",
 )
 R.check(
-    "on the real curve a space-heating step writes the heating flow, not the 25 degC floor",
-    ("number", "set_value", _pa.FLOW_HEAT_C) in _pa_rheat.writes()
+    "on the real curve a space-heating step writes the level's flow, not the 25 degC floor",
+    ("number", "set_value", _pa_flow_written) in _pa_rheat.writes()
+    and _pa.FLOW_HOLD_C < _pa_flow_written < _pa.FLOW_HEAT_C
     and _pa.FLOW_HEAT_C >= 45.0,
-    f"{_pa_rheat.writes()}",
+    f"{_pa_rheat.writes()} level {_pa_flow_level}",
 )
 R.check(
     "on the real curve the baseline holds the rated 35 degC flow, not the 25 degC floor",
@@ -59107,6 +59118,140 @@ R.check(
     "the wiring is missing from __init__.py, or coordinator.py grew a debugger line",
 )
 
+
+# --- #1955 planner power on an unmetered install ---------------------------
+# The production symbols. A re-implemented formula would pin nothing.
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_CLAMP_PLANNED_LEVELS as _PP_CLAMP_KEY,
+    CONF_COMPRESSOR_FREQ_ENTITY as _PP_FREQ,
+    CONF_FLOW_HEAT_C as _PP_FLOW_KEY,
+    CONF_HEAT_PUMP_SWITCH_ENTITY as _PP_SWITCH,
+    CONF_POWER_ENTITY as _PP_POWER,
+    CONF_SPACE_SETPOINT_ENTITY as _PP_SETPOINT,
+    DEFAULT_FLOW_HEAT_C as _PP_FLOW_DEFAULT,
+)
+from heatpump_optimizer.optimizer import OptimizationConfig as _PpCfg
+from heatpump_optimizer.thermal_model import (
+    UNMETERED_POWER_FREEZE as _PP_FREEZE,
+    flow_setpoint_for_level as _pp_flow,
+    levels_clamped as _pp_clamped,
+    planned_draw_runs as _pp_runs,
+    probe_install as _pp_probe,
+    project_planned_levels as _pp_project,
+)
+
+_PP_UNMETERED = {
+    _PP_SWITCH: "switch.hp",
+    _PP_SETPOINT: "number.flow",
+}
+_PP_METERED = {
+    **_PP_UNMETERED,
+    _PP_POWER: "sensor.hp_power",
+    _PP_FREQ: "number.hz",
+}
+_pp_gap = np.array([0.0, 0.3, 0.5, 3.0, 14.0, 20.0])
+_pp_projected = _pp_project(_pp_gap, 3.0, 14.0)
+R.check(
+    "a switch-plus-setpoint install clamps a sub-minimum level up to p_min and keeps off off",
+    np.allclose(_pp_projected, [0.0, 3.0, 3.0, 3.0, 14.0, 14.0]),
+    f"{_pp_projected.tolist()}",
+)
+R.check(
+    "null control: the duty-cycle reading of 0.3 kW still runs when no floor is passed",
+    _pp_runs(0.3) is True and _pp_runs(0.3, modulation_floor=3.0) is False
+    and _pp_runs(3.0, modulation_floor=3.0) is True
+    and _pp_runs(0.0, modulation_floor=3.0) is False,
+)
+_pp_bare = _pp_probe({})
+_pp_un = _pp_probe(_PP_UNMETERED)
+_pp_met = _pp_probe(_PP_METERED)
+R.check(
+    "the probe reports a fully metered install only when power and frequency are both present",
+    _pp_bare.can_duty_cycle() and not _pp_bare.fully_metered()
+    and not _pp_un.can_duty_cycle() and not _pp_un.measured_power
+    and _pp_met.fully_metered() and _pp_met.can_duty_cycle(),
+    f"bare {_pp_bare} unmetered {_pp_un} metered {_pp_met}",
+)
+R.check(
+    "from_mapping clamps only the unmetered write surface, and an explicit false opts out",
+    _PpCfg.from_mapping(_PP_UNMETERED).clamp_planned_levels is True
+    and _PpCfg.from_mapping(_PP_METERED).clamp_planned_levels is False
+    and _PpCfg.from_mapping({}).clamp_planned_levels is False
+    and _PpCfg.from_mapping({**_PP_UNMETERED, _PP_CLAMP_KEY: False}).clamp_planned_levels
+    is False
+    and _pp_clamped(_PP_UNMETERED) is True
+    and _pp_clamped(_PP_METERED) is False,
+)
+_pp_full = _pp_flow(14.0, 3.0, 14.0, 55.0, 35.0)
+_pp_min = _pp_flow(3.0, 3.0, 14.0, 55.0, 35.0)
+_pp_mid = _pp_flow(8.5, 3.0, 14.0, 55.0, 35.0)
+_pp_idle = _pp_flow(0.0, 3.0, 14.0, 55.0, 35.0)
+_pp_cfg = _pp_flow(8.5, 3.0, 14.0, 48.0, 35.0)
+R.check(
+    "the heating flow is the ceiling at full power and the inlet at p_min, and a configured ceiling moves it",
+    _pp_full == 55.0 and _pp_min == 35.0 and _pp_idle == 55.0
+    and 35.0 < _pp_mid < 55.0 and _pp_cfg < _pp_mid
+    and _PP_FLOW_DEFAULT == 55.0,
+    f"full {_pp_full} min {_pp_min} mid {_pp_mid} idle {_pp_idle} cfg {_pp_cfg}",
+)
+_pp_frozen = _t2_coord(**_PP_UNMETERED)
+_pp_metered_coord = _t2_coord(**_PP_METERED)
+_pp_opt_out = _t2_coord(**{**_PP_UNMETERED, _PP_CLAMP_KEY: False})
+R.check(
+    "the house learner freezes on an unmetered switch-plus-setpoint install and not on a metered one",
+    _pp_frozen._learning_frozen() == _PP_FREEZE
+    and _pp_metered_coord._learning_frozen() is None
+    and _pp_opt_out._learning_frozen() is None,
+    f"unmetered {_pp_frozen._learning_frozen()!r} "
+    f"metered {_pp_metered_coord._learning_frozen()!r} "
+    f"opt-out {_pp_opt_out._learning_frozen()!r}",
+)
+# The configured ceiling is the same constant the arbiter ships as its default.
+R.check(
+    "flow_heat_c defaults to the arbiter's heating-flow constant",
+    _PP_FLOW_DEFAULT == _pa.FLOW_HEAT_C,
+)
+_pp_fb = _pa._flow_target(
+    _PaNS(
+        config={_PP_FLOW_KEY: 48.0},
+        state=_PaNS(
+            outdoor_temperature=-5.0,
+            return_temperature=35.0,
+            floor_return_temperature=None,
+        ),
+        thermal=_PaNS(curve_flow_temp=lambda _o: 60.0),
+        plan=None,
+    ),
+    FakeState("40", attributes={"min": 20, "max": 70}),
+    None,
+    _PA_T0,
+)
+R.check(
+    "the baseline flow ceiling is the configured heating flow, not the literal 55",
+    _pp_fb == 48.0,
+    f"{_pp_fb}",
+)
+_pp_low = _pa._flow_target(
+    _PaNS(
+        config={_PP_FLOW_KEY: 48.0},
+        state=_PaNS(
+            outdoor_temperature=15.0,
+            return_temperature=35.0,
+            floor_return_temperature=None,
+        ),
+        thermal=_PaNS(curve_flow_temp=lambda _o: 20.0),
+        plan=None,
+    ),
+    FakeState("40", attributes={"min": 20, "max": 70}),
+    None,
+    _PA_T0,
+)
+R.check(
+    "a curve under the rated hold still holds 35 when the ceiling is configured",
+    _pp_low == _pa.FLOW_HOLD_C,
+    f"{_pp_low}",
+)
+
 R.section("#1913 SW-4 — GCHV Modbus silent transport via night-mode 518/519")
 # The GCHV package has no silent on/off register. Night mode is one daily
 # window in holding registers 518/519, exposed as writable hour/minute
@@ -59344,6 +59489,8 @@ R.check(
     "a missing GCHV night-mode number is observed as none",
     _pa._observed(_sw4_gone.arbiter_inputs(), "night_start_hour") is None,
 )
+
+
 
 
 sys.exit(R.close("FEATURE CHECKS"))
