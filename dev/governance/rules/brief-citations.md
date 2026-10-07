@@ -2,13 +2,13 @@
 description: Wave-brief citations must be linter-resolvable; do not leave them only in plan markdown
 paths:
   - ".claude/workflows/*.json"
-  - "docs/plan*.md"
-  - "docs/HANDOVER.md"
-  - "tools/audit/briefs/**"
+  - "dev/programme/plan*.md"
+  - "dev/programme/HANDOVER.md"
+  - "dev/governance/roles/**"
 ---
 # Brief-linter citations
 
-`node .claude/workflows/brief_lint.mjs` (path #416 lands) lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `.claude/workflows/carry-<N>.json`. It does not read the plan, the handover, or the role and dimension briefs.
+`node tools/policy/brief_lint.mjs` lints each group's `brief` in `.claude/workflows/wave-*-groups.json` and each carry in `dev/programme/carries/carry-<N>.json`. It does not read the plan, the handover, or the role and dimension briefs.
 
 **Where they go.** New programme plans and wave briefs put load-bearing citations in `wave-*-groups.json` (or the linter's input set) in a form that script can resolve. Do not leave critical citations only in free-form markdown. Extending the plan format means extending the linter in the same PR. Do not weaken the linter to fit a citation.
 
@@ -34,7 +34,7 @@ Three remedies, in order of preference, and **weakening the linter is not among 
 The linter's ref path also resolves at the cited tag, so verify a tag citation actually carries the symbol rather than assuming the tag rescues it.
 
 ```
-# BAD — only in docs/plan-*.md, or a moved range with no live anchor
+# BAD — only in the plan, or a moved range with no live anchor
 tests/entities.py:6042-6062 "does not run ahead"
 
 # GOOD — in the group's brief, re-anchored, quoted phrase still at the range

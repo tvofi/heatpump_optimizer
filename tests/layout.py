@@ -18,6 +18,7 @@ written (tvofi's D2). Four arms, each counted separately:
     python3 tests/layout.py --report      # per-arm counts; exit 0 whatever they are
     python3 tests/layout.py --enforce     # exit 1 on any finding (R9-RO-9 flips to this)
     python3 tests/layout.py --self-test   # the null controls below, in a throwaway repo
+    python3 tests/layout.py --guard [--base REF]  # the diff from the merge base only
     python3 tests/layout.py --verbose     # every finding, not the first few per arm
     python3 tests/layout.py --gen-retired INVENTORY.tsv   # print the `retired` list
 
@@ -40,6 +41,7 @@ import argparse
 import csv
 import functools
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -269,6 +271,219 @@ def report(found: dict[str, list[str]], n: int, verbose: bool) -> None:
 
 
 # ---------------------------------------------------------------------------
+# the guard (R9-RO-10): what a diff ADDS, refused whatever mode the arms are in
+#
+# The four arms above measure the whole tree's distance to the target, so they
+# stay in report mode until the moves finish. The guard reads only the diff
+# from the merge base, and refuses three things that move the tree AWAY from
+# the target, so it enforces from the day it lands:
+#
+#   new-reference  a changed file gains a line citing a LANDED retired path
+#   unswept        this diff lands a move, and a live line still cites it
+#   placement      an added file sits outside every category (unless it is
+#                  under a planned move not yet made), or at a path whose move
+#                  had landed at the base
+#
+# A retired entry has LANDED when no tracked file sits under its old path. A
+# line that also names the entry's new path, or resolves it through the move
+# map (locate, canon), is a dual-path fallback and is not a citation; neither
+# is a line carrying the marker `layout:old`, which a fixture building the old
+# tree on purpose puts on the line it builds it with. A narrative citing an
+# old path names the new one beside it, which also tells its reader.
+
+FALLBACK = re.compile(r"\b(?:locate|canon)\(|layout:old")
+# Text the guard does not read, though the reference arm still counts it:
+# the policy-lint config, whose keys are spelt old ON PURPOSE (`canon`'s
+# spelling until R9-RO-9 retires `canon`, so a key spelt new matches nothing);
+# and root-cause records, whose subject is often the old path that broke.
+GUARD_EXEMPT = ("dev/governance/config/", "dev/audit/rca/")
+
+
+def landed(files: list[str], retired: list[dict]) -> list[dict]:
+    """The landed entries, and every directory their moves emptied: the map
+    retires a directory's files one by one, and a citation of the directory
+    (a `git diff -- <dir>`, a glob) then reads nothing, silently."""
+    out = [r for r in retired if not any(under(p, r["old"]) for p in files)]
+    have = {p[:i + 1] for p in files for i, c in enumerate(p) if c == "/"}
+    known = {r["old"] for r in retired}
+    while True:
+        dirs = {o.rstrip("/").rpartition("/")[0] + "/" for o in (r["old"] for r in out)}
+        dirs = sorted(d for d in dirs - have - known if d != "/")
+        if not dirs:
+            return out
+        for d in dirs:
+            news = {target(r["old"], [r]) for r in out if r["old"].startswith(d)}
+            parent = {n.rpartition("/")[0] + "/" if n else None for n in news}
+            out.append({"old": d, "new": parent.pop() if len(parent) == 1 else None, "since": "emptied"})
+        known.update(dirs)
+
+
+def guard_re(old: str) -> re.Pattern[str]:
+    """`ref_re`, but a top-level `old` is not cited by a nested path's tail:
+    `pkg/<name>` is not the retired top-level `<name>`. A nested `old` keeps
+    matching after a `/`, as `$ROOT/<old>` spells it."""
+    rx = ref_re(old)
+    return re.compile(r"(?<!/)" + rx.pattern) if "/" not in old.rstrip("/") else rx
+
+
+def stale_lines(text: str, entries: list[dict]) -> list[tuple[str, str]]:
+    """(old, line) for each line of `text` citing a landed entry, fallbacks
+    excepted."""
+    out = []
+    for line in text.splitlines():
+        hits = [r for r in entries if r["old"].rstrip("/") in line and guard_re(r["old"]).search(line)]
+        for r in hits:
+            if (r["new"] and r["new"].rstrip("/") in line) or FALLBACK.search(line):
+                continue
+            if r.get("since") == "emptied" and any(h is not r and h["old"].startswith(r["old"]) for h in hits):
+                continue  # the file it holds is the citation, counted once
+            out.append((r["old"], line))
+    return out
+
+
+def blob(root: Path, spec: str) -> str | None:
+    """`git show <spec>` as text, or None for a missing or binary blob."""
+    p = subprocess.run(["git", "show", spec], cwd=root, capture_output=True)
+    if p.returncode or b"\0" in p.stdout[:8000]:
+        return None
+    return p.stdout.decode(errors="replace")
+
+
+def guard_base(root: Path, ref: str) -> str | None:
+    """The merge base of `ref` and HEAD; on HEAD itself with nothing staged
+    (a push to main) the first parent, so the merge just made is what is read."""
+    def rev(*a: str) -> str | None:
+        p = subprocess.run(["git", *a], cwd=root, capture_output=True, text=True)
+        return p.stdout.strip() if p.returncode == 0 and p.stdout.strip() else None
+    base = rev("merge-base", ref, "HEAD")
+    staged = subprocess.run(["git", "diff", "--cached", "--quiet", "HEAD"], cwd=root).returncode
+    if base and base == rev("rev-parse", "HEAD") and not staged:
+        base = rev("rev-parse", "--verify", "--quiet", "HEAD^1")
+    return base
+
+
+def guard(root: Path, manifest: dict, base: str) -> list[str]:
+    """The guard's findings for the index at `root` against commit `base`."""
+    retired, cats = manifest["retired"], compiled(manifest)
+    skip = (MANIFEST, *manifest["historical"], *GUARD_EXEMPT)
+    files = tracked(root)
+    then = [p for p in git(root, "ls-tree", "-r", "-z", "--name-only", base).decode().split("\0") if p]
+    now, before = landed(files, retired), landed(then, retired)
+    fresh = [r for r in now if r not in before]
+    planned = [r for r in retired if r not in now]
+    diff = git(root, "diff", "--cached", "-M", "--name-status", "-z", base).decode().split("\0")
+    found: list[str] = []
+    i = 0
+    while i < len(diff) - 1:
+        status = diff[i]
+        if status[:1] in "RC":
+            src, path, i = diff[i + 1], diff[i + 2], i + 3
+        else:
+            src, path, i = diff[i + 1], diff[i + 1], i + 2
+        if status[:1] == "D":
+            continue
+        if status[:1] in "ARC":
+            hit = next((r for r in before if under(path, r["old"])), None)
+            if hit:
+                found.append(f"placement: {path} re-adds a moved path; it lives at {hit['new'] or 'nothing (deleted)'}")
+            elif len(categories_of(path, cats)) != 1 and not any(under(path, r["old"]) for r in planned):
+                found.append(f"placement: {path} is in {len(categories_of(path, cats))} categories of {MANIFEST}; "
+                             "add it where its kind belongs, or a category for the kind")
+        if path.startswith(skip):
+            continue
+        head = blob(root, f":{path}")
+        if head is None:
+            continue
+        was = blob(root, f"{base}:{src}") if status[:1] != "A" else ""
+        old = {}
+        for k in stale_lines(was or "", now):
+            old[k] = old.get(k, 0) + 1
+        for o, line in stale_lines(head, now):
+            if old.get((o, line)):
+                old[(o, line)] -= 1
+            else:
+                found.append(f"new-reference: {path} cites retired path {o}: {line.strip()[:120]}")
+    if fresh:
+        pats = "\n".join(r["old"].rstrip("/") for r in fresh) + "\n"
+        proc = subprocess.run(["git", "grep", "--cached", "-z", "-n", "-I", "-F", "-f", "-", "--", ".",
+                               *(f":(exclude,literal){x}" for x in skip)],
+                              cwd=root, input=pats.encode(), capture_output=True)
+        for rec in proc.stdout.decode(errors="replace").splitlines():
+            path, line, text = rec.split("\0", 2)
+            for o, _ in stale_lines(text, fresh):
+                found.append(f"unswept: {path}:{line} cites {o}, which this diff moves")
+    return found
+
+
+def guard_self_test() -> int:
+    """A two-commit repo per case on a stub manifest: the base, then the
+    change staged, each case naming how many findings of which kind it owes."""
+    m = {"categories": [{"name": "docs", "globs": ["docs/*.md"], "why": "t"},
+                        {"name": "tools", "globs": ["tools/**"], "why": "t"},
+                        {"name": "arch", "globs": ["arch/**"], "why": "t"}],
+         "historical": ["arch/"],
+         "retired": [{"old": "old/gone.sh", "new": "tools/gone.sh", "since": "1"},
+                     {"old": "old/briefs/a.md", "new": "docs/a.md", "since": "1"},
+                     {"old": "gone.txt", "new": None, "since": "1"},
+                     {"old": "old/dir/", "new": "tools/dir/", "since": None},
+                     {"old": "old/wip.sh", "new": "tools/wip.sh", "since": None}]}
+    base = {"docs/a.md": "intro\n", "docs/b.md": "run old/gone.sh here\n", "tools/gone.sh": "",
+            "old/dir/x.sh": "", "old/wip.sh": "", "docs/c.md": "see old/wip.sh\n"}
+    cites = "run old/gone.sh now\n"
+    cases = [
+        ("null: the base tree unchanged", {}, (), {}),
+        ("a doc gains a citation of a landed path", {"docs/a.md": cites}, (), {"new-reference": 1}),
+        ("the same line naming the new path too", {"docs/a.md": "old/gone.sh is tools/gone.sh now\n"}, (), {}),
+        ("the same line through the move map", {"docs/a.md": "locate('old/gone.sh')\n"}, (), {}),
+        ("the same line marked as building the old tree", {"tools/t.sh": "touch old/gone.sh  # layout:old\n"}, (), {}),
+        ("the citation under a historical prefix", {"arch/r.md": cites}, (), {}),
+        ("an old citation kept while the file changes", {"docs/b.md": "run old/gone.sh here\nmore\n"}, (), {}),
+        ("a second copy of an old citation", {"docs/b.md": "run old/gone.sh here\n" * 2}, (), {"new-reference": 1}),
+        ("a file renamed with its old citation", {"docs/d.md": "run old/gone.sh here\n"}, ("docs/b.md",), {}),
+        ("a citation of a planned path", {"docs/a.md": "see old/wip.sh\n"}, (), {}),
+        ("a nested file sharing a retired top-level name", {"docs/a.md": "pkg/gone.txt is fine\n"}, (), {}),
+        ("the retired top-level name itself", {"docs/a.md": "see gone.txt\n"}, (), {"new-reference": 1}),
+        ("a citation of a directory the moves emptied", {"docs/a.md": "git diff -- old/briefs/\n"}, (), {"new-reference": 1}),
+        ("a file re-added in a directory the moves emptied", {"old/briefs/b.md": ""}, (), {"placement": 1}),
+        ("a file outside every category", {"misc/x.txt": ""}, (), {"placement": 1}),
+        ("a file in its category", {"tools/y.sh": ""}, (), {}),
+        ("a file under a planned move", {"old/dir/y.sh": ""}, (), {}),
+        ("a file re-added at a landed path", {"old/gone.sh": ""}, (), {"placement": 1, "new-reference": 0}),
+        ("a move landed, a citation left", {"tools/wip.sh": ""}, ("old/wip.sh",), {"unswept": 1}),
+        ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
+    ]
+    failed = 0
+    for name, add, rm, want in cases:
+        tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-guard-"))
+        try:
+            g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+            for p, t in {**base, MANIFEST: json.dumps(m)}.items():
+                (tmp / p).parent.mkdir(parents=True, exist_ok=True)
+                (tmp / p).write_text(t)
+            subprocess.run([*g, "add", "-A"], cwd=tmp, check=True)
+            subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True)
+            sha = git(tmp, "rev-parse", "HEAD").decode().strip()
+            for p in rm:
+                subprocess.run(["git", "rm", "-q", p], cwd=tmp, check=True)
+            for p, t in add.items():
+                (tmp / p).parent.mkdir(parents=True, exist_ok=True)
+                (tmp / p).write_text(t)
+                subprocess.run(["git", "add", p], cwd=tmp, check=True)
+            found = guard(tmp, m, sha)
+            got = {k: sum(f.startswith(k + ":") for f in found) for k in ("new-reference", "unswept", "placement")}
+            ok = all(got[k] == want.get(k, 0) for k in got)
+            print(f"  {'ok  ' if ok else 'FAIL'} guard self-test: {name}: {got}")
+            if not ok:
+                failed += 1
+                for f in found:
+                    print(f"         {f}")
+        finally:
+            shutil.rmtree(tmp)
+    return failed
+
+
+# ---------------------------------------------------------------------------
 # the null controls
 
 
@@ -442,6 +657,8 @@ def main() -> int:
     ap.add_argument("--report", action="store_true")
     ap.add_argument("--enforce", action="store_true")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--guard", action="store_true")
+    ap.add_argument("--base", default=os.environ.get("GOLDEN_REF") or "origin/main")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--gen-retired", metavar="INVENTORY")
     a = ap.parse_args()
@@ -449,7 +666,7 @@ def main() -> int:
         print(json.dumps(gen_retired(Path(a.gen_retired), ROOT), indent=1))
         return 0
     rc = 0
-    run_all = not (a.report or a.enforce or a.self_test)
+    run_all = not (a.report or a.enforce or a.self_test or a.guard)
     if a.report or a.enforce or run_all:
         found, n = check(ROOT, load(ROOT))
         report(found, n, a.verbose)
@@ -459,8 +676,18 @@ def main() -> int:
             rc = 1
         rc = rc or verdict(found, a.enforce)
         print(f"layout: MODE: {'ENFORCE' if a.enforce else 'REPORT (exit 0 on findings until R9-RO-9)'}")
+    if a.guard or run_all:
+        base = guard_base(ROOT, a.base)
+        if base is None:
+            print(f"layout: GUARD: SKIP -- no merge base with {a.base} here")
+        else:
+            refused = guard(ROOT, load(ROOT), base)
+            for msg in refused:
+                print(f"    {msg}")
+            print(f"layout: GUARD: {len(refused)} refusal(s) against {base[:12]}")
+            rc = rc or (1 if refused else 0)
     if a.self_test or run_all:
-        failed = self_test(ROOT) + locate_self_test(ROOT)
+        failed = self_test(ROOT) + locate_self_test(ROOT) + guard_self_test()
         print(f"layout self-test: {'ok' if not failed else f'{failed} case(s) FAILED'}")
         rc = rc or (1 if failed else 0)
     return rc

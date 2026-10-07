@@ -8,7 +8,7 @@
 // a recorded closure. The gate contains a check that keeps this directory
 // unchecked. So this runs by hand, and by hand is better than not at all:
 //
-//     node .claude/workflows/check-wave-script.mjs
+//     node tools/policy/check-wave-script.mjs
 //
 // It stubs agent()/log()/phase()/parallel() and drives the real script body, so
 // it exercises the branching rather than a copy of it. Run it after ANY edit to
@@ -726,7 +726,7 @@ await block('the rotation', async () => {
 })
 
 console.log('-- The finder report: scope, class_guess and leads (the round-9 scope wall)')
-// tools/audit/briefs/COMMON.md walls a finder into the cells tools/audit/scopes.json
+// dev/governance/roles/COMMON.md walls a finder into the cells tools/audit/scopes.json
 // gives its seat and has it write a LEAD for anything outside them. The schema a
 // finding is validated against at intake is what carries that: the seat it
 // measured (`scope`), the finder's class guess the verifier's third lens checks,
@@ -1093,7 +1093,7 @@ await block('the verification pass', async () => {
 }
 
 console.log('-- The round-9 verification pass: three lenses per dimension, majority kill, one judge')
-// Round 9 (tools/audit/briefs/verifier.md and judge.md as #1627 merged them):
+// Round 9 (dev/governance/roles/verifier.md and judge.md as #1627 merged them):
 // three verifiers per dimension, each owning a lens; two refutes, each with an
 // executed number, kill at panel and one sends the finding to the judge
 // disputed; a dimension over the shard size gets another triple, split at a

@@ -1,7 +1,7 @@
 ---
 description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
 paths:
-  - "tools/audit/briefs/**"
+  - "dev/governance/roles/**"
   - ".claude/workflows/*.json"
 ---
 # Forward-carrying a finding
@@ -66,14 +66,14 @@ outcome — not derived at all, and the refused technique gets attempted again.
   destination a reviewer can open. Do not copy it into each stage's brief:
   duplication goes stale unevenly, and a reader who finds two versions trusts
   neither.
-- **The stage has no live roster group** → its own `.claude/workflows/carry-<N>.json`,
+- **The stage has no live roster group** → its own `dev/programme/carries/carry-<N>.json`,
   N the destination issue, and **creating it is part of the finding**. A group
   at `resume.stage: done` is not a destination: nothing dispatches or lints it.
   `brief_lint.mjs` states the fields and refuses a carry at an issue a live
   group covers, so no stage has two destinations.
 - **A sibling seam in the same stage** — an open seam the enumeration rule returns
   (`fixer.md` step 8) — goes to **a new issue filed by the same pull request**, or a
-  `.claude/workflows/carry-<N>.json` under the branch above. The destinations this rule
+  carry file under the branch above. The destinations this rule
   names are stages that have not started, so a seam in the stage that is running has none:
   that is how the fifth seam escaped #1345.
 

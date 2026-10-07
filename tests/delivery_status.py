@@ -232,7 +232,7 @@ def subject_title(subject: str, body: str) -> str:
 def merge_parents(parents: int) -> bool:
     """Whether a first-parent commit is a pull-request merge.
 
-    Two or more parents is a merge and owes ``docs/delivery/<N>.md``. One
+    Two or more parents is a merge and owes ``dev/programme/delivery/<N>.md``. One
     parent is a direct push — a release stamp, a ``record:`` commit — and
     owes nothing. The record beat is a merge. Its row is written when the
     pull request opens, anchoring the number: the merge SHA does not exist

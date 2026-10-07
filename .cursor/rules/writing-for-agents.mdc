@@ -1,6 +1,6 @@
 ---
 description: What a sentence in the development record must carry to stay; README and user-facing docs are outside it
-globs: docs/HANDOVER.md,docs/plan*.md,tools/audit/briefs/**,.claude/workflows/*-groups.json,.github/PULL_REQUEST_TEMPLATE.md
+globs: dev/programme/HANDOVER.md,dev/programme/plan*.md,dev/governance/roles/**,.claude/workflows/*-groups.json,.github/PULL_REQUEST_TEMPLATE.md
 alwaysApply: true
 ---
 # Every sentence earns its place
