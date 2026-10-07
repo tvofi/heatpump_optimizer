@@ -1,0 +1,4 @@
+measured head c83ced70b5dc207a53dbf7623030f19cbca85f29 (detached worktree /Users/timmalmstrom/hpo-seats/r9c-rev-2017)
+run_head.txt  unperturbed enumerator output
+run_perturbed.txt  plant: 2 hub loads + 1 store in a dhw method
+run_null.txt  null: trailing comment only (identical to run_head.txt)

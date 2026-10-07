@@ -1,0 +1,12 @@
+      SKIP  tests/plan_view.py  (closure: 78 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 79 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 35 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 74 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 74 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 29 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 82 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
