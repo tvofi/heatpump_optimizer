@@ -70,7 +70,8 @@ The five seam hub-load totals equal the earlier measurement's "now" column and t
 
 ## Red checks
 
-none
+- `delivery-status`: red on main, not on this diff. It grades main's delivery record; main's record-autofix staged the old `docs/delivery/` path, fixed by #2011. This diff adds one harness under `tools/audit/harnesses/` and reaches no delivery file; the only record row it will own is the orchestrator's own. Cheaper detector: none needed here, since the check already runs on every PR and names the cause; the standing cost is that it reads red on every PR until #2011 merges.
+- `nightly-status`: red on main for the same reason (it grades main's nightly state, which this diff cannot reach). It clears when #2011 lands and main is green; this PR changes nothing it reads.
 
 ## Forward-carry
 
