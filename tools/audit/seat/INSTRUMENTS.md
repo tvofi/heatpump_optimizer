@@ -129,7 +129,8 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:
-  the default for a queue. Refusal: a red proof drops its entry to serial,
+  the default for a queue. Refusal: a red main admits nothing; a red proof
+  drops its entry to serial,
   and main's tree differing from the proof's before or after a merge stops it.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or

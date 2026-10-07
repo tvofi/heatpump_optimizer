@@ -59,6 +59,8 @@ any head that does not contain the `main` it merges into.
 
 BATCH (R9-RO-12; tvofi chose B and D of the merge-batching pre-study, 2026-10-07).
 Same queue file; no head is re-merged with main. In order:
+  0. main     -- every required context at main's tip completed green, or
+                 nothing is admitted (a proof on a red main blames its entries);
   1. admit    -- each head's own files (three-dot from main) are classed by
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
                  any `*_budgets.json` change goes SERIAL. The rest must be green
@@ -77,8 +79,13 @@ Same queue file; no head is re-merged with main. In order:
                  the green one dropping the latest entry merges; none green
                  stops, nothing merged. D: a batch of one is not proved;
   4. merge    -- each entry as `run` approves and merges it, only while main's
-                 tree equals P_(i-1)'s, and main's tree must equal P_i's after;
-  5. serial   -- routed and dropped entries go through `run`'s steps, in queue order.
+                 tree equals P_(i-1)'s (the first only while main's tip is still
+                 green, re-read), and main's tree must equal P_i's after;
+  5. serial   -- routed and dropped entries go through `run`'s steps, in queue
+                 order; after a D merge, only once main's run on it is green.
+The spent batch/ branches are deleted when the batch completes. Residual: GitHub's
+merge takes no expected base, so a merge landing between the guard and ours is
+caught only by step 4's after-check.
 A single merge thus rests on main's FULL push run, red there reverted first
 (orchestrator.md section 11). `--base batch/<name>` REHEARSES on a throwaway
 base: steps 1's carry, row and policy reads, 4's approval and 5 are skipped.
@@ -455,6 +462,7 @@ class Train:
         elif not self.ok("git", "worktree", "add", "-q", "-B", branch, str(wt), sha):
             raise Stop("proof", f"could not make the proof worktree at {wt}")
         o = self.run(["bash", tool("app_push"), "--branch-only", self.repo, str(wt), branch])[1]
+        self.branches.append(branch)
         if "PUSHED" not in o:
             raise Stop("proof", f"the App did not push {branch}: {o.strip()[-300:]}")
         for wf, extra in DISPATCH:
@@ -530,26 +538,42 @@ class Train:
             self.log(f"#{a['pr']} dropped to serial: the set without it is green at {p[-1][:8]}")
             return sub, p, dropped + [a]
 
+    def main_green(self, tip: str, req: list[str], why: str) -> None:
+        """Stop unless every required context at the base's tip completed green.
+        D's bound -- main's FULL push run, reverted first -- names one merge only
+        on a base that was green under it; a proof is only red for its entries
+        on such a base (review of #2044: a red main D-merged the wrong entry)."""
+        red = self.wait_ci(tip, only=req)
+        if red:
+            raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
+
     def batch(self, queue: list[dict], tag: str) -> int:
         self.state.mkdir(parents=True, exist_ok=True)
+        self.branches: list[str] = []
         try:
             mf = _fastpath()
             self.run(["git", "fetch", "-q", "origin", self.base])
             base = self.git("rev-parse", f"origin/{self.base}")
+            req = self.required()
+            self.main_green(base, req, "before admission")
             graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
             entries = [self.admit(item, base, graders, mf) for item in queue]
             serial = [a for a in entries if a["route"]]
-            kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]],
-                                                self.required() if sum(not a["route"] for a in entries) > 1 else [])
-            if len(kept) == 1:
+            kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
+            lone = len(kept) == 1
+            if lone:
                 self.log(f"#{kept[0]['pr']} D: a batch of one merges at its verdicted head, unproved; "
                          f"{self.base}'s FULL push run is its gate, and a red there is reverted first")
-            prev = base
+            prev, tip = base, base
             for a, p in zip(kept, proofs):
-                def guard(prev=prev, pr=a["pr"]) -> None:
+                def guard(prev=prev, pr=a["pr"], first=prev == base) -> None:
                     self.run(["git", "fetch", "-q", "origin", self.base])
-                    if self.tree(f"origin/{self.base}") != self.tree(prev):
+                    now = self.git("rev-parse", f"origin/{self.base}")
+                    if self.tree(now) != self.tree(prev):
                         raise Stop("merge", f"{self.base} moved: its tree is not the one #{pr}'s proof was built on; run the batch again")
+                    # Later merges land on a tree this batch's own green proof graded.
+                    if first:
+                        self.main_green(now, req, f"right before #{pr}'s merge")
                 self.land(a["pr"], a["head"], a, a["files"], guard)
                 self.run(["git", "fetch", "-q", "origin", self.base])
                 tip = self.git("rev-parse", f"origin/{self.base}")
@@ -560,6 +584,9 @@ class Train:
                 prev = p
             order = {int(item["pr"]): i for i, item in enumerate(queue)}
             later = sorted(serial + dropped, key=lambda a: order[a["pr"]])
+            if lone and later and self.real:
+                # A red push run must point at one merge: the unproved one is graded alone.
+                self.main_green(tip, req, f"after #{kept[0]['pr']}'s unproved merge: revert it first")
             if later and not self.real:
                 self.log(f"rehearsal: serial {', '.join('#%d' % a['pr'] for a in later)} not run")
             elif later:
@@ -572,6 +599,9 @@ class Train:
         except Stop as s:
             self.log(f"TRAIN STOPPED {s.step}: {s.why}")
             return 1
+        if self.branches:  # the proofs are spent; their shas are in the log above
+            self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+            self.log(f"deleted {', '.join(self.branches)}")
         self.log("TRAIN DONE")
         return 0
 
@@ -881,17 +911,20 @@ def _batch_self_test(check) -> None:
         for k, v in (("user.email", "f@example.test"), ("user.name", "f"),
                      ("merge.led.driver", "printf LOCAL > %A")):  # a driver GitHub never runs
             g(L, "config", k, v)
-        return {"R": R, "L": L, "base": base, "heads": heads, "merged": {}, "pushed": [], "dispatched": [],
+        return {"R": R, "L": L, "base": base, "red": set(), "base_sha": g(R, "rev-parse", base)[1], "heads": heads, "merged": {}, "pushed": [], "dispatched": [],
                 "approved": [], "gc": 0, "ci_red": "policy-docs", "after_merge": {}, "target": base,
                 "required": f"{R0}\npolicy-docs\npr-contract\n"}
 
     def ci(w: dict, sha: str) -> list[dict]:
         L = w["L"]
         units = g(L, "ls-tree", "-r", "--name-only", sha, "units/")[1].split()
-        over = len(units) > int(g(L, "show", f"{sha}:cap.txt")[1] or 0)
+        over = len(units) > int(g(L, "show", f"{sha}:cap.txt")[1] or 0) or sha in w["red"]
         runs = [{"name": n, "id": i, "status": "completed", "started_at": "1",
                  "conclusion": "failure" if over and n == w["ci_red"] else "success"}
                 for i, n in ((11, R0), (12, "policy-docs"))]
+        if sha == w["base_sha"]:  # main's own push run writes every required context
+            runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
+                     for n in w["required"].split() if n == "never-dispatched"]
         if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
             runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
                      {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
@@ -963,6 +996,7 @@ def _batch_self_test(check) -> None:
         with tempfile.TemporaryDirectory() as d:
             w = world(Path(d), base, prs, cap)
             (setup or (lambda w: None))(w)
+            w["base_sha"] = g(w["R"], "rev-parse", base)[1]
             lines: list[str] = []
             t = Train("o/r", Path(d) / "state", None, "the orchestrator", ignore, 1, run=stub(w),
                       sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2, base=base)
@@ -979,7 +1013,7 @@ def _batch_self_test(check) -> None:
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
     check("batch null control: two clean pull requests are proved once and both merge, the base's tree "
           "equal to P_i after each", w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and len(w["pushed"]) == 1
-          and len(w["tree_ok"]) == 2 and w["main_tree"] == w["proof_trees"][-1] and w["lines"][-1] == "TRAIN DONE")
+          and len(w["tree_ok"]) == 2 and w["main_tree"] == (w["proof_trees"] or [""])[-1] and w["lines"][-1] == "TRAIN DONE")
     check("the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch",
           w["pushed"][0][0] == "batch/t-1" and sorted(w["dispatched"]) == sorted((f, "batch/t-1") for f, _ in DISPATCH))
     check("a rehearsal base approves nothing and collects no worktree", w["approved"] == [] and w["gc"] == 0)
@@ -1055,6 +1089,33 @@ def _batch_self_test(check) -> None:
     check("on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)",
           w["rc"] == 1 and sorted(w["merged"]) == [1, 3] and sorted(w["approved"]) == [1, 3]
           and "recarry: #2 " in w["lines"][-1])
+    def redmain(w):  # main reddens after both heads were cut green (review-2044's probe)
+        (w["R"] / "units/u9").write_text("9\n")
+        g(w["R"], "add", "-A")
+        g(w["R"], "commit", "-qm", "main reddens")
+    w = go({1: {"a.txt": "A\n"}}, cap=1, setup=redmain)
+    check("a lone entry is not merged while main's tip is red (D's bound needs a green main)",
+          w["rc"] == 1 and not w["merged"] and "main:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1, setup=redmain)
+    check("a pair on a red main merges nothing and is not bisected: no proof, no drop",
+          w["rc"] == 1 and not w["merged"] and not w["pushed"] and not any("dropped" in ln for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1)
+    check("... the same pair on a green main is proved and merges (null control)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and "deleted batch/t-1" in w["lines"][-2])
+
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(on_sleep=lambda: w["red"].add(w["base_sha"])))
+    check("main's tip going red after the proof and before the first merge stops it: the gate is re-read right before",
+          w["rc"] == 1 and not w["merged"] and "right before #1" in w["lines"][-1])
+
+    def red_after(w):
+        w["after_merge"][1] = lambda: w["red"].add(g(w["R"], "rev-parse", "HEAD")[1])
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", setup=red_after)
+    check("after an unproved merge the train waits for main's run on it, and a red there stops it before anything else lands",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "revert it first" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main")
+    check("... and a green run there lets the serial entry go on (null control: its recarry stops here)",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "recarry: #2 " in w["lines"][-1])
     try:
         Train("o/r", Path("."), None, "", (), 1, base="fix/x")
         refused = False

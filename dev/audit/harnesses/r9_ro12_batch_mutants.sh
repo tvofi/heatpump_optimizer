@@ -7,7 +7,7 @@ git diff --quiet -- tools/audit/seat/merge_train.py || { echo "merge_train.py ha
 F=tools/audit/seat/merge_train.py
 mut() { # name, python replace old->new
   name=$1; old=$2; new=$3
-  python3 - "$F" "$old" "$new" <<'P' || { echo "$name: PATTERN NOT FOUND"; return; }
+  python3 - "$F" "$old" "$new" 2>/dev/null <<'P' || { echo "== $name: PATTERN NOT FOUND"; return; }
 import sys; p,o,n=sys.argv[1:]; s=open(p).read(); assert s.count(o)==1; open(p,'w').write(s.replace(o,n))
 P
   out=$(python3 $F --self-test 2>&1); git checkout -q -- $F
@@ -16,7 +16,7 @@ P
 echo "== M0 baseline: $(python3 $F --self-test 2>&1 | tail -1)"
 mut M1-no-driver-override 'for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]' 'for x in ()]'
 mut M2-no-post-merge-tree-check 'if self.tree(tip) != self.tree(p):' 'if False:'
-mut M3-no-pre-merge-guard 'if self.tree(f"origin/{self.base}") != self.tree(prev):' 'if False:'
+mut M3-no-pre-merge-guard 'if self.tree(now) != self.tree(prev):' 'if False:'
 mut M4-no-serial-routing 'route = sorted({c for f in files if (c := mf.file_class(f, graders))})' 'route = []'
 mut M5-no-proof 'if len(kept) < 2:
                 return kept, proofs, dropped' 'if True:
@@ -30,3 +30,11 @@ mut M9-no-admission-ci 'if red:
             raise Stop("ci", f"#{pr} red at its head: "' 'if False:
             raise Stop("ci", f"#{pr} red at its head: "'
 mut M10-log-read-without-escapes '"gh", "api", "--allow-escape-sequences",' '"gh", "api",'
+mut M11-no-main-gate-at-admission 'self.main_green(base, req, "before admission")' 'pass'
+mut M12-no-main-recheck-before-merge 'if first:
+                        self.main_green' 'if False:
+                        self.main_green'
+mut M13-no-wait-after-lone-merge 'if lone and later and self.real:' 'if False:'
+mut M14-gate-ignores-red 'if red:
+            raise Stop("main"' 'if False:
+            raise Stop("main"'
