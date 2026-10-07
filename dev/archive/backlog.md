@@ -35,7 +35,9 @@ and deliberately not built.
 - **The learned house heat-loss scale is not re-anchored when the configured
   coefficient changes, so an options edit multiplies a correction fitted
   against the old nameplate by the new one** (found 2026-08-28, live in
-  v5.4.0, four fix attempts made and none shipped). The learner fits a
+  v5.4.0, four fix attempts made and none shipped). **Status: closed
+  (#110, `cca2b115`).** The re-anchor shipped. The "not fixed" paragraph
+  below is the account of those four attempts, not the current state. The learner fits a
   dimensionless `house_heat_loss_scale` against the *configured* coefficient.
   The thermal store records the scale and its sample count and **not the
   coefficient it was fitted against** (`_thermal_learning_payload`,
@@ -339,8 +341,9 @@ the expensive part and it has already been paid for once.
   entity rather than the mode string. Second: there is no way to turn hot water
   off — both questionnaire branches call `async_step_dhw()` unconditionally and
   every field is `vol.Optional(..., default=...)`, so a space-heating-only
-  house cannot escape; a `dhw_mode` select mirroring `CONF_TWO_ZONE_MODE`,
-  honoured ahead of `thermal_model.py`'s key-presence inference, is the fix.
+  house cannot escape. **Status: closed (`3110b24d`, `ed2318e6`).** The
+  wizard's no-tank answer writes the off override, and an untouched options
+  page stores no DHW presence.
   Third: `dhw_min_too_close` carries a double-escaped `\\u00b0C` in all three
   string files, at both `:215` and `:676` in each (six occurrences, still
   present in v5.4.0) — English degrades to "at least 5 °C" and the Swedish is
@@ -391,8 +394,9 @@ savings headline reading 4–13 % high in a house whose learner has walked above
 **Two more program items were designed and not built:**
 
 - **Options-flow back navigation** (#100): return to the section menu from
-  inside a settings page instead of closing the dialog. The design is settled
-  and one wrong turn is already ruled out — see the Decisions section below.
+  inside a settings page instead of closing the dialog. **Status: closed
+  (#123, `4daf8c51`).** The options dialog returns to the section menu.
+  The design note below records the turn that was ruled out.
 - **A second full audit round** across nine dimensions (the original seven plus
   sensor verification and resource efficiency), against the tree as it stands.
   Deferred deliberately by the owner. Its resource-efficiency dimension is the
