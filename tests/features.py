@@ -60027,9 +60027,11 @@ R.check(
 )
 
 
-def _fm_reader(cfg, flow_state, unit="L/min"):
+def _fm_reader(cfg, flow_state, unit="L/min", flow_age_min=1):
     states = {
-        "sensor.flow": FakeState(flow_state, last_updated=minutes_ago(1, NOW), unit=unit),
+        "sensor.flow": FakeState(
+            flow_state, last_updated=minutes_ago(flow_age_min, NOW), unit=unit
+        ),
         "sensor.sup": FakeState("45.0", last_updated=minutes_ago(1, NOW), unit="°C"),
         "sensor.ret": FakeState("40.0", last_updated=minutes_ago(1, NOW), unit="°C"),
     }
@@ -60098,6 +60100,56 @@ R.check(
 R.check(
     "an unknown flow unit is absent rather than guessed",
     _fm.read_heat_output_kw(*_fm_reader({}, "15.0", unit="gal/min")) is None,
+)
+
+# R9-UX-9 review round 1: a flow reading older than its age limit
+# (INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY], 30 min) is stale, and a stale
+# flow is no estimate. 45 min sits past that limit and inside no other one, so
+# dropping the flow key's limit or reading a stale flow's value both show here.
+_fm_stale_r, _fm_stale_cfg = _fm_reader({}, "15.0", flow_age_min=45)
+_fm_stale_kw = _fm.read_heat_output_kw(_fm_stale_r, _fm_stale_cfg)
+_fm_stale_rd = _fm_stale_r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+_fm_fresh_kw = _fm.read_heat_output_kw(*_fm_reader({}, "15.0", flow_age_min=20))
+R.check(
+    "a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)",
+    _fm_stale_kw is None
+    and _fm_stale_rd is not None
+    and _fm_stale_rd.problem == "stale"
+    and _fm_fresh_kw is not None
+    and abs(_fm_fresh_kw - _fm_kw) < 1e-9,
+    f"stale={_fm_stale_kw} problem={getattr(_fm_stale_rd, 'problem', None)} fresh={_fm_fresh_kw}",
+)
+# A pump at rest with the flow sensor reading zero is a measured 0 kW, not an
+# absent one: only a negative flow is implausible.
+_fm_zero_r, _fm_zero_cfg = _fm_reader({}, "0.0")
+_fm_zero_kw = _fm.read_heat_output_kw(_fm_zero_r, _fm_zero_cfg)
+_fm_zero_rd = _fm_zero_r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+R.check(
+    "a zero flow reading is a measured 0 kW, not absent",
+    _fm_zero_kw == 0.0 and _fm_zero_rd is not None and _fm_zero_rd.ok,
+    f"kw={_fm_zero_kw} problem={getattr(_fm_zero_rd, 'problem', None)}",
+)
+# The health record keeps the first reason a flow reading was refused: a stale
+# negative reading stays "stale" (the age outranks the value), while a fresh
+# negative one is "implausible" and an unknown unit "unknown_unit".
+
+
+def _fm_problem(flow_state, unit="L/min", flow_age_min=1):
+    r, cfg = _fm_reader({}, flow_state, unit=unit, flow_age_min=flow_age_min)
+    _fm.read_heat_output_kw(r, cfg)
+    rd = r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+    return None if rd is None else rd.problem
+
+
+_fm_problems = (
+    _fm_problem("-3.0", flow_age_min=45),
+    _fm_problem("-3.0"),
+    _fm_problem("15.0", unit="gal/min"),
+)
+R.check(
+    "a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit)",
+    _fm_problems == ("stale", "implausible", "unknown_unit"),
+    f"{_fm_problems}",
 )
 
 
