@@ -1,0 +1,26 @@
+--- option-flow fields no user-facing document names ---
+--- wood-fuel economics fields, rendered by the real option page ---
+  wood_type  (page building)  label='Wood type'
+  wood_packing  (page building)  label='Packing'
+  wood_price_sek_m3  (page building)  label='Price per cubic metre'
+  wood_furnace_efficiency  (page building)  label='Furnace efficiency'
+--- document lines mentioning any wood-fuel economics input ---
+  | wood cheaper than heat pump | burning wood costs less per kwh than running the heat pump | disabled by default. unavailable until the furnace is on,
+  | wood type | mixed | birch · pine · mixed | the billed species. used with packing and the price below to get a sek/kwh figure for the cheaper-than-pu
+  | packing | packed (stacked) | packed (stacked) · loose (dumped) | packed is stacked (travad); loose is dumped (stjälpt) and billed at 0.60 of packed.
+  | price per cubic metre | none | 0–10 000, 10 steps | what you pay per billed cubic metre. **empty keeps the cheaper-than-pump sensor unavailable — th
+  | furnace efficiency | 75 % | 10–95 | share of the wood's energy that reaches the tank. |
+  is on, type and packing are set, the billed price is greater than 0, and
+  `silent_mode_power_fraction` (0–1), `wood_type`, `wood_packing`,
+  `wood_price_sek_m3`, `wood_furnace_efficiency`, `wood_slots`. an empty
+
+RESULT option_pages_rendered=23 count
+RESULT option_schema_keys_rendered=233 count
+RESULT option_section_or_unlabelled_keys=33 count
+RESULT option_fields_rendered=200 count
+RESULT option_fields_undocumented=0 count
+RESULT wood_economics_fields_rendered=4 count
+RESULT wood_economics_doc_lines=8 count
+RESULT thread_factor=1.000
+RESULT load1=11.58
+RESULT swapins=0

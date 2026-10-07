@@ -1,0 +1,11 @@
+M1|thermal_model.py|if any(probe(cap, cfg, key) for _, key, probe in offered)|if False and any(probe(cap, cfg, key) for _, key, probe in offered)
+M2|flow_meter.py|        or cap.measured_power\n        or cap.frequency\n|
+M3|inputs.py|if converted is None or converted < 0.0:|if converted is None or converted < -1e18:
+M4|const.py|"m³/h": WATER_KG_PER_L * 1000.0 / 3600.0,|"m³/h": WATER_KG_PER_L / 3600.0,
+M5|flow_meter.py|if drop <= 0.0|if drop < 0.0
+M6|flow_meter.py|    if flow_kg_s is None or supply_c is None or return_c is None:\n        return None\n|
+M7|sensor.py|            "feedback_gaps": feedback_gaps(self.coordinator.effective_config),\n|
+M8|inputs.py|        if reading.value is None:\n            return reading\n        state = self.hass.states.get(reading.entity_id)\n        converted = normalize_flow_kg_s|        state = self.hass.states.get(reading.entity_id)\n        converted = normalize_flow_kg_s
+M9|inputs.py|                    "unknown_unit" if converted is None else "implausible"|                    "implausible"
+M10|const.py|"L/min": WATER_KG_PER_L / 60.0,|"L/min": 1.0 / 60.0,
+M11|flow_meter.py|        flow.value if flow.ok else None, supply, returned|        flow.value, supply, returned

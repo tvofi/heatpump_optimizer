@@ -1,0 +1,20 @@
+
+=== UX-9 extract ===
+  ok   an install with no power, energy, frequency or flow signal is told which four classes to add
+  ok   any one of the signals silences the recommendation (null control: each alone)
+  ok   an unrelated entity does not count as feedback
+  ok   guard: with no flow key in const the table emits no flow row, and with it the row appears
+  ok   the gap advisor publishes the probe's list for the card to read
+  ok   L/min, L/s, m3/h and kg/s all convert to kg/s at 0.998 kg/L
+  ok   a planted 0.25 kg/s over a 5 K drop is 5.2325 kW
+  ok   no drop, a rise or a missing temperature is no estimate
+  ok   the estimate follows the sensor: 15 L/min over a 5 K drop
+  ok   doubling the flow doubles the estimate (null control for the follow claim)
+  ok   an unavailable or negative flow reading is absent
+  ok   a power or a frequency signal keeps the estimate off (the signal outranks the flow meter)
+  ok   null control: with the flow key unset nothing is estimated
+  ok   the thermal-output estimate is published on the recommended-power sensor, and absent stays None
+  ok   the options step asks for the flow sensor beside the compressor frequency sensor
+  ok   an unknown flow unit is absent rather than guessed
+
+ALL 16 UX9 EXTRACT CHECKS PASSED

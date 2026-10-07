@@ -1,0 +1,67 @@
+Fix review: blocked f455915c4200be287c10cd7e95306b8fbf2953fe docs-code-mismatch: flow_meter_entity strings and docs/configuration.md say an energy entity outranks the flow meter, read_heat_output_kw ignores energy; stale-flow gate untested (2 surviving mutants)
+
+bus-nonce: 9542f3bf5d8c15d6b7302922703c0259
+
+PR #2024 (R9-UX-9, closes #1956, part of #2016). This is round 1, the first review. Measured head: f455915c4200be287c10cd7e95306b8fbf2953fe. It equals the head in the body and was still the live head at posting time. Merge base 2d8cab3f equals origin/main at review time, and `git merge-tree --write-tree origin/main HEAD` exits 0. The roles/ diff against main is empty, so the contract is current.
+Evidence: /Users/timmalmstrom/hpo-seats/review-2024/evidence
+
+## Blocking
+
+1. **The user-facing text contradicts the code on the energy entity.** These four places say the flow estimate is ignored when there is a power, **energy** or frequency signal:
+   - `strings.json`, `translations/en.json` and `translations/sv.json` (`flow_meter_entity` data_description: "Ignored when any of those exists" / "Ignoreras när någon av dem finns")
+   - `docs/configuration.md` ("Used only while there is no power, energy or frequency signal")
+
+   `flow_meter.read_heat_output_kw` gates only on `cap.measured_power or cap.frequency`. That matches #2016 item 4 and the module docstring, but `probe_install.measured_power` reads `CONF_POWER_ENTITY` only. Probe (energy_gate_probe.txt):
+   `RESULT flow+energy: heat_output_kw=5.2325`. The estimate is published.
+   `RESULT flow+power: None`, `RESULT flow+freq sensor: None`.
+   The fix is either to drop "energy" from the four texts (which matches the issue) or to gate on energy and test that. The features check "a power or a frequency signal keeps the estimate off" does not cover energy.
+
+2. **The stale-flow path is new production behaviour that no test pins.** Both mutants below survive the PR's own checks (an extract of features.py lines 59927-60103, reviewer-built, see `_ux9_extract.py`), and both change behaviour:
+   - M11, `flow_meter.py`: `flow.value if flow.ok else None` replaced by `flow.value`. Planted probe (stale_probe.py, flow 90 min old): head gives `(None, 'stale')`, the mutant gives `(5.222035, 'stale')`. A stale flow is published as heat output.
+   - M12, `const.py`: delete `INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY] = 30.0`. The 90-min flow then reads `(5.222035, None)`. The extract passes, and `tests/entities.py` also passes with rc 0 (entities_M12.txt).
+
+   `grep INPUT_MAX_AGE_MINUTES tests/*.py` finds no check naming the flow key. Neither site is in the mutation lane's operator set (the ternary, and a module-level assignment), so `mutation`/R9-CI-1 will never flag them. A killing check is owed: a stale flow reading must give no estimate.
+
+## Verified (not blocking)
+
+- **Budget raise is minimal, and earned by the mechanism.** `tests/structure.py` at head: `RESULT max_class_loc=9049`, `RESULT seam_cut_total=768`, `STRUCTURE RATCHET PASSED`. With the one coordinator line `"measured_heat_output_kw": self._flow_bias.heat_output_kw,` deleted: `max_class_loc=9048`, `seam_cut_total=766`. Those are exactly main's caps, so +1 and +2 come from that line alone. I found no zero-raise placement: the module-level `_flow_bias` users at coordinator.py:935-996 are not payload views. Note that `recorded_at` moved to 59b5ac6e (an R9-SW-6 commit), not to a commit of this branch. It is metadata only.
+- **Goldens are add-only, and no value moved.** I diffed the JSON structure from the merge base to the head (golden_structural_diff.txt). config_flow: 3 ADDED leaves, all `flow_meter_entity`. Each coord_* fixture (all_features, dhw, grid_fee, minimal, two_zone): ADDED `data/measured_heat_output_kw` and `sensor_gap_advisor/.../feedback_gaps`, and `current_power.extra_state_attributes` went from null to `{measured_heat_output_kw: null}`. No plan, schedule or solver leaf moved. Every changed fixture is claimed and every claim changed. `claims-for: 6.7.16` equals `VERSION`. Dropping main's #1939 `config_flow` line follows the driver's own refusal text ("keep the claims that describe THIS branch's diff"). Two notes on the claim text, not blocking. The config_flow reason names `feedback_gaps`/`measured_heat_output_kw`, which are not in that fixture. "no value moved" is loose for the null-to-dict move. I did not run GOLDEN_MODE=drift (heavy). CI's `fast`/golden lane at this head was **still in_progress** when I posted.
+- **VERSION, manifest and RELEASE_NOTES are untouched** in the three-dot diff.
+- **closures.json** adds exactly one path, `flow_meter.py`, to 21 scripts and removes nothing. Every closure that reads `coordinator.py` now also reads `flow_meter.py` (zero exceptions). CI's `closures` job at this head was **in_progress**, so its verdict is CI's to give.
+- **Main-merge resolutions.**
+  - D5 `option_doc_coverage.py`: `option_fields_rendered=200`, `option_schema_keys_rendered=233`, `option_fields_undocumented=0`.
+  - D6 `claims.py`: `arch_modules_on_disk=73`, `arch_map_listed=73`, `ha_module_level_importers=27`, `claims_false=0`. It regenerated claims.md and claims.json byte-identical.
+  - `docs/architecture.md`: 73 modules, 27 importers, "other 45" all consistent.
+- **Config key, end to end.** Present in `const`, `_OPTION_FIELDS` (compressor group), all 3 string files (en, sv, strings.json), `INPUT_MAX_AGE_MINUTES`, the entities.py `_PUBLISHED_ATTRS` and docs. hassfest and validate-hacs pass at head.
+- **Mutation proof re-run** on the reviewer-built extract (the finder's harness is features.py; the full run is heavy and CI's). All of the fixer's four named predicates are KILLED: M1 feedback_gaps any to `False and`, M2 the power/frequency gate deleted, M3 `< -1e18`, M4 the m3/h `*1000` dropped. M5 to M8 and M10 are also KILLED (mutants.txt).
+- **Card** (`node tests/card.mjs`): ALL CARD CHECKS PASSED. These card mutants are KILLED: C1 dismiss no-op, C2 the empty-inbox text dropped, C3 dismissal ignored. C4 (drop the `state !== "unavailable"` guard) survives, but HA writes no custom attributes on an unavailable entity, so it is probably equivalent.
+- **`mutation` red: the 11 unpinned sites** (job 113050463452, same list as the body; all 11 `NOT RUN ... would have overrun --budget-minutes`, so CI measured nothing):
+  - flow_meter.py:31 GUARD_OFF, flow_meter.py:36 CMP_BOUND
+  - inputs.py:278 GUARD_OFF, :281 RETURN_DEL, :821 GUARD_OFF, :825 CMP_BOUND, :825 GUARD_OFF, :827 GUARD_OFF, :831 RETURN_DEL, :833 RETURN_DEL
+  - thermal_model.py:1286 RETURN_DEL
+
+  My approximations against the extract (unpinned_site_mutants.txt) kill 7 of them. Four survive:
+  - 278 GUARD_OFF: equivalent, because `str(None)` is no unit.
+  - 831 RETURN_DEL: equivalent, because it falls through to `value=None`.
+  - 825 CMP_BOUND (`<=0`): a zero flow becomes absent instead of 0 kW. Untested.
+  - 827 GUARD_OFF: the problem label is lost from health. Untested.
+
+  These two last are expected to come back from mutation-autofix as a killing check or a survivor_triage verdict, as the body undertakes. Otherwise the mutation red is judged as the body says.
+- **CodeQL.** `Analyze (python)` succeeds at this head (job 113050462944), and `code-scanning/alerts?ref=refs/pull/2024/merge&state=open` returns 0. The body's owed answer is now answered.
+- **Other reds at head.** `budget-raise-gate` fails, plus one cancelled twin. That is by construction: it needs tvofi's approving review at head. `delivery-status` and `nightly-status` are main's. `mutation` and `mutation-autofix` are answered in the body. All are named in `## Red checks`.
+
+## Non-blocking observations
+
+- The card title reads "Add a heat pump power, energy or frequency sensor", but the list includes water mass flow.
+- The detail text says that adding a sensor lets the planner see what the pump draws. With only a flow meter configured, the row goes silent, yet `docs/configuration.md` itself says the flow reading "does not feed the learners" until R9-UX-10. Owner ruling #2016 item 5 accepts the silencing, so this is honest only once R9-UX-10 lands. The orchestrator may want R9-UX-10 in the same release as this PR.
+- `tests/entities.py` at head: ALL 2204 ENTITY CHECKS PASSED (the body quotes 2203 before the latest main merge).
+
+RESULT energy_outranks_flow_in_text=yes energy_outranks_flow_in_code=no
+RESULT stale_flow_mutants_surviving=2 (M11, M12)
+RESULT max_class_loc_head=9049 without_payload_line=9048
+RESULT seam_cut_total_head=768 without_payload_line=766
+RESULT golden_value_leaves_changed=0 (null->dict on current_power attrs x5, add-only)
+RESULT closures_paths_added=1 scripts=21
+RESULT option_fields_rendered=200 option_schema_keys_rendered=233 arch_modules_on_disk=73
+RESULT unpinned_sites_ci=11 measured_by_ci=0
+RESULT codeql_open_alerts_pr_merge_ref=0
