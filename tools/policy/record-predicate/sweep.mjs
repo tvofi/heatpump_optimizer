@@ -33,10 +33,10 @@
 // and it goes non-zero the moment the harness stops seeing the region, which is
 // the failure the empty difference row could not report.
 //
-//   tools/audit/record-predicate/sweep.mjs --range v6.3.16..origin/main
-//   tools/audit/record-predicate/sweep.mjs --range <a..b> --verify
-//   tools/audit/record-predicate/sweep.mjs --in-flight --since <tag>
-//   tools/audit/record-predicate/sweep.mjs --self-test
+//   tools/policy/record-predicate/sweep.mjs --range v6.3.16..origin/main
+//   tools/policy/record-predicate/sweep.mjs --range <a..b> --verify
+//   tools/policy/record-predicate/sweep.mjs --in-flight --since <tag>
+//   tools/policy/record-predicate/sweep.mjs --self-test
 //
 // HISTORY IS NOT THE WHOLE FALSE-REFUSAL SURFACE. A range sweep says what the
 // candidate would have refused; `--in-flight` says what it refuses NOW, for work

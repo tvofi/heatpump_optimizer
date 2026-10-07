@@ -76,7 +76,7 @@ satisfied by an empty one.
 IF a local run selects `tests/stress.py`, THEN let `tests/run.sh` take the
 gate lease; it does, around that run alone. Holding it by hand is
 `.claude/rules/gate-scoping.md`'s; a `stress.py` run outside `run.sh` takes
-none, and `tools/audit/README.md` wraps it.
+none, and `dev/audit/README.md` wraps it.
 
 ## S7 Merge, never rebase, and never force-push
 

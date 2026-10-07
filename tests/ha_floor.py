@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Every Home Assistant name production reaches, against the release hacs.json
-declares as its floor (class P11's floor arm; tools/audit/rca/R9-RCA-1869.md).
+declares as its floor (class P11's floor arm; dev/audit/rca/R9-RCA-1869.md).
 
     python3 tests/ha_floor.py check [--package DIR]       # the gate's arm, alone
     python3 tests/ha_floor.py record [--tag 2025.2.0] [--cache DIR] [TREE ...]

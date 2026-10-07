@@ -8,7 +8,7 @@
 // a recorded closure. The gate contains a check that keeps this directory
 // unchecked. So this runs by hand, and by hand is better than not at all:
 //
-//     node .claude/workflows/check-wave-script.mjs
+//     node tools/policy/check-wave-script.mjs
 //
 // It stubs agent()/log()/phase()/parallel() and drives the real script body, so
 // it exercises the branching rather than a copy of it. Run it after ANY edit to
@@ -681,7 +681,7 @@ await block('group 14 -- the two readers of a blocked verdict deliver one class'
 
 console.log('-- The rotation: the coverage ledger every brief must agree with')
 // The round-8 convergence programme's rotation (design A). A brief's numbered
-// method steps are its step ids, D<k>.M<n>; tools/audit/rotation.json carries
+// method steps are its step ids, D<k>.M<n>; dev/audit/config/rotation.json carries
 // them per dimension beside each round's coverage, which audit-find.js writes
 // and audit-verify.js adds the yield to. A ledger that lost a dimension or a
 // step records a round that never covers it, silently -- R7-INSTR-01's shape
@@ -689,7 +689,7 @@ console.log('-- The rotation: the coverage ledger every brief must agree with')
 await block('the rotation', async () => {
   const briefSteps = Object.fromEntries(briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f, p]) => [
     f.slice(0, -3), [...fs.readFileSync(p, 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
-  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
   // One predicate, the tree and the synthetic ledgers below both through it.
   const ledgerGaps = (briefs, led) => {
     const gaps = []
@@ -726,7 +726,7 @@ await block('the rotation', async () => {
 })
 
 console.log('-- The finder report: scope, class_guess and leads (the round-9 scope wall)')
-// tools/audit/briefs/COMMON.md walls a finder into the cells tools/audit/scopes.json
+// dev/governance/roles/COMMON.md walls a finder into the cells dev/audit/config/scopes.json
 // gives its seat and has it write a LEAD for anything outside them. The schema a
 // finding is validated against at intake is what carries that: the seat it
 // measured (`scope`), the finder's class guess the verifier's third lens checks,
@@ -756,15 +756,15 @@ await block('the finder report schema', async () => {
 })
 
 console.log('-- The scopes: every seat a finder is dispatched to, held to the briefs')
-// tools/audit/scopes.json gives every seat its cells; tools/audit/check_scopes.py
+// dev/audit/config/scopes.json gives every seat its cells; tools/audit/check_scopes.py
 // proves them disjoint and complete at a ref, and the driver runs it in Prepare.
 // What that checker cannot see is the briefs: a scope naming a step its brief no
 // longer numbers dispatches a seat to a step nobody wrote, and a brief step no
 // seat names is never measured (check_scopes.py compares a dimension's seats with
 // the dimension's own `steps`, which is the list that would be stale).
 await block('the scopes', async () => {
-  const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
-  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+  const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
   const briefs = briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f]) => f.slice(0, -3))
   const scopeGaps = (sc, led, bs) => {
     const gaps = []
@@ -799,14 +799,14 @@ await block('the scopes', async () => {
 
 console.log('-- The round driver: seats from the scopes, boxes, and the Prepare refusal')
 // The round-9 driver (readiness PR R1). `audit-find.js` dispatches one finder per
-// seat of tools/audit/scopes.json -- not planSeats' rotation over the ledger --
+// seat of dev/audit/config/scopes.json -- not planSeats' rotation over the ledger --
 // on the box (cloud container) the DISPATCH block assigns it, and refuses the
 // round in Prepare unless tools/audit/check_scopes.py exits 0 at the baseline.
 // Driven, not grepped: the script body runs against stubbed agent()/pipeline().
 await block('the scoped round driver', async () => {
   const rd = fs.readFileSync(path.join(STAY, 'audit-find.js'), 'utf8')
-  const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
-  const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
+  const scopes = JSON.parse(fs.readFileSync(at('dev/audit/config/scopes.json'), 'utf8'))
+  const ledger = JSON.parse(fs.readFileSync(at('dev/audit/config/rotation.json'), 'utf8'))
   const dimsIn = (text) => [...text.matchAll(/'([A-Z]\d+)'/g)].map((m) => m[1])
   const grab = (re) => { const m = re.exec(rd); return m ? dimsIn(m[1]) : [] }
   const shell = fs.readFileSync(at('tools/audit/prepare_baseline.sh'), 'utf8')
@@ -1093,7 +1093,7 @@ await block('the verification pass', async () => {
 }
 
 console.log('-- The round-9 verification pass: three lenses per dimension, majority kill, one judge')
-// Round 9 (tools/audit/briefs/verifier.md and judge.md as #1627 merged them):
+// Round 9 (dev/governance/roles/verifier.md and judge.md as #1627 merged them):
 // three verifiers per dimension, each owning a lens; two refutes, each with an
 // executed number, kill at panel and one sends the finding to the judge
 // disputed; a dimension over the shard size gets another triple, split at a
@@ -1233,7 +1233,7 @@ if (PANEL_DRIVER) await block('the round-9 verification pass', async () => {
 })
 
 console.log('-- The verification pass feeds the rotation ledger its yield')
-// tools/audit/rotation.json keeps each round's judge-surviving findings per
+// dev/audit/config/rotation.json keeps each round's judge-surviving findings per
 // method step beside the coverage, unfinished steps, findings per seat and leads
 // that audit-find.js's intake records. audit-verify.js writes the yield through
 // its register writer, computed here in the script from the judge's verdicts and
@@ -1266,8 +1266,8 @@ await block('the rotation yield', async () => {
     const reg = calls.find((c) => c.label === 'register')?.prompt ?? ''
     t(`the pass returns each dimension's judge-surviving count per step, refuted and unreproduced not counted (from ${from ?? 'panels'})`,
       J(out?.rotation_yield) === J(want), `got ${J(out?.rotation_yield)}, want ${J(want)}`)
-    t(`and the register writer is told to write exactly that into tools/audit/rotation.json (from ${from ?? 'panels'})`,
-      reg.includes('tools/audit/rotation.json') && reg.includes(J(want)), 'the writer prompt does not carry the yield')
+    t(`and the register writer is told to write exactly that into dev/audit/config/rotation.json (from ${from ?? 'panels'})`,
+      reg.includes('dev/audit/config/rotation.json') && reg.includes(J(want)), 'the writer prompt does not carry the yield')
   }
   t('the read step is asked for each finding\'s step, or the count has nothing to key on',
     /step/.test(vsrc.match(/label: 'read'/) ? vsrc.slice(0, vsrc.indexOf("label: 'read'")).split('phase(\'Read the register\')')[1] ?? '' : ''), 'the read prompt names no step')

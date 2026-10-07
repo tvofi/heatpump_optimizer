@@ -157,9 +157,31 @@ def window_frozen(day_index: int, hour: float) -> bool:
     return any(s < hour < s + FROZEN_SPAN for s in BOOST_STARTS)
 
 
-def run(arm: str, surface: str, two_zone: bool = False):
-    import asyncio
+def fork_cycle() -> int:
+    """The first cycle any boost surface acts on: day ``BOOST_DAYS[0]`` at
+    the earliest window start.
 
+    Before it the three surfaces run one code path -- the channel switch is
+    entered only on a boosting cycle, the mode select is driven only when
+    its wanted mode differs from auto, which only a boosting cycle makes it
+    -- so every arm's state there is one state, solved once and copied
+    (``replay``). Each cycle's solve is a full production multi-start and
+    the solves are the script's cost, so the pre-boost days are paid once
+    rather than once per arm. ``check_fork`` asserts the precondition."""
+    per_day = int(24 * 60 / DT_MIN)
+    return BOOST_DAYS[0] * per_day + int(min(BOOST_STARTS) * 60 / DT_MIN)
+
+
+def boosting_at(day_index: int, h_now: float) -> bool:
+    """Whether a boost window is open at this cycle, on any surface."""
+    return (
+        day_index in BOOST_DAYS
+        and any(s <= h_now < s + boost_mod.BOOST_HOURS for s in BOOST_STARTS)
+    )
+
+
+def start_state(two_zone: bool = False) -> dict:
+    """Everything one arm's replay carries from cycle to cycle."""
     coord = build_coord()
     ctx = getattr(coord, "_ctx", coord)
     house = build_house()
@@ -175,163 +197,274 @@ def run(arm: str, surface: str, two_zone: bool = False):
         time_step_minutes=STEP_MIN,
         target_temp=21.0, min_temp=20.0, max_temp=23.0,
     )
-    optimizer = HeatPumpOptimizer(coord._thermal_model, opt_cfg)
+    return {
+        "coord": coord, "ctx": ctx, "house": house, "two_zone": two_zone,
+        "optimizer": HeatPumpOptimizer(coord._thermal_model, opt_cfg),
+        "house_state": ThermalState(
+            room_temperature=20.5, outdoor_temperature=-6.0,
+            upper_floor_temperature=20.75, lower_floor_temperature=20.25,
+        ),
+        "draw": 0.0, "daily": {}, "daily_bias": {}, "alarmed": False,
+        "folds_frozen": 0,      # folds on cycles the freeze must suppress
+        "folds_outside": 0,     # folds on cycles outside every frozen span
+        "folds_after": 0,       # folds after the boost days (resumption)
+        "mode_is_boost": False, "day_index": -1,
+    }
 
-    house_state = ThermalState(
-        room_temperature=20.5, outdoor_temperature=-6.0,
-        upper_floor_temperature=20.75, lower_floor_temperature=20.25,
+
+def cycle(st: dict, i: int, surface: str) -> None:
+    """One 30-minute cycle of the replay, in production order."""
+    import asyncio
+
+    coord, ctx, house = st["coord"], st["ctx"], st["house"]
+    two_zone = st["two_zone"]
+    house_state = st["house_state"]
+    t = START + timedelta(minutes=i * DT_MIN)
+    if t.date() != (t - timedelta(minutes=DT_MIN)).date():
+        st["day_index"] += 1
+    day_index = st["day_index"]
+    dt_mod.freeze(t)
+    h_now = t.hour + t.minute / 60.0
+    outdoor_now, solar_now = weather_now(day_index, h_now)
+    indoor_reading = (
+        house_state.upper_floor_temperature
+        if two_zone else house_state.room_temperature
     )
-    draw = 0.0
-    daily = {}
-    daily_bias = {}
-    alarmed = False
-    folds_frozen = 0        # folds on cycles the freeze must suppress
-    folds_outside = 0       # folds on cycles outside every frozen span
-    folds_after = 0         # folds after the boost days (resumption)
-    mode_is_boost = False
-    n_cycles = int(DAYS * 24 * 60 / DT_MIN)
-    day_index = -1
+    coord.hass.states.set(
+        "sensor.indoor",
+        FakeState(f"{indoor_reading:.3f}", last_updated=t, unit="°C"),
+    )
+    coord.hass.states.set(
+        "sensor.outdoor",
+        FakeState(f"{outdoor_now:.3f}", last_updated=t, unit="°C"),
+    )
+    coord.hass.states.set(
+        "sensor.hp_power",
+        FakeState(f"{st['draw']:.3f}", last_updated=t, unit="kW"),
+    )
+    coord.hass.states.set(
+        "sensor.solar",
+        FakeState(f"{solar_now:.2f}", last_updated=t, unit="W/m²"),
+    )
+    # -- learners replay the elapsed interval ------------------------------
+    n0 = coord._house_heat_loss_samples
+    asyncio.run(coord._update_current_state())
+    if coord._house_heat_loss_samples > n0:
+        if window_frozen(day_index, h_now):
+            st["folds_frozen"] += 1
+        else:
+            st["folds_outside"] += 1
+            if day_index > max(BOOST_DAYS):
+                st["folds_after"] += 1
+    # -- the plan (a real solve on the live model) --------------------------
+    step_idx = int(round(h_now * 60.0 / STEP_MIN))
+    p, t_out, solar, wind, rain = day_arrays(day_index)
+    p2, t_out2, solar2, wind2, rain2 = day_arrays(day_index + 1)
+    result = st["optimizer"].optimize(inputs=solve_inputs(
+        initial_state=ctx._current_state,
+        prices=np.concatenate([p, p2])[step_idx:],
+        outdoor_temps=np.concatenate([t_out, t_out2])[step_idx:],
+        wind_speeds=np.concatenate([wind, wind2])[step_idx:],
+        precipitation=np.concatenate([rain, rain2])[step_idx:],
+        solar_radiation=np.concatenate([solar, solar2])[step_idx:],
+        start_time=t,
+    ))
+    coord._optimization_result = result
+    # -- the boost surface, as its own switch leaves it ---------------------
+    boosting = boosting_at(day_index, h_now)
+    if surface == "mode" and boosting:
+        # What ``_async_update_data``'s MODE_BOOST branch adopts:
+        # nameplate power at the comfort ceiling. The mode select is
+        # driven through ``async_set_mode`` below, so the mode surface's
+        # own settling tail is the real one.
+        boost_mod.adopt_plan(coord, {
+            "power": float(coord._thermal_model.params.max_electrical_power),
+            "setpoint": 23.0,
+            "mode": "boost",
+            "power_normalized": 1.0,
+            "heat_pump_on": True,
+            "displace_value": 0.0,
+            "space_reason": "plan",
+        })
+    else:
+        boost_mod.adopt_plan(coord, {
+            "power": float(result.power_schedule[0]),
+            "setpoint": 23.0,
+            "mode": "auto",
+            "power_normalized": float(result.power_schedule[0]) / 6.0,
+            "heat_pump_on": result.power_schedule[0] > 0.05,
+            "displace_value": 0.0,
+            "space_reason": "plan",
+        })
+    if surface == "channel":
+        # Enter through the real switch path at each window start; the
+        # normal end is the expiry ``apply`` observes, not a cancel.
+        if boosting and h_now in BOOST_STARTS:
+            asyncio.run(boost_mod.set_channel(
+                coord, boost_mod.CHANNEL_SPACE, True, refresh=False))
+    elif surface == "mode":
+        want = "boost" if boosting else "auto"
+        if want != ("boost" if st["mode_is_boost"] else "auto"):
+            asyncio.run(coord.async_set_mode(want, refresh=False))
+            st["mode_is_boost"] = boosting
+    boost_mod.apply(coord, boost_mod.BoostOverlay(
+        max_power=float(coord._thermal_model.params.max_electrical_power),
+        max_temp=float(ctx._opt_config.max_temp),
+        ecl_max=float(coord._ecl110_displace_max),
+    ))
+    # -- actuate: the true house answers the overlaid action ---------------
+    act = coord._current_action
+    want = float(act.get("power", 0.0))
+    setpoint = float(act.get("setpoint", 23.0))
+    # thermostat cap: the pump stops at its setpoint
+    applied = want if house_state.room_temperature < setpoint - 0.1 else 0.0
+    if boosting and house_state.room_temperature >= setpoint - 0.1:
+        # modulating near the ceiling rather than fully off
+        applied = want * 0.35
+    house_state = house.simulate_step(
+        house_state, applied, outdoor_now,
+        wind_speed=2.0, precipitation=0.0,
+        solar_radiation=solar_now, dt_hours=DT_MIN / 60.0,
+        hour_of_day=h_now,
+    )
+    house_state.outdoor_temperature = outdoor_now
+    st["house_state"] = house_state
+    st["draw"] = applied
+    # -- close the loop on the prediction ----------------------------------
+    coord._record_accuracy()
+    # -- the daily heartbeat, once per calendar day ------------------------
+    if t.hour == 3 and t.minute == 0:
+        asyncio.run(coord._async_watch_learning_drift())
+        st["daily"][day_index] = round(coord._house_heat_loss_scale, 4)
+        bias = coord._accuracy.temperature_bias()
+        st["daily_bias"][day_index] = (
+            round(bias, 4) if bias is not None else None)
+        st["alarmed"] = st["alarmed"] or coord._snapshot_ring.alarmed
 
-    for i in range(n_cycles):
+
+def arm_summary(arm: str, st: dict) -> dict:
+    coord = st["coord"]
+    samples = coord._accuracy.samples
+    return {
+        "arm": arm,
+        "daily": st["daily"],
+        "folds_frozen": st["folds_frozen"],
+        "folds_outside": st["folds_outside"],
+        "folds_after": st["folds_after"],
+        "tagged": [s for s in samples if getattr(s, "boost_space", False)],
+        "untagged": [s for s in samples
+                     if not getattr(s, "boost_space", False)],
+        "hh_final": round(coord._house_heat_loss_scale, 4),
+        "daily_bias": st["daily_bias"],
+        "alarmed": st["alarmed"],
+    }
+
+
+def replay(arms: dict, two_zone: bool = False,
+           fork: int | None = None) -> dict:
+    """Each arm's replay summary, ``arms`` mapping its name to its surface.
+
+    The cycles before ``fork`` (default ``fork_cycle()``) are surface-free,
+    so they run once and every arm continues from a deep copy of that one
+    state; ``fork=0`` replays every arm from its own fresh start, which is
+    the unshared replay the shared one must equal
+    (``dev/audit/harnesses/boost_replay_fork_parity.py``)."""
+    import copy
+
+    n_cycles = int(DAYS * 24 * 60 / DT_MIN)
+    fork = fork_cycle() if fork is None else fork
+    shared = start_state(two_zone)
+    for i in range(fork):
+        cycle(shared, i, "none")
+    outs = {}
+    for arm, surface in arms.items():
+        st = copy.deepcopy(shared)
+        for i in range(fork, n_cycles):
+            cycle(st, i, surface)
+        outs[arm] = arm_summary(arm, st)
+    return outs
+
+
+class _OneSolve:
+    """The solve ``check_fork`` drives every arm with: one real production
+    plan, returned for every cycle. The guard asks whether a SURFACE acts
+    before the fork, not what the solver says, so one plan stands for all
+    and the guard costs one solve instead of three prefixes'."""
+
+    def __init__(self, result) -> None:
+        self.result = result
+
+    def optimize(self, *, inputs):
+        return self.result
+
+
+def prefix_trace(st: dict, i: int) -> tuple:
+    """What one cycle left behind that any arm-specific act would move: the
+    action and mode the surfaces write, the overlay's held state, the freeze
+    reason, the learners' fold and the true house's answer."""
+    coord = st["coord"]
+    held = boost_mod.held_for(coord)
+    samples = coord._accuracy.samples
+    return (
+        i, repr(sorted(coord._current_action.items())), coord._mode,
+        repr(sorted(held.until.items())), repr(held.space_settle_until),
+        coord._learning_frozen("sensor.indoor"),
+        coord._house_heat_loss_samples, coord._house_heat_loss_scale,
+        st["house_state"].room_temperature, st["draw"],
+        st["folds_frozen"], st["folds_outside"], st["mode_is_boost"],
+        len(samples), repr(samples[-1].as_dict()) if samples else None,
+    )
+
+
+def check_fork() -> None:
+    """The shared prefix's precondition, asserted rather than assumed.
+
+    Two halves. The arithmetic: ``fork_cycle`` is exactly the first cycle
+    ``boosting_at`` opens. The behaviour: every surface's arm, driven
+    through ``cycle`` itself over the cycles before the fork, leaves the
+    same trace as the surface-free arm -- so an action or input planted on
+    one surface ahead of its window (which the arithmetic cannot see, and
+    which the shared prefix would silently erase) fails here."""
+    R.section("shared pre-boost prefix")
+    fork = fork_cycle()
+    first = None
+    day_index = -1
+    for i in range(int(DAYS * 24 * 60 / DT_MIN)):
         t = START + timedelta(minutes=i * DT_MIN)
         if t.date() != (t - timedelta(minutes=DT_MIN)).date():
             day_index += 1
-        dt_mod.freeze(t)
-        h_now = t.hour + t.minute / 60.0
-        outdoor_now, solar_now = weather_now(day_index, h_now)
-        indoor_reading = (
-            house_state.upper_floor_temperature
-            if two_zone else house_state.room_temperature
+        if boosting_at(day_index, t.hour + t.minute / 60.0):
+            first = i
+            break
+    R.check(
+        "the fork is the first boosting cycle of the schedule",
+        first == fork,
+        f"fork={fork} first boosting cycle={first}",
+    )
+    solved = None
+    traces = {}
+    for surface in ("none", "channel", "mode"):
+        st = start_state()
+        if solved is None:
+            cycle(st, 0, surface)
+            solved = _OneSolve(st["coord"]._optimization_result)
+            st = start_state()
+        st["optimizer"] = solved
+        trace = []
+        for i in range(fork):
+            cycle(st, i, surface)
+            trace.append(prefix_trace(st, i))
+        traces[surface] = trace
+    for surface in ("channel", "mode"):
+        diverged = next((a[0] for a, b in zip(traces["none"], traces[surface])
+                         if a != b), None)
+        R.check(
+            f"the {surface} surface acts on nothing before the fork (its "
+            f"pre-fork trace equals the surface-free arm's, so one prefix "
+            f"stands for it)",
+            diverged is None and len(traces[surface]) == fork,
+            f"first differing cycle {diverged} of {fork}",
         )
-        coord.hass.states.set(
-            "sensor.indoor",
-            FakeState(f"{indoor_reading:.3f}", last_updated=t, unit="°C"),
-        )
-        coord.hass.states.set(
-            "sensor.outdoor",
-            FakeState(f"{outdoor_now:.3f}", last_updated=t, unit="°C"),
-        )
-        coord.hass.states.set(
-            "sensor.hp_power",
-            FakeState(f"{draw:.3f}", last_updated=t, unit="kW"),
-        )
-        coord.hass.states.set(
-            "sensor.solar",
-            FakeState(f"{solar_now:.2f}", last_updated=t, unit="W/m²"),
-        )
-        # -- learners replay the elapsed interval --------------------------
-        n0 = coord._house_heat_loss_samples
-        asyncio.run(coord._update_current_state())
-        folded = coord._house_heat_loss_samples > n0
-        if folded:
-            if window_frozen(day_index, h_now):
-                folds_frozen += 1
-            else:
-                folds_outside += 1
-                if day_index > max(BOOST_DAYS):
-                    folds_after += 1
-        # -- the plan (a real solve on the live model) ----------------------
-        step_idx = int(round(h_now * 60.0 / STEP_MIN))
-        p, t_out, solar, wind, rain = day_arrays(day_index)
-        p2, t_out2, solar2, wind2, rain2 = day_arrays(day_index + 1)
-        result = optimizer.optimize(inputs=solve_inputs(
-            initial_state=ctx._current_state,
-            prices=np.concatenate([p, p2])[step_idx:],
-            outdoor_temps=np.concatenate([t_out, t_out2])[step_idx:],
-            wind_speeds=np.concatenate([wind, wind2])[step_idx:],
-            precipitation=np.concatenate([rain, rain2])[step_idx:],
-            solar_radiation=np.concatenate([solar, solar2])[step_idx:],
-            start_time=t,
-        ))
-        coord._optimization_result = result
-        # -- the boost surface, as its own switch leaves it -----------------
-        boosting = (
-            day_index in BOOST_DAYS
-            and any(s <= h_now < s + boost_mod.BOOST_HOURS for s in BOOST_STARTS)
-        )
-        if surface == "mode" and boosting:
-            # What ``_async_update_data``'s MODE_BOOST branch adopts:
-            # nameplate power at the comfort ceiling. The mode select is
-            # driven through ``async_set_mode`` below, so the mode surface's
-            # own settling tail is the real one.
-            boost_mod.adopt_plan(coord, {
-                "power": float(coord._thermal_model.params.max_electrical_power),
-                "setpoint": 23.0,
-                "mode": "boost",
-                "power_normalized": 1.0,
-                "heat_pump_on": True,
-                "displace_value": 0.0,
-                "space_reason": "plan",
-            })
-        else:
-            boost_mod.adopt_plan(coord, {
-                "power": float(result.power_schedule[0]),
-                "setpoint": 23.0,
-                "mode": "auto",
-                "power_normalized": float(result.power_schedule[0]) / 6.0,
-                "heat_pump_on": result.power_schedule[0] > 0.05,
-                "displace_value": 0.0,
-                "space_reason": "plan",
-            })
-        if surface == "channel":
-            # Enter through the real switch path at each window start; the
-            # normal end is the expiry ``apply`` observes, not a cancel.
-            if boosting and h_now in BOOST_STARTS:
-                asyncio.run(boost_mod.set_channel(
-                    coord, boost_mod.CHANNEL_SPACE, True, refresh=False))
-        elif surface == "mode":
-            want = "boost" if boosting else "auto"
-            if want != ("boost" if mode_is_boost else "auto"):
-                asyncio.run(coord.async_set_mode(want, refresh=False))
-                mode_is_boost = boosting
-        boost_mod.apply(coord, boost_mod.BoostOverlay(
-            max_power=float(coord._thermal_model.params.max_electrical_power),
-            max_temp=float(ctx._opt_config.max_temp),
-            ecl_max=float(coord._ecl110_displace_max),
-        ))
-        # -- actuate: the true house answers the overlaid action -----------
-        act = coord._current_action
-        want = float(act.get("power", 0.0))
-        setpoint = float(act.get("setpoint", 23.0))
-        # thermostat cap: the pump stops at its setpoint
-        applied = want if house_state.room_temperature < setpoint - 0.1 else 0.0
-        if boosting and house_state.room_temperature >= setpoint - 0.1:
-            # modulating near the ceiling rather than fully off
-            applied = want * 0.35
-        house_state = house.simulate_step(
-            house_state, applied, outdoor_now,
-            wind_speed=2.0, precipitation=0.0,
-            solar_radiation=solar_now, dt_hours=DT_MIN / 60.0,
-            hour_of_day=h_now,
-        )
-        house_state.outdoor_temperature = outdoor_now
-        draw = applied
-        # -- close the loop on the prediction ------------------------------
-        coord._record_accuracy()
-        # -- the daily heartbeat, once per calendar day --------------------
-        if t.hour == 3 and t.minute == 0:
-            asyncio.run(coord._async_watch_learning_drift())
-            daily[day_index] = round(coord._house_heat_loss_scale, 4)
-            bias = coord._accuracy.temperature_bias()
-            daily_bias[day_index] = round(bias, 4) if bias is not None else None
-            alarmed = alarmed or coord._snapshot_ring.alarmed
-
-    tagged = [s for s in coord._accuracy.samples
-              if getattr(s, "boost_space", False)]
-    untagged = [s for s in coord._accuracy.samples
-                if not getattr(s, "boost_space", False)]
-    return {
-        "arm": arm,
-        "daily": daily,
-        "folds_frozen": folds_frozen,
-        "folds_outside": folds_outside,
-        "folds_after": folds_after,
-        "tagged": tagged,
-        "untagged": untagged,
-        "hh_final": round(coord._house_heat_loss_scale, 4),
-        "daily_bias": daily_bias,
-        "alarmed": alarmed,
-    }
 
 
 def check_arm(
@@ -613,33 +746,32 @@ def main() -> int:
         "mode_boost": "mode",
     }
     # argv-only: measurements, not the gate
-    followups = {"two_zone_boost", "two_zone_null"}
+    followups = {"two_zone_boost": "channel", "two_zone_null": "none"}
     todo = argv or list(arms)
+    check_fork()
+    outs = replay({a: arms[a] for a in todo if a in arms})
+    outs.update(replay({a: followups[a] for a in todo if a in followups},
+                       two_zone=True))
     channel_out = None
     for arm in todo:
-        if arm == "two_zone_null":
-            out = run(arm, "none", two_zone=True)
-            worst = max(
-                (abs(v) for v in out["daily_bias"].values() if v is not None),
-                default=0.0,
-            )
-            R.section(f"follow-up arm {arm}")
-            R.check(
-                "two-zone null (no boost): the alarm never fires either "
-                f"(worst daily bias {worst:.3f} C against the 0.5 C band) "
-                "-- the boost arms' bias is the zone split's, not boost's",
-                not out["alarmed"],
-                f"worst={worst}",
-            )
-            check_arm(out, boosted=False, converged_near=None, band=None)
-            continue
+        out = outs[arm]
         if arm in followups:
-            out = run(arm, "channel", two_zone=True)
             worst = max(
                 (abs(v) for v in out["daily_bias"].values() if v is not None),
                 default=0.0,
             )
             R.section(f"follow-up arm {arm}")
+            if arm == "two_zone_null":
+                R.check(
+                    "two-zone null (no boost): the alarm never fires either "
+                    f"(worst daily bias {worst:.3f} C against the 0.5 C "
+                    "band) -- the boost arms' bias is the zone split's, not "
+                    "boost's",
+                    not out["alarmed"],
+                    f"worst={worst}",
+                )
+                check_arm(out, boosted=False, converged_near=None, band=None)
+                continue
             R.check(
                 "two-zone: the alarm never fires (worst daily bias "
                 f"{worst:.3f} C against the 0.5 C band, #42)",
@@ -653,7 +785,6 @@ def main() -> int:
             # resumption after -- are checked below.
             check_arm(out, boosted=True, converged_near=None, band=None)
             continue
-        out = run(arm, arms[arm])
         check_arm(out, boosted=arms[arm] != "none")
         if arms[arm] == "channel":
             channel_out = out

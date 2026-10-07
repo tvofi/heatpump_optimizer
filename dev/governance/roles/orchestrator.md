@@ -222,7 +222,7 @@ additionally, because you write the rosters and you decide the merge order.
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
 `brief_lint.mjs` reads the roster and the carry files and never
-`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
+`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a load-bearing
 citation left only in markdown is unchecked, and putting one there is not
 carrying it. The remedies for a symbol that does not exist yet are that rule's;
 a tag citation is no reflex fix: the symbols measured biting here exist at

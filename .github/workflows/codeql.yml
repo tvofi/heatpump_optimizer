@@ -51,7 +51,7 @@ name: CodeQL
 # D11-07): this file's two codeql-action refs were that group's own
 # forward-carry from #1034, and the pins landed with it. A later deliberate
 # bump is a one-line diff a reviewer can read; no lane sweeps the pins for
-# staleness, which is owed work recorded in docs/HANDOVER.md.
+# staleness, which is owed work recorded in dev/programme/HANDOVER.md.
 
 on:
   push:
