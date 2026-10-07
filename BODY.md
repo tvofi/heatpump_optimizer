@@ -10,13 +10,23 @@ This is a root-cause seat's countermeasure, state (c). The analysis, the class s
 
 ## Head
 
-00834c662a8b135cdba893bcc349f00966b80f23 is the head. It is a fast-forward of 7e197a6f, the round-1 review head, which added the delivery row. The commits are:
+e62b8b63c2d6545ce598d78ff3d1672772ef945f is the head. It merges `origin/main` 38c03d94 into 00834c66, and 00834c66 is a fast-forward of 7e197a6f, the round-1 review head, which added the delivery row. The commits are:
 
 - acf186b7 holds the code.
 - c799f329 adds the RCA document and the bugclasses entry.
 - 00834c66 pins `timing_check`'s default environment read, the review's finding 1.
+- e62b8b63 is the merge.
+  - In `tools/audit/bugclasses.json` it keeps every `_rca` entry from main, including R9-RCA-1985 from #2013. On top of those it re-applies only this branch's R9-RCA-stress-recording entry and that entry's citation in `I2.rca`.
+  - `tests/derive_closures.sh` auto-merged main's `rec tests/block_duty.py` line.
 
-Merge base `origin/main` 59b5ac6e. The figures from the earlier rounds were measured at c799f329. 00834c66 changes only the `tests/stress.py` pin, and its figures are under Mutation proof.
+Merge base `origin/main` 38c03d94. Re-run at e62b8b63, one after another:
+
+- `python3 tests/closure.py selftest`: 36 of 36.
+- `pin_mutants.py`: the head passes 2 of 2, and T2, T3 and T4 are killed.
+- `python3 tests/structure.py`: passed.
+- `python3 tests/closure.py no-copies`: clean.
+- `python3 tools/audit/fold_ledger.py check`: 0 violations.
+- `python3 tools/audit/fold_ledger.py --self-test`: exit 0.
 
 ## Mutation proof
 
@@ -42,7 +52,7 @@ Merge base `origin/main` 59b5ac6e. The figures from the earlier rounds were meas
 ## Figures
 
 - `python3 tests/closure.py selftest`: ALL 36 closure shrink pins PASSED.
-- `python3 tools/audit/fold_ledger.py check`: 0 violations, 97 rca entries.
+- `python3 tools/audit/fold_ledger.py check`: 0 violations, 98 rca entries at e62b8b63.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D`: MODE: FULL, because `tests/closure.py` changes the gate itself. The full suite is left to CI.
 - Class frequency, from `gh api repos/tvofi/heatpump_optimizer/actions/workflows/tests.yml/runs` over 700 `pull_request` runs since 2026-09-27, with 0 page failures:
