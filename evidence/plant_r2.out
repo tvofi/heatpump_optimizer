@@ -1,0 +1,43 @@
+--- A. round-1 plant: branch only comments tests/wood_advisor.py, main carries the red
+CI PREDICT: no closures or fast red predicted against 76ed3a4b3b91 (a data-file read is not seen)
+rc=0
+--- B. branch only comments tests/derive_closures.sh, main carries the red
+PREDICT closures NO RECORDING tests/zz_main_unrecorded_check.py: selectable, and no lane of tests/derive_closures.sh records it
+CI PREDICT: 1 predicted red(s) on closures against 76ed3a4b3b91 -- repair before the handoff; who repairs which is ci-autofix.md's
+rc=1
+--- C. control: the branch's own new unrecorded script still fires
+PREDICT closures NO RECORDING tests/zz_own_check.py: selectable, and no lane of tests/derive_closures.sh records it
+CI PREDICT: 1 predicted red(s) on closures against 76ed3a4b3b91 -- repair before the handoff; who repairs which is ci-autofix.md's
+rc=1
+--- D. mutation arm: a guard added, rc must be 0 (warn)
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/away.py:576 CMP_BOUND: if x > 3:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/away.py:576 GUARD_OFF: if x > 3:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/away.py:578 RETURN_DEL: return 0
+CI PREDICT: 3 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures or fast red predicted against 76ed3a4b3b91 (a data-file read is not seen)
+rc=0
+site keys:
+custom_components/heatpump_optimizer/away.py:576 CMP_BOUND
+custom_components/heatpump_optimizer/away.py:576 GUARD_OFF
+custom_components/heatpump_optimizer/away.py:578 RETURN_DEL
+--- E1. section lists all keys
+`## Unpinned sites` disposes of all 3 site(s) step 6d listed
+rc=0
+--- E2. heading with a count suffix
+3 unpinned site(s) the diff adds and no `## Unpinned sites` section -- give each its key and disposition
+rc=1
+--- E3. lower-case heading
+3 unpinned site(s) the diff adds and no `## Unpinned sites` section -- give each its key and disposition
+rc=1
+--- E4. keys in backticks
+`## Unpinned sites` disposes of all 3 site(s) step 6d listed
+rc=0
+--- E5. a 1-line shift after the body was written (merge from main above the site)
+rc=0
+`## Unpinned sites` omits: custom_components/heatpump_optimizer/away.py:577 CMP_BOUND; custom_components/heatpump_optimizer/away.py:577 GUARD_OFF; custom_components/heatpump_optimizer/away.py:579 RETURN_DEL
+rc=1
+--- E6. prefix collision: key for line 1 vs body naming line 10..19 only (substring?)
+`## Unpinned sites` omits: custom_components/heatpump_optimizer/away.py:1 CONST
+rc=1
+`## Unpinned sites` disposes of all 1 site(s) step 6d listed
+rc=0

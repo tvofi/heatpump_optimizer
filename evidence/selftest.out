@@ -150,7 +150,16 @@
   ok   6d predicts INERT READS for a new harness beside the ones a glob-reading script lists
   ok   6d predicts NO RECORDING for a selectable script no derive lane records
   ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
-  ok   and the step refuses on a prediction
+  ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
+  ok   6d charges no branch with an unrecorded script main already carries (null control)
+  ok   and so the unrelated branch passes 6d
+  ok   6d writes the three planted site keys for step 7d
+  ok   7d refuses a body with no ## Unpinned sites when sites are owed
+  ok   7d refuses a section that omits a listed site
+  ok   and names the omitted site
+  ok   7d passes a section naming every listed site (null control)
+  ok   7d reads the keys under ## Unpinned sites only, not anywhere in the body
+  ok   7d owes nothing when the diff adds no site
   ok   the pin reader finds codeowners_gap.py in a pinned job that grades main
   ok   this script and these workflows pass the verdict (null control)
   ok   a pin that never grades main is not counted, and is not a problem (null control)
@@ -209,5 +218,5 @@ AssertionError: queue-base
   ok   the derived inputs name tools/policy/counts.mjs
   ok   the derived inputs name tools/policy/render_md.mjs
 
-201 passed, 0 failed
-bash tools/pr/prepr.sh --self-test  38.68s user 18.55s system 75% cpu 1:15.55 total
+210 passed, 0 failed
+bash tools/pr/prepr.sh --self-test  49.45s user 24.66s system 68% cpu 1:47.98 total
