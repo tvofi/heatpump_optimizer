@@ -579,6 +579,18 @@ INERT_EXCEPT = (
     "tools/policy/brief_lint.mjs",
     "tools/policy/counts.mjs",
     "tools/policy/render_md.mjs",
+    # tests/entities.py opens these. Left on the tools/policy/ prefix they
+    # are declared unread while being read: the recording files them under
+    # inert_reads and also in the closure, and merge refuses that pair.
+    # An edit selects entities.py, the policy_lint.mjs route.
+    "tools/policy/agreement.mjs",
+    "tools/policy/check-wave-script.mjs",
+    "tools/policy/field_coverage.mjs",
+    "tools/policy/figure_census.mjs",
+    "tools/policy/fragments_sync.mjs",
+    "tools/policy/friction_issues.mjs",
+    "tools/policy/policy_lint_mutants.mjs",
+    "tools/policy/rules_sync.mjs",
     "tools/policy/vendor/markdown-it.min.js",
     "tools/policy/vendor/markdown-it.LICENSE",
     # #1240 (D13-03): tests/entities.py reads the wave script itself to

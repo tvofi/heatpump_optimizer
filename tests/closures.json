@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 167.2,
+   "seconds": 192.9,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -688,12 +688,20 @@
    "tools/audit/seat/record_row.py",
    "tools/audit/seat/roster_lib.py",
    "tools/merge/ledger_merge.py",
+   "tools/policy/agreement.mjs",
    "tools/policy/brief_lint.mjs",
+   "tools/policy/check-wave-script.mjs",
    "tools/policy/counts.mjs",
+   "tools/policy/field_coverage.mjs",
+   "tools/policy/figure_census.mjs",
    "tools/policy/figure_lint.mjs",
    "tools/policy/fixtures/required-contexts.json",
+   "tools/policy/fragments_sync.mjs",
+   "tools/policy/friction_issues.mjs",
    "tools/policy/policy_lint.mjs",
+   "tools/policy/policy_lint_mutants.mjs",
    "tools/policy/render_md.mjs",
+   "tools/policy/rules_sync.mjs",
    "tools/policy/vendor/markdown-it.LICENSE",
    "tools/policy/vendor/markdown-it.min.js",
    "tools/pr/preflight.sh",
@@ -2940,11 +2948,19 @@
    "docs/site/docs.css"
   ],
   "tests/entities.py": [
-   "tools/policy/figure_lint.mjs",
    "LICENSE",
    "tools/audit/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/record_row.py",
-   "tools/audit/seat/roster_lib.py"
+   "tools/audit/seat/roster_lib.py",
+   "tools/policy/agreement.mjs",
+   "tools/policy/check-wave-script.mjs",
+   "tools/policy/field_coverage.mjs",
+   "tools/policy/figure_census.mjs",
+   "tools/policy/figure_lint.mjs",
+   "tools/policy/fragments_sync.mjs",
+   "tools/policy/friction_issues.mjs",
+   "tools/policy/policy_lint_mutants.mjs",
+   "tools/policy/rules_sync.mjs"
   ]
  }
 }
