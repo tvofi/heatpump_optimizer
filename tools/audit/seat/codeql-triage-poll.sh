@@ -1,6 +1,6 @@
 #!/bin/bash
 # Dismiss the 3 #1769 evidence-alerts once GitHub attaches them, re-run CodeQL, report.
-R=tvofi/heatpump_optimizer; PATHS=("tools/audit/round8/evidence/D11/s2_release_gate.py" "tools/audit/round9/D11/s1/privileged_pr_code.py" "tools/audit/round9/D8/leads/l2_d8_leads.py")
+R=tvofi/heatpump_optimizer; PATHS=("dev/audit/rounds/round8/evidence/D11/s2_release_gate.py" "dev/audit/rounds/round9/D11/s1/privileged_pr_code.py" "dev/audit/rounds/round9/D8/leads/l2_d8_leads.py")
 for i in $(seq 1 36); do
   sleep 600
   FOUND=$(gh api "repos/$R/code-scanning/alerts?state=open&per_page=100" --jq '[.[] | select([.most_recent_instance.location.path] | inside(["'"${PATHS[0]}"'","'"${PATHS[1]}"'","'"${PATHS[2]}"'"]))] | map("\(.number) \(.most_recent_instance.location.path)") | .[]' 2>/dev/null)

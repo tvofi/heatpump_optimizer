@@ -37,6 +37,9 @@
       "diagnose_last_interval": {
         "default": "mdi:stethoscope"
       },
+      "learning_finalize_debug": {
+        "default": "mdi:bug-check"
+      },
       "learning_reset_comfort_weight": {
         "default": "mdi:restore"
       },
@@ -306,6 +309,9 @@
     },
     "clear_manual_plan": {
       "service": "mdi:calendar-remove"
+    },
+    "debug_collect": {
+      "service": "mdi:bug-check"
     },
     "diagnose_interval": {
       "service": "mdi:stethoscope"

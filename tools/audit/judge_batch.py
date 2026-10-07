@@ -12,7 +12,7 @@ script cannot run is `by-hand`, never a pass.
     python3 tools/audit/judge_batch.py --input JUDGE-INPUT.json \\
         --label judge-r9 --out-json rows.json --out-md rows.md [--shard 1/2]
 
-INPUT is a JSON list of findings in `tools/audit/finding.schema.json`'s shape
+INPUT is a JSON list of findings in `dev/audit/config/finding.schema.json`'s shape
 (or entries carrying one under `finding`, as round 8's JUDGE-INPUT.json does).
 Per finding it reads the harness at `evidence.harness_path` and takes, from the
 harness header as `tests/harness_headers.py` delimits it (`header_lines`), any
