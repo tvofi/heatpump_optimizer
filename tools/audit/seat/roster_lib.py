@@ -128,7 +128,7 @@ def one_line_brief(group: dict, limit: int = 160) -> str:
 # ------------------------------------------------- the branch-to-group lookup
 #
 # A merged pull request's head branch answers for the roster group its work
-# rode, so the record beat can suffix its `docs/delivery/<N>.md` row with the
+# rode, so the record beat can suffix its `dev/programme/delivery/<N>.md` row with the
 # group id. This is the ONE derivation of that mapping; the record-autofix
 # generator (record_row.py) imports it rather than re-deriving it (#1948's
 # product carrying its own consumer).
