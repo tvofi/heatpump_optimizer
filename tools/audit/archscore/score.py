@@ -1,7 +1,7 @@
 """The architecture score: a Pareto gate and a weighted log-ratio over the score vector.
 
-Report-only. The score is a review trigger that asks for a stated reason, never a target a
-seat is rewarded for moving, and a gain that appears only without the counters did not happen
+The score is a review trigger that asks for a stated reason, never a target a
+seat is rewarded for moving. ``gate.py`` is the required check that reads it (R9-EG-A4), and a gain that appears only without the counters did not happen
 (``counters.py``).
 
 * Gate: a change is admissible only if no SCORE metric and no gate-only tripwire rises. Every

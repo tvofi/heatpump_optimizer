@@ -457,8 +457,8 @@ lane_units() {
   # structural change puts this lane in scope.
   run "$PYTHON" tests/structure.py
   # The architecture score's own check (R9-EG-A1): its calibration re-run, and
-  # the red-team games that must stay closed. Report-only instrument, never a
-  # gate on other pull requests; this guards the instrument. Scoped to the
+  # the red-team games that must stay closed. The required check `arch-score`
+  # grades pull requests with the instrument (R9-EG-A4); this guards the instrument. Scoped to the
   # score's own files and structure.py; it measures a pinned tree, so the
   # integration does not select it. The second script reads today's tree.
   run "$PYTHON" tests/arch_score.py

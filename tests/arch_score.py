@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """The architecture score's own check (R9-EG-A1): its calibration, and the games that must stay closed.
 
-The score (tools/audit/archscore/) is a report and a review trigger, never a gate on other pull
-requests, so this is a regression test on the INSTRUMENT. It re-runs the calibration and fails when a
+The score (tools/audit/archscore/) is a review trigger; the required check `arch-score` grades other
+pull requests with it (gate.py, R9-EG-A4), and this script is the regression test on the INSTRUMENT. It re-runs the calibration and fails when a
 metric change silently moves a verdict or re-opens a game:
 
-  * every planted case (58 scripted edits of the pinned tree) and every red-team attempt is measured
+  * every planted case (a scripted edit of the pinned tree) and every red-team attempt is measured
     LIVE; the 45 corpus commits use their stored vectors (they are history). Each case's verdict and
     admissibility must equal tools/audit/archscore/calibration/expected.json, misses included -- a case
     the score gets wrong stays recorded as wrong, and one that turns, even to the right verdict, fails
@@ -16,7 +16,9 @@ metric change silently moves a verdict or re-opens a game:
     records under ``_sensitivity``);
   * the weights are the frozen file: tools/audit/archscore/weights.json hashes to FROZEN_WEIGHTS below.
     A weight change is a policy change, so it is a change to this file as well, which is code-owned;
-  * the check can fail: the same comparison on a vector with one metric nudged does not read as before.
+  * the check can fail: the same comparison on a vector with one metric nudged does not read as before;
+  * the required check's rule (archscore/gate.py, R9-EG-A4): an admissible change passes, a rise passes
+    only explained under ``## Architecture score``, one line per metric.
 
 The corpus and the planted verdicts are what the pre-study recorded (PRE-STUDY section 6 on
 handoff/audit-r9-alt), re-measured with the metrics tests/structure.py now defines; the changes that made
@@ -46,7 +48,7 @@ sys.path.insert(0, str(ROOT / "tools" / "audit"))
 
 from harness import Results  # noqa: E402
 
-from archscore import calibrate, score, vector  # noqa: E402
+from archscore import calibrate, gate, score, vector  # noqa: E402
 
 FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978"
 
@@ -91,6 +93,10 @@ def main() -> int:
             f"hash {score.weights_hash()}")
     recorded = (calibrate.HERE / "weights.sha256").read_text().split()[0]
     R.check("weights.sha256 names the frozen file", recorded == FROZEN_WEIGHTS, recorded)
+
+    # The required check's decision rule (R9-EG-A4): what passes, and what an explanation must carry.
+    for name, ok in gate.self_test():
+        R.check(f"arch-score gate: {name}", ok)
 
     jobs = min(4, os.cpu_count() or 1)
     collected = calibrate.collect(stored, jobs)

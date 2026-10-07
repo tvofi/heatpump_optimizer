@@ -1,0 +1,84 @@
+# The architecture score as a required check (R9-EG-A4, #1774; tvofi's
+# decision R3-6, 2026-09-29). A pull request passes when the score, with the
+# counters, reads delta-S >= 0 and no gate metric rises from the merge base to
+# the head, or when its body explains every rise under `## Architecture score`
+# (tools/audit/archscore/gate.py states the rule; the fix reviewer judges the
+# reason). It is a review trigger, never a target (tools/audit/archscore/ABOUT.md).
+#
+# WHY ITS OWN FILE. tests.yml is the suite; this check reads the body, so it
+# re-runs on `edited` (a body edit is the answer to a red run), and an event a
+# workflow lists starts every job in it. One job, no `if:`, so no run this
+# file starts is a skipped one (#1514's shape, as budget-raise-gate.yml).
+#
+# The check's program is pinned: tools/audit/archscore/ and tests/structure.py
+# (the definitions the vector reads) are restored from the base before it runs,
+# under `python3 -I`, so a pull request cannot edit the check that grades it.
+# A change to the instrument is graded by the base's copy.
+
+name: Architecture score
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  arch-score:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # fetch-depth 0: the merge base and the head are archived out of the clone.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$PINNED"
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            'tools/audit/archscore/' \
+            'tests/structure.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+
+      # A queue entry carries no pull request: named from the queue branch and
+      # its second parent, as budget-raise-gate.yml does, and the API must
+      # report the same head.
+      - name: Name the pull request and read its body
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          QUEUE_REF: ${{ github.event.merge_group.head_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          NUMBER="$PR_NUMBER"
+          if [ "$EVENT" = "merge_group" ]; then
+            NUMBER=$(printf '%s' "$QUEUE_REF" | jq -Rr 'capture("/pr-(?<n>[0-9]+)-[0-9a-f]{40}$").n')
+            test "$(gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.head.sha')" = "$(git rev-parse 'HEAD^2^{commit}')"
+          fi
+          gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.body // ""' > "$RUNNER_TEMP/body.md"
+          echo "pull request $NUMBER, body $(wc -c < "$RUNNER_TEMP/body.md") bytes"
+
+      - name: Score the change, and refuse an unexplained rise
+        env:
+          PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/archscore/gate.py --self-test
+          python3 -I tools/audit/archscore/gate.py \
+            --base "$PR_BASE" --head "$PR_HEAD" --body "$RUNNER_TEMP/body.md"
