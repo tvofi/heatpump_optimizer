@@ -1,0 +1,18 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/tests/entities.py", line 105, in <module>
+    import heatpump_optimizer as integration
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/__init__.py", line 35, in <module>
+    from .entry_config import EntryConfig
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 102, in <module>
+    class EntryConfig(Mapping[str, Any]):
+    ...<165 lines>...
+            return len(self.raw)
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 218, in EntryConfig
+    day_end_hour_weekend: int | None = _key(None, _whole)
+                                       ~~~~^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 94, in _key
+    return field(default=parse(default, default), metadata={"parse": parse})
+                         ~~~~~^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-2025/custom_components/heatpump_optimizer/entry_config.py", line 59, in _whole
+    return int(value)
+TypeError: int() argument must be a string, a bytes-like object or a real number, not 'NoneType'

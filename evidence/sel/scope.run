@@ -1,0 +1,5 @@
+tests/arch_score_head.py
+tests/deployment_shape.py
+tests/env_drift.py
+tests/golden.py
+tests/guard_pins.py
