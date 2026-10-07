@@ -25,7 +25,21 @@ import os from 'node:os'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
-const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../..')
+async function repoRoot(start) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  let dir = path.resolve(start);
+  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("no repository root above " + start);
+    dir = parent;
+  }
+}
+
+
+const ROOT = await repoRoot(path.dirname(new URL(import.meta.url).pathname))
 const src = fs.readFileSync(path.join(ROOT, '.claude/workflows/friction_issues.mjs'), 'utf8')
 const entry = 'run(argv)'
 if (!src.includes(entry)) {

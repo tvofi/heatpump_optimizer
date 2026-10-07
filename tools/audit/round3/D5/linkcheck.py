@@ -32,6 +32,18 @@ NOTE: this tree is a git-archive export with docs/audit-*.md, docs/backlog.md
 PERTURBATION: append a line `[x](docs/definitely-not-here.md)` to README.md ->
       broken_links_total must go UP by exactly 1.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -42,7 +54,7 @@ import sys
 import time
 from pathlib import Path
 
-ROOT = Path(os.environ.get("D5_ROOT") or Path(__file__).resolve().parents[4]).resolve()
+ROOT = Path(os.environ["D5_ROOT"]).resolve() if os.environ.get("D5_ROOT") else repo_root(__file__)
 EXCISED = ("RELEASE_NOTES.md", "docs/backlog.md", "docs/audit-")
 
 # inline links [text](target) — target up to first space (title) or close paren

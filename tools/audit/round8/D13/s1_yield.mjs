@@ -39,7 +39,21 @@ import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
+async function repoRoot(start) {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  let dir = path.resolve(start);
+  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
+  for (;;) {
+    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("no repository root above " + start);
+    dir = parent;
+  }
+}
+
+
+const ROOT = await repoRoot(path.dirname(fileURLToPath(import.meta.url)))
 const PL = await import(path.join(ROOT, '.claude/workflows/policy_lint.mjs'))
 
 const argv = process.argv.slice(2)

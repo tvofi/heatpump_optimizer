@@ -42,6 +42,18 @@ starved_share are provisional (re-taken in the quiet window).
 Machine: Linux container, 4 cores, python 3.14 (box B9).
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import os
 
@@ -73,7 +85,7 @@ ap.add_argument("--config", default="fixture", choices=("fixture", "rich"),
                 help="rich: space heating on (mode select) plus coord_all_features' options")
 ARGS = ap.parse_args()
 HERE = Path(__file__).resolve().parent
-FIXTURE = HERE.parents[4] / "tests/replay/synthetic-dhw-only.json"
+FIXTURE = repo_root(HERE) / "tests/replay/synthetic-dhw-only.json"
 sys.path[:0] = [str(Path("tests/hastub").resolve()), str(Path("tests").resolve()),
                 str(Path("custom_components").resolve())]
 

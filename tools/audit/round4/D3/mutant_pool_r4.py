@@ -17,6 +17,18 @@ This file generates candidates only; it executes no production code and has no
 timing RESULT, so it carries no thread pin.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import argparse
 import ast
@@ -24,7 +36,7 @@ import json
 import random
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 PKG = "custom_components/heatpump_optimizer/"
 
 # Consequence weights. The scale is COMMON.md's severity ladder read forwards:
