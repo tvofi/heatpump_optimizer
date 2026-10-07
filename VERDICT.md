@@ -1,23 +1,33 @@
-Fix review: blocked b71f454fee369934bfdf2d0c5438ccbed1277743 metric-gamed: mutation: pinned lines restored and new comparisons span lines so the changed pool is empty; env-matrix runs the base blob
+Fix review: blocked eb0a8bf97bdbcea0b2b289077b2cc9e9a22e5553 harness: class-rule-missing #1955 states (a)-(d) and the body names no enumeration command
 
-bus-nonce: c3c62c6694f6bce456c8415f9d90f173
+bus-nonce: ed8ed3cc856ca5eb3fcda5475449605e
 
-Round 2. Measured `b71f454fee369934bfdf2d0c5438ccbed1277743`, one commit past `af7cf417c9e8ff7a23e0bd82bd4ca32fc5814cbf`. Live pull-request head at posting is that SHA. The body ## Head names it. Merge-base and `origin/main` are `6001b09a557259f37319b400d219cf83e02c563f`. `git diff` of `tools/audit/briefs/` from the merge-base to `origin/main` is empty. `git merge-tree --write-tree origin/main b71f454fee369934bfdf2d0c5438ccbed1277743` exited 0 with empty stderr. Three-dot diff of `VERSION`, the manifest and `RELEASE_NOTES.md` is empty.
+Round 3. Measured `eb0a8bf97bdbcea0b2b289077b2cc9e9a22e5553`. Live pull-request head at posting is that SHA. The body ## Head names it. Merge-base and `origin/main` are `1fa713f73740e99a5762019f574ccd6afa45dca2`. `git diff` of `tools/audit/briefs/` from the merge-base to `origin/main` is empty. `git merge-tree --write-tree origin/main eb0a8bf97bdbcea0b2b289077b2cc9e9a22e5553` exited 0 with empty stderr. Three-dot diff of `VERSION`, the manifest and `RELEASE_NOTES.md` is empty.
 
-## What the three claims measure
+## The previous block
 
-`typing` on this head is success (job 112561792109, run 37549638171). `duty_floor_kw` is a field of `OptimizationResult` and is passed into the constructor. That claim holds.
+`tests/mutation_table.py` inventory at this head: `completeness_problems` length 0, `added_unpinned` length 0, unpinned 4694 of 5637 against 4695 at `1fa713f7`. `changed_lines` against `origin/main` draws 6 sites:
 
-`mutation` job 112561792227 printed `the ledger agrees with the deterministic inventory`, then `no mutant is both generatable and drivable`, then `MUTATION TABLE PASSED (empty pool)` over 5 production files. The six pins match again because the source text was put back: `if boost.space_learning_frozen(self):` / `return boost.FREEZE_REASON`, `FLOW_HEAT_C = 55.0`, the hold line `min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)`, `planned_draw_runs(space[i])` and `planned_draw_runs(dhw[i])`, and `return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW`. The new floor test is a multi-line `all((...))` under the comment that comparisons span lines so they are not one-line bound sites and the return must stay that text. `tests/entities.py` states a comparison spanning more than one line yields no `CMP_BOUND` site. `tests/mutation_table.py` `candidates` builds single-line mutants, and a `Return` that is the sole statement of its body is skipped. `else: return _tail_freeze(self)` is that sole statement. `step_duty` keeps the pinned call by `setattr(planned_draw_runs, "modulation_floor", ...)` and a wrapper that clears it. `planned_draw_runs(0.3)` is `True` with the attribute unset and `False` after it is set to 3. The empty pool is that split. The new behavior is not a site the table drove.
+- `coordinator.py:6525` RETURN_DEL `return _tail_freeze(self)`
+- `pump_arbiter.py:480` two CLAMP_DROP sites on `min(max(curve, FLOW_HOLD_C), ceiling)`, one anchor `fa7f3970`
+- `thermal_model.py:1213` GUARD_OFF `if floor is not None:`
+- `thermal_model.py:1214` CMP_BOUND `below_floor = total < floor`
+- `thermal_model.py:1215` GUARD_OFF `if below_floor:`
 
-Restoring the hold line drops the configured ceiling on the fallback. `_flow_target` with `flow_heat_c` 48 and a curve of 60 returns 55.0 when duty is `None`, and 48.0 on a full-power space step. `FLOW_HEAT_C` is the literal 55.0.
+The mutation job on this head was still pending, so the lane had not driven them. Applying each site's own replacement:
 
-`env-matrix` job 112561792593, run 37549638345, still fails `2 declared outcome(s) held, 14 did not`. Shallow and since-ref print `Cannot find module '.../.claude/workflows/policy_lint.mjs'`. The head blob of `tools/policy/policy_lint_envmatrix.mjs` is `d99577da` and spawns `tools/policy/policy_lint.mjs`, `tools/policy/policy_lint_mutants.mjs` and `tools/policy/check-wave-script.mjs`. The base blob is `40bac880` and still spawns `.claude/workflows/policy_lint.mjs`. `.github/workflows/governance.yml` is unchanged against `origin/main`. The job's restore step checks out `tools/policy/*.mjs` from `PINNED` (the base SHA), commits that, then runs `tools/policy/policy_lint_envmatrix.mjs`. `git diff --name-only` of that pathspec at `origin/main` lists `policy_lint_envmatrix.mjs`. The job executes the base blob. The path edit in the head does not run.
+- outer clamp, `hold = ... (max(curve, FLOW_HOLD_C))`: `_flow_target` with `flow_heat_c` 48 and a curve of 60 returns 60.0
+- inner clamp, `min((curve), ceiling)`: a curve of 20 returns 25.0, not the pin's 20.0; `_bounded` lifts it to the gate. 25.0 is not `FLOW_HOLD_C` 35.0
+- either floor guard replaced with `if False:`: `planned_draw_runs(0.3, modulation_floor=3.0)` is `True`
+- bound `<=`: `planned_draw_runs(3.0, modulation_floor=3.0)` is `False`
+- `return _tail_freeze(self)` replaced with `pass`: `_learning_frozen` on switch plus setpoint is `None`
 
-## The predicates at this head
+At the unmodified head those reads are 48.0, 35.0, `False`, `True`, and `unmetered_power`. `planned_draw_runs(0.3)` with no floor is `True`. The changed-line draw is not an empty pool.
 
-`project_planned_levels` on `[0, 0.3, 0.5, 3, 14, 20]` at 3 and 14 is `[0.0, 3.0, 3.0, 3.0, 14.0, 14.0]`. Flow at full power, at `p_min`, at 0, and at 8.5 is 55.0, 35.0, 55.0, 45.0. `learner_unmetered` is `unmetered_power` on switch plus setpoint, `None` when power and frequency are added, `None` with `clamp_planned_levels: false`. `OptimizationConfig().clamp_planned_levels` is `False`. `step_duty` on 0.15 kW space plus 2.0 kW hot water, then 1.5 kW space, is `both` then `space` with no floor and `idle` then `idle` with `duty_floor_kw` 3, and the attribute is `None` after the call.
+`_flow_target` with `flow_heat_c` 48 and a curve of 60, duty `None`, returns 48.0, not 55.0.
 
-## Still unanswered by a rule
+`tools/policy/policy_lint_envmatrix.mjs` at this head and at `origin/main` is blob `d1f64ecac027143488b756af9fcec4ed52fa0e68`, not `40bac880`. `governance.yml` is unchanged against `origin/main`. The env-matrix job on this head succeeded. The body says the job checks the script out from the base and that this update does not edit the file that job replaces. It does not claim the job runs a head script.
 
-## Figures is `none`. #1955 states (a), (b), (c) and (d) and the body names no enumeration command. `pr-contract` on this head is success (job 112562375192); ## Red checks names `typing`, `mutation`, `env-matrix`, `delivery-status`, `nightly-status` and `fast (3.14)`. `delivery-status` and `nightly-status` are still failure and grade main. `fast (3.14)` was still pending at this posting.
+## What still blocks
+
+#1955 states (a), (b), (c) and (d). ## Figures is `none`. The body names no command that enumerates the seams. `pr-contract` on this head is success. `delivery-status` and `nightly-status` are still failure and grade main. `fast (3.14)` and `mutation` were still pending at this posting.
