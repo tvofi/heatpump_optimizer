@@ -29,7 +29,7 @@ work, which is the null control proper. That is what CI did to
 shoulder/tariff+cycle at 2.28x, and the gate must NOT fail on it.
 
 Command (from the repository root, on an idle box, holding /tmp/hpo-gate.lock):
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/h8_single_scenario.py
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/h8_single_scenario.py
 
 Expected: at the merge base d7fa97f the injected 2x trips 0 rules of any
 kind (that is #346). At the head it trips exactly one, the solver-work rule,

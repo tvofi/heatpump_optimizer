@@ -40,7 +40,7 @@ per BLAS kernel, on the exact scenario each check uses.
 
 Run from the repository root, once per kernel:
 
-    PYTHONPATH=tests/hastub python3 tools/audit/harnesses/k1725_blas_kernel_gap.py
+    PYTHONPATH=tests/hastub python3 dev/audit/harnesses/k1725_blas_kernel_gap.py
 
 Select the kernel with OPENBLAS_CORETYPE (Haswell, Sandybridge, ...; SkylakeX
 SIGILLs under Rosetta -- no AVX-512). The AVX-512/CI-class data point comes

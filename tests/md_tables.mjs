@@ -1,6 +1,6 @@
 // Round 9 F8.2 add-on (from the F8.1 review; class N-markdown, #1674): a
 // permanent CI gate for the D5-s1 finder's GFM-table-integrity harness
-// (tools/audit/round9/D5/s1/md_tables.mjs, evidence commit 79aa98ec).
+// (dev/audit/rounds/round9/D5/s1/md_tables.mjs, evidence commit 79aa98ec).
 //
 // Metric (one line, unchanged from the finder): source lines in README.md +
 // docs/{architecture,automations,configuration,dashboard-card,ecl110,
@@ -12,7 +12,7 @@
 // what the renderer delivers, never the raw source shape alone -- the same
 // distinction render_md.mjs (#682) draws for the other reader docs.
 //
-// Unlike the finder's copy under tools/audit/round9/ (evidence-only, not in
+// Unlike the finder's copy under dev/audit/rounds/round9/ (evidence-only, not in
 // main's tree, and needing a throwaway `npm install markdown-it@14.1.0`),
 // this gate reaches the SAME vendored 14.1.0 build already checked in for
 // render_md.mjs, so it runs offline in the scoped gate and in CI with no

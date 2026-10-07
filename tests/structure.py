@@ -317,7 +317,7 @@ def is_property_getter(node: ast.AST) -> bool:
 
     No longer a boundary of the member census: a property is a member like any
     other (D7-s3-02). Kept as the predicate the round-9 D7 finder harnesses
-    patch (``tools/audit/round9/D7/s3``), so they still run at both ends.
+    patch (``dev/audit/rounds/round9/D7/s3``), so they still run at both ends.
     """
     return any(
         (isinstance(d, ast.Name) and d.id == "property")

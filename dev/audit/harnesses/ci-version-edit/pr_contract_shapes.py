@@ -2,7 +2,7 @@
 """Finder's harness: does pr-contract refuse a PR diff that edits a stamp-owned item?
 
 Usage (from a checkout of this repository):
-  python3 tools/audit/ci-version-edit/pr_contract_shapes.py <commit-ish>
+  python3 dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py <commit-ish>
 
 Builds a standalone scratch repository whose main is the measured commit, then
 constructs one pull-request head per shape and runs, in a checkout of that

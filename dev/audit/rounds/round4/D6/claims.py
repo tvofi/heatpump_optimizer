@@ -7,8 +7,8 @@ production code, not by reading it.  The headline numbers are the counts of
 each verdict.
 
 RUN (from the repository root, never elsewhere):
-    PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py
-    PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py --links   # + HEAD requests
+    PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py
+    PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py --links   # + HEAD requests
 
 ROOT RULE: the working directory.  ``ROOT = pathlib.Path(".")``.  This file
 never resolves anything from ``__file__`` -- see tools/audit/README.md, "A
@@ -173,7 +173,7 @@ import sys
 import time
 
 ROOT = pathlib.Path(".")          # the working directory, deliberately
-OUT = ROOT / "tools" / "audit" / "round4" / "D6"
+OUT = ROOT / "dev" / "audit" / "rounds" / "round4" / "D6"
 PKG = ROOT / "custom_components" / "heatpump_optimizer"
 
 sys.path.insert(0, "tests")
@@ -306,7 +306,7 @@ COUNTS = {p: len(v) for p, v in CENSUS.items()}
 TOTAL = sum(COUNTS.values())
 BY_NAME = {display(p, e): (p, e) for p, es in CENSUS.items() for e in es}
 
-CMD = "PYTHONPATH=tests/hastub python3 tools/audit/round4/D6/claims.py"
+CMD = "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py"
 
 # --- C1..C9  entity census -------------------------------------------------
 eq("C1", "README.md:Entities", "All 78 entities are created on every install",

@@ -772,17 +772,17 @@
   {
    "old": "tools/audit/bugclasses.json",
    "new": "dev/audit/config/bugclasses.json",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/ci-version-edit/",
    "new": "dev/audit/harnesses/ci-version-edit/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/finding.schema.json",
    "new": "dev/audit/config/finding.schema.json",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/handoff/r9-f2-solver-4/",
@@ -807,7 +807,7 @@
   {
    "old": "tools/audit/harnesses/",
    "new": "dev/audit/harnesses/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/ledger-layout/",
@@ -842,67 +842,67 @@
   {
    "old": "tools/audit/rotation.json",
    "new": "dev/audit/config/rotation.json",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round3/",
    "new": "dev/audit/rounds/round3/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round4/",
    "new": "dev/audit/rounds/round4/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round5-fix/",
    "new": "dev/audit/rounds/round5-fix/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round5/",
    "new": "dev/audit/rounds/round5/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round6/",
    "new": "dev/audit/rounds/round6/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round7-fix/",
    "new": "dev/audit/rounds/round7-fix/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round7/",
    "new": "dev/audit/rounds/round7/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round8-fix/",
    "new": "dev/audit/rounds/round8-fix/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round8/",
    "new": "dev/audit/rounds/round8/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/round9/",
    "new": "dev/audit/rounds/round9/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/scopes.json",
    "new": "dev/audit/config/scopes.json",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/w5-g5-195-coverage/",
    "new": "dev/audit/waves/w5-g5-195-coverage/",
-   "since": null
+   "since": "2015"
   },
   {
    "old": "tools/audit/w5-partition/",
