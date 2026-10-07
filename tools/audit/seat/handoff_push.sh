@@ -6,6 +6,22 @@
 # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
 # dev/programme/HANDOVER.md names it.
 set -uo pipefail
+# THE ROW'S HOME (#1990's RCA, round 3). Rows are written to dev/programme/delivery/
+# only, never to the retired delivery directory, and it is made when a
+# branch predates the lift. One function, so the self-test drives the write.
+ROW_DIR=dev/programme/delivery
+write_row() { # <worktree> <N> <line>; prints the repo-relative path written
+  mkdir -p "$1/$ROW_DIR" && printf '%s\n' "$3" > "$1/$ROW_DIR/$2.md" && echo "$ROW_DIR/$2.md"
+}
+if [ "${1:-}" = --self-test ]; then
+  _t=$(mktemp -d); _f=0
+  _p=$(write_row "$_t" 7 "- [#7] row") || _f=1
+  [ "$_p" = "dev/programme/delivery/7.md" ] && [ -f "$_t/$_p" ] && [ ! -e "$_t/docs" ] || _f=1
+  rm -rf "$_t"
+  if [ $_f = 0 ]; then echo "  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"
+  else echo "  FAIL a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/"; fi
+  echo "handoff_push self-test: 1 checks, $_f failed"; exit $_f
+fi
 TOPIC=$1; CODE=$2; TITLE=$3; MM=${4:-}
 # The main checkout is the one this script's checkout shares its object store with; a PR's
 # worktree is its sibling (HPO_WT_ROOT overrides); the body copy goes to the state directory.
@@ -83,7 +99,7 @@ N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null
 [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
-( cd "$WT" && echo "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE" > dev/programme/delivery/$N.md && git add dev/programme/delivery/$N.md && git commit -qm "record: the delivery row for #$N" ) || exit 1
+( cd "$WT" && _row=$(write_row . $N "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE") && git add "$_row" && git commit -qm "record: the delivery row for #$N" ) || exit 1
 H=$(git -C "$WT" rev-parse HEAD)
 python3 - "$B" "$H" "$CODE" "$N" <<'E'
 import sys
