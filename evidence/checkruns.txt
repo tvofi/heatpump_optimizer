@@ -1,0 +1,38 @@
+cancelled	budget-raise-gate
+failure	delivery-status
+failure	nightly-status
+in_progress	Analyze (python)
+neutral	CodeQL
+skipped	claims-autofix
+skipped	closures-autofix
+skipped	delivery-status-publish
+skipped	mutation-autofix
+skipped	mutation-ledger
+skipped	mutation-ledger-push
+skipped	mutation-nightly
+skipped	nightly-ha
+skipped	recheck-gate
+skipped	record
+skipped	record-autofix
+skipped	slow
+success	Analyze (actions)
+success	Analyze (javascript-typescript)
+success	briefs
+success	browser
+success	budget-raise-gate
+success	closure-scope
+success	closures
+success	coverage
+success	coverage-ratchet
+success	env-matrix
+success	fast (3.14)
+success	graders-head-copy
+success	hassfest
+success	instrument-self-tests
+success	mutation
+success	policy-docs
+success	pr-contract
+success	pr-contract
+success	typing
+success	validate-hacs
+success	wave-script
