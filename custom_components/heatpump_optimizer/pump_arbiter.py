@@ -26,9 +26,11 @@ baseline       Heating + DHW        configured       suitable
 *Configured* is the hot-water set-point from the config flow
 (``dhw_setpoint``), never a literal. *Suitable* is the plan's own number.
 For an indoor set-point it is the step's planned room temperature. For a
-flow set-point it is :data:`FLOW_HEAT_C` on a step that heats the house,
-the gate on one that does not, and on the baseline :data:`FLOW_HOLD_C` or
-the weather curve where that is higher (:func:`_flow_target`). A space-only step is heating
+flow set-point it follows the planned level, from the return temperature
+(or :data:`FLOW_HOLD_C`) up to :data:`FLOW_HEAT_C` at full power, on a step
+that heats the house; the gate on one that does not; and on the baseline
+:data:`FLOW_HOLD_C` or the weather curve where that is higher
+(:func:`_flow_target`). A space-only step is heating
 only (tvofi, 2026-09-24): the cheapest hours for the house need not be the
 ones that keep the tank ready for its next hot-water window, so the pump's
 own tank thermostat must not spend them. A disinfection cycle the
@@ -107,10 +109,12 @@ from __future__ import annotations
 import asyncio
 import bisect
 import logging
+import math
 from collections import Counter, deque
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta
-from typing import Any
+from functools import wraps
+from typing import Any, Callable
 from weakref import WeakKeyDictionary
 
 from homeassistant.core import callback
@@ -147,7 +151,12 @@ from .repairs import _write_setpoint
 from .accuracy import utc_elapsed_seconds, utc_shift
 from .drift import stored_instant
 from .store import QuarantiningStore, load_mapping
-from .thermal_model import on_threshold_kw, planned_draw_runs
+from .thermal_model import (
+    configured_flow_heat_c,
+    flow_setpoint_for_level,
+    on_threshold_kw,
+    planned_draw_runs,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -289,6 +298,22 @@ def duty_mode(config: Any) -> str:
     return mode if mode in PUMP_DUTY_MODES else DUTY_OFF
 
 
+def _release_duty_floor(
+    fn: Callable[..., str | None],
+) -> Callable[..., str | None]:
+    """Drop the plan's modulation floor if ``step_duty`` raises between the reads."""
+    @wraps(fn)
+    def _wrapped(*args: Any, **kwargs: Any) -> str | None:
+        try:
+            return fn(*args, **kwargs)
+        finally:
+            setattr(planned_draw_runs, "modulation_floor", None)
+    return (
+        _wrapped
+    )
+
+
+@_release_duty_floor
 def step_duty(result: Any, now: datetime) -> str | None:
     """``dhw``, ``space``, ``both`` or ``idle`` for the plan step covering now.
 
@@ -308,6 +333,10 @@ def step_duty(result: Any, now: datetime) -> str | None:
         return None
     space = list(result.power_schedule or [])
     dhw = list(getattr(result, "dhw_power_schedule", None) or [])
+    setattr(
+        planned_draw_runs, "modulation_floor",
+        getattr(result, "duty_floor_kw", None),
+    )
     s_on = i < len(space) and planned_draw_runs(space[i])
     d_on = i < len(dhw) and planned_draw_runs(dhw[i])
     return {(True, True): "both", (True, False): "space", (False, True): "dhw"}.get(
@@ -355,11 +384,13 @@ def _bounded(state: Any, value: float | None, floor: float = -1e9) -> float | No
     return round(value * 2.0) / 2.0
 
 
-def _planned_room(result: Any, now: datetime) -> float | None:
-    """The plan's room temperature for the step covering ``now``."""
+def _planned_room(
+    result: Any, now: datetime, attr: str = "optimal_setpoints"
+) -> float | None:
+    """The plan series ``attr`` for the step covering ``now``."""
     stamps = list(getattr(result, "timestamps", None) or [])
     i = bisect.bisect_right(stamps, now) - 1
-    points = list(getattr(result, "optimal_setpoints", None) or [])
+    points = list(getattr(result, attr, None) or [])
     return points[i] if 0 <= i < len(points) else None
 
 
@@ -367,7 +398,7 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
     """The plan's own space set-point for ``duty``; see :func:`_flow_target`."""
     state = _slot_state(inp, "space_setpoint")
     if _flow_unit(inp.config):
-        return _flow_target(inp, state, duty)
+        return _flow_target(inp, state, duty, now)
     room = _planned_room(result, now)
     low = temperature_c((getattr(state, "attributes", None) or {}).get("min"), state_unit(state))
     if room is not None and low is not None and low > room + SETPOINT_TOLERANCE:
@@ -383,26 +414,86 @@ def _space_target(inp: ArbiterInputs, result: Any, now: datetime, duty: str | No
     return _bounded(state, room)
 
 
-def _flow_target(inp: ArbiterInputs, state: Any, duty: str | None) -> float | None:
+def _step_kw(result: Any, now: datetime) -> float | None:
+    """The plan's space power for the step covering ``now``, or ``None``."""
+    return (
+        _finite_or_none(_planned_room(result, now, "power_schedule"))
+    )
+
+
+def _finite_or_none(value: Any) -> float | None:
+    return (
+        float(value) if isinstance(value, (int, float)) else None
+    )
+
+
+def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
+    """``(p_min, p_max)`` from the model when the params snapshot lacks them."""
+    params = inp.params
+    thermal_params = getattr(inp.thermal, "params", None)
+    p_min = getattr(params, "min_electrical_power", None)
+    p_max = getattr(params, "max_electrical_power", None)
+    return (
+        (
+            p_min if p_min is not None
+            else getattr(thermal_params, "min_electrical_power", None)
+        ),
+        (
+            p_max if p_max is not None
+            else getattr(thermal_params, "max_electrical_power", None)
+        ),
+    )
+
+
+def _flow_inlet_c(inp: ArbiterInputs) -> float:
+    """Floor-return temperature, else the rated hold flow."""
+    value = getattr(inp.state, "floor_return_temperature", None)
+    finite = tuple(
+        float(item) for item in (value,)
+        if isinstance(item, (int, float))
+        if math.isfinite(item)
+    )
+    return (
+        finite[0] if finite else FLOW_HOLD_C
+    )
+
+
+def _flow_target(
+    inp: ArbiterInputs, state: Any, duty: str | None, now: datetime
+) -> float | None:
     """A flow set-point per duty: heat, gate, or the fallback's hold.
 
     The model's weather curve is a pricing curve, not a set-point: it sizes
     the emitters to the pump's full output at ``emitter_design_delta_t``, so
     it runs 22-26 degC and a pump told to hold it barely heats (tvofi,
-    2026-09-26). So a step that heats writes :data:`FLOW_HEAT_C`: the pump's
-    own water thermostat does not cut it short, the supply settles where the
-    emitters take the heat, and when to heat stays the plan's (mode, power
-    switch and this gate). A step that does not heat writes the gate. The
-    fallback leaves the pump on its own, so it holds the rated
-    :data:`FLOW_HOLD_C`, or the curve where that is higher.
+    2026-09-26). A step that heats writes a flow that follows the planned
+    level: :data:`FLOW_HEAT_C` (or the configured ceiling) at full power,
+    toward the return temperature at the modulation floor, so the pump's
+    own water thermostat can realize a lower level. A fixed 55 °C never
+    cycles, and a sub-minimum slot then delivers the modulation floor. A
+    step that does not heat writes the gate. The fallback leaves the pump
+    on its own, so it holds the rated :data:`FLOW_HOLD_C`, or the curve
+    where that is higher.
     """
     if duty in ("space", "both"):
-        return _bounded(state, FLOW_HEAT_C, FLOW_GATE_C)
+        p_min, p_max = _band_kw(inp)
+        return _bounded(
+            state,
+            flow_setpoint_for_level(
+                _step_kw(inp.plan, now),
+                p_min,
+                p_max,
+                configured_flow_heat_c(inp.config, FLOW_HEAT_C),
+                _flow_inlet_c(inp),
+            ),
+            FLOW_GATE_C,
+        )
     if duty is not None:
         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
-    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+    ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
+    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)
     return _bounded(state, hold, FLOW_GATE_C)
 
 
