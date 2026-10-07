@@ -5025,7 +5025,7 @@
     "R9-EG-B6"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-sw-actuation",
     "commit": null,
     "last_step": null,
