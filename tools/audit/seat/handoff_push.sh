@@ -54,7 +54,7 @@ if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # updat
 import sys
 p,H,C,N=sys.argv[1:5]; s=open(p).read()
 i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `docs/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
+s=s[:i]+"`%s` merges the authored code head `%s` into this PR's previous head, which carried its own row `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,N)+s[i:]
 open(p,'w').write(s)
 E3
   if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
@@ -83,13 +83,13 @@ N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null
 [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
-( cd "$WT" && echo "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE" > docs/delivery/$N.md && git add docs/delivery/$N.md && git commit -qm "record: the delivery row for #$N" ) || exit 1
+( cd "$WT" && echo "- [#$N](https://github.com/$R/pull/$N) — **open**, $TITLE" > dev/programme/delivery/$N.md && git add dev/programme/delivery/$N.md && git commit -qm "record: the delivery row for #$N" ) || exit 1
 H=$(git -C "$WT" rev-parse HEAD)
 python3 - "$B" "$H" "$CODE" "$N" <<'E'
 import sys
 p,H,C,N=sys.argv[1:5]; s=open(p).read()
 i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi

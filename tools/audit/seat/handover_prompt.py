@@ -113,7 +113,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
           + (f", fork base `{roster['fork']}` at plan time"
              if roster.get("fork") else "") + ".",
           "- Pull requests are authored by the `hpo-author` App via "
-          "`tools/audit/seat/app_push.sh` (never `push.sh`, never tvofi); "
+          "`tools/pr/app_push.sh` (never `push.sh`, never tvofi); "
           "`hpo-approver` approves non-code-owned PRs; only tvofi reviews "
           "code-owned paths (decision 0011).",
           "- Model routing per group is the roster's own fields "
@@ -126,7 +126,7 @@ def render(roster: dict, source: str, resume_path: str, resume_text: str,
           "- every issue in `issues[]` is closed by the PR the roster makes "
           "its closer (`fixes[]`), read back on GitHub, not assumed;",
           "- CI green at each merged head and the delivery row written "
-          "(`docs/delivery/<N>.md`);",
+          "(`dev/programme/delivery/<N>.md`);",
           "- the resume doc regenerated under its budget "
           "(`tools/audit/seat/resume_doc.py`) and the plan table with it "
           f"(`{Path(SELF).parent / 'plan_table.py'}`).",
@@ -213,7 +213,7 @@ def _self_test() -> int:
           and "session `fixture-r9`" in text and "`db878b29`" in text)
     check("merge identity", "hpo-author" in text and "hpo-approver" in text
           and "tvofi reviews" in text and "decision 0011" in text)
-    check("done criteria", "resume.stage" in text and "docs/delivery/" in text)
+    check("done criteria", "resume.stage" in text and "dev/programme/delivery/" in text)
     check("resume steps", "Claim one ready group" in text
           and "#201" in text)
 

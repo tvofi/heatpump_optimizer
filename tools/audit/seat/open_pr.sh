@@ -28,8 +28,8 @@ if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _pu
 PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 || { grep -E 'REFUSE' $D/p1.log; exit 1; }
 N=$(grep -oE 'pull request #[0-9]+' $D/p1.log | head -1 | grep -oE '[0-9]+')
 gh pr edit $N --title "$TITLE" >/dev/null; gh pr ready $N --undo >/dev/null 2>&1 || true
-printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > docs/delivery/$N.md
-git add docs/delivery/$N.md
+printf -- '- [#%s](https://github.com/%s/pull/%s) — **open**, %s (%s)\n' $N $R $N "$TITLE" "$G" > dev/programme/delivery/$N.md
+git add dev/programme/delivery/$N.md
 git -c user.name=tvofi -c user.email=70032254+tvofi@users.noreply.github.com commit -q --author='tvofi <70032254+tvofi@users.noreply.github.com>' -m "record: the delivery row for #$N
 
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
@@ -38,7 +38,7 @@ python3 - $D/body.md $H $N $C <<'E'
 import sys
 p,H,N,C=sys.argv[1:5]; s=open(p).read()
 i=s.index('## Head\n\n')+len('## Head\n\n')
-s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `docs/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
+s=s[:i]+"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C)+s[i:]
 open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi

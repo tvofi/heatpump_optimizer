@@ -71,6 +71,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 HEX = frozenset("0123456789abcdef")
 
+# EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
+# dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
+# tools/pr/ and R9-RO-5 lifted the delivery rows under dev/programme/; the train
+# kept the old strings, so every run stopped at the carry, and its self-test --
+# whose stub answers any argv containing a script's basename -- stayed 43/43
+# green. A script resolves to the first candidate in the tree, the old path
+# first, the convention the move set for the scripts it moved; the self-test
+# refuses a name none of whose candidates exists, and a bare script path in a
+# `self.run` argv that bypasses this table.
+TOOLS = {
+    "app_approve": ("tools/audit/app_approve.sh", "tools/pr/app_approve.sh"),
+    "preflight": ("tools/audit/preflight.sh", "tools/pr/preflight.sh"),
+    "remerge_main": ("tools/audit/seat/remerge_main.sh",),
+    "worktree_gc": ("tools/audit/worktree_gc.sh",),
+}
+ROW_DIR = "dev/programme/delivery"
+
+
+def tool(name: str) -> str:
+    for c in TOOLS[name]:
+        if (ROOT / c).is_file():
+            return c
+    return TOOLS[name][-1]
+
 
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
@@ -143,7 +167,7 @@ class Train:
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
 
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
-        code, o = self.run(["bash", "tools/audit/app_approve.sh", self.repo, str(pr), h])
+        code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
             return "app"
         # Only app_approve.sh's own code-owned refusal line, anchored and for this
@@ -193,7 +217,7 @@ class Train:
                     raise Stop("recarry", f"could not make a worktree at {wt}")
             body = self.state / f"rb{pr}.md"
             body.write_text(self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "body", "--jq", ".body") + "\n")
-            code, o = self.run(["bash", "tools/audit/seat/remerge_main.sh", str(pr), str(wt), br, str(body)])
+            code, o = self.run(["bash", tool("remerge_main"), str(pr), str(wt), br, str(body)])
             if "MERGE CONFLICT" in o:
                 raise Stop("recarry", "main does not merge without a resolution; that is a fixer's, and a re-review")
             if "PUSHED" not in o:
@@ -207,7 +231,7 @@ class Train:
         if red:
             raise Stop("ci", "red at the head: " + ", ".join(red))
         self.run(["git", "fetch", "-q", "origin", h])
-        o = self.run(["bash", "tools/audit/app_approve.sh", "--carry", v, h])[1]
+        o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
         if "CARRY: yes" not in o:
             raise Stop("carry", (o.strip().splitlines() or ["(no output)"])[-1][:200])
         if not self.contains_main(h):
@@ -221,7 +245,7 @@ class Train:
         if code:
             raise Stop("files", "git diff failed: " + out.strip()[-160:])
         files = out.split()
-        row = f"docs/delivery/{pr}.md"
+        row = f"{ROW_DIR}/{pr}.md"
         if row not in files:
             raise Stop("row", f"#{pr} has no {row} in the three-dot diff; "
                        "the train writes none and the stamp's --require-rows "
@@ -234,7 +258,7 @@ class Train:
         self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
         self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
-        pf = self.run(["bash", "tools/audit/preflight.sh", *map(str, item.get("issues", []))], stdin=title + "\n")[1]
+        pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         for _ in range(self.merge_tries):
@@ -253,7 +277,7 @@ class Train:
         q = ('query={repository(owner:"%s",name:"%s"){pullRequest(number:%d){closingIssuesReferences(first:10)'
              "{nodes{number state}}}}}" % (owner, name, pr))
         self.log(f"#{pr} closes {self.out('gh', 'api', 'graphql', '-f', q)[-160:]}")
-        self.run(["bash", "tools/audit/worktree_gc.sh", self.repo])
+        self.run(["bash", tool("worktree_gc"), self.repo])
 
     def train(self, queue: list[dict]) -> int:
         self.state.mkdir(parents=True, exist_ok=True)
@@ -301,11 +325,11 @@ def _self_test() -> int:
                 if "renamed" in world:  # git lists a rename's old path only with --no-renames
                     old, new = world["renamed"]
                     names = f"{old}\n{new}" if "--no-renames" in argv else new
-                    return 0, names + "\ndocs/delivery/7.md"
+                    return 0, names + f"\n{ROW_DIR}/7.md"
                 return 0, "\n".join(world.get(
                     "files",
-                    ["custom_components/x.py", "docs/delivery/7.md",
-                     "docs/delivery/8.md"]))
+                    ["custom_components/x.py", f"{ROW_DIR}/7.md",
+                     f"{ROW_DIR}/8.md"]))
             if "--corpus-filter" in a:
                 if world.get("broken_filter"):
                     return 0, ""
@@ -349,8 +373,8 @@ def _self_test() -> int:
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
     rc, lines, calls = go({"files": ["custom_components/x.py"]})
-    check("a pull request with no docs/delivery/<N>.md row is refused",
-          rc == 1 and "row:" in lines[-1] and "docs/delivery/7.md" in lines[-1]
+    check(f"a pull request with no {ROW_DIR}/<N>.md row is refused",
+          rc == 1 and "row:" in lines[-1] and f"{ROW_DIR}/7.md" in lines[-1]
           and not merged(calls))
     check("nightly-status red is ignored by default", "red=[]" in " ".join(lines))
     rc, lines, calls = go({"runs": green + [{"name": "typing", "status": "completed", "conclusion": "failure", "started_at": "1"}]})
@@ -365,7 +389,7 @@ def _self_test() -> int:
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
-    rc, lines, calls = go({"files": ["custom_components/x.py", "docs/delivery/7.md",
+    rc, lines, calls = go({"files": ["custom_components/x.py", f"{ROW_DIR}/7.md",
                                      "tools/audit/briefs/fixer.md"],
                            "approve": (1, "REFUSE: #7 touches code-owned paths (tools/audit/briefs/fixer.md); the owner's")},
                           mandate="mandate 1 (tvofi)")
@@ -387,7 +411,7 @@ def _self_test() -> int:
     check("the mandate body names the label, role, paths, verdict comment and head",
           all(s in b for s in ("mandate 5951564627 (tvofi, #201)", "the orchestrator", "`tests/run.sh`", "comment 42", H0, V)))
     rc, lines, calls = go({"approve": owned,
-                           "files": ["tests/structure_budgets.json", "docs/delivery/7.md"]},
+                           "files": ["tests/structure_budgets.json", f"{ROW_DIR}/7.md"]},
                           mandate="m")
     check("code-owned with a budget file is not mandate-approved", rc == 1 and "budget" in lines[-1] and not approved(calls))
     rc, lines, calls = go({"approve": (1, "REFUSE: the verdict cites no qualifying evidence: x")}, mandate="m")
@@ -515,6 +539,17 @@ def _self_test() -> int:
     check("a preflight that never says clean stops it", rc == 1 and "preflight:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({}, q=[dict(item, verdict="xyz")])
     check("a queue entry with a malformed verdict sha is refused", rc == 1 and "queue:" in lines[-1])
+    # THE TREE THE STUB CANNOT SEE (#1990's RCA). Every check above runs against
+    # a stub that answers on a basename, so a script path that no longer exists
+    # passes all of them; these read the real tree.
+    for name, cands in TOOLS.items():
+        check(f"the train's {name} script is in the tree ({' or '.join(cands)})",
+              any((ROOT / c).is_file() for c in cands))
+    check(f"the delivery-row directory the train requires, {ROW_DIR}/, is in the tree",
+          (ROOT / ROW_DIR).is_dir())
+    bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
+    check("every script the train runs resolves through TOOLS, none by a bare path"
+          + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
