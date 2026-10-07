@@ -5123,9 +5123,9 @@
     "R9-SW-1"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r9-sw-gchv",
-    "commit": null,
+    "commit": "421c77f950072f218d856dcf60f753e5f80ef10b",
     "last_step": null,
     "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/SW.md, then write the failing test",
     "note_file": "handoff/round9/fix/resume/SW-4.md on handoff/r9-sw-gchv",
