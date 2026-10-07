@@ -528,6 +528,8 @@ def _observed(inp: ArbiterInputs, slot: str) -> Any:
     entity = _slot_entity(inp.config, slot)
     if slot in _NIGHT_KEYS:
         raw = getattr(inp.hass.states.get(entity) if entity else None, "state", None)
+        if raw is None:
+            return None
         try:
             return int(round(float(raw)))
         except (TypeError, ValueError):

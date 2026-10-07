@@ -58862,6 +58862,13 @@ R.check(
     f"{_sw4_night_writes(_sw4_hold)}",
 )
 
+_sw4_gone = _sw4_coord()
+_sw4_gone.hass.states._states.pop(_SW4_START_H, None)
+R.check(
+    "a missing GCHV night-mode number is observed as none",
+    _pa._observed(_sw4_gone.arbiter_inputs(), "night_start_hour") is None,
+)
+
 
 sys.exit(R.close("FEATURE CHECKS"))
 
