@@ -119,7 +119,7 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
     executed, which the committed table already reflects. A new edge's target
     is followed through ITS top-level imports, which importing it executes.
     """
-    preds = []
+    hits: dict[tuple[str, str], tuple[set[str], set[str]]] = {}
     for a in sorted(changed):
         if not a.endswith(".py") or a not in tracked:
             continue
@@ -128,8 +128,12 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
         except (OSError, UnicodeDecodeError):
             continue
         old = show(root, base, a)
-        new_edges = imported_paths(head_src, a, tracked) - (
-            imported_paths(old, a, tracked) if old is not None else set())
+        # Top-level edges only: an import inside a function runs only when a
+        # script calls it, which no static read can tell (#1987's
+        # quiet_windows -> silent_mode edge sits in a function guard_pins
+        # never calls, and `closures` stayed green on it).
+        new_edges = top_imports(head_src, a, tracked) - (
+            top_imports(old, a, tracked) if old is not None else set())
         if not new_edges:
             continue
         reach = set(new_edges)
@@ -151,25 +155,38 @@ def under_scoped(root, base, changed, tracked, closures, inert_reads, closure):
             if a not in listed or not ran <= listed:
                 continue
             for b in sorted(reach):
+                if b.startswith("tests/hastub/"):
+                    # The stub is every importer's, already listed by any
+                    # script that imports the package; a reader that lists
+                    # the package as text and not the stub executes neither.
+                    continue
                 if closure.is_inert(b):
-                    if b not in set(inert_reads.get(script, [])):
-                        preds.append(("closures", f"INERT READS {script}: {b} "
-                                      f"(imported through {a})"))
+                    if b in set(inert_reads.get(script, [])):
+                        continue
+                    kind = "INERT READS"
                 elif b not in listed:
-                    preds.append(("closures", f"UNDER-SCOPED {script}: {b} "
-                                  f"(a new import from {a})"))
-    return preds
+                    kind = "UNDER-SCOPED"
+                else:
+                    continue
+                scripts, froms = hits.setdefault((kind, b), (set(), set()))
+                scripts.add(script)
+                froms.add(a)
+    return [("closures", f"{kind} {b}: read by {len(sc)} script(s) whose "
+             f"closure omits it ({', '.join(sorted(sc)[:3])}"
+             f"{', ...' if len(sc) > 3 else ''}), a new import from "
+             f"{', '.join(sorted(fr)[:2])}{', ...' if len(fr) > 2 else ''}")
+            for (kind, b), (sc, fr) in sorted(hits.items())]
 
 
 def inert_siblings(changed, inert_reads, closure):
     """A new INERT file beside files a script's INERT-read list names.
 
     A script that reads a directory by glob (`harness_headers.py` over
-    `tools/audit/harnesses/`) opens every file added there; its committed
+    `dev/audit/harnesses/`) opens every file added there; its committed
     `inert_reads` lists them one by one, so a new sibling it does not list is
-    CI's `INERT READS UNDER-APPROXIMATED`. Keyed on directory and suffix: two
-    listed siblings of the same suffix, not one, so a single named read is
-    not mistaken for a glob.
+    CI's `INERT READS UNDER-APPROXIMATED`. Keyed on directory and suffix: three
+    listed siblings of the same suffix, so the two files `entities.py` names
+    one by one in `tools/audit/seat/` are not mistaken for a glob.
     """
     preds = []
     for f in sorted(changed):
@@ -180,7 +197,7 @@ def inert_siblings(changed, inert_reads, closure):
             if f in files:
                 continue
             sib = [g for g in files if str(Path(g).parent) == d and Path(g).suffix == suf]
-            if len(sib) >= 2:
+            if len(sib) >= 3:
                 preds.append(("closures", f"INERT READS {script}: {f} "
                               f"(a new file beside {len(sib)} it lists)"))
     return preds

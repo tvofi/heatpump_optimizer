@@ -1548,7 +1548,10 @@ PY
     && $G checkout -q -b pimport origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
     && echo "from . import zz_planted  # planted" >> custom_components/heatpump_optimizer/away.py \
     && $G add -A && $G commit -qm pimport \
-    && $G checkout -q -b pinert origin/main && echo "# planted" > tools/audit/harnesses/zz_planted.py \
+    && $G checkout -q -b pfunc origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && printf '\n\ndef _zz_planted():\n    from . import zz_planted\n    return zz_planted.X\n' >> custom_components/heatpump_optimizer/away.py \
+    && $G add -A && $G commit -qm pfunc \
+    && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
     && $G add -A && $G commit -qm plane \
@@ -1559,9 +1562,11 @@ PY
   got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
   got=$(predict_at porphan); grep -q 'PREDICT fast .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts entities' refusal of a new file in no closure and not on INERT"
-  got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED .*zz_planted.py (a new import from custom_components/heatpump_optimizer/away.py)' <<<"$got"
+  got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED custom_components/heatpump_optimizer/zz_planted.py: read by .*a new import from custom_components/heatpump_optimizer/away.py' <<<"$got"
   st $? 0 "6d predicts UNDER-SCOPED for a new import from a file a closure lists"
-  got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: tools/audit/harnesses/zz_planted.py' <<<"$got"
+  got=$(predict_at pfunc); grep -q 'PREDICT closures .*UNDER-SCOPED' <<<"$got"
+  st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
+  got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
   got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
   st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
