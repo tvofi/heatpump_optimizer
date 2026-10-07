@@ -152,7 +152,7 @@ function panelEscapes(card) {
     if (!ys.length) continue;
     judge(`series ${a["data-key"]}`, s && panelOfAxis(s.axis), Math.min(...ys), Math.max(...ys));
   }
-  for (const cls of ["actioned-band", "shared-band"]) {
+  for (const cls of ["actioned-band", "shared-band", "quiet-band"]) {
     for (const m of html.matchAll(new RegExp(`<rect class="${cls}"[^>]*>`, "g"))) {
       const a = attrs(m[0]);
       judge(cls, power, +a.y, +a.y + +a.height);
@@ -7870,6 +7870,268 @@ const setupBox = (card, place) =>
   check("a window switched to a weekday keeps that day's token",
     called && called.data.dhw_windows === "Tu 05:30-07:00, Fr 17:00-19:00",
     called && called.data.dhw_windows);
+}
+
+
+// --- #1912 R9-SW-3: silent windows in the schedule editor and chart ----------
+// The backend (R9-SW-1) already stores two specs and publishes them on the
+// plan sensors. The card edits them beside the hot-water windows: same row
+// shape plus an action, the shared fraction slider, overlap refused before
+// any call, and the resolved actions drawn as a band in the power panel.
+{
+  const quietOverlapProblem = fn("quietOverlapProblem");
+  check("quietOverlapProblem is the card's overlap predicate",
+    typeof quietOverlapProblem === "function");
+  check("an off window overlapping a hot-water window is refused with the overlap named",
+    typeof quietOverlapProblem("","05:00-07:00","06:00-08:30") === "string"
+    && /05:00/.test(quietOverlapProblem("","05:00-07:00","06:00-08:30"))
+    && /hot-water/.test(quietOverlapProblem("","05:00-07:00","06:00-08:30")),
+    String(quietOverlapProblem("","05:00-07:00","06:00-08:30")));
+  check("a silent window may overlap a hot-water window; silent and off may not",
+    quietOverlapProblem("05:00-07:00","","06:00-08:30") === null
+    && typeof quietOverlapProblem("05:00-07:00","06:00-07:30","") === "string",
+    `silent/dhw ${quietOverlapProblem("05:00-07:00","","06:00-08:30")}, `
+    + `silent/off ${quietOverlapProblem("05:00-07:00","06:00-07:30","")}`);
+  check("an off window on a disjoint day of a weekly spec is allowed",
+    quietOverlapProblem("","weekend 08:00-09:00","weekdays 08:00-08:30") === null
+    && typeof quietOverlapProblem("","weekend 08:00-09:00","weekend 08:30-08:45") === "string");
+
+  const quietStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.quiet_silent_windows_spec = "22:00-06:00";
+    st[DEFAULT_SPACE].attributes.quiet_off_windows_spec = "14:00-15:00";
+    st[DEFAULT_SPACE].attributes.silent_mode_power_fraction = 0.8;
+    st[DEFAULT_DHW].attributes.dhw_windows_spec = "06:00-08:30, 17:00-22:00";
+    return st;
+  })();
+  const qed = build(quietStates, { what_if: true });
+  qed._hass = mkHass(qed._hass.states);
+  qed._onCardClick({});
+  const qDump = collect(qed.shadowRoot).join("\n");
+  check("the silent windows list sits under the hot-water windows",
+    /class="wi-quiet"/.test(qDump) &&
+    qDump.indexOf("wi-windows") < qDump.indexOf("wi-quiet") &&
+    /Silent windows/.test(qDump));
+  check("each silent row is the hot-water row plus an action select",
+    (qDump.match(/class="wi-quiet-window"/g) || []).length === 2 &&
+    (qDump.match(/class="wi-quiet-action/g) || []).length === 2 &&
+    /<option value="silent" selected>Silent<\/option>/.test(qDump) &&
+    /<option value="off" selected>Off<\/option>/.test(qDump),
+    `windows=${(qDump.match(/class="wi-quiet-window"/g) || []).length} ` +
+    `actions=${(qDump.match(/class="wi-quiet-action/g) || []).length} ` +
+    `silent=${/<option value="silent" selected>Silent<\/option>/.test(qDump)} ` +
+    `off=${/<option value="off" selected>Off<\/option>/.test(qDump)}`);
+  check("the draft splits the two published specs by action",
+    qed.whatIf.draft().quietWindows.length === 2 &&
+    qed.whatIf.draft().quietWindows[0].action === "silent" &&
+    qed.whatIf.draft().quietWindows[0].start === "22:00" &&
+    qed.whatIf.draft().quietWindows[1].action === "off" &&
+    qed.whatIf.draft().quietWindows[1].start === "14:00",
+    JSON.stringify(qed.whatIf.draft().quietWindows));
+  check("a Silent row shows the fraction slider, pre-filled from the plan sensor",
+    qed.whatIf.draft().silentFraction === 0.8 &&
+    /class="wi-quiet-frac"/.test(qDump) &&
+    /value="0\.8"/.test(qDump));
+  check("the fraction-unset note is absent when the fraction is not 1.0",
+    !/unset/.test(qDump.toLowerCase()) || !/1\.0/.test(qed.shadowRoot.querySelector(".wi-quiet-frac-note") &&
+      qed.shadowRoot.querySelector(".wi-quiet-frac-note").textContent || ""));
+
+  qed.whatIf.onAddQuietWindow({ stopPropagation(){} });
+  check("a silent window can be added",
+    qed.whatIf.draft().quietWindows.length === 3 &&
+    qed.whatIf.draft().quietWindows[2].action === "silent");
+  qed.whatIf.onRemoveQuietWindow({
+    stopPropagation(){},
+    currentTarget: { getAttribute: (k) => (k === "data-index" ? "2" : null) },
+  });
+  check("a silent window can be removed",
+    qed.whatIf.draft().quietWindows.length === 2);
+
+  called = null;
+  await qed.whatIf.run();
+  check("simulating sends both quiet specs and the fraction",
+    called && called.data.quiet_silent_windows === "22:00-06:00" &&
+    called.data.quiet_off_windows === "14:00-15:00" &&
+    called.data.silent_mode_power_fraction === 0.8,
+    called && JSON.stringify(called.data));
+
+  const offOnly = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.quiet_off_windows_spec = "14:00-15:00";
+    return st;
+  })();
+  const offCard = build(offOnly, { what_if: true });
+  offCard._hass = mkHass(offCard._hass.states);
+  offCard._onCardClick({});
+  check("the fraction slider is absent when no row is Silent",
+    !/class="wi-quiet-frac"/.test(collect(offCard.shadowRoot).join("\n")) &&
+    offCard.whatIf.draft().quietWindows.every((w) => w.action === "off"));
+
+  const fracOne = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.quiet_silent_windows_spec = "22:00-06:00";
+    st[DEFAULT_SPACE].attributes.silent_mode_power_fraction = 1.0;
+    return st;
+  })();
+  const oneCard = build(fracOne, { what_if: true });
+  oneCard._onCardClick({});
+  check("a Silent row at fraction 1.0 says the fraction is unset",
+    /wi-quiet-frac-note/.test(collect(oneCard.shadowRoot).join("\n")));
+
+  const notEnf = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    st[DEFAULT_SPACE].attributes.quiet_silent_windows_spec = "22:00-06:00";
+    st[DEFAULT_SPACE].attributes.quiet_off_windows_spec = "14:00-15:00";
+    st[DEFAULT_SPACE].attributes.quiet_silent_not_enforced = true;
+    return st;
+  })();
+  const neCard = build(notEnf, { what_if: true });
+  neCard._onCardClick({});
+  const neDump = collect(neCard.shadowRoot).join("\n");
+  check("a not-enforced silent row says so on the row",
+    /not enforced/i.test(neDump));
+  const silentRow = (neDump.match(/class="wi-quiet-window"[^>]*>[\s\S]*?<\/div>/g) || [])
+    .find((row) => /value="silent" selected/.test(row));
+  const offRow = (neDump.match(/class="wi-quiet-window"[^>]*>[\s\S]*?<\/div>/g) || [])
+    .find((row) => /value="off" selected/.test(row));
+  check("the not-enforced marker is on the Silent row, not the Off row",
+    silentRow && /not enforced/i.test(silentRow) && offRow && !/not enforced/i.test(offRow),
+    `silent ${!!silentRow && /not enforced/i.test(silentRow)} off ${!!offRow && /not enforced/i.test(offRow)}`);
+
+  const clash = build(slotStates, { what_if: true });
+  clash._hass = mkHass(clash._hass.states);
+  clash._onCardClick({});
+  clash.whatIf.draft().dhwWindows = [{ days: "daily", start: "06:00", end: "08:30" }];
+  clash.whatIf.draft().quietWindows = [{ days: "daily", start: "05:00", end: "07:00", action: "off" }];
+  called = null;
+  await clash.whatIf.run();
+  check("an off/hot-water overlap is refused on the card before any call",
+    called === null &&
+    /overlap/i.test(clash.shadowRoot.querySelector(".wi-result").textContent),
+    clash.shadowRoot.querySelector(".wi-result") &&
+      clash.shadowRoot.querySelector(".wi-result").textContent);
+
+  clash.whatIf.draft().quietWindows = [
+    { days: "daily", start: "22:00", end: "06:00", action: "silent" },
+    { days: "daily", start: "05:00", end: "07:00", action: "off" },
+  ];
+  called = null;
+  await clash.whatIf.run();
+  check("a silent/off overlap is refused on the card before any call",
+    called === null &&
+    /overlap/i.test(clash.shadowRoot.querySelector(".wi-result").textContent));
+
+  clash.whatIf.draft().quietWindows = [
+    { days: "daily", start: "06:00", end: "08:00", action: "silent" },
+  ];
+  called = null;
+  await clash.whatIf.run();
+  check("a silent window overlapping a hot-water window is sent, not refused",
+    called && called.service === "simulate_plan" &&
+    called.data.quiet_silent_windows === "06:00-08:00");
+
+  const quietServiceFields = fn("quietServiceFields");
+  const bothRows = quietServiceFields({
+    quietWindows: [
+      { days: "daily", start: "22:00", end: "06:00", action: "silent" },
+      { days: "daily", start: "14:00", end: "15:00", action: "off" },
+    ],
+    silentFraction: 0.8,
+  });
+  check("quietServiceFields sends both specs and the fraction",
+    bothRows.quiet_silent_windows === "22:00-06:00" &&
+    bothRows.quiet_off_windows === "14:00-15:00" &&
+    bothRows.silent_mode_power_fraction === 0.8,
+    JSON.stringify(bothRows));
+  const lastSilentGone = quietServiceFields({
+    quietWindows: [
+      { days: "daily", start: "14:00", end: "15:00", action: "off" },
+    ],
+    silentFraction: 0.8,
+  });
+  check("clearing the last silent window sends an empty silent spec",
+    lastSilentGone.quiet_silent_windows === "" &&
+    "quiet_silent_windows" in lastSilentGone &&
+    lastSilentGone.quiet_off_windows === "14:00-15:00" &&
+    lastSilentGone.silent_mode_power_fraction === 0.8,
+    JSON.stringify(lastSilentGone));
+  const allGone = quietServiceFields({
+    quietWindows: [],
+    silentFraction: 0.8,
+  });
+  check("clearing every quiet window sends both empty specs",
+    allGone.quiet_silent_windows === "" &&
+    allGone.quiet_off_windows === "" &&
+    "quiet_silent_windows" in allGone &&
+    "quiet_off_windows" in allGone &&
+    allGone.silent_mode_power_fraction === 0.8,
+    JSON.stringify(allGone));
+
+  const emptyQ = build(slotStates, { what_if: true });
+  emptyQ._hass = mkHass(emptyQ._hass.states);
+  emptyQ._onCardClick({});
+  emptyQ.whatIf.draft().quietWindows = [];
+  called = null;
+  await emptyQ.whatIf.onApplySlots({ stopPropagation(){} });
+  check("an empty quiet schedule is sent explicitly, matching a Python empty-spec write",
+    called && called.data.quiet_silent_windows === "" &&
+    called.data.quiet_off_windows === "" &&
+    "quiet_silent_windows" in called.data &&
+    "quiet_off_windows" in called.data,
+    called && JSON.stringify(called.data));
+  called = null;
+  await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
+  await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
+  check("Save sends empty quiet specs so a stored schedule is cleared",
+    called && called.service === "apply_schedule" &&
+    called.data.quiet_silent_windows === "" &&
+    called.data.quiet_off_windows === "",
+    called && JSON.stringify(called.data));
+
+  const svQ = new Card();
+  svQ.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
+  svQ.hass = { states: quietStates, language: "sv-SE" };
+  svQ._onCardClick({});
+  check("the silent-window labels are named in Swedish too",
+    /Tysta fönster/.test(collect(svQ.shadowRoot).join("\n")) &&
+    /<option value="silent" selected>Tyst<\/option>/.test(collect(svQ.shadowRoot).join("\n")));
+  build(slotStates); // leave the module back in English
+
+  const bandStates = (() => {
+    const st = mkStates(DEFAULT_SPACE, DEFAULT_DHW, true);
+    const fc = st[DEFAULT_SPACE].attributes.forecast;
+    const n = fc.length;
+    const actions = Array(n).fill(0);
+    // The harness freezes now six hours into the captured day, so the
+    // default window is [now, now+hours]. Steps before that are clipped.
+    let silentLeft = 8, offLeft = 4;
+    for (let i = 0; i < n; i++) {
+      const t = Date.parse(fc[i].t);
+      if (!Number.isFinite(t) || t < FROZEN) continue;
+      if (silentLeft > 0) { actions[i] = 1; silentLeft--; }
+      else if (offLeft > 0) { actions[i] = 2; offLeft--; }
+    }
+    st[DEFAULT_SPACE].attributes.quiet_silent_windows_spec = "06:00-08:00";
+    st[DEFAULT_SPACE].attributes.quiet_off_windows_spec = "08:00-09:00";
+    st[DEFAULT_SPACE].attributes.quiet_actions = actions;
+    return st;
+  })();
+  const bandCard = build(bandStates, { what_if: true });
+  const bandDump = collect(bandCard.shadowRoot).join("\n");
+  check("the chart draws silent and off steps as a band in the power panel",
+    (bandDump.match(/class="quiet-band"/g) || []).length >= 2 &&
+    /data-action="silent"/.test(bandDump) &&
+    /data-action="off"/.test(bandDump));
+  const bandEsc = panelEscapes(bandCard);
+  check("the quiet band stays inside the heating-power panel",
+    bandEsc.measured > 0 &&
+    !bandEsc.out.some((s) => s.startsWith("quiet-band")),
+    JSON.stringify(bandEsc));
+  check("the quiet band's series sit in the power panel for the colour-vision pairs",
+    vm.runInContext(
+      "SERIES_DEFS.filter((d) => d.key === 'quiet_silent' || d.key === 'quiet_off')"
+      + ".every((d) => d.panel === 'power' && d.style === 'band')",
+      ctx));
 }
 
 
