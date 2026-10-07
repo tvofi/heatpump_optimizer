@@ -2,13 +2,13 @@ Root-cause analysis for #1985, the friction key `root-cause-unanswered`. It adds
 
 **Process state: (c).** I reproduced the count: 12 PRs and 17 verdicts in `v6.7.16..origin/main`. 13 of the 17 verdicts name a lane that tests the fix's own code (typing, mutation, closures, fast, env-matrix, CodeQL and others). The other 4 are body-only debt. The cause is that the body is written at the handoff, when the fixer pushes, and CI's reds arrive after it. `fix-review.md` step 11 sends every red the body does not answer to the one word `root-cause-unanswered`.
 
-The cheaper detector already exists: `pr-contract` with its re-run workflow. It fired on 17 of 17 entries, 11 before the verdict and 6 when the `Tests` workflow completed. So no check is built. I propose one change to the owner: split out a separate `red-check` verdict class. That is a policy change, so it is not landed here.
+The cheaper detector already exists: `pr-contract` with its re-run workflow. It fired on 17 of 17 entries, 11 before the verdict and 6 when the `Tests` workflow completed. So no check is built. A separate `red-check` verdict class was also considered and declined, by the orchestrator under mandate 5951564627. It would leave the key at the threshold (12 to 3 PRs), and its value is direction, not hours. Both refusals share one revisit trigger: body-only repairs reaching 3 PRs in one window.
 
-Refs #1985. This does not close the issue, because the grammar split waits on the owner.
+Closes #1985
 
 ## Head
 
-bb28e9cb83667c96e85cc20c5c533cd2b9cae3bb, measured against `origin/main` 3910026e on 2026-10-07.
+18158b84c9678c740d6d23e6687102b8e04f7cef, measured against `origin/main` 3910026e on 2026-10-07.
 
 ## Mutation proof
 
@@ -36,7 +36,7 @@ none
 
 `dev/audit/rca/R9-RCA-1985.md` section 5 records two items:
 
-- The `red-check` grammar split. It is policy, so it is proposed to the owner and not landed.
+- The `red-check` grammar split: declined, with its revisit trigger recorded.
 - The `web-fix-wave.js:489-495` route. It sends `root-cause-unanswered` to a root-cause seat with no body-repair round. This is owed by whoever next edits that script, and it is recorded for the orchestrator's record.
 
 ## Friction
