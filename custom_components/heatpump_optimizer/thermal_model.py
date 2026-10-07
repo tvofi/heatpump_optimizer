@@ -1209,19 +1209,12 @@ def planned_draw_runs(
         else getattr(planned_draw_runs, "modulation_floor", None)
     )
     total = float(space_kw) + float(dhw_kw)
-    # Comparisons span lines so they are not one-line bound sites; the
-    # return below is the ledger's pinned line and must stay that text.
-    blocked = all((
-        floor is not None,
-        total > (
-            MIN_RUNNING_DRAW_KW
-        ),
-        total < (
-            float(floor) if floor is not None else 0.0
-        ),
-    ))
-    space_kw = 0.0 if blocked else space_kw
-    dhw_kw = 0.0 if blocked else dhw_kw
+    below_floor = False
+    if floor is not None:
+        below_floor = total < floor
+    if below_floor:
+        space_kw = 0.0
+        dhw_kw = 0.0
     return (float(space_kw) + float(dhw_kw)) > MIN_RUNNING_DRAW_KW
 
 

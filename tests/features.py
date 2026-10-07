@@ -58741,6 +58741,46 @@ R.check(
     "flow_heat_c defaults to the arbiter's heating-flow constant",
     _PP_FLOW_DEFAULT == _pa.FLOW_HEAT_C,
 )
+_pp_fb = _pa._flow_target(
+    _PaNS(
+        config={_PP_FLOW_KEY: 48.0},
+        state=_PaNS(
+            outdoor_temperature=-5.0,
+            return_temperature=35.0,
+            floor_return_temperature=None,
+        ),
+        thermal=_PaNS(curve_flow_temp=lambda _o: 60.0),
+        plan=None,
+    ),
+    FakeState("40", attributes={"min": 20, "max": 70}),
+    None,
+    _PA_T0,
+)
+R.check(
+    "the baseline flow ceiling is the configured heating flow, not the literal 55",
+    _pp_fb == 48.0,
+    f"{_pp_fb}",
+)
+_pp_low = _pa._flow_target(
+    _PaNS(
+        config={_PP_FLOW_KEY: 48.0},
+        state=_PaNS(
+            outdoor_temperature=15.0,
+            return_temperature=35.0,
+            floor_return_temperature=None,
+        ),
+        thermal=_PaNS(curve_flow_temp=lambda _o: 20.0),
+        plan=None,
+    ),
+    FakeState("40", attributes={"min": 20, "max": 70}),
+    None,
+    _PA_T0,
+)
+R.check(
+    "a curve under the rated hold still holds 35 when the ceiling is configured",
+    _pp_low == _pa.FLOW_HOLD_C,
+    f"{_pp_low}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))

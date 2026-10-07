@@ -6522,7 +6522,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # starve the detector of its feed.
         if boost.space_learning_frozen(self):
             return boost.FREEZE_REASON
-        else: return _tail_freeze(self)
+        return _tail_freeze(self)
 
     async def _fetch_tibber_prices(self) -> None:
         """Fetch electricity prices (Tibber or a price entity).

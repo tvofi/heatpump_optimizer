@@ -476,7 +476,8 @@ def _flow_target(
         return _bounded(state, FLOW_GATE_C, FLOW_GATE_C)
     outdoor = float(inp.state.outdoor_temperature)
     curve = inp.thermal.curve_flow_temp(outdoor)
-    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), FLOW_HEAT_C)
+    ceiling = configured_flow_heat_c(inp.config, FLOW_HEAT_C)
+    hold = FLOW_HOLD_C if curve is None else min(max(curve, FLOW_HOLD_C), ceiling)
     return _bounded(state, hold, FLOW_GATE_C)
 
 
