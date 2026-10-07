@@ -1,52 +1,40 @@
-Fix review: blocked e0f87d5b9e4dcec8c39ed1bdf0ebbc7368dad909 conflict: head does not contain main 09ba95d0 (#2015 RO-8); merge-tree conflicts on dev/audit/rounds/round4/D6/claims.json (content) and tools/audit/round4/D6/claims.md (modify/delete), so the PR is DIRTY and no CI ran at this head
+Fix review: merge 0dfb63a8c64950f062b047b4a8a49565a1c64f5f
 
-bus-nonce: 322be6f94b59266d262351fe4c749c4d
+bus-nonce: 07a8e4662a62c316e1301277df33f110
 
-Reviewer seat r9c-rev-2025, round 2. Detached worktree /Users/timmalmstrom/hpo-seats/r9c-rev-2025 at e0f87d5b. Its parents are a390f589 and 2f987a6d. Live head re-read at posting.
+Reviewer seat r9c-rev-2025, round 3. I reviewed from a fresh detached worktree, /Users/timmalmstrom/hpo-seats/r9c-rev-2025-r3, at 0dfb63a8. Its parents are 984334b5 (the fixer's merge d15fc0ae on top of e0f87d5b) and c327da7f (main). The live head was re-read at posting and had not moved. `git merge-tree --write-tree origin/main(e7479ad1) 0dfb63a8` exits 0.
 
-## Blocking
+## The merge resolution (d15fc0ae, merging main 09ba95d0)
 
-1. **Conflict with main, outside the claim files.** The dispatch says e0f87d5b carries an update_pr main merge that includes #2015. It does not. `git log -1 --format=%P e0f87d5b` = a390f589 2f987a6d, and the merge base with origin/main is still e0f0b6fb. `git merge-tree --write-tree origin/main(09ba95d0) e0f87d5b` exits 1:
-   - `CONFLICT (content): dev/audit/rounds/round4/D6/claims.json`
-   - `CONFLICT (modify/delete): tools/audit/round4/D6/claims.md deleted in origin/main and modified in e0f87d5b`
+- `git diff --name-only $(git merge-tree --write-tree e0f87d5b 09ba95d0) d15fc0ae` lists only `dev/audit/rounds/round4/D6/claims.json`, `dev/audit/rounds/round4/D6/claims.md` and `tools/audit/round4/D6/claims.md`, the old copy, deleted. That matches the body.
+- Against 09ba95d0, the two regenerated files differ only in the module-count results, 71 -> 72.
+- Re-running `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` at the head leaves the tree byte-clean.
+- The moved claims.py carries the branch's EntryConfig `_ecl_topic` and the counts of 72.
+- 0dfb63a8 (update_pr's merge of c327da7f) has an empty remerge-diff.
+- The branch's changed lines are identical to round 2's (e0f87d5b vs e0f0b6fb, and 0dfb63a8 vs c327da7f), compared line by line. That covers custom_components, tests/harness.py, tests/structure_budgets.json, tests/mutation_ledger, tests/entities.py and tests/features.py. So round 2's local judgement carries: the live quiet apply equals main (reloaded=0, 2 off steps), quiet_windows.py is byte-identical to main, M1/M7/M9 are killed, and the deleted pins have stale anchors.
+- tests/closures.json after the ledger merge: entry_config.py is in 26 closures, including all 20 that contain coordinator.py (missing=[]).
 
-   The ledger driver resolved tests/closures.json (`LEDGER-MERGE: resolved`). Neither conflicting path is a claim file, so the conflict is fix-review.md step 13's to block on. GitHub reports `mergeable_state: dirty`.
-2. **No CI exists at this head.** The commit check-runs API returns `total_count 0` for e0f87d5b. There are no runs at 2f987a6d, 057028f3 or eaaa6c2f either. A DIRTY PR does not queue Tests (claim-files.md). So `typing`, `closures` and `fast (3.14)` cannot be cited at the head. Their greens are owed after the main merge. The verdict cannot carry them.
+## CI at 0dfb63a8 (run 37663843895, via the commit check-runs API; `checkruns_head.tsv`)
 
-## The delta since a390f589, judged against round 1 (all local, at e0f87d5b)
+- **typing: success** (job 112937895741). "errors did not grow", "ALL 9 typing-ruler checks PASSED". mypy is 0, from 9 at a390f589. I did not run mypy locally because none is installed here; this result is CI's.
+- **closures: success** (job 112938013797). No UNDER-SCOPED. closures-autofix was skipped.
+- **fast (3.14): success** (job 112937895765). `MODE: SCOPED -- 28 script(s) run, 4 scoped out`. It ran entities, features, golden and stress, among others:
+  - ALL 3823 FEATURE CHECKS PASSED, so R9-F2.1 P3 is green on Linux.
+  - ALL 2210 ENTITY CHECKS PASSED.
+  - ALL 106 STRESS CHECKS PASSED.
+  - golden runs in drift mode through `env_drift.py --all e7479ad1`: ok (445 s), and the fixtures are byte-identical to the base.
+  - Also: manual plan ALL 128, typing-ruler source ALL 11, optimality ALL 84, finite boundary ALL 83.
+- **coverage: success.**
+- **mutation: failure** (job 112937895475) and **mutation-autofix: failure** (job 112940895162). "MUTATION TABLE REFUSED -- 4735 unpinned site(s) against 4693 at the ratchet base e7479ad1, 56 of them added by this diff", then "nothing was measured: 0 mutant(s) timed out, 56 not started for --budget-minutes". The autofix reports `skip-no-measurement`. This is the same unmeasured-lane red as at a390f589. The body's `## Red checks` names it, and the Mutation proof section dispositions it, leaving it to CI's chain. The trigger is answered, per fix-review.md step 11.
 
-1. **typing (9 -> 0): not verified.** mypy is not installed in any local venv (venv-ci has none). The relevant diff is a typed local in binary_sensor `_margin_c` and `_one_of(Container[str])`. CI's `typing` at the head does not exist (blocking item 2).
-2. **closures: verified locally.** The diff adds 31 `entry_config.py` lines to tests/closures.json. entry_config.py is now in 26 closures, and all 20 closures that contain coordinator.py include it (missing=[]). My stand-in from round 1, `closure.py select --files custom_components/heatpump_optimizer/entry_config.py`, now prints `MODE: SCOPED -- 26 script(s) run, 6 scoped out` and RUNs entities, features, typing_ruler, structure, golden and stress. In round 1 it SKIPped them. The fixer's "21 scripts" was not re-derived. CI's `closures` job at the head does not exist.
-3. **Mutation: killed.** My round-1 mutants were re-run in place on entry_config.py/coordinator.py and restored with `git checkout`; the tree was clean afterwards. All were run against tests/entities.py:
-   - M0 null: ALL 2210 PASSED.
-   - M1 (`_number` keeps NaN/inf): KILLED, 1 failed. The failing check is "a stored NaN or infinity reads the declared default ...".
-   - M7 (`_nonzero_number` keeps 0): KILLED, 1 failed (the same check).
-   - M9 (the live-apply line `self._ctx = replace(...)` deleted): KILLED, 1 failed. The failing check is "... applies live through a new parse that equals the saved entry (no reload) ...".
-   - Restored pins: both `apply_config_keys.GUARD_OFF` pins are byte-identical to main.
-   - Deleted pins: I read the 7 deleted pins at main. Six record `killed_by: tests/features.py`, and IndoorTempSensor records `tests/entities.py`. For all 7, the anchored `old` line is absent at the head (`old_line_present_at_head=0` each), so their anchors are stale and deleting them is sound. The features.py re-kills of the six rewritten lines are unverified: features.py is CI's, and CI has not run.
-   - The 55+ added sites are left to CI's chain, as the body says.
-4. **Live apply: restored, and equal to main.** My driver (`quiet_reload_driver.py`), at the head:
-   - quiet-only call: `live_spec='09:00-09:30' live_off_steps=2 live_fraction=0.8 reloaded=0`, and the rebuilt coordinator gives the same.
-   - null (empty call): `reloaded=0`, no spec.
+  Not verified: the 56 sites, and the features.py re-kills of the six rewritten lines whose pins were deleted. Nothing measured them at any head of this PR, and the per-PR budget does not reach them. Their pins come only from a later chain run (mutation-nightly or a dispatched drive), not from this merge.
+- Not this PR's: `delivery-status` (UNCHECKED, 0 overdue, unread main merges such as 618d014), `nightly-status` (main's nightly), and `budget-raise-gate` (cancelled twin; its sibling succeeded). The diff raises no budget leaf. The merge may need the cancelled twin re-run (memory note: a cancelled budget gate blocks a merge).
+- pr-contract: success twice. The PR author is hpo-author[bot]. Commit-author "Tvofi2" is not read by pr-contract (round 2).
 
-   These match main's round-1 numbers exactly. `quiet_windows.py` is byte-identical to main e0f0b6fb (`git diff --quiet` passes). The round-1 user-visible reload change is therefore gone.
+## Notes, non-blocking
 
-   The mechanism is a new design. The coordinator replaces `self._ctx` with a copy carrying a re-parsed EntryConfig. Objects that captured the old `ctx._config` at construction keep the old object, for example `_disinfection_switch(hass, ctx._config)` at coordinator.py:2723. None of those reads quiet keys, so I found no divergence. Disclosed as judgement, not measurement.
-5. **fast (3.14): the stand-in fix holds locally.** `tests/manual_plan.py` at the head prints `ALL 128 manual plan checks PASSED`, rc 0. The `fast` check-run at the head does not exist.
+- `## Head` carries a stray second paragraph naming `6fa6f2aa4034044d30107b899f75b91562fa81d4`, which is not this head. The body does name 0dfb63a8 correctly (step 7), and pr-contract passed. The stray paragraph is a body-hygiene leftover for the next body re-take.
+- The design choice is the orchestrator's, under the mandate. The live quiet apply replaces `self._ctx` with a copy whose EntryConfig is re-parsed. Objects that captured the old config at construction, such as the disinfection switch, keep the old object. None of them reads quiet keys, so this is judgement, not a measurement.
+- VERSION, the manifest version and the RELEASE_NOTES heading are untouched. The structure budgets only go down (max_class_loc 8877, seam_cut_total 760). No budget raise.
 
-   `## Red checks` names every non-green check-run that existed at a390f589: typing, closures, closures-autofix, fast (3.14), mutation, mutation-autofix, delivery-status, nightly-status, pr-contract, budget-raise-gate (cancelled), and the two in dispatch run 37640455476. That matches pr-contract's own list at a390f589: "closures,closures-autofix,delivery-status,fast (3.14),mutation,mutation-autofix,nightly-status,typing".
-
-Structure: `STRUCTURE RATCHET PASSED`, with max_class_loc 8877 <= 8877, seam_cut_total 760 <= 760 and duplication_copies 38 <= 38. The budgets only go down against main (9104 -> 8877, 766 -> 760). My scan at the head: ATTR-NOT-A-FIELD 0, HOLDER-MAPPING-READS 0, UNDEFINED {}.
-
-## Author "Tvofi2"
-
-Commit 5947316c is authored `Tvofi2 <70032254+tvofi@users.noreply.github.com>`. pr-contract does not read commit authors. `.github/workflows/pr-contract.yml` passes `--author` the PR's `user.login` (`hpo-author[bot]` here), and `tools/policy/policy_lint.mjs`'s author check (decision 0011) keys on that login only. The pr-contract run at a390f589 whose range contains 5947316c (run 37647008682) concluded success. The failed twin (run 37647009251) failed on the unanswered reds, not on the author.
-
-## What is owed
-
-1. The fixer, or the orchestrator's update_pr, merges origin/main 09ba95d0. The claims.json/claims.md resolution must follow #2015's move: modify the moved `dev/audit/rounds/round4/D6/claims.md`, not the deleted `tools/audit/` copy. Then regenerate claims with the moved `claims.py`.
-2. Let CI run, then cite `typing`, `closures`, `fast (3.14)` and the mutation chain at that head.
-
-The judgement of the delta above (points 2 to 5) is the resolution baseline for the next round. Only the main-merge resolution delta and the CI results remain to judge.
-
-Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev2 (HEAD.txt, merge_tree_main.txt, quiet_reload.txt, quiet_reload_round1.txt, scan_head.txt, mutation_entities.txt, entities_M*.txt, manual_plan_head.txt, structure_head.txt, select_entry_config_only.txt, pins_old_lines.txt, joblog_prcontract_*.txt, pr-body.md, and the reviewer-built scan_attrs.py, quiet_reload_driver.py, mutate.py and mutate_coord.py). Round 1: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev.
+Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev3 (HEAD.txt, checkruns_head.tsv, joblog_112937895765.txt (fast), joblog_112938013797.txt (closures), joblog_112937895741.txt (typing), joblog_112937895475.txt / joblog_112940895162.txt (mutation chain), joblog_112937894446.txt (delivery-status), d15fc0ae_remerge.diff, resolution_paths.txt, closures_cover.txt, merge_tree_main.txt, claims_regen.txt, pr-body.md). Rounds 1 and 2: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev and -ev2.

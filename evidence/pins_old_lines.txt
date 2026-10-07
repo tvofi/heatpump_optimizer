@@ -1,7 +1,0 @@
-RESULT pin=HeatPumpOptimizerCoordinator._pv_export_price.RETURN_DEL.1429a210.json old_line_present_at_head=0
-RESULT pin=HeatPumpOptimizerCoordinator._solve_record.GUARD_OFF.1fc850f9.json old_line_present_at_head=0
-RESULT pin=HeatPumpOptimizerCoordinator.target_temperature.RETURN_DEL.3ac33f8f.json old_line_present_at_head=0
-RESULT pin=_grid_fee_entity_value.RETURN_DEL.c7b0bf3e.json old_line_present_at_head=0
-RESULT pin=_price_feed.RETURN_DEL.1522331d.json old_line_present_at_head=0
-RESULT pin=duty_mode.RETURN_DEL.1966339d.json old_line_present_at_head=0
-RESULT pin=IndoorTempSensor.extra_state_attributes.RETURN_DEL.084e343a.json old_line_present_at_head=0
