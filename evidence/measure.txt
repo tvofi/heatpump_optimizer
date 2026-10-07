@@ -1,0 +1,13 @@
+head 2a503e10424f37f60f38d626f09cb5625f623f8a
+merge-tree exit 0 stderr empty tree 480304c54a2138ec2322349fb99562d465457362
+delivery dev/programme/delivery/1997.md present; docs/delivery/1997.md absent
+closures recorded tests/block_duty.py rc 0; list contains custom_components/heatpump_optimizer/quiet_windows.py
+import loads heatpump_optimizer.quiet_windows via pump_arbiter -> setpoint_check
+probe 32 of 32
+block_duty ALL 46 BLOCK DUTY CHECKS PASSED
+window mutant rc 1: FAIL the tank at its minimum outside a demand window does not release (1 of 46)
+power mutant rc 1: FAIL a space block zeroes space power and not the supply switch; FAIL a space block does not invent power_normalized (2 of 46)
+selection-cost re-derived: 106 of 496, comparable 378, prod files 89; docstring contains those markers
+claims-only bcea74883bec1e3395377ff70d8640737c97fc3e rc 0: claims hygiene ok
+golden and claim files not in the three-dot diff; VERSION 6.7.16 untouched
+red union: closures, closures-autofix, delivery-status, fast (3.14), mutation, mutation-autofix, nightly-status; each backticked in ## Red checks
