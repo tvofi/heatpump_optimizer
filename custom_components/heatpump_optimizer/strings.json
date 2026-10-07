@@ -341,7 +341,7 @@
           "dhw_windows": "When you need hot water",
           "dhw_legionella_temperature": "Anti-legionella temperature",
           "dhw_legionella_interval_days": "Anti-legionella interval",
-          "silent_mode_windows": "Heat pump silent mode schedule",
+          "silent_mode_windows": "Pump's own night-mode schedule",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "space_setpoint_unit": "What that set-point entity expects",
           "mixing_valve_write_target_kind": "What the control entity expects",
@@ -1198,7 +1198,7 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Optional. The pump's own mode selector - cooling, heating, hot water, or a combination of two. Read only, unless Pump duty control is set to Control. A pump in a cooling or hot-water-only mode cannot heat the house, and one in a heating-only mode cannot make hot water, so without this the plan can promise heat the pump is not currently able to deliver. Left empty, the optimizer assumes the pump can do everything, exactly as before.",
-          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, 55 °C or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
+          "pump_duty_mode": "Off (the default) never writes the pump. Observe writes nothing and keeps a 24-hour ledger, in the diagnostics, of the duty each plan step asked for against what the pump did (from the power entity, the mode and the tank temperature). Control writes the operating mode above (hot water only on hot-water-only steps, heating only on space-heating-only steps, Heating + DHW when both are planned or a disinfection cycle is on, unchanged on idle steps), the hot water set-point entity (the hot water set-point configured on the hot water page) and the space set-point entity (for a flow set-point, a target that follows the planned power — the heating flow (55 °C, or flow_heat_c) at full power, toward the return temperature or 35 °C at a lower level — or the entity maximum on steps that heat the house, its minimum on steps that do not, and 35 °C or the weather curve when the plan is not in charge; for an indoor one, the planned room temperature). Where the mode offers no single-duty option, as on the GCHV Modbus package, the other duty's set-point is lowered to its minimum instead. A hot-water-only stretch is capped at 90 minutes (30 below -10 °C outdoors), unless the room is already at its planned temperature. While Optimizer active is on, any change to those entities the optimizer did not make is written back at once; turn Optimizer active off to change the pump by hand. A value the pump does not hold raises a warning and is sent again every 5 minutes.",
           "heat_pump_defrost_entity": "Optional. On while the pump reverses to melt frost off the outdoor coil. The electricity bought during a defrost goes into the coil rather than into the house. Note that many pumps are only polled every few minutes, so short defrosts are missed entirely: this is a sample of defrost activity, not a stopwatch.",
           "heat_pump_online_entity": "Optional, and strongly recommended for a cloud-connected pump. On while the pump is actually reachable. A cloud integration can keep republishing its last known readings while the pump itself has dropped off the network, which leaves every other sensor looking perfectly fresh; this is the one signal that says otherwise. On a local (LAN) connection the sensors go unavailable by themselves and this adds little.",
           "heat_pump_fault_entity": "Optional. On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself.",
@@ -1301,7 +1301,7 @@
           "fuse_guard_enabled": "Keep the plan under the main fuse",
           "peak_guard_enabled": "Live peak guard",
           "peak_guard_margin_kw": "Peak guard margin",
-          "silent_mode_windows": "Heat pump silent mode schedule",
+          "silent_mode_windows": "Pump's own night-mode schedule",
           "silent_mode_power_fraction": "Power kept in silent mode",
           "after_save": "After saving"
         },
@@ -1451,7 +1451,7 @@
           "dhw_windows": "When you need hot water",
           "dhw_legionella_temperature": "Anti-legionella temperature",
           "dhw_legionella_interval_days": "Anti-legionella interval",
-          "silent_mode_windows": "Heat pump silent mode schedule",
+          "silent_mode_windows": "Pump's own night-mode schedule",
           "heat_pump_max_power": "Heat pump max power (kW)",
           "space_setpoint_unit": "What that set-point entity expects",
           "mixing_valve_write_target_kind": "What the control entity expects",
@@ -2026,6 +2026,12 @@
       },
       "boost_space": {
         "name": "Boost Space Heating"
+      },
+      "block_dhw": {
+        "name": "Block DHW"
+      },
+      "block_space": {
+        "name": "Block Space Heating"
       },
       "optimizer_active": {
         "name": "Optimizer Active"

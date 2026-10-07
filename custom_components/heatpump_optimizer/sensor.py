@@ -118,6 +118,8 @@ def _quiet_windows_attributes(coordinator: Any, data: Any) -> dict[str, Any]:
     out: dict[str, Any] = dict(specs)
     if specs.get("quiet_silent_not_enforced"):
         out["quiet_silent_not_enforced"] = True
+    cfg = coordinator.effective_config
+    out["silent_mode_power_fraction"] = cfg.silent_mode_power_fraction
     actions = (data.get("predictive_info") or {}).get("quiet_actions")
     if actions:
         out["quiet_actions"] = actions
@@ -1612,7 +1614,6 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                     # editor above keeps `dhw_windows_spec`, the
                     # configuration it writes back; this one is read-only.
                     **_resolved_dhw_attribute(resolved_spec),
-                    **_quiet_windows_attributes(self.coordinator, data),  # #1910
                     "dhw_min_temperature": data.get("dhw_min_temperature"),
                     "dhw_setpoint": data.get("dhw_setpoint"),
                     # The ceiling the hot water minimum has to stay under,
@@ -1629,6 +1630,7 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
                 if dhw_configured
                 else {}
             ),
+            **_quiet_windows_attributes(self.coordinator, data),  # #1910
             # The active manual override (or None). The card reads this to show
             # which slots are pinned and which pins safety had to release.
             "manual_override": data.get("manual_plan"),

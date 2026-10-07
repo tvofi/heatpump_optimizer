@@ -2349,6 +2349,56 @@ R.check(
     f"keys={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_on_attrs)} -- "
     "flipping only dhw_enabled must bring the whole block back",
 )
+# Review of #2009: the quiet spread sat inside `if dhw_configured` on the
+# populated plan branch, so a space-only house that published the keys
+# before the first plan omitted them once a plan existed. The card then
+# saved empty specs over the stored rows. The DHW block stays gated.
+_QUIET_PUB_KEYS = (
+    "quiet_silent_windows_spec",
+    "quiet_off_windows_spec",
+    "silent_mode_power_fraction",
+)
+
+
+class _QuietNoDhwCoord(FakeCoordinator):
+    def configured_quiet_windows(self):
+        return {
+            "quiet_silent_windows_spec": "22:00-06:00",
+            "quiet_off_windows_spec": "14:00-15:00",
+        }
+
+
+def _quiet_pub_keys(attrs):
+    return [k for k in _QUIET_PUB_KEYS if k in attrs]
+
+
+_quiet_no_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(_NO_DHW_DATA), ENTRY
+).extra_state_attributes
+_quiet_no_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY
+).extra_state_attributes
+_quiet_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(
+        {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "a plant with no hot water still publishes quiet keys before a plan exists",
+    _quiet_pub_keys(_quiet_no_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_plan_attrs)}",
+)
+R.check(
+    "and still publishes them once a space plan exists (#2009)",
+    _quiet_pub_keys(_quiet_no_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_dhw_plan_attrs)}",
+)
+R.check(
+    "the same payload with hot water configured still publishes the quiet keys",
+    _quiet_pub_keys(_quiet_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_dhw_plan_attrs)}",
+)
 R.check(
     "the plan sensor publishes wood_fuel for the card (#463)",
     space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],
@@ -10141,7 +10191,7 @@ R.check(
 )
 
 switches = collect(switch_mod)
-R.check("the switch platform adds the optimizer, away and boost switches", len(switches) == 4)
+R.check("the switch platform adds the optimizer, away, boost and block switches", len(switches) == 6)
 sw = next(
     s for s in switches
     if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_optimizer_active"
@@ -10268,6 +10318,72 @@ try:
 finally:
     _boost_mod.persist = _boost_persist_real
 
+dhw_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_dhw"
+)
+space_block_sw = next(
+    s for s in switches
+    if getattr(s, "entity_id", "") == "switch.heat_pump_optimizer_block_space"
+)
+R.check(
+    "the block switches pin block_dhw and block_space",
+    dhw_block_sw._attr_unique_id.endswith("_block_dhw")
+    and space_block_sw._attr_unique_id.endswith("_block_space")
+    and dhw_block_sw.entity_id == "switch.heat_pump_optimizer_block_dhw"
+    and space_block_sw.entity_id == "switch.heat_pump_optimizer_block_space",
+    f"{dhw_block_sw._attr_unique_id} {space_block_sw.entity_id}",
+)
+R.check(
+    "the block switches are named Block DHW and Block Space Heating",
+    display_name("switch", dhw_block_sw) == "Block DHW"
+    and display_name("switch", space_block_sw) == "Block Space Heating",
+    f"{display_name('switch', dhw_block_sw)} / {display_name('switch', space_block_sw)}",
+)
+R.check(
+    "Block DHW is gated like the DHW boost switch",
+    isinstance(dhw_block_sw, _DHWGate) and not isinstance(space_block_sw, _DHWGate),
+)
+_block_persisted = []
+_block_held = _boost_mod.held_for(dhw_block_sw.coordinator)
+_block_held.until.clear()
+_block_held.blocked.clear()
+
+
+async def _block_persist_recorder(coord):
+    held = _boost_mod.held_for(coord)
+    _block_persisted.append((sorted(held.until), sorted(held.blocked)))
+
+
+_boost_mod.persist = _block_persist_recorder
+try:
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "turning Block DHW on holds the block channel and not the boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_boost_sw.async_turn_on())
+    R.check(
+        "a later DHW boost press clears the DHW block",
+        _block_persisted[-1:] == [(["dhw"], [])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_on())
+    R.check(
+        "a later Block DHW press clears the DHW boost",
+        _block_persisted[-1:] == [([], ["dhw"])],
+        str(_block_persisted),
+    )
+    asyncio.run(dhw_block_sw.async_turn_off())
+    R.check(
+        "turning Block DHW off releases the block channel",
+        _block_persisted[-1:] == [([], [])],
+        str(_block_persisted),
+    )
+finally:
+    _boost_mod.persist = _boost_persist_real
+
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
 # starts at the real coordinator's default (auto) or the restored mode -- not
@@ -10303,9 +10419,11 @@ _sw_live_data = {**DATA, "mode": const.MODE_AUTO, "away_override_active": True}
 _sw_live = {
     cls.__name__: cls(FakeCoordinator(dict(_sw_live_data)), ENTRY)
     for cls in (switch_mod.OptimizerEnableSwitch, switch_mod.AwaySwitch,
-                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch)
+                switch_mod.BoostDhwSwitch, switch_mod.BoostSpaceSwitch,
+                switch_mod.BlockDhwSwitch, switch_mod.BlockSpaceSwitch)
 }
-for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch"):
+for _sw_name in ("BoostDhwSwitch", "BoostSpaceSwitch",
+                 "BlockDhwSwitch", "BlockSpaceSwitch"):
     asyncio.run(_sw_live[_sw_name].async_turn_on())
 for _sw in _sw_live.values():
     _sw.__dict__.pop("ha_state_writes", None)
@@ -24685,6 +24803,12 @@ _RAF_JOB = "\n".join(
     _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
 _RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
 _RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+# The write set's directory is the generator's own row path, not a second
+# spelling: the job staged `docs/delivery` after the rows moved to
+# `dev/programme/delivery`, so `git add` matched nothing, every beat read
+# "nothing-owed", and `record` stayed red on main.
+_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
+                         if "_rr" in globals() else "?")
 
 
 def _raf_job_ok(job: str) -> bool:
@@ -24696,7 +24820,7 @@ def _raf_job_ok(job: str) -> bool:
         and "github.ref == 'refs/heads/main'" in job
         and "environment: record-writer" in job
         and job.count('git commit -q -m "ci: record delivery rows"') == 2
-        and adds == ["git add docs/delivery", "git add docs/delivery"]
+        and adds == [_RAF_ADD, _RAF_ADD]
         and job.find("--write-self-row") > job.find("NUM=$(")
         and "docs/HANDOVER.md" not in job
         and "for try in 1 2 3" in job
@@ -24730,8 +24854,7 @@ R.check(
         "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
     and not _raf_job_ok(_RAF_JOB.replace(
         'git commit -q -m "ci: record delivery rows"', "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("git add docs/delivery",
-                                         "git add -A", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
