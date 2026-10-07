@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9c-rev-1987-r2.ev/base_59b5/tests/debug_collect.py", line 29, in <module>
+    from heatpump_optimizer import debugger
+ImportError: cannot import name 'debugger' from 'heatpump_optimizer' (/Users/timmalmstrom/hpo-seats/r9c-rev-1987-r2.ev/base_59b5/custom_components/heatpump_optimizer/__init__.py)

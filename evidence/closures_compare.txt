@@ -1,0 +1,34 @@
+== 95ad top keys ['_comment', 'closures', 'inert_reads', 'recorded']
+ recorded.tests/debug_collect.py: None -> {'seconds': 2.2, 'rc': 0}
+ recorded.tests/features.py: {'seconds': 542.9, 'rc': 0} -> {'seconds': 856.4, 'rc': 0}
+ closures.tests/arch_score_head.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/config_flow_steps.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/debug_collect.py: None -> ['custom_components/heatpump_optimizer/__init__.py', 'custom_components/heatpump
+ closures.tests/deployment_shape.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/doc_claims.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/entities.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/env_drift.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/features.py: +['custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/services.yaml'] -[]
+ closures.tests/finite_boundary.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/golden.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/harness_headers.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/manual_plan.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/structure.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/typing_ruler.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+== head top keys ['_comment', 'closures', 'inert_reads', 'recorded']
+ recorded.tests/debug_collect.py: None -> {'seconds': 2.2, 'rc': 0}
+ recorded.tests/features.py: {'seconds': 276.5, 'rc': 0} -> {'seconds': 856.4, 'rc': 0}
+ closures.tests/arch_score_head.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/config_flow_steps.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/debug_collect.py: None -> ['custom_components/heatpump_optimizer/__init__.py', 'custom_components/heatpump
+ closures.tests/deployment_shape.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/doc_claims.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/entities.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/env_drift.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/features.py: +['custom_components/heatpump_optimizer/debugger.py', 'custom_components/heatpump_optimizer/services.yaml'] -[]
+ closures.tests/finite_boundary.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/golden.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/harness_headers.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/manual_plan.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/structure.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]
+ closures.tests/typing_ruler.py: +['custom_components/heatpump_optimizer/debugger.py'] -[]

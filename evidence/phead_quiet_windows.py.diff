@@ -1,0 +1,65 @@
+diff --git a/custom_components/heatpump_optimizer/quiet_windows.py b/custom_components/heatpump_optimizer/quiet_windows.py
+index 6df9c865..1ed0aadd 100644
+--- a/custom_components/heatpump_optimizer/quiet_windows.py
++++ b/custom_components/heatpump_optimizer/quiet_windows.py
+@@ -455,6 +455,60 @@ def compose(
+     )
+ 
+ 
++def compose_with_silent(
++    caps_extra: np.ndarray | None,
++    config: Mapping[str, Any],
++    get_state: Callable[[str], Any] | None,
++    start_time: datetime,
++    n_steps: int,
++    dt_hours: float,
++    p_max: float,
++    *,
++    optimizer_active: bool = True,
++) -> QuietCompose:
++    """The pump's silent-mode schedule, then the user's quiet windows.
++
++    Silent rows of either source cap through ``power_caps_extra``. Off rows
++    come back as ``off_steps``. Nothing is planned for a window while the
++    optimizer is off, and a silent quiet-window row needs a control that
++    can be held. Hass state is read here, on the loop (#1067, #1910).
++    """
++    from . import silent_mode
++
++    caps = silent_mode.compose(
++        caps_extra, config, start_time, n_steps, dt_hours, p_max,
++    )
++    return compose(
++        caps, config, get_state, start_time, n_steps, dt_hours, p_max,
++        optimizer_active=optimizer_active,
++    )
++
++
++def configured_specs(
++    config: Mapping[str, Any], get_state: Callable[[str], Any] | None = None
++) -> dict[str, str]:
++    """The quiet-window specs as configured, one per action (#1910).
++
++    The card's editor edits the configuration, so it needs the configuration
++    -- in the shared grammar, empty string for "no rows" -- not the plan's
++    reading of it. The specs are stored canonical by the services that write
++    them, so they are handed back as stored. A silent spec no control can
++    fully hold carries the not-enforced marker; ``silent_unenforceable``
++    decides it -- a switch from its entity ID's domain and never its state,
++    so one that has not reported yet (state ``unknown``) is not dropped:
++    unknown is not off.
++    """
++    out: dict[str, str] = {
++        "quiet_silent_windows_spec": str(
++            config.get(CONF_QUIET_SILENT_WINDOWS) or ""
++        ),
++        "quiet_off_windows_spec": str(config.get(CONF_QUIET_OFF_WINDOWS) or ""),
++    }
++    if silent_unenforceable(config, get_state):
++        out["quiet_silent_not_enforced"] = "true"
++    return out
++
++
+ def overridden_config(
+     config: Mapping[str, Any], overrides: Mapping[str, Any]
+ ) -> Mapping[str, Any]:

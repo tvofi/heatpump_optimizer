@@ -1,0 +1,12 @@
+RESULT pr_patch_files_95ad=91 count
+RESULT pr_patch_files_head=91 count
+RESULT pr_patch_changed_files=3 count   (coordinator.py, quiet_windows.py, tests/closures.json)
+RESULT merge_tree_origin_main_rc=0 count
+RESULT debug_collect_head=30 count (ALL 30 DEBUG COLLECT CHECKS PASSED)
+RESULT debug_collect_base=import-error count (debugger absent at 59b5ac6e)
+RESULT mutant_domain_guard=fail count (1 of 30)
+RESULT mutant_C_guard_off_507=fail count (manual_plan 1 of 129)
+RESULT null_manual_plan=pass count (ALL 129)
+RESULT added_unpinned=1 count (quiet_windows.py:507 GUARD_OFF)
+RESULT ci_mutation=failure count (job 112770100732)
+RESULT ci_mutation_autofix=skip-no-measurement count (job 112772526098)
