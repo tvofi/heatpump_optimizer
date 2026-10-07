@@ -28,7 +28,7 @@ from harness import FakeCoordinator, FakeEntry, FakeHass, Results
 from heatpump_optimizer import button as button_mod
 from heatpump_optimizer import debugger
 from heatpump_optimizer.const import CONF_DEBUG_COLLECT, DOMAIN
-from heatpump_optimizer.store import Domain, _scalar_domain, stored_fields
+from heatpump_optimizer.store import Domain, _scalar_domain, admitted, stored_fields
 
 R = Results("debug collection guards (#1939)")
 T0 = datetime(2026, 1, 12, tzinfo=timezone.utc)
@@ -379,6 +379,256 @@ R.check(
     "a real flag still reaches its declared domain",
     any(path == ("final",) and value is True for path, _key, _domain, value in walked),
     str(walked),
+)
+
+# -- the self-tests (R9-DBG-2, #1940) -----------------------------------------
+from heatpump_optimizer import diagnostics as diagnostics_mod
+from heatpump_optimizer.accuracy import AccuracySample, AccuracyTracker
+
+
+def _sample(minutes, predicted, actual):
+    return AccuracySample(when=T0 + timedelta(minutes=minutes),
+                          predicted_temp=predicted, actual_temp=actual).as_dict()
+
+
+acc_key = debugger.store_keys("dbg")["accuracy"]
+clean = {acc_key: (1, {"samples": [_sample(0, 21.0, 20.5)]})}
+nan = {acc_key: (1, {"samples": [{**_sample(0, 21.0, 20.5), "predicted_temp": float("nan")}]})}
+off = {acc_key: (1, {"samples": [_sample(0, 21.0, 20.5)], "junk": 1})}
+reports = [debugger.store_report(s)[acc_key] for s in (clean, nan, off)]
+R.check(
+    "the store self-test names a field off its domain and a leaf the quarantine scrubs, "
+    "and reports neither on a clean document",
+    reports[0]["off_domain"] == [] and reports[0]["quarantined"] is False
+    and reports[1]["quarantined"] is True
+    and reports[2]["off_domain"] == ["junk"] and reports[2]["quarantined"] is False,
+    str(reports),
+)
+live = AccuracyTracker()
+for minutes in range(3):
+    live.samples.append(AccuracySample.from_dict(_sample(minutes, 21.0, 21.0)))
+stored_acc = {"samples": [_sample(0, 21.0, 20.0), _sample(15, 21.0, 20.0), {"t": "nope"}]}
+monitor = debugger.accuracy_report(stored_acc, live)
+R.check(
+    "the monitor self-test re-derives bias from the stored window beside the live one, "
+    "and counts the stored samples the loader drops",
+    monitor["store"]["temperature_bias"] == 1.0 and monitor["live"]["temperature_bias"] == 0.0
+    and monitor["stored_samples"] == 3 and monitor["restored_samples"] == 2,
+    str(monitor),
+)
+R.check(
+    "the monitor self-test of an install with no accuracy store reads an empty tracker",
+    debugger.accuracy_report(None, live)["stored_samples"] == 0,
+)
+R.check(
+    "a spread is count, min, median and max, and nothing for no values",
+    debugger.spread([3.0, 1.0, 2.0]) == {"n": 3, "min": 1.0, "median": 2.0, "max": 3.0}
+    and debugger.spread([]) is None,
+)
+week = [_row(indoor_temp=21.0, prices_rows=96, solve_failures=1),
+        _row(indoor_temp=21.0, prices_rows=0, weather_stale_h=3.0, solve_failures=1),
+        _row(indoor_temp=21.0, prices_rows=96, solve_failures=3),
+        _row(indoor_temp=20.5, prices_rows=96, weather_stale_h=0.0, solve_failures=3),
+        _row(prices_rows=96, solve_failures=3)]
+sensors = debugger.sensor_sanity(week, {"problem_inputs": ["sensor.x"], "mode": "auto"})
+R.check(
+    "the sensor self-test counts a missing reading and the longest unchanged run per input, "
+    "and reads the live input-health view",
+    sensors["indoor_temp"]["missing"] == 1 and sensors["indoor_temp"]["longest_flat"] == 3
+    and sensors["outdoor_temp"]["missing"] == 5 and sensors["outdoor_temp"]["longest_flat"] == 0
+    and sensors["now"] == {"problem_inputs": ["sensor.x"], "input_ages_minutes": None,
+                           "learners_frozen": None},
+    str(sensors),
+)
+feeds = debugger.feed_health(week)
+R.check(
+    "the feed self-test counts cycles with no prices, cycles with a stale forecast, and the "
+    "solve failures the week added",
+    feeds["cycles"] == 5 and feeds["no_prices"] == 1 and feeds["weather_stale_cycles"] == 1
+    and feeds["weather_stale_h_max"] == 3.0 and feeds["solve_failures_added"] == 2,
+    str(feeds),
+)
+R.check(
+    "the feed self-test of an empty ring adds no failures",
+    debugger.feed_health([])["solve_failures_added"] == 0,
+)
+
+
+async def _boom():
+    raise RuntimeError("bad store")
+
+
+async def _slow():
+    await asyncio.sleep(5)
+
+
+async def _fine():
+    return {"ok": True}
+
+
+ran = asyncio.run(debugger.run_self_tests(
+    [("boom", _boom), ("fine", _fine), ("slow", _slow), ("late", _fine)], 0.2))
+R.check(
+    "a self-test that raises is recorded and the next still runs; one past the budget is "
+    "cut off, and those after it are skipped",
+    "bad store" in ran["boom"]["error"] and ran["fine"]["result"] == {"ok": True}
+    and ran["slow"]["error"] == "timeout" and ran["late"] == {"skipped": "budget"},
+    str(ran),
+)
+R.check(
+    "the self-tests' budget is the owner's fifteen minutes",
+    debugger.SELF_TEST_BUDGET == timedelta(minutes=15),
+)
+
+
+class _SimCoord(_Coord):
+    def __init__(self, **kw):
+        super().__init__(**kw)
+        self.accuracy = live
+        self.simulated = []
+        self.integration_version = "0.0.0"
+
+    async def async_simulate(self, overrides, *, limited=True, base=None):
+        self.simulated.append((overrides, limited))
+        return {"cost_delta": 0.0, "baseline_cost": 12.5}
+
+
+def _disk_hass(folder):
+    hass = FakeHass()
+    hass.config.path = lambda *parts: str(Path(folder, *parts))
+    return hass
+
+
+async def _finish(folder):
+    storage._DISK.clear()
+    storage._VERSIONS.clear()
+    (Path(folder) / ".storage").mkdir()
+    (Path(folder) / ".storage" / acc_key).write_text(
+        json.dumps({"version": 1, "data": stored_acc}), encoding="utf-8")
+    pending: list = []
+    collector = debugger.DebugCollector(_disk_hass(folder), "dbg", pending.append)
+    coord = _SimCoord(data={"problem_inputs": []})
+    collector.record(coord, {"mode": "auto"}, T0)
+    collector.rows[-1]["payload_solve_time_ms"] = 40.0
+    collector.finalize(coord)
+    final_now = collector.final
+    for coro in pending:
+        await coro
+    reloaded = debugger.DebugCollector(_disk_hass(folder), "dbg", lambda c: c.close())
+    await reloaded.async_load()
+    bundle = await collector.async_bundle(coord)
+    return final_now, collector, coord, reloaded, bundle
+
+
+with tempfile.TemporaryDirectory() as tmp:
+    final_now, finished, sim_coord, reloaded, bundle = asyncio.run(_finish(tmp))
+tests = finished.self_tests or {}
+R.check(
+    "finalizing stops the collection at once and runs the five self-tests after it",
+    final_now and set(tests) == {"stores", "accuracy", "solver", "sensors", "feeds"}
+    and all("result" in tests[name] for name in tests),
+    str(tests),
+)
+R.check(
+    "the solver self-test solves once without the user's limiter and reports the week's "
+    "solve times beside it",
+    sim_coord.simulated == [({}, False)]
+    and tests["solver"]["result"]["cost_delta"] == 0.0
+    and tests["solver"]["result"]["week_solve_ms"]["max"] == 40.0,
+    str(tests.get("solver")),
+)
+R.check(
+    "the self-tests read the entry's own store documents from disk",
+    acc_key in tests["stores"]["result"]
+    and tests["accuracy"]["result"]["stored_samples"] == 3,
+    str(tests.get("stores")),
+)
+R.check(
+    "the self-test results survive a reload and ride the bundle's manifest",
+    reloaded.self_tests == json.loads(json.dumps(tests))
+    and bundle["manifest"]["self_tests"] is finished.self_tests,
+    str(reloaded.self_tests)[:200],
+)
+R.check(
+    "a ring carrying its self-test results is inside the debug store's domain",
+    admitted("debug", finished.as_dict()),
+)
+
+
+async def _stale_finish():
+    pending: list = []
+    collector = debugger.DebugCollector(FakeHass(), "dbg", pending.append)
+    collector._read = lambda: _no_stores()
+    coord = _SimCoord()
+    collector.record(coord, {"mode": "auto"}, T0)
+    collector.finalize(coord)
+    collector.restart()
+    for coro in pending:
+        await coro
+    return collector
+
+
+async def _no_stores():
+    return {}
+
+
+stale = asyncio.run(_stale_finish())
+R.check(
+    "self-test results that finish after the collection restarted are discarded",
+    stale.self_tests is None and stale.final is False,
+    str(stale.self_tests)[:200],
+)
+R.check(
+    "a loaded ring whose self-test text does not parse carries no results",
+    debugger._parsed("{") is None,
+)
+
+# -- the inline cap -----------------------------------------------------------
+small = {"schema": debugger.BUNDLE_SCHEMA, "manifest": {"cycles": 1}, "cycle_rows": [_row()]}
+size = len(debugger._dumps(small).encode())
+inline = debugger.capped(small, "k", cap=size)
+summary = debugger.capped(small, "k", cap=size - 1)
+R.check(
+    "a bundle at the cap is carried inline, and one byte over it is the summary",
+    inline is small
+    and summary == {"schema": debugger.BUNDLE_SCHEMA, "manifest": {"cycles": 1},
+                    "inline": False, "bytes": size, "cap_bytes": size - 1,
+                    "store_file": ".storage/k"},
+    str(summary),
+)
+R.check(
+    "the inline cap is the pre-study's 8 MB",
+    debugger.INLINE_CAP_BYTES == 8 * 1024 * 1024,
+)
+
+
+async def _download(cap):
+    coord = FakeCoordinator()
+    entry = FakeEntry(entry_id="dl", options={CONF_DEBUG_COLLECT: True})
+    entry.runtime_data = coord
+    hass = _disk_hass(tempfile.gettempdir())
+    collector = debugger.DebugCollector(hass, "dl", lambda c: c.close())
+    collector.started_at = T0
+    collector.rows = [_row()] * 50
+    debugger._COLLECTORS[coord] = collector
+    saved = debugger.INLINE_CAP_BYTES
+    debugger.INLINE_CAP_BYTES = cap
+    try:
+        return (await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry))["debug"]
+    finally:
+        debugger.INLINE_CAP_BYTES = saved
+        debugger._COLLECTORS.pop(coord, None)
+
+
+big = asyncio.run(_download(1000))
+whole = asyncio.run(_download(debugger.INLINE_CAP_BYTES))
+R.check(
+    "Download diagnostics carries the summary and the store file when the bundle is over "
+    "the cap, and the whole bundle under it",
+    big.get("inline") is False and big["store_file"] == f".storage/{DOMAIN}_dl_debug"
+    and "cycle_rows" not in big
+    and len(whole["cycle_rows"]) == 50 and "inline" not in whole,
+    str(big)[:300],
 )
 
 dt_util.freeze(None)
