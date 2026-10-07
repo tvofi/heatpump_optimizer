@@ -2349,6 +2349,56 @@ R.check(
     f"keys={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_on_attrs)} -- "
     "flipping only dhw_enabled must bring the whole block back",
 )
+# Review of #2009: the quiet spread sat inside `if dhw_configured` on the
+# populated plan branch, so a space-only house that published the keys
+# before the first plan omitted them once a plan existed. The card then
+# saved empty specs over the stored rows. The DHW block stays gated.
+_QUIET_PUB_KEYS = (
+    "quiet_silent_windows_spec",
+    "quiet_off_windows_spec",
+    "silent_mode_power_fraction",
+)
+
+
+class _QuietNoDhwCoord(FakeCoordinator):
+    def configured_quiet_windows(self):
+        return {
+            "quiet_silent_windows_spec": "22:00-06:00",
+            "quiet_off_windows_spec": "14:00-15:00",
+        }
+
+
+def _quiet_pub_keys(attrs):
+    return [k for k in _QUIET_PUB_KEYS if k in attrs]
+
+
+_quiet_no_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(_NO_DHW_DATA), ENTRY
+).extra_state_attributes
+_quiet_no_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY
+).extra_state_attributes
+_quiet_dhw_plan_attrs = sensor.SpaceHeatingPlanSensor(
+    _QuietNoDhwCoord(
+        {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
+    ),
+    ENTRY,
+).extra_state_attributes
+R.check(
+    "a plant with no hot water still publishes quiet keys before a plan exists",
+    _quiet_pub_keys(_quiet_no_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_plan_attrs)}",
+)
+R.check(
+    "and still publishes them once a space plan exists (#2009)",
+    _quiet_pub_keys(_quiet_no_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_no_dhw_plan_attrs)}",
+)
+R.check(
+    "the same payload with hot water configured still publishes the quiet keys",
+    _quiet_pub_keys(_quiet_dhw_plan_attrs) == list(_QUIET_PUB_KEYS),
+    f"keys={_quiet_pub_keys(_quiet_dhw_plan_attrs)}",
+)
 R.check(
     "the plan sensor publishes wood_fuel for the card (#463)",
     space_plan.extra_state_attributes.get("wood_fuel") == DATA["wood_fuel"],

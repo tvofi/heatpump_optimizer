@@ -2466,6 +2466,25 @@ function formatWindows(windows) {
     .join(", ");
 }
 
+/** Quiet specs the service call should send. Empty strings omitted: Python's
+ * `_canonical_quiet_updates({})` is `{}`, and `_canonical_quiet_updates` of
+ * both specs as `""` writes those empties over stored rows (#2009). */
+function quietServiceFields(draft) {
+  const silent = formatWindows(
+    (draft.quietWindows || []).filter((w) => w.action !== "off")
+  );
+  const off = formatWindows(
+    (draft.quietWindows || []).filter((w) => w.action === "off")
+  );
+  const out = {};
+  if (silent) out.quiet_silent_windows = silent;
+  if (off) out.quiet_off_windows = off;
+  out.silent_mode_power_fraction = Number.isFinite(Number(draft.silentFraction))
+    ? Number(draft.silentFraction)
+    : 1;
+  return out;
+}
+
 const QUIET_DAY_NAMES = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
@@ -4680,24 +4699,12 @@ function cardStyleBlock(darkMode) {
       .whatif .wi-quiet-window {
         display: flex; align-items: center; gap: 0.4em; flex-wrap: wrap;
       }
-      .whatif .wi-quiet-action,
-      .whatif .wi-quiet-days {
-        font: inherit; font-size: 0.9em; max-width: 8.5em;
-        border: 1px solid var(--hpo-divider, #e0e0e0); border-radius: 0.3em;
-        background: transparent; color: var(--hpo-text, #212121);
-        padding: 0.15em 0.2em;
-      }
-      .whatif .wi-quiet-unenforced {
-        font-size: 0.8em; color: var(--hpo-warn, #8a5a00);
-      }
-      .whatif .wi-quiet-frac-note {
-        font-size: 0.85em; color: var(--hpo-text-2, #727272);
-      }
+      /* Colour from reached DHW rules (wi-win-days, wi-hint, .whatif button). */
+      .whatif .wi-quiet-unenforced { font-size: 0.8em; }
+      .whatif .wi-quiet-frac-note { font-size: 0.85em; }
       .whatif .wi-quiet-remove {
         border: none; padding: 0 0.4em; font-size: 1.1em; line-height: 1;
-        color: var(--hpo-text-2, #727272);
       }
-      .whatif .wi-quiet-remove:hover { color: ${errorColor}; }
       .whatif .wi-add-quiet { align-self: flex-start; font-size: 0.9em; }
       .whatif .wi-win-days {
         font: inherit; font-size: 0.9em; max-width: 8.5em;
@@ -10673,7 +10680,7 @@ class WhatIfPanel {
             const silent = w.action !== "off";
             return `
                 <div class="wi-quiet-window" data-index="${i}">
-                  <select class="wi-quiet-days" aria-label="${esc(
+                  <select class="wi-quiet-days wi-win-days" aria-label="${esc(
                     L("whatif.window_days_aria", { n: i + 1 })
                   )}">${daysOptionsHtml(w.days)}</select>
                   <input type="time" class="wi-quiet-start" step="900"
@@ -10685,7 +10692,7 @@ class WhatIfPanel {
                     value="${esc(w.end)}" aria-label="${esc(
                       L("whatif.window_end_aria", { n: i + 1 })
                     )}">
-                  <select class="wi-quiet-action" aria-label="${esc(
+                  <select class="wi-quiet-action wi-win-days" aria-label="${esc(
                     L("whatif.quiet_action_aria", { n: i + 1 })
                   )}">
                     <option value="silent"${silent ? " selected" : ""}>${esc(
@@ -10701,7 +10708,7 @@ class WhatIfPanel {
                     )}">×</button>
                   ${
                     silent && markSilent
-                      ? `<span class="wi-quiet-unenforced">${esc(
+                      ? `<span class="wi-quiet-unenforced wi-hint wi-warn">${esc(
                           L("whatif.quiet_not_enforced")
                         )}</span>`
                       : ""
@@ -10718,7 +10725,7 @@ class WhatIfPanel {
               <span class="wi-value">${fracVal.toFixed(2)}</span>
             </label>${
               fracVal >= 1
-                ? `<div class="wi-quiet-frac-note">${L("whatif.quiet_frac_note")}</div>`
+                ? `<div class="wi-quiet-frac-note wi-hint">${L("whatif.quiet_frac_note")}</div>`
                 : ""
             }`
       : "";
@@ -11006,15 +11013,7 @@ class WhatIfPanel {
         day_start_hour: draft.dayStart,
         day_end_hour: draft.dayEnd,
         dhw_windows: formatWindows(draft.dhwWindows),
-        quiet_silent_windows: formatWindows(
-          (draft.quietWindows || []).filter((w) => w.action !== "off")
-        ),
-        quiet_off_windows: formatWindows(
-          (draft.quietWindows || []).filter((w) => w.action === "off")
-        ),
-        silent_mode_power_fraction: Number.isFinite(Number(draft.silentFraction))
-          ? Number(draft.silentFraction)
-          : 1,
+        ...quietServiceFields(draft),
         comfort_temp_day: draft.comfort,
         dhw_min_temperature: draft.dhwMin,
       });
@@ -11061,15 +11060,7 @@ class WhatIfPanel {
       // thing to price, and it is how a user asks "what if I stopped
       // guaranteeing hot water at fixed times?"
       dhw_windows: formatWindows(draft.dhwWindows),
-      quiet_silent_windows: formatWindows(
-        (draft.quietWindows || []).filter((w) => w.action !== "off")
-      ),
-      quiet_off_windows: formatWindows(
-        (draft.quietWindows || []).filter((w) => w.action === "off")
-      ),
-      silent_mode_power_fraction: Number.isFinite(Number(draft.silentFraction))
-        ? Number(draft.silentFraction)
-        : 1,
+      ...quietServiceFields(draft),
     };
     const slots = (draft.woodSlots || []).filter(
       (s) => s.liters > 0 && s.start && s.end

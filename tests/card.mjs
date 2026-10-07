@@ -7914,9 +7914,13 @@ const setupBox = (card, place) =>
     /Silent windows/.test(qDump));
   check("each silent row is the hot-water row plus an action select",
     (qDump.match(/class="wi-quiet-window"/g) || []).length === 2 &&
-    (qDump.match(/class="wi-quiet-action"/g) || []).length === 2 &&
+    (qDump.match(/class="wi-quiet-action/g) || []).length === 2 &&
     /<option value="silent" selected>Silent<\/option>/.test(qDump) &&
-    /<option value="off" selected>Off<\/option>/.test(qDump));
+    /<option value="off" selected>Off<\/option>/.test(qDump),
+    `windows=${(qDump.match(/class="wi-quiet-window"/g) || []).length} ` +
+    `actions=${(qDump.match(/class="wi-quiet-action/g) || []).length} ` +
+    `silent=${/<option value="silent" selected>Silent<\/option>/.test(qDump)} ` +
+    `off=${/<option value="off" selected>Off<\/option>/.test(qDump)}`);
   check("the draft splits the two published specs by action",
     qed.whatIf.draft().quietWindows.length === 2 &&
     qed.whatIf.draft().quietWindows[0].action === "silent" &&
@@ -8032,10 +8036,18 @@ const setupBox = (card, place) =>
   emptyQ.whatIf.draft().quietWindows = [];
   called = null;
   await emptyQ.whatIf.onApplySlots({ stopPropagation(){} });
-  check("an empty quiet schedule is sent explicitly, not omitted",
-    called && called.data.quiet_silent_windows === "" &&
-    called.data.quiet_off_windows === "" &&
-    "quiet_silent_windows" in called.data);
+  check("an empty quiet schedule is omitted, matching an absent Python update",
+    called && !("quiet_silent_windows" in called.data) &&
+    !("quiet_off_windows" in called.data),
+    called && JSON.stringify(called.data));
+  called = null;
+  await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
+  await emptyQ.whatIf.onSaveSchedule({ stopPropagation(){} });
+  check("Save omits empty quiet specs so a stored schedule is not overwritten",
+    called && called.service === "apply_schedule" &&
+    !("quiet_silent_windows" in called.data) &&
+    !("quiet_off_windows" in called.data),
+    called && JSON.stringify(called.data));
 
   const svQ = new Card();
   svQ.setConfig({ type: "custom:heatpump-optimizer-card", what_if: true });
