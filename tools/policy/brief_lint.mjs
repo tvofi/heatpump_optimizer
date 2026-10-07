@@ -89,8 +89,21 @@ function basenameMap(files) {
 }
 
 const FIXTURES = at(path.posix.join(path.relative(ROOT, HERE), 'fixtures'))
-// The rosters and carries named by `re` among `.claude/workflows/`'s entries, wherever each now lives.
-const workflowFiles = (re) => listDir('.claude/workflows').filter((f) => re.test(f)).map((f) => at(`.claude/workflows/${f}`))
+// Rosters stay under `.claude/workflows/` until they are archived. Live carries
+// moved to dev/programme/carries/ (R9-RO-5); a carry still at the old path is
+// one this pull request did not move. Both directories are read, and `at`
+// follows a carry the move map relocated.
+const workflowFiles = (re) => {
+  const names = new Set(listDir('.claude/workflows').filter((f) => re.test(f)))
+  try {
+    for (const f of fs.readdirSync(at('dev/programme/carries'))) if (re.test(f)) names.add(f)
+  } catch { /* the directory arrives with the programme move */ }
+  return [...names].sort().map((f) => {
+    const moved = path.join(ROOT, 'dev', 'programme', 'carries', f)
+    if (fs.existsSync(moved)) return moved
+    return at(`.claude/workflows/${f}`)
+  })
+}
 
 let _trackedFiles = null
 export function trackedFiles() {

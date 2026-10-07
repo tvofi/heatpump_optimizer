@@ -24,6 +24,18 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { at, listDir } from './counts.mjs'
 
+// Role contracts and dimension briefs (R9-RO-5). `listDir('tools/audit/briefs')`
+// still sees them through the move map; this reads the directories they live in.
+function briefListing() {
+  const out = []
+  for (const d of ['dev/governance/roles', 'dev/governance/dimensions']) {
+    let names = []
+    try { names = fs.readdirSync(at(d)) } catch { continue }
+    for (const f of names) if (f.endsWith('.md')) out.push([f, at(`${d}/${f}`)])
+  }
+  return out.sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+}
+
 const here = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(here, '..', '..')
 const STAY = path.join(ROOT, '.claude', 'workflows')
@@ -579,7 +591,7 @@ await block('the contract\'s verdict examples parse under the script\'s own gram
   const reLiteral = src.match(/const VERDICT_RE = new RegExp\(\n([\s\S]*?)\n\)/)
   t('VERDICT_RE\'s literal is extracted from the wave script\'s own source', !!reLiteral, 'could not locate the VERDICT_RE definition')
   const re = new Function('VERDICT_CLASSES', `return new RegExp(${reLiteral[1]})`)(classes)
-  const briefs = listDir('tools/audit/briefs').filter((f) => f.endsWith('.md')).sort().map((f) => [f, fs.readFileSync(at(`tools/audit/briefs/${f}`), 'utf8')])
+  const briefs = briefListing().map(([f, p]) => [f, fs.readFileSync(p, 'utf8')])
   t('the briefs directory is readable and non-empty', briefs.length > 0, `found ${briefs.length}`)
   // A brief is hard-wrapped, so an example can span a newline; `VERDICT_RE`'s `.+`
   // cannot. Extract across the wrap and collapse the whitespace, or a correct
@@ -675,8 +687,8 @@ console.log('-- The rotation: the coverage ledger every brief must agree with')
 // step records a round that never covers it, silently -- R7-INSTR-01's shape
 // one level down -- so the ledger is held to the briefs here.
 await block('the rotation', async () => {
-  const briefSteps = Object.fromEntries(listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => [
-    f.slice(0, -3), [...fs.readFileSync(at(`tools/audit/briefs/${f}`), 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
+  const briefSteps = Object.fromEntries(briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f, p]) => [
+    f.slice(0, -3), [...fs.readFileSync(p, 'utf8').matchAll(/^(\d+)\. /gm)].map((m) => Number(m[1]))]))
   const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
   // One predicate, the tree and the synthetic ledgers below both through it.
   const ledgerGaps = (briefs, led) => {
@@ -753,7 +765,7 @@ console.log('-- The scopes: every seat a finder is dispatched to, held to the br
 await block('the scopes', async () => {
   const scopes = JSON.parse(fs.readFileSync(at('tools/audit/scopes.json'), 'utf8'))
   const ledger = JSON.parse(fs.readFileSync(at('tools/audit/rotation.json'), 'utf8'))
-  const briefs = listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3))
+  const briefs = briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f]) => f.slice(0, -3))
   const scopeGaps = (sc, led, bs) => {
     const gaps = []
     if (!bs.length) gaps.push('no dimension brief found (an empty extraction is a gap)')
@@ -803,7 +815,7 @@ await block('the scoped round driver', async () => {
     isolated: grab(/const ISOLATED = new Set\(\[([^\]]*)\]/),
     api: grab(/const API_DIMS = new Set\(\[([^\]]*)\]/),
     baseline: ((/^ISOLATED_DIMS="([^"]*)"/m.exec(shell) ?? [, ''])[1]).split(/\s+/).filter(Boolean),
-    briefs: listDir('tools/audit/briefs').filter((f) => /^D\d+\.md$/.test(f)).map((f) => f.slice(0, -3)).sort(),
+    briefs: briefListing().filter(([f]) => /^D\d+\.md$/.test(f)).map(([f]) => f.slice(0, -3)).sort(),
   }
   // R7-INSTR-01 (#1477): every brief is in DIMS, and the worktree lists agree
   // with prepare_baseline.sh, whose own comment says a seat editing one edits both.
