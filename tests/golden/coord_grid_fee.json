@@ -263,6 +263,7 @@
   "max_temperature": 23.0,
   "measured_cop": null,
   "measured_energy": null,
+  "measured_heat_output_kw": null,
   "measured_house_power": null,
   "measured_power": null,
   "measured_power_available": false,
@@ -1201,7 +1202,9 @@
    "native_value": 2.45
   },
   "current_power": {
-   "extra_state_attributes": null,
+   "extra_state_attributes": {
+    "measured_heat_output_kw": null
+   },
    "native_value": null
   },
   "current_price": {
@@ -1936,6 +1939,24 @@
   },
   "sensor_gap_advisor": {
    "extra_state_attributes": {
+    "feedback_gaps": [
+     {
+      "class": "power",
+      "key": "heat_pump_power_entity"
+     },
+     {
+      "class": "energy",
+      "key": "heat_pump_energy_entity"
+     },
+     {
+      "class": "frequency",
+      "key": "compressor_freq_sensor"
+     },
+     {
+      "class": "flow",
+      "key": "flow_meter_entity"
+     }
+    ],
     "gaps": [
      {
       "empty": true,
