@@ -1,6 +1,6 @@
-Fix review: merge 1f3a285bc7e615736e8ee94c80d8ca83ae396935
+Fix review: merge 3948f729ab6c4cdb07fe070a7ec8a11083e39415
 
-bus-nonce: bf4e05d0b3963939a574233b12961d3c
+bus-nonce: 03ea82e9db969c57a9df5a266cee34e6
 
 ## Review findings
 
@@ -32,7 +32,7 @@ Verified each named PR is merged with correct commit hash via `gh pr view N --js
 - **PASS**
 
 ### Check 4: CI check-runs at head
-Queried via GitHub API at commit 1f3a285bc7e615736e8ee94c80d8ca83ae396935:
+Queried via GitHub API at commit 3948f729ab6c4cdb07fe070a7ec8a11083e39415:
 
 | Check | Status | Conclusion |
 |---|---|---|
