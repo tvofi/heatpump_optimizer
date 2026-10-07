@@ -69,7 +69,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      tag, resets to the pre-stamp HEAD keeping RELEASE_NOTES.md, prints the
      check's output and exits 2. --dry-run makes no commit, so it never runs.
 
-  8. (rule "register") The D6 register (tools/audit/round4/D6/) is
+  8. (rule "register") The D6 register (dev/audit/rounds/round4/D6/) is
      re-recorded through its own generator, claims.py, from the tree being
      stamped. One row of it -- C42, "manifest version equals VERSION" -- is a
      snapshot of VERSION, and tests/harness_headers.py re-runs that generator
@@ -134,7 +134,7 @@ CLAIM_FILES = (
 # re-records it through the generator itself, rather than editing the version
 # row by hand, so a register that acquires another version-bearing row cannot
 # silently drift behind the stamp that wrote it.
-REGISTER_DIR = ROOT / "tools" / "audit" / "round4" / "D6"
+REGISTER_DIR = ROOT / "dev" / "audit" / "rounds" / "round4" / "D6"
 REGISTER_GENERATOR = REGISTER_DIR / "claims.py"
 REGISTER_FILES = (REGISTER_DIR / "claims.json", REGISTER_DIR / "claims.md")
 # claims.py runs from ROOT (its ROOT = Path(".")), inserts tests/ and
@@ -1193,7 +1193,7 @@ def self_test() -> int:
     # PYTHONPATH -- and a generator that fails refuses rather than ship the
     # stale register the rule exists to prevent.
     check("register: the generator is claims.py, run from ROOT",
-          register_argv("py") == ["py", "tools/audit/round4/D6/claims.py"])
+          register_argv("py") == ["py", "dev/audit/rounds/round4/D6/claims.py"])
     check("register: the stub is put on PYTHONPATH, the caller's kept after it",
           register_env({"PATH": "/bin"})["PYTHONPATH"] == "tests/hastub"
           and register_env({"PYTHONPATH": "/x"})["PYTHONPATH"]

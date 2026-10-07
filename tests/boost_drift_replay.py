@@ -368,7 +368,7 @@ def replay(arms: dict, two_zone: bool = False,
     so they run once and every arm continues from a deep copy of that one
     state; ``fork=0`` replays every arm from its own fresh start, which is
     the unshared replay the shared one must equal
-    (``tools/audit/harnesses/boost_replay_fork_parity.py``)."""
+    (``dev/audit/harnesses/boost_replay_fork_parity.py``)."""
     import copy
 
     n_cycles = int(DAYS * 24 * 60 / DT_MIN)
