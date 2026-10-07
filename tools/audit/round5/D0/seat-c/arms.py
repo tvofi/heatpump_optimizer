@@ -44,6 +44,18 @@ Nothing here re-derives a cost: every number is an objective value the
 production seam returned.  (Artifacts of this seat at head: the PR body's
 Figures table.)
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import sys
 
@@ -51,8 +63,7 @@ for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
     os.environ.setdefault(_v, "1")
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
+ROOT = str(repo_root(__file__))
 if not os.path.isdir(os.path.join(ROOT, "custom_components")):
     raise SystemExit(f"{ROOT} is not a checkout root (no custom_components)")
 sys.path.insert(0, os.path.join(ROOT, "tests"))

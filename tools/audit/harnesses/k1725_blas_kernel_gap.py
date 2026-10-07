@@ -53,6 +53,18 @@ PR this harness ships with. Baseline SHA and machine are printed by the run.
 It prints one RESULT line per number, and thread_factor/load1/swapins at the
 end per the harness contract (tools/audit/README.md).
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
@@ -65,8 +77,7 @@ import time  # noqa: E402
 from datetime import datetime  # noqa: E402
 from unittest import mock  # noqa: E402
 
-ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(
-    os.path.abspath(__file__)))))
+ROOT = str(repo_root(__file__))
 os.chdir(ROOT)
 for _part in ("custom_components", os.path.join("tests", "hastub"), "tests"):
     sys.path.insert(0, os.path.join(ROOT, _part))

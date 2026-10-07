@@ -25,6 +25,18 @@ Expected at baseline 1cc89e0 on the 8-core M1 audit box, Python 3.11
   RESULT iter_rounds_total=1 unit=count
 Root rule: resolves the repository root from __file__.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 for _v in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
            "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
@@ -33,8 +45,7 @@ import sys
 import time
 from datetime import datetime
 
-ROOT = os.path.dirname(os.path.abspath(os.path.join(
-    __file__, *[os.pardir] * 5)))
+ROOT = str(repo_root(__file__))
 sys.path.insert(0, os.path.join(ROOT, "tests"))
 sys.path.insert(0, os.path.join(ROOT, "custom_components"))
 

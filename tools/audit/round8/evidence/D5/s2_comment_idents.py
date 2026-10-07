@@ -45,6 +45,18 @@ shorthand_missing must go to 0 (expected_direction: to_zero). raw_missing
 drops by exactly 2 for the same reason and is reported alongside as a cross
 check, though it is not the metric the claim rests on.
 """
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 import os
 import re
 import subprocess
@@ -56,7 +68,7 @@ for var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
     os.environ.setdefault(var, "1")
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
-REPO_ROOT = os.path.abspath(os.path.join(ROOT, "..", "..", "..", ".."))
+REPO_ROOT = str(repo_root(__file__))
 os.chdir(REPO_ROOT)
 
 BACKTICK_RE = re.compile(r"`{1,2}[^`]*`{1,2}")

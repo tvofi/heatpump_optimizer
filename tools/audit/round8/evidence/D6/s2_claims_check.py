@@ -17,12 +17,24 @@ Perturbation: edit any one DEFAULT_* constant this harness reads (e.g. const.DEF
 and the corresponding claim flips PASS->FAIL, moving claims_false up by 1.
 """
 from __future__ import annotations
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
 
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = repo_root(__file__)
 sys.path.insert(0, str(ROOT))
 
 CONST = (ROOT / "custom_components/heatpump_optimizer/const.py").read_text()

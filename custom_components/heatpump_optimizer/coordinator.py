@@ -92,7 +92,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DOMAIN,
     CONF_TIBBER_TOKEN,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
     CONF_QUIET_OFF_WINDOWS,
     CONF_QUIET_SILENT_WINDOWS,
     CONF_SILENT_MODE_FRACTION,
@@ -3947,7 +3946,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # the new one (issue #86). The KNOWN DEFECT note that was here
             # is resolved by _reanchor_house_heat_loss_scale; the shape of
             # the fix and the four attempts that did not ship are recorded
-            # in docs/backlog.md's "Open" entry and its decisions.
+            # in dev/archive/backlog.md's "Open" entry and its decisions.
             "house_heat_loss_anchor": round(self._house_heat_loss_anchor(), 6),
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
@@ -4917,7 +4916,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         An options edit reloads the entry with a new nameplate while the
         store still holds a scale fitted against the old one; restoring
         it verbatim left the model up to 1.94x wrong (issue #86, four
-        prior attempts recorded in docs/backlog.md). The law, from the
+        prior attempts recorded in dev/archive/backlog.md). The law, from the
         recorded decisions:
 
         ``U_eff' = (1 - phi) * nameplate_new + phi * measured_UA``
@@ -7741,7 +7740,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # Reports learned=True and an effective figure that the defect
             # noted at _thermal_learning_payload can leave ~2x wrong after an
             # options edit. The confidence shown here is in the sample count,
-            # not in the number. See docs/backlog.md, "Open".
+            # not in the number. See dev/archive/backlog.md, "Open".
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,
@@ -7936,8 +7935,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             "quiet_off_windows_spec": str(cfg.get(CONF_QUIET_OFF_WINDOWS) or ""),
         }
-        if out["quiet_silent_windows_spec"] and not quiet_windows.silent_control_usable(
-            cfg.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+        if quiet_windows.silent_unenforceable(
+            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
         ):
             out["quiet_silent_not_enforced"] = "true"
         return out
