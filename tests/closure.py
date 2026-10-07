@@ -284,9 +284,9 @@ INERT = (
     # deliberately, instead of silently making every gate full.
     # The reorganisation's archive and the audit record that has already
     # moved (R9-RO-4). Same claim as tools/audit/: prose and evidence no gate
-    # script opens. dev/audit/rounds/ is not here yet; R9-RO-8 (#1921) extends
-    # _is_header_corpus before a live harness lands under dev/audit/, or the
-    # move would declare a file the gate reads as unread.
+    # script opens. The round harnesses under dev/audit/rounds/ are the one
+    # read inside it: `_is_header_corpus` (R9-RO-8, #1921) takes them out of
+    # this claim, as it took tools/audit/round*/ out of the tools/audit/ one.
     "dev/archive/",
     "dev/audit/",
     ".claude/",
