@@ -1801,7 +1801,7 @@ def _fold_away(state: away_mode.AwayState, data: Mapping[str, object]) -> AwayFo
     if floor == float(configured):
         return view
     return {
-        **view,
+        **state.as_dict(),
         "min_temperature": floor,
         "configured_min_temperature": float(configured),
     }
