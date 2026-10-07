@@ -1,28 +1,21 @@
-Fix review: blocked 6f3609a4a17c7367263dadaa07889bc8aafbb8fa class-open: tools/audit/seat/handover_prompt.py:78 still names tools/audit/briefs/ (moved to dev/governance/roles/)
+Fix review: blocked 7cef1c324366950fa8e65976b40a040c3ca24a81 harness: the carries' remeasure command `moved_paths.py tools/audit/seat/*` crashes on the tracked directory tools/audit/seat/shims/
 
-Round 1. Seat r9c-rev-2012, detached worktree at 6f3609a4a17c7367263dadaa07889bc8aafbb8fa (merge base = origin/main be0cb821; merge-tree vs origin/main exit 0). Live head re-read before posting: 6f3609a4a17c7367263dadaa07889bc8aafbb8fa.
+Round 2. Seat r9c-rev-2012, fresh detached worktree at 7cef1c324366950fa8e65976b40a040c3ca24a81 (contains origin/main be0cb821; merge-tree vs origin/main exit 0). Live head at posting: 7cef1c324366950fa8e65976b40a040c3ca24a81. Delta judged: 6f3609a4..7cef1c324366950fa8e65976b40a040c3ca24a81.
 
 ## The block
 
-The dispatch asks that no stale path survive in the five files the PR re-points. One does, in a file the diff edits:
-- tools/audit/seat/handover_prompt.py:78, rendered into every generated next-session prompt: "the seat brief your work names under `tools/audit/briefs/` (the fixer's is `fixer.md`)". `git ls-files 'tools/audit/briefs/*'` = 0; the contracts are under dev/governance/roles/ (fixer.md present). A seat following the generated prompt reads a directory that does not exist -- the same class (#1990 class D: an instrument kept a path a move emptied).
-- The RCA's class search (R9-RCA-1990.md section 2) lists handover_prompt.py's push script and row path only, and its enumeration rule (`grep -no 'tools/...\.(sh|py|mjs)'`) cannot return a directory or a .md path, so this seam is neither in the diff nor dispositioned.
-- Same pass, cheap: tools/audit/seat/handoff_push.sh:7 comment "this stays while docs/HANDOVER.md names it" -- now dev/programme/HANDOVER.md (comment only; fix or disposition).
-Fix: re-point line 78 to dev/governance/roles/ (and the comment), and either widen the body's enumeration rule to non-script repo paths or state that it covers scripts only. Scan used: every tools|tests|docs|dev|.claude|custom_components path literal in the five files, test -e (evidence/allpaths.txt); the remaining misses are /dev/null-style, old-first fallbacks, or self-test stub data.
+carry-1921.json and carry-1922.json now tell R9-RO-8 and R9-RO-9 to run `python3 tools/audit/seat/moved_paths.py tools/audit/seat/*`. Run as written at this head it exits 1 with `IsADirectoryError: [Errno 21] Is a directory: 'tools/audit/seat/shims'` (tracked: shims/seat-python, shims/seat-python3) before printing a single hit (evidence2/carry_cmd_new.txt). The body's own figure ran the five files by name, so it never hit this. The forward-carry's control as written cannot run. Fix (any one): make scan() skip non-files (or recurse), or change the carry command to `git ls-files tools/audit/seat | xargs python3 tools/audit/seat/moved_paths.py`; re-run it and put that figure in the body.
 
 ## RESULT lines (everything else checks out)
 
-RESULT merge_train --self-test head: 49 checks, 0 failed (mt_head.txt)
-RESULT merge_train arm A, TOOLS old paths only + ROW_DIR=docs/delivery: 3 failed (app_approve, preflight, docs/delivery/) (armA.txt)
-RESULT merge_train arm B, bare "tools/audit/worktree_gc.sh" argv: 1 failed, names the path (armB.txt)
-RESULT merge_train arm C, origin/main's own file on this tree: 43 checks, 0 failed -- the gap reproduced (armC.txt)
-RESULT bus --self-test head: 45 checks, 0 failed; origin/main's bus.sh: 45/0 (blind); head with default reverted to tools/audit/app_comment.sh: 1 failed (poster pin); head with tools/pr/app_comment.sh absent: 1 failed
-RESULT handover_prompt --self-test head: 12 checks, 0 failed
-RESULT paths at head: tools/audit/app_approve.sh, tools/audit/preflight.sh, tools/audit/app_comment.sh, docs/delivery MISSING; tools/pr/{app_approve,preflight,app_comment}.sh and dev/programme/delivery present (paths_head.txt)
-RESULT carry rule (the carry's own grep) over tools/audit/seat/*: 40 hits on missing script paths, every one an old-first test -f / TOOLS fallback with the new path present (carry_rule_scan.txt)
-RESULT brief_lint carry-1921.json + carry-1922.json: 0 error(s), 0 warning(s) (tools/policy/brief_lint.mjs; .claude/workflows/brief_lint.mjs no longer exists)
-RESULT count re-derived, policy_lint --stats --since v6.7.16 now: head-moved 11 / 20, 18 re-verified after a merge (9 PRs); window now 58 merges / 51 with verdict (was 57/50: one merge since) (stats.txt)
-RESULT cost test: 3 class-D entries x 129 min mean (388/3) / 57 merges = 6.8 min per merge -- arithmetic re-derived from the RCA's table; the per-entry lags themselves I did not re-time.
-RESULT check-runs at head: 21 success, 12 skipped, 1 neutral, 1 in_progress (CodeQL), budget-raise-gate cancelled; red: delivery-status (main's pending/unread backlog, not this diff) and nightly-status -- neither reachable by this diff.
+RESULT self-tests at head: merge_train 49/0 failed, handover_prompt 13/0, moved_paths 6/0, bus 45/0 (selftests.txt)
+RESULT plant old line 78 (`tools/audit/briefs/`): handover_prompt 13 checks, 1 failed -- "every repository path the prompt names exists (missing: tools/audit/briefs/)" (plant78.txt)
+RESULT plant `docs/delivery/<N>.md` in done criteria: 2 failed, the new arm names it by its directory (plantRow.txt)
+RESULT moved_paths over the five files: 6f3609a4 = 20 hits (incl. handover_prompt.py:78 tools/audit/briefs/ and merge_train fixture lines 336/393/394/397); 7cef1c324366950fa8e65976b40a040c3ca24a81 = 12 hits, 9 FALLBACK + 3 STALE? (merge_train.py:160 split fallback to tools/policy/policy_lint.mjs at :161-162; handover_prompt.py:14,:76 .claude/rules/ = lifted prefix whose generated copy exists) -- matches the body's 20/12 and its dispositions (moved5_old.txt, moved5_new.txt)
+RESULT classification: closure.is_inert('tools/audit/seat/moved_paths.py') = True (tools/audit/ prefix, not in INERT_EXCEPT, not header corpus). tests/entities.py could not run locally (no homeassistant module); CI's fast lane was in_progress at posting -- not verified by me.
+RESULT tmp_paths --check: 0 refused, 0 stale allow entries at HEAD (tmp_paths.txt)
+RESULT brief_lint carry-1921.json + carry-1922.json: 0 error(s) (brief_lint.txt)
+RESULT check-runs at head: 18 success, 11 skipped, 1 neutral, 4 in_progress (CodeQL, browser, env-matrix, fast 3.14), budget-raise-gate cancelled; red delivery-status and nightly-status are main's and answered in the body's ## Red checks.
+RESULT round-1 seam closed: handover_prompt.py:78 -> dev/governance/roles/ (exists); handoff_push.sh:4,:7 re-pointed; the retired tools/audit/handoff/ filter alternative removed.
 
-bus-nonce: 15a5edd57db36810818dc3d87e4b35e5
+bus-nonce: 07a42a823c5083624718b766c26ec08d

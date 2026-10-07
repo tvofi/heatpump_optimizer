@@ -1,5 +1,2 @@
-== tools/policy/fixtures/carry-990004.json ==
-  ERROR   [carry-990004.json] carry: issue 990004 already has a live roster group (wave-probe-groups.json PROBE-G1), whose `brief` is that stage's destination. Two destinations is the failure this file replaces: carry it to the group instead.
-  -- 1 error(s), 0 warning(s)
 
-CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+TOTAL: 0 error(s) across 2 file(s)

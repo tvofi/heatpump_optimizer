@@ -1,1 +1,0 @@
-handover_prompt self-test: 12 checks, 0 failed
