@@ -522,7 +522,29 @@ costs a scrollbar rather than spilled content.
 
 ## The savings page
 
-The dialog's **Savings** tab settles the months so far in one table: for each
+The **Savings** tab opens on the last closed month's **receipt**: its total,
+what it saved against a plain thermostat, and one row per billed line with
+the basis it was priced on: spot energy and the grid energy fee in kWh, the
+capacity charge at the month's billed peak, an immersion heater's kWh, and
+compressor wear in starts. The total adds those lines and nothing else; a
+note under it says which lines it covers and that the savings figure
+compares spot cost only. Wear reads "not priced" until you set a
+compressor replacement cost. Beside it, **Where the money went** splits the
+spot line by the plan's reason for each kWh, largest first; the bars add up
+to the spot line. Every receipt the integration keeps (24 months) is on the
+**Plan Monthly Savings** sensor's `receipts` attribute.
+
+**Yesterday: the plan against reality** follows. The integration keeps the
+first plan it solves after midnight as that day's promise. The next day the
+page draws that promise dashed and the measurement solid on a shared time
+axis: indoor temperature in the house colour, and cumulative cost in the
+price colour. One sentence gives the average gap and the cost against what
+was promised. Without a power meter the cost is not measured, and the page
+says so. An interval the accuracy record skipped, such as an open window,
+is missing from the measured lines. A restart that misses the midnight hour
+leaves that day without a promise, so the next day shows no replay.
+
+Under both, the table settles the months so far: for each
 month the conventional baseline, what you actually paid, the difference and its
 percentage — the same `savings_months` rows the **Plan Monthly Savings** sensor
 publishes, so the page can never disagree with the entity. The savings column
