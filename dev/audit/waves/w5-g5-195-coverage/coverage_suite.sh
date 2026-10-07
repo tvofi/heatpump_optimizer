@@ -37,7 +37,7 @@ if [ -z "$PY" ]; then
   if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
 fi
 COVPREFIX="${D10_COV_PREFIX:-/tmp/d10-cov}"
-OUT="${W5G5_COV_OUT:-$PWD/tools/audit/w5-g5-195-coverage/coverage}"
+OUT="${W5G5_COV_OUT:-$PWD/dev/audit/waves/w5-g5-195-coverage/coverage}"
 TMP=$(mktemp -d "${TMPDIR:-/tmp}/w5g5-cov-XXXXXX")
 mkdir -p "$OUT/logs" "$TMP/site" "$TMP/data"
 export HPO_PLANDATA="$TMP/plandata.json"

@@ -1,13 +1,13 @@
 // The finder pass of the per-dimension audit: one seat per scope of
-// tools/audit/scopes.json against a pinned baseline, then intake into the
+// dev/audit/config/scopes.json against a pinned baseline, then intake into the
 // register. Sign-off happens between workflows, so this one stops after intake;
 // verification, the judge's dedup and the timing re-takes (its batch re-runner)
 // are /audit-verify's. What stays here of the old quiet window is D3's: its
 // brief makes a mutant a finding only once a full gate confirms it.
 //
 //   /audit-find with args {round: 9, baseline: "<sha>", repo: "<abs path of a checkout>",
-//                         rotation: <the parsed tools/audit/rotation.json at repo's HEAD>,
-//                         scopes: <the parsed tools/audit/scopes.json at repo's HEAD>,
+//                         rotation: <the parsed dev/audit/config/rotation.json at repo's HEAD>,
+//                         scopes: <the parsed dev/audit/config/scopes.json at repo's HEAD>,
 //                         box: "B4"      -- optional: run only that container's seats
 //                         from: "intake" -- optional: gather every box's reports, leads, intake}
 //
@@ -20,7 +20,7 @@
 // relaunch replays the same agent() calls; the register writer stamps dates.
 export const meta = {
   name: 'audit-find',
-  description: 'One finder seat per scope of tools/audit/scopes.json against a pinned baseline, per container, then leads and intake into the register',
+  description: 'One finder seat per scope of dev/audit/config/scopes.json against a pinned baseline, per container, then leads and intake into the register',
   phases: ['Prepare the baseline', 'Finders', 'Leads', 'Quiet window', 'Intake'],
 }
 
@@ -38,8 +38,8 @@ if (!Number.isInteger(round) || !baseline || !repo) throw new Error('args.round 
 // filesystem. The prepare agent below compares both against the committed
 // files, as web-fix-wave.js's Reconcile does its roster, so a seat cannot
 // dispatch from a ledger or a scope table in its head.
-if (!rotation || typeof rotation !== 'object') throw new Error('args.rotation is required: the parsed tools/audit/rotation.json, the coverage ledger this pass records into')
-if (!scopes || typeof scopes !== 'object') throw new Error('args.scopes is required: the parsed tools/audit/scopes.json, the seats this pass dispatches')
+if (!rotation || typeof rotation !== 'object') throw new Error('args.rotation is required: the parsed dev/audit/config/rotation.json, the coverage ledger this pass records into')
+if (!scopes || typeof scopes !== 'object') throw new Error('args.scopes is required: the parsed dev/audit/config/scopes.json, the seats this pass dispatches')
 if (from !== undefined && from !== 'intake') throw new Error(`args.from is "intake" or absent, not ${JSON.stringify(from)}`)
 if (from && box) throw new Error('args.box and args.from are exclusive: a box runs finders, intake gathers every box')
 
@@ -66,7 +66,7 @@ const ISOLATED = new Set(['D0', 'D3', 'D9', 'D11', 'D13', 'D14'])
 // comes from a worktree with `.git`, which is what ISOLATED buys.
 const API_DIMS = new Set(['D11', 'D13'])
 // D14 is the one finder whose METHOD is earlier findings (tools/audit/briefs/D14.md):
-// it reads tools/audit/bugclasses.json and, in its worktree's .git, the history of
+// it reads dev/audit/config/bugclasses.json and, in its worktree's .git, the history of
 // the instances listed there (pre-fix commits). No GitHub: that stays API_DIMS'.
 const LEDGER_DIMS = new Set(['D14'])
 
@@ -80,7 +80,7 @@ const LEDGER_DIMS = new Set(['D14'])
 const CADENCE = { D0: 1, D1: 1, D2: 1, D3: 1, D4: 1, D7: 1, D8: 1, D9: 1, D10: 1, D12: 1, D14: 1, D5: 2, D6: 2, D11: 3, D13: 3 }
 const EVERY_DIM_ROUNDS = new Set([9])
 const activeIn = (r, dim) => !!CADENCE[dim] && (EVERY_DIM_ROUNDS.has(r) || r % CADENCE[dim] === 0)
-// The seats of a dimension, from tools/audit/scopes.json and nothing else: one
+// The seats of a dimension, from dev/audit/config/scopes.json and nothing else: one
 // per key of its `seats`, in the file's order, id `<dim>-<key>`. A seat's steps
 // are every step its blocks name, in the dimension's step order, and every one
 // is its deep focus: the scopes are disjoint within a dimension
@@ -136,7 +136,7 @@ const boxGaps = (boxes, seatIds) => {
 // DISPATCH:END
 
 const ACTIVE = DIMS.filter((d) => activeIn(round, d))
-for (const d of ACTIVE) if (!rotation[d]) throw new Error(`args.rotation has no entry for ${d}; tools/audit/rotation.json must carry every dimension`)
+for (const d of ACTIVE) if (!rotation[d]) throw new Error(`args.rotation has no entry for ${d}; dev/audit/config/rotation.json must carry every dimension`)
 const SEATS = ACTIVE.flatMap((d) => seatsFromScopes(scopes, d))
 const seatById = Object.fromEntries(SEATS.map((s) => [s.id, s]))
 // Only the active dimensions' seats are placed, so a round that runs a subset
@@ -149,7 +149,7 @@ const boxOf = (id) => Object.keys(BOXES).find((b) => BOXES[b].heavy.includes(id)
 const boxSeats = (b) => [...activeBoxes[b].heavy, ...activeBoxes[b].light].map((id) => seatById[id])
 const RUN_BOXES = from ? [] : (box ? [box] : Object.keys(BOXES))
 const RUN = RUN_BOXES.flatMap(boxSeats)
-const seatDir = (s) => `tools/audit/round${round}/${s.dim}/${s.key}`
+const seatDir = (s) => `dev/audit/rounds/round${round}/${s.dim}/${s.key}`
 const isolatedHere = RUN.filter((s) => ISOLATED.has(s.dim))
 
 const lead = { type: 'object', required: ['owner_seat', 'file', 'symbol', 'what'], properties: { owner_seat: { type: 'string' }, file: { type: 'string' }, symbol: { type: 'string' }, what: { type: 'string' } } }
@@ -162,7 +162,7 @@ const reportSchema = {
     report_path: { type: 'string' },
     exposure: { type: 'string' },
     // What this seat covered, per step id (`D2.M3`), and what it left undone:
-    // tools/audit/rotation.json records both per round.
+    // dev/audit/config/rotation.json records both per round.
     coverage: { type: 'array', items: { type: 'object', required: ['step', 'depth', 'evidence'], properties: { step: { type: 'string' }, depth: { enum: ['deep', 'spot', 'none'] }, evidence: { type: 'string' } } } },
     unfinished: { type: 'array', items: { type: 'object', required: ['step', 'what'], properties: { step: { type: 'string' }, what: { type: 'string' } } } },
     findings: {
@@ -195,33 +195,33 @@ const reportSchema = {
 phase('Prepare the baseline')
 const prep = await agent(
   `Prepare the round ${round} audit baseline from the repository at ${repo} (do not modify that checkout)${box ? ` for box ${box} (this container)` : ''}.
-1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, dev/archive/audits/audit-*.md, dev/archive/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so no earlier round's evidence the gate does not read stays in the export (the strip is that script's own, never a second list). Create tools/audit/round${round}/ in the export.
+1. Export baseline ${baseline} with \`git archive\` into a sibling directory named audit-r${round}-baseline, then delete from the export: docs/audit-*.md, dev/archive/audits/audit-*.md, dev/archive/backlog.md. Keep RELEASE_NOTES.md (tests/entities.py and tests/closure.py read it unguarded). Copy tools/audit/ from ${repo} into the export (briefs, README, schema, scopes) so the finders have the current briefs even if the baseline predates them, then run \`bash tools/audit/prepare_baseline.sh --strip <export> ${round}\` from ${repo} so no earlier round's evidence the gate does not read stays in the export (the strip is that script's own, never a second list). Create dev/audit/rounds/round${round}/ in the export.
 2. For each of ${isolatedHere.map((s) => s.id).join(', ') || '(no isolated seat here)'} run \`git worktree add ../audit-r${round}-<seat id> ${baseline}\` from ${repo}; copy tools/audit/ in the same way and strip it the same way.
 3. Warm the shared drift cache once: from ${repo}, run \`DRIFT_WARM_CACHE=1 PYTHONPATH=tests/hastub python3 tests/env_drift.py --all ${baseline}\` (the cache is warmed by a run with that variable set; \`--cache-key [ref] [--all]\` only prints the key, and there is no warm mode behind it).
-4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in tools/audit/round${round}/BASELINE.md inside the export.
-5. Read tools/audit/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension {steps, rounds} are exactly these (compare parsed JSON): ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, { steps: rotation[d]?.steps ?? null, rounds: rotation[d]?.rounds ?? null }])))}; otherwise false, with the difference in rotation_note.
-6. Read tools/audit/scopes.json in ${repo}. scopes_ok is true only if it parses to exactly this object (compare parsed JSON, not bytes): ${JSON.stringify(scopes)}; otherwise false, with the difference in scopes_note.
+4. Record the absolute paths, the python interpreter to use (a venv with the pinned numpy/scipy/orjson of tests/requirements-ci.txt), node, and the Chromium path (under $PLAYWRIGHT_BROWSERS_PATH if set, else ~/.cache/pw-browsers) in dev/audit/rounds/round${round}/BASELINE.md inside the export.
+5. Read dev/audit/config/rotation.json in ${repo}. rotation_ok is true only if it parses and its per-dimension {steps, rounds} are exactly these (compare parsed JSON): ${JSON.stringify(Object.fromEntries(DIMS.map((d) => [d, { steps: rotation[d]?.steps ?? null, rounds: rotation[d]?.rounds ?? null }])))}; otherwise false, with the difference in rotation_note.
+6. Read dev/audit/config/scopes.json in ${repo}. scopes_ok is true only if it parses to exactly this object (compare parsed JSON, not bytes): ${JSON.stringify(scopes)}; otherwise false, with the difference in scopes_note.
 7. From ${repo}, run \`python3 tools/audit/check_scopes.py --repo ${repo} --ref ${baseline}\` and return its exit status as scopes_rc (an integer, read from the shell, never inferred from the text) and its complete output as scopes_out.
 Return JSON {exportDir, worktrees: {<seat id>: <absolute path>} for the seats of step 2, python, node, rotation_ok, rotation_note, scopes_ok, scopes_note, scopes_rc, scopes_out}.`,
   { label: 'prepare', schema: { type: 'object', required: ['exportDir', 'worktrees', 'python', 'rotation_ok', 'scopes_ok', 'scopes_rc', 'scopes_out'], properties: { exportDir: { type: 'string' }, worktrees: { type: 'object' }, python: { type: 'string' }, node: { type: 'string' }, rotation_ok: { type: 'boolean' }, rotation_note: { type: 'string' }, scopes_ok: { type: 'boolean' }, scopes_note: { type: 'string' }, scopes_rc: { type: 'integer' }, scopes_out: { type: 'string' } } } },
 )
 
 if (!prep) throw new Error('baseline preparation failed (agent returned null); relaunch')
-if (!prep.rotation_ok) throw new Error(`args.rotation is not the committed tools/audit/rotation.json: ${prep.rotation_note ?? 'no note'}`)
-if (!prep.scopes_ok) throw new Error(`args.scopes is not the committed tools/audit/scopes.json: ${prep.scopes_note ?? 'no note'}`)
+if (!prep.rotation_ok) throw new Error(`args.rotation is not the committed dev/audit/config/rotation.json: ${prep.rotation_note ?? 'no note'}`)
+if (!prep.scopes_ok) throw new Error(`args.scopes is not the committed dev/audit/config/scopes.json: ${prep.scopes_note ?? 'no note'}`)
 // The scopes are proved disjoint and complete AT THE BASELINE, or no seat runs:
 // a production file added since the scopes were written lands in a `rest`
 // scope, and one that breaks disjointness is a scope edit before the round.
-if (prep.scopes_rc !== 0) throw new Error(`check_scopes.py --ref ${baseline} exited ${JSON.stringify(prep.scopes_rc)}, not 0; fix tools/audit/scopes.json before the round:\n${prep.scopes_out ?? ''}`)
+if (prep.scopes_rc !== 0) throw new Error(`check_scopes.py --ref ${baseline} exited ${JSON.stringify(prep.scopes_rc)}, not 0; fix dev/audit/config/scopes.json before the round:\n${prep.scopes_out ?? ''}`)
 log(`round ${round}${box ? ` box ${box}` : ''}: ${ACTIVE.length} dimension(s), ${RUN.length} finder seat(s) here of ${SEATS.length}: ${RUN.map((s) => `${s.id} [${s.steps.join('+')}]`).join(', ') || '(intake only)'}`)
 
 const workdir = (s) => (ISOLATED.has(s.dim) ? prep.worktrees[s.id] : prep.exportDir)
 const finder = (seat) => { const dim = seat.dim; const b = boxOf(seat.id); return agent(
-  `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id) ? 'a compute-heavy seat: at most three share this box' : 'a light seat'}${CHROMIUM.has(seat.id) ? '; the Chromium seat, alone on its box' : ''}). Work only in ${workdir(seat)} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read tools/audit/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
+  `You are finder seat ${seat.id} of audit round ${round}, dimension ${dim}, on box ${b} (${BOXES[b].heavy.includes(seat.id) ? 'a compute-heavy seat: at most three share this box' : 'a light seat'}${CHROMIUM.has(seat.id) ? '; the Chromium seat, alone on its box' : ''}). Work only in ${workdir(seat)} (an export/worktree of baseline ${baseline}; ${LEDGER_DIMS.has(dim) ? 'your brief is the exception to the earlier-findings wall: read dev/audit/config/bugclasses.json and the git history of the instances it lists (their pre-fix commits, from this worktree\'s .git), and record what you read under exposure' : 'the earlier-round files left in it are the ones the gate reads, not a record for you, and you must not go looking for earlier findings'}; ${API_DIMS.has(dim) ? 'your brief is the one exception to the GitHub wall -- read the history and the API it names, and record what you read under exposure' : 'do not run gh'}). Use the interpreter ${prep.python} with PYTHONPATH=tests/hastub from that directory's root.
 Read tools/audit/briefs/COMMON.md, then tools/audit/briefs/${dim}.md, then tools/audit/README.md, and follow them exactly. The brief's numbered method steps are ${dim}.M1, ${dim}.M2, ... in order.
-YOUR CELLS. Your scope is ${seat.id} in tools/audit/scopes.json: ${JSON.stringify(seat.blocks)}. List them resolved with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat ${seat.id}\` (one line per step set, axis value set and file). Every step you own is a deep focus: ${seat.steps.map((m) => `${dim}.${m}`).join(', ')}. Measure only these cells. Outside them, do not measure and write no harness: record a lead {owner_seat, file, symbol, what} in your report's leads, owner_seat being the seat whose cells hold it (\`--seat\` lists any seat's) or "unknown". Leads go to the leads seat after the fan-out.
+YOUR CELLS. Your scope is ${seat.id} in dev/audit/config/scopes.json: ${JSON.stringify(seat.blocks)}. List them resolved with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat ${seat.id}\` (one line per step set, axis value set and file). Every step you own is a deep focus: ${seat.steps.map((m) => `${dim}.${m}`).join(', ')}. Measure only these cells. Outside them, do not measure and write no harness: record a lead {owner_seat, file, symbol, what} in your report's leads, owner_seat being the seat whose cells hold it (\`--seat\` lists any seat's) or "unknown". Leads go to the leads seat after the fan-out.
 Write your harnesses under ${seatDir(seat)}/ and your report to ${seatDir(seat)}/REPORT.md. Every finding needs an executed number from a committed harness that hooks a named production symbol and moves under a named perturbation; a finding without those cannot be returned. Mark any wall/CPU/RSS number provisional: true -- the judge's batch re-runner re-takes it on a quiet container.
-Return the JSON report described by tools/audit/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, coverage, unfinished, findings, non_findings, harnesses, leads). Number your findings ${seat.id}-01, -02, ... (finding.schema.json's id pattern); every finding carries scope "${seat.id}" and class_guess (an id in tools/audit/bugclasses.json, or "new"); coverage names every step of yours with depth deep, spot or none and its evidence; unfinished names each step you could not finish and what is left; every finding names its step.`,
+Return the JSON report described by dev/audit/config/finding.schema.json (fields: dimension, baseline_sha, report_path, exposure, coverage, unfinished, findings, non_findings, harnesses, leads). Number your findings ${seat.id}-01, -02, ... (finding.schema.json's id pattern); every finding carries scope "${seat.id}" and class_guess (an id in dev/audit/config/bugclasses.json, or "new"); coverage names every step of yours with depth deep, spot or none and its evidence; unfinished names each step you could not finish and what is left; every finding names its step.`,
   { label: seat.id, schema: reportSchema },
 ) }
 
@@ -246,7 +246,7 @@ if (box) {
   const missingHere = mine.filter((id) => !reports[id])
   if (missingHere.length) log(`box ${box}: seats not reported after one retry: ${missingHere.join(', ')}`)
   const collect = await agent(
-    `You are the collector of box ${box}, audit round ${round}. In ${repo}, create branch handoff/audit-r${round}-find-${box} from origin/main (never check it out in a shared checkout; use a worktree), copy into it ${RUN.map((s) => `${seatDir(s)}/`).join(', ')} from ${prep.exportDir} and from the seat worktrees ${JSON.stringify(prep.worktrees)}, and write tools/audit/round${round}/reports-${box}.json with exactly this object (two-space indent, trailing newline): ${JSON.stringify({ box, missing: missingHere, reports: Object.fromEntries(mine.filter((id) => reports[id]).map((id) => [id, reports[id]])) })}. Commit and push the branch (git push -u origin HEAD:handoff/audit-r${round}-find-${box}). Return JSON {branch, commit}.`,
+    `You are the collector of box ${box}, audit round ${round}. In ${repo}, create branch handoff/audit-r${round}-find-${box} from origin/main (never check it out in a shared checkout; use a worktree), copy into it ${RUN.map((s) => `${seatDir(s)}/`).join(', ')} from ${prep.exportDir} and from the seat worktrees ${JSON.stringify(prep.worktrees)}, and write dev/audit/rounds/round${round}/reports-${box}.json with exactly this object (two-space indent, trailing newline): ${JSON.stringify({ box, missing: missingHere, reports: Object.fromEntries(mine.filter((id) => reports[id]).map((id) => [id, reports[id]])) })}. Commit and push the branch (git push -u origin HEAD:handoff/audit-r${round}-find-${box}). Return JSON {branch, commit}.`,
     { label: `collect-${box}`, schema: { type: 'object', required: ['branch', 'commit'] } },
   )
   return { box, missing: missingHere, collect, reports }
@@ -254,7 +254,7 @@ if (box) {
 
 if (from) {
   const gathered = await agent(
-    `You are the gatherer of audit round ${round}. From ${repo}, fetch every branch handoff/audit-r${round}-find-<box> for boxes ${Object.keys(BOXES).join(', ')}, and read tools/audit/round${round}/reports-<box>.json from each. Return JSON {reports: {<seat id>: <report>}, absent_boxes: [<box whose branch or file is missing>]} with each report exactly as the file holds it.`,
+    `You are the gatherer of audit round ${round}. From ${repo}, fetch every branch handoff/audit-r${round}-find-<box> for boxes ${Object.keys(BOXES).join(', ')}, and read dev/audit/rounds/round${round}/reports-<box>.json from each. Return JSON {reports: {<seat id>: <report>}, absent_boxes: [<box whose branch or file is missing>]} with each report exactly as the file holds it.`,
     { label: 'gather', schema: { type: 'object', required: ['reports', 'absent_boxes'], properties: { reports: { type: 'object' }, absent_boxes: { type: 'array', items: { type: 'string' } } } } },
   )
   if (!gathered) throw new Error('gathering the boxes\' reports failed (agent returned null); relaunch with from: "intake"')
@@ -271,7 +271,7 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 // agent's: a finding must carry its own seat as scope, an id under that seat,
 // and a class_guess the schema admits. A failure is rejected at intake with the
 // reason, never repaired.
-// The ledger's ids (tools/audit/bugclasses.json) spelled out: agreement.mjs's
+// The ledger's ids (dev/audit/config/bugclasses.json) spelled out: agreement.mjs's
 // finding-class-id pair refuses this list the moment it parts from the ledger.
 const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
 const rejected = []
@@ -299,8 +299,8 @@ if (leads.length) {
   const byOwner = leads.reduce((m, l) => ((m[l.owner_seat] ??= []).push(l), m), {})
   leadsSeat = await agent(
     `You are the leads seat of audit round ${round}, on box ${LEADS_BOX}. Read tools/audit/briefs/COMMON.md and dev/audit/README.md, and follow them. Prepare your own export of baseline ${baseline} from ${repo} as a finder's is prepared (git archive; docs/audit-*.md, dev/archive/audits/audit-*.md and dev/archive/backlog.md deleted; tools/audit/ copied in), and work only there, with PYTHONPATH=tests/hastub. Do not run gh; do not look for earlier findings.
-These are the leads the finder seats raised outside their own cells, grouped by the seat whose cells hold them: ${JSON.stringify(byOwner)}. Before measuring a lead, read its owner seat's REPORT.md (paths: ${JSON.stringify(Object.fromEntries(REPORTED.map((id) => [id, reports[id].report_path])))}${from ? `; these paths are inside each box's evidence branch, so fetch handoff/audit-r${round}-find-<box> for boxes ${Object.keys(BOXES).join(', ')} from ${repo}'s origin and read them there` : ''}): a lead the owner already measured, as a finding or a non-finding, is closed by that entry and not re-measured. Turn a lead into a finding ONLY with an executed number under COMMON.md -- harness, instrumented symbol, perturbation, metric definition, and the null control and leave-one-out where they apply. The finding is the owner's cells' finding: scope = the owner seat, id <owner seat>-51, -52, ..., harness under tools/audit/round${round}/<owner dimension>/leads/. A lead with owner "unknown" is assigned an owner with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat <id>\` first.
-Write your report to tools/audit/round${round}/LEADS.md. Return JSON {report_path, findings (each as finding.schema.json's finding), non_findings, harnesses, converted: [{raised_by, file, symbol, finding_id}], closed: [{raised_by, file, symbol, why}]} -- every lead appears in exactly one of converted and closed.`,
+These are the leads the finder seats raised outside their own cells, grouped by the seat whose cells hold them: ${JSON.stringify(byOwner)}. Before measuring a lead, read its owner seat's REPORT.md (paths: ${JSON.stringify(Object.fromEntries(REPORTED.map((id) => [id, reports[id].report_path])))}${from ? `; these paths are inside each box's evidence branch, so fetch handoff/audit-r${round}-find-<box> for boxes ${Object.keys(BOXES).join(', ')} from ${repo}'s origin and read them there` : ''}): a lead the owner already measured, as a finding or a non-finding, is closed by that entry and not re-measured. Turn a lead into a finding ONLY with an executed number under COMMON.md -- harness, instrumented symbol, perturbation, metric definition, and the null control and leave-one-out where they apply. The finding is the owner's cells' finding: scope = the owner seat, id <owner seat>-51, -52, ..., harness under dev/audit/rounds/round${round}/<owner dimension>/leads/. A lead with owner "unknown" is assigned an owner with \`python3 ${repo}/tools/audit/check_scopes.py --repo ${repo} --ref ${baseline} --seat <id>\` first.
+Write your report to dev/audit/rounds/round${round}/LEADS.md. Return JSON {report_path, findings (each as finding.schema.json's finding), non_findings, harnesses, converted: [{raised_by, file, symbol, finding_id}], closed: [{raised_by, file, symbol, why}]} -- every lead appears in exactly one of converted and closed.`,
     { label: 'leads', schema: { type: 'object', required: ['report_path', 'findings', 'non_findings', 'harnesses', 'converted', 'closed'], properties: { report_path: { type: 'string' }, findings: reportSchema.properties.findings, non_findings: reportSchema.properties.non_findings, harnesses: reportSchema.properties.harnesses, converted: { type: 'array', items: { type: 'object', required: ['raised_by', 'file', 'symbol', 'finding_id'] } }, closed: { type: 'array', items: { type: 'object', required: ['raised_by', 'file', 'symbol', 'why'] } } } } },
   )
   if (!leadsSeat) log('the leads seat returned null; its leads are registered unconverted')
@@ -345,7 +345,7 @@ let quiet = null
 if (d3Seats.length) {
   quiet = await agent(
     `You are the D3 quiet-window confirmer of audit round ${round}. Nothing else may run on the box: python3 tests/gate_lock.py take --label quiet-r${round} before starting, renew between commands, release at the end -- never mkdir and a shell pid (#404: that lock carries no lease and no flock). Make your own worktree of baseline ${baseline} from ${repo} (git worktree add ../audit-r${round}-quiet ${baseline}); use the pinned venv, PYTHONPATH=tests/hastub, the five BLAS thread variables set to 1.
-Read the prescreened mutants in the D3 seats' reports (${d3Seats.map((id) => reports[id].report_path).join(', ')}, ${from ? `on the handoff/audit-r${round}-find-<box> branches` : `under ${prep.exportDir} and the D3 seat worktrees`}). For at most six that survived the pre-screen, most consequential first, apply the mutant in your worktree, commit it so HEAD moves off the baseline, and run \`GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=${baseline} GATE_JOBS=1 ./tests/run.sh\`. Record survivor/killed with the killing check names; reset the worktree after each. Write tools/audit/round${round}/QUIET.md with a table: mutant, finding id, survived, killed_by, load1.
+Read the prescreened mutants in the D3 seats' reports (${d3Seats.map((id) => reports[id].report_path).join(', ')}, ${from ? `on the handoff/audit-r${round}-find-<box> branches` : `under ${prep.exportDir} and the D3 seat worktrees`}). For at most six that survived the pre-screen, most consequential first, apply the mutant in your worktree, commit it so HEAD moves off the baseline, and run \`GATE_SCOPE=full GOLDEN_MODE=drift GOLDEN_REF=${baseline} GATE_JOBS=1 ./tests/run.sh\`. Record survivor/killed with the killing check names; reset the worktree after each. Write dev/audit/rounds/round${round}/QUIET.md with a table: mutant, finding id, survived, killed_by, load1.
 Return JSON {quiet_path, d3_confirmed: [{mutant, finding_id, survived, killed_by}]}.`,
     { label: 'quiet', schema: { type: 'object', required: ['quiet_path', 'd3_confirmed'] } },
   )
@@ -358,9 +358,9 @@ Return JSON {quiet_path, d3_confirmed: [{mutant, finding_id, survived, killed_by
 const provisional = accepted.filter((f) => f.provisional || ['cpu', 'wall'].includes(f.evidence?.cpu_or_wall)).map((f) => f.id)
 const intake = await agent(
   `You are the intake step of audit round ${round}. You register findings; you do not merge, cluster or deduplicate them -- that is the judge's first step, measured there. Every finding below gets its own row.${defer.length ? ` This is BATCH 1 of round ${round}: seats ${defer.join(', ')} have not reported and are deferred to a catch-up batch by tvofi's decision of 2026-09-26; list them in the dimension status table as "deferred (catch-up)", and note that the catch-up batch adds their rows and updates their dimensions' rotation entries.` : ''}${judgeFlags ? ` Add a "Judge flags" subsection to the register section with exactly this text: ${JSON.stringify(judgeFlags)}.` : ''}
-1. Validate every accepted finding's JSON against tools/audit/finding.schema.json in ${repo} (pip install jsonschema into a venv if needed); one that fails is moved to rejected-at-intake with the validator's message. Already rejected by the driver, with reasons: ${JSON.stringify(rejected)}.
+1. Validate every accepted finding's JSON against dev/audit/config/finding.schema.json in ${repo} (pip install jsonschema into a venv if needed); one that fails is moved to rejected-at-intake with the validator's message. Already rejected by the driver, with reasons: ${JSON.stringify(rejected)}.
 2. Write the Round ${round} "Findings register" section of docs/audit-2026-09.md in ${repo}, on a branch handoff/audit-r${round}-register created from origin/main in a worktree of your own: the dimension status table (seats reported, findings accepted, rejected at intake), one table per dimension with id, scope, step, severity, class_guess, title, status=reported, provisional (${JSON.stringify(provisional)} are provisional until the judge's batch re-run), a leads table (raised by, owner seat, file, symbol, converted to / closed because), and ${quiet ? `D3's confirmations from ${quiet.quiet_path}: ${JSON.stringify(quiet.d3_confirmed)} -- a D3 finding is registered only if its mutant survived the full gate, otherwise it is rejected at intake with the killing checks` : 'no D3 confirmations (no D3 seat reported)'}.
-3. Copy tools/audit/round${round}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set tools/audit/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
+3. Copy dev/audit/rounds/round${round}/ into that branch: from ${from ? `the handoff/audit-r${round}-find-<box> branches` : `${prep.exportDir} and the seat worktrees ${JSON.stringify(prep.worktrees)}`}, plus the leads seat's harnesses${quiet ? ` and ${quiet.quiet_path}` : ''}. Set dev/audit/config/rotation.json's rounds["${round}"] for each dimension to exactly ${JSON.stringify(ledgerRound)} (keys sorted, two-space indent, trailing newline); the yield per step is added by the verification pass. Commit and push (git push -u origin HEAD:handoff/audit-r${round}-register).
 The accepted findings: ${JSON.stringify(accepted.map((f) => ({ id: f.id, seat: f.seat, scope: f.scope, step: f.step, severity: f.severity, class_guess: f.class_guess, title: f.title, from_lead: !!f.from_lead })))}; the reports: ${JSON.stringify(Object.fromEntries(REPORTED.map((id) => [id, reports[id].report_path])))}.
 Return JSON {branch, registered: [ids], rejected: [{id, reason}]}.`,
   { label: 'intake', schema: { type: 'object', required: ['branch', 'registered', 'rejected'] } },
