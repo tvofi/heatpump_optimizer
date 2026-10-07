@@ -1,0 +1,1 @@
+"""The domain's twelve services: schemas, handlers and registration.

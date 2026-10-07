@@ -1,0 +1,7 @@
+                "coordinator": snapshot,
+                "debug": await collector.async_bundle(coord, snapshot) if collector else None,
+    # summary starts carrying is covered without a second decision here --
+    # the debug bundle's payload snapshots and store documents included.
+    collector = debugger.collector_for(coord) if coord else None
+    snapshot = _coordinator_snapshot(coord) if coord else None
+from . import debugger, pump_arbiter
