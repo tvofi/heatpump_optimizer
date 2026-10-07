@@ -14,9 +14,9 @@ Planner power on a switch-plus-setpoint install that has no frequency entity. On
 
 ## Head
 
-b71f454fee369934bfdf2d0c5438ccbed1277743
+eb0a8bf97bdbcea0b2b289077b2cc9e9a22e5553
 
-Merged `origin/main` at `6001b09a557259f37319b400d219cf83e02c563f` (`2026-10-06T21:12:46Z`).
+Merged `origin/main` at `1fa713f73740e99a5762019f574ccd6afa45dca2`.
 
 ## Mutation proof
 
@@ -39,11 +39,11 @@ none
 
 ## Red checks
 
-`typing`. On `af7cf417`, job 112527225870, `tests/typing_ruler.py --mypy` recorded errors 0 and measured 1, code attr-defined, in optimizer.py: `duty_floor_kw` was passed on `OptimizationResult` with no field. The field is declared and passed in the constructor. Cheaper detector: none. The source-only ruler `tests/run.sh` runs counts ignores and does not see an undeclared field. The census is the check.
+`typing`. On `af7cf417`, job 112527225870, `tests/typing_ruler.py --mypy` recorded errors 0 and measured 1, code attr-defined, in optimizer.py: `duty_floor_kw` was passed on `OptimizationResult` with no field. The field is declared and passed in the constructor. Job 112561792109 on `b71f454` succeeded. Cheaper detector: none. The source-only ruler `tests/run.sh` runs counts ignores and does not see an undeclared field. The census is the check.
 
-`mutation`. Job 112527225658 refused ledger completeness: six `killed_by` pins whose old source text was no longer a site the inventory generates. The pin step did not run; its refusal pattern is the unpinned form, and this was not that form. Those six lines are restored, and the expressions added around them are not one-line sites. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which returns at that inventory before it drives a mutant. Standing cost is one inventory pass, no clone and no solve.
+`mutation`. Job 112561792227 printed that the ledger agrees, then that no mutant is both generatable and drivable, then `MUTATION TABLE PASSED (empty pool)` over 5 production files. The floor test was a comparison spanned across lines, and `else: return _tail_freeze(self)` was the sole statement of its body, so neither was a site. The restored hold line clamps with the literal `FLOW_HEAT_C`, so `_flow_target` with `flow_heat_c` 48 and a curve of 60 returned 55.0 when duty is None. The floor comparison, the unmetered return and the hold clamp are one-line sites on the lines this diff changes, and the hold uses the configured ceiling. Cheaper detector: `python3 tests/mutation_table.py --scope changed --base origin/main`, which draws those sites before it drives a mutant. Standing cost is one inventory pass, no clone and no solve.
 
-`env-matrix`. Job 112526801255: `policy_lint_envmatrix.mjs` spawned `node .claude/workflows/policy_lint.mjs`, and the mutants and wave-script siblings beside it. That path is gone; the scripts live at `tools/policy/`. Every shape exited 1 with the module missing, so pins stayed null. The matrix now spawns `tools/policy/policy_lint.mjs`, `tools/policy/policy_lint_mutants.mjs` and `tools/policy/check-wave-script.mjs`. The row assertions are unchanged. Cheaper detector: none. The matrix is the process that executes those paths.
+`env-matrix`. Job 112561792593, run 37549638345, held 2 declared outcomes and missed 14. Shallow and since-ref cannot find `.claude/workflows/policy_lint.mjs`. The head blob `d99577da` of `tools/policy/policy_lint_envmatrix.mjs` spawns `tools/policy/`. The base blob `40bac880` still spawns `.claude/workflows/policy_lint.mjs`. `governance.yml` is unchanged against that merge base. The job checks out `tools/policy/*.mjs` from the base, commits that, then runs the script, so the path edit in the head does not run. Cheaper detector: the job. This update merges `1fa713f7` and does not edit the file that job replaces.
 
 `delivery-status`. Ancestor job 112526801540 printed `DELIVERY STATUS UNCHECKED — 42 rowed, 2 pending, 0 overdue`, pending #2003 and #2001, plus unread merge subjects. `docs/delivery/2006.md` is in this diff, so the red is answered here. Cheaper detector: none. The job is `python -I -S tests/delivery_status.py --check` on the base's copy of that script.
 
