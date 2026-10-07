@@ -73,14 +73,18 @@
 # code-owner rule), given by the orchestrator under the mandate, separately.
 #
 # Environment: HPO_BUS_REMOTE (origin), HPO_BUS_REPO (tvofi/heatpump_optimizer),
-# HPO_BUS_POSTER (this checkout's tools/audit/app_comment.sh), HPO_IDENTITY_DIR.
+# HPO_BUS_POSTER (this checkout's app_comment.sh: tools/audit/ if a copy is
+# restored there, else tools/pr/, where R9-RO-6 moved it), HPO_IDENTITY_DIR.
 # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
 set -uo pipefail
 
 ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
 REMOTE=${HPO_BUS_REMOTE:-origin}
 REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
-POSTER=${HPO_BUS_POSTER:-$ROOT/tools/audit/app_comment.sh}
+POSTER=${HPO_BUS_POSTER:-}
+if [ -z "$POSTER" ]; then
+  if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
+fi
 S=${HPO_BUS_STATE:-$HOME/.zcode/bus}
 die() { printf 'bus: REFUSE: %s\n' "$*" >&2; exit 1; }
 
@@ -380,7 +384,9 @@ P
     printf '%s' "$2" | git -C "$W/seat" commit-tree "$tr"
   }
 
-  grep -q 'POSTER:-$ROOT/tools/audit/app_comment.sh}' "$ROOT/tools/audit/seat/bus.sh"
+  # -x: the whole default line, so this pin cannot match itself.
+  grep -qxF '  if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi' \
+    "$ROOT/tools/audit/seat/bus.sh" && test -f "$ROOT/tools/pr/app_comment.sh"
   expect "a verdict posts as a comment through app_comment.sh, never as an approving review" $?
 
   out=$(seat push-verdict 7 "$W/badgrammar.md" "$W/ev1"); rc=$?
