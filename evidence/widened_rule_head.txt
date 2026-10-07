@@ -1,0 +1,59 @@
+retired.old absent at HEAD: 140
+shape hits cleared by new-path/locate within +-4 lines: 98
+UNCLEARED: 56
+.claude/hooks/stop-selfcheck.sh:200: [tools/audit/prepr.sh] printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/audit/prepr.sh` before opening or updating a pull request.\
+.claude/workflows/audit-fix.js:25: [tools/audit/README.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
+.claude/workflows/audit-fix.js:25: [tools/audit/briefs/fixer.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
+.claude/workflows/audit-verify.js:248: [.claude/workflows/brief_lint.mjs] One issue per class, not per finding (PLAN section 8.1). Classes: ${JSON.stringify(classes)}. Write tools/audit/round${round}/ISSUES.json: per class {class, title: "[R${r
+.claude/workflows/audit-wave.js:48: [tools/audit/README.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
+.claude/workflows/audit-wave.js:48: [tools/audit/briefs/fixer.md] `You own fix group ${group} of the audit: issues #${issues.join(', #')}. From ${repo}: git fetch origin; git worktree add ../audit-fix-${group} -b claude/audit-fix-${grou
+.claude/workflows/web-fix-wave.js:304: [tools/audit/briefs/fix-review.md] Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one
+.claude/workflows/web-fix-wave.js:342: [tools/audit/app_approve.sh] - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/audit/app_approve.sh --c
+.github/workflows/governance.yml:220: [.claude/workflows/field_coverage.mjs] if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+.github/workflows/pr-contract.yml:279: [.claude/workflows/policy_lint.mjs] node .claude/workflows/policy_lint.mjs \
+custom_components/heatpump_optimizer/prefill_offer.py:21: [tools/measure_prefill_corpus.py] PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
+tests/entities.py:17465: [tools/audit/preflight.sh] ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
+tests/entities.py:17619: [tools/audit/preflight.sh] ["bash", "tools/audit/preflight.sh"], cwd=str(d), input="a body\n",
+tools/audit/seat/merge_train.py:146: [tools/audit/app_approve.sh] code, o = self.run(["bash", "tools/audit/app_approve.sh", self.repo, str(pr), h])
+tools/audit/seat/merge_train.py:210: [tools/audit/app_approve.sh] o = self.run(["bash", "tools/audit/app_approve.sh", "--carry", v, h])[1]
+tools/audit/seat/merge_train.py:237: [tools/audit/preflight.sh] pf = self.run(["bash", "tools/audit/preflight.sh", *map(str, item.get("issues", []))], stdin=title + "\n")[1]
+tools/coverage/partition.py:43: [tools/audit/w5-partition/] python3 tools/audit/w5-partition/partition.py --coverage $W/out/coverage.json
+tools/devices/measure_prefill_corpus.py:8: [tools/measure_prefill_corpus.py] PYTHONPATH=tests/hastub python3 tools/measure_prefill_corpus.py
+tools/policy/agreement.mjs:29: [.claude/workflows/agreement.mjs] //   node .claude/workflows/agreement.mjs [--only pairs|discovery]
+tools/policy/agreement.mjs:69: [.claude/workflows/agreement_py.py] if (i < 0 || !process.argv[i + 1]) throw new Error('no --py-json FILE: run `python3 -I .claude/workflows/agreement_py.py --run`')
+tools/policy/agreement_py.py:3: [.claude/workflows/agreement_py.py] python3 -I .claude/workflows/agreement_py.py --out FILE   # writes the JSON
+tools/policy/agreement_py.py:4: [.claude/workflows/agreement_py.py] python3 -I .claude/workflows/agreement_py.py --run        # writes it, then runs agreement.mjs on it
+tools/policy/brief_lint.mjs:40: [.claude/workflows/brief_lint.mjs] //   node .claude/workflows/brief_lint.mjs [files...]
+tools/policy/budget_raise_gate.py:57: [.claude/workflows/budget_raise_gate.py] python3 -I .claude/workflows/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
+tools/policy/budget_raise_gate.py:58: [.claude/workflows/budget_raise_gate.py] python3 .claude/workflows/budget_raise_gate.py --self-test
+tools/policy/budget_raise_gate.py:59: [.claude/workflows/budget_raise_gate.py] python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
+tools/policy/check-wave-script.mjs:11: [.claude/workflows/check-wave-script.mjs] //     node .claude/workflows/check-wave-script.mjs
+tools/policy/field_coverage.mjs:39: [.claude/workflows/field_coverage.mjs] //   node .claude/workflows/field_coverage.mjs [--only hooks|ruleset|budgets|approvals|registry|census]
+tools/policy/field_coverage.mjs:41: [.claude/workflows/field_coverage.mjs] //   node .claude/workflows/field_coverage.mjs --self-test
+tools/policy/field_coverage.mjs:119: [.claude/workflows/policy_lint.mjs] const { code, out } = await run('node', [at('.claude/workflows/policy_lint.mjs'), '--hooks', path.relative(ROOT, f)])
+tools/policy/field_coverage.mjs:206: [.claude/workflows/fixtures/] function ruleFixture() { return JSON.parse(fs.readFileSync(at('.claude/workflows/fixtures/required-contexts.json'), 'utf8')) }
+tools/policy/figure_census.mjs:170: [.claude/workflows/policy_lint.mjs] ok(templated('node .claude/workflows/policy_lint.mjs --budgets') === null,
+tools/policy/figure_lint.mjs:600: [tools/audit/prepr.sh] const inside = analyse('bash tools/audit/prepr.sh')
+tools/policy/friction_issues.mjs:51: [.claude/workflows/friction_issues.mjs] //   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref>
+tools/policy/friction_issues.mjs:52: [.claude/workflows/friction_issues.mjs] //   node .claude/workflows/friction_issues.mjs --stats-file <path> --since <ref> --dry-run
+tools/policy/friction_issues.mjs:53: [.claude/workflows/friction_issues.mjs] //   node .claude/workflows/friction_issues.mjs --self-test
+tools/policy/policy_lint.mjs:41: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs            # lint + acceptance (CI)
+tools/policy/policy_lint.mjs:42: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --list     # every check + fixture
+tools/policy/policy_lint.mjs:43: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --budgets  # sizes vs caps
+tools/policy/policy_lint.mjs:44: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --hooks [settings.json]  # wired and self-testing
+tools/policy/policy_lint.mjs:45: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --report   # enforcement summary
+tools/policy/policy_lint.mjs:46: [.claude/workflows/policy_lint.mjs] //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
+tools/policy/policy_lint.mjs:47: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
+tools/policy/policy_lint.mjs:48: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
+tools/policy/policy_lint.mjs:49: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --pr-body <file> --head <sha> [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login]
+tools/policy/policy_lint.mjs:50: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
+tools/policy/policy_lint.mjs:51: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
+tools/policy/policy_lint.mjs:52: [.claude/workflows/policy_lint.mjs] //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
+tools/policy/policy_lint.mjs:1032: [.claude/workflows/fixtures/] const FIXTURE_CAP_PREFIX = '.claude/workflows/fixtures/'
+tools/policy/policy_lint.mjs:1052: [.claude/workflows/fixtures/] const REQUIRED_CONTEXT_FIXTURE = '.claude/workflows/fixtures/required-contexts.json'
+tools/policy/record-predicate/row_files_replay.py:19: [tools/audit/record-predicate/] python3 tools/audit/record-predicate/row_files_replay.py [branch-ref ...]
+tools/policy/rules_sync.mjs:10: [.claude/workflows/rules_sync.mjs] //   node .claude/workflows/rules_sync.mjs           # regenerate
+tools/policy/rules_sync.mjs:11: [.claude/workflows/rules_sync.mjs] //   node .claude/workflows/rules_sync.mjs --check   # refuse if out of date
+tools/pr/contract_rerun.py:20: [.claude/workflows/contract_rerun.py] python3 -I .claude/workflows/contract_rerun.py --rerun RUN_ID [--repo O/R]
+tools/pr/contract_rerun.py:21: [.claude/workflows/contract_rerun.py] python3 .claude/workflows/contract_rerun.py --self-test
+tools/pr/prepr.sh:556: [.claude/workflows/budget_raise_gate.py] exec(compile(open(src).read(), f"{base[:12]}:.claude/workflows/budget_raise_gate.py", "exec"), m.__dict__)

@@ -1,0 +1,3 @@
+== run 37629062606
+== run 37626923348
+policy-docs	Refuse a governance check input field no check reads	2026-10-07T13:14:47.4278995Z field coverage: the base does not carry it, so there is no pinned copy to run; skipped

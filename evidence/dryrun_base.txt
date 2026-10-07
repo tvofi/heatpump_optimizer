@@ -1,5 +1,0 @@
-FRICTION: histogram names 5 key(s) at or over threshold in v6.7.16..origin/main
-DRY-RUN no-op, already current: "[policy] recurring friction: root-cause-unanswered" (#1985, OPEN) -- verdict class at 13
-DRY-RUN no-op, already current: "[policy] recurring friction: head-moved" (#1990, OPEN) -- verdict class at 12
-DRY-RUN no-op, already current: "[policy] recurring friction: harness" (#2004, OPEN) -- verdict class at 6
-FRICTION FILED: nothing -- refusing: .claude/workflows/policy_lint.mjs --normalize-friction-keys did not answer for all 20 existing friction-issue key(s) (exit 1): without the complete mapping an issue filed under an older spelling is invisible to the normalized fallback, and creating beside it is the duplicate this exists to prevent

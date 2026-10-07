@@ -1,2 +1,0 @@
-  check    policy corpus -- NOT compared: policy_lint.mjs here does not answer --corpus-filter, so the corpus is undefined (a checkout predating it?)
-  clean    no refusal (the 'check' lines above are yours to answer)

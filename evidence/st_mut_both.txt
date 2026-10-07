@@ -1,0 +1,104 @@
+  ok   a completed histogram with one would-open line parses
+  ok   and yields exactly one entry
+  ok   the friction key is read out of the quoted title
+  ok   the kind (which histogram counted it) is kept for the disposer
+  ok   the count is kept so the body can carry it
+  ok   a passing-verdict line over threshold is NOT a trigger (the exclusion lives in policy_lint and this parser only reads `would open`)
+  ok   a truncated would-open line matches nothing rather than something
+  ok   a stats output with no WOULD OPEN summary line is refused (not a completed histogram)
+  ok   and the refusal says why
+  ok   a histogram whose window could NOT be fetched is refused: no data is not no friction
+  ok   null control: the same line WITH its summary parses (the refusals above fired on the missing evidence, not on the line)
+  ok   gh's empty listing is a POSITIVE statement that no issue carries the title
+  ok   and it is empty: no row to pick
+  ok   a listing naming the issue parses into rows
+  ok   a search that FAILED is unknown, never none -- fail-open here is the double-file
+  ok   prose on stdout is not a listing
+  ok   a non-array JSON object is unknown for a listing
+  ok   the body read parses gh issue view's single object
+  ok   a body read that failed is unknown (the run refuses on it, never files beside it)
+  ok   an array where the object was expected carries no body -- the run's typeof guard refuses it
+  ok   the exact title is picked out of a listing whose other row merely contains the phrase
+  ok   a title no row carries exactly answers null (null control on the pick)
+  ok   the longer key picks its own row -- one issue per KEY, keys not prefixes
+  ok   a CLOSED exact-title sibling listed first is passed over for the OPEN one: OPEN before CLOSED, never by listing order
+  ok   the exact-title guard alone does not see an older-spelling issue -- this is the defect: a byte-exact search misses it
+  ok   resolveExisting -- the composition fileEntries calls -- finds the older-spelling issue through the normalized fallback
+  ok   so the filing DECISION updates the existing issue in place rather than creating a duplicate
+  ok   when more than one open issue already normalizes to the same key, the fallback picks the earliest-filed one deterministically, by number, never by listing order
+  ok   the open issue is picked over the closed one even though the closed one has the lower number
+  ok   an issue already titled with the canonical key is found by the fallback with an empty normalize map (identity)
+  ok   null control: the exact guard finds nothing for an unrelated key
+  ok   null control: resolveExisting also finds nothing for a key no existing issue names under any spelling
+  ok   so a genuinely new key still creates, exactly as before the fallback existed
+  ok   planEntry does not refuse when the fallback resolves an existing issue
+  ok   planEntry -- the function fileEntries calls per entry -- resolves the older-spelling issue through the fallback, exactly as a live run would
+  ok   so the actual per-entry pipeline updates the existing issue in place rather than creating a duplicate (this fails if the resolveExisting(...) call inside planEntry is replaced by pickExact(...) alone)
+  ok   null control: planEntry finds no existing issue for an unrelated key
+  ok   null control: planEntry still creates for a genuinely new key
+  ok   planEntry refuses when the exact-title search did not answer, rather than treating it as "no existing issue"
+  ok   planEntry refuses when an existing issue was resolved but its body could not be read
+  ok   no existing issue: file
+  ok   an existing issue already carrying this exact measurement: NO write
+  ok   a measurement that moved within the window: edit the one issue in place
+  ok   an existing issue whose body cannot be read: refuse, never a second file
+  ok   a CLOSED issue from an earlier window is not refreshed: the disposed key reopens as a new issue (#1468)
+  ok   and a count that GREW past the closed issue within the window is a new occurrence: file it
+  ok   a CLOSED issue carrying this window at this count is the one the seat disposed: no second file (#1501, #1502)
+  ok   nor at a count that fell within the window: nothing recurred that the seat did not dispose
+  ok   a CLOSED body naming no window or count proves nothing disposed: file
+  ok   two CLOSED rows, an old window and this one: the later row disposed this window, so nothing is filed
+  ok   null control: the same two rows with this window disposed at a LOWER count still file
+  ok   and a closed row whose body cannot be read refuses rather than filing beside it
+  FAIL the spawned stats tool exists on disk (.claude/workflows/policy_lint.mjs), whichever of its two homes the checkout has (got false, wanted true)
+  FAIL and the stats tool quoted as an issue's derivation command is a file: .claude/workflows/policy_lint.mjs (got false, wanted true)
+  ok   the body is a pure function of the measurement (same inputs, byte-identical body)
+  ok   a moved count produces a different body (the in-place update has something to carry)
+  ok   the body carries the data a disposer needs: histogram line: `INFO    [stats] (window): would open "[poli...
+  ok   the body carries the data a disposer needs: `v9.9.9..origin/main`...
+  ok   the body carries the data a disposer needs: derivation command: `node .claude/workflows/policy_lint.mjs ...
+  ok   the body carries the data a disposer needs: A seat disposes this issue; a bot cannot act on it...
+  ok   and carries no timestamp: anything that moves between two runs of one window would edit on every beat
+  ok   the body states what would NOT move the count: what the count is a property of: the keying rule in ...
+  ok   the body states what would NOT move the count: A change to what FUTURE pull request bodies may cont...
+  ok   the body states what would NOT move the count: names which of the two it changes, or refutes the co...
+  ok   and it is one bullet of the five under `## Measurement`, not prose a disposer can skim past
+  ok   null control: the line is on every key the lane files, not only the one that prompted it
+  ok   and it did not flatten the body into a constant (a different measurement still differs)
+  ok   two drives over one window and one measurement: ONE file, then NO write at all
+  ok   a histogram carrying a census parses
+  ok   the threshold is READ from the histogram, never a second copy typed here
+  ok   and the window's own size, which is what says whether the threshold was reachable in it at all
+  ok   a histogram that does not say how large its window is is refused: a below-threshold claim over an unknown window measures nothing
+  ok   the census carries the distinct-PR count of a key BELOW threshold, which no would-open line names
+  ok   and its entry count beside it, so a comment can say 3 entries from 1 pull request
+  ok   a histogram with NO census is refused: an absent census would read as every key at zero
+  ok   a census that declares more keys than it prints is refused (a partial census is not a measurement of what it omits)
+  ok   a histogram that does not print its own threshold is refused rather than compared against a number typed here
+  ok   the sweep speaks about the key that fell below threshold and the key the window never saw, and about nothing else
+  ok   and carries the current distinct-PR count, not the entry count that used to file it
+  ok   with the entry count beside it -- 3 entries from 1 pull request is the shape that used to fire
+  ok   a key absent from the census is reported as measured-at-zero rather than silently dropped
+  ok   NULL CONTROL: an issue whose key the current window WOULD open is not called below threshold
+  ok   NULL CONTROL: an issue whose key is at 22 and merely WITHHELD by the classifier is not called below threshold either -- withheld is not below
+  ok   an issue that is not a friction issue is not touched
+  ok   NULL CONTROL on the threshold: gate-scoping at 4 stays silent even with nothing filed this beat
+  ok   an issue filed under an older spelling is re-measured through the SAME normalization the histogram keys with
+  ok   NULL CONTROL: without that mapping the same sweep calls a rule at 4 distinct PRs below threshold -- the false comment the mapping exists to prevent
+  ok   the ids sent to the normalizer are the open FRICTION issues' keys and nothing else
+  ok   a complete mapping parses
+  ok   a mapping SHORT of what was sent is unknown: a missing row would read as "normalizes to itself"
+  ok   a normalizer that failed is unknown, never an identity map
+  ok   a line outside the `<raw>\t<key>` shape is unknown
+  ok   and the comment says which key the re-measurement used, so a reader is not comparing two different things
+  ok   NULL CONTROL: an issue whose title is already the canonical key carries no such line
+  ok   the comment carries its own marker, which is what the next beat reads
+  ok   an issue with no such comment gets one
+  ok   an issue already carrying THIS window's comment gets none (one per issue per window)
+  ok   a NEW window is a new measurement and earns one new comment
+  ok   another key's comment on the same issue is not this key's marker
+  ok   a comment thread that could not be read refuses, never comments
+  ok   the comment talks about closing without carrying a closing keyword that would close something itself
+  ok   and says in words that it is not one: a seat disposes, per CLAUDE.md
+
+100 passed, 2 failed

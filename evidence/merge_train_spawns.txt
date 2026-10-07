@@ -1,0 +1,4 @@
+bash: tools/audit/app_approve.sh: No such file or directory
+rc=127
+bash: tools/audit/preflight.sh: No such file or directory
+rc=127
