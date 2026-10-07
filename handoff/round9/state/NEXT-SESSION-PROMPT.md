@@ -14,12 +14,11 @@ git show origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json  
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R9-EG-B11 (stage in-flight, branch `handoff/r9-eg-entry-config`, note `handoff/round9/fix/resume/EG-B11.md on handoff/r9-eg-entry-config`): `git fetch origin handoff/r9-eg-entry-config && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
-- R9-RO-7 (stage in-flight, branch `handoff/r9-ro-7`, note `handoff/round9/fix/resume/RO-7.md on handoff/r9-ro-7`): `git fetch origin handoff/r9-ro-7 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-SW-5 (stage in-flight, branch `handoff/r9-sw-5`, note `handoff/round9/fix/resume/SW-5.md on handoff/r9-sw-block`): `git fetch origin handoff/r9-sw-5 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DBG-1 (stage in-flight, branch `handoff/r9-dbg-1`, note `handoff/round9/fix/resume/DBG-1.md on fix/r9-dbg-1`): `git fetch origin handoff/r9-dbg-1 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DEFER-1793 (stage deferred, branch `none`, note `None`): `git fetch origin none && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-EG-B11, R9-RO-7, R9-SW-2, R9-SW-3, R9-SW-4, R9-SW-5, R9-SW-6, R9-UX-5
+Ready next (after-edges satisfied; nothing open constrains them): R9-DBG-1, R9-DEFER-1793, R9-EG-B11, R9-RO-8, R9-SW-2, R9-SW-3, R9-SW-4, R9-SW-5, R9-SW-6, R9-UX-5
 
 ## Resume steps
 
