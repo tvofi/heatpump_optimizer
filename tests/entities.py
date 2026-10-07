@@ -5524,6 +5524,21 @@ R.check(
     _ux7_p_off is not None and not _ux7_p_off.available,
     f"available={getattr(_ux7_p_off, 'available', None)!r}",
 )
+_ux7_wait = {
+    "governing": _ux7_attrs(_ux7_p).get("waiting_for", "absent"),
+    "no_plan": _ux7_attrs(_ux7_p_off).get("waiting_for"),
+    "not_in_control": _ux7_attrs(
+        _ux7_pred_cls(FakeCoordinator(
+            {**DATA, "space_plan": {"forecast": [{"room": 21.0}]}},
+            _predicted_next_room_temp=lambda: None), ENTRY)
+    ).get("waiting_for") if _ux7_pred_cls else None,
+}
+R.check(
+    "UX-7: waiting_for names why: no plan yet, or a plan that does not run the room",
+    _ux7_wait == {"governing": None, "no_plan": "first_plan",
+                  "not_in_control": "plan_not_in_control"},
+    f"{_ux7_wait!r}",
+)
 
 # --- unknown-versus-broken --------------------------------------------------
 R.section("Waiting for evidence is not the same as broken")
@@ -5615,8 +5630,12 @@ class _AllGates:
     mixing_valve_mode = "manual"
 
 
-_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
-_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
+# The plan governing the room is the predicted indoor temperature's gate
+# (R9-UX-7): the real coordinator answers None outside auto/economy mode.
+_healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates(),
+                           _predicted_next_room_temp=lambda: 21.4)
+_broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates(),
+                          _predicted_next_room_temp=lambda: 21.4)
 _broken.last_update_success = False
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
@@ -11810,7 +11829,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "PowerHeadroomSensor": frozenset({
         "baseline_source", "headroom_kw", "horizon_headroom_kw", "limit_kw"
     }),
-    "PredictedIndoorTempSensor": frozenset(),
+    "PredictedIndoorTempSensor": frozenset({"waiting_for"}),
     "PredictedSavingsSensor": frozenset({"stat_kind"}),
     "PredictionAccuracySensor": frozenset({
         "last_diagnosis", "temperature_bias", "temperature_mae", "trust",

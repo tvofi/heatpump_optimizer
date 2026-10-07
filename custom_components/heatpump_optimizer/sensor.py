@@ -1991,14 +1991,15 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
         return attrs
 
 
-class PredictedIndoorTempSensor(HeatPumpOptimizerSensorBase):
+class PredictedIndoorTempSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
     """The room temperature the plan predicts for the next interval (R9-UX-7).
 
     The figure the accuracy tracker files and scores an interval later, so
     the recorder keeps what was predicted beside what the indoor sensor read.
-    Unavailable while no plan governs the room -- comfort, boost or off mode
-    -- which is when the tracker files nothing either, so history breaks the
-    line instead of drawing a prediction nothing acts on.
+    Unavailable while no plan governs the room -- before the first plan, or
+    in comfort, boost or off mode -- which is when the tracker files nothing
+    either, so history breaks the line instead of drawing a prediction
+    nothing acts on; ``waiting_for`` says which.
     """
 
     _attr_state_class = SensorStateClass.MEASUREMENT
@@ -2013,13 +2014,21 @@ class PredictedIndoorTempSensor(HeatPumpOptimizerSensorBase):
         )
 
     @property
-    def available(self) -> bool:
-        return bool(super().available and self.native_value is not None)
+    def _waiting_for(self) -> str | None:
+        if self.native_value is not None:
+            return None
+        # No plan yet, or a plan that is not what runs the room this interval.
+        plan = _mapping(self._data().get("space_plan"))
+        return "plan_not_in_control" if plan.get("forecast") else "first_plan"
 
     @property
     def native_value(self) -> float | None:
         value = _as_float(predicted_next_room_temp(self.coordinator))
         return None if value is None else round(value, 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"waiting_for": self._waiting_for}
 
 
 #: The model status sensor's states, the enum Home Assistant enforces.
