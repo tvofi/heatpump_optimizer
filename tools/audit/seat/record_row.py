@@ -20,8 +20,8 @@ read with `git show`) or `--roster-file`, nothing about a session hardcoded.
 
 THE REVIEW IS A PREDICATE (tvofi, 2026-10-07): `--automerge-check` is the
 guard under which the job approves the record pull request as the approver
-App and queues it for auto-merge, with no review seat; `automerge_refusals`
-states what it requires. WHAT STAYS MANUAL, by design (issue #1952,
+App and merges it at the judged head once its required checks pass, with no
+review seat; `automerge_refusals` states what it requires. WHAT STAYS MANUAL, by design (issue #1952,
 owner-approved 2026-10-04): the review of a record pull request the guard
 refuses, and the `dev/programme/HANDOVER.md` `updated-for:` line -- tied to
 merges that change owed work, not every beat, which a job would over-write.
@@ -325,7 +325,8 @@ def pr_body(head_sha: str, base_sha: str, rows: list[dict]) -> str:
         "",
         "Opened by the hpo-author App. No review seat: where "
         "`record_row.py --automerge-check` passes at the head, the "
-        "approver App approves and auto-merge is queued (tvofi, "
+        "approver App approves and the beat merges it at that head "
+        "once its required checks pass (tvofi, "
         "2026-10-07); where it refuses, the review stays manual. The "
         "HANDOVER updated-for line stays manual; this automation never "
         "writes it.",
@@ -391,8 +392,10 @@ def _row_refusal(number: int, line: str, own: int, fact: dict | None) -> str:
     if number == own:
         return "" if line == open_row_line(own, OPEN_ROW_TITLE) else \
             f"#{number}: this pull request's own row is not the generated open row"
-    if not fact or fact.get("merged") is not True:
-        return f"#{number}: the row cites a pull request the API does not report merged"
+    if not fact or fact.get("merged") is not True \
+            or (fact.get("base") or {}).get("ref") != "main":
+        return (f"#{number}: the row cites a pull request the API does not "
+                "report merged into main")
     stem = row_line(number, fact.get("title") or "",
                     fact.get("merge_commit_sha") or "", None)[:-1]
     if line.startswith(stem) and (line[len(stem):] == "."
@@ -436,8 +439,15 @@ def automerge_refusals(pr: dict, files: list[dict],
     for f in files:
         path = str(f.get("filename") or "")
         m = ROW_PATH.match(path)
-        if not m or f.get("previous_filename"):
-            why.append(f"{path}: renamed, or outside dev/programme/delivery/<N>.md")
+        # Canonical only: the path must be exactly what `row_path` writes for
+        # its number. `\d` and `int` take any Unicode digit, `$` matches
+        # before a trailing newline and `int` drops a leading zero, so a
+        # pattern match alone passes names the generator never writes, and
+        # two names that row one pull request (#2029 review, round 1).
+        if not m or f.get("previous_filename") \
+                or path != row_path(int(m.group(1))):
+            why.append(f"{path!r}: renamed, or not a canonical "
+                       "dev/programme/delivery/<N>.md")
             continue
         lines = added_lines(f.get("patch") or "")
         if f.get("status") != "added" or lines is None or len(lines) != 1:
@@ -451,6 +461,16 @@ def automerge_refusals(pr: dict, files: list[dict],
     return why
 
 
+def _latest(runs: list[dict]) -> dict:
+    """Each check name's newest run (highest id): a re-run supersedes."""
+    out: dict = {}
+    for r in runs:
+        n = r.get("name")
+        if n not in out or int(r.get("id") or 0) > int(out[n].get("id") or 0):
+            out[n] = r
+    return out
+
+
 def failed_required(runs: list[dict], required: set[str]) -> list[str]:
     """The required contexts whose latest check run at a head failed.
 
@@ -458,14 +478,27 @@ def failed_required(runs: list[dict], required: set[str]) -> list[str]:
     grade main, not the pull request -- holds nothing up, and the ruleset
     already ignores it."""
     bad = ("failure", "cancelled", "timed_out", "action_required")
-    return sorted({r.get("name") for r in runs
-                   if r.get("name") in required and r.get("conclusion") in bad})
+    return sorted(n for n, r in _latest(runs).items()
+                  if n in required and r.get("conclusion") in bad)
+
+
+def not_green(runs: list[dict], required: set[str]) -> list[str]:
+    """The required contexts whose latest run at a head is not a pass yet:
+    missing, still running, or concluded anything but success, skipped or
+    neutral. The beat merges only when this is empty."""
+    last = _latest(runs)
+    ok = ("success", "skipped", "neutral")
+    return sorted(n for n in required
+                  if n not in last or last[n].get("conclusion") not in ok)
 
 
 def automerge_check(repo: str, number: int, head: str, token: str,
-                    hold: bool, moved: bool = False) -> list[str]:
+                    hold: bool, moved: bool = False,
+                    green: bool = False) -> list[str]:
     """`automerge_refusals` over the live API; `hold` adds the required-check
     reds, which decide whether a beat may leave an open pull request alone.
+    `green` adds every required context not yet passed at the head, each as
+    a `pending:` line, which decide whether the beat may merge now.
     `moved` is for replaying a pull request older than the row directory's
     move: each filename is read through `tests/layout.json`'s move map
     (`delivery_status.locate`), so a row written at the old path is judged as
@@ -491,7 +524,7 @@ def automerge_check(repo: str, number: int, head: str, token: str,
         if m and int(m.group(1)) != number:
             facts[int(m.group(1))] = _api(repo, f"/pulls/{m.group(1)}", token)
     why = automerge_refusals(pr, files, facts)
-    if hold:
+    if hold or green:
         rules = _api(repo, "/rules/branches/main", token)
         required = {c["context"] for r in rules
                     if r.get("type") == "required_status_checks"
@@ -499,6 +532,8 @@ def automerge_check(repo: str, number: int, head: str, token: str,
         runs = _api(repo, f"/commits/{pr['head']['sha']}/check-runs?per_page=100",
                     token)["check_runs"]
         why += [f"required check {n} failed" for n in failed_required(runs, required)]
+        if green and not why:
+            why += [f"pending: {n}" for n in not_green(runs, required)]
     return why
 
 
@@ -772,6 +807,7 @@ def self_test() -> int:
 
     _sha = "1fa713f" + "0" * 33
     _facts = {1995: {"merged": True, "merge_commit_sha": _sha,
+                     "base": {"ref": "main"},
                      "title": "fix(R9-RO-4): archive plans (#1917)"}}
     _good = [_file(1995, row_line(1995, _facts[1995]["title"], _sha, None)),
              _file(2002, open_row_line(2002, OPEN_ROW_TITLE))]
@@ -821,13 +857,67 @@ def self_test() -> int:
                           _facts),
         "a row added to an existing empty file": (
             _pr(), [dict(_good[0], status="modified")], _facts),
+        "a row for a pull request merged into another branch": (
+            _pr(), _good[:1], {1995: dict(_facts[1995],
+                                          base={"ref": "side"})}),
     }
+    # The #2029 round-1 reviewer's path_attack cases: the exact generated
+    # row at a name the generator never writes. Each must refuse alone.
+    for _name, _path in {
+            "arabic-indic digits": "dev/programme/delivery/\u0661\u0669\u0669\u0665.md",
+            "fullwidth digits": "dev/programme/delivery/\uff11\uff19\uff19\uff15.md",
+            "leading zero": "dev/programme/delivery/01995.md",
+            "trailing newline in name": "dev/programme/delivery/1995.md\n",
+            "other dir": "dev/programme/delivery2/1995.md"}.items():
+        _bad[f"path attack: {_name}"] = (
+            _pr(), [dict(_good[0], filename=_path)], _facts)
+    _bad["path attack: one PR rowed at two paths"] = (
+        _pr(), [_good[0], dict(_good[0],
+                               filename="dev/programme/delivery/01995.md")],
+        _facts)
     for _name, (_p, _fs, _fx) in _bad.items():
         try:
             _refused = bool(automerge_refusals(_p, _fs, _fx))
         except Exception:  # noqa: BLE001 -- a crash is not a refusal
             _refused = False
         ok(f"automerge refuses: {_name}", _refused)
+    ok("failed_required reads a re-run over the red it supersedes",
+       failed_required([{"name": "fast (3.14)", "id": 1, "conclusion": "failure"},
+                        {"name": "fast (3.14)", "id": 2, "conclusion": "success"}],
+                       {"fast (3.14)"}) == [])
+    ok("not_green names a required context missing or still running",
+       not_green([{"name": "a", "id": 1, "conclusion": "success"},
+                  {"name": "b", "id": 2, "conclusion": None}],
+                 {"a", "b", "c"}) == ["b", "c"])
+    ok("not_green is empty when every required context passed",
+       not_green([{"name": "a", "id": 1, "conclusion": "success"},
+                  {"name": "b", "id": 2, "conclusion": "skipped"}],
+                 {"a", "b"}) == [])
+    # automerge_check's head pin, driven through a stand-in for the API: the
+    # judged head must be the live head, or nothing else is read.
+    _real_api, _calls = _api, []
+
+    def _fake_api(repo, path, token):
+        _calls.append(path)
+        if path == "/pulls/2002":
+            return dict(_pr(), head=dict(_pr()["head"], sha="b" * 40))
+        if path.startswith("/pulls/2002/files"):
+            return list(_good)
+        if path == "/pulls/1995":
+            return _facts[1995]
+        raise AssertionError(path)
+    globals()["_api"] = _fake_api
+    try:
+        _moved = automerge_check(DEFAULT_REPO, 2002, "a" * 40, "t", False)
+        _moved_calls = list(_calls)
+        _same = automerge_check(DEFAULT_REPO, 2002, "b" * 40, "t", False)
+    finally:
+        globals()["_api"] = _real_api
+    ok("automerge_check refuses a head that moved, before reading files",
+       len(_moved) == 1 and _moved[0].startswith("head moved")
+       and _moved_calls == ["/pulls/2002"])
+    ok("and passes the same pull request at its live head (null control)",
+       _same == [])
     ok("failed_required ignores a red that is not required",
        failed_required([{"name": "delivery-status", "conclusion": "failure"},
                         {"name": "fast (3.14)", "conclusion": "success"}],
@@ -866,6 +956,9 @@ def main() -> int:
     ap.add_argument("--hold", action="store_true",
                     help="with --automerge-check: also refuse a failed "
                          "required check (may a beat leave the PR alone?)")
+    ap.add_argument("--require-green", action="store_true",
+                    help="with --automerge-check: exit 3 while a required "
+                         "context is not yet passed at the head")
     ap.add_argument("--replay-moved", action="store_true",
                     help="with --automerge-check: read pre-move row paths "
                          "through tests/layout.json (replay of old PRs)")
@@ -899,12 +992,14 @@ def main() -> int:
             print(find_open(args.repo, args.owner, token))
             return 0
         why = automerge_check(args.repo, args.pr, args.head, token, args.hold,
-                              args.replay_moved)
+                              args.replay_moved, args.require_green)
+        pending = [w for w in why if w.startswith("pending: ")]
         for w in why:
-            print(f"AUTOMERGE REFUSE #{args.pr}: {w}")
+            word = "PENDING" if w in pending else "REFUSE"
+            print(f"AUTOMERGE {word} #{args.pr}: {w}")
         if not why:
             print(f"AUTOMERGE OK #{args.pr} at {args.head or '(live head)'}")
-        return 1 if why else 0
+        return 0 if not why else 3 if len(pending) == len(why) else 1
     if args.write_self_row:
         if args.pr <= 0:
             print("::error::--write-self-row needs --pr", file=sys.stderr)
