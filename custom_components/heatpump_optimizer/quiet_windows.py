@@ -218,8 +218,9 @@ def next_gchv_window(
             continue
         begin = _gchv_at(yesterday, start, tz)
         finish = _gchv_at(now.date(), end, tz)
-        if begin <= now < finish:
-            return (start, end)
+        if now < finish:
+            if now >= begin:
+                return (start, end)
     for offset in range(8):
         day = now.date() + timedelta(days=offset)
         for start, end in days[day.weekday()]:

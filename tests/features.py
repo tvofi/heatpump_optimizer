@@ -58714,6 +58714,13 @@ R.check(
     f"dropped {_sw4_two.silent_dropped} capped {_sw4_two_caps[:3]}.. n={len(_sw4_two_caps)}",
 )
 R.check(
+    "inside a wrapping window that shares the day with a later same-day window, the wrap is still next",
+    _qw.next_gchv_window(
+        datetime(2026, 1, 16, 2, 0, tzinfo=timezone.utc),
+        "22:00-06:00,12:00-13:00",
+    ) == (22.0, 6.0),
+)
+R.check(
     "days that differ (weekdays-only) are partial: the next window is capped, the rest dropped",
     _qw.compose(
         None, {**_SW4_CFG, _QW_SILENT: "weekdays 22:00-06:00"},

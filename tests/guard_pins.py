@@ -455,6 +455,12 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
     wrap = quiet_windows.next_gchv_window(at_start, "22:00-06:00")
     after = quiet_windows.next_gchv_window(at_end, "22:00-06:00")
     ids_hp = modbus_prefill.night_mode_write_ids("hp")
+    zero = Coord(silent_spec="10:00-10:00")
+    run(zero, 0)
+    garbage = Coord(silent_spec="not-a-window")
+    run(garbage, 0)
+    frac_obs = Coord()
+    frac_obs.device(start_h, "22.4")
     return {
         "prefix": (
             modbus_prefill.package_prefix(flag) == "hp"
@@ -524,7 +530,92 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
                 {**cfg, silent: "12:00-13:00,22:00-06:00"}, get(states),
             ) is True
             and quiet_windows.silent_unenforceable({silent: ""}, get(states)) is False
+            and quiet_windows.silent_unenforceable(
+                {limited: "switch.pump_night_mode", silent: "22:00-06:00"},
+                get(states),
+            ) is False
         ),
+        "domain": modbus_prefill.package_prefix(
+            "switch.hp_night_mode_frequency_reduction_active",
+        ) is None,
+        "suffix": modbus_prefill.package_prefix(
+            "binary_sensor.hp_" + ("x" * 50) + "_nope",
+        ) is None,
+        "mode_slot": pump_arbiter._slot_entity(on._config, "mode") == "select.pump_mode",
+        "differs_none": pump_arbiter._differs("night_start_hour", None, 22) is False,
+        "differs_frac": pump_arbiter._differs("night_start_hour", 21.8, 22) is True,
+        "observed_int": isinstance(
+            pump_arbiter._observed(on.arbiter_inputs(), "night_start_hour"), int,
+        ),
+        "write_ints": bool(first) and all(type(v) is int for _, v in first),
+        "zero_window": zero.night_writes() == [],
+        "garbage_write": garbage.night_writes() == [],
+        "observed_frac": pump_arbiter._observed(
+            frac_obs.arbiter_inputs(), "night_start_hour",
+        ) == 22,
+        "listeners": any(
+            start_h in ids
+            for ids, _action in getattr(on.hass, "state_listeners", [])
+        ),
+        "switch_compose": (
+            quiet_windows.compose(
+                None,
+                {limited: "switch.pump_night_mode", silent: "22:00-06:00", frac: 0.7},
+                get({}),
+                eve, 96, 0.25, 5.0,
+            ).silent_dropped is False
+        ),
+        "unread_compose": (
+            quiet_windows.compose(
+                None, cfg, get({flag: FakeState("off")}), eve, 96, 0.25, 5.0,
+            ).silent_dropped is True
+        ),
+        "off_only_dropped": (
+            quiet_windows.compose(
+                None,
+                {limited: flag, off: "09:00-09:30", frac: 0.7},
+                get(states),
+                eve, 96, 0.25, 5.0,
+            ).silent_dropped is False
+        ),
+        "at_noon_end": (
+            quiet_windows.next_gchv_window(
+                datetime(2026, 1, 15, 13, 0, tzinfo=timezone.utc),
+                "12:00-13:00,22:00-06:00",
+            ) == (22.0, 6.0)
+        ),
+        "at_wrap_end": (
+            quiet_windows.next_gchv_window(
+                datetime(2026, 1, 16, 6, 0, tzinfo=timezone.utc),
+                "22:00-06:00,12:00-13:00",
+            ) == (12.0, 13.0)
+        ),
+        "inside_wrap_two": (
+            quiet_windows.next_gchv_window(
+                datetime(2026, 1, 16, 2, 0, tzinfo=timezone.utc),
+                "22:00-06:00,12:00-13:00",
+            ) == (22.0, 6.0)
+        ),
+        "weekday_sat": (
+            quiet_windows.next_gchv_window(
+                datetime(2026, 1, 17, 10, 0, tzinfo=timezone.utc),
+                "weekdays 12:00-13:00, weekend 22:00-06:00",
+            ) == (22.0, 6.0)
+        ),
+        "yesterday_day": (
+            quiet_windows.next_gchv_window(eve, "12:00-13:00,22:00-06:00")
+            == (22.0, 6.0)
+        ),
+        "same_day_finish": (
+            quiet_windows.next_gchv_window(
+                datetime(2026, 1, 15, 12, 30, tzinfo=timezone.utc),
+                "12:00-13:00",
+            ) == (12.0, 13.0)
+        ),
+        "empty_merge": quiet_windows._gchv_merge([]) == [],
+        "garbage_spec": quiet_windows.compose(
+            None, {**cfg, silent: "garbage"}, get(states), eve, 96, 0.25, 5.0,
+        ).silent_dropped is True,
     }
 
 
