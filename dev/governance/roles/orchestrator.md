@@ -20,8 +20,7 @@ you follow. Where a rule names "the fixer" or "a seat", read yourself into it
 whenever you are the one acting — and you are acting whenever you write text
 another agent or the owner will treat as established.
 
-The sections below say where those rules meet work only you do. They do not
-replace the source rules.
+These sections do not replace the source rules. The turn is `dev/governance/roles/nudge.md`.
 
 ## 1. Verify before claiming. This is the foundational rule and it already exists
 
