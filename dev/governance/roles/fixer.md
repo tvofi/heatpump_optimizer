@@ -18,10 +18,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included — the M0 null run attributes it to
-   the runner (#1713, #1723). **Pinning is `mutation-autofix`'s**
-   (`ci-autofix.md`): no local `--pin-killed`; the body lists survivors on the
-   sites you touched (`mutation_table.py --scope changed`), each with a value
-   check or a written triage.
+   the runner (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
+   `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
+   `## Unpinned sites` gives each its disposition: pinned by
+   `mutation-autofix`, a value check, or a written triage.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
