@@ -19,9 +19,18 @@ of an ECL110 control fault; and the building and tariff parameters, which are
 the thermal model a "my plan is wrong" report is about. None of those is
 pre-filled from anything private. ``entry.options`` is still emitted as key
 names only.
+
+R9-UX-7 (#1795) adds what the published payload says about the last cycle:
+the last diagnosis, the input states, a plan summary (counts and totals, no
+per-step series) and the learning view. Two kinds of entity id are an
+exception to "ids are kept": a ``person.*`` id names a member of the
+household and a ``calendar.*`` id a family calendar, and the away and
+holiday options hold them. They are redacted wherever they appear, inside a
+message string too, because an input problem echoes the id it is about.
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -36,6 +45,7 @@ from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
 )
+from .payload import LearningView
 
 #: Keys whose values never leave the instance, at any depth: the Tibber
 #: credential, and the entry name, which is free text the user typed and
@@ -56,6 +66,81 @@ COORDINATE_KEYS = frozenset({"latitude", "longitude"})
 #: produces: latitude and longitude swapped, and a location in the wrong
 #: country.
 COORDINATE_PLACES = 1
+
+
+#: Entity ids that name a person or a household calendar, anywhere in a
+#: string: the away presence and holiday calendar options hold them, and an
+#: input problem's message repeats the id it is about.
+PRIVATE_ENTITY_ID = re.compile(r"\b(?:person|calendar)\.[a-z0-9_]+")
+
+#: The input watchdog's published keys (the coordinator's input health view).
+INPUT_KEYS = (
+    "input_health",
+    "stale_inputs",
+    "input_problems",
+    "problem_inputs",
+    "problem_messages",
+    "input_ages_minutes",
+    "learners_frozen",
+    "learner_freeze_reason",
+)
+
+
+def _without_private_ids(value: Any) -> Any:
+    """``value`` with every person and calendar entity id redacted, at any depth."""
+    if isinstance(value, str):
+        return PRIVATE_ENTITY_ID.sub(REDACTED, value)
+    if isinstance(value, Mapping):
+        return {key: _without_private_ids(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_without_private_ids(item) for item in value]
+    return value
+
+
+def _plan_summary(data: Mapping[str, Any]) -> dict[str, Any]:
+    """What the current plan is, in counts and totals: no per-step series."""
+
+    def channel(plan: Any) -> dict[str, Any]:
+        plan = plan if isinstance(plan, Mapping) else {}
+        return {
+            "steps": len(plan.get("forecast") or []),
+            "slots": len(plan.get("slots") or []),
+            "total_energy_kwh": plan.get("total_energy_kwh"),
+            "total_cost": plan.get("total_cost"),
+            "active_now": plan.get("active_now"),
+        }
+
+    return {
+        **{
+            key: data.get(key)
+            for key in (
+                "mode",
+                "optimization_status",
+                "last_optimization",
+                "next_optimization",
+                "plan_age_minutes",
+                "plan_stale",
+                "current_action",
+            )
+        },
+        "space": channel(data.get("space_plan")),
+        "dhw": channel(data.get("dhw_plan")),
+    }
+
+
+def _published_sections(coord: Any) -> dict[str, Any]:
+    """The last cycle as the entities saw it: diagnosis, inputs, plan, learning."""
+    data = getattr(coord, "data", None)
+    data = data if isinstance(data, Mapping) else {}
+    insight = data.get("insight")
+    return {
+        "last_diagnosis": (
+            insight.get("last_diagnosis") if isinstance(insight, Mapping) else None
+        ),
+        "inputs": {key: data[key] for key in INPUT_KEYS if key in data},
+        "plan": _plan_summary(data),
+        "learning": {key: data[key] for key in LearningView.__annotations__ if key in data},
+    }
 
 
 def _coordinate(value: Any) -> Any:
@@ -132,16 +217,19 @@ async def async_get_config_entry_diagnostics(
     # alone, so a coordinate or a credential that a future coordinator
     # summary starts carrying is covered without a second decision here.
     return async_redact_data(
-        _coarsen(
-            {
-                "entry": {
-                    "version": entry.version,
-                    "options_keys": sorted(entry.options.keys()),
-                },
-                "config": dict(entry.data),
-                "coordinator": _coordinator_snapshot(coord) if coord else None,
-                "domain": DOMAIN,
-            }
+        _without_private_ids(
+            _coarsen(
+                {
+                    "entry": {
+                        "version": entry.version,
+                        "options_keys": sorted(entry.options.keys()),
+                    },
+                    "config": dict(entry.data),
+                    "coordinator": _coordinator_snapshot(coord) if coord else None,
+                    **_published_sections(coord),
+                    "domain": DOMAIN,
+                }
+            )
         ),
         TO_REDACT,
     )

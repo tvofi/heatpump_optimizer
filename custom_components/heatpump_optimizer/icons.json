@@ -263,6 +263,12 @@
       },
       "model_restart_advisor": {
         "default": "mdi:restart"
+      },
+      "learning_model_status": {
+        "default": "mdi:brain"
+      },
+      "indoor_temperature_predicted": {
+        "default": "mdi:home-thermometer-outline"
       }
     },
     "switch": {

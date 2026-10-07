@@ -125,10 +125,37 @@ const STRINGS = {
     "health.learn_accuracy_why": "Waiting for the first scored interval",
     "health.learn_score": "Optimization score",
     "health.learn_score_why": "Waiting for the first scored day",
+    "health.model": "What the model has learned",
+    "health.model_heat_loss": "House heat loss",
+    "health.model_solar": "Solar gain",
+    "health.model_lower": "Lower floor",
+    "health.model_tank": "Hot-water tank cooling",
+    "health.model_cop": "Heat pump efficiency",
+    "health.model_gains": "Internal gains by hour",
+    "health.model_house": "The house",
+    "health.model_lower_floor": "The lower floor",
+    "health.model_from": "Learned from {n} samples.",
+    "health.model_estimate": "Still the settings' estimate: no samples yet.",
+    "health.model_default": "Still the default: no samples yet.",
+    "health.model_learning": "Learning: {n} of about {need} samples.",
+    "health.model_faster": "{what} loses heat {pct} % faster than the settings estimated.",
+    "health.model_slower": "{what} loses heat {pct} % slower than the settings estimated.",
+    "health.model_as_set": "{what} loses heat as the settings estimated.",
+    "health.model_w_per_k": "{v} W/K",
+    "health.model_window": "Window scale {v}",
+    "health.model_share": "{v} % of the settings' estimate",
+    "health.model_per_hour": "{v} °C per hour",
+    "health.model_cop_normal": "Normal (COP scale {v})",
+    "health.model_cop_low": "Below its own history",
+    "health.model_cop_fine": "No sign of degradation.",
+    "health.model_cop_alarm": "It delivers less heat per kWh than it used to; check filters, defrost and flow.",
+    "health.model_cop_young": "Not enough running history to watch yet.",
+    "health.model_gains_peak": "People, cooking and appliances add up to {kw} kW around {hh}:00.",
     "health.support_title": "Something looks wrong?",
     "health.support_detail":
       "Open the integration page and choose Download diagnostics in its menu: " +
-      "the file holds the last diagnosis, input states and the current plan.",
+      "the file holds the last diagnosis, input states, the current plan and what the model has learned, " +
+      "with tokens, names, people, calendars and locations removed.",
     "health.act_diagnostics": "Download diagnostics",
     "health.check_price": "Price source connected",
     "health.check_weather": "Weather forecast available",
@@ -757,10 +784,37 @@ const STRINGS = {
     "health.learn_accuracy_why": "Väntar på det första bedömda intervallet",
     "health.learn_score": "Optimeringspoäng",
     "health.learn_score_why": "Väntar på den första bedömda dagen",
+    "health.model": "Vad modellen har lärt sig",
+    "health.model_heat_loss": "Husets värmeförlust",
+    "health.model_solar": "Solinstrålning",
+    "health.model_lower": "Nedre våningen",
+    "health.model_tank": "Varmvattentankens avsvalning",
+    "health.model_cop": "Värmepumpens verkningsgrad",
+    "health.model_gains": "Internvärme per timme",
+    "health.model_house": "Huset",
+    "health.model_lower_floor": "Nedre våningen",
+    "health.model_from": "Inlärt från {n} mätningar.",
+    "health.model_estimate": "Fortfarande inställningarnas uppskattning: inga mätningar än.",
+    "health.model_default": "Fortfarande standardvärdet: inga mätningar än.",
+    "health.model_learning": "Lär sig: {n} av ungefär {need} mätningar.",
+    "health.model_faster": "{what} förlorar värme {pct} % snabbare än inställningarna uppskattade.",
+    "health.model_slower": "{what} förlorar värme {pct} % långsammare än inställningarna uppskattade.",
+    "health.model_as_set": "{what} förlorar värme som inställningarna uppskattade.",
+    "health.model_w_per_k": "{v} W/K",
+    "health.model_window": "Fönsterskala {v}",
+    "health.model_share": "{v} % av inställningarnas uppskattning",
+    "health.model_per_hour": "{v} °C per timme",
+    "health.model_cop_normal": "Normal (COP-skala {v})",
+    "health.model_cop_low": "Under sin egen historik",
+    "health.model_cop_fine": "Inga tecken på försämring.",
+    "health.model_cop_alarm": "Den ger mindre värme per kWh än förut; kontrollera filter, avfrostning och flöde.",
+    "health.model_cop_young": "För kort drifthistorik för att bevaka än.",
+    "health.model_gains_peak": "Människor, matlagning och apparater ger upp till {kw} kW runt {hh}:00.",
     "health.support_title": "Ser något fel ut?",
     "health.support_detail":
       "Öppna integrationssidan och välj Ladda ner diagnostik i menyn: " +
-      "filen innehåller senaste diagnosen, indatas tillstånd och den aktuella planen.",
+      "filen innehåller senaste diagnosen, indatas tillstånd, den aktuella planen och vad modellen har lärt sig, " +
+      "utan nycklar, namn, personer, kalendrar och platser.",
     "health.act_diagnostics": "Ladda ner diagnostik",
     "health.check_price": "Priskälla ansluten",
     "health.check_weather": "Väderprognos tillgänglig",
@@ -4578,6 +4632,25 @@ function cardStyleBlock(darkMode) {
         background: var(--secondary-background-color, #f5f5f5);
       }
       .health-support { margin-top: 12px; }
+      /* "What the model has learned" (R9-UX-7): a tabular value and an
+         evidence bar per learner, and the internal-gains strip in the
+         accent colour. Both wrap under the text on a narrow card. */
+      .model-value { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .model-bar {
+        flex: 0 0 5em; height: 6px; border-radius: 3px;
+        background: var(--hpo-divider, rgba(127, 127, 127, 0.3));
+      }
+      .model-bar > span {
+        display: block; height: 100%; border-radius: 3px;
+        background: var(--hpo-accent, #026aa8);
+      }
+      .gains-strip {
+        flex: 0 1 16em; display: flex; align-items: flex-end; gap: 2px; height: 2.6em;
+      }
+      .gains-bar {
+        flex: 1 1 0; border-radius: 2px 2px 0 0;
+        background: var(--hpo-accent, #026aa8);
+      }
       .health-mark {
         flex: 0 0 auto; width: 1.4em; height: 1.4em; border-radius: 50%;
         border: 1.5px solid var(--hpo-divider, currentColor);
@@ -8524,6 +8597,9 @@ const HEALTH_WAITING = [
   ["score", "_plan_optimization_score"],
 ];
 const HEALTH_STATUS_SUFFIX = "_optimization_status";
+// The model status sensor (R9-UX-7): what the learners believe, as compact
+// per-learner rows. On by default, and Diagnostic like the other learners.
+const HEALTH_MODEL_SUFFIX = "_learning_model_status";
 
 /** The Input Problem binary sensor's state: the binary twin of the plan id. */
 function inputProblemState(plan) {
@@ -8544,6 +8620,7 @@ function healthSignature(plan, minute) {
   return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
     sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
     ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
+    sig(plan.statEntity(HEALTH_MODEL_SUFFIX)),
     minute ? Math.floor(minute / 60000) : 0].join("|");
 }
 
@@ -8625,6 +8702,82 @@ function healthLearningHtml(plan) {
   return rows.length ? `<div class="health-learning"><h3 class="health-h">${esc(L("health.learning"))}</h3>${rows.join("")}</div>` : "";
 }
 
+/** One learner row: what it is, its evidence in words, its value and a bar. */
+function healthModelRow(id, title, detail, value, share, tone) {
+  const pct = Math.round(Math.max(0, Math.min(1, Number(share) || 0)) * 100);
+  return `<div class="health-row model-row" data-model-row="${id}" data-tone="${tone || "ok"}">` +
+    `<span class="adv-text">${esc(title)}<span class="adv-sub">${esc(detail)}</span></span>` +
+    `<span class="model-value">${esc(value)}</span>` +
+    `<span class="model-bar" aria-hidden="true"><span style="width:${pct}%"></span></span></div>`;
+}
+
+/** "{what} loses heat 8 % faster than the settings estimated", from a learned factor. */
+function healthVersusSettings(what, factor) {
+  const f = Number(factor);
+  if (!Number.isFinite(f)) return "";
+  const pct = Math.round(Math.abs(f - 1) * 100);
+  return pct < 2 ? L("health.model_as_set", { what })
+    : L(f > 1 ? "health.model_faster" : "health.model_slower", { what, pct });
+}
+
+/** The 24 hourly internal-gains bars, in the accent colour, and the peak. */
+function healthGainsRow(gains) {
+  const kw = gains.map((g) => Math.max(0, Number(g) || 0));
+  const top = Math.max(...kw);
+  const at = kw.indexOf(top);
+  const bars = kw.map((g, h) => `<span class="gains-bar" title="${String(h).padStart(2, "0")}:00" ` +
+    `style="height:${top > 0 ? Math.max(4, Math.round((g / top) * 100)) : 4}%"></span>`).join("");
+  return `<div class="health-row model-row" data-model-row="gains" data-tone="ok">` +
+    `<span class="adv-text">${esc(L("health.model_gains"))}<span class="adv-sub">` +
+    `${esc(L("health.model_gains_peak", { kw: top.toFixed(1), hh: String(at).padStart(2, "0") }))}</span></span>` +
+    `<span class="gains-strip" aria-hidden="true">${bars}</span></div>`;
+}
+
+/** "What the model has learned" (R9-UX-7): the model status sensor's rows. */
+function healthModelHtml(plan) {
+  const st = plan.statEntity(HEALTH_MODEL_SUFFIX);
+  if (!st || st.state === "unavailable" || st.state === "unknown") return "";
+  const a = st.attributes || {};
+  const num = (v) => (v === null || v === undefined || v === "" ? NaN : Number(v));
+  const rows = [];
+  const hl = a.heat_loss || {};
+  if (Number.isFinite(num(a.heat_loss_w_per_k))) {
+    rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"),
+      hl.learned ? `${L("health.model_from", { n: hl.samples })} ${healthVersusSettings(L("health.model_house"), hl.scale)}`
+        : L("health.model_estimate"),
+      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }), hl.learned ? 1 : 0));
+  }
+  const sol = a.solar_aperture || {};
+  if (Number.isFinite(num(sol.scale))) {
+    const n = num(sol.samples) || 0, need = num(sol.needed) || 0;
+    rows.push(healthModelRow("solar", L("health.model_solar"),
+      need > 0 && n < need ? L("health.model_learning", { n, need }) : L("health.model_from", { n }),
+      L("health.model_window", { v: num(sol.scale).toFixed(2) }), need > 0 ? n / need : 1));
+  }
+  const lf = a.lower_floor || {};
+  if (lf.learned && Number.isFinite(num(lf.ratio))) {
+    rows.push(healthModelRow("lower", L("health.model_lower"),
+      `${L("health.model_from", { n: lf.samples })} ${healthVersusSettings(L("health.model_lower_floor"), lf.ratio)}`,
+      L("health.model_share", { v: Math.round(num(lf.ratio) * 100) }), 1));
+  }
+  const tk = a.tank_cooling;
+  if (tk && Number.isFinite(num(tk.rate_c_per_h))) {
+    rows.push(healthModelRow("tank", L("health.model_tank"),
+      tk.learned ? L("health.model_from", { n: tk.samples }) : L("health.model_default"),
+      L("health.model_per_hour", { v: num(tk.rate_c_per_h).toFixed(1) }), tk.learned ? 1 : 0));
+  }
+  const cop = a.cop || {};
+  if (cop.alarm || Number.isFinite(num(cop.scale))) {
+    const watched = num(cop.watched_buckets) > 0;
+    rows.push(healthModelRow("cop", L("health.model_cop"),
+      cop.alarm ? L("health.model_cop_alarm") : watched ? L("health.model_cop_fine") : L("health.model_cop_young"),
+      cop.alarm ? L("health.model_cop_low") : L("health.model_cop_normal", { v: num(cop.scale).toFixed(2) }),
+      watched || cop.alarm ? 1 : 0, cop.alarm ? "warn" : "ok"));
+  }
+  if (Array.isArray(a.internal_gains_kw) && a.internal_gains_kw.length === 24) rows.push(healthGainsRow(a.internal_gains_kw));
+  return rows.length ? `<div class="health-model"><h3 class="health-h">${esc(L("health.model"))}</h3>${rows.join("")}</div>` : "";
+}
+
 function healthChecklistHtml(plan) {
   const topo = plan.attrRaw("setup_topology", null);
   const ages = (inputProblemState(plan) || { attributes: {} }).attributes.input_ages_minutes || {};
@@ -8652,6 +8805,7 @@ function healthPageHtml(host) {
       <div class="health-col">${healthInputsHtml(plan)}</div>
       <div class="health-col">${healthPlanHtml(plan)}${healthLearningHtml(plan)}</div>
     </div>
+    ${healthModelHtml(plan)}
     <div class="health-row health-support"><span class="adv-text">${esc(L("health.support_title"))}
       <span class="adv-sub">${esc(L("health.support_detail"))}</span></span>
       <button type="button" class="adv-act" data-act="diagnostics">${esc(L("health.act_diagnostics"))}</button></div>

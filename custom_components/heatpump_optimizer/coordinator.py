@@ -919,6 +919,15 @@ async def _async_save_restored(coord: Any) -> None:
     await coord._async_save_accuracy()
 
 
+def predicted_next_room_temp(coord: Any) -> float | None:
+    """R9-UX-7 (#1795): the room temperature the running plan predicts for
+    the next interval -- the figure the accuracy tracker files and later
+    scores -- or ``None`` while no plan governs the room (the method's gate).
+    """
+    predict = getattr(coord, "_predicted_next_room_temp", None)
+    return predict() if callable(predict) else None
+
+
 def model_restart_advice(coord: Any) -> dict[str, Any]:
     """R9-DIAG-2S (#1936): the restart points the drift alarm can offer.
 
@@ -7443,10 +7452,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "buffer_cooling_rate": self._buffer_cooling_rate,
             "buffer_cooling_samples": self._buffer_cooling_samples,
             "buffer_cooling_rate_learned": self._buffer_cooling_samples > 0,
-            # Reports learned=True and an effective figure that the defect
-            # noted at _thermal_learning_payload can leave ~2x wrong after an
-            # options edit. The confidence shown here is in the sample count,
-            # not in the number. See dev/archive/backlog.md, "Open".
             "house_heat_loss_scale": self._house_heat_loss_scale,
             "house_heat_loss_samples": self._house_heat_loss_samples,
             "house_heat_loss_learned": self._house_heat_loss_samples > 0,

@@ -1981,6 +1981,17 @@
       },
       "model_restart_advisor": {
         "name": "Råd om omstart av modellen"
+      },
+      "learning_model_status": {
+        "name": "Inlärning modellstatus",
+        "state": {
+          "learning": "Lär sig",
+          "learned": "Inlärd",
+          "attention": "Behöver åtgärd"
+        }
+      },
+      "indoor_temperature_predicted": {
+        "name": "Inomhustemperatur (prognos)"
       }
     },
     "binary_sensor": {
