@@ -1281,27 +1281,48 @@ def probe_install(config: Any) -> InstallCapability:
     )
 
 
+def _configured(cap: InstallCapability, cfg: Any, key: str) -> bool:
+    """The class's own config key holds an entity."""
+    return bool(cfg.get(key))
+
+
+#: The feedback sensor classes (#1956): ``(class, name of the const holding
+#: its config key, probe)``. Adding a class is one entry here. A key name
+#: ``const`` does not define yet is a class not offered yet, which is how the
+#: water mass-flow meter waits for its config key. Power and frequency read
+#: the one install probe; the others read their key.
+_FEEDBACK_CLASSES: tuple[tuple[str, str, Any], ...] = (
+    ("power", "CONF_POWER_ENTITY", lambda cap, cfg, key: cap.measured_power),
+    ("energy", "CONF_ENERGY_ENTITY", _configured),
+    (
+        "frequency",
+        "CONF_COMPRESSOR_FREQ_SENSOR",
+        lambda cap, cfg, key: cap.frequency,
+    ),
+    ("flow", "CONF_FLOW_METER_ENTITY", _configured),
+)
+
+
 def feedback_gaps(config: Any) -> list[dict[str, str]]:
     """The sensor classes to add when nothing feeds back (#1956).
 
-    Empty when the probe sees a power entity or a frequency entity or
-    sensor, or the config carries an energy entity (the one class the probe
-    does not hold). Otherwise one row per class with the config key that
-    would use it. A water mass-flow meter has no config key, so it is not a
-    class this can name.
+    Empty when any offered class is already present. Otherwise one row per
+    offered class with the config key that would use it. A class whose
+    config key ``const`` does not define is not offered.
     """
     cfg = config or {}
     cap = probe_install(cfg)
+    offered = [
+        (name, getattr(const, attr), probe)
+        for name, attr, probe in _FEEDBACK_CLASSES
+        if hasattr(const, attr)
+    ]
+    # Frequency is satisfied by its entity as well as its sensor: the probe
+    # reads both, so the row's key is the sensor but presence is the probe's.
     return (
         []
-        if cap.measured_power
-        or cap.frequency
-        or cfg.get(const.CONF_ENERGY_ENTITY)
-        else [
-            {"class": "power", "key": const.CONF_POWER_ENTITY},
-            {"class": "energy", "key": const.CONF_ENERGY_ENTITY},
-            {"class": "frequency", "key": const.CONF_COMPRESSOR_FREQ_SENSOR},
-        ]
+        if any(probe(cap, cfg, key) for _, key, probe in offered)
+        else [{"class": name, "key": key} for name, key, _ in offered]
     )
 
 

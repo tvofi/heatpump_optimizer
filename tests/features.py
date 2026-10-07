@@ -59077,6 +59077,27 @@ R.check(
 )
 
 
+R.check(
+    "guard: with no flow config key in const the table emits no flow row",
+    not hasattr(_fb_const, "CONF_FLOW_METER_ENTITY")
+    and "flow" not in {g["class"] for g in _fb_bare},
+)
+_fb_const.CONF_FLOW_METER_ENTITY = "flow_meter_entity"
+try:
+    _fb_planted = _fb_gaps({})
+    _fb_planted_met = _fb_gaps({"flow_meter_entity": "sensor.flow"})
+finally:
+    del _fb_const.CONF_FLOW_METER_ENTITY
+R.check(
+    "guard: a planted flow key adds the flow row, and configuring it silences the list",
+    _fb_planted[-1] == {"class": "flow", "key": "flow_meter_entity"}
+    and [g["class"] for g in _fb_planted]
+    == ["power", "energy", "frequency", "flow"]
+    and _fb_planted_met == [],
+    f"{_fb_planted} {_fb_planted_met}",
+)
+
+
 def _fb_attr(cfg):
     coord = _fb_coord({}, _config=dict(cfg))
     gap = _FbGapSensor(coord, _fb_entry())

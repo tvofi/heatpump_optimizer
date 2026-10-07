@@ -3273,6 +3273,10 @@ check("the hand-scheduled reason has a label",
     && /power/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"')))
     && /energy/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"')))
     && /frequency/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"'))));
+  const fbFlow = mkInbox(fbStates([...fbGaps, { class: "flow", key: "flow_meter_entity" }]));
+  check("a flow class the backend adds renders with its label and key",
+    /water mass flow \(flow_meter_entity\)/.test(fbFlow.html()));
+  clearDismissals();
   check("the row cites the config key each class would use",
     /heat_pump_power_entity/.test(fbPage) && /heat_pump_energy_entity/.test(fbPage)
     && /compressor_freq_sensor/.test(fbPage));
