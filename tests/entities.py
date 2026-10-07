@@ -25560,7 +25560,7 @@ def _load_governance_cost():
 
     spec = importlib.util.spec_from_file_location(
         "hpo_governance_cost",
-        Path("dev/audit/rounds/round4/D11/governance_cost.py"))
+        Path("tools/audit/round4/D11/governance_cost.py"))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     return mod

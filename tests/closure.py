@@ -583,6 +583,13 @@ INERT_EXCEPT = (
     # .gitignore did and enters that script's closure. Over-approximate by
     # content (a name in a diff list cannot move card_drift's verdict) and safe:
     # over-scoping costs time, under-scoping skips scripts.
+    # R9-RO-8: origin/main's agreement_py.py, a grader every pull request job
+    # restores from the base, imports these two from their old home. They stay
+    # there until R9-RO-9, which lands after main carries the updated grader
+    # (carry-1922.json). tests/entities.py loads governance_cost by path, so the
+    # tools/audit/ prefix would declare a read file unread (#357).
+    "tools/audit/round4/D11/governance_cost.py",
+    "tools/audit/round4/D11/d11lib.py",
     "dev/audit/rounds/round4/D6/claims.json",
     "dev/audit/rounds/round4/D6/claims.md",
     "tools/policy/policy_lint.mjs",
@@ -2911,11 +2918,11 @@ def selftest() -> int:
     )
     pin(
         "the #1309 instance maps: governance_cost's cache attributes its source",
-        _rel(str(ROOT / "dev/audit/rounds/round4/D11/__pycache__"
+        _rel(str(ROOT / "tools/audit/round4/D11/__pycache__"
                  / f"governance_cost.{tag}.pyc"))
-        == "dev/audit/rounds/round4/D11/governance_cost.py",
+        == "tools/audit/round4/D11/governance_cost.py",
         f"_rel(governance_cost.{tag}.pyc)="
-        f"{_rel(str(ROOT / 'dev/audit/rounds/round4/D11/__pycache__' / f'governance_cost.{tag}.pyc'))!r}",
+        f"{_rel(str(ROOT / 'tools/audit/round4/D11/__pycache__' / f'governance_cost.{tag}.pyc'))!r}",
     )
     pin(
         "a cache whose source is gone attributes nothing (null control)",
