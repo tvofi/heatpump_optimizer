@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/boost.py:_space_floor CMP_BOUND 768636cc",
+  "killed_by": "tests/block_duty.py",
+  "old": "        and float(room) <= ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 62f604eb062bf88d3dc4b0f4ec85ca17359af229: CMP_BOUND (`and float(room) < ECONOMY_ABSOLUTE_FLOOR + SPACE_PUMP_FLOOR_MARGIN_C`) took tests/block_duty.py from rc=0 failed=0 to rc=1 failed=1."
+}
