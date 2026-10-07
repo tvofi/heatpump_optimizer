@@ -1,0 +1,7 @@
+--- branch touching only tests/wood_advisor.py; main carries the red
+PREDICT closures NO RECORDING tests/zz_main_unrecorded_check.py: selectable, and no lane of tests/derive_closures.sh records it
+CI PREDICT: 1 predicted red(s) on closures against 556250801a71 -- repair before the handoff; who repairs which is ci-autofix.md's
+rc=1
+--- control: same branch, main without the plant
+CI PREDICT: none of closures' or mutation's static reds against 2d12904f3149 (a data-file read is not seen)
+rc=0
