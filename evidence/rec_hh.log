@@ -1,4 +1,0 @@
-  [17:42:17] record tests/harness_headers.py 
-  [17:46:45] done   tests/harness_headers.py (exit 0)
-
-recorded into /private/tmp/claude-501/-Users-timmalmstrom-heatpump-optimizer--claude-worktrees-audit-r9-completion-b85771/a30f7fe1-0f0c-438d-95a1-396f9807d60e/scratchpad/ev/rec_hh; tests/closures.json left untouched (--record-only)
