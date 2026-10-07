@@ -2357,9 +2357,14 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     pin-equality oracle (tests/entities.py drives both on one fixture).
 
     `deadline` still governs the whole phase. Its admission compares the
-    work outstanding against the workers left to run it -- the split's own
-    wall-clock model -- plus the EXCLUSIVE runs owed, which run alone at the
-    tail and so never divide. At one worker the arithmetic is drive_pool's.
+    shared work outstanding against the workers left to run it -- the
+    split's own wall-clock model. The EXCLUSIVE tail is NOT reserved at
+    admission, as drive_pool reserves it: it runs only for a mutant that
+    survives every shared driver, and charging it to every mutant up front
+    (stress.py and harness_headers.py at three runs each, ~2500 s on CI)
+    refused #2025's first anchor before a single run (R9-CI-1). A survivor's
+    tail is admitted when it reaches it, against the clock then, and one
+    that no longer fits is SKIP-BUDGET: it pins nothing either way.
     """
     k = max(1, workers)
     lock = threading.Lock()
@@ -2367,8 +2372,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE]
                for m in pool]
     todo = [list(s) for s in shared0]
-    owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
-            for m in pool]
     verdict: list[str | None] = [None] * len(pool)
     timed: list[list[str]] = [[] for _ in pool]
     kill_at: list[str | None] = [None] * len(pool)
@@ -2379,7 +2382,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     active: list[int] = []
     granted: set[int] = set()
     outstanding = [0.0]
-    owed = [0.0]
 
     def admit() -> bool:
         """Grant the next anchor group under `lock`; False once none is left."""
@@ -2388,10 +2390,8 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
             twins = [j for j in queue if "anchor" in pool[i]
                      and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
             need = sum(sum(cost.get(s, 0.0) for s in todo[j]) for j in twins)
-            owe = sum(owes[j] for j in twins)
             if (i not in granted and deadline is not None
-                    and (outstanding[0] + need) / k + owed[0] + owe
-                    > deadline - clock()):
+                    and (outstanding[0] + need) / k > deadline - clock()):
                 # Closed: every site not granted with an admitted twin.
                 for j in queue:
                     if j not in granted:
@@ -2400,7 +2400,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 continue
             granted.update(twins)
             queue.pop(0)
-            owed[0] += owe
             outstanding[0] += sum(cost.get(s, 0.0) for s in todo[i])
             active.append(i)
             return True
@@ -2443,8 +2442,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 and not any(order[i][s] < ko for s in timed[i])):
             verdict[i] = f"killed by {kill_at[i]}"
             todo[i] = []
-            owed[0] -= owes[i]
-            owes[i] = 0.0
 
     def judge(i: int, script: str, hit: bool | None) -> None:
         with lock:
@@ -2454,8 +2451,6 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
                 timed[i].append(script)
                 if stop_at[i] is None:
                     stop_at[i] = order[i][script]
-                    owed[0] -= owes[i]
-                    owes[i] = 0.0
             elif hit and (kill_at[i] is None
                           or order[i][script] < order[i][kill_at[i]]):
                 kill_at[i] = script
@@ -2471,6 +2466,11 @@ def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
     settled: set[str] = set()
     for i, mut in enumerate(pool):
         for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if (verdict[i] is None and not timed[i] and deadline is not None
+                    and clock() + cost.get(script, 0.0) > deadline):
+                # `cost` carries an unsettled driver's baseline and null run
+                # (budget_seconds); settling resets it to the run's own.
+                verdict[i] = "SKIP-BUDGET"
             if verdict[i] is None and settle and script not in settled:
                 settled.add(script)
                 settle(script)
@@ -2665,6 +2665,23 @@ def recorded_seconds() -> dict[str, float]:
     raw = json.loads(CLOSURES.read_text()).get("recorded", {})
     return {s: float(r.get("seconds", 0.0)) for s, r in raw.items()
             if isinstance(r, dict)}
+
+
+def budget_seconds(own: dict[str, float],
+                   deferred: list[str]) -> dict[str, float]:
+    """The budget's per-run cost estimate, from the measured or recorded seconds.
+
+    A deferred (EXCLUSIVE) driver's first run also pays its baseline and null
+    control -- once, at the tail, so its estimate carries all three until it
+    settles. A lazy driver is charged its run alone: its baseline is paid only
+    if a mutant run of it is red, and then on the clock the admission reads.
+    Charging every lazy driver three runs per mutant made #2025's first
+    anchor cost ~4069 s against a 35-minute budget, so nothing ran (R9-CI-1).
+    """
+    out = dict(own)
+    for s in deferred:
+        out[s] = 3 * out.get(s, 0.0)
+    return out
 
 
 class LazyBaselines:
@@ -3190,12 +3207,8 @@ def main(argv: list[str] | None = None) -> int:
         verdicts = LazyBaselines(baseline, settle_on)
         # The baselines' seconds, and the recorded ones for a lazy or deferred
         # driver, which has none yet.
-        seconds = dict(own_s)
-        order_pool_drivers(pool, seconds, budgets.get("killed_by", {}))
-        for s in lazy + deferred:
-            # Until it settles, its first red run also pays its baseline and
-            # null control: the budget's estimate carries all three.
-            seconds[s] = 3 * seconds.get(s, 0.0)
+        order_pool_drivers(pool, own_s, budgets.get("killed_by", {}))
+        seconds = budget_seconds(own_s, deferred)
 
         results: list[tuple[dict, str]] = []
         mutated: dict[int, str] = {}

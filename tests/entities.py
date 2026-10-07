@@ -29424,7 +29424,9 @@ _ma_fix = _workflow_job(_TESTS_YML, _MA)
 _ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
             and "measurement(" in s]
 _MA_WIRING = [w for w in (
-    "git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py",
+    'git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py',
+    "PR_BASE: ${{ github.event.pull_request.base.sha }}",
+    '|| echo "pin run exited non-zero; measurement() grades it"',
     "tests/_mutation_table_base.py --pin-killed",
     "_mutation_table_base.py >> .git/info/exclude",
     "mutation_table.measurement(",
@@ -30782,7 +30784,7 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation", "&& budget=(--budget-minutes 35)"),
+    ("mutation", "&& budget=(--budget-minutes 90)"),
     ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
@@ -31098,6 +31100,53 @@ R.check(
     f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
     if _MUT_BG2_OUT else f"drive_pin_pool="
                          f"{'absent' if _mut_pin is None else 'present'}",
+)
+# R9-CI-1: #2025's pin step started none of 56 sites (run 37663843895). The
+# split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py
+# and harness_headers.py at three runs each, ~2535 s -- and every lazy driver
+# at three runs too, so the first anchor's estimate (~4069 s) outgrew the whole
+# 35-minute budget before env_drift.py's 353 s baseline even counted. The tail
+# runs only for a mutant that survives every shared driver, so the split now
+# admits on the shared work alone and checks the tail against the deadline when
+# a survivor reaches it; a lazy driver is charged its run, its settle paid on
+# the clock when a red run actually needs it. Fixture: tests/a.py (shared, 10)
+# kills mutant 0; mutant 1 survives it; tests/stress.py (EXCLUSIVE) costs 90
+# against a deadline of 50.
+_MUT_CI_T = [0.0]
+
+
+def _mut_ci_run(deadline):
+    _MUT_CI_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append((m["line"], s))
+        _MUT_CI_T[0] += {"tests/a.py": 10, "tests/stress.py": 90}[s]
+        return m["line"] == 0 and s == "tests/a.py"
+
+    pool = [{"file": "x.py", "line": i, "kind": "CONST", "anchor": f"x.py:{i}",
+             "drivers": ["tests/a.py", "tests/stress.py"]} for i in range(2)]
+    out = _mut_pin(pool, 3, {"tests/a.py": 10, "tests/stress.py": 90}, drive,
+                   deadline=deadline, clock=lambda: _MUT_CI_T[0])
+    return [v for _, v in out], sorted(ran)
+
+
+_MUT_CI_OUT = ((_mut_ci_run(50), _mut_ci_run(None))
+               if _mut_pin is not None else None)
+_mut_bsec = getattr(_mut, "budget_seconds", None)
+_MUT_CI_SEC = (_mut_bsec({"tests/a.py": 10.0, "tests/stress.py": 90.0},
+                         ["tests/stress.py"]) if _mut_bsec else None)
+R.check(
+    "the split admits a mutant on its shared work and charges the EXCLUSIVE "
+    "tail only to a survivor that reaches it; a lazy driver costs one run",
+    _MUT_CI_OUT == (
+        (["killed by tests/a.py", "SKIP-BUDGET"],
+         [(0, "tests/a.py"), (1, "tests/a.py")]),
+        (["killed by tests/a.py", "LIVES"],
+         [(0, "tests/a.py"), (1, "tests/a.py"), (1, "tests/stress.py")]))
+    and _MUT_CI_SEC == {"tests/a.py": 10.0, "tests/stress.py": 270.0}
+    and "seconds = budget_seconds(own_s, deferred)" in _MUT_MAIN_DEFER,
+    f"out={_MUT_CI_OUT!r} seconds={_MUT_CI_SEC!r}",
 )
 _MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
                "else drive_pool" in _MUT_MAIN_DEFER)
