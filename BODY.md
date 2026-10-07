@@ -110,6 +110,14 @@ The workflow pin is `tests/entities.py` `_raf_job_ok`/`_raf_review_gated`. Its n
 
 **Why a predicate is cheaper than review here.** The diff is fully determined by API facts. Each row is regenerated from `/pulls/<N>` and compared byte for byte. A reviewer seat can add nothing the comparison does not check, and it costs a dispatch plus a stale-head round per main merge. The guard costs one API read per row per beat.
 
+`nightly-status` is red at the ancestry because main's nightly failed: `boost_drift_replay` timed out in the nightly mutation drive. The fix is #2026, which is open. This branch does not touch that job or its inputs:
+
+- `git diff -U0 $(git merge-base origin/main HEAD)...HEAD -- .github/workflows/tests.yml` has 14 hunks, and every one sits inside `record-autofix`: its header comment and its steps. None touches `nightly-status`, `slow`, `nightly-ha` or any mutation job.
+- The branch changes no file under `tests/` except the `record-autofix` pins in `tests/entities.py`.
+- The cheaper detector is `nightly-status` itself, which already names the run. Its standing cost is one red per failed night until #2026 merges.
+
+The `delivery-status` answer above is its cause; this pull request is the countermeasure.
+
 No other check went red on this branch locally. The suite is CI's.
 
 ## Forward-carry
