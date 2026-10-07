@@ -61,6 +61,8 @@ import { spawnSync } from 'node:child_process'
 
 const FRICTION_PREFIX = '[policy] recurring friction: '
 const STATS_TOOL = '.claude/workflows/policy_lint.mjs'
+// What is spawned: the same two homes the workflows' `if test -f` probes.
+const STATS_RUN = fs.existsSync(STATS_TOOL) ? STATS_TOOL : 'tools/policy/policy_lint.mjs'
 
 // --- the pure decisions ------------------------------------------------------
 // Everything a run decides, decided here so the self-test can drive it without
@@ -547,7 +549,7 @@ function loadNormalizedLookup() {
   const rawKeys = [...new Set(issueKeys(rows))]
   let normalize = new Map()
   if (rawKeys.length) {
-    const n = spawnSync('node', [STATS_TOOL, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_RUN, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${rawKeys.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
@@ -671,7 +673,7 @@ function sweepBelowThreshold(parsed, since, dryRun) {
   const sent = issueKeys(rows)
   let normalize = new Map()
   if (sent.length) {
-    const n = spawnSync('node', [STATS_TOOL, '--normalize-friction-keys'], {
+    const n = spawnSync('node', [STATS_RUN, '--normalize-friction-keys'], {
       encoding: 'utf8',
       input: `${sent.join('\n')}\n`,
       maxBuffer: 8 * 1024 * 1024,
@@ -976,6 +978,12 @@ export function selfTest() {
     'null control: the same two rows with this window disposed at a LOWER count still file')
   st(twoClosed({ 11: at(4, 'v9.9.8'), 41: null }).refuse, true,
     'and a closed row whose body cannot be read refuses rather than filing beside it')
+
+  // The tool the lane spawns must exist where the checkout has it. The path
+  // was written for `.claude/workflows/` and spawned there after the move to
+  // `tools/policy/`: node exited 1, the lane refused, and `record` stayed red.
+  st(fs.existsSync(STATS_RUN), true,
+    `the spawned stats tool exists on disk (${STATS_RUN}), whichever of its two homes the checkout has`)
 
   // The body is the idempotence contract: byte-identical for the same
   // measurement, different only when the measurement moved. The entries carry
