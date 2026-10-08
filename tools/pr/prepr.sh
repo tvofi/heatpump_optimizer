@@ -398,8 +398,9 @@ PY
 # UNDER-SCOPED, INERT READS and NO RECORDING and entities' unclassified file,
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
 # the handoff while the autofix jobs repaired none of them; those refuse, but
-# INERT READS, which only CI's Linux recordings can produce and
-# `closures-autofix` merges after the push, warns (`ci_predict.warns`). The
+# INERT READS on a diff CI records (`closure.py affected` not skip), which only
+# CI's Linux recordings can produce and `closures-autofix` merges after the
+# push, warns (`ci_predict.warns`); on a skip diff it refuses. The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
@@ -1593,6 +1594,7 @@ PY
     && $G add -A && $G commit -qm pfunc \
     && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
     && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b pinertfull pinert && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pinertfull \
     && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
     && $G add -A && $G commit -qm plane \
     && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
@@ -1615,7 +1617,10 @@ PY
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
   got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
-  st "$(tail -1 <<<"$got")" rc=0 "and an INERT READS red warns, never refuses: closures-autofix merges it from CI's Linux recordings after the push"
+  st "$(tail -1 <<<"$got")" rc=1 "and refuses it on a harness-only diff: closure.py affected says skip, so CI records nothing and no autofix runs"
+  got=$(predict_at pinertfull); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
+  st $? 0 "6d predicts the same INERT READS when the diff also changes a closure-mapped file"
+  st "$(tail -1 <<<"$got")" rc=0 "and only warns there: CI's closures job records, and closures-autofix merges the inert read after the push"
   got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
   st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
   got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"

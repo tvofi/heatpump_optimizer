@@ -24023,6 +24023,10 @@ try:
             _ds.collect(_DS_DIRECT),
             _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
             _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                "- 1234567: a disposition for another commit\n")),
+            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
         ))
 except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
     _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
@@ -24033,9 +24037,13 @@ R.check(
               (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
               (["-", "record-only"], _ds.UNCHECKED),
               (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
               (["-"], _ds.UNCHECKED)),
     f"(rows only, both with the allow line, code without it, rows plus a "
-    f"script, files unknown) -> {_DS_D}",
+    f"script, files unknown, an allow line for another sha, the allow list "
+    f"itself edited, a row lookalike) -> {_DS_D}",
 )
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
