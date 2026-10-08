@@ -883,14 +883,10 @@ def ha_download_writer(hass, domain: str, entry_id: str):
     params = inspect.signature(_async_get_json_file_response).parameters
 
     async def download(payload: object) -> bytes:
-        kwargs = {}
-        for name, param in params.items():
-            if name == "data":
-                kwargs[name] = payload
-            elif name in known:
-                kwargs[name] = known[name]
-            elif param.default is inspect.Parameter.empty:
-                raise TypeError(f"A16 cannot bind the HA writer's parameter {name!r}")
+        # A required parameter neither list names stays unbound, and the call's
+        # own TypeError names it.
+        kwargs = {name: payload if name == "data" else known[name]
+                  for name in params if name == "data" or name in known}
         response = _async_get_json_file_response(**kwargs)
         if inspect.isawaitable(response):
             response = await response
