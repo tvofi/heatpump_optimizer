@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/debugger.py:DebugCollector._async_finish BOOLOP d73a41ea",
+  "killed_by": "tests/debug_collect.py",
+  "old": "        if self.final and self.started_at == started_at:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 8d7903e69cfebb3db279b7a17a0ca066f04c40e0: BOOLOP (`if self.final or self.started_at == started_at:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
+}
