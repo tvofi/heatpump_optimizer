@@ -114,7 +114,15 @@ Alternatives considered:
   `maintenance.auto=false` is still the chosen setting, because it is the key git reads
   *first*. `gc.auto` is consulted only while `maintenance.auto` is unset. So `gc.auto=0` holds
   only until something in the inherited configuration sets `maintenance.auto`, for example a
-  runner's or a seat's `GIT_CONFIG_PARAMETERS`; the primary key has no such dependency.
+  runner's or a seat's `GIT_CONFIG_PARAMETERS`.
+  **Correction (the #2051 round-2 review, carried by R9-GITTMP):** an earlier version of this
+  paragraph ended "the primary key has no such dependency". That is false. Git reads
+  `GIT_CONFIG_PARAMETERS` after `GIT_CONFIG_COUNT`, and both after every config file, so an
+  inherited `maintenance.auto=true` in that channel overrides the `false` this fix set; measured
+  under git 2.55.0 (`git config --get maintenance.auto` reads `true`). The shared helper that
+  replaced `_throwaway_git_env()`, `tests/throwaway_git.py`, closes it by dropping
+  `GIT_CONFIG_PARAMETERS` and every inherited `GIT_CONFIG_KEY_*`/`VALUE_*` pair from the
+  environment it returns.
 
 ## 5. How far the class reaches
 
@@ -152,3 +160,6 @@ That workflow `env:` covers CI only. A seat whose own git is 2.54 or newer (Home
 2.56.0, per the #2051 fix review) stays exposed locally. The full closure is a shared
 throwaway-repository helper that every site uses, as `_throwaway_git_env()` is for stamp's two
 repositories, and the CI `env:` is only the cheap barrier while that helper does not exist.
+The owner chose the helper over the CI `env:` (tvofi, 2026-10-08); R9-GITTMP landed it as
+`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` and
+`git clone` site the rule in `tests/throwaway_git.py --check` returns.
