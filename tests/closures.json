@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 118.0,
+   "seconds": 159.6,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 10.0,
+   "seconds": 19.4,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 3.1,
+   "seconds": 5.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 13.4,
+   "seconds": 39.3,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 35.5,
+   "seconds": 53.6,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 196.6,
+   "seconds": 354.4,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 282.5,
+   "seconds": 896.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,99 +42,99 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.6,
-   "rc": 0
-  },
-  "tests/manual_plan.py": {
-   "seconds": 5.2,
-   "rc": 0
-  },
-  "tests/open_meteo.py": {
-   "seconds": 0.3,
-   "rc": 0
-  },
-  "tests/optimality.py": {
-   "seconds": 130.7,
-   "rc": 0
-  },
-  "tests/plan_view.py": {
    "seconds": 1.0,
    "rc": 0
   },
-  "tests/solar_alignment.py": {
-   "seconds": 0.8,
+  "tests/manual_plan.py": {
+   "seconds": 9.2,
    "rc": 0
   },
-  "tests/stress.py": {
-   "seconds": 616.7,
+  "tests/open_meteo.py": {
+   "seconds": 0.4,
    "rc": 0
   },
-  "tests/structure.py": {
-   "seconds": 5.7,
+  "tests/optimality.py": {
+   "seconds": 186.3,
    "rc": 0
   },
-  "tests/validate.py": {
-   "seconds": 36.9,
-   "rc": 0
-  },
-  "tests/deployment_shape.py": {
-   "seconds": 2.3,
-   "rc": 0
-  },
-  "tests/ha_contract.py": {
-   "seconds": 0.3,
-   "rc": 0
-  },
-  "tests/typing_ruler.py": {
-   "seconds": 0.3,
-   "rc": 0
-  },
-  "tests/guard_pins.py": {
-   "seconds": 0.8,
-   "rc": 0
-  },
-  "tests/wood_advisor.py": {
-   "seconds": 0.8,
-   "rc": 0
-  },
-  "tests/harness_headers.py": {
-   "seconds": 167.0,
-   "rc": 0
-  },
-  "tests/doc_claims.py": {
-   "seconds": 6.3,
-   "rc": 0
-  },
-  "tests/finite_boundary.py": {
-   "seconds": 50.8,
-   "rc": 0
-  },
-  "tests/md_tables.mjs": {
-   "seconds": 0.1,
-   "rc": 0
-  },
-  "tests/layout.py": {
-   "seconds": 14.5,
-   "rc": 0
-  },
-  "tests/arch_score.py": {
-   "seconds": 236.2,
-   "rc": 0
-  },
-  "tests/arch_score_head.py": {
-   "seconds": 19.6,
-   "rc": 0
-  },
-  "tests/boost_drift_replay.py": {
-   "seconds": 800.2,
-   "rc": 0
-  },
-  "tests/block_duty.py": {
+  "tests/plan_view.py": {
    "seconds": 1.6,
    "rc": 0
   },
+  "tests/solar_alignment.py": {
+   "seconds": 1.4,
+   "rc": 0
+  },
+  "tests/stress.py": {
+   "seconds": 1077.8,
+   "rc": 0
+  },
+  "tests/structure.py": {
+   "seconds": 19.9,
+   "rc": 0
+  },
+  "tests/validate.py": {
+   "seconds": 56.0,
+   "rc": 0
+  },
+  "tests/deployment_shape.py": {
+   "seconds": 3.6,
+   "rc": 0
+  },
+  "tests/ha_contract.py": {
+   "seconds": 0.4,
+   "rc": 0
+  },
+  "tests/typing_ruler.py": {
+   "seconds": 0.6,
+   "rc": 0
+  },
+  "tests/guard_pins.py": {
+   "seconds": 1.4,
+   "rc": 0
+  },
+  "tests/wood_advisor.py": {
+   "seconds": 1.8,
+   "rc": 0
+  },
+  "tests/harness_headers.py": {
+   "seconds": 220.7,
+   "rc": 0
+  },
+  "tests/doc_claims.py": {
+   "seconds": 10.3,
+   "rc": 0
+  },
+  "tests/finite_boundary.py": {
+   "seconds": 90.4,
+   "rc": 0
+  },
+  "tests/md_tables.mjs": {
+   "seconds": 0.2,
+   "rc": 0
+  },
+  "tests/layout.py": {
+   "seconds": 17.3,
+   "rc": 0
+  },
+  "tests/arch_score.py": {
+   "seconds": 342.6,
+   "rc": 0
+  },
+  "tests/arch_score_head.py": {
+   "seconds": 41.8,
+   "rc": 0
+  },
+  "tests/boost_drift_replay.py": {
+   "seconds": 1804.3,
+   "rc": 0
+  },
+  "tests/block_duty.py": {
+   "seconds": 2.8,
+   "rc": 0
+  },
   "tests/debug_collect.py": {
-   "seconds": 1.1,
+   "seconds": 1.7,
    "rc": 0
   }
  },
@@ -3169,15 +3169,19 @@
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
+   "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
+   "dev/audit/harnesses/r9_dbg2_selftest_price.py",
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
+   "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
+   "dev/audit/harnesses/throwaway_git_sites.sh",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
    "dev/audit/rounds/round3/D4/card_states_geometry.mjs",
@@ -3688,9 +3692,7 @@
    "dev/audit/waves/w5-g5-195-coverage/mutation_probe.py",
    "dev/programme/register/audit-2026-09.md",
    "tools/audit/repo_root.mjs",
-   "tools/audit/repo_root.sh",
-   "dev/audit/harnesses/r9_dbg2_selftest_price.py",
-   "dev/audit/harnesses/r9_ro12_batch_mutants.sh"
+   "tools/audit/repo_root.sh"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
