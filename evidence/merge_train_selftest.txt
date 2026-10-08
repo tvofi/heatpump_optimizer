@@ -1,10 +1,40 @@
-/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
-/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
-/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
-/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head3/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   a green, carried, non-policy pull request merges (null control)
   ok   a pull request with no dev/programme/delivery/<N>.md row is refused
@@ -61,24 +91,29 @@
   ok   a rehearsal base approves nothing and collects no worktree
   ok   a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
   ok   PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
-  FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
-Traceback (most recent call last):
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1169, in <module>
-    sys.exit(main(sys.argv[1:]))
-             ~~~~^^^^^^^^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1136, in main
-    return _self_test()
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 871, in _self_test
-    _batch_self_test(check)
-    ~~~~~~~~~~~~~~~~^^^^^^^
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1038, in _batch_self_test
-    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"a.txt": "A\n"}})
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1001, in go
-    w = world(Path(d), base, prs, cap)
-  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 890, in world
-    R.mkdir()
-    ~~~~~~~^^
-  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/pathlib/__init__.py", line 1011, in mkdir
-    os.mkdir(self, mode)
-    ~~~~~~~~^^^^^^^^^^^^
-OSError: [Errno 28] No space left on device: '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpnf06ak93/remote'
+  ok   a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+  ok   a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges
+  ok   every all-but-one set red stops the batch with nothing merged
+  ok   workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
+  ok   an entry that conflicts with one before it goes serial; the rest are proved and merge
+  ok   D: a batch of one merges at its head with no proof and no dispatch
+  ok   the base moving between two merges stops the batch before the second
+  ok   a merge whose tree is not the proof's stops the batch
+  ok   a pull request aimed at another base stops the batch
+  ok   required contexts that cannot be read stop the batch before any proof
+  ok   a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry
+  ok   an entry red at its own head is refused at admission (pr-contract not ignored here)
+  ok   on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)
+  ok   a lone entry is not merged while main's tip is red (D's bound needs a green main)
+  ok   a pair on a red main merges nothing and is not bisected: no proof, no drop
+  ok   ... the same pair on a green main is proved and merges (null control)
+  ok   main's tip going red after the proof and before the first merge stops it: the gate is re-read right before
+  ok   after an unproved merge the train waits for main's run on it, and a red there stops it before anything else lands
+  ok   ... and a green run there lets the serial entry go on (null control: its recarry stops here)
+  ok   a base that is neither main nor batch/ is refused
+  ok   tests.yml is in this tree and takes workflow_dispatch
+  ok   governance.yml is in this tree and takes workflow_dispatch
+  ok   codeql.yml is in this tree and takes workflow_dispatch
+  ok   hassfest.yml is in this tree and takes workflow_dispatch
+  ok   validate.yml is in this tree and takes workflow_dispatch
+merge_train self-test: 80 checks, 0 failed
