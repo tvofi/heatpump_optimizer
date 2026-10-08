@@ -1,4 +1,0 @@
-RESULT pr=2054 merge_rc=1 unmerged_before=tests/closures.json, resolve_rc=0 unmerged_after= layout_errs,canonical=0 True lost_or_extra []
-RESULT pr=2025 merge_rc=1 unmerged_before=tests/closures.json, resolve_rc=0 unmerged_after= layout_errs,canonical=0 True lost_or_extra []
-RESULT pr=2010 merge_rc=1 unmerged_before=tests/closures.json, resolve_rc=0 unmerged_after= layout_errs,canonical=0 True lost_or_extra []
-RESULT pr=2024 merge_rc=1 unmerged_before=tests/closures.json, resolve_rc=0 unmerged_after= layout_errs,canonical=0 True lost_or_extra []

@@ -1,0 +1,2 @@
+REFUSE tools/merge/ledger_merge.py:569: g("init", "-q", "-b", "main")
+throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at 03f7be4d

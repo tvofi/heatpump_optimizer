@@ -1,0 +1,6 @@
+dev/audit/harnesses/r9_ci2b_closures_merge.py old=81443c47b698 new=81443c47b698
+dev/programme/delivery/2057.md old=8cda898be7a1 new=8cda898be7a1
+tests/closure.py old=1dcacbeec79e new=1dcacbeec79e
+tests/closures.json old=0787ad308b76 new=38748649bda0
+tests/entities.py old=4dc636f86b8a new=4dc636f86b8a
+tools/merge/ledger_merge.py old=8631df58aa17 new=3335674b5a72

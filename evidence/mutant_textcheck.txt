@@ -1,4 +1,0 @@
-  FAIL check refuses a recorded entry as {seconds, rc}  [rc=0 'closure: committed closures cover every file this run touched\n']
-  FAIL check refuses top-level keys unsorted  [rc=0 'closure: committed closures cover every file this run touched\n']
-  FAIL check refuses indent 2  [rc=0 'closure: committed closures cover every file this run touched\n']
-3 of 56 closure shrink pins FAILED

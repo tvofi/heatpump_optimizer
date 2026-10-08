@@ -1,2 +1,0 @@
-RESULT old_writer_rc=0 layout_errors=[] text_is_canonical=False lines_differing_from_canonical=2
-RESULT recorded entry as written: {"seconds": 58.0, "rc": 0} inner key order ['seconds', 'rc']
