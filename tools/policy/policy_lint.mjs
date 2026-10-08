@@ -5931,6 +5931,12 @@ const AUTOFIX_BOT_COMMITS = {
     // A path ending in `/` is a directory the commit may add files under
     // (mayAdd only): the mutation ledger keeps one file per pinned site.
     'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json', 'tests/mutation_ledger/'], mayAdd: true },
+    // The merge-main bot (R9-CI-2b, .github/workflows/merge-main.yml): main
+    // merged into the head with no resolution. Two parents; the tree must be
+    // git's own merge of them outside main's merge-driver files, the carry
+    // rule `app_approve.sh --carry` applies (#1667). The chain walks on down
+    // the first parent, the pull request's own.
+    'ci: merge main': { merge: true },
   },
 }
 
@@ -5949,6 +5955,7 @@ function autofixCommit(sha) {
   if (!Object.hasOwn(AUTOFIX_BOT_COMMITS.messages, message)) return { why: `${short}'s message is not an autofix message` }
   const rule = AUTOFIX_BOT_COMMITS.messages[message]
   const ps = parents.trim().split(/\s+/).filter(Boolean)
+  if (rule.merge) return autofixMerge(sha, short, message, ps)
   if (ps.length !== 1) return { why: `${short} has ${ps.length} parents` }
   const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
@@ -5960,6 +5967,25 @@ function autofixCommit(sha) {
   if (outside.length) return { why: `${short} changes ${outside.join(', ')}, outside what "${message}" stages` }
   if (status.some(([s, p]) => s !== 'M' && !(s === 'A' && rule.mayAdd && underDir(p)))) return { why: `${short} does not only modify its files` }
   if (!rule.mayAdd && numstat.some(([added]) => added !== '0')) return { why: `${short} adds lines, and "${message}" only removes them` }
+  return { parent: ps[0], message }
+}
+
+// A bot merge is accepted when its tree is git's own merge of its two parents
+// outside the files main's .gitattributes routes to a driver: the files the
+// driver resolved are re-checked by the gates that own them, as a seat's are.
+function autofixMerge(sha, short, message, ps) {
+  if (ps.length !== 2) return { why: `${short} has ${ps.length} parents, and "${message}" is a merge of two` }
+  let out = ''
+  try {
+    out = execFileSync('git', ['merge-tree', '--write-tree', '--no-messages', ps[0], ps[1]],
+      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  } catch (e) { out = e.stdout ?? '' }
+  const tree = out.split('\n')[0].trim()
+  if (!/^[0-9a-f]{40}$/.test(tree)) return { why: `${short}: git merge-tree gave no tree for its parents` }
+  const drivers = git(['show', `${ps[1]}:.gitattributes`], { allowFail: true, quiet: true }).split('\n')
+    .filter((l) => !l.startsWith('#') && / merge=/.test(l)).map((l) => `:(exclude)${l.split(/\s+/)[0]}`)
+  const moved = git(['diff', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
+  if (moved) return { why: `${short} is not the automatic merge of its parents (${moved.split('\n').join(', ')})` }
   return { parent: ps[0], message }
 }
 

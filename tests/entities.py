@@ -25542,6 +25542,22 @@ def _autofix_head_fixture():
         out["between"] = run(commit(R_, closures, parent=human), base)
         sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
         out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        # R9-CI-2b: the merge-main bot's `ci: merge main` -- main merged into
+        # the named head with no resolution -- and, on top, a pin commit.
+        # Its first parent is the named head; a hand-edited tree refuses.
+        mainline = commit("main moved", {"main.txt": "m\n"}, who=seat, parent=base)
+        fixhead = commit("fix: own", {"other.txt": "fix\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        mm = g("rev-parse", "HEAD")
+        out["merge_main"] = run(mm, fixhead) + (mm,)
+        out["merge_main_pin"] = run(commit(R_, closures, parent=mm), fixhead)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_hand"] = run(g("rev-parse", "HEAD"), fixhead)
+        out["merge_main_one_parent"] = run(commit("ci: merge main", {"main.txt": "m\n"}, parent=fixhead), fixhead)
         return out
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -25557,6 +25573,13 @@ R.check(
     f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
     f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
     "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "pr-contract accepts the merge-main bot's automatic `ci: merge main`, and a bot commit on it (R9-CI-2b)",
+    _AH["merge_main"][0] == 0 and f"{_AH['merge_main'][2][:7]} (ci: merge main)" in _AH["merge_main"][1]
+    and _AH["merge_main_pin"][0] == 0,
+    f"merge rc={_AH['merge_main'][0]}, merge+pin rc={_AH['merge_main_pin'][0]}; "
+    f"{_AH['merge_main'][1].strip()[-300:]!r}",
 )
 R.check(
     "and a body naming the real head passes with no autofix line (null control)",
@@ -25577,6 +25600,8 @@ _AH_REFUSED = {
     "merge": "parents",
     "between": "not authored",
     "not_ancestor": "not authored",
+    "merge_main_hand": "not the automatic merge",
+    "merge_main_one_parent": "parents",
 }
 _AH_WRONG = {
     k: (_AH[k][0], _AH[k][1].strip()[-240:])

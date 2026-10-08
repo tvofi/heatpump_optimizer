@@ -137,10 +137,9 @@ def plan_one(repo: str, head: str, main: str, *, mergeable, same_repo: bool) -> 
 def commit_merge(repo: str, tree: str, head: str, main: str) -> str:
     env = {"GIT_AUTHOR_NAME": BOT[0], "GIT_AUTHOR_EMAIL": BOT[1],
            "GIT_COMMITTER_NAME": BOT[0], "GIT_COMMITTER_EMAIL": BOT[1]}
-    msg = (f"{SUBJECT}\n\nAn automatic merge of main {main[:12]} into {head[:12]}: "
-           "GitHub reported a conflict only the repository's merge drivers resolve "
-           "(tools/pr/merge_main_bot.py). The pull request's own diff is unchanged.\n")
-    return git(repo, "commit-tree", tree, "-p", head, "-p", main, "-m", msg,
+    # The message is the subject alone: pr-contract accepts a bot commit by its
+    # exact message (policy_lint.mjs AUTOFIX_BOT_COMMITS).
+    return git(repo, "commit-tree", tree, "-p", head, "-p", main, "-m", SUBJECT,
                env=env).stdout.strip()
 
 
@@ -265,8 +264,8 @@ def self_test() -> int:
         parents = g("rev-list", "--parents", "-n1", sha).stdout.split()[1:]
         check("the commit is a merge of main into the head, first parent the head",
               parents == [fix, m1], repr(parents))
-        check("its subject is the loop-guard subject",
-              g("log", "-1", "--format=%s", sha).stdout.strip() == SUBJECT)
+        check("its whole message is the subject pr-contract accepts",
+              g("log", "-1", "--format=%B", sha).stdout.strip() == SUBJECT)
         check("its tree holds both sides' ledger lines and the branch's own file",
               g("show", f"{sha}:led.json").stdout == "a\nb\nc\nz\n"
               and g("show", f"{sha}:own.py").stdout == "y\n")
@@ -288,6 +287,22 @@ def self_test() -> int:
         status, _ = plan_one(r, m1, m1, mergeable=False, same_repo=True)
         check("a head that already contains main is left alone",
               status == "skip-contains-main", status)
+    # pr-contract accepts this commit by identity and exact message, held as
+    # constants in policy_lint.mjs; drift between the two would turn every
+    # bot merge into a red contract.
+    pl = Path(__file__).resolve().parents[2] / "tools" / "policy" / "policy_lint.mjs"
+    r = subprocess.run(["node", "--input-type=module", "-e",
+                        f"import({json.dumps(pl.as_uri())}).then((m) => "
+                        "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS)))"],
+                       capture_output=True, text=True)
+    try:
+        const = json.loads(r.stdout)
+    except ValueError:
+        const = {}
+    check("pr-contract accepts this bot's identity and message as a merge",
+          (const.get("name"), const.get("email")) == BOT
+          and (const.get("messages", {}).get(SUBJECT) or {}).get("merge") is True,
+          f"rc={r.returncode} {r.stderr.strip()[-200:]} {const}")
     for name, ok in (("fix/r9-ci-2b-pr", True), ("handoff/x.y_z", True), ("a;rm -rf", False),
                      ("$(id)", False), ("-x", False), ("a b", False)):
         check(f"branch {name!r} is {'accepted' if ok else 'skipped'}", bool(BRANCH.match(name)) == ok)
