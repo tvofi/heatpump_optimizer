@@ -47,21 +47,36 @@ script: every throwaway repository goes through `throwaway_git_init` or
 `throwaway_git_clone`, here or in the shell twin. A clone line that itself
 carries `maintenance.auto=false` (a `-c` on the clone, which writes it into
 the new repository's config) is accepted: it is the local layer, for a
-language with no twin. WHAT IT SCANS, at <ref> through `git grep`: the `.sh .py .mjs .js .cjs`
-files under `tools/`, `tests/`, `.claude/` and `dev/audit/harnesses/`, less
-the round evidence still kept under `tools/audit/round<n>/`: the instruments a
-later seat reruns, and not the records of where things were. A SITE is a line, not a comment line, that names `git`
-(any case, as a word) followed later by the word `init`, or followed by
-`clone` as its subcommand (`git clone`, `git -C <dir> clone`), or that has the string literal `"init"` or `"clone"` followed by an option (`"-q"`,
-`"-b"`, `"--bare"`, ...): the second shape is a runner such as
-`g(d, "init", "-q")` that never spells `git`. ALLOW below excuses an exact (file, text) pair with
-its reason, and an entry that matches nothing is itself refused.
+language with no twin.
 
-WHAT IT DOES NOT CATCH: a runner called with `"init"` or `"clone"` and no
-option (`g("init")`), a `git worktree add` (it shares its parent's object
-store, so its maintenance runs there, not in the temporary directory), a command assembled across lines or from a variable, and any
-repository built outside the scope above (the round evidence and
-dev/archive/ are records, not reruns). Review owns the rest.
+WHAT IT SCANS, at <ref> through `git grep`: the `.sh .py .mjs .js .cjs` files
+under `tools/`, `tests/`, `.claude/` and `dev/audit/harnesses/`, less the round
+evidence still kept under `tools/audit/round<n>/`: the instruments a later
+seat reruns, and not the records of where things were.
+
+A SITE is a line, not a comment line, that
+  - names `git` (any case, as a word, so `"$GIT"` counts) followed later by
+    the word `init`;
+  - names `git` followed by `clone` as its subcommand, after any global
+    options: `git clone`, `"$GIT" clone`, `git -C <dir> clone`,
+    `git --no-pager clone`;
+  - has the string literal `"clone"` as an argument, followed by `,` or `]`:
+    an argv list in any position or with any options, `g(d, "clone", ...)`,
+    `execFileSync('git', ['clone', ...])`;
+  - or has the string literal `"init"` followed by an init option (`"-q"`,
+    `"-b"`, `"--bare"`, ...), the shape of a runner such as
+    `g(d, "init", "-q")` that never spells `git`. A bare quoted `"init"` is
+    also a config-flow step name, so it alone is not a site.
+ALLOW below excuses an exact (file, text) pair with its reason, and an entry
+that matches nothing is itself refused.
+
+WHAT IT DOES NOT CATCH: a runner called with `"init"` and no option
+(`g("init")`); a git binary held in a variable whose name does not contain
+`git` (`"$BIN" clone`, `"$X" init`); a `git worktree add` (it shares its
+parent's object store, so its maintenance runs there, not in the temporary
+directory); a command assembled across lines; and any repository built
+outside the scope above (the round evidence and dev/archive/ are records, not
+reruns). Review owns the rest.
 """
 
 from __future__ import annotations
@@ -129,9 +144,10 @@ def throwaway_git_clone(src, dest, *clone_args: str, git=("git",), cwd=None) -> 
 # The check: no raw `git init` in a tracked script.
 
 _SITE = (re.compile(r"(?i:\bgit\b).*\binit\b"),
-         re.compile(r"(?i:\bgit\b)\s+(?:-[Cc]\s+\S+\s+)*clone\b"),
-         re.compile(r"[\"'](?:init|clone)[\"']\s*,\s*[\"'](?:-q|--quiet|-b|--bare|--initial-branch|--template"
-                    r"|--object-format|--shared|--no-local|--no-checkout|--mirror)"))
+         re.compile(r"(?i:\bgit\b)[\"'}]?(?:\s+(?:-[Cc]\s+\S+|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+clone\b"),
+         re.compile(r"[\"']clone[\"']\s*[,\]]"),
+         re.compile(r"[\"']init[\"']\s*,\s*[\"'](?:-q|--quiet|-b|--bare|--initial-branch|--template"
+                    r"|--object-format)"))
 _LOCAL_LAYER_INLINE = "maintenance.auto=false"
 
 # (file, text the line must contain, reason). Exact and per file.
@@ -209,7 +225,13 @@ def self_test() -> int:
             ("a subprocess clone", py, 'run(["git", "clone", "-q", "--bare", str(seed), str(origin)])'),
             ("a runner clone that never spells git", py, 'g(d, "clone", "-q", str(R), str(L))'),
             ("a shell clone", sh, '(git clone -q --shared . "$CLM/r" && cd "$CLM/r"'),
-            ("a JS clone", "tools/policy/x.mjs", "const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])")):
+            ("a JS clone", "tools/policy/x.mjs", "const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])"),
+            ("a positional list clone (the #2054 review's K2)", py, 'run(["git", "clone", str(origin), str(stale)])'),
+            ("a list clone with --depth", py, 'subprocess.run(["git", "clone", "--depth", "1", a, b])'),
+            ("execFileSync clone", "tools/policy/x.mjs", "execFileSync('git', ['clone', src, dir])"),
+            ("a shell clone through a git variable", sh, '"$GIT" clone -q "$a" "$b"'),
+            ("a shell clone after a global option", sh, 'git --no-pager clone -q "$a" "$b"'),
+            ("a list clone after -c options", py, 'run(["git", "-c", "x=y", "clone", a, b])')):
         check(f"refused: {name}", one(path, text) != [])
     for name, path, text in (
             ("the helper call", py, 'env = throwaway_git_init(d, "-q", "-b", "trunk")'),
