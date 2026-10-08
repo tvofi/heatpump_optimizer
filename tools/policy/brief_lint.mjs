@@ -37,11 +37,11 @@
 // A citation this script cannot resolve reliably (no anchor text extracted,
 // ambiguous shorthand, no tag object present locally) is a WARNING, not a
 // failure -- a linter that cries wolf gets bypassed. Run:
-//   node .claude/workflows/brief_lint.mjs [files...]
+//   node tools/policy/brief_lint.mjs [files...]
 // A named file is linted as a carry when its basename matches CARRY_FILE_RE
 // and as a roster otherwise, so re-running one file reproduces CI's verdict.
 //
-// The same four classes lint a CARRY file, `.claude/workflows/carry-<N>.json`
+// The same four classes lint a CARRY file, `dev/programme/carries/carry-<N>.json`
 // -- the brief of a stage that has no roster group. See the block above
 // `checkCarryShape` for why that shape exists and what each field pays for.
 //
@@ -759,7 +759,7 @@ function checkShape(groups, findings) {
 
 
 // ---------------------------------------------------------------------------
-// carry files (.claude/workflows/carry-<N>.json)
+// carry files (dev/programme/carries/carry-<N>.json)
 //
 // WHY A SECOND SHAPE. `.claude/rules/finding-propagation.md` sends a finding
 // that constrains a later stage to that stage's own brief. A stage with a
@@ -1319,7 +1319,7 @@ function main() {
   }
   // Printed even at zero, and named: a destination nobody has written to is a
   // fact a reviewer should read, not an absence they have to infer.
-  console.log(`\nCARRY: ${carries.length} carry file(s) (.claude/workflows/carry-<issue>.json)`)
+  console.log(`\nCARRY: ${carries.length} carry file(s) (dev/programme/carries/carry-<issue>.json)`)
   console.log(`\nTOTAL: ${totalErrors} error(s) across ${rosters.length + carries.length} file(s)`)
   // Summed rather than short-circuited: a run that fails one acceptance still
   // reports the other two, so a report names every rule that stopped holding.

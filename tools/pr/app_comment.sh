@@ -4,13 +4,13 @@
 # read it back byte-identical -- the verdict identity of decision 0013, which
 # amends 0011's "verdicts are `tvofi`".
 #
-#   tools/audit/app_comment.sh [--dry-run] <owner/repo> <pr> <verdict.md>
-#   tools/audit/app_comment.sh --self-test
+#   tools/pr/app_comment.sh [--dry-run] <owner/repo> <pr> <verdict.md>
+#   tools/pr/app_comment.sh --self-test
 #
 # WHY THIS EXISTS. The owner ruled on 2026-09-24 that verdicts come from the
 # approver identity, not from `tvofi`. Seats hold no App credential (0011), so
 # the reviewer seat hands its verdict text to the orchestrator, who runs this.
-# `tools/audit/app_approve.sh` then accepts only a verdict whose author is the
+# `tools/pr/app_approve.sh` then accepts only a verdict whose author is the
 # approver App, so a verdict posted any other way is not one it will act on.
 # A verdict never posts as the AUTHOR App (#1233's defect): this reads only the
 # approver's key files, and refuses a post that reads back as anyone else.
@@ -18,7 +18,7 @@
 # IT REFUSES, AND POSTS NOTHING, UNLESS ALL OF THESE HOLD:
 #   - the App id file holds digits only and the private key file exists
 #     (fail closed, before any call);
-#   - `.claude/workflows/gh_comment.py post --dry-run` accepts the body file:
+#   - `tools/pr/gh_comment.py post --dry-run` accepts the body file:
 #     not absent, empty, over GitHub's cap, a bare path (`-f body=@FILE`), or
 #     directly in a root other seats write to (`comment-readback.md`);
 #   - the body's first line is a verdict in `fix-review.md`'s grammar:

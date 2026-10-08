@@ -2,6 +2,7 @@
 description: A defect that escapes to production, or that CI catches slowly, requires a root-cause countermeasure as well as a fix
 paths:
   - "tools/audit/briefs/**"
+  - "dev/governance/**"
   - ".github/workflows/**"
   - "tests/**"
 ---
@@ -35,8 +36,7 @@ that none exists. A worked example of each:
 
 ## What is owed
 
-1. **Fix the defect** under normal policy — failing test first, mutation proof,
-   independent review. Nothing here replaces that.
+1. **Fix the defect** under normal policy (`fixer.md`); nothing here replaces it.
 2. **In parallel, and in a separate seat**, establish the root cause and the
    **process root cause**. A separate seat because the fixer is invested in the
    fix; independence here is procedural, exactly as it is for `fix-review`.
