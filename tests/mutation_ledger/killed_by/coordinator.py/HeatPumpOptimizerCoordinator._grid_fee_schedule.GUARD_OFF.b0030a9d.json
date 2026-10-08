@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._grid_fee_schedule GUARD_OFF b0030a9d",
+  "killed_by": "tests/features.py",
+  "old": "        if cache is None or cache[0] is not ctx._config:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c327da7f176afa3d07acd5562b91f6042bb32809: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=6."
+}

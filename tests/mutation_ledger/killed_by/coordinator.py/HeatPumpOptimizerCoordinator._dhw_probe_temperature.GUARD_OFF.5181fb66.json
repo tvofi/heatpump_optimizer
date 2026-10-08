@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature GUARD_OFF 5181fb66",
+  "killed_by": "tests/features.py",
+  "old": "        if not getattr(self, \"_ctx\", self)._config.dhw_temp_entity:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c327da7f176afa3d07acd5562b91f6042bb32809: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
