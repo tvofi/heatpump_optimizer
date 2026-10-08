@@ -1,0 +1,5 @@
+35:2026-10-08T06:44:04.2607842Z Complete job name: fast (3.14)
+57:2026-10-08T06:44:04.4245009Z git version 2.55.0
+3651:2026-10-08T06:47:44.9943982Z FAIL depth seams: dev/audit/harnesses/git_auto_maintenance_race.sh:34: ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+3768:2026-10-08T06:47:44.9962076Z 1 of 109 HARNESS HEADER CHECKS FAILED
+3937:2026-10-08T06:47:45.1262976Z git version 2.55.0

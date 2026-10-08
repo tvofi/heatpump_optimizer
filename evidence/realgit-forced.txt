@@ -1,0 +1,3 @@
+last: OSError: [Errno 66] Directory not empty: '.git'
+RESULT tree=ef3ca657 arm=forced git=2.55.0 runs=20 directory_not_empty=6 nonzero_exit=6
+RESULT tree=811846b5 arm=forced git=2.55.0 runs=20 directory_not_empty=0 nonzero_exit=0

@@ -1,0 +1,4 @@
+08:52:19.208348 git.c:502               trace: built-in: git commit -q -m base
+08:52:19.233299 run-command.c:673       trace: run_command: git maintenance run --auto --quiet --no-detach
+08:52:19.233332 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git maintenance run --auto --quiet --no-detach
+08:52:19.243352 git.c:502               trace: built-in: git maintenance run --auto --quiet --no-detach

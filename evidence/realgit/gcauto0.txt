@@ -1,0 +1,1 @@
+cfg=gc.auto=0 shard17=2 packs=0 maint_spawn=0

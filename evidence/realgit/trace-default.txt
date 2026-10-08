@@ -1,0 +1,17 @@
+08:52:08.146173 git.c:502               trace: built-in: git add -A
+08:52:08.163254 git.c:502               trace: built-in: git commit -q -m base
+08:52:08.171045 run-command.c:673       trace: run_command: git maintenance run --auto --quiet --no-detach
+08:52:08.171208 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git maintenance run --auto --quiet --no-detach
+08:52:08.178815 git.c:502               trace: built-in: git maintenance run --auto --quiet --no-detach
+08:52:08.182802 run-command.c:673       trace: run_command: git repack -d -l --cruft --cruft-expiration=2.weeks.ago --quiet --write-midx
+08:52:08.182842 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git repack -d -l --cruft --cruft-expiration=2.weeks.ago --quiet --write-midx
+08:52:08.191048 git.c:502               trace: built-in: git repack -d -l --cruft --cruft-expiration=2.weeks.ago --quiet --write-midx
+08:52:08.193684 run-command.c:673       trace: run_command: git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --keep-true-parents --non-empty --all --reflog --indexed-objects
+08:52:08.193715 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --keep-true-parents --non-empty --all --reflog --indexed-objects
+08:52:08.202887 git.c:502               trace: built-in: git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --keep-true-parents --non-empty --all --reflog --indexed-objects
+08:52:08.210092 run-command.c:673       trace: run_command: git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --cruft --cruft-expiration=2.weeks.ago --non-empty
+08:52:08.210120 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --cruft --cruft-expiration=2.weeks.ago --non-empty
+08:52:08.221170 git.c:502               trace: built-in: git pack-objects --local --quiet --delta-base-offset --honor-pack-keep .git/objects/pack/.tmp-73461-pack --cruft --cruft-expiration=2.weeks.ago --non-empty
+08:52:08.228774 run-command.c:673       trace: run_command: git multi-pack-index write --no-progress --preferred-pack=pack-b02bc9da930f41a9e02512b50a07a37af7434b88.pack --refs-snapshot=/Users/timmalmstrom/hpo-seats/review-2051/realgit/r/.git/objects/bitmap-ref-tips_MGQfzf --stdin-packs
+08:52:08.228807 run-command.c:765       trace: start_command: /Users/timmalmstrom/hpo-seats/review-2051/git255/libexec/git-core/git multi-pack-index write --no-progress --preferred-pack=pack-b02bc9da930f41a9e02512b50a07a37af7434b88.pack --refs-snapshot=/Users/timmalmstrom/hpo-seats/review-2051/realgit/r/.git/objects/bitmap-ref-tips_MGQfzf --stdin-packs
+08:52:08.239016 git.c:502               trace: built-in: git multi-pack-index write --no-progress --preferred-pack=pack-b02bc9da930f41a9e02512b50a07a37af7434b88.pack --refs-snapshot=/Users/timmalmstrom/hpo-seats/review-2051/realgit/r/.git/objects/bitmap-ref-tips_MGQfzf --stdin-packs
