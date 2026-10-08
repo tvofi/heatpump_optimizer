@@ -1,0 +1,3 @@
+RESULT mutant: cases=552 differing=0 (flag on 0, flag off 0)
+RESULT control: cases=552 differing=264 (flag on 264, flag off 0)
+boundary cases (flag on, every step's snow 0)=276, of them with rain on some step=264
