@@ -556,10 +556,22 @@ body_check() { # body file, head sha, title, paths file, red names...
   # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
-  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  # The paths the base already had go along as `--existing-file`, the list
+  # pr-contract derives with `--diff-filter=a`: without it policy_lint counts
+  # every delivery row, the pull request's own new row included, as a touch of
+  # what `delivery-status` reads, and refuses a main-graded red CI exempts
+  # (#2028). No resolvable BASE, no list: the stricter reading stands.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n rc
+  local ex=/tmp/prepr-existing.$$
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
+  if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
+    args+=(--existing-file "$ex")
+  fi
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  rc=$?
+  rm -f "$ex"
+  return "$rc"
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
