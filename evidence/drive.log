@@ -1,0 +1,23 @@
+head rc=0
+ .github/workflows/budget-raise-gate.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+mut-cancel rc=1
+diff --git a/.github/workflows/budget-raise-gate.yml b/.github/workflows/budget-raise-gate.yml
+index 9042eb9c..6650c087 100644
+--- a/.github/workflows/budget-raise-gate.yml
++++ b/.github/workflows/budget-raise-gate.yml
+@@ -55,7 +55,7 @@ permissions:
+ # its check run is per head, so a superseded head's run finishing costs
+ # nothing and is never read. `tests/entities.py` pins the route.
+ concurrency:
+-  group: ${{ github.workflow }}-${{ github.run_id }}
++  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+   cancel-in-progress: false
+ 
+ jobs:
+mut-group rc=1
+ .github/workflows/budget-raise-gate.yml | 18 ++++--------------
+ 1 file changed, 4 insertions(+), 14 deletions(-)
+base-wf rc=1
+?? .review-claim
+DONE
