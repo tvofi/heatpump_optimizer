@@ -1,0 +1,6 @@
+disp_113255055681.log:2026-10-08T10:01:52.6059663Z   ok   a16:debug_inline  [the download 8076990B against the 8388608B cap; 63707 row(s) inline]
+disp_113255055681.log:2026-10-08T10:01:52.6060297Z   ok   a16:debug_capped  [bundle 9376008B against the 8388608B cap; the download 12930B]
+disp_113255056233.log:2026-10-08T10:01:37.8347840Z   ok   a16:debug_inline  [the download 8077011B against the 8388608B cap; 63707 row(s) inline]
+disp_113255056233.log:2026-10-08T10:01:37.8348465Z   ok   a16:debug_capped  [bundle 9376008B against the 8388608B cap; the download 12951B]
+113255055681 nightly-ha (stable)
+113255056233 nightly-ha (2025.2.0)
