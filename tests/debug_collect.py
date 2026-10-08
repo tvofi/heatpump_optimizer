@@ -771,6 +771,112 @@ R.check(
     {"a16:debug_inline", "a16:debug_capped"} <= set(nightly_ha.INSIDE_CHECKS),
 )
 
+# -- A16's download writer, against Home Assistant's two writer signatures ----
+# Run 37753990323 at 816547ef: 2025.2.0's writer returns a StringPayload body,
+# which has no len(); stable's inserts data_issues before filename, so the
+# five positional arguments left d_id unbound. Both stand-ins below copy those
+# two shapes; the body type is aiohttp's: bytes reach it only through write().
+import threading  # noqa: E402
+import types  # noqa: E402
+
+
+class _StringPayload:
+    def __init__(self, text: str):
+        self._bytes = text.encode()
+
+    async def write(self, writer) -> None:
+        await writer.write(self._bytes)
+
+
+class _Response:
+    def __init__(self, body, status: int = 200):
+        self.body, self.status = body, status
+
+
+async def _writer_2025_2(hass, data, filename, domain, d_id, sub_id=None):
+    return _Response(_StringPayload(json.dumps({"data": data}, indent=2)))
+
+
+async def _writer_2025_10(hass, data, data_issues, filename, domain, d_id, sub_id=None):
+    body = {"data": data} if data_issues is None else {"data": data, "issues": data_issues}
+    return _Response(_StringPayload(json.dumps(body, indent=2)))
+
+
+async def _writer_bytes(hass, data, filename, domain, d_id, sub_id=None):
+    return _Response(json.dumps({"data": data}).encode())
+
+
+async def _writer_500(hass, data, filename, domain, d_id, sub_id=None):
+    return _Response(None, status=500)
+
+
+async def _writer_unknown(hass, data, filename, domain, d_id, mystery):
+    return _Response(_StringPayload("{}"))
+
+
+def _written(fn, payload=None):
+    """``ha_download_writer``'s bytes with ``fn`` as HA's writer, or the refusal."""
+    import homeassistant.components.diagnostics as ha_diag
+
+    helpers_json = types.ModuleType("homeassistant.helpers.json")
+    helpers_json.ExtendedJSONEncoder = json.JSONEncoder
+    saved = sys.modules.get("homeassistant.helpers.json")
+    sys.modules["homeassistant.helpers.json"] = helpers_json
+    ha_diag._async_get_json_file_response = fn
+    loop = asyncio.new_event_loop()
+    thread = threading.Thread(target=loop.run_forever, daemon=True)
+    thread.start()
+    try:
+        writer, name = nightly_ha.ha_download_writer(
+            types.SimpleNamespace(loop=loop), DOMAIN, "e1")
+        return writer({"k": 1} if payload is None else payload), name
+    except Exception as exc:  # noqa: BLE001 - the refusal is the result
+        return exc, None
+    finally:
+        loop.call_soon_threadsafe(loop.stop)
+        thread.join(5)
+        loop.close()
+        del ha_diag._async_get_json_file_response
+        if saved is None:
+            sys.modules.pop("homeassistant.helpers.json", None)
+        else:
+            sys.modules["homeassistant.helpers.json"] = saved
+
+
+for _label, _fn in (("2025.2.0", _writer_2025_2), ("2025.10", _writer_2025_10)):
+    _got, _name = _written(_fn)
+    R.check(
+        f"A16's download writer returns the bytes of HA's {_label} writer, whose "
+        "body is a payload with no len()",
+        isinstance(_got, bytes) and json.loads(_got)["data"] == {"k": 1}
+        and _name == "diagnostics._async_get_json_file_response",
+        repr(_got)[:200],
+    )
+_got, _ = _written(_writer_2025_10)
+R.check(
+    "A16 passes data_issues as the list HA passes, so the file carries its issues section",
+    isinstance(_got, bytes) and json.loads(_got).get("issues") == [],
+    repr(_got)[:200],
+)
+_got, _ = _written(_writer_bytes)
+R.check(
+    "A16's download writer returns a bytes body as it is",
+    _got == json.dumps({"data": {"k": 1}}).encode(),
+    repr(_got)[:200],
+)
+_got, _ = _written(_writer_500)
+R.check(
+    "A16's download writer refuses a response HA's writer failed (status 500, no body)",
+    isinstance(_got, Exception) and "500" in str(_got),
+    repr(_got)[:200],
+)
+_got, _ = _written(_writer_unknown)
+R.check(
+    "A16's download writer refuses a writer parameter it cannot bind, naming it",
+    isinstance(_got, Exception) and "mystery" in str(_got),
+    repr(_got)[:200],
+)
+
 dt_util.freeze(None)
 debugger._COLLECTORS.clear()
 sys.exit(R.close("DEBUG COLLECT CHECKS"))

@@ -30039,13 +30039,28 @@ def _nha_audit(event, args):
 
 sys.addaudithook(_nha_audit)
 _nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
 try:
     _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
     _nightly._stage(_nha_tmp)
 except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
     _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
 finally:
     _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
     import shutil as _nha_shutil
     _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
 _NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
