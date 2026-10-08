@@ -1,0 +1,501 @@
+﻿2026-10-08T11:15:51.7030299Z Current runner version: '2.337.0'
+2026-10-08T11:15:51.7054402Z ##[group]Runner Image Provisioner
+2026-10-08T11:15:51.7055492Z Hosted Compute Agent
+2026-10-08T11:15:51.7056084Z Version: 20260901.588
+2026-10-08T11:15:51.7056696Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-08T11:15:51.7057393Z Build Date: 2026-09-01T19:56:44Z
+2026-10-08T11:15:51.7058117Z Worker ID: {4d3753e6-ebca-43cf-876b-8393edfd61ae}
+2026-10-08T11:15:51.7058761Z Azure Region: centralus
+2026-10-08T11:15:51.7059328Z ##[endgroup]
+2026-10-08T11:15:51.7060994Z ##[group]Operating System
+2026-10-08T11:15:51.7061613Z Ubuntu
+2026-10-08T11:15:51.7062126Z 24.04.5
+2026-10-08T11:15:51.7062588Z LTS
+2026-10-08T11:15:51.7063074Z ##[endgroup]
+2026-10-08T11:15:51.7063572Z ##[group]Runner Image
+2026-10-08T11:15:51.7064094Z Image: ubuntu-24.04
+2026-10-08T11:15:51.7065024Z Version: 20260927.320.1
+2026-10-08T11:15:51.7066134Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-08T11:15:51.7067587Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-08T11:15:51.7068524Z ##[endgroup]
+2026-10-08T11:15:51.7069537Z ##[group]GITHUB_TOKEN Permissions
+2026-10-08T11:15:51.7072011Z Contents: read
+2026-10-08T11:15:51.7072613Z Metadata: read
+2026-10-08T11:15:51.7073110Z ##[endgroup]
+2026-10-08T11:15:51.7075616Z Secret source: Actions
+2026-10-08T11:15:51.7076550Z Cache mode: write
+2026-10-08T11:15:51.7077618Z Prepare workflow directory
+2026-10-08T11:15:51.7387322Z Prepare all required actions
+2026-10-08T11:15:51.7435489Z Getting action download info
+2026-10-08T11:15:52.0276531Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-08T11:15:52.1328939Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-08T11:15:52.3327613Z Complete job name: nightly-ha (stable)
+2026-10-08T11:15:52.4016915Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-08T11:15:52.4017937Z with:
+2026-10-08T11:15:52.4018516Z   repository: tvofi/heatpump_optimizer
+2026-10-08T11:15:52.4022438Z   token: ***
+2026-10-08T11:15:52.4022984Z   ssh-strict: true
+2026-10-08T11:15:52.4023461Z   ssh-user: git
+2026-10-08T11:15:52.4023922Z   persist-credentials: true
+2026-10-08T11:15:52.4024465Z   clean: true
+2026-10-08T11:15:52.4025294Z   sparse-checkout-cone-mode: true
+2026-10-08T11:15:52.4025892Z   fetch-depth: 1
+2026-10-08T11:15:52.4026385Z   fetch-tags: false
+2026-10-08T11:15:52.4026870Z   show-progress: true
+2026-10-08T11:15:52.4027376Z   lfs: false
+2026-10-08T11:15:52.4027825Z   submodules: false
+2026-10-08T11:15:52.4028370Z   set-safe-directory: true
+2026-10-08T11:15:52.4028920Z   allow-unsafe-pr-checkout: false
+2026-10-08T11:15:52.4029816Z ##[endgroup]
+2026-10-08T11:15:52.5047108Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-08T11:15:52.5049363Z ##[group]Getting Git version info
+2026-10-08T11:15:52.5050377Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T11:15:52.5051691Z [command]/usr/bin/git version
+2026-10-08T11:15:52.5108399Z git version 2.55.0
+2026-10-08T11:15:52.5137066Z ##[endgroup]
+2026-10-08T11:15:52.5145455Z Temporarily overriding HOME='/home/runner/work/_temp/df658754-f720-463c-a94c-59be7326a429' before making global git config changes
+2026-10-08T11:15:52.5147754Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T11:15:52.5150066Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T11:15:52.5198642Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T11:15:52.5204320Z ##[group]Initializing the repository
+2026-10-08T11:15:52.5210401Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T11:15:52.5332544Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-08T11:15:52.5334145Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-08T11:15:52.5335731Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-08T11:15:52.5336795Z hint: call:
+2026-10-08T11:15:52.5337610Z hint:
+2026-10-08T11:15:52.5338517Z hint: 	git config --global init.defaultBranch <name>
+2026-10-08T11:15:52.5339632Z hint:
+2026-10-08T11:15:52.5340610Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-08T11:15:52.5342137Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-08T11:15:52.5343436Z hint:
+2026-10-08T11:15:52.5344096Z hint: 	git branch -m <name>
+2026-10-08T11:15:52.5345052Z hint:
+2026-10-08T11:15:52.5345992Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-08T11:15:52.5347027Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-08T11:15:52.5351148Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-08T11:15:52.5408964Z ##[endgroup]
+2026-10-08T11:15:52.5410378Z ##[group]Disabling automatic garbage collection
+2026-10-08T11:15:52.5412380Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-08T11:15:52.5441062Z ##[endgroup]
+2026-10-08T11:15:52.5442501Z ##[group]Setting up auth
+2026-10-08T11:15:52.5447700Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T11:15:52.5480482Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T11:15:52.5793954Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T11:15:52.5831396Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T11:15:52.6023864Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T11:15:52.6053142Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T11:15:52.6227661Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-08T11:15:52.6266643Z ##[endgroup]
+2026-10-08T11:15:52.6268002Z ##[group]Fetching the repository
+2026-10-08T11:15:52.6277194Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +7e74470795173adfb52c2824bf489938272dbb28:refs/remotes/origin/handoff/r9-nightly-ha
+2026-10-08T11:15:54.2960896Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-08T11:15:54.2963085Z  * [new ref]         7e74470795173adfb52c2824bf489938272dbb28 -> origin/handoff/r9-nightly-ha
+2026-10-08T11:15:54.2973831Z ##[endgroup]
+2026-10-08T11:15:54.2975363Z ##[group]Determining the checkout info
+2026-10-08T11:15:54.2976809Z ##[endgroup]
+2026-10-08T11:15:54.2977695Z [command]/usr/bin/git sparse-checkout disable
+2026-10-08T11:15:54.3039779Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T11:15:54.3074960Z ##[group]Checking out the ref
+2026-10-08T11:15:54.3076293Z [command]/usr/bin/git checkout --progress --force -B handoff/r9-nightly-ha refs/remotes/origin/handoff/r9-nightly-ha
+2026-10-08T11:15:54.6988287Z Switched to a new branch 'handoff/r9-nightly-ha'
+2026-10-08T11:15:54.6993098Z branch 'handoff/r9-nightly-ha' set up to track 'origin/handoff/r9-nightly-ha'.
+2026-10-08T11:15:54.7007662Z ##[endgroup]
+2026-10-08T11:15:54.7057392Z [command]/usr/bin/git log -1 --format=%H
+2026-10-08T11:15:54.7080825Z 7e74470795173adfb52c2824bf489938272dbb28
+2026-10-08T11:15:54.7335717Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-10-08T11:15:54.7336356Z with:
+2026-10-08T11:15:54.7336608Z   python-version: 3.13
+2026-10-08T11:15:54.7336891Z   check-latest: false
+2026-10-08T11:15:54.7339719Z   token: ***
+2026-10-08T11:15:54.7339989Z   update-environment: true
+2026-10-08T11:15:54.7340301Z   allow-prereleases: false
+2026-10-08T11:15:54.7340588Z   freethreaded: false
+2026-10-08T11:15:54.7340858Z ##[endgroup]
+2026-10-08T11:15:54.8576989Z ##[group]Installed versions
+2026-10-08T11:15:54.8662128Z Successfully set up CPython (3.13.15)
+2026-10-08T11:15:54.8663165Z ##[endgroup]
+2026-10-08T11:15:54.8876198Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt -r tests/requirements-nightly-ha.txt
+2026-10-08T11:15:54.8878618Z [36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt -r tests/requirements-nightly-ha.txt[0m
+2026-10-08T11:15:54.9135020Z shell: /usr/bin/bash -e {0}
+2026-10-08T11:15:54.9135433Z env:
+2026-10-08T11:15:54.9135911Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:15:54.9136411Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-08T11:15:54.9136892Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:15:54.9137320Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:15:54.9137740Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:15:54.9138169Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-08T11:15:54.9138587Z ##[endgroup]
+2026-10-08T11:15:55.9265179Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+2026-10-08T11:15:56.0105474Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-10-08T11:15:56.5629133Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+2026-10-08T11:15:56.5745806Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+2026-10-08T11:15:56.7921063Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 8.6 MB/s  0:00:00
+2026-10-08T11:15:56.8157116Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+2026-10-08T11:15:56.8255410Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-10-08T11:15:56.8503576Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+2026-10-08T11:15:56.8605625Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-10-08T11:15:56.9344926Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+2026-10-08T11:15:56.9453290Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+2026-10-08T11:15:56.9946159Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+2026-10-08T11:15:57.0054476Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-10-08T11:15:57.2572026Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+2026-10-08T11:15:57.2675525Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+2026-10-08T11:15:57.4965416Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+2026-10-08T11:15:57.5069137Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+2026-10-08T11:15:58.8280202Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 12.7 MB/s  0:00:01
+2026-10-08T11:15:58.9193673Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+2026-10-08T11:15:58.9298426Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+2026-10-08T11:15:58.9846287Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+2026-10-08T11:15:58.9953729Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+2026-10-08T11:15:59.0967107Z   Installing build dependencies: started
+2026-10-08T11:16:00.2724818Z   Installing build dependencies: finished with status 'done'
+2026-10-08T11:16:00.2729386Z   Getting requirements to build wheel: started
+2026-10-08T11:16:01.7236238Z   Getting requirements to build wheel: finished with status 'done'
+2026-10-08T11:16:01.7245737Z   Preparing metadata (pyproject.toml): started
+2026-10-08T11:16:01.9294183Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-10-08T11:16:02.0566771Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+2026-10-08T11:16:02.0671379Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+2026-10-08T11:16:03.4283196Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 25.9 MB/s  0:00:01
+2026-10-08T11:16:03.4945589Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+2026-10-08T11:16:03.5048674Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+2026-10-08T11:16:03.5288974Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+2026-10-08T11:16:03.5388770Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+2026-10-08T11:16:03.7921411Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+2026-10-08T11:16:03.8021949Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+2026-10-08T11:16:03.8399710Z Collecting py-spy==0.4.2 (from -r tests/requirements-nightly-ha.txt (line 7))
+2026-10-08T11:16:03.8501743Z   Downloading py_spy-0.4.2-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl (2.9 MB)
+2026-10-08T11:16:03.9435117Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.9/2.9 MB 31.1 MB/s  0:00:00
+2026-10-08T11:16:03.9596679Z Building wheels for collected packages: pyyaml
+2026-10-08T11:16:03.9603907Z   Building wheel for pyyaml (pyproject.toml): started
+2026-10-08T11:16:06.2207742Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+2026-10-08T11:16:06.2212402Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=e38d14807258f33f6a3c239e791d4ed131a4a29feac2a72617d85b802fe25a04
+2026-10-08T11:16:06.2214117Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+2026-10-08T11:16:06.2231434Z Successfully built pyyaml
+2026-10-08T11:16:06.2778116Z Installing collected packages: py-spy, voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+2026-10-08T11:16:12.2907788Z 
+2026-10-08T11:16:12.2937130Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 py-spy-0.4.2 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+2026-10-08T11:16:12.4698043Z ##[group]Run docker pull "homeassistant/home-assistant:stable"
+2026-10-08T11:16:12.4698558Z [36;1mdocker pull "homeassistant/home-assistant:stable"[0m
+2026-10-08T11:16:12.4738967Z shell: /usr/bin/bash -e {0}
+2026-10-08T11:16:12.4739260Z env:
+2026-10-08T11:16:12.4739546Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:12.4739973Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-08T11:16:12.4740388Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:12.4740752Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:12.4741122Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:12.4741505Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-08T11:16:12.4741813Z ##[endgroup]
+2026-10-08T11:16:13.0838588Z stable: Pulling from homeassistant/home-assistant
+2026-10-08T11:16:13.2539649Z c5cfc437e4cd: Pulling fs layer
+2026-10-08T11:16:13.2544057Z a0599c81070e: Pulling fs layer
+2026-10-08T11:16:13.2545272Z 37f806cc4461: Pulling fs layer
+2026-10-08T11:16:13.2546175Z 9077abe198c0: Pulling fs layer
+2026-10-08T11:16:13.2546930Z bb63c4cacedb: Pulling fs layer
+2026-10-08T11:16:13.2547344Z 2c1ce468d9f3: Pulling fs layer
+2026-10-08T11:16:13.2548017Z 7787303eb4c2: Pulling fs layer
+2026-10-08T11:16:13.2548398Z b5c7d9056a22: Pulling fs layer
+2026-10-08T11:16:13.2548786Z 338f09b2964b: Pulling fs layer
+2026-10-08T11:16:13.2549156Z d2a5bb1a42cc: Pulling fs layer
+2026-10-08T11:16:13.2549520Z f2f052bcb674: Pulling fs layer
+2026-10-08T11:16:13.2549872Z ada65c4cb763: Pulling fs layer
+2026-10-08T11:16:13.2550227Z a32396551a70: Pulling fs layer
+2026-10-08T11:16:13.2550562Z 89811b755046: Pulling fs layer
+2026-10-08T11:16:13.2550944Z 2c47ece656fa: Pulling fs layer
+2026-10-08T11:16:13.2551332Z 28e3d11d7c8b: Pulling fs layer
+2026-10-08T11:16:13.2551680Z 73564860a377: Pulling fs layer
+2026-10-08T11:16:13.2552045Z c5233d3fa4a3: Pulling fs layer
+2026-10-08T11:16:13.2552474Z 031ab61ddbcd: Pulling fs layer
+2026-10-08T11:16:13.2552872Z dce9484604a6: Pulling fs layer
+2026-10-08T11:16:13.2553278Z ba817d8ba525: Pulling fs layer
+2026-10-08T11:16:13.2553646Z 9077abe198c0: Waiting
+2026-10-08T11:16:13.2553997Z b5c7d9056a22: Waiting
+2026-10-08T11:16:13.2554364Z bb63c4cacedb: Waiting
+2026-10-08T11:16:13.2554859Z 338f09b2964b: Waiting
+2026-10-08T11:16:13.2555189Z d2a5bb1a42cc: Waiting
+2026-10-08T11:16:13.2555504Z 2c1ce468d9f3: Waiting
+2026-10-08T11:16:13.2555839Z 7787303eb4c2: Waiting
+2026-10-08T11:16:13.2556161Z 28e3d11d7c8b: Waiting
+2026-10-08T11:16:13.2556489Z f2f052bcb674: Waiting
+2026-10-08T11:16:13.2556802Z 73564860a377: Waiting
+2026-10-08T11:16:13.2557139Z c5233d3fa4a3: Waiting
+2026-10-08T11:16:13.2557484Z 031ab61ddbcd: Waiting
+2026-10-08T11:16:13.2557791Z ada65c4cb763: Waiting
+2026-10-08T11:16:13.2558112Z dce9484604a6: Waiting
+2026-10-08T11:16:13.2558435Z ba817d8ba525: Waiting
+2026-10-08T11:16:13.2558750Z 89811b755046: Waiting
+2026-10-08T11:16:13.2559065Z 2c47ece656fa: Waiting
+2026-10-08T11:16:13.2559404Z a32396551a70: Waiting
+2026-10-08T11:16:13.4533627Z c5cfc437e4cd: Verifying Checksum
+2026-10-08T11:16:13.4534440Z c5cfc437e4cd: Download complete
+2026-10-08T11:16:13.4924198Z a0599c81070e: Verifying Checksum
+2026-10-08T11:16:13.4925210Z a0599c81070e: Download complete
+2026-10-08T11:16:13.5105484Z 37f806cc4461: Verifying Checksum
+2026-10-08T11:16:13.5105969Z 37f806cc4461: Download complete
+2026-10-08T11:16:13.5526878Z c5cfc437e4cd: Pull complete
+2026-10-08T11:16:13.6349182Z 2c1ce468d9f3: Verifying Checksum
+2026-10-08T11:16:13.6350555Z 2c1ce468d9f3: Download complete
+2026-10-08T11:16:13.7112824Z bb63c4cacedb: Download complete
+2026-10-08T11:16:13.7702939Z 7787303eb4c2: Download complete
+2026-10-08T11:16:13.8502291Z 9077abe198c0: Verifying Checksum
+2026-10-08T11:16:13.8503051Z 9077abe198c0: Download complete
+2026-10-08T11:16:13.8973458Z b5c7d9056a22: Verifying Checksum
+2026-10-08T11:16:13.8973960Z b5c7d9056a22: Download complete
+2026-10-08T11:16:13.9021465Z 338f09b2964b: Verifying Checksum
+2026-10-08T11:16:13.9021952Z 338f09b2964b: Download complete
+2026-10-08T11:16:14.0141761Z ada65c4cb763: Verifying Checksum
+2026-10-08T11:16:14.0143216Z ada65c4cb763: Download complete
+2026-10-08T11:16:14.0640292Z f2f052bcb674: Verifying Checksum
+2026-10-08T11:16:14.0640810Z f2f052bcb674: Download complete
+2026-10-08T11:16:14.0703294Z d2a5bb1a42cc: Verifying Checksum
+2026-10-08T11:16:14.0704047Z d2a5bb1a42cc: Download complete
+2026-10-08T11:16:14.1329869Z a32396551a70: Download complete
+2026-10-08T11:16:14.2221088Z 2c47ece656fa: Verifying Checksum
+2026-10-08T11:16:14.2221661Z 2c47ece656fa: Download complete
+2026-10-08T11:16:14.3524082Z 89811b755046: Verifying Checksum
+2026-10-08T11:16:14.3524655Z 89811b755046: Download complete
+2026-10-08T11:16:14.3558969Z 73564860a377: Verifying Checksum
+2026-10-08T11:16:14.3559419Z 73564860a377: Download complete
+2026-10-08T11:16:14.6218743Z 28e3d11d7c8b: Verifying Checksum
+2026-10-08T11:16:14.6219542Z 28e3d11d7c8b: Download complete
+2026-10-08T11:16:14.6511205Z 031ab61ddbcd: Verifying Checksum
+2026-10-08T11:16:14.6511679Z 031ab61ddbcd: Download complete
+2026-10-08T11:16:14.7747012Z ba817d8ba525: Verifying Checksum
+2026-10-08T11:16:14.7747546Z ba817d8ba525: Download complete
+2026-10-08T11:16:15.1297546Z a0599c81070e: Pull complete
+2026-10-08T11:16:15.5662950Z c5233d3fa4a3: Verifying Checksum
+2026-10-08T11:16:15.5663484Z c5233d3fa4a3: Download complete
+2026-10-08T11:16:15.9066510Z dce9484604a6: Verifying Checksum
+2026-10-08T11:16:15.9067188Z dce9484604a6: Download complete
+2026-10-08T11:16:17.3433128Z 37f806cc4461: Pull complete
+2026-10-08T11:16:18.2366691Z 9077abe198c0: Pull complete
+2026-10-08T11:16:18.3426971Z bb63c4cacedb: Pull complete
+2026-10-08T11:16:18.3478657Z 2c1ce468d9f3: Pull complete
+2026-10-08T11:16:18.3609922Z 7787303eb4c2: Pull complete
+2026-10-08T11:16:18.3903081Z b5c7d9056a22: Pull complete
+2026-10-08T11:16:18.3965698Z 338f09b2964b: Pull complete
+2026-10-08T11:16:18.4365416Z d2a5bb1a42cc: Pull complete
+2026-10-08T11:16:18.4473770Z f2f052bcb674: Pull complete
+2026-10-08T11:16:18.4531299Z ada65c4cb763: Pull complete
+2026-10-08T11:16:18.4672075Z a32396551a70: Pull complete
+2026-10-08T11:16:18.5424208Z 89811b755046: Pull complete
+2026-10-08T11:16:18.5488865Z 2c47ece656fa: Pull complete
+2026-10-08T11:16:21.2705073Z 28e3d11d7c8b: Pull complete
+2026-10-08T11:16:21.2785195Z 73564860a377: Pull complete
+2026-10-08T11:16:41.9315148Z c5233d3fa4a3: Pull complete
+2026-10-08T11:16:52.2373709Z 031ab61ddbcd: Pull complete
+2026-10-08T11:16:55.0787039Z dce9484604a6: Pull complete
+2026-10-08T11:16:55.0855530Z ba817d8ba525: Pull complete
+2026-10-08T11:16:55.0888179Z Digest: sha256:1b64d38f38d922bf9d59336451fd6453e1d614f934456af4ee3d2a51061be3a4
+2026-10-08T11:16:55.0895551Z Status: Downloaded newer image for homeassistant/home-assistant:stable
+2026-10-08T11:16:55.0904085Z docker.io/homeassistant/home-assistant:stable
+2026-10-08T11:16:55.0945656Z ##[group]Run python tests/nightly_ha.py \
+2026-10-08T11:16:55.0945992Z [36;1mpython tests/nightly_ha.py \[0m
+2026-10-08T11:16:55.0946353Z [36;1m  --image "homeassistant/home-assistant:stable"[0m
+2026-10-08T11:16:55.0983570Z shell: /usr/bin/bash -e {0}
+2026-10-08T11:16:55.0983825Z env:
+2026-10-08T11:16:55.0984088Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:55.0984652Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib/pkgconfig
+2026-10-08T11:16:55.0985082Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:55.0985462Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:55.0985827Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.15/x64
+2026-10-08T11:16:55.0986197Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.15/x64/lib
+2026-10-08T11:16:55.0986517Z ##[endgroup]
+2026-10-08T11:16:56.4555240Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-hpzggw55/config:/config -v /tmp/nightly-ha-hpzggw55/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0
+2026-10-08T11:17:49.5520831Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-a3e-jeid7ot7/config:/config -v /tmp/nightly-ha-a3e-jeid7ot7/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --a3e-only
+2026-10-08T11:18:02.9675176Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-hb-_8huqkn4/config:/config -v /tmp/nightly-ha-hb-_8huqkn4/opt:/opt/hpo:ro --cap-add SYS_PTRACE --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --heartbeat-only
+2026-10-08T11:18:26.8846444Z   ok   run:driver_reported  [1 result markers in the container's output]
+2026-10-08T11:18:26.8850148Z --- inside the container ---
+2026-10-08T11:18:26.8850693Z   ok   shape:package_at_config_path  [/config/custom_components/heatpump_optimizer is not an integration]
+2026-10-08T11:18:26.8851307Z   ok   shape:no_tests_sibling  [a tests/ sibling puts _worker_env on the branch no install takes]
+2026-10-08T11:18:26.8851936Z   ok   shape:inherited_pythonpath_cannot_mask  [inherited PYTHONPATH already resolves custom_components: []]
+2026-10-08T11:18:26.8852420Z   ok   contract:real_provider  [exit 0; rty
+2026-10-08T11:18:26.8853059Z   ok   helpers.entity.Entity: every platform entity base resolves entity_category
+2026-10-08T11:18:26.8853505Z   ok   walker refuses a NumberSelector built outside _number
+2026-10-08T11:18:26.8853844Z   ok   walker accepts _number and _widen_to_fit
+2026-10-08T11:18:26.8854145Z   ok   walker refuses _number that omits mode
+2026-10-08T11:18:26.8854450Z   ok   walker refuses description={advanced: True}
+2026-10-08T11:18:26.8855076Z   ok   contract:stub_provider  [exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN
+2026-10-08T11:18:26.8855508Z   ok   walker refuses a NumberSelector built outside _number
+2026-10-08T11:18:26.8855855Z   ok   walker accepts _number and _widen_to_fit
+2026-10-08T11:18:26.8856159Z   ok   walker refuses _number that omits mode
+2026-10-08T11:18:26.8856470Z   ok   walker refuses description={advanced: True}
+2026-10-08T11:18:26.8856820Z   ok   the two reports are one stub run and one real run
+2026-10-08T11:18:26.8857324Z   ok   every member of components.binary_sensor.BinarySensorDeviceClass exists upstream with the same value
+2026-10-08T11:18:26.8857973Z   ok   every member of components.climate.ClimateEntityFeature exists upstream with the same value
+2026-10-08T11:18:26.8858542Z   ok   every member of components.climate.HVACAction exists upstream with the same value
+2026-10-08T11:18:26.8859066Z   ok   every member of components.climate.HVACMode exists upstream with the same value
+2026-10-08T11:18:26.8859514Z   ok   components.diagnostics.REDACTED equals upstream's
+2026-10-08T11:18:26.8860080Z   ok   every entry of components.sensor.DEVICE_CLASS_STATE_CLASSES matches upstream's
+2026-10-08T11:18:26.8860824Z   ok   every member of components.sensor.NON_NUMERIC_DEVICE_CLASSES exists upstream with the same value
+2026-10-08T11:18:26.8861645Z   ok   every member of components.sensor.SensorDeviceClass exists upstream with the same value
+2026-10-08T11:18:26.8862407Z   ok   every member of components.sensor.SensorStateClass exists upstream with the same value
+2026-10-08T11:18:26.8863032Z   ok   every member of config_entries.ConfigEntryState exists upstream with the same value
+2026-10-08T11:18:26.8863478Z   ok   config_entries.SOURCE_RECONFIGURE equals upstream's
+2026-10-08T11:18:26.8863864Z   ok   every member of const.Platform exists upstream with the same value
+2026-10-08T11:18:26.8864281Z   ok   every member of const.units exists upstream with the same value
+2026-10-08T11:18:26.8866099Z   ok   every member of core.SupportsResponse exists upstream with the same value
+2026-10-08T11:18:26.8866903Z   ok   every member of helpers.device_registry.DeviceEntryType exists upstream with the same value
+2026-10-08T11:18:26.8867782Z   ok   every member of helpers.entity.EntityCategory exists upstream with the same value
+2026-10-08T11:18:26.8868676Z   ok   every member of helpers.issue_registry.IssueSeverity exists upstream with the same value
+2026-10-08T11:18:26.8869611Z   ok   every member of helpers.selector.NumberSelectorMode exists upstream with the same value
+2026-10-08T11:18:26.8870540Z   ok   every member of helpers.selector.SelectSelectorMode exists upstream with the same value
+2026-10-08T11:18:26.8871481Z   ok   every member of helpers.selector.TextSelectorType exists upstream with the same value
+2026-10-08T11:18:26.8872309Z   ok   helpers.storage: how a stored document decodes equals upstream's
+2026-10-08T11:18:26.8873375Z   ok   contract:probes_agree  [exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+2026-10-08T11:18:26.8874325Z   ok   ha:home_assistant_is_real  [bootstrap returned None]
+2026-10-08T11:18:26.8875007Z   ok   ha:core_running  [core state is RUNNING]
+2026-10-08T11:18:26.8875611Z   ok   entry:loaded  [entry state is ConfigEntryState.LOADED (reason: None)]
+2026-10-08T11:18:26.8876114Z   ok   a6:loaded  [entry loaded after corrupt stores]
+2026-10-08T11:18:26.8876417Z   ok   a6:list  [corrupt payload dropped]
+2026-10-08T11:18:26.8876703Z   ok   a6:string  [corrupt payload dropped]
+2026-10-08T11:18:26.8877172Z   ok   a6:number  [corrupt payload dropped]
+2026-10-08T11:18:26.8877451Z   ok   a12:migrates  [after=7 expected=7]
+2026-10-08T11:18:26.8877755Z   ok   a13:currency  [coordinator='EUR' instance='EUR']
+2026-10-08T11:18:26.8878292Z   ok   entities:registered  [51 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']]
+2026-10-08T11:18:26.8878976Z   ok   entities:coordinator_healthy  [last_update_success is False: every entity is unavailable at once]
+2026-10-08T11:18:26.8879537Z   ..   79 registered, 28 disabled by default, 9 unavailable, 9 of those self-gated
+2026-10-08T11:18:26.8880055Z   ok   entities:none_unavailable_by_coordinator  [0 unavailable without gating themselves: []]
+2026-10-08T11:18:26.8880601Z   ok   a3:roster  [79 registered, 79 in the committed collect() roster; missing=[]; extra=[]]
+2026-10-08T11:18:26.8880998Z   ok   a3:orjson  [0 failed HA json_bytes]
+2026-10-08T11:18:26.8881263Z   ok   a3:finite  [0 non-finite]
+2026-10-08T11:18:26.8881549Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+2026-10-08T11:18:26.8881886Z   ok   a10:no_credential  [no demanded token in payload]
+2026-10-08T11:18:26.8882228Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+2026-10-08T11:18:26.8882665Z   ok   a16:debug_inline  [the download 8077011B against the 8388608B cap; 63707 row(s) inline]
+2026-10-08T11:18:26.8883168Z   ok   a16:debug_capped  [bundle 9376014B against the 8388608B cap; the download 12945B]
+2026-10-08T11:18:26.8883719Z   ok   plan:optimization_result  [no solve completed; solve_failures=0]
+2026-10-08T11:18:26.8884251Z   ok   plan:last_optimization_published  [the payload's last_optimization is the repair notice's em-dash]
+2026-10-08T11:18:26.8886657Z   ok   plan:current_action_published  [current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 0.72, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}]
+2026-10-08T11:18:26.8888034Z   ok   plan:setpoints_non_empty  [96 setpoints in the plan]
+2026-10-08T11:18:26.8888531Z   ok   plan:no_solve_repair  [solve-route repairs raised: []; everything raised: ['lower_floor_modelled']]
+2026-10-08T11:18:26.8889058Z   ok   a4:failed  [last_update_success=False]
+2026-10-08T11:18:26.8889435Z   ok   a4:unavailable  [51 unavailable]
+2026-10-08T11:18:26.8889716Z   ok   a4:buttons  [5 button(s) unavailable]
+2026-10-08T11:18:26.8890012Z   ok   a4:no_stale  [42 pre-break value(s) gone]
+2026-10-08T11:18:26.8890361Z   ok   a4:recovered  [recovered 42 after last_update_success=True]
+2026-10-08T11:18:26.8890708Z   ok   a5:pages_ok  [25 step(s) save-or-menu]
+2026-10-08T11:18:26.8890998Z   ok   a5:byte_unchanged  [4666B identical]
+2026-10-08T11:18:26.8891308Z   ok   a5:service_examples  [8 example(s) accepted]
+2026-10-08T11:18:26.8891622Z   ok   a5:service_bounds  [90 bound(s) accepted]
+2026-10-08T11:18:26.8891943Z   ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+2026-10-08T11:18:26.8892259Z   ok   a9:roster_unchanged  [79 id(s) unchanged]
+2026-10-08T11:18:26.8892628Z   ok   a9:no_growth  [ceiling tasks=1 listeners=89 stop=55; max t/l/s=1/89/55]
+2026-10-08T11:18:26.8892986Z   ok   a11:invalid  [service raised]
+2026-10-08T11:18:26.8893248Z   ok   a11:no_entry  [service raised]
+2026-10-08T11:18:26.8893509Z   ok   a11:run_failed  [service raised]
+2026-10-08T11:18:26.8894175Z   ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+2026-10-08T11:18:26.8895115Z   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
+2026-10-08T11:18:26.8895965Z   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
+2026-10-08T11:18:26.8896611Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+2026-10-08T11:18:26.8897208Z   ..   hb:positive_control| stall >= 253 ms; loop thread:
+2026-10-08T11:18:26.8897612Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3501, in <module>
+2026-10-08T11:18:26.8898076Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3497, in main
+2026-10-08T11:18:26.8898543Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 2907, in _run_inside
+2026-10-08T11:18:26.8899069Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 205, in run
+2026-10-08T11:18:26.8899639Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 128, in run
+2026-10-08T11:18:26.8900253Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+2026-10-08T11:18:26.8900893Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+2026-10-08T11:18:26.8901541Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+2026-10-08T11:18:26.8902119Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/events.py", line 94, in _run
+2026-10-08T11:18:26.8902623Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 1866, in _hb_spin
+2026-10-08T11:18:26.8903007Z   ..   hb:positive_control| py-spy rc=0:
+2026-10-08T11:18:26.8903491Z   ..   hb:positive_control| Process 1: python3 /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --heartbeat-only
+2026-10-08T11:18:26.8904103Z   ..   hb:positive_control| Python v3.14.6 (/usr/local/bin/python3.14)
+2026-10-08T11:18:26.8904446Z   ..   hb:positive_control| 
+2026-10-08T11:18:26.8904885Z   ..   hb:positive_control| Thread 1 (active+gil)
+2026-10-08T11:18:26.8905218Z   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1865)
+2026-10-08T11:18:26.8905573Z   ..   hb:positive_control|     _run (asyncio/events.py:94)
+2026-10-08T11:18:26.8905950Z   ..   hb:positive_control|     _run_once (asyncio/base_events.py:2056)
+2026-10-08T11:18:26.8906361Z   ..   hb:positive_control|     run_forever (asyncio/base_events.py:677)
+2026-10-08T11:18:26.8906804Z   ..   hb:positive_control|     run_until_complete (asyncio/base_events.py:706)
+2026-10-08T11:18:26.8907205Z   ..   hb:positive_control|     run (asyncio/runners.py:128)
+2026-10-08T11:18:26.8907547Z   ..   hb:positive_control|     run (asyncio/runners.py:205)
+2026-10-08T11:18:26.9136413Z   ..   hb:positive_control|     _run_inside (nightly_ha.py:2907)
+2026-10-08T11:18:26.9137071Z   ..   hb:positive_control|     main (nightly_ha.py:3497)
+2026-10-08T11:18:26.9137654Z   ..   hb:positive_control|     <module> (nightly_ha.py:3501)
+2026-10-08T11:18:26.9137991Z   ..   hb:positive_control| Thread 7 (idle)
+2026-10-08T11:18:26.9138303Z   ..   hb:positive_control|     select (selectors.py:398)
+2026-10-08T11:18:26.9138687Z   ..   hb:positive_control|     serve_forever (socketserver.py:235)
+2026-10-08T11:18:26.9139053Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9139426Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9139806Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9140137Z   ..   hb:positive_control| Thread 8 (idle)
+2026-10-08T11:18:26.9140488Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9140869Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9141226Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9141618Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9141937Z   ..   hb:positive_control| Thread 9 (idle)
+2026-10-08T11:18:26.9142266Z   ..   hb:positive_control|     dequeue (logging/handlers.py:1559)
+2026-10-08T11:18:26.9142650Z   ..   hb:positive_control|     _monitor (logging/handlers.py:1613)
+2026-10-08T11:18:26.9143006Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9143575Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9143948Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9144312Z   ..   hb:positive_control| Thread 11 (idle)
+2026-10-08T11:18:26.9144915Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9145296Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9145653Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9146031Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9146353Z   ..   hb:positive_control| Thread 12 (idle)
+2026-10-08T11:18:26.9146699Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9147074Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9147427Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9147804Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9148120Z   ..   hb:positive_control| Thread 13 (idle)
+2026-10-08T11:18:26.9148464Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9148834Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9149181Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9149550Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9149869Z   ..   hb:positive_control| Thread 14 (idle)
+2026-10-08T11:18:26.9150308Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9150692Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9151044Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9151424Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9151744Z   ..   hb:positive_control| Thread 15 (idle)
+2026-10-08T11:18:26.9152099Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9152478Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9152840Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9153208Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9153528Z   ..   hb:positive_control| Thread 17 (idle)
+2026-10-08T11:18:26.9153879Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9154250Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9154700Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9155079Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9155396Z   ..   hb:positive_control| Thread 18 (idle)
+2026-10-08T11:18:26.9155749Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9156142Z   ..   hb:positive_control|     run (threading.py:1024)
+2026-10-08T11:18:26.9156502Z   ..   hb:positive_control|     _bootstrap_inner (threading.py:1082)
+2026-10-08T11:18:26.9156926Z   ..   hb:positive_control|     _bootstrap (threading.py:1044)
+2026-10-08T11:18:26.9157246Z   ..   hb:positive_control| Thread 19 (idle)
+2026-10-08T11:18:26.9157585Z   ..   hb:positive_control|     _worker (concurrent/futures/thread.py:116)
+2026-10-08T11:18:26.9158134Z   ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; py-spy rc=0 names it: True]
+2026-10-08T11:18:26.9158787Z   ok   hb:untouched_exit  [max gap 2.0 ms over 2807 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)]
+2026-10-08T11:18:26.9159404Z   ok   hb:changed_save  [max gap 16.0 ms over 3887 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+2026-10-08T11:18:26.9159991Z   ok   hb:menu_saves  [max gap 17.3 ms over 2802 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+2026-10-08T11:18:26.9160518Z   ok   run:exit_status  [the container exited 0]
+2026-10-08T11:18:26.9160818Z   ok   log:no_module_not_found  [0 line(s)]
+2026-10-08T11:18:26.9161088Z   ok   log:no_worker_exit  [0 line(s)]
+2026-10-08T11:18:26.9161447Z   ok   log:no_integration_traceback  [0 traceback(s) naming heatpump_optimizer]
+2026-10-08T11:18:26.9161916Z   ok   log:blocking_report_parsed  [0 report(s) blame this package, 0 unparsed]
+2026-10-08T11:18:26.9162334Z   ok   log:no_new_blocking_call  [0 offender(s) seen; new: []]
+2026-10-08T11:18:26.9162727Z   ok   log:blocking_pin_not_stale  [0 pinned; fixed but still pinned: []]
+2026-10-08T11:18:26.9163558Z   ok   log:blocking_positive_control  [1 report(s) inside the probe window: [('import_module', 'custom_components/heatpump_optimizer/__init__.py', 'return importlib.import_module(f".{module}", __package__)')]]
+2026-10-08T11:18:26.9164366Z   ok   run:all_checks_ran  [64 of 64 ran; missing: []; undeclared: []]
+2026-10-08T11:18:26.9164696Z 
+2026-10-08T11:18:26.9164847Z ALL 64 checks PASSED
+2026-10-08T11:18:27.0157332Z Post job cleanup.
+2026-10-08T11:18:27.1502651Z Post job cleanup.
+2026-10-08T11:18:27.2360141Z [command]/usr/bin/git version
+2026-10-08T11:18:27.2399680Z git version 2.55.0
+2026-10-08T11:18:27.2437737Z Temporarily overriding HOME='/home/runner/work/_temp/899fa436-82c8-4123-a272-617720a6b78b' before making global git config changes
+2026-10-08T11:18:27.2439098Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T11:18:27.2444010Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T11:18:27.2481034Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T11:18:27.2512938Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T11:18:27.2729467Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T11:18:27.2756885Z http.https://github.com/.extraheader
+2026-10-08T11:18:27.2767700Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-08T11:18:27.2798177Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T11:18:27.3004089Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T11:18:27.3035900Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T11:18:27.3390250Z Cleaning up orphan processes

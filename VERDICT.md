@@ -1,27 +1,31 @@
-Fix review: blocked 5671a61138af31ce3edb5c07fefdab4e83df0a1e body-figures: the A16 sizes in ## Figures are attributed to the swapped images
-bus-nonce: 5a3a22fa6d966633593ac60c86519854
+Fix review: merge b5cab6fc6425daa7cd43cdd4fac24ef43aad4987
+bus-nonce: e40e7b0519141fc02aca3c0153ea57f1
 
-Round 1. Measured head 5671a611 (authored code head 1a7eebad); merge base 816547ef. Live head re-read at posting: 5671a611.
+Round 2. Measured head b5cab6fc (code head 7e744707); live head re-read at posting: b5cab6fc.
 
-## Blocking (body only, no code change needed)
+## Round-1 blocker and recommendations: resolved
 
-`## Figures` says `8076990B` / `12930B` are 2025.2.0's and `8077011B` / `12951B` are stable's. The jobs API and the logs say the reverse:
-- job 113255055681 = `nightly-ha (stable)` (pulls `home-assistant:stable`): `the download 8076990B`, `the download 12930B`
-- job 113255056233 = `nightly-ha (2025.2.0)`: `the download 8077011B`, `the download 12951B`
-(evidence `a16_attribution.txt`, `disp_*.log`, `disp_jobs.json`). Swap the labels; re-take the whole body against the head when you do.
+- Image labels: run 37768894718 at 7e744707, jobs API: 113283232227 = `nightly-ha (stable)` logs `the download 8077011B` / `12945B`; 113283232260 = `nightly-ha (2025.2.0)` logs `8077018B` / `12952B`; both `ALL 64 checks PASSED`. The body's `## Figures` quotes exactly these, with the right labels.
+- data_issues: `known["data_issues"] = []`, matching what HA 2026.10.0 passes when an entry has no issues. New check `A16 passes data_issues as the list HA passes...`.
+- _body_bytes: the str branch is removed (aiohttp never exposes a str `.body`, which I confirmed in round 1 against real aiohttp 3.14.3), and the bytes branch is pinned by a new `_writer_bytes` stand-in.
 
-## Verified (RESULT lines)
+## RESULT lines (seat venv-ci, PYTHONPATH=tests/hastub tests/debug_collect.py, at b5cab6fc)
 
-1. Cause. RESULT red_2025.2.0 job 113233890376: `FAIL a16:debug_inline [TypeError("object of type 'StringPayload' has no len()")]`, `FAILED: 3 of 64 checks`. RESULT red_stable job 113233890742: `TypeError("_async_get_json_file_response() missing 1 required positional argument: 'd_id'")`, `FAILED: 3 of 64`. Last green main nightly-ha: dispatch 37682446929 at f637d24a (main). First-parent merges f637d24a..816547ef: only #2041 touched tests/nightly_ha.py; #2049 and #2029 touched tests.yml, but none of their hunks fall inside the nightly-ha job (lines 1446-1536 / 1342-1432 at those trees); #2007 changed production pump_arbiter.py, which the lane loads, but the only failures are TypeErrors inside A16's own test code. Attribution to #2041 stands.
-2. HA signatures (source fetched at tags, `ha_diag_2025.2.0.py`, `ha_diag_2026.10.0.py`; stable today = 2026.10.0, released 2026-10-07T17:22Z). 2025.2.0: `(hass, data, filename, domain, d_id, sub_id=None)`. 2026.10.0: `(hass, data, data_issues, filename, domain, d_id, sub_id=None)`; `data_issues` first appears between 2025.6.0 and 2025.9.0. Both async, both `web.Response(body=<str>)`, 500 with no body on a serialisation error. The keyword call binds exactly {hass,data,filename,domain,d_id} and {+data_issues}; sub_id defaults. Real aiohttp 3.14.3: `web.Response(body=str).body` is a `StringPayload` with no `__len__`; `_body_bytes` returns the exact bytes through `write()` (checked against real aiohttp, not the stand-in). Other private HA names: a python enumeration of every `x._name` access in tests/nightly_ha.py finds only this one call into HA; `block_async_io._check_import_call_allowed` appears only in a comment.
-3. Mutations (seat venv-ci, `PYTHONPATH=tests/hastub tests/debug_collect.py`): RESULT M0 rc=0 ALL 62 PASSED. RESULT NULL (base nightly_ha + new checks) rc=1, 3 of 62 failed (the two CI errors plus the 500). RESULT M1 positional call rc=1 (2025.10 d_id). RESULT M2 raw body rc=1 (both). RESULT M3 status guard off rc=1. RESULT M4 (mine) data_issues dropped from `known` rc=1. Stand-ins match both real signatures exactly.
-4. A16 size: real HA download 8,076,990 B (stable) / 8,077,011 B (2025.2.0) vs cap 8,388,608. #2041's 7,947,300 B was a different bundle (repeat-23 real week, capped measure 8,206,065, one week step below the cap). The lane's bundle is built to download_bytes ~ cap - 262,144 - 512*126 = 8,061,952; the real HA wrapper adds ~15 kB on top (vs ~3.4 kB in #2041's model), well inside the 256 KiB headroom. The figures agree; the gap is the bundle construction, not a disagreement.
-5. Settled CI at 5671a611 (check-runs API, `head_checks_final.tsv`): no gate check red. `nightly-status` red grades main's last concluded nightly (mutation lanes, run 37595831734); `delivery-status` UNCHECKED grades main; `budget-raise-gate` cancelled has success twin 113263567537. Earlier heads 1a7eebad / 74689d11: only cancellations and the same two status checks. Dispatch run 37760373214 concluded: nightly-ha both success (`ALL 64 checks PASSED`), slow success; `closures` red with the identical refusal main's own 113233890832 prints (`tests/harness_headers.py: dev/audit/harnesses/git_auto_maintenance_race.sh`); `mutation-nightly` red on a NULL_COMMENT timeout in `custom_components/.../__init__.py:43` under boost_drift_replay.py (main's was INCONCLUSIVE). Neither is reached by this diff. merge-tree rc 0; VERSION/manifest/notes/claim files untouched; STRUCTURE RATCHET PASSED; ALL 2210 ENTITY CHECKS PASSED; MODE: SCOPED -- 3 script(s) run.
-6. RCA: the trigger is answered. (a) holds at policy level (no policy file obliges a nightly dispatch; nightly-ha `if:` is schedule/dispatch only; #2041's round-2 review records the container half was never run). The 22-merge count re-derives. Note for the root-cause seat: the 2026-10-07 seat block already told seats to `gh workflow run` a workflow_dispatch workflow on their branch. That is a convention, not policy, so (b) at the convention level is arguable. The countermeasure (nightly-ha on PRs whose three-dot diff touches tests/nightly_ha.py, unrequired) is sound and would have caught #2041. It does not cover a production change that breaks a nightly check, and the stable arm will redden such PRs on upstream releases. Unrequired makes that acceptable.
+- RESULT M0 rc=0 ALL 64 DEBUG COLLECT CHECKS PASSED
+- RESULT M6_bytes (bytes branch removed) rc=1: FAIL `A16's download writer returns a bytes body as it is` (in round 1 this mutant survived)
+- RESULT M7_issues_none (`[]` back to `None`) rc=1: FAIL the data_issues check
+- RESULT M1 positional call rc=1 (2 fail); RESULT M2 raw body rc=1 (3 fail); RESULT M3 status guard off rc=1 (1 fail)
 
-## Recommended in the same round (not blocking)
+## Merges: nothing resolved by hand
 
-- `known["data_issues"] = None` omits the `"issues"` key that 2026.10's real download always carries (HA passes a list, `[]` when there are none), so on stable A16 slightly understates the real file. Pass `[]`, or the domain's issue-registry list as HA builds it, so the docstring's "the diagnostics download's own bytes" holds.
-- `_body_bytes`'s bytes and str branches are unreached by both real HA versions and unpinned: RESULT M5 (str branch removed) rc=0 and RESULT M6 (bytes branch removed) rc=0, ALL 62 PASSED. This is the same dead-branch case 1a7eebad removed. Pin them with a stand-in, remove them, or say in the body that they are unpinned.
+- c3c204d3 (5671a611 + 7e744707) and b5cab6fc (c3c204d3 + origin/main 9cac1947): for each, `git merge-tree --write-tree <p1> <p2>` gives rc 0 and a tree equal to the commit's own tree (ae28d1c1, 0ab90c6c).
+- `git merge-tree --write-tree origin/main HEAD` gives rc 0. The three-dot diff is still only `dev/programme/delivery/2056.md`, `tests/debug_collect.py` and `tests/nightly_ha.py`. VERSION, the manifest, the release notes and the claim files are untouched.
+- STRUCTURE RATCHET PASSED; ALL 2210 ENTITY CHECKS PASSED.
+- `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the contract is current.
 
-Instrument disclosure: the mutants M4-M6, the private-name enumeration and the bundle-size arithmetic are mine. There is no committed finder harness beyond the lane itself, which is CI's.
+## Reds
+
+- Head check-runs (settled, 40): 24 success, 14 skipped, 2 failure. The two failures are `nightly-status` (113291785187) and `delivery-status` (113291784494); both grade main, and the body says so.
+- The oracle run 37768894718 also has `closures` (113283232584) and `mutation-nightly` (113283282696) red. Their refusals are identical to those the body names from run 37760373214: the INERT READS line for `git_auto_maintenance_race.sh`, which main fixed in #2055, and the NULL_COMMENT timeout at `__init__.py:43` under boost_drift_replay.py. This diff reaches neither. The body cites the earlier run's job ids for them; the class is the same.
+
+Round-1 findings 1, 2, 4 and 6 carry forward unchanged: the cause, HA's signatures, the A16 size reconciliation, and the RCA soundness.
