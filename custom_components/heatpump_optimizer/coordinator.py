@@ -447,7 +447,12 @@ from .freq_control import (
     resolve_reading,
 )
 from .flow_lift import FlowCurveBias, curve_supply_temp
-from .flow_meter import observe_water
+from .flow_meter import (
+    flow_is_signal,
+    learner_power_kw,
+    observe_water,
+    replay_heat_kw,
+)
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -4332,26 +4337,22 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         sees one sum; while the immersion element is latched the reading is a
         different appliance's and the interval carries no usable space figure.
         ``None`` means "skip this sample": the entity is configured but stale
-        (`read_power_kw`'s ok=False contract) or contaminated. Without any
-        power entity there is no measurement to prefer and the commanded
-        figure remains the only available estimate, as before.
+        (`read_power_kw`'s ok=False contract) or contaminated. Without one,
+        the flow meter's heat is replayed where it is the signal
+        (``flow_meter.learner_power_kw``, #2016), else the commanded figure.
 
-        v5.3.0 fixes a silent under-report here. The subtraction removes *the
-        plan's* hot-water allocation from the measured total, on the premise
-        that the plan describes what the pump is doing. When the pump is
-        actually in ``heat`` that premise is false: no hot water was made, the
-        meter reading is all space heating, and subtracting a phantom DHW
-        share hands the house heat-loss learner a space figure that is too low
-        by exactly the allocation — every interval, in the same direction, for
-        as long as the mismatch lasts. A biased-low input to a learner that
-        persists what it concludes is the failure class this whole guard
-        exists for. ``_commanded_split`` now zeroes the channel the observed
-        mode cannot serve, so the subtraction removes only hot water that
-        could actually have been made.
+        The hot-water allocation subtracted is the one the pump could serve
+        (``_commanded_split``, v5.3.0): a phantom share subtracted in ``heat``
+        hands the persisting heat-loss learner a figure biased low by exactly
+        that share, every interval, in the same direction.
         """
         commanded_space, dhw_share = self._commanded_split()
-        if not getattr(self, "_ctx", self)._config.get(CONF_POWER_ENTITY):
-            return commanded_space
+        ctx = getattr(self, "_ctx", self)
+        if not ctx._config.get(CONF_POWER_ENTITY):
+            return commanded_space if not flow_is_signal(ctx._config) else learner_power_kw(
+                self._flow_bias.heat_output_kw, ctx._thermal_params,
+                commanded_space, dhw_share, self._pump_signals,
+            )
         # #1067: the pump's own heaters join the immersion latch, for the
         # reason the latch exists. ``capacity_limited`` deliberately does
         # NOT — a frequency-capped compressor draws exactly what the meter
@@ -5142,6 +5143,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if delta_t < HOUSE_LOSS_MIN_DELTA:
             return
 
+        params = ctx._thermal_params
         try:
             wind_speed, precipitation = self._current_weather()
             predicted_state = self._thermal_model.simulate_step(
@@ -5152,6 +5154,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 precipitation=precipitation,
                 solar_radiation=previous_state.solar_radiation,
                 dt_hours=dt_h,
+                external_heat_kw=replay_heat_kw(self._flow_bias.heat_output_kw, params),
                 # #53: the replay must predict with the learned per-hour
                 # profile, or its residuals never re-centre and the gains
                 # learner becomes an open-loop integrator converging to
@@ -5172,7 +5175,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # threshold. It does not average out, so it accumulated into the learned
         # scale, and at a 3 K split it exceeded the threshold and the sample was
         # thrown away instead.
-        params = ctx._thermal_params
         predicted_room = (
             predicted_state.upper_floor_temperature
             if params.two_zone_enabled
@@ -5320,6 +5322,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 precipitation=precipitation,
                 solar_radiation=previous_state.solar_radiation,
                 dt_hours=dt_h,
+                external_heat_kw=replay_heat_kw(self._flow_bias.heat_output_kw, params),
                 # Same physics as the solve when #53 is on; inert when off.
                 hour_of_day=previous_time.hour + previous_time.minute / 60.0,
             )

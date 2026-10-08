@@ -123,7 +123,7 @@
   "_input_health_view": "views",
   "_inputs_healthy": "core",
   "_insight_view": "views",
-  "_interval_space_power": "grid",
+  "_interval_space_power": "learning",
   "_known_prices_for": "fetch",
   "_learn_measured_cop": "learning",
   "_learner_snapshot_payloads": "learning",
