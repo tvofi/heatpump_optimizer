@@ -1,6 +1,0 @@
-  4670 unpinned site(s) of 5855 candidate sites, 4670 at the ratchet base 6b91e238f6883af6eedef0fc541bce76b14fc46c; the ledger agrees with the deterministic inventory
-MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
-  ok    custom_components/heatpump_optimizer/debugger.py:242 CLAMP_DROP  -- killed by tests/debug_collect.py
-  ok    custom_components/heatpump_optimizer/debugger.py:255 RETURN_DEL  -- killed by tests/debug_collect.py
-  ok    custom_components/heatpump_optimizer/debugger.py:322 CMP_BOUND  -- killed by tests/debug_collect.py
-MUTATION TABLE PASSED

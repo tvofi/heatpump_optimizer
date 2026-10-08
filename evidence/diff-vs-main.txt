@@ -1,0 +1,15 @@
+ .../_longest_flat.CLAMP_DROP.441600e2.json         |   6 +
+ .../_longest_flat.RETURN_DEL.11e69417.json         |   6 +
+ .../debugger.py/capped.CMP_BOUND.25fa78b7.json     |   6 +
+ .../debugger.py/capped.GUARD_OFF.25fa78b7.json     |   6 +
+ .../download_bytes.RETURN_DEL.74c13f7a.json        |   6 +
+ .../feed_health.CMP_BOUND.eb66a2ca.json            |   6 +
+ .../run_self_tests.CMP_BOUND.83fad2ab.json         |   6 +
+ .../run_self_tests.GUARD_OFF.83fad2ab.json         |   6 +
+ .../run_self_tests.RETURN_DEL.a8227ccf.json        |   6 +
+ .../sensor_sanity.RETURN_DEL.a8227ccf.json         |   6 +
+ .../debugger.py/spread.GUARD_OFF.1e96bae6.json     |   6 +
+ .../store_keys.RETURN_DEL.89b34e54.json            |   6 +
+ .../store_report.RETURN_DEL.6ebc1242.json          |   6 +
+ tests/nightly_ha.py                                | 106 ++++++
+ 29 files changed, 987 insertions(+), 38 deletions(-)
