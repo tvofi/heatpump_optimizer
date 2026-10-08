@@ -102,7 +102,7 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
 
 - `dev/governance/rules/ci-autofix.md`, in this diff: INERT READS is now the bot's to merge, and a failed recording blocks only its own stale script.
 - For #2025 (EG-B11): after this merges, its next push gets one sharded pin run. The 8 survivors listed above need a killing check or a `survivor_triage` verdict before `mutation` goes green; that is the fixer's work.
-- The follow-ups are carried to R9-RO-9 in `.claude/workflows/wave-r9-groups.json` (handoff/audit-r9-fixplan `4d7aa048`, corrected in `c716b8f8`):
+- The follow-ups are carried to the R9-RO-9 roster entry on the `handoff/audit-r9-fixplan` branch (commit `4d7aa048`, corrected in `c716b8f8`):
   - the pin drive's ~2000 s per killed site, from dispatching a site's later drivers before its likeliest killer returns (any change must keep entities.py's four-in-flight pin);
   - `tests/boost_drift_replay.py` timing out as a mutation driver on 2 sites per run;
   - the `stamp.py --self-test` cleanup race that refused shard 2's null control, and the misattribution in the refusal message, which names the first deliberate negative-control `FAIL` line rather than the check that went red.
