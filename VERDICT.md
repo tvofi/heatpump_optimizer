@@ -1,77 +1,23 @@
-Fix review: merge 65f5e914b91ed64583c978e2074f8a5a4b973883
+Fix review: blocked e575850bdbe369669ddedfc1137c8007d52094b9 body-stale: body names e4218c25 and the pre-pin mutation reds; 9 of 11 sites now pinned, re-take Head, Unpinned sites and Red checks
 
-bus-nonce: 71e62f506709e03dcd02c54460004646
+bus-nonce: 5cfaffdf497c479e28b9da9d93824ef8
 
-PR #2024 (R9-UX-9). This is round 2. I re-reviewed from a fresh detached worktree at 65f5e914b91ed64583c978e2074f8a5a4b973883. That is the head named in the body, and it was still the live head when I posted. The merge base is 2d8cab3f, which equals origin/main. `git merge-tree --write-tree origin/main HEAD` exits 0. The roles/ diff against main is empty.
-Evidence: /Users/timmalmstrom/hpo-seats/review-2024/evidence-r2. The round-1 evidence is in /Users/timmalmstrom/hpo-seats/review-2024/evidence.
+PR #2024 (R9-UX-9), delta review. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence. Worktree: /Users/timmalmstrom/hpo-seats/review-2024-delta/wt.
 
-## The delta since round 1 (f455915c..65f5e914, commit 543393cc)
+Reason: the body is stale against this head. The code is fine; the block is the body only, and one pass fixes it.
 
-It touches six files: the three string files, the card, docs/configuration.md and tests/features.py. There is no production logic change.
+## What was verified (no code defect)
+- (a) 65f5e914..e4218c25: the only branch commit is the merge of origin/main 0c25836e (carries R9-CI-1 #2049). The rest of the range came in through main. e4218c25..e575850bdbe369669ddedfc1137c8007d52094b9 is one commit, github-actions[bot] "ci: pin killed mutants", 9 data-only JSON files under tests/mutation_ledger/killed_by/ (flow_meter.py x2, inputs.py x6, thermal_model.py x1, each "killed_by": "tests/features.py"). No production, test or policy file touched.
+- (b) `git merge-tree --write-tree 65f5e914 0c25836e` exits 0 and gives tree 45002dce, equal to e4218c25's tree. The only resolution was tests/closures.json by the ledger merge driver (LEDGER-MERGE line in evidence/mt.err). Nothing by hand.
+- (c) Three-dot diff vs main is unchanged in substance from the approved head: same 1552 lines, differing only in two features.py hunk-header offsets (evidence/old.diff, new.diff).
+- (d) At e4218c25 closures, coverage, coverage-ratchet and mutation-pins (2) were green and closures-autofix skipped. mutation-autofix then pushed the bot commit, which is the head here. CI at e575850bdbe369669ddedfc1137c8007d52094b9 had not settled when this was posted (evidence/checkruns3.tsv).
 
-**Round-1 point 1 is resolved.** The four texts now say the estimate is ignored when a power or frequency signal exists, and that an energy sensor does not switch it off. That matches `read_heat_output_kw`, which gates on power or frequency only, and #2016 item 4. The card title now names flow as well.
+## What the body must change (one pass)
+1. `## Head` (line 15): it names e4218c25 as the head. Name e575850bdbe369669ddedfc1137c8007d52094b9, state that it is e4218c25 plus the bot commit "ci: pin killed mutants" (9 killed_by ledger files), and that the bot commit changes no code.
+2. `## Unpinned sites` (lines 104-118): it says the 11 sites are "pinned by mutation-autofix (awaiting R9-CI-1)" and cites mutation at f455915c. R9-CI-1 has landed and 9 of the 11 are now pinned by the ledger files above. Rewrite it to: the 9 pinned sites with their ledger file names (CMP_BOUND 90fa3e7b and e7c69534 in flow_meter.py; read_flow_kg_s a53547be CMP_BOUND and GUARD_OFF, 1d38d74f, a5e2ead3, RETURN_DEL 95e13237; normalize_flow_kg_s RETURN_DEL 9dba8556; thermal_model _configured RETURN_DEL 2d7f1402), and the 2 that remain unpinned (inputs.py:278 GUARD_OFF and the second inputs.py RETURN_DEL, 831 or 833, whichever has no ledger file). For those two keep the reviewer's equivalence judgement (str(None) is no unit; falls through to value=None) and say a survivor_triage verdict is owed if CI reports them. Drop every "awaiting R9-CI-1".
+3. `## Red checks` (lines 122-145): it reads f455915c job ids and lists mutation and mutation-autofix as red awaiting R9-CI-1. Re-read the check-runs API at e575850bdbe369669ddedfc1137c8007d52094b9 after CI settles and list every red with its job id at this head. Remove the mutation red and the mutation-autofix red if they are no longer red; if mutation is still red, state its actual cause from its log (it was not readable while its run was open). Keep budget-raise-gate (failure job 113220891439 at e575850bdbe369669ddedfc1137c8007d52094b9, by construction: needs tvofi's approving review at the head, decision 0013; rerun the cancelled twin), delivery-status and nightly-status (main's, not required). Closures, coverage and the autofix rows to be reported as read, not carried.
+4. Every "at f455915c" or "at e4218c25" figure that the body presents as current (CI status, job ids) must be re-read at e575850bdbe369669ddedfc1137c8007d52094b9.
 
-**Round-1 point 2 is resolved.** I re-ran my mutants on a reviewer-built extract of features.py lines 59927-60155 at this head (mutants_r2.txt):
-- M11 (`flow.ok` gate removed): KILLED by "a flow reading 45 min old is stale ...", which reports `stale=5.222035`.
-- M12 (the flow `INPUT_MAX_AGE_MINUTES` line deleted): KILLED by the stale check (`problem=None`) and by the first-reason check.
-- `inputs.py:825` CMP_BOUND (`<=0`): KILLED by "a zero flow reading is a measured 0 kW" (`kw=None`).
-- `inputs.py:827` GUARD_OFF: KILLED by the first-reason check (`('stale', None, None)`).
-- M9 (reason label collapsed): KILLED.
+The re-take should leave no head SHA other than e575850bdbe369669ddedfc1137c8007d52094b9 on a status line.
 
-The stale check has a null control, and it works: a 20-min-old reading gives the same kW as a fresh one. 45 min is past the 30-min flow limit, and it is the flow key's own limit that the check exercises, since M12 alone flips it.
-
-Two mutants still survive, and both are equivalent:
-- `inputs.py:278` GUARD_OFF: `str(None)` is not a unit key.
-- `inputs.py:831` RETURN_DEL: it falls through to `value=None`.
-
-M1 and M2 stay KILLED.
-
-## CI at this head (check-runs read through the API)
-
-These lanes succeed:
-- `fast (3.14)`, job 113068313358. Its log shows:
-  - `MODE: SCOPED -- 30 script(s) run, 3 scoped out`
-  - `ok python3 tests/features.py (530s)` and `ALL 3864 FEATURE CHECKS PASSED`. This is the full features.py.
-  - `ok python3 tests/env_drift.py --all 2d8cab3f...` with GOLDEN_MODE=drift against the merge base. This is the golden drift check: every moved fixture is claimed and every claim moved. golden.py itself is SKIPped in drift mode by design.
-  - `ok env_drift.py --claims-only`
-  - `ok` for entities, structure, card.mjs, card_drift.mjs, harness_headers, doc_claims, deployment_shape, debug_collect and optimality
-- `closures`
-- `coverage`, `coverage-ratchet`
-- `Analyze (python)`, plus the javascript and actions analyses
-- `browser`, `env-matrix`, `hassfest`, `validate-hacs`, `typing`
-- `instrument-self-tests`, `policy-docs`, `briefs`, `closure-scope`, `wave-script`
-- `pr-contract` (x2)
-
-`closures-autofix` was skipped. With `closures` green, no repair was needed.
-
-These are red:
-- `mutation` (job 113068313159): `MUTATION TABLE REFUSED`, the same 11 ADDED UNPINNED sites as round 1, all `NOT RUN ... would have overrun --budget-minutes`, so nothing was measured.
-  - flow_meter.py:31 GUARD_OFF, flow_meter.py:36 CMP_BOUND
-  - inputs.py:278 GUARD_OFF, :281 RETURN_DEL, :821 GUARD_OFF, :825 CMP_BOUND, :825 GUARD_OFF, :827 GUARD_OFF, :831 RETURN_DEL, :833 RETURN_DEL
-  - thermal_model.py:1286 RETURN_DEL
-
-  These await R9-CI-1's pin run, as the brief says. Locally the extract now kills 9 of the 11. The other two (278, 831) are equivalent and owe a `survivor_triage` verdict when the drivers report them.
-- `mutation-autofix` (job 113070367622): `skip-no-measurement`, for the same cause.
-- `budget-raise-gate`: one run failed and one was cancelled. This is by construction. The raise (max_class_loc +1, seam_cut_total +2) was confirmed minimal in round 1 by removing the one payload line (9049/768 down to 9048/766). It merges only on tvofi's approving review at this head. The cancelled run is to be rerun.
-- `delivery-status` and `nightly-status`: these are main's. This diff does not touch what they read.
-
-The body names every red check. Its job ids are the ones from f455915c, not this head's, but the causes are identical at this head and `pr-contract` passes here.
-
-## Carried from round 1, unchanged and verified
-
-- The goldens are add-only: no value leaf moved, and `claims-for` equals VERSION (6.7.16).
-- closures.json gains exactly one path, `flow_meter.py`, in 21 scripts.
-- D5 is 200/233. D6 is 73 modules and 27 importers, with 0 false claims.
-- VERSION, the manifest version and the RELEASE_NOTES heading are untouched.
-- There are 0 open CodeQL alerts.
-
-Locally at this head: `node tests/card.mjs` ALL CARD CHECKS PASSED, and `tests/structure.py` STRUCTURE RATCHET PASSED.
-
-## Non-blocking (from round 1, still open)
-
-With only a flow meter configured, the recommendation goes silent, but the flow reading does not reach the planner until R9-UX-10. Owner ruling #2016 item 5 accepts this. I recommend that R9-UX-10 ship in the same release.
-
-RESULT round1_blockers_resolved=2/2
-RESULT M11=KILLED M12=KILLED site825_cmp=KILLED site827_guard=KILLED
-RESULT ci_fast=success features_checks=3864 env_drift_all=ok closures=success
-RESULT unpinned_sites_ci=11 measured_by_ci=0 extract_killed=9 equivalent=2
+I will re-review the body and the settled check-runs at the next head; code review needs no repeat unless the code tree moves.
