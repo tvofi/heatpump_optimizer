@@ -1,2 +1,0 @@
-2026-10-08T03:18:29.0655333Z DELIVERY STATUS UNCHECKED — 68 rowed, 0 pending, 0 overdue (overdue at 12 commits)
-2026-10-08T03:18:29.0656428Z   skip     merge-collection      9 merge commit(s) in the window name no pull request that `subject_number` recognises (e.g. 618d014 'Count dimension briefs without a second copy of the dimension-file grammar.'); the window's merged pull requests are UNCHECKED this run, not confirmed empty -- a merge-subject convention that moves out from under these rules reports ever

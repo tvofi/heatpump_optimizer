@@ -1,15 +1,17 @@
-RESULT M1_pin_shard_overlap rc=1 1 of 2209 ENTITY CHECKS FAILED
-  FAIL the pin shards are disjoint, cover the pool and keep an anchor's twins together; their merge is measured when any shard measured  [shards=[{'p:a', 'p:e'}, {'p:a', 'p:b', 'p:e'}, {'p:a', 'p:c', 'p:b', 'p:e'}, {'p:b', 'p:a', 'p:e', 'p:c', 'p:d'}] merged=measured,['p:a', 'p:c'] quiet=skip-nothing-killed failed=skip-measure-failed]
-RESULT M2_merge_mixed_heads rc=0 ALL 2209 ENTITY CHECKS PASSED
-RESULT M3_merge_status_first rc=1 1 of 2209 ENTITY CHECKS FAILED
+RESULT M0_baseline rc=0 ALL 2210 ENTITY CHECKS PASSED
+RESULT M1_pin_shard_overlap rc=1 1 of 2210 ENTITY CHECKS FAILED
+  FAIL the pin shards are disjoint, cover the pool and keep an anchor's twins together; their merge is measured when any shard measured  [shards=[{'p:a', 'p:e'}, {'p:b', 'p:a', 'p:e'}, {'p:b', 'p:c', 'p:a', 'p:e'}, {'p:d', 'p:b', 'p:e', 'p:c', 'p:a'}] merged=measured,['p:a', 'p:c'] quiet=skip-nothing-killed failed=skip-measure-failed]
+RESULT M2_merge_mixed_heads rc=0 ALL 2210 ENTITY CHECKS PASSED
+RESULT M3_merge_status_first rc=1 1 of 2210 ENTITY CHECKS FAILED
   FAIL the pin shards are disjoint, cover the pool and keep an anchor's twins together; their merge is measured when any shard measured  [shards=[{'p:a', 'p:e'}, {'p:b'}, {'p:c'}, {'p:d'}] merged=skip-nothing-killed,['p:a', 'p:c'] quiet=skip-nothing-killed failed=skip-nothing-killed]
-RESULT M4_shard_count_floor rc=1 1 of 2209 ENTITY CHECKS FAILED
+RESULT M4_shard_count_floor rc=1 1 of 2210 ENTITY CHECKS FAILED
   FAIL the pin shard count scales with the diff's new sites, six a shard, capped at ten, and sizes the matrix the shards run  [counts=[1, 1, 1, 9, 10] none=1]
-RESULT M5_summary_remedy_on_left rc=1 1 of 2209 ENTITY CHECKS FAILED
+RESULT M5_summary_remedy_on_left rc=1 1 of 2210 ENTITY CHECKS FAILED
   FAIL the pin summary counts budget cuts and timeouts apart from survivors, and names a survivor's remedy only when one survived  [cut='PIN KILLED: 1 pinned, 3 left unpinned (0 survived, 2 not started for the budget, 1 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes' live='PIN KILLED: 1 pinned, 4 left unpinned (1 survived, 2 not started for the budget, 1 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes']
-RESULT M6_stale_inert_off rc=1 1 of 2209 ENTITY CHECKS FAILED
+RESULT M6_stale_inert_off rc=1 1 of 2210 ENTITY CHECKS FAILED
   FAIL an INERT READS under-approximation is merged by the bot; its script's own failed recording still refuses  [inert=changed,False failed=skip-merge-failed,True]
-RESULT M7_driven_fold_off rc=0 ALL 2209 ENTITY CHECKS PASSED
-RESULT M8_tail_check_off rc=1 1 of 2209 ENTITY CHECKS FAILED
+RESULT M7_driven_fold_off rc=1 1 of 2210 ENTITY CHECKS FAILED
+  FAIL a failed recording of a driven child refuses its driver's repair; the same pair recorded cleanly repairs  [failed child=('changed', False) clean child=('changed', False)]
+RESULT M8_tail_check_off rc=1 1 of 2210 ENTITY CHECKS FAILED
   FAIL the split admits a mutant on its shared work and charges the EXCLUSIVE tail only to a survivor that reaches it; a lazy driver costs one run  [out=((['killed by tests/a.py', 'LIVES'], [(0, 'tests/a.py'), (1, 'tests/a.py'), (1, 'tests/stress.py')]), (['killed by tests/a.py', 'LIVES'], [(0, 'tests/a.py'), (1, 'tests/a.py'), (1, 'tests/stress.py')])) seconds={'tests/a.py': 10.0, 'tests/stress.py': 270.0}]
 DONE

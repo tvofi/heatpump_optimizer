@@ -1,2 +1,0 @@
-tools/release/stamp.py's --self-test passes  [tools/release/stamp.py raised loading or running --self-test: OSError: [Errno 39]
-null control custom_components/heatpump_optimizer/binary_sensor.py:39 NULL_COMMENT was killed by tests/entities.py (a3:roster  [1 registered
