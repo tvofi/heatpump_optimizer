@@ -12,7 +12,7 @@ Not in this PR (design note section 2, item 2): the floor is not capped at the o
 
 ## Head
 
-`5b5a2daec14fa720ee1904e0ef3ab7f3d4460ff0` (code head). Everything below was measured on it, at merge base `af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee`.
+`43fa593d772361c51cde95c22ca333fdb0b03569` (code head; it merges origin/main `4dbe5aace7440d0a7d43a249892fc63da890338c` into the fix commit, resolving one import conflict in `diagnostics.py` by keeping both sides). The mutation proof, the test block and the harness below were re-run on it. The fix was first measured at merge base `af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee`, and the harness and base figures come from there; the diff the merge brought from main does not touch the COP learner or the floor.
 
 ## Mutation proof
 
@@ -39,10 +39,10 @@ All rows come from `PYTHONPATH=tests/hastub:custom_components:tests python3 tool
 - `min3_running_folded`: base 0/15, head 3/15 (only the 2.55 kW draw clears 2.4 kW). This is the deferred S4 gap.
 - `liveness_folded`: 3/3 at both.
 - The constant: the harness's `sweep` lines print, for a floor of k x p_min with k from 0.5 to 1.0, how many of the 5 standby and duty-cycled draws each k admits, and how many of the 5 running draws. k=0.5 admits 3/5 and k=0.6-0.7 admit 1/5 (the 0.715 kW 70 %-duty interval). k=0.8 is the smallest that admits 0/5 while every running draw still folds, and it leaves 0.2 kW (20 %) below the modulation floor for a meter that under-reads. This sweep is the formula on the synthetic classes, not a measurement of a real pump.
-- `python3 tests/structure.py`: ratchet passes. Re-recorded rows (all improvements, the reason is in the commit): `coordinator_attrs` 153 -> 151, `coordinator_multiassigned_attrs` 120 -> 118, `max_class_loc` 9048 -> 9041, `seam_cut_total` 766 -> 764.
-- `python3 tools/audit/archscore/score.py --diff af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee`: `dS +0.0246 IMPROVES` (`coord_footprint` 2613 -> 2612, `coordinator_multiassigned_attrs` 120 -> 118).
+- `python3 tests/structure.py`: ratchet passes at the head. Re-recorded rows (all improvements, no raise; the reason is in both commits): `coordinator_attrs` 153 -> 151, `coordinator_multiassigned_attrs` 120 -> 118, `max_class_loc` 8817 -> 8810, `seam_cut_total` 760 -> 758 (main's values at the new merge base).
+- `python3 tools/audit/archscore/score.py --diff 4dbe5aace7440d0a7d43a249892fc63da890338c`: `dS +0.0246 IMPROVES` (`coord_footprint` 2587 -> 2586, `coordinator_multiassigned_attrs` 120 -> 118).
 - Floor readers, from `git grep -n flow_lift_power_floor_kw -- custom_components`: three sites. `coordinator.py` `_fold_flow_lift` (keyed by this diff), `coordinator.py` `_fold_measured_cop` (keyed by this diff), and `accuracy.diagnostics_view` (reports it). No reader is left on the nameplate third except the min = 0 branch.
-- Scoped gate: `python3 tests/closure.py select --diff af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee` prints `MODE: SCOPED`. Run locally and green: `finite_boundary`, `entities`, `typing_ruler`, `debug_collect`, `guard_pins`, `doc_claims`, `structure`, `validate`. Also run locally: `features`, 1 of 3875 failing, `R9-F2.1 P3`, which fails identically at the merge base on this macOS/Accelerate seat (the known container-only check); and `harness_headers`, 12 of 109 failing, all on `dev/audit/rounds/round4/D7/sysid_estimator_frontier.py` hitting its 900 s wall limit while ten scripts ran in parallel, a harness this diff does not reach; `harness_headers` at the merge base fails the same harness's `exits 0` check. Left to CI: `stress`, `optimality`, `backtest`, `golden` and the rest of the scope.
+- Scoped gate: `python3 tests/closure.py select --diff 4dbe5aace7440d0a7d43a249892fc63da890338c` prints `MODE: SCOPED`. At the owner's instruction heavy scripts are left to CI, and this body cites CI's check-runs at the head instead. Cheap checks run locally at the head and green: `structure`, `typing_ruler`, `debug_collect`, `guard_pins`, `doc_claims`, `validate`, plus the new test block. Before the merge, at `5b5a2daec`, `finite_boundary` and `entities` were also green. `features` failed only on `R9-F2.1 P3`, which fails identically at `af79f2114` on this macOS/Accelerate seat (the known container-only check).
 
 ## Red checks
 
@@ -56,9 +56,9 @@ none
 
 Each site `prepr.sh` step 6d lists, by key, with its disposition. "Value check" names the new `features.py` check its mutant fails (mutation proof above); the rest are left to `mutation-autofix`, which pins a killed mutant (`ci-autofix.md`).
 
-- `custom_components/heatpump_optimizer/thermal_model.py:666 CMP_BOUND`: value check `the duty floor is 0.8 x the modulation floor, never below 0.2 kW` (min 0 must take the nameplate branch: `with no modulation floor configured the nameplate floor still applies`).
-- `custom_components/heatpump_optimizer/thermal_model.py:666 GUARD_OFF`: value check `with no modulation floor configured the nameplate floor still applies`.
-- `custom_components/heatpump_optimizer/thermal_model.py:667 CLAMP_DROP`: value check `the duty floor is 0.8 x the modulation floor, never below 0.2 kW` (min 0.1 gives 0.2).
+- `custom_components/heatpump_optimizer/thermal_model.py:667 CMP_BOUND`: value check `the duty floor is 0.8 x the modulation floor, never below 0.2 kW` (min 0 must take the nameplate branch: `with no modulation floor configured the nameplate floor still applies`).
+- `custom_components/heatpump_optimizer/thermal_model.py:667 GUARD_OFF`: value check `with no modulation floor configured the nameplate floor still applies`.
+- `custom_components/heatpump_optimizer/thermal_model.py:668 CLAMP_DROP`: value check `the duty floor is 0.8 x the modulation floor, never below 0.2 kW` (min 0.1 gives 0.2).
 - `custom_components/heatpump_optimizer/accuracy.py:665 RETURN_DEL`: value check `the last measured COP and its curve are restored on restart`.
 - `custom_components/heatpump_optimizer/accuracy.py:680 BOOLOP`: value check `an unreadable stored COP record loads as no measurement, whole` (mutant M4).
 - `custom_components/heatpump_optimizer/accuracy.py:680 CMP_BOUND`: `mutation-autofix`.
@@ -66,8 +66,8 @@ Each site `prepr.sh` step 6d lists, by key, with its disposition. "Value check" 
 - `custom_components/heatpump_optimizer/accuracy.py:682 BOOLOP`: `mutation-autofix`.
 - `custom_components/heatpump_optimizer/accuracy.py:682 GUARD_OFF`: `mutation-autofix`.
 - `custom_components/heatpump_optimizer/accuracy.py:684 RETURN_DEL`: value check `the last measured COP and its curve are restored on restart`.
-- `custom_components/heatpump_optimizer/coordinator.py:4751 RETURN_DEL`: `mutation-autofix` (the tracking-gate return's code; the existing v4.0.5 tracking checks drive it).
-- `custom_components/heatpump_optimizer/coordinator.py:6825 RETURN_DEL`: `mutation-autofix`. This is the existing `return None` after "No published prices cover the planning horizon", which this diff does not touch; the predictor lists it because the lines above it moved.
+- `custom_components/heatpump_optimizer/coordinator.py:4518 RETURN_DEL`: `mutation-autofix` (the tracking-gate return's code; the existing v4.0.5 tracking checks drive it).
+- `custom_components/heatpump_optimizer/coordinator.py:6577 RETURN_DEL`: `mutation-autofix`. This is the existing `return None` after "No published prices cover the planning horizon", which this diff does not touch; the predictor lists it because the lines above it moved.
 
 ## Friction
 
