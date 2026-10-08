@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 161.7,
+   "seconds": 118.0,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 19.7,
+   "seconds": 10.0,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.6,
+   "seconds": 3.1,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 37.3,
+   "seconds": 13.4,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 55.9,
+   "seconds": 35.5,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 339.1,
+   "seconds": 228.1,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 1.1,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 911.6,
+   "seconds": 282.5,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,99 +42,99 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 1.1,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 9.5,
+   "seconds": 5.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
-   "seconds": 0.4,
+   "seconds": 0.3,
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 184.9,
+   "seconds": 130.7,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.7,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.4,
+   "seconds": 0.8,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 954.2,
+   "seconds": 616.7,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 20.6,
+   "seconds": 5.7,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 54.9,
+   "seconds": 36.9,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.7,
+   "seconds": 2.3,
    "rc": 0
   },
   "tests/ha_contract.py": {
-   "seconds": 0.4,
+   "seconds": 0.3,
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.7,
+   "seconds": 0.3,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 1.4,
+   "seconds": 0.8,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 1.8,
+   "seconds": 0.8,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 222.8,
+   "seconds": 163.6,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 10.8,
+   "seconds": 4.6,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 96.6,
+   "seconds": 50.8,
    "rc": 0
   },
   "tests/md_tables.mjs": {
-   "seconds": 0.2,
+   "seconds": 0.1,
    "rc": 0
   },
   "tests/layout.py": {
-   "seconds": 16.8,
+   "seconds": 11.6,
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 361.0,
+   "seconds": 236.2,
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 45.3,
+   "seconds": 19.6,
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 1798.7,
+   "seconds": 800.2,
    "rc": 0
   },
   "tests/block_duty.py": {
-   "seconds": 2.6,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/debug_collect.py": {
-   "seconds": 1.7,
+   "seconds": 1.1,
    "rc": 0
   }
  },
@@ -525,14 +525,6 @@
    "custom_components/heatpump_optimizer/battery.py",
    "custom_components/heatpump_optimizer/binary_sensor.py",
    "custom_components/heatpump_optimizer/boost.py",
-   "custom_components/heatpump_optimizer/brand/dark_icon.png",
-   "custom_components/heatpump_optimizer/brand/dark_icon@2x.png",
-   "custom_components/heatpump_optimizer/brand/dark_logo.png",
-   "custom_components/heatpump_optimizer/brand/dark_logo@2x.png",
-   "custom_components/heatpump_optimizer/brand/icon.png",
-   "custom_components/heatpump_optimizer/brand/icon@2x.png",
-   "custom_components/heatpump_optimizer/brand/logo.png",
-   "custom_components/heatpump_optimizer/brand/logo@2x.png",
    "custom_components/heatpump_optimizer/button.py",
    "custom_components/heatpump_optimizer/climate.py",
    "custom_components/heatpump_optimizer/comfort_band.py",
@@ -560,7 +552,6 @@
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
-   "custom_components/heatpump_optimizer/icon.png",
    "custom_components/heatpump_optimizer/icons.json",
    "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/ledger.py",
@@ -585,7 +576,6 @@
    "custom_components/heatpump_optimizer/pump_schedule.py",
    "custom_components/heatpump_optimizer/pump_signals.py",
    "custom_components/heatpump_optimizer/pv.py",
-   "custom_components/heatpump_optimizer/py.typed",
    "custom_components/heatpump_optimizer/quality_scale.yaml",
    "custom_components/heatpump_optimizer/quick_setup.py",
    "custom_components/heatpump_optimizer/quiet_windows.py",
@@ -642,7 +632,6 @@
    "tests/golden/claimed_drift.txt",
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",
-   "tests/ha_contract.py",
    "tests/ha_floor.py",
    "tests/ha_floor_names.json",
    "tests/harness.py",
@@ -3183,7 +3172,6 @@
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
-   "dev/audit/harnesses/r9_dbg2_selftest_price.py",
    "dev/audit/harnesses/r9_fr3_family_consumer.mjs",
    "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
    "dev/audit/harnesses/scale_writer_seams.py",
@@ -3699,7 +3687,8 @@
    "dev/audit/waves/w5-g5-195-coverage/mutation_probe.py",
    "dev/programme/register/audit-2026-09.md",
    "tools/audit/repo_root.mjs",
-   "tools/audit/repo_root.sh"
+   "tools/audit/repo_root.sh",
+   "dev/audit/harnesses/r9_dbg2_selftest_price.py"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
