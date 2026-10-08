@@ -219,7 +219,6 @@ from .accuracy import (
     COP_REFUSED_MODELLED,
     COP_REFUSED_NO_POWER,
     COP_REFUSED_OBSERVED,
-    COP_REFUSED_TRACKING,
     LEAD_BUCKETS,
     MeasuredCop,
     AccuracySample,
@@ -4497,7 +4496,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # against a walking ratio EWMA instead: a one-off blip deviates
         # from it and is dropped, while a persistent shift WALKS the EWMA
         # (it updates from every sample) and unlocks folding within a
-        # handful of intervals.
+        # handful of intervals. A draw that does not follow the ask at all
+        # walks it too, so a departure must also be consistent (off_ask).
         ratio = float(self._measured_power) / max(commanded, 1e-6)
         # Seeded at 1.0 — the model's own expectation, since ``commanded``
         # already carries the current scale — and gated against the value
@@ -4506,16 +4506,13 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
+        if refusal := self._measured_cop.judge_ratio(ratio, ewma):
             _LOGGER.debug(
-                "Skipping COP sample: commanded %.2f kW vs measured %.2f kW "
-                "deviates from the running ratio %.2f — a tracking blip, "
-                "not an efficiency reading",
-                commanded,
-                self._measured_power,
-                ewma,
+                "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
+                "against the running ratio %.2f -- not an efficiency reading",
+                refusal, commanded, self._measured_power, ewma,
             )
-            return COP_REFUSED_TRACKING
+            return refusal
 
         modelled_cop, cop_curve_dhw, cop_dhw_temp = self._cop_reference_curve()
         if modelled_cop is None:
@@ -4534,7 +4531,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         observed_cop = modelled_cop * commanded / self._measured_power
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
-        # Every guard above returns without touching the record (MeasuredCop).
         self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp)
 
         # ``cop_scale`` multiplies the *nameplate* curve, and ``modelled_cop``
