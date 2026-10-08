@@ -1768,6 +1768,52 @@ PY
   rm -f "$SO.in"
   rm -f "$SO"
 
+  # THE SELF-TEST'S OWN ENVIRONMENT (R9-RCA-prepr-tmp). Three ways a busy,
+  # full box turned this self-test red on trees that were healthy: 14 of 212
+  # rows refused with `No space left on device` (a clone of about 109 MB per
+  # run, left behind by every run that was killed), and single rows that
+  # flipped under load. Each arm below is the deterministic form of one.
+  #
+  # (1) An early match in a large input is still a match. `printf | grep -q`
+  # under `pipefail` lets grep exit on its first line and SIGPIPE the writer,
+  # and the pipeline then reads 141 -- no match -- the hazard the note above
+  # `pinned_unrun` names. 2 MB after the match makes the race certain.
+  FILL=$(head -c 2000000 /dev/zero | tr '\0' 'x' | fold -w 100)
+  got=$(stamp_paths "" "$(printf '+  "version": "9.9.9",\n%s' "$FILL")" "")
+  case "$got" in *'manifest.json(version)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "stamp_paths names a manifest version line followed by 2 MB of diff"
+  got=$(stamp_paths "" "" "$(printf '+## v9.9.9\n%s' "$FILL")")
+  case "$got" in *'RELEASE_NOTES.md(heading)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "stamp_paths names a notes heading followed by 2 MB of diff"
+  got=$(stamp_paths "" "$FILL" "$FILL")
+  st "${#got}" 0 "and names nothing in 2 MB with no version line or heading (null control)"
+  unset FILL
+  # (2) Every temporary path the self-test makes lives under one root that is
+  # removed on any exit the shell can see -- normal, error, TERM, INT, HUP.
+  got=$(bash -c "$(declare -f selftest_tmp_root); selftest_tmp_root || exit 9
+    d=\$(mktemp -d); f=\$(mktemp)
+    case \$d in \"\$ST_ROOT\"/*) case \$f in \"\$ST_ROOT\"/*) echo in ;; esac ;; esac
+    echo \"\$ST_ROOT\"" 2>/dev/null)
+  case "$got" in in*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "a mktemp file or directory inside the self-test lands under its root"
+  root=$(printf '%s\n' "$got" | tail -1)
+  [ -n "$root" ] && [ ! -e "$root" ]; st $? 0 "and the root is gone after a normal exit"
+  root=$(bash -c "$(declare -f selftest_tmp_root); selftest_tmp_root || exit 9
+    mkdir \"\$ST_ROOT/clone\"; echo \"\$ST_ROOT\"; kill -TERM \$\$; sleep 5" 2>/dev/null)
+  [ -n "$root" ] && [ ! -e "$root" ]; st $? 0 "and after the run is killed with TERM"
+  # (3) Too little room is an environment refusal, never a list of failures.
+  out=$(tmp_floor_check "$PWD" 999999999999); r=$?
+  st "$r" 3 "a temp dir under the floor refuses with rc 3"
+  case "$out" in ENVIRONMENT:*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and says ENVIRONMENT, not a test failure"
+  tmp_floor_check "$PWD" 1 >/dev/null; st $? 0 "a temp dir with room passes the floor (null control)"
+  tmp_floor_check /no/such/dir 1 >/dev/null; st $? 0 "an unmeasurable temp dir runs anyway, never refuses"
+  # The entry wires both before the first fixture is built: driving the two
+  # helpers pins nothing if the self-test stops calling them (#1591's shape).
+  entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
+  case "$entry" in *'tmp_floor_check '*'selftest_tmp_root'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the self-test checks the floor, then takes its temp root, before any fixture"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
