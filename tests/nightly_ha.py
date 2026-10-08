@@ -112,6 +112,11 @@ within the cap).
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
+Nightly, on dispatch, and on a pull request whose three-dot diff touches this
+file or another one the driver reads outside the package (``closure-scope``'s
+``nightly_ha`` output in ``tests.yml``, #2056's root cause): a check whose
+container half no other lane runs is run before it merges.
+
 The same file is the driver that runs inside the container (``--inside``); the
 container half never sees this repository, only ``/config`` and its own two
 mounted files.
