@@ -1,0 +1,3 @@
+== base 0c25836e realgit-forced
+last: OSError: [Errno 66] Directory not empty: '.git'
+arm=realgit-forced git=2.55.0 runs=20 directory_not_empty=11 nonzero_exit=11
