@@ -191,6 +191,9 @@ const VERDICT_CLASSES = [
   // that the change did not earn -- the null control leaves it standing, or the
   // reviewer's own planted gaming attempt reproduces it.
   'metric-gamed',
+  // fix-review.md step 15 (tvofi, 2026-10-08): the fix breaches a rule of
+  // fixer.md step 17's soundness list the body neither avoids nor names.
+  'architecture-unsound',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
