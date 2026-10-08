@@ -1,0 +1,10 @@
+88e0bb5c6ea9d3eeb7664577911ca7d0b0df19a9
+100644 79b00cf2768ceb9abfd459c110f17091267a144d 1	tests/golden/claimed_drift.txt
+100644 d2bf6e68d339cf1d8e5a864bb02c4ac332dd592c 2	tests/golden/claimed_drift.txt
+100644 62bf9eaba2372bb05cdb42076273c18bdceb0f39 3	tests/golden/claimed_drift.txt
+
+Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+Auto-merging dev/audit/rounds/round4/D6/claims.json
+Auto-merging dev/audit/rounds/round4/D6/claims.md
+Auto-merging tests/golden/claimed_drift.txt
+CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt

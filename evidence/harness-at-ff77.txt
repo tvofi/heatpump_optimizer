@@ -1,0 +1,11 @@
+BLOCK head: rc=0 failing_checks=0
+BLOCK m278_guard_off: rc=0 failing_checks=0
+BLOCK c278_control: rc=0 failing_checks=0
+BLOCK m831_return_del: rc=0 failing_checks=2
+    FAIL a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value  [(('stale', -0.0499), ('implausible', -0.0499), ('unknown_unit', None))]
+    1 of 9 FLOW BLOCK FAILED
+BLOCK m831_return_del@8fb1b717-features: rc=0 failing_checks=0
+GRID m278_guard_off: cases=726 differing=0 (units of the differing: [])
+GRID c278_control: cases=726 differing=29 (units of the differing: ["'<no unit attr>'", 'None'])
+GRID m831_return_del: cases=726 differing=36 (units of the differing: ["' L/min '", "'L/h'", "'L/min'", "'L/s'", "'kg/h'", "'kg/min'", "'kg/s'", "'m³/h'", "'m³/s'"])
+GRID m831_return_del@8fb1b717-features: cases=726 differing=36 (units of the differing: ["' L/min '", "'L/h'", "'L/min'", "'L/s'", "'kg/h'", "'kg/min'", "'kg/s'", "'m³/h'", "'m³/s'"])
