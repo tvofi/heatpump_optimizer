@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._mold_floor_series GUARD_OFF 2f9aeea2",
+  "killed_by": "tests/features.py",
+  "old": "        if not ctx._config.mold_guard_enabled:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c327da7f176afa3d07acd5562b91f6042bb32809: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
