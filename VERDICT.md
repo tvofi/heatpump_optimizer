@@ -1,23 +1,20 @@
-Fix review: blocked 49aba55c46eba48607d396d177cb4e8d1db6bdaf defect: INERT READS still warns on a scoped diff whose CI re-derive omits the reading script (pinertfull is that diff)
-bus-nonce: 2c9a3cc866892808293980bf77ca4097
+Fix review: merge 2629bf6a649495a05125473300995ffea4be0aa6
+bus-nonce: 1ae60989f6491bc2ab13e8a2781c68f8
 
-Round 3 delta review of #2061, from 8c758b72 to 49aba55c (b2e8fbf66, 6ae385f29, merge 49aba55c4). I measured at 49aba55c. The live head was re-read after CI settled and is unchanged.
+Round 4 of #2061: a delta review of the three-round split. The PR head 2629bf6a is the merge 49aba55c + 82860043. Its tree 88ee7a0b is byte-identical to 82860043's (`git diff 82860043 2629bf6a` is empty). I measured 82860043 in a fresh detached worktree (wt4). The live head was re-read after CI settled and is unchanged.
 
-## Repaired (verified)
-- Skip arm: my harness-only plant (plant_inert.sh) now gives `rc=1` with `-- a skip diff: CI records nothing ...`, and `affected` still returns `case=skip`. The skip arm is fixed.
-- Direct-push rule: I ran the PR's own entities block, verbatim, against mutated copies of delivery_status.py (ent_block.py). M1, M2, M4, **M5 and M6 are all killed**: each gives FAIL, and the head gives ok. M3 (`files is not None`, which makes an empty diff record-only) still survives; it is harmless and only noted.
-- CI at 49aba55c, settled: `fast (3.14)` ran with `MODE: FULL`, printed `ALL 109 HARNESS HEADER CHECKS PASSED` and `ALL TEST SCRIPTS PASSED`; every other check is green. The one red is `nightly-status`, which is last night's nightly and reads no file in this diff.
+## Delta since my round-3 block (49aba55c)
+- 0f64774f6 reverts the INERT READS downgrade. Against the merge base 4dbe5aace, `tools/pr/ci_predict.py` and `tools/pr/prepr.sh` carry no INERT READS or `warns` change, so they match main.
+  - RESULT plant_inert.sh (harness only): `predict rc=1`, case=skip.
+  - RESULT plant_inert_scoped.sh (harness plus a tests/wood_advisor.py comment, the round-3 hole): `predict rc=1`, case=scoped, rederive=['tests/wood_advisor.py']. Both refuse again, as on main.
+- dd415b926 carries the item to R9-RO-9b as `carry-1922.json`'s first entry. Its JSON parses. It names the right predicate (the reading script is in `affected(changed)['rederive']`, or the case is full), VERDICT3's control, a remeasure recipe, and a three-plant self-test. `brief_lint`: `CARRY ok`.
+- The main merge (82860043, main 4dbe5aace, which includes #2025) brought no conflict with this PR's files.
+- Kept items re-checked cheaply at 82860043: the direct-push `entities.py` block runs ok (M5 and M6 were killed in round 3). tmp_paths self-test 50/0 and `--check` 0 refused. merge_train 81/0, record_row, layout and closure selftest pass, and structure.py PASSED. prepr --self-test gave 218/0, run once before the owner's no-heavy-local reminder.
 
-## Still open (blocking): the `recorded` predicate is wrong for the scoped arm
-`warns` treats any `affected(...)` case other than `skip` as "CI records". The scoped arm, however, re-derives only `affected()["rederive"]` (tests.yml closures job: `derive_closures.sh --single "$s"` per scoped script). `closure.py check` compares inert reads only over `records.items()`, the scripts it actually recorded. So an INERT READS on a script outside `rederive` is never seen on the PR, closures-autofix never fires, and main's full push run reddens it with nothing to repair it. This is the same hole as round 2, one arm over.
-- RESULT plant_inert_scoped.sh (mine): the new harness plus `# a comment` on tests/wood_advisor.py. This is exactly the PR's `pinertfull` fixture.
-  - Result: `PREDICT closures INERT READS tests/harness_headers.py ...`, `rc=0` (warning).
-  - `affected`: `case=scoped`, `rederive=['tests/wood_advisor.py']`, so harness_headers.py is not recorded.
-- RESULT `affected` on other mixes (my run):
-  - harness plus custom_components/away.py: scoped, 23 scripts, harness_headers.py included, so recorded.
-  - harness plus tests/harness_headers.py: scoped, 2 scripts, recorded.
-  - So the correct predicate depends on the reading script, not on the case.
-- The new self-test line `and only warns there: CI's closures job records` therefore pins the hole as behaviour, as `pinert` did in round 2.
-- Repair, the fixer's call: warn only when `case == "full"` or the INERT READS line's script is in `affected(changed)["rederive"]`; otherwise refuse. Keep `pinertfull` as a refusal case, and add a warning case whose diff puts harness_headers.py in `rederive` (for example the harness plus a custom_components file).
+## CI at 2629bf6a (check-runs API, settled; coverage is not required and is still running)
+- `fast (3.14)`: `MODE: FULL`, `ALL 109 HARNESS HEADER CHECKS PASSED`, `ALL TEST SCRIPTS PASSED`.
+- `mutation`: `4624 unpinned site(s) ... 4624 at the ratchet base 4dbe5aac`, `PASSED (empty scope)`. The PR changes no production line, so no count moved.
+- Green: closures, instrument-self-tests, pr-contract, budget-raise-gate, delivery-status. All other required contexts are green.
+- Red: `nightly-status` only. It reports last night's nightly and reads no file in this diff, so it is not this PR's (step 11).
 
-This is round 3, so a fourth round owes a re-cut (fixer.md). The INERT READS downgrade (c94842ed9 and 6ae385f29) is the only open item. Splitting it out of #2061 would let the rest, which is verified across three rounds, merge.
+Earlier rounds' RESULTs (cf84e0a4 round 1; the direct-push rule, rounds 2-3) stand for the unchanged code.
