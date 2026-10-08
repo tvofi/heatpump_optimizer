@@ -1,0 +1,2 @@
+#1893 d934dde9 ci red=[]
+TRAIN STOPPED #1893 policy: policy paths changed (.claude/rules/ci-autofix.md): only the owner's own review approves it

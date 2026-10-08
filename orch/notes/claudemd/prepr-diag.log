@@ -1,0 +1,48 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             283eb22f07ea4c7b6eaaa0331b91e3dec37e7a5c
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate mode              MODE: SCOPED
+  REFUSE   policy_lint             FIXTURE ok: 92 error(s) hold 233 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  REFUSE   mutants                MUTANTS: the entry point exited 1 on the corpus as it stands. The null control above passed in-process, so this lane does not believe the tree is red; an entry that refuses a healthy corpus fails every arm below for free. First refusal: (refused with no FIXTURE line)
+  ok       rules_sync             RULES-SYNC ok: every .cursor rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       contract_rerun         contract_rerun self-test: 24 checks, 0 failed
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 283eb22f07ea4c7b6eaaa0331b91e3dec37e7a5c ok
+  skip     closures               the diff reaches no selectable script's closure
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             15:always
+             19:always
+             29:none
+             33:always
+             33:every
+             37:all
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             3460 t
+             211 l
+             3702 a
+             3702 i
+             3702 v
+             3702 t
+             229 l
+             894 l
+  ok       policy corpus -- current with origin/main (1 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-orch/notes/claudemd/BODY.md
+  ok       figures                FIGURES: 1 resolved, 0 not verified, 0 refused
+  skip     push order             no origin/fix/claudemd-instruments yet; the push creates it, so pass /Users/timmalmstrom/hpo-orch/notes/claudemd/BODY.md to --body-file after it
+  skip     ancestry reds          no origin/fix/claudemd-instruments yet; the push creates it, so no commit of this branch has check runs to read
+
+PRE-PR: 0b38bf508e755a85b4a05c85e9b4484cd1d33a5c 000110000000000000000

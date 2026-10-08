@@ -1,0 +1,2 @@
+TRAIN STOPPED #1893 recarry: the main merge pushed nothing: app_push: REFUSE: the body did not pass tools/audit/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run
+RESULT pr=1893 head=d934dde99eee9f94381aaa8684e3bada380e00f9

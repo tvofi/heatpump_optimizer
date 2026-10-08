@@ -1,0 +1,48 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 0 script(s) run, 30 scoped out.
+  changed files (8), measured against the recorded closures in tests/closures.json:
+      .claude/workflows/fixtures/policy-rot/prepr/red-answered.md
+      .claude/workflows/fixtures/red-ancestry/bare/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json
+      .claude/workflows/fixtures/red-ancestry/bare/d01ba036aa210b8c6f2660c8e2985f65c764a779.json
+      .claude/workflows/fixtures/red-ancestry/green/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json
+      .claude/workflows/fixtures/red-ancestry/green/d01ba036aa210b8c6f2660c8e2985f65c764a779.json
+      .claude/workflows/fixtures/red-ancestry/red/12f5d8775e1ebff95b15e4f8ac34a3df86c984fb.json
+      .claude/workflows/fixtures/red-ancestry/red/d01ba036aa210b8c6f2660c8e2985f65c764a779.json
+      tools/audit/prepr.sh
+
+
+      SKIP  tests/arch_score.py  (closure: 108 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 108 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 31 files, no changed file is in its measured closure)
+      SKIP  tests/card.mjs  (closure: 82 files, no changed file is in its measured closure)
+      SKIP  tests/card_drift.mjs  (closure: 87 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 113 files, no changed file is in its measured closure)
+      SKIP  tests/deployment_shape.py  (closure: 111 files, no changed file is in its measured closure)
+      SKIP  tests/doc_claims.py  (closure: 140 files, no changed file is in its measured closure)
+      SKIP  tests/edge.py  (closure: 29 files, no changed file is in its measured closure)
+      SKIP  tests/entities.py  (closure: 209 files, no changed file is in its measured closure)
+      SKIP  tests/env_drift.py  (closure: 179 files, no changed file is in its measured closure)
+      SKIP  tests/features.py  (closure: 126 files, no changed file is in its measured closure)
+      SKIP  tests/finite_boundary.py  (closure: 102 files, no changed file is in its measured closure)
+      SKIP  tests/frontend.py  (closure: 6 files, no changed file is in its measured closure)
+      SKIP  tests/golden.py  (closure: 181 files, no changed file is in its measured closure)
+      SKIP  tests/guard_pins.py  (closure: 45 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/harness_headers.py  (closure: 357 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 2 files, no changed file is in its measured closure)
+      SKIP  tests/manual_plan.py  (closure: 90 files, no changed file is in its measured closure)
+      SKIP  tests/md_tables.mjs  (closure: 10 files, no changed file is in its measured closure)
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+      SKIP  tests/optimality.py  (closure: 31 files, no changed file is in its measured closure)
+      SKIP  tests/plan_view.py  (closure: 76 files, no changed file is in its measured closure)
+      SKIP  tests/solar_alignment.py  (closure: 77 files, no changed file is in its measured closure)
+      SKIP  tests/stress.py  (closure: 35 files, no changed file is in its measured closure)
+      SKIP  tests/structure.py  (closure: 73 files, no changed file is in its measured closure)
+      SKIP  tests/typing_ruler.py  (closure: 73 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 29 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 80 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
