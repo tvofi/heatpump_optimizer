@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.target_temperature RETURN_DEL 3ac33f8f",
-  "killed_by": "tests/features.py",
-  "old": "        return float({**self.entry.data, **self.entry.options}.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP))",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 399ef171e4fa6777a2c0648d1d49ae756e1125b1: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}
