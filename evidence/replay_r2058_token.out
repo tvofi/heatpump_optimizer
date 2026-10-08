@@ -1,8 +1,0 @@
-  record   red-history           4 commit(s) between origin/main and this head, every failure conclusion across them: closures, delivery-status, nightly-status
-
-/Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md
-  ERROR   [pr-body] /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/tests.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-  ERROR   [pr-body] /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md: check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-  ERROR   [pr-body] /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/tests.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-
-PR-BODY: 3 error(s) in /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md

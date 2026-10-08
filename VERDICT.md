@@ -1,40 +1,43 @@
-Fix review: merge 539d300b8d4d1037fc3ed98503e6f49224e125a0
-bus-nonce: 334a1cb7b35d7e7ffb23f1e94f66a1be
+Fix review: merge 5964b5836ca3fbaa041964e1c33943b8b852e964
+bus-nonce: e99e5ded129789087091c423425c90a9
 
-PR #2062 (#2028 RCA + fix), round 1. Measured at 539d300b8d4d1037fc3ed98503e6f49224e125a0 (live head re-read at posting: unchanged). Detached worktree; roles/ three-dot vs origin/main empty (contract current).
+PR #2062, round 3. Measured at 5964b5836ca3fbaa041964e1c33943b8b852e964. I re-read the live head at posting and it was unchanged.
 
-## 1. Is the named cause the real one? Partly -- and the RCA says so with counts.
-- Bus re-derived independently (35 review refs now; RCA's 34): RESULT 104 verdicts / 54 blocked / 19 root-cause-unanswered. The 6 extra verdicts are all after 14:00Z, past the RCA's 13:29Z window; the RCA's 98/52/19 set is an exact subset (comm: 0 only-theirs).
-- The dispatch's examples map onto the RCA's classes: #2053 6ddb8c4c = D (the token defect); #2058 aa88452d = A (the contract had already refused it at +0); #2058 e8701d2e = C (no pull_request contract run at that head); #2059 9e44f73c = A; #2051 811846b5 = B (the verdict came before the workflow settled). The RCA does not claim the token explains all 19: A 7, B 5, D 1, C 6. It keeps #1985's (c) for A and B and proposes the dispatch-timing lever (section 6, item 3) for the owner without landing it. The partial cause is stated with counts, as owed.
+The delta from e6e5aea:
+- 3eb8d53a: the fixture path fix.
+- 5a042830: merges 3eb8d53a.
+- 5964b583: merges origin/main b296779f, the v6.7.17 stamp.
 
-## 2. The fix
-- CI at this head runs the new step with the token. Both pr-contract jobs (113370311952, 113370497626) print `record red-history 3 commit(s) ... delivery-status, nightly-status` and `PR-BODY: 0 error(s)`. Before the fix, 35/35 logs printed skip; spot-checked 112484565476 and 113220546508 (#2053), both `skip red-history`.
-- Replays use my own standalone clone, the program at the base as CI restores it, the bodies from GraphQL userContentEdits, and the paths and existing lists from three-dot:
-  RESULT #2053 body@08:19Z, no token: skip, rc 0 | token: record 6 commits, ERROR closures unnamed, rc 1  (refused at push, as the RCA states)
-  RESULT #2053 body@10:55Z (null), token: record, rc 0
-  RESULT #2058 aa88452d body@12:28Z (class A), no token: rc 1 (delivery-status) | token: rc 1 (delivery-status, closures, nightly-status)
-  So the token moves only class D to push time. A was already refused, and B cannot be caught at push. That matches the RCA's own split, so it is not a defect.
-- Security: the trigger is `pull_request`, not `_target`. The job's permissions are contents, checks and pull-requests, all read. The step runs only the base-restored policy_lint; no pull-request program runs before it in the job. Three earlier steps in the same job already hold GH_TOKEN, so no new exposure. A fork pull request gets a read-only token anyway. pr-contract's own reds are excluded from the history (failingCheckNames skips PR_CONTRACT_CHECK). The rerun workflow's job attaches to main, not to the branch commits.
-- Pin mutation, full tests/entities.py in the CI venv (Python 3.14.7):
-  RESULT head: ALL 2214 PASSED | M0 delete env line: 1 of 2214 FAILED (the pin) | M1 comment it out: 1 of 2214 FAILED (the pin). Null control ok in all three.
-  I extracted the predicate verbatim and drove it over planted variants (my own harness, evidence/pin_mutants.py). The pin kills: moved to the next step, empty value, a token only in the run block, the wrong secret. It accepts `GITHUB_TOKEN:`. It REFUSES the equivalent `${{ github.token }}`, which is over-strict but safe. Not blocking.
-- Class-open (step 6): I grepped every GITHUB_TOKEN/GH_TOKEN/ghCredential reader in tools, .claude/workflows and tests. The other policy_lint ghGet callers (fetchPullsBySha, fetchWindow) belong to --record and --stats, which refuse loudly through requireToken and never run in --pr-body mode. That agrees with RCA section 5: one silent skip.
+`git diff --cc` at the head is empty, so no conflict resolution was done by hand. merge-tree against origin/main b296779f gives rc 0. Against the three-dot base, VERSION, the manifest version, the notes heading, both claim files and every budget file are untouched (0 lines). The claim-file change in e6e5aea..HEAD is main's own stamp, inherited.
 
-## 3. Cost test, re-derived from my bus read
-- RESULT the 7 body-only repairs, block to the next merge verdict: 13, 173, 27, 92, 81, 76, 112 = 574 min, median 81. #2049 is counted from its second root-cause block at 07:18Z. By class: A 249, B 92, D 112, C 121, and A+B 341. All match.
-- RESULT 65 revisions of the step from a07dd57d3^ to the merge base, 0 holding a token. Matches.
-- The 5 s standing cost is the RCA's own figure; I did not re-time it.
+## The round-2 blocker is cleared
+- 3eb8d53a builds its own rows under dev/programme/delivery/: `rowadd` off `fork` adds the row, and `rowedit` off `rowadd` edits it. The cases are now `row_red rowadd fork` → 0 and `row_red rowedit rowadd` → 1. The semantics are preserved: the positive case is a diff that only adds its own row, and the null case edits a row the base had.
+- RESULT layout (local, CI venv): `python3 tests/layout.py` rc=0, `layout: GUARD: 0 refusal(s) against b296779f0e96`.
+- RESULT CI `fast (3.14)` 113396389610: success. RESULT CI `closures` 113396530637: success.
 
-## 4. Closes #2028 sits on its own line in prose. It is the only closing keyword.
+## prepr self-test and mutants, re-run at this head (my harness, evidence3/run_mutants.sh)
+- RESULT head: 212 passed, 0 failed.
+- RESULT M_fix_removed (`args+=(--existing-file "$ex")` deleted): 211/1. The failure is `pr-body exempts ... only ADDS its own delivery row (got 1, wanted 0)`.
+- RESULT M_null_no_red (`delivery-status` dropped from row_red): 211/1. The null case gives `got 0, wanted 1`, so the control's rc 1 is the delivery-status refusal and is not vacuous.
 
-## 5. CI at the head, read through the API
-- Every required check is completed and green except two reds. delivery-status (113370313070) and nightly-status (113370311445) are main's reporters. The diff (pr-contract.yml, entities.py, dev/audit/rca/**) reaches neither. The contract's reporter exemption passed the body with both listed, and step 11 says they are not this pull request's red. coverage was still in progress at posting; it is not a required check (coordinator).
-- merge-tree against origin/main 0b89f781 gives rc 0. origin/main equals the merge base.
-- VERSION, the manifest version, the notes heading and both claim files are untouched. No budget file is touched.
+## Body
+- `## Red checks` names `fast (3.14)` red at e6e5aea7 (job 113385312852) as the PR's own red. It gives the cause (layout.py new-reference to the retired docs/delivery/) and the cheaper detector, `python3 tests/layout.py`: about 4 s on CI, standing cost those seconds per push, and not in prepr.sh or the scoped selection. It owns the miss. That answers defect-root-cause.md's second trigger.
+- It names nightly-status and delivery-status as main's reporters, exempt.
+- Its "closures was green at e6e5aea7" checks out: run 113385453475 concluded success.
+- `## Head` names 5964b583 and describes its two merges correctly.
+- `Closes #2028` is still on its own line.
 
-## Not blocking, for the orchestrator
-(a) The red-history walk now costs about 1 + N_commits GITHUB_TOKEN calls on every contract run, including each body edit. The repo-wide GITHUB_TOKEN limit is about 1000/h, and a failed read fails the contract closed (`could not be derived`). The RCA's cost test names only time.
-(b) RCA §6 item 3 changes fix-review.md step 11 and orchestrator.md. Today it lives only in the RCA. It needs surfacing to tvofi on #201 or in the HANDOVER owed-work, or it will not reach a decision.
-(c) The workflow is code-owned, so the approving review is the orchestrator's or tvofi's, not this verdict.
+## CI at the head (two polls; the second is the settled one)
+- Every check is completed except `coverage`, which is not required (coordinator).
+- The only red is `nightly-status` 113396389907. It is main's scheduled-run reporter, the diff touches no reporter input except its own new row, and pr-contract's exemption passed: both pr-contract runs, 113396126320 and 113396697695, are success.
+- `Analyze (python)` was in progress at the first poll and had settled non-red by the second.
 
-Evidence: /Users/timmalmstrom/hpo-seats/review-2062/evidence
+## Carried
+Round 1 at 539d300b covered the token on the body-check step, the entities pin with mutants M0 and M1, the six planted variants, the #2053 and #2058 replays, the bus re-derivation and the cost test. Those files are unchanged since then, so those results carry. Round 2's checks on the --existing-file exemption (no widening beyond CI's rule) also carry, because prepr.sh's body_check is unchanged since a6984468.
+
+The round-1 non-blocking notes still stand:
+(a) The red-history walk adds GITHUB_TOKEN API calls per contract run and fails closed when a read fails.
+(b) The RCA §6 item 3 owner proposal needs surfacing on #201 or in HANDOVER.
+(c) The workflow file is code-owned, so it needs the orchestrator's or tvofi's approving review.
+
+Evidence: /Users/timmalmstrom/hpo-seats/review-2062/evidence3

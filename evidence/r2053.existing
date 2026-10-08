@@ -1,4 +1,0 @@
-.github/workflows/budget-raise-gate.yml
-tests/closures.json
-tests/entities.py
-tools/audit/seat/INSTRUMENTS.md
