@@ -1,0 +1,8 @@
+== main af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee
+[stdin]:520
+return { results, merged, redMain: results.some((r) => r.merged && !r.green) }
+SyntaxError: Illegal return statement
+== head feaecbca27864f6b4b05c74e690ebe7eecbbff41
+[stdin]:520
+return { results, merged, redMain: results.some((r) => r.merged && !r.green) }
+SyntaxError: Illegal return statement

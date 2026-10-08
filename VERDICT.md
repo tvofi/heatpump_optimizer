@@ -1,58 +1,67 @@
-Fix review: blocked e50d432ee51655915c2ec272ba1e1d3939615706 other: step 11's "newest pr-contract run re-checked the body" and "Never wait on coverage" contradict at class B; the re-check is keyed on workflow completion, which waits for coverage
+Fix review: blocked feaecbca27864f6b4b05c74e690ebe7eecbbff41 other: step 11's anchor (a pr-contract run started after the head's workflows) never arrives when the last workflow concludes green, as at this head and in every class-D case, so root-cause-unanswered becomes unpostable
 
-bus-nonce: ef6e23e5a4be7260669f4cfe46a0d320
+bus-nonce: a613ed120de0fa6c7b5427a391854811
 
-Round 1. Measured head `e50d432ee51655915c2ec272ba1e1d3939615706` (merge base `af79f2114`), read from a detached worktree. Policy was read from fresh origin/main `af79f2114`. The contract is unchanged between the merge base and main.
+This is round 2. The measured head is `feaecbca27864f6b4b05c74e690ebe7eecbbff41`. It merges `fa9ee29c2` into the round-1 head `e50d432ee`, and main is not re-merged. The delta since round 1 touches 3 files: fix-review.md, policy_budgets.json and web-fix-wave.js.
 
-## The block
+## Round-1 contradiction: gone
 
-The new step-11 text sets two conditions for a `root-cause-unanswered` block: (a) the head's required checks have settled, and (b) the newest `pr-contract` run has re-checked the body. It then adds "Never wait on `coverage`, `delivery-status` or `nightly-status`: not required."
+Step 11 now says the block is "posted only once the head's workflows concluded and a `pr-contract` run started after them re-checked the body". The "Never wait on coverage" sentence is removed. Because the wait is now keyed on workflows, not on required checks, it matches what `pr-contract-rerun.yml` actually does, which is to fire on `workflow_run: completed`. A wait for `coverage` is now implied, and it is the cost the RCA states. The contradiction is resolved.
 
-The re-check does not follow required checks. `pr-contract-rerun.yml` runs on `workflow_run: completed`. `tools/pr/contract_rerun.py:66` compares the newest contract run's start with the triggering **workflow run's** `updated_at`. `coverage` and `nightly-status` are jobs in `Tests`, next to the required `fast (3.14)`, `closures`, `mutation`, `browser`, `briefs` and `typing`. `delivery-status` is a job in `Governance`, next to the required `policy-docs`, `env-matrix` and `wave-script`. So when a required `Tests` job turns red, the contract is re-checked only after `Tests` ends, and `Tests` ends only after `coverage` ends.
+## The block: class D is not answered, it is made unpostable
 
-This head shows the gap (`evidence/check-runs.12.json`):
+`pr-contract-rerun.yml` re-runs the contract only in one case:
 
-- The last required check settled at 17:21:44Z (`Analyze (python)`).
-- `coverage` ran from 17:00:36Z to 18:00:54Z.
-- The newest `pr-contract` run started at 18:01:29Z, 35 s after `coverage` ended, and about 40 min after every required check had settled.
+- The triggering workflow concluded `failure`, `timed_out` or `cancelled`. This is its `if:`.
+- The triggering workflow is one of "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests" or "Validate". "PR contract" is not in that list.
 
-Class B is the class this change targets: a required check goes red after push and the body is silent. In that case the reviewer cannot obey both sentences. Condition (b) says to wait for the re-check, which means waiting on `coverage`. The last sentence says never to wait on `coverage`. A reviewer who follows the last sentence posts on a stale contract run, which is exactly class B again.
+Take a head where every workflow concludes green. No re-run fires there, so no `pr-contract` run ever starts after the head's workflows concluded. A body edit (`edited`) would start one, but nothing in the text asks for an edit.
 
-A second ambiguity: "re-checked" has no ordering anchor. Take a head where the red is on an earlier commit (RCA class D). No red concludes at that head, so no re-run ever comes. The push-time run is then the only run, and the text does not say whether that run counts as the re-check.
+That is exactly the class-D shape. The RCA, at lines 84-86, says "Every autofix commit is this shape": the red is on the commit below, and the autofix head itself is green.
 
-Section 6, item 3 of the RCA already states an anchored form: the head's workflows concluded, and the newest `pr-contract` run at the head started after them. The cost it states is a wait of up to one `Tests` run.
+The body's answer is that "a push-time run that started before the head's workflows concluded does not count as the re-check". That settles which run counts. It also guarantees that, on a green head, no run counts.
 
-A suggested repair, for the fixer to choose (not imposed):
-- Anchor the re-check as "a `pr-contract` run at the head that started after the last red check concluded".
-- Then either drop the "Never wait on coverage..." sentence, or limit it to "their own state never holds a verdict".
+So the reviewer is left like this:
 
-This probably also shrinks the raise. If the repair changes what option 2 means, it goes back to tvofi.
+- It may not post `root-cause-unanswered`, because the condition never arrives.
+- "While that run refuses the body, wait or hand back" does not apply, because "that run" does not exist.
+- The text names no exit. Waiting forever and returning `merge` over an unanswered earlier-commit red are both readable from it.
+
+Before this PR, step 11's "The head's runs are not the range's" paragraph let the reviewer block such a head directly. #2062's token makes the push-time run refuse such a body, but under the new anchor that refusal is precisely the run that "does not count".
+
+A suggested repair costs about one clause and is for the fixer or coordinator to choose. Either:
+
+- add "where any of them concluded red", and otherwise let the newest run at the head count; or
+- say that when no re-run comes, the reviewer hands back asking for a body touch, which starts an `edited` run.
+
+The same text is now in web-fix-wave.js:305, so the repair goes in both places.
 
 ## RESULT lines
 
-- RESULT policy_lint at head: `TOTAL: 0 error(s) across 40 policy file(s)`, rc 0 (`evidence/policy_lint.head.txt`).
-- RESULT structure.py at head: `STRUCTURE RATCHET PASSED`, rc 0 (`evidence/structure.head.txt`).
-- RESULT entities.py at head (CI venv, `PYTHONPATH=tests/hastub:custom_components:tests`): `ALL 2212 ENTITY CHECKS PASSED`, rc 0 (`evidence/entities.head.txt`).
-- RESULT mutation (raise removed, text kept): 2 `[budgets]` errors on fix-review.md, 142 > 140 lines and ~2461 > 2393 tokens (`evidence/mutant_no_raise.txt`).
-- RESULT control (raise and text both reverted): 0 errors (`evidence/control_no_raise_no_text.txt`). The raise is used only by the step-11 text.
-- RESULT raise is minimal for this text: the measured size equals the new cap exactly, 142/142 lines and 2461/2461 tokens (`evidence/budgets.head.txt`). The base is 138 lines and 2387 tokens (`evidence/budgets.base.txt`).
-- RESULT not stated in the body: the corpus goes from ~59562 to ~59636 tokens. That crosses its cap of 59591 into the +500 band (60091). This is not a lint error, but the body's Figures section says it lists corpus totals and gives none.
-- RESULT orchestrator.md: 290 lines and 4096 tokens at both ends, within cap. The edit pays for itself, as the body says.
-- RESULT required contexts: the live ruleset 23698884 equals `tools/policy/fixtures/required-contexts.json`, 17 contexts (`evidence/ruleset.raw`). None of `coverage`, `delivery-status` or `nightly-status` is required; `pr-contract` is. The sentence's list is correct as a statement of fact.
-- RESULT RCA figures (from `origin/fix/r9-rca-2028` 5964b583, `dev/audit/rca/R9-RCA-2028.md`):
-  - 19 blocks; A = 7 and B = 5, so 12 of 19 (section 2).
-  - 7 body-only rounds totalling 574 min; A = 2 rounds and 249 min (#2007, #2049), B = 1 round and 92 min (#2018), so 3 of 7 rounds and 341 of 574 min (section 6).
-  - The body cites these correctly and ties the minutes to rounds, not to the 12 blocks.
-- RESULT head checks, read from the API (`evidence/check-runs.12.json`; this verdict was posted only after all 38 runs completed):
-  - Red: `budget-raise-gate` x2. It is red only for want of the owner's approval and is answered in `## Red checks`; this is not a block.
-  - Red: `nightly-status`. It grades main, and the diff touches none of its inputs (defect-root-cause.md).
-  - `pr-contract` is green on all three runs: 17:00:03, the re-run at 17:00:56, and 18:01:29.
-- RESULT `## Approval`: it records tvofi's option-2 choice and the "raise the cap" confirmation before the push, and says a merge needs tvofi's approving review at the head. That is correct for a policy and budget raise. The approval is the orchestrator's to give under mandate 5951564627. Not given here.
-- RESULT VERSION, manifest and notes heading: untouched (the diff is 4 files under dev/).
+- RESULT web-fix-wave.js:305 matches step 11. Both carry the same condition, "head's workflows concluded and a pr-contract run started after them re-checked the body; while that run refuses the body, wait or hand back ... saying so". This includes the class-D gap above.
+- RESULT `node --check` on web-fix-wave.js fails in the same way at main `af79f2114` and at head `feaecbca2`, so this PR did not cause it (`evidence2/node-check.txt`):
+  - Plain `node --check` stops at line 4, `export`, because the file is parsed as CommonJS.
+  - `node --input-type=module --check` stops at `[stdin]:520` with `SyntaxError: Illegal return statement`.
+  - The file is a workflow-script body, and its trailing top-level `return` is by design.
+  - Its own checker, `node tools/policy/check-wave-script.mjs`, reports `168 passed, 0 failed` at head (`evidence2/wave-script.head.txt`).
+- RESULT policy_lint at head: `TOTAL: 0 error(s) across 40 policy file(s)`, rc 0.
+- RESULT structure.py at head: `STRUCTURE RATCHET PASSED`, rc 0.
+- RESULT entities.py at head: `ALL 2212 ENTITY CHECKS PASSED`, rc 0. This was run in the CI venv with `PYTHONPATH=tests/hastub:custom_components:tests`.
+- RESULT budgets at head: fix-review.md is at 141/141 lines and 2442/2442 tokens. The raise is minimal for this text. orchestrator.md is at 290 lines and 4096 tokens.
+- RESULT mutation, raise removed: 2 `[budgets]` errors, 141 > 140 and 2442 > 2393 (`evidence2/mutant_no_raise.txt`).
+- RESULT corpus: ~59617 tokens, which is inside the 500-token band of cap 59591 (60091). The body now states this, and the figure matches.
+- RESULT RCA figures: unchanged from round 1, and the body still cites them correctly.
+- RESULT `## Approval`: the coordinator's anchoring under the round-9 mandate is recorded. tvofi's "raise the cap" covered 142/2461, and the cap is now lower at 141/2442. The section is correct. Owner approval at the head is still needed and has not been given here.
+- RESULT CI was read from the commit's check-runs API, in `evidence2/check-runs.*.json`. Every run at the head completed, with the last at 18:40:11Z. The red workflows were Tests (`nightly-status`) and Budget raise gate. The contract re-ran at 18:23:41Z, after the last red workflow concluded at 18:23:24Z. The reds are `budget-raise-gate` x2 and `nightly-status`, and both are answered in `## Red checks`. `pr-contract` is green on both runs. I posted at that point; this verdict is not a `root-cause-unanswered`, so step 11's timing does not govern it.
+
+## This head demonstrates it
+
+The gap is not limited to class D. At this head the last workflow to conclude was CodeQL, with `Analyze (python)` green at 18:40:11Z. A green conclusion triggers no re-run, so the newest `pr-contract` run, at 18:23:41Z, started **before** "the head's workflows concluded". Read literally, step 11's condition is unmet here and can never be met: I polled 3 times through 18:51Z, and the details are in `evidence2/settle.txt`.
+
+The re-check that matters did happen. It ran after the last **red** workflow, which ended at 18:23:24Z. So the anchor wants to be "a `pr-contract` run started after the last of them to conclude red", or simply "none concluded red".
+
+As written, any head whose slowest workflow is green blocks the very post the rule governs. CodeQL is routinely the slowest: 23 min here, against 6 min for `closures`. That makes this most heads.
 
 ## Non-blocking
 
-1. `.claude/workflows/web-fix-wave.js:305`, the reviewer prompt, teaches `root-cause-unanswered` with no settle condition. A wave-dispatched reviewer reads that prompt. Carry it, or say why not.
-2. The null control names base `b296779f0`, while the merge base is `af79f2114`. The governance and policy-tool trees are identical between the two (`git diff --stat` is empty), so this is immaterial.
-3. In `## Head`, the authored-head SHA is repeated as a bare line at the end of the section.
-4. defect-root-cause.md:140 still names the verdict `blocked: root-cause trigger unanswered for <check>`, a shape that differs from step 11's grammar. This predates the PR.
+1. The `## Head` text says the head "then merges origin/main `af79f2114` ... into this PR's previous head". The head's parents are `e50d432ee` and `fa9ee29c2`, and main was merged earlier, in `0cff5a993`. The template wording is garbled, but the SHAs it names are right.
