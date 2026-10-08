@@ -6,25 +6,37 @@ Five serial runs on a loaded box (load average 59 to 77) separated three causes:
 - **`printf | grep -q` under `pipefail`.** `grep -q` exits on its first match, so the writer can take SIGPIPE, and the pipeline reads 141, which counts as no match. That is the hazard the `pinned_unrun` note already names. It applied in two self-test rows and in `stamp_paths`, CLAUDE.md rule 4's predicate. Behind 2 MB of diff, `stamp_paths` named a version edit 0 of 5 times.
 - **One `star-matcher` row** that failed once in 5 runs and did not reproduce in 18 more.
 
+The merge train's push of #2058 (`/Users/timmalmstrom/hpo-seats/merge-train-0117/logs/push-2058-a1.log`) then failed 2 of 210 rows, and both have causes this PR already changes:
+
+- `the pr-body step calls body_line, so a predicted raise reaches the body check before the push (got 141, wanted 0)`. That row read the rest of `prepr.sh` through `printf | grep -q`. 141 is SIGPIPE.
+- `a notes heading hidden by a diff=<driver> textconv is still refused (got 0:, wanted 1:RELEASE_NOTES.md(heading))`. That row reaches `stamp_paths`'s notes reader, `printf | grep -qE '^[-+]## '`.
+
+**This includes CLAUDE.md rule 4's predicate.** `stamp_paths` is what `pr-contract` runs through `--version-edit`. On main it can, under load, read a notes heading or a manifest version edit as no edit, even on a tiny diff. I extracted it alone and drove it with the fixture's exact 13-line notes diff, 3,000 times each, at a load average of 90 to 110. Main's form missed the heading **1 of 3,000** times (empty output, rc 0, which is the train's `0:`). This head's form missed **0 of 3,000**. Behind 2 MB of diff the miss is certain: 5 of 5 against 0 of 5.
+
 Linked worktrees are refuted as the cause: the fixtures already run under `throwaway_git_env`, and runs 1 and 2 passed 212/0 from a linked worktree.
 
-This PR changes only `tools/pr/prepr.sh`:
+The class search (RCA section 2a) found the same `grep -q` reader in five more scripts. `.claude/hooks/session-start.sh`'s self-test `st()` is the likely source of the train's unnamed `HOOKS REFUSED: 1 of 3` on #2058 and of EG-A4's `own three wired hooks` flake. `stop-selfcheck.sh`'s `touches_policy`, `approve_held_runs.sh` and `worktree_gc.sh` each fail open on a miss.
 
-1. `selftest_tmp_root`: every temporary path lives under one `$TMPDIR/prepr-st.*` root, which one `EXIT` trap removes. `HUP`, `INT` and `TERM` become exits so the trap runs.
+This PR changes `tools/pr/prepr.sh`, the two hooks, `tools/pr/approve_held_runs.sh` and `tools/audit/worktree_gc.sh`. `.claude/hooks/` is code-owned:
+
+1. `selftest_tmp_root`: every self-test temporary path lives under one `$TMPDIR/prepr-st.*` root, which one `EXIT` trap removes. This includes `figst` and `bodyst`, which moved from `/tmp`. `HUP`, `INT`, `QUIT` and `TERM` become exits so the trap runs. Only `KILL` leaves the root behind, one directory instead of one per fixture.
 2. `tmp_floor_check`: below twice the measured peak (223,124 KB, so a floor of 446,248 KB), the self-test exits 3 with one `ENVIRONMENT:` line. If `df` cannot measure, it runs anyway.
-3. The four `grep -q` readers now read all of their input.
-4. The `star-matcher` row prints its output when it fails, so the next occurrence can be read.
+3. Every `printf|echo ... | grep -q` under `pipefail` in the six gating scripts now reads all of its input: four sites in `prepr.sh`, then `session-start.sh`, `stop-selfcheck.sh`, `approve_held_runs.sh` (two) and `worktree_gc.sh`. `pipe_grep_q_sites` is a self-test row over those six scripts, with a planted site as its null control. Sites refused with reasons (`push.sh`, which is retired, and the self-test-only rows in `bus.sh` and `seat_venv.sh`) are in RCA section 2a.
+4. Prepr's hooks step prints the failing hook's row, not only the count. The `star-matcher` and `own three wired hooks` rows print the check's output when they fail.
 
 ## Head
 
-`d8c34eebc26c018f7f9dcd385cf329e562509cad`. Every local figure below was measured at this head unless it names another commit.
+`09d2061b247a77e27ba625c81ef25a9909726ef9`. It adds one commit to `da35220d`: the class drain, the hooks step's naming, the two moved temp paths and `QUIT`. The earlier code head is `d8c34eebc26c018f7f9dcd385cf329e562509cad`. Figures name the commit they were measured at.
 
 ## Mutation proof
 
 - Rows first, code second. At `6468b6f0` (the new rows, no code), `bash tools/pr/prepr.sh --self-test` reports `211 passed, 10 failed`, and all ten failures are the new rows: the two 2 MB `stamp_paths` rows, the three temp-root rows, the three floor rows, and the entry-wiring row.
 - `stamp_paths` alone, extracted and driven over a manifest `version` line plus 2 MB of filler, five times each: the head's form named the edit 5 of 5. Changing the predicate back to `grep -qE` named it 0 of 5.
+- `stamp_paths` alone over the self-test fixture's 13-line notes diff, 3,000 times each at a load average of 90 to 110: main's form missed the heading 1 time, this head's form 0 times.
 - `selftest_tmp_root` driven alone: a run that makes a clone directory and a `mktemp -d`, then kills itself with `TERM`, leaves no `prepr-st.*` directory behind.
 - `tmp_floor_check` driven alone: at a floor of 446,248 KB on 14.8 GB free it returns 0. At a floor of 999,999,999,999 KB it returns 3 and prints `ENVIRONMENT: ...`.
+
+- `pipe_grep_q_sites` over the six scripts. At `da35220d` (before the drain) it lists the five sites outside `prepr.sh`, rc 1. At `09d2061b` it lists none, rc 0.
 
 ## Null control
 
@@ -32,18 +44,26 @@ This PR changes only `tools/pr/prepr.sh`:
 - `a temp dir with room passes the floor` and `an unmeasurable temp dir runs anyway, never refuses` are rows in the self-test.
 - A full self-test run with these helpers (before the hooks-output change and with a floor of 2 KB, `SELFTEST_PEAK_KB=1`) left 0 entries in its `$TMPDIR` and passed every new row: `220 passed, 1 failed`. The one failure was the unreproduced `star-matcher` row, which this PR makes diagnosable rather than fixed.
 
+- `pipe_grep_q_sites` over a planted `printf x | grep -q y` under `pipefail` finds it, rc 1.
+- At `09d2061b` each drained script's own self-test passes: the three hooks (rc 0), `approve_held_runs.sh` 42/0 and `worktree_gc.sh` 66/0.
+
 ## Figures
 
 - Self-test, 211/10 before the code and 220/1 with it: `bash tools/pr/prepr.sh --self-test`. Under the owner's heavy-scripts rule, the result at this head is CI's `instrument-self-tests` run, cited once it settles.
 - 223,124 KB peak: `du -sk` on the run's temp root once a second over a full `bash tools/pr/prepr.sh --self-test`.
+- Class search: `git grep -n -E '(printf|echo)[^|]*\|[[:space:]]*grep[[:space:]]+-[a-zA-Z]*q' -- '*.sh' '*.bash'`, then `grep -n pipefail` per file (RCA section 2a).
+- Self-tests of the drained scripts at `09d2061b`: `bash .claude/hooks/session-start.sh --self-test`, likewise `pre-edit.sh` and `stop-selfcheck.sh`, `bash tools/pr/approve_held_runs.sh --self-test`, `bash tools/audit/worktree_gc.sh --self-test`.
 - `tests/layout.py` `GUARD: 0 refusal(s)`: `python3 tests/layout.py`.
 - Policy corpus `TOTAL: 0 error(s)`: `node tools/policy/policy_lint.mjs`.
 - Scoped gate `MODE: SCOPED -- 0 script(s) run`: `python3 tests/closure.py select --files <the diff's paths>`.
+- 1 of 3,000 against 0 of 3,000: `stamp_paths` extracted from `git show origin/main:tools/pr/prepr.sh` and from this head, each sourced under `set -uo pipefail` and called 3,000 times on the fixture's notes diff.
 - Five serial runs, the leaked directories, and the `stamp_paths` and `star-matcher` repeats: `dev/audit/rca/R9-RCA-prepr-tmp.md`, section 6.
 
 ## Red checks
 
-none yet. This body was written before CI ran at this head. Any red will be named and answered in a re-take of this section.
+- `nightly-status` is red at `d8c34eeb`. It grades `main`, and this diff touches none of its inputs, so it is main's red and there is no cheaper detector to name.
+- No other check was red at `d8c34eeb` when this was written. `da35220d`'s runs had not finished.
+- The reds this PR answers are the merge train's `prepr.sh --self-test` failures on #2062's recarry and on #2058's push, and #2010's 6d failures. Their causes and countermeasures are above and in `dev/audit/rca/R9-RCA-prepr-tmp.md`. The cheaper detector each needed is this PR's change itself: the self-test refusing a full box as ENVIRONMENT, and readers that drain their input.
 
 ## Forward-carry
 
