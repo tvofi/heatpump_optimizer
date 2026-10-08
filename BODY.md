@@ -10,7 +10,7 @@ Closes #2028
 
 ## Head
 
-The authored code head is `a703959f2ee42ed476ecbf30392a8db89f6f4035`. Every local figure below was measured at that head.
+The authored code head is `3eb8d53a5ae8fb9675426e65b8e15bf61d094474`. Every local figure below was measured at that head unless it names another commit.
 
 ## Mutation proof
 
@@ -18,7 +18,7 @@ Removing the fix's one production line (the `GH_TOKEN` env line) is the tree at 
 
 Behaviour, replayed on #2053's graded body (section 3 of the RCA). Without a token, `policy_lint.mjs --pr-body` prints `skip red-history` and `PR-BODY: 0 error(s)`. With `GH_TOKEN` it prints ``check `closures` is red and `## Red checks` does not name it`` and exits 1.
 
-For `prepr.sh`: at `af5560f8`, which has the self-test arm but not the fix, `prepr.sh --self-test` reports `211 passed, 1 failed`. The one failure is `pr-body exempts a main-graded red when the diff only ADDS its own delivery row`. At the head it reports `212 passed, 0 failed`.
+For `prepr.sh`: at `af5560f8`, which has the self-test arm but not the fix, `prepr.sh --self-test` reports `211 passed, 1 failed`. The one failure is `pr-body exempts a main-graded red when the diff only ADDS its own delivery row`. At the head it reports `212 passed, 0 failed`. With the fix's `args+=(--existing-file "$ex")` line replaced by `:` at the head, it reports `211 passed, 1 failed`, the same failure.
 
 ## Null control
 
@@ -29,7 +29,8 @@ For `prepr.sh`: at `af5560f8`, which has the self-test arm but not the fix, `pre
 ## Figures
 
 - Entity checks, 1 failed before and 2214 passed after: `PYTHONPATH=tests/hastub python3 tests/entities.py` (Python 3.14 seat venv).
-- `prepr.sh` self-test, 211/1 before and 212/0 after: `bash tools/pr/prepr.sh --self-test`.
+- `prepr.sh` self-test, 211/1 before the fix, 212/0 at the head, 211/1 with the fix line neutralised: `bash tools/pr/prepr.sh --self-test`.
+- `tests/layout.py` passes at the head (rc 0) and is refused at `a703959f` (rc 1, one `new-reference`), about 10 s here: `python3 tests/layout.py`.
 - `STRUCTURE RATCHET PASSED`: `PYTHONPATH=tests/hastub python3 tests/structure.py`.
 - Policy corpus `TOTAL: 0 error(s)`: `node tools/policy/policy_lint.mjs`.
 - Scoped gate selection is `MODE: SCOPED -- 2 script(s) run`: `python3 tests/closure.py select --files <the diff's paths>`. `tests/harness_headers.py` is left to CI's run at this head under the heavy-scripts rule.
@@ -39,8 +40,9 @@ For `prepr.sh`: at `af5560f8`, which has the self-test arm but not the fix, `pre
 
 ## Red checks
 
-- `delivery-status` and `nightly-status` are red at `539d300b`, the first PR head, and they grade `main`. The only reporter input this diff touches is its own new row, `dev/programme/delivery/2062.md`, which the exemption excludes. They are main's reds, not this PR's, so there is no cheaper detector to name. The `prepr.sh` fix above is what stops the push-time check from refusing them.
-- No other check was red at `539d300b` when this was written.
+- `fast (3.14)` was red at `e6e5aea7` (job 113385312852). That was this PR's own red. The always-run `tests/layout.py` refused af5560f8's new self-test fixture line in `tools/pr/prepr.sh` as `new-reference ... cites retired path docs/delivery/`: it wrote `docs/delivery/9999.md`. The fixture now builds its own rows under `dev/programme/delivery/` (branches `rowadd` and `rowedit`), and `tests/layout.py` passes at this head. The cheaper detector is `python3 tests/layout.py`. It takes about 4 s on CI's venv and 10 s here, and it was in no path this seat ran before pushing. It is not in `prepr.sh`, and the scoped selection named only `entities.py` and `harness_headers.py`. The standing cost of running it at every push is those seconds. This seat's push gate did not include it, and that was the miss.
+- `nightly-status` was red at `e6e5aea7`, and `delivery-status` and `nightly-status` were red at `539d300b`. Both grade `main`. The only reporter input this diff touches is its own new row, `dev/programme/delivery/2062.md`, which the exemption excludes. They are main's reds, so there is no cheaper detector to name. The `prepr.sh` fix above is what stops the push-time check from refusing them.
+- `closures` was green at `e6e5aea7`.
 
 ## Forward-carry
 
