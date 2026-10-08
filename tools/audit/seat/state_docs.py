@@ -178,7 +178,11 @@ def main(argv=None) -> int:
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
-        return self_test()
+        # Every git call in the self-test runs in a throwaway repository.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_environ
+        with throwaway_git_environ():
+            return self_test()
     roster_args = (["--roster-file", a.roster_file] if a.roster_file
                    else ["--roster-ref", a.roster_ref])
     try:
@@ -232,6 +236,8 @@ def main(argv=None) -> int:
 # ---------------------------------------------------------------- self-test
 def self_test() -> int:
     """Offline: tmp dirs and fixture repos, no network in any arm."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
     fails: list[str] = []
 
     def ok(name: str, cond, got="") -> None:
@@ -262,7 +268,7 @@ def self_test() -> int:
         roster_path = seed / ".claude" / "workflows" / "wave-r9-groups.json"
         roster_path.write_text(json.dumps(roster, indent=1) + "\n",
                                encoding="utf-8")
-        git("init", "-q", "-b", "main", str(seed))
+        throwaway_git_init(seed, "-q", "-b", "main")
         git("-C", str(seed), "add", "-A")
         git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
         # a state tip with an unrelated path the tool must carry, never drop
@@ -276,11 +282,11 @@ def self_test() -> int:
         state0 = git("commit-tree", git("write-tree", cwd=str(seed), env=env),
                      "-m", "seed state", cwd=str(seed)).strip()
         bare = root / "origin.git"
-        git("clone", "-q", "--bare", str(seed), str(bare))
+        throwaway_git_clone(seed, bare, "-q", "--bare")
         git("-C", str(bare), "update-ref",
             f"refs/heads/{STATE_REF}", state0)
         drv = root / "drv"
-        git("clone", "-q", str(bare), str(drv))
+        throwaway_git_clone(bare, drv, "-q")
         prstate = root / "prs.json"
         prstate.write_text(json.dumps(
             [{"number": 1234, "head": "fix/x", "state": "OPEN"}]),

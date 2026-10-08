@@ -522,27 +522,28 @@ def guard_self_test() -> int:
         ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
     ]
     failed = 0
+    from throwaway_git import throwaway_git_init
     tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-guard-"))
     g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
     try:
-        subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+        env = throwaway_git_init(tmp, "-q")
         for p, t in {**base, MANIFEST: json.dumps(m)}.items():
             (tmp / p).parent.mkdir(parents=True, exist_ok=True)
             (tmp / p).write_text(t)
-        subprocess.run([*g, "add", "-A"], cwd=tmp, check=True)
-        subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True)
+        subprocess.run([*g, "add", "-A"], cwd=tmp, check=True, env=env)
+        subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True, env=env)
         sha = git(tmp, "rev-parse", "HEAD").decode().strip()
         for name, add, rm, want in cases:
             # Each case starts from the base commit, index and tree both.
-            subprocess.run(["git", "reset", "-q", "--hard", sha], cwd=tmp, check=True)
-            subprocess.run(["git", "clean", "-qfdx"], cwd=tmp, check=True)
+            subprocess.run(["git", "reset", "-q", "--hard", sha], cwd=tmp, check=True, env=env)
+            subprocess.run(["git", "clean", "-qfdx"], cwd=tmp, check=True, env=env)
             if rm:
-                subprocess.run(["git", "rm", "-q", *rm], cwd=tmp, check=True)
+                subprocess.run(["git", "rm", "-q", *rm], cwd=tmp, check=True, env=env)
             for p, t in add.items():
                 (tmp / p).parent.mkdir(parents=True, exist_ok=True)
                 (tmp / p).write_text(t)
             if add:
-                subprocess.run(["git", "add", *add], cwd=tmp, check=True)
+                subprocess.run(["git", "add", *add], cwd=tmp, check=True, env=env)
             found = guard(tmp, m, sha)
             got = {k: sum(f.startswith(k + ":") for f in found) for k in ("new-reference", "unswept", "placement")}
             ok = all(got[k] == want.get(k, 0) for k in got)
@@ -629,6 +630,7 @@ def self_test(root: Path) -> int:
          None, (0, 0, 0, 0)),
         ("negative: the new path cited", {user_doc: f"see `{moved['new']}`\n"}, None, (0, 0, 0, 0)),
     ]
+    from throwaway_git import throwaway_git_init
     failed = 0
     for name, add, edit, want in cases:
         tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-"))
@@ -641,8 +643,8 @@ def self_test(root: Path) -> int:
                 f.parent.mkdir(parents=True, exist_ok=True)
                 f.write_text(add.get(p, ""))
             (tmp / MANIFEST).write_text(json.dumps(m, indent=1))
-            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
-            subprocess.run(["git", "add", "-A"], cwd=tmp, check=True)
+            env = throwaway_git_init(tmp, "-q")
+            subprocess.run(["git", "add", "-A"], cwd=tmp, check=True, env=env)
             found, n = check(tmp, m)
             got = tuple(len(found[a]) for a in ARMS)
             count = listed(tmp)
