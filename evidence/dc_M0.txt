@@ -70,7 +70,9 @@
   ok   the nightly lane demands both A16 checks by name
   ok   A16's download writer returns the bytes of HA's 2025.2.0 writer, whose body is a payload with no len()
   ok   A16's download writer returns the bytes of HA's 2025.10 writer, whose body is a payload with no len()
+  ok   A16 passes data_issues as the list HA passes, so the file carries its issues section
+  ok   A16's download writer returns a bytes body as it is
   ok   A16's download writer refuses a response HA's writer failed (status 500, no body)
   ok   A16's download writer refuses a writer parameter it cannot bind, naming it
 
-ALL 62 DEBUG COLLECT CHECKS PASSED
+ALL 64 DEBUG COLLECT CHECKS PASSED
