@@ -18,6 +18,11 @@
 # same config the fix sets, by whatever route it is set.
 #
 #   bash dev/audit/harnesses/git_auto_maintenance_race.sh [RUNS] [shim|plain]
+#   bash dev/audit/harnesses/git_auto_maintenance_race.sh 0 spawn
+#
+# Arm `spawn` uses no model: it asks the real git (GIT_TRACE) whether a
+# commit spawns `git maintenance run --auto`, with no config and with the
+# env-config `maintenance.auto=false` the fix sets.
 #
 # Arm `shim` (default) is the perturbation; arm `plain` is the null control
 # (no shim). It runs `tools/release/stamp.py --self-test` RUNS times and
@@ -30,6 +35,17 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 W="$(mktemp -d)"
 trap 'rm -rf "$W"' EXIT
 REAL_GIT="$(command -v git)"
+if [ "$ARM" = spawn ]; then
+  ( cd "$W" && "$REAL_GIT" init -q r && cd r && : > a && "$REAL_GIT" add a
+    for cfg in default off; do
+      [ "$cfg" = off ] && export GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=maintenance.auto GIT_CONFIG_VALUE_0=false
+      echo "$cfg" >> a
+      n=$(GIT_TRACE=1 "$REAL_GIT" -c user.name=t -c user.email=t@t commit -qam x 2>&1 \
+          | grep -c "run_command: git maintenance run --auto")
+      echo "arm=spawn config=$cfg git=$("$REAL_GIT" --version | cut -d' ' -f3) maintenance_spawns=$n"
+    done )
+  exit 0
+fi
 mkdir -p "$W/bin"
 cat > "$W/bin/git" <<EOF
 #!/usr/bin/env bash
