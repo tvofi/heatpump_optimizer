@@ -54,9 +54,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.16
+# claims-for: 6.7.17
 #
-# v6.7.16: EG-A2 one-formula class closure; mutation wall-clock budget; instruments into the tree; card and site polish; coverage tracer diet; nightly ledger CPU bounds. The stamp empties the list; the
+# v6.7.17: Round 9: silent windows, sharded mutation pins, gate and closures fixes, debugger download cap. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 #
