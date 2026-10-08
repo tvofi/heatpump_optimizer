@@ -59598,6 +59598,13 @@ R.check("UX-5 dust ahead is not surplus to wait for", _ok and _got is False, str
 _ok, _got = _ux5_call(_ux5_solar_wait, 0, np.zeros(1), np.zeros(1), _ux5_thr)
 R.check("UX-5 a one-step horizon with no surplus is not a wait", _ok and _got is False, str(_got))
 _ok, _got = _ux5_call(
+    _ux5_solar_wait, 0, np.array([0.0, 1.0]), np.array([0.0, 2.0]), _ux5_thr)
+R.check("UX-5 surplus that arrives with the next run is not a wait",
+        _ok and _got is False, str(_got))
+_ok, _got = _ux5_call(
+    _ux5_idle_codes, -1, np.zeros(1), None, None, None, None, None, None, _ux5_thr)
+R.check("UX-5 a negative step count has no idle codes", _ok and _got == [], str(_got))
+_ok, _got = _ux5_call(
     _ux5_idle_reason, 1, np.zeros(2), None, None, None, None, np.array([0.0]), None, _ux5_thr)
 R.check("UX-5 a step past the other channel is idle", _ok and _got == _UX5_IDLE, str(_got))
 _ok, _got = _ux5_call(

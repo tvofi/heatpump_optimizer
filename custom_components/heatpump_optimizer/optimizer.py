@@ -1072,11 +1072,10 @@ def idle_codes(
     if surplus is not None:
         sp = _padded(surplus, n)
         runs = np.flatnonzero(~(pw <= threshold))
-        k = min(len(pw), len(surplus))
-        sunny = np.flatnonzero(np.asarray(surplus[:k], dtype=float) > 1e-6)
+        sunny = np.flatnonzero(np.asarray(surplus, dtype=float) > 1e-6)
         nxt_run = np.append(runs, len(pw))[np.searchsorted(runs, idx, side="right")]
         nxt_sun = np.append(sunny, np.iinfo(np.int64).max)[np.searchsorted(sunny, idx, side="right")]
-        codes[~(sp > 1e-6) & (idx < len(surplus)) & (nxt_sun < nxt_run)] = REASON_IDLE_SOLAR
+        codes[~(sp > 1e-6) & (nxt_sun < nxt_run)] = REASON_IDLE_SOLAR
     codes[_padded(caps, n) <= threshold] = REASON_IDLE_FUSE
     codes[_padded(other, n) > threshold] = REASON_IDLE_OTHER
     return list(codes.tolist())
