@@ -1,3 +1,0 @@
-PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/ux5_idle_codes.py (a new file beside 13 it lists)
-CI PREDICT: 35 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
-CI PREDICT: 1 predicted red(s) on closures against 6b91e238f688 -- repair before the handoff; who repairs which is ci-autofix.md's
