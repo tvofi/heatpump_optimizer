@@ -1,0 +1,12 @@
+RESULT rows-only: disp=['record-only'] verdict=EMPTY
+RESULT code+allow: disp=['merged by hand; rows in #1999'] verdict=EMPTY
+RESULT code-no-allow: disp=['-'] verdict=UNCHECKED
+RESULT rows+script: disp=['-'] verdict=UNCHECKED
+RESULT files-unknown: disp=['-'] verdict=UNCHECKED
+RESULT files-empty: disp=['-'] verdict=UNCHECKED
+RESULT direct-pushes.md-itself: disp=['-'] verdict=UNCHECKED
+RESULT pre-move-row: disp=['record-only'] verdict=EMPTY
+RESULT row-lookalike: disp=['-'] verdict=UNCHECKED
+RESULT nested-row: disp=['-'] verdict=UNCHECKED
+RESULT allow-other-sha: disp=['-'] verdict=UNCHECKED
+RESULT allow-6hex: disp=['-'] verdict=UNCHECKED
