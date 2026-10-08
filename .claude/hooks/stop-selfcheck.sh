@@ -92,7 +92,9 @@ if [ "${1:-}" = "--self-test" ]; then
   }
   T=$(mktemp -d)
   # The scratch repository takes the shared helper (auto-maintenance off).
-  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" &&
+  # Its env is exported for the whole drive, the hook runs included: an
+  # inherited GIT_CONFIG_PARAMETERS would outrank the repository's config.
+  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" && throwaway_git_env &&
       throwaway_git_init "$T" -q 2>/dev/null; then
     mkdir -p "$T/.claude/workflows"
     # The linter stub is untracked and would read as a new policy file; a real

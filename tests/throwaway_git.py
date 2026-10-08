@@ -81,6 +81,7 @@ reruns). Review owns the rest.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import re
 import subprocess
@@ -114,6 +115,24 @@ def throwaway_git_env(base: dict | None = None) -> dict:
     for i, (key, value) in enumerate(CONFIG):
         env[f"GIT_CONFIG_KEY_{i}"], env[f"GIT_CONFIG_VALUE_{i}"] = key, value
     return env
+
+
+@contextlib.contextmanager
+def throwaway_git_environ():
+    """os.environ replaced by throwaway_git_env() for the block, then restored:
+    for a self-test whose every git call -- its own runner's and the
+    production code's under test -- works in throwaway repositories. A call
+    that passes no env= then inherits the env layer too, which the repository
+    layer alone cannot replace: an inherited GIT_CONFIG_PARAMETERS outranks a
+    repository's own config (the #2054 review, round 1)."""
+    saved = dict(os.environ)
+    os.environ.clear()
+    os.environ.update(throwaway_git_env(saved))
+    try:
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(saved)
 
 
 def throwaway_git_init(path, *init_args: str, git=("git",)) -> dict:
@@ -288,6 +307,21 @@ def self_test() -> int:
                                 text=True).stdout.strip() for k, _ in CONFIG}
         check("a clone writes both keys into its own config, and returns the env",
               r2 == dict(CONFIG) and got_env == throwaway_git_env(), str(r2))
+        before = dict(os.environ)
+        os.environ["GIT_CONFIG_PARAMETERS"] = "'maintenance.auto'='true'"
+        try:
+            with throwaway_git_environ():
+                inside = dict(os.environ)
+                no_env = subprocess.run(["git", "config", "--get", "maintenance.auto"], cwd=repo,
+                                        capture_output=True, text=True).stdout.strip()
+            hostile_after = os.environ.get("GIT_CONFIG_PARAMETERS")
+        finally:
+            os.environ.clear()
+            os.environ.update(before)
+        check("throwaway_git_environ: a call passing no env= reads auto-maintenance off under an "
+              "inherited -c maintenance.auto=true, and os.environ is restored after the block",
+              no_env == "false" and "GIT_CONFIG_PARAMETERS" not in inside
+              and hostile_after == "'maintenance.auto'='true'", f"no_env={no_env!r}")
         # The shell twin sets the same variables to the same values.
         twin = ROOT / SHELL_TWIN
         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_env; env -0', "_", str(twin)],
