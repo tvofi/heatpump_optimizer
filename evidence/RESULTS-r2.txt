@@ -1,0 +1,19 @@
+round 2 measured head afe9cfd87649cfc1de24608267fab4fdcf33ce6a (live head re-read before posting: afe9cfd87649cfc1de24608267fab4fdcf33ce6a); origin/main 4647321d8b33711aeba1f1d1bb6a3a10224c0e46 (head contains it)
+RESULT pr-contract old forge 3f27aed (bot merge, non-main side, code edit): rc=1 "not on origin/main" (round 1: rc=0)
+RESULT pr-contract old forge ae285c7 (side .gitattributes driver + hand edit): rc=1 "not on origin/main" (round 1: rc=0)
+RESULT pr-contract re-forged on afe9cfd87649cfc1de24608267fab4fdcf33ce6a: 17d94aa rc=1, 74f5717 rc=1; control real-main bot merge db97274 rc=0 accepted; old control be32526 rc=0
+RESULT mutant M1 (policy_lint ancestor check removed): 17d94aa accepted rc=0 -> the check is load-bearing; 74f5717 still refused (attrs now read at origin/main)
+RESULT carry A1 seat-authored "ci: pin killed mutants" ledger-only: NO ("authored by seat@e, not the writer")
+RESULT carry A2 same with forged bot email: YES (disclosed in code: metadata narrows, does not close)
+RESULT carry A3 bot email + code: NO
+RESULT carry A4 claims subject, tvofi email, ADDING a claim: NO ("adds claim lines")
+RESULT carry A5 "ci: drop inherited claims", seat author, adding: NO
+RESULT carry A6 "ci: anything" seat commit ADDING a claim line: YES (pre-existing #1667 path, also YES on main; orchestrator.md s11 separately requires claim files == origin/main's)
+RESULT carry A7 "ci: anything" structure_budgets edit: YES (pre-existing; budget-raise-gate still gates)
+RESULT carry forged merges 17d94aa / 74f5717: NO / NO
+RESULT mutant M2 (author check -> true): app_approve self-test 153 checks, 1 failed (the seat-author case)
+RESULT mutant M3 (claims add-only check off): 153 checks, 1 failed (the adding case)
+RESULT unmutated in wt: app_approve self-test 153/0; merge_main_bot self-test 24/0 (body says 24)
+RESULT merge_main_bot.py:247 chmod 0o700; CodeQL at head: success
+RESULT policy: fixer.md 6 names the merge-main bot; ci-autofix heading "A driver-file conflict: one bot merges it, none autofixes it"; merge-main.yml concurrency comment corrected; policy_lint --budgets rc=0 (fixer.md 293/295, corpus ~59551/59591); rules_sync --check rc=0
+RESULT CI settled at afe9cfd87649cfc1de24608267fab4fdcf33ce6a (38 runs, 0 pending): red only delivery-status 113343501671 and nightly-status 113343502916, both named and answered in ## Red checks; pr-contract 113364117982 success; earlier-head reds (CodeQL 113314033968, pr-contract 37777939476) named and answered
