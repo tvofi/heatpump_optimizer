@@ -30,11 +30,15 @@ permissions:
   contents: read
   pull-requests: read
 
-# Superseded pull-request runs are cancelled, nothing else is, as in
-# budget-raise-gate.yml (round-9 process review item 3).
+# No run is cancelled, as in budget-raise-gate.yml (R9-CI-2a): this check reads
+# the body, so a body edit starts a same-SHA twin of the run in flight, and
+# cancelling either would leave the SHA with a cancelled check run the edit
+# was meant to replace. The job is short and its check run is per head, so a
+# superseded head's run finishing costs nothing. `tests/entities.py` pins the
+# route.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   arch-score:

@@ -26433,7 +26433,8 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 # How each workflow that lists `pull_request: edited` keeps its same-SHA
 # twin from being cancelled. A design choice per file, not a derived fact.
 _CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
-                  "budget-raise-gate.yml": "per-run"}
+                  "budget-raise-gate.yml": "per-run",
+                  "arch-score.yml": "per-run"}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
