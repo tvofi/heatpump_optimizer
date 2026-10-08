@@ -1,0 +1,4 @@
+run 37673851552: closures-autofix: left out 2 failed recording(s) of script(s) the check did not name: tests/entities.py, tests/stress.py
+run 37673851552: AUTOFIX: changed
+run 37674068287: closures-autofix: left out 2 failed recording(s) of script(s) the check did not name: tests/entities.py, tests/stress.py
+run 37674068287: AUTOFIX: changed

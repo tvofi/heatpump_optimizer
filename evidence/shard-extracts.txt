@@ -1,0 +1,37 @@
+Run 37711053129 (#2048, head 894e821cd5) shard extracts, reviewer-fetched 2026-10-08
+== mutation (113096816142)
+MUTATION TABLE REFUSED -- 4735 unpinned site(s) against 4693 at the ratchet base c327da7f176afa3d07acd5562b91f6042bb32809, 56 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base o
+== mutation-pin-plan (113097002355)
+2026-10-08T01:05:14.5882810Z count=10
+== mutation-pins (10) (113097071079)
+PIN SHARD 10/10 -- 5 of 56 site(s), split by anchor
+PIN KILLED: 3 pinned, 2 left unpinned (2 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (7) (113097071106)
+PIN SHARD 7/10 -- 5 of 56 site(s), split by anchor
+PIN KILLED: 4 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (8) (113097071114)
+PIN SHARD 8/10 -- 5 of 56 site(s), split by anchor
+PIN KILLED: 4 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (2) (113097071116)
+PIN SHARD 2/10 -- 6 of 56 site(s), split by anchor
+== mutation-pins (6) (113097071122)
+PIN SHARD 6/10 -- 6 of 56 site(s), split by anchor
+PIN KILLED: 4 pinned, 2 left unpinned (1 survived, 0 not started for the budget, 1 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (3) (113097071123)
+PIN SHARD 3/10 -- 6 of 56 site(s), split by anchor
+PIN KILLED: 5 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (9) (113097071129)
+PIN SHARD 9/10 -- 5 of 56 site(s), split by anchor
+PIN KILLED: 4 pinned, 1 left unpinned (0 survived, 0 not started for the budget, 1 timed out, 0 skipped) -- no survivor: a later run drives the rest
+== mutation-pins (1) (113097071130)
+PIN SHARD 1/10 -- 6 of 56 site(s), split by anchor
+PIN KILLED: 6 pinned, 0 left unpinned
+== mutation-pins (4) (113097071153)
+PIN SHARD 4/10 -- 6 of 56 site(s), split by anchor
+PIN KILLED: 5 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-pins (5) (113097071735)
+PIN SHARD 5/10 -- 6 of 56 site(s), split by anchor
+PIN KILLED: 5 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+== mutation-autofix (113125970165)
+shards merged: measured
+AUTOFIX: changed
