@@ -1,1 +1,1 @@
-depth_root_seams: ['dev/audit/harnesses/r9_dbg2_selftest_price.py:40: ROOT = Path(__file__).resolve().parents[3]']
+depth_root_seams: []
