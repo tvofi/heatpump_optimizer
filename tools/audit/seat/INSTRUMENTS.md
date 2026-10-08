@@ -162,6 +162,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   driver), drops inherited claims, pushes as the App, prefixes ## Head with
   what happened. When: main moved under an open PR. Refusal: a conflict is
   not auto-resolved — it stops loudly instead.
+- `run_twins.py` — counts a workflow's cancelled `pull_request` runs that
+  sat beside a same-SHA sibling (two events at one head, not a
+  supersession), from cached `/actions/workflows/<file>/runs` pages or
+  `--fetch`. When: judging a workflow's `concurrency:` block (R9-CI-2a).
+  Refusal: none; it enumerates.
 - `resume_doc.py` — generates the resume markdown from the roster plus live
   PR state, under a byte budget. When: a state beat; regenerate rather than
   hand-edit the resume. Refusal: over-budget output refuses with `--out`
