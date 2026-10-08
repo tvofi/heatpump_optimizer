@@ -1,0 +1,124 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+remerge CONFLICT (content): Merge conflict in custom_components/heatpump_optimizer/pump_arbiter.py
+index b390afc2..62c92738 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -143,20 +143,6 @@ from homeassistant.util import dt as dt_util
+ 
+ from . import boost, pump_mode, quiet_windows, setpoint_check
+ from .const import (
+-<<<<<<< c27b616d (test(#1745): the capacity curve's two gates on both arms; the silent arm reports a raise)
+-=======
+-    CONF_DHW_SETPOINT_ENTITY,
+-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
+-    CONF_HEAT_PUMP_MODE_ENTITY,
+-    CONF_HEAT_PUMP_SWITCH_ENTITY,
+-    CONF_PUMP_DUTY_MODE,
+-    CONF_QUIET_OFF_WINDOWS,
+-    CONF_QUIET_SILENT_WINDOWS,
+-    CONF_SPACE_SETPOINT_ENTITY,
+-    CONF_SPACE_SETPOINT_UNIT,
+-    DEFAULT_PUMP_DUTY_MODE,
+-    DEFAULT_SPACE_SETPOINT_UNIT,
+->>>>>>> 6b91e238 (Merge pull request #2029 from tvofi/fix/r9-record-automerge)
+     DOMAIN,
+     MODE_AUTO,
+     MODE_BOOST,
+@@ -288,26 +274,18 @@ _MODE_DOMAINS = frozenset(("select", "input_select"))
+ 
+ 
+ def _entities(config: Any) -> dict[str, Any]:
+-<<<<<<< c27b616d (test(#1745): the capacity curve's two gates on both arms; the silent arm reports a raise)
+-    """Slot -> the configured entity id; the three writable pump slots."""
+-    cfg = EntryConfig.from_mapping(config)
+-    return {
+-        "mode": cfg.heat_pump_mode_entity,
+-        "dhw_setpoint": cfg.dhw_setpoint_entity,
+-        "space_setpoint": cfg.space_setpoint_entity,
+-=======
+     """Slot -> the configured entity id.
+ 
+     The silent slot is the capacity-limited entity only while that entity
+     is a switch the arbiter can hold. A binary sensor stays a reading.
+     """
+-    silent = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
++    cfg = EntryConfig.from_mapping(config)
++    silent = cfg.heat_pump_capacity_limited_entity
+     return {
+-        "mode": config.get(CONF_HEAT_PUMP_MODE_ENTITY),
+-        "dhw_setpoint": config.get(CONF_DHW_SETPOINT_ENTITY),
+-        "space_setpoint": config.get(CONF_SPACE_SETPOINT_ENTITY),
++        "mode": cfg.heat_pump_mode_entity,
++        "dhw_setpoint": cfg.dhw_setpoint_entity,
++        "space_setpoint": cfg.space_setpoint_entity,
+         "silent": silent if quiet_windows.silent_control_usable(silent) else None,
+->>>>>>> 6b91e238 (Merge pull request #2029 from tvofi/fix/r9-record-automerge)
+     }
+ 
+ 
+@@ -582,7 +560,8 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
+     """
+     if _entities(inp.config)["silent"] is None:
+         return None
+-    spec = inp.config.get(CONF_QUIET_SILENT_WINDOWS)
++    cfg = EntryConfig.from_mapping(inp.config)
++    spec = cfg.quiet_silent_windows
+     if not _silent_rows(spec):
+         return None
+     if inp.mode == MODE_BOOST:
+@@ -590,7 +569,7 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
+     held = boost.held_for(coord)
+     if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
+         return False
+-    return _inside_silent(spec, inp.config.get(CONF_QUIET_OFF_WINDOWS), now)
++    return _inside_silent(spec, cfg.quiet_off_windows, now)
+ 
+ 
+ def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
+diff --git a/tests/features.py b/tests/features.py
+index 742f13bc..7d0aca39 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -52856,9 +52856,9 @@ def _pa_sw(coord):
+ def _pa_silent(duties="s", spec="06:00-08:00", entity="switch.pump_night_mode", **kw):
+     """A controlling arbiter with a night-mode switch and, unless ``spec`` is None, silent rows."""
+     coord = _PaCoord(_PA_TUYA, duties=duties, **kw)
+-    coord._config["heat_pump_capacity_limited_entity"] = entity
++    with_config(coord, {"heat_pump_capacity_limited_entity": entity})
+     if spec is not None:
+-        coord._config["quiet_silent_windows"] = spec
++        with_config(coord, {"quiet_silent_windows": spec})
+     coord.hass.states.set(entity, FakeState("off"))
+     return coord
+ 
+@@ -52911,7 +52911,7 @@ R.check(
+     f"{_pa_sw(_pa_out)} {_pa_out.writes()}",
+ )
+ _pa_lap = _pa_silent()
+-_pa_lap._config["quiet_off_windows"] = "06:00-08:00"
++with_config(_pa_lap, {"quiet_off_windows": "06:00-08:00"})
+ _pa_run(_pa_lap, 1)
+ R.check(
+     "where an off row overlaps a silent row the switch is held off, not on",
+@@ -53005,7 +53005,7 @@ R.check(
+ )
+ 
+ _pa_pwr = _pa_silent()
+-_pa_pwr._config["heat_pump_switch_entity"] = "switch.pump_power"
++with_config(_pa_pwr, {"heat_pump_switch_entity": "switch.pump_power"})
+ _pa_pwr.hass.states.set("switch.pump_power", FakeState("off"))
+ _pa_run(_pa_pwr, 1)
+ R.check(
+@@ -53053,9 +53053,9 @@ R.check(
+ 
+ _pa_idle = _PaCoord(_PA_TUYA, duties="-")
+ _pa_offw = _PaCoord(_PA_TUYA, duties="-")
+-_pa_offw._config["quiet_off_windows"] = "06:00-08:00"
+-_pa_offw._config["heat_pump_switch_entity"] = "switch.pump_power"
+-_pa_offw._config["heat_pump_capacity_limited_entity"] = "switch.pump_night_mode"
++with_config(_pa_offw, {"quiet_off_windows": "06:00-08:00"})
++with_config(_pa_offw, {"heat_pump_switch_entity": "switch.pump_power"})
++with_config(_pa_offw, {"heat_pump_capacity_limited_entity": "switch.pump_night_mode"})
+ _pa_offw.hass.states.set("switch.pump_power", FakeState("on"))
+ _pa_offw.hass.states.set("switch.pump_night_mode", FakeState("on"))
+ _pa_run(_pa_idle, 1)

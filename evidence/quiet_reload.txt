@@ -1,5 +1,0 @@
-RESULT call_error=None
-RESULT options_off='09:00-09:30'
-RESULT live_spec='09:00-09:30' live_off_steps=2 live_fraction=0.8
-RESULT reloaded=0
-RESULT rebuilt_spec='09:00-09:30' rebuilt_off_steps=2 rebuilt_fraction=0.8

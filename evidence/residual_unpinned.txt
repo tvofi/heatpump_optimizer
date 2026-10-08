@@ -1,0 +1,5 @@
+  UNPINNED custom_components/heatpump_optimizer/legionella.py:194 GUARD_OFF -- skip-budget
+  UNPINNED custom_components/heatpump_optimizer/entry_config.py:282 RETURN_DEL -- skip-budget
+  UNPINNED custom_components/heatpump_optimizer/pump_arbiter.py:572 RETURN_DEL -- skip-budget
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:6840 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/entry_config.py:272 CMP_BOUND -- skip-budget
