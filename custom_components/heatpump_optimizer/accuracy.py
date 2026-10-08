@@ -32,6 +32,7 @@ import numpy as np
 from homeassistant.util import dt as dt_util
 
 from .const import HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
+from .draw_range import DrawRange
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -173,6 +174,10 @@ class AccuracyTracker:
     #: restored one -- and an accepted refit's own evidence would be applied
     #: a second time. Persisted, because the samples it fences are.
     evidence_since: datetime | None = None
+    #: The metered running draw beside the level the plan asked for: the
+    #: same predicted-versus-realised power pair, kept over running intervals
+    #: only, and the range it clamps the plan to (``draw_range``).
+    draw: DrawRange = field(default_factory=DrawRange)
 
     def record(self, sample: AccuracySample) -> None:
         self.samples.append(sample)
@@ -381,8 +386,10 @@ class AccuracyTracker:
             if self.evidence_since is not None
             else {}
         )
+        draw = {"draw": self.draw.as_dict()} if self.draw.samples else {}
         return {
             **since,
+            **draw,
             "samples": [s.as_dict() for s in recent],
             # T5 #16, additive keys. The pending promises persist too, or
             # every restart would silently discard up to a day of filed
@@ -464,6 +471,7 @@ class AccuracyTracker:
                 if not np.isfinite(lead) or not np.isfinite(predicted):
                     continue
                 tracker.lead_pending.append((when, lead, predicted))
+        tracker.draw = DrawRange.from_dict(data.get("draw"))
         since = data.get("evidence_since")
         if since:
             tracker.evidence_since = stored_instant(

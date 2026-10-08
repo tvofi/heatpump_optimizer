@@ -5,7 +5,7 @@ from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
-from .accuracy import utc_elapsed_seconds
+from .drift import utc_elapsed_seconds
 from .const import (
     CONF_DHW_WOOD_COIL_ENABLED,
     CONF_EXTERNAL_HEAT_ENABLED,
