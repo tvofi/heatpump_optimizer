@@ -1058,6 +1058,7 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
    "tools/site/package-lock.json",
@@ -1289,6 +1290,7 @@
    "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/throwaway_git.py",
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/judge_batch.py",
@@ -2400,7 +2402,8 @@
   ],
   "tests/layout.py": [
    "tests/layout.json",
-   "tests/layout.py"
+   "tests/layout.py",
+   "tests/throwaway_git.py"
   ],
   "tests/manual_plan.py": [
    "custom_components/heatpump_optimizer/__init__.py",
@@ -3051,6 +3054,7 @@
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
+   "dev/audit/harnesses/throwaway_git_sites.sh",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
    "dev/audit/rounds/round3/D4/card_states_geometry.mjs",
@@ -3567,47 +3571,47 @@
  "recorded": {
   "tests/arch_score.py": {
    "rc": 0,
-   "seconds": 236.2
+   "seconds": 342.6
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 19.6
+   "seconds": 41.8
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 118.0
+   "seconds": 159.6
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 1.6
+   "seconds": 2.8
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 800.2
+   "seconds": 1804.3
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 10.0
+   "seconds": 19.4
   },
   "tests/card_drift.mjs": {
    "rc": 0,
-   "seconds": 3.1
+   "seconds": 5.4
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 13.4
+   "seconds": 39.3
   },
   "tests/debug_collect.py": {
    "rc": 0,
-   "seconds": 1.1
+   "seconds": 1.7
   },
   "tests/deployment_shape.py": {
    "rc": 0,
-   "seconds": 2.3
+   "seconds": 3.6
   },
   "tests/doc_claims.py": {
    "rc": 0,
-   "seconds": 4.6
+   "seconds": 10.3
   },
   "tests/dst_checks.py": {
    "rc": 0,
@@ -3615,23 +3619,23 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 35.5
+   "seconds": 53.6
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 228.1
+   "seconds": 354.4
   },
   "tests/env_drift.py": {
    "rc": 0,
-   "seconds": 0.6
+   "seconds": 1.0
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 282.5
+   "seconds": 896.1
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 50.8
+   "seconds": 90.4
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -3639,67 +3643,67 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 0.6
+   "seconds": 1.0
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 0.8
+   "seconds": 1.4
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.3
+   "seconds": 0.4
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 163.6
+   "seconds": 220.7
   },
   "tests/layout.py": {
    "rc": 0,
-   "seconds": 11.6
+   "seconds": 17.3
   },
   "tests/manual_plan.py": {
    "rc": 0,
-   "seconds": 5.2
+   "seconds": 9.2
   },
   "tests/md_tables.mjs": {
    "rc": 0,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   "tests/open_meteo.py": {
    "rc": 0,
-   "seconds": 0.3
+   "seconds": 0.4
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 130.7
+   "seconds": 186.3
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.0
+   "seconds": 1.6
   },
   "tests/solar_alignment.py": {
    "rc": 0,
-   "seconds": 0.8
+   "seconds": 1.4
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 616.7
+   "seconds": 1077.8
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 5.7
+   "seconds": 19.9
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 0.3
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 36.9
+   "seconds": 56.0
   },
   "tests/wood_advisor.py": {
    "rc": 0,
-   "seconds": 0.8
+   "seconds": 1.8
   }
  }
 }
