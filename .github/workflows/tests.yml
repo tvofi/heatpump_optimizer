@@ -2577,9 +2577,10 @@ jobs:
         with:
           python-version: "3.13"
 
-      # One artifact per shard (mutation-pins-1..4), each in its own
-      # subdirectory; `merge_pin_shards` folds them into the one directory
-      # `apply_pins` reads.
+      # One artifact per shard (mutation-pins-1..N), each in its own
+      # subdirectory -- except a lone match, which download-artifact extracts
+      # into `path` itself (R9-CI-2); `merge_pin_shards` reads either layout
+      # and folds them into the one directory `apply_pins` reads.
       - name: Download the pins the mutation-pins shards measured
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         continue-on-error: true

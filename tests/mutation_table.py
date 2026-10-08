@@ -1023,11 +1023,18 @@ def merge_pin_shards(root: str, out: str) -> str:
     status (`_SHARD_PRECEDENCE`). Shards measured different heads only if
     a push raced them, which `apply_pins`'s head check then refuses. Returns
     the merged status; `out` is left empty when no shard wrote one.
+
+    One shard is one matching artifact, and download-artifact extracts a lone
+    match into `root` itself rather than a subdirectory, so a `root` holding
+    a status is that one shard (R9-CI-2: #2025's four pins read as no
+    measurement).
     """
     statuses: list[str] = []
     pins: dict = {}
     heads: set[str] = set()
-    for d in sorted(Path(root).iterdir()) if Path(root).is_dir() else []:
+    r = Path(root)
+    shards = [r] if (r / "status").is_file() else sorted(r.iterdir()) if r.is_dir() else []
+    for d in shards:
         try:
             st = (d / "status").read_text().strip()
         except OSError:
