@@ -46,6 +46,7 @@ The same check at the head with the entry present prints `ok` for both the examp
 ## Red checks
 
 - `budget-raise-gate`: red by design until tvofi approves at the head (0013); the raise is the two `fixer.md` caps above, decided under mandate 6067089637. No cheaper detector is owed: the gate is the detector, and it fired.
+- `nightly-status`: grades the last concluded scheduled Tests run on `main` (`tests/nightly_status.py`), not this diff. This diff touches no workflow and not that script, and the script reads no delivery row (`grep -c delivery tests/nightly_status.py` prints 0). The red is `main`'s nightly state, so no detector is owed here.
 
 ## Forward-carry
 
