@@ -619,6 +619,64 @@ def _gchv_night_mode_pins() -> dict[str, bool]:
     }
 
 
+def _service_dispatch_pins() -> dict[str, bool]:
+    """R9-SW-2: kill ``pump_arbiter._service``'s sites ``--pin-killed`` timed out.
+
+    Each slot's one write through ``_write``: the mode an option select, the
+    silent switch turn_on/turn_off, a set-point ``_write_setpoint``'s
+    set_value. ``tests/features.py`` holds the behaviour; this is the cheap
+    driver the pin lane can finish.
+    """
+    from heatpump_optimizer import pump_arbiter
+
+    class Coord:
+        pass
+
+    states = {
+        "select.pump_mode": FakeState(
+            "Heat + DHW", attributes={"options": ["Heat", "Heat + DHW"]},
+        ),
+        "switch.night": FakeState("off"),
+        "number.dhw_set": FakeState("50", attributes={"min": 40, "max": 63}),
+    }
+    config = {
+        "heat_pump_mode_entity": "select.pump_mode",
+        "dhw_setpoint_entity": "number.dhw_set",
+        "heat_pump_capacity_limited_entity": "switch.night",
+    }
+    now = datetime(2026, 1, 10, 6, 0, tzinfo=UTC)
+
+    def one(slot, value):
+        coord = Coord()
+        coord.hass = FakeHass(dict(states))
+        inp = pump_arbiter.ArbiterInputs(
+            hass=coord.hass, config=config, mode="auto", plan=None,
+            plan_stale=False, entry_released=False, state=None, thermal=None,
+            params=None, action=None, measured_power_kw=None, disinfecting=False,
+        )
+        asyncio.run(pump_arbiter._write(coord, inp, slot, value, now))
+        calls = [(d, s, dict(data or {})) for d, s, data in coord.hass.services.calls]
+        return calls, pump_arbiter.state_for(coord).written.get(slot)
+
+    mode_calls, mode_held = one("mode", "heat")
+    on_calls, on_held = one("silent", True)
+    off_calls, _ = one("silent", False)
+    dhw_calls, dhw_held = one("dhw_setpoint", 52.0)
+    return {
+        "mode writes its option": mode_calls == [
+            ("select", "select_option", {"entity_id": "select.pump_mode", "option": "Heat"}),
+        ] and mode_held is not None and mode_held[0] == "heat",
+        "silent writes turn_on and turn_off": on_calls == [
+            ("switch", "turn_on", {"entity_id": "switch.night"}),
+        ] and off_calls == [
+            ("switch", "turn_off", {"entity_id": "switch.night"}),
+        ] and on_held is not None and on_held[0] is True,
+        "a set-point writes set_value": dhw_calls == [
+            ("number", "set_value", {"entity_id": "number.dhw_set", "value": 52.0}),
+        ] and dhw_held is not None and dhw_held[0] == 52.0,
+    }
+
+
 def main() -> int:
     R = Results("Guard pins (#805 non-coordinator)")
     R.check(
@@ -670,6 +728,8 @@ def main() -> int:
     )
     for name, ok in _gchv_night_mode_pins().items():
         R.check(f"#1913 GCHV {name}", ok)
+    for name, ok in _service_dispatch_pins().items():
+        R.check(f"R9-SW-2 {name}", ok)
     return R.close("GUARD PIN CHECKS")
 
 
