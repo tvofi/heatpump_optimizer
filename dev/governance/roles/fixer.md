@@ -68,7 +68,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    run it locally per mutant.
 
    `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
-   `python3 tests/structure.py` is seconds and runs before every push regardless.
+   `python3 tests/structure.py` (seconds) runs before every push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
@@ -80,8 +80,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
-   head is the reviewer's measuring surface and **only the orchestrator moves
-   it**: a head that moves mid-review invalidates measurements already taken,
+   head is the reviewer's measuring surface and **only the orchestrator or a
+   `--carry`-passing commit moves it**: a head that moves mid-review invalidates measurements already taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
@@ -89,9 +89,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
    alone (`fix-review.md` step 12).
 
    Landing the pull request is the **orchestrator's**, or a merge-and-release
-   seat it starts. "Coordinator" here is `coordinator.py` and its ratchet
-   budgets, never a seat.
-7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
+   seat it starts.
+7. The PR body closes its issues (`Closes #N`), names the head SHA measured
+   (a head `--carry` reaches needs no re-take; name bot reds),
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
    Three agents counting "the same" published-attribute census (#373) got 59, 50,

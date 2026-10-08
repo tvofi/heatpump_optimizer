@@ -1,0 +1,180 @@
+# The merge-main bot (R9-CI-2b; tvofi, 2026-10-08): after every push to main,
+# merge main into each open pull request GitHub reports DIRTY whose only
+# conflicts the repository's merge drivers resolve, and push it as
+# `ci: merge main`. GitHub runs no merge driver, so without this a merge that
+# touched tests/closures.json (or another `.gitattributes` `merge=` file) left
+# every pull request that touched it too DIRTY, and a DIRTY pull request runs
+# no CI at all (`claim-files.md`). The rules -- when it pushes and when it
+# refuses -- are tools/pr/merge_main_bot.py's docstring; `ci-autofix.md`
+# names this the one bot permitted to push a resolution.
+#
+# NO PULL REQUEST CODE RUNS. The checkout is main's own commit; the merge is
+# `git merge-tree` there, so the drivers and the .gitattributes it uses are
+# main's; the program runs under `python3 -I`. A pull request contributes
+# only its head commit's objects.
+#
+# THE PUSH. As the other autofix jobs push (tests.yml's claims-autofix):
+# CLOSURES_PUSH_TOKEN when set, else GITHUB_TOKEN, whose pull_request runs
+# GitHub holds `action_required`; those are dispatched and then approved as
+# the Actions-only App, fail-soft while its secrets are absent.
+
+name: Merge main into DIRTY pull requests
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Decide and print, push nothing"
+        type: boolean
+        default: true
+
+# One run at a time, none cancelled: each push to main is answered once, in order.
+concurrency:
+  group: merge-main
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  merge-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
+      pull-requests: read
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install main's merge drivers
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          python3 -I tools/merge/ledger_merge.py --install
+          python3 -I tests/env_drift.py --install-merge-driver
+          git config --get-regexp '^merge\.'
+
+      - name: Merge main where only a driver file conflicts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ github.sha }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          PUSH_AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$PUSH_AUTH"
+          export PUSH_AUTH
+          dry=""; [ "$DRY_RUN" = "true" ] && dry="--dry-run"
+          python3 -I tools/pr/merge_main_bot.py run --repo "$REPO" --main "$MAIN_SHA" \
+            --pushed-file "$RUNNER_TEMP/pushed.txt" $dry | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Dispatch the checks a token push leaves holding
+        id: dispatch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+        run: |
+          set -euo pipefail
+          test -s "$RUNNER_TEMP/pushed.txt" || { echo "nothing pushed"; exit 0; }
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
+          fi
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
+          while read -r branch sha; do
+            for wf in tests.yml hassfest.yml validate.yml codeql.yml; do
+              gh workflow run "$wf" --ref "$branch" \
+                || echo "::warning::dispatching $wf on $branch failed"
+            done
+          done < "$RUNNER_TEMP/pushed.txt"
+
+      # The pull_request runs a GITHUB_TOKEN push creates wait action_required
+      # (#1276); approve them as the Actions-only App, as claims-autofix does,
+      # after a bounded poll for each pushed SHA's runs (#1283). Fail-soft.
+      - name: Approve the runs the pushes left holding
+        if: steps.dispatch.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ] || [ -z "$RUNS_APPID" ]; then
+            echo "::notice::HPO_RUNS_PEM or HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % json.load(sys.stdin)["token"])' "$tok_h" \
+            && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          held_at() { # branch sha -> held run ids at that sha
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$1&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$2"
+          }
+          approved=0
+          while read -r branch sha; do
+            waited=0
+            ids=$(held_at "$branch" "$sha" || true)
+            while [ -z "$ids" ] && [ "$waited" -lt 60 ]; do
+              sleep 5; waited=$((waited + 5)); ids=$(held_at "$branch" "$sha" || true)
+            done
+            for id in $ids; do
+              if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+                approved=$((approved + 1))
+              else
+                echo "::warning::approving run $id on $branch was refused (fail-soft)"
+              fi
+            done
+          done < "$RUNNER_TEMP/pushed.txt"
+          echo "$approved held run(s) approved by the Actions-only App" | tee -a "$GITHUB_STEP_SUMMARY"

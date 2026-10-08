@@ -81,6 +81,6 @@ not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot in
 ## The claim-file conflict is prevented, not autofixed
 
 A conflict in the two claim files is **not** an autofix case: CI never runs on a `DIRTY` pull
-request, so no job is red and there is no failure to key on, and the repair would push to
-branches frozen for review. `claim-files.md` carries the refusal — do not replace it with
-`merge=union`, or add a job that pushes resolutions.
+request, so no job is red to key on. Do not replace the driver with `merge=union`. Only
+`.github/workflows/merge-main.yml` pushes a resolution (tvofi, 2026-10-08): `ci: merge main`,
+where `main`'s drivers resolve every conflict.
