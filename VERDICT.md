@@ -1,23 +1,19 @@
-Fix review: blocked e575850bdbe369669ddedfc1137c8007d52094b9 body-stale: body names e4218c25 and the pre-pin mutation reds; 9 of 11 sites now pinned, re-take Head, Unpinned sites and Red checks
+Fix review: blocked 1e92e0e8f3fa097a57ac5aa4a93604042ee65814 body-stale: Red checks says "At this head: pending CI"; replace with the settled reds below
 
-bus-nonce: 5cfaffdf497c479e28b9da9d93824ef8
+bus-nonce: 5bcccf0cba2d36504bcae9d804900563
 
-PR #2024 (R9-UX-9), delta review. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence. Worktree: /Users/timmalmstrom/hpo-seats/review-2024-delta/wt.
+PR #2024 (R9-UX-9), re-review at 1e92e0e8f3fa097a57ac5aa4a93604042ee65814. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence (checkruns5.tsv, body5.txt, head5.txt). The code is clean; the only block is one body line.
 
-Reason: the body is stale against this head. The code is fine; the block is the body only, and one pass fixes it.
+## The one fix
+`## Red checks`, the line "At this head: pending CI." (body line 154), must be replaced with the settled reds read at 1e92e0e8f3fa097a57ac5aa4a93604042ee65814 (38 check-runs, one pending, `coverage` job 113325908150, not a required context):
+- `budget-raise-gate` failure 113325906657 and failure 113325918910: red by construction until tvofi's approving review at the head; raise max_class_loc 9048 to 9049 and seam_cut_total 766 to 768, owner-approved 2026-10-07 (decision 0013). Both runs are failures at this head; the previous "cancelled twin" wording no longer applies.
+- `delivery-status` 113325904355 and `nightly-status` 113325903798: main's, not required contexts.
+Green at this head: `mutation` 113325908215, `closures` 113326030125, `fast (3.14)` 113325907940; `mutation-autofix`, `closures-autofix`, `mutation-pins`, `mutation-pin-plan` skipped. No nightly-ha red at this head. The "At c13216ce" mutation and mutation-autofix reds can stay as history; they are answered under `## Unpinned sites`.
 
-## What was verified (no code defect)
-- (a) 65f5e914..e4218c25: the only branch commit is the merge of origin/main 0c25836e (carries R9-CI-1 #2049). The rest of the range came in through main. e4218c25..e575850bdbe369669ddedfc1137c8007d52094b9 is one commit, github-actions[bot] "ci: pin killed mutants", 9 data-only JSON files under tests/mutation_ledger/killed_by/ (flow_meter.py x2, inputs.py x6, thermal_model.py x1, each "killed_by": "tests/features.py"). No production, test or policy file touched.
-- (b) `git merge-tree --write-tree 65f5e914 0c25836e` exits 0 and gives tree 45002dce, equal to e4218c25's tree. The only resolution was tests/closures.json by the ledger merge driver (LEDGER-MERGE line in evidence/mt.err). Nothing by hand.
-- (c) Three-dot diff vs main is unchanged in substance from the approved head: same 1552 lines, differing only in two features.py hunk-header offsets (evidence/old.diff, new.diff).
-- (d) At e4218c25 closures, coverage, coverage-ratchet and mutation-pins (2) were green and closures-autofix skipped. mutation-autofix then pushed the bot commit, which is the head here. CI at e575850bdbe369669ddedfc1137c8007d52094b9 had not settled when this was posted (evidence/checkruns3.tsv).
+## Verified
+- Structure: the branch's own commits since e575850b are two by tvofi (ef115813 and f4c8df63), bot pins and closures re-records, and merges of main 13b6d121 (an ancestor of the head). Main merges only; nothing resolved by hand beyond the ledger driver's closures.json.
+- inputs.py:831 RETURN_DEL: the check in tests/features.py now asserts a refused flow reading carries no value; the killed_by pin 69557675~2 is a measured kill by tests/features.py (CI artifact, pins-1, at c13216ce which holds that check). `mutation` is green at this head, which confirms the table accepts it.
+- inputs.py:278 normalize_flow_kg_s GUARD_OFF b46fca00: survivor_triage "equivalent". I attacked it: FLOW_UNIT_TO_KG_S is a plain dict of eight keys (L/min, L/s, L/h, m3/h, m3/s, kg/s, kg/min, kg/h), no "None" key and no __missing__; with the guard off a None unit looks up "None", misses, and returns None exactly as the guard does. The function is pure, so outputs are equal for every input. The equivalence holds.
+- Production code, goldens and claims are unchanged in substance from the approved head 65f5e914 (three-dot diff differs by ledger pins, closures.json re-records and the 12-line features.py check).
 
-## What the body must change (one pass)
-1. `## Head` (line 15): it names e4218c25 as the head. Name e575850bdbe369669ddedfc1137c8007d52094b9, state that it is e4218c25 plus the bot commit "ci: pin killed mutants" (9 killed_by ledger files), and that the bot commit changes no code.
-2. `## Unpinned sites` (lines 104-118): it says the 11 sites are "pinned by mutation-autofix (awaiting R9-CI-1)" and cites mutation at f455915c. R9-CI-1 has landed and 9 of the 11 are now pinned by the ledger files above. Rewrite it to: the 9 pinned sites with their ledger file names (CMP_BOUND 90fa3e7b and e7c69534 in flow_meter.py; read_flow_kg_s a53547be CMP_BOUND and GUARD_OFF, 1d38d74f, a5e2ead3, RETURN_DEL 95e13237; normalize_flow_kg_s RETURN_DEL 9dba8556; thermal_model _configured RETURN_DEL 2d7f1402), and the 2 that remain unpinned (inputs.py:278 GUARD_OFF and the second inputs.py RETURN_DEL, 831 or 833, whichever has no ledger file). For those two keep the reviewer's equivalence judgement (str(None) is no unit; falls through to value=None) and say a survivor_triage verdict is owed if CI reports them. Drop every "awaiting R9-CI-1".
-3. `## Red checks` (lines 122-145): it reads f455915c job ids and lists mutation and mutation-autofix as red awaiting R9-CI-1. Re-read the check-runs API at e575850bdbe369669ddedfc1137c8007d52094b9 after CI settles and list every red with its job id at this head. Remove the mutation red and the mutation-autofix red if they are no longer red; if mutation is still red, state its actual cause from its log (it was not readable while its run was open). Keep budget-raise-gate (failure job 113220891439 at e575850bdbe369669ddedfc1137c8007d52094b9, by construction: needs tvofi's approving review at the head, decision 0013; rerun the cancelled twin), delivery-status and nightly-status (main's, not required). Closures, coverage and the autofix rows to be reported as read, not carried.
-4. Every "at f455915c" or "at e4218c25" figure that the body presents as current (CI status, job ids) must be re-read at e575850bdbe369669ddedfc1137c8007d52094b9.
-
-The re-take should leave no head SHA other than e575850bdbe369669ddedfc1137c8007d52094b9 on a status line.
-
-I will re-review the body and the settled check-runs at the next head; code review needs no repeat unless the code tree moves.
+Once the body line is replaced the re-review is a body-only read at the next head.
