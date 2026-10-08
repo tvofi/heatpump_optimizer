@@ -110,6 +110,9 @@ Every red at the previous heads, each named exactly as the check-runs API spells
   - `python3 tests/delivery_status.py` on a clean worktree at origin/main `e2a4f7c6`, with this diff absent, prints the same `UNCHECKED` line.
   - Its `merge-collection` skip names 9 merge commits whose subjects `subject_number` cannot attribute (e.g. `618d014`, `0a60e06`, `f6ac991`); none is on this branch.
   - Cheaper detector: none is owed by this PR. The check already reports the skip; making those subjects attributable is the record lane's work.
+- `fast (3.14)` (check-run 113149021777 at `245468e2`) went red on `tools/release/stamp.py's --self-test passes`, failing with `OSError: [Errno 39] Directory not empty` under a temporary `.git/objects/pack`. This is the stamp.py self-test cleanup race, its second sighting; the first was #2048's shard 2.
+  - Neither `stamp.py` nor its self-test is in this diff. The failed job has been re-run.
+  - Carried to the R9-RO-9 roster entry on `handoff/audit-r9-fixplan` (`c716b8f8`). A root-cause seat is being dispatched for it under `defect-root-cause.md`, so the cause, the cheaper detector and the countermeasure are that seat's to answer, not this PR's.
 - `pr-contract` (check-runs 113131801566, 113132030985, 113132492257, 113144355126) was red because `## Red checks` did not name the reds above. This section names them.
 - `python3 tools/pr/ci_predict.py --base origin/main` at the head: `CI PREDICT: no closures or fast red predicted against e2a4f7c67b28 (a data-file read is not seen)`.
 
