@@ -1,9 +1,0 @@
-  SCOPE_CASE: full
-##[endgroup]
-INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
-  committed `inert_reads` does not list for it; the merge fast path
-  would treat a change to it as unread (R9-F10.9d). Re-derive:
-  ./tests/derive_closures.sh --single <script>
-    tests/harness_headers.py: dev/audit/harnesses/r9_ro12_batch_mutants.sh
-##[error]Process completed with exit code 1.
-##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
