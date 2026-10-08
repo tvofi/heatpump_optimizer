@@ -20,6 +20,17 @@
 #   bash dev/audit/harnesses/git_auto_maintenance_race.sh [RUNS] [shim|plain]
 #   bash dev/audit/harnesses/git_auto_maintenance_race.sh 0 spawn
 #
+#   GIT_BIN=<dir holding a git >= 2.54> \
+#     bash dev/audit/harnesses/git_auto_maintenance_race.sh [RUNS] realgit|realgit-forced
+#
+# Arms `realgit` and `realgit-forced` use no model either: they put GIT_BIN
+# first on PATH. `realgit-forced` also injects
+# maintenance.geometric-repack.auto=-1 through GIT_CONFIG_PARAMETERS (the -c
+# channel, separate from the GIT_CONFIG_COUNT channel the fix uses), so the
+# real repack fires on every commit or merge. This method is the #2051 fix
+# reviewer's (review-2051 realgit_race.sh, git 2.55.0 built from git/git
+# v2.55.0), adopted here so a later seat can rerun it.
+#
 # Arm `spawn` uses no model: it asks the real git (GIT_TRACE) whether a
 # commit spawns `git maintenance run --auto`, with no config and with the
 # env-config `maintenance.auto=false` the fix sets.
@@ -31,7 +42,23 @@
 set -u
 RUNS="${1:-3}"
 ARM="${2:-shim}"
-ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+repo_root() {
+  local d="$1"
+  if [ -f "$d" ]; then
+    d=$(dirname "$d")
+  fi
+  d=$(cd "$d" && pwd) || return 1
+  while [ "$d" != "/" ]; do
+    if [ -f "$d/custom_components/heatpump_optimizer/manifest.json" ]; then
+      printf '%s\n' "$d"
+      return 0
+    fi
+    d=$(dirname "$d")
+  done
+  printf 'no repository root above %s\n' "$1" >&2
+  return 1
+}
+ROOT="$(repo_root "$0")" || exit 2
 W="$(mktemp -d)"
 trap 'rm -rf "$W"' EXIT
 REAL_GIT="$(command -v git)"
@@ -69,6 +96,11 @@ EOF
 chmod +x "$W/bin/git"
 P="$PATH"
 [ "$ARM" = shim ] && P="$W/bin:$PATH"
+case "$ARM" in realgit|realgit-forced)
+  [ -x "${GIT_BIN:-}/git" ] || { echo "arm=$ARM needs GIT_BIN=<dir with git>" >&2; exit 2; }
+  P="$GIT_BIN:$PATH"; REAL_GIT="$GIT_BIN/git" ;;
+esac
+[ "$ARM" = realgit-forced ] && export GIT_CONFIG_PARAMETERS="'maintenance.geometric-repack.auto'='-1'"
 race=0 fail=0 last=
 for i in $(seq 1 "$RUNS"); do
   out="$(cd "$ROOT" && PATH="$P" python3 tools/release/stamp.py --self-test 2>&1)"; rc=$?

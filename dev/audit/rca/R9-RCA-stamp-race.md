@@ -73,6 +73,21 @@ whether a commit spawns `git maintenance run --auto`.
 | `5 plain` | fix `c0664ae6` | `directory_not_empty=0 nonzero_exit=0` |
 | `3 shim`, the three `GIT_CONFIG_*` keys deleted (mutant) | fix less its line | `directory_not_empty=3 nonzero_exit=3` |
 | `0 spawn` (real git 2.38.1) | n/a | `config=default maintenance_spawns=1`, `config=off maintenance_spawns=0` |
+| `20 realgit-forced` (real git 2.55.0) | base `ef3ca657` | `directory_not_empty=9 nonzero_exit=9` (`OSError: [Errno 66] Directory not empty: 'pack'`) |
+| `20 realgit-forced` (real git 2.55.0) | this branch (fix) | `directory_not_empty=0 nonzero_exit=0` |
+
+The two `realgit-forced` rows need no model. They use a real git 2.55.0 that the #2051 fix
+reviewer built from git/git v2.55.0. They also force the real repack on every commit through
+`GIT_CONFIG_PARAMETERS` (`maintenance.geometric-repack.auto=-1`). The method is the reviewer's,
+from its `realgit_race.sh`, and it is adopted into the harness as the `realgit` and
+`realgit-forced` arms.
+
+**Trigger rate is not failure rate.** The 2/256 in section 1 is the rate at which a self-test
+run *starts* a repack. A failure also needs that repack to still be writing when the cleanup
+reaches `objects/pack`. With nothing forced, the reviewer's real-git 2.55.0 run reproduced
+nothing in 300 runs on this Mac, at the base and at the fix alike. The CI failure rate per run
+is therefore not derived here. The mechanism is shown by the forced rows; the frequency comes
+only from the two CI sightings.
 
 ## 4. The fix
 
@@ -91,8 +106,15 @@ Alternatives considered:
   repack writing into a deleted tree.
 - Waiting for the child is not possible: it is daemonised, so the self-test holds no handle on
   it.
-- `gc.auto=0` alone does not close the race. In 2.55 it is consulted only when
-  `maintenance.auto` is unset, and the geometric task does not read it.
+- `gc.auto=0` would also close the race in these repositories. This corrects the first version
+  of this document, which said it would not. `prepare_auto_maintenance` falls back to
+  `gc.auto > 0` when `maintenance.auto` is unset, and here it is unset. The reviewer showed this
+  under real git 2.55.0. The seat re-ran it with two objects in shard 17: `gc.auto=0` gave 0
+  spawns and 0 packs, and the default gave a repack.
+  `maintenance.auto=false` is still the chosen setting, because it is the key git reads
+  *first*. `gc.auto` is consulted only while `maintenance.auto` is unset. So `gc.auto=0` holds
+  only until something in the inherited configuration sets `maintenance.auto`, for example a
+  runner's or a seat's `GIT_CONFIG_PARAMETERS`; the primary key has no such dependency.
 
 ## 5. How far the class reaches
 
@@ -112,7 +134,8 @@ here, and the barrier below is proposed for them.
   seat triage that attributes the red. A real stamp runs the same self-check and would refuse
   on it.
 - **P(recurrence):** measured at 2 sightings in about 4 h on 2026-10-08, from one site. The
-  per-run estimate for the stamp site is 2/256, from the mechanism in section 1.
+  2/256 from the mechanism in section 1 is the stamp site's *trigger* rate, not its failure
+  rate (section 3).
 - **cost(countermeasure, recurring):** the in-module fix adds about 0 s per run: three
   environment keys, plus one `git config` call of a few milliseconds.
 
@@ -124,3 +147,8 @@ or workflow-level `env:` in `.github/workflows/tests.yml` and `governance.yml`
 covers every throwaway repository in CI whose environment inherits `os.environ`. It is a
 code-owned workflow edit with its own `entities.py` pins, so it is owed as the next pull request
 and is not folded into this one. The orchestrator holds that decision.
+
+That workflow `env:` covers CI only. A seat whose own git is 2.54 or newer (Homebrew stable is
+2.56.0, per the #2051 fix review) stays exposed locally. The full closure is a shared
+throwaway-repository helper that every site uses, as `_throwaway_git_env()` is for stamp's two
+repositories, and the CI `env:` is only the cheap barrier while that helper does not exist.
