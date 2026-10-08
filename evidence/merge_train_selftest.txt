@@ -1,0 +1,3 @@
+  ok   hassfest.yml is in this tree and takes workflow_dispatch
+  ok   validate.yml is in this tree and takes workflow_dispatch
+merge_train self-test: 83 checks, 0 failed
