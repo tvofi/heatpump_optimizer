@@ -1,0 +1,40 @@
+head measured: 8e0dcb72c8f8379926e075f83823a0e0549e3b2d  merge-base: 4dbe5aace7440d0a7d43a249892fc63da890338c  date: 2026-10-08T21:17:15Z
+RESULT ha_imports_in_learner_model_files:
+accuracy.py:32:from homeassistant.util import dt as dt_util
+away.py:29:from homeassistant.util import dt as dt_util
+boost.py:27:from homeassistant.util import dt as dt_util
+defrost.py:71:from homeassistant.util import dt as dt_util
+dhw_learning.py:27:from homeassistant.core import HomeAssistant
+dhw_learning.py:29:from homeassistant.util import dt as dt_util
+inputs.py:555:        from homeassistant.util import dt as dt_util
+legionella.py:21:from homeassistant.core import HomeAssistant
+legionella.py:22:from homeassistant.helpers import issue_registry as ir
+legionella.py:24:from homeassistant.util import dt as dt_util
+RESULT states_get_files: away.py config_flow.py coordinator.py inputs.py pump_arbiter.py pump_signals.py services.py setpoint_check.py 
+RESULT services_async_call_files: coordinator.py disinfection.py pump_arbiter.py repairs.py 
+RESULT module_level_mutable_state (body names 2: boost._cold_lease, coordinator._PROCESS_WORKER):
+boost.py:58:_cold_lease: Any = None
+boost.py:217:_PLAN_BASES: WeakKeyDictionary[Any, CurrentAction] = WeakKeyDictionary()
+debugger.py:77:_COLLECTORS: WeakKeyDictionary[Any, DebugCollector] = WeakKeyDictionary()
+coordinator.py:521:_FENCED_CAUSES: set[tuple[str, str]] = set()
+coordinator.py:1139:_PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
+coordinator.py:1144:_WORKER_FALLBACK_CAUSES: dict[Any, str] = {}
+store.py:74:_NEWER_ON_DISK: set[str] = set()
+RESULT module_level_UPPER_constants_outside_const_py rule='^_?[A-Z][A-Z0-9_]+\s*(:[^=]+)?=' per file, const.py excluded: total 531
+  optimizer.py: 24
+  sysid.py: 23
+  thermal_model.py: 10
+  defrost.py: 15
+RESULT side_effect_edges_outside_allowed_list: store.py (Store I/O), open_meteo.py, notifier.py, legionella.py (issue_registry), repairs.py
+RESULT minimal_rule_in_policy_corpus:        0 hits
+RESULT architect_role_or_note_consumer:        0 hits (orchestrator.md only) ; roles: COMMON.md fix-review.md fixer.md judge.md nudge.md orchestrator.md root-cause.md verifier.md 
+RESULT module_level_mutable_state_full (rule: module-level assignment of set()/{}/[]/dict()/WeakKeyDictionary/None, const.py excluded):
+boost.py:58:_cold_lease: Any = None
+boost.py:210:_STATES: WeakKeyDictionary[Any, BoostState] = WeakKeyDictionary()
+boost.py:217:_PLAN_BASES: WeakKeyDictionary[Any, CurrentAction] = WeakKeyDictionary()
+coordinator.py:521:_FENCED_CAUSES: set[tuple[str, str]] = set()
+coordinator.py:1139:_PROCESS_WORKER: "subprocess.Popen[bytes] | None" = None
+coordinator.py:1144:_WORKER_FALLBACK_CAUSES: dict[Any, str] = {}
+debugger.py:77:_COLLECTORS: WeakKeyDictionary[Any, DebugCollector] = WeakKeyDictionary()
+pump_arbiter.py:261:_STATES: WeakKeyDictionary[Any, ArbiterState] = WeakKeyDictionary()
+store.py:74:_NEWER_ON_DISK: set[str] = set()

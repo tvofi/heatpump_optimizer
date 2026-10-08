@@ -1,0 +1,84 @@
+/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+/Users/timmalmstrom/hpo-seats/review-2064/head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+  ok   a green, carried, non-policy pull request merges (null control)
+  ok   a pull request with no dev/programme/delivery/<N>.md row is refused
+  ok   nightly-status red is ignored by default
+  ok   a red required check stops the train before any approval
+  ok   a re-run that went green supersedes the earlier red
+  ok   CI that never completes stops it as TIMEOUT
+  ok   a verdict that does not carry stops it
+  ok   main moving during CI stops it
+  ok   a policy pull request is never approved, even under a mandate
+  ok   a head that moves before the approval stops it
+  ok   a policy filter that fails its sentinel probe stops it
+  ok   code-owned without --mandate stops it
+  ok   code-owned with --mandate approves and merges
+  ok   the mandate body names the label, role, paths, verdict comment and head
+  ok   code-owned with a budget file is not mandate-approved
+  ok   a missing-evidence refusal is not overridden by a mandate
+  ok   a recarry conflict stops it, named as one
+  ok   a recarry that pushed nothing stops it
+  ok   a head behind main is recarried, then merged at the new head
+  ok   an absorbed-branch recarry lands in a real fixture repo: the worktree is the branch, the tip gate passes, the merge runs
+  ok   a title preflight refusal stops it before the merge
+  ok   a REFUSE line stops it even beside a clean line
+  ok   the merge is retried until GitHub reports MERGED
+  ok   a merge GitHub never takes stops it
+  ok   the queue runs in order
+  ok   the first refusal stops the queue
+  ok   a blocked verdict echoing the code-owned words is not mandate-approved (B1)
+  ok   a blocked verdict QUOTING app_approve's own code-owned line mid-line is not mandate-approved (anchor)
+  ok   a merge base that exits 0 but is not a sha stops the train
+  ok   the anchored code-owned refusal line still takes the mandate path (null control)
+  ok   another pull request's code-owned line does not take the mandate path for this one
+  ok   a head that moves between the App's refusal and the mandate review stops it
+  ok   a rename that moves a policy file out of the corpus is refused as policy (B2)
+  ok   a failing git diff stops the train (B3)
+  ok   a failing git merge-base stops the train (B3)
+  ok   fewer check runs than --min-runs is not complete CI
+  ok   action_required is not green
+  ok   stale is not green
+  ok   skipped and neutral are green (null control)
+  ok   the CI read pages past the first 100 runs
+  ok   main moving after approval and before the merge stops it
+  ok   a preflight that never says clean stops it
+  ok   a queue entry with a malformed verdict sha is refused
+  ok   the train's app_approve script is in the tree (tools/audit/app_approve.sh or tools/pr/app_approve.sh)
+  ok   the train's app_push script is in the tree (tools/audit/app_push.sh or tools/pr/app_push.sh)
+  ok   the train's preflight script is in the tree (tools/audit/preflight.sh or tools/pr/preflight.sh)
+  ok   the train's remerge_main script is in the tree (tools/audit/seat/remerge_main.sh)
+  ok   the train's worktree_gc script is in the tree (tools/audit/worktree_gc.sh)
+  ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+  ok   every script the train runs resolves through TOOLS, none by a bare path
+  ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
+  ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
+  ok   a rehearsal base approves nothing and collects no worktree
+  ok   a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
+  ok   PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
+  FAIL a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1169, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1136, in main
+    return _self_test()
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 871, in _self_test
+    _batch_self_test(check)
+    ~~~~~~~~~~~~~~~~^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1038, in _batch_self_test
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"a.txt": "A\n"}})
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 1001, in go
+    w = world(Path(d), base, prs, cap)
+  File "/Users/timmalmstrom/hpo-seats/review-2064/head/tools/audit/seat/merge_train.py", line 890, in world
+    R.mkdir()
+    ~~~~~~~^^
+  File "/Users/timmalmstrom/.local/share/uv/python/cpython-3.14.7-macos-aarch64-none/lib/python3.14/pathlib/__init__.py", line 1011, in mkdir
+    os.mkdir(self, mode)
+    ~~~~~~~~^^^^^^^^^^^^
+OSError: [Errno 28] No space left on device: '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpnf06ak93/remote'
