@@ -878,8 +878,10 @@ def ha_download_writer(hass, domain: str, entry_id: str):
     except ImportError:
         return fallback, "json.dumps(indent=2, ExtendedJSONEncoder)"
 
+    # data_issues as HA passes it when the entry has none: a list, so the
+    # file carries its (empty) "issues" section as the real download does.
     known = {"hass": hass, "filename": "a16", "domain": domain, "d_id": entry_id,
-             "data_issues": None}
+             "data_issues": []}
     params = inspect.signature(_async_get_json_file_response).parameters
 
     async def download(payload: object) -> bytes:
@@ -900,11 +902,13 @@ def ha_download_writer(hass, domain: str, entry_id: str):
 
 
 async def _body_bytes(body: object) -> bytes:
-    """A response body's bytes: as-is, encoded, or written out of an aiohttp payload."""
+    """A response body's bytes: as-is, or written out of an aiohttp payload.
+
+    aiohttp keeps a bytes body as bytes and wraps a str one in a payload, so
+    ``.body`` is never a str.
+    """
     if isinstance(body, (bytes, bytearray)):
         return bytes(body)
-    if isinstance(body, str):
-        return body.encode()
     chunks = bytearray()
 
     class _Sink:
