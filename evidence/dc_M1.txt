@@ -1,0 +1,76 @@
+
+=== debug collection guards (#1939) ===
+  ok   the debug store opens at version 1
+  ok   a datetime in a payload is its ISO text, and a set is a list
+  ok   a cycle row omits fields the cycle did not carry
+  ok   a stored row inside its domain is kept, and one outside it is dropped
+  ok   a row whose only field is its stamp is inside the domain
+  ok   a row whose stamp does not parse is dropped
+  ok   a row with no accuracy sample is kept; an empty or non-dict sample is dropped; a sample's stamp is stored aware
+  ok   a stored item that is not a dict is dropped and does not stop the ring loading
+  ok   a store document on disk is its version and data; a bad file is skipped
+  ok   an update that is not a running solve does not start the solve clock
+  ok   a solve's wall is the span from the running edge to the stopped edge
+  ok   a listener call that publishes no new payload adds no row
+  ok   a listener call with no payload adds no row
+  ok   a final collection records nothing more
+  ok   a collection stops at exactly seven days and does not store the row past the span
+  ok   a payload snapshot is taken on the first row and again at exactly one day
+  ok   the ring is saved on the first row and again at exactly one hour
+  ok   a ring with no start stays empty even when the document says it is final
+  ok   with the option off nothing collects and a stored ring is deleted
+  ok   unload closes the collector and drops it
+  ok   status with no collection is idle, and start on that entry turns the option on
+  ok   status of a live collection reports its rows
+  ok   status of a final collection reports it and does not clear it
+  ok   stop finalizes the live collection
+  ok   start on a final collection clears it
+  ok   stop with no collection is refused
+  ok   the finalize button is available while a collection is open, names why it is dark otherwise, and a press finalizes
+  ok   a node that declares one value is that domain, and one with another key is not
+  ok   a dict stored where one value belongs is that value, not a walk of its keys
+  ok   a real flag still reaches its declared domain
+  ok   the store self-test names a field off its domain and a leaf the quarantine scrubs, and reports neither on a clean document
+  ok   the monitor self-test re-derives bias from the stored window beside the live one, and counts the stored samples the loader drops
+  ok   the monitor self-test of an install with no accuracy store reads an empty tracker
+  ok   a spread is count, min, median and max, and nothing for no values
+  ok   the sensor self-test counts a missing reading and the longest unchanged run per input, and reads the live input-health view
+  ok   the feed self-test counts cycles with no prices, cycles with a stale forecast, and the solve failures the week added
+  ok   the feed self-test of an empty ring adds no failures
+  ok   a self-test that raises is recorded and the next still runs; one past the budget is cut off, and those after it are skipped
+  ok   a budget with exactly nothing left starts no further self-test
+  ok   the self-tests' budget is the owner's fifteen minutes
+  ok   finalizing stops the collection at once and runs the five self-tests after it
+  ok   the solver self-test solves once without the user's limiter and reports the week's solve times beside it
+  ok   the self-tests read the entry's own store documents from disk
+  ok   the self-test results survive a reload and ride the bundle's manifest
+  ok   a ring carrying its self-test results is inside the debug store's domain
+  ok   self-test results that finish after the collection restarted are discarded
+  ok   the first collection's self-tests, finishing after a second collection was also finalized, are discarded
+  ok   starting a finished collection again clears its self-test results
+  ok   a loaded ring whose self-test text does not parse carries no results
+  ok   a bundle at the cap is carried inline, and one byte over it is the summary
+  ok   the inline cap is the pre-study's 8 MB
+  ok   a bundle carried inline at exactly its cap gives a download, written with indent=2 as Home Assistant writes it, that fits the cap
+  ok   the headroom for the rest of the download is 256 KiB
+  ok   Download diagnostics carries the summary and the store file when the bundle is over the cap, and the whole bundle under it
+  ok   a16:debug_inline  [the download 5467B against the 40000B cap; 50 row(s) inline]
+  ok   a16:debug_capped  [bundle 267611B against the 40000B cap; the download 588B]
+  FAIL a16:debug_inline  [the download 588B against the 40000B cap; 0 row(s) inline]
+  FAIL a16:debug_capped  [bundle NoneB against the 40000B cap; the download 5467B]
+  FAIL a16:debug_inline  [TypeError('not serializable')]
+  FAIL a16:debug_capped  [bundle 267611B against the 40000B cap; the download -1B]
+  ok   the nightly A16 judge passes a whole bundle and a summary past the cap, and fails each swapped, and a bundle its serializer refuses
+  FAIL a16:debug_inline  [the download 5467B against the 100B cap; 50 row(s) inline]
+  FAIL a16:debug_capped  [bundle 267611B against the 100B cap; the download 588B]
+  ok   the nightly A16 judge fails a bundle carried whole whose download is over the cap
+  ok   a16:debug_inline  [the download 5467B against the 40000B cap; 50 row(s) inline]
+  FAIL a16:debug_capped  [bundle 267611B against the 40000B cap; the download 565B]
+  ok   the nightly A16 judge fails a download over the cap that does not say it is a summary
+  ok   the nightly lane demands both A16 checks by name
+  ok   A16's download writer returns the bytes of HA's 2025.2.0 writer, whose body is a payload with no len()
+  FAIL A16's download writer returns the bytes of HA's 2025.10 writer, whose body is a payload with no len()  [TypeError("_writer_2025_10() missing 1 required positional argument: 'd_id'")]
+  ok   A16's download writer refuses a response HA's writer failed (status 500, no body)
+  ok   A16's download writer refuses a writer parameter it cannot bind, naming it
+
+1 of 62 DEBUG COLLECT CHECKS FAILED
