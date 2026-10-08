@@ -25,7 +25,9 @@ Prints one `PREDICT <job> ...` line per predicted red and a last line
 `CI PREDICT: ...`. rc 1 when a closures or `fast` red is predicted, 0 when
 none is, 2 when the base does not resolve. ADDED UNPINNED sites print but never
 set the rc: `mutation-autofix` may pin them after the push (`ci-autofix.md`),
-so `prepr.sh` step 6d warns and the body owes each one a disposition.
+so `prepr.sh` step 6d warns and the body owes each one a disposition. INERT
+READS reds print and warn too: `closures-autofix` merges them after the push,
+and no seat can record them before it (`warns`).
 
 What it cannot see, said so the quiet line is not over-read: a data file a
 script opens by name (#1987's `services.yaml`), a read behind a dynamic path,
@@ -254,6 +256,18 @@ def unpinned(base):
             for k, s in m.added_keys(added)]
 
 
+def warns(job: str, line: str) -> bool:
+    """A prediction the push may carry, because a bot repairs it after the push.
+
+    `mutation` sites are `mutation-autofix`'s, and an INERT READS red is
+    `closures-autofix`'s (ci-autofix.md): the inert dimension is recorded only
+    under Linux `strace`, so no seat can produce the repair before the push --
+    `derive_closures.sh --single` on a Mac records no inert read, and a seat
+    hand-editing `tests/closures.json` to pass this step is the defect.
+    """
+    return job == "mutation" or line.startswith("INERT READS ")
+
+
 def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]:
     base = (git(root, "merge-base", base_ref, "HEAD") or "").strip()
     if not base:
@@ -276,7 +290,7 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
         if p not in seen:
             seen.add(p)
             out.append(p)
-    return (1 if any(j != "mutation" for j, _ in out) else 0), out, base
+    return (1 if any(not warns(j, ln) for j, ln in out) else 0), out, base
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -290,13 +304,18 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     for job, line in preds:
         print(f"PREDICT {job:<8} {line}")
-    jobs = sorted({j for j, _ in preds if j != "mutation"})
+    jobs = sorted({j for j, ln in preds if not warns(j, ln)})
     sites = sum(1 for j, _ in preds if j == "mutation")
+    inert = sum(1 for j, ln in preds if j != "mutation" and warns(j, ln))
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
               f"warning; the body owes each a line under ## Unpinned sites")
+    if inert:
+        print(f"CI PREDICT: {inert} INERT READS red(s) -- a warning; "
+              f"closures-autofix merges them from CI's Linux recordings after "
+              f"the push, so do not hand-edit tests/closures.json for them")
     if jobs:
-        reds = sum(1 for j, _ in preds if j != "mutation")
+        reds = sum(1 for j, ln in preds if not warns(j, ln))
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
               f"against {base[:12]} -- repair before the handoff; who repairs "
               f"which is ci-autofix.md's")
