@@ -60182,6 +60182,191 @@ R.check(
 
 
 
+# Live v6.7.17 install: a configured floor-return sensor that gives nothing
+# leaves the slab advanced open-loop from the plan's own trajectory
+# (``_update_current_state``), and nothing told the owner. The notifier now
+# raises a repair once the slot has given no usable value for a sustained
+# period and clears it when readings return. Driven end-to-end: the real
+# coordinator reads the sensor, its published ``input_problems`` feeds the
+# watch, and the issue lands on the recording registry. Synthetic data only.
+import asyncio as _frs_aio  # noqa: E402
+import json as _frs_json  # noqa: E402
+from pathlib import Path as _frs_Path  # noqa: E402
+
+from harness import FakeEntry as _frs_Entry  # noqa: E402
+from heatpump_optimizer import notifier as _frs_mod  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    CONF_FLOOR_RETURN_TEMP_ENTITY as _FRS_KEY,
+)
+
+_FRS_T0 = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
+_FRS_ENTITY = "sensor.floor_return_synthetic"
+_FRS_LIMIT = timedelta(minutes=_frs_mod.FLOOR_RETURN_SILENT_MINUTES)
+
+
+def _frs_coord(state, configured=True):
+    """A real coordinator over one floor-return state; ``None`` removes the entity."""
+    states = {
+        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.outdoor": FakeState("-5.0", unit="°C"),
+    }
+    if state is not None:
+        states[_FRS_ENTITY] = FakeState(state, unit="°C")
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+    }
+    if configured:
+        cfg[_FRS_KEY] = _FRS_ENTITY
+    return Coord(FakeHass(states), _frs_Entry(data=cfg))
+
+
+def _frs_payload(state, configured=True):
+    """What one cycle publishes about its inputs, read by the real reader."""
+    coord = _frs_coord(state, configured)
+    _frs_aio.run(coord._update_current_state())
+    return {"input_problems": coord._input_health_view()["input_problems"]}
+
+
+def _frs_issues(hass):
+    return [i for i in getattr(hass, "issues", []) if i[1] == _frs_mod.ISSUE_FLOOR_RETURN_SILENT]
+
+
+def _frs_run(steps):
+    """Feed ``(minutes after T0, payload)`` pairs; the issue count after each."""
+    hass = FakeHass()
+    watch = _frs_mod.SilentInputWatch(
+        hass, _FRS_KEY, _frs_mod.ISSUE_FLOOR_RETURN_SILENT, _FRS_LIMIT
+    )
+    counts = []
+    for minutes, payload in steps:
+        watch.handle(payload, _FRS_T0 + timedelta(minutes=minutes))
+        counts.append(len(_frs_issues(hass)))
+    return counts, _frs_issues(hass)
+
+
+_frs_dead = _frs_payload("unavailable")
+_frs_gone = _frs_payload(None)
+_frs_live = _frs_payload("31.5")
+_frs_unset = _frs_payload(None, configured=False)
+_frs_lim = _frs_mod.FLOOR_RETURN_SILENT_MINUTES
+R.check(
+    "the coordinator publishes an unreadable floor-return sensor as a problem, "
+    "a live one and an unconfigured slot as none",
+    [p["input"] for p in _frs_dead["input_problems"]] == [_FRS_KEY]
+    and [p["input"] for p in _frs_gone["input_problems"]] == [_FRS_KEY]
+    and not _frs_live["input_problems"]
+    and not _frs_unset["input_problems"],
+    str((_frs_dead, _frs_gone, _frs_live, _frs_unset)),
+)
+_frs_counts, _frs_raised = _frs_run([
+    (0, _frs_dead), (_frs_lim - 1, _frs_dead), (_frs_lim, _frs_dead),
+    (_frs_lim * 2, _frs_dead), (_frs_lim * 3, _frs_live),
+])
+R.check(
+    "a configured floor-return sensor silent for the sustained period raises "
+    "one repair, not before, and it clears when readings return",
+    _frs_counts == [0, 0, 1, 1, 0],
+    str(_frs_counts),
+)
+_frs_counts_r, _frs_open = _frs_run([(0, _frs_gone), (_frs_lim, _frs_gone)])
+_frs_kw = _frs_open[0][2] if _frs_open else {}
+R.check(
+    "the repair names the entity and the period, is a warning and is not fixable",
+    _frs_counts_r == [0, 1]
+    and _frs_kw.get("translation_key") == _frs_mod.ISSUE_FLOOR_RETURN_SILENT
+    and _frs_kw.get("translation_placeholders", {}).get("entity_id") == _FRS_ENTITY
+    and _frs_kw.get("translation_placeholders", {}).get("minutes") == f"{_frs_lim:.0f}"
+    and _frs_kw.get("is_fixable") is False
+    and _frs_kw.get("severity") == "warning",
+    str(_frs_kw),
+)
+# Null controls: the same clock with nothing wrong, or nothing configured,
+# raises nothing; and a gap shorter than the period restarts the count.
+R.check(
+    "a live sensor and an unconfigured slot never raise it, at any age",
+    _frs_run([(0, _frs_live), (_frs_lim * 10, _frs_live)])[0] == [0, 0]
+    and _frs_run([(0, _frs_unset), (_frs_lim * 10, _frs_unset)])[0] == [0, 0],
+)
+R.check(
+    "a short gap does not accumulate: a reading in between restarts the period",
+    _frs_run([
+        (0, _frs_dead), (_frs_lim / 2, _frs_live),
+        (_frs_lim / 2 + 1, _frs_dead), (_frs_lim + 1, _frs_dead),
+    ])[0] == [0, 0, 0, 0],
+)
+R.check(
+    "a payload that does not carry the input signal leaves the watch alone",
+    _frs_run([(0, _frs_dead), (_frs_lim, {})])[0] == [0, 0]
+    and _frs_run([(0, _frs_dead), (_frs_lim, _frs_dead), (_frs_lim + 1, {})])[0]
+    == [0, 1, 1],
+)
+
+
+def _frs_wiring():
+    """``async_setup_notifier`` runs the watch on each coordinator update."""
+    from homeassistant.util import dt as _frs_dt
+
+    class _C:
+        def __init__(self):
+            self.listeners = []
+            self.data = _frs_dead
+
+        def async_add_listener(self, cb, context=None):
+            self.listeners.append(cb)
+            return lambda: self.listeners.remove(cb)
+
+    class _E:
+        entry_id = "frs_wire"
+
+        def __init__(self):
+            self.unloads = []
+
+        def async_on_unload(self, fn):
+            self.unloads.append(fn)
+
+        def async_create_background_task(self, hass, coro, name, eager_start=True):
+            coro.close()
+
+    async def go():
+        hass, coord, entry = FakeHass(), _C(), _E()
+        await _frs_mod.async_setup_notifier(hass, entry, coord)
+        seen = []
+        for minutes, data in ((0, _frs_dead), (_frs_lim, _frs_dead), (_frs_lim + 1, _frs_live)):
+            coord.data = data
+            _frs_dt.freeze(_FRS_T0 + timedelta(minutes=minutes))
+            try:
+                for cb in list(coord.listeners):
+                    cb()
+            finally:
+                _frs_dt.freeze(None)
+            seen.append(len(_frs_issues(hass)))
+        return seen
+
+    return _frs_aio.run(go())
+
+
+R.check(
+    "the entry's notifier setup raises and clears the repair on coordinator updates",
+    _frs_wiring() == [0, 1, 0],
+    str(_frs_wiring()),
+)
+_FRS_PKG = _frs_Path(__file__).resolve().parent.parent / "custom_components/heatpump_optimizer"
+for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _frs_doc = _frs_json.loads((_FRS_PKG / _frs_file).read_text(encoding="utf-8"))
+    _frs_text = _frs_doc.get("issues", {}).get(_frs_mod.ISSUE_FLOOR_RETURN_SILENT, {})
+    R.check(
+        f"the floor-return repair is translated in {_frs_file}",
+        bool(_frs_text.get("title"))
+        and "{entity_id}" in _frs_text.get("description", "")
+        and "{minutes}" in _frs_text.get("description", ""),
+        str(_frs_text)[:200],
+    )
+
+
+
 
 sys.exit(R.close("FEATURE CHECKS"))
 
