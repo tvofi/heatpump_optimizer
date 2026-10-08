@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 192.9,
+   "seconds": 228.1,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 167.0,
+   "seconds": 163.6,
    "rc": 0
   },
   "tests/doc_claims.py": {
@@ -3163,6 +3163,7 @@
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
+   "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
