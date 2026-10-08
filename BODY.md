@@ -1,4 +1,4 @@
-Part of #1922 (R9-RO-9 has two more parts: R9-RO-9b retires the old paths, R9-RO-9c enforces the layout; this PR closes nothing). The R9-RO-9a "instrument carries" scope from the RO-9 pre-study, plus one coordinator addition (machine paths in mutation-ledger reasons). Non-policy: `node tools/policy/policy_lint.mjs --corpus-filter` over the diff's paths prints nothing. No budget moves.
+Part of #1922 (R9-RO-9 has two more parts: R9-RO-9b retires the old paths, R9-RO-9c enforces the layout; this PR closes nothing). The R9-RO-9a "instrument carries" scope from the RO-9 pre-study, plus three coordinator additions: machine paths in mutation-ledger reasons, INERT READS predictions, and direct-push merge commits in the rows gate. Non-policy: `node tools/policy/policy_lint.mjs --corpus-filter` over the diff's paths prints nothing. No budget moves.
 
 What changed, each failing first:
 
@@ -17,6 +17,14 @@ What changed, each failing first:
 - **Coordinator addition, `tools/audit/seat/tmp_paths.py`.** `--check` now refuses a temp, home or seat-directory path on a `tests/mutation_ledger/` line the diff adds.
   - It compares by line text against the merge base with origin/main, or the first parent on main. So main's 31-file stock is not charged, and a re-keyed row keeps its line.
   - It catches both instances reported today, #2025 and #2010 (Figures).
+- **Coordinator addition, INERT READS in `ci_predict` and prepr 6d.**
+  - A predicted INERT READS red now warns and does not set the rc. `closures-autofix` merges inert reads from CI's Linux `strace` recordings after the push (ci-autofix.md), and `derive_closures.sh --single` on a Mac records none. So the refusal could only be passed by hand-editing `tests/closures.json`, which is what #2025's fixer did.
+  - UNDER-SCOPED and the other closures reds still refuse.
+- **Coordinator addition, `tests/delivery_status.py` rows gate.** A two-parent first-parent commit that names no pull request now gets a disposition, listed as `exempt`:
+  - `record-only` when its first-parent diff touches only delivery rows. Pre-lift row paths are read through the move map.
+  - Otherwise, a line in the new tracked `dev/programme/delivery/direct-pushes.md` naming its sha.
+  - An unknown file list stays UNCHECKED.
+  - Over `v6.7.16..origin/main`, 4 of the 9 such commits are now record-only. The five code pushes (`618d014`, `f6ac991`, `077f53a`, `130c780`, `8107181`) stay UNCHECKED until the orchestrator adds their lines; this PR invents no disposition.
 - **C1, C2, C3a: record and prompt text.**
   - `coverage_tree.sh` usage path.
   - `R9-RCA-2004.md`: #2012 is now recorded as merged; moved round and harness paths are noted where cited; #2014's `## Red checks` sentence is corrected.
@@ -29,7 +37,7 @@ Alternatives not taken:
 
 ## Head
 
-`cf84e0a45dacffab7d337c74fb9312fc9f298ad3`, merging origin/main `4647321d` (2026-10-08T13:52Z). Every figure below was measured at this head unless it names another tree. The tests-only red tree is origin/main `13b6d121` plus this branch's test files.
+`de5f654977adcd15a870a5830c46b6c4126ff40c`, merging origin/main `0b89f781` (#2054; 2026-10-08T14:49Z). Every figure below was measured at this head unless it names another tree. A red demonstration on a "tests-only tree" is that item's test commit with its fix not yet applied.
 
 ## Mutation proof
 
@@ -52,9 +60,15 @@ Each fix was removed (the merge-base code is the fix-free state) or mutated, and
   - Mutant `if m and text.strip() not in was` changed to `if m`: both stock cases FAIL.
   - Mutant with the ledger call removed from `main`: the #1960 replay prints 0 ledger refusals, against 33 with it.
 
+- INERT READS: on the test commit with the fix not applied, `prepr.sh --self-test` gives `FAIL and an INERT READS red warns, never refuses ... (got rc=1, wanted rc=0)` and `219 passed, 1 failed`.
+- delivery_status: on the tests-only tree, `entities.py` gives `FAIL a direct-push merge commit is dispositioned ...` (`TypeError: collect() got an unexpected keyword argument 'allow'`) and `1 of 2215 ENTITY CHECKS FAILED`. Each mutant was then run alone, and each gives that same FAIL and `1 of 2215 ENTITY CHECKS FAILED`:
+  - `classify` counts dispositioned entries as blind again.
+  - `disposition` ignores the tracked lines.
+  - `all` is weakened to `any` over the row files.
+
 ## Null control
 
-- At the head, every touched instrument's own null controls stay ok. Examples: `7d passes keys written in backticks`, `and passes the same key named whole`, `6d still predicts NO RECORDING for a recording the lane edit drops`, `a ledger reason citing a tracked path passes`, `... the same pair on a green main is proved and merges`, `and lists the contexts not yet passed once nothing refused, none when all passed`.
+- At the head, every touched instrument's own null controls stay ok, including `and an UNDER-SCOPED red still refuses` and the entities arms where code pushes without a line, rows plus a script, and an unknown file list all stay UNCHECKED. Examples: `7d passes keys written in backticks`, `and passes the same key named whole`, `6d still predicts NO RECORDING for a recording the lane edit drops`, `a ledger reason citing a tracked path passes`, `... the same pair on a green main is proved and merges`, `and lists the contexts not yet passed once nothing refused, none when all passed`.
 - The finder's harness (`plant_r2.sh`, sha1 `a725cc4ea5c6ca732d41aaf8b86f745dfbbd1d9d`, run from `/Users/timmalmstrom/hpo-seats/review-2030-r2/evidence/` with `SRC` parameterised), at the merge base and at the head:
   - Arm B (the branch only comments `derive_closures.sh`): `NO RECORDING ... rc=1` at the base, `rc=0` at the head.
   - Arm C, the control (the branch's own unrecorded script): fires at both ends.
@@ -71,13 +85,14 @@ Each fix was removed (the merge-base code is the fix-free state) or mutated, and
 - `python3 tests/layout.py`: `layout self-test: ok`.
 - `python3 tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`.
 - `python3 tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`.
-- `python3 tests/entities.py`: `ALL 2214 ENTITY CHECKS PASSED`.
+- `python3 tests/entities.py`: `ALL 2215 ENTITY CHECKS PASSED`.
 - `python3 tools/audit/seat/record_row.py --self-test`: `all checks passed`.
 - `python3 -I tools/audit/seat/tmp_paths.py --self-test`: `50 checks, 0 failed`.
 - `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused, 0 stale allow entries at HEAD`.
 - `python3 tools/audit/seat/merge_train.py --self-test`: `81 checks, 0 failed`.
 - `node tools/policy/check-wave-script.mjs`: `170 passed, 0 failed`.
-- `bash tools/pr/prepr.sh --self-test`: `218 passed, 0 failed`.
+- `bash tools/pr/prepr.sh --self-test`: `220 passed, 0 failed`.
+- `python3 tests/delivery_status.py --check`: `UNCHECKED`, with 4 `exempt ... record-only` lines and 5 `unread` lines (the five code pushes named above); rc=1 until their lines are added.
 - `python3 tools/pr/ci_predict.py --base origin/main`: `no closures or fast red predicted`.
 - Ledger arm replays, each rule being "lines `tmp_paths.py --check --ref <ref>` tags `ledger-machine-path`":
   - `python3 -I tools/audit/seat/tmp_paths.py --check --ref 00da22db5`, the #1960 merge that brought in the stock: 33. With `--ref 00da22db5^1`: 0.
@@ -94,7 +109,9 @@ n/a: the diff changes no file under `custom_components/` (step 6d lists none).
 
 ## Red checks
 
-none
+- `delivery-status` was red at `cf84e0a4`. It grades `main`'s window since `v6.7.16`, not this diff. That window holds nine two-parent direct pushes that name no pull request, so the job reads UNCHECKED and `--check` exits 1; `python3 tests/delivery_status.py --check` prints the list at main. This PR's `delivery_status` change is the repair: four become `record-only`, and the five code pushes need the orchestrator's lines in `dev/programme/delivery/direct-pushes.md`.
+  - Cheaper detector: none earlier than this job. A direct push bypasses every pull-request check by construction, and this job runs on the next pull request.
+- `nightly-status` was red at `cf84e0a4`. It grades `main`'s nightly runs and reads no file this diff touches.
 
 ## Forward-carry
 
