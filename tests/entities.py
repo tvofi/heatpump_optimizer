@@ -3765,7 +3765,11 @@ def _p2_registry(sources):
                  (ast.Call,), r"^getattr\(.*'(last_updated|last_changed|last_reported)'",
                  lambda n: getattr(n.func, "id", None) == "getattr" and len(n.args) > 1
                  and getattr(n.args[1], "value", None) in _P2_STAMPS),
-             owners=["inputs.py::state_stamp"], dispositions={}),
+             owners=["inputs.py::state_stamp"], dispositions={
+                 "early_cutoff.py::_cycle_guard":
+                     "the pump's run length is the age of the switch's VALUE "
+                     "(last_changed); state_stamp answers when the entity was "
+                     "last heard from, which a re-reported 'on' resets"}),
         # D12-s2-01: whether a step's draw means "on", held at four sites.
         dict(fact="on_threshold_kw", finding="D12-s2-01",
              match=_p2_match_node(

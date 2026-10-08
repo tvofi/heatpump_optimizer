@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 72 modules, of which 27 import the
+knows nothing about Home Assistant: 73 modules, of which 28 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -122,6 +122,8 @@ custom_components/heatpump_optimizer/
 │                         #   integration asks
 ├── pump_arbiter.py       # Opt-in: writes the pump's mode and set-points per
 │                         #   plan step, and stands down on a manual change
+├── early_cutoff.py       # Switches a space-heating pump off inside the
+│                         #   interval once the room passes its threshold
 ├── flow_lift.py          # Supply and return water: how far the real supply
 │                         #   sits from the model's own weather curve
 ├── silent_mode.py        # The pump's silent-mode schedule as a ceiling on
@@ -187,11 +189,11 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-27 of the 72 modules import `homeassistant` at module level: `__init__`,
+28 of the 73 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
-`dhw_learning`, `diagnostics`, `entity`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
+`dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
 `setpoint_check`, `store`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.

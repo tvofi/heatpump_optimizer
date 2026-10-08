@@ -29,7 +29,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import debugger, pump_arbiter
+from . import debugger, early_cutoff, pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -116,10 +116,14 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     }
     if state:
         snap.update(state.learner_summaries)
-    try:
-        snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
-    except Exception:  # noqa: BLE001 -- diagnostics never breaks
-        snap["pump_duty"] = "unavailable"
+    for key, view in (
+        ("pump_duty", pump_arbiter.diagnostics_view),
+        ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
+    ):
+        try:
+            snap[key] = view(coord)
+        except Exception:  # noqa: BLE001 -- diagnostics never breaks
+            snap[key] = "unavailable"
     return snap
 
 

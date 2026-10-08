@@ -395,7 +395,7 @@ from .accuracy import (
 )
 from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
-from . import pump_arbiter, pump_signals
+from . import early_cutoff, pump_arbiter, pump_signals
 from . import setpoint_check
 from . import quiet_windows
 from .pump_mode import ModeCapability
@@ -6458,6 +6458,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # below the frost band too, where the COP learner's guard ends.
         if signals.defrosting:
             return "defrosting"
+        if early_cutoff.state_for(self).interval_cut:  # commanded power never ran
+            return early_cutoff.FREEZE_CUT
         # An unusable input outranks ventilation deliberately: the heat-loss
         # learner treats "ventilation" as a pass-through to keep feeding
         # the detector, and a flatline fed through that pass would
@@ -7505,11 +7507,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         age = self._plan_age_minutes()
         if age is None:
             return False
-        interval = float(
-            getattr(self, "_ctx", self)._config.get(
-                CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL
-            )
-        )
+        interval = float(_ctx_of(self)._config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL))
         return age > max(PLAN_STALE_INTERVALS * interval, PLAN_STALE_FLOOR_MINUTES)
 
     async def _apply_action(self) -> None:
@@ -7519,6 +7517,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         await _best_effort_cycle_step(
             lambda: pump_arbiter.apply(self), "Pump arbiter apply skipped: %s"
         )
+        cutoff = early_cutoff.CutoffInputs(self.arbiter_inputs, boost.held_for(self), _ctx_of(self)._opt_config)
+        await _best_effort_cycle_step(lambda: early_cutoff.arm(early_cutoff.state_for(self), cutoff, self.entry.async_on_unload), "Early cut-off arm skipped: %s")
         if not self._current_action or self._mode == MODE_OFF:  # off writes nothing
             return
         if self._mode in (MODE_AUTO, MODE_ECONOMY) and self._plan_is_stale():
