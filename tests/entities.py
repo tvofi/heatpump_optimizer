@@ -24339,6 +24339,45 @@ R.check(
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
 )
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step never carried either, so from the arm's landing
+# (a07dd57d, 2026-09-19) every CI run printed `skip red-history` and went
+# green on exactly the bodies the arm exists to refuse: 35 of 35 contract logs
+# at the round-9 `root-cause-unanswered` heads, #2053's among them, whose
+# reviewer then blocked on the red the arm would have named 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
+)
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
 # driven by prepr.sh --self-test; what that cannot see is whether THIS job
