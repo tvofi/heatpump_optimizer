@@ -23997,6 +23997,46 @@ R.check(
     "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
     "translation and buys nothing",
 )
+
+# R9-RO-9a: a two-parent direct push -- a local merge pushed to main, or the
+# record bot merging main into its rows -- names no pull request, so v6.7.17's
+# window read UNCHECKED over nine of them and the stamp needed --allow-rowless.
+# Each gets a disposition instead: one that changes only delivery rows is
+# record-only by its file list, and any other is exempt only through a
+# tracked line in `DIRECT_PUSHES` naming its sha. A commit whose file list is
+# unknown, or that touches one file outside the rows, stays UNCHECKED.
+_DS_ROWS = _ds.ROW_DIR + "/1998.md"
+_DS_DIRECT = [
+    {"sha": "0a60e06" + "0" * 33, "parents": 2, "subject": "record: delivery rows for #1998 (autofix)",
+     "body": "", "files": [_DS_ROWS]},
+    {"sha": "618d014" + "0" * 33, "parents": 2, "subject": "Count dimension briefs", "body": "",
+     "files": ["tools/policy/counts.mjs"]},
+]
+_ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
+try:
+    _DS_D = tuple(
+        (sorted(b.get("disposition") or "-" for b in blind),
+         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+        for m, blind in (
+            _ds.collect(_DS_DIRECT[:1]),
+            _ds.collect(_DS_DIRECT, allow=_ds_allow),
+            _ds.collect(_DS_DIRECT),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+        ))
+except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+R.check(
+    "a direct-push merge commit is dispositioned -- record-only by its files, "
+    "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
+    _DS_D == ((["record-only"], _ds.EMPTY),
+              (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
+              (["-", "record-only"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED)),
+    f"(rows only, both with the allow line, code without it, rows plus a "
+    f"script, files unknown) -> {_DS_D}",
+)
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
     "parents",
