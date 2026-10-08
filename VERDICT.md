@@ -1,50 +1,46 @@
-Fix review: merge f118161532c4b3e1225cd739b0d28200e767c073
+Fix review: blocked 0e12b4f8a007f9ead26584ad6f261aade0255d64 metric-gamed: policy_budgets.json: fix-review.md's line cap 140->141 is no longer earned after the recarry (it measures 140, which main's cap holds), and the token cap 2449 sits 3 above the measured 2446
 
-bus-nonce: 2a548b3bde122f8539cc31865253d17e
+bus-nonce: 79c82a7d6024d0042b0e4748b13eb66b
 
-This is round 3. The measured head is `f118161532c4b3e1225cd739b0d28200e767c073`. It merges the authored head `4805fe7df` into the round-2 head `feaecbca2`; `origin/main` `af79f2114` is already contained. The delta since round 2 is three files: step 11's text, the token cap, and web-fix-wave.js:305.
+This is round 4, a delta review of the recarry. The measured head is `0e12b4f8a007f9ead26584ad6f261aade0255d64`. Its parents are `f11816153` (the round-3 merge head) and `bd59a4af1` (main, which merged #2064).
 
-## The rule, in the two places
+Against main, the three-dot diff has the same 5 files as before. The policy text in step 11, the `web-fix-wave.js` prompt and `orchestrator.md` section 11 is unchanged from round 3. Only the caps came from the conflict resolution.
 
-- Step 11 now reads: "posted only once the head's workflows all concluded and a `pr-contract` run started after the last to conclude red, else the push-time run, checked the body (tvofi, 2026-10-08); while it refuses, wait or hand back unverdicted, saying so."
-- web-fix-wave.js:305 has the same sentence. The only differences are the citation "(fix-review.md step 11)" in place of the date, and "Post it" in place of "posted". Both say what the coordinator's ruling says.
+## The block (step 14)
 
-## Postable in every case
+When #2064 merged, it trimmed `fix-review.md`. At main `bd59a4af1` the file measures 137 lines and 2384 tokens, against caps of 140 and 2393. With this PR's step-11 text, the merged file measures **140 lines and 2446 tokens** (`evidence4/budgets.head.full.txt`).
 
-The case analysis rests on the trigger in `pr-contract-rerun.yml`: a re-run fires only when one of the watched workflows concludes red, and "PR contract" is not watched.
+Take the step-11 text away and the line cap's movement still stands, so the movement was not earned:
+- With main's caps of 140 and 2393 restored, `policy_lint` reports **1** error, the token cap only (`evidence4/mutant_main_caps.txt`). The line raise from 140 to 141 is not needed.
+- With caps of 140 and 2446, `policy_lint` reports `TOTAL: 0 error(s)` (`evidence4/minimal_caps_140_2446.txt`).
 
-- **All green.** No workflow concludes red, so the push-time run counts. The condition holds as soon as everything has concluded.
-- **A red, then a re-run.** The re-run starts after the red workflow concluded, so it qualifies. I checked the predicate on real data from the two earlier heads of this PR (`settle3.py`):
-  - `e50d432ee`: the last red-workflow job ended at 18:01:12Z and the contract re-ran at 18:01:29Z. rc 0.
-  - `feaecbca2`: the last red-workflow job ended at 18:23:24Z and the contract re-ran at 18:23:41Z. rc 0. At this head round 2's anchor was never met, because CodeQL went green at 18:40:11Z; the new anchor is met.
-- **Class D.** The red is on an earlier commit and the head is green, so the push-time run counts.
-  - With #2062's token, that run refuses an unnamed earlier red, and the reviewer waits or hands back.
-  - Without the token, it prints `skip red-history`, and the "head's runs are not the range's" paragraph lets the reviewer block directly.
-  - The body states both arms correctly.
-- **The contract's own red.** If `pr-contract` is the only red at the head, it is "the last to conclude red". The rule then waits for a later contract run, which a body edit (`edited`) starts. That is the right outcome: the reviewer does not post while the contract refuses.
+The minimal raise is now **tokens only, 2393 to 2446**. The line cap stays at main's 140.
+
+The resolution kept the round-3 caps of 141 and 2449. That loosens a cap by 1 line and 3 tokens beyond what the change uses. Rule 2 of `CLAUDE.md` and `ratchet-budgets.md` allow a raise only by what the change needs.
+
+This came from the merge, not from intent. The fix is two numbers in `dev/governance/config/policy_budgets.json`. It stays within tvofi's confirmed 142 and 2461, so no new owner ask is needed.
+
+**The body is wrong in the same place.**
+- `## Approval` still says "141 and 2449. That is exactly what the new text measures". Its own `## Mutation proof` says the text measures 140 and 2446.
+- `## Mutation proof` says "#2064 touches neither `fix-review.md` nor the step-11 text". It does touch `fix-review.md`: +4 and -5 lines from the merge base `af79f2114` (`git diff af79f2114 bd59a4af1 -- dev/governance/roles/fix-review.md`). That edit included the step-11 paragraph's closing sentence, which now reads "(`root-cause.md`'s)", and it added step 15.
+- So the raise-removed bullets are not carried over unchanged. My re-measure at this head replaces them: with main's caps there is 1 error, tokens only.
+
+This is round 4. Under `fixer.md`, that means a re-cut of the caps and of the `## Approval` and `## Mutation proof` figures, not a patch.
+
+## Steps 11 and 15 read together
+
+- Step 11, the settle-then-post timing for `root-cause-unanswered`, survived the merge byte-for-byte. Main's own edit to its closing sentence ("You check that the trigger was answered, not the answer (`root-cause.md`'s)") sits under it and does not conflict.
+- Step 15, "Judge `fixer.md` step 17 on added lines ... `blocked <sha> architecture-unsound: <how>`", is a separate verdict class with no timing condition.
+- Neither step refers to the other, and nothing in step 11 constrains when an `architecture-unsound` block may be posted. They are coherent.
+- `architecture-unsound` is in `web-fix-wave.js`, and the wave prompt's step-11 sentence is unchanged from round 3.
 
 ## RESULT lines
 
-- RESULT policy_lint at head: `TOTAL: 0 error(s) across 40 policy file(s)`, rc 0 (`evidence3/policy_lint.head.txt`).
-- RESULT structure.py at head: `STRUCTURE RATCHET PASSED`, rc 0.
-- RESULT entities.py at head, run in the CI venv: `ALL 2212 ENTITY CHECKS PASSED`, rc 0.
-- RESULT check-wave-script.mjs at head: `168 passed, 0 failed`.
-- RESULT budgets at head: `fix-review.md` is at 141/141 lines and 2449/2449 tokens. The cap equals the measurement, so it is minimal for this text, and it is within tvofi's confirmed 142/2461. `orchestrator.md` is at 290 lines and 4096 tokens, unchanged.
-- RESULT mutation, with the raise removed: 2 `[budgets]` errors, 141 > 140 lines and 2449 > 2393 tokens (`evidence3/mutant_no_raise.txt`).
-- RESULT corpus: ~59624 tokens, within the band of 59591 + 500. The body states 59624.
-- RESULT body and `## Head`: the body names `f118161532c4b3e1225cd739b0d28200e767c073`, which is the live head, with parents `feaecbca2` and `4805fe7df` as stated. The round-2 Head garbling is fixed. The RCA figures are cited correctly, as checked in round 1.
-- RESULT `## Approval`: it records tvofi's option 2 and the "raise the cap" confirmation before the first push. It records the coordinator's two anchors under the mandate. It notes that tvofi's approving review is still required at the head. This is correct. The approval is the orchestrator's to give under mandate 5951564627; I have not given it here.
-- RESULT CI at head, read from the commit's check-runs API (`evidence3/check-runs.2.json`, 42 runs). I posted under the new rule itself.
-  - Every run had concluded; the last was `Analyze (python)`, at 19:34:01Z.
-  - The last red-workflow run was `budget-raise-gate` (Budget raise gate workflow), concluding at 19:26:08Z.
-  - The contract re-ran at 19:26:51Z, after it, and passed. That is the live "red, then re-run" case.
-  - The red runs are `budget-raise-gate` x3 (owner approval pending) and `nightly-status` (main's). `## Red checks` names both.
-  - `pr-contract` passed on all 3 runs.
-  - Every other required check is green.
-- RESULT VERSION, manifest and notes heading are untouched.
-
-## Polish, not blocking
-
-1. Read literally, "else the push-time run" names a run that a later body edit supersedes. If the push-time run refused and an `edited` run then passed, the literal reader waits forever. "the newest run" would say what is meant. The intent is clear from context.
-2. The line `only once the head's workflows all concluded and a \`pr-contract\` run started after` is 86 characters, wider than the file's wrap. Reflowing would not save a line.
-3. The `node --check` failure on web-fix-wave.js (an illegal top-level `return` at line 520 under ESM) is the same at main and at head (`evidence2/node-check.txt`). It was there before this PR, and the file is a workflow body by design.
+- RESULT `policy_lint --budgets` at head: rc 0. `fix-review.md` is at 140 of 141 lines and 2446 of 2449 tokens. `fixer.md` is at 315 of 315 and 5216 of 5216, main's caps. `orchestrator.md` is at 290 of 291 and 4090 of 4096. Corpus ~59973, within its band of 60091.
+- RESULT `policy_lint` at head: `TOTAL: 0 error(s) across 40 policy file(s)`, rc 0.
+- RESULT `structure.py`: `STRUCTURE RATCHET PASSED`, rc 0.
+- RESULT `entities.py` (CI venv): `ALL 2227 ENTITY CHECKS PASSED`, rc 0.
+- RESULT `check-wave-script.mjs`: `170 passed, 0 failed`.
+- RESULT main `bd59a4af1`: `fix-review.md` is at 137 of 140 and 2384 of 2393 (`evidence4/budgets.main.txt`).
+- RESULT `## Head`: correct. It names `0e12b4f8a` and its real parents, and correctly states the conflict resolution for `fixer.md`.
+- RESULT CI was read from the check-runs API (`evidence4/check-runs.6.json`). I posted under step 11's own rule: every run had concluded, and the contract re-ran at 23:46:29Z, after the last red workflow concluded at 23:46:14Z. The reds are `budget-raise-gate` x2 (owner approval pending) and `nightly-status` (main's), and `## Red checks` names both. `pr-contract` is green on every run.

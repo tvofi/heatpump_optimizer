@@ -1,3 +1,0 @@
-  ERROR   [budgets] tools/audit/briefs/fix-review.md: 141 lines exceeds its cap of 140. Cut, or state the case for a higher cap in the pull request body.
-  ERROR   [budgets] tools/audit/briefs/fix-review.md: about 2449 tokens across its lines exceeds its cap of 2393 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
-TOTAL: 2 error(s) across 40 policy file(s)
