@@ -7,7 +7,8 @@ and put the whole set inside a 15-minute budget. This drives the shipped path
 study's week bundle (``runs/week/bundle.json.gz`` on ``handoff/r9-dbg-0``):
 its cycle rows become the collector's ring, its store documents are written
 where the collector reads them, and its accuracy store seeds the live
-tracker. It prints each self-test's wall time, then the bundle's size against
+tracker. It prints each self-test's wall time, then the bundle's download size (as
+``capped`` measures it: indent=2 at its depth, plus the headroom) against
 ``INLINE_CAP_BYTES``.
 
 What it does not price: the solver smoke's solve. ``async_simulate`` needs a
@@ -22,7 +23,7 @@ on that branch (sha1 ``cb6e9e3357648afc41adcadaff218f135908cc3d``).
 
 RESULT lines: ``selftest_<name>_ms``, ``selftest_total_ms``, ``bundle_bytes``,
 ``bundle_inline`` (1 or 0). Perturbation: ``--repeat N`` repeats the week's
-rows N times, a ring N weeks long; ``--repeat 60`` passes the inline cap.
+rows N times, a ring N weeks long; ``--repeat 40`` passes the inline cap.
 Null control: at the merge base ``8d7903e6`` the collector has no self-tests,
 and the harness prints ``RESULT selftests=absent``.
 """
@@ -37,7 +38,20 @@ import tempfile
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[3]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 for _p in (ROOT / "tests" / "hastub", ROOT / "tests", ROOT / "custom_components"):
     if str(_p) not in sys.path:
         sys.path.insert(0, str(_p))
@@ -97,7 +111,7 @@ async def _price(bundle: dict, folder: Path, repeat: int) -> int:
     print(f"RESULT selftest_total_ms={round(total, 1)} ms  # budget "
           f"{debugger.SELF_TEST_BUDGET.total_seconds() * 1000:.0f} ms")
     whole = await collector.async_bundle(coordinator)
-    size = len(debugger._dumps(whole).encode())
+    size = debugger.download_bytes(whole) + debugger.DOWNLOAD_HEADROOM_BYTES
     shown = debugger.capped(whole, f"heatpump_optimizer_{ENTRY}_debug")
     print(f"RESULT bundle_bytes={size} B  # cap {debugger.INLINE_CAP_BYTES} B")
     print(f"RESULT bundle_inline={0 if shown.get('inline') is False else 1} flag")

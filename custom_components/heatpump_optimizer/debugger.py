@@ -15,8 +15,9 @@ and stays final until it is started again; turning the option off deletes it.
 Ending it -- the seven days, the stop action or the finalize button -- runs the
 pre-study's five self-tests once (#1940): read-only, no actuation, no network,
 fifteen minutes between them at most. Their results are saved with the ring and
-ride the bundle's manifest. Download diagnostics carries the bundle inline up to
-``INLINE_CAP_BYTES`` and, past it, the manifest and where the ring is stored.
+ride the bundle's manifest. Download diagnostics carries the bundle inline while
+the download stays within ``INLINE_CAP_BYTES`` and, past it, the manifest and
+where the ring is stored.
 """
 from __future__ import annotations
 
@@ -60,10 +61,14 @@ SNAPSHOT_EVERY = timedelta(days=1)
 DEBUG_ACTIONS = ("start", "stop", "status")
 #: The owner's ceiling over all the self-tests together (pre-study section 4).
 SELF_TEST_BUDGET = timedelta(minutes=15)
-#: The largest bundle Download diagnostics carries inline (pre-study section 3,
-#: "8 MB raw"). Measured as ``json.dumps`` text, which is longer than the
-#: compact JSON Home Assistant writes, so the file itself stays under it.
+#: The largest diagnostics download that carries the bundle inline (pre-study
+#: section 3, "8 MB"). Home Assistant writes the download as
+#: ``json.dumps(..., indent=2)`` with the entry's payload under ``data``, so the
+#: bundle is measured that way, at that depth (``download_bytes``), and
+#: ``DOWNLOAD_HEADROOM_BYTES`` stands for the rest of the file: Home Assistant's
+#: own system and custom-component sections and this entry's other keys.
 INLINE_CAP_BYTES = 8 * 1024 * 1024
+DOWNLOAD_HEADROOM_BYTES = 256 * 1024
 _INPUTS = ("indoor_temp", "outdoor_temp", "dhw_temp")
 _HEALTH = ("problem_inputs", "input_ages_minutes", "learners_frozen")
 
@@ -304,10 +309,16 @@ async def run_self_tests(
     return out
 
 
+def download_bytes(bundle: dict[str, Any]) -> int:
+    """The bytes ``bundle`` takes in the diagnostics download, as that file writes it."""
+    return len(json.dumps({"data": {"debug": bundle}}, indent=2, default=_wire).encode())
+
+
 def capped(bundle: dict[str, Any], store_key: str, cap: int | None = None) -> dict[str, Any]:
-    """``bundle`` when it fits the inline cap; else its manifest and where the ring is stored."""
+    """``bundle`` when its download fits the inline cap; else its manifest and where
+    the ring is stored."""
     limit = INLINE_CAP_BYTES if cap is None else cap
-    size = len(_dumps(bundle).encode())
+    size = download_bytes(bundle) + DOWNLOAD_HEADROOM_BYTES
     if size <= limit:
         return bundle
     return {"schema": bundle.get("schema"), "manifest": bundle.get("manifest"),
