@@ -1,8 +1,9 @@
-Part of #1922 (R9-RO-9 has two more parts: R9-RO-9b retires the old paths, R9-RO-9c enforces the layout; this PR closes nothing). The R9-RO-9a "instrument carries" scope from the RO-9 pre-study, plus three coordinator additions: machine paths in mutation-ledger reasons, INERT READS predictions, and direct-push merge commits in the rows gate. Non-policy: `node tools/policy/policy_lint.mjs --corpus-filter` over the diff's paths prints nothing. No budget moves.
+Part of #1922 (R9-RO-9 has two more parts: R9-RO-9b retires the old paths, R9-RO-9c enforces the layout; this PR closes nothing). The R9-RO-9a "instrument carries" scope from the RO-9 pre-study, plus two coordinator additions: machine paths in mutation-ledger reasons, and direct-push merge commits in the rows gate. A third addition, INERT READS predictions, is split out and does not ship in this PR (below). Non-policy: `node tools/policy/policy_lint.mjs --corpus-filter` over the diff's paths prints nothing. No budget moves.
 
-**Round 2 blocked `8c758b72`** with two findings, both repaired here and each with a failing test first:
-1. The INERT READS warning was unsound on a harness-only diff. That diff takes `closure.py affected`'s `skip` arm, so CI records nothing, `closures-autofix` never runs, and the red first lands on main's push run, where nothing repairs it. `ci_predict` now warns only when `affected` is not `skip`, and refuses on `skip` with a note saying how to repair. The `pinert` fixture (harness-only) now expects the refusal. A new `pinertfull` fixture (the harness plus a closure-mapped file) expects the warning.
-2. Two direct-push mutants survived: M5 (`sha.startswith(k)` changed to `True`) and M6 (`ROW_FILE` widened to anything under `dev/programme/delivery/`). The rule was already narrow; it was under-pinned. Three entities arms now pin it: an allow line for another sha stays UNCHECKED; a commit touching only `direct-pushes.md` is not record-only; a `.md.bak` row lookalike is not record-only. Both mutants now die.
+**Review history.**
+- Round 2 blocked `8c758b72` on two findings. The direct-push one is repaired here: a test now kills each of mutants M5 (`sha.startswith(k)` changed to `True`) and M6 (`ROW_FILE` widened to anything under `dev/programme/delivery/`). The new cases: an allow line for another sha stays UNCHECKED; a commit touching only `direct-pushes.md`, or a `.md.bak` row lookalike, is not record-only.
+- Round 3 blocked `49aba55c` on the other one, the INERT READS downgrade. A scoped CI run does not re-record the reading script (`tests/harness_headers.py`), so a warning keyed on the `closure.py affected` case still lets the red reach main. Under the three-round rule the orchestrator split it out. This head reverts c94842ed9 and the ci_predict half of 6ae385f29, together with the `pinert`/`pinertfull` refusal and warning arms and the UNDER-SCOPED null control that came with them. `git diff origin/main -- tools/pr/prepr.sh | grep -c 'INERT\|pinert'` prints 0. In `tools/pr/ci_predict.py` the only lines matching inert are unchanged context around `no_recording`.
+- The split-out item is carried, not dropped: `dev/programme/carries/carry-1922.json` (the RO-9 in-tree destination) gains an entry for R9-RO-9b. It says to warn only when CI re-records the named reading script and to refuse otherwise, and cites review-2061 VERDICT3's measurements.
 
 What changed, each failing first:
 
@@ -21,10 +22,6 @@ What changed, each failing first:
 - **Coordinator addition, `tools/audit/seat/tmp_paths.py`.** `--check` now refuses a temp, home or seat-directory path on a `tests/mutation_ledger/` line the diff adds.
   - It compares by line text against the merge base with origin/main, or the first parent on main. So main's 31-file stock is not charged, and a re-keyed row keeps its line.
   - It catches both instances reported today, #2025 and #2010 (Figures).
-- **Coordinator addition, INERT READS in `ci_predict` and prepr 6d.**
-  - On a diff CI's `closures` job records (`closure.py affected` is not `skip`), a predicted INERT READS red now warns and does not set the rc. `closures-autofix` merges inert reads from CI's Linux `strace` recordings after the push (ci-autofix.md), and `derive_closures.sh --single` on a Mac records none. So the refusal could only be passed by hand-editing `tests/closures.json`, which is what #2025's fixer did.
-  - On a `skip` diff (INERT files only, such as a new harness alone) it still refuses (round 2).
-  - UNDER-SCOPED and the other closures reds still refuse.
 - **Coordinator addition, `tests/delivery_status.py` rows gate.** A two-parent first-parent commit that names no pull request now gets a disposition, listed as `exempt`:
   - `record-only` when its first-parent diff touches only delivery rows (`dev/programme/delivery/<N>.md`, so `direct-pushes.md` itself and lookalikes do not count). Pre-lift row paths are read through the move map.
   - Otherwise, a line in the new tracked `dev/programme/delivery/direct-pushes.md` naming its sha.
@@ -42,7 +39,7 @@ Alternatives not taken:
 
 ## Head
 
-`6ae385f2940a9c5c2a3a94dec140a749c40a91cd`: the reviewed head `8c758b72` (which already contains origin/main `af79f211`) plus the round-2 test commit `b2e8fbf6` and fix commit. Every figure below was measured at this head unless it names another tree. A red demonstration on a "tests-only tree" is that item's test commit with its fix not yet applied.
+`82860043c19459ac0afbce764c2baec01945251b`: the round-3 head's code plus the split-out revert `0f64774f`, the carry `dd415b92`, and a merge of origin/main `4dbe5aace`. The round-3 figures that this revert cannot move (the entities checks, the direct-push mutants, every other self-test) were measured at `6ae385f2` and are cited as such; the figures re-taken at this head say so. A red demonstration on a "tests-only tree" is that item's test commit with its fix not yet applied.
 
 ## Mutation proof
 
@@ -65,9 +62,6 @@ Each fix was removed (the merge-base code is the fix-free state) or mutated, and
   - Mutant `if m and text.strip() not in was` changed to `if m`: both stock cases FAIL.
   - Mutant with the ledger call removed from `main`: the #1960 replay prints 0 ledger refusals, against 33 with it.
 
-- INERT READS (round 2):
-  - On the test commit `b2e8fbf6`, with the fix not applied, `prepr.sh --self-test` gives `FAIL and refuses it on a harness-only diff: closure.py affected says skip ... (got rc=0, wanted rc=1)` and `221 passed, 1 failed`.
-  - Mutant `recorded and` dropped from `warns`: the same FAIL, `221 passed, 1 failed`.
 - delivery_status: on the tests-only tree, `entities.py` gives `FAIL a direct-push merge commit is dispositioned ...` (`TypeError: collect() got an unexpected keyword argument 'allow'`) and `1 of 2215 ENTITY CHECKS FAILED`. Each mutant was then run alone, and each gives that same FAIL and `1 of 2215 ENTITY CHECKS FAILED`:
   - `classify` counts dispositioned entries as blind again.
   - `disposition` ignores the tracked lines.
@@ -78,7 +72,7 @@ Each fix was removed (the merge-base code is the fix-free state) or mutated, and
 
 ## Null control
 
-- At the head, every touched instrument's own null controls stay ok, including `and an UNDER-SCOPED red still refuses`, `and only warns there` (the `pinertfull` recorded diff), and the entities arms where code pushes without a line, rows plus a script, and an unknown file list all stay UNCHECKED. Examples: `7d passes keys written in backticks`, `and passes the same key named whole`, `6d still predicts NO RECORDING for a recording the lane edit drops`, `a ledger reason citing a tracked path passes`, `... the same pair on a green main is proved and merges`, `and lists the contexts not yet passed once nothing refused, none when all passed`.
+- At the head, every touched instrument's own null controls stay ok, including the entities arms where code pushes without a line, rows plus a script, and an unknown file list all stay UNCHECKED. Examples: `7d passes keys written in backticks`, `and passes the same key named whole`, `6d still predicts NO RECORDING for a recording the lane edit drops`, `a ledger reason citing a tracked path passes`, `... the same pair on a green main is proved and merges`, `and lists the contexts not yet passed once nothing refused, none when all passed`.
 - The finder's harness (`plant_r2.sh`, sha1 `a725cc4ea5c6ca732d41aaf8b86f745dfbbd1d9d`, run from `/Users/timmalmstrom/hpo-seats/review-2030-r2/evidence/` with `SRC` parameterised), at the merge base and at the head:
   - Arm B (the branch only comments `derive_closures.sh`): `NO RECORDING ... rc=1` at the base, `rc=0` at the head.
   - Arm C, the control (the branch's own unrecorded script): fires at both ends.
@@ -101,7 +95,8 @@ Each fix was removed (the merge-base code is the fix-free state) or mutated, and
 - `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused, 0 stale allow entries at HEAD`.
 - `python3 tools/audit/seat/merge_train.py --self-test`: `81 checks, 0 failed`.
 - `node tools/policy/check-wave-script.mjs`: `170 passed, 0 failed`.
-- `bash tools/pr/prepr.sh --self-test`: `222 passed, 0 failed`.
+- `bash tools/pr/prepr.sh --self-test`: at `6ae385f2`, `222 passed, 0 failed`. At this head the revert removes 5 of that run's lines (4 INERT READS arms and 1 UNDER-SCOPED null control). Two local runs on this Mac (load average 239, 7 GiB disk free) failed different sections the diff does not touch: 6a's claim-file arms with git exiting 128, and 6b's recorder arms printing `nothing scoped can be recorded on this machine`. A section whose result changes from run to run reads as this machine, not the diff, so CI's governance run at this head is the figure that counts.
+- `python3 tools/pr/ci_predict.py --base origin/main` at this head: `no closures or fast red predicted`. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. `python3 tests/closure.py selftest`: `ALL 40 closure shrink pins PASSED`. `node tools/policy/brief_lint.mjs`: rc=0 with the new carry entry.
 - `python3 tests/delivery_status.py --check`: rc=0 at this head, because the v6.7.17 stamp moved the window past the nine commits. Over the old window (`--since v6.7.16`, measured at `de5f6549`) it printed 4 `exempt ... record-only` lines and 5 `unread` lines (the five code pushes named above).
 - `python3 tools/pr/ci_predict.py --base origin/main`: `no closures or fast red predicted`.
 - Ledger arm replays, each rule being "lines `tmp_paths.py --check --ref <ref>` tags `ledger-machine-path`":
@@ -125,6 +120,7 @@ n/a: the diff changes no file under `custom_components/` (step 6d lists none).
 
 ## Forward-carry
 
+- INERT READS as a warning (split out at round 3): `dev/programme/carries/carry-1922.json`, first entry, for R9-RO-9b.
 - C4's production confirmation that the author App token can dismiss reviews is a GitHub write, so it stays the orchestrator's.
 - C6(3), the #2044 PR-body nits: that body is merged, so the orchestrator decides.
 - C7(1)(2), the CI-1 pin drive and the `boost_drift_replay` driver timeout: left for a separate PR, per the brief.
