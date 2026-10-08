@@ -856,10 +856,15 @@ def check_a16(checks: Checks, inline: object, capped: object, cap: int, download
 def ha_download_writer(hass, domain: str, entry_id: str):
     """The diagnostics download's own bytes for a payload, and the writer's name.
 
-    Home Assistant's ``_async_get_json_file_response`` (2025.2.0: ``json.dumps``
-    with ``indent=2`` and ``ExtendedJSONEncoder``, its own sections around the
+    Home Assistant's ``_async_get_json_file_response`` (``json.dumps`` with
+    ``indent=2`` and ``ExtendedJSONEncoder``, its own sections around the
     payload under ``data``) when it can be called; otherwise that ``json.dumps``
     over the payload alone, which is named so the detail says which ran.
+
+    The writer is bound by parameter name, not position: 2025.2.0 takes
+    ``(hass, data, filename, domain, d_id)`` and later releases insert
+    ``data_issues`` after ``data`` (run 37753990323). Its body is an aiohttp
+    payload with no ``len()``, so the bytes are read through its ``write``.
     """
     import inspect
 
@@ -873,12 +878,45 @@ def ha_download_writer(hass, domain: str, entry_id: str):
     except ImportError:
         return fallback, "json.dumps(indent=2, ExtendedJSONEncoder)"
 
-    def written(payload: object) -> bytes:
-        response = _async_get_json_file_response(hass, payload, "a16", domain, entry_id)
+    known = {"hass": hass, "filename": "a16", "domain": domain, "d_id": entry_id,
+             "data_issues": None}
+    params = inspect.signature(_async_get_json_file_response).parameters
+
+    async def download(payload: object) -> bytes:
+        kwargs = {}
+        for name, param in params.items():
+            if name == "data":
+                kwargs[name] = payload
+            elif name in known:
+                kwargs[name] = known[name]
+            elif param.default is inspect.Parameter.empty:
+                raise TypeError(f"A16 cannot bind the HA writer's parameter {name!r}")
+        response = _async_get_json_file_response(**kwargs)
         if inspect.isawaitable(response):
-            response = asyncio.run_coroutine_threadsafe(response, hass.loop).result(timeout=120)
-        return response.body
+            response = await response
+        if getattr(response, "status", 200) != 200 or response.body is None:
+            raise RuntimeError(f"HA's writer answered status {response.status} with no file")
+        return await _body_bytes(response.body)
+
+    def written(payload: object) -> bytes:
+        return asyncio.run_coroutine_threadsafe(download(payload), hass.loop).result(timeout=120)
     return written, "diagnostics._async_get_json_file_response"
+
+
+async def _body_bytes(body: object) -> bytes:
+    """A response body's bytes: as-is, encoded, or written out of an aiohttp payload."""
+    if isinstance(body, (bytes, bytearray)):
+        return bytes(body)
+    if isinstance(body, str):
+        return body.encode()
+    chunks = bytearray()
+
+    class _Sink:
+        async def write(self, chunk: bytes) -> None:
+            chunks.extend(chunk)
+
+    await body.write(_Sink())
+    return bytes(chunks)
 
 
 async def _async_check_a16(checks: Checks, hass, entry) -> None:
