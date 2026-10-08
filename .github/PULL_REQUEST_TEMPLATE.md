@@ -1,6 +1,6 @@
 <!-- The headings below are what `pr-contract` requires: each is content or an
 explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
-`tools/audit/prepr.sh <this body>` before opening; the job re-checks what it can. -->
+`tools/pr/prepr.sh <this body>` before opening; the job re-checks what it can. -->
 
 Why this change, and what it measures.
 

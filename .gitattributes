@@ -22,3 +22,8 @@ tests/golden/card_claimed_drift.txt merge=claimnotes
 tests/mutation_budgets.json merge=ledgermerge
 tests/structure_budgets.json merge=ledgermerge
 tests/closures.json merge=ledgermerge
+
+# The bug-class register: every root-cause pull request appends an `_rca`
+# entry after the same last one, so two in flight conflict in a line merge
+# (dev/audit/rca/R9-RCA-bugclasses.md). The same driver merges it key by key.
+dev/audit/config/bugclasses.json merge=ledgermerge

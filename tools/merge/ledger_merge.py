@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Git merge driver for the three measured JSON ledgers, merged key by key.
+"""Git merge driver for the measured JSON ledgers and the bug-class register.
 
     python3 tools/merge/ledger_merge.py --install     once per clone
     python3 tools/merge/ledger_merge.py --self-test
@@ -61,6 +61,14 @@ one way or the other, and a stale closure is ``UNDER-SCOPED`` -- so the driver
 can be wrong only loudly. It prints each key it merged numerically so the seat
 knows what to re-run.
 
+``dev/audit/config/bugclasses.json`` is not measured but is routed here
+too: every root-cause pull request appends its ``_rca`` entry after the same
+last entry, so two in flight always conflicted in a line merge (four merges on
+2026-10-07, ``dev/audit/rca/R9-RCA-bugclasses.md``). Its numbers are counts
+derived from instance lists, so a class record both sides changed refuses
+there (two added instances agree on a count and are both wrong); only the
+``_rca`` table merges entry by entry, and raw non-ASCII text stays raw.
+
 GitHub never runs a merge driver, so a pull request still shows ``DIRTY``
 until main is merged locally (``claim-files.md``, #570). What this removes is
 the hand resolution once it is.
@@ -82,7 +90,10 @@ LEDGERS = {
     "tests/mutation_budgets.json": "sum",
     "tests/structure_budgets.json": "sum",
     "tests/closures.json": "max",
+    "dev/audit/config/bugclasses.json": "refuse",
 }
+#: Ledgers whose writer keeps non-ASCII text raw (``ensure_ascii=False``).
+RAW = {"dev/audit/config/bugclasses.json"}
 #: Top-level keys a ledger's writer no longer stores. #1577 made the unpinned
 #: count derived, so a side that deleted it wins over a branch cut before
 #: #1577 that still re-recorded it.
@@ -233,6 +244,12 @@ def merge3(base, ours, theirs, *, numbers: str, path: str = "",
         numeric = all(_is_num(v) for v in list(ours.values()) + list(theirs.values()))
         if depth >= 2 and not numeric:
             raise Refuse(f"{where}: both sides rewrote this record differently")
+        if numbers == "refuse" and depth >= 1 and not all(
+                isinstance(v, dict) for v in list(ours.values()) + list(theirs.values())):
+            # The register's class records derive their counts from their
+            # instance lists: two sides that each added one instance agree on
+            # the count and are both wrong, so only a table of records merges.
+            raise Refuse(f"{where}: both sides rewrote this class record")
         b = base if isinstance(base, dict) else {}
         if depth == 1:
             b, ours, theirs = _rekey(b, ours, theirs, notes, where)
@@ -313,7 +330,7 @@ def _format(text: str):
 
 
 def merge_text(base: str, ours: str, theirs: str, numbers: str,
-               repo: str = ROOT, notes: list | None = None) -> str:
+               repo: str = ROOT, notes: list | None = None, raw: bool = False) -> str:
     """Merged file text, or raise ``Refuse``."""
     fmt = _format(ours)
     if fmt is None or _format(theirs) != fmt:
@@ -324,7 +341,7 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
         raise Refuse("the merge base is not JSON")
     merged = merge3(b, json.loads(ours), json.loads(theirs),
                     numbers=numbers, repo=repo, notes=notes)
-    return json.dumps(merged, **fmt) + "\n"
+    return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
 
 def run_driver(base_path: str, ours_path: str, theirs_path: str,
@@ -339,7 +356,8 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
         theirs = f.read()
     notes: list = []
     try:
-        merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes)
+        merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
+                            raw=pathname in RAW)
     except Refuse as why:
         # Fall back to git's own text merge, so the driver is never worse than
         # no driver: a merge the text merge resolves stays resolved.
@@ -462,13 +480,14 @@ def self_test() -> int:
         unrelated_refused = "recorded_at" in str(why)
     check("structure: a recorded_at pair with no ancestry is refused",
           unrelated_refused)
+    sys.path.insert(0, os.path.join(ROOT, "tests"))
+    from throwaway_git import throwaway_git_init
     with tempfile.TemporaryDirectory() as tmp:
+        env = throwaway_git_init(tmp, "-q")
+
         def git(*a):
             return subprocess.run(["git", *a], cwd=tmp, check=True, capture_output=True,
-                                  text=True, env=dict(os.environ, GIT_AUTHOR_NAME="t",
-                                                      GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-                                                      GIT_COMMITTER_EMAIL="t@t")).stdout.strip()
-        git("init", "-q")
+                                  text=True, env=env).stdout.strip()
         git("commit", "-q", "--allow-empty", "-m", "old")
         old = git("rev-parse", "HEAD")
         git("commit", "-q", "--allow-empty", "-m", "new")
@@ -729,7 +748,33 @@ def self_test() -> int:
     check("replay: a conflicted merge-tree (exit 1) is counted (null control)",
           printed[1][0] == 0 and f"{next(iter(LEDGERS))}: 1 conflicts without the "
           "driver, 1 with it" in printed[1][1].getvalue())
-    check(".gitattributes routes all three ledgers to the driver",
+    # The bug-class register (2026-10-07: #2012, #2014 and #2018 each needed a
+    # hand resolution): two root-cause branches append different _rca entries
+    # after the same last one; both land, in order, and raw text stays raw.
+    rca = {"date": "2026-10-07", "status": "done", "note": "l\u00e4uft"}
+    gb = {"P1": {"total": 2, "instances": ["a", "b"]}, "_rca": {"Z-old": rca}}
+    go = json.loads(json.dumps(gb))
+    gt = json.loads(json.dumps(gb))
+    go["_rca"]["R-ours"] = dict(rca, status="ours")
+    gt["_rca"]["R-theirs"] = dict(rca, status="theirs")
+    reg = "dev/audit/config/bugclasses.json"
+    gtext = merge_text(*(json.dumps(x, indent=2, ensure_ascii=False) + "\n" for x in (gb, go, gt)),
+                       LEDGERS[reg], raw=reg in RAW)
+    check("bugclasses: two _rca entries appended after the same last entry both land",
+          list(json.loads(gtext)["_rca"]) == ["Z-old", "R-theirs", "R-ours"])
+    check("bugclasses: raw non-ASCII text is written back raw",
+          "\u00e4" in gtext and "\\u00e4" not in gtext)
+    go["_rca"]["Z-old"]["status"], gt["_rca"]["Z-old"]["status"] = "a", "b"
+    check("bugclasses refuses: one _rca entry both sides rewrote differently",
+          refused(lambda: merge_text(_dump(gb, FORMATS[2]), _dump(go, FORMATS[2]),
+                                     _dump(gt, FORMATS[2]), LEDGERS[reg])))
+    go2, gt2 = json.loads(json.dumps(gb)), json.loads(json.dumps(gb))
+    go2["P1"] = {"total": 3, "instances": ["a", "b", "c"]}
+    gt2["P1"] = {"total": 3, "instances": ["a", "b", "d"]}
+    check("bugclasses refuses: a class both sides added an instance to (equal counts, both wrong)",
+          refused(lambda: merge_text(_dump(gb, FORMATS[2]), _dump(go2, FORMATS[2]),
+                                     _dump(gt2, FORMATS[2]), LEDGERS[reg])))
+    check(".gitattributes routes every ledger to the driver",
           gitattributes_error() is None)
     check("a .gitattributes routing only one ledger is refused",
           (gitattributes_error(text=f"tests/closures.json merge={DRIVER_NAME}\n") or "")

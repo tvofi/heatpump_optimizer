@@ -570,6 +570,11 @@ def gate_source(which=shutil.which) -> str:
 
 def self_test() -> int:
     ok = True
+    # The throwaway repositories below take the suite's shared helper: auto-
+    # maintenance off, so no detached repack outlives the temporary directory
+    # (R9-RCA-stamp-race). Imported here, so the release path never needs tests/.
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_init
 
     def check(name: str, cond: bool) -> None:
         nonlocal ok
@@ -1133,11 +1138,7 @@ def self_test() -> int:
     # fails closed. Both arms are the null controls of each other.
     with tempfile.TemporaryDirectory() as _rd2:
         _rp = Path(_rd2)
-        _genv2 = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-                  "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
-                  "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-        for _k in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
-            _genv2.pop(_k, None)
+        _genv2 = throwaway_git_init(_rp, "-q")
 
         def _rg(*a, **kw):
             return subprocess.run(a, cwd=_rp, text=True, capture_output=True,
@@ -1147,7 +1148,10 @@ def self_test() -> int:
             _rg("git", "add", "-A")
             return _rg("git", "commit", "-q", "-m", msg).strip() or _rg("git", "rev-parse", "HEAD").strip()
 
-        _rg("git", "init", "-q")
+        check("throwaway repo: git itself reads auto-maintenance as off, so no detached "
+              "repack outlives the directory",
+              subprocess.run(["git", "config", "--type=bool", "--get", "maintenance.auto"], cwd=_rp,
+                             env=_genv2, text=True, capture_output=True).stdout.strip() == "false")
         (_rp / "README.md").write_text("base\n")
         _commit("base")
         _base_branch = _rg("git", "rev-parse", "--abbrev-ref", "HEAD").strip()
@@ -1277,17 +1281,12 @@ def self_test() -> int:
     # The undo, on a real throwaway repository: no tag, no stamp commit, and
     # the hand-written notes kept, uncommitted, over the pre-stamp tree.
     with tempfile.TemporaryDirectory() as _gd:
-        _genv = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
-                 "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1"}
-        for _k in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
-            _genv.pop(_k, None)
+        _genv = throwaway_git_init(_gd, "-q")
 
         def _git(*a, **kw):
             return subprocess.run(a, cwd=_gd, text=True, capture_output=True, check=True, env=_genv).stdout
 
         _notes, _ver = Path(_gd) / "RELEASE_NOTES.md", Path(_gd) / "VERSION"
-        _git("git", "init", "-q")
         _notes.write_text("# Notes\n")
         _ver.write_text("6.6.1\n")
         _git("git", "add", "-A")

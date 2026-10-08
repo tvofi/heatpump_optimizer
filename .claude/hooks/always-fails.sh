@@ -8,6 +8,6 @@
 # failing, which is the only thing that separates a check from a claim.
 #
 # It is not wired into .claude/settings.json and never runs outside
-# `policy_lint --hooks .claude/workflows/fixtures/policy-rot/hooks/self-test-fails.json`.
+# `policy_lint --hooks tools/policy/fixtures/policy-rot/hooks/self-test-fails.json`.
 [ "${1:-}" = "--self-test" ] && { echo "  FAIL this hook's self-test is meant to fail"; echo; echo "0 passed, 1 failed"; exit 2; }
 exit 0

@@ -148,6 +148,11 @@
 /tests/profiles.py                        @tvofi
 /tests/run.sh                             @tvofi
 /tests/stress.py                          @tvofi
+# The throwaway-repository helper (R9-RCA-stamp-race): stamp.py's,
+# layout.py's and budget_raise_gate.py's self-tests import it, so a grader
+# loads it; its shell twin is the same rule in the other language.
+/tests/throwaway_git.py                   @tvofi
+/tests/throwaway_git.sh                   @tvofi
 /tests/typing_ruler.py                    @tvofi
 # The target layout of lane RO (R9-RO-1): a new category, or a retired path
 # dropped, changes what every later pull request may put where. Its reader
@@ -161,3 +166,10 @@
 # metrics and the gate -- with the check that pins its calibration.
 /tools/audit/archscore/                   @tvofi
 /tests/arch_score.py                      @tvofi
+# The env-matrix job runs the head's copy of the matrix. The base copy still
+# starts .claude/workflows/policy_lint.mjs, which this tree does not contain
+# (job 112529653069), so a restore from the base would put that path back.
+# counts.mjs is the module that matrix imports. Ownership is what stops a
+# pull request from weakening the driver; the path fix stays in the file.
+/tools/policy/policy_lint_envmatrix.mjs   @tvofi
+/tools/policy/counts.mjs                  @tvofi

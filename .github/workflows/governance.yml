@@ -217,7 +217,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
           elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
@@ -370,6 +370,18 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # A throwaway git repository built without the shared helper
+      # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
+      # even a tiny repository, and it outlives the temporary directory. The
+      # helper turns auto-maintenance off; the check refuses a raw `git init`
+      # in a tracked script, and the self-test pins both layers and the shell
+      # twin. Here for tmp_paths.py's reason, one step up.
+      - name: Refuse a throwaway git repository built without the shared helper
+        run: |
+          set -euo pipefail
+          python3 -I tests/throwaway_git.py --self-test
+          python3 -I tests/throwaway_git.py --check
+
       # The merge train (tools/audit/seat/merge_train.py, landed from the
       # round-9 orchestrator's session scratch): each stop -- red or incomplete
       # CI, no carry, main moved, a policy path or a renamed one, a refusal
@@ -494,6 +506,11 @@ jobs:
           fi
           echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+          # The base matrix still starts .claude/workflows/policy_lint.mjs.
+          # That module is gone (env-matrix job 112529653069: Cannot find
+          # module). The head's matrix names tools/policy/policy_lint.mjs.
+          # The programs it drives stay the base's; this driver is the head's.
+          git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
           git -c user.name=ci -c user.email=ci@invalid commit -q --no-verify --allow-empty -m "pinned check source from $PINNED"
 
       # GITHUB_TOKEN: the `pr` shape below asserts NOTHING skips in a full
@@ -599,7 +616,7 @@ jobs:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
             echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
           else
             if test -f .claude/workflows/agreement_py.py; then python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; else python3 -I tools/policy/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; fi

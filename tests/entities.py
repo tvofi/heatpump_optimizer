@@ -37,6 +37,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate
+from throwaway_git import throwaway_git_env, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -4138,6 +4139,138 @@ if _EntryConfig is not None:
         f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
     )
 
+    # A parsed configuration rides inside state that is deep-copied (the boost
+    # drift replay forks its replay state) or pickled; the read-only view of
+    # the stored values cannot be, so EntryConfig copies by value (#1745).
+    import copy as _ec_copy
+    import pickle as _ec_pickle
+    _ec_orig = _EntryConfig.from_mapping({
+        const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
+        const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
+    })
+    _ec_copies, _ec_copy_err = [], None
+    try:
+        _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_copy_err = f"{type(err).__name__}: {err}"
+    R.check(
+        "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
+        "its parsed fields kept, its stored values still read-only",
+        _ec_copy_err is None and len(_ec_copies) == 2
+        and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
+                and c.pv_enabled is True and c.quiet_off_windows == ""
+                and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
+        f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
+    )
+    # The fuse's continuous capacity is the configuration's, not the
+    # coordinator's: amps x phases x 230 V, None with no fuse configured.
+    _ec_fuse = (
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
+    )
+    R.check(
+        "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
+        abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
+        f"{_ec_fuse}",
+    )
+
+    # The gates that read a parsed switch or slot, each driven on both arms
+    # (#2025's eight mutation survivors: the drives that ran never reached
+    # the arm the gate closes).
+    from dataclasses import replace as _ec_replace
+    from datetime import timezone as _ec_tz
+    import numpy as _ec_np
+    from heatpump_optimizer import silent_mode as _ec_silent
+    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+    from heatpump_optimizer.thermal_model import ThermalState as _EcState
+    from types import SimpleNamespace as _EcNS
+
+    def _ec_lower_floor_samples(sensor):
+        """One replayable two-zone interval; the lower-floor learner's samples after it."""
+        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                        lower_floor_temperature=20.0, slab_temperature=27.0,
+                        outdoor_temperature=-5.0)
+        c._last_house_sample = prev
+        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                       lower_floor_temperature=19.9)
+        c._current_action = {"power": 2.0}
+        asyncio.run(c._async_learn_lower_floor_loss())
+        return c._lower_floor_loss_samples
+
+    def _ec_widening(tripped):
+        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+        c._vent_cusum.tripped = tripped
+        return c._floor_widening()
+
+    def _ec_rain(flag):
+        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+        c._apply_open_meteo = lambda solar, *a: solar
+        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                        snowfall_for=lambda *a: 1.0)
+        c._update_snow_memory = lambda *a: False
+        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+    def _ec_weight(on):
+        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+        c._comfort_learner.learned_weight = 9.0
+        return c._comfort_weight()
+
+    def _ec_capacity(on):
+        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+        c._capacity_envelope = {-2: [1.0, _min]}
+        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+        p_max = float(c._ctx._thermal_params.max_electrical_power)
+        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+        c._fold_capacity_envelope(3.0)
+        return capped, len(c._capacity_envelope)
+
+    def _ec_silent_caps(fraction):
+        try:
+            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                             const.CONF_SILENT_MODE_FRACTION: fraction},
+                                      _ec_start, 96, 0.25, 6.0) is not None
+        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+            return type(err).__name__
+
+    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+    _ec_gates = {
+        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                             _ec_lower_floor_samples("sensor.lower")),
+        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+        "a parsed configuration is returned as it is": (
+            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
+    }
+    _ec_want = {
+        "lower floor learns only from a configured sensor": (0, 1),
+        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+        "rain weighting needs the switch on": (2.0, 0.5714),
+        "learning off plans with the configured weight": (5.0, 9.0),
+        "a parsed configuration is returned as it is": (True, True),
+        "an unreadable silent fraction caps nothing": (False, True),
+        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
+    }
+    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+    R.check(
+        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+        + "; ".join(_ec_want),
+        not _ec_wrong, f"{_ec_wrong}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
     # empty slot None. A set_thermal_parameters call carrying a spec applies
@@ -4192,6 +4325,9 @@ _EC_DISPOSITIONS = {
 _EC_RESIDUAL = {
     "away.py": "config_from_mapping builds AwayConfig, the away subsystem's own parsed "
                "object; _migrate_helpers pops keys off the stored options it rewrites",
+    "debugger.py": "the collector switch is an options-only flag, read from the entry's own "
+                   "options at setup and written back through an options update; EntryConfig "
+                   "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
@@ -5487,6 +5623,13 @@ class _AllGates:
 _healthy = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken = FakeCoordinator(DATA, _config=_EVERY_INPUT, _thermal_params=_AllGates())
 _broken.last_update_success = False
+# The finalize button's gate is a running collection, not a payload field.
+# Both coordinators hold one, so a forgotten ``super().available and`` is the
+# only thing that would leave the button up after a failed refresh.
+from heatpump_optimizer.debugger import DebugCollector as _DbgCollector
+from heatpump_optimizer.debugger import _COLLECTORS as _DBG_HELD
+for _coord in (_healthy, _broken):
+    _DBG_HELD[_coord] = _DbgCollector(_coord.hass, ENTRY.entry_id, lambda coro: None)
 # Every platform is in the roster (#295). The two action buttons were once
 # held out of it on the theory that "run an optimization now" is exactly what
 # a user reaches for when the last refresh failed -- but a press during an
@@ -6502,11 +6645,12 @@ R.section("Buttons")
 
 buttons = collect(button)
 btn_by_name = {display_name("button", b): b for b in buttons}
-R.check("four buttons are added", len(buttons) == 4, str(len(buttons)))
+R.check("five buttons are added", len(buttons) == 5, str(len(buttons)))
 for name in (
     "Optimize Now",
     "Learning Run System Identification",
     "Learning Reset Comfort Weight",
+    "Learning Finalize Debug Collection",
     "Prediction Accuracy Diagnose Last Interval",
 ):
     R.check(f"the {name} button exists", name in btn_by_name)
@@ -11548,6 +11692,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "hours_until_return", "recovery_active", "return_time", "source"
     }),
     "ComfortWeightSensor": frozenset({"configured", "learned", "overrides"}),
+    "DebugFinalizeButton": frozenset({"waiting_for"}),
     "CompressorStartsSensor": frozenset({
         "lifetime", "month", "wear_price_per_start"
     }),
@@ -12093,6 +12238,7 @@ _CLUSTER_PREFIXES: dict[str, dict[str, str]] = {
         "plan_dhw_heating": "Plan ",
     },
     "button": {
+        "learning_finalize_debug": "Learning ",
         "learning_run_system_identification": "Learning ",
         "learning_reset_comfort_weight": "Learning ",
     },
@@ -14587,6 +14733,13 @@ R.check(
     "diagnose_interval returns the per-entry report",
     _svc_entry.entry_id in _diag["diagnosis"],
 )
+_dbg_status = _svc_call(const.SERVICE_DEBUG_COLLECT, {"action": "status"})
+R.check(
+    "debug_collect status with nothing collecting reports idle",
+    _dbg_status["debug"][_svc_entry.entry_id]["active"] is False
+    and _dbg_status["debug"][_svc_entry.entry_id]["rows"] == 0,
+    str(_dbg_status),
+)
 R.check(
     "diagnose_interval runs the button's snapshot path, not a thread (#1529)",
     "diagnose" in _svc_log
@@ -14611,6 +14764,7 @@ _svc_covered = {
     const.SERVICE_CLEAR_MANUAL_PLAN,
     const.SERVICE_RESTORE_SNAPSHOT,
     const.SERVICE_DIAGNOSE_INTERVAL,
+    const.SERVICE_DEBUG_COLLECT,
 }
 R.check(
     "every registered service was invoked above",
@@ -17726,8 +17880,7 @@ def _stale_corpus_fixture():
     def g(d, *a):
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"},
+            env={**throwaway_git_env(), "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e"},
         )
 
     def run(d):
@@ -17747,7 +17900,7 @@ def _stale_corpus_fixture():
         shutil.copy(_preflight, d / "tools/audit/preflight.sh")
         for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
             (d / "tools/audit/briefs" / f).write_text("v1\n")
-        g(d, "init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         g(d, "add", "-A")
         g(d, "commit", "-q", "-m", "base")
         base = g(d, "rev-parse", "HEAD").stdout.strip()
@@ -17785,12 +17938,22 @@ def _stale_corpus_fixture():
             "console.log('TOTAL: 0 error(s)')\n"
         )
         old_lint = run(d)
-        return stale, authored, current, old_lint
+        # Arm 5: the same stale head in the layout the tree has had since
+        # #1919 -- policy_lint.mjs under tools/policy/ and not under
+        # .claude/workflows/. A pre-flight that spells only the old path finds
+        # no program there, fails the sentinel probe and prints NOT compared on
+        # every checkout (R9-RCA-2004). Arms 1-4 build the old layout, so they
+        # stayed green while the live check went dark.
+        (d / ".claude/workflows/policy_lint.mjs").unlink()
+        (d / "tools/policy").mkdir(parents=True)
+        _copy_policy_lint_tree(d / "tools/policy")
+        moved_layout = run(d)
+        return stale, authored, current, old_lint, moved_layout
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
 
-_sc_stale, _sc_authored, _sc_current, _sc_old_lint = _stale_corpus_fixture()
+_sc_stale, _sc_authored, _sc_current, _sc_old_lint, _sc_moved_layout = _stale_corpus_fixture()
 _sc_stale_block = _sc_stale.split("authored here AND moved")[0]
 R.check(
     "the pre-flight names a policy file main moved and this branch did not touch",
@@ -17862,13 +18025,12 @@ def _mirror_age_fixture():
                 when = f"@{now - ago * 3600} +0000"
                 return subprocess.run(
                     ["git", "-C", str(d), *a], capture_output=True, text=True,
-                    env={**os.environ,
-                         "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e",
+                    env={**throwaway_git_env(),
+                         "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e",
                          "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when},
                 )
 
-            g("init", "-q", "-b", "trunk")
+            throwaway_git_init(d, "-q", "-b", "trunk")
             g("add", "-A")
             g("commit", "-q", "-m", "base", ago=commit_age_h)
             sha = g("rev-parse", "HEAD").stdout.strip()
@@ -17911,6 +18073,14 @@ R.check(
     "indistinguishable from nothing being stale. Without the sentinel probe the "
     "check reports `ok` on precisely the stale checkouts it exists to catch, "
     "and this run is the same stale head that fires in the first arm",
+)
+R.check(
+    "and compares in the moved layout, policy_lint.mjs under tools/policy/",
+    "policy corpus -- 1 file(s) origin/main moved" in _sc_moved_layout
+    and "NOT compared" not in _sc_moved_layout,
+    "#1919 moved policy_lint.mjs to tools/policy/ and the pre-flight kept "
+    "spelling .claude/workflows/, so every checkout of main printed NOT "
+    "compared: the sentinel probe reported it, and nothing failed (R9-RCA-2004)",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
@@ -18561,21 +18731,102 @@ def _af_case(committed, records, check_txt=None, inert=()):
             _closure.CLOSURES, _closure.is_inert = orig, real_is_inert
 
 
+# R9-CI-1: the refusal is owed only where the failed recording IS a stale
+# script's (or its driven child's): its truncated trace may be the whole
+# under-scope. A failed recording of an UNRELATED script blocked the repair of
+# every stale one -- 6 of the 9 skip-failed-recording runs whose artifacts
+# survived (2026-10-06..07) failed on a script the check did not name, mostly
+# stress.py on a timing verdict -- so that recording is left out and the rest
+# merge. The overlap case keeps the refusal.
 _af3_status, _af3_kept = _af_case(
     {"tests/open_meteo.py": ["tests/open_meteo.py"],
      "tests/frontend.py": ["tests/frontend.py"]},
-    [{"script": "tests/open_meteo.py", "rc": 0,
+    [{"script": "tests/open_meteo.py", "rc": 1,
       "files": ["tests/open_meteo.py", "tests/harness.py"]},
-     {"script": "tests/frontend.py", "rc": 1,
+     {"script": "tests/frontend.py", "rc": 0,
       "files": ["tests/frontend.py"]}],
 )
 R.check(
-    "one failed recording beside a real under-approximation reddens, not skips",
+    "a failed recording OF the under-scoped script reddens, not skips",
     _af3_status == "skip-failed-recording" and _af3_kept
     and _closure.autofix_repair_failed("closures-autofix", _af3_status),
-    f"status={_af3_status}: open_meteo.py under-approximates and the repair "
-    "is refused because frontend.py failed to record -- a human is waiting "
-    "for a commit no step will push",
+    f"status={_af3_status}: open_meteo.py under-approximates and its own "
+    "recording stopped early -- a human is waiting for a commit no step will push",
+)
+with _tempfile.TemporaryDirectory() as _af3u_td:
+    _af3u_path = Path(_af3u_td) / "closures.json"
+    _af3u_path.write_text(json.dumps({"closures": {
+        "tests/open_meteo.py": ["tests/open_meteo.py"],
+        "tests/frontend.py": ["tests/frontend.py"]}, "recorded": {}}))
+    _af3u_rec = Path(_af3u_td) / "rec"
+    _af3u_rec.mkdir()
+    for _i, _r in enumerate([
+            {"script": "tests/open_meteo.py", "rc": 0,
+             "files": ["tests/open_meteo.py", "tests/harness.py"]},
+            {"script": "tests/frontend.py", "rc": 1,
+             "files": ["tests/frontend.py"]}]):
+        (_af3u_rec / f"{_i}.json").write_text(json.dumps(_r))
+    _af3u_orig, _closure.CLOSURES = _closure.CLOSURES, _af3u_path
+    try:
+        _af3u_status = _closure.apply_under_scoped_recordings(_af3u_rec)
+    finally:
+        _closure.CLOSURES = _af3u_orig
+    _af3u_after = json.loads(_af3u_path.read_text())["closures"]
+R.check(
+    "a failed recording of an UNRELATED script no longer blocks the repair; "
+    "its own truncated trace is left out of the merge",
+    _af3u_status == "changed"
+    and "tests/harness.py" in _af3u_after["tests/open_meteo.py"]
+    and _af3u_after["tests/frontend.py"] == ["tests/frontend.py"],
+    f"status={_af3u_status} closures={_af3u_after!r}",
+)
+# A driven child counts as its driver (#2049's review, M7): dst_checks.py's
+# reads fold into features.py's closure, so a dst_checks.py recording that
+# stopped early truncates the very closure the check names. Leaving it out and
+# merging the rest would repair features.py over a clean subset and push the
+# truncation; the refusal must hold. The null control is the same pair with
+# dst_checks.py recorded cleanly, which repairs.
+_af_dst = ({"tests/features.py": ["tests/features.py"]},)
+_af_dst_failed = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 1,
+     "files": ["tests/dst_checks.py"]}])
+_af_dst_clean = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 0,
+     "files": ["tests/dst_checks.py"]}])
+R.check(
+    "a failed recording of a driven child refuses its driver's repair; the "
+    "same pair recorded cleanly repairs",
+    _closure.DRIVEN_BY_OTHERS.get("dst_checks.py") == "features.py"
+    and _af_dst_failed == ("skip-failed-recording", True)
+    and _af_dst_clean[0] == "changed" and not _af_dst_clean[1],
+    f"failed child={_af_dst_failed} clean child={_af_dst_clean}",
+)
+# R9-CI-1: INERT READS UNDER-APPROXIMATED is the same repair -- merging the
+# Linux recordings folds `inert_reads` (#1886's own remedy, ci-autofix.md) --
+# and was 15 of the 15 skip-manual-repair-owed runs read (2026-10-06..07).
+# The bot merges it; a PHANTOM or NOT A FILE stays a human's.
+_af3i_status, _af3i_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+_af3j_status, _af3j_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 1,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+R.check(
+    "an INERT READS under-approximation is merged by the bot; its script's "
+    "own failed recording still refuses",
+    (_af3i_status, _af3i_kept) == ("changed", False)
+    and (_af3j_status, _af3j_kept) == ("skip-failed-recording", True),
+    f"inert={_af3i_status},{_af3i_kept} failed={_af3j_status},{_af3j_kept}",
 )
 # The other half of the split, and the reason it is a split rather than a
 # reclassification: a failed recording with nothing under-scoped must stay
@@ -20015,10 +20266,11 @@ with _tempfile.TemporaryDirectory() as _cm_td:
 
     def _cm_git(*args, **kw):
         return _subprocess.run(
-            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True, **kw
+            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True,
+            env=throwaway_git_env(), **kw
         )
 
-    _cm_git("init", "-q", "-b", "main")
+    throwaway_git_init(_cm_repo, "-q", "-b", "main")
     _cm_git("config", "user.email", "t@example.invalid")
     _cm_git("config", "user.name", "t")
     _cm_claim = _cm_repo / _env_drift.CLAIM_FILE
@@ -20287,13 +20539,13 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
         "x = 1\n"
     )
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
     base = _sp.run(
-        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True
     ).stdout.strip()
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text(card_head)
     for rel, text in extra.items():
@@ -20304,8 +20556,8 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
         (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
             "x = 2\n"
         )
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "head"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "head"], cwd=root, env=env, check=True, capture_output=True)
     return root, base
 
 
@@ -20383,23 +20635,23 @@ def _merge_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 1\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
-    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
+    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 2\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # A note keeps the merge tree's list the baseline's while its bytes are
     # not: byte-identical is the no-claim state (R9-F10.8), checked below.
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(
         five + "# a note the merge tree carries\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, env=env, check=True, capture_output=True)
     return root, base, branch
 
 
@@ -20472,24 +20724,24 @@ def _untouched_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "docs" / "rust.txt").write_text("start\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "fork"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "fork"], cwd=root, env=env, check=True, capture_output=True)
     # the branch: a docs-only change, both claim files left exactly as found
     (Path(root) / "docs" / "rust.txt").write_text("branch\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # main moves the solver list after the fork (the branch is not its author)
-    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, env=env, check=True, capture_output=True)
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(moved)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "main"], cwd=root, check=True, capture_output=True)
-    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "main"], cwd=root, env=env, check=True, capture_output=True)
+    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # the synthetic merge tree a `pull_request` checks out: main merged with branch
-    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, env=env, check=True, capture_output=True)
     return root, ref, branch
 
 
@@ -20654,7 +20906,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     root = _tempfile.mkdtemp(prefix="f108_")
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     def _put(rel: str, text: str) -> None:
@@ -20668,7 +20920,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     _put(_env_drift.CARD_CLAIM_FILE, hdr)
     _put("custom_components/heatpump_optimizer/optimizer.py", "x = 1\n")
     _put(_env_drift.CARD_JS, "// card\n")
-    _git("init", "-q")
+    throwaway_git_init(root, "-q")
     _git("config", "user.email", "t@t")
     _git("config", "user.name", "t")
     _git("add", "-A")
@@ -20792,7 +21044,7 @@ def _f108_tip_moved():
     root, main_sha = _f108_repo(branch_note=False)
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     _git("checkout", "-q", "main")
@@ -24834,6 +25086,34 @@ _RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
                          if "_rr" in globals() else "?")
 
 
+# The one review the job posts is the approver App's, and only behind the
+# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
+# sits after the guard's call at the live head, and the POST carries the
+# approver token, never the author's -- an author cannot approve its own pull
+# request, and a review ahead of the guard would approve what it never read.
+_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
+
+
+def _raf_review_gated(job: str) -> bool:
+    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
+    g = job.find(_RAF_GUARD)
+    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
+                     r'[^\n]*pulls/\$NUM/reviews"', job)
+    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
+
+
+# The merge is the beat's own, pinned to the head the guard judged (#2029
+# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
+# the guard's `--require-green` call, and never GitHub's auto-merge, which
+# merges later on a head nobody judged.
+def _raf_merge_pinned(job: str) -> bool:
+    g = job.find("guard --require-green")
+    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
+    return (0 < g < put
+            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
+            and "AutoMerge" not in job)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -24853,7 +25133,9 @@ def _raf_job_ok(job: str) -> bool:
         and all(_RAF_LEASE in p for p in pushes)
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
-        and not re.search(r"pulls/.*/reviews", job))
+        and "--automerge-check --hold" in job
+        and _raf_review_gated(job)
+        and _raf_merge_pinned(job))
 
 
 R.check(
@@ -24881,11 +25163,19 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
+    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
-    "that runs only after NUM is known -- must each turn the pin red -- "
+    "that runs only after NUM is known, or dropping the automerge guard "
+    "ahead of the review, or posting it with the author's token, or the "
+    "merge's green gate or its sha pin -- must "
+    "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
@@ -25158,16 +25448,16 @@ def _pt_trigger(script: str, planted: str) -> str:
     """Run the arm's `changed` step on a planted one-file diff; its governance output."""
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
-        subprocess.run(["git", "init", "-q", _td], check=True)
+        _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "base"], check=True)
-        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
+        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         Path(_td, planted).parent.mkdir(parents=True, exist_ok=True)
         Path(_td, planted).write_text("1\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "head"], check=True)
-        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "head"], check=True, env=_env)
+        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
@@ -25582,7 +25872,7 @@ def _autofix_head_fixture():
         c = committer or who
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": who[0],
+            env={**throwaway_git_env(), "GIT_AUTHOR_NAME": who[0],
                  "GIT_AUTHOR_EMAIL": who[1], "GIT_COMMITTER_NAME": c[0],
                  "GIT_COMMITTER_EMAIL": c[1]},
         ).stdout.strip()
@@ -25623,7 +25913,7 @@ def _autofix_head_fixture():
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
         (d / "other.txt").write_text("v1\n")
-        g("init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         (d / ".gitignore").write_text("body.md\n")
         base = commit("base", {}, who=seat)
         closures = {"tests/closures.json": '{"closures": {"a": []}}\n'}
@@ -26086,15 +26376,21 @@ R.check(
 # --- round-9 process review item 3, shrunk: a superseded long-job
 # pull-request run is an older SHA replaced by a newer one in the same
 # group, and that pair is cancelled; two events at one SHA of the
-# required short contract job are not (R9-RC-PRCONTRACT). Every workflow
-# a pull request starts declares one top-level `concurrency:`; each
-# `${{ }}` in it is evaluated here under the events the file lists. Two
-# `pull_request` runs of one pull request share a group. `tests.yml` and
-# the other long `on: pull_request` workflows cancel the older SHA;
-# `pr-contract.yml` shares the group and does not cancel, so an `edited`
-# twin at the live SHA finishes instead of writing a cancelled required
-# context. Only `pr-contract.yml` lists `edited`, so only it can receive
-# that twin. Two runs of any other event -- a push to main, a merge
+# required short contract job are not (R9-RC-PRCONTRACT, R9-CI-2a). Every
+# workflow a pull request starts declares one top-level `concurrency:`; each
+# `${{ }}` in it is evaluated here under the events the file lists. A
+# workflow that does not list `edited` receives no same-SHA twin: its two
+# `pull_request` runs of one pull request share a group and the older SHA
+# is cancelled. One that lists `edited` receives a twin at every author
+# push that re-bodies the pull request (`app_push.sh` pushes, then PATCHes
+# the body), and must never cancel it; `_CC_TWIN_ROUTE` names how each
+# such file keeps it, and a file listing `edited` that it does not name is
+# a problem. "serialised": one group, no cancel -- the twins queue
+# (`pr-contract.yml`, whose body read races the PATCH). "per-run": a group
+# per run, so no run ever cancels or queues another -- not even the
+# newer-pending-cancels-older-pending GitHub applies whatever
+# `cancel-in-progress` says, which a serialised file still meets while an
+# older head's run holds the group. Two runs of any other event -- a push to main, a merge
 # queue entry, the nightly, an autofix push or dispatch, a review -- get
 # groups of their own, because a group they shared would queue them, and
 # a newer pending run cancels the older pending one whatever
@@ -26134,6 +26430,18 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     return event
 
 
+# How each workflow that lists `pull_request: edited` keeps its same-SHA
+# twin from being cancelled. A design choice per file, not a derived fact.
+_CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
+                  "budget-raise-gate.yml": "per-run"}
+
+
+def _cc_lists_edited(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    pr = on.get("pull_request") if isinstance(on, dict) else None
+    return "edited" in ((pr or {}).get("types") or [])
+
+
 def _cc_problems(name: str, doc: dict) -> "list[str]":
     on = doc.get("on", doc.get(True)) or {}
     events = [on] if isinstance(on, str) else list(on)
@@ -26143,14 +26451,19 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
     if not isinstance(cc, dict):
         return [f"{name}: no top-level concurrency"]
     out = []
+    twin = _cc_lists_edited(doc)
+    route = _CC_TWIN_ROUTE.get(name) if twin else None
+    if twin and route is None:
+        out.append(f"{name}: lists `edited` but names no twin route")
     for ev in [e for e in _CC_EVENTS if e in events]:
         for who in ("hpo-author[bot]", "github-actions[bot]"):
             # A superseded pair is sha-1 replaced by sha-2, not two events
             # at one SHA. An autofix push never cancels.
             def at(run_id, ev=ev, who=who):
                 return _cc_pr_event(doc, run_id, f"sha-{run_id}", who=who, ev=ev)
-            share = ev == "pull_request" and who != "github-actions[bot]"
-            cancel_want = share and name != "pr-contract.yml"
+            share = (ev == "pull_request" and who != "github-actions[bot]"
+                     and route != "per-run")
+            cancel_want = share and not twin
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
@@ -26163,7 +26476,7 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
                 if not sa or not sb:
                     out.append(f"{name}: pull_request pair by {who} carries no SHA")
-                elif name != "pr-contract.yml" and sa == sb:
+                elif not twin and sa == sb:
                     out.append(f"{name}: superseded pair by {who} is one SHA, "
                                "not an older SHA replaced by a newer")
     return out
@@ -26227,6 +26540,45 @@ R.check(
     and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
         **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
     f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
+)
+
+_BRG_DOC = _RC_DOCS["budget-raise-gate.yml"]
+_BRG_CC = (_BRG_DOC.get("concurrency") or {})
+_CC_BRG_TWIN = (_cc_pr_event(_BRG_DOC, 1, _CC_TWIN_SHA),
+                _cc_pr_event(_BRG_DOC, 2, _CC_TWIN_SHA))
+R.check(
+    "budget-raise-gate gives each author-app pull_request event at one SHA a "
+    "group of its own and cancels none (R9-CI-2a)",
+    _cc_lists_edited(_BRG_DOC)
+    and _cc_value(_BRG_CC.get("cancel-in-progress"), _CC_BRG_TWIN[0]) == "False"
+    and None not in (_cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0]),
+                     _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]))
+    and _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0])
+    != _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]),
+    f"groups={_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[0])!r}/"
+    f"{_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[1])!r} "
+    f"cancel={_cc_value(_BRG_CC.get('cancel-in-progress'), _CC_BRG_TWIN[0])!r}",
+)
+# The block the gate carried until R9-CI-2a: one group per pull request,
+# cancelling. It cancelled a same-SHA twin at every author push that
+# re-bodied a pull request (#2007, #2029, #2041, #2049).
+_BRG_OLD_CC = {
+    "group": "${{ github.workflow }}-${{ github.event_name == 'pull_request' && "
+             "github.event.sender.login != 'github-actions[bot]' && "
+             "github.event.pull_request.number || github.run_id }}",
+    "cancel-in-progress": "${{ github.event_name == 'pull_request' && "
+                          "github.event.sender.login != 'github-actions[bot]' }}"}
+_BRG_OLD = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": _BRG_OLD_CC})
+_BRG_SERIAL = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": {
+    **_BRG_OLD_CC, "cancel-in-progress": False}})
+_CC_UNROUTED = _cc_problems("unrouted.yml", {**_BRG_DOC, "name": "x"})
+R.check(
+    "and the cancelling block, a serialised one, or an unrouted `edited` "
+    "file is refused (null control)",
+    any("cancel-in-progress" in p for p in _BRG_OLD)
+    and any("get groups" in p for p in _BRG_SERIAL)
+    and any("names no twin route" in p for p in _CC_UNROUTED),
+    f"old={_BRG_OLD} serialised={_BRG_SERIAL} unrouted={_CC_UNROUTED}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
@@ -29349,7 +29701,8 @@ R.check(
 def _mut_git(root: Path, *args: str) -> str:
     return _subprocess.run(["git", "-c", "user.name=t", "-c",
                             "user.email=t@example.invalid", *args], cwd=root,
-                           capture_output=True, text=True, check=True).stdout.strip()
+                           capture_output=True, text=True, check=True,
+                           env=throwaway_git_env()).stdout.strip()
 
 
 _MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
@@ -29367,7 +29720,7 @@ try:
         "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
             _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
                                             "old": "    if x:"}}}))
-    _mut_git(_mb_root, "init", "-q")
+    throwaway_git_init(_mb_root, "-q")
     _mut_git(_mb_root, "add", "-A")
     _mut_git(_mb_root, "commit", "-qm", "A")
     _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
@@ -29590,15 +29943,15 @@ _LL_GOT: dict = {}
 try:
     _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
                "-c", "commit.gpgsign=false"]
-    subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+    _ll_env = throwaway_git_init(_LL_DIR, "-q")
     (_LL_DIR / "tests").mkdir()
     _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
     _mut.write_budgets(_ll_led)
     _ll_d = _mut.ledger_dir()
     _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
     _LL_GOT["clean"] = _mut.layout_problems()
-    subprocess.run([*_ll_git, "add", "-A"], check=True)
-    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True)
+    subprocess.run([*_ll_git, "add", "-A"], check=True, env=_ll_env)
+    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True, env=_ll_env)
     _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
     _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
     _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
@@ -29693,11 +30046,14 @@ R.check(
 # same-repo ratchet failure, graded by `measurement`, and a push grant only
 # in the job that runs no pull-request driver.
 _ma_mut = _workflow_job(_TESTS_YML, "mutation")
+_ma_pins = _workflow_job(_TESTS_YML, "mutation-pins")
 _ma_fix = _workflow_job(_TESTS_YML, _MA)
-_ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
+_ma_meas = [s for s in _ma_pins.split("\n      - ") if "mutation-pins" in s
             and "measurement(" in s]
 _MA_WIRING = [w for w in (
-    "git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py",
+    'git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py',
+    "PR_BASE: ${{ github.event.pull_request.base.sha }}",
+    '|| echo "pin run exited non-zero; measurement() grades it"',
     "tests/_mutation_table_base.py --pin-killed",
     "_mutation_table_base.py >> .git/info/exclude",
     "mutation_table.measurement(",
@@ -29708,12 +30064,12 @@ _MA_WIRING = [w for w in (
     "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
     "printf '%s\\n' \"$PR_HEAD\" > \"$out/head\"",
     "if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\\(s\\) against'",
-) if not _ma_meas or w not in _ma_meas[0]]
+) if not _ma_meas or w not in _ma_pins]
 R.check(
     "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
     len(_ma_meas) == 1 and not _MA_WIRING
-    and "failure()" in _ma_meas[0]
-    and "contents: write" not in _ma_mut,
+    and "needs.mutation.result == 'failure'" in _ma_pins
+    and "contents: write" not in _ma_mut and "contents: write" not in _ma_pins,
     f"measure steps={len(_ma_meas)} missing={_MA_WIRING}",
 )
 R.check(
@@ -29722,7 +30078,10 @@ R.check(
     and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
     and "contents: write" in _ma_fix
     and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
-    and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
+    and "mutation_table.merge_pin_shards(" in _ma_fix
+    and "pattern: mutation-pins*" in _ma_fix
+    and "needs: [mutation, mutation-pins]" in _ma_fix
+    and "mutation_table.apply_pins(pins, head)" in _ma_fix,
     "the job's if:, its push grant, and the head it hands apply_pins",
 )
 
@@ -30057,7 +30416,7 @@ _PP_DIR = Path(tempfile.mkdtemp(prefix="hpo-drain-push-"))
 
 def _pp_git(*a: str) -> str:
     return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
-                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR,
+                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR, env=throwaway_git_env(),
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
@@ -30070,7 +30429,7 @@ def _pp_row(name: str, text: str, subject: str) -> None:
 
 
 try:
-    _pp_git("init", "-q", "-b", "main")
+    throwaway_git_init(_PP_DIR, "-q", "-b", "main")
     (_PP_DIR / "a.txt").write_text("a\n")
     _pp_row("old.json", "{}\n", "base")
     _pp_main = _pp_git("rev-parse", "HEAD")
@@ -31055,8 +31414,8 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation", "&& budget=(--budget-minutes 35)"),
-    ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+    ("mutation-pins", "&& budget=(--budget-minutes 120)"),
+    ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
@@ -31372,6 +31731,138 @@ R.check(
     if _MUT_BG2_OUT else f"drive_pin_pool="
                          f"{'absent' if _mut_pin is None else 'present'}",
 )
+# R9-CI-1: #2025's pin step started none of 56 sites (run 37663843895). The
+# split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py
+# and harness_headers.py at three runs each, ~2535 s -- and every lazy driver
+# at three runs too, so the first anchor's estimate (~4069 s) outgrew the whole
+# 35-minute budget before env_drift.py's 353 s baseline even counted. The tail
+# runs only for a mutant that survives every shared driver, so the split now
+# admits on the shared work alone and checks the tail against the deadline when
+# a survivor reaches it; a lazy driver is charged its run, its settle paid on
+# the clock when a red run actually needs it. Fixture: tests/a.py (shared, 10)
+# kills mutant 0; mutant 1 survives it; tests/stress.py (EXCLUSIVE) costs 90
+# against a deadline of 50.
+_MUT_CI_T = [0.0]
+
+
+def _mut_ci_run(deadline):
+    _MUT_CI_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append((m["line"], s))
+        _MUT_CI_T[0] += {"tests/a.py": 10, "tests/stress.py": 90}[s]
+        return m["line"] == 0 and s == "tests/a.py"
+
+    pool = [{"file": "x.py", "line": i, "kind": "CONST", "anchor": f"x.py:{i}",
+             "drivers": ["tests/a.py", "tests/stress.py"]} for i in range(2)]
+    out = _mut_pin(pool, 3, {"tests/a.py": 10, "tests/stress.py": 90}, drive,
+                   deadline=deadline, clock=lambda: _MUT_CI_T[0])
+    return [v for _, v in out], sorted(ran)
+
+
+_MUT_CI_OUT = ((_mut_ci_run(50), _mut_ci_run(None))
+               if _mut_pin is not None else None)
+_mut_bsec = getattr(_mut, "budget_seconds", None)
+_MUT_CI_SEC = (_mut_bsec({"tests/a.py": 10.0, "tests/stress.py": 90.0},
+                         ["tests/stress.py"]) if _mut_bsec else None)
+R.check(
+    "the split admits a mutant on its shared work and charges the EXCLUSIVE "
+    "tail only to a survivor that reaches it; a lazy driver costs one run",
+    _MUT_CI_OUT == (
+        (["killed by tests/a.py", "SKIP-BUDGET"],
+         [(0, "tests/a.py"), (1, "tests/a.py")]),
+        (["killed by tests/a.py", "LIVES"],
+         [(0, "tests/a.py"), (1, "tests/a.py"), (1, "tests/stress.py")]))
+    and _MUT_CI_SEC == {"tests/a.py": 10.0, "tests/stress.py": 270.0}
+    and "seconds = budget_seconds(own_s, deferred)" in _MUT_MAIN_DEFER,
+    f"out={_MUT_CI_OUT!r} seconds={_MUT_CI_SEC!r}",
+)
+# R9-CI-1, the shards: one runner pinned 10 of #2025's 56 sites in its
+# budget. `pin_shard` deals anchors round-robin, so the shards are disjoint,
+# cover the pool, and never split an anchor's twins; `merge_pin_shards` folds
+# the shard artifacts into the one directory `apply_pins` reads, `measured`
+# when any shard measured, else the most owing status.
+_MUT_SH_POOL = [{"anchor": a, "line": i} for i, a in
+                enumerate(["p:a", "p:b", "p:b", "p:c", "p:d", "p:e", "p:a"])]
+_MUT_SH = [_mut.pin_shard(_MUT_SH_POOL, k, 4) for k in range(1, 5)]
+_MUT_SH_ANCH = [{s["anchor"] for s in sh} for sh in _MUT_SH]
+with _tempfile.TemporaryDirectory() as _sh_td:
+    _sh_root = Path(_sh_td) / "shards"
+    for _n, _st, _pins in (("mutation-pins-1", "measured", {"p:a": {"killed_by": "t"}}),
+                           ("mutation-pins-2", "skip-nothing-drivable", {}),
+                           ("mutation-pins-3", "measured", {"p:c": {"killed_by": "u"}}),
+                           ("mutation-pins-4", "skip-nothing-killed", {})):
+        (_sh_root / _n).mkdir(parents=True)
+        (_sh_root / _n / "status").write_text(_st + "\n")
+        (_sh_root / _n / "pins.json").write_text(json.dumps(_pins))
+        (_sh_root / _n / "head").write_text("h\n")
+    _sh_st = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "m"))
+    _sh_pins = json.loads((Path(_sh_td) / "m" / "pins.json").read_text())
+    for _n in ("mutation-pins-1", "mutation-pins-3"):
+        (_sh_root / _n / "status").write_text("skip-nothing-killed\n")
+    _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
+    (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
+    _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+    # One shard is one matching artifact, and download-artifact extracts a
+    # lone match into `path` itself, not into a subdirectory: six of the first
+    # nine post-#2049 autofix runs, three of them measured pins read as
+    # skip-no-measurement (#2025 at de81043a, run 37763212023).
+    _sh_one = Path(_sh_td) / "one"
+    _sh_one.mkdir()
+    (_sh_one / "status").write_text("measured\n")
+    (_sh_one / "pins.json").write_text(json.dumps({"p:a": {"killed_by": "t"}}))
+    (_sh_one / "head").write_text("h\n")
+    _sh_1 = _mut.merge_pin_shards(str(_sh_one), str(Path(_sh_td) / "o"))
+    _sh_1p = sorted(json.loads((Path(_sh_td) / "o" / "pins.json").read_text())) \
+        if _sh_1 == "measured" else []
+R.check(
+    "the pin shards are disjoint, cover the pool and keep an anchor's twins "
+    "together; their merge is measured when any shard measured, one shard too",
+    sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
+    and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
+            for b in _MUT_SH_ANCH[i + 1:])
+    and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed"
+    and (_sh_1, _sh_1p) == ("measured", ["p:a"]),
+    f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
+    f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
+)
+# The shard count scales with the sites the diff added: six a shard, at most
+# ten, one when the table names none -- read off the refusal line the lane
+# prints, and wired into the matrix the pin job runs.
+_MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
+                                f"against 3 at the ratchet base x, {n} of them "
+                                f"added by this diff.") for n in (1, 6, 7, 56, 200)]
+_MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
+_MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
+R.check(
+    "the pin shard count scales with the diff's new sites, six a shard, "
+    "capped at ten, and sizes the matrix the shards run",
+    _MUT_SC == [1, 1, 2, 10, 10] and _MUT_SC0 == 1
+    and "mutation_table.pin_shard_count(" in _MUT_PLAN
+    and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
+    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins,
+    f"counts={_MUT_SC} none={_MUT_SC0}",
+)
+# The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
+# "46 left unpinned -- a survivor needs a killing check" was 46 sites the
+# budget never started and no survivor. The head stays PIN_SUMMARY's.
+_MUT_PS = [(dict(anchor=f"s:{i}"), v) for i, v in enumerate(
+    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET", "LIVES", "SKIP-TIMED-OUT in t"])]
+_MUT_PS_CUT = _mut.pin_summary(1, 3, [r for r in _MUT_PS if r[1] != "LIVES"],
+                               {"s:0": {}})
+_MUT_PS_LIVE = _mut.pin_summary(1, 4, _MUT_PS, {"s:0": {}})
+R.check(
+    "the pin summary counts budget cuts and timeouts apart from survivors, "
+    "and names a survivor's remedy only when one survived",
+    "(0 survived, 2 not started for the budget, 1 timed out, 0 skipped)" in _MUT_PS_CUT
+    and "survivor needs" not in _MUT_PS_CUT
+    and "(1 survived, 2 not started" in _MUT_PS_LIVE
+    and "survivor needs" in _MUT_PS_LIVE
+    and _mut.PIN_SUMMARY.search(_MUT_PS_CUT.strip()) is not None,
+    f"cut={_MUT_PS_CUT.strip()!r} live={_MUT_PS_LIVE.strip()!r}",
+)
 _MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
                "else drive_pool" in _MUT_MAIN_DEFER)
 R.check(
@@ -31620,7 +32111,7 @@ def _mutl_git(*args):
     return _mutl_sp.run(
         ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
          "-c", "commit.gpgsign=false", *args],
-        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True, env=throwaway_git_env()).stdout
 
 
 def _mutl_branch(name, edits):
@@ -31636,7 +32127,7 @@ def _mutl_branch(name, edits):
 
 (_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
 (_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
-_mutl_git("init", "-q")
+throwaway_git_init(_MUTL_DIR, "-q")
 _mutl_git("add", "-A")
 _mutl_git("commit", "-q", "--no-verify", "-m", "base")
 _mutl_git("branch", "base")
@@ -32271,8 +32762,9 @@ def _jb_run() -> dict:
                 **({"judge_batch": "not an object"} if name == "badjb" else {}),
             })
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
-        for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
-            _subprocess.run(git + cmd, check=True, capture_output=True)
+        _jb_env = throwaway_git_init(repo, "-q")
+        for cmd in (["add", "-A"], ["commit", "-qm", "fixture"]):
+            _subprocess.run(git + cmd, check=True, capture_output=True, env=_jb_env)
         rows = judge_batch.run_batch(findings, repo=repo, lock_dir=lock_dir,
                                       label="entities-jb", timeout=30)
         after = _gate_lock.read_owner(lock_dir)
@@ -32864,10 +33356,10 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
                     (repo / rel).parent.mkdir(parents=True, exist_ok=True)
                     (repo / rel).write_text(body or "untracked")
             if tracked:
-                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
-                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                env = throwaway_git_init(repo, "-q")
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True, env=env)
                 subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
-                               check=True)
+                               check=True, env=env)
         rc = _pg_run(stage, repo)
         site = repo / "_site"
         got = {p.relative_to(site).as_posix() for p in site.rglob("*")

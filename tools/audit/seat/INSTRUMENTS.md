@@ -98,6 +98,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
   fetch that half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through.
+- `autofix_statuses.sh` — re-derives what `mutation-autofix` and
+  `closures-autofix` answered on recent pull-request runs, from their job
+  logs, with the `closures` failure heading behind each closures skip. When:
+  judging whether the autofix chain repairs anything. Refusal: a log GitHub
+  no longer serves is counted beside the totals, never read as a status.
 - `bus.sh` — git refs as the programme's message bus: seats publish verdicts
   on refs, the orchestrator watches. When: a reviewer seat with no other
   channel, or an orchestrator collecting several lanes' verdicts at once.
@@ -126,6 +131,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `--match-head-commit`. When: any merge queue — queued PRs merge through
   this, never by hand. Refusal: a head that moved under the review, or red
   checks the queue was not told to ignore, stop the train.
+  `batch` merges the queue without re-merging main: the entries' merges are
+  proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
+  and workflow, claim, grader, budget or conflicting entries go serial. When:
+  the default for a queue. Refusal: a red main admits nothing; a red proof
+  drops its entry to serial,
+  and main's tree differing from the proof's before or after a merge stops it.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the
@@ -146,10 +157,21 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
   table and HANDOVER are a seat's dispositions, never this generator's — and
   a window it cannot attribute refuses rather than reports empty.
+  `--automerge-check --pr N [--head SHA] [--hold] [--require-green]` is the
+  guard CI approves and merges a record pull request behind (exit 3: guard
+  passes, a required check has not yet); `--replay-moved` replays one
+  older than the row directory's move. Refusal: any file but a new one-line
+  row at its canonical path that the API's facts re-generate, or an author
+  other than the hpo-author App.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
   driver), drops inherited claims, pushes as the App, prefixes ## Head with
   what happened. When: main moved under an open PR. Refusal: a conflict is
   not auto-resolved — it stops loudly instead.
+- `run_twins.py` — counts a workflow's cancelled `pull_request` runs that
+  sat beside a same-SHA sibling (two events at one head, not a
+  supersession), from cached `/actions/workflows/<file>/runs` pages or
+  `--fetch`. When: judging a workflow's `concurrency:` block (R9-CI-2a).
+  Refusal: none; it enumerates.
 - `resume_doc.py` — generates the resume markdown from the roster plus live
   PR state, under a byte budget. When: a state beat; regenerate rather than
   hand-edit the resume. Refusal: over-budget output refuses with `--out`

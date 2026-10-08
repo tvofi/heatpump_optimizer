@@ -3,14 +3,14 @@
 # Approve a pull request as the App `hpo-approver`, at one exact head SHA, and
 # only on a `merge` verdict for that SHA from an allowlisted account.
 #
-#   tools/audit/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
-#   tools/audit/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
-#   tools/audit/app_approve.sh --self-test
+#   tools/pr/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
+#   tools/pr/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
+#   tools/pr/app_approve.sh --self-test
 #
 # WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
 # ruleset requires one approving review, and GitHub never lets an author
 # approve their own pull request. An ordinary pull request's review comes from
-# the App after a `merge` verdict (`tools/audit/briefs/orchestrator.md`
+# the App after a `merge` verdict (`dev/governance/roles/orchestrator.md`
 # section 11); a policy pull request's comes from the owner, on GitHub, and
 # this script refuses one.
 #
@@ -27,7 +27,7 @@
 #     request's head fetched into this checkout. Every other comment is ignored, so an outsider's later line neither
 #     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
 #     (decision 0013, amending 0011: the orchestrator posts the reviewer
-#     seat's text with `tools/audit/app_comment.sh`; never as the author App,
+#     seat's text with `tools/pr/app_comment.sh`; never as the author App,
 #     #1233's defect, and no longer as `tvofi`). The id pin replaces the
 #     author_association guard this line carried while verdicts were
 #     `tvofi`'s: an App's association reads NONE (measured on the ten
@@ -375,7 +375,7 @@ open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" 
   python3 -c 'import sys,json
 sha, url, f, v = sys.argv[1:5]
 json.dump({"commit_id": sha, "event": "APPROVE",
-  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/audit/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
+  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
   open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" "$evsha" || die "could not write the review payload"
   local resp
   resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \
@@ -478,9 +478,9 @@ chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
 # The carry's fixture: a real repository whose `origin` is a local bare one,
 # so `git fetch` and the carry run for real and no case reaches the network.
-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
 g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
-git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
+throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
 echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
@@ -865,7 +865,7 @@ carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driv
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
-( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
+( R="$W/reloc"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
   body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
   printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
   git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"

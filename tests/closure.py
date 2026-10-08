@@ -170,6 +170,12 @@ NOT_A_TEST = {
     "dom_stub.mjs", "card_rig.mjs",
     # Preload for `_record_node` when strace is missing. Not a test.
     "node_fs_trace.mjs",
+    # The shared throwaway-repository helper (R9-RCA-stamp-race): a library
+    # the scripts that build a scratch git repository import. Its own
+    # `--check` and `--self-test` run in governance's instrument-self-tests,
+    # which is never scoped. NOT inert: entities.py, layout.py and
+    # doc_claims.py import it, so an edit to it selects them.
+    "throwaway_git.py",
 }
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
@@ -375,6 +381,11 @@ INERT = (
     # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
+    # The shell twin of tests/throwaway_git.py. Only shell self-tests source
+    # it (prepr.sh, app_approve.sh, bus.sh, the stop hook), and governance runs
+    # those, never this gate; tests/throwaway_git.py's own --self-test, which
+    # pins the twin's variables, runs there too.
+    "tests/throwaway_git.sh",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
@@ -1155,12 +1166,22 @@ def _warm_index() -> None:
             time.sleep(0.5)
 
 
+RECORDING_ENV = "HPO_CLOSURE_RECORDING"
+
+
 def record(script: str, out_dir: Path, args: list[str] | None = None) -> int:
     _warm_index()
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / (Path(script).name + ".json")
     env = dict(os.environ)
     env["PYTHONPATH"] = str(ROOT / "tests" / "hastub") + os.pathsep + env.get("PYTHONPATH", "")
+    # Tells the script it is being recorded, not graded: stress.py then prints
+    # a CPU or wall-clock miss instead of failing on it, because beside two
+    # other recording lanes and this hook the ratio measures the recorder. A
+    # run that reached its end and exited 1 on a timing verdict otherwise
+    # reads as truncated, and `skip-failed-recording` left a real UNDER-SCOPED
+    # for a human three times on #1987 (dev/audit/rca/R9-RCA-stress-recording.md).
+    env[RECORDING_ENV] = "1"
     if script.endswith(".mjs"):
         return _record_node(script, str(out), env)
     cmd = [sys.executable, str(ROOT / "tests" / "closure.py"), "--exec-record", script,
@@ -1490,19 +1511,23 @@ def prune(out: Path = CLOSURES) -> int:
         print(f"closure: {out} is missing", file=sys.stderr)
         return 1
     payload = json.loads(out.read_text())
-    closures = payload.get("closures", {})
     total = 0
-    for name in sorted(closures):
-        files = closures[name]
-        real = [f for f in files if _is_real_file(f)]
-        phantom = sorted(set(files) - set(real))
-        if phantom:
-            print(f"closure: {name} drops {len(phantom)} phantom entry(ies):",
-                  file=sys.stderr)
-            for p in phantom:
-                print(f"    {p}", file=sys.stderr)
-            total += len(phantom)
-        closures[name] = sorted(real)
+    for table_key in ("closures", "inert_reads"):
+        table = payload.get(table_key, {})
+        for name in sorted(table):
+            files = table[name]
+            real = [f for f in files if _is_real_file(f)]
+            phantom = sorted(set(files) - set(real))
+            if phantom:
+                print(f"closure: {table_key} {name} drops {len(phantom)} phantom entry(ies):",
+                      file=sys.stderr)
+                for p in phantom:
+                    print(f"    {p}", file=sys.stderr)
+                total += len(phantom)
+            if real or table_key == "closures":
+                table[name] = sorted(real)
+            else:
+                del table[name]  # `_fold_inert_reads`: a script that read none has no key
     out.write_text(json.dumps(payload, indent=1) + "\n")
     print(f"closure: pruned {total} phantom entry(ies) from {out}")
     return 0
@@ -1850,9 +1875,14 @@ def check(in_dir: Path, partial: bool = False) -> int:
     # read it instead of running FULL for the unmeasured file. Fail rather
     # than note, and name the repair. The committed file is pruned in the
     # pull request that added this rule (#1310).
+    # inert_reads too (R9-RO-10): a move leaves a dead old-path entry there
+    # with no other warning, and the merge fast path then believes a script
+    # reads a file that cannot change -- #2015's merge kept the EG-B7
+    # harness's old path that way.
     phantoms = sorted(
-        (script, name)
-        for script, files in committed.items()
+        (script if table_key == "closures" else f"{script} (inert_reads)", name)
+        for table_key in ("closures", "inert_reads")
+        for script, files in table.get(table_key, {}).items()
         for name in files
         if not _is_real_file(name)
     )
@@ -1901,7 +1931,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         if _is_real_file(name)
         and name not in table.get("inert_reads", {}).get(script, ()))
     if missed:
-        print("INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the")
+        print(f"{_INERT_READS_HEAD} a recording opened an INERT file the")
         print("  committed `inert_reads` does not list for it; the merge fast path")
         print("  would treat a change to it as unread (R9-F10.9d). Re-derive:")
         print("  ./tests/derive_closures.sh --single <script>")
@@ -2044,10 +2074,10 @@ _AUTOFIX_STATUS_REMEDY = {
         "Fix the failing script first; the closures job re-records on the next\n"
         "push and this repair then happens on its own.\n",
     "skip-manual-repair-owed":
-        "The closures job's check failed, and not on UNDER-SCOPED, the only\n"
-        "failure this job repairs. Repair it by hand from the closures log:\n"
-        "INERT READS: --single the script it names, commit tests/closures.json;\n"
-        "PHANTOM: python3 tests/closure.py prune.\n",
+        "The closures job's check failed, and not on UNDER-SCOPED or INERT\n"
+        "READS, the only failures this job repairs. Repair it by hand from the\n"
+        "closures log: PHANTOM: python3 tests/closure.py prune; NOT A FILE or an\n"
+        "INERT pair: fix the recording or the INERT list it contradicts.\n",
     "skip-classifier-disagrees":
         "The closures job (this PR's tests/closure.py) printed UNDER-SCOPED;\n"
         "the base's copy this job is pinned to stops before that comparison\n"
@@ -2109,8 +2139,28 @@ def _autofix_report_cmd(job: str, status: str) -> int:
     return rc
 
 
+_INERT_READS_HEAD = "INERT READS UNDER-APPROXIMATED:"
+
+
+def stale_scripts(check_output: str) -> set[str]:
+    """The scripts `check` named as under-approximated: each UNDER-SCOPED
+    line's, and each entry under the INERT READS heading."""
+    names = set(re.findall(r"^UNDER-SCOPED: (\S+)", check_output, re.M))
+    inert = False
+    for line in check_output.splitlines():
+        if line.startswith(_INERT_READS_HEAD):
+            inert = True
+        elif inert and (m := re.match(r"^    (\S+): ", line)):
+            names.add(m.group(1))
+        elif inert and not line.startswith("  "):
+            inert = False
+    return names
+
+
 def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
-    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
+    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED
+    or INERT READS UNDER-APPROXIMATED -- the two failures a merge of the
+    Linux recordings repairs (#1886 for the second; R9-CI-1 made it the bot's).
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
     skip-classifier-disagrees, skip-failed-recording, skip-manual-repair-owed,
@@ -2161,7 +2211,8 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-merge-failed"
     if rc == 0:
         return "skip-clean"
-    if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
+    said = out.getvalue() + err.getvalue()
+    if "UNDER-SCOPED" not in said and _INERT_READS_HEAD not in said:
         # This job runs the BASE's closure.py (D11-s1-03); the closures job
         # ran the PR's and tee'd it to check.txt. Quiet is true only where
         # that check PASSED (its success line). UNDER-SCOPED there is #1846;
@@ -2185,8 +2236,28 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     # itself be an artefact of the failure (an error path reads files the
     # clean path does not), which is why the remedy is "fix the script", not
     # "re-derive it".
-    if any(r.get("rc", 0) != 0 for r in records):
+    #
+    # Only a failed recording OF a stale script refuses (R9-CI-1): one of an
+    # unrelated script -- stress.py on a timing verdict, a consumer whose
+    # producer the scoped lane recorded late (#1146) -- truncates only its own
+    # trace, which is left out of the merge below, so it cannot under-scope
+    # the closure being repaired. A driven child counts as its driver, whose
+    # closure it folds into.
+    failed = {r.get("script") for r in records if r.get("rc", 0) != 0}
+    failed |= {f"tests/{DRIVEN_BY_OTHERS[Path(s).name]}" for s in set(failed)
+               if s and Path(s).name in DRIVEN_BY_OTHERS}
+    if failed & stale_scripts(said):
         return "skip-failed-recording"
+    if failed:
+        print(f"closures-autofix: left out {len(failed)} failed recording(s) of "
+              f"script(s) the check did not name: {', '.join(sorted(failed))}",
+              file=sys.stderr)
+        good = in_dir / "recorded-cleanly"
+        good.mkdir(exist_ok=True)
+        for i, r in enumerate(records):
+            if r.get("rc", 0) == 0:
+                (good / f"{i:04d}.json").write_text(json.dumps(r))
+        in_dir = good
 
     mout, merr = io.StringIO(), io.StringIO()
     try:
@@ -3012,6 +3083,15 @@ def selftest() -> int:
             crc2 == 0,
             f"rc={crc2} log={log2[-300:]!r}",
         )
+        # R9-RO-10: the same refusal over inert_reads, which a move leaves
+        # dead with no other warning; null control is the table above.
+        crc3, log3 = _selftest_phantom_check(
+            fake, {caller: [caller, kept_real]}, rec, {caller: [phantom]})
+        pin(
+            "check fails on a phantom in the committed inert_reads (R9-RO-10)",
+            crc3 == 1 and phantom in log3 and "(inert_reads)" in log3,
+            f"rc={crc3} log={log3[-300:]!r}",
+        )
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
@@ -3019,6 +3099,7 @@ def selftest() -> int:
         out.write_text(json.dumps({
             "closures": {caller: [caller, phantom, kept_real]},
             "recorded": {},
+            "inert_reads": {caller: [phantom, kept_real], "only-dead": [phantom]},
         }))
         pruner = globals().get("prune")
         if pruner is None:
@@ -3033,6 +3114,12 @@ def selftest() -> int:
                 "prune drops committed phantom entries (#1310)",
                 prc == 0 and phantom not in after and kept_real in after,
                 f"rc={prc} after={sorted(after)!r}",
+            )
+            ir = json.loads(out.read_text())["inert_reads"]
+            pin(
+                "prune drops dead inert_reads entries, and a key left with none (R9-RO-10)",
+                ir == {caller: [kept_real]},
+                f"inert_reads after={ir!r}",
             )
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
@@ -3159,6 +3246,33 @@ def selftest() -> int:
             buf.getvalue() == "measure\ta\nreuse\tb\nreuse\tc\nmeasure\td\n",
             repr(buf.getvalue()))
 
+    print("\n=== a recording's rc says whether it ended, and the log says it (#1987) ===")
+    with tempfile.TemporaryDirectory() as td:
+        td_path = Path(td)
+        seen = td_path / "seen"
+        probe = td_path / "probe.py"
+        probe.write_text("import os, sys\n"
+                         f"open(sys.argv[1], 'w').write(os.environ.get({RECORDING_ENV!r}, ''))\n")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            record(str(probe), td_path / "rec", [str(seen)])
+        got = seen.read_text() if seen.is_file() else None
+        pin(f"record() runs the script with {RECORDING_ENV}=1, the flag stress.py "
+            "keys its timing verdicts on", got == "1", f"the script saw {got!r}")
+        pin("stress.py reads the same variable name",
+            f'CLOSURE_RECORDING_ENV = "{RECORDING_ENV}"'
+            in (ROOT / "tests" / "stress.py").read_text())
+        for code in (3, 0):
+            stub = td_path / f"py{code}"
+            stub.write_text(f"#!/bin/sh\nexit {code}\n")
+            stub.chmod(0o755)
+            res = subprocess.run(
+                ["bash", "tests/derive_closures.sh", "--single", "tests/x.py",
+                 "--record-only", "--out-dir", str(td_path / f"d{code}")],
+                cwd=ROOT, env={**os.environ, "PYTHON": str(stub)},
+                capture_output=True, text=True)
+            pin(f"derive_closures.sh's done line reports a recording's exit {code}",
+                f"done   tests/x.py (exit {code})" in res.stdout, res.stdout[-300:])
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
@@ -3247,7 +3361,8 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         return rc, buf.getvalue() + err.getvalue()
 
 
-def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int, str]:
+def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,
+                            inert_reads: dict | None = None) -> tuple[int, str]:
     """Drive check() against a committed table `closures`, captured (#1310).
 
     check() reads the module-level CLOSURES, so the table under test is
@@ -3256,7 +3371,8 @@ def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int,
     Returns (rc, captured stdout+stderr).
     """
     global CLOSURES
-    fake.write_text(json.dumps({"closures": closures, "recorded": {}}))
+    fake.write_text(json.dumps({"closures": closures, "recorded": {},
+                                "inert_reads": inert_reads or {}}))
     orig = CLOSURES
     CLOSURES = fake
     buf, err = io.StringIO(), io.StringIO()

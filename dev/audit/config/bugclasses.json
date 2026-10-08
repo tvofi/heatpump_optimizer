@@ -924,7 +924,8 @@
     "status": "barriered",
     "mechanism_note": "R8 D3-s1-02 is a cache key whose input set diverges from what the capture reads: scope-vs-real-dependency, same shape.",
     "rca": [
-      "BULK-2-I2"
+      "BULK-2-I2",
+      "R9-RCA-stress-recording"
     ],
     "rca_planned": [],
     "trigger": {
@@ -3685,6 +3686,54 @@
         "dev/audit/rca/R9-RCA-1985.md"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-1985.md"
+    },
+    "R9-RCA-2004": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2004 harness friction key at 5 PRs: a parent verdict class over four reviewer obligations; class-open the only child at threshold; the filer itself red on main since #1919",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) key and class-open; (d) moved program paths",
+      "countermeasure": "friction_issues.mjs and preflight.sh find policy_lint.mjs where the tree keeps it, each pinned by a check shown failing first; fixer.md step-8 alignment refused by the cost test; sub-keying recommended to D13",
+      "landed": null,
+      "doc": [
+        "handoff/r9-rca-2004:dev/audit/rca/R9-RCA-2004.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-2004.md"
+    },
+    "R9-RCA-stress-recording": {
+      "class": "I2",
+      "level": "instance-or-process",
+      "subject": "#1987 closures-autofix answered skip-failed-recording three times over a real UNDER-SCOPED because tests/stress.py exited 1 on CPU-ratio verdicts only under the closure recorder",
+      "trigger": "recurrence (3rd instance on #1987; 5 of 8 attributable skip-failed-recording runs since 2026-09-27)",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c)",
+      "countermeasure": "closure.py record sets HPO_CLOSURE_RECORDING=1; stress.py's six CPU/wall verdicts print rather than count under it (timing_check); derive_closures.sh reports the recording's real exit; pinned in closure.py selftest and stress.py",
+      "landed": null,
+      "doc": [
+        "handoff/r9-rca-stress-recording"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
+    },
+    "R9-RCA-bugclasses": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "_rca appends conflict: 4 hand-resolved merges of the register on 2026-10-07 (#2012, #2018, #2014 twice); every RCA PR appends after the same last entry",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "route dev/audit/config/bugclasses.json to the ledgermerge driver (_rca merges entry by entry; a class record both sides changed refuses); replay of 27 merges: 4 conflicts without, 0 with, JSON equal to every recorded resolution",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/R9-RCA-bugclasses.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-bugclasses.md"
     }
   }
 }

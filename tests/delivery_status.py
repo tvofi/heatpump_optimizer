@@ -232,7 +232,7 @@ def subject_title(subject: str, body: str) -> str:
 def merge_parents(parents: int) -> bool:
     """Whether a first-parent commit is a pull-request merge.
 
-    Two or more parents is a merge and owes ``docs/delivery/<N>.md``. One
+    Two or more parents is a merge and owes ``dev/programme/delivery/<N>.md``. One
     parent is a direct push — a release stamp, a ``record:`` commit — and
     owes nothing. The record beat is a merge. Its row is written when the
     pull request opens, anchoring the number: the merge SHA does not exist
@@ -503,7 +503,7 @@ def gather(repo: str,
     return collect(parse_log(log))
 
 
-#: One file per pull request, `docs/delivery/<N>.md`: a row there is read only
+#: One file per pull request, `dev/programme/delivery/<N>.md`: a row there is read only
 #: through a line anchoring <N> itself, as `policy_lint.mjs`'s `recordRegion`
 #: reads it, so a misnamed file rows nobody and the two cannot disagree.
 ROW_DIR = "dev/programme/delivery"

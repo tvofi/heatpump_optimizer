@@ -91,7 +91,11 @@ if [ "${1:-}" = "--self-test" ]; then
     else fail=$((fail+1)); printf '  FAIL %s (rc %s want %s; %s hit(s) want %s)\n' "$5" "$got" "$1" "$n" "$3"; fi
   }
   T=$(mktemp -d)
-  if [ -n "$T" ] && git -C "$T" init -q 2>/dev/null; then
+  # The scratch repository takes the shared helper (auto-maintenance off).
+  # Its env is exported for the whole drive, the hook runs included: an
+  # inherited GIT_CONFIG_PARAMETERS would outrank the repository's config.
+  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" && throwaway_git_env &&
+      throwaway_git_init "$T" -q 2>/dev/null; then
     mkdir -p "$T/.claude/workflows"
     # The linter stub is untracked and would read as a new policy file; a real
     # clone tracks policy_lint.mjs, so the stub is ignored the way no real one is.
@@ -197,6 +201,6 @@ touches_policy "$CHANGED" || exit 0
 command -v node >/dev/null 2>&1 || exit 0
 OUT=$(if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs 2>&1; else node tools/policy/policy_lint.mjs 2>&1; fi); RC=$?
 [ "$RC" -eq 0 ] && exit 0
-printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/audit/prepr.sh` before opening or updating a pull request.\n' \
+printf 'stop-selfcheck: this turn touched the policy corpus and policy_lint refuses it.\n%s\n\nRun `bash tools/pr/prepr.sh` before opening or updating a pull request.\n' \
   "$(printf '%s' "$OUT" | grep -E '^\s+(ERROR|WARN)|^TOTAL' | head -20)" >&2
 exit 2

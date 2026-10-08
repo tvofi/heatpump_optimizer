@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 118.0,
+   "seconds": 159.6,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 9.6,
+   "seconds": 19.4,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 3.0,
+   "seconds": 5.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 12.5,
+   "seconds": 39.3,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 35.5,
+   "seconds": 53.6,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 192.9,
+   "seconds": 354.4,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 276.5,
+   "seconds": 896.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,95 +42,99 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.6,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 5.2,
+   "seconds": 9.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
-   "seconds": 0.3,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 130.7,
+   "seconds": 186.3,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 0.9,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 0.9,
+   "seconds": 1.4,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 616.7,
+   "seconds": 1077.8,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 5.2,
+   "seconds": 19.9,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 36.9,
+   "seconds": 56.0,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 2.1,
+   "seconds": 3.6,
    "rc": 0
   },
   "tests/ha_contract.py": {
-   "seconds": 0.3,
+   "seconds": 0.4,
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.3,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 3.2,
+   "seconds": 1.4,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 0.8,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 228.4,
+   "seconds": 220.7,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 4.2,
+   "seconds": 10.3,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 47.5,
+   "seconds": 90.4,
    "rc": 0
   },
   "tests/md_tables.mjs": {
-   "seconds": 0.1,
+   "seconds": 0.2,
    "rc": 0
   },
   "tests/layout.py": {
-   "seconds": 11.6,
+   "seconds": 17.3,
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 236.2,
+   "seconds": 342.6,
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 18.1,
+   "seconds": 41.8,
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 525.3,
+   "seconds": 1804.3,
    "rc": 0
   },
   "tests/block_duty.py": {
-   "seconds": 1.3,
+   "seconds": 2.8,
+   "rc": 0
+  },
+  "tests/debug_collect.py": {
+   "seconds": 1.7,
    "rc": 0
   }
  },
@@ -368,6 +372,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -540,6 +545,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -697,6 +703,7 @@
    "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/throwaway_git.py",
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/judge_batch.py",
@@ -758,6 +765,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -933,6 +941,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -977,6 +986,7 @@
    "custom_components/heatpump_optimizer/repairs.py",
    "custom_components/heatpump_optimizer/sensor.py",
    "custom_components/heatpump_optimizer/services.py",
+   "custom_components/heatpump_optimizer/services.yaml",
    "custom_components/heatpump_optimizer/setpoint_check.py",
    "custom_components/heatpump_optimizer/silent_mode.py",
    "custom_components/heatpump_optimizer/snapshots.py",
@@ -1079,6 +1089,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -1251,6 +1262,7 @@
    "custom_components/heatpump_optimizer/coordinator.py",
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -1596,6 +1608,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -1715,6 +1728,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -1858,6 +1872,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -2097,6 +2112,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -2455,6 +2471,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -2569,6 +2586,7 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
    "tools/site/package-lock.json",
@@ -2592,6 +2610,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -2694,7 +2713,8 @@
   ],
   "tests/layout.py": [
    "tests/layout.json",
-   "tests/layout.py"
+   "tests/layout.py",
+   "tests/throwaway_git.py"
   ],
   "tests/arch_score.py": [
    "tests/arch_score.py",
@@ -2836,6 +2856,7 @@
    "custom_components/heatpump_optimizer/currency.py",
    "custom_components/heatpump_optimizer/curve_learning.py",
    "custom_components/heatpump_optimizer/datetime.py",
+   "custom_components/heatpump_optimizer/debugger.py",
    "custom_components/heatpump_optimizer/defrost.py",
    "custom_components/heatpump_optimizer/device_prefill.py",
    "custom_components/heatpump_optimizer/dhw_draws.py",
@@ -3089,6 +3110,95 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py"
+  ],
+  "tests/debug_collect.py": [
+   "custom_components/heatpump_optimizer/__init__.py",
+   "custom_components/heatpump_optimizer/accuracy.py",
+   "custom_components/heatpump_optimizer/away.py",
+   "custom_components/heatpump_optimizer/batchmath.py",
+   "custom_components/heatpump_optimizer/battery.py",
+   "custom_components/heatpump_optimizer/boost.py",
+   "custom_components/heatpump_optimizer/button.py",
+   "custom_components/heatpump_optimizer/comfort_band.py",
+   "custom_components/heatpump_optimizer/comfort_learning.py",
+   "custom_components/heatpump_optimizer/const.py",
+   "custom_components/heatpump_optimizer/coordinator.py",
+   "custom_components/heatpump_optimizer/currency.py",
+   "custom_components/heatpump_optimizer/curve_learning.py",
+   "custom_components/heatpump_optimizer/debugger.py",
+   "custom_components/heatpump_optimizer/defrost.py",
+   "custom_components/heatpump_optimizer/dhw_draws.py",
+   "custom_components/heatpump_optimizer/dhw_learning.py",
+   "custom_components/heatpump_optimizer/dhw_planner.py",
+   "custom_components/heatpump_optimizer/dhw_schedule.py",
+   "custom_components/heatpump_optimizer/diagnosis.py",
+   "custom_components/heatpump_optimizer/diagnostics.py",
+   "custom_components/heatpump_optimizer/disinfection.py",
+   "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
+   "custom_components/heatpump_optimizer/external_heat.py",
+   "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/grid_fee.py",
+   "custom_components/heatpump_optimizer/inputs.py",
+   "custom_components/heatpump_optimizer/ledger.py",
+   "custom_components/heatpump_optimizer/legionella.py",
+   "custom_components/heatpump_optimizer/manual_plan.py",
+   "custom_components/heatpump_optimizer/mixing_valve.py",
+   "custom_components/heatpump_optimizer/modbus_prefill.py",
+   "custom_components/heatpump_optimizer/narrative.py",
+   "custom_components/heatpump_optimizer/open_meteo.py",
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/payload.py",
+   "custom_components/heatpump_optimizer/power_guard.py",
+   "custom_components/heatpump_optimizer/price_model.py",
+   "custom_components/heatpump_optimizer/pump_arbiter.py",
+   "custom_components/heatpump_optimizer/pump_mode.py",
+   "custom_components/heatpump_optimizer/pump_schedule.py",
+   "custom_components/heatpump_optimizer/pump_signals.py",
+   "custom_components/heatpump_optimizer/pv.py",
+   "custom_components/heatpump_optimizer/quiet_windows.py",
+   "custom_components/heatpump_optimizer/repairs.py",
+   "custom_components/heatpump_optimizer/setpoint_check.py",
+   "custom_components/heatpump_optimizer/silent_mode.py",
+   "custom_components/heatpump_optimizer/snapshots.py",
+   "custom_components/heatpump_optimizer/store.py",
+   "custom_components/heatpump_optimizer/sysid.py",
+   "custom_components/heatpump_optimizer/tariff.py",
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/wear.py",
+   "custom_components/heatpump_optimizer/wood_fuel.py",
+   "tests/debug_collect.py",
+   "tests/harness.py",
+   "tests/hastub/homeassistant/__init__.py",
+   "tests/hastub/homeassistant/components/__init__.py",
+   "tests/hastub/homeassistant/components/button.py",
+   "tests/hastub/homeassistant/components/diagnostics.py",
+   "tests/hastub/homeassistant/components/mqtt.py",
+   "tests/hastub/homeassistant/components/repairs.py",
+   "tests/hastub/homeassistant/config_entries.py",
+   "tests/hastub/homeassistant/const.py",
+   "tests/hastub/homeassistant/core.py",
+   "tests/hastub/homeassistant/data_entry_flow.py",
+   "tests/hastub/homeassistant/exceptions.py",
+   "tests/hastub/homeassistant/helpers/__init__.py",
+   "tests/hastub/homeassistant/helpers/aiohttp_client.py",
+   "tests/hastub/homeassistant/helpers/config_validation.py",
+   "tests/hastub/homeassistant/helpers/device_registry.py",
+   "tests/hastub/homeassistant/helpers/entity.py",
+   "tests/hastub/homeassistant/helpers/entity_platform.py",
+   "tests/hastub/homeassistant/helpers/entity_registry.py",
+   "tests/hastub/homeassistant/helpers/event.py",
+   "tests/hastub/homeassistant/helpers/issue_registry.py",
+   "tests/hastub/homeassistant/helpers/storage.py",
+   "tests/hastub/homeassistant/helpers/typing.py",
+   "tests/hastub/homeassistant/helpers/update_coordinator.py",
+   "tests/hastub/homeassistant/loader.py",
+   "tests/hastub/homeassistant/util/__init__.py",
+   "tests/hastub/homeassistant/util/dt.py",
+   "tests/nightly_ha.py"
   ]
  },
  "inert_reads": {
@@ -3620,7 +3730,14 @@
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
    "dev/audit/harnesses/eg_a4_wave_deltas.py",
    "tools/audit/repo_root.mjs",
-   "tools/audit/repo_root.sh"
+   "tools/audit/repo_root.sh",
+   "dev/audit/harnesses/boost_replay_fork_parity.py",
+   "dev/audit/harnesses/ci_script_seconds.py",
+   "dev/audit/harnesses/eg_b11_equiv_6840.py",
+   "dev/audit/harnesses/git_auto_maintenance_race.sh",
+   "dev/audit/harnesses/r9_dbg2_selftest_price.py",
+   "dev/audit/harnesses/r9_ro12_batch_mutants.sh",
+   "dev/audit/harnesses/throwaway_git_sites.sh"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
