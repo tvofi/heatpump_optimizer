@@ -1,5 +1,5 @@
-head aa88452dfef01782eddc5d31c9ea3a350926504e
-pr-contract jobs 113310735049, 113311725784: ERROR [pr-body] checks delivery-status (and nightly-status) red and '## Red checks' does not name them; diff touches .github/workflows/tests.yml which they read.
-body says '## Red checks: none'; body promises 'next head adds a docstring line to tests/nightly_ha.py' (fires half) - head has no such change (diff --stat: tests.yml, entities.py, delivery/2058.md).
-check-runs at head: closure-scope success, nightly-ha skipped (expected: no pathspec touched). Ruleset 22628467 required contexts contain no nightly entry (unchanged, diff has no ruleset file).
-Fires-evidence: run 37764931838 was a dispatch on a throwaway branch, not a pull_request event.
+head e8701d2e1a417fec33e1ff5c885fde05d26d0478
+pull_request run 37784320970: closure-scope success, nightly-ha skipped, nightly-status failure.
+workflow_dispatch run 37784310008 on fix/r9-nightly-ha-on-pr at same head: nightly-ha stable and 2025.2.0 both failure (jobs 113335020479, 113335020245), unexplained.
+three-dot diff names: tests.yml, delivery/2058.md, closures.json, entities.py; no tests/nightly_ha.py touch.
+PR body unchanged: Red checks none; still cites 2212 and 2214.
