@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_step_start RETURN_DEL 623e1957",
+  "killed_by": "tests/features.py",
+  "old": "    return now.replace(minute=now.minute - now.minute % 15, second=0, microsecond=0)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 6001b09a557259f37319b400d219cf83e02c563f: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
