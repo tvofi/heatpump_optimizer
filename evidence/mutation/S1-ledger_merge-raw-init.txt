@@ -1,2 +1,0 @@
-site=ledger_merge arm=plain git=2.55.0 runs=2 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=4
-site=ledger_merge arm=plain git=2.55.0 runs=2 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0

@@ -1,15 +1,16 @@
-MISSED  py list clone, positional: subprocess.run(["git", "clone", str(a), str(b)], check=True)
-MISSED  py list clone --depth: subprocess.run(["git", "clone", "--depth", "1", src, dst])
-CAUGHT  py list clone --shared: run(["git", "clone", "--shared", src, dst])
-MISSED  js execFileSync clone: execFileSync('git', ['clone', src, dir])
-MISSED  sh $GIT clone quoted: "$GIT" clone -q a b
-MISSED  sh ${GIT} clone: ${GIT:-git} clone -q a b
-MISSED  sh git --no-pager clone: git --no-pager clone -q a b
+CAUGHT  py list clone, positional: subprocess.run(["git", "clone", str(a), str(b)], check=True)
+CAUGHT  py list clone --depth: subprocess.run(["git", "clone", "--depth", "1", src, dst])
+CAUGHT  js execFileSync clone: execFileSync('git', ['clone', src, dir])
+CAUGHT  sh $GIT clone quoted: "$GIT" clone -q a b
+CAUGHT  sh ${GIT} clone: ${GIT:-git} clone -q a b
+CAUGHT  sh git --no-pager clone: git --no-pager clone -q a b
 CAUGHT  sh git -c k=v -C d clone: git -c a=b -C d clone -q x y
+MISSED  sh git --git-dir x clone (sep value): git --git-dir x clone a b
 MISSED  GitPython clone_from: Repo.clone_from(url, dst)
-MISSED  GitPython init: Repo.init(path)
 MISSED  py runner init no option: g(d, "init")
-CAUGHT  py init path only: subprocess.run(["git", "init", str(d)])
 MISSED  sh REAL_GIT init: "$REAL_GIT" init -q r
-CAUGHT  py clone with -q only in list: run(["git", "clone", "-q", a, b])
-MISSED  multiline second line:      "init", d],
+MISSED  sh $BIN clone: "$BIN" clone -q a b
+MISSED  NEG prose git clone in echo: echo "this is not a clone"
+MISSED  NEG dict key clone: opts = {"clone": True}
+CAUGHT  NEG tuple clone label: MODES = ("clone", "fetch")
+MISSED  NEG git -C clone dir: g() { git -C "$W/clone" -c push.negotiate=false "$@"; }

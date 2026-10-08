@@ -1,4 +1,0 @@
-## K3-init-layout (tests/layout.py) mutant=b3b8725fb8681c4c1eed989de04433f5fe1ed556
-REFUSE tests/layout.py:524: subprocess.run(["git", "init", "-q"], cwd=tmp, check=True); env = None
-throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at b3b8725fb8681c4c1eed989de04433f5fe1ed556
-rc=1

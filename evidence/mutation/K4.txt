@@ -1,3 +1,4 @@
-## K4-sh-var-clone (tools/pr/prepr.sh) mutant=137657572cd4be3a8b7ba36ebd520b135147a6ea
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at 137657572cd4be3a8b7ba36ebd520b135147a6ea
-rc=0
+## K4-sh-var-clone (tools/pr/prepr.sh) mutant=8d8116348b34b649ea6cc45112d3c0cb53fb6526
+REFUSE tools/pr/prepr.sh:1489: ("$GIT" clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at 8d8116348b34b649ea6cc45112d3c0cb53fb6526
+rc=1
