@@ -3,6 +3,7 @@
 
     python3 tools/merge/ledger_merge.py --install     once per clone
     python3 tools/merge/ledger_merge.py --self-test
+    python3 tools/merge/ledger_merge.py --resolve tests/closures.json   after a refused merge
     python3 tools/merge/ledger_merge.py --replay 2026-09-10   the evidence below
 
 Every fix pull request re-records ``tests/mutation_budgets.json``,
@@ -415,6 +416,36 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
     return 0
 
 
+def resolve(path: str, repo: str = ROOT) -> int:
+    """Finish a merge git left conflicted in ``path``, from its index stages.
+
+    The case it exists for (R9-CI-2b): a branch's own copy of this driver is
+    the one `git merge` runs, so a branch cut before tests/closures.json's
+    layout refuses main's re-sorted table once. After the merge this file is
+    main's copy in the work tree; ``--resolve tests/closures.json`` runs it on
+    the three stages and stages the result. Refuses a path with no conflict."""
+    stage = {}
+    for n in (1, 2, 3):
+        r = subprocess.run(["git", "show", f":{n}:{path}"], cwd=repo,
+                           capture_output=True, text=True)
+        stage[n] = r.stdout if r.returncode == 0 else None
+    if stage[2] is None or stage[3] is None:
+        print(f"LEDGER-MERGE: refused {path}: no conflict to resolve", file=sys.stderr)
+        return 1
+    with tempfile.TemporaryDirectory() as td:
+        files = []
+        for n in (1, 2, 3):
+            files.append(os.path.join(td, str(n)))
+            with open(files[-1], "w") as f:
+                f.write(stage[n] or "")
+        rc = run_driver(files[0], files[1], files[2], "7", path)
+        if rc != 0:
+            return rc
+        with open(files[1]) as f, open(os.path.join(repo, path), "w") as out:
+            out.write(f.read())
+    return subprocess.run(["git", "add", "--", path], cwd=repo).returncode
+
+
 def gitattributes_error(repo: str = ROOT, text: str | None = None) -> str | None:
     """Why ``.gitattributes`` does not route every ledger here, or None."""
     if text is None:
@@ -526,6 +557,42 @@ def self_test() -> int:
                 "recorded": {"t/a": {"rc": 0, "seconds": 1.0}, "t/b": {"rc": 0, "seconds": 1.0}}}
         check("closures: the driver writes the layout from two tail-appended legacy sides",
               rc == 0 and text == json.dumps(want, indent=1, sort_keys=True) + "\n")
+        # The one-time transition: a branch's driver predates the layout and
+        # refuses main's re-sorted table, so `git merge` leaves the conflict;
+        # --resolve, run from the merged tree's copy, finishes it (R9-CI-2b).
+        r = os.path.join(td, "repo")
+        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
+        g = lambda *a: subprocess.run(["git", "-C", r, *a], capture_output=True, text=True, env=env)
+        os.makedirs(os.path.join(r, "tests"))
+        g("init", "-q", "-b", "main")
+        cj = os.path.join(r, "tests", "closures.json")
+        with open(cj, "w") as f:
+            f.write(json.dumps(legacy, indent=1) + "\n")
+        g("add", "-A"); g("commit", "-qm", "m0")
+        g("checkout", "-qb", "fix")
+        with open(cj, "w") as f:
+            f.write(json.dumps(lo, indent=1) + "\n")
+        g("commit", "-qam", "fix")
+        g("checkout", "-q", "main")
+        lt2 = json.loads(json.dumps(lt))
+        lt2["inert_reads"]["t/a"].sort()
+        with open(cj, "w") as f:
+            f.write(json.dumps(lt2, indent=1, sort_keys=True) + "\n")
+        g("commit", "-qam", "layout")
+        g("checkout", "-q", "fix")
+        merged = g("merge", "-q", "--no-edit", "main").returncode
+        with contextlib.redirect_stderr(io.StringIO()):
+            rrc = resolve("tests/closures.json", repo=r)
+        with open(cj) as f:
+            text = f.read()
+        staged = g("diff", "--name-only", "--diff-filter=U").stdout.strip()
+        check("closures: --resolve finishes a merge an older driver left conflicted",
+              merged != 0 and rrc == 0 and staged == ""
+              and text == json.dumps(want, indent=1, sort_keys=True) + "\n")
+        with contextlib.redirect_stderr(io.StringIO()):
+            check("closures: --resolve refuses a path with no conflict to finish",
+                  resolve("tests/closures.json", repo=r) == 1)
 
     # structure_budgets.json: both sides re-recorded, so every count and
     # recorded_at differ. Counts take base plus both deltas.
@@ -891,6 +958,8 @@ def main(argv: list) -> int:
             print(problem, file=sys.stderr)
             return 1
         return 0
+    if argv[:1] == ["--resolve"] and len(argv) == 2:
+        return resolve(argv[1])
     if argv[:1] == ["--replay"] and len(argv) == 2:
         return replay(argv[1])
     if argv[:1] == ["--self-test"]:
