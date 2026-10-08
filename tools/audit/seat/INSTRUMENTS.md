@@ -157,6 +157,12 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   `record` beat. Refusal: any path outside `dev/programme/delivery/<N>.md` — the plan
   table and HANDOVER are a seat's dispositions, never this generator's — and
   a window it cannot attribute refuses rather than reports empty.
+  `--automerge-check --pr N [--head SHA] [--hold] [--require-green]` is the
+  guard CI approves and merges a record pull request behind (exit 3: guard
+  passes, a required check has not yet); `--replay-moved` replays one
+  older than the row directory's move. Refusal: any file but a new one-line
+  row at its canonical path that the API's facts re-generate, or an author
+  other than the hpo-author App.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
   driver), drops inherited claims, pushes as the App, prefixes ## Head with
   what happened. When: main moved under an open PR. Refusal: a conflict is
