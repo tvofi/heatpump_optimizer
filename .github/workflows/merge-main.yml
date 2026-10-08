@@ -30,7 +30,8 @@ on:
         type: boolean
         default: true
 
-# One run at a time, none cancelled: each push to main is answered once, in order.
+# One run at a time, none cancelled. A run queued behind another is replaced by
+# the next push's run; its main contains the replaced one's, so nothing is skipped.
 concurrency:
   group: merge-main
   cancel-in-progress: false

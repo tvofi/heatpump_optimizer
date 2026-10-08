@@ -25546,6 +25546,9 @@ def _autofix_head_fixture():
         # the named head with no resolution -- and, on top, a pin commit.
         # Its first parent is the named head; a hand-edited tree refuses.
         mainline = commit("main moved", {"main.txt": "m\n"}, who=seat, parent=base)
+        # A real main for the bot merge's second parent (#2059 round 1): the
+        # check reads origin/main, as pr-contract's fetch-depth-0 clone has it.
+        g("update-ref", "refs/remotes/origin/main", mainline)
         fixhead = commit("fix: own", {"other.txt": "fix\n"}, who=seat, parent=base)
         g("checkout", "-q", "--detach", fixhead)
         g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
@@ -25558,6 +25561,19 @@ def _autofix_head_fixture():
         g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
         out["merge_main_hand"] = run(g("rev-parse", "HEAD"), fixhead)
         out["merge_main_one_parent"] = run(commit("ci: merge main", {"main.txt": "m\n"}, parent=fixhead), fixhead)
+        # The review's two forgeries: a bot-identity merge of a branch that is
+        # not main, editing code; and one whose side adds a driver attribute
+        # for that code, then hand-edits it in the merge.
+        offmain = commit("not main", {"code.py": "evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", offmain, who=bot)
+        out["merge_main_offmain"] = run(g("rev-parse", "HEAD"), fixhead)
+        evilattr = commit("not main", {".gitattributes": "other.txt merge=evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", evilattr, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_evilattr"] = run(g("rev-parse", "HEAD"), fixhead)
         return out
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -25602,6 +25618,8 @@ _AH_REFUSED = {
     "not_ancestor": "not authored",
     "merge_main_hand": "not the automatic merge",
     "merge_main_one_parent": "parents",
+    "merge_main_offmain": "not on origin/main",
+    "merge_main_evilattr": "not on origin/main",
 }
 _AH_WRONG = {
     k: (_AH[k][0], _AH[k][1].strip()[-240:])

@@ -68,7 +68,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    run it locally per mutant.
 
    `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
-   `python3 tests/structure.py` (seconds) runs before every push regardless.
+   `python3 tests/structure.py` runs before every push regardless.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
@@ -80,8 +80,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
-   head is the reviewer's measuring surface and **only the orchestrator or a
-   `--carry`-passing commit moves it**: a head that moves mid-review invalidates measurements already taken,
+   head is the reviewer's measuring surface and **only the orchestrator, the
+   merge-main bot or a `--carry` commit moves it**: a head that moves mid-review invalidates measurements already taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or

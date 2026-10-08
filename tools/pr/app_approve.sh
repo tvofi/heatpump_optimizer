@@ -117,6 +117,18 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
 # push may write, so the paths are the guard, as they are for `ci:`.
 # remerge_main.sh's claims commit is here so merge_train's own main merges
 # carry whole (Q3).
+# Each subject also names its author (#2059 round 1): git metadata anyone can
+# write, as policy_lint.mjs's AUTOFIX_BOT_COMMITS says, so it narrows the
+# surface without closing it; a claim-file subject may only REMOVE lines, so a
+# forged one cannot add a claim that excuses drift.
+bot_author() { # subject -> the author email its writer commits as
+  case "$1" in
+    "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
+      echo "41898282+github-actions[bot]@users.noreply.github.com" ;;
+    "claims: drop the claims main already carries after the main merge")
+      echo "70032254+tvofi@users.noreply.github.com" ;;
+  esac
+}
 bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
   case "$1" in
     "ci: pin killed mutants") printf '%s\n' tests/mutation_budgets.json tests/mutation_ledger ;;
@@ -128,7 +140,7 @@ bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
 
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps subj p mv mh t x y b
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -139,7 +151,7 @@ carry() {
   x=()
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
   local bots=""
-  while IFS=$'\t' read -r c ps subj; do
+  while IFS=$'\t' read -r c ps ae subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
       [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
@@ -158,13 +170,26 @@ carry() {
       # same context: a `ci:` commit may touch only the driver files, and
       # a bot's subject its own paths besides.
       b=$(bot_paths "$subj")
-      y=(${x[@]+"${x[@]}"})
-      while IFS= read -r p; do [ -z "$p" ] || y[${#y[@]}]=":(exclude)$p"; done <<<"$b"
-      git diff --quiet "$c^" "$c" -- . ${y[@]+"${y[@]}"} \
-        || { echo "$c is a ci: commit that changes files outside main's merge-driver files${b:+ and the paths of its subject}"; return 1; }
-      bots="$bots$b"$'\n'
+      if [ -z "$b" ]; then
+        git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      else
+        # A bot's subject: main's driver files and its own paths, as its
+        # writer, and a claim-file subject only removing lines (#2059 round 1).
+        y=(${x[@]+"${x[@]}"})
+        while IFS= read -r p; do [ -z "$p" ] || y[${#y[@]}]=":(exclude)$p"; done <<<"$b"
+        git diff --quiet "$c^" "$c" -- . ${y[@]+"${y[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
+        [ "$ae" = "$(bot_author "$subj")" ] \
+          || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
+        case "$subj" in *claims*)
+          [ "$(git diff --numstat "$c^" "$c" | awk '{s+=$1} END {print s+0}')" = 0 ] \
+            || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
+        esac
+        bots="$bots$b"$'\n'
+      fi
     fi
-  done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
+  done < <(git log --first-parent --format='%H%x09%P%x09%ae%x09%s' "$v..$h")
   # What a carried bot commit wrote is no part of the branch's own diff.
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=":(exclude)$p"; done <<<"$(printf '%s' "$bots" | sort -u)"
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
@@ -523,21 +548,28 @@ H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
 g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
-g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
 # R9-CI-2b: each bot's own paths. mutation-autofix writes the ledger, which
 # is no merge-driver file; remerge_main.sh drops inherited claims under a
 # `claims:` subject. Each beside the same subject reaching one byte further.
-pin_commit() { # base subject path... -> sha
-  local b=$1 sub=$2; shift 2; g checkout -q --detach "$b"
+pin_commit() { # base subject path... -> sha, authored as AUTHOR_EMAIL (default: the subject's writer)
+  local b=$1 sub=$2 ae; shift 2; g checkout -q --detach "$b"
+  ae=${AUTHOR_EMAIL:-$(bot_author "$sub")}; ae=${ae:-t@t}
   for f in "$@"; do mkdir -p "$W/clone/$(dirname "$f")"; echo k >> "$W/clone/$f"; g add "$f"; done
-  g commit -qm "$sub"; g rev-parse HEAD
+  GIT_AUTHOR_EMAIL=$ae g commit -qm "$sub"; g rev-parse HEAD
 }
 H_PIN=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
 H_PINOUT=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json b.txt)
 H_PINELSE=$(pin_commit "$V" "ci: re-record closures" tests/mutation_ledger/killed_by/a.json)
-H_CLAIMS=$(pin_commit "$V" "claims: drop the claims main already carries after the main merge" tests/golden/claimed_drift.txt)
 H_CLAIMSOUT=$(pin_commit "$V" "claims: drop the claims main already carries after the main merge" b.txt)
+H_PINSEAT=$(AUTHOR_EMAIL=seat@e pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
+g checkout -q --detach "$V"; mkdir -p "$W/clone/tests/golden"; printf 'c1\nc2\n' > "$W/clone/tests/golden/claimed_drift.txt"
+g add tests/golden/claimed_drift.txt; g commit -qm "fix: claims"; V_CL=$(g rev-parse HEAD)
+H_CLAIMSDROP=$(g checkout -q --detach "$V_CL"; printf 'c1\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
+H_CLAIMSADD=$(g checkout -q --detach "$V_CL"; printf 'c1\nc2\nc3\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
 # The next two leave the branch's diff byte-identical, so only the rule's
 # first two conditions can refuse them: a rewrite under a `ci:` subject, and
 # a merge of an empty commit that is not on main.
@@ -728,7 +760,7 @@ st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err"
 # the boundary class). A source pin backs this up, since a behavioral test
 # alone can't distinguish "'(' was removed" from "some other boundary char
 # also covers this case by accident".
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
    "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
 mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
 run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
@@ -783,9 +815,9 @@ st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
 # segment tells them apart, and that's not otherwise part of this suite),
 # so this is a straight source pin, same technique as the VERDICT_AUTHORS
 # pin above.
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
    "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
    "pin: a resolved path that is its own mount point is refused"
 if [ -d /System/Volumes/Data ]; then
   mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
@@ -927,8 +959,12 @@ st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by
 carried "$H_PIN"; st $? 0 "CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)"
 carried "$H_PINOUT"; st $? 1 "NO CARRY: the same subject touching one more file outside its paths"
 carried "$H_PINELSE"; st $? 1 "NO CARRY: the ledger under another bot's subject, whose paths do not hold it"
-carried "$H_CLAIMS"; st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, inside the claim files"
 carried "$H_CLAIMSOUT"; st $? 1 "NO CARRY: that subject touching a file outside the claim files"
+carried "$H_PINSEAT"; st $? 1 "NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSDROP" origin/main ) >/dev/null 2>&1
+st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSADD" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the same subject adding a claim line"
 H_MERGEPIN=$(pin_commit "$H_MERGE" "ci: pin killed mutants" tests/mutation_ledger/killed_by/b.json)
 carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit it set off (#2024's shape)"
 carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
