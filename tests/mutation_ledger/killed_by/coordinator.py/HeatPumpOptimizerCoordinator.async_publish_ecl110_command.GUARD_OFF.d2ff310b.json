@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator.async_publish_ecl110_command GUARD_OFF d2ff310b",
+  "killed_by": "tests/features.py",
+  "old": "        if getattr(self, \"_ctx\", self)._config.curve_learning_enabled:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against c327da7f176afa3d07acd5562b91f6042bb32809: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
