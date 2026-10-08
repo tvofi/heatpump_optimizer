@@ -1,0 +1,7 @@
+events Counter({('pull_request', 'success'): 164, ('pull_request', 'cancelled'): 82, ('pull_request_review', 'success'): 43, ('pull_request', 'failure'): 10, ('pull_request_review', 'failure'): 1})
+cancelled pr runs 82 with any same-sha pr sibling 81
+actors of cancelled Counter({'hpo-author[bot]': 82})
+Counter({'cancelled_is_older_id': 74, 'cancelled_not_oldest': 7})
+min gap s: max 4651.0 median 1.0
+shas with only cancelled pr runs 1
+non-pr cancelled 0

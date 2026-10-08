@@ -1,0 +1,2 @@
+twins red/red: ('rerun', 2, 'run 2 at aaaaaaaaaaaa concluded failure')
+RERUN_CONCLUSIONS ('failure', 'timed_out')
