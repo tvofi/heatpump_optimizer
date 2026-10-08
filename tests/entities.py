@@ -21987,7 +21987,7 @@ R.check(
 # Live v6.7.17 install: ``config`` was ``entry.data`` alone, so a dump showed
 # the setup-time values while the coordinator ran on the options laid over
 # them. The live merge is what the coordinator reads; the setup data stays
-# beside it, and the entry names which keys options override.
+# beside it, with the keys options override named.
 _diag_live = {**_DIAG_DATA, **_DIAG_OPTIONS}
 R.check(
     "the diagnostics config is the live config, with options laid over setup data",
@@ -22000,13 +22000,13 @@ R.check(
     f"the coordinator runs on {_diag_live[const.CONF_TARGET_TEMP]!r}",
 )
 R.check(
-    "the setup data is kept beside it, and the entry names the keys options override",
+    "the setup data is kept beside it, with the keys options override named",
     _diag_at(_diag, "config_setup", const.CONF_TARGET_TEMP) == 20.0
-    and _diag_at(_diag, "entry", "options_override_setup")
+    and _diag.get("config_overridden_by_options")
     == sorted([const.CONF_SOLAR_LOCATION, const.CONF_TARGET_TEMP])
     and _diag_at(_diag, "entry", "options_keys") == sorted(_DIAG_OPTIONS),
     repr((_diag_at(_diag, "config_setup", const.CONF_TARGET_TEMP),
-          _diag_at(_diag, "entry"))),
+          _diag.get("config_overridden_by_options"))),
 )
 R.check(
     "the setup data is redacted like the live config",

@@ -45392,14 +45392,14 @@ _g8_sp_real_delete = _g8_sp.ir.async_delete_issue
 try:
     _g8_sp.ir.async_delete_issue = _g8_sp_reg.async_delete_issue
     _g8_sp_clear = _t6_call(
-        _g8_sp._set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
+        _g8_sp.set_issue, _G8SpHass(), _g8_sp.ISSUE_SPACE, False)
 finally:
     _g8_sp.ir.async_delete_issue = _g8_sp_real_delete
 R.check(
     "a registry that refuses the clear is logged, not raised",
     _g8_sp_clear is None and _g8_sp_reg.deleted == [_g8_sp.ISSUE_SPACE],
     f"returned {_g8_sp_clear!r} after attempting {_g8_sp_reg.deleted!r} -- the "
-    "attempt is asserted as well as the swallow, because a `_set_issue` that "
+    "attempt is asserted as well as the swallow, because a `set_issue` that "
     "never called delete at all would also return None and would leave a "
     "stale notice on screen for a problem that has been fixed",
 )
@@ -60201,7 +60201,6 @@ from heatpump_optimizer.const import (  # noqa: E402
 
 _FRS_T0 = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
 _FRS_ENTITY = "sensor.floor_return_synthetic"
-_FRS_LIMIT = timedelta(minutes=_frs_mod.FLOOR_RETURN_SILENT_MINUTES)
 
 
 def _frs_coord(state, configured=True):
@@ -60237,9 +60236,7 @@ def _frs_issues(hass):
 def _frs_run(steps):
     """Feed ``(minutes after T0, payload)`` pairs; the issue count after each."""
     hass = FakeHass()
-    watch = _frs_mod.SilentInputWatch(
-        hass, _FRS_KEY, _frs_mod.ISSUE_FLOOR_RETURN_SILENT, _FRS_LIMIT
-    )
+    watch = _frs_mod.FloorReturnWatch(hass)
     counts = []
     for minutes, payload in steps:
         watch.handle(payload, _FRS_T0 + timedelta(minutes=minutes))
@@ -60282,6 +60279,15 @@ R.check(
     and _frs_kw.get("is_fixable") is False
     and _frs_kw.get("severity") == "warning",
     str(_frs_kw),
+)
+R.check(
+    "the finding is pure: it starts the clock, waits the period, then names the entity",
+    _frs_mod.floor_return_silence([], None, _FRS_T0) == (None, None)
+    and _frs_mod.floor_return_silence(_frs_dead["input_problems"], None, _FRS_T0)
+    == (_FRS_T0, None)
+    and _frs_mod.floor_return_silence(
+        _frs_dead["input_problems"], _FRS_T0, _FRS_T0 + timedelta(minutes=_frs_lim)
+    ) == (_FRS_T0, {"entity_id": _FRS_ENTITY, "minutes": f"{_frs_lim:.0f}"}),
 )
 # Null controls: the same clock with nothing wrong, or nothing configured,
 # raises nothing; and a gap shorter than the period restarts the count.

@@ -79,7 +79,7 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
     holdable (two windows, or days that differ) raises it too (#1913).
     """
     entity_id = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
-    _set_issue(
+    set_issue(
         hass,
         ISSUE_QUIET,
         silent_unenforceable(config, hass.states.get),
@@ -115,7 +115,7 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
         "target": f"{floor:.0f}",
         "entity": entity_id or "",
     }
-    _set_issue(
+    set_issue(
         hass, ISSUE_DHW, active, fixable=True, placeholders=placeholders, data=data
     )
 
@@ -123,10 +123,10 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
 def _space(hass: Any, config: dict[str, Any]) -> None:
     entity_id = config.get(CONF_SPACE_SETPOINT_ENTITY)
     if not entity_id:
-        _set_issue(hass, ISSUE_SPACE, False)
+        set_issue(hass, ISSUE_SPACE, False)
         return
     readable = _read_setpoint(hass, entity_id) is not None
-    _set_issue(
+    set_issue(
         hass,
         ISSUE_SPACE,
         not readable,
@@ -160,7 +160,7 @@ def _setpoint_and_unit(hass: Any, entity_id: str | None) -> tuple[float, Any] | 
     return None if value is None else (value, unit)
 
 
-def _set_issue(
+def set_issue(
     hass: Any,
     issue_id: str,
     raise_it: bool,
@@ -169,6 +169,12 @@ def _set_issue(
     placeholders: dict[str, str] | None = None,
     data: dict[str, Any] | None = None,
 ) -> None:
+    """Raise or clear one repair: the writer every pure finding feeds.
+
+    Its ``translation_key`` is its ``issue_id``, its severity a warning;
+    called each cycle, since creating an existing issue updates it and
+    deleting an absent one does nothing.
+    """
     if not raise_it:
         try:
             ir.async_delete_issue(hass, DOMAIN, issue_id)

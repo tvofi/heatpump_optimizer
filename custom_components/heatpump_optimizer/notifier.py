@@ -17,17 +17,27 @@ sent is written to a store after each change and read back at setup, so a
 restart does not announce a standing condition again. A receipt already held
 when the store is first created is adopted silently: an upgrade must not
 announce last month's receipt as news.
+
+One payload signal is a repair rather than an event: a configured
+floor-return sensor that has given no usable value for
+``FLOOR_RETURN_SILENT_MINUTES``. Without it the slab is advanced open-loop
+from the plan's own trajectory, which a live install ran on unannounced.
+:func:`floor_return_silence` is the pure finding; :class:`FloorReturnWatch`
+holds its clock and writes it through ``setpoint_check.set_issue``.
 """
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Coroutine
+from datetime import datetime, timedelta
 from typing import Any, NamedTuple
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
-from .payload import Payload
+from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
+from .payload import InputProblem, Payload
+from .setpoint_check import set_issue
 from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -165,6 +175,55 @@ _DETECTORS: tuple[tuple[str, Callable[[Payload], Detected]], ...] = (
 )
 
 
+ISSUE_FLOOR_RETURN_SILENT = "floor_return_silent"
+#: How long a configured floor-return sensor may give nothing before the
+#: repair: past a restart's or a brief outage's gap, short of a day of slab
+#: estimate the owner never heard about.
+FLOOR_RETURN_SILENT_MINUTES = 60.0
+
+
+def floor_return_silence(
+    problems: list[InputProblem], since: datetime | None, now: datetime
+) -> tuple[datetime | None, dict[str, str] | None]:
+    """When the silence began, and the repair's placeholders once it has lasted.
+
+    ``problems`` lists only configured inputs that gave no usable value, so
+    an unconfigured slot and a live sensor both read as no silence, and any
+    usable reading restarts the period.
+    """
+    problem = next(
+        (p for p in problems if p.get("input") == CONF_FLOOR_RETURN_TEMP_ENTITY),
+        None,
+    )
+    if problem is None:
+        return None, None
+    since = since or now
+    if now - since < timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):
+        return since, None
+    return since, {
+        "entity_id": str(problem.get("entity_id") or ""),
+        "minutes": f"{FLOOR_RETURN_SILENT_MINUTES:.0f}",
+    }
+
+
+class FloorReturnWatch:
+    """Keeps :func:`floor_return_silence`'s clock and writes its repair."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
+        self._since: datetime | None = None
+
+    def handle(self, data: Payload, now: datetime) -> None:
+        problems = data.get("input_problems")
+        if problems is None:
+            return
+        self._since, found = floor_return_silence(problems, self._since, now)
+        set_issue(
+            self._hass, ISSUE_FLOOR_RETURN_SILENT, found is not None,
+            placeholders=found,
+        )
+
+
 class Notifier:
     """Fires the events, remembering what it has sent."""
 
@@ -247,9 +306,11 @@ async def async_setup_notifier(
         ),
     )
     await notifier.async_load()
+    floor_return = FloorReturnWatch(hass)
 
     def _on_update() -> None:
         if coordinator.data is not None:
             notifier.handle(coordinator.data)
+            floor_return.handle(coordinator.data, dt_util.utcnow())
 
     entry.async_on_unload(coordinator.async_add_listener(_on_update))
