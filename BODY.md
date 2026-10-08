@@ -1,56 +1,70 @@
-Encodes the owner's ruling that every fix is architecturally sound, binding on the fixer, the fix reviewer and the orchestrator.
+Encodes the owner's ruling that every fix is architecturally sound, binding on the fixer, the fix reviewer and the orchestrator. Round 2 re-cuts the body after round 1's `class-open` block at `8e0dcb72`.
 
-- `dev/governance/roles/fixer.md` step 17: a fix is sound, and a list of architectural rules for new code, each checked against the tree (below). Where minimal and sound conflict, the fixer asks the orchestrator.
-- `dev/governance/roles/fix-review.md` step 15: a breach the body does not name as a kept exception is `blocked <sha> architecture-unsound: <how>`.
-- `.claude/workflows/web-fix-wave.js`: `architecture-unsound` joins `VERDICT_CLASSES`, so the wave routes it as itself, not to `other`. `bus.sh`'s blocked grammar (`[a-z-]+`) already accepts the word. `merge_train.py` reads only `merge` verdicts.
-- `dev/governance/roles/orchestrator.md` section 5: concurrent fixes sharing a concern push only after a binding architect design note.
-- `CLAUDE.md`: the fixer row in the role table says "architecturally sound".
+- `dev/governance/roles/fixer.md` step 17: a fix is sound, judged on the lines it adds. The list of architectural rules states each one as the tree holds it, with the tree's exceptions in the policy itself. Every soundness rule is bounded by the preamble's scope: a fix that cannot be sound within that scope stops and asks the orchestrator. A budget that blocks the better architecture takes the existing raise path. It is not met with a worse shape that fits.
+- `dev/governance/roles/fix-review.md` step 15: a breach in added lines, or a departure from the group's architect note, is `blocked <sha> architecture-unsound: <how>`.
+- `.claude/workflows/web-fix-wave.js`: `architecture-unsound` joins `VERDICT_CLASSES`. `bus.sh`'s blocked grammar (`[a-z-]+`) accepts the word, and `merge_train.py` reads only `merge` verdicts.
+- `dev/governance/roles/orchestrator.md` section 5: concurrent fixes sharing a concern push only after an architect note. The orchestrator dispatches it into each group's roster brief, where the fixer reads it (`jq`), and `fixer.md` 17 and `fix-review.md` 15 bind it.
+- `CLAUDE.md`: the fixer row of the role table says "architecturally sound".
 
 ## Approval
 
 tvofi, in chat on 2026-10-08, verbatim: "That fixes should be done in an architecturally sound way should always be true, binding and persistent".
 
-tvofi's follow-up request, relayed by the orchestrator the same day, extended `fixer.md` with generic architectural rules fitted to this codebase. Each rule was checked against `custom_components/heatpump_optimizer/` at the merge base. Where the tree already breaks a rule, the rule applies to new code and the known exceptions are listed here:
+tvofi's follow-up requests, relayed by the orchestrator the same day:
+- (1) Extend `fixer.md` with generic architectural rules fitted to this codebase.
+- (2) A budget may rise as a last resort when that is what lands a truly better architecture. The text must point to the existing raise path, not imply fitting the ratchet at any cost.
 
-- **No `homeassistant` import in model, optimizer or learner modules.** `thermal_model.py`, `optimizer.py`, `sysid.py`, `curve_learning.py` and `comfort_learning.py` import none. Exceptions: `dhw_learning.py` imports `HomeAssistant` and `dt_util`, and `legionella.py` imports `issue_registry`. `accuracy.py`, `defrost.py`, `away.py`, `boost.py` and `inputs.py` import only `homeassistant.util.dt`.
-- **Entity reads go through `InputReader`.** `hass.states.get(` also appears in `away.py`, `pump_signals.py`, `setpoint_check.py`, `pump_arbiter.py`, `coordinator.py`, `services.py` and `config_flow.py`.
-- **Actuator writes come from the coordinator or `pump_arbiter.py`.** `services.async_call` also appears in `repairs.py` (a repair flow) and `disinfection.py`. In `disinfection.py` the call is an injected callable.
-- **No module-level state.** `boost.py` has `global _cold_lease` (the arbiter registers it to avoid a reverse import), and `coordinator.py` has `_PROCESS_WORKER`.
-- **Fail closed.** This matches `inputs.py`'s contract: an over-age value is reported as missing, and the caller freezes rather than guesses.
+Each rule was checked against `custom_components/heatpump_optimizer/` at merge base `4dbe5aace`. These are the existing sites the rules name or leave standing. They are not breaches, because only added lines are judged:
+- **HA imports in model or learner modules.** `dhw_learning.py` imports `HomeAssistant` and `dt_util`, and `legionella.py` imports `issue_registry`. `defrost.py`, `accuracy.py`, `away.py`, `boost.py` and `inputs.py` import only `homeassistant.util.dt`.
+- **Entity reads outside `InputReader`.** `hass.states.get(` also appears in `away.py`, `pump_signals.py`, `setpoint_check.py`, `pump_arbiter.py`, `coordinator.py`, `services.py` and `config_flow.py`.
+- **Side-effect edges.** Actuator calls also appear in `repairs.py` and in `disinfection.py`, where the call is injected. The rule now names the store, network (`open_meteo.py`), notification (`notifier.py`) and issue-registry edges as allowed in their owning module.
+- **Module state.**
+  - The rule names the per-coordinator `WeakKeyDictionary` side table as the allowed form. It keeps state off the coordinator class, which `attrbag_classes_over_30` measures. Examples are `boost._STATES`, `boost._PLAN_BASES`, `pump_arbiter._STATES` and `debugger._COLLECTORS`.
+  - Other module state stands: `boost._cold_lease`, `coordinator._PROCESS_WORKER`, `coordinator._FENCED_CAUSES`, `coordinator._WORKER_FALLBACK_CAUSES` and `store._NEWER_ON_DISK`.
+- **Constants.** The rule keeps a constant beside its owning module, and puts one shared across modules in `const.py`. This matches the tree, which keeps module constants beside their owner (round 1 counted 531 outside `const.py`).
+- **Cut:** the "at most one store migration per release" rule, which nothing grounds.
+- **Measured:** "D7 and archscore held" is now `tests/structure.py` and `tools/audit/archscore/score.py --diff` not regressed, or the raise path.
 
-tvofi's second clarification, relayed the same day: a budget may rise as a last resort when the raise is what lands a truly better architecture. The list therefore does not include "structure ratchet held". It sends a budget that blocks the better architecture to `fixer.md`'s existing raise path (`CLAUDE.md` rule 2, owner confirmation before the push) and does not restate that path. "No new import cycles" (the ratchet's `import_cycle_modules`) is left to the ratchet for the same reason.
+The `fixer.md` budget raise in `dev/governance/config/policy_budgets.json` (`files` and `files_tokens`) is the orchestrator's decision under mandate 6067089637. It raises to the measured values only.
 
-The `fixer.md` budget raise in `dev/governance/config/policy_budgets.json` (`files` and `files_tokens`) is the orchestrator's decision under mandate 6067089637. It raises to the measured values only. The payments taken were the step 6 "Coordinator" gloss, which nothing in that step uses, and #714's line-number sentence in step 14, which step 9's rule against bare line numbers already covers. They did not cover the owner's list. `orchestrator.md` and `fix-review.md` were paid in full within their caps: the role list in the preamble that duplicates `CLAUDE.md`'s index, the step 12 restatement of "check it is still the head", and two clauses restating `fixer.md` step 9 and `root-cause.md`.
+Payments taken:
+- In `fixer.md`: the step 6 "Coordinator" gloss, because step 17 names `coordinator.py` in code font, and #714's line-number sentence in step 14, which step 9 covers.
+- In `orchestrator.md`: the preamble's role list, which duplicates `CLAUDE.md`'s index; a clause that restated `delivery-status-tracking.md` ("batching to the end is how an abort loses it"); and "not at session end" beside "go now"; and section 1's "never to a bare line number", which restates `fixer.md` step 9.
+- In `fix-review.md`: the step 12 sentence contrasting it with step 7, a clause restating `root-cause.md` in step 11, and "cite the head's CI run", which the step's own heading states.
+
+Payment not taken: "scope and the ratchet still bind". It is restored, as "the preamble's scope still binds".
 
 ## Head
 
-`38c8170147a6cd3d87e75ef7d39752bbcf4de79a`
+`9d9f44ad296c1dbda6d94974cb05dac1493a35f4`. It sits on `6b45b61b9` (this PR's delivery row, `dev/programme/delivery/2064.md`), which sits on `8e0dcb72c` (open_pr.sh's automatic merge of `origin/main` `4dbe5aace`). The authored code is `38c817014` plus `9d9f44ad2`.
 
 ## Mutation proof
 
-The diff writes no production code line. The one script change is the `VERDICT_CLASSES` entry. Deleting `'architecture-unsound',` from `.claude/workflows/web-fix-wave.js` and running `node tools/policy/check-wave-script.mjs` exits 1 with `FAIL fix-review.md teaches block class "architecture-unsound", and VERDICT_CLASSES carries it`. With the entry restored it exits 0.
+The diff writes no production code line. The one script change is the `VERDICT_CLASSES` entry. Deleting `'architecture-unsound',` from `.claude/workflows/web-fix-wave.js` and running `node tools/policy/check-wave-script.mjs` exits 1, with `FAIL fix-review.md teaches block class "architecture-unsound", and VERDICT_CLASSES carries it`. With the entry restored it exits 0.
 
 ## Null control
 
-The same check at the head with the entry present prints `ok` for both the example's parse and the taught class. The deletion above is the arm that would have shown the vocabulary not carrying the word.
+At this head, with the entry present, the same check prints `ok` for both the example's parse and the taught class. The deletion above is the arm that would have shown the vocabulary not carrying the word.
 
 ## Figures
 
-- `node tools/policy/policy_lint.mjs --budgets`: every per-file cap is met at the head. `fixer.md` is at its raised cap, and the aggregates are within cap plus band.
+- `node tools/policy/policy_lint.mjs --budgets` rc=0: every per-file cap is met. `fixer.md` sits at its raised cap. `fix-review.md` and `orchestrator.md` are under theirs.
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`.
-- `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`. No rule source changed.
+- `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
+- `node tools/policy/brief_lint.mjs`: rc=0.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `node tools/policy/check-wave-script.mjs`: 0 failed at the head.
-- `git grep -lE "^\s*(from|import) homeassistant" -- custom_components/heatpump_optimizer/`: enumerates the HA-importing modules behind the exceptions in `## Approval`.
+- `node tools/policy/check-wave-script.mjs`: 0 failed.
+- `git grep -lE "^\s*(from|import) homeassistant" -- custom_components/heatpump_optimizer/`: enumerates the HA-importing modules behind the exceptions above.
+- `git grep -n "WeakKeyDictionary()" -- custom_components/heatpump_optimizer/`: enumerates the side tables the module-state rule names.
 
 ## Red checks
 
-- `budget-raise-gate`: red by design until tvofi approves at the head (0013); the raise is the two `fixer.md` caps above, decided under mandate 6067089637. No cheaper detector is owed: the gate is the detector, and it fired.
-- `nightly-status`: grades the last concluded scheduled Tests run on `main` (`tests/nightly_status.py`), not this diff. This diff touches no workflow and not that script, and the script reads no delivery row (`grep -c delivery tests/nightly_status.py` prints 0). The red is `main`'s nightly state, so no detector is owed here.
+- `budget-raise-gate`: red by design until tvofi approves at the head (0013). The raise is the two `fixer.md` caps above, decided under mandate 6067089637. No cheaper detector is owed: the gate is the detector, and it fired.
+- `nightly-status`: grades the last concluded scheduled Tests run on `main` (`tests/nightly_status.py`), not this diff. This diff touches no workflow and not that script, and the script reads no delivery row (`grep -c delivery tests/nightly_status.py` prints 0).
 
 ## Forward-carry
 
-none: the rule binds through the contracts it edits.
+The #2063 overlap: whichever PR merges second recarries `dev/governance/config/policy_budgets.json`. `fix-review.md` is measured above at 9 tokens under its cap here, so it fits #2063's cap after the merge with no raise.
 
 ## Friction
 
