@@ -21,11 +21,13 @@ With this change, `nightly-ha` runs, still unrequired, on a pull request whose t
 
 - **Does not fire.** At head `aa88452d`, whose three-dot diff touches no pathspec, pull-request run 37777137892 has `closure-scope` success (job 113311361795) and `nightly-ha` skipped (job 113311471940).
 - **Detects the defect.** At head `e8701d2e`, which still lacked #2056's fix in its base, workflow_dispatch run 37784310008 has `nightly-ha` failure on both images (jobs 113335020479 and 113335020245): `FAILED: 3 of 64 checks: ['a16:debug_inline', 'a16:debug_capped', 'run:exit_status']`. That is the A16 defect, and the code head below merges `main` with #2056.
-- **Fires.** At the head this body describes, `tests/nightly_ha.py` is in the diff. Its pull-request run's `nightly-ha` arms are cited after they conclude, in a comment and in the next body re-take.
+- **Fires.** At `9b47134658b0e2b51a371c7f3eb55f58d62ed8c5`, whose diff includes `tests/nightly_ha.py`, pull-request run 37796706309 has `closure-scope` success (job 113377927763). Both arms ran and passed: `nightly-ha (2025.2.0)` success (job 113378056184) and `nightly-ha (stable)` success (job 113378056503).
 
 ## Head
 
-`3b9b6fc69cdfb928202faba5043a5e7a9d683fcd`
+`8b4ce3732544ca9348d8d22dc4f667dbf430cdd6`
+
+This is the review head, frozen. It is `closures-autofix`'s commit `ci: re-record closures` on top of `9b47134658b0e2b51a371c7f3eb55f58d62ed8c5`, which merged the authored code head `3b9b6fc69cdfb928202faba5043a5e7a9d683fcd` and `origin/main`. Apart from timing values, the re-record's only change is one closure entry, `tests/ha_contract.py`, which the coverage pin's `_stage` opens. It adds no `custom_components/` file.
 
 ## Mutation proof
 
@@ -57,10 +59,11 @@ With `main`'s `tests.yml` (merge base `816547ef`) and this branch's `tests/entit
 
 ## Red checks
 
-Five checks were red on this branch's earlier heads. Each is named, with its answer.
+Six checks were red on this branch's earlier heads. Each is named, with its answer.
 
 - **`nightly-ha (stable)` and `nightly-ha (2025.2.0)`**, dispatch run 37784310008 at `e8701d2e` (jobs 113335020479 and 113335020245): `FAILED: 3 of 64 checks: ['a16:debug_inline', 'a16:debug_capped', 'run:exit_status']`. This is #2056's A16 defect, present because that head's base predates #2056's merge. The code head here merges `main` with #2056 (`4647321d`), which clears it. This red is the countermeasure detecting the defect it was built for. A cheaper detector for it, `tests/debug_collect.py`'s writer checks, landed with #2056.
 - **`closures`** (job 113311468769 at `aa88452d`): `UNDER-SCOPED: tests/entities.py really reads 11 file(s) the committed closure does not list`. These were the package files that the first version of the coverage pin copied through a real `_stage`. `closures-autofix` re-recorded them as `e8701d2e`, which then caused the next red. The pin no longer opens package files, and `tests/closures.json` is back to `main`'s recording. Anything this head's run still measures is re-recorded by `closures-autofix`, as `ci-autofix.md` has it. Cheaper detector: none for this diff. The recording is CI's Linux recorder, and `gate-scoping.md` forbids a local full derive off Linux.
+- **`closures`** (job 113378056663 at `9b471346`): `UNDER-SCOPED: tests/entities.py really reads 1 file(s) the committed closure does not list: tests/ha_contract.py`. The coverage pin's `_stage` copies that file, and `main`'s recording, restored at `3b9b6fc6`, does not list it. `closures-autofix` re-recorded it as `8b4ce373`, the review head, as `ci-autofix.md` provides. The cheaper detector is none for this diff, for the same reason as the `aa88452d` red above.
 - **`fast (3.14)`** (jobs 113335112750 and 113335104886 at `e8701d2e`): `FAILED python3 tests/entities.py`, the two #1218 deployment-shape selection-cost checks. This is the 80-to-90 widening described above, caused by this branch's first pin and fixed at this head. The cheaper detector was a local `tests/entities.py` run after the autofix commit, at seconds of standing cost per merge. It is now part of how this branch is checked: it found the failure at `ab4675fd` before this push.
 - **`nightly-status`** (job 113311361395 of run 37777137892) reads `NIGHTLY FAILED: mutation-ledger, mutation-nightly, record-autofix failed 1 night ago`. That is scheduled run 37595831734 at `be0cb82`, the last concluded nightly on `main`. None of those three jobs is changed here. This diff keeps `nightly-ha` in `REQUIRED_LANES`, and the reporter's derivation check passes, so the reporter grades the same lanes as before. The red is `main`'s, and its fix and proof belong to `main`: a dispatch of Tests on `main` once the mutation lanes are repaired. No cheaper detector applies to this diff.
 - **`delivery-status`** (job 113310733902) prints `DELIVERY STATUS UNCHECKED -- 76 rowed, 0 pending, 0 overdue`. The UNCHECKED comes from its `merge-collection` skip ("9 merge commit(s) in the window name no pull request"), a property of `main`'s merge subjects. This diff adds only its own row, `dev/programme/delivery/2058.md`. Its `tests.yml` change touches no step `delivery_status.py` reads: `closure-scope`, `nightly-ha` and comments only. No cheaper detector applies to this diff.
