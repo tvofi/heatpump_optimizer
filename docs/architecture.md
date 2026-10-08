@@ -63,6 +63,8 @@ flowchart LR
 custom_components/heatpump_optimizer/
 ├── __init__.py           # Setup and unload, the 13 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
+├── entry_config.py       # The entry's configuration, parsed once: one default
+│                         #   and one coercion per key
 ├── store.py              # The store-load boundary: a Store whose loads refuse
 │                         #   non-finite numeric leaves
 ├── config_flow.py        # Setup flow plus 23 option pages behind two menus

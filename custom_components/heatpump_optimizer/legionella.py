@@ -25,9 +25,6 @@ from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
 from .const import (
-    CONF_DHW_FREE_DISINFECTION_ENABLED,
-    CONF_DHW_TEMP_ENTITY,
-    DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
     DEFAULT_DHW_LEGIONELLA_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_LEGIONELLA_BOOST_MAX_HOURS,
@@ -36,6 +33,7 @@ from .const import (
 )
 from .drift import stored_instant
 from .disinfection import DisinfectionSwitch
+from .entry_config import EntryConfig
 from .optimizer import REASON_LEGIONELLA
 from .payload import CurrentAction
 from .setpoint_check import create_issue
@@ -193,12 +191,7 @@ class LegionellaGuard:
         target = float(self._params.dhw_legionella_temp)
         now = dt_util.now()
 
-        if bool(
-            self._config.get(
-                CONF_DHW_FREE_DISINFECTION_ENABLED,
-                DEFAULT_DHW_FREE_DISINFECTION_ENABLED,
-            )
-        ):
+        if EntryConfig.from_mapping(self._config).dhw_free_disinfection_enabled:
             if dhw_temp >= target - 0.5:
                 previous_obs = self.hold_last
                 # Accumulate only hot-to-hot gaps: an interval that STARTED
@@ -349,7 +342,7 @@ class LegionellaGuard:
         if credited:
             return
 
-        has_probe = bool(self._config.get(CONF_DHW_TEMP_ENTITY))
+        has_probe = bool(EntryConfig.from_mapping(self._config).dhw_temp_entity)
         if not has_probe:
             # No way to verify, ever. What is recorded is an ATTEMPT, not a
             # completion: nothing observed the tank, and this integration

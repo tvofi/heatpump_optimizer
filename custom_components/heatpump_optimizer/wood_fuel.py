@@ -1,7 +1,7 @@
 """Firewood price and the cheaper-than-pump rule. Does not detect fires."""
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -87,7 +87,7 @@ def wood_sek_per_kwh(
     return float(price_sek_m3) / useful
 
 
-def wood_furnace_inferred(config: dict[str, Any]) -> bool:
+def wood_furnace_inferred(config: Mapping[str, Any]) -> bool:
     if config.get(CONF_WOOD_TANK_TOP_ENTITY) or config.get(
         CONF_WOOD_TANK_BOTTOM_ENTITY
     ):
@@ -101,13 +101,13 @@ def wood_furnace_inferred(config: dict[str, Any]) -> bool:
     return False
 
 
-def wood_furnace_on(config: dict[str, Any]) -> bool:
+def wood_furnace_on(config: Mapping[str, Any]) -> bool:
     if CONF_WOOD_FURNACE_ENABLED in config:
         return bool(config[CONF_WOOD_FURNACE_ENABLED])
     return wood_furnace_inferred(config)
 
 
-def wood_fuel_ready(config: dict[str, Any]) -> bool:
+def wood_fuel_ready(config: Mapping[str, Any]) -> bool:
     if not wood_furnace_on(config):
         return False
     if not (
@@ -308,7 +308,7 @@ def _wood_slots_error(slots: object, stamps: Sequence[datetime]) -> str | None:
 
 
 def _wood_override_fuel(
-    overrides: dict[str, Any], config: dict[str, Any]
+    overrides: dict[str, Any], config: Mapping[str, Any]
 ) -> tuple[str, str, float, float] | None:
     """Type, packing, price, efficiency — or None when not computable."""
     wtype = overrides.get(CONF_WOOD_TYPE, config.get(CONF_WOOD_TYPE))
@@ -338,7 +338,7 @@ def _wood_override_fuel(
 
 def simulate_wood_slots(
     overrides: dict[str, Any],
-    config: dict[str, Any],
+    config: Mapping[str, Any],
     n_steps: int,
     dt_hours: float,
     anchor: datetime,
@@ -420,7 +420,7 @@ def _cops(outdoor: Iterable[object], cop_at: Callable[[float], object]) -> list[
 
 
 def build_wood_fuel_view(
-    config: dict[str, Any],
+    config: Mapping[str, Any],
     *,
     prices: list[float],
     outdoor: list[float],
@@ -487,7 +487,7 @@ def build_wood_fuel_view(
 
 def _attach_night_advice(
     view: WoodFuel,
-    config: dict[str, Any],
+    config: Mapping[str, Any],
     prices: list[float],
     timestamps: Sequence[datetime],
     outdoor: list[float],
@@ -516,7 +516,7 @@ def _attach_night_advice(
 
 
 def wood_fuel_from_parts(
-    config: dict[str, Any],
+    config: Mapping[str, Any],
     *,
     external_heat: Any,
     opt_config: Any,

@@ -30,7 +30,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
 from . import debugger, draw_range, pump_arbiter
-from .const import CONF_TIBBER_TOKEN, DOMAIN
+from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
 from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -108,7 +108,7 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
         else None,
         "optimization_running": getattr(coord, "optimization_running", None),
         "solve_failures": state.solve_failures if state else None,
-        "cop_scale": state.cop_scale if state else None,
+        CONF_COP_SCALE: state.cop_scale if state else None,
         "cop_samples": state.cop_samples if state else None,
         "house_heat_loss_scale": state.house_heat_loss_scale if state else None,
         "last_update_success": bool(

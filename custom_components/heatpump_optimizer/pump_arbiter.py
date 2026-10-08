@@ -126,6 +126,7 @@ import bisect
 import logging
 import math
 from collections import Counter, deque
+from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime, timedelta, timezone
 from functools import wraps
@@ -142,17 +143,6 @@ from homeassistant.util import dt as dt_util
 
 from . import boost, pump_mode, quiet_windows, setpoint_check
 from .const import (
-    CONF_DHW_SETPOINT_ENTITY,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
-    CONF_HEAT_PUMP_MODE_ENTITY,
-    CONF_HEAT_PUMP_SWITCH_ENTITY,
-    CONF_PUMP_DUTY_MODE,
-    CONF_QUIET_OFF_WINDOWS,
-    CONF_QUIET_SILENT_WINDOWS,
-    CONF_SPACE_SETPOINT_ENTITY,
-    CONF_SPACE_SETPOINT_UNIT,
-    DEFAULT_PUMP_DUTY_MODE,
-    DEFAULT_SPACE_SETPOINT_UNIT,
     DOMAIN,
     MODE_AUTO,
     MODE_BOOST,
@@ -160,6 +150,7 @@ from .const import (
     MODE_OFF,
     PUMP_DUTY_MODES,
 )
+from .entry_config import EntryConfig
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .payload import CurrentAction
@@ -254,7 +245,7 @@ class ArbiterInputs:
     """
 
     hass: Any
-    config: dict[str, Any]
+    config: Mapping[str, Any]
     mode: str
     plan: Any
     plan_stale: bool
@@ -288,11 +279,12 @@ def _entities(config: Any) -> dict[str, Any]:
     The silent slot is the capacity-limited entity only while that entity
     is a switch the arbiter can hold. A binary sensor stays a reading.
     """
-    silent = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+    cfg = EntryConfig.from_mapping(config)
+    silent = cfg.heat_pump_capacity_limited_entity
     return {
-        "mode": config.get(CONF_HEAT_PUMP_MODE_ENTITY),
-        "dhw_setpoint": config.get(CONF_DHW_SETPOINT_ENTITY),
-        "space_setpoint": config.get(CONF_SPACE_SETPOINT_ENTITY),
+        "mode": cfg.heat_pump_mode_entity,
+        "dhw_setpoint": cfg.dhw_setpoint_entity,
+        "space_setpoint": cfg.space_setpoint_entity,
         "silent": silent if quiet_windows.silent_control_usable(silent) else None,
     }
 
@@ -300,13 +292,13 @@ def _entities(config: Any) -> dict[str, Any]:
 def _slot_entity(config: Any, slot: str) -> Any:
     """The entity id for ``slot``, including the GCHV night-mode numbers."""
     if slot in _NIGHT_KEYS:
-        prefix = package_prefix(config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+        prefix = package_prefix(EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity)
         return None if not prefix else night_mode_write_ids(prefix).get(_NIGHT_KEYS[slot])
     return _entities(config).get(slot)
 
 
 def _flow_unit(config: Any) -> bool:
-    return bool(config.get(CONF_SPACE_SETPOINT_UNIT, DEFAULT_SPACE_SETPOINT_UNIT) == "flow")
+    return EntryConfig.from_mapping(config).space_setpoint_unit == "flow"
 
 
 def state_for(coord: Any) -> ArbiterState:
@@ -318,8 +310,7 @@ def state_for(coord: Any) -> ArbiterState:
 
 
 def duty_mode(config: Any) -> str:
-    mode = config.get(CONF_PUMP_DUTY_MODE, DEFAULT_PUMP_DUTY_MODE)
-    return mode if mode in PUMP_DUTY_MODES else DUTY_OFF
+    return EntryConfig.from_mapping(config).pump_duty_mode
 
 
 def _release_duty_floor(
@@ -569,7 +560,8 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
     """
     if _entities(inp.config)["silent"] is None:
         return None
-    spec = inp.config.get(CONF_QUIET_SILENT_WINDOWS)
+    cfg = EntryConfig.from_mapping(inp.config)
+    spec = cfg.quiet_silent_windows
     if not _silent_rows(spec):
         return None
     if inp.mode == MODE_BOOST:
@@ -577,7 +569,7 @@ def _silent_target(coord: Any, inp: ArbiterInputs, now: datetime) -> bool | None
     held = boost.held_for(coord)
     if held.active(boost.CHANNEL_SPACE, now) or held.active(boost.CHANNEL_DHW, now):
         return False
-    return _inside_silent(spec, inp.config.get(CONF_QUIET_OFF_WINDOWS), now)
+    return _inside_silent(spec, cfg.quiet_off_windows, now)
 
 
 def desired(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> PumpCommand:
@@ -879,7 +871,7 @@ async def _write_night_schedule(coord: Any, inp: ArbiterInputs, now: datetime) -
     window changes.
     """
     held = state_for(coord)
-    spec = inp.config.get(CONF_QUIET_SILENT_WINDOWS)
+    spec = EntryConfig.from_mapping(inp.config).quiet_silent_windows
     if not spec or not quiet_windows.gchv_schedule_ready(
         inp.config, inp.hass.states.get
     ):
@@ -1017,7 +1009,7 @@ def _pump_off(inp: ArbiterInputs) -> bool:
     degC), so nothing is compared or written until it is on again; then a
     reset that is still there is rewritten like any other difference.
     """
-    entity = inp.config.get(CONF_HEAT_PUMP_SWITCH_ENTITY)
+    entity = EntryConfig.from_mapping(inp.config).heat_pump_switch_entity
     power = inp.hass.states.get(entity) if entity else None
     return bool(getattr(power, "state", None) == "off")
 
@@ -1053,7 +1045,7 @@ def _listen(coord: Any) -> None:
 
     held.unsubs.append(async_track_time_interval(hass, _tick, _TICK))
     entities = [e for e in _entities(inp.config).values() if e]
-    prefix = package_prefix(inp.config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY))
+    prefix = package_prefix(EntryConfig.from_mapping(inp.config).heat_pump_capacity_limited_entity)
     if prefix:
         entities.extend(night_mode_write_ids(prefix).values())
     if entities:
