@@ -46,6 +46,7 @@ import math
 import time as _time_mod
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta, timezone
+from collections.abc import Mapping
 from typing import Any, Callable, Iterable
 
 import numpy as np
@@ -53,39 +54,14 @@ from scipy.optimize import minimize
 
 from . import mixing_valve, pv
 from .const import (
-    CONF_COMFORT_TEMP_DAY,
-    CONF_COMFORT_TEMP_DAY_WEEKEND,
-    CONF_COMFORT_TEMP_NIGHT,
-    CONF_COMFORT_TEMP_NIGHT_WEEKEND,
-    CONF_COMFORT_WEIGHT,
-    CONF_DAY_END_HOUR,
-    CONF_DAY_END_HOUR_WEEKEND,
-    CONF_DAY_START_HOUR,
-    CONF_DAY_START_HOUR_WEEKEND,
-    CONF_HOLIDAY_COMFORT_DAY,
-    CONF_HOLIDAY_COMFORT_NIGHT,
-    CONF_HOLIDAY_DAY_END_HOUR,
-    CONF_HOLIDAY_DAY_START_HOUR,
-    CONF_MAX_TEMP,
-    CONF_MIN_TEMP,
-    CONF_PRICE_WEIGHT,
-    CONF_TARGET_TEMP,
-    DEFAULT_COMFORT_TEMP_DAY,
-    DEFAULT_COMFORT_TEMP_NIGHT,
-    DEFAULT_COMFORT_WEIGHT,
     DEFAULT_CYCLING_COST,
-    DEFAULT_DAY_END_HOUR,
-    DEFAULT_DAY_START_HOUR,
-    DEFAULT_MAX_TEMP,
-    DEFAULT_MIN_TEMP,
     DEFAULT_PRICE_RISK_LAMBDA,
-    DEFAULT_PRICE_WEIGHT,
-    DEFAULT_TARGET_TEMP,
     DHW_COOLING_REFERENCE_AMBIENT_TEMP,
     WOOD_TANK_MAX_TEMP,
 )
 from .batchmath import row_sums
 from .dhw_planner import DhwPlanner
+from .entry_config import EntryConfig
 from .manual_plan import _pin_is_free
 from .payload import CurrentAction
 from .thermal_model import (
@@ -1414,52 +1390,28 @@ class OptimizationConfig:
         return self.time_step_minutes / 60.0
 
     @classmethod
-    def from_mapping(cls, config: dict[str, Any]) -> "OptimizationConfig":
-        """Build from an entry mapping so the coordinator stays a caller."""
-
-        def _opt_float(key: str) -> float | None:
-            raw = config.get(key)
-            if raw is None or raw == "":
-                return None
-            try:
-                return float(raw)
-            except (TypeError, ValueError):
-                return None
-
-        def _opt_int(key: str) -> int | None:
-            raw = config.get(key)
-            if raw is None or raw == "":
-                return None
-            try:
-                return int(raw)
-            except (TypeError, ValueError):
-                return None
-
+    def from_mapping(cls, config: Mapping[str, Any]) -> "OptimizationConfig":
+        """Build from the entry's configuration, through its one parse."""
+        cfg = EntryConfig.from_mapping(config)
         return cls(
-            target_temp=config.get(CONF_TARGET_TEMP, DEFAULT_TARGET_TEMP),
-            min_temp=config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP),
-            max_temp=config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP),
-            comfort_temp_day=config.get(
-                CONF_COMFORT_TEMP_DAY, DEFAULT_COMFORT_TEMP_DAY
-            ),
-            comfort_temp_night=config.get(
-                CONF_COMFORT_TEMP_NIGHT, DEFAULT_COMFORT_TEMP_NIGHT
-            ),
-            day_start_hour=int(
-                config.get(CONF_DAY_START_HOUR, DEFAULT_DAY_START_HOUR)
-            ),
-            day_end_hour=int(config.get(CONF_DAY_END_HOUR, DEFAULT_DAY_END_HOUR)),
-            comfort_temp_day_weekend=_opt_float(CONF_COMFORT_TEMP_DAY_WEEKEND),
-            comfort_temp_night_weekend=_opt_float(CONF_COMFORT_TEMP_NIGHT_WEEKEND),
-            day_start_hour_weekend=_opt_int(CONF_DAY_START_HOUR_WEEKEND),
-            day_end_hour_weekend=_opt_int(CONF_DAY_END_HOUR_WEEKEND),
-            holiday_comfort_day=_opt_float(CONF_HOLIDAY_COMFORT_DAY),
-            holiday_comfort_night=_opt_float(CONF_HOLIDAY_COMFORT_NIGHT),
-            holiday_day_start_hour=_opt_int(CONF_HOLIDAY_DAY_START_HOUR),
-            holiday_day_end_hour=_opt_int(CONF_HOLIDAY_DAY_END_HOUR),
-            price_weight=config.get(CONF_PRICE_WEIGHT, DEFAULT_PRICE_WEIGHT),
-            comfort_weight=config.get(CONF_COMFORT_WEIGHT, DEFAULT_COMFORT_WEIGHT),
-            clamp_planned_levels=levels_clamped(config),
+            target_temp=cfg.target_temperature,
+            min_temp=cfg.min_temperature,
+            max_temp=cfg.max_temperature,
+            comfort_temp_day=cfg.comfort_temp_day,
+            comfort_temp_night=cfg.comfort_temp_night,
+            day_start_hour=cfg.day_start_hour,
+            day_end_hour=cfg.day_end_hour,
+            comfort_temp_day_weekend=cfg.comfort_temp_day_weekend,
+            comfort_temp_night_weekend=cfg.comfort_temp_night_weekend,
+            day_start_hour_weekend=cfg.day_start_hour_weekend,
+            day_end_hour_weekend=cfg.day_end_hour_weekend,
+            holiday_comfort_day=cfg.holiday_comfort_temp_day,
+            holiday_comfort_night=cfg.holiday_comfort_temp_night,
+            holiday_day_start_hour=cfg.holiday_day_start_hour,
+            holiday_day_end_hour=cfg.holiday_day_end_hour,
+            price_weight=cfg.price_weight,
+            comfort_weight=cfg.comfort_weight,
+            clamp_planned_levels=levels_clamped(cfg),
         )
 
     def _comfort_pair(

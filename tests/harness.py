@@ -17,6 +17,7 @@ import sys
 from datetime import datetime, timedelta, timezone
 from operator import attrgetter
 from types import SimpleNamespace
+from typing import Any
 
 sys.path.insert(0, "tests")
 sys.path.insert(0, "custom_components")
@@ -308,6 +309,17 @@ class FakeConfig:
         self.components: set[str] = set()
 
 
+def with_config(holder: Any, changes: dict[str, Any]) -> None:
+    """Lay ``changes`` over ``holder._config`` and parse the result.
+
+    The coordinator's configuration is parsed once and frozen (#1745), so a
+    test that varies a key rebuilds it rather than writing an item into it.
+    """
+    from heatpump_optimizer.entry_config import EntryConfig
+
+    holder._config = EntryConfig.from_mapping({**holder._config, **changes})
+
+
 class FakeCoordinator:
     """A coordinator stand-in for exercising the entity classes.
 
@@ -327,9 +339,11 @@ class FakeCoordinator:
     mold_floor_series = property(attrgetter("_mold_floor_series"))
 
     @property
-    def effective_config(self) -> dict:
-        """The merged entry config the real coordinator was built from."""
-        return getattr(self, "_config", None) or {}
+    def effective_config(self) -> Any:
+        """The merged entry config the real coordinator was built from, parsed."""
+        from heatpump_optimizer.entry_config import EntryConfig
+
+        return EntryConfig.from_mapping(getattr(self, "_config", None) or {})
 
     def __init__(self, data: dict | None = None, **extra) -> None:
         self.data = data
