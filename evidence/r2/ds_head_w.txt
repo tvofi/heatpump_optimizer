@@ -1,0 +1,13 @@
+DELIVERY STATUS UNCHECKED — 79 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+  exempt   0a60e06 record: delivery rows for #1998 (autofix -- record-only
+  exempt   d579544 record: delivery rows for #1992 (autofix -- record-only
+  exempt   6b1ccb6 record: delivery rows for #1991 (autofix -- record-only
+  exempt   62f604e record: delivery rows for #1989 (autofix -- record-only
+  skip     merge-collection      5 merge commit(s) in the window name no pull request that `subject_number` recognises (e.g. 618d014 'Count dimension briefs without a second copy of the dimension-file grammar.'); the window's merged pull requests are UNCHECKED this run, not confirmed empty -- a merge-subject convention that moves out from under these rules reports every merge in the window as absent, which is how this file printed EMPTY over a window that held nothing but merges
+  unread   618d014 Count dimension briefs without a second copy of the dimension-fi
+  unread   f6ac991 fix(R9-STAMP-UNBLOCK): number a title-subject merge from its bod
+  unread   077f53a R9-DBG-3: mkdtemp the generator output dir instead of a fixed /t
+  unread   130c780 fix(R9-FR-10c): roster set-resume verb, state_docs pusher, INSTR
+  unread   8107181 fix(R9-DIAG-1F): freeze the interval learners during boost-space
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.

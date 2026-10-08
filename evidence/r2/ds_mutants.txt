@@ -1,0 +1,8 @@
+== M5
+RESULT direct-pushes.md-itself: disp=['-'] verdict=UNCHECKED
+RESULT row-lookalike: disp=['-'] verdict=UNCHECKED
+RESULT allow-other-sha: disp=['merged by hand; rows in #1999'] verdict=EMPTY
+== M6
+RESULT direct-pushes.md-itself: disp=['record-only'] verdict=EMPTY
+RESULT row-lookalike: disp=['record-only'] verdict=EMPTY
+RESULT allow-other-sha: disp=['-'] verdict=UNCHECKED

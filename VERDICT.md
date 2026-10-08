@@ -1,29 +1,30 @@
-Fix review: merge cf84e0a45dacffab7d337c74fb9312fc9f298ad3
-bus-nonce: 195c5a1a62665ae208de44f7db2c5470
+Fix review: blocked 8c758b72c6ff16dd510a78b80110f744aac43ce8 defect: INERT READS downgraded to a warning on a diff CI's closures job never records (skip arm); mutation: direct-push rule survivors M5, M6
+bus-nonce: 1bd79e4f27c18d9bd6ca8141709e5989
 
-Round 1. PR #2061 (R9-RO-9a, Part of #1922, closes nothing). Reviewed from a detached worktree at cf84e0a4; live head re-read at posting: unchanged. Contract diff `git diff $(merge-base)...origin/main -- dev/governance/roles/` empty.
+Round 2, delta review of #2061 from cf84e0a4 to 8c758b72 (4cdba2ac1, c94842ed9, d6d1196db, fc8c7aae8, 2aacc72fb + main merges). Live head re-read at posting: unchanged. roles/ diff vs main: empty.
 
-## RESULT lines (reviewer's own runs; harnesses mine unless named, copies in evidence/)
-- RESULT C9a twin (c9.py, old = merge-base mutation_table, new = head): head order [_padded@10, _seed@41] -> old charges `_seed:41` (the base's line), new charges `_padded:10`; reversed order both `_padded:10`; re-indent null control: [] at both ends.
-- RESULT C9b: three CMP_BOUND mutants on one line -> old 3 bare copies of one key, new one key `...:2 CMP_BOUND*3`.
-- RESULT fuzz 20000 random multisets (with and without move sides): added COUNT identical old vs new in 20000/20000; identity differs in 2501 (which twin is charged, the point of the fix).
-- RESULT real replay, 12 most recent custom_components merges on main (replay_added.py, each merge's own inventory and base): old_added == new_added == 0, same=True, 12/12.
-- RESULT CI mutation lane at head: `4642 unpinned site(s) ... 4642 at the ratchet base 0b89f781`, `MUTATION TABLE PASSED (empty scope)` -- no pin/ratchet count shifted. (The PR changes no production line, so this lane draws no mutant; read from the log, not the conclusion.)
-- RESULT tmp_paths ledger arm vs the three real recurrences (coordinator's ask): #2025 head 9c664109 refused (`...54c3c7b5.json:4 /Users/.../hpo-seats/r9c-egb11/ev7/equiv_6840.py`); #2010 commit 9a8255b3 refused (`idle_codes.CMP_BOUND.a02b3552.json:4 .../probe_idle_codes.py`); #2024 head 1e92e0e8 refused (`normalize_flow_kg_s.GUARD_OFF.b46fca00.json:4 .../r9-ux9-fix2/ev/probe_inputs.py`). Same three refs under the merge-base tmp_paths: 0 refused each (control). In-tree versions accepted: #2010's fixed head 6eafd3a5 (cites dev/audit/harnesses/ux5_idle_codes_sites.py) 0 refused; each real row with its path re-pointed to a tracked path: 0 refused. Full per-commit walk of all three PRs in ledger_three_prs.txt.
-- RESULT body figures re-derived: `--ref 00da22db5` 33 ledger refusals, `--ref 00da22db5^1` 0; 31 stock ledger files on main.
-- RESULT finder harness plant_r2.sh (sha1 a725cc4e..., SRC re-pointed only), base vs head: B (lane-file comment, main's red) rc=1 NO RECORDING -> rc=0; C control fires at both; E2/E3 refused at both, head names found+expected heading; E6 `:12 CONST` named only as `CONST_X`: base "disposes of all 1" rc=0 -> head "omits" rc=1; A, D, E1, E4, E5 identical.
-- RESULT mutation proofs (each applied, self-test run, restored): M8 boundary deleted -> layout 1 FAIL; M10 rules exemptions removed -> 2 FAIL; Mc4 -> closure 1 of 40 FAIL; record_row (i) `if green` -> 1 FAIL; (ii) `3 if pending` -> 1 FAIL; merge_train delete-rc ignored -> 1 of 81 FAIL; tmp_paths stock check removed -> 2 FAIL. Old added_unpinned/added_keys -> C9a/C9b red (c9.py above).
-- RESULT head self-tests: layout ok; closure 40 PASSED; record_row all passed; tmp_paths 50/0 and --check 0 refused; merge_train 81/0; entities.py ALL 2214 PASSED (both R9-RO-9a checks ok).
-- RESULT merge with current main 0b89f781: merge-tree rc=0, no conflict (5 overlapping files merge clean); on the simulated merge merge_train, layout, closure, tmp_paths, record_row self-tests pass and structure.py RATCHET PASSED.
+## 1. INERT READS as a warning: it hides a real under-scope (blocking)
+The premise in c94842ed9 -- "closures-autofix merges it after the push" -- holds only when CI's `closures` job takes its full arm. It does not hold for a diff whose changed files are all INERT and absent from every closure, which is exactly the diff that adds a harness file and nothing else:
+- RESULT plant (plant_inert.sh, mine): a branch adding only `dev/audit/harnesses/zz_planted.py`. At head: `PREDICT closures INERT READS tests/harness_headers.py: ... (a new file beside 14 it lists)`, `predict rc=0`. At 4cdba2ac1 (pre-downgrade ci_predict): same line, `rc=1`.
+- RESULT `tests/closure.py affected` on that diff: `case=skip`. The tests.yml `closures` job then runs the DOCS_ONLY_FAST arm: no recording, no `closure.py check`, so no INERT READS red on the PR, and `closures-autofix` (PR-only, runs on a `closures` failure) never fires. Required `closures` is green.
+- `tests/harness_headers.py:311-318` rglobs `dev/audit/harnesses`; its committed inert_reads lists 21 files there. After merge, main's push runs the full arm, which records the new read and goes red with INERT READS UNDER-APPROXIMATED. Nothing repairs it on main, because closures-autofix is `pull_request`-only. I did not run main's Linux recording (heavy/strace); the chain above is each link read or measured.
+- Before this change prepr 6d refused this diff locally, so the prediction was its only pre-merge detector. The PR's own self-test fixture `pinert` is this harness-only diff, so the new line `and an INERT READS red warns, never refuses` pins the hole as intended behaviour.
+- Red-first confirmed: prepr --self-test at 4cdba2ac1 `219 passed, 1 failed` (that line), at head `220 passed, 0 failed`. Null control `an UNDER-SCOPED red still refuses` passes at head.
+- Suggested repair, the fixer's call: warn only when the diff takes the full closures arm (`closure.py affected` case != skip); refuse, or require the diff to carry a non-inert file, on `skip`. Add the harness-only plant as a refusal case and the full-arm plant as the warning case.
+- The motivating defect (seats hand-editing tests/closures.json for #2025, #2054, #2056) is real. Those diffs carried code, so the full arm ran. The downgrade is sound for them and unsound for the skip arm.
 
-## Settled CI at cf84e0a4 (check-runs API)
-fast (3.14) `MODE: FULL -- every test script runs` and `ALL TEST SCRIPTS PASSED`; closures, mutation, instrument-self-tests (`tmp_paths: 0 refused ... ledger lines added since 0b89f781`), pr-contract, budget-raise-gate, policy-docs, briefs, wave-script, typing, env-matrix, browser, closure-scope: success. Red: delivery-status (`DELIVERY STATUS UNCHECKED -- 78 rowed, 0 pending, 0 overdue`, main's unread commits) and nightly-status (`closures, mutation-nightly, nightly-ha ... failed last night`) -- neither reads a file this diff touches, so neither is this PR's (fix-review step 11); body's `none` stands. coverage not required.
+## 2. Direct-push disposition rule: sound in shape, under-pinned (blocking with 1)
+- RESULT v6.7.17 window (`--check --since 1913f0dd`, base vs head delivery_status.py): base 9 unread; head 4 `exempt ... record-only` (0a60e06, d579544, 6b1ccb6, 62f604e, each a rows-only first-parent diff) and 5 still unread (618d014, f6ac991, 077f53a, 130c780, 8107181: code merges, correctly UNCHECKED; direct-pushes.md has no lines yet). Verdict UNCHECKED at both ends, which is correct.
+- RESULT attack cases at head (ds_disp.py, mine): rows-only record-only; code needs an allow line; rows+script, files unknown, files empty, a commit touching only direct-pushes.md, a `.md.bak` lookalike, a nested path, an allow line for another sha, a 6-hex allow key: all UNCHECKED. Pre-move row path: record-only, via locate. The rule behaves correctly.
+- Mutation, running the PR's own entities.py block verbatim against mutated copies (ent_block.py):
+  - base FAIL (TypeError, no allow parameter), so red first.
+  - Killed: M1 (`all` changed to `any`), M2 (the blind list unfiltered), M4 (allow lines ignored).
+  - **Survivors:** M5 `sha.startswith(k)` changed to `True`, which lets one allow line exempt every unnumbered merge (my harness: allow-other-sha goes UNCHECKED to EMPTY). M6 ROW_FILE loosened to any path under dev/programme/delivery/, which makes a push that edits only direct-pushes.md (the allow list itself) or a `1998.md.bak` record-only.
+  - Also surviving: M3, `files and` changed to `files is not None`, which makes an empty diff record-only. That is harmless, so I note it only.
+- M5 is the guarantee the commit message states: "exempt only through a line ... naming its sha". It is unpinned. Two cases close both survivors: an allow line for another sha stays UNCHECKED, and a commit touching only direct-pushes.md stays UNCHECKED.
 
-## Other checks
-No policy file (policy_lint --corpus-filter over the diff prints nothing; orchestrator.md untouched by design). VERSION, manifest, RELEASE_NOTES, claim files, every *_budgets.json and closures.json untouched. #2012 merged as 45142cc3 confirmed; governance.yml field-coverage/agreement steps confirmed for the RCA correction.
-
-## Notes for the orchestrator (not blocking)
-1. Body/carry gap: the two carries sent after the PR opened -- prepr 6d vs closures-autofix contradiction, and the stamp rows gate vs rowless direct pushes -- are in neither the body, carry-1922.json (head or main) nor the roster. Not claimed, so not a code block; they still need a home (RO-9b/9c brief or their own carry).
-2. Body scanning: neither tmp_paths nor prepr scans PR bodies; tmp_paths scans ledger JSON lines a diff adds. The body records this as a decision not to build (fixer.md step 3 cites out-of-tree finder harnesses by path).
-3. Residual: the stock exemption matches by line text, so a new ledger row whose reason line copies a stock line verbatim passes. Low risk; recorded, not blocking.
-4. After merge the ledger arm refuses #2024 at 1e92e0e8 (its reviewer passed it) and #2025 at 9c664109 until their reasons drop the seat paths.
+## 3. Rest of the delta
+- 2aacc72fb: the delivery row for #2061 is present.
+- Main merges: carried, CI green.
+- Check-runs at 8c758b72 (40, settled): everything green except `nightly-status`, which is last night's nightly and reads no file in this diff, so it is not this PR's.
+- Round-1 RESULTs not re-taken. My delta review read the merge commits by their paths only: a206b5056, cdc063d5f and 8c758b72c bring in main (v6.7.17 stamp and others) and touch no file of this PR's own code.

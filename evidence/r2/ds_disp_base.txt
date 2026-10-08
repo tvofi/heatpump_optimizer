@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2061/harness/ds_disp.py", line 8, in <module>
+    allow=ds.direct_pushes("- 618d014: merged by hand; rows in #1999\n")
+          ^^^^^^^^^^^^^^^^
+AttributeError: module 'dsx' has no attribute 'direct_pushes'

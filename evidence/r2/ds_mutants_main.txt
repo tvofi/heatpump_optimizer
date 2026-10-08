@@ -1,0 +1,14 @@
+head: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+base: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow line, code without it, rows plus a script, files unknown) -> ("TypeError: collect() got an u
+M1 all->any: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow line, code without it, rows plus a script, files unknown) -> ((['record-only'], 'EMPTY'), ([
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['record-only'] verdict=EMPTY RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['-'] verdict=UNCHECKED 
+M2 blind unfiltered: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow line, code without it, rows plus a script, files unknown) -> ((['record-only'], 'UNCHECKED')
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['-'] verdict=UNCHECKED RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['-'] verdict=UNCHECKED 
+M3 drop files-truthy: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['-'] verdict=UNCHECKED RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['record-only'] verdict=EMPTY 
+M4 allow ignored: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow line, code without it, rows plus a script, files unknown) -> ((['record-only'], 'EMPTY'), ([
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['-'] verdict=UNCHECKED RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['-'] verdict=UNCHECKED 
+M5 allow any: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['-'] verdict=UNCHECKED RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['-'] verdict=UNCHECKED 
+M6 ROW_FILE loose: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+   harness: RESULT code-no-allow: disp=['-'] verdict=UNCHECKED RESULT rows+script: disp=['-'] verdict=UNCHECKED RESULT files-unknown: disp=['-'] verdict=UNCHECKED RESULT files-empty: disp=['-'] verdict=UNCHECKED 
