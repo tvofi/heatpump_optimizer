@@ -1,8 +1,0 @@
-RESULT deepcopy ok type=EntryConfig fields_equal=True raw_equal=True mapping_equal=True
-RESULT copy ok type=EntryConfig fields_equal=True raw_equal=True mapping_equal=True
-RESULT pickle ok type=EntryConfig fields_equal=True raw_equal=False mapping_equal=False
-RESULT deepcopy_raw_independent True
-RESULT frozen_after_copy=True FrozenInstanceError
-RESULT item_assign=refused
-RESULT fuse_equivalence configs=96 mismatches=0
-RESULT pickle_without_nan raw_equal=True mapping_equal=True comfort_weight=5.0

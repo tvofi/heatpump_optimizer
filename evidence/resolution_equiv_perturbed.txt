@@ -1,0 +1,1 @@
+RESULT resolution_equiv comparisons=2702 mismatches=202
