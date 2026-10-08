@@ -4,7 +4,11 @@ The entry's merged data and options are parsed once, at coordinator construction
 
 ## Head
 
-c27b616dbc63856b7e57953be880c66babfaf6c9
+b21ed75e17d3307db11590b41173a151cfc695bf
+
+Since c27b616d, two commits merge main 6b91e238:
+- b29e4ee4 merges it. The `pump_arbiter.py` conflict with #2007 (SW-2 actuation) keeps both sides: SW-2's fourth slot, the silent switch, and its silent and off specs now read the parsed `heat_pump_capacity_limited_entity`, `quiet_silent_windows` and `quiet_off_windows`. Where nothing is stored those read `""`, which `_silent_rows` and `step_actions` treat as no rows, the same as `None`. SW-2's `features.py` stand-ins wrote items into the frozen configuration; they now rebuild it through `with_config`.
+- b21ed75e drops two killed_by pins main had just recorded, `_dhw_probe_temperature` GUARD_OFF and `_silent_target` RETURN_DEL. Their anchors name the mapping-read text this branch rewrites, so the ledger refused them. The rewritten lines are listed under Unpinned sites, for `mutation-autofix` to pin again.
 
 Changes since round 5's head, 0662bd8e, in two commits. Both are tests plus one production simplification. They answer the eight mutants R9-CI-1's sharded proof left alive, and the two its second proof could not confirm:
 - cd7948e3: one `entities.py` check drives each parsed gate on both arms. It covers the lower-floor learner's sensor guard, open-window relax's `and`, the rain weighting's switch, the comfort-learning switch, `from_mapping`'s pass-through, and an unreadable silent fraction. `_optional_number`'s `if value == "": return None` is removed: an empty string is refused by the float parse and falls to the default, which is None for every optional field, so that branch changed nothing (an equivalent mutant).
@@ -36,9 +40,10 @@ Every arm the gate check compares has its on side, the null: the gate opens and 
 
 ## Figures
 
-Merge base `2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38`. Interpreter: venv-ci python3 3.14.7. Run one at a time.
-- At c27b616d: `tests/entities.py` `ALL 2218 ENTITY CHECKS PASSED`; `python3 tools/pr/ci_predict.py` reports "no closures or fast red predicted" and 62 added unpinned sites, listed below.
-- At cd7948e3: `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/typing_ruler.py` under `HPO_TYPING_PYTHON` (mypy included) `ALL 12`; `tests/config_flow_steps.py` `ALL 496`; `tests/manual_plan.py` `ALL 129`; `tests/closure.py selftest` `ALL 39`. c27b616d changes only `tests/entities.py`.
+Merge base `6b91e238f6883af6eedef0fc541bce76b14fc46c` (= `origin/main` 6b91e238). Interpreter: venv-ci python3 3.14.7. Run one at a time.
+- At b21ed75e (this head): `tests/entities.py` `ALL 2218 ENTITY CHECKS PASSED`; `python3 tools/pr/ci_predict.py` reports "no closures or fast red predicted against 6b91e238f688" and 63 added unpinned sites, listed below.
+- At b29e4ee4 (the merge): `tests/structure.py` `STRUCTURE RATCHET PASSED`; `tests/typing_ruler.py` under `HPO_TYPING_PYTHON`, mypy included, `ALL 12`; `tests/manual_plan.py` `ALL 129`. At b29e4ee4, `entities.py` failed 1 of 2218 on the two refused pins; b21ed75e drops them, and only the ledger changed in between.
+- At cd7948e3: `tests/config_flow_steps.py` `ALL 496`; `tests/closure.py selftest` `ALL 39`.
 
 Heavy scripts are CI's under the owner's 2026-10-07 rule.
 
@@ -118,6 +123,7 @@ The sites `tools/pr/ci_predict.py` lists as added and unpinned at this head. R9-
 - custom_components/heatpump_optimizer/entry_config.py:282 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/entry_config.py:296 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/legionella.py:194 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/pump_arbiter.py:572 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/sensor.py:704 RETURN_DEL: pinned by mutation-autofix
 - custom_components/heatpump_optimizer/silent_mode.py:104 GUARD_OFF: value check, `entities.py`'s gate check (mutant: an unreadable fraction raises; 1 of 2218 failed); left for `mutation-autofix` to pin
 
