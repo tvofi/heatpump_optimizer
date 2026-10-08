@@ -1493,8 +1493,9 @@ jobs:
 
       - name: Run the integration inside Home Assistant
         run: |
-          python tests/nightly_ha.py \
-            --image "homeassistant/home-assistant:${{ matrix.image }}"
+          python tests/closure.py record --out-dir "$RUNNER_TEMP/rec" tests/nightly_ha.py \
+            --args --image "homeassistant/home-assistant:${{ matrix.image }}" || true
+          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); print('MEASURED-READS-BEGIN'); [print(f) for f in sorted(d.get('files', d) if isinstance(d,dict) else d)]; print('MEASURED-READS-END')" "$RUNNER_TEMP/rec/nightly_ha.py.json" || cat "$RUNNER_TEMP/rec/nightly_ha.py.json"
 
       # The PR gate checks every Home Assistant name production reaches
       # against a snapshot recorded from upstream source at the floor
