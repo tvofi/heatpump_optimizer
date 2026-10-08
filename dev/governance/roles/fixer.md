@@ -44,15 +44,15 @@ background task, whose exit wakes you; never end a turn on a detached one.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
-5. **Measure the gate's scope, then run what it names.** The gate is scoped
-   from measured closures, so derive the selection rather than assume it:
+5. **Measure the gate's scope, then run what it names.** Derive the
+   selection rather than assume it:
 
        D=$(mktemp -d); python3 tests/closure.py select \
          --diff $(git merge-base origin/main HEAD) --workdir "$D"
        cat "$D/scope.txt"; cat "$D/scope.run"
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
-   `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
+   `scope.run` names and `tests/run.sh`'s `run_always` lines, with `PYTHONPATH=tests/hastub`, and leave the remainder
    to CI; `tests/README.md` ("The scoped gate") says why. So
    `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
