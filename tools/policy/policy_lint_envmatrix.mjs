@@ -43,7 +43,8 @@ function build(name, mutate) {
     return { dir, error: `work directory already holds ${name}: pass a fresh --work dir. Reusing one lets a deleted shape pass on the previous run's clone.` }
   }
   BUILT.add(name)
-  const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])
+  // maintenance off in the clone's own config: no detached repack outlives the work dir (R9-RCA-stamp-race)
+  const c = sh('git', ['clone', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', '-q', '--no-checkout', SRC, dir])
   if (c.rc) return { dir, error: `clone failed: ${c.out.slice(0,200)}` }
   const co = git(dir, ['checkout', '-q', '--detach', SHA])
   if (co.rc) return { dir, error: `checkout ${SHA} failed: ${co.out.slice(0,200)}` }

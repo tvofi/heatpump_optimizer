@@ -1,5 +1,99 @@
 # Heat Pump Cost Optimizer — Release Notes
 
+## v6.7.17
+
+round 9 continues: silent windows arrive end to end, with a per-step off mask, quiet actions, plan enforcement, card surfaces and docs, GCHV night-mode transport, two-hour Block DHW and Block Space Heating switches, and duty-cycle bounds kept when a switch install has no frequency entity (SW-1 to SW-6); the heat-loss refit is recommended and applied only when the user accepts (DIAG-2S); the debugger store closes its boundary seams, self-tests on finalize and caps the inline download bundle at 8 MiB with a nightly size check (DBG-1, DBG-2); the solver and planner signatures take parameter objects and the coordinator's collaborators leave its privates (EG-A3, EG-B6, EG-B7); the repository is reorganised, with finished plans archived, instruments moved under tools/, audit evidence one segment deeper and stale paths swept with a layout guard (RO-2b to RO-12); the merge train merges a proved batch and a lone entry unproved, and the pre-PR check predicts closures and mutation reds (RO-11, RO-12); CI gains record auto-merge for row-only pull requests, autofixes that repair what they skipped, a budget gate that never cancels its same-SHA twin, a pr-contract that no longer cancels twin runs, and mutation driver hygiene (CI-1, CI-2a, FR-10, F10.16); the stamp self-test no longer races git's auto-maintenance (RCA-stamp-race); and the delivery rows for the wave land with it.
+
+- #1886 — dual_path harness: the neither arm names the codeowners_gap row it cannot compare
+- #1887 — policy: D1.md's executor-boundary item names the solve's record builders (#1736)
+- #1891 — R9-FR-2: step 7c reuses 7b's ref resolution, so an unpushed branch prints the same boundary 7b prints
+- #1892 — fix(R9-FR-3): fold the environment family over the friction-id map, not only verdicts
+- #1893 — policy(ci-autofix): the inert dimension is Linux-recorded; repair via CI artifact merge (#1886)
+- #1894 — test(round4/D6): re-measure the README link census over the new product-page link
+- #1895 — Merge remote-tracking branch 'origin/main' into fix/r9-fr-5
+- #1896 — record: delivery rows for #1886, #1891, #1892 (batch R9-F10.16)
+- #1913 — feat(R9-SW-4): hold GCHV night-mode start/end for silent windows
+- #1917 — fix(R9-RO-4): archive finished plans, rosters and closed carries
+- #1919 — fix(R9-RO-6): move the instruments into tools/policy, tools/pr, tools/coverage and tools/devices
+- #1920 — fix(R9-RO-7): find audit harness roots by walking up to the manifest
+- #1942 — policy: CLAUDE.md gains the Instruments section - the tools/audit/seat/ inventory, the gate-check family in .claude/workflows/, archscore, the harness locations and the identity tools, with the check-the-inventory-first obligation (0013)
+- #1944 — fix(R9-FR-6): the recarry worktree holds the PR branch, not a detached HEAD
+- #1948 — docs(R9-FR-8): the four record tools live in the tree - plan table, roster edit, resume doc, handover prompt
+- #1950 — test(R9-FR-7): the pin-measurement drive splits its shared work N-way
+- #1953 — record: delivery rows for the 2026-10-04 batch (1893-1950) + two stale re-takes
+- #1954 — test(R9-FR-9): re-measure over-budget solves beside fresh samples; medians decide
+- #1957 — ci(R9-FR-10): record-autofix writes the delivery-row beat as the hpo-author App
+- #1958 — refactor(R9-EG-A3): parameter objects for the solver and planner signatures - params_over_10 27 -> 12
+- #1960 — feat(R9-SW-1): silent windows - per-step off mask, quiet actions, plan enforcement and card surfaces
+- #1961 — record: delivery rows for #1887 (autofix)
+- #1962 — ci(R9-FR-10b): record-autofix sends head/base, pushes its own branch under lease, self-reports API failures
+- #1963 — record: delivery rows for #1961 (autofix)
+- #1964 — record: delivery rows for #1963 (autofix)
+- #1965 — ci(R9-FR-10b r2): name the Authorization header - curl drops a colonless -H, which was the 401
+- #1966 — refactor(R9-EG-B6): collaborator interfaces - the eight collaborators off the coordinator's privates
+- #1967 — record: delivery rows for #1964 (autofix)
+- #1968 — record: delivery rows for #1967 (autofix)
+- #1969 — record: delivery rows for #1968 (autofix)
+- #1970 — record: delivery rows for #1969 (autofix)
+- #1972 — docs(rca): R9-RC-PRCONTRACT — cancelled pr-contract at a live head
+- #1974 — record-autofix: look the open record PR up by head=<owner>:record/autofix
+- #1975 — fix(R9-F10.16): mutation driver hygiene - slow job scope, one nightly cron, merge_train row stop
+- #1976 — record: delivery rows for #1970, #1973 (autofix)
+- #1977 — fix(R9-RC-PRCONTRACT-FIX): pr-contract no longer cancels same-SHA twin runs
+- #1980 — fix(R9-RO-2b): list both restore paths, then check them out
+- #1981 — fix(R9-FR-12): prepr names a budget raise and runs no-copies
+- #1982 — fix(R9-FR-11): Mac seat recipe builds the pinned typing interpreter
+- #1983 — fix(R9-DIAG-2S): recommend a heat-loss refit, apply it only on accept
+- #1984 — record: delivery rows for #1976 (autofix)
+- #1986 — fix(train): keep every prepr refusal and refuse a search of the volume root
+- #1987 — fix(debugger): close the debug store's boundary seams and truth the catalogues (#1939)
+- #1988 — record: delivery rows for #1984 (autofix)
+- #1989 — record: delivery rows for #1988 (autofix)
+- #1994 — fix(R9-RO-3): move product figures and feature designs (#1916)
+- #1997 — feat(R9-SW-5): add two-hour Block DHW and Block Space Heating switches
+- #2001 — record: delivery rows for #2000 (autofix)
+- #2002 — record: delivery rows for #1995, #2001, #2003 (autofix)
+- #2003 — fix: a record-autofix beat does not owe its own row
+- #2005 — policy: the orchestrator turn is tools/audit/briefs/nudge.md
+- #2006 — fix(R9-SW-6): keep duty-cycle bounds when a switch install has no frequency entity (#1955)
+- #2007 — fix(R9-SW-2): actuate a capacity-limited switch through the silent slot (#1911)
+- #2009 — feat(R9-SW-3): silent windows on the dashboard card and in the docs (#1912)
+- #2011 — fix(record): stage dev/programme/delivery and spawn the moved policy_lint
+- #2012 — fix(R9-RCA-1990): re-point the seat instruments after the reorg; head-moved root cause
+- #2013 — docs(R9-RCA-1985): root-cause-unanswered friction, analysed and the split declined
+- #2014 — fix(R9-RCA-2004): harness friction root cause; preflight and friction filer find the moved policy tools
+- #2015 — refactor(R9-RO-8): audit evidence one segment deeper under dev/audit (#1921)
+- #2017 — tools(R9-EG-B7): land the coordinator seam-hub enumerator (#1744)
+- #2018 — fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit
+- #2021 — fix(prepr): pin the ancestry-reds fixture author so an exported GIT_AUTHOR_NAME cannot move its SHAs
+- #2022 — fix(closures): record harness_headers.py reading the EG-B7 harness as inert
+- #2026 — fix(tests): boost_drift_replay runs the shared pre-boost stretch once (nightly mutation timeout)
+- #2027 — fix(R9-RO-10): sweep stale retired-path references; layout guard refuses new ones and misplaced files
+- #2029 — ci(record-autofix): hold and auto-merge row-only record PRs behind a mechanical guard
+- #2030 — R9-RO-11: prepr step 6d predicts closures' and mutation's reds before the handoff
+- #2040 — rca(R9-RCA-bugclasses): route the bug-class register to the ledger merge driver
+- #2041 — R9-DBG-2: debugger self-tests on finalize, the 8 MiB inline bundle cap, and the nightly size check
+- #2042 — fix(policy): fixer.md back under its token cap after #2027 and #2030
+- #2044 — R9-RO-12: merge_train batch -- proved batch merges (B), a lone merge unproved (D)
+- #2049 — ci(R9-CI-1): mutation-autofix and closures-autofix repair what they skipped
+- #2050 — record: delivery rows for #2029 (autofix)
+- #2051 — stamp self-test: throwaway repos run no auto-maintenance (R9-RCA-stamp-race)
+- #2053 — fix(R9-CI-2a): budget-raise-gate never cancels its same-SHA twin
+- #2055 — fix: inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051)
+- #2056 — nightly-ha A16: bind HA's download writer by name and read its payload body (fix-forward of #2041)
+- #2054 — throwaway git repositories: one shared helper at every init and clone site
+- 618d014f0 — Count dimension briefs without a second copy of the dimension-file grammar (direct push, closes #1918)
+- 077f53aff — R9-DBG-3: the debugger bundle generator writes to a fresh temporary directory instead of a fixed path (direct push, #1941)
+- 130c78089 — R9-FR-10c: roster set-resume verb, state_docs pusher and the instruments guide (direct push)
+- 810718133 — R9-DIAG-1F: freeze the interval learners during boost-space windows with a 12h settling tail (direct push, #1935)
+- f6ac9912d — R9-STAMP-UNBLOCK: number a title-subject merge from its body Merge line (direct push)
+- 0a60e0658 — record: delivery rows for #1998 (direct push, record-only, no code)
+- d5795442e — record: delivery rows for #1992 (direct push, record-only, no code)
+- 6b1ccb685 — record: delivery rows for #1991 (direct push, record-only, no code)
+- 62f604eb0 — record: delivery rows for #1989 (direct push, record-only, no code)
+
+The nine direct pushes above carry no pull-request number, so the rows gate could not read them; this stamp ran with --allow-rowless on the orchestrator's decision. The five code pushes (618d014f0, 077f53aff, 130c78089, 810718133, f6ac9912d) are named here as their disposition; the four record-only pushes wrote delivery rows and changed no code.
+
 ## v6.7.16
 
 round 9 continues: per-solve immutable inputs and the solve record that shares no container with the live hubs (EG-A2 closes the duplicated-formula class in the clone counter, #1775); the mutation lane gets a wall-clock mutant budget where a driver timeout is never a kill (F10.12); the programme's reusable instruments move into the tree (merge train, seat venv recipe, parity harness, tmp-path detector) with the fixer/review/orchestrator obligations that follow (#1879); the card states the narrative panel moves and ships with every tile populated, the orphaned plan-design picture is deleted and refused re-introduction, and the weekly figure is measured against its caption (UX-8, WEB-4); arch_score and arch_score_head leave the coverage tracer, measuring coverage 48.8 to 23.1 minutes (F10.14); the nightly mutation ledger reports each child's CPU and size with the CPU bound taken from runner measurements, ending the SIGXCPU refusal (F10.12-nightly); and the delivery rows for the wave land with it.

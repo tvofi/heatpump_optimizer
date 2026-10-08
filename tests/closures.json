@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 86.1,
+   "seconds": 159.6,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 17.0,
+   "seconds": 19.4,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 4.8,
+   "seconds": 5.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 27.0,
+   "seconds": 39.3,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 41.0,
+   "seconds": 53.6,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 239.7,
+   "seconds": 354.4,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 0.9,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 616.0,
+   "seconds": 896.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,11 +42,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 0.9,
+   "seconds": 1.0,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 7.3,
+   "seconds": 9.2,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,31 +54,31 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 133.1,
+   "seconds": 186.3,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.5,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.2,
+   "seconds": 1.4,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 629.2,
+   "seconds": 1077.8,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 13.9,
+   "seconds": 19.9,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 38.2,
+   "seconds": 56.0,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.2,
+   "seconds": 3.6,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,27 +86,27 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.4,
+   "seconds": 0.6,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 1.2,
+   "seconds": 1.4,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 1.3,
+   "seconds": 1.8,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 180.9,
+   "seconds": 220.7,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 7.6,
+   "seconds": 10.3,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 77.0,
+   "seconds": 90.4,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -114,19 +114,19 @@
    "rc": 0
   },
   "tests/layout.py": {
-   "seconds": 17.2,
+   "seconds": 17.3,
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 258.3,
+   "seconds": 342.6,
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 39.2,
+   "seconds": 41.8,
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 1193.5,
+   "seconds": 1804.3,
    "rc": 0
   },
   "tests/block_duty.py": {
@@ -134,7 +134,7 @@
    "rc": 0
   },
   "tests/debug_collect.py": {
-   "seconds": 1.5,
+   "seconds": 1.7,
    "rc": 0
   }
  },
@@ -692,6 +692,7 @@
    "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/throwaway_git.py",
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/judge_batch.py",
@@ -2551,6 +2552,7 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
    "tools/site/package-lock.json",
@@ -2676,7 +2678,8 @@
   ],
   "tests/layout.py": [
    "tests/layout.json",
-   "tests/layout.py"
+   "tests/layout.py",
+   "tests/throwaway_git.py"
   ],
   "tests/arch_score.py": [
    "tests/arch_score.py",
@@ -3178,6 +3181,7 @@
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
+   "dev/audit/harnesses/throwaway_git_sites.sh",
    "dev/audit/harnesses/ux5_idle_codes.py",
    "dev/audit/harnesses/ux5_idle_codes_sites.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
