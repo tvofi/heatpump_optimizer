@@ -369,7 +369,8 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
                     numbers=numbers, repo=repo, notes=notes)
     for t in layout:
         if isinstance(merged.get(t), dict):
-            merged[t] = {k: sorted(set(v)) if _is_str_list(v) else v
+            merged[t] = {k: sorted(set(v)) if isinstance(v, list)
+                         and all(isinstance(x, str) for x in v) else v
                          for k, v in merged[t].items()}
     return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
