@@ -71,7 +71,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     rather than its conclusion.
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
-    mutation table; cite the head's CI run. Cheap checks (seconds: a lint, one
+    mutation table. Cheap checks (seconds: a lint, one
     test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
@@ -127,8 +127,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
     body lists and hunt one it missed: one that truly improves the code is
     `metric-gamed` too.
-15. **Judge soundness by `fixer.md` step 17's list**: a breach the body does
-    not name as a kept exception is `blocked <sha> architecture-unsound: <how>`.
+15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
+    from the architect note, is `blocked <sha> architecture-unsound: <how>`.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first

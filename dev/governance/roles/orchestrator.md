@@ -130,8 +130,9 @@ exactly that.
 - **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
-- **Concurrent fixes sharing a concern push only after a binding architect
-  design note**: owning module, each fix's shape (`fixer.md` 17).
+- **Concurrent fixes sharing a concern push only after an architect note**
+  you dispatch into each group's roster brief (owning module, each fix's
+  shape); it binds them (`fixer.md` 17).
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
@@ -191,8 +192,7 @@ is not one.
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end, and
-batching to the end is how an abort loses it. A merge whose own pull request is
+`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price, not zero.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
@@ -253,7 +253,7 @@ shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
-- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept; not at session end.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
 
 ## 12. The gate lease
 
