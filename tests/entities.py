@@ -4174,6 +4174,87 @@ if _EntryConfig is not None:
         f"{_ec_fuse}",
     )
 
+    # The gates that read a parsed switch or slot, each driven on both arms
+    # (#2025's eight mutation survivors: the drives that ran never reached
+    # the arm the gate closes).
+    from dataclasses import replace as _ec_replace
+    from datetime import timezone as _ec_tz
+    import numpy as _ec_np
+    from heatpump_optimizer import silent_mode as _ec_silent
+    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+    from heatpump_optimizer.thermal_model import ThermalState as _EcState
+    from types import SimpleNamespace as _EcNS
+
+    def _ec_lower_floor_samples(sensor):
+        """One replayable two-zone interval; the lower-floor learner's samples after it."""
+        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                        lower_floor_temperature=20.0, slab_temperature=27.0,
+                        outdoor_temperature=-5.0)
+        c._last_house_sample = prev
+        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                       lower_floor_temperature=19.9)
+        c._current_action = {"power": 2.0}
+        asyncio.run(c._async_learn_lower_floor_loss())
+        return c._lower_floor_loss_samples
+
+    def _ec_widening(tripped):
+        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+        c._vent_cusum.tripped = tripped
+        return c._floor_widening()
+
+    def _ec_rain(flag):
+        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+        c._apply_open_meteo = lambda solar, *a: solar
+        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                        snowfall_for=lambda *a: 1.0)
+        c._update_snow_memory = lambda *a: False
+        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+    def _ec_weight(on):
+        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+        c._comfort_learner.learned_weight = 9.0
+        return c._comfort_weight()
+
+    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+    _ec_gates = {
+        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                             _ec_lower_floor_samples("sensor.lower")),
+        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+        "a parsed configuration is returned as it is": (
+            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+        "an unreadable silent fraction caps nothing": (
+            _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                      const.CONF_SILENT_MODE_FRACTION: "abc"},
+                               _ec_start, 96, 0.25, 6.0) is None,
+            _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                      const.CONF_SILENT_MODE_FRACTION: 0.5},
+                               _ec_start, 96, 0.25, 6.0) is not None),
+    }
+    _ec_want = {
+        "lower floor learns only from a configured sensor": (0, 1),
+        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+        "rain weighting needs the switch on": (2.0, 0.5714),
+        "learning off plans with the configured weight": (5.0, 9.0),
+        "a parsed configuration is returned as it is": (True, True),
+        "an unreadable silent fraction caps nothing": (True, True),
+    }
+    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+    R.check(
+        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+        + "; ".join(_ec_want),
+        not _ec_wrong, f"{_ec_wrong}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
     # empty slot None. A set_thermal_parameters call carrying a spec applies
