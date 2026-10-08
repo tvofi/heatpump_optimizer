@@ -963,6 +963,10 @@ if [ "${1:-}" = "--self-test" ]; then
   # Every throwaway repository below takes the shared helper: auto-maintenance
   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
   . tests/throwaway_git.sh || exit 2
+  # ...and every git call it makes takes the env, its own and the step code's
+  # under test: an inherited GIT_CONFIG_PARAMETERS outranks a repository's own
+  # config, so the repository layer alone does not hold (the #2054 review).
+  throwaway_git_env
   D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves

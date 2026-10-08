@@ -161,5 +161,5 @@ That workflow `env:` covers CI only. A seat whose own git is 2.54 or newer (Home
 throwaway-repository helper that every site uses, as `_throwaway_git_env()` is for stamp's two
 repositories, and the CI `env:` is only the cheap barrier while that helper does not exist.
 The owner chose the helper over the CI `env:` (tvofi, 2026-10-08); R9-GITTMP landed it as
-`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` site
-the rule above returns.
+`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` and
+`git clone` site the rule in `tests/throwaway_git.py --check` returns.

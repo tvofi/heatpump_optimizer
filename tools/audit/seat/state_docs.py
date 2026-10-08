@@ -178,7 +178,11 @@ def main(argv=None) -> int:
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
-        return self_test()
+        # Every git call in the self-test runs in a throwaway repository.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_environ
+        with throwaway_git_environ():
+            return self_test()
     roster_args = (["--roster-file", a.roster_file] if a.roster_file
                    else ["--roster-ref", a.roster_ref])
     try:

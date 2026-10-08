@@ -295,7 +295,12 @@ def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
     if "--self-test" in argv:
-        return _self_test()
+        # Every git call in the self-test, the runner's and the ops' under
+        # test, runs in a throwaway repository: all of them take the env.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_environ
+        with throwaway_git_environ():
+            return _self_test()
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume"))
