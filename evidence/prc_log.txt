@@ -1,0 +1,38 @@
+pr-contract	Check the body against the contract	﻿2026-10-08T12:38:29.1705141Z ##[group]Run set -euo pipefail
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1705497Z ^[[36;1mset -euo pipefail^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1705859Z ^[[36;1m# One --red flag per name, never one comma-joined value: a check^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1706363Z ^[[36;1m# name containing a comma would split into fragments neither the^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1706791Z ^[[36;1m# refusal nor `## Red checks` can match.^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1707098Z ^[[36;1mRED_ARGS=()^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1707334Z ^[[36;1mwhile IFS= read -r name; do^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1707607Z ^[[36;1m  RED_ARGS+=(--red "$name")^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1708074Z ^[[36;1mdone < /tmp/pr-reds.txt^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1708357Z ^[[36;1mif [ -f /tmp/pr-title.txt ]; then^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1708671Z ^[[36;1m  PR_TITLE=$(cat /tmp/pr-title.txt)^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1708949Z ^[[36;1mfi^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1709224Z ^[[36;1mif test -f .claude/workflows/policy_lint.mjs; then^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1709602Z ^[[36;1m  node .claude/workflows/policy_lint.mjs \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1710071Z ^[[36;1m    --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1710783Z ^[[36;1m    --author "$(cat /tmp/pr-author.txt)" \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1711321Z ^[[36;1m    --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1711759Z ^[[36;1m    "${RED_ARGS[@]}"^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1711993Z ^[[36;1melse^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1712221Z ^[[36;1m  node tools/policy/policy_lint.mjs \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1712625Z ^[[36;1m    --pr-body /tmp/pr-body.md --head "$PR_HEAD" --title "$PR_TITLE" \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1713052Z ^[[36;1m    --author "$(cat /tmp/pr-author.txt)" \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1713476Z ^[[36;1m    --paths-file /tmp/pr-files.txt --existing-file /tmp/pr-existing.txt \^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1713874Z ^[[36;1m    "${RED_ARGS[@]}"^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1714095Z ^[[36;1mfi^[[0m
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1777648Z shell: /usr/bin/bash -e {0}
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1777917Z env:
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1778343Z   PR_TITLE: fix(R9-CI-2b): verdicts carry over bot commits; a merge-main bot un-DIRTYs driver-only conflicts
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1778900Z   PR_HEAD: 9e44f73c153476a80779f0795a04253fa03b4707
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.1779195Z ##[endgroup]
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2901124Z   skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2902841Z 
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2903131Z /tmp/pr-body.md
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2906635Z   ERROR   [pr-body] /tmp/pr-body.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/governance.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2912182Z   ERROR   [pr-body] /tmp/pr-body.md: check `nightly-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/governance.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2914133Z 
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2914451Z PR-BODY: 2 error(s) in /tmp/pr-body.md
+pr-contract	Check the body against the contract	2026-10-08T12:38:29.2962607Z ##[error]Process completed with exit code 1.

@@ -1,0 +1,1 @@
+{"desc":"Overly permissive file permissions","line":247,"msg":"Overly permissive mask in chmod sets file to world readable.","number":35,"path":"tools/pr/merge_main_bot.py","rule":"py/overly-permissive-file","sev":"high"}

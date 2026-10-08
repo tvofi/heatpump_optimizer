@@ -1,0 +1,152 @@
+ok   the allowlist is exactly the approver App's login and id
+ok   a merge verdict at the live head of an open, unowned pull request is approved
+ok   with exactly one review POST
+ok   whose event is APPROVE and whose commit_id is the asked-for SHA
+ok   and whose body cites the verdict comment
+ok   the POST carried the installation token, from a header file
+ok   and that header file was mode 600 while it existed
+ok   the head was read twice: before the mint and again before the POST
+ok   the installation token is revoked on exit
+ok   the private directory is gone after a success
+ok   no token, JWT, key or signature text in stdout or stderr after a success
+ok   (null control: the leak grep does find the token where it really is)
+ok   (null control: and the JWT header, where it really is)
+ok   and the read-back line is printed
+ok   (fixture: the evidence dir names the head, so the approval above passed the gate honestly)
+ok   under bash -x the approval still runs
+ok   and no token, JWT, key or signature text reaches the trace
+ok   (null control: a JWT was signed on that run)
+ok   REFUSE: the live head moved off the asked-for SHA
+ok   naming the moved head
+ok   and nothing was minted or posted
+ok   REFUSE: the head moved between the mint and the POST
+ok   and no review was posted
+ok   the minted token is revoked after that refusal
+ok   and the private directory is gone, token and all
+ok   REFUSE: a merged pull request, even at its own head with a merge verdict
+ok   and nothing was minted or posted
+ok   REFUSE: no Fix review verdict at all
+ok   saying so, not falling through to the SHA comparison
+ok   and nothing was minted or posted
+ok   REFUSE: the merge verdict is for another SHA
+ok   naming the SHA the verdict is for
+ok   REFUSE: a newer blocked verdict, on a later page, overrides an older merge
+ok   REFUSE: a merge verdict from an outsider (association NONE)
+ok   and nothing was minted or posted
+ok   REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist
+ok   REFUSE: a tvofi verdict, the identity decision 0013 retired from verdicts
+ok   read as no App verdict, its OWNER association and evidence notwithstanding
+ok   and nothing was minted or posted
+ok   REFUSE: a verdict as the author App (#1233's defect)
+ok   REFUSE: the App's login on a non-Bot user record
+ok   REFUSE: the App's login and type under another numeric id
+ok   and nothing was minted or posted
+ok   REFUSE: a verdict from the retired seat account is outside the allowlist
+ok   read as no allowlisted verdict, its evidence dir notwithstanding
+ok   and nothing was minted or posted
+ok   REFUSE: the verdict cites an evidence directory that does not exist
+ok   naming the missing directory
+ok   and nothing was minted or posted
+ok   REFUSE: the evidence directory holds no file naming the head
+ok   naming the exact-sha rule it failed
+ok   and nothing was minted or posted
+ok   REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash
+ok   read as citing no path at all, not as citing '/'
+ok   and nothing was minted or posted
+ok   REFUSE: a bare root surrounded by spaces starts no token either
+ok   and nothing was minted or posted
+ok   REFUSE: a single path component, even one that exists, is refused outright
+ok   naming the component-count rule it failed
+ok   and nothing was minted or posted
+ok   a trailing slash on an otherwise-good evidence path is stripped, not refused
+ok   REFUSE: a missing directory cited with a trailing slash
+ok   (kills the trailing-slash-strip mutant) the cited path in the message has no trailing slash
+ok   (null control) that same message never carries a trailing slash either
+ok   pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it
+ok   (kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it
+ok   (kills the bracket-boundary mutant) '[' starts a token, ']' is stripped off it
+ok   (kills the backtick-boundary mutant) a backtick starts a token, and ends it
+ok   (kills the token-character-class mutant) the token stops at the backtick, not after it
+ok   (kills the quote-boundary mutant) a single quote starts a token too
+ok   REFUSE: /tmp/../ resolves to the root, however many slashes it typed
+ok   and nothing was minted or posted
+ok   REFUSE: <a real component>/../../ collapses to the root too
+ok   and nothing was minted or posted
+ok   REFUSE: a doubled slash alongside a dot-segment still resolves to the root
+ok   and nothing was minted or posted
+ok   pin M18: resolution reads the PHYSICAL directory; `pwd` alone can report a symlink's logical name instead
+ok   pin: a resolved path that is its own mount point is refused
+ok   REFUSE: /System/Volumes/Data is a mount point, not evidence
+ok   naming the mount-point refusal, not a missing directory
+ok   and nothing was minted or posted
+ok   REFUSE: //tmp/../ resolves to // (not /), and still must be refused
+ok   and nothing was minted or posted
+ok   REFUSE: //dev/fd must not slip past the /dev refusal and reopen the forgery hole
+ok   naming the devfs refusal specifically, not just a missing directory
+ok   REFUSE: /proc/self is never qualifying evidence
+ok   REFUSE: /dev/fd is the same hole under devfs
+ok   naming the devfs refusal specifically
+ok   REFUSE: an outsider's later merge does not displace an allowlisted blocked
+ok   the allowlisted blocked verdict is the one read
+ok   an outsider's later blocked does not displace an allowlisted merge either
+ok   REFUSE: a pull request touching a CODEOWNERS path
+ok   naming the owned path
+ok   and nothing was minted or posted
+ok   REFUSE: an exact owned file at the root
+ok   REFUSE: a rename whose OLD path is owned
+ok   a later owner-less line un-owns: COMMON.md is approvable (last match wins)
+ok   REFUSE: CODEOWNERS unreadable at ref=main, failing closed
+ok   and it was asked for at ref=main
+ok   REFUSE: a CODEOWNERS holding no rules, failing closed
+ok   REFUSE: the App private key is missing
+ok   failing closed with a clear message
+ok   before any gh, openssl or curl call
+ok   REFUSE: an App id with a non-digit in it
+ok   refused as malformed, not stripped to digits
+ok   before any gh, openssl or curl call
+ok   REFUSE: an abbreviated SHA is not an exact head
+ok   refused as a malformed argument, before any call
+ok   a refused POST exits non-zero
+ok   the token is revoked after the failed POST
+ok   the private directory is gone after the failed POST
+ok   (the token header file did exist during that POST)
+ok   and no token, JWT, key or signature text reached stdout or stderr
+ok   --dry-run passes every refusal
+ok   and makes no curl call: nothing minted, nothing posted
+ok   and signs nothing
+ok   reporting what it would do
+ok   --dry-run still refuses what a real run would
+ok   CARRY: a merge from main that leaves the branch's own diff byte-identical
+ok   CARRY: a ci: commit that changes nothing
+ok   NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)
+ok   refused as a hand-resolved merge
+ok   NO CARRY: a commit of the branch's own
+ok   NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass
+ok   NO CARRY: a ci: commit that changes the branch's diff
+ok   refused as a ci: commit outside the driver files
+ok   CARRY: a ci: commit that rewrites only a merge-driver file
+ok   NO CARRY: a hand resolution that moves the branch's change to another function with the same context
+ok   refused as a hand-resolved merge, whatever the diffs compare
+ok   NO CARRY: a ci: commit that moves the branch's change to another function with the same context
+ok   refused by the ci: guard
+ok   CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)
+ok   NO CARRY: the same subject touching one more file outside its paths
+ok   NO CARRY: the ledger under another bot's subject, whose paths do not hold it
+ok   CARRY: remerge_main.sh's inherited-claims commit, inside the claim files
+ok   NO CARRY: that subject touching a file outside the claim files
+ok   CARRY: a merge from main, then the ledger commit it set off (#2024's shape)
+ok   NO CARRY: a merge of a branch that is not main
+ok   NO CARRY: one merge of main and another branch at once
+ok   NO CARRY: a rewritten head, not a descendant of the verdict's
+ok   NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)
+ok   CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file
+ok   NO CARRY: a merge from main that changed a context line of the branch's hunk
+ok   NO CARRY: a driver the branch gave its own file, since drivers are read at main
+ok   a merge verdict at V is approved at a head it carries to
+ok   at the live head, and the review says it was carried
+ok   printing the carry it relied on
+ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
+ok   saying why
+ok   and nothing was minted or posted
+ok   REFUSE: a carried verdict whose evidence names neither head
+app_approve self-test: 151 checks, 0 failed
