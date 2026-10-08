@@ -6,15 +6,15 @@
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 19.1,
+   "seconds": 19.4,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.3,
+   "seconds": 5.4,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 35.4,
+   "seconds": 39.3,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -26,7 +26,7 @@
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 327.3,
+   "seconds": 354.4,
    "rc": 0
   },
   "tests/env_drift.py": {
@@ -34,7 +34,7 @@
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 886.8,
+   "seconds": 896.1,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -66,11 +66,11 @@
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 826.6,
+   "seconds": 1077.8,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 14.2,
+   "seconds": 19.9,
    "rc": 0
   },
   "tests/validate.py": {
@@ -90,7 +90,7 @@
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 1.3,
+   "seconds": 1.4,
    "rc": 0
   },
   "tests/wood_advisor.py": {
@@ -102,7 +102,7 @@
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 9.8,
+   "seconds": 10.3,
    "rc": 0
   },
   "tests/finite_boundary.py": {
@@ -118,7 +118,7 @@
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 331.7,
+   "seconds": 342.6,
    "rc": 0
   },
   "tests/arch_score_head.py": {
@@ -126,15 +126,15 @@
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 1742.9,
+   "seconds": 1804.3,
    "rc": 0
   },
   "tests/block_duty.py": {
-   "seconds": 2.5,
+   "seconds": 2.8,
    "rc": 0
   },
   "tests/debug_collect.py": {
-   "seconds": 1.4,
+   "seconds": 1.7,
    "rc": 0
   }
  },
@@ -696,6 +696,7 @@
    "tests/stress_budgets.json",
    "tests/structure.py",
    "tests/structure_budgets.json",
+   "tests/throwaway_git.py",
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tools/audit/judge_batch.py",
@@ -2567,6 +2568,7 @@
    "tests/profiles.py",
    "tests/stress.py",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/release/stamp.py",
    "tools/site/build_docs.mjs",
    "tools/site/package-lock.json",
@@ -2693,7 +2695,8 @@
   ],
   "tests/layout.py": [
    "tests/layout.json",
-   "tests/layout.py"
+   "tests/layout.py",
+   "tests/throwaway_git.py"
   ],
   "tests/arch_score.py": [
    "tests/arch_score.py",
@@ -3199,6 +3202,7 @@
    "dev/audit/harnesses/scale_writer_seams.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
+   "dev/audit/harnesses/throwaway_git_sites.sh",
    "dev/audit/harnesses/ux9_flow_unit_guard.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
