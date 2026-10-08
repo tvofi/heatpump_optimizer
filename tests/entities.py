@@ -31483,16 +31483,29 @@ with _tempfile.TemporaryDirectory() as _sh_td:
     _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
     (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
     _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+    # One shard is one matching artifact, and download-artifact extracts a
+    # lone match into `path` itself, not into a subdirectory: six of the first
+    # nine post-#2049 autofix runs, three of them measured pins read as
+    # skip-no-measurement (#2025 at de81043a, run 37763212023).
+    _sh_one = Path(_sh_td) / "one"
+    _sh_one.mkdir()
+    (_sh_one / "status").write_text("measured\n")
+    (_sh_one / "pins.json").write_text(json.dumps({"p:a": {"killed_by": "t"}}))
+    (_sh_one / "head").write_text("h\n")
+    _sh_1 = _mut.merge_pin_shards(str(_sh_one), str(Path(_sh_td) / "o"))
+    _sh_1p = sorted(json.loads((Path(_sh_td) / "o" / "pins.json").read_text())) \
+        if _sh_1 == "measured" else []
 R.check(
     "the pin shards are disjoint, cover the pool and keep an anchor's twins "
-    "together; their merge is measured when any shard measured",
+    "together; their merge is measured when any shard measured, one shard too",
     sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
     and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
             for b in _MUT_SH_ANCH[i + 1:])
     and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
-    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed",
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed"
+    and (_sh_1, _sh_1p) == ("measured", ["p:a"]),
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
-    f"quiet={_sh_q} failed={_sh_f}",
+    f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
 )
 # The shard count scales with the sites the diff added: six a shard, at most
 # ten, one when the table names none -- read off the refusal line the lane
