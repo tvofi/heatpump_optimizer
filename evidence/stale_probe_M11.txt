@@ -1,4 +1,0 @@
-M11 RESULT fresh(1min) -> (5.222035, None)
-M11 RESULT stale(90min) -> (5.222035, 'stale')
-M11 RESULT unit gal/min -> (None, 'unknown_unit')
-M11 RESULT m3/h 0.9 -> (5.222035, None)

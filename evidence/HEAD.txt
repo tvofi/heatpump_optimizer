@@ -1,4 +1,3 @@
-measured head: f455915c4200be287c10cd7e95306b8fbf2953fe
-merge base: 2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38 (= origin/main at review time; merge-tree origin/main HEAD rc=0)
-reviewer worktree: /Users/timmalmstrom/hpo-seats/review-2024/wt (detached at f455915c4200be287c10cd7e95306b8fbf2953fe)
-python: venv-ci 3.14.7, PYTHONPATH=tests/hastub
+measured head: 65f5e914b91ed64583c978e2074f8a5a4b973883
+merge base: 2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38 (= origin/main; merge-tree rc=0)
+worktree: /Users/timmalmstrom/hpo-seats/review-2024/wt2
