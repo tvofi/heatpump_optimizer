@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sensor.py:_gap_energy_rate RETURN_DEL 55282ff5",
+  "killed_by": "tests/entities.py",
+  "old": "    return float(rate)",
+  "reason": "Recorded by `mutation_table.py --drain` against 816547efe270a08e18e3b92f52185fe8c1fee2ef: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}
