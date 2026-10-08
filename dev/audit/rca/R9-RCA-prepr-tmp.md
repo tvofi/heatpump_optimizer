@@ -52,6 +52,33 @@ Linked worktrees are refuted as the cause. The self-test already calls
 `GIT_COMMON_DIR` and `GIT_WORK_TREE`, and every fixture clones into its own
 temporary directory. Runs 1 and 2 passed 212/0 from a linked worktree.
 
+## 2a. Class search: an early-exit grep reading a pipe under `pipefail`
+
+Command, over every tracked shell script:
+
+    git grep -n -E '(printf|echo)[^|]*\|[[:space:]]*grep[[:space:]]+-[a-zA-Z]*q' -- '*.sh' '*.bash'
+
+followed by `grep -n pipefail <file>` for each hit. **The input size is not the bound.** At a load average of 90 to 110, `stamp_paths`'s 13-line notes diff missed 1 of 3,000 times in the `grep -q` form and 0 of 3,000 drained. A writer can be descheduled between line writes, so any site under `pipefail` can misread, rarely. A site over 64 KB misreads every time.
+
+| site | under pipefail | input can exceed 64 KB | gates | disposition |
+|---|---|---|---|---|
+| `tools/pr/prepr.sh` `stamp_paths` (manifest, notes) | yes | notes: yes on a large release-notes diff | CLAUDE.md rule 4 via `--version-edit` in `pr-contract` | **drained here** |
+| `tools/pr/prepr.sh` self-test rows `body_line`, `copies_line` | yes | yes (the rest of the script) | the self-test | **`case` here** |
+| `.claude/hooks/session-start.sh:93` self-test `st()` | yes | no (six report lines) | the hook's `--self-test`, which `--hooks` and prepr's hooks step run | **drained here**: the likely source of the train's unnamed `HOOKS REFUSED: 1 of 3` and EG-A4's `own three wired hooks` flake |
+| `.claude/hooks/stop-selfcheck.sh:31` `touches_policy` | yes | yes on a large changed-file list | whether the Stop hook runs the policy linter; a miss skips it (fail-open) | **drained here** |
+| `tools/pr/approve_held_runs.sh:175-176` | yes | no (run ids) | its report: a miss counts a failed or held run as approved | **drained here** |
+| `tools/audit/worktree_gc.sh:588` `handled_seat` | yes | no (seat paths) | a miss judges a handled seat a second time | **drained here** |
+| `tools/pr/push.sh:170, 206` | yes | `## Head` section of a body: no | the retired push path (decision 0011; `app_push.sh` replaced it) | **refused**: retired, no caller in the programme |
+| `tools/audit/seat/bus.sh:393-559` | yes | no (one command's output) | self-test rows only; a miss is a false FAIL (fail-closed, noisy) | **refused here**: about 30 rows in a file outside this change; a false red is visible, not a silent pass |
+| `tools/audit/seat/seat_venv.sh:159-191` | yes (`-euo`) | no | self-test rows only, fail-closed | **refused here**, same reason |
+| `dev/audit/rca/bugclasses/scan.sh:17` | no | n/a | an RCA harness | no hazard: no `pipefail` |
+
+The barrier is a self-test row. `pipe_grep_q_sites` runs over `PIPE_GREP_Q_FILES`, the six drained scripts, and refuses a returning site. A planted site is its null control. Before the draining it listed the five sites outside `prepr.sh`. After it, it lists none.
+
+## 2b. The hooks step's unnamed refusal
+
+The train's attempt 2 on #2058 refused at prepr's hooks step with `HOOKS REFUSED: 1 of 3 hook(s) checked ...` and named no hook. `policy_lint.mjs --hooks` runs each hook's `--self-test` with `execFileSync`. There is no timeout, so the cause is not a timeout under load. It prints one row per hook, but the step kept only `tail -1`, the count. The failing self-test is most likely `session-start.sh`'s `st()`, which is the class above. That is inferred, not reproduced: 0 of 18 standalone runs failed. Fixed two ways: `st()` is drained, and the step now prints the failing rows (`SELF-TEST FAILED|MISSING|NOT WIRED|UNREADABLE`) before the count. Prepr's own `own three wired hooks pass` and `star-matcher` rows print the check's output when they fail.
+
 ## 3. Process state: **(d)** for cause 1, **(a)** for cause 2
 
 - **Cause 1 is (d).** The fixtures' own cleanup is sound when a run finishes.
@@ -66,10 +93,10 @@ temporary directory. Runs 1 and 2 passed 212/0 from a linked worktree.
 
 ## 4. Countermeasures (in this pull request, `tools/pr/prepr.sh`)
 
-1. **`selftest_tmp_root`**: one root, `$TMPDIR/prepr-st.XXXXXXXX`. It sets
+1. **`selftest_tmp_root`**: one root, `$TMPDIR/prepr-st.XXXXXXXX`. Every self-test temporary path is under it, including the two fixed paths, `figst` and `bodyst`, which moved from `/tmp`. It sets
    `TMPDIR` for child processes and wraps `mktemp`, because macOS `mktemp`
    with no template ignores `TMPDIR`. One `EXIT` trap removes the root, and
-   `HUP`, `INT` and `TERM` become exits so the trap runs. A `KILL` cannot be
+   `HUP`, `INT`, `QUIT` and `TERM` become exits so the trap runs. A `KILL` cannot be
    trapped; it now leaves one root instead of one directory per fixture.
 2. **`tmp_floor_check`**: below twice the measured peak (446,248 KB), the
    self-test exits 3 with one `ENVIRONMENT:` line and builds nothing. Step

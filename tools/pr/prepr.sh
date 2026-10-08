@@ -957,6 +957,23 @@ if [ "${1:-}" = "--version-edit" ]; then
   exit "$ve"
 fi
 
+# --- the class: an early-exit grep reading a pipe under pipefail ---------------
+# `printf|echo ... | grep -q` under `set -o pipefail` reads a SIGPIPE'd writer
+# (141) as no match, on a tiny input too: driven 3,000 times at load 90-110,
+# stamp_paths's form missed once (R9-RCA-prepr-tmp). PIPE_GREP_Q_FILES are the
+# scripts whose sites were drained; this lists any that came back. Comment
+# lines are skipped; the pattern is built from parts so this file's own
+# definition of it does not match itself.
+PIPE_GREP_Q_FILES=(tools/pr/prepr.sh .claude/hooks/session-start.sh .claude/hooks/stop-selfcheck.sh
+  .claude/hooks/pre-edit.sh tools/pr/approve_held_runs.sh tools/audit/worktree_gc.sh)
+pipe_grep_q_sites() { # files... -> one `file:line: text` per site; rc 0 none, 1 found
+  local pat out
+  pat='(printf|echo)[^|]*[|][[:space:]]*grep[[:space:]]+-[a-zA-Z]*'"q"
+  out=$(grep -nE "$pat" "$@" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
+  [ -z "$out" ] && return 0
+  printf '%s\n' "$out"; return 1
+}
+
 # --- the self-test's own environment (R9-RCA-prepr-tmp) ----------------------
 # THE FLOOR IS THE SELF-TEST'S MEASURED PEAK, TWICE. One run's temporary files
 # peaked at SELFTEST_PEAK_KB (measured with `du -sk` on its root every second
@@ -984,7 +1001,8 @@ tmp_floor_check() { # dir, floor KB -> rc 0 room or unmeasured, 3 below; one lin
 # ran out. `mktemp` is wrapped rather than $TMPDIR alone being set, because
 # macOS's `mktemp` with no template ignores $TMPDIR; children (git, python)
 # read $TMPDIR, so it is set too. TERM, INT and HUP become exits so the EXIT
-# trap runs; a KILL cannot be trapped, and leaves one root, not one per fixture.
+# trap runs, and QUIT too; a KILL cannot be trapped, and leaves one root, not
+# one per fixture.
 selftest_tmp_root() {
   ST_ROOT=$(command mktemp -d "${TMPDIR:-/tmp}/prepr-st.XXXXXXXX") || return 1
   export TMPDIR="$ST_ROOT"
@@ -994,7 +1012,7 @@ selftest_tmp_root() {
     command mktemp "$@" "$ST_ROOT/tmp.XXXXXXXX"
   }
   trap 'rm -rf "$ST_ROOT"' EXIT
-  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 131' QUIT; trap 'exit 143' TERM
 }
 
 # --- self-test ---------------------------------------------------------------
@@ -1051,8 +1069,9 @@ if [ "${1:-}" = "--self-test" ]; then
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 1 "a settings file whose hook is $f is refused"
   done
-  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks >/dev/null 2>&1; fi
-  st $? 0 "this repository's own three wired hooks pass (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks 2>&1); fi
+  r=$?; st "$r" 0 "this repository's own three wired hooks pass (null control)"
+  [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
   # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
@@ -1097,15 +1116,15 @@ if [ "${1:-}" = "--self-test" ]; then
   # body check refuses the same rot fixture and passes the same healthy one, so
   # a `figures_check` rewired to it would satisfy a status-only assertion. Each
   # arm therefore also reads a string only this instrument prints.
-  figures_check tools/policy/fixtures/figures/gh-arg.md >/tmp/prepr-figst.$$ 2>&1
+  figures_check tools/policy/fixtures/figures/gh-arg.md >"$ST_ROOT/figst.$$" 2>&1
   st $? 1 "a body whose figure command cannot resolve is refused"
-  grep -q -- 'has no `--arg` flag' /tmp/prepr-figst.$$
+  grep -q -- 'has no `--arg` flag' "$ST_ROOT/figst.$$"
   st $? 0 "and the step's own output names the flag, so the step runs the figure check"
-  figures_check "$D/good.md" >/tmp/prepr-figst.$$ 2>&1
+  figures_check "$D/good.md" >"$ST_ROOT/figst.$$" 2>&1
   st $? 0 "a body whose figure command resolves is silent (null control)"
-  grep -q '0 refused' /tmp/prepr-figst.$$
+  grep -q '0 refused' "$ST_ROOT/figst.$$"
   st $? 0 "and it reached a verdict rather than examining nothing (null control)"
-  rm -f /tmp/prepr-figst.$$
+  rm -f "$ST_ROOT/figst.$$"
 
   # Step 7's body check, driven through `body_check` -- the function the step
   # calls -- over ONE body and three path lists. One arm alone would pin a check
@@ -1122,15 +1141,15 @@ if [ "${1:-}" = "--self-test" ]; then
   # fires on everything pins nothing. The exit status alone does not pin WHICH
   # refusal fired -- this body is refusable on other grounds by other flags -- so
   # the policy arm also reads the approval gate's own sentence.
-  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >/tmp/prepr-bodyst.$$ 2>&1
+  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >"$ST_ROOT/bodyst.$$" 2>&1
   st $? 1 "a body with no \`## Approval\` is refused when the diff touches a policy path"
-  grep -q 'no `## Approval` section' /tmp/prepr-bodyst.$$
+  grep -q 'no `## Approval` section' "$ST_ROOT/bodyst.$$"
   st $? 0 "and the refusal is the approval gate's own, so the paths reached the check"
   body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-nonpolicy.txt" >/dev/null 2>&1
   st $? 0 "the same body is silent when the diff touches no policy path (null control)"
   body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-empty.txt" >/dev/null 2>&1
   st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
-  rm -f /tmp/prepr-bodyst.$$
+  rm -f "$ST_ROOT/bodyst.$$"
 
   # Step 7c, driven through `reds_line` -- the function the step calls -- over
   # a throwaway repository whose two pushed commits carry OFFLINE check-run
@@ -1305,12 +1324,12 @@ EOS
   # added later that reads the file rather than the status fails closed as well.
   # `git diff` exits 128 on an unknown revision, not 1, so the first assertion is
   # on the branch taken rather than on the number.
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
-  if diff_paths "$ZERO" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; then dp=0; else dp=1; fi
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
+  if diff_paths "$ZERO" "$ST_ROOT/bodyst.$$" >/dev/null 2>&1; then dp=0; else dp=1; fi
   st "$dp" 1 "a base that does not resolve makes the path derivation fail"
-  if [ -e /tmp/prepr-bodyst.$$ ] || [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  if [ -e "$ST_ROOT/bodyst.$$" ] || [ -e "$ST_ROOT/bodyst.$$".part ]; then fp=1; else fp=0; fi
   st "$fp" 0 "and leaves no list behind, not even an empty one, so the file key fails closed too"
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
   # The SUCCESS path's own temp-file assertion, which nothing pinned before: a
   # derivation that works must also leave no `.part` behind.
   #
@@ -1321,11 +1340,11 @@ EOS
   # fix working rather than a hole -- under either verb no `.part` survives --
   # but the arm's reach is the PROPERTY, not the verb, and saying otherwise
   # would be a claim stronger than the check that backs it.
-  diff_paths "$BASE_ST" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; dp=$?
-  if [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  diff_paths "$BASE_ST" "$ST_ROOT/bodyst.$$" >/dev/null 2>&1; dp=$?
+  if [ -e "$ST_ROOT/bodyst.$$".part ]; then fp=1; else fp=0; fi
   st "$dp" 0 "a base that resolves makes the path derivation succeed (null control)"
   st "$fp" 0 "and leaves no \`.part\` behind either, so the temp file is the function's own"
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
 
   # THE `mv`-FAILURE ARM, and it exists because the #1054 review measured the
   # leak rather than reasoning about it: the first form cleaned up only on the
@@ -1859,6 +1878,16 @@ PY
   st "$r" 0 "and says ENVIRONMENT, not a test failure"
   tmp_floor_check "$PWD" 1 >/dev/null; st $? 0 "a temp dir with room passes the floor (null control)"
   tmp_floor_check /no/such/dir 1 >/dev/null; st $? 0 "an unmeasurable temp dir runs anyway, never refuses"
+  # (4) The class, over every script whose sites were drained (above
+  # `pipe_grep_q_sites`), and a planted site the search must find.
+  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?
+  st "$r" 0 "no early-exit grep reads a pipe under pipefail in the drained scripts"
+  [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
+  printf '#!/bin/bash\nset -uo pipefail\nprintf x | grep %s y\n' "-q" > "$ST_ROOT/planted.sh"
+  pipe_grep_q_sites "$ST_ROOT/planted.sh" >/dev/null; st $? 1 "and a planted early-exit grep site is found (null control)"
+  # (5) The hooks step names the hook that failed, not only the count.
+  case "$flow" in *'step "hooks" $? "$(grep -E '"'"'^  (SELF-TEST FAILED|MISSING'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the hooks step prints the failing hook's row, not only the count"
   # The entry wires both before the first fixture is built: driving the two
   # helpers pins nothing if the self-test stops calling them (#1591's shape).
   entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
@@ -1940,7 +1969,7 @@ rm -f /tmp/prepr-frag.$$
 
 # --- 3d. the hooks this repository wires are present and self-testing.
 if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; else node tools/policy/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; fi
-step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
+step "hooks" $? "$(grep -E '^  (SELF-TEST FAILED|MISSING|NOT WIRED|UNREADABLE) ' /tmp/prepr-hooks.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
 
 # --- 3e. no file a workflow executes lacks an owner, on this head's copy of
