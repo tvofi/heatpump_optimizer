@@ -55,6 +55,53 @@ FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd8679
 R = Results("architecture score calibration (R9-EG-A1)")
 
 
+def base_runs_the_gate() -> None:
+    """The reviewer's plant on #2068 (round 1): ``vector.load_structure`` runs ``tests/structure.py`` inside the
+    gate's process, so a pull request that edits it could wave its own rises through. The workflow runs the
+    gate from a checkout of the BASE; this drives the workflow's own score step over a throwaway repository
+    whose stub gate prints the ``tests/structure.py`` it can see. The head's copy is the plant."""
+    import re
+    import subprocess
+
+    import yaml
+    steps = yaml.safe_load((ROOT / ".github" / "workflows" / "arch-score.yml").read_text())["jobs"]["arch-score"]["steps"]
+    script = next(st["run"] for st in steps if st.get("name", "").startswith("Score the change"))
+    stub = ('import sys\nfrom pathlib import Path\n'
+            'if "--self-test" not in sys.argv:\n    print("SAW " + Path("tests/structure.py").read_text().strip())\n')
+
+    def run(base_has_gate: bool) -> str:
+        with tempfile.TemporaryDirectory(prefix="archscore-plant-") as tmp:
+            repo, env = Path(tmp) / "r", {**os.environ, "RUNNER_TEMP": str(Path(tmp) / "t")}
+            (Path(tmp) / "t").mkdir()
+            (repo / "tests").mkdir(parents=True)
+            g = ["git", "-c", "user.name=p", "-c", "user.email=p@p", "-C", str(repo)]
+            subprocess.run([*g, "init", "-q"], check=True)
+            (repo / "tests" / "structure.py").write_text("BASE\n")
+            if base_has_gate:
+                (repo / "tools" / "audit" / "archscore").mkdir(parents=True)
+                (repo / "tools" / "audit" / "archscore" / "gate.py").write_text(stub)
+            subprocess.run([*g, "add", "-A"], check=True)
+            subprocess.run([*g, "commit", "-qm", "base"], check=True)
+            base = subprocess.run([*g, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+            (repo / "tests" / "structure.py").write_text("PLANT\n")
+            gate_dir = repo / "tools" / "audit" / "archscore"
+            gate_dir.mkdir(parents=True, exist_ok=True)
+            (gate_dir / "gate.py").write_text(stub)
+            subprocess.run([*g, "add", "-A"], check=True)
+            subprocess.run([*g, "commit", "-qm", "head"], check=True)
+            head = subprocess.run([*g, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
+            r = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True,
+                               env={**env, "PR_BASE": base, "PR_HEAD": head})
+            return r.stdout + r.stderr
+
+    out = run(True)
+    R.check("arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)",
+            re.search(r"^SAW BASE$", out, re.M) is not None and "PLANT" not in out, out[-300:])
+    out = run(False)
+    R.check("and a base with no gate.py is the adoption: the head's copy runs once (null control)",
+            re.search(r"^SAW PLANT$", out, re.M) is not None, out[-300:])
+
+
 def smoke() -> None:
     """Every planted case's script applies to the pin: the anchors still hold and every file the full
     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
@@ -97,6 +144,7 @@ def main() -> int:
     # The required check's decision rule (R9-EG-A4): what passes, and what an explanation must carry.
     for name, ok in gate.self_test():
         R.check(f"arch-score gate: {name}", ok)
+    base_runs_the_gate()
 
     jobs = min(4, os.cpu_count() or 1)
     collected = calibrate.collect(stored, jobs)

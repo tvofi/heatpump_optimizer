@@ -13,9 +13,8 @@ counters did not happen (ABOUT.md). The weights stay at the hash ``tests/arch_sc
     python3 -I tools/audit/archscore/gate.py --base SHA --head SHA --body FILE
     python3 tools/audit/archscore/gate.py --self-test
 
-``.github/workflows/arch-score.yml`` runs the pull request's own copy; CODEOWNERS names this
-directory, so an edit to the check that grades it takes the owner's review (as ``fold_ledger.py``,
-#1847: a pinned grader cannot be added by the pull request that adds it).
+``.github/workflows/arch-score.yml`` runs the BASE's copy of this directory and of ``tests/structure.py``
+(which ``vector.load_structure`` loads by path), so a pull request cannot edit the check that grades it.
 """
 from __future__ import annotations
 
