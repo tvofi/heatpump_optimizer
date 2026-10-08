@@ -1861,8 +1861,8 @@ STAMP_WRITES = frozenset({
     "RELEASE_NOTES.md",
     CLAIM_FILE,
     CARD_CLAIM_FILE,
-    os.path.join("tools", "audit", "round4", "D6", "claims.json"),
-    os.path.join("tools", "audit", "round4", "D6", "claims.md"),
+    os.path.join("dev", "audit", "rounds", "round4", "D6", "claims.json"),
+    os.path.join("dev", "audit", "rounds", "round4", "D6", "claims.md"),
 })
 
 

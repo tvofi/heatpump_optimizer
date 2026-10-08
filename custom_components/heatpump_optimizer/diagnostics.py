@@ -29,7 +29,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import pump_arbiter
+from . import debugger, pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -128,9 +128,12 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coord = entry.runtime_data if hasattr(entry, "runtime_data") else None
+    snapshot = _coordinator_snapshot(coord) if coord else None
+    collector = debugger.collector_for(coord) if coord else None
     # Both passes run over the whole payload rather than over ``entry.data``
     # alone, so a coordinate or a credential that a future coordinator
-    # summary starts carrying is covered without a second decision here.
+    # summary starts carrying is covered without a second decision here --
+    # the debug bundle's payload snapshots and store documents included.
     return async_redact_data(
         _coarsen(
             {
@@ -139,8 +142,9 @@ async def async_get_config_entry_diagnostics(
                     "options_keys": sorted(entry.options.keys()),
                 },
                 "config": dict(entry.data),
-                "coordinator": _coordinator_snapshot(coord) if coord else None,
+                "coordinator": snapshot,
                 "domain": DOMAIN,
+                "debug": await collector.async_bundle(coord, snapshot) if collector else None,
             }
         ),
         TO_REDACT,

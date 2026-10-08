@@ -538,3 +538,17 @@ diagnose_interval:
     entry_id:
       selector:
         text: null
+debug_collect:
+  fields:
+    action:
+      required: true
+      example: status
+      selector:
+        select:
+          options:
+          - start
+          - stop
+          - status
+    entry_id:
+      selector:
+        text: null

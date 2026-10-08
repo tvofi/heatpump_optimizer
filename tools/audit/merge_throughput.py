@@ -4,7 +4,7 @@
 A measurement, then a decision. The question is not whether to turn a merge
 queue on — a queue's rebase breaks ## Head, the review's at-this-SHA rule,
 and the record enumerator's assumption that the reviewed head is the commit
-that lands (docs/HANDOVER.md trap 14). The question is whether merges land
+that lands (dev/programme/HANDOVER.md trap 14). The question is whether merges land
 inside the previous merge's gate window often enough that a cheaper wait
 is worth having.
 

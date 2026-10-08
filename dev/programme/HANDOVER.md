@@ -10,7 +10,7 @@ rather than trust this line if it reads stale against `origin/main` HEAD.
 
 The rule that governs this file is `.claude/rules/writing-for-agents.md`, which
 the harness loads on this very path. Delivery status is the frozen table in
-`docs/plan-2026-09-open-issues.md` plus one `docs/delivery/<N>.md` per pull
+`dev/programme/plan-2026-09-open-issues.md` plus one `dev/programme/delivery/<N>.md` per pull
 request (#1081), linked from here and never restated.
 
 ## Round 9 in flight — the audit fix programme
@@ -291,7 +291,7 @@ list was unrecoverable when it was one artifact call away. Per-unit stage,
   against `origin/main`'s tip at the moment of the run, so every one of them is
   a sliding figure; seven merges landed during #1119's own review and moved all
   of them. A seat disposing one of the seven re-derives with
-  `node .claude/workflows/policy_lint.mjs --stats --since <newest tag>`, reads
+  `node tools/policy/policy_lint.mjs --stats --since <newest tag>`, reads
   the `PRs / entries` column, and resolves its own key with
   `--normalize-friction-keys` rather than assuming the title is the key. The
   filing lane re-measures every open issue on each beat and comments when its
@@ -673,7 +673,7 @@ in its own pull request.
 40. **`policy_lint.mjs --budgets` exits 0 whatever it prints — it reports, and
     never refuses.** Its handler is `if (has('--budgets')) return
     cmdBudgets(files), process.exit(0)`, unconditional; the bare
-    `node .claude/workflows/policy_lint.mjs` is the path that refuses
+    `node tools/policy/policy_lint.mjs` is the path that refuses
     (`process.exit(errors > 0 || rc ? 1 : 0)`). A mutation proof driven against
     `--budgets` proves nothing (#1123): its own proof was driven against the
     refusing bare form instead — appending two lines turned it rc=1, naming

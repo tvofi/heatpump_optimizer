@@ -21,7 +21,7 @@
 # to the checks themselves. The surface is DERIVED, never carried: the
 # `.github/workflows/*.yml`, the scripts their non-comment lines execute and
 # what those import (#1515), the hooks, and their wiring. Re-derive it with
-# `python3 tools/audit/round6/D11/fix/codeowners_gap.py`, which prints the
+# `python3 dev/audit/rounds/round6/D11/fix/codeowners_gap.py`, which prints the
 # surface size and how many of its files an owner-carrying pattern matches:
 # against the pre-#1402 file that second count is zero, against this one it is
 # the surface size. A new check script is covered only once it is owned below,
@@ -160,3 +160,10 @@
 /tools/audit/archscore/weights.sha256     @tvofi
 /tools/audit/archscore/calibration/expected.json  @tvofi
 /tests/arch_score.py                      @tvofi
+# The env-matrix job runs the head's copy of the matrix. The base copy still
+# starts .claude/workflows/policy_lint.mjs, which this tree does not contain
+# (job 112529653069), so a restore from the base would put that path back.
+# counts.mjs is the module that matrix imports. Ownership is what stops a
+# pull request from weakening the driver; the path fix stays in the file.
+/tools/policy/policy_lint_envmatrix.mjs   @tvofi
+/tools/policy/counts.mjs                  @tvofi

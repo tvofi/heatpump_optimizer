@@ -391,6 +391,52 @@ PY
   return 1
 }
 
+# Step 6d's whole body: tools/pr/ci_predict.py over the three-dot diff, read
+# statically -- no test, recording or mutant runs, so it costs seconds where
+# step 6b's recordings cost the scoped scripts' run time and are left to CI
+# under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
+# UNDER-SCOPED, INERT READS and NO RECORDING and entities' unclassified file,
+# which R9-RO-11's pre-study measured reddening this round's fix heads after
+# the handoff while the autofix jobs repaired none of them; those refuse. The
+# `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
+# has `mutation-autofix` pin them after the push, so the step lists them into
+# a file and step 7's `unpinned_line` asks the body for each one's disposition.
+# Every PREDICT line prints above the step line; the step line is the last.
+predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 none, 1 predicted, 3 skipped
+  local out r
+  if [ ! -f tools/pr/ci_predict.py ]; then
+    echo "tools/pr/ci_predict.py is not in this tree"; return 3
+  fi
+  out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" 2>&1); r=$?
+  [ -n "${2:-}" ] && printf '%s\n' "$out" \
+    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+): .*/\1/p' > "$2"
+  case "$r" in
+    0|1) printf '%s\n' "$out" | grep '^PREDICT' | sed 's/^/           /' >&2
+         printf '%s\n' "$out" | tail -1; return "$r" ;;
+    *) echo "the predictor did not run: $(printf '%s\n' "$out" | tail -1)"; return 1 ;;
+  esac
+}
+
+# Step 7d's whole body: every unpinned site step 6d listed has a line under
+# `## Unpinned sites` naming it by its `file:line KIND` key, with its
+# disposition (pinned by `mutation-autofix`, a value check, or a written
+# triage). rc 3 when no site is owed, so a body that adds none needs no section.
+unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
+  local sec missing n
+  n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
+  if [ "$n" -eq 0 ]; then echo "the diff adds no unpinned mutation site"; return 3; fi
+  sec=$(awk '/^## /{on=($0 ~ /^## Unpinned sites[[:space:]]*$/)} on' "$1")
+  if [ -z "$sec" ]; then
+    echo "$n unpinned site(s) the diff adds and no \`## Unpinned sites\` section -- give each its key and disposition"
+    return 1
+  fi
+  missing=$(while read -r k; do grep -qF -- "$k" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
+  if [ -n "$missing" ]; then
+    echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
+  fi
+  echo "\`## Unpinned sites\` disposes of all $n site(s) step 6d listed"
+}
+
 # Steps 6a and 6b whole, as the lines the step prints: the step is `step
 # <name> $? <line>` over these, so `--self-test` drives the decisions the
 # step makes rather than a copy of them (the #1591 review: 10 of 12 mutants
@@ -1508,6 +1554,71 @@ PY
   st $? 0 "and the step's refusal names the venv build command"
   [ ! -s "$CLM/pylog" ]
   st $? 0 "and nothing recorded under the refused interpreter"
+  # Step 6d over a throwaway clone, through `predict_line`: a null branch (a
+  # comment in a selectable script) must stay quiet, and each red the
+  # predictor names is planted alone on its own branch and must trip it with
+  # its own PREDICT line -- R9-RO-11's perturbation, one arm per class.
+  PDX=$(mktemp -d)
+  (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+    && $G checkout -q --detach && $G checkout -q -b pfork \
+    && git update-ref refs/remotes/origin/main pfork \
+    && cp "$OLDPWD/tools/pr/ci_predict.py" tools/pr/ci_predict.py \
+    && $G add -A && $G commit -qm predictor --allow-empty \
+    && git update-ref refs/remotes/origin/main HEAD \
+    && $G checkout -q -b pnull && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pnull \
+    && $G checkout -q -b porphan origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && $G add -A && $G commit -qm porphan \
+    && $G checkout -q -b pimport origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && echo "from . import zz_planted  # planted" >> custom_components/heatpump_optimizer/away.py \
+    && $G add -A && $G commit -qm pimport \
+    && $G checkout -q -b pfunc origin/main && echo "X = 1" > custom_components/heatpump_optimizer/zz_planted.py \
+    && printf '\n\ndef _zz_planted():\n    from . import zz_planted\n    return zz_planted.X\n' >> custom_components/heatpump_optimizer/away.py \
+    && $G add -A && $G commit -qm pfunc \
+    && $G checkout -q -b pinert origin/main && echo "# planted" > dev/audit/harnesses/zz_planted.py \
+    && $G add -A && $G commit -qm pinert \
+    && $G checkout -q -b plane origin/main && echo "# planted" > tests/zz_planted_check.py \
+    && $G add -A && $G commit -qm plane \
+    && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
+    && $G add -A && $G commit -qm pmainred \
+    && $G checkout -q -b pinh pmainred && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pinh \
+    && $G checkout -q -b pmut origin/main \
+    && printf '\n\ndef _zz_planted(x):\n    if x > 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
+    && $G commit -qam pmut) >/dev/null 2>&1
+  predict_at() { (cd "$PDX/r" && git checkout -q "$1" && predict_line origin/main 2>&1 >/dev/null; echo "rc=$?"); }
+  got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
+  got=$(predict_at porphan); grep -q 'PREDICT fast .*UNCLASSIFIED custom_components/heatpump_optimizer/zz_planted.py' <<<"$got"
+  st $? 0 "6d predicts entities' refusal of a new file in no closure and not on INERT"
+  got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED custom_components/heatpump_optimizer/zz_planted.py: read by .*a new import from custom_components/heatpump_optimizer/away.py' <<<"$got"
+  st $? 0 "6d predicts UNDER-SCOPED for a new import from a file a closure lists"
+  got=$(predict_at pfunc); grep -q 'PREDICT closures .*UNDER-SCOPED' <<<"$got"
+  st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
+  got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
+  st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
+  got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
+  st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
+  got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
+  st $? 0 "6d predicts ADDED UNPINNED for a guard the diff adds with no pin"
+  grep -q '^rc=0$' <<<"$got"
+  st $? 0 "and an unpinned site warns, never refuses: mutation-autofix may pin it after the push"
+  got=$(cd "$PDX/r" && git checkout -q pinh && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
+  grep -q 'NO RECORDING' <<<"$got"
+  st $? 1 "6d charges no branch with an unrecorded script main already carries (null control)"
+  st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
+  (cd "$PDX/r" && git checkout -q pmut && predict_line origin/main "$PDX/sites" >/dev/null 2>&1)
+  st "$(grep -c . "$PDX/sites")" 3 "6d writes the three planted site keys for step 7d"
+  printf 'Why.\n\n## Head\n\nx\n' > "$PDX/b0.md"
+  unpinned_line "$PDX/b0.md" "$PDX/sites" >/dev/null; st $? 1 "7d refuses a body with no ## Unpinned sites when sites are owed"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- %s: pinned by mutation-autofix\n' "$(head -1 "$PDX/sites")"; } > "$PDX/b1.md"
+  got=$(unpinned_line "$PDX/b1.md" "$PDX/sites"); r=$?
+  st "$r" 1 "7d refuses a section that omits a listed site"
+  grep -qF "$(sed -n 2p "$PDX/sites")" <<<"$got"; st $? 0 "and names the omitted site"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n'; sed 's/$/: pinned by mutation-autofix/; s/^/- /' "$PDX/sites"; printf '\n## Figures\n\nnone\n'; } > "$PDX/b2.md"
+  unpinned_line "$PDX/b2.md" "$PDX/sites" >/dev/null; st $? 0 "7d passes a section naming every listed site (null control)"
+  { cat "$PDX/b0.md"; printf '\n## Figures\n\n'; sed 's/^/- /' "$PDX/sites"; } > "$PDX/b3.md"
+  unpinned_line "$PDX/b3.md" "$PDX/sites" >/dev/null; st $? 1 "7d reads the keys under ## Unpinned sites only, not anywhere in the body"
+  : > "$PDX/none"
+  unpinned_line "$PDX/b0.md" "$PDX/none" >/dev/null; st $? 3 "7d owes nothing when the diff adds no site"
+  rm -rf "$PDX"
   rm -rf "$CLM"
   rm -rf "$FB"
 
@@ -1518,7 +1629,8 @@ PY
   # script with step 3e's call deleted, commented out, or moved above rc=0;
   # and the pin matcher behind 3f and step 4.
   WF=$(mktemp -d); mkdir "$WF/wf" "$WF/empty"
-  OWN=tools/audit/round6/D11/fix/codeowners_gap.py
+  OWN=dev/audit/rounds/round6/D11/fix/codeowners_gap.py; OWN_OLD=tools/audit/round6/D11/fix/codeowners_gap.py
+  BOTH=$(printf '%s\n' "$OWN" "$OWN_OLD")  # the grader at both homes, in sort order
   grep -qx "$OWN" <<<"$(pinned_graders .github/workflows/*.yml)"
   st $? 0 "the pin reader finds codeowners_gap.py in a pinned job that grades main"
   pinned_verdict "$PREPR_PATH" .github/workflows/*.yml >/dev/null
@@ -1530,20 +1642,21 @@ PY
   pinned_verdict "$PREPR_PATH" "$WF/empty/none.yml" >/dev/null
   st $? 1 "a reader that finds no pinned grader at all is refused"
   grep -v 'codeowners_gap.py --check >/tmp/prepr-owners' "$PREPR_PATH" > "$WF/deleted.sh"
-  [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$OWN" ]
+  [ "$(pinned_unrun "$WF/deleted.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader with its local run deleted is named"
-  sed 's|^python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check|# &|' "$PREPR_PATH" > "$WF/commented.sh"
-  [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$OWN" ]
+  sed 's|^if test -f .*codeowners_gap\.py --check >.*|# &|' "$PREPR_PATH" > "$WF/commented.sh"
+  [ "$(pinned_unrun "$WF/commented.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader whose local run is commented out is named"
   awk -v c="python3 -I $OWN --check" '/^rc=0$/ { print c } { print }' "$WF/deleted.sh" > "$WF/above.sh"
-  [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$OWN" ]
+  [ "$(pinned_unrun "$WF/above.sh" .github/workflows/*.yml)" = "$BOTH" ]
   st $? 0 "a pinned grader called only above rc=0 is named"
   for pert in unquoted braced no-pinned-line env-indirect x-flag bare-python uv-run continuation indent4 renamed queue-base; do
     rm -f "${WF:?}/wf/"*.yml; cp .github/workflows/*.yml "$WF/wf/"
     PERT=$pert python3 - "$WF/wf/governance.yml" <<'PY'
 import os, sys
 p = sys.argv[1]; s = open(p).read(); k = os.environ["PERT"]
-own = "python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check"
+own = "python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check"
+full = "if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else " + own + "; fi"
 if k == "unquoted": t = s.replace('git checkout "$PINNED" --', 'git checkout $PINNED --', 1)
 elif k == "braced": t = s.replace('git checkout "$PINNED" --', 'git checkout "${PINNED}" --', 1)
 elif k == "no-pinned-line": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}\n", "", 1)
@@ -1557,7 +1670,7 @@ elif k == "indent4":  # YAML-equal: every line under `jobs:` two spaces deeper
 elif k == "renamed": t = s.replace("PINNED", "PIN")
 elif k == "queue-base": t = s.replace("PINNED: ${{ github.event.pull_request.base.sha || github.sha }}",
                                       "PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}")
-else: t = s.replace("run: " + own, "run: |\n          python3 -I \\\n            tools/audit/round6/D11/fix/codeowners_gap.py --check", 1)
+else: t = s.replace("run: " + full, "run: |\n          if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else python3 -I \\\n            dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi", 1)
 assert t != s, k
 open(p, "w").write(t)
 PY
@@ -1728,7 +1841,7 @@ rm -f /tmp/prepr-hooks.$$
 
 # --- 3e. no file a workflow executes lacks an owner, on this head's copy of
 # what the walk reads (`pinned_graders` above: #1633 R1a). 0.6 s, so always.
-python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1
+if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check >/tmp/prepr-owners.$$ 2>&1; fi
 step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-owners.$$
 
@@ -1881,6 +1994,18 @@ else
   esac
 fi
 
+# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
+UNPINNED_SITES=/tmp/prepr-unpinned.$$
+PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES")
+case $? in
+  3) say skip "ci predict" "$PREDICT_LINE" ;;
+  0) step "ci predict" 0 "$PREDICT_LINE" ;;
+  *) step "ci predict" 1 "$PREDICT_LINE" ;;
+esac
+if [ -s "$UNPINNED_SITES" ]; then
+  say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
+fi
+
 # --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
 # before the push. `copies_line` above. The scan reads the whole tree, so it
 # runs only when the diff can introduce a shared top-level name; any other
@@ -1939,6 +2064,14 @@ if [ -n "$BODY" ] && [ "$BODY" != "--self-test" ]; then
   figures_check "$BODY" >/tmp/prepr-fig.$$ 2>&1
   step "figures" $? "$(tail -1 /tmp/prepr-fig.$$)"
   rm -f /tmp/prepr-fig.$$
+
+  # --- 7d. each unpinned site step 6d listed has its disposition (`unpinned_line`).
+  UNPINNED_LINE=$(unpinned_line "$BODY" "$UNPINNED_SITES")
+  case $? in
+    3) say skip "unpinned sites" "$UNPINNED_LINE" ;;
+    0) step "unpinned sites" 0 "$UNPINNED_LINE" ;;
+    *) step "unpinned sites" 1 "$UNPINNED_LINE" ;;
+  esac
 
   # --- 7b. and is the head it names one the REMOTE already has? push_order above
   # carries the reasoning; this derives the branch's OWN remote branch -- the
@@ -2005,6 +2138,7 @@ if [ -n "$ORDER" ]; then
   printf '  !!! If setting the body is your LAST action, the refusal stays on your head.\n'
 fi
 
+rm -f "${UNPINNED_SITES:-}"
 echo
 echo "PRE-PR: $(git rev-parse HEAD) $digest"
 exit $rc

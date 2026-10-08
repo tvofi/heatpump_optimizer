@@ -12,7 +12,7 @@ first search matched script paths only, so it missed the directory.
 WHAT IT READS: tests/layout.json. A moved path is one of:
   - a `retired` entry's `old` that is no longer tracked (a directory entry
     counts only once no tracked file is left under it);
-  - that entry's parent directory, when no tracked file is left under it;
+  - each directory those moves emptied, at any depth;
   - a `lifted` prefix.
 
 A directory argument is walked: every tracked file under it is scanned, so a
@@ -42,16 +42,11 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 def moved_paths(layout: dict, tracked: set[str]) -> dict[str, str]:
-    dirs = {"/".join(p.split("/")[:i]) + "/" for p in tracked for i in range(1, p.count("/") + 1)}
-    moved: dict[str, str] = {}
-    for e in layout.get("retired", []):
-        old, new = e["old"], e.get("new")
-        if old in tracked or (old.endswith("/") and old in dirs):
-            continue  # planned, not yet done: the file, or a file under the directory, is still tracked
-        moved[old] = new or "(retired)"
-        parent = str(Path(old).parent) + "/"
-        if parent != "./" and parent not in dirs:
-            moved.setdefault(parent, (str(Path(new).parent) + "/") if new else "(retired)")
+    """`tests/layout.py`'s `landed` -- the definition its guard refuses on --
+    plus the lifted prefixes, whose generated copies a reader dispositions."""
+    sys.path.insert(0, str(ROOT / "tests"))
+    from layout import landed  # noqa: E402  one definition of a landed move (R9-RO-10)
+    moved = {e["old"]: e["new"] or "(retired)" for e in landed(sorted(tracked), layout.get("retired", []))}
     for e in layout.get("lifted", []):
         moved[e["old"]] = e["new"]
     return moved

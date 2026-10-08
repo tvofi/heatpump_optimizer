@@ -113,13 +113,13 @@ const PAIRS = [
     concept: 'finding-class-id',
     what: 'the class ids a finding\'s class_guess may carry (the ledger, the schema, the intake)',
     async corpus() {
-      const ledger = Object.keys(JSON.parse(rd('tools/audit/bugclasses.json'))).filter((k) => !k.startsWith('_'))
+      const ledger = Object.keys(JSON.parse(rd('dev/audit/config/bugclasses.json'))).filter((k) => !k.startsWith('_'))
       const probes = ['new', 'P99', 'I99', 'P0', 'p1', 'P1x', 'xP1', 'X1', '']
       return [...new Set([...ledger, ...probes])].map((id) => [id, id])
     },
     async readers() {
-      const ledger = new Set([...Object.keys(JSON.parse(rd('tools/audit/bugclasses.json'))).filter((k) => !k.startsWith('_')), 'new'])
-      const schema = JSON.parse(rd('tools/audit/finding.schema.json'))
+      const ledger = new Set([...Object.keys(JSON.parse(rd('dev/audit/config/bugclasses.json'))).filter((k) => !k.startsWith('_')), 'new'])
+      const schema = JSON.parse(rd('dev/audit/config/finding.schema.json'))
       const enumOf = (o) => (o && typeof o === 'object' ? (o.class_guess && o.class_guess.enum) || Object.values(o).map(enumOf).find(Boolean) : null)
       const schemaEnum = new Set(enumOf(schema) || [])
       if (!schemaEnum.size) throw new Error('finding.schema.json: no class_guess enum found')

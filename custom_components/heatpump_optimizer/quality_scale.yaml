@@ -1,6 +1,6 @@
 # Home Assistant integration quality scale — rule-by-rule register.
 # Source: audit round 2, dimension D10 (baseline b39fc6f, 2026-09-02; verified
-# by three refutation verifiers and a judge; register: docs/audit-2026-09.md,
+# by three refutation verifiers and a judge; register: dev/programme/register/audit-2026-09.md,
 # harnesses: tools/audit/round2/D10/ at 757e164). Updated as fixes land;
 # re-truthed against execution by round 4 (harnesses under
 # tools/audit/round4/D10/, issue #951).
@@ -46,7 +46,7 @@ rules:
   config-flow-test-coverage:
     status: done
     comment: >-
-      measured at full statement coverage by tools/audit/w5-partition/
+      measured at full statement coverage by tools/coverage/
       coverage_tree.sh over the default-gate scripts — the instrument
       tests/coverage_ratchet.py consumes. The residual branches that
       instrument still found missed at the merge base of this flip

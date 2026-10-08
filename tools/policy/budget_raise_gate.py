@@ -54,9 +54,9 @@ from the base commit before running it under `python3 -I`, so a pull request
 cannot edit the gate that grades it; the workflow re-runs it on
 `pull_request_review`, so an approval turns it green without a push.
 
-    python3 -I .claude/workflows/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
-    python3 .claude/workflows/budget_raise_gate.py --self-test
-    python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
+    python3 -I tools/policy/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
+    python3 tools/policy/budget_raise_gate.py --self-test
+    python3 -I tools/policy/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
 """
 from __future__ import annotations
 
