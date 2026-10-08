@@ -1,0 +1,4 @@
+  FAIL tools/release/stamp.py's --self-test passes  [tools/release/stamp.py raised loading or running --self-test: OSError: [Errno 39] Directory not empty: '/tmp/tmp3ta3eh7p/.git/objects/pack']
+1 of 2210 ENTITY CHECKS FAILED
+>>> FAILED: python3 tests/entities.py
+1 TEST SCRIPT(S) FAILED
