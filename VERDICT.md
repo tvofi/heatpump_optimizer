@@ -1,19 +1,53 @@
-Fix review: blocked 1e92e0e8f3fa097a57ac5aa4a93604042ee65814 body-stale: Red checks says "At this head: pending CI"; replace with the settled reds below
+Fix review: merge d916687db06cd5c1d021705170839df58670b603
 
-bus-nonce: 5bcccf0cba2d36504bcae9d804900563
+bus-nonce: 257148cbc21211e8fe50dbd0844548db
 
-PR #2024 (R9-UX-9), re-review at 1e92e0e8f3fa097a57ac5aa4a93604042ee65814. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence (checkruns5.tsv, body5.txt, head5.txt). The code is clean; the only block is one body line.
+PR #2024 (R9-UX-9). This is the resolution-delta re-review at d916687db06cd5c1d021705170839df58670b603 (merge commit 45c04b7d). It follows the prior blocks on the stale body (VERDICT5) and on the triage row that cited a machine-local probe. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence/h7. Harness run at ff77ad44: evidence/h6/harness.txt, copied to h7/harness-at-ff77.txt. The roles diff against origin/main is empty, so the contract is current.
 
-## The one fix
-`## Red checks`, the line "At this head: pending CI." (body line 154), must be replaced with the settled reds read at 1e92e0e8f3fa097a57ac5aa4a93604042ee65814 (38 check-runs, one pending, `coverage` job 113325908150, not a required context):
-- `budget-raise-gate` failure 113325906657 and failure 113325918910: red by construction until tvofi's approving review at the head; raise max_class_loc 9048 to 9049 and seam_cut_total 766 to 768, owner-approved 2026-10-07 (decision 0013). Both runs are failures at this head; the previous "cancelled twin" wording no longer applies.
-- `delivery-status` 113325904355 and `nightly-status` 113325903798: main's, not required contexts.
-Green at this head: `mutation` 113325908215, `closures` 113326030125, `fast (3.14)` 113325907940; `mutation-autofix`, `closures-autofix`, `mutation-pins`, `mutation-pin-plan` skipped. No nightly-ha red at this head. The "At c13216ce" mutation and mutation-autofix reds can stay as history; they are answered under `## Unpinned sites`.
+## Delta ba83063e (the triage-row block)
+- `dev/audit/harnesses/ux9_flow_unit_guard.py` is now in the tree. I ran it myself at ff77ad44, with venv-ci and PYTHONPATH=tests/hastub. Its RESULT lines match the body and the triage row:
+  - BLOCK: head 0, m278_guard_off 0, c278_control 0, m831_return_del 2 (one failing check, "... and no value", plus its summary line), m831@8fb1b717-features 0.
+  - GRID: m278_guard_off 0/726; c278_control 29/726 (units None and no-unit-attr); m831_return_del 36/726.
+  The perturbation (c278_control) moves the grid and the 278 mutant does not, so the equivalence verdict stands on a harness that is sensitive to the guard arm.
+- Triage row `survivor_triage/inputs.py/normalize_flow_kg_s.GUARD_OFF.b46fca00.json` now cites the tree path. The file versions it names match the head: inputs.py c85c8137 and features.py 9349ab50 are the blobs at both ff77ad44 and d916687d. A grep finds no /Users/, /tmp or hpo-seats path in the row or the harness.
+- `tmp_paths --check` returns 0 refused at the head. It also returns 0 at 1e92e0e8, which still had the machine path, because ledger JSON is outside its documented scope. Its green therefore pins nothing about this defect; the grep is the evidence.
+- `closures.json`: the only hand edit is one line in `inert_reads["tests/harness_headers.py"]`, in sorted position (534 entries).
+  - Planted removal: `closure.py select/affected` gives the same `CASE: SKIP ... INERT` with and without the line, because the file is inert under `dev/audit/harnesses/` either way.
+  - The line's correctness is graded only by CI's Linux strace `closures` run. That run is green at this head (113395403658), and no `closures-autofix` commit followed (skipped, 113420448639). I could not plant it locally on macOS; this is stated, not claimed.
 
-## Verified
-- Structure: the branch's own commits since e575850b are two by tvofi (ef115813 and f4c8df63), bot pins and closures re-records, and merges of main 13b6d121 (an ancestor of the head). Main merges only; nothing resolved by hand beyond the ledger driver's closures.json.
-- inputs.py:831 RETURN_DEL: the check in tests/features.py now asserts a refused flow reading carries no value; the killed_by pin 69557675~2 is a measured kill by tests/features.py (CI artifact, pins-1, at c13216ce which holds that check). `mutation` is green at this head, which confirms the table accepts it.
-- inputs.py:278 normalize_flow_kg_s GUARD_OFF b46fca00: survivor_triage "equivalent". I attacked it: FLOW_UNIT_TO_KG_S is a plain dict of eight keys (L/min, L/s, L/h, m3/h, m3/s, kg/s, kg/min, kg/h), no "None" key and no __missing__; with the guard off a None unit looks up "None", misses, and returns None exactly as the guard does. The function is pure, so outputs are equal for every input. The equivalence holds.
-- Production code, goldens and claims are unchanged in substance from the approved head 65f5e914 (three-dot diff differs by ledger pins, closures.json re-records and the 12-line features.py check).
+## Resolution delta 45c04b7d (v6.7.17 stamp)
+- Structure:
+  - 45c04b7d = merge(ff77ad44, origin/main b296779f).
+  - d916687d = merge(ff77ad44, 45c04b7d).
+  - Both have tree 88e0bb5c. That tree equals `git merge-tree --write-tree ff77ad44 b296779f`'s result tree.
+  - The only conflict was `tests/golden/claimed_drift.txt`: MERGE-CLAIM refused, both sides rewrote the claim list. It is resolved as described below.
+- `git merge-tree --write-tree origin/main d916687d`: rc 0, no CONFLICT, no MERGE-CLAIM line. origin/main is b296779f, the merge base.
+- claimed_drift.txt:
+  - The active list is exactly config_flow, coord_all_features, coord_dhw, coord_grid_fee, coord_minimal and coord_two_zone, at `# claims-for: 6.7.17`.
+  - Against ff77ad44 only the claims-for line and the v6.7.17 stamp-note line changed.
+  - Against origin/main the file only appends the R9-UX-9 block.
+- `env_drift.py --claims-only`: ok against b296779f and against origin/main.
+- Nothing else moved:
+  - The three-dot diff against b296779f (45 files, +1004/-45) lists the same files as ff77ad44's against 0b89f781.
+  - Every file's branch-side +/- lines are identical, except claimed_drift.txt. That file differs only because main's stamp already removed the #1939 config_flow line, so the branch no longer deletes it.
+  - inputs.py, tests/features.py, const.py and tests/closures.json are byte-identical to ff77ad44.
+  - VERSION, manifest.json, RELEASE_NOTES.md and card_claimed_drift.txt are identical to origin/main.
+- One body inaccuracy, which does not block. Step 8 says "The ledger driver merged `tests/closures.json`". Main's stamp (0b89f781..b296779f) does not touch closures.json. My merge-tree shows no LEDGER-MERGE line, and the file is byte-identical to ff77ad44 (f1df1f1f). No driver ran on it. The sentence overstates the resolution work and is wrong; the fact it should state, that closures.json is unchanged, is stronger. A body-only edit can correct it without moving the head.
+- Also wording: the `## Head` line 15 says d916687d "then merges origin/main b296779f0". There is no such separate commit; the push script's merge was a no-op, as `## Figures` says.
 
-Once the body line is replaced the re-review is a body-only read at the next head.
+## Checks at d916687d (check-runs API, 40 runs, 0 pending, evidence/h7/checkruns-settled.tsv)
+- Red:
+  - `budget-raise-gate` 113394647419 and 113394649740, both failure, by construction. The pre-approved raise is max_class_loc 9048 to 9049 and seam_cut_total 766 to 768. It needs tvofi's approving review at this head (decision 0013), which is the orchestrator's to give and is not a reviewer block.
+  - `nightly-status` 113395241587: main's, not required.
+  - All three are answered in `## Red checks` with the same job ids.
+- Green:
+  - `mutation` 113395241977, `closures` 113395403658, `fast (3.14)` 113395242428, `coverage` 113395242275, `coverage-ratchet` 113423376615, `delivery-status` 113394643567.
+  - `pr-contract` 113394643025, plus the run after the body update, 113427055955.
+  - typing, hassfest, validate-hacs, env-matrix, browser, briefs, policy-docs, instrument-self-tests, closure-scope, graders-head-copy, wave-script, Analyze x3, CodeQL.
+- Autofix jobs: `mutation-autofix`, `closures-autofix` and `claims-autofix` were skipped, and no bot commit followed.
+- Mutation: the diff since the last mutation-reviewed head adds no production line, so no new mutant is drawn.
+
+## Body
+I re-read the whole body after the update; the update only filled `## Red checks`. The body names d916687d as head, and the Red checks section matches the API. The Unpinned sites, Forward-carry and Friction sections are unchanged from the reviewed state. The only defect is the closures.json sentence noted above.
+
+Head at measurement d916687db06cd5c1d021705170839df58670b603; re-read before posting (see evidence/h7/head-at-post.txt).
