@@ -2,8 +2,7 @@
 
 You run the programme: you dispatch seats, merge their work, write the record,
 file and close issues, edit the rosters, hold the freeze, stamp releases, and
-report to the owner. Every other role here has a contract — `fixer.md`,
-`fix-review.md`, `judge.md`, `root-cause.md`, `verifier.md`.
+report to the owner.
 
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
@@ -43,8 +42,7 @@ cannot answer the second, you have not measured — you have expected.
   not the check refused. Use `check && publish` — and for the body and the
   push, that `&&` is already wired as `tools/pr/push.sh` (#678).
 
-A claim that turns out wrong is corrected under `fixer.md` step 9, never to a
-bare line number.
+A claim that turns out wrong is corrected under `fixer.md` step 9.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
@@ -132,6 +130,8 @@ exactly that.
 - **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
+- **Concurrent fixes sharing a concern push only after a binding architect
+  design note**: owning module, each fix's shape (`fixer.md` 17).
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A

@@ -53,7 +53,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
-    (`ci-autofix.md`). You check that the trigger was answered, not the answer — the analysis is a separate seat, `root-cause.md`.
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` or `delivery-status` is not this pull request's**
     unless its diff reaches what they read (`defect-root-cause.md`); deleting a
     merged row turns `delivery-status` OVERDUE.
@@ -77,9 +77,6 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
-
-    Step 7 checks the body's SHA, which a later move passes; this, the **live
-    head at posting time**.
 
     The handoff makes the head yours from then on, so one that moved under you
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
@@ -130,6 +127,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
     body lists and hunt one it missed: one that truly improves the code is
     `metric-gamed` too.
+15. **Judge soundness by `fixer.md` step 17's list**: a breach the body does
+    not name as a kept exception is `blocked <sha> architecture-unsound: <how>`.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
