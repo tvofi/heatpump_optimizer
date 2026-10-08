@@ -1,0 +1,481 @@
+﻿2026-10-08T05:25:36.6158974Z Current runner version: '2.337.0'
+2026-10-08T05:25:36.6193646Z ##[group]Runner Image Provisioner
+2026-10-08T05:25:36.6195124Z Hosted Compute Agent
+2026-10-08T05:25:36.6196082Z Version: 20260901.588
+2026-10-08T05:25:36.6197048Z Commit: f88ec8081b781fac6c440065ac7ff9e710ce3d0b
+2026-10-08T05:25:36.6198684Z Build Date: 2026-09-01T19:56:44Z
+2026-10-08T05:25:36.6199797Z Worker ID: {c3f42494-48c2-41cc-9936-85cfcf8420e5}
+2026-10-08T05:25:36.6201070Z Azure Region: eastus
+2026-10-08T05:25:36.6202102Z ##[endgroup]
+2026-10-08T05:25:36.6204464Z ##[group]Operating System
+2026-10-08T05:25:36.6205513Z Ubuntu
+2026-10-08T05:25:36.6206325Z 24.04.5
+2026-10-08T05:25:36.6207268Z LTS
+2026-10-08T05:25:36.6208426Z ##[endgroup]
+2026-10-08T05:25:36.6209330Z ##[group]Runner Image
+2026-10-08T05:25:36.6210391Z Image: ubuntu-24.04
+2026-10-08T05:25:36.6211351Z Version: 20260927.320.1
+2026-10-08T05:25:36.6213507Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20260927.320/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-08T05:25:36.6216251Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20260927.320
+2026-10-08T05:25:36.6218306Z ##[endgroup]
+2026-10-08T05:25:36.6220156Z ##[group]GITHUB_TOKEN Permissions
+2026-10-08T05:25:36.6223065Z Contents: read
+2026-10-08T05:25:36.6224006Z Metadata: read
+2026-10-08T05:25:36.6225174Z ##[endgroup]
+2026-10-08T05:25:36.6228419Z Secret source: Actions
+2026-10-08T05:25:36.6230012Z Cache mode: write
+2026-10-08T05:25:36.6231428Z Prepare workflow directory
+2026-10-08T05:25:36.6702767Z Prepare all required actions
+2026-10-08T05:25:36.6773110Z Getting action download info
+2026-10-08T05:25:36.8740975Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-08T05:25:36.9705267Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-08T05:25:37.0432665Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-08T05:25:37.2529231Z Complete job name: typing
+2026-10-08T05:25:37.3314413Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-08T05:25:37.3315508Z with:
+2026-10-08T05:25:37.3316019Z   repository: tvofi/heatpump_optimizer
+2026-10-08T05:25:37.3320539Z   token: ***
+2026-10-08T05:25:37.3320999Z   ssh-strict: true
+2026-10-08T05:25:37.3321445Z   ssh-user: git
+2026-10-08T05:25:37.3321892Z   persist-credentials: true
+2026-10-08T05:25:37.3322384Z   clean: true
+2026-10-08T05:25:37.3322835Z   sparse-checkout-cone-mode: true
+2026-10-08T05:25:37.3323429Z   fetch-depth: 1
+2026-10-08T05:25:37.3323931Z   fetch-tags: false
+2026-10-08T05:25:37.3324444Z   show-progress: true
+2026-10-08T05:25:37.3324959Z   lfs: false
+2026-10-08T05:25:37.3325436Z   submodules: false
+2026-10-08T05:25:37.3325958Z   set-safe-directory: true
+2026-10-08T05:25:37.3326545Z   allow-unsafe-pr-checkout: false
+2026-10-08T05:25:37.3327667Z ##[endgroup]
+2026-10-08T05:25:37.4333661Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-08T05:25:37.4336466Z ##[group]Getting Git version info
+2026-10-08T05:25:37.4338250Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T05:25:37.4340247Z [command]/usr/bin/git version
+2026-10-08T05:25:37.4392338Z git version 2.55.0
+2026-10-08T05:25:37.4414041Z ##[endgroup]
+2026-10-08T05:25:37.4432024Z Temporarily overriding HOME='/home/runner/work/_temp/a1469eb9-49cb-4a57-b216-496c5301658c' before making global git config changes
+2026-10-08T05:25:37.4434649Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T05:25:37.4438095Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T05:25:37.4495133Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T05:25:37.4504159Z ##[group]Initializing the repository
+2026-10-08T05:25:37.4505948Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T05:25:37.4634921Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-08T05:25:37.4636683Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-08T05:25:37.4638665Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-08T05:25:37.4639811Z hint: call:
+2026-10-08T05:25:37.4640783Z hint:
+2026-10-08T05:25:37.4641475Z hint: 	git config --global init.defaultBranch <name>
+2026-10-08T05:25:37.4642428Z hint:
+2026-10-08T05:25:37.4643298Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-08T05:25:37.4644276Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-08T05:25:37.4645030Z hint:
+2026-10-08T05:25:37.4645445Z hint: 	git branch -m <name>
+2026-10-08T05:25:37.4645923Z hint:
+2026-10-08T05:25:37.4646556Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-08T05:25:37.4648577Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-08T05:25:37.4651619Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-08T05:25:37.4702959Z ##[endgroup]
+2026-10-08T05:25:37.4704210Z ##[group]Disabling automatic garbage collection
+2026-10-08T05:25:37.4708137Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-08T05:25:37.4741774Z ##[endgroup]
+2026-10-08T05:25:37.4742876Z ##[group]Setting up auth
+2026-10-08T05:25:37.4750527Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T05:25:37.4784176Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T05:25:37.5155071Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T05:25:37.5198780Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T05:25:37.5431465Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T05:25:37.5470206Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T05:25:37.5696004Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-08T05:25:37.5737018Z ##[endgroup]
+2026-10-08T05:25:37.5738345Z ##[group]Fetching the repository
+2026-10-08T05:25:37.5756623Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4f717b08c91b9e95b531c4f4296a4208385990f2:refs/remotes/pull/2010/merge
+2026-10-08T05:25:39.6249881Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-08T05:25:39.6258389Z  * [new ref]         4f717b08c91b9e95b531c4f4296a4208385990f2 -> pull/2010/merge
+2026-10-08T05:25:39.6291490Z ##[endgroup]
+2026-10-08T05:25:39.6292912Z ##[group]Determining the checkout info
+2026-10-08T05:25:39.6294381Z ##[endgroup]
+2026-10-08T05:25:39.6295257Z [command]/usr/bin/git sparse-checkout disable
+2026-10-08T05:25:39.6680965Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T05:25:39.6734885Z ##[group]Checking out the ref
+2026-10-08T05:25:39.6739241Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2010/merge
+2026-10-08T05:25:40.3135083Z Note: switching to 'refs/remotes/pull/2010/merge'.
+2026-10-08T05:25:40.3135536Z 
+2026-10-08T05:25:40.3135841Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-08T05:25:40.3136435Z changes and commit them, and you can discard any commits you make in this
+2026-10-08T05:25:40.3137014Z state without impacting any branches by switching back to a branch.
+2026-10-08T05:25:40.3138169Z 
+2026-10-08T05:25:40.3138599Z If you want to create a new branch to retain commits you create, you may
+2026-10-08T05:25:40.3139467Z do so (now or later) by using -c with the switch command. Example:
+2026-10-08T05:25:40.3139950Z 
+2026-10-08T05:25:40.3140175Z   git switch -c <new-branch-name>
+2026-10-08T05:25:40.3140495Z 
+2026-10-08T05:25:40.3140719Z Or undo this operation with:
+2026-10-08T05:25:40.3141050Z 
+2026-10-08T05:25:40.3141232Z   git switch -
+2026-10-08T05:25:40.3141513Z 
+2026-10-08T05:25:40.3141908Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-08T05:25:40.3142494Z 
+2026-10-08T05:25:40.3143129Z HEAD is now at 4f717b0 Merge dc4e3f13a345d794a0621744b22fef8479140ae9 into 6b91e238f6883af6eedef0fc541bce76b14fc46c
+2026-10-08T05:25:40.3167041Z ##[endgroup]
+2026-10-08T05:25:40.3614490Z [command]/usr/bin/git log -1 --format=%H
+2026-10-08T05:25:40.3636652Z 4f717b08c91b9e95b531c4f4296a4208385990f2
+2026-10-08T05:25:40.4112742Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-10-08T05:25:40.4113256Z with:
+2026-10-08T05:25:40.4113510Z   python-version: 3.14
+2026-10-08T05:25:40.4113783Z   check-latest: false
+2026-10-08T05:25:40.4116392Z   token: ***
+2026-10-08T05:25:40.4116778Z   update-environment: true
+2026-10-08T05:25:40.4117226Z   allow-prereleases: false
+2026-10-08T05:25:40.4117887Z   freethreaded: false
+2026-10-08T05:25:40.4118175Z ##[endgroup]
+2026-10-08T05:25:40.5419532Z ##[group]Installed versions
+2026-10-08T05:25:40.7573082Z Successfully set up CPython (3.14.7)
+2026-10-08T05:25:40.7574151Z ##[endgroup]
+2026-10-08T05:25:40.7736482Z ##[group]Run python3 -m venv .venv-typing
+2026-10-08T05:25:40.7736971Z [36;1mpython3 -m venv .venv-typing[0m
+2026-10-08T05:25:40.7737751Z [36;1m.venv-typing/bin/python -m pip install --require-hashes --no-deps \[0m
+2026-10-08T05:25:40.7738364Z [36;1m  --build-constraint tests/requirements-build.txt \[0m
+2026-10-08T05:25:40.7738790Z [36;1m  -r tests/requirements-typing.txt[0m
+2026-10-08T05:25:40.8351506Z shell: /usr/bin/bash -e {0}
+2026-10-08T05:25:40.8351910Z env:
+2026-10-08T05:25:40.8352281Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:25:40.8352831Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-10-08T05:25:40.8353369Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:25:40.8353853Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:25:40.8354324Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:25:40.8354871Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-10-08T05:25:40.8355326Z ##[endgroup]
+2026-10-08T05:25:45.0975377Z Collecting acme==5.7.0 (from -r tests/requirements-typing.txt (line 34))
+2026-10-08T05:25:45.1482658Z   Downloading acme-5.7.0-py3-none-any.whl (95 kB)
+2026-10-08T05:25:45.1808789Z Collecting aiodns==4.0.4 (from -r tests/requirements-typing.txt (line 37))
+2026-10-08T05:25:45.1845296Z   Downloading aiodns-4.0.4-py3-none-any.whl (12 kB)
+2026-10-08T05:25:45.2031670Z Collecting aiogithubapi==26.0.0 (from -r tests/requirements-typing.txt (line 40))
+2026-10-08T05:25:45.2076977Z   Downloading aiogithubapi-26.0.0-py3-none-any.whl (72 kB)
+2026-10-08T05:25:45.2226055Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-typing.txt (line 43))
+2026-10-08T05:25:45.2261791Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-10-08T05:25:45.7296253Z Collecting aiohttp==3.14.3 (from -r tests/requirements-typing.txt (line 46))
+2026-10-08T05:25:45.7335921Z   Downloading aiohttp-3.14.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+2026-10-08T05:25:45.7513855Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 114.9 MB/s  0:00:00
+2026-10-08T05:25:45.7649726Z Collecting aiohttp-asyncmdnsresolver==0.2.0 (from -r tests/requirements-typing.txt (line 166))
+2026-10-08T05:25:45.7697704Z   Downloading aiohttp_asyncmdnsresolver-0.2.0-py3-none-any.whl (10 kB)
+2026-10-08T05:25:45.7806843Z Collecting aiohttp-cors==0.8.1 (from -r tests/requirements-typing.txt (line 169))
+2026-10-08T05:25:45.7842816Z   Downloading aiohttp_cors-0.8.1-py3-none-any.whl (25 kB)
+2026-10-08T05:25:45.7953341Z Collecting aiohttp-fast-zlib==0.3.0 (from -r tests/requirements-typing.txt (line 172))
+2026-10-08T05:25:45.7999230Z   Downloading aiohttp_fast_zlib-0.3.0-py3-none-any.whl (8.6 kB)
+2026-10-08T05:25:45.8128472Z Collecting aiooui==0.1.11 (from -r tests/requirements-typing.txt (line 175))
+2026-10-08T05:25:45.8176135Z   Downloading aiooui-0.1.11-py3-none-any.whl (343 kB)
+2026-10-08T05:25:45.8294308Z Collecting aiosignal==1.4.0 (from -r tests/requirements-typing.txt (line 178))
+2026-10-08T05:25:45.8327296Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-10-08T05:25:45.8465276Z Collecting aiozoneinfo==0.2.3 (from -r tests/requirements-typing.txt (line 181))
+2026-10-08T05:25:45.8510513Z   Downloading aiozoneinfo-0.2.3-py3-none-any.whl (8.0 kB)
+2026-10-08T05:25:45.8703248Z Collecting annotatedyaml==1.0.2 (from -r tests/requirements-typing.txt (line 184))
+2026-10-08T05:25:45.8753070Z   Downloading annotatedyaml-1.0.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (71 kB)
+2026-10-08T05:25:45.8962611Z Collecting anyio==4.15.1 (from -r tests/requirements-typing.txt (line 210))
+2026-10-08T05:25:45.9003270Z   Downloading anyio-4.15.1-py3-none-any.whl (132 kB)
+2026-10-08T05:25:45.9494580Z Collecting ast-serialize==0.11.2 (from -r tests/requirements-typing.txt (line 213))
+2026-10-08T05:25:45.9534573Z   Downloading ast_serialize-0.11.2-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (1.3 MB)
+2026-10-08T05:25:45.9717354Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.3/1.3 MB 73.7 MB/s  0:00:00
+2026-10-08T05:25:45.9844270Z Collecting astral==2.2 (from -r tests/requirements-typing.txt (line 271))
+2026-10-08T05:25:45.9905658Z   Downloading astral-2.2-py2.py3-none-any.whl (30 kB)
+2026-10-08T05:25:46.0023911Z Collecting async-interrupt==1.2.2 (from -r tests/requirements-typing.txt (line 274))
+2026-10-08T05:25:46.0060243Z   Downloading async_interrupt-1.2.2-py3-none-any.whl (8.9 kB)
+2026-10-08T05:25:46.0159723Z Collecting atomicwrites-homeassistant==1.4.1 (from -r tests/requirements-typing.txt (line 277))
+2026-10-08T05:25:46.0204850Z   Downloading atomicwrites_homeassistant-1.4.1-py2.py3-none-any.whl (7.1 kB)
+2026-10-08T05:25:46.0529355Z Collecting attrs==26.1.0 (from -r tests/requirements-typing.txt (line 280))
+2026-10-08T05:25:46.0563989Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-10-08T05:25:46.0724585Z Collecting audioop-lts==0.2.2 (from -r tests/requirements-typing.txt (line 283))
+2026-10-08T05:25:46.0760869Z   Downloading audioop_lts-0.2.2-cp313-abi3-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (85 kB)
+2026-10-08T05:25:46.0945667Z Collecting awesomeversion==25.8.0 (from -r tests/requirements-typing.txt (line 333))
+2026-10-08T05:25:46.0992334Z   Downloading awesomeversion-25.8.0-py3-none-any.whl (15 kB)
+2026-10-08T05:25:46.1129266Z Collecting backoff==2.2.1 (from -r tests/requirements-typing.txt (line 336))
+2026-10-08T05:25:46.1171372Z   Downloading backoff-2.2.1-py3-none-any.whl (15 kB)
+2026-10-08T05:25:46.1546710Z Collecting bcrypt==5.0.0 (from -r tests/requirements-typing.txt (line 339))
+2026-10-08T05:25:46.1584496Z   Downloading bcrypt-5.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (278 kB)
+2026-10-08T05:25:46.1769662Z Collecting bleak==3.0.2 (from -r tests/requirements-typing.txt (line 403))
+2026-10-08T05:25:46.1804896Z   Downloading bleak-3.0.2-py3-none-any.whl (146 kB)
+2026-10-08T05:25:46.2035812Z Collecting bleak-retry-connector==4.7.1 (from -r tests/requirements-typing.txt (line 406))
+2026-10-08T05:25:46.2084869Z   Downloading bleak_retry_connector-4.7.1-py3-none-any.whl (19 kB)
+2026-10-08T05:25:46.2253009Z Collecting bluetooth-adapters==2.4.0 (from -r tests/requirements-typing.txt (line 409))
+2026-10-08T05:25:46.2299053Z   Downloading bluetooth_adapters-2.4.0-py3-none-any.whl (20 kB)
+2026-10-08T05:25:46.2565431Z Collecting bluetooth-auto-recovery==1.6.4 (from -r tests/requirements-typing.txt (line 412))
+2026-10-08T05:25:46.2600844Z   Downloading bluetooth_auto_recovery-1.6.4-py3-none-any.whl (13 kB)
+2026-10-08T05:25:46.3555407Z Collecting bluetooth-data-tools==1.29.24 (from -r tests/requirements-typing.txt (line 415))
+2026-10-08T05:25:46.3620365Z   Downloading bluetooth_data_tools-1.29.24-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (494 kB)
+2026-10-08T05:25:46.5425976Z Collecting boto3==1.43.103 (from -r tests/requirements-typing.txt (line 478))
+2026-10-08T05:25:46.5473413Z   Downloading boto3-1.43.103-py3-none-any.whl (140 kB)
+2026-10-08T05:25:46.7769780Z Collecting botocore==1.43.103 (from -r tests/requirements-typing.txt (line 481))
+2026-10-08T05:25:46.7808508Z   Downloading botocore-1.43.103-py3-none-any.whl (15.9 MB)
+2026-10-08T05:25:46.8293963Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.9/15.9 MB 340.3 MB/s  0:00:00
+2026-10-08T05:25:46.8630885Z Collecting btsocket==0.3.0 (from -r tests/requirements-typing.txt (line 484))
+2026-10-08T05:25:46.8666422Z   Downloading btsocket-0.3.0-py2.py3-none-any.whl (14 kB)
+2026-10-08T05:25:46.8832011Z Collecting certifi==2026.7.22 (from -r tests/requirements-typing.txt (line 487))
+2026-10-08T05:25:46.8865268Z   Downloading certifi-2026.7.22-py3-none-any.whl (136 kB)
+2026-10-08T05:25:46.9854363Z Collecting cffi==2.1.1 (from -r tests/requirements-typing.txt (line 490))
+2026-10-08T05:25:46.9892821Z   Downloading cffi-2.1.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (221 kB)
+2026-10-08T05:25:47.1064332Z Collecting charset-normalizer==3.5.1 (from -r tests/requirements-typing.txt (line 591))
+2026-10-08T05:25:47.1101250Z   Downloading charset_normalizer-3.5.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (251 kB)
+2026-10-08T05:25:47.1333060Z Collecting ciso8601==2.3.3 (from -r tests/requirements-typing.txt (line 764))
+2026-10-08T05:25:47.1375703Z   Downloading ciso8601-2.3.3-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (41 kB)
+2026-10-08T05:25:47.1483446Z Collecting cronsim==2.7 (from -r tests/requirements-typing.txt (line 830))
+2026-10-08T05:25:47.1516951Z   Downloading cronsim-2.7-py3-none-any.whl (14 kB)
+2026-10-08T05:25:47.3193151Z Collecting cryptography==50.0.1 (from -r tests/requirements-typing.txt (line 832))
+2026-10-08T05:25:47.3233832Z   Downloading cryptography-50.0.1-cp311-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
+2026-10-08T05:25:47.3398732Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.7/4.7 MB 317.3 MB/s  0:00:00
+2026-10-08T05:25:47.7005473Z Collecting dbus-fast==5.0.22 (from -r tests/requirements-typing.txt (line 879))
+2026-10-08T05:25:47.7052424Z   Downloading dbus_fast-5.0.22-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (855 kB)
+2026-10-08T05:25:47.7110724Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 855.5/855.5 kB 167.2 MB/s  0:00:00
+2026-10-08T05:25:47.7223395Z Collecting envs==1.4 (from -r tests/requirements-typing.txt (line 929))
+2026-10-08T05:25:47.7275743Z   Downloading envs-1.4-py3-none-any.whl (10 kB)
+2026-10-08T05:25:47.7650925Z Collecting fnv-hash-fast==2.0.3 (from -r tests/requirements-typing.txt (line 932))
+2026-10-08T05:25:47.7691488Z   Downloading fnv_hash_fast-2.0.3-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (8.4 kB)
+2026-10-08T05:25:47.7786131Z Collecting fnvhash==0.2.1 (from -r tests/requirements-typing.txt (line 976))
+2026-10-08T05:25:47.7833860Z   Downloading fnvhash-0.2.1-py3-none-any.whl (18 kB)
+2026-10-08T05:25:47.8445784Z Collecting frozenlist==1.8.0 (from -r tests/requirements-typing.txt (line 979))
+2026-10-08T05:25:47.8488748Z   Downloading frozenlist-1.8.0-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (231 kB)
+2026-10-08T05:25:48.0224301Z Collecting greenlet==3.5.6 (from -r tests/requirements-typing.txt (line 1110))
+2026-10-08T05:25:48.0264570Z   Downloading greenlet-3.5.6-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (670 kB)
+2026-10-08T05:25:48.0323863Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 670.8/670.8 kB 119.5 MB/s  0:00:00
+2026-10-08T05:25:48.5188836Z Collecting grpcio==1.84.0 (from -r tests/requirements-typing.txt (line 1190))
+2026-10-08T05:25:48.5227633Z   Downloading grpcio-1.84.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (7.2 MB)
+2026-10-08T05:25:48.5603358Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 7.2/7.2 MB 198.9 MB/s  0:00:00
+2026-10-08T05:25:48.5751228Z Collecting h11==0.16.0 (from -r tests/requirements-typing.txt (line 1252))
+2026-10-08T05:25:48.5785274Z   Downloading h11-0.16.0-py3-none-any.whl (37 kB)
+2026-10-08T05:25:48.8878410Z Collecting habluetooth==7.1.2 (from -r tests/requirements-typing.txt (line 1255))
+2026-10-08T05:25:48.8949950Z   Downloading habluetooth-7.1.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.2 MB)
+2026-10-08T05:25:48.9019938Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.2/1.2 MB 210.2 MB/s  0:00:00
+2026-10-08T05:25:48.9258629Z Collecting hass-nabucasa==2.7.0 (from -r tests/requirements-typing.txt (line 1316))
+2026-10-08T05:25:48.9307984Z   Downloading hass_nabucasa-2.7.0-py3-none-any.whl (98 kB)
+2026-10-08T05:25:48.9487013Z Collecting home-assistant-bluetooth==2.0.0 (from -r tests/requirements-typing.txt (line 1319))
+2026-10-08T05:25:48.9532069Z   Downloading home_assistant_bluetooth-2.0.0-py3-none-any.whl (7.9 kB)
+2026-10-08T05:25:49.1575449Z Collecting homeassistant==2026.9.3 (from -r tests/requirements-typing.txt (line 1322))
+2026-10-08T05:25:49.1620920Z   Downloading homeassistant-2026.9.3-py3-none-any.whl (61.3 MB)
+2026-10-08T05:25:49.6400856Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 61.3/61.3 MB 128.5 MB/s  0:00:00
+2026-10-08T05:25:50.0353142Z Collecting homeassistant-stubs==2026.9.3 (from -r tests/requirements-typing.txt (line 1325))
+2026-10-08T05:25:50.0401530Z   Downloading homeassistant_stubs-2026.9.3-py3-none-any.whl (4.2 MB)
+2026-10-08T05:25:50.0760579Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 4.2/4.2 MB 123.4 MB/s  0:00:00
+2026-10-08T05:25:50.1173093Z Collecting httpcore==1.0.9 (from -r tests/requirements-typing.txt (line 1328))
+2026-10-08T05:25:50.1208438Z   Downloading httpcore-1.0.9-py3-none-any.whl (78 kB)
+2026-10-08T05:25:50.1387494Z Collecting httpx==0.28.1 (from -r tests/requirements-typing.txt (line 1331))
+2026-10-08T05:25:50.1426492Z   Downloading httpx-0.28.1-py3-none-any.whl (73 kB)
+2026-10-08T05:25:50.1574884Z Collecting icmplib==3.0.4 (from -r tests/requirements-typing.txt (line 1334))
+2026-10-08T05:25:50.1613980Z   Downloading icmplib-3.0.4-py3-none-any.whl (30 kB)
+2026-10-08T05:25:50.1751883Z Collecting idna==3.20 (from -r tests/requirements-typing.txt (line 1337))
+2026-10-08T05:25:50.1787066Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-10-08T05:25:50.1946353Z Collecting ifaddr==0.2.0 (from -r tests/requirements-typing.txt (line 1340))
+2026-10-08T05:25:50.1981301Z   Downloading ifaddr-0.2.0-py3-none-any.whl (12 kB)
+2026-10-08T05:25:50.2113690Z Collecting jinja2==3.1.6 (from -r tests/requirements-typing.txt (line 1343))
+2026-10-08T05:25:50.2150091Z   Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+2026-10-08T05:25:50.2383115Z Collecting jmespath==1.1.0 (from -r tests/requirements-typing.txt (line 1346))
+2026-10-08T05:25:50.2417954Z   Downloading jmespath-1.1.0-py3-none-any.whl (20 kB)
+2026-10-08T05:25:50.2534851Z Collecting josepy==2.2.0 (from -r tests/requirements-typing.txt (line 1349))
+2026-10-08T05:25:50.2569437Z   Downloading josepy-2.2.0-py3-none-any.whl (29 kB)
+2026-10-08T05:25:50.3818028Z Collecting librt==0.15.0 (from -r tests/requirements-typing.txt (line 1352))
+2026-10-08T05:25:50.3864256Z   Downloading librt-0.15.0-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (523 kB)
+2026-10-08T05:25:50.4121893Z Collecting lru-dict==1.4.1 (from -r tests/requirements-typing.txt (line 1490))
+2026-10-08T05:25:50.4167358Z   Downloading lru_dict-1.4.1-cp314-cp314-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (32 kB)
+2026-10-08T05:25:50.4708961Z Collecting markupsafe==3.0.3 (from -r tests/requirements-typing.txt (line 1587))
+2026-10-08T05:25:50.4748749Z   Downloading markupsafe-3.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (23 kB)
+2026-10-08T05:25:50.4899264Z Collecting mashumaro==3.22 (from -r tests/requirements-typing.txt (line 1677))
+2026-10-08T05:25:50.4934698Z   Downloading mashumaro-3.22-py3-none-any.whl (95 kB)
+2026-10-08T05:25:50.7415498Z Collecting multidict==6.9.1 (from -r tests/requirements-typing.txt (line 1680))
+2026-10-08T05:25:50.7455209Z   Downloading multidict-6.9.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (333 kB)
+2026-10-08T05:25:50.8503709Z Collecting mypy==2.3.1 (from -r tests/requirements-typing.txt (line 1852))
+2026-10-08T05:25:50.8560277Z   Downloading mypy-2.3.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (15.2 MB)
+2026-10-08T05:25:50.9476864Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.2/15.2 MB 167.9 MB/s  0:00:00
+2026-10-08T05:25:50.9765958Z Collecting mypy-extensions==1.1.0 (from -r tests/requirements-typing.txt (line 1905))
+2026-10-08T05:25:50.9809570Z   Downloading mypy_extensions-1.1.0-py3-none-any.whl (5.0 kB)
+2026-10-08T05:25:51.2333671Z Collecting numpy==2.5.3 (from -r tests/requirements-typing.txt (line 1908))
+2026-10-08T05:25:51.2374824Z   Downloading numpy-2.5.3-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-10-08T05:25:51.2876484Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 343.8 MB/s  0:00:00
+2026-10-08T05:25:51.3203435Z Collecting numpy-typing-compat==20260602.2.5 (from -r tests/requirements-typing.txt (line 1975))
+2026-10-08T05:25:51.3254405Z   Downloading numpy_typing_compat-20260602.2.5-py3-none-any.whl (5.9 kB)
+2026-10-08T05:25:51.3376217Z Collecting optype==0.18.0 (from -r tests/requirements-typing.txt (line 1978))
+2026-10-08T05:25:51.3432358Z   Downloading optype-0.18.0-py3-none-any.whl (73 kB)
+2026-10-08T05:25:51.5822506Z Collecting orjson==3.11.9 (from -r tests/requirements-typing.txt (line 1981))
+2026-10-08T05:25:51.5863144Z   Downloading orjson-3.11.9-cp314-cp314-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (134 kB)
+2026-10-08T05:25:51.6035198Z Collecting packaging==26.3 (from -r tests/requirements-typing.txt (line 2056))
+2026-10-08T05:25:51.6074009Z   Downloading packaging-26.3-py3-none-any.whl (129 kB)
+2026-10-08T05:25:51.6194159Z Collecting pathspec==1.1.1 (from -r tests/requirements-typing.txt (line 2059))
+2026-10-08T05:25:51.6275882Z   Downloading pathspec-1.1.1-py3-none-any.whl (57 kB)
+2026-10-08T05:25:51.7914785Z Collecting pillow==12.3.0 (from -r tests/requirements-typing.txt (line 2062))
+2026-10-08T05:25:51.7960680Z   Downloading pillow-12.3.0-cp314-cp314-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (6.9 MB)
+2026-10-08T05:25:51.8348437Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 6.9/6.9 MB 184.0 MB/s  0:00:00
+2026-10-08T05:25:51.8542766Z Collecting probatio==0.11.4 (from -r tests/requirements-typing.txt (line 2150))
+2026-10-08T05:25:51.8586751Z   Downloading probatio-0.11.4-py3-none-any.whl (222 kB)
+2026-10-08T05:25:51.9301057Z Collecting propcache==0.5.2 (from -r tests/requirements-typing.txt (line 2153))
+2026-10-08T05:25:51.9340243Z   Downloading propcache-0.5.2-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (61 kB)
+2026-10-08T05:25:52.0039401Z Collecting psutil==7.2.2 (from -r tests/requirements-typing.txt (line 2275))
+2026-10-08T05:25:52.0078440Z   Downloading psutil-7.2.2-cp36-abi3-manylinux2010_x86_64.manylinux_2_12_x86_64.manylinux_2_28_x86_64.whl (155 kB)
+2026-10-08T05:25:52.0236083Z Collecting psutil-home-assistant==0.0.1 (from -r tests/requirements-typing.txt (line 2297))
+2026-10-08T05:25:52.0282046Z   Downloading psutil_home_assistant-0.0.1-py3-none-any.whl (6.3 kB)
+2026-10-08T05:25:52.1006495Z Collecting pycares==5.0.1 (from -r tests/requirements-typing.txt (line 2300))
+2026-10-08T05:25:52.1050024Z   Downloading pycares-5.0.1-cp314-cp314-manylinux_2_26_x86_64.manylinux_2_28_x86_64.whl (223 kB)
+2026-10-08T05:25:52.1183713Z Collecting pycognito==2024.5.1 (from -r tests/requirements-typing.txt (line 2386))
+2026-10-08T05:25:52.1229694Z   Downloading pycognito-2024.5.1-py3-none-any.whl (26 kB)
+2026-10-08T05:25:52.1373718Z Collecting pycparser==3.0 (from -r tests/requirements-typing.txt (line 2389))
+2026-10-08T05:25:52.1407184Z   Downloading pycparser-3.0-py3-none-any.whl (48 kB)
+2026-10-08T05:25:52.1568542Z Collecting pyjwt==2.15.0 (from -r tests/requirements-typing.txt (line 2392))
+2026-10-08T05:25:52.1602828Z   Downloading pyjwt-2.15.0-py3-none-any.whl (33 kB)
+2026-10-08T05:25:52.1815727Z Collecting pynacl==1.6.2 (from -r tests/requirements-typing.txt (line 2395))
+2026-10-08T05:25:52.1861617Z   Downloading pynacl-1.6.2-cp38-abi3-manylinux_2_34_x86_64.whl (1.4 MB)
+2026-10-08T05:25:52.1938221Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 224.2 MB/s  0:00:00
+2026-10-08T05:25:52.2094346Z Collecting pyopenssl==26.4.0 (from -r tests/requirements-typing.txt (line 2421))
+2026-10-08T05:25:52.2129829Z   Downloading pyopenssl-26.4.0-py3-none-any.whl (56 kB)
+2026-10-08T05:25:52.2317462Z Collecting pyrfc3339==2.1.0 (from -r tests/requirements-typing.txt (line 2424))
+2026-10-08T05:25:52.2353450Z   Downloading pyrfc3339-2.1.0-py3-none-any.whl (6.8 kB)
+2026-10-08T05:25:52.2461377Z Collecting pyric==0.1.6.3 (from -r tests/requirements-typing.txt (line 2427))
+2026-10-08T05:25:52.2528816Z   Downloading PyRIC-0.1.6.3.tar.gz (870 kB)
+2026-10-08T05:25:52.2591757Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 870.4/870.4 kB 188.3 MB/s  0:00:00
+2026-10-08T05:25:52.2827599Z   Installing build dependencies: started
+2026-10-08T05:25:52.9723906Z   Installing build dependencies: finished with status 'done'
+2026-10-08T05:25:52.9729963Z   Getting requirements to build wheel: started
+2026-10-08T05:25:53.4175242Z   Getting requirements to build wheel: finished with status 'done'
+2026-10-08T05:25:53.4185023Z   Preparing metadata (pyproject.toml): started
+2026-10-08T05:25:53.6281445Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-10-08T05:25:53.6393524Z Collecting python-dateutil==2.9.0.post0 (from -r tests/requirements-typing.txt (line 2429))
+2026-10-08T05:25:53.6433685Z   Downloading python_dateutil-2.9.0.post0-py2.py3-none-any.whl (229 kB)
+2026-10-08T05:25:53.6584451Z Collecting python-slugify==8.0.4 (from -r tests/requirements-typing.txt (line 2432))
+2026-10-08T05:25:53.6618855Z   Downloading python_slugify-8.0.4-py2.py3-none-any.whl (10 kB)
+2026-10-08T05:25:53.6958627Z Collecting pytz==2026.4 (from -r tests/requirements-typing.txt (line 2435))
+2026-10-08T05:25:53.7001406Z   Downloading pytz-2026.4-py2.py3-none-any.whl (506 kB)
+2026-10-08T05:25:53.7409097Z Collecting pyyaml==6.0.3 (from -r tests/requirements-typing.txt (line 2438))
+2026-10-08T05:25:53.7447685Z   Downloading pyyaml-6.0.3-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (794 kB)
+2026-10-08T05:25:53.7503151Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 794.2/794.2 kB 161.8 MB/s  0:00:00
+2026-10-08T05:25:54.1237413Z Collecting regex==2026.9.10 (from -r tests/requirements-typing.txt (line 2512))
+2026-10-08T05:25:54.1276953Z   Downloading regex-2026.9.10-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (803 kB)
+2026-10-08T05:25:54.1374394Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 803.7/803.7 kB 76.9 MB/s  0:00:00
+2026-10-08T05:25:54.1565191Z Collecting requests==2.34.2 (from -r tests/requirements-typing.txt (line 2643))
+2026-10-08T05:25:54.1600585Z   Downloading requests-2.34.2-py3-none-any.whl (73 kB)
+2026-10-08T05:25:54.1755878Z Collecting s3transfer==0.19.2 (from -r tests/requirements-typing.txt (line 2646))
+2026-10-08T05:25:54.1790471Z   Downloading s3transfer-0.19.2-py3-none-any.whl (90 kB)
+2026-10-08T05:25:54.1938464Z Collecting scipy-stubs==1.18.1.1 (from -r tests/requirements-typing.txt (line 2649))
+2026-10-08T05:25:54.1980162Z   Downloading scipy_stubs-1.18.1.1-py3-none-any.whl (665 kB)
+2026-10-08T05:25:54.2035315Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 665.2/665.2 kB 144.8 MB/s  0:00:00
+2026-10-08T05:25:54.2254651Z Collecting securetar==2026.4.1 (from -r tests/requirements-typing.txt (line 2652))
+2026-10-08T05:25:54.2297075Z   Downloading securetar-2026.4.1-py3-none-any.whl (19 kB)
+2026-10-08T05:25:54.2409036Z Collecting sentence-stream==1.3.0 (from -r tests/requirements-typing.txt (line 2655))
+2026-10-08T05:25:54.2459652Z   Downloading sentence_stream-1.3.0-py3-none-any.whl (8.7 kB)
+2026-10-08T05:25:54.2579648Z Collecting six==1.17.0 (from -r tests/requirements-typing.txt (line 2658))
+2026-10-08T05:25:54.2614577Z   Downloading six-1.17.0-py2.py3-none-any.whl (11 kB)
+2026-10-08T05:25:54.2760364Z Collecting snitun==0.47.0 (from -r tests/requirements-typing.txt (line 2661))
+2026-10-08T05:25:54.2802299Z   Downloading snitun-0.47.0-py3-none-any.whl (72 kB)
+2026-10-08T05:25:54.5572147Z Collecting sqlalchemy==2.0.52 (from -r tests/requirements-typing.txt (line 2664))
+2026-10-08T05:25:54.5612674Z   Downloading sqlalchemy-2.0.52-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (3.3 MB)
+2026-10-08T05:25:54.5829236Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 3.3/3.3 MB 167.5 MB/s  0:00:00
+2026-10-08T05:25:54.5994727Z Collecting standard-aifc==3.13.0 (from -r tests/requirements-typing.txt (line 2717))
+2026-10-08T05:25:54.6104181Z   Downloading standard_aifc-3.13.0-py3-none-any.whl (10 kB)
+2026-10-08T05:25:54.6212529Z Collecting standard-chunk==3.13.0 (from -r tests/requirements-typing.txt (line 2720))
+2026-10-08T05:25:54.6259635Z   Downloading standard_chunk-3.13.0-py3-none-any.whl (4.9 kB)
+2026-10-08T05:25:54.6362553Z Collecting standard-telnetlib==3.13.0 (from -r tests/requirements-typing.txt (line 2723))
+2026-10-08T05:25:54.6416079Z   Downloading standard_telnetlib-3.13.0-py3-none-any.whl (10.0 kB)
+2026-10-08T05:25:54.6505220Z Collecting text-unidecode==1.3 (from -r tests/requirements-typing.txt (line 2726))
+2026-10-08T05:25:54.6539843Z   Downloading text_unidecode-1.3-py2.py3-none-any.whl (78 kB)
+2026-10-08T05:25:54.6643650Z Collecting threadpoolctl==3.7.0 (from -r tests/requirements-typing.txt (line 2729))
+2026-10-08T05:25:54.6678448Z   Downloading threadpoolctl-3.7.0-py3-none-any.whl (26 kB)
+2026-10-08T05:25:54.6830785Z Collecting typing-extensions==4.16.0 (from -r tests/requirements-typing.txt (line 2732))
+2026-10-08T05:25:54.6864252Z   Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+2026-10-08T05:25:54.7000350Z Collecting tzdata==2026.4 (from -r tests/requirements-typing.txt (line 2735))
+2026-10-08T05:25:54.7035458Z   Downloading tzdata-2026.4-py2.py3-none-any.whl (347 kB)
+2026-10-08T05:25:54.7193982Z Collecting uart-devices==0.1.1 (from -r tests/requirements-typing.txt (line 2738))
+2026-10-08T05:25:54.7231295Z   Downloading uart_devices-0.1.1-py3-none-any.whl (4.8 kB)
+2026-10-08T05:25:54.7846969Z Collecting ulid-transform==2.2.9 (from -r tests/requirements-typing.txt (line 2741))
+2026-10-08T05:25:54.7899627Z   Downloading ulid_transform-2.2.9-cp314-cp314-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl (26 kB)
+2026-10-08T05:25:54.8077865Z Collecting urllib3==2.8.0 (from -r tests/requirements-typing.txt (line 2789))
+2026-10-08T05:25:54.8112852Z   Downloading urllib3-2.8.0-py3-none-any.whl (135 kB)
+2026-10-08T05:25:54.8239803Z Collecting usb-devices==0.5.1 (from -r tests/requirements-typing.txt (line 2792))
+2026-10-08T05:25:54.8274893Z   Downloading usb_devices-0.5.1-py3-none-any.whl (5.4 kB)
+2026-10-08T05:25:55.0951260Z Collecting uv==0.12.5 (from -r tests/requirements-typing.txt (line 2795))
+2026-10-08T05:25:55.1061646Z   Downloading uv-0.12.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (23.7 MB)
+2026-10-08T05:25:55.2339809Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 23.7/23.7 MB 186.9 MB/s  0:00:00
+2026-10-08T05:25:55.2627070Z Collecting voluptuous==0.16.0 (from -r tests/requirements-typing.txt (line 2815))
+2026-10-08T05:25:55.2660770Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+2026-10-08T05:25:55.2788715Z Collecting webrtc-models==0.3.0 (from -r tests/requirements-typing.txt (line 2818))
+2026-10-08T05:25:55.2832697Z   Downloading webrtc_models-0.3.0-py3-none-any.whl (7.5 kB)
+2026-10-08T05:25:55.6085906Z Collecting yarl==1.24.5 (from -r tests/requirements-typing.txt (line 2821))
+2026-10-08T05:25:55.6124708Z   Downloading yarl-1.24.5-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (110 kB)
+2026-10-08T05:25:56.0664097Z Collecting zeroconf==0.151.1 (from -r tests/requirements-typing.txt (line 2926))
+2026-10-08T05:25:56.0726245Z   Downloading zeroconf-0.151.1-cp314-cp314-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.4 MB)
+2026-10-08T05:25:56.0819090Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.4/1.4 MB 242.5 MB/s  0:00:00
+2026-10-08T05:25:56.1695318Z Building wheels for collected packages: pyric
+2026-10-08T05:25:56.1703704Z   Building wheel for pyric (pyproject.toml): started
+2026-10-08T05:25:56.7329337Z   Building wheel for pyric (pyproject.toml): finished with status 'done'
+2026-10-08T05:25:56.7338932Z   Created wheel for pyric: filename=pyric-0.1.6.3-py2.py3-none-any.whl size=407977 sha256=91b74f70057c0344538bb4c5b0734828bcdeec1bbfe3604cef2dbc1f8308daa3
+2026-10-08T05:25:56.7341110Z   Stored in directory: /home/runner/.cache/pip/wheels/2c/cf/02/36fd497a2f3c8c6d98b3b75cc8523b8bc38d611dde1a319a9a
+2026-10-08T05:25:56.7361293Z Successfully built pyric
+2026-10-08T05:25:56.7484379Z Installing collected packages: text-unidecode, standard-telnetlib, standard-chunk, standard-aifc, pytz, pyric, ifaddr, ciso8601, btsocket, zeroconf, yarl, webrtc-models, voluptuous, uv, usb-devices, urllib3, ulid-transform, uart-devices, tzdata, typing-extensions, threadpoolctl, sqlalchemy, snitun, six, sentence-stream, securetar, scipy-stubs, s3transfer, requests, regex, pyyaml, python-slugify, python-dateutil, pyrfc3339, pyopenssl, pynacl, pyjwt, pycparser, pycognito, pycares, psutil-home-assistant, psutil, propcache, probatio, pillow, pathspec, packaging, orjson, optype, numpy-typing-compat, numpy, mypy-extensions, mypy, multidict, mashumaro, markupsafe, lru-dict, librt, josepy, jmespath, jinja2, idna, icmplib, httpx, httpcore, homeassistant-stubs, homeassistant, home-assistant-bluetooth, hass-nabucasa, habluetooth, h11, grpcio, greenlet, frozenlist, fnvhash, fnv-hash-fast, envs, dbus-fast, cryptography, cronsim, charset-normalizer, cffi, certifi, botocore, boto3, bluetooth-data-tools, bluetooth-auto-recovery, bluetooth-adapters, bleak-retry-connector, bleak, bcrypt, backoff, awesomeversion, audioop-lts, attrs, atomicwrites-homeassistant, async-interrupt, astral, ast-serialize, anyio, annotatedyaml, aiozoneinfo, aiosignal, aiooui, aiohttp-fast-zlib, aiohttp-cors, aiohttp-asyncmdnsresolver, aiohttp, aiohappyeyeballs, aiogithubapi, aiodns, acme
+2026-10-08T05:26:31.0468571Z 
+2026-10-08T05:26:31.0568558Z Successfully installed acme-5.7.0 aiodns-4.0.4 aiogithubapi-26.0.0 aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiohttp-asyncmdnsresolver-0.2.0 aiohttp-cors-0.8.1 aiohttp-fast-zlib-0.3.0 aiooui-0.1.11 aiosignal-1.4.0 aiozoneinfo-0.2.3 annotatedyaml-1.0.2 anyio-4.15.1 ast-serialize-0.11.2 astral-2.2 async-interrupt-1.2.2 atomicwrites-homeassistant-1.4.1 attrs-26.1.0 audioop-lts-0.2.2 awesomeversion-25.8.0 backoff-2.2.1 bcrypt-5.0.0 bleak-3.0.2 bleak-retry-connector-4.7.1 bluetooth-adapters-2.4.0 bluetooth-auto-recovery-1.6.4 bluetooth-data-tools-1.29.24 boto3-1.43.103 botocore-1.43.103 btsocket-0.3.0 certifi-2026.7.22 cffi-2.1.1 charset-normalizer-3.5.1 ciso8601-2.3.3 cronsim-2.7 cryptography-50.0.1 dbus-fast-5.0.22 envs-1.4 fnv-hash-fast-2.0.3 fnvhash-0.2.1 frozenlist-1.8.0 greenlet-3.5.6 grpcio-1.84.0 h11-0.16.0 habluetooth-7.1.2 hass-nabucasa-2.7.0 home-assistant-bluetooth-2.0.0 homeassistant-2026.9.3 homeassistant-stubs-2026.9.3 httpcore-1.0.9 httpx-0.28.1 icmplib-3.0.4 idna-3.20 ifaddr-0.2.0 jinja2-3.1.6 jmespath-1.1.0 josepy-2.2.0 librt-0.15.0 lru-dict-1.4.1 markupsafe-3.0.3 mashumaro-3.22 multidict-6.9.1 mypy-2.3.1 mypy-extensions-1.1.0 numpy-2.5.3 numpy-typing-compat-20260602.2.5 optype-0.18.0 orjson-3.11.9 packaging-26.3 pathspec-1.1.1 pillow-12.3.0 probatio-0.11.4 propcache-0.5.2 psutil-7.2.2 psutil-home-assistant-0.0.1 pycares-5.0.1 pycognito-2024.5.1 pycparser-3.0 pyjwt-2.15.0 pynacl-1.6.2 pyopenssl-26.4.0 pyrfc3339-2.1.0 pyric-0.1.6.3 python-dateutil-2.9.0.post0 python-slugify-8.0.4 pytz-2026.4 pyyaml-6.0.3 regex-2026.9.10 requests-2.34.2 s3transfer-0.19.2 scipy-stubs-1.18.1.1 securetar-2026.4.1 sentence-stream-1.3.0 six-1.17.0 snitun-0.47.0 sqlalchemy-2.0.52 standard-aifc-3.13.0 standard-chunk-3.13.0 standard-telnetlib-3.13.0 text-unidecode-1.3 threadpoolctl-3.7.0 typing-extensions-4.16.0 tzdata-2026.4 uart-devices-0.1.1 ulid-transform-2.2.9 urllib3-2.8.0 usb-devices-0.5.1 uv-0.12.5 voluptuous-0.16.0 webrtc-models-0.3.0 yarl-1.24.5 zeroconf-0.151.1
+2026-10-08T05:26:31.6304741Z ##[group]Run .venv-typing/bin/python tests/typing_ruler.py --mypy \
+2026-10-08T05:26:31.6305307Z [36;1m.venv-typing/bin/python tests/typing_ruler.py --mypy \[0m
+2026-10-08T05:26:31.6305700Z [36;1m  --emit "$RUNNER_TEMP/typing-census.json"[0m
+2026-10-08T05:26:31.6372105Z shell: /usr/bin/bash -e {0}
+2026-10-08T05:26:31.6372376Z env:
+2026-10-08T05:26:31.6372647Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:31.6373098Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-10-08T05:26:31.6373535Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:31.6373916Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:31.6374305Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:31.6374694Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-10-08T05:26:31.6375015Z ##[endgroup]
+2026-10-08T05:26:58.8876278Z 
+2026-10-08T05:26:58.8877578Z === typing ruler (mypy 2.3.1, homeassistant-stubs 2026.9.3, stub-free) ===
+2026-10-08T05:26:58.8879295Z   ok   every recorded typing count is a finite non-negative integer
+2026-10-08T05:26:58.8880102Z   ok   interpreter is at least Python 3.14.2
+2026-10-08T05:26:58.8880723Z   ok   mypy is pinned at 2.3.1
+2026-10-08T05:26:58.8881291Z   ok   homeassistant-stubs is pinned at 2026.9.3
+2026-10-08T05:26:58.8882768Z   ..   third-party resolution (chosen by the stubs, recorded not asserted)  [aiohttp==3.14.3, numpy==2.5.3, scipy-stubs==1.18.1.1, threadpoolctl==3.7.0, voluptuous==0.16.0]
+2026-10-08T05:26:58.8884239Z   ok   every third-party requirement is installed
+2026-10-08T05:26:58.8884905Z   ok   mypy exited 0 or 1 (clean, or errors found)
+2026-10-08T05:26:58.8885935Z   ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
+2026-10-08T05:26:58.8886738Z 
+2026-10-08T05:26:58.8887124Z measurement written to /home/runner/work/_temp/typing-census.json
+2026-10-08T05:26:58.8887926Z 
+2026-10-08T05:26:58.8888102Z ########## errors by module (reported, not ratcheted) ##########
+2026-10-08T05:26:58.8888454Z   ok   errors did not grow
+2026-10-08T05:26:58.8888701Z   ok   type_ignores did not grow
+2026-10-08T05:26:58.8888869Z 
+2026-10-08T05:26:58.8888969Z ALL 9 typing-ruler checks PASSED
+2026-10-08T05:26:58.9093465Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-08T05:26:58.9094121Z with:
+2026-10-08T05:26:58.9094322Z   name: typing-census
+2026-10-08T05:26:58.9094592Z   path: /home/runner/work/_temp/typing-census.json
+2026-10-08T05:26:58.9094904Z   if-no-files-found: ignore
+2026-10-08T05:26:58.9095148Z   compression-level: 6
+2026-10-08T05:26:58.9095365Z   overwrite: false
+2026-10-08T05:26:58.9095575Z   include-hidden-files: false
+2026-10-08T05:26:58.9095808Z env:
+2026-10-08T05:26:58.9096066Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:58.9096496Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+2026-10-08T05:26:58.9096929Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:58.9097302Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:58.9097987Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+2026-10-08T05:26:58.9098410Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+2026-10-08T05:26:58.9098751Z ##[endgroup]
+2026-10-08T05:26:59.0719211Z With the provided path, there will be 1 file uploaded
+2026-10-08T05:26:59.0725671Z Artifact name is valid!
+2026-10-08T05:26:59.0726383Z Root directory input is valid!
+2026-10-08T05:26:59.2619162Z Beginning upload of artifact content to blob storage
+2026-10-08T05:26:59.3416275Z Uploaded bytes 329
+2026-10-08T05:26:59.3633271Z Finished uploading artifact content to blob storage!
+2026-10-08T05:26:59.3634266Z SHA256 digest of uploaded artifact zip is d236584a305aa6528c03ba2f779d81bb48e9908720fd45960105f803cedcd188
+2026-10-08T05:26:59.3636295Z Finalizing artifact upload
+2026-10-08T05:26:59.5891056Z Artifact typing-census.zip successfully finalized. Artifact ID 11530705855
+2026-10-08T05:26:59.5891938Z Artifact typing-census has been successfully uploaded! Final size is 329 bytes. Artifact ID is 11530705855
+2026-10-08T05:26:59.5895762Z Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/37732304768/artifacts/11530705855
+2026-10-08T05:26:59.6062091Z Post job cleanup.
+2026-10-08T05:26:59.7496171Z Post job cleanup.
+2026-10-08T05:26:59.8429426Z [command]/usr/bin/git version
+2026-10-08T05:26:59.8484154Z git version 2.55.0
+2026-10-08T05:26:59.8533638Z Temporarily overriding HOME='/home/runner/work/_temp/8a8d44dd-9939-4be3-ac65-0261b350eaf5' before making global git config changes
+2026-10-08T05:26:59.8543168Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T05:26:59.8545086Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T05:26:59.8579120Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T05:26:59.8625954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T05:26:59.8882868Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T05:26:59.8914800Z http.https://github.com/.extraheader
+2026-10-08T05:26:59.8927030Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-08T05:26:59.8974658Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T05:26:59.9246274Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T05:26:59.9298131Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T05:26:59.9697785Z Cleaning up orphan processes
