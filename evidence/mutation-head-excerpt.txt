@@ -1,0 +1,22 @@
+2026-10-07T23:00:27.4259255Z   4693 unpinned site(s) of 5835 candidate sites, 4693 at the ratchet base 2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38; the ledger agrees with the deterministic inventory
+2026-10-07T23:00:27.4388466Z MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+2026-10-07T23:00:29.8004009Z   null control: custom_components/heatpump_optimizer/debugger.py:422 NULL_COMMENT, a comment-only edit every driver in play must let survive
+2026-10-07T23:00:31.9891020Z   tests/harness_headers.py: baseline and null control deferred until a mutant survives every shared driver
+2026-10-07T23:00:31.9892847Z   tests/arch_score_head.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9893877Z   tests/config_flow_steps.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9894797Z   tests/debug_collect.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9895457Z   tests/deployment_shape.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9896277Z   tests/doc_claims.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9896942Z   tests/entities.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9897677Z   tests/features.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9898572Z   tests/finite_boundary.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9899627Z   tests/manual_plan.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9900581Z   tests/structure.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:00:31.9901498Z   tests/typing_ruler.py: baseline and null control deferred until a mutant run of it is red
+2026-10-07T23:05:10.9218178Z   null control custom_components/heatpump_optimizer/debugger.py:422 NULL_COMMENT survived every driver
+2026-10-07T23:05:14.0983908Z   null control custom_components/heatpump_optimizer/debugger.py:422 NULL_COMMENT survived tests/debug_collect.py
+2026-10-07T23:10:30.5399346Z   null control custom_components/heatpump_optimizer/debugger.py:422 NULL_COMMENT survived tests/entities.py
+2026-10-07T23:12:03.3410601Z   ok    custom_components/heatpump_optimizer/debugger.py:250 RETURN_DEL  -- killed by tests/debug_collect.py
+2026-10-07T23:12:03.3411453Z   ok    custom_components/heatpump_optimizer/debugger.py:260 CMP_BOUND  -- killed by tests/debug_collect.py
+2026-10-07T23:12:03.3412417Z   ok    custom_components/heatpump_optimizer/debugger.py:412 RETURN_DEL  -- killed by tests/debug_collect.py
+2026-10-07T23:12:03.3413475Z MUTATION TABLE PASSED

@@ -1,0 +1,32 @@
+880:2026-10-07T23:11:06.0638192Z   [23:11:06] ok     python3 tests/finite_boundary.py (47s)
+881:2026-10-07T23:11:06.0679186Z   [23:11:06] start  python3 tests/harness_headers.py
+882:2026-10-07T23:13:31.9627068Z   [23:13:31] FAILED python3 tests/harness_headers.py (145s)
+883:2026-10-07T23:13:31.9668298Z   [23:13:31] start  python3 tests/layout.py
+884:2026-10-07T23:13:35.4922215Z   [23:13:35] ok     python3 tests/layout.py (4s)
+10395:2026-10-07T23:19:38.2994891Z   ok   dev/audit/rounds/round4/D10/qs_rules.py RESULT declared_mismatch matches header
+10396:2026-10-07T23:19:38.2995013Z   ok   dev/audit/rounds/round4/D6/claims.py exists
+10397:2026-10-07T23:19:38.2995227Z   ok   dev/audit/rounds/round4/D6/claims.py header names at least one EXPECTED RESULT
+10398:2026-10-07T23:19:38.2995391Z   dev/audit/rounds/round4/D6/claims.py: cpu=1.6s of the 60s bound
+10399:2026-10-07T23:19:38.2995510Z   ok   dev/audit/rounds/round4/D6/claims.py exits 0
+10400:2026-10-07T23:19:38.2995698Z   ok   dev/audit/rounds/round4/D6/claims.py costs at most 50% of its CPU bound
+10401:2026-10-07T23:19:38.2995901Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_extracted matches header
+10402:2026-10-07T23:19:38.2996092Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_checked matches header
+10403:2026-10-07T23:19:38.2996283Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_true matches header
+10404:2026-10-07T23:19:38.2996471Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_false matches header
+10405:2026-10-07T23:19:38.2996652Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_stale matches header
+10406:2026-10-07T23:19:38.2996860Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT claims_unverifiable matches header
+10407:2026-10-07T23:19:38.2997086Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT config_defaults_compared matches header
+10408:2026-10-07T23:19:38.2997305Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT config_ranges_compared matches header
+10409:2026-10-07T23:19:38.2997513Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_modules_on_disk matches header
+10410:2026-10-07T23:19:38.2997708Z   ok   dev/audit/rounds/round4/D6/claims.py RESULT arch_map_listed matches header
+10465:2026-10-07T23:19:38.3010634Z   ok   an idle child past the CPU limit is not killed by it
+10466:2026-10-07T23:19:38.3010754Z   ok   a spinning child is killed at the CPU limit
+10467:2026-10-07T23:19:38.3010876Z   ok   an idle child past the wall cap reports 124
+10468:2026-10-07T23:19:38.3011041Z   ok   a bounded child runs with every BLAS pool pinned to one thread
+10469:2026-10-07T23:19:38.3011226Z   ok   the executed harnesses leave their committed output byte-identical
+10470:2026-10-07T23:19:38.3011234Z 
+10471:2026-10-07T23:19:38.3011358Z 1 of 109 HARNESS HEADER CHECKS FAILED
+10472:2026-10-07T23:19:38.3011494Z >>> FAILED: python3 tests/harness_headers.py
+10473:2026-10-07T23:19:38.3011501Z 
+10474:2026-10-07T23:19:38.3011629Z ########## python3 tests/layout.py ##########
+10475:2026-10-07T23:19:38.3011753Z layout: 4151 tracked path(s) enumerated
