@@ -1,0 +1,3 @@
+RESULT old_writer_rc=0 head_check_rc=1 under_scoped_in_output=True names_remedy=False
+RESULT canonical_repair: content_equal=True layout_errors_after=[]
+RESULT check tail: ['    ./tests/derive_closures.sh --single <script>', 'and commit tests/closures.json. A full derive_closures.sh off', 'Linux replaces node-lane recordings; --single cannot shrink them.']

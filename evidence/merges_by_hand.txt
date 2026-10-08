@@ -1,0 +1,2 @@
+RESULT merge=f4db93853 parents=af9936d8,85d8301e merge_tree_rc=0 auto_tree=c70d4f9d2123 commit_tree=c70d4f9d2123 identical=yes
+RESULT merge=47d48472d parents=f4db9385,4647321d merge_tree_rc=0 auto_tree=38da6297f9d7 commit_tree=38da6297f9d7 identical=yes

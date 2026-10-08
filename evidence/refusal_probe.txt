@@ -1,5 +1,5 @@
 RESULT variant='canonical (null control)' canonical_text=True layout_errors=[] check_rc=0 last='closure: committed closures cover every file this run touched'
 RESULT variant="inert list unsorted (the PR's own case)" canonical_text=False layout_errors=['inert_reads.tests/layout.py: entries out of order'] check_rc=1 last='  rewrite it with: python3 tests/closure.py canonical'
-RESULT variant="recorded entry keys seconds-before-rc (pre-PR writer's order)" canonical_text=False layout_errors=[] check_rc=0 last='closure: committed closures cover every file this run touched'
-RESULT variant='top-level keys unsorted' canonical_text=False layout_errors=[] check_rc=0 last='closure: committed closures cover every file this run touched'
-RESULT variant='indent=2' canonical_text=False layout_errors=[] check_rc=0 last='closure: committed closures cover every file this run touched'
+RESULT variant="recorded entry keys seconds-before-rc (pre-PR writer's order)" canonical_text=False layout_errors=[] check_rc=1 last='  rewrite it with: python3 tests/closure.py canonical'
+RESULT variant='top-level keys unsorted' canonical_text=False layout_errors=[] check_rc=1 last='  rewrite it with: python3 tests/closure.py canonical'
+RESULT variant='indent=2' canonical_text=False layout_errors=[] check_rc=1 last='  rewrite it with: python3 tests/closure.py canonical'
