@@ -2,7 +2,7 @@ R9-EG-A4 (#1774): the architecture score becomes a required check, after the rep
 
 Closes #1774
 
-**Stacked.** This head is cut from `handoff/r9-eg-entry-config` at `d15fc0ae57da63645d6b8d4381ffe83db3a831de` (R9-EG-B11, #2025, approved, not yet merged). Its own diff is `d15fc0ae..HEAD`, and every figure below is measured against that base. After #2025 merges, `origin/main` is merged into this head, and the steps in "After #2025 merges" are re-run. Do not open this pull request until then.
+**Dependencies merged.** R9-EG-A1 (#1851), B7 (#2017), A2 (#1874), A3 (#1958) and B11 (#2025) are on `main` (4dbe5aac). `origin/main` is merged into this head; its diff against the merge base is this pull request's own.
 
 What changed:
 
@@ -27,19 +27,9 @@ What changed:
    - The template states the rule within its policy cap. `pr-contract-rerun.yml` watches the new workflow, and `tests/entities.py` admits it to the files that list `edited`.
    - The weights stay at their frozen hash.
 
-## After #2025 merges
+## After merge
 
-1. `git merge origin/main` into this head (never rebase), resolving against #2025's merged form.
-2. Re-run the following, since the merge base moves:
-   - `ci_predict.py --base origin/main`;
-   - `tests/closure.py select`;
-   - `tests/structure.py`;
-   - `tests/arch_score_head.py`, because #2025's coordinator changes can add a cycle hub writer, which then needs a `CYCLE_HUB_WRITERS` row;
-   - `tests/arch_score.py --stored`;
-   - `tests/entities.py`.
-3. Re-take this body's merge-base-dependent figures: the head line, scope, and the #2025 row of the wave table, which becomes a merged row.
-4. Open the pull request (the orchestrator), with `## Architecture score` as `n/a`. It touches no package file.
-5. The ruleset context `arch-score` is tvofi's to add after merge.
+The ruleset context `arch-score` is tvofi's to add to `main-protect-checks` (ruleset 23698884). The orchestrator requests it and records it on #201. Until then the check runs but does not gate.
 
 ## Approval
 
@@ -65,7 +55,7 @@ Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by t
 
 ## Head
 
-The code head is `handoff/r9-eg-a4` at `545d5bda649518582e72db848130f3e404f6baf2`, on base `d15fc0ae57da63645d6b8d4381ffe83db3a831de` (stacked on R9-EG-B11). `git merge-base origin/main HEAD` is `09ba95d08157e40950104d28a34c94dc899d4be1`, which is #2025's own base. The figures were taken at that head on 2026-10-07.
+The code head is `handoff/r9-eg-a4` at `397895df0bda97354467b9ccde397c2fb5b37f19`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. The figures were taken at this head on 2026-10-08.
 
 ## Mutation proof
 
@@ -91,7 +81,7 @@ The code head is `handoff/r9-eg-a4` at `545d5bda649518582e72db848130f3e404f6baf2
 
 ## Figures
 
-The wave comparison comes from `python3 dev/audit/harnesses/eg_a4_wave_deltas.py`, with the instrument at base `d15fc0ae` (pre-A4). The review verdict is each pull request's last `Fix review:` comment.
+The wave comparison comes from `python3 dev/audit/harnesses/eg_a4_wave_deltas.py`, with the instrument at `d15fc0ae` (pre-A4; the wave table is a measurement of that period and was not re-taken after the merge). The review verdict is each pull request's last `Fix review:` comment.
 
 | PR | group | dS (pre-A4) | verdict | review | agree? |
 |---|---|---|---|---|---|
@@ -103,7 +93,7 @@ The wave comparison comes from `python3 dev/audit/harnesses/eg_a4_wave_deltas.py
 | #1958 | A3 | +1.1069 | IMPROVES | merge | yes |
 | #1966 | B6 | +4.3119 | IMPROVES | merge | yes |
 | #2017 | B7 | +0.0000 | NULL | merge | yes (an instrument PR) |
-| #2025 | B11 | +0.6950 | IMPROVES | merge (`0dfb63a8`) | yes |
+| #2025 | B11 | +0.6950 | IMPROVES | merge (`0dfb63a8`), merged | yes |
 
 Re-scored with the A4 instrument (`--only 1852,1867,1887`):
 
@@ -128,15 +118,15 @@ Other figures:
 - **The end-to-end gate.** `python3 -I tools/audit/archscore/gate.py --base 12dbd3a5^1 --head 12dbd3a5 --body <empty>` printed `FAIL: dS -0.0011 WORSENS; unexplained: coord_footprint 2515->2517` with rc=1, in 34 s.
 - **Local checks**, all from the seat venv (`~/.local/state/hpo/venv-ci`, Python 3.14):
   - `tests/structure.py` passed;
-  - `tests/entities.py` passed 2210;
+  - `tests/entities.py` passed 2227 at the merged head (first run: 1 failure, the twin-route check above; repaired);
   - `tests/harness_headers.py` passed 109;
   - `tests/arch_score_head.py` passed 15;
   - `tests/arch_score.py --stored` passed 58;
   - `gate.py --self-test` passed;
   - `node .claude/workflows/policy_lint.mjs` returned rc 0;
   - `codeowners_gap.py --check` returned `uncovered_files=0`, with gate.py PINNED.
-- **Scope.** `tests/closure.py select --diff d15fc0ae` printed `MODE: FULL`, because `tests/run.sh` changes (a comment). That run is CI's: CI's dispatched run [37689221025](https://github.com/tvofi/heatpump_optimizer/actions/runs/37689221025), at `6ec6553e` (the head's parent; the head adds only the carry record). There `fast (3.14)` printed `MODE: FULL`, `ALL 169 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`. So every planted and red-team verdict is as `expected.json` records under the widened census, and none moved past `c2a0448d`.
-- **CI prediction.** The predictor from `origin/fix/r9-ro-11-pr` (R9-RO-11, not yet in this tree) was run from a scratch copy with base `origin/handoff/r9-eg-entry-config`. At the head it printed `no closures or fast red predicted`, after the new files were placed beside their siblings in `tests/closures.json`. It is cited here, not re-runnable from this tree.
+- **Scope.** `tests/closure.py select --diff origin/main` prints `MODE: FULL`, because `tests/run.sh` changes (a comment). That run is CI's: CI's dispatched run [37689221025](https://github.com/tvofi/heatpump_optimizer/actions/runs/37689221025), at `6ec6553e` (the head's parent; the head adds only the carry record). There `fast (3.14)` printed `MODE: FULL`, `ALL 169 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`. So every planted and red-team verdict is as `expected.json` records under the widened census, and none moved past `c2a0448d`.
+- **CI prediction.** The predictor is now in the tree: `python3 tools/pr/ci_predict.py --base origin/main` printed `no closures or fast red predicted against 4dbe5aace744`.
 
 ## Architecture score
 
@@ -144,13 +134,11 @@ Other figures:
 
 ## Red checks
 
-Two jobs went red on the dispatched run 37689221025, at `6ec6553e`. Neither is a pull-request run.
+The two reds on the seat's dispatched run 37689221025 (at `6ec6553e`, stacked) are answered, and the ancestry reds the stacked base carried are gone with the merge.
 
-- **`briefs` (this diff).** `dev/programme/carries/carry-1774.json` names `SOLVE_PATH_HUB_WRITERS`, which this branch renamed, so brief_lint could not resolve it. The fix is at `b5f01426`: the carry cites `d15fc0ae57da` for the old table and records its discharge. Locally, `node tools/policy/brief_lint.mjs` now returns rc 0.
-  - **Cheaper detector:** that same command, about a second, which I had not run before the push. A rename should grep the carry files; `git grep` of the old name finds this one.
-- **`mutation` (not this diff).** `MUTATION TABLE REFUSED -- 56 ... added by this diff`, against ratchet base `09ba95d0`. Every site the log names is in `custom_components/` (`coordinator.py`, `__init__.py`, `entry_config.py`, ...), and this diff touches no file there. They are R9-EG-B11's sites on the stacked base, which #2025's own `mutation-autofix` pins. After #2025 merges and main is merged in, the delta is this diff's own, and `ci_predict.py` predicts no unpinned site in it.
-
-- **Ancestry reds (not this diff).** `tools/pr/prepr.sh` reads red check runs on commits this head inherits from the stacked base: `closures`, `closures-autofix`, `delivery-status`, `fast (3.14)`, `mutation-autofix`, `mutation-nightly`, `nightly-status` and `typing`. They sit on R9-EG-B11's commits (`d15fc0ae` and its ancestors since `09ba95d0`). #2025's body answers each one, and its approved head `0dfb63a8` is green. On this branch's own dispatched run, `closures` and `fast (3.14)` were green, and `briefs` and `mutation` are answered above. After #2025 merges they leave this head's ancestry, and step 2 of "After #2025 merges" re-reads them.
+- **`briefs`.** `carry-1774.json` named `SOLVE_PATH_HUB_WRITERS`, which this branch renamed. Fixed at `b5f01426`; `node tools/policy/brief_lint.mjs` returns rc 0 at the head. Cheaper detector: that command, about a second; a rename should `git grep` the carry files.
+- **`mutation`.** It was red on #2025's 56 package sites, not this diff. This diff touches no `custom_components/` file, and `ci_predict.py` predicts no unpinned site.
+- **`entities` (found after the merge, repaired).** Main's twin-route check refused `arch-score.yml` (see Head). Cheaper detector: `tests/entities.py` run after the merge, which is the step 2 this body's earlier draft listed.
 
 ## Forward-carry
 
