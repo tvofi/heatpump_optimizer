@@ -60153,4 +60153,191 @@ R.check(
 )
 
 
+# --- #2016 item 4: the flow meter's heat is what the interval learners replay --
+# R9-UX-10. Without a power entity the house and lower-floor heat-loss
+# learners replayed the COMMANDED electrical power through the modelled COP,
+# so a pump not delivering its plan, or a COP curve off the machine, landed on
+# the heat-loss coefficient. With the flow meter as the install's signal they
+# replay the electrical figure the step's own COP turns into exactly the heat
+# the meter read. The oracle is the step itself: that figure replayed must
+# move the state exactly as the planted heat fed in as free heat does.
+from heatpump_optimizer import mixing_valve as _fml_valve  # noqa: E402
+from heatpump_optimizer.flow_lift import FlowCurveBias as _FmlBias  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _FmlModel,
+    ThermalParameters as _FmlParams,
+    ThermalState as _FmlState,
+)
+
+
+class _FmLearn:
+    _commanded_split = Coord._commanded_split
+    _interval_space_power = Coord._interval_space_power
+
+    def __init__(self, cfg, heat_kw, signals=None, dhw=0.0, params=None, measured=None):
+        self._current_action = {"power": 2.0, "dhw_power": dhw}
+        self._config = dict(cfg)
+        self._measured_power = measured
+        self._immersion_active = False
+        self._pump_signals = signals if signals is not None else PumpSignals()
+        self._flow_bias = _FmlBias()
+        self._flow_bias.heat_output_kw = heat_kw
+        self._thermal_model = _FmlModel(params if params is not None else _FmlParams())
+        self._last_house_sample = _FmlState(
+            outdoor_temperature=-2.0, buffer_tank_temperature=48.0
+        )
+
+
+_FML_CFG = {_fb_const.CONF_FLOW_METER_ENTITY: "sensor.flow"}
+
+
+def _fml_replay_gap(learn, heat_kw):
+    """Largest state difference between the learner's replay and the planted heat fed in directly."""
+    model, state = learn._thermal_model, learn._last_house_sample
+    power = learn._interval_space_power()
+    via_power = model.simulate_step(state, power, state.outdoor_temperature, dt_hours=1.0)
+    via_heat = model.simulate_step(
+        state, 0.0, state.outdoor_temperature, dt_hours=1.0, external_heat_kw=heat_kw
+    )
+    fields = ("room_temperature", "slab_temperature", "upper_floor_temperature",
+              "lower_floor_temperature", "buffer_tank_temperature")
+    return max(abs(getattr(via_power, f) - getattr(via_heat, f)) for f in fields)
+
+
+# The planted reading: 15 L/min at 0.998 kg/L over a 45 -> 40 degC drop at
+# c_p 4.186 kJ/(kg K) is 15/60 * 0.998 * 4.186 * 5 = 5.2225... kW.
+_FML_Q = 15.0 / 60.0 * 0.998 * 4.186 * 5.0
+_fml_bias = _FmlBias()
+_fml_r, _fml_cfg = _fm_reader({}, "15.0")
+_fm.observe_water(_fml_bias, _fml_r, _fml_cfg)
+_fml_planted = _FmLearn(_FML_CFG, _fml_bias.heat_output_kw)
+_fml_p = _fml_planted._interval_space_power()
+_fml_cop = _fml_planted._thermal_model.compute_cop(-2.0)
+R.check(
+    "a planted 15 L/min over a 5 K drop reaches the learner as the electrical "
+    "figure the modelled COP turns into 5.2225 kW",
+    _fml_p is not None and abs(_fml_p * _fml_cop - _FML_Q) < 1e-9
+    and abs(_fml_p - 2.0) > 0.1,
+    f"learner power {_fml_p}, x COP {_fml_cop} = {None if _fml_p is None else _fml_p * _fml_cop}, want {_FML_Q}",
+)
+# The step's COP is the plant's: a throttled two-zone plant with the Carnot
+# lift prices it at the tank, so a figure divided by the outdoor-only COP
+# would replay the wrong heat there. Each plant the step distinguishes:
+_FML_PLANTS = {
+    "single zone": _FmlParams(),
+    "two zone, no valve": _FmlParams(two_zone_enabled=True),
+    "two zone, valve, Carnot lift": _FmlParams(
+        two_zone_enabled=True,
+        mixing_valve_mode=_fml_valve.MODE_MANUAL,
+        cop_flow_carnot=True,
+    ),
+    "single zone, curve lift": _FmlParams(flow_curve_cop=True),
+}
+_fml_gaps = {
+    name: _fml_replay_gap(_FmLearn(_FML_CFG, _FML_Q, params=params), _FML_Q)
+    for name, params in _FML_PLANTS.items()
+}
+R.check(
+    "on every plant the step distinguishes, the learner's replay delivers "
+    "exactly the metered heat",
+    all(gap < 1e-9 for gap in _fml_gaps.values()),
+    f"{_fml_gaps}",
+)
+# Null control for that oracle: the commanded figure the learner used before
+# replays a different heat, so the oracle can tell the two apart.
+_fml_null = _FmLearn({}, _FML_Q)
+R.check(
+    "null control: with the flow key unset the learner reads the commanded "
+    "2.0 kW exactly as before, and that replay misses the metered heat",
+    _fml_null._interval_space_power() == 2.0
+    and _fml_replay_gap(_fml_null, _FML_Q) > 1e-3,
+    f"{_fml_null._interval_space_power()}",
+)
+# Precedence: the flow meter is used only where no power and no frequency
+# signal exists (#2016's own rule; the probe is #1955's).
+_fml_power = _FmLearn(
+    {**_FML_CFG, _fb_const.CONF_POWER_ENTITY: "sensor.p"}, _FML_Q, measured=1.8
+)
+R.check(
+    "a power meter outranks the flow meter: the learner reads the meter",
+    _fml_power._interval_space_power() == 1.8,
+    f"{_fml_power._interval_space_power()}",
+)
+R.check(
+    "a frequency sensor or entity outranks it too: the learner keeps the "
+    "commanded figure",
+    all(
+        _FmLearn({**_FML_CFG, _fkey: "sensor.hz"}, _FML_Q)._interval_space_power() == 2.0
+        for _fkey in (
+            _fb_const.CONF_COMPRESSOR_FREQ_SENSOR,
+            _fb_const.CONF_COMPRESSOR_FREQ_ENTITY,
+        )
+    ),
+)
+# The unreadable path: a configured flow meter that cannot be read this
+# interval is no sample, never the commanded guess it replaced -- the stale
+# meter's rule (a skipped interval loses convergence; a wrong heat replayed
+# corrupts a persisted coefficient).
+_fml_bad = {}
+for _fml_label, _fml_args in (
+    ("negative", ("-3.0",)),
+    ("unavailable", ("unavailable",)),
+    ("stale", ("15.0", "L/min", 45)),
+    ("unknown unit", ("15.0", "gal/min")),
+):
+    _fml_b = _FmlBias()
+    _fm.observe_water(_fml_b, *_fm_reader({}, *_fml_args))
+    _fml_bad[_fml_label] = _FmLearn(_FML_CFG, _fml_b.heat_output_kw)._interval_space_power()
+R.check(
+    "a negative, unavailable, stale or unknown-unit flow reading gives the "
+    "learner no sample rather than the commanded figure",
+    all(v is None for v in _fml_bad.values()),
+    f"{_fml_bad}",
+)
+# Both ends of the input range. A pump at rest with the meter reading zero
+# is a measured 0 kW, which the learner replays as nothing delivered.
+_fml_zb = _FmlBias()
+_fm.observe_water(_fml_zb, *_fm_reader({}, "0.0"))
+_fml_zero = _FmLearn(_FML_CFG, _fml_zb.heat_output_kw)._interval_space_power()
+R.check(
+    "a zero flow is a measured 0 kW: the learner replays nothing delivered",
+    _fml_zero == 0.0,
+    f"{_fml_zero}",
+)
+# The meter cannot tell a hot-water charge from space heat: an interval the
+# plan gave a hot-water share, or one the observed mode heats no rooms in,
+# is no sample. A plan's share the observed `heat` mode cannot serve is not
+# a share (``_commanded_split`` zeroes it), so that interval still teaches.
+_FML_HEAT = pump_signals.PumpSignals(
+    mode=pump_mode.capability("heat"), mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_FML_DHW = pump_signals.PumpSignals(
+    mode=pump_mode.capability("DHW"), mode_observed=True,
+    mode_source=pump_signals.MODE_SOURCE_LIVE,
+)
+_fml_split = (
+    _FmLearn(_FML_CFG, _FML_Q, dhw=0.5)._interval_space_power(),
+    _FmLearn(_FML_CFG, _FML_Q, signals=_FML_DHW)._interval_space_power(),
+    _FmLearn(_FML_CFG, _FML_Q, signals=_FML_HEAT, dhw=0.5)._interval_space_power(),
+)
+R.check(
+    "a planned hot-water share or a mode heating no rooms is no sample; "
+    "`heat` with a phantom share still teaches",
+    _fml_split[0] is None and _fml_split[1] is None
+    and _fml_split[2] is not None and abs(_fml_split[2] * _fml_cop - _FML_Q) < 1e-9,
+    f"{_fml_split}",
+)
+# The other end: a heat far past nameplate is replayed as measured, not
+# clamped to the plan; bounding a single sample is the learner's trust
+# region's job, downstream of this figure.
+_fml_big = _FmLearn(_FML_CFG, 40.0)
+R.check(
+    "a heat far past nameplate reaches the learner unclamped (its trust "
+    "region bounds the step)",
+    abs(_fml_big._interval_space_power() * _fml_cop - 40.0) < 1e-9,
+    f"{_fml_big._interval_space_power()}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
