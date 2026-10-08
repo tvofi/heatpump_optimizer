@@ -38,7 +38,7 @@ from typing import Any, Deque
 
 import numpy as np
 
-from .thermal_model import MIN_RUNNING_DRAW_KW, InstallCapability
+from .thermal_model import InstallCapability, planned_draw_runs
 
 #: A metered draw at or below this is standby, circulation and controller
 #: draw, not the compressor running: it says nothing about the run range.
@@ -192,7 +192,9 @@ def is_running_space(
     level the plan asked for, and nothing else on the meter.
 
     * a metered draw above standby (``RUNNING_FLOOR_KW``), while the plan
-      had the space circuit running;
+      had the space circuit running -- ``planned_draw_runs`` on the space
+      level alone, with no modulation floor: the question is whether the plan
+      asked the circuit to run, not whether a switch surface could realize it;
     * no hot water asked: a charge runs at another flow temperature, and
       the plan's DHW level is a configured figure, not this range;
     * the learners not frozen on the meter -- a stale meter, a live
@@ -205,8 +207,8 @@ def is_running_space(
     return (
         drawn_kw is not None
         and drawn_kw > RUNNING_FLOOR_KW
-        and space_kw > MIN_RUNNING_DRAW_KW
-        and dhw_kw <= MIN_RUNNING_DRAW_KW
+        and planned_draw_runs(space_kw, modulation_floor=0.0)
+        and not planned_draw_runs(dhw_kw, modulation_floor=0.0)
         and not (frozen or distorted or defrost)
     )
 
