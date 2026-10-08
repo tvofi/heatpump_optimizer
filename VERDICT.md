@@ -1,8 +1,25 @@
-Fix review: blocked 93184bb07cd6606e017ebf1bb93795db19ff0f52 carry-missing: not carried to R9-CI-2b (#2057/#2059 do not touch .github/workflows/tests.yml; no brief in the tree holds the tests.yml comment correction or #2024's lost pin)
+Fix review: merge 93184bb07cd6606e017ebf1bb93795db19ff0f52
 
-bus-nonce: b359e196dfb7774a53b86049915e2f18
+bus-nonce: 80f73799f5da881ef10164f301a9542e
 
 Round 1. Reviewer seat review-2060. I measured code head cef15d6352e970806dc9a3e32b4c23c92e212e95 (merge base dcc77dd0).
+
+## Round 1b: the carry block is cleared (body re-taken at the same head, no new commit)
+
+The earlier `blocked ... carry-missing` reason is resolved. I read only the re-taken body and the two destinations; the code needs no re-review, because tests/mutation_table.py and tests/entities.py are byte-identical to the measured cef15d63.
+
+- **tests.yml comment.**
+  - `handoff/audit-r9-fixplan` is at 546089ca. Commit 546089ca ("roster: R9-RO-9 carries the tests.yml pin-download comment from R9-CI-2 (#2060)") appends to R9-RO-9's `carry` in `.claude/workflows/wave-r9-groups.json`.
+  - The entry names the file, the step, the false sentence, the action's lone-match rule, and suggested wording. It also states the condition: a PR that already edits tests.yml pays nothing extra.
+  - The body now names R9-RO-9 and 546089ca, and it retracts the R9-CI-2b claim.
+- **#2024's pin.**
+  - f4c8df63 ("mutation: apply CI's measured pin for inputs.py:831 RETURN_DEL") is an ancestor of #2024's current head, 1e92e0e8.
+  - `tests/mutation_ledger/killed_by/inputs.py/InputReader.read_flow_kg_s.RETURN_DEL.69557675~2.json` exists there.
+  - Its anchor, `killed_by` (tests/features.py), `old` and `reason` equal the pins.json entry in artifact 11549410702 (run 37769767377).
+  - The body's Reach section records the hand-apply.
+- **Cosmetic, not blocking:** the body's Head section repeats the 93184bb0 merge sentence twice (lines 18 and 20).
+
+The CI state at 93184bb0 is as recorded below; nothing was re-run.
 
 ## Head moves (re-dispatched at 93184bb0)
 
@@ -18,7 +35,7 @@ Round 1. Reviewer seat review-2060. I measured code head cef15d6352e970806dc9a3e
   - Its disposition (no change here, candidate group to the orchestrator, not filed) is in the tree, in the RCA, which is a durable destination.
   - **It does not answer this block.** The body's Forward-carry section still names R9-CI-2b as the tests.yml destination. The tests.yml comment and #2024's lost pin still have no destination outside this PR.
 
-## Why this is blocked
+## The earlier block reason (round 1, now resolved; see Round 1b above)
 
 Step 10 of fix-review.md is the only failure. The code fix, the test, the mutation proof, the cause and the RCA all hold (see the RESULT lines below).
 
