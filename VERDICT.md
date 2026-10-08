@@ -1,4 +1,10 @@
-Fix review: blocked e8701d2e1a417fec33e1ff5c885fde05d26d0478 root-cause-unanswered: nightly-ha went red on dispatch at this head (both arms) and nightly-status red, body still says none; the fires half is unproven, no tests/nightly_ha.py touch
-bus-nonce: 26ed19f1457e8da4f7af022ffb8287cb
+Fix review: merge 8b4ce3732544ca9348d8d22dc4f667dbf430cdd6
+bus-nonce: eab9beb13e958f4a2c2481f0c95037fa
 
-Round-1 items at e8701d2e1a417fec33e1ff5c885fde05d26d0478: (a) body unchanged, Red checks none, so pr-contract's cause stands; (b) the pull_request run 37784320970 shows nightly-ha skipped because the diff still has no tests/nightly_ha.py change, so the fires half is not proven; (c) 2212 vs 2214 remain. New: dispatch run 37784310008 shows nightly-ha red on both images at this head; if #2056's fix is in the base, this PR's lane or the base is wrong, and either way it needs a named cause. Evidence: ev2/evidence.md.
+Round 3. All prior blocking items resolved at 8b4ce3732544ca9348d8d22dc4f667dbf430cdd6:
+1. Red checks answered (pr-contract green 113405040438): nightly-ha dispatch reds, both closures UNDER-SCOPED reds, fast, nightly-status, delivery-status each named with a cause and a cheaper-detector answer.
+2. Fires half proven: pull_request run at 9b471346 ran nightly-ha on both images, success (jobs 113378056184, 113378056503), with tests/nightly_ha.py in the three-dot diff; not-fires half from round 1 stands.
+3. 2212/2214 explained; my mutants count 2214.
+RESULT N2/N3/N5 each fail exactly the named entities.py check; null control (main tests.yml) fails reach+coverage, as the body says.
+Bot delta 9b471346->8b4ce373 is closures.json only: tests/ha_contract.py added to entities.py's closure plus timings; no custom_components entry (80 = main). Earned: _stage copies that file.
+At this head fast, closures, nightly-ha (both), pr-contract are green; nightly-status red is main's, answered. Merges are clean automatic. Evidence: ev3/evidence.md.
