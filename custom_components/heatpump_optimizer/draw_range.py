@@ -65,7 +65,15 @@ AGREE_TOLERANCE = 0.15
 
 @dataclass
 class DrawRange:
-    """Running draw samples and the latched clamp they justify."""
+    """Running draw samples and the latched clamp they justify.
+
+    For a consumer reading ``engaged`` (the nameplate notice, the COP floor):
+    it says the plan's running levels and the meter disagree, not that a
+    configured figure is wrong. A correctly sized pump whose draw follows the
+    level it is asked never engages; one whose own controller ignores that
+    level engages, sized correctly or not
+    (``tools/audit/harnesses/draw_range_evidence.py``, shape ``mild-indep``).
+    """
 
     #: ``(drawn_kw, asked_kw)`` per running sample, oldest first.
     samples: Deque[tuple[float, float]] = field(
