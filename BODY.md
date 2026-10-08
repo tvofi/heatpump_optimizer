@@ -35,7 +35,7 @@ Alternatives considered:
 
 ## Head
 
-`37e560679ba0760f014a668fc5f1b95d4c93bbfc`: round 1's commit on the previous head `04b8b4bd` (that head carried this PR's delivery row on `28ce083b`). Merge base `e2a4f7c6` is origin/main, so there is no resolution delta.
+`cf0bba2bad950c5e1a922fffccc84e321af76abb`: round 1's two commits (`37e56067`, then the `tests/closures.json` repair) on the previous head `04b8b4bd`, which carried this PR's delivery row on `28ce083b`. Merge base `e2a4f7c6` is origin/main, so there is no resolution delta.
 
 ## Mutation proof
 
@@ -95,8 +95,23 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
 
 ## Red checks
 
-- `delivery-status` (check-run 113131807985: `DELIVERY STATUS UNCHECKED — 68 rowed, 0 pending, 0 overdue`) is main's own. `python3 tests/delivery_status.py` on a clean worktree at origin/main `e2a4f7c6`, with this diff absent, prints the same `UNCHECKED` line. Its `merge-collection` skip names 9 merge commits whose subjects `subject_number` cannot attribute (e.g. `618d014`, `0a60e06`, `f6ac991`); none is on this branch. This PR touches `.github/workflows/tests.yml`, which the check reads, so `pr-contract` asks it to be named here. Cheaper detector: none is owed by this PR. The check already reports the skip; making those 9 subjects attributable is the record lane's job, not a CI-autofix change.
-- `pr-contract` was red three times (113131801566, 113132030985, 113132492257), each time only because `## Red checks` said `none` while `delivery-status` was red. This section answers it.
+Every red at the previous heads, each named exactly as the check-runs API spells it:
+
+- `closures` (check-run 113132056989 at `04b8b4bd`) is main's own.
+  - It failed only on `INERT READS UNDER-APPROXIMATED: tests/harness_headers.py: dev/audit/harnesses/r9_ro12_batch_mutants.sh`. #2044 landed that harness without the `inert_reads` entry the Linux recording carries.
+  - Main's own `closures` at `e2a4f7c6` fails on the same line (check-run 113092114325, run 37709593939).
+  - This diff repairs it as `ci-autofix.md` directs. It merges CI's own recording `harness_headers.py.json` from run 37722080989's `closure-recordings` artifact with `closure.py merge --partial`, and re-records nothing locally.
+  - `closure.py check --in-dir <that artifact> --partial` prints `committed closures cover every file this run touched` after the merge and `INERT READS UNDER-APPROXIMATED` before it.
+  - Cheaper detector: once this PR's `closures-autofix` change is on main, the bot merges this class itself. The standing cost is one autofix run.
+- `closures-autofix` (check-run 113141211571) ended `skip-manual-repair-owed`.
+  - It runs the base's `tests/closure.py`, which predates this PR's INERT READS repair, so the same `closures` red above was a manual repair. This diff's merge is that repair.
+  - After this PR merges, the same case ends `changed` (proven on #2032, run 37673851552).
+- `delivery-status` (check-run 113131807985: `DELIVERY STATUS UNCHECKED — 68 rowed, 0 pending, 0 overdue`) is main's own.
+  - `python3 tests/delivery_status.py` on a clean worktree at origin/main `e2a4f7c6`, with this diff absent, prints the same `UNCHECKED` line.
+  - Its `merge-collection` skip names 9 merge commits whose subjects `subject_number` cannot attribute (e.g. `618d014`, `0a60e06`, `f6ac991`); none is on this branch.
+  - Cheaper detector: none is owed by this PR. The check already reports the skip; making those subjects attributable is the record lane's work.
+- `pr-contract` (check-runs 113131801566, 113132030985, 113132492257, 113144355126) was red because `## Red checks` did not name the reds above. This section names them.
+- `python3 tools/pr/ci_predict.py --base origin/main` at the head: `CI PREDICT: no closures or fast red predicted against e2a4f7c67b28 (a data-file read is not seen)`.
 
 ## Forward-carry
 
