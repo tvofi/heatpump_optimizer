@@ -74,7 +74,7 @@ This machine runs up to four `prepr.sh` at a time. A seat's own prepr counts. `t
 
 ## 9. Conflicting or DIRTY
 
-Run `git merge-tree --write-tree origin/main <head>` first. Exit 0 and no train running: merge `origin/main` and push with `tools/pr/app_push.sh`, then `tools/pr/approve_held_runs.sh`. A content conflict stops. Name the path and return it to the fixer who owns the branch. Do not resolve it yourself. Use `tools/audit/merge_fastpath.py` only when no train is running.
+Run `git merge-tree --write-tree origin/main <head>` first. Exit 0 and no train running: merge `origin/main` and push with `tools/pr/app_push.sh`, then `tools/pr/approve_held_runs.sh`. A content conflict stops. Name the path and return it to the fixer who owns the branch. Do not resolve it yourself.
 
 ## 10. A refusal with nobody on it
 
@@ -110,6 +110,6 @@ When the roster or the open pull-request set changed, run `tools/audit/seat/stat
 
 ## 18. After the merge, and the instruments
 
-After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/pr/app_approve.sh` when its carry predicate holds. `tools/audit/merge_fastpath.py` reporting the head eligible is the only bypass of a fresh CI wait after `main` moves. Never clear a live gate lease. `tools/pr/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, `tools/audit/seat/` or `tools/audit/`, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `/Users/timmalmstrom/hpo-orch`. Do not start a second.
+After each merge, read which issues the merge commit closed. Reopen one the message did not name as intended. A carry is `tools/pr/app_approve.sh` when its carry predicate holds. Only `tools/audit/seat/merge_train.py batch` skips the CI wait after `main` moves. Never clear a live gate lease. `tools/pr/preflight.sh` reads the body on stdin. A filename argument reads nothing and prints clean. Run each instrument from its path in the tree, never from a scratch copy. If no sync loop is running, start one detached with `tools/audit/seat/wt_sync.sh` and the scratch at `/Users/timmalmstrom/hpo-orch`. Do not start a second.
 
 A background update that has exited 0 since the last turn is that notification: dispatch the reviewer for its printed HEAD before ending. A required check that failed since the last turn is the same kind of notification: return that pull request to its fixer before ending.
