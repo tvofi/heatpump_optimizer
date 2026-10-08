@@ -1,3 +1,0 @@
-RESULT old_writer_rc=0 head_check_rc=1 under_scoped_in_output=False names_remedy=True
-RESULT canonical_repair: content_equal=True layout_errors_after=[]
-RESULT check tail: ['closure: tests/closures.json is out of its layout (1):', "    text is not write_closures' serialisation (indent 1, keys sorted at every depth)", '  rewrite it with: python3 tests/closure.py canonical']
