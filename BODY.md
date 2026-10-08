@@ -1,4 +1,4 @@
-A room-temperature listener, modelled on the peak guard, that switches a space-heating pump off once inside a plan interval when the room passes its threshold; the next cycle's own switch write resumes it. Decision recorded on #201 (comment 6067353918, mandate 6067089637); rule choice recorded on #201 by the orchestrator after the comparison below. Lands last in the live-fix wave, per the architect's design note.
+A room-temperature listener, modelled on the peak guard, that switches a space-heating pump off once inside a plan interval when the room passes its threshold; the next cycle's own switch write resumes it. Decision recorded on #201 (comment 6067353918, mandate 6067089637); rule choice recorded on #201 by the orchestrator after the comparison below. Lands last in the live-fix wave, per the wave's binding design note, whose amendment A2 (the freeze order below) is already carried to fix 5.
 
 **Shipped rule: plan-aware.** Threshold = max(active comfort target, the plan's predicted room at the end of the current step) + 0.5 K. **It was inert in every measured case and ships as a guard.** In each scenario below the 30-minute re-solve already had the pump off before the room passed the threshold. The measured overshoot goes into the floor store, which is fix 5's (the slab observer), not this one's.
 
@@ -27,7 +27,7 @@ Structure: every row in `tests/structure_budgets.json` is unchanged; no raise. T
 
 ## Head
 
-`7d593d5897aa3ff649f2b2a716c46127cd300888`, merging origin/main `4dbe5aace` into the authored commit `b3ecf8be9`. Measured 2026-10-08T23:03Z.
+`007d44db34206df59e62b97d373b2369c5a64d94`: the authored commit `b3ecf8be9`, two merges of origin/main (`4dbe5aace`, then `bd59a4af1`) and one commit adding `early_cutoff.py` to the 21 recorded closures that list `coordinator.py` or `diagnostics.py`, which import it at module level (as #1745 did for `entry_config.py`). Figures measured 2026-10-08T23:03Z at `7d593d589`; the later commits change no production line.
 
 ## Mutation proof
 
@@ -53,6 +53,53 @@ Each mutant applied to the head and the new feature section driven (`tests/featu
 - "control: with the supply on, the same arbiter tick writes its slots" is the positive control for the arbiter check.
 - The freeze-order check asserts its precondition: the install trips the unmetered freeze (`_tail_freeze` non-None) before a cut is set.
 
+## Unpinned sites
+
+Every site below: pinned by `mutation-autofix` after the push (ci-autofix.md). The behaviour each guards is already killed by a named check in the mutation proof above; the autofix records the pins.
+
+- custom_components/heatpump_optimizer/coordinator.py:2427 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:91 CONST: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:124 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:142 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:145 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:167 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:170 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:185 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:191 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:193 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:195 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:197 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:199 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:201 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:208 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:208 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:215 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:222 CLAMP_DROP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:222 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:234 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:234 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:239 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:242 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:247 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:247 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:249 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:249 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:251 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:256 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:258 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:258 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:267 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:267 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:267 RETURN_DEL: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:276 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:279 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:282 CMP_BOUND: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:282 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:285 BOOLOP: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:285 GUARD_OFF: pinned by mutation-autofix
+- custom_components/heatpump_optimizer/early_cutoff.py:287 GUARD_OFF: pinned by mutation-autofix
+
 ## Figures
 
 - Rule comparison table: `CUTOFF_ARMS=on PYTHONPATH=tests/hastub:custom_components:tests python3 tools/audit/harnesses/early_cutoff_closed_loop.py NULL LIGHT OWNMIN HOT SUN COLDSUN` (plan-aware); with `CUTOFF_RULE=literal` / `CUTOFF_RULE=middle` for the other columns; without `CUTOFF_ARMS` for the no-cut-off column. Harness sha1 `0bdfce9803f681f25e5eb7c516ae44dd6ee4a6ad`, module sha1 `d89ad2b793e8ec2c2fbf5c1c662133970d5519d9`.
@@ -62,11 +109,11 @@ Each mutant applied to the head and the new feature section driven (`tests/featu
 
 ## Red checks
 
-none yet. `closures` is expected to print UNDER-SCOPED for the new module `early_cutoff.py` (and the harness under `tools/audit/`); `closures-autofix` records it (ci-autofix.md).
+none. The new module's closure entries are in this diff, so `tools/pr/ci_predict.py` predicts no `closures` or `fast` red.
 
 ## Forward-carry
 
-The live-fix wave's binding design note (amendment A2) already carries the freeze-order constraint to fix 5. The finding that the overshoot is in the floor store and not reachable by an in-interval room cut is fix 5's premise; reported to the orchestrator for #201.
+none
 
 ## Friction
 
