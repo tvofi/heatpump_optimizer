@@ -1,0 +1,6 @@
+  skip     red-history           neither GITHUB_TOKEN nor GH_TOKEN is set, so no check run could be read; every head before the one this ran on is UNCHECKED this run, not confirmed clean -- a red a later push cleared would not be named here
+
+/Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md
+  ERROR   [pr-body] /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/tests.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+
+PR-BODY: 1 error(s) in /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2058_1228.md
