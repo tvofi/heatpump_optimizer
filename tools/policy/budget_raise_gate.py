@@ -485,10 +485,10 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
 #
 # Both events write a `budget-raise-gate` check run at the head. When the owner
 # approves a raise, the `pull_request_review` run passes, but the
-# `pull_request` run that refused before the approval keeps its red on the pull
-# request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
+# `pull_request` runs that refused before the approval keep their red on the
+# pull request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
 # runs `--rerun-stale` on `workflow_run`, from main's copy of this file, and
-# asks GitHub to re-run that red run. A re-run re-grades from nothing -- the
+# asks GitHub to re-run each of those red runs. A re-run re-grades from nothing -- the
 # program restored from the base, the reviews read live -- so this writes no
 # verdict: a real red re-runs red, and only a head the owner approved turns.
 
@@ -496,35 +496,40 @@ GATE_WORKFLOW = ".github/workflows/budget-raise-gate.yml"
 RERUN_CONCLUSIONS = ("failure", "timed_out")
 
 
-def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, int | None, str]:
-    """(action, run id, why): "rerun", "wait" or "none" for one completed run.
+def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, list[int], str]:
+    """(action, run ids, why): "rerun", "wait" or "none" for one completed run.
 
     `trigger` is the completed run `workflow_run` names; `runs` the gate's
-    `pull_request` runs at its head. Only the NEWEST of those matters -- it is
-    the one the pull request shows -- and only when the trigger is a passing
-    review run of this very workflow. A trigger that is itself a
-    `pull_request` run is refused, which is also what stops a re-run's own
-    completion from starting another.
+    `pull_request` runs at its head. EVERY red one of those is re-run, not
+    only the newest: GitHub's ruleset refuses a merge while any suite at the
+    head carries a non-success run (#2009), and an author push that re-bodies
+    the pull request starts two `pull_request` runs at one head, which both
+    refuse a raise (R9-CI-2a). Nothing is re-run while one is still going.
+    Only a passing review run of this very workflow triggers it; a trigger
+    that is itself a `pull_request` run is refused, which is also what stops
+    a re-run's own completion from starting another.
     """
     head = str(trigger.get("head_sha") or "")
     if trigger.get("path") != GATE_WORKFLOW:
-        return "none", None, f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
+        return "none", [], f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
     if trigger.get("event") != "pull_request_review":
-        return "none", None, f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
+        return "none", [], f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
     if trigger.get("conclusion") != "success":
-        return "none", None, f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
-    same = [r for r in runs
-            if r.get("workflow_id") == trigger.get("workflow_id")
-            and r.get("event") == "pull_request" and r.get("head_sha") == head
-            and r.get("id") != trigger.get("id")]
+        return "none", [], f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
+    same = sorted((r for r in runs
+                   if r.get("workflow_id") == trigger.get("workflow_id")
+                   and r.get("event") == "pull_request" and r.get("head_sha") == head
+                   and r.get("id") != trigger.get("id")),
+                  key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
     if not same:
-        return "none", None, f"no pull_request run of the gate at {head[:12]}"
-    newest = max(same, key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
-    if newest.get("status") != "completed":
-        return "wait", newest.get("id"), f"run {newest.get('id')} at {head[:12]} is {newest.get('status')}"
-    if newest.get("conclusion") in RERUN_CONCLUSIONS:
-        return "rerun", newest.get("id"), f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}"
-    return "none", None, f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}; nothing is stale"
+        return "none", [], f"no pull_request run of the gate at {head[:12]}"
+    going = [r.get("id") for r in same if r.get("status") != "completed"]
+    if going:
+        return "wait", going, f"run(s) {going} at {head[:12]} still going"
+    red = [r.get("id") for r in same if r.get("conclusion") in RERUN_CONCLUSIONS]
+    if red:
+        return "rerun", red, f"run(s) {red} at {head[:12]} concluded red"
+    return "none", [], f"{len(same)} pull_request run(s) at {head[:12]}, none red; nothing is stale"
 
 
 def _gh_json(*args: str):
@@ -535,7 +540,7 @@ def _gh_json(*args: str):
 
 
 def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 30) -> int:
-    """Re-run the gate's stale red `pull_request` run after a passing review run.
+    """Re-run every stale red `pull_request` run of the gate after a passing review run.
 
     Exit 0 when a re-run was requested or nothing is stale; 1 when the API
     could not be read or refused, so the job is red and the stale verdict is
@@ -548,15 +553,16 @@ def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 3
         for _ in range(polls):
             runs = api(f"repos/{repo}/actions/workflows/{int(trigger.get('workflow_id') or 0)}/runs"
                        f"?event=pull_request&head_sha={trigger.get('head_sha')}&per_page=100")
-            action, rid, why = stale_run(trigger, runs.get("workflow_runs", []))
+            action, rids, why = stale_run(trigger, runs.get("workflow_runs", []))
             if action != "wait":
                 break
             print(f"WAIT: {why}")
             sleep(20)
         print(f"{action.upper()}: {why}")
         if action == "rerun":
-            api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
-            print(f"RESULT rerun_requested={rid}")
+            for rid in rids:
+                api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
+                print(f"RESULT rerun_requested={rid}")
         elif action == "wait":
             print("REFUSED: the pull_request run did not finish in time; re-run it by hand")
             return 1
@@ -962,24 +968,34 @@ def self_test() -> int:
                 "workflow_id": wf, "created_at": f"{at}{i}"}
 
     check("rerun: a passing review run re-runs the red pull_request run at its head",
-          stale_run(T0, [pr_run(3)])[:2], ("rerun", 3))
-    check("rerun: only the newest pull_request run counts",
-          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("none", None))
-    check("rerun: ... and it is the one re-run when it is red",
-          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", 4))
+          stale_run(T0, [pr_run(3)])[:2], ("rerun", [3]))
+    # R9-CI-2a: an author push that re-bodies the pull request starts two
+    # `pull_request` runs at one head, and both refuse a raise. The ruleset
+    # blocks on a red run in any suite at the head, not the newest alone
+    # (#2009), so every red one is re-run, never only the newest.
+    check("rerun: two red twins at one head, both re-run",
+          stale_run(T0, [pr_run(3), pr_run(4)])[:2], ("rerun", [3, 4]))
+    check("rerun: an older red run beside a newer green one is still re-run",
+          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("rerun", [3]))
+    check("rerun: ... and a newer red one beside an older green one",
+          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", [4]))
+    check("rerun: twins both green re-run nothing (null control)",
+          stale_run(T0, [pr_run(3, "success"), pr_run(4, "success")])[:2], ("none", []))
+    check("rerun: a twin still going is waited for before either is re-run",
+          stale_run(T0, [pr_run(3), pr_run(4, None, "in_progress")])[:2], ("wait", [4]))
     check("rerun: a failing review run re-runs nothing (the red stands)",
-          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)",
-          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: another workflow's run is not the gate",
-          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: a red run at another head is left alone",
-          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", None))
+          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", []))
     check("rerun: a red run of another workflow is left alone",
-          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", None))
-    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", None))
+          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", []))
+    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", []))
     check("rerun: a run still going is waited for",
-          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", 3))
+          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", [3]))
 
     def fake(pages, fail_post=False):
         calls = []
@@ -1002,6 +1018,12 @@ def self_test() -> int:
     api, calls = fake([[pr_run(3, None, "in_progress")]])
     check("rerun: a run that never finishes is a red job, not a silent pass",
           rerun_stale("9", "o/r", api, sleep=lambda s: None, polls=3), 1)
+    api, calls = fake([[pr_run(3), pr_run(4)]])
+    check("rerun: end to end, two red twins post two re-runs",
+          (rerun_stale("9", "o/r", api, sleep=lambda s: None),
+           [c for c in calls if c[0] == "-X"]),
+          (0, [("-X", "POST", "repos/o/r/actions/runs/3/rerun"),
+               ("-X", "POST", "repos/o/r/actions/runs/4/rerun")]))
     api, calls = fake([[pr_run(3)]], fail_post=True)
     check("rerun: a refused re-run request is a red job", rerun_stale("9", "o/r", api), 1)
     api, calls = fake([[pr_run(3, "success")]])
