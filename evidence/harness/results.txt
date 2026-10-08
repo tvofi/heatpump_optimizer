@@ -1,0 +1,26 @@
+== main(dcc77dd0)
+RESULT real-lone-flat(37763212023): merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT real-in-subdir: merged=measured pins=4 head_gate=would-apply
+RESULT lone-flat-stale-head: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT lone-flat-nothing-killed: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT lone-flat-measure-failed: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT lone-flat-measured-corrupt-pins: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT lone-flat-no-status(crash): merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT empty-root: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT missing-root: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT 3-shards: merged=measured pins=2 head_gate=would-apply
+RESULT 2-shards-mixed-heads: merged=measured pins=2 head_gate=skip-head-moved
+RESULT 3-shards-one-missing: merged=measured pins=1 head_gate=would-apply
+== head(cef15d63)
+RESULT real-lone-flat(37763212023): merged=measured pins=4 head_gate=would-apply
+RESULT real-in-subdir: merged=measured pins=4 head_gate=would-apply
+RESULT lone-flat-stale-head: merged=measured pins=4 head_gate=skip-head-moved
+RESULT lone-flat-nothing-killed: merged=skip-nothing-killed pins=0 head_gate=n/a
+RESULT lone-flat-measure-failed: merged=skip-measure-failed pins=0 head_gate=n/a
+RESULT lone-flat-measured-corrupt-pins: merged=skip-measure-failed pins=0 head_gate=n/a
+RESULT lone-flat-no-status(crash): merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT empty-root: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT missing-root: merged=skip-no-measurement pins=0 head_gate=n/a
+RESULT 3-shards: merged=measured pins=2 head_gate=would-apply
+RESULT 2-shards-mixed-heads: merged=measured pins=2 head_gate=skip-head-moved
+RESULT 3-shards-one-missing: merged=measured pins=1 head_gate=would-apply
