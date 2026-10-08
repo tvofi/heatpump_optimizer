@@ -10,13 +10,11 @@
 # workflow lists starts every job in it. One job, no `if:`, so no run this
 # file starts is a skipped one (#1514's shape, as budget-raise-gate.yml).
 #
-# The check runs the pull request's own copy of tools/audit/archscore/, as
-# governance.yml runs fold_ledger.py: a pinned grader must be declared in
-# field_coverage.mjs, which is itself pinned, so the pull request adding one
-# could not pass (#1847). Its protection is ownership instead: CODEOWNERS names
-# tools/audit/archscore/, so a pull request that edits the instrument to pass
-# its own check needs the owner's review, and a metric change that moves a
-# calibrated verdict moves the owned expected.json besides.
+# The check runs the BASE's scorer and the BASE's tests/structure.py (which the
+# scorer loads by path into its own process), as tests.yml restores its check
+# source: a pull request cannot edit the check that grades it. #2068's round 1
+# planted exactly that edit; tests/arch_score.py drives this file's score step
+# over it. The pull request that adds gate.py has no base copy and runs its own.
 
 name: Architecture score
 
@@ -69,12 +67,27 @@ jobs:
           gh api "repos/${GITHUB_REPOSITORY}/pulls/${NUMBER}" --jq '.body // ""' > "$RUNNER_TEMP/body.md"
           echo "pull request $NUMBER, body $(wc -c < "$RUNNER_TEMP/body.md") bytes"
 
+      # The scorer, and everything it loads, is the BASE's: tools/audit/archscore/
+      # and tests/structure.py (vector.py loads the latter by path into the
+      # gate's process) come from a checkout of the base commit, so a pull
+      # request cannot edit the check that grades it, as tests.yml restores its
+      # check source (decision 0013). Only the two commits' custom_components/
+      # are read, out of git. When the base holds no gate.py, this pull request
+      # is the one adopting it: it runs its own copy, once, and the workflow
+      # file that says so is under the owner's review.
       - name: Score the change, and refuse an unexplained rise
         env:
           PR_BASE: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
           PR_HEAD: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: |
           set -euo pipefail
-          python3 -I tools/audit/archscore/gate.py --self-test
-          python3 -I tools/audit/archscore/gate.py \
-            --base "$PR_BASE" --head "$PR_HEAD" --body "$RUNNER_TEMP/body.md"
+          GATE=tools/audit/archscore/gate.py
+          if git cat-file -e "$PR_BASE:$GATE" 2>/dev/null; then
+            git worktree add -q --detach "$RUNNER_TEMP/base" "$PR_BASE"
+            cd "$RUNNER_TEMP/base"
+            echo "gate and structure.py from the base $PR_BASE"
+          else
+            echo "the base holds no $GATE: this pull request adopts it, so its own copy runs"
+          fi
+          python3 -I "$GATE" --self-test
+          python3 -I "$GATE" --base "$PR_BASE" --head "$PR_HEAD" --body "$RUNNER_TEMP/body.md"
