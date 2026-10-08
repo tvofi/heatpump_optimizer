@@ -1,0 +1,7 @@
+RESULT mutant=R0 entities_rc=0 ALL 2217 ENTITY CHECKS PASSED
+RESULT mutant=R1 entities_rc=1 1 of 2217 ENTITY CHECKS FAILED
+  FAIL an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, its parsed fields kept, its stored values still read-only  [error=TypeError:
+RESULT mutant=R2 entities_rc=1 6 of 2217 ENTITY CHECKS FAILED
+  FAIL only the unbounded cell keeps Cost Power Headroom unavailable  [available cells: ['fuse, capacity tariff', 'fuse, no tariff', 'no fuse, capacity tariff', 'no fuse,
+  FAIL the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW  [(13.8, 0.0, 3.68)]
+RESULT mutant=R3 entities_rc=0 ALL 2217 ENTITY CHECKS PASSED

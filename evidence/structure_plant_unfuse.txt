@@ -89,7 +89,9 @@
   custom_components/heatpump_optimizer/const.py:1570  ENTITY_FAMILY_OVERRIDES
 
 ########## dead members (no live attribute load reaches them) ##########
-  dead_methods = 0 (methods and properties; receiver-resolved, reachability from live code)
+  custom_components/heatpump_optimizer/entry_config.py:268  EntryConfig.fuse_kw
+  custom_components/heatpump_optimizer/entry_config.py:264  EntryConfig.fuse_kw_at
+  dead_methods = 2 (methods and properties; receiver-resolved, reachability from live code)
   unmeasured: 143 live member(s) kept only by an untyped x.name load of a name another class also defines
     custom_components/heatpump_optimizer/accuracy.py  AccuracySample.as_dict
     custom_components/heatpump_optimizer/accuracy.py  AccuracySample.from_dict
@@ -299,7 +301,7 @@ RESULT const_modules_over_50=3 count
 RESULT coordinator_attrs=153 count
 RESULT coordinator_multiassigned_attrs=120 count
 RESULT coordinator_private_reach=0 count
-RESULT dead_methods=0 count
+RESULT dead_methods=2 count
 RESULT dead_top_level_symbols=1 count
 RESULT duplication_copies=38 count
 RESULT functions_cc_over_15=31 count
@@ -313,25 +315,25 @@ RESULT methods_over_200=9 count
 RESULT seam_cut_total=760 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 8d7903e69cfe) ##########
+########## ratchet vs structure_budgets.json (recorded_at 2d8cab3f75dd) ##########
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 153 <= 153
   ok   coordinator_multiassigned_attrs 120 <= 120
   ok   coordinator_private_reach 0 <= 0
-  ok   dead_methods 0 <= 0
+FAIL dead_methods 2 > 0 (+2)
   ok   dead_top_level_symbols 1 <= 1
   ok   duplication_copies 38 <= 38
   ok   functions_cc_over_15 31 <= 31
   ok   functions_cc_over_25 8 <= 8
   ok   import_cycle_modules 0 <= 0
   ok   max_cc 45 <= 45
-FAIL max_class_loc 8823 > 8819 (+4)
+FAIL max_class_loc 8823 > 8817 (+6)
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
   ok   seam_cut_total 760 <= 760
 
-1 STRUCTURE BUDGET(S) BREACHED
+2 STRUCTURE BUDGET(S) BREACHED
 Three responses, all of them deliberate: pay for the lines
 elsewhere; re-record because the tree genuinely improved; or, for
 a genuine new production FEATURE, RAISE the budget because the

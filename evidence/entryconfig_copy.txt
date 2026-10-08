@@ -1,3 +1,0 @@
-RESULT deepcopy TypeError cannot pickle 'mappingproxy' object
-RESULT copy ok
-RESULT dumps TypeError cannot pickle 'mappingproxy' object
