@@ -11,7 +11,13 @@ Closes #2023
 | `ci: drop inherited claims` | the claim files |
 | remerge_main.sh's `claims: drop the claims main already carries after the main merge` | the claim files (the owner's Q3) |
 
-What those commits wrote is left out of the branch's own-diff comparison. The subject is free text, so the paths remain the guard, as #1667 made them for `ci:`.
+Round 2 adds two rules for a bot subject:
+- the commit's author must be that subject's writer: `github-actions[bot]` for the `ci:` subjects, the orchestrator's `tvofi` noreply address for remerge_main.sh's;
+- a claim-file subject may only remove lines.
+
+What those commits wrote is left out of the branch's own-diff comparison. A `ci:` commit that touches main's driver files alone keeps #1667's rule unchanged.
+
+**Disclosure.** Author and subject are git metadata anyone who can push may write. A seat that forges the bot's identity can still carry a `killed_by` entry no run measured under `ci: pin killed mutants`. That is the same reach a seat's own ledger edit has, and `policy_lint.mjs` says the same of pr-contract's acceptance. Seats commit as `tvofi`, so the `claims:` subject's author check binds nothing against a seat. Its remove-only rule is what prevents a forged one from adding a claim.
 
 **2. The merge-main bot (`tools/pr/merge_main_bot.py`, `.github/workflows/merge-main.yml`).** It runs on each push to main. A pull request gets `ci: merge main` only when all of these hold:
 - GitHub reports it unmergeable;
@@ -27,10 +33,15 @@ Other properties of the bot:
 - **Testing.** It has a dry run (`workflow_dispatch`, `dry_run` defaults to true) and `--self-test`, which governance.yml now runs.
 - **Branch names.** A branch name outside `[A-Za-z0-9._/-]` is skipped, because the pull request chose it.
 
-**3. pr-contract accepts the bot's merge.** `checkPrBody` accepted only single-parent autofix commits on the named head, so every bot merge would have turned the contract red. `AUTOFIX_BOT_COMMITS` gains `ci: merge main`, a two-parent commit whose tree must be git's own merge of its parents outside the driver files (the #1667 rule). The walk then continues down the first parent.
+**3. pr-contract accepts the bot's merge, and only that merge (round 2).** `checkPrBody` accepted only single-parent autofix commits on the named head, so every bot merge would have turned the contract red. `AUTOFIX_BOT_COMMITS` gains `ci: merge main`, a two-parent commit, and it is accepted only when all of these hold:
+- its second parent is on `origin/main` (round 2);
+- its tree is git's own merge of its parents outside the driver files, the #1667 rule;
+- those driver files are read from `origin/main`'s `.gitattributes`, never from the parent's (round 2).
+
+The walk then continues down the first parent. pr-contract's checkout uses `fetch-depth: 0`, so `origin/main` is there. A clone without it refuses, and never assumes.
 
 **4. Policy** (owner approval through the orchestrator's mandate). Each change is paid in the same file, so every cap holds:
-- `fixer.md` step 6: the head is frozen except to the orchestrator or a commit `--carry` passes.
+- `fixer.md` step 6: the head is frozen except to the orchestrator, the merge-main bot or a commit `--carry` passes (round 2 names the bot). `ci-autofix.md`'s section heading now says what the section permits, and `merge-main.yml`'s concurrency comment is corrected: a queued run is replaced by the next push's.
 - `fixer.md` step 7: a head that `--carry` reaches needs no body re-take, but the bot reds must be named.
 - `fixer.md` step 5: run run.sh's `run_always` lines too (the #2051 entry of #2039).
 - `fix-review.md` step 7: the body's SHA may `--carry` to the measured head.
@@ -38,7 +49,7 @@ Other properties of the bot:
 
 ## Head
 
-`da2530a5fece7914419cc10711a1b71b2b2e2c9c`, which merges origin/main `dcc77dd0`. Measured 2026-10-08.
+`0ac45f6417399f2316ba8e03668345a842835c42` is the code head (round 2), measured 2026-10-08. The orchestrator's script merges it into the pull request head with origin/main.
 
 ## Mutation proof
 
@@ -54,9 +65,15 @@ The ledger is `/Users/timmalmstrom/hpo-seats/r9-ci-2b/mutation2.txt`. Each mutan
   - B4, driver refusal ignored: FAIL.
   - B5, GitHub's view computed with the drivers: "a ledger-only conflict the driver resolves is planned for a merge" FAILs.
   - B6, parents reversed: FAIL.
-- M0, unmutated: `app_approve self-test: 151 checks, 0 failed`, `merge_main_bot self-test: 23 checks, 0 failed`.
+- Round 2:
+  - P5 (pr-contract's main-ancestry check deleted): `tests/entities.py` FAILs "and refuses every chain that is not purely the bot's own repair" (`merge_main_offmain` accepted).
+  - P6 (carry's author check deleted): FAILs "NO CARRY: the ledger commit under the bot's subject but a seat's author".
+  - P7 (claims remove-only deleted): FAILs "NO CARRY: the same subject adding a claim line". The ledger keeps a first P7 run whose replacement never applied, so it measured nothing; it is marked as such there, beside the re-run.
+  - Reading `.gitattributes` at the parent instead of at main is not separately killed. With the parent required to be on main, the two differ only when main changed `.gitattributes` after that parent. I say so rather than count it.
+- M0, unmutated, at `0ac45f64`: `app_approve self-test: 153 checks, 0 failed`, `merge_main_bot self-test: 24 checks, 0 failed`, `tests/entities.py` ALL 2213 PASSED.
 
 Failing first:
+- Round 2: the review's two forgeries in the entities fixture, under the round-1 `policy_lint.mjs`, read `merge_main_offmain` accepted (rc=0) (`/Users/timmalmstrom/hpo-seats/r9-ci-2b/failing-first-pr2-r2.txt`).
 - Before the carry code, the three new carry cases read `got '1', want '0'` (`/Users/timmalmstrom/hpo-seats/r9-ci-2b/failing-first-pr2.txt`).
 - The new entities fixture under main's `policy_lint.mjs` FAILs "pr-contract accepts the merge-main bot's automatic `ci: merge main`" (F0 in the ledger).
 
@@ -76,13 +93,18 @@ Each of these runs on real heads, against main's unmodified copy as the control:
 ## Figures
 
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED -- 2 script(s) run` (`tests/entities.py`, `tests/harness_headers.py`). `merge-main.yml` was recorded in both of their closures by hand, the two that read every workflow.
-- Run locally on venv-ci 3.14: `tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`, `tests/env_drift.py --claims-only origin/main`, `tests/closure.py selftest`, `tests/structure.py`, `bash tools/pr/app_approve.sh --self-test`, `python3 tools/pr/merge_main_bot.py --self-test`. Each result is in `/Users/timmalmstrom/hpo-seats/r9-ci-2b/gate2/`. The rest is CI's.
+- Run locally on venv-ci 3.14 (round 2 at `0ac45f64`; the bot's self-test is 24 checks): `tests/entities.py`, `tests/harness_headers.py`, `tests/layout.py`, `tests/env_drift.py --claims-only origin/main`, `tests/closure.py selftest`, `tests/structure.py`, `bash tools/pr/app_approve.sh --self-test`, `python3 tools/pr/merge_main_bot.py --self-test`. Each result is in `/Users/timmalmstrom/hpo-seats/r9-ci-2b/gate2/`. The rest is CI's.
 - `node tools/policy/policy_lint.mjs --budgets`: every changed policy file is at or under its cap. `policy_lint.mjs` prints `TOTAL: 0 error(s)`, and `rules_sync.mjs --check` passes. No cap was raised.
 - The lost-verdict count (two of three post-verdict losses were the ledger commit alone) is the bus refs' VERDICT.md first lines, read as in `/Users/timmalmstrom/hpo-seats/r9-ci-2b/PRESTUDY.md` section 4.
 
 ## Red checks
 
-none at the time of writing. CI has not run at this head yet.
+Measured at `9e44f73c`, the previous head:
+
+- `CodeQL` (check run 113314033968): alert #35, `py/overly-permissive-file` (high), at `tools/pr/merge_main_bot.py:247`, where the self-test's stand-in driver was chmodded `0o755`. Fixed to `0o700` in `154c9139`, so the alert does not stand at the new head. Cheaper detector: none on a seat. CodeQL needs its CLI and runs on every pull request; the cost was one head move.
+- `pr-contract` (run 37777939476): it refused the round-1 body for the unnamed `delivery-status` and `nightly-status` below. The body now names them. The cheaper detector is `prepr.sh`'s ancestry-reds step, which reads them only after CI has posted them; it did refuse the first body update.
+- `delivery-status`: OVERDUE, because rows for merges already on `main` are unread (`#1998`, `#1992`, `#1991`, `#1989`). The diff touches `.github/workflows/governance.yml`, a reporter input, which voids the main-state exemption. It only adds one self-test step there, though, and the only row it adds is its own. Clearing the red is the orchestrator's, on `main`.
+- `nightly-status`: `main`'s scheduled run 37595831734 failed `mutation-ledger`, `mutation-nightly` and `record-autofix`. Those are lanes this diff does not touch, and the nightly reports its own state, so none is owed.
 
 ## Forward-carry
 
