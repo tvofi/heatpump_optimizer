@@ -423,14 +423,13 @@ predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 
 # `mutation-autofix`, a value check, or a written triage). A key matches whole:
 # `f.py:12 CONST` is not named by `f.py:12 CONST_X`. rc 3 when no site is owed,
 # so a body that adds none needs no section.
-has_key() { # key, text; rc 0 when the text names the key as a whole token
-  awk -v k="$1" '{ s = $0; while ((i = index(s, k)) > 0) {
+unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
+  local sec missing n near whole
+  # One function, so a harness that extracts it whole still runs it.
+  whole='{ s = $0; while ((i = index(s, k)) > 0) {
       b = (i == 1) ? "" : substr(s, i - 1, 1); a = substr(s, i + length(k), 1)
       if (b !~ /[A-Za-z0-9_.\/-]/ && a !~ /[A-Za-z0-9_*]/) { f = 1; exit }
-      s = substr(s, i + 1) } } END { exit !f }' <<<"$2"
-}
-unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
-  local sec missing n near
+      s = substr(s, i + 1) } } END { exit !f }'
   n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
   if [ "$n" -eq 0 ]; then echo "the diff adds no unpinned mutation site"; return 3; fi
   sec=$(awk '/^## /{on=($0 ~ /^## Unpinned sites[[:space:]]*$/)} on' "$1")
@@ -439,7 +438,7 @@ unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
     echo "$n unpinned site(s) the diff adds and no section headed exactly \`## Unpinned sites\`${near:+ (found \`$near\`)} -- give each its key and disposition"
     return 1
   fi
-  missing=$(while read -r k; do has_key "$k" "$sec" || printf '%s; ' "$k"; done < "$2")
+  missing=$(while read -r k; do awk -v k="$k" "$whole" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
   if [ -n "$missing" ]; then
     echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
   fi
