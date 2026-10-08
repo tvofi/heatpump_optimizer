@@ -150,8 +150,10 @@ recarry_verdict() { # worktree listing body -> RV_*; rc 0 = skip prepr
   git -C "$wt" fetch -q origin main 2>/dev/null || { _rv_no "origin/main could not be fetched"; return 1; }
   # ON MAIN'S FIRST-PARENT CHAIN, not merely an ancestor: main merges pull
   # requests with merge commits, so an ancestor can be a merged branch's
-  # intermediate commit, a tree main never had (review of #2069).
-  git -C "$wt" rev-list --first-parent refs/remotes/origin/main 2>/dev/null | grep -qx "$p2" \
+  # intermediate commit, a tree main never had (review of #2069). grep reads
+  # to EOF: `grep -q` would quit at main's tip, and under pipefail rev-list's
+  # SIGPIPE then refused every honest recarry (round 2).
+  git -C "$wt" rev-list --first-parent refs/remotes/origin/main 2>/dev/null | grep -x "$p2" >/dev/null \
     || { _rv_no "parent 2 ${p2:0:8} is not on the freshly fetched origin/main's first-parent chain"; return 1; }
   tree=$(git -C "$wt" merge-tree --write-tree "$p1" "$p2" 2>/dev/null) \
     || { _rv_no "parent 1 and parent 2 do not merge cleanly; a resolution goes through prepr"; return 1; }
@@ -679,6 +681,16 @@ throwaway_git_init "$R/origin.git" -q --bare -b main && throwaway_git_clone -q "
       && rgit checkout -q main && rgit merge -q --no-ff --no-edit other && rgit push -q origin main \
       && rgit checkout -q -b conf origin/main~1 && printf 'cm\n' > o && rgit add o && rgit commit -qm conf && rgit push -q origin conf \
       && rgit checkout -q fix && rgit merge -q --no-edit evil)
+# MAIN LONGER THAN A PIPE BUFFER (review of #2069, round 2): 6000 first-parent
+# commits, ~240 KB of rev-list output, written by one fast-import. A reader
+# that quits at main's tip (`| grep -q`) kills rev-list with SIGPIPE, and
+# pipefail reads that as "not on the chain" for the honest merge below.
+python3 -c 'import sys
+tip = sys.argv[1]
+for i in range(6000):
+    sys.stdout.write("commit refs/heads/main\ncommitter t <t@t> %d +0000\ndata 2\nc\n%s\n" % (1700000000 + i, "from %s\n" % tip if i == 0 else ""))' \
+  "$(git -C "$R/wt" rev-parse main)" | git -C "$R/wt" fast-import --quiet && rgit -C "$R/wt" push -q origin main
+st "$(git -C "$R/wt" rev-list --first-parent origin/main | wc -c | awk '{print ($1 > 65536) ? "over" : "under"}')" over "real git: main's first-parent list is over 64 KB, past any pipe buffer"
 st "$(git -C "$R/wt" merge-base --is-ancestor evil origin/main && echo ancestor)$(git -C "$R/wt" ls-tree --name-only HEAD | grep -c evil.py)" ancestor1 "real git (review of #2069): parent 2 is a merged branch's intermediate commit, an ancestor of origin/main, and HEAD carries its evil.py"
 st "$(rv fix)" "parent 2 $(git -C "$R/wt" rev-parse --short=8 evil) is not on the freshly fetched origin/main's first-parent chain" "real git: that side-branch parent 2 refuses (a)"
 (cd "$R/wt" && rgit reset -q --hard origin/fix && rgit merge -q --no-edit origin/main)
