@@ -37,6 +37,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate
+from throwaway_git import throwaway_git_env, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -17502,8 +17503,7 @@ def _stale_corpus_fixture():
     def g(d, *a):
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"},
+            env={**throwaway_git_env(), "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e"},
         )
 
     def run(d):
@@ -17523,7 +17523,7 @@ def _stale_corpus_fixture():
         shutil.copy(_preflight, d / "tools/audit/preflight.sh")
         for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
             (d / "tools/audit/briefs" / f).write_text("v1\n")
-        g(d, "init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         g(d, "add", "-A")
         g(d, "commit", "-q", "-m", "base")
         base = g(d, "rev-parse", "HEAD").stdout.strip()
@@ -17648,13 +17648,12 @@ def _mirror_age_fixture():
                 when = f"@{now - ago * 3600} +0000"
                 return subprocess.run(
                     ["git", "-C", str(d), *a], capture_output=True, text=True,
-                    env={**os.environ,
-                         "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e",
+                    env={**throwaway_git_env(),
+                         "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e",
                          "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when},
                 )
 
-            g("init", "-q", "-b", "trunk")
+            throwaway_git_init(d, "-q", "-b", "trunk")
             g("add", "-A")
             g("commit", "-q", "-m", "base", ago=commit_age_h)
             sha = g("rev-parse", "HEAD").stdout.strip()
@@ -19890,10 +19889,11 @@ with _tempfile.TemporaryDirectory() as _cm_td:
 
     def _cm_git(*args, **kw):
         return _subprocess.run(
-            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True, **kw
+            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True,
+            env=throwaway_git_env(), **kw
         )
 
-    _cm_git("init", "-q", "-b", "main")
+    throwaway_git_init(_cm_repo, "-q", "-b", "main")
     _cm_git("config", "user.email", "t@example.invalid")
     _cm_git("config", "user.name", "t")
     _cm_claim = _cm_repo / _env_drift.CLAIM_FILE
@@ -20162,13 +20162,13 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
         "x = 1\n"
     )
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
     base = _sp.run(
-        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True
     ).stdout.strip()
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text(card_head)
     for rel, text in extra.items():
@@ -20179,8 +20179,8 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
         (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
             "x = 2\n"
         )
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "head"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "head"], cwd=root, env=env, check=True, capture_output=True)
     return root, base
 
 
@@ -20258,23 +20258,23 @@ def _merge_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 1\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
-    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
+    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 2\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # A note keeps the merge tree's list the baseline's while its bytes are
     # not: byte-identical is the no-claim state (R9-F10.8), checked below.
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(
         five + "# a note the merge tree carries\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, env=env, check=True, capture_output=True)
     return root, base, branch
 
 
@@ -20347,24 +20347,24 @@ def _untouched_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "docs" / "rust.txt").write_text("start\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "fork"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "fork"], cwd=root, env=env, check=True, capture_output=True)
     # the branch: a docs-only change, both claim files left exactly as found
     (Path(root) / "docs" / "rust.txt").write_text("branch\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # main moves the solver list after the fork (the branch is not its author)
-    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, env=env, check=True, capture_output=True)
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(moved)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "main"], cwd=root, check=True, capture_output=True)
-    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "main"], cwd=root, env=env, check=True, capture_output=True)
+    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # the synthetic merge tree a `pull_request` checks out: main merged with branch
-    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, env=env, check=True, capture_output=True)
     return root, ref, branch
 
 
@@ -20529,7 +20529,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     root = _tempfile.mkdtemp(prefix="f108_")
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     def _put(rel: str, text: str) -> None:
@@ -20543,7 +20543,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     _put(_env_drift.CARD_CLAIM_FILE, hdr)
     _put("custom_components/heatpump_optimizer/optimizer.py", "x = 1\n")
     _put(_env_drift.CARD_JS, "// card\n")
-    _git("init", "-q")
+    throwaway_git_init(root, "-q")
     _git("config", "user.email", "t@t")
     _git("config", "user.name", "t")
     _git("add", "-A")
@@ -20667,7 +20667,7 @@ def _f108_tip_moved():
     root, main_sha = _f108_repo(branch_note=False)
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     _git("checkout", "-q", "main")
@@ -25071,16 +25071,16 @@ def _pt_trigger(script: str, planted: str) -> str:
     """Run the arm's `changed` step on a planted one-file diff; its governance output."""
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
-        subprocess.run(["git", "init", "-q", _td], check=True)
+        _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "base"], check=True)
-        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
+        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         Path(_td, planted).parent.mkdir(parents=True, exist_ok=True)
         Path(_td, planted).write_text("1\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "head"], check=True)
-        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "head"], check=True, env=_env)
+        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
@@ -25495,7 +25495,7 @@ def _autofix_head_fixture():
         c = committer or who
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": who[0],
+            env={**throwaway_git_env(), "GIT_AUTHOR_NAME": who[0],
                  "GIT_AUTHOR_EMAIL": who[1], "GIT_COMMITTER_NAME": c[0],
                  "GIT_COMMITTER_EMAIL": c[1]},
         ).stdout.strip()
@@ -25536,7 +25536,7 @@ def _autofix_head_fixture():
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
         (d / "other.txt").write_text("v1\n")
-        g("init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         (d / ".gitignore").write_text("body.md\n")
         base = commit("base", {}, who=seat)
         closures = {"tests/closures.json": '{"closures": {"a": []}}\n'}
@@ -29321,7 +29321,8 @@ R.check(
 def _mut_git(root: Path, *args: str) -> str:
     return _subprocess.run(["git", "-c", "user.name=t", "-c",
                             "user.email=t@example.invalid", *args], cwd=root,
-                           capture_output=True, text=True, check=True).stdout.strip()
+                           capture_output=True, text=True, check=True,
+                           env=throwaway_git_env()).stdout.strip()
 
 
 _MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
@@ -29339,7 +29340,7 @@ try:
         "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
             _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
                                             "old": "    if x:"}}}))
-    _mut_git(_mb_root, "init", "-q")
+    throwaway_git_init(_mb_root, "-q")
     _mut_git(_mb_root, "add", "-A")
     _mut_git(_mb_root, "commit", "-qm", "A")
     _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
@@ -29562,15 +29563,15 @@ _LL_GOT: dict = {}
 try:
     _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
                "-c", "commit.gpgsign=false"]
-    subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+    _ll_env = throwaway_git_init(_LL_DIR, "-q")
     (_LL_DIR / "tests").mkdir()
     _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
     _mut.write_budgets(_ll_led)
     _ll_d = _mut.ledger_dir()
     _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
     _LL_GOT["clean"] = _mut.layout_problems()
-    subprocess.run([*_ll_git, "add", "-A"], check=True)
-    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True)
+    subprocess.run([*_ll_git, "add", "-A"], check=True, env=_ll_env)
+    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True, env=_ll_env)
     _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
     _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
     _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
@@ -30035,7 +30036,7 @@ _PP_DIR = Path(tempfile.mkdtemp(prefix="hpo-drain-push-"))
 
 def _pp_git(*a: str) -> str:
     return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
-                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR,
+                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR, env=throwaway_git_env(),
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
@@ -30048,7 +30049,7 @@ def _pp_row(name: str, text: str, subject: str) -> None:
 
 
 try:
-    _pp_git("init", "-q", "-b", "main")
+    throwaway_git_init(_PP_DIR, "-q", "-b", "main")
     (_PP_DIR / "a.txt").write_text("a\n")
     _pp_row("old.json", "{}\n", "base")
     _pp_main = _pp_git("rev-parse", "HEAD")
@@ -31423,16 +31424,29 @@ with _tempfile.TemporaryDirectory() as _sh_td:
     _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
     (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
     _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+    # One shard is one matching artifact, and download-artifact extracts a
+    # lone match into `path` itself, not into a subdirectory: six of the first
+    # nine post-#2049 autofix runs, three of them measured pins read as
+    # skip-no-measurement (#2025 at de81043a, run 37763212023).
+    _sh_one = Path(_sh_td) / "one"
+    _sh_one.mkdir()
+    (_sh_one / "status").write_text("measured\n")
+    (_sh_one / "pins.json").write_text(json.dumps({"p:a": {"killed_by": "t"}}))
+    (_sh_one / "head").write_text("h\n")
+    _sh_1 = _mut.merge_pin_shards(str(_sh_one), str(Path(_sh_td) / "o"))
+    _sh_1p = sorted(json.loads((Path(_sh_td) / "o" / "pins.json").read_text())) \
+        if _sh_1 == "measured" else []
 R.check(
     "the pin shards are disjoint, cover the pool and keep an anchor's twins "
-    "together; their merge is measured when any shard measured",
+    "together; their merge is measured when any shard measured, one shard too",
     sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
     and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
             for b in _MUT_SH_ANCH[i + 1:])
     and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
-    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed",
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed"
+    and (_sh_1, _sh_1p) == ("measured", ["p:a"]),
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
-    f"quiet={_sh_q} failed={_sh_f}",
+    f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
 )
 # The shard count scales with the sites the diff added: six a shard, at most
 # ten, one when the table names none -- read off the refusal line the lane
@@ -31717,7 +31731,7 @@ def _mutl_git(*args):
     return _mutl_sp.run(
         ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
          "-c", "commit.gpgsign=false", *args],
-        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True, env=throwaway_git_env()).stdout
 
 
 def _mutl_branch(name, edits):
@@ -31733,7 +31747,7 @@ def _mutl_branch(name, edits):
 
 (_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
 (_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
-_mutl_git("init", "-q")
+throwaway_git_init(_MUTL_DIR, "-q")
 _mutl_git("add", "-A")
 _mutl_git("commit", "-q", "--no-verify", "-m", "base")
 _mutl_git("branch", "base")
@@ -32368,8 +32382,9 @@ def _jb_run() -> dict:
                 **({"judge_batch": "not an object"} if name == "badjb" else {}),
             })
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
-        for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
-            _subprocess.run(git + cmd, check=True, capture_output=True)
+        _jb_env = throwaway_git_init(repo, "-q")
+        for cmd in (["add", "-A"], ["commit", "-qm", "fixture"]):
+            _subprocess.run(git + cmd, check=True, capture_output=True, env=_jb_env)
         rows = judge_batch.run_batch(findings, repo=repo, lock_dir=lock_dir,
                                       label="entities-jb", timeout=30)
         after = _gate_lock.read_owner(lock_dir)
@@ -32963,10 +32978,10 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
                     (repo / rel).parent.mkdir(parents=True, exist_ok=True)
                     (repo / rel).write_text(body or "untracked")
             if tracked:
-                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
-                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                env = throwaway_git_init(repo, "-q")
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True, env=env)
                 subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
-                               check=True)
+                               check=True, env=env)
         rc = _pg_run(stage, repo)
         site = repo / "_site"
         got = {p.relative_to(site).as_posix() for p in site.rglob("*")
