@@ -170,6 +170,12 @@ NOT_A_TEST = {
     "dom_stub.mjs", "card_rig.mjs",
     # Preload for `_record_node` when strace is missing. Not a test.
     "node_fs_trace.mjs",
+    # The shared throwaway-repository helper (R9-RCA-stamp-race): a library
+    # the scripts that build a scratch git repository import. Its own
+    # `--check` and `--self-test` run in governance's instrument-self-tests,
+    # which is never scoped. NOT inert: entities.py, layout.py and
+    # doc_claims.py import it, so an edit to it selects them.
+    "throwaway_git.py",
 }
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
@@ -375,6 +381,11 @@ INERT = (
     # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
+    # The shell twin of tests/throwaway_git.py. Only shell self-tests source
+    # it (prepr.sh, app_approve.sh, bus.sh, the stop hook), and governance runs
+    # those, never this gate; tests/throwaway_git.py's own --self-test, which
+    # pins the twin's variables, runs there too.
+    "tests/throwaway_git.sh",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
