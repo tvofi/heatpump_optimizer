@@ -18268,7 +18268,9 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # Sorted: a table out of tests/closure.py's layout is a check failure of
+    # its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
     _af2_closures.write_text(json.dumps(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
