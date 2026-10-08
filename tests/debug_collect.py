@@ -802,6 +802,10 @@ async def _writer_2025_10(hass, data, data_issues, filename, domain, d_id, sub_i
     return _Response(_StringPayload(json.dumps(body, indent=2)))
 
 
+async def _writer_bytes(hass, data, filename, domain, d_id, sub_id=None):
+    return _Response(json.dumps({"data": data}).encode())
+
+
 async def _writer_500(hass, data, filename, domain, d_id, sub_id=None):
     return _Response(None, status=500)
 
@@ -848,6 +852,18 @@ for _label, _fn in (("2025.2.0", _writer_2025_2), ("2025.10", _writer_2025_10)):
         and _name == "diagnostics._async_get_json_file_response",
         repr(_got)[:200],
     )
+_got, _ = _written(_writer_2025_10)
+R.check(
+    "A16 passes data_issues as the list HA passes, so the file carries its issues section",
+    isinstance(_got, bytes) and json.loads(_got).get("issues") == [],
+    repr(_got)[:200],
+)
+_got, _ = _written(_writer_bytes)
+R.check(
+    "A16's download writer returns a bytes body as it is",
+    _got == json.dumps({"data": {"k": 1}}).encode(),
+    repr(_got)[:200],
+)
 _got, _ = _written(_writer_500)
 R.check(
     "A16's download writer refuses a response HA's writer failed (status 500, no body)",
