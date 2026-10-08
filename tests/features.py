@@ -60296,6 +60296,12 @@ R.check(
         _frs_dead["input_problems"], _FRS_T0, _FRS_T0 + timedelta(minutes=_frs_lim)
     ) == (_FRS_T0, {"entity_id": _FRS_ENTITY, "minutes": f"{_frs_lim:.0f}"}),
 )
+R.check(
+    "the silence period outlasts a restart's or a brief outage's gap and is "
+    "shorter than three hours of unannounced open-loop slab estimate",
+    30.0 < _frs_lim <= 180.0,
+    f"{_frs_lim} min",
+)
 # Null controls: the same clock with nothing wrong, or nothing configured,
 # raises nothing; and a gap shorter than the period restarts the count.
 R.check(
