@@ -24344,11 +24344,12 @@ R.check(
 # branch, so a red a later push cleared -- an autofix commit on top of a red
 # `closures`, the shape that blocked #2053 -- is still owed a name. It reads
 # check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
-# is set. The body-check step never carried either, so from the arm's landing
-# (a07dd57d, 2026-09-19) every CI run printed `skip red-history` and went
-# green on exactly the bodies the arm exists to refuse: 35 of 35 contract logs
-# at the round-9 `root-cause-unanswered` heads, #2053's among them, whose
-# reviewer then blocked on the red the arm would have named 75 minutes before.
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
 # Read over the comment-stripped job, so a comment naming the token cannot
 # satisfy it.
 def _red_history_credentialed(step: str) -> bool:
