@@ -3038,6 +3038,7 @@
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
+   "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
