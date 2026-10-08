@@ -1,0 +1,5 @@
+RESULT repeat=45
+RESULT capped_inline=True
+RESULT measured_bytes=8289270 cap=8388608
+RESULT download_indent2_bytes=13069459 over_cap=True ratio=1.577
+RESULT null_compact_under_cap=True
