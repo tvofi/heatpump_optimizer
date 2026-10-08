@@ -1525,14 +1525,16 @@ EOS
   # diff names voids the main-reporter exemption -- the pull request's OWN new
   # row included -- so open_pr.sh's row push refused a body for a red main
   # carried (`delivery-status`, `nightly-status`) that CI's contract exempts.
-  (cd "$CLM/r" && $G checkout -q -b rowedit rec && echo edited > docs/delivery/9999.md \
+  (cd "$CLM/r" && $G checkout -q -b rowadd fork && mkdir -p dev/programme/delivery \
+    && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
+    && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
     && $G commit -qam rowedit) >/dev/null 2>&1
   row_red() { (cd "$CLM/r" && git checkout -q "$1" \
     && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
     && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
     >/dev/null 2>&1; echo $?); }
-  st "$(row_red rec fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
-  st "$(row_red rowedit rec)" 1 "and still owes it when the diff edits a row the base had (null control)"
+  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
