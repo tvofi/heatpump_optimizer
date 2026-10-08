@@ -30880,7 +30880,7 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation-pins", "&& budget=(--budget-minutes 90)"),
+    ("mutation-pins", "&& budget=(--budget-minutes 200)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
