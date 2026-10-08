@@ -126,7 +126,8 @@ custom_components/heatpump_optimizer/
 │                         #   sits from the model's own weather curve
 ├── flow_meter.py         # The water flow sensor: thermal output from flow,
 │                         #   supply and return, when no power or frequency
-│                         #   signal exists
+│                         #   signal exists; the heat the heat-loss
+│                         #   learners then replay
 ├── silent_mode.py        # The pump's silent-mode schedule as a ceiling on
 │                         #   the plan's power
 ├── quiet_windows.py      # The user's silent and off windows: per-step
