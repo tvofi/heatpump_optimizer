@@ -562,11 +562,11 @@ def self_test() -> int:
         # refuses main's re-sorted table, so `git merge` leaves the conflict;
         # --resolve, run from the merged tree's copy, finishes it (R9-CI-2b).
         r = os.path.join(td, "repo")
-        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-        g = lambda *a: subprocess.run(["git", "-C", r, *a], capture_output=True, text=True, env=env)
+        sys.path.insert(0, os.path.join(ROOT, "tests"))
+        from throwaway_git import throwaway_git_init
         os.makedirs(os.path.join(r, "tests"))
-        g("init", "-q", "-b", "main")
+        env = throwaway_git_init(r, "-q", "-b", "main")
+        g = lambda *a: subprocess.run(["git", "-C", r, *a], capture_output=True, text=True, env=env)
         cj = os.path.join(r, "tests", "closures.json")
         with open(cj, "w") as f:
             f.write(json.dumps(legacy, indent=1) + "\n")
