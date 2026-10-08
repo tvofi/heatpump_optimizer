@@ -1,0 +1,7 @@
+{
+  "custom_components/heatpump_optimizer/inputs.py:InputReader.read_flow_kg_s RETURN_DEL 69557675#2": {
+    "killed_by": "tests/features.py",
+    "old": "            return reading",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 9cac1947e7c5dd465e3f83e6216d3e25d79511d2: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  }
+}

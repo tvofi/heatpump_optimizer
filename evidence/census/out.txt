@@ -1,0 +1,13 @@
+runs in window: 29 (of 100 listed)
+ROW 37769767377 c13216ce 1 113300382416 skip-no-measurement skip-no-measurement
+ROW 37763212023 de81043a 1 113280999308 skip-no-measurement skip-no-measurement
+API FAIL repos/tvofi/heatpump_optimizer/actions/jobs/113297682923/logs: gh: HTTP 404
+ROW 37762874942 05927892 1 113297682923 None None
+ROW 37759862353 0864a8d2 1 113276070594 skip-no-measurement skip-no-measurement
+ROW 37756428662 8fb1b717 1 113260740304 skip-no-measurement skip-no-measurement
+ROW 37752120073 c1cae32d 1 113247308263 skip-no-measurement skip-no-measurement
+ROW 37750067882 e575850b 1 113246917810 skip-no-measurement skip-no-measurement
+ROW 37741033624 d30236a5 7 113233615699 measured changed
+ROW 37740448889 e4218c25 2 113220478711 measured changed
+ROW 37739749592 883eed10 10 113223915011 measured changed
+RESULT census: 10 runs reached autofix after a pin job; single-shard=7 single-shard-skip-no-measurement=6 multi=3 multi-skip-no-measurement=0 api_failures=1

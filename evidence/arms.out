@@ -1,0 +1,14 @@
+== head
+rc=0
+ALL 2212 ENTITY CHECKS PASSED
+ tests/mutation_table.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant
+rc=1
+1 of 2212 ENTITY CHECKS FAILED
+ tests/mutation_table.py | 9 +--------
+ 1 file changed, 1 insertion(+), 8 deletions(-)
+== base-impl
+rc=1
+1 of 2212 ENTITY CHECKS FAILED
+?? .review-claim
