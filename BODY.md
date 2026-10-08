@@ -1,103 +1,106 @@
-R9-CI-1: the autofix chain repaired nothing (RO-11 pre-study, #2030). This PR makes `mutation-autofix` measure and pin within its budget, and makes `closures-autofix` repair the two skip classes that made up nearly all of its skips. Each repair is proven by a bot commit on a real head that had previously skipped.
+R9-CI-1: the autofix chain repaired nothing (RO-11 pre-study, #2030). This PR makes `mutation-autofix` measure and pin the sites a diff adds, in one run spread over parallel shards, and makes `closures-autofix` repair the two skip classes that made up nearly all of its skips. Each repair is proven by a bot commit on a real head that had previously skipped.
 
 ## Pre-study, re-derived
 
-`tools/audit/seat/autofix_statuses.sh` (new in this PR) reads the `AUTOFIX:` line from every `mutation-autofix` and `closures-autofix` job log in the newest 300 pull-request runs of `tests.yml`, plus the `closures` failure heading behind each closures skip. Run 2026-10-07: 116 autofix jobs ran; 63 logs were readable and 53 had expired (the script counts these, never reads them as a status).
+`tools/audit/seat/autofix_statuses.sh` (new here) reads the `AUTOFIX:` line from every `mutation-autofix` and `closures-autofix` job log in the newest 300 pull-request runs of `tests.yml`, plus the `closures` failure heading behind each closures skip. Run 2026-10-07: 116 autofix jobs ran; 63 logs were readable and 53 had expired (counted, never read as a status).
 
 - `mutation-autofix`: 23 `skip-no-measurement`, 5 `skip-measure-failed`, 2 `skip-not-unpinned`, 0 `changed`.
-- `closures-autofix`: 14 `skip-manual-repair-owed`, every one on INERT READS UNDER-APPROXIMATED; 10 `skip-failed-recording`, all on UNDER-SCOPED; 2 `skip-classifier-disagrees`; 1 `skip-merge-failed`; 5 `skip-clean`; 1 `changed`.
-- Of the 9 `skip-failed-recording` runs whose `closure-recordings` artifact survived, 6 failed on a script the check did not name as stale (mostly `tests/stress.py`). Command: compare each artifact's `rc != 0` scripts with `check.txt`'s `UNDER-SCOPED:` names.
+- `closures-autofix`: 14 `skip-manual-repair-owed`, every one on INERT READS UNDER-APPROXIMATED; 10 `skip-failed-recording`; 2 `skip-classifier-disagrees`; 1 `skip-merge-failed`; 5 `skip-clean`; 1 `changed`.
+- In 6 of the 9 `skip-failed-recording` runs whose recordings survived, the failed recording belonged to a script the check did not name as stale (mostly `tests/stress.py`).
 
-**The mutation cause is not the env_drift baseline.** On #2025 (run 37663843895) the pin step printed `baseline tests/env_drift.py: rc=0 failed=0 353s`, then `56 not started for --budget-minutes`. The split's admission (`drive_pin_pool`) charged each mutant its EXCLUSIVE tail up front: `stress.py` plus `harness_headers.py`, three runs each, about 2535 s. It also charged every lazy driver three runs. So the first anchor's estimate (about 4069 s, recomputed from `tests/closures.json` recorded seconds) exceeded the whole 35-minute budget, and nothing started. The 353 s baseline alone would have left 29 minutes.
+The mutation cause was not the env_drift baseline. On #2025 (run 37663843895) the pin drive charged each site the EXCLUSIVE tail (`stress.py` + `harness_headers.py`, three runs each) and three runs per lazy driver, so its first site's estimate (~4069 s) exceeded the 35-minute budget and none of 56 sites started. The 353 s baseline alone would have left 29 minutes.
 
 ## The change
 
 - `tests/mutation_table.py`:
-  - `drive_pin_pool` now admits a mutant on its shared work only. The EXCLUSIVE tail is checked against the deadline when a survivor reaches it; a survivor that no longer fits is `SKIP-BUDGET` and pins nothing.
-  - New `budget_seconds()`: a lazy driver costs one run; a deferred driver still costs three until it settles.
-  - `drive_pool` (the sampled and nightly lanes) is unchanged.
-- `tests.yml`, `mutation` job's pin step:
-  - Budget raised from 35 to 90 minutes, step timeout from 60 to 130 (the job's own 160 is unchanged).
-  - The base program is read from `$PR_BASE`, the pull request's base commit, as `mutation-autofix` already restores it, instead of `origin/main`.
-  - A refusing pin run is followed by `|| echo`, so `measurement()` still writes its status. Before, `bash -e` ended the step and `mutation-autofix` read the missing status as `skip-no-measurement`.
+  - `drive_pin_pool` admits a site on its shared work only; the EXCLUSIVE tail is checked against the deadline when a survivor reaches it. `budget_seconds()` charges a lazy driver one run.
+  - `pin_shard()` splits the new unpinned sites by anchor, round-robin, so twins stay together. `--shard K/N` drives one shard. `merge_pin_shards()` folds the shard artifacts for `apply_pins`.
+  - `pin_shard_count()` gives one shard per six added sites, at most ten.
+  - The `PIN KILLED:` line splits its unpinned count by cause: `(S survived, B not started for the budget, T timed out, K skipped)`. It names the survivor remedy only when something survived. Its head still matches `PIN_SUMMARY`.
+- `tests.yml`:
+  - The pin step leaves the `mutation` job. A new `mutation-pin-plan` job sizes the matrix from the refusal's site count.
+  - `mutation-pins` runs that many shards, up to ten at once. Each gets 120 minutes of budget (step timeout 170, job timeout 180), runs the base commit's program, and writes its status even when the program refuses.
+  - `mutation-autofix` downloads `mutation-pins*` and merges the shards into one `ci: pin killed mutants` commit, as before.
+  - The `closures-autofix` header comment is updated. `record-autofix` (#2029) is untouched; check with `git diff $(git merge-base origin/main HEAD)...HEAD -U0 -- .github/workflows/tests.yml | grep '^@@'`.
 - `tests/closure.py`, `apply_under_scoped_recordings`:
-  - INERT READS UNDER-APPROXIMATED is now a bot repair: the same merge folds `inert_reads` (#1886).
-  - A failed recording refuses only when it belongs to a script the check named as stale, or to that script's driven child. Any other failed recording is left out of the merge.
-  - New `stale_scripts()` reads the names from the check output. The `skip-manual-repair-owed` remedy text now names PHANTOM, NOT A FILE and an INERT pair.
-- `dev/governance/rules/ci-autofix.md` follows; `.claude/rules/` and `.cursor/rules/` copies regenerated by `rules_sync.mjs`.
-- `tools/audit/seat/autofix_statuses.sh` and its `INSTRUMENTS.md` entry: the census above, so a later seat can rerun it (fixer step 18).
-- No hunk touches `record-autofix` (#2029's job). Command: `git diff $(git merge-base origin/main HEAD)...HEAD -U0 -- .github/workflows/tests.yml | grep '^@@'` shows hunks only in the `mutation` job and the `closures-autofix` header comment.
+  - INERT READS UNDER-APPROXIMATED is now merged by the bot (#1886's merge).
+  - A failed recording refuses only when it belongs to a script the check named as stale; any other failed recording is left out of the merge.
+- `dev/governance/rules/ci-autofix.md` follows, with the generated copies regenerated by `rules_sync.mjs`.
+- `tools/audit/seat/autofix_statuses.sh` and its `INSTRUMENTS.md` entry (fixer step 18).
 
-Alternatives considered for the mutation half:
-- A separate budget for the baseline only: rejected, because the baseline was not the cost.
-- Reusing the lane's own baseline: rejected, because the `--scope changed` lane drives a sample under `--max 10` and its baselines are not the pin drive's.
-- A bigger budget alone: rejected, because 4069 s of estimate against any budget under about 70 minutes still starts nothing, and the estimate was wrong, not the budget.
+Alternatives considered:
+- A separate baseline budget: the baseline was not the cost.
+- One runner with a bigger budget: a 56-site diff needs about 4 hours on 4 runners, while Actions minutes are free and concurrency is not queued.
+- A `workflow_dispatch` path: `tests.yml`'s own comment says dispatch inputs exist only on the default branch, and a `tests.yml` dispatch also runs `record-autofix`. Sharding the pull-request run itself needs no dispatch and runs on every push.
 
 ## Head
 
-`3d7379490f14a23cc2cf7fc45845e2cec4f1eceb`: the authored commits `718c94c8`, `f5a54732` and `4d36a2e7` with origin/main `143e2d0a` merged in, clean, no resolution.
+`28ce083bc7a96ccfec193a83f53697d33fa82c44`: the authored commits with origin/main `e2a4f7c6` merged in, clean, no resolution.
 
 ## Mutation proof
 
-Each mutant was applied in a separate worktree at the head; `tests/entities.py` was run, then the tree restored (seat venv, Python 3.14).
+Each mutant was applied in a separate worktree; `tests/entities.py` was run, then the tree restored. Mutants A–D were applied at `4d36a2e7`, E–G at `0b6eb1eb`, H at the head.
 
-- A, `drive_pin_pool`'s tail-deadline check replaced with `if False:` → FAIL "the split admits a mutant on its shared work and charges the EXCLUSIVE tail only to a survivor that reaches it; a lazy driver costs one run".
-- B, `budget_seconds` triples every driver instead of the deferred ones → FAIL, same check.
+- A, `drive_pin_pool`'s tail-deadline check made `if False:` → FAIL "the split admits a mutant on its shared work and charges the EXCLUSIVE tail only to a survivor that reaches it; a lazy driver costs one run".
+- B, `budget_seconds` triples every driver → FAIL, same check.
 - C, `if failed & stale_scripts(said):` → `if failed:` → FAIL "a failed recording of an UNRELATED script no longer blocks the repair; its own truncated trace is left out of the merge".
-- D, the INERT READS clause dropped from the UNDER-SCOPED gate → FAIL "an INERT READS under-approximation is merged by the bot; its script's own failed recording still refuses".
-- Every run, including the null run, also printed 9 `hb:changed_save` / `hb:positive_control` lines, which are not counted in the totals; they are the same in the null run.
-- Unmutated null run: `ALL 2201 ENTITY CHECKS PASSED` (pre-merge head `4d36a2e7`).
-
-Pins on `mutation_budgets.json` are `mutation-autofix`'s. This diff changes two Python files under `tests/`, which no ledger site covers; the survivor list is left to CI's `mutation` lane at this head.
+- D, the INERT READS clause dropped → FAIL "an INERT READS under-approximation is merged by the bot; its script's own failed recording still refuses".
+- E, `pin_shard` splits by line instead of anchor → FAIL "the pin shards are disjoint, cover the pool and keep an anchor's twins together; their merge is measured when any shard measured".
+- F, `merge_pin_shards` takes the first shard's status → FAIL, same check.
+- G, `pin_summary` counts every unpinned site as a survivor → FAIL "the pin summary counts budget cuts and timeouts apart from survivors, and names a survivor's remedy only when one survived".
+- H, the ten-shard cap removed → FAIL "the pin shard count scales with the diff's new sites, six a shard, capped at ten, and sizes the matrix the shards run".
+- Unmutated at the head: `ALL 2209 ENTITY CHECKS PASSED`.
 
 ## Null control
 
 CI's evidence. Each proof pull request is a draft, closed after reading, never merged.
 
-- **Mutation, the fix.** #2031 is #2025's head `0dfb63a8` merged onto `718c94c8`, run 37671395581.
-  - The `mutation` pin step printed `PIN KILLED -- 56 new unpinned site(s) against e7479ad1`, then `PIN KILLED: 10 pinned, 46 left unpinned`, then `measure: measured, 10 anchor(s)`.
-  - `mutation-autofix`: `AUTOFIX: changed`; the bot pushed `0fb472cd ci: pin killed mutants` (10 ledger files).
-  - Before the fix, the same 56 sites on #2025: `56 not started`, then `AUTOFIX: skip-no-measurement` (run 37663843895).
-- **Mutation, the old program.** #2032's base carries only the closures change, so its pin step ran the unfixed `mutation_table.py` over #2010's 37 sites: `nothing was measured: 0 mutant(s) timed out, 37 not started for --budget-minutes`, then `AUTOFIX: skip-no-measurement` (run 37673851552). This is the defect, reproduced beside the fix.
-- **Mutation, a head CI kept green.** #2033's `mutation` succeeded; `mutation-autofix` was skipped; no bot pin commit (run 37674068287).
-- **Closures, INERT READS.** #2032 is #2010's head `5eaf0982` on its merge base plus the closures change (run 37673851552).
-  - `closures` printed INERT READS UNDER-APPROXIMATED for `tests/harness_headers.py` reading `tools/audit/harnesses/ux5_idle_codes.py`.
-  - `closures-autofix`: `left out 2 failed recording(s) of script(s) the check did not name: tests/entities.py, tests/stress.py`, then `AUTOFIX: changed`.
-  - The bot pushed `ecf32e9d ci: re-record closures`, whose `inert_reads` lists that file.
-  - On #2010 itself the job ended `skip-manual-repair-owed`.
-- **Closures, failed recording.** #2033 is fix/r9-sw-model-pr's `ca0fbf77` on its pre-merge base plus the closures change (run 37674068287).
-  - `UNDER-SCOPED: tests/boost_drift_replay.py` (`custom_components/heatpump_optimizer/quiet_windows.py`); `entities.py` and `stress.py` failed while recording.
-  - `closures-autofix`: the same left-out line, then `AUTOFIX: changed`.
-  - The bot pushed `15f5be1e ci: re-record closures`, whose `tests/boost_drift_replay.py` closure lists `quiet_windows.py`.
-  - On `ca0fbf77` the job ended `skip-failed-recording`.
-- **Closures, a head CI kept green.** #2031's `closures` succeeded; `closures-autofix` was skipped; no bot closures commit.
-- **Fixture level, before and after** (`probe` script run against the head's and main's `tests/closure.py`):
-  - The unrelated-failure case: `changed` at the head, `skip-failed-recording` at main.
-  - The INERT READS case: `changed` at the head, `skip-not-under-scoped` at main.
-  - The pin-pool fixture under a deadline of 50: `killed by tests/a.py, SKIP-BUDGET` at the head, `SKIP-BUDGET, SKIP-BUDGET` with nothing run at main.
+- **Mutation, before.** On #2025 (run 37663843895), `56 not started for --budget-minutes`, then `AUTOFIX: skip-no-measurement`.
+- **Mutation, one runner.** #2031 (#2025's head on `718c94c8`, run 37671395581) pinned 10 of 56. The other 46 were budget cuts, not survivors; the bot pushed `0fb472cd`.
+- **Mutation, scaled shards.** #2048 (#2025's head `0dfb63a8` on its merge base `c327da7f` plus this branch's diff), run 37710478042, 10 shards:
+
+| shards | sites | pinned | survived | timed out | not measured |
+|---|---|---|---|---|---|
+| 9 measured | 50 | 40 | 8 | 2 | 0 |
+| shard 2 refused | 6 | 0 | 0 | 0 | 6 |
+| **total** | **56** | **40** | **8** | **2** | **6** |
+
+  - 0 sites were cut by the budget.
+  - The bot merged the 40 pins into one commit (`shards merged: measured`, then `AUTOFIX: changed`).
+  - Wall clock from `mutation` start (01:04) to `mutation-autofix` end (02:56) was 1 h 52 m. The shards took 12 min to 1 h 50 m.
+  - Survivors, each `-- lives` after every driver including `stress.py` and `harness_headers.py`: `coordinator.py:5048 GUARD_OFF`, `:5459 BOOLOP`, `:6855 GUARD_OFF`, `:6855 BOOLOP`, `:10817 GUARD_OFF`; `entry_config.py:52 GUARD_OFF`, `:255 GUARD_OFF`; `silent_mode.py:104 GUARD_OFF`.
+  - Timed out in `tests/boost_drift_replay.py`: `coordinator.py:8975 GUARD_OFF`, `:6855 CMP_BOUND`.
+  - Shard 2 refused before driving: the null control `binary_sensor.py:39 NULL_COMMENT` was "killed" by `tests/entities.py`'s `a3:roster`. The other nine shards ran the same null control under the same script and it survived, so this is a flaky check under load, not this diff (see Forward-carry).
+- **Four shards, earlier datapoints.**
+  - 90-minute shards (#2045): 19 pinned, 36 not started, 1 timed out, 0 survived.
+  - 200-minute shards (#2047): reported separately.
+- **Mutation, the old program.** #2032's base carried only the closures change; on #2010's 37 sites it printed `37 not started`, then `skip-no-measurement` (run 37673851552).
+- **Mutation, a head CI kept green.** #2033's `mutation` succeeded; there was no `mutation-pins` run and no bot commit (run 37674068287).
+- **Closures, INERT READS.** #2032 (#2010's head, run 37673851552): `left out 2 failed recording(s) … tests/entities.py, tests/stress.py`, then `AUTOFIX: changed`. The bot pushed `ecf32e9d`, whose `inert_reads` lists `tools/audit/harnesses/ux5_idle_codes.py`. On #2010 the job had ended `skip-manual-repair-owed`.
+- **Closures, failed recording.** #2033 (`ca0fbf77`, run 37674068287): `AUTOFIX: changed`. The bot pushed `15f5be1e`, whose `tests/boost_drift_replay.py` closure lists `quiet_windows.py`. On `ca0fbf77` the job had ended `skip-failed-recording`.
+- **Closures, a head CI kept green.** #2031's `closures` succeeded; `closures-autofix` was skipped and there was no bot commit.
 
 ## Figures
 
-- 116 autofix jobs ran, 63 statuses read, 53 logs unavailable: `tools/audit/seat/autofix_statuses.sh <dir> 3`, run 2026-10-07; the counts are its own output.
-- 56 sites, 10 pinned, 46 unpinned on #2025's head: CI run 37671395581, `mutation` job log, lines `PIN KILLED:` and `measure:`.
-- ~4069 s first-anchor estimate before the fix: recomputed from `tests/closures.json` `recorded.*.seconds` for the 20 lazy drivers in run 37663843895's log, with the old formula `(3*lazy + 353)/3 + 3*(228.4+616.7)`. It is an estimate of what admission compared, not a measurement.
-- 6 of 9 failed recordings not stale: `closure-recordings` artifacts of the 9 runs `autofix_statuses.sh` lists as `skip-failed-recording` (the 10th had expired). Each artifact's `rc != 0` scripts were intersected with `check.txt`'s `UNDER-SCOPED:` names.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `PYTHONPATH=tests/hastub python3 tests/closure.py selftest`: `ALL 39 closure shrink pins PASSED`.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL` (the diff touches `tests/closure.py` and the workflow), so CI runs the whole suite. Locally I ran only entities.py, structure.py, the closure self-test and the policy lints.
+- 116 jobs ran, 63 statuses read, 53 logs unavailable: `tools/audit/seat/autofix_statuses.sh <dir> 3`, run 2026-10-07.
+- #2048's split and times: CI run 37710478042, from each `mutation-pins (k)` job log's `PIN SHARD`, `PIN KILLED:` and `UNPINNED` lines, and from the jobs API `started_at`/`completed_at`.
+- ~4069 s first-site estimate before the fix: recomputed from `tests/closures.json` recorded seconds for the lazy drivers in run 37663843895, with the old formula. It is an estimate of what admission compared, not a measurement.
+- 6 of 9 failed recordings not stale: each surviving `closure-recordings` artifact's `rc != 0` scripts intersected with its `check.txt` `UNDER-SCOPED:` names.
+- At the head:
+  - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+  - `PYTHONPATH=tests/hastub python3 tests/closure.py selftest`: `ALL 39 closure shrink pins PASSED`.
+  - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s)`.
+  - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: FULL`, so CI runs the whole suite. Locally I ran only entities.py, structure.py, the closure self-test and the policy lints.
 
 ## Red checks
 
-- Two failures at the head are main's own at `143e2d0a`, reproduced on a clean main worktree with this diff absent:
-  - `policy_lint`: `tools/audit/briefs/fixer.md` 4867 tokens over its 4866 cap.
-  - `entities.py`: "the template arm turns the acceptance red…" (locally, 1 of 2203 at main).
-  - `prepr.sh` at this head also refuses `policy_lint`, `mutants` and `field coverage`; `policy_lint_mutants.mjs` and `field_coverage.mjs` exit 1 on the same clean main worktree too, since both re-run the lint.
-  - Neither file is in this diff. No cheaper detector is owed by this PR. The `fixer.md` cap belongs with #2030's merge; a red `policy_lint` on main is a `main`-push signal the gate already gives.
-- `mutation` will go red at this head if the lane finds an unpinned site this diff adds; that is `mutation-autofix`'s to pin, and is now the case this PR repairs.
+`none` at the head. The earlier `fixer.md` cap refusal was main's own, and #2042 cleared it.
 
 ## Forward-carry
 
-`dev/governance/rules/ci-autofix.md` itself, in this diff: INERT READS is now the bot's, and a failed recording blocks only its own stale script. No later stage's brief changes.
+- `dev/governance/rules/ci-autofix.md`, in this diff: INERT READS is now the bot's to merge, and a failed recording blocks only its own stale script.
+- For #2025 (EG-B11): after this merges, its next push gets one sharded pin run. The 8 survivors listed above need a killing check or a `survivor_triage` verdict before `mutation` goes green; that is the fixer's work.
+- Follow-up, not done here: each shard still spends about 2000 s of driver work per site, because `drive_pin_pool` hands a site's later drivers to idle workers before its likeliest killer returns. Making them wait would change the in-flight design that `entities.py`'s "four (mutant, driver) runs in flight at once" check pins. Separately, `entities.py`'s `a3:roster` check refused a comment-only null control on one shard under load.
 
 ## Friction
 
