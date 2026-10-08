@@ -1,0 +1,18 @@
+== base
+RESULT fixed6_instant_d0.3_folded=0/40 on_ticks=9 cop_scale 1.000->1.000
+RESULT fixed6_instant_d0.5_folded=12/40 on_ticks=20 cop_scale 1.000->0.834
+RESULT fixed6_instant_d0.7_folded=21/40 on_ticks=24 cop_scale 1.000->0.827
+RESULT min3_max14_running3to4_folded=0/9
+RESULT selfmod_min3_cmd1.5_meas3.2_folded=0/3 refusal=n/a
+RESULT selfmod_min3_cmd2_meas3.2_folded=0/3 refusal=n/a
+RESULT selfmod_min3_cmd3_meas3.2_folded=0/3 refusal=n/a
+RESULT selfmod_min3_cmd4_meas3.2_folded=0/3 refusal=n/a
+== wt
+RESULT fixed6_instant_d0.3_folded=0/40 on_ticks=9 cop_scale 1.000->1.000
+RESULT fixed6_instant_d0.5_folded=0/40 on_ticks=20 cop_scale 1.000->1.000
+RESULT fixed6_instant_d0.7_folded=0/40 on_ticks=24 cop_scale 1.000->1.000
+RESULT min3_max14_running3to4_folded=9/9
+RESULT selfmod_min3_cmd1.5_meas3.2_folded=0/3 refusal=duty_floor
+RESULT selfmod_min3_cmd2_meas3.2_folded=0/3 refusal=duty_floor
+RESULT selfmod_min3_cmd3_meas3.2_folded=3/3 refusal=None
+RESULT selfmod_min3_cmd4_meas3.2_folded=3/3 refusal=None

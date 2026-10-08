@@ -1,0 +1,6 @@
+== base
+RESULT selfmod_independent_folded=0/96 cop_scale=1.000
+RESULT honest_tracking_folded=0/96 cop_scale=1.000
+== wt
+RESULT selfmod_independent_folded=66/96 cop_scale=0.549
+RESULT honest_tracking_folded=96/96 cop_scale=1.000

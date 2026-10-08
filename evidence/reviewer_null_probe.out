@@ -1,0 +1,22 @@
+== base
+  fixed_speed_6 floor=1.80 d0.3(1.83kW):3 d0.5(3.02kW):3 d0.7(4.21kW):3 d0.9(5.41kW):3 d1.0(6.00kW):3
+RESULT fixed_speed_6_duty_folded=15/15
+  fixed_speed_9 floor=2.70 d0.3(2.73kW):3 d0.5(4.53kW):3 d0.7(6.31kW):3 d0.9(8.11kW):3 d1.0(9.00kW):3
+RESULT fixed_speed_9_duty_folded=15/15
+  mod_2to6 floor=1.80 d0.3(0.64kW):0 d0.5(1.02kW):0 d0.7(1.41kW):0 d0.9(1.80kW):3 d1.0(2.00kW):3
+RESULT mod_2to6_duty_folded=6/15
+RESULT mod_2to6_running_folded=9/9
+  mod_3to8 floor=2.40 d0.3(0.93kW):0 d0.5(1.52kW):0 d0.7(2.11kW):0 d0.9(2.71kW):3 d1.0(3.00kW):3
+RESULT mod_3to8_duty_folded=6/15
+RESULT mod_3to8_running_folded=9/9
+== wt
+  fixed_speed_6 floor=4.80 d0.3(1.83kW):0 d0.5(3.02kW):0 d0.7(4.21kW):0 d0.9(5.41kW):3 d1.0(6.00kW):3
+RESULT fixed_speed_6_duty_folded=6/15
+  fixed_speed_9 floor=7.20 d0.3(2.73kW):0 d0.5(4.53kW):0 d0.7(6.31kW):0 d0.9(8.11kW):3 d1.0(9.00kW):3
+RESULT fixed_speed_9_duty_folded=6/15
+  mod_2to6 floor=1.60 d0.3(0.64kW):0 d0.5(1.02kW):0 d0.7(1.41kW):0 d0.9(1.80kW):3 d1.0(2.00kW):3
+RESULT mod_2to6_duty_folded=6/15
+RESULT mod_2to6_running_folded=9/9
+  mod_3to8 floor=2.40 d0.3(0.93kW):0 d0.5(1.52kW):0 d0.7(2.11kW):0 d0.9(2.71kW):3 d1.0(3.00kW):3
+RESULT mod_3to8_duty_folded=6/15
+RESULT mod_3to8_running_folded=9/9

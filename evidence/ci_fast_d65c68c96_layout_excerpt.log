@@ -1,0 +1,27 @@
+2026-10-08T23:12:21.7793295Z ########## python3 tests/layout.py ##########
+2026-10-08T23:12:21.7793427Z layout: 4299 tracked path(s) enumerated
+2026-10-08T23:12:21.7793511Z   category  114 finding(s)
+2026-10-08T23:12:21.7793693Z     outside the allowed categories: .claude/workflows/carry-1921.json
+2026-10-08T23:12:21.7793880Z     outside the allowed categories: .claude/workflows/wave-3l-groups.json
+2026-10-08T23:12:21.7794047Z     outside the allowed categories: handoff/round9/fix/resume/FR-8.md
+2026-10-08T23:12:21.7794225Z     outside the allowed categories: handoff/round9/plan-table-live.md
+2026-10-08T23:12:21.7794387Z     outside the allowed categories: tools/audit/archscore/ABOUT.md
+2026-10-08T23:12:21.7794550Z     outside the allowed categories: tools/audit/archscore/__init__.py
+2026-10-08T23:12:21.7794728Z     outside the allowed categories: tools/audit/archscore/calibrate.py
+2026-10-08T23:12:21.7794930Z     outside the allowed categories: tools/audit/archscore/calibration/corpus.tsv
+2026-10-08T23:12:21.7795154Z     outside the allowed categories: tools/audit/archscore/calibration/corpus_vectors.json
+2026-10-08T23:12:21.7795414Z     outside the allowed categories: tools/audit/archscore/calibration/expected.json
+2026-10-08T23:12:21.7795516Z     ... 104 more (--verbose)
+2026-10-08T23:12:21.7795597Z   retired   4 finding(s)
+2026-10-08T23:12:21.7795881Z     planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
+2026-10-08T23:12:21.7796228Z     reintroduces moved path tools/audit/harnesses/cop_duty_floor.py; it lives at dev/audit/harnesses/ since 2015
+2026-10-08T23:12:21.7796484Z     reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
+2026-10-08T23:12:21.7796764Z     reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
+2026-10-08T23:12:21.7796842Z   reference 1287 finding(s)
+2026-10-08T23:12:21.7797156Z     .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+2026-10-08T23:12:21.7797410Z     .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+2026-10-08T23:12:21.7797746Z     .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+2026-10-08T23:12:21.7798056Z     .claude/hooks/stop-selfcheck.sh:102 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+2026-10-08T23:12:21.7798386Z     .claude/hooks/stop-selfcheck.sh:107 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+2026-10-08T23:12:21.7798795Z     .claude/hooks/stop-selfcheck.sh:202 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+2026-10-08T23:12:21.7799214Z     .claude/rules/defect-root-cause.md:145 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
