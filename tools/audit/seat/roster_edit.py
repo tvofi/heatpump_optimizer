@@ -381,6 +381,8 @@ def _self_test() -> int:
         if not ok:
             failed.append(f"{name} (got: {got})")
 
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
     tmp = tempfile.mkdtemp(prefix="hpo-fr8-selftest-")
 
     # The script node runs is the one lint_cwd contains. The process cwd is a
@@ -397,7 +399,7 @@ def _self_test() -> int:
     def planted(name, files):
         seed_n = Path(tmp, name)
         seed_n.mkdir()
-        run(["git", "init", "-q", "-b", "main", str(seed_n)])
+        throwaway_git_init(seed_n, "-q", "-b", "main")
         for rel, source in files.items():
             dest = seed_n / rel
             dest.parent.mkdir(parents=True, exist_ok=True)
@@ -406,9 +408,9 @@ def _self_test() -> int:
         run(["git", "-C", str(seed_n), "add", "-A"])
         run(["git", "-C", str(seed_n), "commit", "-q", "-m", "fixture lint"])
         origin_n = Path(tmp, name + ".git")
-        run(["git", "clone", "-q", "--bare", str(seed_n), str(origin_n)])
+        throwaway_git_clone(seed_n, origin_n, "-q", "--bare")
         drv_n = Path(tmp, name + "-drv")
-        run(["git", "clone", "-q", str(origin_n), str(drv_n)])
+        throwaway_git_clone(origin_n, drv_n, "-q")
         return drv_n, seed_n
 
     def decoy(name, rel, source):
@@ -451,7 +453,7 @@ def _self_test() -> int:
 
     seed = Path(tmp, "seed")
     seed.mkdir()
-    run(["git", "init", "-q", "-b", "main", str(seed)])
+    throwaway_git_init(seed, "-q", "-b", "main")
     (seed / ".claude/workflows").mkdir(parents=True)
     (seed / ".claude/workflows/brief_lint.mjs").write_text(
         "import {readFileSync} from 'node:fs';\n"
@@ -477,9 +479,9 @@ def _self_test() -> int:
     run(["git", "-C", str(seed), "add", "-A"])
     run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture readme"])
     origin = Path(tmp, "origin.git")
-    run(["git", "clone", "-q", "--bare", str(seed), str(origin)])
+    throwaway_git_clone(seed, origin, "-q", "--bare")
     drv = Path(tmp, "drv")
-    run(["git", "clone", "-q", str(origin), str(drv)])
+    throwaway_git_clone(origin, drv, "-q")
 
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
              at_sha=None, field=None, value_opt=None):
@@ -618,7 +620,7 @@ def _self_test() -> int:
           dump(json.loads(canon)) == canon)
     seed2 = Path(tmp, "seed2")
     seed2.mkdir()
-    run(["git", "init", "-q", "-b", "main", str(seed2)])
+    throwaway_git_init(seed2, "-q", "-b", "main")
     (seed2 / ".claude/workflows").mkdir(parents=True)
     (seed2 / ".claude/workflows/brief_lint.mjs").write_text(
         "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
@@ -628,9 +630,9 @@ def _self_test() -> int:
     run(["git", "-C", str(seed2), "add", "-A"])
     run(["git", "-C", str(seed2), "commit", "-q", "-m", "fixture roster"])
     origin2 = Path(tmp, "origin2.git")
-    run(["git", "clone", "-q", "--bare", str(seed2), str(origin2)])
+    throwaway_git_clone(seed2, origin2, "-q", "--bare")
     drv2 = Path(tmp, "drv2")
-    run(["git", "clone", "-q", str(origin2), str(drv2)])
+    throwaway_git_clone(origin2, drv2, "-q")
     check("no-op set-resume rc",
           sysrc(lambda: main(["set-resume", "R9-A", "reviewer handed off at \u00b0",
                            "--field", "last_step",
@@ -658,7 +660,7 @@ def _self_test() -> int:
     # the stale-worktree trap: a lint checkout main has moved past is refused
     # even when the roster itself is fine.
     stale = Path(tmp, "stale")
-    run(["git", "clone", "-q", str(origin), str(stale)])
+    throwaway_git_clone(origin, stale, "-q")
     old = run(["git", "-C", str(stale), "rev-parse", "HEAD~1"]).strip()
     run(["git", "-C", str(stale), "checkout", "-q", "--detach", old])
     rc = edit("set-stage", "R9-A", "done", push=True, branch="edit-2",

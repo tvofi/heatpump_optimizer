@@ -1048,10 +1048,10 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         with open(os.path.join(stub, "gh"), "w") as f:
             f.write(_STUB_GH)
         os.chmod(os.path.join(stub, "gh"), 0o700)
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "GH_", "GITHUB_"))}
-        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub,
-                   GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-                   GIT_COMMITTER_EMAIL="t@t", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        from throwaway_git import throwaway_git_env, throwaway_git_init  # tests/, on sys.path above
+        env = throwaway_git_env({k: v for k, v in os.environ.items()
+                                 if not k.startswith(("GIT_", "GH_", "GITHUB_"))})
+        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub)
 
         def git(*a: str) -> str:
             return subprocess.run(["git", *a], cwd=repo, env=env, capture_output=True,
@@ -1077,7 +1077,7 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         S, P = "tests/structure_budgets.json", ".claude/workflows/policy_budgets.json"
         s0 = {"coordinator_loc": 9062, "cut_views": 110, "recorded_at": "a"}
         p0 = {"always_loaded_tokens": 3349, "files": {"A.md": 10, "gone.md": 5}}
-        git("init", "-q", "-b", "main")
+        throwaway_git_init(repo, "-q", "-b", "main")
         fork = commit({S: s0, P: p0, "A.md": "a\n", "gone.md": "g\n",
                        "tests/zz_budgets.json": {"x": 1}}, "fork")
         # main moves on after the fork and TIGHTENS a cap: the head, which never

@@ -960,6 +960,9 @@ fi
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
+  # Every throwaway repository below takes the shared helper: auto-maintenance
+  # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
+  . tests/throwaway_git.sh || exit 2
   D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves
@@ -1093,7 +1096,7 @@ if [ "${1:-}" = "--self-test" ]; then
   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
   (
-    set -e; cd "$RA"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     git remote add origin https://github.com/tvofi/heatpump_optimizer.git
     # The identity is pinned through the environment, not only `git config`:
@@ -1167,7 +1170,7 @@ EOS
   # body check that refused on other grounds would satisfy a status alone.
   BR=$(mktemp -d)
   (
-    set -e; cd "$BR"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$BR"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     echo a > README; git add -A; git -c commit.gpgsign=false commit -qm nogate; git tag nogate
     mkdir -p .claude/workflows tests
@@ -1321,7 +1324,7 @@ EOS
   # merged arm is the ordinary state of a branch updated with `git merge`.
   VER=$(mktemp -d)
   (
-    set -e; cd "$VER"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$VER"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     mkdir -p custom_components/heatpump_optimizer docs
     printf '6.5.1\n' > VERSION
@@ -1479,7 +1482,7 @@ EOS
   # aborting this whole `&&` chain before `inh` is ever created. Detach and
   # delete whatever the clone started on first, so the fixture is hermetic
   # to the outer checkout's branch name -- `main` included.
-  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+  (throwaway_git_clone -q --shared . "$CLM/r" && cd "$CLM/r" \
     && startbr=$($G symbolic-ref --quiet --short HEAD || :) \
     && $G checkout -q --detach \
     && { [ -z "$startbr" ] || $G branch -q -D "$startbr"; } \
@@ -1559,7 +1562,7 @@ PY
   # predictor names is planted alone on its own branch and must trip it with
   # its own PREDICT line -- R9-RO-11's perturbation, one arm per class.
   PDX=$(mktemp -d)
-  (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+  (throwaway_git_clone -q --shared . "$PDX/r" && cd "$PDX/r" \
     && $G checkout -q --detach && $G checkout -q -b pfork \
     && git update-ref refs/remotes/origin/main pfork \
     && cp "$OLDPWD/tools/pr/ci_predict.py" tools/pr/ci_predict.py \
@@ -1712,7 +1715,7 @@ PY
   # that must pass, and each refused shape built the way a seat produced it.
   TR=$(mktemp -d)
   (
-    set -e; cd "$TR"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$TR"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     mkdir -p tools/audit/handoff/old; echo x > tools/audit/handoff/old/BODY.md
     echo a > code; git add -A; git commit -qm base

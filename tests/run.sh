@@ -357,6 +357,9 @@ for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
+    # The throwaway-repository helper (R9-RCA-stamp-race): a library; its
+    # --check and --self-test run in governance's instrument-self-tests.
+    throwaway_git.py) continue ;;
     # The shared DOM stub (#101) and the rig around it: imported by
     # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
     # their own. node_fs_trace.mjs is the Darwin --import recorder.
@@ -646,7 +649,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
+    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
   esac
   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
