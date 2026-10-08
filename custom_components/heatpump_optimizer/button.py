@@ -223,5 +223,6 @@ class DebugFinalizeButton(_OptimizerButtonBase):
         return {"waiting_for": "debug_collect"}
 
     async def async_press(self) -> None:
+        """Returns at once; the self-tests the stop starts run in the background (#1940)."""
         if (collector := debugger.collector_for(self.coordinator)) is not None:
-            collector.finalize()
+            collector.finalize(self.coordinator)
