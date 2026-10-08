@@ -25968,15 +25968,21 @@ R.check(
 # --- round-9 process review item 3, shrunk: a superseded long-job
 # pull-request run is an older SHA replaced by a newer one in the same
 # group, and that pair is cancelled; two events at one SHA of the
-# required short contract job are not (R9-RC-PRCONTRACT). Every workflow
-# a pull request starts declares one top-level `concurrency:`; each
-# `${{ }}` in it is evaluated here under the events the file lists. Two
-# `pull_request` runs of one pull request share a group. `tests.yml` and
-# the other long `on: pull_request` workflows cancel the older SHA;
-# `pr-contract.yml` shares the group and does not cancel, so an `edited`
-# twin at the live SHA finishes instead of writing a cancelled required
-# context. Only `pr-contract.yml` lists `edited`, so only it can receive
-# that twin. Two runs of any other event -- a push to main, a merge
+# required short contract job are not (R9-RC-PRCONTRACT, R9-CI-2a). Every
+# workflow a pull request starts declares one top-level `concurrency:`; each
+# `${{ }}` in it is evaluated here under the events the file lists. A
+# workflow that does not list `edited` receives no same-SHA twin: its two
+# `pull_request` runs of one pull request share a group and the older SHA
+# is cancelled. One that lists `edited` receives a twin at every author
+# push that re-bodies the pull request (`app_push.sh` pushes, then PATCHes
+# the body), and must never cancel it; `_CC_TWIN_ROUTE` names how each
+# such file keeps it, and a file listing `edited` that it does not name is
+# a problem. "serialised": one group, no cancel -- the twins queue
+# (`pr-contract.yml`, whose body read races the PATCH). "per-run": a group
+# per run, so no run ever cancels or queues another -- not even the
+# newer-pending-cancels-older-pending GitHub applies whatever
+# `cancel-in-progress` says, which a serialised file still meets while an
+# older head's run holds the group. Two runs of any other event -- a push to main, a merge
 # queue entry, the nightly, an autofix push or dispatch, a review -- get
 # groups of their own, because a group they shared would queue them, and
 # a newer pending run cancels the older pending one whatever
@@ -26016,6 +26022,18 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     return event
 
 
+# How each workflow that lists `pull_request: edited` keeps its same-SHA
+# twin from being cancelled. A design choice per file, not a derived fact.
+_CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
+                  "budget-raise-gate.yml": "per-run"}
+
+
+def _cc_lists_edited(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    pr = on.get("pull_request") if isinstance(on, dict) else None
+    return "edited" in ((pr or {}).get("types") or [])
+
+
 def _cc_problems(name: str, doc: dict) -> "list[str]":
     on = doc.get("on", doc.get(True)) or {}
     events = [on] if isinstance(on, str) else list(on)
@@ -26025,14 +26043,19 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
     if not isinstance(cc, dict):
         return [f"{name}: no top-level concurrency"]
     out = []
+    twin = _cc_lists_edited(doc)
+    route = _CC_TWIN_ROUTE.get(name) if twin else None
+    if twin and route is None:
+        out.append(f"{name}: lists `edited` but names no twin route")
     for ev in [e for e in _CC_EVENTS if e in events]:
         for who in ("hpo-author[bot]", "github-actions[bot]"):
             # A superseded pair is sha-1 replaced by sha-2, not two events
             # at one SHA. An autofix push never cancels.
             def at(run_id, ev=ev, who=who):
                 return _cc_pr_event(doc, run_id, f"sha-{run_id}", who=who, ev=ev)
-            share = ev == "pull_request" and who != "github-actions[bot]"
-            cancel_want = share and name != "pr-contract.yml"
+            share = (ev == "pull_request" and who != "github-actions[bot]"
+                     and route != "per-run")
+            cancel_want = share and not twin
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
@@ -26045,7 +26068,7 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
                 if not sa or not sb:
                     out.append(f"{name}: pull_request pair by {who} carries no SHA")
-                elif name != "pr-contract.yml" and sa == sb:
+                elif not twin and sa == sb:
                     out.append(f"{name}: superseded pair by {who} is one SHA, "
                                "not an older SHA replaced by a newer")
     return out
@@ -26109,6 +26132,45 @@ R.check(
     and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
         **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
     f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
+)
+
+_BRG_DOC = _RC_DOCS["budget-raise-gate.yml"]
+_BRG_CC = (_BRG_DOC.get("concurrency") or {})
+_CC_BRG_TWIN = (_cc_pr_event(_BRG_DOC, 1, _CC_TWIN_SHA),
+                _cc_pr_event(_BRG_DOC, 2, _CC_TWIN_SHA))
+R.check(
+    "budget-raise-gate gives each author-app pull_request event at one SHA a "
+    "group of its own and cancels none (R9-CI-2a)",
+    _cc_lists_edited(_BRG_DOC)
+    and _cc_value(_BRG_CC.get("cancel-in-progress"), _CC_BRG_TWIN[0]) == "False"
+    and None not in (_cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0]),
+                     _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]))
+    and _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0])
+    != _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]),
+    f"groups={_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[0])!r}/"
+    f"{_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[1])!r} "
+    f"cancel={_cc_value(_BRG_CC.get('cancel-in-progress'), _CC_BRG_TWIN[0])!r}",
+)
+# The block the gate carried until R9-CI-2a: one group per pull request,
+# cancelling. It cancelled a same-SHA twin at every author push that
+# re-bodied a pull request (#2007, #2029, #2041, #2049).
+_BRG_OLD_CC = {
+    "group": "${{ github.workflow }}-${{ github.event_name == 'pull_request' && "
+             "github.event.sender.login != 'github-actions[bot]' && "
+             "github.event.pull_request.number || github.run_id }}",
+    "cancel-in-progress": "${{ github.event_name == 'pull_request' && "
+                          "github.event.sender.login != 'github-actions[bot]' }}"}
+_BRG_OLD = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": _BRG_OLD_CC})
+_BRG_SERIAL = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": {
+    **_BRG_OLD_CC, "cancel-in-progress": False}})
+_CC_UNROUTED = _cc_problems("unrouted.yml", {**_BRG_DOC, "name": "x"})
+R.check(
+    "and the cancelling block, a serialised one, or an unrouted `edited` "
+    "file is refused (null control)",
+    any("cancel-in-progress" in p for p in _BRG_OLD)
+    and any("get groups" in p for p in _BRG_SERIAL)
+    and any("names no twin route" in p for p in _CC_UNROUTED),
+    f"old={_BRG_OLD} serialised={_BRG_SERIAL} unrouted={_CC_UNROUTED}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
