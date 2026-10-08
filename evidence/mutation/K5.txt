@@ -1,0 +1,4 @@
+## K5-js-execfile (tools/policy/policy_lint_envmatrix.mjs) mutant=2a799c00d2da727b6242a1caf15508c74665d0ca
+REFUSE tools/policy/policy_lint_envmatrix.mjs:47: const c = execFileSync('git', ['clone', SRC, dir])
+throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at 2a799c00d2da727b6242a1caf15508c74665d0ca
+rc=1

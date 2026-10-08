@@ -1,0 +1,269 @@
+diff --git a/.claude/hooks/stop-selfcheck.sh b/.claude/hooks/stop-selfcheck.sh
+index 31be1fc53..12de82ba3 100755
+--- a/.claude/hooks/stop-selfcheck.sh
++++ b/.claude/hooks/stop-selfcheck.sh
+@@ -92,7 +92,9 @@ if [ "${1:-}" = "--self-test" ]; then
+   }
+   T=$(mktemp -d)
+   # The scratch repository takes the shared helper (auto-maintenance off).
+-  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" &&
++  # Its env is exported for the whole drive, the hook runs included: an
++  # inherited GIT_CONFIG_PARAMETERS would outrank the repository's config.
++  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" && throwaway_git_env &&
+       throwaway_git_init "$T" -q 2>/dev/null; then
+     mkdir -p "$T/.claude/workflows"
+     # The linter stub is untracked and would read as a new policy file; a real
+diff --git a/dev/audit/rca/R9-RCA-stamp-race.md b/dev/audit/rca/R9-RCA-stamp-race.md
+index ff87fc87b..7e21099c9 100644
+--- a/dev/audit/rca/R9-RCA-stamp-race.md
++++ b/dev/audit/rca/R9-RCA-stamp-race.md
+@@ -161,5 +161,5 @@ That workflow `env:` covers CI only. A seat whose own git is 2.54 or newer (Home
+ throwaway-repository helper that every site uses, as `_throwaway_git_env()` is for stamp's two
+ repositories, and the CI `env:` is only the cheap barrier while that helper does not exist.
+ The owner chose the helper over the CI `env:` (tvofi, 2026-10-08); R9-GITTMP landed it as
+-`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` site
+-the rule above returns.
++`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` and
++`git clone` site the rule in `tests/throwaway_git.py --check` returns.
+diff --git a/tests/throwaway_git.py b/tests/throwaway_git.py
+index 0853036d8..893f12813 100644
+--- a/tests/throwaway_git.py
++++ b/tests/throwaway_git.py
+@@ -47,25 +47,41 @@ script: every throwaway repository goes through `throwaway_git_init` or
+ `throwaway_git_clone`, here or in the shell twin. A clone line that itself
+ carries `maintenance.auto=false` (a `-c` on the clone, which writes it into
+ the new repository's config) is accepted: it is the local layer, for a
+-language with no twin. WHAT IT SCANS, at <ref> through `git grep`: the `.sh .py .mjs .js .cjs`
+-files under `tools/`, `tests/`, `.claude/` and `dev/audit/harnesses/`, less
+-the round evidence still kept under `tools/audit/round<n>/`: the instruments a
+-later seat reruns, and not the records of where things were. A SITE is a line, not a comment line, that names `git`
+-(any case, as a word) followed later by the word `init`, or followed by
+-`clone` as its subcommand (`git clone`, `git -C <dir> clone`), or that has the string literal `"init"` or `"clone"` followed by an option (`"-q"`,
+-`"-b"`, `"--bare"`, ...): the second shape is a runner such as
+-`g(d, "init", "-q")` that never spells `git`. ALLOW below excuses an exact (file, text) pair with
+-its reason, and an entry that matches nothing is itself refused.
+-
+-WHAT IT DOES NOT CATCH: a runner called with `"init"` or `"clone"` and no
+-option (`g("init")`), a `git worktree add` (it shares its parent's object
+-store, so its maintenance runs there, not in the temporary directory), a command assembled across lines or from a variable, and any
+-repository built outside the scope above (the round evidence and
+-dev/archive/ are records, not reruns). Review owns the rest.
++language with no twin.
++
++WHAT IT SCANS, at <ref> through `git grep`: the `.sh .py .mjs .js .cjs` files
++under `tools/`, `tests/`, `.claude/` and `dev/audit/harnesses/`, less the round
++evidence still kept under `tools/audit/round<n>/`: the instruments a later
++seat reruns, and not the records of where things were.
++
++A SITE is a line, not a comment line, that
++  - names `git` (any case, as a word, so `"$GIT"` counts) followed later by
++    the word `init`;
++  - names `git` followed by `clone` as its subcommand, after any global
++    options: `git clone`, `"$GIT" clone`, `git -C <dir> clone`,
++    `git --no-pager clone`;
++  - has the string literal `"clone"` as an argument, followed by `,` or `]`:
++    an argv list in any position or with any options, `g(d, "clone", ...)`,
++    `execFileSync('git', ['clone', ...])`;
++  - or has the string literal `"init"` followed by an init option (`"-q"`,
++    `"-b"`, `"--bare"`, ...), the shape of a runner such as
++    `g(d, "init", "-q")` that never spells `git`. A bare quoted `"init"` is
++    also a config-flow step name, so it alone is not a site.
++ALLOW below excuses an exact (file, text) pair with its reason, and an entry
++that matches nothing is itself refused.
++
++WHAT IT DOES NOT CATCH: a runner called with `"init"` and no option
++(`g("init")`); a git binary held in a variable whose name does not contain
++`git` (`"$BIN" clone`, `"$X" init`); a `git worktree add` (it shares its
++parent's object store, so its maintenance runs there, not in the temporary
++directory); a command assembled across lines; and any repository built
++outside the scope above (the round evidence and dev/archive/ are records, not
++reruns). Review owns the rest.
+ """
+ 
+ from __future__ import annotations
+ 
++import contextlib
+ import os
+ import re
+ import subprocess
+@@ -101,6 +117,24 @@ def throwaway_git_env(base: dict | None = None) -> dict:
+     return env
+ 
+ 
++@contextlib.contextmanager
++def throwaway_git_environ():
++    """os.environ replaced by throwaway_git_env() for the block, then restored:
++    for a self-test whose every git call -- its own runner's and the
++    production code's under test -- works in throwaway repositories. A call
++    that passes no env= then inherits the env layer too, which the repository
++    layer alone cannot replace: an inherited GIT_CONFIG_PARAMETERS outranks a
++    repository's own config (the #2054 review, round 1)."""
++    saved = dict(os.environ)
++    os.environ.clear()
++    os.environ.update(throwaway_git_env(saved))
++    try:
++        yield
++    finally:
++        os.environ.clear()
++        os.environ.update(saved)
++
++
+ def throwaway_git_init(path, *init_args: str, git=("git",)) -> dict:
+     """`git init <init_args>` run IN `path` (created if missing; never an argv
+     path, which a closure recording would attribute to this repository), then
+@@ -129,10 +163,31 @@ def throwaway_git_clone(src, dest, *clone_args: str, git=("git",), cwd=None) ->
+ # The check: no raw `git init` in a tracked script.
+ 
+ _SITE = (re.compile(r"(?i:\bgit\b).*\binit\b"),
+-         re.compile(r"(?i:\bgit\b)\s+(?:-[Cc]\s+\S+\s+)*clone\b"),
+-         re.compile(r"[\"'](?:init|clone)[\"']\s*,\s*[\"'](?:-q|--quiet|-b|--bare|--initial-branch|--template"
+-                    r"|--object-format|--shared|--no-local|--no-checkout|--mirror)"))
++         re.compile(r"[\"']clone[\"']\s*[,\]]"),
++         re.compile(r"[\"']init[\"']\s*,\s*[\"'](?:-q|--quiet|-b|--bare|--initial-branch|--template"
++                    r"|--object-format)"))
+ _LOCAL_LAYER_INLINE = "maintenance.auto=false"
++_GIT_WORD = re.compile(r"(?i)\bgit\b")
++_TAKES_VALUE = ("-C", "-c")
++_SCOPE_DIRS = ("tools/", "tests/", ".claude/", "dev/audit/harnesses/")
++_SCOPE_EXTS = (".sh", ".py", ".mjs", ".js", ".cjs")
++
++
++def _shell_clone(text: str) -> bool:
++    """`git` (any case, as a word, so `"$GIT"` counts) whose subcommand, after
++    any global options, is `clone`. A token scan, not one regex: the regex it
++    replaced backtracked exponentially on repeated `-c -a` (CodeQL py/redos,
++    #2054)."""
++    for m in _GIT_WORD.finditer(text):
++        rest = text[m.end():].lstrip("\"'}")
++        if not rest[:1].isspace():
++            continue
++        toks, i = rest.split(), 0
++        while i < len(toks) and toks[i].startswith("-"):
++            i += 2 if toks[i] in _TAKES_VALUE else 1
++        if i < len(toks) and re.match(r"clone\b", toks[i]):
++            return True
++    return False
+ 
+ # (file, text the line must contain, reason). Exact and per file.
+ ALLOW = (
+@@ -142,9 +197,8 @@ ALLOW = (
+ 
+ 
+ def scope(path: str) -> bool:
+-    if re.match(r"tools/audit/round\d+/", path):
+-        return False
+-    return bool(re.match(r"(?:tools|tests|\.claude|dev/audit/harnesses)/.*\.(?:sh|py|mjs|js|cjs)$", path))
++    return (path.startswith(_SCOPE_DIRS) and path.endswith(_SCOPE_EXTS)
++            and not re.match(r"tools/audit/round\d+/", path))
+ 
+ 
+ def is_site(text: str) -> bool:
+@@ -153,7 +207,7 @@ def is_site(text: str) -> bool:
+         return False
+     if re.search(r"\bclone\b", text) and _LOCAL_LAYER_INLINE in text and not re.search(r"\binit\b", text):
+         return False  # a clone that writes the local layer itself
+-    return any(rx.search(text) for rx in _SITE)
++    return _shell_clone(text) or any(rx.search(text) for rx in _SITE)
+ 
+ 
+ def classify(lines, allow=ALLOW) -> tuple[list[str], list[str]]:
+@@ -209,7 +263,14 @@ def self_test() -> int:
+             ("a subprocess clone", py, 'run(["git", "clone", "-q", "--bare", str(seed), str(origin)])'),
+             ("a runner clone that never spells git", py, 'g(d, "clone", "-q", str(R), str(L))'),
+             ("a shell clone", sh, '(git clone -q --shared . "$CLM/r" && cd "$CLM/r"'),
+-            ("a JS clone", "tools/policy/x.mjs", "const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])")):
++            ("a JS clone", "tools/policy/x.mjs", "const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])"),
++            ("a positional list clone (the #2054 review's K2)", py, 'run(["git", "clone", str(origin), str(stale)])'),
++            ("a list clone with --depth", py, 'subprocess.run(["git", "clone", "--depth", "1", a, b])'),
++            ("execFileSync clone", "tools/policy/x.mjs", "execFileSync('git', ['clone', src, dir])"),
++            ("a shell clone through a git variable", sh, '"$GIT" clone -q "$a" "$b"'),
++            ("a shell clone after a global option", sh, 'git --no-pager clone -q "$a" "$b"'),
++            ("a list clone after -c options", py, 'run(["git", "-c", "x=y", "clone", a, b])'),
++            ("a shell clone after -C and -c", sh, 'git -C "$d" -c a=b clone -q "$a" "$b"')):
+         check(f"refused: {name}", one(path, text) != [])
+     for name, path, text in (
+             ("the helper call", py, 'env = throwaway_git_init(d, "-q", "-b", "trunk")'),
+@@ -266,6 +327,21 @@ def self_test() -> int:
+                                 text=True).stdout.strip() for k, _ in CONFIG}
+         check("a clone writes both keys into its own config, and returns the env",
+               r2 == dict(CONFIG) and got_env == throwaway_git_env(), str(r2))
++        before = dict(os.environ)
++        os.environ["GIT_CONFIG_PARAMETERS"] = "'maintenance.auto'='true'"
++        try:
++            with throwaway_git_environ():
++                inside = dict(os.environ)
++                no_env = subprocess.run(["git", "config", "--get", "maintenance.auto"], cwd=repo,
++                                        capture_output=True, text=True).stdout.strip()
++            hostile_after = os.environ.get("GIT_CONFIG_PARAMETERS")
++        finally:
++            os.environ.clear()
++            os.environ.update(before)
++        check("throwaway_git_environ: a call passing no env= reads auto-maintenance off under an "
++              "inherited -c maintenance.auto=true, and os.environ is restored after the block",
++              no_env == "false" and "GIT_CONFIG_PARAMETERS" not in inside
++              and hostile_after == "'maintenance.auto'='true'", f"no_env={no_env!r}")
+         # The shell twin sets the same variables to the same values.
+         twin = ROOT / SHELL_TWIN
+         r = subprocess.run(["bash", "-c", '. "$1"; throwaway_git_env; env -0', "_", str(twin)],
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index 44a9c0b33..0c1552412 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -295,7 +295,12 @@ def main(argv=None) -> int:
+     if argv is None:
+         argv = sys.argv[1:]
+     if "--self-test" in argv:
+-        return _self_test()
++        # Every git call in the self-test, the runner's and the ops' under
++        # test, runs in a throwaway repository: all of them take the env.
++        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
++        from throwaway_git import throwaway_git_environ
++        with throwaway_git_environ():
++            return _self_test()
+     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+     p.add_argument("op", choices=("set-stage", "wire-issue", "append-group",
+                                   "edit-brief", "append-carry", "set-resume"))
+diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
+index e21d17a6c..dfbe758ae 100644
+--- a/tools/audit/seat/state_docs.py
++++ b/tools/audit/seat/state_docs.py
+@@ -178,7 +178,11 @@ def main(argv=None) -> int:
+     p.add_argument("--self-test", action="store_true")
+     a = p.parse_args(argv)
+     if a.self_test:
+-        return self_test()
++        # Every git call in the self-test runs in a throwaway repository.
++        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
++        from throwaway_git import throwaway_git_environ
++        with throwaway_git_environ():
++            return self_test()
+     roster_args = (["--roster-file", a.roster_file] if a.roster_file
+                    else ["--roster-ref", a.roster_ref])
+     try:
+diff --git a/tools/policy/agreement.mjs b/tools/policy/agreement.mjs
+index b4cb27c5c..bc5cb5cb7 100644
+--- a/tools/policy/agreement.mjs
++++ b/tools/policy/agreement.mjs
+@@ -224,7 +224,6 @@ const SHARED_GRAMMARS = {
+   "\\|[\\s|:-]+\\|": "identical:the markdown table separator row, three readers",
+   "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
+   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
+-  "(?:tools|tests|\\.claude|dev/audit/harnesses)/.*\\.(?:sh|py|mjs|js|cjs)": "identical:the tracked-script scope, tmp_paths.py's temp-path scan and throwaway_git.py's raw init/clone scan",
+   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
+   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
+   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 04d8a399c..84d3bb96b 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -963,6 +963,10 @@ if [ "${1:-}" = "--self-test" ]; then
+   # Every throwaway repository below takes the shared helper: auto-maintenance
+   # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
+   . tests/throwaway_git.sh || exit 2
++  # ...and every git call it makes takes the env, its own and the step code's
++  # under test: an inherited GIT_CONFIG_PARAMETERS outranks a repository's own
++  # config, so the repository layer alone does not hold (the #2054 review).
++  throwaway_git_env
+   D=tools/policy/fixtures/policy-rot/prepr
+   ZERO=0000000000000000000000000000000000000000
+   # A base that DOES resolve, for the success arm below. HEAD always resolves

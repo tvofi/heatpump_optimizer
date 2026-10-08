@@ -1,0 +1,2 @@
+  FAIL throwaway_git_environ: a call passing no env= reads auto-maintenance off under an inherited -c maintenance.auto=true, and os.environ is restored after the block -- no_env='true'
+throwaway_git self-test: 44 checks, 1 failed

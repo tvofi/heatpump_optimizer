@@ -1,123 +1,147 @@
-throwaway git repositories: one shared helper at every init and clone site
-cd2def5ed3f1dc8d700e4e295775e8d59112f2be
-Every throwaway git repository a tracked script builds now goes through one shared helper, which turns git's auto-maintenance off. That follows the owner's decision (tvofi, 2026-10-08): a helper at every temp-repository site, not a CI-only workflow `env:`.
+Every throwaway git repository a tracked script builds now goes through one shared helper, which turns git's auto-maintenance off. This follows the owner's decision (tvofi, 2026-10-08) to put a helper at every temp-repository site rather than a CI-only workflow `env:`.
 
-#2051 fixed stamp.py's two repositories. The root cause is in `dev/audit/rca/R9-RCA-stamp-race.md`: git 2.54 and later detaches a geometric repack after a commit or merge, and that repack can still be writing into `.git/objects/pack` when the caller removes the temporary directory. #2051's round-2 review found that its env-only fix can be undone. Git reads `GIT_CONFIG_PARAMETERS` after `GIT_CONFIG_COUNT`, so an inherited `-c maintenance.auto=true` beats the `false` the fix sets.
+#2051 fixed stamp.py's two repositories; the cause is in `dev/audit/rca/R9-RCA-stamp-race.md`. Git 2.54 and later detaches a geometric repack after a commit or merge, and the repack can still be writing into `.git/objects/pack` while the caller removes the temporary directory. The #2051 review then found that its env-only fix can be undone: git reads `GIT_CONFIG_PARAMETERS` after `GIT_CONFIG_COUNT`, so an inherited `-c maintenance.auto=true` wins.
 
-The helper is `tests/throwaway_git.py` (`throwaway_git_env`, `throwaway_git_init`, `throwaway_git_clone`), with a shell twin, `tests/throwaway_git.sh`. It works in two layers:
+The helper is `tests/throwaway_git.py`, which provides `throwaway_git_env`, `throwaway_git_init`, `throwaway_git_clone` and `throwaway_git_environ`. Its shell twin is `tests/throwaway_git.sh`. There are two layers:
 
-- **The environment.** It drops every repository-local variable git names (`git rev-parse --local-env-vars`, which includes `GIT_CONFIG_PARAMETERS` and `GIT_DIR`) and every inherited `GIT_CONFIG_KEY_*`/`VALUE_*` pair. It then sets a fixed identity and no global or system config, and sets `maintenance.auto=false` and `gc.auto=0` through `GIT_CONFIG_COUNT`. The variables are dropped, not overridden, because nothing set in the environment can outrank `GIT_CONFIG_PARAMETERS`.
-- **The repository's own config.** `throwaway_git_init` writes the same two keys into the new repository's config, and `throwaway_git_clone` does it with `clone -c`. So a git call made without the environment still reads auto-maintenance as off, for example the production tool a self-test drives.
+- **The env.** The helper drops every variable `git rev-parse --local-env-vars` names, which includes `GIT_CONFIG_PARAMETERS` and `GIT_DIR`. It also drops every inherited `GIT_CONFIG_KEY_*`/`VALUE_*` pair. It then sets a fixed identity, no global or system config, and `maintenance.auto=false` plus `gc.auto=0` through `GIT_CONFIG_COUNT`. The inherited variables are dropped rather than overridden, because nothing set in the environment can outrank `GIT_CONFIG_PARAMETERS`.
+- **The repository's own config.** `throwaway_git_init` writes the same two keys into the new repository, and `throwaway_git_clone` does the same through `clone -c`.
 
-stamp.py's `_throwaway_git_env()` is deleted and its two sites take the helper. It is replaced rather than kept byte-compatible because a second copy is the duplication this change removes, and a delegating wrapper would only pass calls through. The helper is imported inside `self_test()`, so the release path never needs `tests/`.
+The repository layer does not hold against an inherited `GIT_CONFIG_PARAMETERS`. Command-scope config outranks a repository's own config: the review measured 63 maintenance spawns at roster_edit with that layer alone. So every site whose own runner or code under test makes git calls without `env=` now runs its whole self-test under the env:
 
-All 38 `git init` lines and all 16 `git clone` lines that the rule below returns are converted. The helper's `--check` refuses a raw init or clone in a tracked script. Governance's `instrument-self-tests` runs that check and the helper's `--self-test`, next to `tmp_paths.py`, which is the step that already scans the same tracked-script scope. The RCA sentence the review found false is corrected in place, marked as a correction.
+- roster_edit and state_docs use `with throwaway_git_environ():` at the self-test dispatch.
+- prepr, bus, app_approve and the stop hook call `throwaway_git_env` for the self-test's shell.
+
+stamp.py's `_throwaway_git_env()` is deleted, and its two sites now use the helper. A delegating wrapper would only pass calls through to a second copy. The import sits inside `self_test()`, so the release path never needs `tests/`.
+
+All 38 `git init` lines and 16 `git clone` lines that the rule returns are converted. `--check` refuses a raw init or clone in a tracked script, and its rule is stated in the module docstring. Governance's `instrument-self-tests` runs `--check` and `--self-test`, next to `tmp_paths.py`, which scans the same scope. The RCA's §4 claim that the primary key has no inherited-config dependency is corrected in place.
+
+**Behaviour notes** (from the round-1 review)
+
+- `GIT_CONFIG_GLOBAL=/dev/null` now also applies to the clones of the real checkout (prepr's `--shared .` clones, `dual_path.py`, `ci-version-edit/`). A seat whose checkout is owned by another uid loses a global `safe.directory` there. CI's ubuntu runners are unaffected.
+- In the stop hook, a `tests/throwaway_git.sh` that fails to source turns its 10 end-to-end cases into `SKIP`, as a failed `git init` already did, not into `FAIL`.
 
 ## Head
 
-`cd2def5ed3f1dc8d700e4e295775e8d59112f2be` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/2054.md`. The authored code head is `402b1f3ab172c096c13e2386fe1cd321aeacca8c`.
+`b34eaf56ded7cc1eff6d62bc0663cb13386b28f7` merges the authored code head `e7c14d3d2de9bf601e05fba463be11f82913f27b` and then merges origin/main `13b6d121` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-402b1f3ab172c096c13e2386fe1cd321aeacca8c
+`9795cc9db2294d284619bf0f863f21231799244a` merges the authored code head `e7c14d3d2de9bf601e05fba463be11f82913f27b` and then merges origin/main `dcc77dd0` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-This is the authored commit 4e2a56ec, with origin/main `470bbd60` (#2051's merge) merged in by 3859bc20, plus 402b1f3a. That last commit registers the tracked-script scope regex, which `tmp_paths.py` and `throwaway_git.py` now share, in `tools/policy/agreement.mjs`. `prepr.sh`'s agreement lane had refused it as an unregistered grammar. The merge base is 470bbd6087e5978eae594e616a76e207336b289c. Every figure below was taken at this head, after that merge, at 2026-10-08 about 08:30Z.
+e7c14d3d2de9bf601e05fba463be11f82913f27b
+
+The round-1 review commits are:
+
+- 70819a01 widens the clone rule, routes the remaining site calls through the env, and adds `throwaway_git_environ`.
+- 9ddea090 answers the first CI run at 4d40002e. The shell-clone regex was a CodeQL `py/redos` alert, so it is now a token scan. The scope is now a prefix and suffix test, which removes the second copy of `tmp_paths.py`'s scope regex. Because of that, the `agreement.mjs` registration from round 1 is reverted: the pinned base copy that `wave-script` runs cannot see a registration added on the branch.
+
+f9b24cc8 merges the PR branch, including the bot's `ci: re-record closures` commit 285b175f. e7c14d3d then merges origin/main `dcc77dd0`. The only conflict was `tests/closures.json`, which `ledger_merge.py` resolved. Every figure below was taken at e7c14d3d.
 
 ## Mutation proof
 
-**The guard.** Each mutant is a commit built off HEAD with `git commit-tree` (HEAD does not move), checked with `python3 -I tests/throwaway_git.py --check --ref <mutant>`:
+**The guard.** Each mutant is a commit built off the head with `git commit-tree`, checked with `python3 -I tests/throwaway_git.py --check --ref <mutant>`:
 
-    M1: tests/layout.py, the helper call reverted to subprocess.run(["git", "init", "-q"], ...)
-      REFUSE tests/layout.py:641: subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
-      throwaway_git: 1 raw git init site(s) refused ... rc=1
-    M1b: tools/pr/prepr.sh, one subshell's throwaway_git_init reverted to git init -q -b main .
-      REFUSE tools/pr/prepr.sh:1718: set -e; throwaway_git_env; cd "$TR"; git init -q -b main .
-      ... rc=1
+- K2 (the review's mutant): roster_edit's stale clone reverted to `run(["git", "clone", str(origin), str(stale)])` prints `REFUSE tools/audit/seat/roster_edit.py:668 ...` and `1 raw git init or clone site(s) refused`, rc 1.
+- K4: prepr's clone written as `("$GIT" --no-pager clone -q --shared . "$PDX/r"` prints `REFUSE tools/pr/prepr.sh:1569 ...` and `1 ... refused`, rc 1.
+- Removing the token scan (`_shell_clone`) from `is_site` turns 4 shell-clone rows red: `a shell clone`, `through a git variable`, `after a global option`, and `after -C and -c`.
+- Deleting the widened clone pattern (`["']clone["']\s*[,\]]`) turns 7 of the self-test's clone rows red, including `FAIL refused: a positional list clone (the #2054 review's K2)` and `FAIL refused: execFileSync clone`.
 
-These two mutants were taken before the clone extension, so the summary line there still reads `init`.
+**The env routing**, on real git 2.55.0, with `throwaway_git_sites.sh 1 hostile`:
 
-**The helper's layers.** Each is an in-place edit after a commit, restored with `git checkout`, under `python3 -I tests/throwaway_git.py --self-test`:
+- Without roster_edit's `with throwaway_git_environ():`: `site=roster_edit ... maintenance_spawns=63`.
+- Without prepr's `throwaway_git_env` line: `site=prepr ... maintenance_spawns=16`.
+- Each was restored with `git checkout`; the restored head reads 0 at both sites, as in the table below.
 
-- M2: `GIT_CONFIG_PARAMETERS` is removed from `LOCAL_ENV`. Three checks fail: `FAIL the env drops every repository-local variable ...`, `FAIL the env survives the same hostile parameters ...` and `FAIL the shell twin's throwaway_git_env sets exactly the same GIT_ variables`.
-- M3: the init stops writing the repository config. `FAIL a caller WITHOUT the env still reads both off: the repository's own config`.
-- M4: the shell twin stops unsetting `GIT_CONFIG_PARAMETERS`. `FAIL the shell twin's throwaway_git_env sets exactly the same GIT_ variables`.
-- M5: the shell init stops writing the config. `FAIL the shell twin's init writes both keys ...`.
-- M6: `maintenance.auto` is dropped from `CONFIG`, leaving only the `gc.auto` belt. Four checks fail.
+**The helper's layers**, under `--self-test`:
 
-**Real git.** git 2.55.0 is built from git/git v2.55.0 and used through `GIT_BIN`. The run is `dev/audit/harnesses/throwaway_git_sites.sh`, and the base tree is #2051's head dda217b3. In the `hostile` arm, `GIT_CONFIG_PARAMETERS` carries `maintenance.auto=true` plus the forced geometric repack. stamp, 10 runs:
-
-    base dda217b3:  last: OSError: [Errno 66] Directory not empty: 'info'
-                    site=stamp arm=hostile git=2.55.0 runs=10 directory_not_empty=5 nonzero_exit=10 maintenance_spawns=70
-    head:           site=stamp arm=hostile git=2.55.0 runs=10 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
-
-That is the #2051 round-2 finding reproduced on real git and closed.
+- Removing `GIT_CONFIG_PARAMETERS` from `LOCAL_ENV` makes 3 checks fail.
+- Stopping the repository-config write makes `FAIL a caller WITHOUT the env still reads both off` fail.
+- In the shell twin, dropping the `GIT_CONFIG_PARAMETERS` unset fails the parity check, and dropping the config write fails `the shell twin's init writes both keys`.
+- Leaving only the `gc.auto` belt makes 4 checks fail.
 
 ## Null control
 
-At the head, `--check` prints `0 raw git init or clone site(s) refused, 0 stale allow entries`, and `--self-test` prints `36 checks, 0 failed`.
+At the head:
 
-The `forced` arm drives stamp, 10 runs, with the repack forced and no `maintenance.auto` override. It printed `directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0` at both base and head. #2051's own fix holds when nothing overrides it, so the hostile arm is what tells the two apart.
+- `--check` prints `0 raw git init or clone site(s) refused, 0 stale allow entries`.
+- `--self-test` prints `44 checks, 0 failed`.
+- The ReDoS null control is `"git " + "-c -a " * n + "x"`. The removed regex took 0.014 s at n=14, 0.248 s at n=16, 0.759 s at n=18 and 1.873 s at n=20, roughly tripling every two steps. The token scan takes 0.014 s at n=5000.
 
-The self-test also has an arm that must fail on any git: a hand-built environment that keeps `GIT_CONFIG_PARAMETERS` reads `maintenance.auto` as `true` through both layers. That is the reason the helper drops it.
+The self-test has an arm that keeps an inherited `GIT_CONFIG_PARAMETERS` in a hand-built environment. It reads `maintenance.auto` as `true` through both layers. That shows the precedence the helper's drop relies on. A new arm checks that a call passing no `env=` inside `throwaway_git_environ()` reads `false` under that same inherited value, and that `os.environ` is restored afterwards.
 
-The `plain` arm forces nothing on real git 2.55.0. It counts `run_command: git maintenance run --auto` lines in a `GIT_TRACE` file over 1 run per site. Git spawns that after every commit or merge unless auto-maintenance is off, so the count does not depend on timing:
+On real git 2.55.0, `dev/audit/harnesses/throwaway_git_sites.sh` counts maintenance spawns (`run_command: git maintenance run --auto` lines in `GIT_TRACE`) for one run per site. The `hostile` arm sends `maintenance.auto=true` plus the forced repack through `GIT_CONFIG_PARAMETERS`. The base column is #2051's head, dda217b3, from round 1. Both head columns were re-taken at e7c14d3d.
 
-| site | base dda217b3 | head |
-|---|---|---|
-| stamp | 0 | 0 |
-| ledger_merge | 2 | 0 |
-| layout | 1 | 0 |
-| budget_raise_gate | 0 | 0 |
-| bus | 53 | 0 |
-| merge_train | 215 | 0 |
-| roster_edit | 74 | 0 |
-| state_docs | 3 | 0 |
-| app_approve | 34 | 0 |
-| stop_hook | 2 | 0 |
-| prepr | 57 | 0 |
+| site | plain, base | plain, head | hostile, head |
+|---|---|---|---|
+| stamp | 0 | 0 | 0 |
+| ledger_merge | 2 | 0 | 0 |
+| layout | 1 | 0 | 0 |
+| budget_raise_gate | 0 | 0 | 0 |
+| bus | 53 | 0 | 0 |
+| merge_train | 215 | 0 | 0 |
+| roster_edit | 74 | 0 | 0 |
+| state_docs | 3 | 0 | 0 |
+| app_approve | 34 | 0 | 0 |
+| stop_hook | 2 | 0 | 0 |
+| prepr | 57 | 0 | 0 |
 
-stamp and budget_raise_gate read 0 at the base too. stamp was already fixed by #2051, and budget_raise_gate's site already ran with an env that kept maintenance off, so the plain arm cannot tell its two ends apart. The head column for roster_edit, state_docs and prepr was re-taken after the clone sites were converted. Before that, the same head read 66, 2 and 16 with every init converted, and those spawns came from their `git clone` repositories. That residual is why the clone class is in this diff.
+Two sites cannot discriminate in this table. stamp was already fixed by #2051, and budget_raise_gate's site already ran under an env that kept maintenance off, so both read 0 at both ends of the plain arm.
+
+stamp also ran 10 times on the hostile arm. At base dda217b3 it printed `directory_not_empty=5 nonzero_exit=10 maintenance_spawns=70`, with `OSError: [Errno 66] Directory not empty`. At e7c14d3d it printed 0, 0 and 0. The forced arm without `maintenance.auto` printed 0 at both ends, so #2051's fix holds when nothing overrides it.
+
+The review re-took the base column: prepr read 41 there with a non-zero exit, while the disk was at 99%. Mine reads 57.
 
 ## Figures
 
-- `python3 -I tests/throwaway_git.py --check --ref 470bbd60` printed `54 raw git init or clone site(s) refused, 2 stale allow entries`. Of the 54 lines, 38 are init and 16 are clone. The 2 stale entries are the helper's own files, which are absent at the base.
-- The same command at HEAD printed `0 ... refused, 0 stale`. This is the class enumeration step 8 asks for. The rule is the regex in `tests/throwaway_git.py` (`_SITE`), over `tools/ tests/ .claude/ dev/audit/harnesses/`, less `tools/audit/round<n>/`. Every line it returns at the base is converted in this diff.
-- The brief's rule, `git grep -n -E '"git", "init"|git init|"init", "-q"' -- tests tools .claude .github dev`, finds lines this rule leaves out, each with a disposition:
-  - Round evidence and the archive (`dev/audit/rounds/**`, `dev/archive/**`): 6 code lines. They are records, not reruns, and are out of scope by rule.
-  - Prose: `stop-selfcheck.sh:152` (a comment), the RCA, and the round reports.
-  - Its `.claude/hooks/stop-selfcheck.sh:94` (`git -C "$T" init`) is in scope and converted.
-  - `dev/audit/harnesses/git_auto_maintenance_race.sh` runs `"$REAL_GIT" init` on purpose, because its `spawn` arm measures git's default. The rule does not match `$REAL_GIT`. It is left as is.
-- `python3 tests/closure.py select --diff 470bbd60 --workdir "$D"` printed `MODE: FULL`, because `tests/closure.py` changes the gate itself. `tests/run.sh` and `tests/closures.json` are gate files too. Under `fixer.md` step 5, the heavy scripts (features, golden, stress, optimality and the rest) are left to CI's `fast` and `slow` jobs at this head.
-- Run locally at this head, all under the CI venv's Python 3.14 with `PYTHONPATH=tests/hastub`. Every one exited 0:
-  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget raise and no re-record.
-  - `tests/closure.py selftest`: `ALL 39 closure shrink pins PASSED`.
-  - `tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`.
-  - `tests/layout.py`: `layout self-test: ok`, guard 0.
-  - `tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`.
-  - `tests/doc_claims.py`: `ALL 160 checks PASSED`.
-  - `tests/entities.py`: `ALL 2210 ENTITY CHECKS PASSED`, re-run at 402b1f3a.
-  - `tools/pr/prepr.sh <this body>`: exit 0, with the agreement lane at `unregistered=0`.
-- Each converted site's own self-test also passed at this head:
-  - stamp.py: `RESULT stamp_self_test=pass`.
-  - ledger_merge.py: `all passed`.
-  - budget_raise_gate.py: 202 checks, 0 failed.
-  - merge_train.py: 80 checks, 0 failed.
-  - roster_edit.py: 37 checks, 0 failed.
-  - state_docs.py: `all checks passed`.
-  - bus.sh: 45 checks, 0 failed.
-  - app_approve.sh: 145 checks, 0 failed.
-  - stop-selfcheck.sh: 26 passed, 0 failed.
-  - prepr.sh: 210 passed, 0 failed.
-  - `tools/audit/seat/tmp_paths.py --check`: 0 refused.
-  - `dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check`: `uncovered_files=0`.
-- Classification: `tests/throwaway_git.py` is on `NOT_A_TEST`, is skipped in both of `run.sh`'s loops, and is recorded into the closures of `entities.py`, `layout.py` and `doc_claims.py`. Those three were re-recorded with `derive_closures.sh --single`; Python lanes record through the audit hook, which is sound on Darwin. `tests/throwaway_git.sh` is INERT. Only shell self-tests source it, and governance runs those, never this gate. Both files are CODEOWNED. `codeowners_gap.py` had refused the `.py` file as UNCOVERED, since stamp.py, layout.py and budget_raise_gate.py import it.
-- The evidence is in `/Users/timmalmstrom/hpo-seats/r9-gittmp/evidence/`. It holds one file per run named above, `realgit_base_vs_head.log` and `realgit_clone_sites_head.log`.
+- `python3 -I tests/throwaway_git.py --check --ref 470bbd60` printed `54 raw git init or clone site(s) refused, 2 stale allow entries`. Of the 54 lines, 38 are init and 16 are clone. The 2 stale entries are the helper's own files, which are absent at that ref.
+- The same command at the head printed `0 ... refused, 0 stale`. The rule is `_SITE` in `tests/throwaway_git.py`. Its scope is `tools/ tests/ .claude/ dev/audit/harnesses/`, less `tools/audit/round<n>/`. Every line the rule returns at 470bbd60 is converted in this diff.
+- The brief's rule, `git grep -n -E '"git", "init"|git init|"init", "-q"' -- tests tools .claude .github dev`, also returns lines outside that scope:
+  - code lines under `dev/audit/rounds/**` and `dev/archive/**`, which are records, not reruns;
+  - prose;
+  - `dev/audit/harnesses/git_auto_maintenance_race.sh`, which runs `"$REAL_GIT" init` on purpose to measure git's default. The docstring names that shape, a git binary held in a variable whose name lacks `git`, as uncaught.
+- `python3 tests/closure.py select --diff <merge base>` printed `MODE: FULL`. `tests/closure.py`, `tests/run.sh` and `tests/closures.json` are gate files, so the heavy scripts are CI's.
+- Each command below was run locally at e7c14d3d and exited 0, under the CI venv's Python 3.14 with `PYTHONPATH=tests/hastub`:
+  - `tests/structure.py`: `STRUCTURE RATCHET PASSED`, with no budget raise
+  - `tests/closure.py selftest`: `ALL 39 closure shrink pins PASSED`
+  - `tests/env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`
+  - `tests/layout.py`: `layout self-test: ok`
+  - `tests/harness_headers.py`: `ALL 109 HARNESS HEADER CHECKS PASSED`
+  - `tests/doc_claims.py`: `ALL 160 checks PASSED`
+  - `tests/entities.py`: `ALL 2212 ENTITY CHECKS PASSED`. The first run printed `1 of 2212 ENTITY CHECKS FAILED`, the mutation driver's scaled-timeout check (`fits=124`): a 1.6 s fixture overran its 2 s limit at load average 88. The re-run printed all passed. This diff does not touch `tests/mutation_table.py`
+- Each site's own self-test also exited 0 at e7c14d3d:
+  - stamp: `RESULT stamp_self_test=pass`
+  - ledger_merge: `all passed`
+  - budget_raise_gate: `budget_raise_gate self-test: 206 checks, 0 failed`
+  - merge_train: `merge_train self-test: 80 checks, 0 failed`
+  - roster_edit: `roster_edit self-test: 37 checks, 0 failed`
+  - state_docs: `state_docs self-test: all checks passed`
+  - bus: `bus self-test: 45 checks, 0 failed`
+  - app_approve: `app_approve self-test: 145 checks, 0 failed`
+  - stop hook: `26 passed, 0 failed`
+  - prepr: 210 passed, 0 failed
+- Two more checks exited 0 at e7c14d3d:
+  - `tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused, 0 stale allow entries at HEAD`
+  - `codeowners_gap.py --check`: `RESULT uncovered_files=0 count`
+- Classification:
+  - `tests/throwaway_git.py` is on `NOT_A_TEST`, is skipped in both of `run.sh`'s loops, is in the recorded closures of `entities.py`, `layout.py` and `doc_claims.py`, and is CODEOWNED. stamp.py, layout.py and budget_raise_gate.py import it.
+  - `tests/throwaway_git.sh` is INERT, because only shell self-tests that governance runs source it. It is CODEOWNED.
+- CI at this head: see `## Red checks`.
 
 ## Red checks
 
-none at the time of writing. CI has not yet run on this head.
+These were red at 4d40002e, which was CI's first run on this pull request:
+
+- `CodeQL`: 1 high alert, `py/redos` at `tests/throwaway_git.py:166`. The shell-clone regex backtracked exponentially on repeated `-c -a`. This diff caused it, and 9ddea090 fixes it with a linear token scan, measured in `## Null control`. A cheaper detector exists: CodeQL runs on every pull request in about 25 min. No local equivalent was run, and none is in the tree.
+- `wave-script`: `AGREEMENT REFUSED ... unregistered=1`, the scope regex shared with `tmp_paths.py`. The job runs the base's pinned `agreement.mjs`, so the branch's registration could not reach it. Fixed in 9ddea090 by removing the duplicate grammar. The cheaper detector is `node tools/policy/agreement.mjs` run from the base. Locally I ran the branch's copy, which already carried the registration, so it could not show this.
+- `closures`: `INERT READS UNDER-APPROXIMATED`. The Linux recording saw `tests/harness_headers.py` open the `dev/audit/harnesses/*.sh` files, including the new `throwaway_git_sites.sh`. `closures-autofix` repaired it in bot commit 285b175f (`ci: re-record closures`), and this head merges that commit. This is the `ci-autofix.md` case: no Darwin detector can see an inert read, because only `strace` records it.
+- `pr-contract`: it refused the previous body for not naming the four reds above. This body names them.
+- `delivery-status`: `UNCHECKED — 74 rowed, 0 pending, 0 overdue`. This job grades `main`'s merge window, not this diff, and it is not a required context.
+- `nightly-status`: `NIGHTLY FAILED: mutation-ledger, mutation-nightly, record-autofix` on scheduled run 37595831734, at main's be0cb82 from 2026-10-07, before this branch existed. It is main's, and its owner is the nightly lane.
+- `nightly-ha (2025.2.0)` and `nightly-ha (stable)`: these ran at the bot commit 285b175f, in a `workflow_dispatch` Tests run. They fail on `FAIL a16:debug_inline` and `FAIL a16:debug_capped` (`bundle 9376014B against the 8388608B cap`), then on `run:exit_status`. The same `a16` arms fail in main's own scheduled run 37753990323 at 816547ef. This diff touches nothing under `custom_components/`, which is empty in the three-dot diff from the merge base, so the red belongs to main's debug-bundle lane and that lane's owner.
+- `budget-raise-gate`: one run of its pair was `cancelled`, not failed, and this diff touches no `*_budgets.json`. The cancelled twin needs a rerun, which is the orchestrator's to do.
 
 ## Forward-carry
 
-The correction to `dev/audit/rca/R9-RCA-stamp-race.md` §4 and its §6 note land in this diff. They record that the CI-only `env:` barrier is superseded by the helper. No later stage's brief changes: the guard in governance's `instrument-self-tests` now refuses a new raw init or clone site.
+none. RCA §4's correction and §6's note land in this diff. The guard in `instrument-self-tests` refuses a new raw init or clone site, so no later stage's brief changes.
 
 ## Friction
 
@@ -125,7 +149,6 @@ none
 
 ## Approval
 
-This diff touches code-owned and policy paths: `tools/release/stamp.py`, `.github/workflows/governance.yml`, `.github/CODEOWNERS`, `.claude/hooks/stop-selfcheck.sh`, `tests/closure.py`, `tests/run.sh`, `tests/layout.py`, and the two new CODEOWNED helper files. It merges only on the owner's approving review, or on the orchestrator's mandate procedure where one is in force.
+This diff touches code-owned and policy paths: `tools/release/stamp.py`, `.github/workflows/governance.yml`, `.github/CODEOWNERS`, `.claude/hooks/stop-selfcheck.sh`, `tests/closure.py`, `tests/run.sh`, `tests/layout.py`, and the two new CODEOWNED helper files. It merges only on the owner's approving review, or under the orchestrator's mandate procedure where one is in force.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
-

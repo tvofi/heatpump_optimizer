@@ -1,0 +1,30 @@
+### head b34eaf56ded7cc1eff6d62bc0663cb13386b28f7 2026-10-08T13:09:51Z
+## hostile 1 all
+site=stamp arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=ledger_merge arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=layout arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=budget_raise_gate arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=bus arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=merge_train arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=roster_edit arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=state_docs arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=app_approve arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=stop_hook arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=prepr arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+## hostile 5 stamp
+site=stamp arm=hostile git=2.55.0 runs=5 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+## plain 1 all
+site=stamp arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=ledger_merge arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=layout arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=budget_raise_gate arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=bus arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=merge_train arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=roster_edit arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=state_docs arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=app_approve arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=stop_hook arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=prepr arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+## mutant: roster_edit without throwaway_git_environ, hostile 1
+site=roster_edit arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=63
+DONE

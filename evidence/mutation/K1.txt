@@ -1,4 +1,0 @@
-## K1-clone-roster (tools/audit/seat/roster_edit.py) mutant=e6b3458209c81f22fc03e23f791bee971a44f0ee
-REFUSE tools/audit/seat/roster_edit.py:663: run(["git", "clone", "-q", str(origin), str(stale)])
-throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at e6b3458209c81f22fc03e23f791bee971a44f0ee
-rc=1

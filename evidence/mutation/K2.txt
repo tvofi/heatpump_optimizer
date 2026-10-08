@@ -1,3 +1,4 @@
-## K2-clone-positional (tools/audit/seat/roster_edit.py) mutant=f9f7491c75320741951fa22fd8cbda43284286d0
-throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at f9f7491c75320741951fa22fd8cbda43284286d0
-rc=0
+## K2-clone-positional (tools/audit/seat/roster_edit.py) mutant=83d91691ac475d17e40ba4b7ba0c83196f7f24cb
+REFUSE tools/audit/seat/roster_edit.py:668: run(["git", "clone", str(origin), str(stale)])
+throwaway_git: 1 raw git init or clone site(s) refused, 0 stale allow entries at 83d91691ac475d17e40ba4b7ba0c83196f7f24cb
+rc=1
