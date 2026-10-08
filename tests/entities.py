@@ -21836,7 +21836,7 @@ import json as _json
 # the data-level one so a payload that ever starts emitting option values is
 # measured too.
 _DIAG_LAT, _DIAG_LON = 59.331234, 18.071234
-_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.335555, 18.075555
+_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.385555, 18.175555
 _DIAG_NAME = "Villa Solbacken Storgatan 5"
 _DIAG_TOPIC = "home/storgatan5/ecl110/state"
 _DIAG_DEEP = {
