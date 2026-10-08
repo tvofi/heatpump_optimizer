@@ -83,9 +83,8 @@ When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate s
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
 
-## The claim-file conflict is prevented, not autofixed
+## A driver-file conflict: one bot merges it, none autofixes it
 
-A conflict in the two claim files is **not** an autofix case: CI never runs on a `DIRTY` pull
-request, so no job is red to key on. Do not replace the driver with `merge=union`. Only
-`.github/workflows/merge-main.yml` pushes a resolution (tvofi, 2026-10-08): `ci: merge main`,
-where `main`'s drivers resolve every conflict.
+CI never runs on a `DIRTY` pull request, so no job is red to key on. Do not replace a driver
+with `merge=union`. Only `.github/workflows/merge-main.yml` pushes a resolution (tvofi,
+2026-10-08): `ci: merge main`, where `main`'s drivers resolve every conflicting file.

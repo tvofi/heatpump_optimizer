@@ -5975,6 +5975,15 @@ function autofixCommit(sha) {
 // driver resolved are re-checked by the gates that own them, as a seat's are.
 function autofixMerge(sha, short, message, ps) {
   if (ps.length !== 2) return { why: `${short} has ${ps.length} parents, and "${message}" is a merge of two` }
+  // Main, and main's attributes, never the parent's (#2059 round 1): a merge
+  // of a branch that is not main, or one whose side routes a file to a driver
+  // so a hand edit hides in the excluded set, is not a merge of main.
+  if (!git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true, quiet: true }).trim()) {
+    return { why: `${short}: this clone has no origin/main to check "${message}"'s second parent against` }
+  }
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', ps[1], 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+  } catch { return { why: `${short} merges ${ps[1].slice(0, 7)}, which is not on origin/main` } }
   let out = ''
   try {
     out = execFileSync('git', ['merge-tree', '--write-tree', '--no-messages', ps[0], ps[1]],
@@ -5982,7 +5991,7 @@ function autofixMerge(sha, short, message, ps) {
   } catch (e) { out = e.stdout ?? '' }
   const tree = out.split('\n')[0].trim()
   if (!/^[0-9a-f]{40}$/.test(tree)) return { why: `${short}: git merge-tree gave no tree for its parents` }
-  const drivers = git(['show', `${ps[1]}:.gitattributes`], { allowFail: true, quiet: true }).split('\n')
+  const drivers = git(['show', 'origin/main:.gitattributes'], { allowFail: true, quiet: true }).split('\n')
     .filter((l) => !l.startsWith('#') && / merge=/.test(l)).map((l) => `:(exclude)${l.split(/\s+/)[0]}`)
   const moved = git(['diff', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
   if (moved) return { why: `${short} is not the automatic merge of its parents (${moved.split('\n').join(', ')})` }
