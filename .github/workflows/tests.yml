@@ -1465,6 +1465,11 @@ jobs:
           && needs.closure-scope.outputs.nightly_ha == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Unrequired, and on a pull request its verdict is about the pull
+    # request's own driver: it grades nothing (codeowners_gap.py's rule), so
+    # the driver it runs from the pull request's copy needs no pin.
+    env:
+      HPO_JOB_GRADES: nothing
     strategy:
       # Both images report. A floor that breaks while stable does not is the
       # most informative outcome this lane has, and fail-fast would hide it.
