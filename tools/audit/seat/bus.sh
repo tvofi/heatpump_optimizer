@@ -332,11 +332,11 @@ self_test() {
   expect() { # name condition-rc
     if [ "$2" = 0 ]; then ok "$1"; else bad "$1"; fi
   }
-  # Hermetic: no global or system git config (identity, hooks, push negotiation).
-  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=$W/gitconfig
-  git config --file "$W/gitconfig" user.name t && git config --file "$W/gitconfig" user.email t@t
-  git init -q --bare "$W/origin.git"
-  git init -q "$W/seat" && git -C "$W/seat" remote add origin "$W/origin.git"
+  # Hermetic: no global or system git config (identity, hooks, push
+  # negotiation) and no auto-maintenance, through the shared helper.
+  . "$ROOT/tests/throwaway_git.sh" && throwaway_git_env
+  throwaway_git_init "$W/origin.git" -q --bare
+  throwaway_git_init "$W/seat" -q && git -C "$W/seat" remote add origin "$W/origin.git"
   git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
   git -C "$W/seat" push -q origin HEAD:refs/heads/main
   h1=1111111111111111111111111111111111111111
