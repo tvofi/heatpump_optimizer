@@ -98,7 +98,7 @@
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 129.0,
+   "seconds": 167.0,
    "rc": 0
   },
   "tests/doc_claims.py": {
@@ -3686,7 +3686,8 @@
    "dev/programme/register/audit-2026-09.md",
    "tools/audit/repo_root.mjs",
    "tools/audit/repo_root.sh",
-   "dev/audit/harnesses/r9_dbg2_selftest_price.py"
+   "dev/audit/harnesses/r9_dbg2_selftest_price.py",
+   "dev/audit/harnesses/r9_ro12_batch_mutants.sh"
   ],
   "tests/doc_claims.py": [
    "docs/site/docs.css"
