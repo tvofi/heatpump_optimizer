@@ -1,0 +1,5 @@
+MATCH custom_components/heatpump_optimizer/entry_config.py:EntryConfig.__reduce__ RETURN_DEL 5a1c704f
+MATCH custom_components/heatpump_optimizer/entry_config.py:EntryConfig.fuse_kw CMP_BOUND abdad8ea
+MATCH custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track GUARD_OFF aaf62cf9
+MATCH custom_components/heatpump_optimizer/pump_arbiter.py:_silent_target RETURN_DEL b9ef128b
+RESULT pins=4 artifact_rows=4 mismatches=0

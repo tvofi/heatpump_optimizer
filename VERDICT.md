@@ -1,70 +1,72 @@
-Fix review: blocked 95b083063f3ebce013d38726bd329c729438bc7c root-cause-unanswered: mutation red at the head (5 added sites unpinned, one a live survivor); body stale
+Fix review: blocked 9c66410942bceb57ccb753b87d74721854d57ce7 harness: probe out of tree -- the 6840 equivalence probe the triage row and body cite lives at a machine path (fixer.md 18)
 
-bus-nonce: 8288ef41ee345977760afb92049ada42
+bus-nonce: cdd66b91772176b043b6cfeaa22d7bde
 
-Reviewer seat review-2025-r6, round 6 of PR #2025 (R9-EG-B11, #1745). This is a delta review from 0662bd8e, run from the detached worktree /Users/timmalmstrom/hpo-seats/review-2025-r6/wt. The dispatch named 883eed10. The head then moved by the bot's `ci: pin killed mutants` commit (95b08306, ledger only, 58 added pins), and this verdict is at that head under the coordinator's re-issued nonce. `fix-review.md` is unchanged on main since the merge base.
+Reviewer seat review-2025-r6, round 7 of PR #2025 (R9-EG-B11, #1745). This round reviews the delta 95b08306..9c664109, checked out detached in /Users/timmalmstrom/hpo-seats/review-2025-r6/wt. I prepared against the merge base and measured the head after CI settled. The live head was re-read at posting and is still 9c664109.
 
-**This is not a body-only block.** The mutation lane is still red at 95b08306 on 5 added sites. One of them is a live survivor. `mutation-pins` is skipped at this head (the `ci:` loop guard), so no second bot commit is coming. The fixer owes ledger or test work: `ci-autofix.md` says to run `--pin-killed` yourself when the autofix leaves sites, and to triage a survivor by hand, never by automation.
+**Everything substantive holds. The block is one rule, and the fix is mechanical.** Code before 95b08306 was not re-reviewed, per the dispatch.
 
-## What holds (no re-review owed next round)
+## The block: fixer.md step 18
 
-### (a) Main merges
-- **37ac4d84 and 883eed10:** `git merge-tree --write-tree` reproduces each tree exactly, and the remerge-diff is empty for both. On 883eed10 the stderr reads `LEDGER-MERGE: resolved tests/closures.json`, which is the driver.
-- **b29e4ee4 (main 6b91e238) was resolved by hand.** merge-tree exits 1. The remerge-diff is 124 lines:
-  - the `pump_arbiter.py` conflict (`_entities` silent slot), plus a hand edit of `_silent_target` to read `cfg.quiet_silent_windows` and `cfg.quiet_off_windows`;
-  - `features.py` stand-ins moved from item writes to `with_config`.
-  The body discloses all of these.
-- **The b29e4ee4 resolution is equivalent.** I judged it with my own harness, `resolution_equiv.py`. It compares raw values against parsed fields for `silent_control_usable`, `_silent_rows` and `_inside_silent` (49 now-points over a week), plus the `from_mapping` fields. Result: `RESULT resolution_equiv comparisons=2702 mismatches=0`.
-  - Perturbation (`_spec` maps blank to a real window): `mismatches=202`, so the harness moves.
-  - No `CONF_` read is left in `pump_arbiter.py`. Every mapping read on main (lines 291-1056) maps to a parsed field.
+The survivor_triage row `HeatPumpOptimizerCoordinator._forecast_arrays.CMP_BOUND.54c3c7b5.json` cites its measurement as `/Users/timmalmstrom/hpo-seats/r9c-egb11/ev7/equiv_6840.py` (sha1 3e661d15, which matches the file on this machine). The body's Mutation proof cites the same path.
 
-### (b) Survivor kills
-I applied each mutant in place, ran `PYTHONPATH=tests/hastub python3 tests/entities.py` (venv-ci 3.14.7), then restored with `git checkout`. The tree was clean after each.
-- **Baseline at 883eed10:** `ALL 2225 ENTITY CHECKS PASSED`.
-- **All 9 mutants KILLED.** Each fails exactly 1 of 2225 checks, the gate check, on the arm the body names:
+That probe is what a later seat reruns to re-check the equivalence mark, for example when the line or `_liquid_fraction` changes. It is also how the body's figures (552 cases, 0 vs 264) are reproduced. So it must land in this PR (`tools/audit/harnesses/`). The committed ledger row on main would otherwise name one machine's home directory.
 
-| Mutant | Moved arm |
-|---|---|
-| M1 coordinator.py:5051 GUARD_OFF | (1, 1) |
-| M2 :5462 BOOLOP | ((1.0,), (1.0,)) |
-| M3 :6840 GUARD_OFF | (2.0, 2.0) |
-| M4 :6840 BOOLOP | (0.5714, 0.5714) |
-| M5 :8901 GUARD_OFF | ((False, 1), (True, 1)) |
-| M6 :8934 GUARD_OFF | ((True, 0), (True, 1)) |
-| M7 :10776 GUARD_OFF | (9.0, 9.0) |
-| M8 entry_config.py:256 GUARD_OFF | (False, True) |
-| M9 silent_mode.py:104 GUARD_OFF | ('TypeError', True) |
+`tmp_paths.py` does not scan ledger JSON or body prose, so CI could not catch this. Review owns it (step 9).
 
-- **The tests pin behaviour, not formulas.** Each arm drives the real coordinator or `silent_mode` and compares produced values against literals. None re-implements a formula, and the on arm is the null control.
-- **Dropping `_optional_number`'s `== ""` guard is equivalent.** All 4 call sites default to None, and `float("")` raises, which falls to that same default. Nothing outside `entry_config.py` uses it.
-- **b21ed75e's two dropped pins are correct.** Their `old` text appears 0 times at the head. The rewritten sites (coordinator.py:9809 GUARD_OFF, pump_arbiter.py:572 RETURN_DEL) are listed in the body.
+**Fix, one pass:**
+1. Land `equiv_6840.py` under `tools/audit/harnesses/`, unchanged in substance, and classify it (closure or INERT) so `entities.py` stays green.
+2. Point the triage row's `reason` at the tree path. Re-run `mutation_table.py --normalize`; the anchor is unchanged.
+3. In the body, cite the tree path in Mutation proof. Name the new head in Head.
 
-### Other checks
-- `tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`.
-- Against the merge base, `structure_budgets.json` only falls (max_class_loc 9048 to 8817, seam_cut_total 766 to 760).
-- VERSION, the manifest, RELEASE_NOTES.md and both claim files are untouched.
-- CI at 883eed10: fast (3.14), closures, coverage, typing, env-matrix and all ten mutation-pins shards are success.
-  - `delivery-status` failure is main's window (`UNCHECKED -- 9 merge commits ...`), not this PR's diff.
+## What holds; next round needs only the delta above
 
-## Blocking: mutation at 95b08306 (job 113224598923)
+### (a) Merges
+- **bf372564, 0864a8d2, 5d4f3b04 and 9c664109:** `git merge-tree --write-tree` over each merge's parents reproduces its tree exactly, and the remerge-diff is 0 lines for every one.
+- bf372564 and 9c664109 print `LEDGER-MERGE: resolved tests/closures.json`, which is the driver.
+- de81043a is the bot's closures re-record, `tests/closures.json` only.
 
-The job reads: `MUTATION TABLE REFUSED -- 4657 unpinned site(s) against 4670 at the ratchet base 0c25836e, 5 of them added by this diff`. The shard logs at 883eed10 give each site's status:
-- `coordinator.py:6840 CMP_BOUND` (`snow_array > 0.0`): **lives**. This is a surviving mutant. The gate check's rain arm uses 1 cm of snow, so it never reaches the zero boundary. The fixer owes a kill, or a `survivor_triage` entry with the equivalence evidence.
-- `entry_config.py:272 CMP_BOUND`, `entry_config.py:282 RETURN_DEL`, `legionella.py:194 GUARD_OFF`, `pump_arbiter.py:572 RETURN_DEL`: **skip-budget**. They were not started and never measured. Run `python3 tests/mutation_table.py --pin-killed --base origin/main` for these (CI's lane, or locally per ci-autofix.md). My round-5 R2 kill (the `amps > 0` guard dropped) suggests 272 is killable. 282 is the `__reduce__` restore, which the round-4 deepcopy check kills.
+### (b) The 6840 CMP_BOUND equivalence: attacked, and it holds
+I traced every path into `precip_array`:
+- `_weather_series` timed rows, untimed rows and the no-forecast zeros;
+- the padding (`series[-1]` or 0.0).
+Every rain value passes `max(0.0, _as_float(...))`, and `_as_float` maps None, text, overflow and non-finite input to the default.
 
-## Body changes (one pass)
-1. **Head:** name 95b083063f3ebce013d38726bd329c729438bc7c (the bot pin commit over 883eed10), and whatever head the fix above produces.
-2. **Red checks:** add `mutation` at 883eed10 (job 113187473136, REFUSED, 63 added unpinned) and at 95b08306 (job 113224598923, 5 added unpinned), each with its answer. The section currently names only bfaf5486's run.
-3. **Unpinned sites:** 58 sites are now pinned by 95b08306. The 5 above are still listed as "pinned by mutation-autofix", which is false at this head. Give each its real disposition (killed and pinned, or triaged).
-4. **Figures:** the entities count is 2218 at b21ed75e and 2225 at the main-merged head. Say which head each figure is for.
+Snow is `max(0.0, float(snow))`, so a NaN answer becomes 0.0, or it stays 0.0. There is one guard site (6840) and one caller of `_liquid_fraction`. `np.any` over an empty array is False on both arms.
 
-Evidence: /Users/timmalmstrom/hpo-seats/review-2025-r6/ev. It holds:
-- HEAD.txt and mutate_r6.py
-- run_mutants.sh, ent_M*.txt and mutants_summary.txt
-- entities_R0_head.txt
-- resolution_equiv*.py and resolution_equiv*.txt (run against `git archive 883eed10 custom_components tests/hastub`, kept outside evidence at /Users/timmalmstrom/hpo-seats/review-2025-r6/head_tree)
-- remerge_*.diff and mt_*.err
-- structure_head.txt
-- checkruns_head.tsv, cr_poll*.tsv and cr_new_head.tsv
-- joblog_mutation_*.txt, shard_*.txt and residual_unpinned.txt
+My own probe, `liquid_identity.py`, is independent of the fixer's:
+- `p * _liquid_fraction(p, 0)` against p, bitwise, over 1,998,978 finite non-negative float64 values. These are random bit patterns covering every exponent and subnormals, plus the edges around 1e-9, 0, -0.0 and max. Result: `RESULT finite_values=1998978 bitwise_differing=0`.
+- Control: inf and nan become nan, so the probe detects the only distinguishing input.
+- The entity clamp over 15 hostile values (inf, "1e309", 10**400, nan, None, text, -3, -0.0, np.float32 inf, and others) yields only finite values >= 0: `RESULT entity_clamp True`.
+- I did not rerun the fixer's 552-case probe. Its sha1 matches.
+
+### (c) The four hand-applied pins in c5e00ae3
+- Artifact 11547045879 is `mutation-pins-1` from run 37763212023 at head_sha de81043a, with `status=measured` and `head=de81043a`.
+- I compared each pin with its artifact row field by field (anchor, killed_by, old, reason): `RESULT pins=4 artifact_rows=4 mismatches=0`.
+- Every reason is CI's `--pin-killed` text. The commit message says nothing was re-measured locally, and nothing in the rows suggests otherwise.
+
+### (d) CI at 9c664109, settled
+- `mutation` success (job 113305917181): `MUTATION TABLE PASSED`, 4652 unpinned against 4670 at base dcc77dd0, 0 survivors of 10 evaluated. The ledger agrees with the inventory, and the run is not INCONCLUSIVE.
+- Also success: fast (3.14), closures, coverage, coverage-ratchet, typing, env-matrix, browser, policy-docs, pr-contract, instrument-self-tests, CodeQL, hassfest and validate-hacs.
+- `delivery-status` (UNCHECKED, 76 rowed, 0 overdue) and `nightly-status` (main's scheduled run 37595831734 at be0cb82) are both main's, and the body answers them.
+
+### Body
+The Head section names 9c664109, and every red is named with its answer.
+
+## Instrument finding (not blocking; for finding-propagation)
+
+The pin for `pump_arbiter.py:572 RETURN_DEL` (`_silent_target`) records `killed_by: tests/structure.py`. I applied the mutant (`pass`) at 9c664109 and ran structure.py. It fails only `FAIL dead_top_level_symbols 2 > 1 (+1)`: deleting the return leaves `_inside_silent` unreferenced.
+
+So the pin credits a structural census, not behaviour. Main's earlier pin on the same line (b8dcd2db) had `features.py` killing it with 8 failures.
+
+The fixer applied CI's artifact faithfully, so this is not this PR's defect. It belongs to the pin chain's killer choice under `finding-propagation.md`: a RETURN_DEL whose callee becomes dead is credited to `dead_top_level_symbols`.
+
+Evidence: /Users/timmalmstrom/hpo-seats/review-2025-r6/ev7. It holds:
+- HEAD.txt
+- mt_*.err and remerge_*.diff
+- coord_head.py
+- liquid_identity.py and liquid_identity.txt
+- the artifact (zip and unzipped) and pins_vs_artifact.txt
+- structure_mut_silent_target.txt
+- cr_9c66.tsv and job_*.txt
 - pr-body.md
