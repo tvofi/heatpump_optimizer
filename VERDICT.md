@@ -1,66 +1,53 @@
-Fix review: blocked bfaf5486a66f2f10a835b9d668d30999521a9364 root-cause-unanswered: fast (3.14) went red at the head (tests/boost_drift_replay.py: TypeError cannot pickle 'mappingproxy' object -- EntryConfig cannot be deep-copied), unanswered; also metric-gamed: structure max_class_loc fits only by joining two wrapped calls (re-wrapped: 8823 > 8819)
+Fix review: merge 0662bd8e09b3cc3c57c6d6e79ac069ffaa7b297b
 
-bus-nonce: f3bc35b1f1672a5695e15f27ce424a0e
+bus-nonce: 72041f1191eb7629792a6e1b35d43f2d
 
-Reviewer seat r9c-rev-2025, round 4. I reviewed the delta 0dfb63a8..bfaf5486 from a fresh detached worktree, /Users/timmalmstrom/hpo-seats/r9c-rev-2025-r4. The live head was re-read at posting and had not moved. The merge base with main is 2d8cab3f, and `git merge-tree --write-tree origin/main bfaf5486` exits 0.
+Reviewer seat r9c-rev-2025, round 5. I reviewed from a fresh detached worktree, /Users/timmalmstrom/hpo-seats/r9c-rev-2025-r5. The delta from bfaf5486 is bd4ac1df and 9b31227e. The merge 0662bd8e has an empty remerge-diff, and main is unchanged at 2d8cab3f. `git merge-tree --write-tree origin/main 0662bd8e` exits 0. The live head was re-read at posting and had not moved.
 
-## Blocking 1: fast (3.14) is red at this head, it is this PR's, and the body does not answer it
+**Condition, set by the dispatch:** mutation is red on unpinned sites until R9-CI-1's sharded pin run, and this merge verdict is conditional on mutation going green. Everything else is judged below and holds.
 
-The check is `fast (3.14)`, job 113048537751 in this head's run. The gate prints `[22:31:39] FAILED python3 tests/boost_drift_replay.py (131s)`. The traceback is `replay()` line 381, `st = copy.deepcopy(shared)`, which ends in `TypeError: cannot pickle 'mappingproxy' object`.
+## Round-4 block 1: EntryConfig copies by value (fixed)
 
-Reproduced locally at the head:
-- `copy.deepcopy(EntryConfig.from_mapping({...}))` raises TypeError.
-- `pickle.dumps` raises TypeError.
-- `copy.copy` is ok.
+- `EntryConfig.__reduce__` -> `_restore(dict(raw), parsed fields)`.
+- At the head: `copy.deepcopy`, `copy.copy` and the pickle round trip all return an EntryConfig with equal parsed fields, an equal raw and an equal mapping. My first pickle line read raw_equal=False, but that was my own NaN input (nan != nan). Re-run without NaN: raw_equal=True, mapping_equal=True.
+- The deep copy's raw is independent (`deepcopy_raw_independent True`).
+- The copy stays frozen (`FrozenInstanceError`), and item assignment is refused.
+- Mutant R1 (`__reduce__` renamed away) is KILLED by the new entities.py check "an EntryConfig survives deepcopy and a pickle round trip ...", which fails with TypeError. Null R0 passes (ALL 2217).
+- CI: `fast (3.14)` success, job 113069942832. `[00:07:18] ok python3 tests/boost_drift_replay.py (1879s)`, ALL 46 BOOST DRIFT CHECKS PASSED.
 
-The cause is `EntryConfig.raw`, a `types.MappingProxyType`, which cannot be pickled. Main's newer boost_drift_replay (dca94a64/baa6c237: "solve the pre-boost prefix once", forking by deepcopy) deep-copies replay state that now holds an EntryConfig. Main's own tree has no EntryConfig, so this is the PR's red. It is a product property too: any deepcopy or pickle of a coordinator context now raises. I found no production deepcopy of the context. The what-if simulation deep-copies OptimizationConfig, not EntryConfig.
+## Round-4 block 2: max_class_loc paid in code (fixed)
 
-The fix is cheap: give EntryConfig `__deepcopy__`/`__reduce__`, or hold `raw` as a frozen dict-like that pickles. Pin it with a deepcopy/pickle round-trip check in entities.py.
+- **Re-wrap plant re-run:** `plant_rewrap.py` now asserts on its first statement, because there is nothing to re-wrap. Both calls are 3-line again, exactly as on main 8d7903e6.
+- **Step-14 null on the new payment:** `plant_unfuse.py` puts the fuse formula back inline at both coordinator sites, exactly as bfaf5486 had it. Result: `RESULT max_class_loc=8823`, `FAIL 8823 > 8817 (+6)`. So the whole payment of 6 is the fuse move.
+- **The move earns it.** It removes the formula's second copy (the fuse advisor's `phases`/`230.0` inline) and leaves one definition on the config object that owns the inputs. It is not a reformat.
+- Head: `STRUCTURE RATCHET PASSED`, max_class_loc 8817 <= 8817, below the ledger-merged 8821. seam_cut_total 760 and duplication_copies 38 are unchanged. No budget raised.
 
-`## Red checks` still lists only a390f589's jobs. It names `fast (3.14)` as job 112880876855 (the manual_plan stand-in). This head's `fast` red is not named.
+## The fuse move is behaviour-preserving
 
-## Blocking 2: max_class_loc is paid by line-joins, not code (fix-review.md step 14, metric-gamed)
+- `fuse_kw()` = `fuse_kw_at(amps) if amps > 0 else None`, and `fuse_kw_at(a)` = `a * max(1, int(phases)) * 230.0 / 1000.0`. These are the same expressions as the old `_fuse_kw` and the old advisor line (`smaller * max(1, int(phases)) * 230.0 / 1000.0`).
+- Grid against the old formula over the parsed fields: 96 configs (amps in {-5, 0, 0.5, 10, 16, 20, 25, 35, 63, "x", None, inf} x phases in {0, 1, 2, 3, 3.7, "3", -1, "bad"}), plus fuse_kw_at at 4 advisor values each. `mismatches=0`.
+- Mutant R2 (the `amps > 0` guard dropped) is KILLED. 6 checks fail, including "only the unbounded cell keeps Cost Power Headroom unavailable" and "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None ...".
+- Mutant R3 (the `max(1, ...)` phase clamp dropped) SURVIVES entities.py. It is not a regression: main had no pin on the inline clamp either (no `_fuse_kw` entry in the ledger), and the body lists the site as `entry_config.py:266 CLAMP_DROP` under Unpinned sites for the mutation chain.
 
-The body and dispatch say "max_class_loc paid 8823→8819 in code". The conflict merge 236b8f18 joined `ctx._thermal_params.dhw_schedule_enabled = bool(params[CONF_DHW_SCHEDULE_ENABLED])` from 3 lines into 1. df9131ab, titled "collapse one call to hold max_class_loc under the merged budget", joined `await self._dhw_learner.async_set_cooling_rate(float(params[CONF_DHW_COOLING_RATE]))` from 3 lines into 1. Both statements are 3-line in main 8d7903e6 and in e0f0b6fb.
+## Carried checks at this head
 
-I planted the reverse with `plant_rewrap.py`, re-wrapping only those two statements and changing nothing else:
-- `RESULT max_class_loc=8823`, `FAIL max_class_loc 8823 > 8819 (+4)`.
-- That is also above the ledger-merged budget of 8821 (`LEDGER-MERGE: max_class_loc: 9104 + both deltas = 8821`).
-- Head unplanted: 8819 <= 8819, PASSED.
+- My scan: HOLDER-MAPPING-READS 0, UNDEFINED {}. ATTR-NOT-A-FIELD lists only `fuse_kw` and `fuse_kw_at`, which are the new EntryConfig methods. My allow-list predates them, so this is not a defect.
+- Quiet live apply (my driver): `live_spec='09:00-09:30' live_off_steps=2 reloaded=0`, and the rebuilt coordinator gives the same.
 
-So the 4-line "payment" is exactly the two joins. Nothing in the class improved. The honest options:
-- a real payment that moves code out of HeatPumpOptimizerCoordinator, or
-- a +2 raise over the merged 8821 with tvofi's approval (budget-raise-gate).
+## CI at 0662bd8e (`checkruns_head.tsv`)
 
-The movement 8821 -> 8820 -> 8819 recorded in 455da7ff/d81907ad rides on the same joins.
+- **Success:** typing, closures, coverage, env-matrix, and fast (3.14).
+  - fast ran `MODE: SCOPED -- 29 script(s) run`.
+  - Results: features ALL 3845, entities ALL 2217, stress ALL 106, boost_drift ALL 46, structure, manual_plan, and `env_drift.py --all 2d8cab3f` ok (golden fixtures in drift mode).
+- **mutation: failure** (113069942817): "63 not started for --budget-minutes", nothing measured. The dispatch said 46; CI says 63, because this round adds the fuse and `__reduce__` sites. mutation-autofix: failure (nothing to pin). These are the R9-CI-1 condition above.
+- **Not this PR's:** delivery-status, nightly-status, and budget-raise-gate (a cancelled twin; a sibling run succeeded; no leaf raised). The cancelled twin may need a re-run before merge.
+- `## Red checks` names the bfaf5486 `fast` red with its answer, plus mutation, mutation-autofix and the earlier rounds' reds. The stray 6fa6f2aa head paragraph is gone.
 
-The 157-char `out = quiet_windows.configured_specs(...)` line is main's own text and not the branch's move. My first plant re-wrapped it too and read 8826. I discarded that figure; only the two-statement plant above is cited.
+Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev5. It contains:
+- HEAD.txt, checkruns_head.tsv, joblog_113069942832.txt (fast), joblog_113069942817.txt (mutation)
+- entryconfig_copy_and_fuse.txt, mutation_entities.txt, entities_R*.txt
+- structure_head.txt, structure_plant_unfuse.txt, plant_rewrap_result.txt
+- scan_head.txt, quiet_reload.txt, pr-body.md
+- the reviewer-built plant_rewrap.py, plant_unfuse.py and mutate_r5.py
 
-## The conflict resolutions (236b8f18, merging main 8d7903e6/#1987): neither side dropped
-
-- **coordinator imports.** Main's side shows `CONF_TIBBER_TOKEN`, `CONF_SILENT_MODE_FRACTION`, `CONF_PRICE_ENTITY`, `CONF_PRICE_SOURCE` and `DEFAULT_PRICE_SOURCE` only as conflict context. They were present at e0f0b6fb, and the branch had removed them with their readers. Head use: 0 each. My scan reports `UNDEFINED {}`, `ATTR-NOT-A-FIELD 0` and `HOLDER-MAPPING-READS 0`.
-- **configured_quiet_windows.** It takes main's `quiet_windows.configured_specs`, whose `str(config.get(K) or "")` is semantically the branch's `_spec` (`str(v) if v else ""`).
-  - My driver after the live apply: `live_spec='09:00-09:30' live_off_steps=2 reloaded=0`, and the rebuilt coordinator gives the same.
-  - Null: unchanged, `reloaded=0`.
-  - quiet_windows.py and debugger.py are byte-identical to main 2d8cab3f.
-- **diagnostics.** Main's `debugger` import and the branch's `CONF_COP_SCALE` are both kept.
-- **Main's added lines survive.** Every line main 8d7903e6 added to coordinator.py (9), diagnostics.py (7), services.py (23) and store.py (25) is present at the head: `missing_at_head=0` each (`main_side_check`).
-- **The branch's side vs round 3.** The changed-line delta across custom_components, harness, ledger, entities.py and features.py differs only by:
-  - the configured_specs delegation,
-  - the two joins above,
-  - the debugger.py `_EC_RESIDUAL` disposition (an options-only flag EntryConfig does not declare; reasonable).
-- **D6 claims / docs / deployment_shape.** 73 modules (debugger.py + entry_config.py), 27 HA importers, 91 package files.
-- **closures.json.** Ledger-merged as sets. debug_collect's closure gains entry_config.py.
-
-## CI at bfaf5486 (run of jobs 1130485xxxxx; `checkruns_head_at_post.tsv`)
-
-- typing: success (113048537721).
-- coverage: success.
-- pr-contract: success x2.
-- budget-raise-gate: one success, one cancelled twin.
-- fast (3.14): **failure** (above). Every other script in the lane is ok, including features ALL 3845, entities ALL 2215, env_drift --all and structure.
-- closures: in_progress at posting (113048634686). Not cited.
-- mutation: failure. "56 not started for --budget-minutes", nothing measured. The dispatch says 46; CI's line says 56. Accepted as the R9-CI-1 condition the dispatch sets.
-- delivery-status and nightly-status: not this PR's.
-
-Evidence: /Users/timmalmstrom/hpo-seats/r9c-rev-2025-ev4 (HEAD.txt, checkruns_head*.tsv, joblog_113048537751.txt (fast), joblog_113048538119.txt (mutation), remerge_236b8f18.diff, main_added_*.txt, branch_delta_r3_vs_r4.diff, scan_head.txt, quiet_reload.txt, entryconfig_copy.txt, structure_head.txt, structure_plant_rewrap2.txt, plant_rewrap.py (reviewer-built), structure_plant_rewrap.txt (the discarded three-statement plant), pr-body.md). Rounds 1-3: r9c-rev-2025-ev, -ev2, -ev3.
+Rounds 1-4: r9c-rev-2025-ev, -ev2, -ev3, -ev4.

@@ -1,4 +1,5 @@
-ATTR-NOT-A-FIELD 0
+ATTR-NOT-A-FIELD 2
+  ('coordinator.py', 8444, 'fuse_kw')
+  ('coordinator.py', 8562, 'fuse_kw_at')
 HOLDER-MAPPING-READS 0
 UNDEFINED {}
-RESULT quiet_windows_and_debugger_identical_to_main=true

@@ -1,7 +1,7 @@
 ########## counting-rule self-check ##########
   ok   41 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
-  custom_components/heatpump_optimizer/coordinator.py:2429-11247  8819 LOC  227 methods  HeatPumpOptimizerCoordinator
+  custom_components/heatpump_optimizer/coordinator.py:2429-11245  8817 LOC  227 methods  HeatPumpOptimizerCoordinator
   custom_components/heatpump_optimizer/optimizer.py:1855-5368  3514 LOC  52 methods  HeatPumpOptimizer
   custom_components/heatpump_optimizer/thermal_model.py:1904-3800  1897 LOC  34 methods  ThermalModel
   custom_components/heatpump_optimizer/dhw_planner.py:296-2191  1896 LOC  21 methods  DhwPlanner
@@ -20,16 +20,16 @@
   custom_components/heatpump_optimizer/optimizer.py:2809-3177  369 LOC  optimize
   custom_components/heatpump_optimizer/dhw_planner.py:947-1298  352 LOC  _build_dhw_requirements
   custom_components/heatpump_optimizer/thermal_model.py:3280-3586  307 LOC  simulate_trajectory_batch
-  custom_components/heatpump_optimizer/coordinator.py:5875-6164  290 LOC  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:5879-6168  290 LOC  _update_current_state
   custom_components/heatpump_optimizer/thermal_model.py:2594-2871  278 LOC  _simulate_step_two_zone
   custom_components/heatpump_optimizer/optimizer.py:4264-4538  275 LOC  _optimize_with_dhw
-  custom_components/heatpump_optimizer/coordinator.py:11020-11247  228 LOC  async_simulate
+  custom_components/heatpump_optimizer/coordinator.py:11018-11245  228 LOC  async_simulate
   custom_components/heatpump_optimizer/dhw_planner.py:1320-1526  207 LOC  _plan_dhw_min_cost
   custom_components/heatpump_optimizer/dhw_planner.py:1597-1788  192 LOC  _repair_dhw_floor
   max_method_loc = 373 (the worst one, budgeted; a count over a threshold stops pricing growth)
 
 ########## worst 5 cyclomatic (of 31 over 15) ##########
-  custom_components/heatpump_optimizer/coordinator.py:5875  cc=45  _update_current_state
+  custom_components/heatpump_optimizer/coordinator.py:5879  cc=45  _update_current_state
   custom_components/heatpump_optimizer/sysid.py:1768  cc=44  identify
   custom_components/heatpump_optimizer/optimizer.py:2809  cc=44  optimize
   custom_components/heatpump_optimizer/optimizer.py:5221  cc=40  get_current_action
@@ -254,7 +254,7 @@
   custom_components/heatpump_optimizer/binary_sensor.py:321 available  ==  custom_components/heatpump_optimizer/climate.py:122 available  ==  custom_components/heatpump_optimizer/sensor.py:2368 available
   custom_components/heatpump_optimizer/climate.py:231 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:617 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:863 extra_state_attributes
   custom_components/heatpump_optimizer/config_flow.py:890 _options_suggested_numeric  ==  custom_components/heatpump_optimizer/config_flow.py:897 _suggested_entity
-  custom_components/heatpump_optimizer/coordinator.py:9931 _accumulate_energy  ==  custom_components/heatpump_optimizer/coordinator.py:860 _settle_interval_diag
+  custom_components/heatpump_optimizer/coordinator.py:9929 _accumulate_energy  ==  custom_components/heatpump_optimizer/coordinator.py:860 _settle_interval_diag
   custom_components/heatpump_optimizer/coordinator.py:4830 _async_learn_house_heat_loss  ==  custom_components/heatpump_optimizer/coordinator.py:5017 _async_learn_lower_floor_loss
   custom_components/heatpump_optimizer/drift.py:161 _note  ==  custom_components/heatpump_optimizer/power_guard.py:157 _note
   custom_components/heatpump_optimizer/grid_fee.py:133 parse_day_range  ==  custom_components/heatpump_optimizer/grid_fee.py:114 parse_month_range
@@ -306,14 +306,14 @@ RESULT functions_cc_over_15=31 count
 RESULT functions_cc_over_25=8 count
 RESULT import_cycle_modules=0 count
 RESULT max_cc=45 count
-RESULT max_class_loc=8819 count
+RESULT max_class_loc=8817 count
 RESULT max_method_loc=373 count
 RESULT methods_over_150=17 count
 RESULT methods_over_200=9 count
 RESULT seam_cut_total=760 count
 RESULT thread_factor=1.0 ratio
 
-########## ratchet vs structure_budgets.json (recorded_at 8d7903e69cfe) ##########
+########## ratchet vs structure_budgets.json (recorded_at 2d8cab3f75dd) ##########
   ok   const_modules_over_50 3 <= 3
   ok   coordinator_attrs 153 <= 153
   ok   coordinator_multiassigned_attrs 120 <= 120
@@ -325,7 +325,7 @@ RESULT thread_factor=1.0 ratio
   ok   functions_cc_over_25 8 <= 8
   ok   import_cycle_modules 0 <= 0
   ok   max_cc 45 <= 45
-  ok   max_class_loc 8819 <= 8819
+  ok   max_class_loc 8817 <= 8817
   ok   max_method_loc 373 <= 373
   ok   methods_over_150 17 <= 17
   ok   methods_over_200 9 <= 9
