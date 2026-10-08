@@ -1,3 +1,0 @@
-RESULT finite_values=1998978 bitwise_differing=0
-CONTROL inf/nan -> [nan, nan]
-RESULT entity_clamp True [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]

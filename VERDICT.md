@@ -1,72 +1,45 @@
-Fix review: blocked 9c66410942bceb57ccb753b87d74721854d57ce7 harness: probe out of tree -- the 6840 equivalence probe the triage row and body cite lives at a machine path (fixer.md 18)
+Fix review: merge 7a5ca1e400da56da7cac5e64a7a675f9bbbd1115
 
-bus-nonce: cdd66b91772176b043b6cfeaa22d7bde
+bus-nonce: 16f4665db8175b85612d7e4e7b085f7d
 
-Reviewer seat review-2025-r6, round 7 of PR #2025 (R9-EG-B11, #1745). This round reviews the delta 95b08306..9c664109, checked out detached in /Users/timmalmstrom/hpo-seats/review-2025-r6/wt. I prepared against the merge base and measured the head after CI settled. The live head was re-read at posting and is still 9c664109.
+Reviewer seat review-2025-r6, round 8 of PR #2025 (R9-EG-B11, #1745). This is a delta review of 9c664109..7a5ca1e4, run from the detached worktree /Users/timmalmstrom/hpo-seats/review-2025-r6/wt at the head. The live head was re-read at posting and is unchanged. Round 7's single block, the out-of-tree probe, is fixed.
 
-**Everything substantive holds. The block is one rule, and the fix is mechanical.** Code before 95b08306 was not re-reviewed, per the dispatch.
+## Delta
 
-## The block: fixer.md step 18
+**2a7b4d0c lands the probe at `dev/audit/harnesses/eg_b11_equiv_6840.py`.**
+- Ignoring machine paths, its body equals the round-7 scratch probe (sha1 3e661d15). It gains a header that states the metric, the control and the expected figures.
+- The triage row's `reason` changes only in its citation: the machine path and sha1 are replaced by the tree path and its run command.
+- The probe, the row and the body contain no `/Users/`, `/home/` or `/tmp/` path.
 
-The survivor_triage row `HeatPumpOptimizerCoordinator._forecast_arrays.CMP_BOUND.54c3c7b5.json` cites its measurement as `/Users/timmalmstrom/hpo-seats/r9c-egb11/ev7/equiv_6840.py` (sha1 3e661d15, which matches the file on this machine). The body's Mutation proof cites the same path.
+**387128bb is a one-line change** (`tests/closures.json`, +1 line). It adds `dev/audit/harnesses/eg_b11_equiv_6840.py` to `inert_reads["tests/harness_headers.py"]`, between `dual_path.py` and `eg_b7_seam_hubs.py`. The list is sorted at 387128bb (533 entries) and at the head (534 entries).
 
-That probe is what a later seat reruns to re-check the equivalence mark, for example when the line or `_liquid_fraction` changes. It is also how the body's figures (552 cases, 0 vs 264) are reproduced. So it must land in this PR (`tools/audit/harnesses/`). The committed ledger row on main would otherwise name one machine's home directory.
+**Merges reproduce.** For 16016d5d and 7a5ca1e4 (main 0b89f781), `git merge-tree --write-tree` gives each merge's tree exactly, and the remerge-diff is 0 lines. On 7a5ca1e4 the stderr reads `LEDGER-MERGE: resolved tests/closures.json`, which is the driver.
 
-`tmp_paths.py` does not scan ledger JSON or body prose, so CI could not catch this. Review owns it (step 9).
+**I re-ran the probe from the tree at the head:** `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/eg_b11_equiv_6840.py <out>`, venv-ci 3.14.7.
+- `RESULT mutant: cases=552 differing=0 (flag on 0, flag off 0)`
+- `RESULT control: cases=552 differing=264 (flag on 264, flag off 0)`
+- `boundary cases (flag on, every step's snow 0)=276, of them with rain on some step=264`
 
-**Fix, one pass:**
-1. Land `equiv_6840.py` under `tools/audit/harnesses/`, unchanged in substance, and classify it (closure or INERT) so `entities.py` stays green.
-2. Point the triage row's `reason` at the tree path. Re-run `mutation_table.py --normalize`; the anchor is unchanged.
-3. In the body, cite the tree path in Mutation proof. Name the new head in Head.
+These reproduce the row's and the body's figures, and the control moves. My independent round-7 bitwise probe (1,998,978 finite values, 0 differing) still stands, because neither `_liquid_fraction` nor `_weather_series` changed in this delta.
 
-## What holds; next round needs only the delta above
+**Body:**
+- It names 7a5ca1e4 and has no machine paths.
+- It records the round-7 finding at pump_arbiter.py:572: the RETURN_DEL kill is `structure.py`'s `dead_top_level_symbols`, not behaviour. It records it as an instrument note for the pin chain.
 
-### (a) Merges
-- **bf372564, 0864a8d2, 5d4f3b04 and 9c664109:** `git merge-tree --write-tree` over each merge's parents reproduces its tree exactly, and the remerge-diff is 0 lines for every one.
-- bf372564 and 9c664109 print `LEDGER-MERGE: resolved tests/closures.json`, which is the driver.
-- de81043a is the bot's closures re-record, `tests/closures.json` only.
+## CI at 7a5ca1e4, settled
 
-### (b) The 6840 CMP_BOUND equivalence: attacked, and it holds
-I traced every path into `precip_array`:
-- `_weather_series` timed rows, untimed rows and the no-forecast zeros;
-- the padding (`series[-1]` or 0.0).
-Every rain value passes `max(0.0, _as_float(...))`, and `_as_float` maps None, text, overflow and non-finite input to the default.
+- **`mutation` success** (job 113364861297): `MUTATION TABLE PASSED`, 4624 unpinned against 4642 at base 0b89f781, 0 survivors of 10 evaluated, and the ledger agrees with the inventory.
+- **Also success:** fast (3.14), closures, typing, env-matrix, browser, policy-docs, pr-contract (both runs), instrument-self-tests, briefs, wave-script, hassfest, validate-hacs, CodeQL and both budget-raise-gate twins.
+  - coverage and coverage-ratchet are also success, though the dispatch did not require them.
+- **`delivery-status`** (UNCHECKED, 78 rowed, 0 overdue) is main's window.
+- **`nightly-status`** reports main's scheduled run 37753990323 at 816547e. Its failures are closures, mutation-nightly and nightly-ha. That is main's nightly, not this diff (`defect-root-cause.md`).
+  - The body names the earlier nightly run, not this one. No answer is owed for a status lane this diff does not reach.
 
-Snow is `max(0.0, float(snow))`, so a NaN answer becomes 0.0, or it stays 0.0. There is one guard site (6840) and one caller of `_liquid_fraction`. `np.any` over an empty array is False on both arms.
+Code before 95b08306 was not re-reviewed, per the dispatch. Rounds 6 and 7 hold as recorded.
 
-My own probe, `liquid_identity.py`, is independent of the fixer's:
-- `p * _liquid_fraction(p, 0)` against p, bitwise, over 1,998,978 finite non-negative float64 values. These are random bit patterns covering every exponent and subnormals, plus the edges around 1e-9, 0, -0.0 and max. Result: `RESULT finite_values=1998978 bitwise_differing=0`.
-- Control: inf and nan become nan, so the probe detects the only distinguishing input.
-- The entity clamp over 15 hostile values (inf, "1e309", 10**400, nan, None, text, -3, -0.0, np.float32 inf, and others) yields only finite values >= 0: `RESULT entity_clamp True`.
-- I did not rerun the fixer's 552-case probe. Its sha1 matches.
-
-### (c) The four hand-applied pins in c5e00ae3
-- Artifact 11547045879 is `mutation-pins-1` from run 37763212023 at head_sha de81043a, with `status=measured` and `head=de81043a`.
-- I compared each pin with its artifact row field by field (anchor, killed_by, old, reason): `RESULT pins=4 artifact_rows=4 mismatches=0`.
-- Every reason is CI's `--pin-killed` text. The commit message says nothing was re-measured locally, and nothing in the rows suggests otherwise.
-
-### (d) CI at 9c664109, settled
-- `mutation` success (job 113305917181): `MUTATION TABLE PASSED`, 4652 unpinned against 4670 at base dcc77dd0, 0 survivors of 10 evaluated. The ledger agrees with the inventory, and the run is not INCONCLUSIVE.
-- Also success: fast (3.14), closures, coverage, coverage-ratchet, typing, env-matrix, browser, policy-docs, pr-contract, instrument-self-tests, CodeQL, hassfest and validate-hacs.
-- `delivery-status` (UNCHECKED, 76 rowed, 0 overdue) and `nightly-status` (main's scheduled run 37595831734 at be0cb82) are both main's, and the body answers them.
-
-### Body
-The Head section names 9c664109, and every red is named with its answer.
-
-## Instrument finding (not blocking; for finding-propagation)
-
-The pin for `pump_arbiter.py:572 RETURN_DEL` (`_silent_target`) records `killed_by: tests/structure.py`. I applied the mutant (`pass`) at 9c664109 and ran structure.py. It fails only `FAIL dead_top_level_symbols 2 > 1 (+1)`: deleting the return leaves `_inside_silent` unreferenced.
-
-So the pin credits a structural census, not behaviour. Main's earlier pin on the same line (b8dcd2db) had `features.py` killing it with 8 failures.
-
-The fixer applied CI's artifact faithfully, so this is not this PR's defect. It belongs to the pin chain's killer choice under `finding-propagation.md`: a RETURN_DEL whose callee becomes dead is credited to `dead_top_level_symbols`.
-
-Evidence: /Users/timmalmstrom/hpo-seats/review-2025-r6/ev7. It holds:
+Evidence: /Users/timmalmstrom/hpo-seats/review-2025-r6/ev8. It holds:
 - HEAD.txt
 - mt_*.err and remerge_*.diff
-- coord_head.py
-- liquid_identity.py and liquid_identity.txt
-- the artifact (zip and unzipped) and pins_vs_artifact.txt
-- structure_mut_silent_target.txt
-- cr_9c66.tsv and job_*.txt
-- pr-body.md
+- probe_tree.py, probe_run.txt and probe_out/
+- cr_head.tsv and job_*.txt
+- pr-body.md and pr-body-final.md

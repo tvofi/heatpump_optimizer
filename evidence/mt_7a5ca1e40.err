@@ -1,0 +1,31 @@
+LEDGER-MERGE: resolved tests/closures.json
+  recorded.tests/backtest.py.seconds: took the larger of 65.9 and 159.6
+  recorded.tests/card.mjs.seconds: took the larger of 12.9 and 19.4
+  recorded.tests/card_drift.mjs.seconds: took the larger of 3.6 and 5.4
+  recorded.tests/config_flow_steps.py.seconds: took the larger of 19.4 and 39.3
+  recorded.tests/edge.py.seconds: took the larger of 23.4 and 53.6
+  recorded.tests/env_drift.py.seconds: took the larger of 0.7 and 1.0
+  recorded.tests/features.py.seconds: took the larger of 439.0 and 896.1
+  recorded.tests/golden.py.seconds: took the larger of 0.7 and 1.0
+  recorded.tests/manual_plan.py.seconds: took the larger of 5.3 and 9.2
+  recorded.tests/optimality.py.seconds: took the larger of 100.3 and 186.3
+  recorded.tests/plan_view.py.seconds: took the larger of 1.1 and 1.6
+  recorded.tests/solar_alignment.py.seconds: took the larger of 0.9 and 1.4
+  recorded.tests/stress.py.seconds: took the larger of 469.8 and 1077.8
+  recorded.tests/structure.py.seconds: took the larger of 11.0 and 19.9
+  recorded.tests/validate.py.seconds: took the larger of 26.9 and 56.0
+  recorded.tests/deployment_shape.py.seconds: took the larger of 2.7 and 3.6
+  recorded.tests/ha_contract.py.seconds: took the larger of 0.2 and 0.4
+  recorded.tests/guard_pins.py.seconds: took the larger of 0.9 and 1.4
+  recorded.tests/wood_advisor.py.seconds: took the larger of 1.1 and 1.8
+  recorded.tests/doc_claims.py.seconds: took the larger of 5.9 and 10.3
+  recorded.tests/finite_boundary.py.seconds: took the larger of 54.7 and 90.4
+  recorded.tests/layout.py.seconds: took the larger of 12.0 and 17.3
+  recorded.tests/arch_score.py.seconds: took the larger of 233.5 and 342.6
+  recorded.tests/arch_score_head.py.seconds: took the larger of 33.5 and 41.8
+  recorded.tests/boost_drift_replay.py.seconds: took the larger of 883.8 and 1804.3
+  recorded.tests/block_duty.py.seconds: took the larger of 1.9 and 2.8
+  closures.tests/entities.py: merged as a set (229 entries)
+  closures.tests/doc_claims.py: merged as a set (144 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (534 entries)
+  re-run the gate that owns this file before pushing
