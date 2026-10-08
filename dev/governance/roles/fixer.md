@@ -89,8 +89,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    alone (`fix-review.md` step 12).
 
    Landing the pull request is the **orchestrator's**, or a merge-and-release
-   seat it starts. "Coordinator" here is `coordinator.py` and its ratchet
-   budgets, never a seat.
+   seat it starts.
 7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
    and carries every executed number, each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
@@ -182,9 +181,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
     name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
     in place: grepping the report's own call, file and snippet finds them
     unchanged and reads the defect as open, and grepping for their absence
-    finds nothing and reads the same. The line is no help either — not in the
-    key, and #714's own fix moved that call 24 lines. Anchor the claim to
-    what moved: branch, registration, frame count.
+    finds nothing and reads the same. Anchor the claim to what moved: branch,
+    registration, frame count.
 
 15. **A bitwise-parity claim over numpy reductions is per-architecture.**
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
@@ -220,16 +218,40 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
-17. **Take the fix that yields the better code.** Where one fix satisfies the
-    check and another removes the cause or simplifies the design, take the
-    second; the body names the alternatives and why each lost. An improvement
-    claim names its mechanism, which the reviewer removes as the null control
-    (`fix-review.md` step 14). Never move a metric by a change that does not
-    improve the code: a mechanical split, code moved to an unmeasured path, a
-    triage on a killable mutant, or cases enumerated where a structural fix
-    exists (#1874: a spelling list, three review rounds, class still open). Cost
-    is no reason to take the worse fix; scope and the ratchet still bind
-    (below).
+17. **Take the fix that yields the better code; it is architecturally sound**
+    (tvofi, 2026-10-08). Where one fix satisfies the check and another removes
+    the cause or simplifies the design, take the second; the body names the
+    alternatives and why each lost. Soundness is judged on added lines:
+    - one owner per concern: the module owning the concept, or a small new
+      one; `coordinator.py` orchestrates and does not compute;
+    - no `homeassistant` import added to model, optimizer or learner modules
+      (`dhw_learning.py`, `defrost.py` and others hold one); the HA glue
+      calls into them, never the reverse;
+    - side effects at the edges: entity reads through `inputs.py`'s
+      `InputReader`, actuator writes from the coordinator or `pump_arbiter.py`,
+      store, network, notification and issue-registry calls in the module
+      owning that edge; computation stays pure;
+    - inputs passed in, no `entry.options` read below the glue; module state
+      only as a per-coordinator `WeakKeyDictionary` side table (`boost.py`);
+    - units in names; a constant beside the module owning it, one shared
+      across modules in `const.py`; each literal justified;
+    - missing or invalid input returns `None` or refuses, never a guess;
+    - the existing mechanism, never a parallel one: entity descriptions,
+      repairs, diagnostics, translations, the store's versioned migration;
+    - the smallest public surface, testable without HA; no concept duplicated;
+    - `tests/structure.py` and `tools/audit/archscore/score.py --diff` not
+      regressed, or the raise path below where only it lands the better
+      architecture;
+    - a group's architect note (`orchestrator.md` section 5) followed.
+
+    Cost is no reason to take the worse fix; the preamble's scope still binds,
+    and a fix that cannot be sound within it stops and asks the orchestrator.
+    An improvement claim names its mechanism, which the reviewer removes as the
+    null control (`fix-review.md` step 14). Never move a metric by a change
+    that does not improve the code: a mechanical split, code moved to an
+    unmeasured path, a triage on a killable mutant, or cases enumerated where
+    a structural fix exists (#1874: a spelling list, three review rounds,
+    class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
