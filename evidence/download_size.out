@@ -1,5 +1,5 @@
-RESULT repeat=45
-RESULT capped_inline=True
-RESULT measured_bytes=8289270 cap=8388608
-RESULT download_indent2_bytes=13069459 over_cap=True ratio=1.577
-RESULT null_compact_under_cap=True
+RESULT repeat_inline_max=23
+RESULT capped_measure=8206065 cap=8388608
+RESULT coordinator_snapshot_indent2_bytes=3150 headroom=262144
+RESULT download_indent2_bytes=7947300 within_cap=True
+RESULT next_repeat_capped_inline=False

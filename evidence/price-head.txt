@@ -1,18 +1,16 @@
 == repeat 1
-RESULT selftest_stores_ms=6.5 ms  # ok
-RESULT selftest_accuracy_ms=1.4 ms  # ok
-RESULT selftest_solver_ms=0.0 ms  # ok
-RESULT selftest_sensors_ms=0.2 ms  # ok
-RESULT selftest_feeds_ms=0.1 ms  # ok
-RESULT selftest_total_ms=8.2 ms  # budget 900000 ms
-RESULT bundle_bytes=204368 B  # cap 8388608 B
+RESULT selftest_total_ms=11.9 ms  # budget 900000 ms
+RESULT bundle_bytes=588243 B  # cap 8388608 B
 RESULT bundle_inline=1 flag
-== repeat 60
-RESULT selftest_stores_ms=6.4 ms  # ok
-RESULT selftest_accuracy_ms=1.3 ms  # ok
-RESULT selftest_solver_ms=1.5 ms  # ok
-RESULT selftest_sensors_ms=10.9 ms  # ok
-RESULT selftest_feeds_ms=2.4 ms  # ok
-RESULT selftest_total_ms=22.5 ms  # budget 900000 ms
-RESULT bundle_bytes=8897795 B  # cap 8388608 B
+== repeat 23
+RESULT selftest_total_ms=22.4 ms  # budget 900000 ms
+RESULT bundle_bytes=5454298 B  # cap 8388608 B
+RESULT bundle_inline=1 flag
+== repeat 24
+RESULT selftest_total_ms=28.7 ms  # budget 900000 ms
+RESULT bundle_bytes=5675482 B  # cap 8388608 B
+RESULT bundle_inline=1 flag
+== repeat 40
+RESULT selftest_total_ms=64.2 ms  # budget 900000 ms
+RESULT bundle_bytes=9214433 B  # cap 8388608 B
 RESULT bundle_inline=0 flag
