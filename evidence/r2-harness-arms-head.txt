@@ -1,0 +1,11 @@
+== head realgit-forced
+arm=realgit-forced git=2.55.0 runs=20 directory_not_empty=0 nonzero_exit=0
+== head realgit
+arm=realgit git=2.55.0 runs=20 directory_not_empty=0 nonzero_exit=0
+== head shim
+arm=shim git=2.38.1 runs=5 directory_not_empty=0 nonzero_exit=0
+== head plain
+arm=plain git=2.38.1 runs=3 directory_not_empty=0 nonzero_exit=0
+== missing GIT_BIN
+arm=realgit needs GIT_BIN=<dir with git>
+rc=2

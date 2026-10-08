@@ -1,0 +1,5 @@
+== mutant (GIT_CONFIG_* keys deleted)
+  FAIL throwaway repo: git itself reads auto-maintenance as off, so no detached repack outlives the directory
+RESULT stamp_self_test=fail
+last: OSError: [Errno 66] Directory not empty: 'pack'
+arm=realgit-forced git=2.55.0 runs=20 directory_not_empty=13 nonzero_exit=20

@@ -1,0 +1,8 @@
+[command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +578b184f87e41d198a9ebf55bf72779813bd8e5f
+ * [new branch]        review/2051             -> origin/review/2051
+ * [new branch]        verdict/2051            -> origin/verdict/2051
+ * [new ref]           578b184f87e41d198a9ebf55bf72779813bd8e5f -> pull/2051/merge
+[command]/usr/bin/git checkout --progress --force refs/remotes/pull/2051/merge
+Note: switching to 'refs/remotes/pull/2051/merge'.
+DELIVERY STATUS UNCHECKED — 72 rowed, 0 pending, 0 overdue (overdue at 12 commits)
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drain
