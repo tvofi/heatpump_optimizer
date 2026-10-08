@@ -437,6 +437,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
         "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
+        # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
+        "self_tests": _TEXT,
     },
 }
 

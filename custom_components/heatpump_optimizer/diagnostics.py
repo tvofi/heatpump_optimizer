@@ -144,7 +144,11 @@ async def async_get_config_entry_diagnostics(
                 "config": dict(entry.data),
                 "coordinator": snapshot,
                 "domain": DOMAIN,
-                "debug": await collector.async_bundle(coord, snapshot) if collector else None,
+                # #1940: capped, so a week too large to inline is its summary.
+                "debug": debugger.capped(
+                    await collector.async_bundle(coord, snapshot),
+                    f"{DOMAIN}_{entry.entry_id}_debug",
+                ) if collector else None,
             }
         ),
         TO_REDACT,
