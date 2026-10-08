@@ -1,9 +1,0 @@
-RESULT head                                 pin=ok null=ok
-RESULT M0 delete line                       pin=FAIL null=ok
-RESULT M1 comment out                       pin=FAIL null=ok
-RESULT M2 moved to next step                pin=FAIL null=ok
-RESULT M3 empty value                       pin=FAIL null=ok
-RESULT M4 GITHUB_TOKEN name (equivalent)    pin=ok null=ok
-RESULT M5 github.token (equivalent)         pin=FAIL null=ok
-RESULT M6 in run block only                 pin=FAIL null=ok
-RESULT M7 wrong secret                      pin=FAIL null=ok

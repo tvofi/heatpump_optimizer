@@ -1,7 +1,0 @@
-  record   red-history           6 commit(s) between origin/main and this head, every failure conclusion across them: closures, delivery-status, fast (3.14)
-HEAD: `## Head` names 3362e0f; accepted autofix commit(s) on top of it: 6ddb8c4 (ci: re-record closures)
-
-/Users/timmalmstrom/hpo-seats/review-2062/evidence/body2053_0819.md
-  ERROR   [pr-body] /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2053_0819.md: check `closures` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-
-PR-BODY: 1 error(s) in /Users/timmalmstrom/hpo-seats/review-2062/evidence/body2053_0819.md

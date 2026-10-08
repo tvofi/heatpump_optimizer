@@ -1,0 +1,23 @@
+RESULT head rc=0
+  ok   pr-body exempts a main-graded red when the diff only ADDS its own delivery row
+  ok   and still owes it when the diff edits a row the base had (null control)
+
+212 passed, 0 failed
+RESULT M_fix_removed rc=2
+  FAIL pr-body exempts a main-graded red when the diff only ADDS its own delivery row (got 1, wanted 0)
+  ok   and still owes it when the diff edits a row the base had (null control)
+
+211 passed, 1 failed
+RESULT at_af5560f8_test_only rc=2
+  FAIL pr-body exempts a main-graded red when the diff only ADDS its own delivery row (got 1, wanted 0)
+  ok   and still owes it when the diff edits a row the base had (null control)
+
+211 passed, 1 failed
+RESULT M_null_no_red rc=2
+  ok   pr-body exempts a main-graded red when the diff only ADDS its own delivery row
+  FAIL and still owes it when the diff edits a row the base had (null control) (got 0, wanted 1)
+
+211 passed, 1 failed
+?? .seat-claim-review-2062
+
+[exited with code 0]
