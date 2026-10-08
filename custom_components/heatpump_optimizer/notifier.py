@@ -213,11 +213,14 @@ class FloorReturnWatch:
         self._hass = hass
         self._since: datetime | None = None
 
-    def handle(self, data: Payload, now: datetime) -> None:
+    def handle(self, data: Payload, now: datetime | None = None) -> None:
+        """One payload, read at ``now`` (the wall clock unless a test passes one)."""
         problems = data.get("input_problems")
         if problems is None:
             return
-        self._since, found = floor_return_silence(problems, self._since, now)
+        self._since, found = floor_return_silence(
+            problems, self._since, now or dt_util.utcnow()
+        )
         set_issue(
             self._hass, ISSUE_FLOOR_RETURN_SILENT, found is not None,
             placeholders=found,
@@ -311,6 +314,6 @@ async def async_setup_notifier(
     def _on_update() -> None:
         if coordinator.data is not None:
             notifier.handle(coordinator.data)
-            floor_return.handle(coordinator.data, dt_util.utcnow())
+            floor_return.handle(coordinator.data)
 
     entry.async_on_unload(coordinator.async_add_listener(_on_update))
