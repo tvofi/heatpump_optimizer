@@ -824,13 +824,17 @@ stamp_paths() { # name-only diff over VERSION, unified diffs of manifest.json an
   # ordinary production state; only its `version` line is the stamp's.
   local out=""
   if [ -n "${1// /}" ]; then out="VERSION"; fi
-  if printf '%s\n' "$2" | grep -qE '^[-+][[:space:]]*"version"[[:space:]]*:'; then
+  # `grep >/dev/null`, never `grep -q`: -q exits on the first match and can
+  # SIGPIPE the writer, which `pipefail` reads as no match -- a version edit
+  # passed as none on a large diff (R9-RCA-prepr-tmp; the note above
+  # `pinned_unrun`). A reader that drains its input cannot do that.
+  if printf '%s\n' "$2" | grep -E '^[-+][[:space:]]*"version"[[:space:]]*:' >/dev/null; then
     out="${out:+$out }custom_components/heatpump_optimizer/manifest.json(version)"
   fi
   # The notes: a `## ` line added or removed is a release heading, which only
   # the stamp writes. `### ` subsections do not match, because the pattern
   # needs the space straight after two hashes.
-  if printf '%s\n' "${3:-}" | grep -qE '^[-+]## '; then
+  if printf '%s\n' "${3:-}" | grep -E '^[-+]## ' >/dev/null; then
     out="${out:+$out }RELEASE_NOTES.md(heading)"
   fi
   printf '%s' "$out"
@@ -953,6 +957,46 @@ if [ "${1:-}" = "--version-edit" ]; then
   exit "$ve"
 fi
 
+# --- the self-test's own environment (R9-RCA-prepr-tmp) ----------------------
+# THE FLOOR IS THE SELF-TEST'S MEASURED PEAK, TWICE. One run's temporary files
+# peaked at SELFTEST_PEAK_KB (measured with `du -sk` on its root every second
+# over a full run); a box with less free than twice that cannot finish one run,
+# and what it prints then is a list of false failures -- `No space left on
+# device` from a fixture's `git commit` reads as 14 broken checks. Below the
+# floor the self-test refuses as an ENVIRONMENT fault, rc 3, before building
+# anything. A free space `df` cannot read is not a refusal: it runs.
+SELFTEST_PEAK_KB=223124
+tmp_floor_check() { # dir, floor KB -> rc 0 room or unmeasured, 3 below; one line
+  local avail
+  avail=$(df -Pk "$1" 2>/dev/null | awk 'NR==2 {print $4}')
+  case "$avail" in
+    ''|*[!0-9]*) printf 'temp floor: free space under %s is unmeasured; running anyway\n' "$1"; return 0 ;;
+  esac
+  if [ "$avail" -lt "$2" ]; then
+    printf 'ENVIRONMENT: %s has %s KB free, under the self-test floor of %s KB (twice its measured peak). Free space and re-run; this is not a test failure.\n' "$1" "$avail" "$2"
+    return 3
+  fi
+  return 0
+}
+# ONE ROOT FOR EVERY TEMPORARY PATH, REMOVED ON ANY EXIT THE SHELL SEES. The
+# fixtures each `mktemp -d` and `rm -rf` at their own end, so a run killed in
+# between left its clones in $TMPDIR: 492 directories, 7.1 GB, on the box that
+# ran out. `mktemp` is wrapped rather than $TMPDIR alone being set, because
+# macOS's `mktemp` with no template ignores $TMPDIR; children (git, python)
+# read $TMPDIR, so it is set too. TERM, INT and HUP become exits so the EXIT
+# trap runs; a KILL cannot be trapped, and leaves one root, not one per fixture.
+selftest_tmp_root() {
+  ST_ROOT=$(command mktemp -d "${TMPDIR:-/tmp}/prepr-st.XXXXXXXX") || return 1
+  export TMPDIR="$ST_ROOT"
+  mktemp() {
+    local a
+    for a in "$@"; do case $a in *XXX*) command mktemp "$@"; return ;; esac; done
+    command mktemp "$@" "$ST_ROOT/tmp.XXXXXXXX"
+  }
+  trap 'rm -rf "$ST_ROOT"' EXIT
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
+}
+
 # --- self-test ---------------------------------------------------------------
 # A check that cannot be shown failing does not merge. This drives the two steps
 # that are pure functions of their input -- the body checks -- against the rot
@@ -967,6 +1011,9 @@ if [ "${1:-}" = "--self-test" ]; then
   # under test: an inherited GIT_CONFIG_PARAMETERS outranks a repository's own
   # config, so the repository layer alone does not hold (the #2054 review).
   throwaway_git_env
+  # The box first, then the root every later path lives under (above).
+  tmp_floor_check "${TMPDIR:-/tmp}" "${PREPR_SELFTEST_FLOOR_KB:-$((2 * SELFTEST_PEAK_KB))}" || exit 3
+  selftest_tmp_root || { echo "ENVIRONMENT: no temporary directory could be made"; exit 3; }
   D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves
@@ -1013,9 +1060,13 @@ if [ "${1:-}" = "--self-test" ]; then
   # (Cloud reviewer 2, PR #1692). Each fixture below is otherwise a complete,
   # correctly-wired settings file, so a regression here shows up as this
   # loop's REFUSE, not as the bad-matcher.json loop's silence.
+  # The output is kept, and printed when a row fails: this row failed once
+  # in five serial runs on a loaded box (R9-RCA-prepr-tmp) and did not
+  # reproduce in 18 more, and a discarded output left nothing to read.
   for f in star-matcher no-matcher empty-matcher; do
-    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
-    st $? 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+    if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); fi
+    r=$?; st "$r" 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+    [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
   done
 
   # The push-order verdict, one fixture per branch shape. Named in a list rather
@@ -1242,9 +1293,9 @@ EOS
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
   flow=$(awk 'f{print} /^rc=0$/{f=1}' "$PREPR_PATH")
-  printf '%s\n' "$flow" | grep -q 'body_line "'
+  case "$flow" in *'body_line "'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
-  printf '%s\n' "$flow" | grep -q 'copies_line "'
+  case "$flow" in *'copies_line "'*) true ;; *) false ;; esac
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
 
   # The degraded arm, asserted on BOTH keys because the first version of it
