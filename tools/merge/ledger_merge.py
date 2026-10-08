@@ -34,7 +34,9 @@ The driver parses base, ours and theirs and merges three ways per key:
     both deltas, and a fraction is a cap (``max_survivor_fraction``), so it
     takes the lower -- a sum of two raises would loosen a budget neither side
     chose; in ``closures.json`` it sits under ``recorded`` (seconds, rc),
-    which no check reads for a decision, so it takes the larger;
+    which no check reads for a decision, so it takes the larger -- except a
+    ``seconds`` inside SECONDS_BAND of the base, which is noise the writer
+    keeps out (R9-CI-2b): the side outside the band wins, else the base;
   * ``recorded_at`` both sides changed takes whichever SHA descends from the
     other;
   * in a disposition map (``survivor_triage``, ``killed_by``) a row is first
@@ -92,6 +94,14 @@ LEDGERS = {
     "tests/closures.json": "max",
     "dev/audit/config/bugclasses.json": "refuse",
 }
+#: Ledgers written in tests/closure.py's layout (R9-CI-2b): every table's keys
+#: and string lists sorted, ``sort_keys``. GitHub merges with no driver, so the
+#: layout is what keeps two branches apart there; the driver writes it from
+#: either side's layout, so a branch cut before the layout merges once into it.
+LAYOUT = {"tests/closures.json": ("closures", "inert_reads", "recorded")}
+#: tests/closure.py's SECONDS_BAND: a re-timing inside it of the base is the
+#: run-to-run noise that writer keeps out of the file.
+SECONDS_BAND = 2.0
 #: Ledgers whose writer keeps non-ASCII text raw (``ensure_ascii=False``).
 RAW = {"dev/audit/config/bugclasses.json"}
 #: Top-level keys a ledger's writer no longer stores. #1577 made the unpinned
@@ -278,6 +288,14 @@ def merge3(base, ours, theirs, *, numbers: str, path: str = "",
         return out
     if _is_num(ours) and _is_num(theirs):
         if numbers == "max":
+            if path.rsplit(".", 1)[-1] == "seconds" and _is_num(base) and base > 0:
+                moved = [v for v in (ours, theirs)
+                         if not base / SECONDS_BAND <= v <= base * SECONDS_BAND]
+                if len(moved) < 2:
+                    got = moved[0] if moved else base
+                    notes.append(f"{where}: kept {got}; a re-timing inside "
+                                 f"{SECONDS_BAND:g}x of {base} is noise")
+                    return got
             notes.append(f"{where}: took the larger of {ours} and {theirs}")
             return max(ours, theirs)
         if not all(isinstance(v, int) for v in (base, ours, theirs)):
@@ -330,10 +348,17 @@ def _format(text: str):
 
 
 def merge_text(base: str, ours: str, theirs: str, numbers: str,
-               repo: str = ROOT, notes: list | None = None, raw: bool = False) -> str:
-    """Merged file text, or raise ``Refuse``."""
+               repo: str = ROOT, notes: list | None = None, raw: bool = False,
+               layout: tuple = ()) -> str:
+    """Merged file text, or raise ``Refuse``.
+
+    ``layout`` names the tables of a ledger kept in tests/closure.py's layout:
+    either side may be in it or in the writer's older one, and the result is
+    written in it."""
     fmt = _format(ours)
-    if fmt is None or _format(theirs) != fmt:
+    if layout and fmt is not None and _format(theirs) is not None:
+        fmt = FORMATS[0]
+    elif fmt is None or _format(theirs) != fmt:
         raise Refuse("a side is not in its writer's own JSON format")
     try:
         b = json.loads(base) if base.strip() else {}
@@ -341,6 +366,10 @@ def merge_text(base: str, ours: str, theirs: str, numbers: str,
         raise Refuse("the merge base is not JSON")
     merged = merge3(b, json.loads(ours), json.loads(theirs),
                     numbers=numbers, repo=repo, notes=notes)
+    for t in layout:
+        if isinstance(merged.get(t), dict):
+            merged[t] = {k: sorted(set(v)) if _is_str_list(v) else v
+                         for k, v in merged[t].items()}
     return json.dumps(merged, ensure_ascii=not raw, **fmt) + "\n"
 
 
@@ -357,7 +386,7 @@ def run_driver(base_path: str, ours_path: str, theirs_path: str,
     notes: list = []
     try:
         merged = merge_text(base, ours, theirs, LEDGERS.get(pathname, "sum"), notes=notes,
-                            raw=pathname in RAW)
+                            raw=pathname in RAW, layout=LAYOUT.get(pathname, ()))
     except Refuse as why:
         # Fall back to git's own text merge, so the driver is never worse than
         # no driver: a merge the text merge resolves stays resolved.
@@ -466,6 +495,37 @@ def self_test() -> int:
           got_t["closures"]["a"] == ["v", "x"])
     check("closures: a key only one side changed takes that side",
           got["closures"]["b"] == ["y", "z"])
+
+    # R9-CI-2b: the writer's 2x band, applied where both sides re-timed one
+    # script, and the layout the driver writes whatever layout it was handed.
+    band = lambda o, t: json.loads(merge_text(
+        _dump({"recorded": {"a": {"seconds": 200.0, "rc": 0}}}),
+        _dump({"recorded": {"a": {"seconds": o, "rc": 0}}}),
+        _dump({"recorded": {"a": {"seconds": t, "rc": 0}}}), "max"))["recorded"]["a"]["seconds"]
+    check("closures: two re-timings inside 2x of the base keep the base", band(180.0, 230.0) == 200.0)
+    check("closures: a re-timing outside 2x wins over one inside", band(180.0, 450.0) == 450.0)
+    with tempfile.TemporaryDirectory() as td:
+        legacy = {"_comment": "c", "recorded": {"t/b": {"seconds": 1.0, "rc": 0},
+                                                "t/a": {"seconds": 1.0, "rc": 0}},
+                  "closures": {"t/b": ["y"], "t/a": ["x"]},
+                  "inert_reads": {"t/a": ["m", "d"]}}
+        lo, lt = json.loads(json.dumps(legacy)), json.loads(json.dumps(legacy))
+        lo["inert_reads"]["t/a"].append("q")
+        lt["inert_reads"]["t/a"].append("e")
+        paths = []
+        for name, v in (("b", legacy), ("o", lo), ("t", lt)):
+            paths.append(os.path.join(td, name))
+            with open(paths[-1], "w") as f:
+                f.write(json.dumps(v, indent=1) + "\n")
+        with contextlib.redirect_stderr(io.StringIO()):
+            rc = run_driver(paths[0], paths[1], paths[2], "7", "tests/closures.json")
+        with open(paths[1]) as f:
+            text = f.read()
+        want = {"_comment": "c", "closures": {"t/a": ["x"], "t/b": ["y"]},
+                "inert_reads": {"t/a": ["d", "e", "m", "q"]},
+                "recorded": {"t/a": {"rc": 0, "seconds": 1.0}, "t/b": {"rc": 0, "seconds": 1.0}}}
+        check("closures: the driver writes the layout from two tail-appended legacy sides",
+              rc == 0 and text == json.dumps(want, indent=1, sort_keys=True) + "\n")
 
     # structure_budgets.json: both sides re-recorded, so every count and
     # recorded_at differ. Counts take base plus both deltas.
