@@ -1527,9 +1527,12 @@ def prune(out: Path = CLOSURES) -> int:
 #: committed value (R9-CI-2b, tvofi 2026-10-08). Recordings of one script vary
 #: 0.3x-3.4x run to run, and every rewrite inside that noise made two branches
 #: that re-recorded the same script conflict on GitHub, which runs no merge
-#: driver: 61 of 72 rewrites over 21 merges were inside 2x. The one reader,
-#: mutation_table.recorded_seconds(), orders a sweep, which a 2x error leaves
-#: sound. tools/merge/ledger_merge.py's SECONDS_BAND is the driver's twin.
+#: driver: 60 of 72 rewrites over 21 merges were inside 2x. The one reader,
+#: mutation_table.recorded_seconds(), seeds three things: the sweep order, the
+#: budget estimate (budget_seconds) and a lazy driver's timeout, max(floor,
+#: TIMEOUT_SCALE x seconds) with TIMEOUT_SCALE 3 -- so a run up to 2x the kept
+#: value still fits its timeout. Keep SECONDS_BAND below TIMEOUT_SCALE.
+#: tools/merge/ledger_merge.py's SECONDS_BAND is the driver's twin.
 SECONDS_BAND = 2.0
 #: The tables whose keys and string lists the layout sorts.
 _LAYOUT_TABLES = ("closures", "inert_reads", "recorded")
@@ -1545,7 +1548,17 @@ def stable_seconds(committed, measured):
     return measured
 
 
-def layout_errors(payload: dict) -> list[str]:
+def canonical_text(payload: dict) -> str:
+    """write_closures' serialisation of `payload`: the one text the layout allows."""
+    payload = dict(payload)
+    for t in _LAYOUT_TABLES:
+        if t in payload:
+            payload[t] = {k: sorted(set(v)) if isinstance(v, list) else v
+                          for k, v in payload[t].items()}
+    return json.dumps(payload, indent=1, sort_keys=True) + "\n"
+
+
+def layout_errors(payload: dict, text: str | None = None) -> list[str]:
     """Where `payload` departs from the layout two branches can text-merge.
 
     Every table's keys and every string list in sorted order, each list free
@@ -1561,17 +1574,17 @@ def layout_errors(payload: dict) -> list[str]:
         for k, v in table.items():
             if isinstance(v, list) and v != sorted(set(v)):
                 errs.append(f"{t}.{k}: entries out of order")
+    # Order alone is not the layout: a {seconds, rc} entry, unsorted top-level
+    # keys or another indent pass it and are rewritten by the next canonical
+    # write, which is the churn the layout exists to stop (#2057 round 1).
+    if text is not None and not errs and text != canonical_text(payload):
+        errs.append("text is not write_closures' serialisation (indent 1, keys sorted at every depth)")
     return errs
 
 
 def write_closures(out: Path, payload: dict) -> None:
     """Write the table in the layout `layout_errors` checks -- the only writer."""
-    payload = dict(payload)
-    for t in _LAYOUT_TABLES:
-        if t in payload:
-            payload[t] = {k: sorted(set(v)) if isinstance(v, list) else v
-                          for k, v in payload[t].items()}
-    out.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
+    out.write_text(canonical_text(payload))
 
 
 def canonical(out: Path = CLOSURES) -> int:
@@ -2056,7 +2069,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("and commit tests/closures.json. A full derive_closures.sh off")
         print("Linux replaces node-lane recordings; --single cannot shrink them.")
         return 1
-    layout = layout_errors(table)
+    layout = layout_errors(table, CLOSURES.read_text())
     if layout:
         # GitHub merges this file with no driver; a table out of the layout
         # conflicts with every branch that re-records it (R9-CI-2b).
@@ -3425,7 +3438,7 @@ def _selftest_layout(pin) -> None:
         rec = record(td, "rc", 1.0, [script])
         for name, payload, want in (("a sorted table", table(1.0, [script], ["LICENSE", "VERSION"]), 0),
                                     ("an unsorted table", table(1.0, [script], ["VERSION", "LICENSE"]), 1)):
-            fake.write_text(json.dumps(payload, indent=1) + "\n")
+            fake.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
             CLOSURES = fake
             buf = io.StringIO()
             try:
@@ -3436,7 +3449,34 @@ def _selftest_layout(pin) -> None:
             pin(f"check {'passes' if want == 0 else 'refuses'} {name}",
                 rc == want and (want == 0 or "closure.py canonical" in buf.getvalue()),
                 f"rc={rc} {buf.getvalue()[-300:]!r}")
-    errs = layout_errors(json.loads(CLOSURES.read_text()))
+        # The layout is write_closures' serialisation, byte for byte, not only
+        # the order of keys and lists: three texts a pre-R9-CI-2b writer or a
+        # hand edit produces passed an order-only check (#2057 round 1).
+        good = table(1.0, [script], ["LICENSE", "VERSION"])
+        canon_text = json.dumps(good, indent=1, sort_keys=True) + "\n"
+        rec_first = json.loads(canon_text)
+        rec_first["recorded"][script] = {"seconds": 1.0, "rc": 0}
+        variants = (
+            ("write_closures' own text (null control)", canon_text, 0),
+            ("a recorded entry as {seconds, rc}", json.dumps(rec_first, indent=1, sort_keys=False)
+             .replace('"_comment"', '"_comment"'), 1),
+            ("top-level keys unsorted", json.dumps(
+                {k: good[k] for k in ("recorded", "closures", "inert_reads", "_comment")},
+                indent=1) + "\n", 1),
+            ("indent 2", json.dumps(good, indent=2, sort_keys=True) + "\n", 1),
+        )
+        for name, text, want in variants:
+            fake.write_text(text)
+            CLOSURES = fake
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    rc = check(rec, partial=True)
+            finally:
+                CLOSURES = orig
+            pin(f"check {'passes' if want == 0 else 'refuses'} {name}", rc == want,
+                f"rc={rc} {buf.getvalue()[-200:]!r}")
+    errs = layout_errors(json.loads(CLOSURES.read_text()), CLOSURES.read_text())
     pin("the committed tests/closures.json is in the layout", errs == [], repr(errs[:5]))
 
 
