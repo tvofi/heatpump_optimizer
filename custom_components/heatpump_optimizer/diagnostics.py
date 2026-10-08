@@ -29,7 +29,7 @@ from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import debugger, pump_arbiter
+from . import accuracy, debugger, pump_arbiter
 from .const import CONF_TIBBER_TOKEN, DOMAIN
 from .coordinator import (
     CoordinatorDiagnostics,
@@ -116,10 +116,16 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     }
     if state:
         snap.update(state.learner_summaries)
-    try:
-        snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
-    except Exception:  # noqa: BLE001 -- diagnostics never breaks
-        snap["pump_duty"] = "unavailable"
+    # One row per module view. ``cop_learner`` says why the observed-COP sensor
+    # has nothing yet: it is unavailable then, and HA hides its attributes.
+    for key, view in (
+        ("pump_duty", pump_arbiter.diagnostics_view),
+        ("cop_learner", lambda c: accuracy.diagnostics_view(c.measured_cop, c.thermal_params)),
+    ):
+        try:
+            snap[key] = view(coord)
+        except Exception:  # noqa: BLE001 -- diagnostics never breaks
+            snap[key] = "unavailable"
     return snap
 
 

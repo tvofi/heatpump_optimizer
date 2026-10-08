@@ -7470,8 +7470,12 @@ R.check(
 )
 
 
+from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
+
+
 class _CopGate:
     _learn_measured_cop = Coord._learn_measured_cop
+    _fold_measured_cop = Coord._fold_measured_cop
     _commanded_power = Coord._commanded_power
     _commanded_split = Coord._commanded_split
     _cop_reference_curve = Coord._cop_reference_curve
@@ -7494,8 +7498,6 @@ class _CopGate:
         # v5.3.0: an empty window has observed=False, which keeps the
         # whole-band frost exclusion — the v5.1.5 behaviour.
         self._defrost_window = defrost if defrost is not None else DefrostWindow()
-        self._last_cop_curve_dhw = False
-        self._last_cop_dhw_temp = None
         self._thermal_params = ThermalParameters()
         self._thermal_model = ThermalModel(self._thermal_params)
         self._current_state = ThermalState(
@@ -7504,7 +7506,7 @@ class _CopGate:
         self._cop_scale = 1.0
         self._cop_samples = 0
         self._cop_ratio_ewma = None
-        self._last_measured_cop = None
+        self._measured_cop = _CopRecord()
         self._immersion_active = False
         # #1067: the supply/return learner the reference curve consults.
         # Inert unless a test gives it a supply reading, so every check
@@ -7739,6 +7741,7 @@ class _LearnPersist:
         # learner it serialises has to exist here too.
         self._flow_bias = flow_lift.FlowCurveBias()
         self._freq_fallback = False
+        self._measured_cop = _CopRecord()
 
     def _apply_buffer_cooling_rate(self, rate: float) -> None:
         self._buffer_cooling_rate = float(rate)
@@ -16989,7 +16992,7 @@ R.check(
     _ch._cop_baseline.get((3, False), [0, 0])[1] >= COP_BASELINE_MIN_SAMPLES
     and not _ch._cop_health_cusum.tripped,
 )
-_ch._last_measured_cop = 2.4
+_ch._measured_cop.cop = 2.4
 _trip_n = None
 for i in range(12):
     _ch._observe_cop_health(2.4)
@@ -17027,7 +17030,7 @@ _eur_cop = _Coord(
         }
     ),
 )
-_eur_cop._last_measured_cop = 2.4
+_eur_cop._measured_cop.cop = 2.4
 _eur_cop._raise_cop_issue(3.0)
 _eur_cop_issues = [
     i for i in getattr(_eur_hass, "issues", []) if i[1] == "cop_degradation"
@@ -17065,7 +17068,7 @@ _sek_coord._prices = [{"total": 1.2}]
 
 def _raise_and_read(coord, baseline, current):
     coord.hass.issues = []
-    coord._last_measured_cop = current
+    coord._measured_cop.cop = current
     coord._raise_cop_issue(baseline)
     issues = [i for i in coord.hass.issues if i[1] == "cop_degradation"]
     placeholders = issues[-1][2]["translation_placeholders"]
@@ -26147,20 +26150,20 @@ _cop_dhw._current_state.dhw_temperature = 55.0
 _cop_dhw._learn_measured_cop()
 R.check(
     "a hot-water interval is judged against the DHW curve",
-    _cop_dhw._last_measured_cop is not None
-    and _cop_dhw._last_measured_cop < _cop_space._last_measured_cop,
-    f"dhw {_cop_dhw._last_measured_cop} vs space {_cop_space._last_measured_cop}",
+    _cop_dhw._measured_cop.cop is not None
+    and _cop_dhw._measured_cop.cop < _cop_space._measured_cop.cop,
+    f"dhw {_cop_dhw._measured_cop.cop} vs space {_cop_space._measured_cop.cop}",
 )
 _expected_penalty = 1.0 - 0.008 * (55.0 - 35.0)
 R.check(
     "and the gap is exactly the model's own DHW penalty, not a fudge",
     abs(
-        _cop_dhw._last_measured_cop
-        - round(_cop_space._last_measured_cop * _expected_penalty, 2)
+        _cop_dhw._measured_cop.cop
+        - round(_cop_space._measured_cop.cop * _expected_penalty, 2)
     )
     <= 0.02,
-    f"{_cop_dhw._last_measured_cop} vs "
-    f"{_cop_space._last_measured_cop * _expected_penalty:.2f}",
+    f"{_cop_dhw._measured_cop.cop} vs "
+    f"{_cop_space._measured_cop.cop * _expected_penalty:.2f}",
 )
 R.check(
     "the reported COP for a healthy pump on the space curve is unchanged",
@@ -26198,19 +26201,19 @@ R.check(
 
 # The pairing bug: the curve CHOICE used to be recorded as a side effect of
 # _cop_reference_curve, but several guards sit between that call and the write
-# of _last_measured_cop. A cycle that chose a curve and then returned early
+# of the measured COP. A cycle that chose a curve and then returned early
 # re-pointed the residual's reference while leaving the stored COP alone — and
 # in HEATDHW with an even split that is every cycle on the target hardware.
 _cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
 _cop_pair._current_state.dhw_temperature = 55.0
 _cop_pair._learn_measured_cop()
-_cop_pair_cop = _cop_pair._last_measured_cop
+_cop_pair_cop = _cop_pair._measured_cop.cop
 R.check(
     "the premise: a hot-water interval stores a DHW-referenced COP",
-    _cop_pair_cop is not None and _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp == 55.0,
-    f"{_cop_pair_cop} dhw={_cop_pair._last_cop_curve_dhw} "
-    f"tank={_cop_pair._last_cop_dhw_temp}",
+    _cop_pair_cop is not None and _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp == 55.0,
+    f"{_cop_pair_cop} dhw={_cop_pair._measured_cop.curve_dhw} "
+    f"tank={_cop_pair._measured_cop.dhw_temp}",
 )
 # Now a blended cycle, which produces no COP at all.
 _cop_pair._pump_signals = _HEAT_DHW
@@ -26218,11 +26221,11 @@ _cop_pair._current_action = {"power": 1.5, "dhw_power": 1.5}
 _cop_pair._learn_measured_cop()
 R.check(
     "a cycle that produces no COP leaves the stored COP's reference alone",
-    _cop_pair._last_measured_cop == _cop_pair_cop
-    and _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp == 55.0,
-    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw} "
-    f"tank={_cop_pair._last_cop_dhw_temp} — before the fix the flag was "
+    _cop_pair._measured_cop.cop == _cop_pair_cop
+    and _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp == 55.0,
+    f"cop {_cop_pair._measured_cop.cop} dhw={_cop_pair._measured_cop.curve_dhw} "
+    f"tank={_cop_pair._measured_cop.dhw_temp} — before the fix the flag was "
     f"cleared here and cop_residual then subtracted the SPACE curve from a "
     f"COP that had been referenced to the DHW one",
 )
@@ -26232,10 +26235,10 @@ _cop_pair._current_action = {"power": 3.0}
 _cop_pair._learn_measured_cop()
 R.check(
     "and a cycle that does produce one moves the pair together",
-    _cop_pair._last_measured_cop != _cop_pair_cop
-    and not _cop_pair._last_cop_curve_dhw
-    and _cop_pair._last_cop_dhw_temp is None,
-    f"cop {_cop_pair._last_measured_cop} dhw={_cop_pair._last_cop_curve_dhw}",
+    _cop_pair._measured_cop.cop != _cop_pair_cop
+    and not _cop_pair._measured_cop.curve_dhw
+    and _cop_pair._measured_cop.dhw_temp is None,
+    f"cop {_cop_pair._measured_cop.cop} dhw={_cop_pair._measured_cop.curve_dhw}",
 )
 
 R.section("#1067 — the pump's own electric heat and its night mode")
@@ -26930,7 +26933,7 @@ R.check(
 R.check(
     "mapping the supply slot changes nothing the learner credits, bit for bit",
     _fl_m55.cop_health_calls == _fl_u55.cop_health_calls
-    and _fl_m55._last_measured_cop == _fl_u55._last_measured_cop
+    and _fl_m55._measured_cop.cop == _fl_u55._measured_cop.cop
     and _fl_m55._cop_scale == _fl_u55._cop_scale,
     f"mapped {_fl_m55.cop_health_calls} / {_fl_m55._cop_scale!r}; unmapped "
     f"{_fl_u55.cop_health_calls} / {_fl_u55._cop_scale!r}",
@@ -56590,7 +56593,7 @@ for _r9p3_prop, _r9p3_field, _r9p3_lo, _r9p3_hi, _r9p3_want_lo, _r9p3_want_hi in
     ("cop_nominal_floored", "cop_nominal", 0.4, 3.2, 1.0, 3.2),
     ("emitter_design_delta_t_floored", "emitter_design_delta_t", 0.3, 7.0, 1.0, 7.0),
     ("slab_heat_transfer_floored", "slab_heat_transfer", 0.0, 0.25, 1e-6, 0.25),
-    ("flow_lift_power_floor_kw", "max_electrical_power", 0.1, 3.0, 0.2, 0.9),
+    ("flow_lift_power_floor_kw", "min_electrical_power", 0.1, 2.0, 0.2, 1.6),
 ):
     _r9p3_got = [
         getattr(_r9p3_replace(_r9p3_tp, **{_r9p3_field: v}), _r9p3_prop)
@@ -60181,6 +60184,145 @@ R.check(
 )
 
 
+# ---------------------------------------------------------------------------
+R.section("COP learner duty floor keys on the modulation floor (live v6.7.17)")
+
+# A nameplate maximum of 14 kW on a pump that draws at most ~2.5 kW: the
+# floor was 0.3 x max = 4.2 kW, so no interval ever passed it, cop_samples
+# stayed 0 and the observed-COP sensor never became available. The floor
+# rejects part-load and standby readings, and the modulation floor is the
+# one figure that says where running starts; an overstated maximum must not
+# silence the learner. Synthetic numbers only.
+from heatpump_optimizer import diagnostics as _cf_diag  # noqa: E402
+
+_CF_STATES = dict(_L5_STATES, **{"sensor.outdoor": FakeState("8.0", unit="°C")})
+
+
+def _cf_coord(p_max=14.0, p_min=1.0):
+    cfg = dict(_L5_CFG, heat_pump_max_power=p_max, heat_pump_min_power=p_min)
+    return _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+
+
+def _cf_learn(coord, kw, cycles=1):
+    """Feed ``cycles`` intervals where the pump drew what it was told (``kw``)."""
+    coord._current_action = {"power": kw, "dhw_power": 0.0}
+    coord._measured_power = kw
+    coord._current_state.outdoor_temperature = 8.0  # outside the frost band
+    for _ in range(cycles):
+        coord._learn_measured_cop()
+    return coord._cop_samples
+
+
+def _cf_last(coord, name):
+    """A field of the learner's last word, or a sentinel before it existed."""
+    return getattr(getattr(coord, "_measured_cop", None), name, "<absent>")
+
+
+_cf_run = [_cf_learn(_cf_coord(), kw, 3) for kw in (1.9, 2.2, 2.55)]
+R.check(
+    "a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner",
+    all(n == 3 for n in _cf_run),
+    f"samples per draw {_cf_run} (the 4.2 kW floor gave 0 each)",
+)
+# Idle (controller and crankcase heater) and standby (circulation pump at or
+# under thermal_model.on_threshold_kw, half the modulation floor) are what
+# the floor is for, and stay refused under the same nameplate.
+_cf_idle = [(kw, _cf_learn(_cf_coord(), kw, 3)) for kw in (0.02, 0.1, 0.3, 0.5, 0.7)]
+R.check(
+    "idle and standby draws under the modulation floor still teach nothing",
+    all(n == 0 for _, n in _cf_idle),
+    f"{_cf_idle}",
+)
+# min_power 0 says "no modulation floor": the nameplate third stands.
+_cf_nomin = _cf_learn(_cf_coord(p_min=0.0), 2.5, 3)
+R.check(
+    "with no modulation floor configured the nameplate floor still applies",
+    _cf_nomin == 0
+    and abs(ThermalParameters(max_electrical_power=14.0, min_electrical_power=0.0)
+            .flow_lift_power_floor_kw - 4.2) < 1e-12,
+    f"samples {_cf_nomin}",
+)
+R.check(
+    "the duty floor is 0.8 x the modulation floor, never below 0.2 kW",
+    [ThermalParameters(max_electrical_power=14.0, min_electrical_power=m)
+     .flow_lift_power_floor_kw for m in (1.0, 2.0, 0.1)] == [0.8, 1.6, 0.2],
+)
+# The flow-lift fold reads the same floor as the COP fold (one property).
+_cf_fl = _cf_coord()
+_cf_learn(_cf_fl, 2.2)
+_cf_fl._flow_bias.observe_temps(35.0, 30.0)
+_fold_flow_lift(_cf_fl, _T6)
+R.check(
+    "the flow-lift fold takes the same floor: a 14 kW nameplate at 2.2 kW folds",
+    _cf_fl._flow_bias.samples == 1,
+    f"flow-bias samples {_cf_fl._flow_bias.samples}",
+)
+
+# The refusal is published where Home Assistant does not hide it: the
+# observed-COP sensor is unavailable exactly while this is the explanation,
+# and an unavailable entity's attributes are suppressed. A 3 kW modulation
+# floor on a pump drawing 2.2 kW is refused at 2.4 kW: the diagnostics say
+# so (capping the floor at the observed draw is the power-clamp seat's S4).
+_cf_ref = _cf_coord(p_min=3.0)
+_cf_learn(_cf_ref, 2.2)
+_cf_snap = _cf_diag._coordinator_snapshot(_cf_ref)
+R.check(
+    "a refused COP interval names its guard and the floor in the diagnostics",
+    _cf_snap.get("cop_learner", {}).get("last_refusal") == "duty_floor"
+    and _cf_snap["cop_learner"].get("duty_floor_kw") == 2.4,
+    f"{_cf_snap.get('cop_learner')}",
+)
+_cf_ref._thermal_params.min_electrical_power = 1.0
+_cf_learn(_cf_ref, 2.2)
+R.check(
+    "a folded COP interval clears the refusal",
+    _cf_diag._coordinator_snapshot(_cf_ref).get("cop_learner", {}).get("last_refusal", "<absent>") is None
+    and _cf_ref._cop_samples == 1,
+    f"{_cf_diag._coordinator_snapshot(_cf_ref).get('cop_learner')}",
+)
+_cf_frz = _cf_coord()
+_cf_frz._learning_frozen = lambda *entities: "stale_inputs"
+_cf_learn(_cf_frz, 2.2)
+_cf_none = _cf_coord()
+_cf_none._measured_power = None
+R.check(
+    "each guard has its own code: a freeze and a missing reading",
+    _cf_last(_cf_frz, "refusal") == "learners_frozen"
+    and _cf_none._learn_measured_cop() is None
+    and _cf_last(_cf_none, "refusal") == "no_measured_power",
+    f"{_cf_last(_cf_frz, 'refusal')} / {_cf_last(_cf_none, 'refusal')}",
+)
+
+# The last measured COP survives a restart beside cop_scale, with the curve
+# it was judged against, so the sensor does not go dark until the next fold.
+_cf_live = _cf_coord()
+_cf_learn(_cf_live, 2.4, 2)
+if hasattr(_cf_live, "_measured_cop"):
+    _cf_live._measured_cop.curve_dhw, _cf_live._measured_cop.dhw_temp = True, 52.0
+_cf_store = _FakeLearnStore()
+_cf_live._thermal_learning_store = _cf_store
+_aio.run(_cf_live._async_save_thermal_learning())
+_cf_back = _cf_coord()
+_cf_back._thermal_learning_store = _cf_store
+_aio.run(_cf_back._async_load_thermal_learning())
+R.check(
+    "the last measured COP and its curve are restored on restart",
+    _cf_live._learning_view()["measured_cop"] is not None
+    and _cf_back._learning_view()["measured_cop"] == _cf_live._learning_view()["measured_cop"]
+    and (_cf_last(_cf_back, "curve_dhw"), _cf_last(_cf_back, "dhw_temp")) == (True, 52.0),
+    f"saved {_cf_store.saved.get('measured_cop')}, back {_cf_back._learning_view()['measured_cop']}",
+)
+for _cf_junk in ({"cop": "x"}, {"cop": float("nan")}, {"cop": 0.05}, {"cop": 3.0, "curve_dhw": True},
+                 [1, 2], "x"):
+    _cf_bad = _cf_coord()
+    _cf_bad._thermal_learning_store = _FakeLearnStore()
+    _cf_bad._thermal_learning_store.saved = {"measured_cop": _cf_junk}
+    _aio.run(_cf_bad._async_load_thermal_learning())
+    R.check(
+        "an unreadable stored COP record loads as no measurement, whole",
+        _cf_last(_cf_bad, "cop") is None and _cf_last(_cf_bad, "curve_dhw") is False,
+        f"{_cf_junk!r} -> {getattr(_cf_bad, '_measured_cop', '<absent>')}",
+    )
 
 
 sys.exit(R.close("FEATURE CHECKS"))

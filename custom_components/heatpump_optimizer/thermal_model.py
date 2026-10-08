@@ -655,9 +655,16 @@ class ThermalParameters:
     def flow_lift_power_floor_kw(self) -> float:
         """Measured draw below which a COP or flow-lift sample says little, kW.
 
-        A third of nameplate, never below 0.2 kW: below it the reading is
-        mostly auxiliaries.
+        0.8 x the modulation floor, never below 0.2 kW: a running compressor
+        draws at least ``min_electrical_power``, and ``on_threshold_kw`` calls
+        half of it standby, so the floor sits between the two with 20 % for a
+        meter that under-reads. Keyed on the floor, not on the nameplate
+        maximum: an overstated maximum (14 kW on a pump drawing 2.5) put a
+        third of it above every draw and no sample ever folded. With no
+        modulation floor configured (0) the nameplate third stands.
         """
+        if self.min_electrical_power > 0.0:
+            return max(0.8 * self.min_electrical_power, 0.2)
         return max(0.3 * self.max_electrical_power, 0.2)
 
     @property

@@ -615,3 +615,83 @@ def heat_loss_refit(
         "required_days": REFIT_SETTLED_DAYS,
         "settled_since": start.isoformat() if start is not None else None,
     }
+
+
+# -- the COP learner's last word -------------------------------------------
+
+#: Why the COP learner turned an interval away: one code per guard of
+#: ``coordinator._fold_measured_cop``, in its order. Later guards extend the
+#: list here rather than spelling a code at their call site.
+COP_REFUSED_NO_POWER = "no_measured_power"
+COP_REFUSED_FROZEN = "learners_frozen"
+COP_REFUSED_DUTY_FLOOR = "duty_floor"
+COP_REFUSED_FROST_BAND = "frost_band"
+COP_REFUSED_DISTORTED = "draw_distorted"
+COP_REFUSED_TRACKING = "tracking_gate"
+COP_REFUSED_BLENDED = "blended_duty"
+COP_REFUSED_MODELLED = "modelled_cop"
+COP_REFUSED_OBSERVED = "observed_cop"
+
+
+@dataclass
+class MeasuredCop:
+    """The COP learner's last word: the COP it measured, or why it refused.
+
+    ``cop`` and the curve it was judged against -- ``curve_dhw``, and the tank
+    temperature ``dhw_temp`` that curve was evaluated at -- are written together
+    by :meth:`record` and nowhere else, and persist and load as one record, so
+    the pair the accuracy residual reads cannot be mismatched, a restart
+    included. The curve *choice* is kept rather than the modelled value: the
+    residual is taken at the settling sample's own outdoor temperature.
+
+    ``refusal`` is one of the ``COP_REFUSED_*`` codes for the latest interval
+    (``None`` once one folds). It is not persisted, and diagnostics publish it
+    (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
+    while it is the explanation, and Home Assistant hides an unavailable
+    entity's attributes.
+    """
+
+    cop: float | None = None
+    curve_dhw: bool = False
+    dhw_temp: float | None = None
+    refusal: str | None = None
+
+    def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None) -> None:
+        """One folded interval's COP and its curve, together."""
+        self.cop, self.curve_dhw, self.dhw_temp = round(float(cop), 2), curve_dhw, dhw_temp
+
+    def as_dict(self) -> dict[str, Any]:
+        """The measurement only; a refusal describes one interval."""
+        return {"cop": self.cop, "curve_dhw": self.curve_dhw, "dhw_temp": self.dhw_temp}
+
+    @classmethod
+    def from_dict(cls, raw: Any) -> MeasuredCop:
+        """A stored record, or none: an unreadable field drops the record whole.
+
+        The record is the unit: a COP without a readable curve would be judged
+        against the wrong one. A COP the learner could not have written (not
+        finite, or under its own 0.1 refusal once rounded) is unreadable.
+        """
+        try:
+            cop, dhw = float(raw["cop"]), raw.get("curve_dhw") is True
+            temp = None if raw.get("dhw_temp") is None else float(raw["dhw_temp"])
+        except (TypeError, ValueError, KeyError, AttributeError, OverflowError):
+            return cls()
+        if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):
+            return cls()
+        if temp is not None and not np.isfinite(temp):
+            return cls()
+        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)
+
+
+def diagnostics_view(record: MeasuredCop, params: Any) -> dict[str, Any]:
+    """The COP learner's diagnostics: its last refusal and the floor it judged by.
+
+    ``params`` is the live ``ThermalParameters``; the floor is its
+    ``flow_lift_power_floor_kw``, the one both duty-floor readers take.
+    """
+    return {
+        "last_refusal": record.refusal,
+        "measured_cop": record.cop,
+        "duty_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
+    }
