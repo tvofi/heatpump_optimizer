@@ -1,63 +1,71 @@
-R9-CI-2b, PR 1 of 2 (tvofi's decision on the pre-study, 2026-10-08: build the layout first, it unblocks PRs). GitHub computes `mergeStateStatus` with no merge driver, so every open pull request that re-recorded `tests/closures.json` went DIRTY after a merge to `main`, and a DIRTY pull request runs no CI. On 2026-10-08, 4 of the 6 open PRs (#2054, #2053, #2025, #2010) were DIRTY on that file alone, and the ledger driver resolved all four locally.
+R9-CI-2b, PR 1 of 2 (tvofi's decision on the pre-study, 2026-10-08: build the layout first, since it unblocks PRs). Round 2.
 
-The pre-study found two causes, and this removes both in the writer:
+GitHub computes `mergeStateStatus` with no merge driver. Every open pull request that re-recorded `tests/closures.json` therefore went DIRTY after a merge to `main`, and a DIRTY pull request runs no CI. On 2026-10-08 that was 4 of the 6 open PRs (#2054, #2053, #2025, #2010), and each one was DIRTY on this file alone. The ledger driver resolved every one of those locally.
 
-- **Timings.** `recorded.<script>.seconds` was rewritten on every recording. Run-to-run noise is 0.3x-3.4x, and 61 of 72 rewrites over 21 PR merges fell inside 2x. A re-timing inside 2x of the committed value now keeps it (`closure.stable_seconds`, `SECONDS_BAND = 2.0`, accepted by tvofi). The ledger driver applies the same band instead of always taking the larger value. The only reader, `mutation_table.recorded_seconds()`, orders a sweep.
-- **Order.** Lists and keys were kept in append order, so two branches appending at a list's tail edited the same lines (#2010's `inert_reads`). Every writer now goes through `closure.write_closures` (sorted keys, sorted de-duplicated lists), and the driver writes the same layout from either side's layout. `closure.py check` refuses a table that is out of that layout and names `python3 tests/closure.py canonical`, which re-sorted main's table once with no entry changed.
+The pre-study found two causes. This PR removes both in the writer.
 
-**Transition, once.** A branch's own driver copy is the one its `git merge` runs, so a branch cut before this change has its pre-change driver refuse main's re-sorted table one time. After that merge the work tree holds main's driver, so `python3 tools/merge/ledger_merge.py --resolve tests/closures.json` finishes it, then commit. I measured this on #2010's head: `--resolve` returned 0, and the result is in the layout. The merge-main bot in PR 2 does the same from main's checkout.
+- **Timings.** `recorded.<script>.seconds` was rewritten on every recording, and run-to-run noise is 0.3x–3.4x. A re-timing inside 2x of the committed value now keeps it (`closure.stable_seconds`, `SECONDS_BAND = 2.0`, which tvofi accepted). The ledger driver applies the same band, where before it always took the larger value. With this PR's writer, 12 of 72 real re-timings are still rewritten. `mutation_table.recorded_seconds()` reads the timing for three things: the sweep order, the budget estimate (`budget_seconds`) and a lazy driver's timeout, `max(floor, TIMEOUT_SCALE x seconds)` with `TIMEOUT_SCALE` 3. A run up to 2x the kept value therefore still fits its timeout, and the constant's comment now says to keep the band below 3.
+- **Layout.** Lists and keys were kept in append order, so two branches appending at a list's tail edited the same lines (#2010's `inert_reads`). Every writer now goes through `write_closures`, whose text is `canonical_text(payload)`: `json.dumps(indent=1, sort_keys=True)` at every depth, with string lists sorted and de-duplicated. The driver writes that same text from either side's layout. **`closure.py check` refuses any text that is not byte-identical to it** (round 2), and the refusal names `python3 tests/closure.py canonical`. `closure.py canonical` re-sorted main's table once. That step changed no entry. The branch's only content change against the merge base is one new `inert_reads` line, `tests/harness_headers.py -> dev/audit/harnesses/r9_ci2b_closures_merge.py`, which classifies this PR's harness.
+
+**Transition, once.** After this merges, every open pull request that touched `tests/closures.json` conflicts with it on GitHub one time. I measured that for #2054, #2025, #2010 and #2024 against a simulated main+#2057, using git's default merge.
+- **Why the merge refuses.** A branch's own driver copy is the one its `git merge` runs, so the pre-change driver refuses main's re-sorted table.
+- **How to finish it.** After the merge, the work tree holds main's driver: run `python3 tools/merge/ledger_merge.py --resolve tests/closures.json`, then commit. On #2010's head, `--resolve` returned 0 and its output is the canonical text. PR 2 (#2059) does the same merge from main's checkout.
+- **A pre-change writer cannot land non-canonical text.** `closures-autofix` runs the base's `closure.py`. A pull request whose run still has a pre-#2057 base can get that job's pre-change text pushed to its branch (`{seconds, rc}` entries, appended keys). The required `closures` check runs the PR's own `closure.py`, whose `check` now refuses that text, so such a branch cannot merge green. The repair is `closure.py canonical`, or a main merge through the driver. A push to `main` forces `full`, so a table out of layout would turn main red within one merge, not silently.
 
 ## Head
 
-`17f7e0296db73936a1eb960a6a95218271adb767`, which contains origin/main `9cac1947`. Measured 2026-10-08.
+`85d8301e9a1182018492a804f0fd633439b42906` is the code head (round 2), measured 2026-10-08. The orchestrator's script merges it into the pull request head with origin/main.
 
 ## Mutation proof
 
 The ledger is `/Users/timmalmstrom/hpo-seats/r9-ci-2b/mutation.txt`. Each mutant was applied in a separate worktree, then restored.
 
-- M1, `stable_seconds` band test deleted: `closure.py selftest` FAIL "a timing re-recorded within 2x keeps the committed seconds" and "two branches re-timing one script merge with no driver".
-- M2, `write_closures` sorts nothing: FAIL "a merge writes sorted keys and sorted lists", "two branches re-timing one script merge with no driver", and the #1310 phantom null control (now out of layout).
-- M3, `check`'s layout refusal deleted: FAIL "check refuses an unsorted table".
-- M4, driver band deleted: `ledger_merge.py --self-test` FAIL "closures: two re-timings inside 2x of the base keep the base".
-- M5, driver layout sort deleted: FAIL "closures: the driver writes the layout from two tail-appended legacy sides".
-- M6, driver either-layout acceptance deleted: the same check FAILs.
-- M7, `--resolve` write-back deleted: FAIL "closures: --resolve finishes a merge an older driver left conflicted".
-- M0, unmutated: `ALL 52 closure shrink pins PASSED`, `all passed`.
+- M1, `stable_seconds` band test deleted: `closure.py selftest` FAILs "a timing re-recorded within 2x keeps the committed seconds" and "two branches re-timing one script merge with no driver".
+- M2, `write_closures` sorts nothing: FAILs "a merge writes sorted keys and sorted lists" and "two branches re-timing one script merge with no driver".
+- M3, `check`'s layout refusal deleted: FAILs "check refuses an unsorted table".
+- **M8 (round 2), the byte comparison deleted**: FAILs "check refuses a recorded entry as {seconds, rc}", "check refuses top-level keys unsorted" and "check refuses indent 2" (3 of 56).
+- M4, the driver's band deleted: `ledger_merge.py --self-test` FAILs "closures: two re-timings inside 2x of the base keep the base".
+- M5', the driver's layout sort deleted (round-2 shape): FAILs "closures: the driver writes the layout from two tail-appended legacy sides" and "closures: --resolve finishes a merge an older driver left conflicted".
+- M7, the `--resolve` write-back deleted: FAILs "closures: --resolve finishes a merge an older driver left conflicted".
+- M0, unmutated: `ALL 56 closure shrink pins PASSED`, `all passed`.
 
-Failing first: before the production code, the new pin "a timing re-recorded within 2x keeps the committed seconds" read FAIL `[seconds=180.0]`, then NameError on `write_closures` (`/Users/timmalmstrom/hpo-seats/r9-ci-2b/failing-first.txt`).
+Failing first:
+- Round 1: `/Users/timmalmstrom/hpo-seats/r9-ci-2b/failing-first.txt`.
+- Round 2: before the byte comparison, the three variant pins read FAIL `rc=0` (`/Users/timmalmstrom/hpo-seats/r9-ci-2b/failing-first-r2.txt`).
 
 ## Null control
 
-The harness `dev/audit/harnesses/r9_ci2b_closures_merge.py` merges with `git merge-file`, so no driver config can take part. Its `as_written` arm is the unmodified writer's output, and it conflicts where the layout arm does not:
-
-- `pairs 120`: real closures.json edits from the last 120 first-parent PR merges, replayed pairwise. Result: `RESULT pairs=462 semantic=0 conflicts_as_written=74 conflicts_layout=17`. The 17 that remain are large deletions (#2015's path moves, #1851) meeting an insertion in the same range. Those are real text collisions; one-file-per-entry would clear them, which the pre-study priced and rejected.
-- `heads`: `RESULT head=refs/r9ci2b/pr2053 as_written=conflict layout=clean` and `RESULT head=refs/r9ci2b/pr2010 as_written=conflict layout=clean`. #2054 and #2025 read clean at both ends against the main of the run, because main moved after the pre-study.
-- `closure.py selftest` drives a real `git merge-file` on two `--single` merges: before the band it conflicts (M1), after it it is clean.
+- In `closure.py selftest`, write_closures' own text is the null control for the three refused variants: "check passes write_closures' own text (null control)".
+- In the harness `dev/audit/harnesses/r9_ci2b_closures_merge.py`, the `as_written` arm is the unmodified writer's output. Merges are `git merge-file`, so no driver takes part.
 
 ## Figures
 
-- `python3 dev/audit/harnesses/r9_ci2b_closures_merge.py pairs 120` printed the `RESULT pairs=` line above. The rule is in the harness docstring: a pair is two real edits on one base; a semantic pair, where one non-timing key is set two ways, is counted apart.
-- `python3 dev/audit/harnesses/r9_ci2b_closures_merge.py heads <ref>...` printed the per-head lines above. The refs are `refs/pull/<n>/head`, fetched 2026-10-08.
-- 61 of 72 seconds rewrites inside 2x: the pre-study's `synth.py` over the same 21 edits, at `/Users/timmalmstrom/hpo-seats/r9-ci-2b/PRESTUDY.md` section 1. It is an instrument outside the tree; the harness's `pairs` arm is its in-tree successor.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: FULL` (tests/closure.py changes the gate). These ran locally green, on venv-ci 3.14, `PYTHONPATH=tests/hastub:custom_components:tests`:
-  - `tests/harness_headers.py` (ALL 109 PASSED)
-  - `tests/layout.py`
-  - `tests/env_drift.py --claims-only origin/main`
-  - `tests/closure.py selftest` (ALL 52)
+- The pre-study's own population (21 closures.json edits from the 98 PR merges among the last 120 merges at `816547ef`, 420 ordered pairs), re-measured with this PR's writer (`stable_seconds` + `canonical_text`) beside git's text merge:
+  - Result: `RESULT population=816547ef pairs=420 as_written=70 pr_writer=16 seconds_rewrites=72 still_rewritten_by_band=12`.
+  - The pre-study's 14 was its seconds-removed arm. This writer keeps the band, so the right figure is 16.
+  - The command is in this seat's study dir, `/Users/timmalmstrom/hpo-seats/r9-ci-2b/study/` (`synth.py` population, PR-writer arm). The in-tree successor is the harness below.
+- `python3 dev/audit/harnesses/r9_ci2b_closures_merge.py pairs 120` at today's main printed `RESULT pairs=506 semantic=0 conflicts_as_written=87 conflicts_layout=17`. The 17 remaining are large deletions (#2015's path moves, #1851) that meet an insertion in the same range.
+- Gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: FULL`, because `tests/closure.py` is a gate file. Run locally on venv-ci 3.14 at `85d8301e`:
+  - `tests/closure.py selftest` (ALL 56)
   - `tools/merge/ledger_merge.py --self-test`
   - `tests/entities.py` (ALL 2210)
-  - `tests/structure.py` (STRUCTURE RATCHET PASSED, no budget touched)
+  - `tests/harness_headers.py` (ALL 109)
+  - `tests/layout.py`
+  - `tests/env_drift.py --claims-only origin/main`
+  - `tests/structure.py` (passed, no budget touched)
   
-  The rest of the FULL gate is CI's.
-- Open PRs against this head as a merged main, measured with `git merge-tree` and no driver: #2054, #2053, #2025, #2024 and #2010 conflict once on `tests/closures.json`, which is the transition above. With this head's driver, all five are clean. #2056 is clean.
+  The rest of FULL is CI's.
 
 ## Red checks
 
-none at the time of writing. CI has not run at this head yet.
+These were measured at the previous head `af9936d8`. CI at the head this update pushes will be re-read by the orchestrator.
+
+- `nightly-status` (job 113300181884): `main`'s last scheduled run 37595831734 failed `mutation-ledger`, `mutation-nightly` and `record-autofix`. Those are lanes on `main` that this diff does not touch. The nightly reports its own state, so no cheaper detector is owed.
+- `delivery-status` (job 113300036748): OVERDUE, because rows for merges already on `main` are unread (`record: delivery rows for #1998`, `#1992`, `#1991`, `#1989`). This diff adds only its own row. Clearing it is the orchestrator's, on `main`. The check already runs on every pull request, so none is owed.
 
 ## Forward-carry
 
-none. The transition note lands in this seat's own PR 2 (the merge-main bot), which merges from main's checkout and so runs this driver.
+none. The transition is handled by `--resolve` and by #2059's bot, which is this seat's own PR.
 
 ## Friction
 
