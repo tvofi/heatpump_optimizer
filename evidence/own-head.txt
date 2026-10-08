@@ -1,0 +1,19 @@
+e4218c25 tvofi Merge remote-tracking branch 'origin/main' into fix/r9-ux9
+65f5e914 tvofi Merge commit '543393ccafabd6bac34898248a71361f67329b29' into fix/r9-ux9
+543393cc tvofi fix(R9-UX-9): the flow text names the signals the code gates on; pin the stale, zero and refused flow paths
+f455915c tvofi Merge remote-tracking branch 'origin/main' into fix/r9-ux9
+4394b4c4 tvofi Merge commit 'bb410745a1d87075654e266ed9142799130aea99' into fix/r9-ux9
+bb410745 tvofi fix(R9-UX-9): debug_collect.py's closure reaches flow_meter.py through coordinator
+f5810852 tvofi fix(R9-UX-9): measure flow_meter.py in the 20 closures CI named; recount the module notes
+703af1e7 tvofi Merge remote-tracking branch 'origin/main' into seat/fixer-ux9
+7cab991c tvofi Merge commit '2581479bd3d2f3cf59773116965a5dd7d607e962' into fix/r9-ux9
+2581479b Tvofi2 Merge remote-tracking branch 'origin/main' into handoff/r9-ux9
+63414e06 tvofi fix(R9-UX-9): record the structural keys the code now publishes; claim them; move the harness headers
+c5273cb3 Tvofi2 Merge remote-tracking branch 'origin/main' into handoff/r9-ux9
+af479f7d tvofi Merge remote-tracking branch 'origin/main' into fix/r9-ux9
+111521f3 Tvofi2 Merge remote-tracking branch 'origin/main' into handoff/r9-ux9
+a5290021 tvofi fix(R9-UX-9): architecture map lists flow_meter; the freeze class check sees observe_water
+02d9c0f3 tvofi refactor(R9-UX-9): hold the heat output on the flow-bias holder; raise two ratchet rows
+5ea502bc tvofi feat(R9-UX-9): flow-meter config key and published heat output (#2016, #1956)
+c9dac0c5 tvofi feat(R9-UX-9): drive the feedback classes from a table with a guarded flow class (#1956)
+1b19dd84 tvofi feat(R9-UX-9): recommend a power, energy or frequency sensor on an unmetered install (#1956)
