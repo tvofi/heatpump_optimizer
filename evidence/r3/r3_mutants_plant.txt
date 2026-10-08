@@ -1,0 +1,12 @@
+head: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+M1 all->any: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow li
+M2 blind unfiltered: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow li
+M3 files is not None: ok   a direct-push merge commit is dispositioned -- record-only by its file 
+M4 allow ignored: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow li
+M5 allow any: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow li
+M6 ROW_FILE loose: FAIL a direct-push merge commit is dispositioned -- record-only by its file (rows only, both with the allow li
+== plant at head
+PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py (a new file beside 14 it lists) -- a skip diff: CI records nothing, so add the read to tests/closures.json's inert_reads or carry a recorded file
+CI PREDICT: 1 predicted red(s) on closures against 49aba55c46eb -- repair before the handoff; who repairs which is ci-autofix.md's
+RESULT predict rc=1
+RESULT closures arm case=skip (skip = fast arm: no recording, no INERT READS check, no autofix)
