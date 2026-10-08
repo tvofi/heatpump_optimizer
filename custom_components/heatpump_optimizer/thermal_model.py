@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import logging
 import math
+from collections.abc import Mapping
 from dataclasses import astuple, dataclass, field, replace
 from typing import Any, cast
 
@@ -151,7 +152,7 @@ THERMAL_MASS_FLOOR: float = 0.1
 EULER_MONOTONE_MAX_RATIO: float = 1.0
 
 
-def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
+def _holiday_dhw_windows(config: Mapping[str, Any]) -> list[Window] | None:
     spec = config.get(const.CONF_HOLIDAY_DHW_WINDOWS)
     if not spec:
         return None
@@ -162,7 +163,7 @@ def _holiday_dhw_windows(config: dict[str, Any]) -> list[Window] | None:
 
 
 
-def _flow_curve_values(config: dict[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
+def _flow_curve_values(config: Mapping[str, Any], cop_flow_carnot: bool) -> dict[str, Any]:
     """#1067: ``from_config``'s flow-curve fields, kept out of its complexity.
 
     The lift is for a plant with no valve. Behind a throttling valve the tank
@@ -854,7 +855,7 @@ class ThermalParameters:
         return [value * scale for value in masked]
 
     @staticmethod
-    def _tabled_values(config: dict[str, Any]) -> dict[str, Any]:
+    def _tabled_values(config: Mapping[str, Any]) -> dict[str, Any]:
         """The fields a table can express, resolved from ``config``.
 
         The mapping is a table rather than ninety lines of near-identical
@@ -998,7 +999,7 @@ class ThermalParameters:
         return values
 
     @classmethod
-    def from_config(cls, config: dict[str, Any]) -> ThermalParameters:
+    def from_config(cls, config: Mapping[str, Any]) -> ThermalParameters:
         """Create ThermalParameters from a config dictionary.
 
         Two halves. ``_tabled_values`` resolves everything a field/key/default
@@ -1138,7 +1139,7 @@ class ThermalParameters:
 
         return cls(**values)
 
-def _dhw_enabled_from_config(config: dict[str, Any]) -> bool:
+def _dhw_enabled_from_config(config: Mapping[str, Any]) -> bool:
     if const.CONF_DHW_ENABLED in config:
         return bool(config[const.CONF_DHW_ENABLED])
     return any(

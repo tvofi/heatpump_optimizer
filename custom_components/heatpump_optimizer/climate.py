@@ -29,13 +29,10 @@ from .const import (
     MODE_ECONOMY,
     MODE_OFF,
     MODE_BOOST,
-    CONF_MIN_TEMP,
-    CONF_MAX_TEMP,
-    DEFAULT_MIN_TEMP,
-    DEFAULT_MAX_TEMP,
 )
 from .coordinator import HeatPumpOptimizerConfigEntry, HeatPumpOptimizerCoordinator
 from .entity import HeatPumpOptimizerEntity, commanded_power_kw, publish_then_refresh
+from .entry_config import EntryConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -117,9 +114,9 @@ class HeatPumpOptimizerClimate(HeatPumpOptimizerEntity, ClimateEntity):
         # fixed, and it is what the earlier `- 1` here produced. If a user
         # wants a target outside the band, the band is what they need to
         # change, and the options page is where that is done.
-        config = coordinator.effective_config
-        self._attr_min_temp = config.get(CONF_MIN_TEMP, DEFAULT_MIN_TEMP)
-        self._attr_max_temp = config.get(CONF_MAX_TEMP, DEFAULT_MAX_TEMP)
+        config = EntryConfig.from_mapping(coordinator.effective_config)
+        self._attr_min_temp = config.min_temperature
+        self._attr_max_temp = config.max_temperature
 
     @property
     def available(self) -> bool:
