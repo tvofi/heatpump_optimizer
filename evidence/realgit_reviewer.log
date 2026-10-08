@@ -1,0 +1,49 @@
+### end=base sha=470bbd6087e5978eae594e616a76e207336b289c
+## finder harness realgit-forced 5
+arm=realgit-forced git=2.55.0 runs=5 directory_not_empty=0 nonzero_exit=0
+## sites hostile 5 stamp
+last: OSError: [Errno 66] Directory not empty: 'pack'
+site=stamp arm=hostile git=2.55.0 runs=5 directory_not_empty=2 nonzero_exit=5 maintenance_spawns=36
+## sites plain 1 all
+site=stamp arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=ledger_merge arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=2
+site=layout arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=1
+site=budget_raise_gate arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=bus arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=53
+site=merge_train arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=215
+site=roster_edit arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=74
+site=state_docs arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=3
+site=app_approve arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=34
+site=stop_hook arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=2
+site=prepr arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=1 maintenance_spawns=41
+## sites hostile 1 all
+site=stamp arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=1 maintenance_spawns=1
+site=ledger_merge arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=2
+site=layout arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=1
+site=budget_raise_gate arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=bus arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=53
+last: OSError: [Errno 66] Directory not empty: 'objects'
+site=merge_train arm=hostile git=2.55.0 runs=1 directory_not_empty=1 nonzero_exit=1 maintenance_spawns=3
+site=roster_edit arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=74
+site=state_docs arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=3
+site=app_approve arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=34
+site=stop_hook arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=2
+site=prepr arm=hostile git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=1 maintenance_spawns=41
+### end=wt sha=cd2def5ed3f1dc8d700e4e295775e8d59112f2be
+## finder harness realgit-forced 5
+arm=realgit-forced git=2.55.0 runs=5 directory_not_empty=0 nonzero_exit=0
+## sites hostile 5 stamp
+site=stamp arm=hostile git=2.55.0 runs=5 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+## sites plain 1 all
+site=stamp arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=ledger_merge arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=layout arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=budget_raise_gate arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=bus arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=merge_train arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=roster_edit arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=state_docs arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=0 maintenance_spawns=0
+site=app_approve arm=plain git=2.55.0 runs=1 directory_not_empty=0 nonzero_exit=1 maintenance_spawns=0
+mktemp: mkstemp failed on /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.ETW67uIo9F: No space left on device
+## sites hostile 1 all
+mktemp: : DONE

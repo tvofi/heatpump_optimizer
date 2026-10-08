@@ -1,0 +1,57 @@
+REFUSE .claude/hooks/stop-selfcheck.sh:94: if [ -n "$T" ] && git -C "$T" init -q 2>/dev/null; then
+REFUSE dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py:34: git("clone", "-q", "--no-local", SRC, work, cwd=root)
+REFUSE dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py:84: git("init", "-q", "--bare", bare, cwd=root)
+REFUSE dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py:35: git("clone", "-q", "--no-local", SRC, w, cwd=root)
+REFUSE dev/audit/harnesses/dual_path.py:111: subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", str(ROOT), str(dest)], check=True)
+REFUSE tests/doc_claims.py:2433: subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+REFUSE tests/entities.py:17498: g(d, "init", "-q", "-b", "trunk")
+REFUSE tests/entities.py:17629: g("init", "-q", "-b", "trunk")
+REFUSE tests/entities.py:19868: _cm_git("init", "-q", "-b", "main")
+REFUSE tests/entities.py:20137: _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+REFUSE tests/entities.py:20233: _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+REFUSE tests/entities.py:20322: _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
+REFUSE tests/entities.py:20518: _git("init", "-q")
+REFUSE tests/entities.py:25046: subprocess.run(["git", "init", "-q", _td], check=True)
+REFUSE tests/entities.py:25511: g("init", "-q", "-b", "trunk")
+REFUSE tests/entities.py:29252: _mut_git(_mb_root, "init", "-q")
+REFUSE tests/entities.py:29475: subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+REFUSE tests/entities.py:29961: _pp_git("init", "-q", "-b", "main")
+REFUSE tests/entities.py:31646: _mutl_git("init", "-q")
+REFUSE tests/entities.py:32281: for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
+REFUSE tests/entities.py:32874: subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
+REFUSE tests/layout.py:523: subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+REFUSE tests/layout.py:639: subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+REFUSE tools/audit/seat/bus.sh:338: git init -q --bare "$W/origin.git"
+REFUSE tools/audit/seat/bus.sh:339: git init -q "$W/seat" && git -C "$W/seat" remote add origin "$W/origin.git"
+REFUSE tools/audit/seat/merge_train.py:753: rg("init", "-q", "-b", "main", ".")
+REFUSE tools/audit/seat/merge_train.py:887: g(R, "init", "-q", "-b", base, ".")
+REFUSE tools/audit/seat/merge_train.py:910: g(d, "clone", "-q", str(R), str(L))
+REFUSE tools/audit/seat/roster_edit.py:400: run(["git", "init", "-q", "-b", "main", str(seed_n)])
+REFUSE tools/audit/seat/roster_edit.py:409: run(["git", "clone", "-q", "--bare", str(seed_n), str(origin_n)])
+REFUSE tools/audit/seat/roster_edit.py:411: run(["git", "clone", "-q", str(origin_n), str(drv_n)])
+REFUSE tools/audit/seat/roster_edit.py:454: run(["git", "init", "-q", "-b", "main", str(seed)])
+REFUSE tools/audit/seat/roster_edit.py:480: run(["git", "clone", "-q", "--bare", str(seed), str(origin)])
+REFUSE tools/audit/seat/roster_edit.py:482: run(["git", "clone", "-q", str(origin), str(drv)])
+REFUSE tools/audit/seat/roster_edit.py:621: run(["git", "init", "-q", "-b", "main", str(seed2)])
+REFUSE tools/audit/seat/roster_edit.py:631: run(["git", "clone", "-q", "--bare", str(seed2), str(origin2)])
+REFUSE tools/audit/seat/roster_edit.py:633: run(["git", "clone", "-q", str(origin2), str(drv2)])
+REFUSE tools/audit/seat/roster_edit.py:661: run(["git", "clone", "-q", str(origin), str(stale)])
+REFUSE tools/audit/seat/state_docs.py:265: git("init", "-q", "-b", "main", str(seed))
+REFUSE tools/audit/seat/state_docs.py:279: git("clone", "-q", "--bare", str(seed), str(bare))
+REFUSE tools/audit/seat/state_docs.py:283: git("clone", "-q", str(bare), str(drv))
+REFUSE tools/merge/ledger_merge.py:489: git("init", "-q")
+REFUSE tools/policy/budget_raise_gate.py:1080: git("init", "-q", "-b", "main")
+REFUSE tools/policy/policy_lint_envmatrix.mjs:46: const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])
+REFUSE tools/pr/app_approve.sh:483: git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
+REFUSE tools/pr/app_approve.sh:868: ( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
+REFUSE tools/pr/prepr.sh:1096: set -e; cd "$RA"; git init -q -b main .
+REFUSE tools/pr/prepr.sh:1170: set -e; cd "$BR"; git init -q -b main .
+REFUSE tools/pr/prepr.sh:1324: set -e; cd "$VER"; git init -q -b main .
+REFUSE tools/pr/prepr.sh:1482: (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+REFUSE tools/pr/prepr.sh:1562: (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+REFUSE tools/pr/prepr.sh:1715: set -e; cd "$TR"; git init -q -b main .
+REFUSE tools/release/stamp.py:1166: _rg("git", "init", "-q")
+REFUSE tools/release/stamp.py:1306: _git("git", "init", "-q")
+STALE ALLOW tests/throwaway_git.py: '' (this file spells the shape in its patterns, docstring and fixtures)
+STALE ALLOW tests/throwaway_git.sh: 'git init "$@"' (the shell twin's own init, the one the shell sites call)
+throwaway_git: 54 raw git init or clone site(s) refused, 2 stale allow entries at 470bbd60

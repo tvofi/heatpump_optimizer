@@ -1,0 +1,37 @@
+  ok   refused: a subprocess git init
+  ok   refused: a runner that never spells git
+  ok   refused: a runner over a command list
+  ok   refused: a bare init
+  ok   refused: a shell init
+  ok   refused: a shell init through -C
+  ok   refused: a git binary in a variable
+  ok   refused: an init in a dev/audit harness
+  ok   refused: a subprocess clone
+  ok   refused: a runner clone that never spells git
+  ok   refused: a shell clone
+  ok   refused: a JS clone
+  ok   passes: the helper call
+  ok   passes: the shell helper call
+  ok   passes: a comment naming git init
+  ok   passes: a config-flow step named init
+  ok   passes: a dunder init
+  ok   passes: the clone helper call
+  ok   passes: prose about a clone
+  ok   passes: a directory named clone
+  ok   passes: a clone carrying the local layer inline
+  ok   passes: round evidence
+  ok   passes: the archive
+  ok   an allow entry excuses only its own file
+  ok   an allow entry that matches nothing is reported stale
+  ok   the env drops every repository-local variable and every inherited config pair
+  ok   the env keeps what is not git's
+  ok   init returns the env
+  ok   git reads auto-maintenance off, and gc.auto 0, through the env
+  ok   a caller WITHOUT the env still reads both off: the repository's own config
+  ok   null control: an inherited -c maintenance.auto=true outranks both layers, which is why the env drops it
+  ok   the env survives the same hostile parameters, once rebuilt from them
+  ok   a clone writes both keys into its own config, and returns the env
+  ok   the shell twin's throwaway_git_env sets exactly the same GIT_ variables
+  ok   the shell twin's init writes both keys and leaves the caller's shell untouched
+  ok   the shell twin's clone writes both keys and leaves the caller's shell untouched
+throwaway_git self-test: 36 checks, 0 failed

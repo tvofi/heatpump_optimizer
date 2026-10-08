@@ -1,0 +1,734 @@
+diff --git a/.claude/hooks/stop-selfcheck.sh b/.claude/hooks/stop-selfcheck.sh
+index 539dabb9..31be1fc5 100755
+--- a/.claude/hooks/stop-selfcheck.sh
++++ b/.claude/hooks/stop-selfcheck.sh
+@@ -91,7 +91,9 @@ if [ "${1:-}" = "--self-test" ]; then
+     else fail=$((fail+1)); printf '  FAIL %s (rc %s want %s; %s hit(s) want %s)\n' "$5" "$got" "$1" "$n" "$3"; fi
+   }
+   T=$(mktemp -d)
+-  if [ -n "$T" ] && git -C "$T" init -q 2>/dev/null; then
++  # The scratch repository takes the shared helper (auto-maintenance off).
++  if [ -n "$T" ] && . "$(dirname -- "$0")/../../tests/throwaway_git.sh" &&
++      throwaway_git_init "$T" -q 2>/dev/null; then
+     mkdir -p "$T/.claude/workflows"
+     # The linter stub is untracked and would read as a new policy file; a real
+     # clone tracks policy_lint.mjs, so the stub is ignored the way no real one is.
+diff --git a/.github/CODEOWNERS b/.github/CODEOWNERS
+index abe8e691..506877ad 100644
+--- a/.github/CODEOWNERS
++++ b/.github/CODEOWNERS
+@@ -148,6 +148,11 @@
+ /tests/profiles.py                        @tvofi
+ /tests/run.sh                             @tvofi
+ /tests/stress.py                          @tvofi
++# The throwaway-repository helper (R9-RCA-stamp-race): stamp.py's,
++# layout.py's and budget_raise_gate.py's self-tests import it, so a grader
++# loads it; its shell twin is the same rule in the other language.
++/tests/throwaway_git.py                   @tvofi
++/tests/throwaway_git.sh                   @tvofi
+ /tests/typing_ruler.py                    @tvofi
+ # The target layout of lane RO (R9-RO-1): a new category, or a retired path
+ # dropped, changes what every later pull request may put where. Its reader
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index 936dbf09..88ee55df 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -370,6 +370,18 @@ jobs:
+           python3 -I tools/audit/seat/tmp_paths.py --self-test
+           python3 -I tools/audit/seat/tmp_paths.py --check
+ 
++      # A throwaway git repository built without the shared helper
++      # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
++      # even a tiny repository, and it outlives the temporary directory. The
++      # helper turns auto-maintenance off; the check refuses a raw `git init`
++      # in a tracked script, and the self-test pins both layers and the shell
++      # twin. Here for tmp_paths.py's reason, one step up.
++      - name: Refuse a throwaway git repository built without the shared helper
++        run: |
++          set -euo pipefail
++          python3 -I tests/throwaway_git.py --self-test
++          python3 -I tests/throwaway_git.py --check
++
+       # The merge train (tools/audit/seat/merge_train.py, landed from the
+       # round-9 orchestrator's session scratch): each stop -- red or incomplete
+       # CI, no carry, main moved, a policy path or a renamed one, a refusal
+diff --git a/dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py b/dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py
+index 28fea491..77eb971c 100644
+--- a/dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py
++++ b/dev/audit/harnesses/ci-version-edit/pr_contract_shapes.py
+@@ -17,6 +17,11 @@ import json, os, re, subprocess, sys, tempfile
+ 
+ import yaml
+ 
++# The shared throwaway-repository helper, from the checkout this harness sits in
++# (SRC may be an older commit that predates it).
++sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "tests"))
++from throwaway_git import throwaway_git_clone, throwaway_git_init  # noqa: E402
++
+ SRC = os.getcwd()
+ REV = sys.argv[1]
+ 
+@@ -31,7 +36,7 @@ def git(*a, cwd, check=True):
+ root = tempfile.mkdtemp(prefix="hvh-")
+ bare = os.path.join(root, "origin.git")
+ work = os.path.join(root, "work")
+-git("clone", "-q", "--no-local", SRC, work, cwd=root)
++throwaway_git_clone(SRC, work, "-q", "--no-local", cwd=root)
+ git("checkout", "-q", "--detach", git("rev-parse", REV, cwd=SRC), cwd=work)
+ for k, v in (("user.name", "h"), ("user.email", "h@h")):
+     git("config", k, v, cwd=work)
+@@ -81,7 +86,7 @@ wf = yaml.safe_load(git("show", f"{B}:.github/workflows/governance.yml", cwd=wor
+ steps = [s for s in wf["jobs"]["pr-contract"]["steps"]
+          if "tools/audit/prepr.sh" in (s.get("run") or "")]
+ 
+-git("init", "-q", "--bare", bare, cwd=root)
++throwaway_git_init(bare, "-q", "--bare")
+ git("remote", "remove", "origin", cwd=work, check=False)
+ git("remote", "add", "origin", bare, cwd=work)
+ wrong = 0
+diff --git a/dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py b/dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py
+index 298f479a..87c39803 100644
+--- a/dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py
++++ b/dev/audit/harnesses/ci-version-edit/recheck_stamp_forgery.py
+@@ -19,6 +19,11 @@ three CI shapes, with the environment each run carries:
+ """
+ import os, re, subprocess, sys, tempfile
+ 
++# The shared throwaway-repository helper, from the checkout this harness sits in
++# (SRC may be an older commit that predates it).
++sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "tests"))
++from throwaway_git import throwaway_git_clone  # noqa: E402
++
+ SRC = os.getcwd()
+ REV = sys.argv[1]
+ 
+@@ -32,7 +37,7 @@ def git(*a, cwd):
+ 
+ root = tempfile.mkdtemp(prefix="hvh2-")
+ w = os.path.join(root, "w")
+-git("clone", "-q", "--no-local", SRC, w, cwd=root)
++throwaway_git_clone(SRC, w, "-q", "--no-local", cwd=root)
+ git("checkout", "-q", "--detach", git("rev-parse", REV, cwd=SRC), cwd=w)
+ git("config", "user.name", "h", cwd=w); git("config", "user.email", "h@h", cwd=w)
+ ver = open(os.path.join(w, "VERSION")).read().strip()
+diff --git a/dev/audit/harnesses/dual_path.py b/dev/audit/harnesses/dual_path.py
+index 2029e599..7902ff74 100644
+--- a/dev/audit/harnesses/dual_path.py
++++ b/dev/audit/harnesses/dual_path.py
+@@ -108,7 +108,9 @@ def commit(tree: Path, msg: str) -> None:
+ 
+ 
+ def clone(at: str, dest: Path) -> Path:
+-    subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", str(ROOT), str(dest)], check=True)
++    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
++    from throwaway_git import throwaway_git_clone
++    throwaway_git_clone(ROOT, dest, "-q", "--shared", "--no-checkout")
+     git(dest, "checkout", "-q", "--detach", at)
+     return dest
+ 
+diff --git a/dev/audit/rca/R9-RCA-stamp-race.md b/dev/audit/rca/R9-RCA-stamp-race.md
+index 4f738af1..ff87fc87 100644
+--- a/dev/audit/rca/R9-RCA-stamp-race.md
++++ b/dev/audit/rca/R9-RCA-stamp-race.md
+@@ -114,7 +114,15 @@ Alternatives considered:
+   `maintenance.auto=false` is still the chosen setting, because it is the key git reads
+   *first*. `gc.auto` is consulted only while `maintenance.auto` is unset. So `gc.auto=0` holds
+   only until something in the inherited configuration sets `maintenance.auto`, for example a
+-  runner's or a seat's `GIT_CONFIG_PARAMETERS`; the primary key has no such dependency.
++  runner's or a seat's `GIT_CONFIG_PARAMETERS`.
++  **Correction (the #2051 round-2 review, carried by R9-GITTMP):** an earlier version of this
++  paragraph ended "the primary key has no such dependency". That is false. Git reads
++  `GIT_CONFIG_PARAMETERS` after `GIT_CONFIG_COUNT`, and both after every config file, so an
++  inherited `maintenance.auto=true` in that channel overrides the `false` this fix set; measured
++  under git 2.55.0 (`git config --get maintenance.auto` reads `true`). The shared helper that
++  replaced `_throwaway_git_env()`, `tests/throwaway_git.py`, closes it by dropping
++  `GIT_CONFIG_PARAMETERS` and every inherited `GIT_CONFIG_KEY_*`/`VALUE_*` pair from the
++  environment it returns.
+ 
+ ## 5. How far the class reaches
+ 
+@@ -152,3 +160,6 @@ That workflow `env:` covers CI only. A seat whose own git is 2.54 or newer (Home
+ 2.56.0, per the #2051 fix review) stays exposed locally. The full closure is a shared
+ throwaway-repository helper that every site uses, as `_throwaway_git_env()` is for stamp's two
+ repositories, and the CI `env:` is only the cheap barrier while that helper does not exist.
++The owner chose the helper over the CI `env:` (tvofi, 2026-10-08); R9-GITTMP landed it as
++`tests/throwaway_git.py` and its shell twin `tests/throwaway_git.sh`, at every `git init` site
++the rule above returns.
+diff --git a/dev/programme/delivery/2054.md b/dev/programme/delivery/2054.md
+new file mode 100644
+index 00000000..9b128900
+--- /dev/null
++++ b/dev/programme/delivery/2054.md
+@@ -0,0 +1 @@
++- [#2054](https://github.com/tvofi/heatpump_optimizer/pull/2054) — **open**, throwaway git repositories: one shared helper at every init and clone site (R9-GITTMP)
+diff --git a/tests/closure.py b/tests/closure.py
+index 90e136e3..e3b6a032 100644
+--- a/tests/closure.py
++++ b/tests/closure.py
+@@ -170,6 +170,12 @@ NOT_A_TEST = {
+     "dom_stub.mjs", "card_rig.mjs",
+     # Preload for `_record_node` when strace is missing. Not a test.
+     "node_fs_trace.mjs",
++    # The shared throwaway-repository helper (R9-RCA-stamp-race): a library
++    # the scripts that build a scratch git repository import. Its own
++    # `--check` and `--self-test` run in governance's instrument-self-tests,
++    # which is never scoped. NOT inert: entities.py, layout.py and
++    # doc_claims.py import it, so an edit to it selects them.
++    "throwaway_git.py",
+ }
+ # dst_checks.py is a test, but features.py runs it in a subprocess; it is
+ # recorded so its closure can be folded into features.py's, never selected.
+@@ -375,6 +381,11 @@ INERT = (
+     # any of them, and each of these three runs on `pull_request`.
+     # A manual QA render (writes ../setup-qa/). No gate script reads it.
+     "tests/setup_qa_render.mjs",
++    # The shell twin of tests/throwaway_git.py. Only shell self-tests source
++    # it (prepr.sh, app_approve.sh, bus.sh, the stop hook), and governance runs
++    # those, never this gate; tests/throwaway_git.py's own --self-test, which
++    # pins the twin's variables, runs there too.
++    "tests/throwaway_git.sh",
+     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
+     # is one "no gate script reads and none ever will". The first half held and
+     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
+diff --git a/tests/doc_claims.py b/tests/doc_claims.py
+index 1906ff81..60c2ad4d 100644
+--- a/tests/doc_claims.py
++++ b/tests/doc_claims.py
+@@ -63,6 +63,7 @@ for _extra in ("tests/hastub", "tests", "custom_components"):
+     sys.path.insert(0, str(ROOT / _extra))
+ 
+ from harness import Results  # noqa: E402
++from throwaway_git import throwaway_git_init  # noqa: E402
+ 
+ R = Results("doc claims vs code facts (#1413)")
+ 
+@@ -2430,8 +2431,8 @@ def check_docs_build_controls() -> None:
+             (d / name).parent.mkdir(parents=True, exist_ok=True)
+             (d / name).write_text(text)
+         if git:
+-            subprocess.run(["git", "init", "-q"], cwd=d, check=True)
+-            subprocess.run(["git", "add", "-A"], cwd=d, check=True)
++            env = throwaway_git_init(d, "-q")
++            subprocess.run(["git", "add", "-A"], cwd=d, check=True, env=env)
+         return d
+ 
+     base = docs_build(c := corpus())
+diff --git a/tests/layout.py b/tests/layout.py
+index 81d3ffaa..9d269b25 100644
+--- a/tests/layout.py
++++ b/tests/layout.py
+@@ -517,27 +517,28 @@ def guard_self_test() -> int:
+         ("a move landed and swept", {"tools/wip.sh": "", "docs/c.md": "see tools/wip.sh\n"}, ("old/wip.sh",), {}),
+     ]
+     failed = 0
++    from throwaway_git import throwaway_git_init
+     tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-guard-"))
+     g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"]
+     try:
+-        subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
++        env = throwaway_git_init(tmp, "-q")
+         for p, t in {**base, MANIFEST: json.dumps(m)}.items():
+             (tmp / p).parent.mkdir(parents=True, exist_ok=True)
+             (tmp / p).write_text(t)
+-        subprocess.run([*g, "add", "-A"], cwd=tmp, check=True)
+-        subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True)
++        subprocess.run([*g, "add", "-A"], cwd=tmp, check=True, env=env)
++        subprocess.run([*g, "commit", "-qm", "base"], cwd=tmp, check=True, env=env)
+         sha = git(tmp, "rev-parse", "HEAD").decode().strip()
+         for name, add, rm, want in cases:
+             # Each case starts from the base commit, index and tree both.
+-            subprocess.run(["git", "reset", "-q", "--hard", sha], cwd=tmp, check=True)
+-            subprocess.run(["git", "clean", "-qfdx"], cwd=tmp, check=True)
++            subprocess.run(["git", "reset", "-q", "--hard", sha], cwd=tmp, check=True, env=env)
++            subprocess.run(["git", "clean", "-qfdx"], cwd=tmp, check=True, env=env)
+             if rm:
+-                subprocess.run(["git", "rm", "-q", *rm], cwd=tmp, check=True)
++                subprocess.run(["git", "rm", "-q", *rm], cwd=tmp, check=True, env=env)
+             for p, t in add.items():
+                 (tmp / p).parent.mkdir(parents=True, exist_ok=True)
+                 (tmp / p).write_text(t)
+             if add:
+-                subprocess.run(["git", "add", *add], cwd=tmp, check=True)
++                subprocess.run(["git", "add", *add], cwd=tmp, check=True, env=env)
+             found = guard(tmp, m, sha)
+             got = {k: sum(f.startswith(k + ":") for f in found) for k in ("new-reference", "unswept", "placement")}
+             ok = all(got[k] == want.get(k, 0) for k in got)
+@@ -624,6 +625,7 @@ def self_test(root: Path) -> int:
+          None, (0, 0, 0, 0)),
+         ("negative: the new path cited", {user_doc: f"see `{moved['new']}`\n"}, None, (0, 0, 0, 0)),
+     ]
++    from throwaway_git import throwaway_git_init
+     failed = 0
+     for name, add, edit, want in cases:
+         tmp = Path(tempfile.mkdtemp(prefix="hpo-layout-"))
+@@ -636,8 +638,8 @@ def self_test(root: Path) -> int:
+                 f.parent.mkdir(parents=True, exist_ok=True)
+                 f.write_text(add.get(p, ""))
+             (tmp / MANIFEST).write_text(json.dumps(m, indent=1))
+-            subprocess.run(["git", "init", "-q"], cwd=tmp, check=True)
+-            subprocess.run(["git", "add", "-A"], cwd=tmp, check=True)
++            env = throwaway_git_init(tmp, "-q")
++            subprocess.run(["git", "add", "-A"], cwd=tmp, check=True, env=env)
+             found, n = check(tmp, m)
+             got = tuple(len(found[a]) for a in ARMS)
+             count = listed(tmp)
+diff --git a/tests/run.sh b/tests/run.sh
+index dd53cee9..c2ee4e9e 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -357,6 +357,9 @@ for f in tests/*.py tests/*.mjs; do
+   base=$(basename "$f")
+   case "$base" in
+     harness.py|profiles.py) continue ;;  # shared plumbing, not tests
++    # The throwaway-repository helper (R9-RCA-stamp-race): a library; its
++    # --check and --self-test run in governance's instrument-self-tests.
++    throwaway_git.py) continue ;;
+     # The shared DOM stub (#101) and the rig around it: imported by
+     # card.mjs, setup_qa_render.mjs and card_drift.mjs, never run on
+     # their own. node_fs_trace.mjs is the Darwin --import recorder.
+@@ -646,7 +649,7 @@ done
+ for f in tests/*.py tests/*.mjs; do
+   base=$(basename "$f")
+   case "$base" in
+-    harness.py|profiles.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
++    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py) continue ;;
+   esac
+   if ! cat "$WORKDIR"/*.manifest 2>/dev/null | grep -Fq "tests/$base"; then
+     echo "TEST NEVER RAN: tests/$base is wired into tests/run.sh but no lane"
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index 4955c3bc..2db14daa 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -332,11 +332,11 @@ self_test() {
+   expect() { # name condition-rc
+     if [ "$2" = 0 ]; then ok "$1"; else bad "$1"; fi
+   }
+-  # Hermetic: no global or system git config (identity, hooks, push negotiation).
+-  export GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=$W/gitconfig
+-  git config --file "$W/gitconfig" user.name t && git config --file "$W/gitconfig" user.email t@t
+-  git init -q --bare "$W/origin.git"
+-  git init -q "$W/seat" && git -C "$W/seat" remote add origin "$W/origin.git"
++  # Hermetic: no global or system git config (identity, hooks, push
++  # negotiation) and no auto-maintenance, through the shared helper.
++  . "$ROOT/tests/throwaway_git.sh" && throwaway_git_env
++  throwaway_git_init "$W/origin.git" -q --bare
++  throwaway_git_init "$W/seat" -q && git -C "$W/seat" remote add origin "$W/origin.git"
+   git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
+   git -C "$W/seat" push -q origin HEAD:refs/heads/main
+   h1=1111111111111111111111111111111111111111
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index 12c00d7c..5f173278 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -608,6 +608,8 @@ class Train:
+ 
+ # ----------------------------------------------------------------- self-test
+ def _self_test() -> int:
++    sys.path.insert(0, str(ROOT / "tests"))
++    from throwaway_git import throwaway_git_env, throwaway_git_init
+     passed = failed = 0
+     H0, H1, V = "a" * 40, "b" * 40, "c" * 40
+ 
+@@ -748,9 +750,10 @@ def _self_test() -> int:
+         g = Path(gd) / "repo"
+         g.mkdir()
+         def rg(*argv: str, cwd: Path | None = None) -> tuple[int, str]:
+-            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True)
++            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True,
++                               env=throwaway_git_env())
+             return r.returncode, (r.stdout + r.stderr).strip()
+-        rg("init", "-q", "-b", "main", ".")
++        throwaway_git_init(g, "-q", "-b", "main")
+         rg("config", "user.email", "fixture@example.test")
+         rg("config", "user.name", "fixture")
+         (g / "one.txt").write_text("one\n")
+@@ -875,16 +878,17 @@ def _batch_self_test(check) -> None:
+     `git merge --no-ff` with no driver configured) and the train's clone. The
+     fake CI grades a tree by a ratchet: the files under units/ may not outnumber
+     cap.txt. Every other GitHub call is a stub keyed on argv."""
++    from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_init  # on sys.path: _self_test
+     R0 = "fast (3.14)"
+ 
+     def g(cwd: Path, *a: str) -> tuple[int, str]:
+-        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
++        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, env=throwaway_git_env())
+         return r.returncode, (r.stdout + r.stderr).strip()
+ 
+     def world(d: Path, base: str, prs: dict[int, dict[str, str]], cap: int = 2) -> dict:
+         R, L = d / "remote", d / "local"
+         R.mkdir()
+-        g(R, "init", "-q", "-b", base, ".")
++        throwaway_git_init(R, "-q", "-b", base)
+         for k, v in (("user.email", "f@example.test"), ("user.name", "f"), ("uploadpack.allowAnySHA1InWant", "true")):
+             g(R, "config", k, v)
+         tree = {"cap.txt": f"{cap}\n", "units/u0": "0\n", "a.txt": "a\n", "b.txt": "b\n",
+@@ -907,7 +911,7 @@ def _batch_self_test(check) -> None:
+             g(R, "commit", "-qm", f"pr {n}")
+             heads[n] = g(R, "rev-parse", "HEAD")[1]
+             g(R, "checkout", "-q", base)
+-        g(d, "clone", "-q", str(R), str(L))
++        throwaway_git_clone(R, L, "-q")
+         for k, v in (("user.email", "f@example.test"), ("user.name", "f"),
+                      ("merge.led.driver", "printf LOCAL > %A")):  # a driver GitHub never runs
+             g(L, "config", k, v)
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index 0551c70e..44a9c0b3 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -381,6 +381,8 @@ def _self_test() -> int:
+         if not ok:
+             failed.append(f"{name} (got: {got})")
+ 
++    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
++    from throwaway_git import throwaway_git_clone, throwaway_git_init
+     tmp = tempfile.mkdtemp(prefix="hpo-fr8-selftest-")
+ 
+     # The script node runs is the one lint_cwd contains. The process cwd is a
+@@ -397,7 +399,7 @@ def _self_test() -> int:
+     def planted(name, files):
+         seed_n = Path(tmp, name)
+         seed_n.mkdir()
+-        run(["git", "init", "-q", "-b", "main", str(seed_n)])
++        throwaway_git_init(seed_n, "-q", "-b", "main")
+         for rel, source in files.items():
+             dest = seed_n / rel
+             dest.parent.mkdir(parents=True, exist_ok=True)
+@@ -406,9 +408,9 @@ def _self_test() -> int:
+         run(["git", "-C", str(seed_n), "add", "-A"])
+         run(["git", "-C", str(seed_n), "commit", "-q", "-m", "fixture lint"])
+         origin_n = Path(tmp, name + ".git")
+-        run(["git", "clone", "-q", "--bare", str(seed_n), str(origin_n)])
++        throwaway_git_clone(seed_n, origin_n, "-q", "--bare")
+         drv_n = Path(tmp, name + "-drv")
+-        run(["git", "clone", "-q", str(origin_n), str(drv_n)])
++        throwaway_git_clone(origin_n, drv_n, "-q")
+         return drv_n, seed_n
+ 
+     def decoy(name, rel, source):
+@@ -451,7 +453,7 @@ def _self_test() -> int:
+ 
+     seed = Path(tmp, "seed")
+     seed.mkdir()
+-    run(["git", "init", "-q", "-b", "main", str(seed)])
++    throwaway_git_init(seed, "-q", "-b", "main")
+     (seed / ".claude/workflows").mkdir(parents=True)
+     (seed / ".claude/workflows/brief_lint.mjs").write_text(
+         "import {readFileSync} from 'node:fs';\n"
+@@ -477,9 +479,9 @@ def _self_test() -> int:
+     run(["git", "-C", str(seed), "add", "-A"])
+     run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture readme"])
+     origin = Path(tmp, "origin.git")
+-    run(["git", "clone", "-q", "--bare", str(seed), str(origin)])
++    throwaway_git_clone(seed, origin, "-q", "--bare")
+     drv = Path(tmp, "drv")
+-    run(["git", "clone", "-q", str(origin), str(drv)])
++    throwaway_git_clone(origin, drv, "-q")
+ 
+     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
+              at_sha=None, field=None, value_opt=None):
+@@ -618,7 +620,7 @@ def _self_test() -> int:
+           dump(json.loads(canon)) == canon)
+     seed2 = Path(tmp, "seed2")
+     seed2.mkdir()
+-    run(["git", "init", "-q", "-b", "main", str(seed2)])
++    throwaway_git_init(seed2, "-q", "-b", "main")
+     (seed2 / ".claude/workflows").mkdir(parents=True)
+     (seed2 / ".claude/workflows/brief_lint.mjs").write_text(
+         "console.log('TOTAL: 0 error(s) across 1 file(s)');\n",
+@@ -628,9 +630,9 @@ def _self_test() -> int:
+     run(["git", "-C", str(seed2), "add", "-A"])
+     run(["git", "-C", str(seed2), "commit", "-q", "-m", "fixture roster"])
+     origin2 = Path(tmp, "origin2.git")
+-    run(["git", "clone", "-q", "--bare", str(seed2), str(origin2)])
++    throwaway_git_clone(seed2, origin2, "-q", "--bare")
+     drv2 = Path(tmp, "drv2")
+-    run(["git", "clone", "-q", str(origin2), str(drv2)])
++    throwaway_git_clone(origin2, drv2, "-q")
+     check("no-op set-resume rc",
+           sysrc(lambda: main(["set-resume", "R9-A", "reviewer handed off at \u00b0",
+                            "--field", "last_step",
+@@ -658,7 +660,7 @@ def _self_test() -> int:
+     # the stale-worktree trap: a lint checkout main has moved past is refused
+     # even when the roster itself is fine.
+     stale = Path(tmp, "stale")
+-    run(["git", "clone", "-q", str(origin), str(stale)])
++    throwaway_git_clone(origin, stale, "-q")
+     old = run(["git", "-C", str(stale), "rev-parse", "HEAD~1"]).strip()
+     run(["git", "-C", str(stale), "checkout", "-q", "--detach", old])
+     rc = edit("set-stage", "R9-A", "done", push=True, branch="edit-2",
+diff --git a/tools/audit/seat/state_docs.py b/tools/audit/seat/state_docs.py
+index 26d98b4f..e21d17a6 100644
+--- a/tools/audit/seat/state_docs.py
++++ b/tools/audit/seat/state_docs.py
+@@ -232,6 +232,8 @@ def main(argv=None) -> int:
+ # ---------------------------------------------------------------- self-test
+ def self_test() -> int:
+     """Offline: tmp dirs and fixture repos, no network in any arm."""
++    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
++    from throwaway_git import throwaway_git_clone, throwaway_git_init
+     fails: list[str] = []
+ 
+     def ok(name: str, cond, got="") -> None:
+@@ -262,7 +264,7 @@ def self_test() -> int:
+         roster_path = seed / ".claude" / "workflows" / "wave-r9-groups.json"
+         roster_path.write_text(json.dumps(roster, indent=1) + "\n",
+                                encoding="utf-8")
+-        git("init", "-q", "-b", "main", str(seed))
++        throwaway_git_init(seed, "-q", "-b", "main")
+         git("-C", str(seed), "add", "-A")
+         git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
+         # a state tip with an unrelated path the tool must carry, never drop
+@@ -276,11 +278,11 @@ def self_test() -> int:
+         state0 = git("commit-tree", git("write-tree", cwd=str(seed), env=env),
+                      "-m", "seed state", cwd=str(seed)).strip()
+         bare = root / "origin.git"
+-        git("clone", "-q", "--bare", str(seed), str(bare))
++        throwaway_git_clone(seed, bare, "-q", "--bare")
+         git("-C", str(bare), "update-ref",
+             f"refs/heads/{STATE_REF}", state0)
+         drv = root / "drv"
+-        git("clone", "-q", str(bare), str(drv))
++        throwaway_git_clone(bare, drv, "-q")
+         prstate = root / "prs.json"
+         prstate.write_text(json.dumps(
+             [{"number": 1234, "head": "fix/x", "state": "OPEN"}]),
+diff --git a/tools/merge/ledger_merge.py b/tools/merge/ledger_merge.py
+index 9cd678e6..be94d2c5 100644
+--- a/tools/merge/ledger_merge.py
++++ b/tools/merge/ledger_merge.py
+@@ -480,13 +480,14 @@ def self_test() -> int:
+         unrelated_refused = "recorded_at" in str(why)
+     check("structure: a recorded_at pair with no ancestry is refused",
+           unrelated_refused)
++    sys.path.insert(0, os.path.join(ROOT, "tests"))
++    from throwaway_git import throwaway_git_init
+     with tempfile.TemporaryDirectory() as tmp:
++        env = throwaway_git_init(tmp, "-q")
++
+         def git(*a):
+             return subprocess.run(["git", *a], cwd=tmp, check=True, capture_output=True,
+-                                  text=True, env=dict(os.environ, GIT_AUTHOR_NAME="t",
+-                                                      GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+-                                                      GIT_COMMITTER_EMAIL="t@t")).stdout.strip()
+-        git("init", "-q")
++                                  text=True, env=env).stdout.strip()
+         git("commit", "-q", "--allow-empty", "-m", "old")
+         old = git("rev-parse", "HEAD")
+         git("commit", "-q", "--allow-empty", "-m", "new")
+diff --git a/tools/policy/agreement.mjs b/tools/policy/agreement.mjs
+index bc5cb5cb..b4cb27c5 100644
+--- a/tools/policy/agreement.mjs
++++ b/tools/policy/agreement.mjs
+@@ -224,6 +224,7 @@ const SHARED_GRAMMARS = {
+   "\\|[\\s|:-]+\\|": "identical:the markdown table separator row, three readers",
+   "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
+   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
++  "(?:tools|tests|\\.claude|dev/audit/harnesses)/.*\\.(?:sh|py|mjs|js|cjs)": "identical:the tracked-script scope, tmp_paths.py's temp-path scan and throwaway_git.py's raw init/clone scan",
+   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
+   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
+   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
+diff --git a/tools/policy/budget_raise_gate.py b/tools/policy/budget_raise_gate.py
+index c8db26f2..5074195d 100644
+--- a/tools/policy/budget_raise_gate.py
++++ b/tools/policy/budget_raise_gate.py
+@@ -1048,10 +1048,10 @@ def _end_to_end() -> list[tuple[str, object, object]]:
+         with open(os.path.join(stub, "gh"), "w") as f:
+             f.write(_STUB_GH)
+         os.chmod(os.path.join(stub, "gh"), 0o700)
+-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "GH_", "GITHUB_"))}
+-        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub,
+-                   GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
+-                   GIT_COMMITTER_EMAIL="t@t", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
++        from throwaway_git import throwaway_git_env, throwaway_git_init  # tests/, on sys.path above
++        env = throwaway_git_env({k: v for k, v in os.environ.items()
++                                 if not k.startswith(("GIT_", "GH_", "GITHUB_"))})
++        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub)
+ 
+         def git(*a: str) -> str:
+             return subprocess.run(["git", *a], cwd=repo, env=env, capture_output=True,
+@@ -1077,7 +1077,7 @@ def _end_to_end() -> list[tuple[str, object, object]]:
+         S, P = "tests/structure_budgets.json", ".claude/workflows/policy_budgets.json"
+         s0 = {"coordinator_loc": 9062, "cut_views": 110, "recorded_at": "a"}
+         p0 = {"always_loaded_tokens": 3349, "files": {"A.md": 10, "gone.md": 5}}
+-        git("init", "-q", "-b", "main")
++        throwaway_git_init(repo, "-q", "-b", "main")
+         fork = commit({S: s0, P: p0, "A.md": "a\n", "gone.md": "g\n",
+                        "tests/zz_budgets.json": {"x": 1}}, "fork")
+         # main moves on after the fork and TIGHTENS a cap: the head, which never
+diff --git a/tools/policy/policy_lint_envmatrix.mjs b/tools/policy/policy_lint_envmatrix.mjs
+index d1f64eca..cf20bcfe 100644
+--- a/tools/policy/policy_lint_envmatrix.mjs
++++ b/tools/policy/policy_lint_envmatrix.mjs
+@@ -43,7 +43,8 @@ function build(name, mutate) {
+     return { dir, error: `work directory already holds ${name}: pass a fresh --work dir. Reusing one lets a deleted shape pass on the previous run's clone.` }
+   }
+   BUILT.add(name)
+-  const c = sh('git', ['clone', '-q', '--no-checkout', SRC, dir])
++  // maintenance off in the clone's own config: no detached repack outlives the work dir (R9-RCA-stamp-race)
++  const c = sh('git', ['clone', '-c', 'maintenance.auto=false', '-c', 'gc.auto=0', '-q', '--no-checkout', SRC, dir])
+   if (c.rc) return { dir, error: `clone failed: ${c.out.slice(0,200)}` }
+   const co = git(dir, ['checkout', '-q', '--detach', SHA])
+   if (co.rc) return { dir, error: `checkout ${SHA} failed: ${co.out.slice(0,200)}` }
+diff --git a/tools/pr/app_approve.sh b/tools/pr/app_approve.sh
+index 8eba6822..d818e8e5 100755
+--- a/tools/pr/app_approve.sh
++++ b/tools/pr/app_approve.sh
+@@ -478,9 +478,9 @@ chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
+ 
+ # The carry's fixture: a real repository whose `origin` is a local bare one,
+ # so `git fetch` and the carry run for real and no case reaches the network.
+-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
++. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
+ g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
+-git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
++throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
+ ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
+ seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
+ echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
+@@ -865,7 +865,7 @@ carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driv
+ # The relocation (fix review of 97df6851): a hand resolution moves the
+ # branch's change from charge() to discharge(), whose three lines of context
+ # are the same, and the header-free comparison alone reads the two as equal.
+-( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
++( R="$W/reloc"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
+   body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
+   printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
+   git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 7f47ce45..04d8a399 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -960,6 +960,9 @@ fi
+ # (merge base, gate mode, version edit, claim files) are demonstrated by the
+ # `pr-contract` job running this script on every pull request.
+ if [ "${1:-}" = "--self-test" ]; then
++  # Every throwaway repository below takes the shared helper: auto-maintenance
++  # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
++  . tests/throwaway_git.sh || exit 2
+   D=tools/policy/fixtures/policy-rot/prepr
+   ZERO=0000000000000000000000000000000000000000
+   # A base that DOES resolve, for the success arm below. HEAD always resolves
+@@ -1093,7 +1096,7 @@ if [ "${1:-}" = "--self-test" ]; then
+   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
+   RA=$(mktemp -d)
+   (
+-    set -e; cd "$RA"; git init -q -b main .
++    set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
+     git config user.name st; git config user.email st@st
+     git remote add origin https://github.com/tvofi/heatpump_optimizer.git
+     # The identity is pinned through the environment, not only `git config`:
+@@ -1167,7 +1170,7 @@ EOS
+   # body check that refused on other grounds would satisfy a status alone.
+   BR=$(mktemp -d)
+   (
+-    set -e; cd "$BR"; git init -q -b main .
++    set -e; throwaway_git_env; cd "$BR"; throwaway_git_init . -q -b main
+     git config user.name st; git config user.email st@st
+     echo a > README; git add -A; git -c commit.gpgsign=false commit -qm nogate; git tag nogate
+     mkdir -p .claude/workflows tests
+@@ -1321,7 +1324,7 @@ EOS
+   # merged arm is the ordinary state of a branch updated with `git merge`.
+   VER=$(mktemp -d)
+   (
+-    set -e; cd "$VER"; git init -q -b main .
++    set -e; throwaway_git_env; cd "$VER"; throwaway_git_init . -q -b main
+     git config user.name st; git config user.email st@st
+     mkdir -p custom_components/heatpump_optimizer docs
+     printf '6.5.1\n' > VERSION
+@@ -1479,7 +1482,7 @@ EOS
+   # aborting this whole `&&` chain before `inh` is ever created. Detach and
+   # delete whatever the clone started on first, so the fixture is hermetic
+   # to the outer checkout's branch name -- `main` included.
+-  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
++  (throwaway_git_clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+     && startbr=$($G symbolic-ref --quiet --short HEAD || :) \
+     && $G checkout -q --detach \
+     && { [ -z "$startbr" ] || $G branch -q -D "$startbr"; } \
+@@ -1559,7 +1562,7 @@ PY
+   # predictor names is planted alone on its own branch and must trip it with
+   # its own PREDICT line -- R9-RO-11's perturbation, one arm per class.
+   PDX=$(mktemp -d)
+-  (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
++  (throwaway_git_clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+     && $G checkout -q --detach && $G checkout -q -b pfork \
+     && git update-ref refs/remotes/origin/main pfork \
+     && cp "$OLDPWD/tools/pr/ci_predict.py" tools/pr/ci_predict.py \
+@@ -1712,7 +1715,7 @@ PY
+   # that must pass, and each refused shape built the way a seat produced it.
+   TR=$(mktemp -d)
+   (
+-    set -e; cd "$TR"; git init -q -b main .
++    set -e; throwaway_git_env; cd "$TR"; throwaway_git_init . -q -b main
+     git config user.name st; git config user.email st@st
+     mkdir -p tools/audit/handoff/old; echo x > tools/audit/handoff/old/BODY.md
+     echo a > code; git add -A; git commit -qm base
+diff --git a/tools/release/stamp.py b/tools/release/stamp.py
+index ae1e235c..dade53c6 100755
+--- a/tools/release/stamp.py
++++ b/tools/release/stamp.py
+@@ -568,28 +568,13 @@ def gate_source(which=shutil.which) -> str:
+     return "gh" if which("gh") else "rest"
+ 
+ 
+-def _throwaway_git_env() -> dict:
+-    """The environment of the self-test's throwaway repositories: a fixed
+-    identity, no global or system config, no inherited repository, and no
+-    auto-maintenance. Git >= 2.54 detaches a geometric repack after a commit
+-    or merge once two loose objects share the objects/17 shard, and it keeps
+-    writing into .git/objects/pack while TemporaryDirectory removes the
+-    repository -- `OSError: Directory not empty`, a red check no diff caused
+-    (R9-RCA-stamp-race). `maintenance.auto` is the gate git consults before
+-    spawning it, so the repack never starts; the env route survives
+-    GIT_CONFIG_NOSYSTEM and every child git inherits it."""
+-    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+-           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t",
+-           "GIT_CONFIG_GLOBAL": os.devnull, "GIT_CONFIG_NOSYSTEM": "1",
+-           "GIT_CONFIG_COUNT": "1", "GIT_CONFIG_KEY_0": "maintenance.auto",
+-           "GIT_CONFIG_VALUE_0": "false"}
+-    for k in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE"):
+-        env.pop(k, None)
+-    return env
+-
+-
+ def self_test() -> int:
+     ok = True
++    # The throwaway repositories below take the suite's shared helper: auto-
++    # maintenance off, so no detached repack outlives the temporary directory
++    # (R9-RCA-stamp-race). Imported here, so the release path never needs tests/.
++    sys.path.insert(0, str(ROOT / "tests"))
++    from throwaway_git import throwaway_git_init
+ 
+     def check(name: str, cond: bool) -> None:
+         nonlocal ok
+@@ -1153,7 +1138,7 @@ def self_test() -> int:
+     # fails closed. Both arms are the null controls of each other.
+     with tempfile.TemporaryDirectory() as _rd2:
+         _rp = Path(_rd2)
+-        _genv2 = _throwaway_git_env()
++        _genv2 = throwaway_git_init(_rp, "-q")
+ 
+         def _rg(*a, **kw):
+             return subprocess.run(a, cwd=_rp, text=True, capture_output=True,
+@@ -1163,7 +1148,6 @@ def self_test() -> int:
+             _rg("git", "add", "-A")
+             return _rg("git", "commit", "-q", "-m", msg).strip() or _rg("git", "rev-parse", "HEAD").strip()
+ 
+-        _rg("git", "init", "-q")
+         check("throwaway repo: git itself reads auto-maintenance as off, so no detached "
+               "repack outlives the directory",
+               subprocess.run(["git", "config", "--type=bool", "--get", "maintenance.auto"], cwd=_rp,
+@@ -1297,13 +1281,12 @@ def self_test() -> int:
+     # The undo, on a real throwaway repository: no tag, no stamp commit, and
+     # the hand-written notes kept, uncommitted, over the pre-stamp tree.
+     with tempfile.TemporaryDirectory() as _gd:
+-        _genv = _throwaway_git_env()
++        _genv = throwaway_git_init(_gd, "-q")
+ 
+         def _git(*a, **kw):
+             return subprocess.run(a, cwd=_gd, text=True, capture_output=True, check=True, env=_genv).stdout
+ 
+         _notes, _ver = Path(_gd) / "RELEASE_NOTES.md", Path(_gd) / "VERSION"
+-        _git("git", "init", "-q")
+         _notes.write_text("# Notes\n")
+         _ver.write_text("6.6.1\n")
+         _git("git", "add", "-A")

@@ -1,0 +1,3 @@
+## K2-clone-positional (tools/audit/seat/roster_edit.py) mutant=f9f7491c75320741951fa22fd8cbda43284286d0
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at f9f7491c75320741951fa22fd8cbda43284286d0
+rc=0
