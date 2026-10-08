@@ -90,3 +90,29 @@ is built.
   fixture is now the barrier at 0 s of standing cost. A policy line such as "proof matrices
   include n=1" would be state-(b) wording for a state-(c) miss. It fails the cost test against
   a fixture that already pins the boundary.
+
+## 7. Adjacent finding, not this cause: the killer a pin names
+
+This finding comes from #2025's round-7 review
+(`/Users/timmalmstrom/hpo-seats/review-2025-r6/verdict7/VERDICT.md`). CI pinned
+`pump_arbiter.py:572 RETURN_DEL` as `killed_by: tests/structure.py`. Under that mutant,
+structure.py's only failure is `dead_top_level_symbols 2 > 1`: deleting the return leaves
+`_inside_silent` unreferenced. Main's earlier pin on the line named `tests/features.py`, with 8
+failures.
+
+- **The verdict is right; the attribution is incidental.** The gate refuses the mutant, so it
+  cannot merge, and "killed" holds. `drive_pool` stops at the first kill, and `driver_order`
+  ranks the cheap structure.py early. Its docstring already accepts this: order "cannot change
+  a verdict", and "only which driver is NAMED as the killer can differ".
+- **Reach.** 16 of the ledger's 1087 `killed_by` entries name `tests/structure.py`, from
+  `mutation_table.load_budgets()` at `dcc77dd0`. The count of those that a behaviour driver
+  also kills is unmeasured. It would take one full driver sweep per anchor.
+- **Options.** Recording every killer gives up the early stop for every killed mutant, which
+  is the cost the 120-minute shard budget was sized against. Ordering structural drivers after
+  the behaviour drivers keeps every verdict. It costs a full behaviour sweep only on mutants
+  that only a structural driver kills, which is at most about 1.5% of pins on the ledger's
+  history.
+- **Disposition.** This is not R9-CI-2's cause, and it is not changed here. It is an
+  instrument-design change to `driver_order` with its own failing test and mutation proof.
+  It goes to the orchestrator as a candidate group, "structural drivers name a killer only
+  when no behaviour driver does". It is not filed as an issue.
