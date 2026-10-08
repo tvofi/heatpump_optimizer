@@ -4174,6 +4174,102 @@ if _EntryConfig is not None:
         f"{_ec_fuse}",
     )
 
+    # The gates that read a parsed switch or slot, each driven on both arms
+    # (#2025's eight mutation survivors: the drives that ran never reached
+    # the arm the gate closes).
+    from dataclasses import replace as _ec_replace
+    from datetime import timezone as _ec_tz
+    import numpy as _ec_np
+    from heatpump_optimizer import silent_mode as _ec_silent
+    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+    from heatpump_optimizer.thermal_model import ThermalState as _EcState
+    from types import SimpleNamespace as _EcNS
+
+    def _ec_lower_floor_samples(sensor):
+        """One replayable two-zone interval; the lower-floor learner's samples after it."""
+        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                        lower_floor_temperature=20.0, slab_temperature=27.0,
+                        outdoor_temperature=-5.0)
+        c._last_house_sample = prev
+        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                       lower_floor_temperature=19.9)
+        c._current_action = {"power": 2.0}
+        asyncio.run(c._async_learn_lower_floor_loss())
+        return c._lower_floor_loss_samples
+
+    def _ec_widening(tripped):
+        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+        c._vent_cusum.tripped = tripped
+        return c._floor_widening()
+
+    def _ec_rain(flag):
+        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+        c._apply_open_meteo = lambda solar, *a: solar
+        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                        snowfall_for=lambda *a: 1.0)
+        c._update_snow_memory = lambda *a: False
+        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+    def _ec_weight(on):
+        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+        c._comfort_learner.learned_weight = 9.0
+        return c._comfort_weight()
+
+    def _ec_capacity(on):
+        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+        c._capacity_envelope = {-2: [1.0, _min]}
+        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+        p_max = float(c._ctx._thermal_params.max_electrical_power)
+        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+        c._fold_capacity_envelope(3.0)
+        return capped, len(c._capacity_envelope)
+
+    def _ec_silent_caps(fraction):
+        try:
+            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                             const.CONF_SILENT_MODE_FRACTION: fraction},
+                                      _ec_start, 96, 0.25, 6.0) is not None
+        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+            return type(err).__name__
+
+    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+    _ec_gates = {
+        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                             _ec_lower_floor_samples("sensor.lower")),
+        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+        "a parsed configuration is returned as it is": (
+            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
+    }
+    _ec_want = {
+        "lower floor learns only from a configured sensor": (0, 1),
+        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+        "rain weighting needs the switch on": (2.0, 0.5714),
+        "learning off plans with the configured weight": (5.0, 9.0),
+        "a parsed configuration is returned as it is": (True, True),
+        "an unreadable silent fraction caps nothing": (False, True),
+        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
+    }
+    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+    R.check(
+        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+        + "; ".join(_ec_want),
+        not _ec_wrong, f"{_ec_wrong}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
     # empty slot None. A set_thermal_parameters call carrying a spec applies
@@ -24909,6 +25005,34 @@ _RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
                          if "_rr" in globals() else "?")
 
 
+# The one review the job posts is the approver App's, and only behind the
+# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
+# sits after the guard's call at the live head, and the POST carries the
+# approver token, never the author's -- an author cannot approve its own pull
+# request, and a review ahead of the guard would approve what it never read.
+_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
+
+
+def _raf_review_gated(job: str) -> bool:
+    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
+    g = job.find(_RAF_GUARD)
+    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
+                     r'[^\n]*pulls/\$NUM/reviews"', job)
+    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
+
+
+# The merge is the beat's own, pinned to the head the guard judged (#2029
+# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
+# the guard's `--require-green` call, and never GitHub's auto-merge, which
+# merges later on a head nobody judged.
+def _raf_merge_pinned(job: str) -> bool:
+    g = job.find("guard --require-green")
+    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
+    return (0 < g < put
+            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
+            and "AutoMerge" not in job)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -24928,7 +25052,9 @@ def _raf_job_ok(job: str) -> bool:
         and all(_RAF_LEASE in p for p in pushes)
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
-        and not re.search(r"pulls/.*/reviews", job))
+        and "--automerge-check --hold" in job
+        and _raf_review_gated(job)
+        and _raf_merge_pinned(job))
 
 
 R.check(
@@ -24956,11 +25082,19 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
+    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
-    "that runs only after NUM is known -- must each turn the pin red -- "
+    "that runs only after NUM is known, or dropping the automerge guard "
+    "ahead of the review, or posting it with the author's token, or the "
+    "merge's green gate or its sha pin -- must "
+    "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the

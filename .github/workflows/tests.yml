@@ -2710,11 +2710,17 @@ jobs:
   # the merge. The next run finds the row and stops at nothing-owed. A real
   # unrowed merge is still a row; skipping the beat is not.
   #
-  # KEPT MANUAL, deliberately: the approving labelled review on the record pull
-  # request, and the living handover's updated-for line — tied to merges that
-  # change owed work, not every beat, which this job would over-write. The job
-  # carries no review-posting step and never touches that file; the tests.yml
-  # pins in tests/entities.py hold both lines of that design.
+  # THE REVIEW IS A PREDICATE (tvofi, 2026-10-07, superseding the manual
+  # review #1952 kept): a record pull request the automerge guard passes is
+  # approved by the approver App and merged by the author App, pinned to the
+  # head the guard judged, once its required checks pass there; while one is
+  # open and passing the beat holds it rather than rebuilding it -- the
+  # rebuild on every main merge is what staled each review and left
+  # delivery-status OVERDUE on main. One the guard refuses has the approver
+  # App's approvals dismissed and keeps the manual review. KEPT MANUAL, deliberately: the living handover's updated-for line
+  # -- tied to merges that change owed work, not every beat, which this job
+  # would over-write; the job never touches that file. tests/entities.py pins
+  # both: the review only behind the guard, and the handover untouched.
   #
   # TRIGGERS. Push to main and the nightly — the events `record` runs on. The
   # job asks the same question `record` does (which merges in the window still
@@ -2781,49 +2787,68 @@ jobs:
             --enumerate --repo "$REPO" --since "$SINCE" \
             > "$RUNNER_TEMP/merges.json"
 
+      # Two installation tokens from one minting routine. The author App's
+      # writes the rows, the pull request and the #201 comment, and merges
+      # its own pull request, so the merge is the App's and its push to main
+      # fires main's workflows (a GITHUB_TOKEN merge would not).
+      # The approver App's, minted only when HPO_APPROVER_PEM/APPID are set in
+      # this main-only environment, is the one non-author identity decision
+      # 0011 lets approve a pull request no code owner owns; it posts at most
+      # one review, and the job's last token step revokes both.
       - name: Mint the record-writer App token
         id: mint
         env:
           REPO: ${{ github.repository }}
           RECORD_PEM: ${{ secrets.HPO_RECORD_PEM }}
           RECORD_APPID: ${{ secrets.HPO_RECORD_APPID }}
+          APPROVER_PEM: ${{ secrets.HPO_APPROVER_PEM }}
+          APPROVER_APPID: ${{ secrets.HPO_APPROVER_APPID }}
         run: |
-          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          { set +x; } 2>/dev/null  # the PEMs, JWTs and tokens are never traced
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-app.pem"
+          jwt_h="$RUNNER_TEMP/hpo-app-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          mint() { # mint LABEL PEM APPID PERMISSIONS-JSON; prints the token
+            printf '%s\n' "$2" > "$key"
+            now=$(date +%s)
+            h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+            p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$3" | b64)
+            s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+              echo "::warning::signing the $1 App JWT failed" >&2; return 1; }
+            printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+            inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+              | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+              echo "::warning::the $1 App has no installation on $REPO, or its JWT was refused" >&2; return 1; }
+            curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" -d "{\"permissions\":$4}" \
+              "$API/app/installations/$inst/access_tokens" \
+              | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])'
+          }
           if [ -z "$RECORD_PEM" ] || [ -z "$RECORD_APPID" ]; then
             echo "::notice::HPO_RECORD_PEM or HPO_RECORD_APPID is not set in the record-writer environment; the beat, if owed, cannot land (fail-closed: the report step reddens skip-no-writer)"
             exit 0
           fi
-          umask 077
-          API=https://api.github.com
-          ACCEPT='Accept: application/vnd.github+json'
-          key="$RUNNER_TEMP/hpo-record.pem"
-          jwt_h="$RUNNER_TEMP/hpo-record-jwt.h"
-          trap 'rm -f "$key" "$jwt_h"' EXIT
-          trap 'exit 130' INT TERM HUP
-          printf '%s\n' "$RECORD_PEM" > "$key"
-          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
-          now=$(date +%s)
-          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
-          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RECORD_APPID" | b64)
-          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
-            echo "::warning::signing the record-writer App JWT failed"
-            exit 1
-          }
-          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
-          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
-            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
-            echo "::warning::the hpo-author App has no installation on $REPO, or its JWT was refused"
-            exit 1
-          }
-          tok=$(curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" \
-            -d '{"permissions":{"contents":"write","pull_requests":"write","issues":"write"}}' \
-            "$API/app/installations/$inst/access_tokens" \
-            | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])') && [ -n "$tok" ] || {
+          tok=$(mint record-writer "$RECORD_PEM" "$RECORD_APPID" \
+            '{"contents":"write","pull_requests":"write","issues":"write"}') && [ -n "$tok" ] || {
             echo "::warning::minting the record-writer App installation token failed"
             exit 1
           }
           echo "::add-mask::$tok"
           echo "token=$tok" >> "$GITHUB_OUTPUT"
+          if [ -z "$APPROVER_PEM" ] || [ -z "$APPROVER_APPID" ]; then
+            echo "::notice::HPO_APPROVER_PEM or HPO_APPROVER_APPID is not set in the record-writer environment; the record pull request is not approved here (skip-no-approver) and keeps the manual path"
+            exit 0
+          fi
+          atok=$(mint approver "$APPROVER_PEM" "$APPROVER_APPID" '{"pull_requests":"write"}') && [ -n "$atok" ] || {
+            echo "::warning::minting the approver App installation token failed; the record pull request keeps the manual path"
+            exit 0
+          }
+          echo "::add-mask::$atok"
+          echo "approver_token=$atok" >> "$GITHUB_OUTPUT"
 
       # Apply, check the write set, commit and push, re-applied onto a main
       # that moved under the push (three tries). Every try re-plans against
@@ -2847,6 +2872,8 @@ jobs:
         id: record
         env:
           TOKEN: ${{ steps.mint.outputs.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
           ROSTER_REF: ${{ vars.RECORD_ROSTER_REF || 'handoff/audit-r9-fixplan' }}
         run: |
           set -uo pipefail
@@ -2869,7 +2896,23 @@ jobs:
             # phrasing a seat edits at approval.
             git fetch -q origin "+refs/heads/$ROSTER_REF:refs/remotes/origin/$ROSTER_REF" || \
               echo "::warning::the roster ref $ROSTER_REF is unreadable; rows land in the neutral phrasing"
+            # THE HOLD (tvofi, 2026-10-07). Rebuilding the record branch on
+            # every main merge restarted its checks and staled its review,
+            # so it never merged and delivery-status went OVERDUE on main.
+            # An open record pull request the automerge guard passes at its
+            # live head -- row-only, generated from API facts, no conflict,
+            # no required check failed -- is left alone: it merges, and the
+            # beat its merge fires rows what landed meanwhile. One the guard
+            # refuses is rebuilt as before.
+            OPEN_PR=$(GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+              --find-open --repo "$REPO" --owner "$OWNER") || OPEN_PR=0
+            if [ "$OPEN_PR" != 0 ] && GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+                 --automerge-check --hold --repo "$REPO" --pr "$OPEN_PR"; then
+              status="held"
+              echo "pr=$OPEN_PR" >> "$GITHUB_OUTPUT"
+            fi
             for try in 1 2 3; do
+              [ "$status" = held ] && break
               git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
                 fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
               # The job's own previous run may have left its rows commit on
@@ -3033,6 +3076,108 @@ jobs:
             "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
           echo "pr=$NUM" >> "$GITHUB_OUTPUT"
 
+      # THE MERGE IS A PREDICATE (tvofi, 2026-10-07). A record pull request
+      # the guard passes merges with no review seat: `record_row.py
+      # --automerge-check` re-generates every row from the API's facts at the
+      # live head and refuses anything else -- another file, a non-canonical
+      # path, an edited or deleted row, an unmerged or mis-cited pull
+      # request, another author. On a pass the approver App reviews that
+      # exact commit; once every required context has passed AT that commit,
+      # the author App merges it with `sha` set to it, so a head that moved
+      # after the guard read it makes the merge fail closed (#2029 review,
+      # round 1: no auto-merge, which merged later on a head nobody judged).
+      # While checks run, the next beat (a main push, or the nightly) retries.
+      # On a refusal the approver App's approvals are dismissed, so a refused
+      # head cannot be hand-merged on the bot's word. Every outcome here is
+      # green; the report step reddens a beat that did not land.
+      - name: Approve and merge a row-only record pull request
+        id: automerge
+        if: steps.record.outputs.status == 'pushed' || steps.record.outputs.status == 'held'
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ steps.mint.outputs.token }}
+          APPROVER: ${{ steps.mint.outputs.approver_token }}
+          NUM: ${{ steps.pr.outputs.pr || steps.record.outputs.pr }}
+        run: |
+          set -uo pipefail
+          { set +x; } 2>/dev/null
+          echo "::add-mask::$TOKEN"
+          [ -z "$APPROVER" ] || echo "::add-mask::$APPROVER"
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          AUTH="Authorization: Bearer $TOKEN"
+          say() { echo "AUTOMERGE: $1"; echo "status=$1" >> "$GITHUB_OUTPUT"; }
+          pr_field() {
+            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM" \
+              | python3 -I -c "import sys,json; d=json.load(sys.stdin); print($1)"
+          }
+          guard() {
+            GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+              --automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD" "$@"
+          }
+          dismiss_bot() {
+            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; [print(r["id"]) for r in json.load(sys.stdin) if r.get("state") == "APPROVED" and (r.get("user") or {}).get("login") == "hpo-approver[bot]"]' \
+              | while read -r rid; do
+                  curl -fsS -o /dev/null -X PUT -H "$AUTH" -H "$ACCEPT" \
+                    -d '{"message":"The automerge guard refused this head; its review is manual.","event":"DISMISS"}' \
+                    "$API/repos/$REPO/pulls/$NUM/reviews/$rid/dismissals" \
+                    || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
+                done
+          }
+          HEAD=$(pr_field 'd["head"]["sha"]') || {
+            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
+          if ! guard; then
+            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
+            dismiss_bot; say refused; exit 0
+          fi
+          if [ -n "$APPROVER" ]; then
+            # One approving review per head: a held beat sees the same head again.
+            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
+              || { say skip-unread; exit 0; }
+            if [ "$have" != True ]; then
+              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
+                > "$RUNNER_TEMP/review.json"
+              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
+                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+            fi
+          fi
+          guard --require-green; rc=$?
+          case "$rc" in
+            0) ;;
+            3) say approved-pending; exit 0 ;;
+            *) dismiss_bot; say refused; exit 0 ;;
+          esac
+          python3 -I -c 'import json,sys; print(json.dumps({"sha": sys.argv[1], "merge_method": "merge"}))' "$HEAD" \
+            > "$RUNNER_TEMP/merge.json"
+          code=$(curl -sS -o "$RUNNER_TEMP/merge-resp.json" -w '%{http_code}' -X PUT -H "$AUTH" -H "$ACCEPT" \
+            -d @"$RUNNER_TEMP/merge.json" "$API/repos/$REPO/pulls/$NUM/merge") || code=000
+          if [ "$code" = 200 ]; then
+            say merged
+          else
+            echo "::warning::merging #$NUM at $HEAD returned HTTP $code; response follows"
+            cat "$RUNNER_TEMP/merge-resp.json" || true
+            say skip-merge-refused
+          fi
+
+      # Both installation tokens die with the beat, on every path through it:
+      # the approver's is minted whenever its secrets exist, including beats
+      # where the step above never runs (#2029 review, round 1).
+      - name: Revoke the App installation tokens
+        if: always()
+        env:
+          TOKEN: ${{ steps.mint.outputs.token }}
+          APPROVER: ${{ steps.mint.outputs.approver_token }}
+        run: |
+          { set +x; } 2>/dev/null
+          for t in "$APPROVER" "$TOKEN"; do
+            [ -z "$t" ] || curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $t" \
+              -H 'Accept: application/vnd.github+json' https://api.github.com/installation/token \
+              || echo "::warning::revoking an installation token failed; it expires within the hour"
+          done
+
       # As in mutation-ledger-push and the other autofix lanes (#523): the
       # status reaches the run, and a beat owed and not landed reddens this
       # job — a red here means "no bot commit" while a rowless merge stands
@@ -3048,7 +3193,7 @@ jobs:
           echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           case "$STATUS" in
-            pushed|nothing-owed) exit 0 ;;
+            pushed|nothing-owed|held) exit 0 ;;
             "")
               echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
               exit 1 ;;

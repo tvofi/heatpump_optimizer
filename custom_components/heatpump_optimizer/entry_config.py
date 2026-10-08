@@ -48,9 +48,10 @@ def _nonzero_number(value: Any, default: float) -> float:
 
 
 def _optional_number(value: Any, default: float | None) -> float | None:
-    """A finite float, or the default. An empty string is absent, not zero."""
-    if value == "":
-        return None
+    """A finite float, or the default (None for every optional field).
+
+    An empty string is absent, not zero: it is refused like any other text.
+    """
     result = _refused_number(value, math.nan)
     return default if result is None else result
 
