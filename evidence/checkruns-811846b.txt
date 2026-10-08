@@ -1,0 +1,37 @@
+   2 success	pr-contract
+   1 success	wave-script
+   1 success	validate-hacs
+   1 success	typing
+   1 success	policy-docs
+   1 success	nightly-status
+   1 success	mutation
+   1 success	instrument-self-tests
+   1 success	hassfest
+   1 success	env-matrix
+   1 success	closures
+   1 success	closure-scope
+   1 success	claims-autofix
+   1 success	budget-raise-gate
+   1 success	browser
+   1 success	briefs
+   1 success	Analyze (javascript-typescript)
+   1 success	Analyze (actions)
+   1 skipped	slow
+   1 skipped	record-autofix
+   1 skipped	record
+   1 skipped	recheck-gate
+   1 skipped	nightly-ha
+   1 skipped	mutation-pins
+   1 skipped	mutation-pin-plan
+   1 skipped	mutation-nightly
+   1 skipped	mutation-ledger-push
+   1 skipped	mutation-ledger
+   1 skipped	mutation-autofix
+   1 skipped	delivery-status-publish
+   1 skipped	closures-autofix
+   1 neutral	CodeQL
+   1 in_progress	coverage
+   1 in_progress	Analyze (python)
+   1 failure	fast (3.14)
+   1 failure	delivery-status
+   1 cancelled	budget-raise-gate

@@ -1,0 +1,2 @@
+08:52:09.390471 git.c:502               trace: built-in: git add -A
+08:52:09.402171 git.c:502               trace: built-in: git commit -q -m base

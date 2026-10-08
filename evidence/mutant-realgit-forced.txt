@@ -1,0 +1,2 @@
+last: OSError: [Errno 66] Directory not empty: 'pack'
+RESULT tree=811846b5 arm=forced git=2.55.0 runs=20 directory_not_empty=4 nonzero_exit=20

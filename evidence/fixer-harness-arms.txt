@@ -1,0 +1,15 @@
+== head shim
+arm=shim git=2.38.1 runs=5 directory_not_empty=0 nonzero_exit=0
+== head plain
+arm=plain git=2.38.1 runs=5 directory_not_empty=0 nonzero_exit=0
+== head spawn (system git 2.38)
+arm=spawn config=default git=2.38.1 maintenance_spawns=1
+arm=spawn config=off git=2.38.1 maintenance_spawns=0
+== head spawn (git 2.55)
+arm=spawn config=default git=2.55.0 maintenance_spawns=1
+arm=spawn config=off git=2.55.0 maintenance_spawns=0
+== base shim (harness copied in)
+last: OSError: [Errno 66] Directory not empty: 'pack'
+arm=shim git=2.38.1 runs=5 directory_not_empty=5 nonzero_exit=5
+== base plain
+arm=plain git=2.38.1 runs=5 directory_not_empty=0 nonzero_exit=0

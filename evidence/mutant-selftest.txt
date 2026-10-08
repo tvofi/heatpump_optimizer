@@ -1,0 +1,2 @@
+  FAIL throwaway repo: git itself reads auto-maintenance as off, so no detached repack outlives the directory
+RESULT stamp_self_test=fail
