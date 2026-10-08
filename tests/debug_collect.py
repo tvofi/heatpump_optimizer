@@ -636,7 +636,7 @@ R.check(
 
 # -- the inline cap -----------------------------------------------------------
 small = {"schema": debugger.BUNDLE_SCHEMA, "manifest": {"cycles": 1}, "cycle_rows": [_row()]}
-size = len(debugger._dumps(small).encode())
+size = debugger.download_bytes(small) + debugger.DOWNLOAD_HEADROOM_BYTES
 inline = debugger.capped(small, "k", cap=size)
 summary = debugger.capped(small, "k", cap=size - 1)
 R.check(
@@ -672,7 +672,59 @@ async def _download(cap):
         debugger._COLLECTORS.pop(coord, None)
 
 
-big = asyncio.run(_download(1000))
+def _ha_download(payload):
+    """The diagnostics file as Home Assistant 2025.2.0 writes it: ``json.dumps``
+    with ``indent=2`` of its own sections and the entry's payload under ``data``."""
+    return len(json.dumps({"home_assistant": {"installation_type": "Home Assistant OS",
+                                              "version": "2025.2.0"},
+                           "custom_components": {}, "integration_manifest": {},
+                           "setup_times": {}, "data": payload},
+                          indent=2, default=str).encode())
+
+
+async def _near_cap():
+    """A bundle carried inline at exactly its cap, with the headroom set to the
+    size of the rest of the file: the downloaded file must then fit the cap."""
+    dt_util.freeze(T0)
+    coord = FakeCoordinator()
+    coord.integration_version = "0.0.0"
+    entry = FakeEntry(entry_id="near", options={CONF_DEBUG_COLLECT: True})
+    entry.runtime_data = coord
+    hass = _disk_hass(tempfile.gettempdir())
+    collector = debugger.DebugCollector(hass, "near", lambda c: c.close())
+    collector.started_at = T0
+    collector.rows = [_row(indoor_temp=21.0, prices_rows=96, accuracy_sample=_sample(0, 21.0, 20.5))
+                      for _ in range(300)]
+    debugger._COLLECTORS[coord] = collector
+    saved = debugger.INLINE_CAP_BYTES, debugger.DOWNLOAD_HEADROOM_BYTES
+    try:
+        debugger._COLLECTORS.pop(coord)
+        rest = _ha_download(await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry))
+        debugger._COLLECTORS[coord] = collector
+        bundle = await collector.async_bundle(coord, diagnostics_mod._coordinator_snapshot(coord))
+        debugger.DOWNLOAD_HEADROOM_BYTES = rest
+        debugger.INLINE_CAP_BYTES = debugger.download_bytes(bundle) + rest
+        payload = await diagnostics_mod.async_get_config_entry_diagnostics(hass, entry)
+        return payload["debug"], _ha_download(payload), debugger.INLINE_CAP_BYTES
+    finally:
+        debugger.INLINE_CAP_BYTES, debugger.DOWNLOAD_HEADROOM_BYTES = saved
+        debugger._COLLECTORS.pop(coord, None)
+        dt_util.freeze(None)
+
+
+near, near_file, near_cap = asyncio.run(_near_cap())
+R.check(
+    "a bundle carried inline at exactly its cap gives a download, written with indent=2 "
+    "as Home Assistant writes it, that fits the cap",
+    "inline" not in near and len(near["cycle_rows"]) == 300 and near_file <= near_cap,
+    f"download {near_file}B against the cap {near_cap}B",
+)
+R.check(
+    "the headroom for the rest of the download is 256 KiB",
+    debugger.DOWNLOAD_HEADROOM_BYTES == 256 * 1024,
+)
+
+big = asyncio.run(_download(40000))
 whole = asyncio.run(_download(debugger.INLINE_CAP_BYTES))
 R.check(
     "Download diagnostics carries the summary and the store file when the bundle is over "
@@ -687,10 +739,11 @@ R.check(
 import nightly_ha  # noqa: E402
 
 
-def _a16(inline_payload, capped_payload, encode=lambda o: json.dumps(o).encode()):
+def _a16(inline_payload, capped_payload,
+         encode=lambda o: json.dumps({"data": o}, indent=2).encode(), cap=40000):
     checks = nightly_ha.Checks()
     nightly_ha.check_a16(checks, {"debug": inline_payload}, {"debug": capped_payload},
-                         1000, encode)
+                         cap, encode)
     return {name: ok for name, (ok, _detail) in checks.results.items()}
 
 
@@ -704,6 +757,10 @@ R.check(
     _a16(whole, big) == {"a16:debug_inline": True, "a16:debug_capped": True}
     and _a16(big, whole) == {"a16:debug_inline": False, "a16:debug_capped": False}
     and _a16(whole, big, _refuse) == {"a16:debug_inline": False, "a16:debug_capped": False},
+)
+R.check(
+    "the nightly A16 judge fails a bundle carried whole whose download is over the cap",
+    _a16(whole, big, cap=100)["a16:debug_inline"] is False,
 )
 R.check(
     "the nightly A16 judge fails a download over the cap that does not say it is a summary",

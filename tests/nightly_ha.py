@@ -104,9 +104,11 @@ no established cause, so its third boot, two-zone + DHW, measures the loop's
 largest gap across an untouched exit, a changed save and a burst of changed
 saves in menu mode, and dumps any stall while it is open.
 A16 is the size check the debugger pre-study owed this lane (#1940, its
-section 8): a planted week goes through ``diagnostics`` and Home Assistant's
-own ``json_bytes``, once under ``INLINE_CAP_BYTES`` (carried whole) and once
-past it (the summary, whose download is under the cap).
+section 8): a planted week goes through ``diagnostics`` and then the file the
+diagnostics download writes (``ha_download_writer``), once as many rows as
+``INLINE_CAP_BYTES`` carries inline, less a 512-row margin (carried whole, the
+file within the cap), and once a megabyte past it (the summary, the file
+within the cap).
 
     python tests/nightly_ha.py --image homeassistant/home-assistant:2025.2.0
 
@@ -825,29 +827,58 @@ async def _async_check_a10_published(checks: Checks, hass, entry) -> None:
     check_a10_payload(checks, payload, tokens)
 
 
-def check_a16(checks: Checks, inline: object, capped: object, cap: int, encode) -> None:
-    """The bundle Home Assistant serializes whole under the cap, and its summary over it."""
+def check_a16(checks: Checks, inline: object, capped: object, cap: int, download) -> None:
+    """The near-cap bundle carried whole, and the one past the cap summarised, each
+    judged by the size of the file the diagnostics download writes for it."""
     whole = (inline.get("debug") if isinstance(inline, dict) else None) or {}
     try:
-        size, err = len(encode(inline)), ""
-    except Exception as exc:  # noqa: BLE001 - the serializer's refusal is the finding
+        size, err = len(download(inline)), ""
+    except Exception as exc:  # noqa: BLE001 - the writer's refusal is the finding
         size, err = -1, repr(exc)
     rows = whole.get("cycle_rows")
     checks.check(
         "a16:debug_inline",
-        size > 0 and isinstance(rows, list) and rows and "inline" not in whole,
-        err or f"{size}B through json_bytes; {len(rows or ())} row(s) inline",
+        0 < size <= cap and isinstance(rows, list) and rows and "inline" not in whole,
+        err or f"the download {size}B against the {cap}B cap; {len(rows or ())} row(s) inline",
     )
     over = (capped.get("debug") if isinstance(capped, dict) else None) or {}
     try:
-        download = len(encode(capped))
+        written = len(download(capped))
     except Exception:  # noqa: BLE001
-        download = -1
+        written = -1
     checks.check(
         "a16:debug_capped",
-        over.get("inline") is False and over.get("bytes", 0) > cap and 0 < download < cap,
-        f"bundle {over.get('bytes')}B against the {cap}B cap; the download {download}B",
+        over.get("inline") is False and over.get("bytes", 0) > cap and 0 < written < cap,
+        f"bundle {over.get('bytes')}B against the {cap}B cap; the download {written}B",
     )
+
+
+def ha_download_writer(hass, domain: str, entry_id: str):
+    """The diagnostics download's own bytes for a payload, and the writer's name.
+
+    Home Assistant's ``_async_get_json_file_response`` (2025.2.0: ``json.dumps``
+    with ``indent=2`` and ``ExtendedJSONEncoder``, its own sections around the
+    payload under ``data``) when it can be called; otherwise that ``json.dumps``
+    over the payload alone, which is named so the detail says which ran.
+    """
+    import inspect
+
+    from homeassistant.helpers.json import ExtendedJSONEncoder
+
+    def fallback(payload: object) -> bytes:
+        return json.dumps({"data": payload}, indent=2, cls=ExtendedJSONEncoder).encode()
+
+    try:
+        from homeassistant.components.diagnostics import _async_get_json_file_response
+    except ImportError:
+        return fallback, "json.dumps(indent=2, ExtendedJSONEncoder)"
+
+    def written(payload: object) -> bytes:
+        response = _async_get_json_file_response(hass, payload, "a16", domain, entry_id)
+        if inspect.isawaitable(response):
+            response = asyncio.run_coroutine_threadsafe(response, hass.loop).result(timeout=120)
+        return response.body
+    return written, "diagnostics._async_get_json_file_response"
 
 
 async def _async_check_a16(checks: Checks, hass, entry) -> None:
@@ -864,17 +895,32 @@ async def _async_check_a16(checks: Checks, hass, entry) -> None:
     row = {"t": now.isoformat(), "mode": "auto", "prices_rows": 96}
     collector.started_at = now
     debugger._COLLECTORS[coord] = collector
+    cap = debugger.INLINE_CAP_BYTES
+    per_row = (debugger.download_bytes({"cycle_rows": [row, row]})
+               - debugger.download_bytes({"cycle_rows": [row]}))
     try:
-        collector.rows = [row] * 10
+        # As many rows as the cap carries inline, less 512 for the coordinator
+        # snapshot the download adds to the bundle.
+        collector.rows = []
+        base = debugger.download_bytes(await collector.async_bundle(coord))
+        inline_rows = (cap - debugger.DOWNLOAD_HEADROOM_BYTES - base) // per_row - 512
+        collector.rows = [row] * inline_rows
         inline = await diag.async_get_config_entry_diagnostics(hass, entry)
-        # A megabyte or so past the real cap, the rows sharing one dict.
-        collector.rows = [row] * (debugger.INLINE_CAP_BYTES // len(json.dumps(row)) + 2000)
+        # A megabyte or so past it, the rows sharing one dict.
+        collector.rows = [row] * (inline_rows + (1 << 20) // per_row)
         capped = await diag.async_get_config_entry_diagnostics(hass, entry)
     finally:
         debugger._COLLECTORS.pop(coord, None)
         if prior is not None:
             debugger._COLLECTORS[coord] = prior
-    check_a16(checks, inline, capped, debugger.INLINE_CAP_BYTES, json_bytes_ha)
+    writer, name = ha_download_writer(hass, PACKAGE_NAME, entry.entry_id)
+    loop = asyncio.get_running_loop()
+
+    def judge() -> None:
+        check_a16(checks, inline, capped, cap, writer)
+
+    await loop.run_in_executor(None, judge)
+    print(f"  a16: the download writer judged was {name}; {inline_rows} row(s) inline")
 
 
 def _prod_mod(name: str):
