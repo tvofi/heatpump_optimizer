@@ -42,11 +42,21 @@ permissions:
   pull-requests: read
   issues: read
 
-# Superseded pull-request runs are cancelled, nothing else is: see the same
-# block in tests.yml (round-9 process review item 3).
+# No run of this file cancels or queues another: each gets a group of its
+# own (R9-CI-2a). It lists `edited`, and an author push that re-bodies the
+# pull request -- `tools/pr/app_push.sh` pushes, then PATCHes the body --
+# fires `synchronize` and `edited` within a second at one head. A group per
+# pull request with `cancel-in-progress` cancelled the first of that pair at
+# every such push, leaving a cancelled `budget-raise-gate` beside its green
+# twin at the live head (#2007, #2029, #2041, #2049). Turning the cancel off
+# alone still shares the group, where a newer pending run cancels an older
+# pending one whatever `cancel-in-progress` says -- what `pr-contract.yml`
+# met while an older head's run held its group. The job is seconds long and
+# its check run is per head, so a superseded head's run finishing costs
+# nothing and is never read. `tests/entities.py` pins the route.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+  group: ${{ github.workflow }}-${{ github.run_id }}
+  cancel-in-progress: false
 
 jobs:
   budget-raise-gate:
