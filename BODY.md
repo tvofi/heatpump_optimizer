@@ -22,7 +22,7 @@ What changed:
    - `tests/arch_score_head.py`'s producer table is now cycle-wide. `CYCLE_HUB_WRITERS` lists 13 writers, each with the fields it writes and its event. A second control plants a write in `_refresh_model_corrections`.
 4. **The derived counts.** `tests/arch_score.py` no longer carries the literal 44, nor a known-open count. The red-team set is the scripts in `planted/redteam/` against `expected.json`'s GAME and KNOWN-OPEN rows, and `cases.KNOWN_OPEN` must equal the recorded KNOWN-OPEN set.
 5. **The required check.**
-   - `.github/workflows/arch-score.yml` runs `tools/audit/archscore/gate.py`. The workflow restores `tools/audit/archscore/` and `tests/structure.py` from the base, so a pull request cannot edit the check that grades it.
+   - `.github/workflows/arch-score.yml` runs `tools/audit/archscore/gate.py` **from a checkout of the base commit**, and `tests/structure.py` with it: `vector.load_structure` loads that file by path into the gate's process, so it is part of the grader. A pull request therefore cannot edit the check that grades it, as `tests.yml` restores its check source. When the base holds no `gate.py` (this pull request, which adds it) the head's copy runs once, and the workflow file saying so is under the owner's review. This is the reviewer's round-1 finding on #2068 (an edit to the unowned `tests/structure.py` waved three rises through), decided on #201 comment 6070657723. CODEOWNERS is unchanged: tvofi's ruling is that audit instruments stay unowned.
    - It passes when delta-S >= 0 and no gate metric rises from the merge base to the head. A rise passes only when the body's `## Architecture score` section has a line naming the metric with a reason. This is "explained in the body like a budget raise", with the reason judged by the fix reviewer. Owner approval of a score rise is not required: neither the brief nor R3-6 asks for it, and that is an open question below.
    - The template states the rule within its policy cap. `pr-contract-rerun.yml` watches the new workflow, and `tests/entities.py` admits it to the files that list `edited`.
    - The weights stay at their frozen hash.
@@ -36,12 +36,11 @@ The ruleset context `arch-score` is tvofi's to add to `main-protect-checks` (rul
 This changes policy and the enforcement surface, so it merges only on tvofi's approving review at the head, which CODEOWNERS requires. It touches:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
-- `.github/CODEOWNERS`, which now owns `/tools/audit/archscore/`;
+- `tests/arch_score.py`, which gains the plant below;
 - `.github/workflows/arch-score.yml`, which is new;
 - `.github/workflows/pr-contract-rerun.yml`;
 - `tests/entities.py`, which admits the new `edited` workflow;
 - `tests/run.sh` (a comment);
-- `tests/arch_score.py`;
 - `tools/audit/archscore/calibration/expected.json`, where two verdicts are re-recorded and three cases added.
 
 The decision it implements is tvofi's R3-6 (2026-09-29). Not yet approved at this head.
@@ -50,12 +49,12 @@ Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by t
 
 1. A score rise passes on a body `## Architecture score` explanation, judged by the fix reviewer. It does not need the owner's approval at each head; budget-file raises keep their own owner gate.
 2. The ratchet's `duplication_copies` keeps the adjacent window. There is no switch to the gapped census.
-3. Owning all of `tools/audit/archscore/` in CODEOWNERS is accepted.
+3. The instrument stays unowned (tvofi's ruling that audit instruments are not owned); it is protected by running from the base instead (#201 comment 6070657723).
 4. After merge, tvofi adds the `arch-score` context to `main-protect-checks`. The orchestrator requests it and records it on #201.
 
 ## Head
 
-The code head is `handoff/r9-eg-a4` at `397895df0bda97354467b9ccde397c2fb5b37f19`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. The figures were taken at this head on 2026-10-08.
+The code head is `handoff/r9-eg-a4` at `004807db0c778ef1236b6a580f7a2a9465dbaf2a`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. Round 1 of #2068 then blocked e9a7b9b4; `004807db` is its fix (base-copy gate, CODEOWNERS entry dropped, the plant). The figures were taken at this head on 2026-10-09.
 
 ## Mutation proof
 
@@ -77,7 +76,7 @@ The code head is `handoff/r9-eg-a4` at `397895df0bda97354467b9ccde397c2fb5b37f19
   - Its footprint is unchanged: 2512 before and after.
   - Today's tree reads untyped 0 with 172 produced and 172 typed, before and after.
 - **The gate's admissible arm.** It passes a flat change with no section (self-test).
-- **The ownership switch.** At `b5f01426` the workflow restored `tools/audit/archscore/` from the base, and `node tools/policy/field_coverage.mjs` refused it: `pinned tools/audit/archscore/gate.py is unregistered`. The repair follows the #1847 precedent: the pull request's own copy runs, and CODEOWNERS owns `/tools/audit/archscore/`. At the head the same command reads `FIELD COVERAGE ok`, and `codeowners_gap.py --check` reads `COVERED tools/audit/archscore/gate.py` with `uncovered_files=0`.
+- **The base-copy switch and the reviewer's plant.** `tests/arch_score.py` drives the workflow's own score step over a throwaway repository whose head carries a different `tests/structure.py` (`PLANT`) than its base (`BASE`), with a stub gate that prints the file it can see. At the head it reads `SAW BASE`. With the `git worktree add` and `cd` lines deleted from the step it fails (`1 of 60 ARCHITECTURE SCORE CHECKS FAILED`, the plant check), and with them restored `ALL 60 ARCHITECTURE SCORE CHECKS PASSED`. The null control, a base with no `gate.py`, reads `SAW PLANT`: the adoption path. This is a drive of the step's shell, not of a real pull request: the end-to-end plant (#2068's P1 patch) cannot run in this pull request's own CI, which takes the adoption path. `node tools/policy/field_coverage.mjs` reads `FIELD COVERAGE ok`, and `codeowners_gap.py --check` reads `uncovered_files=0`, at the head.
 
 ## Figures
 
@@ -112,20 +111,20 @@ Other figures:
   - and plants against per-PR checks that do not touch the score: #1887's isolation and hand-off plants, #1958's params control, #1966's census mutant, #2017's enumerator plant, and #1852/#1867's payload-key spellings.
 
   Not verified: #1966 round 5 named a `CoordinatorDiagnostics.of(cls, coord: Any)` reach blind spot as carried forward. No plant script survives, so it is not committed here.
-- **The red-team cases at the head**, from `python3 tools/audit/archscore/calibrate.py --only rt_15_payload_cast,rt_14_hub_write_presolve,a1_N5_annotated_return`: `rt_14` reads NULL, admissible; `rt_15` reads NULL, admissible; `a1_N5_annotated_return` reads WORSENS (`coord_footprint` 2512->2514). Each is what `expected.json` records. CI's full `arch_score.py`, over every planted and red-team case, is the verdict of record: CI's dispatched run [37689221025](https://github.com/tvofi/heatpump_optimizer/actions/runs/37689221025), at `6ec6553e` (the head's parent; the head adds only the carry record). There `fast (3.14)` printed `MODE: FULL`, `ALL 169 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`. So every planted and red-team verdict is as `expected.json` records under the widened census, and none moved past `c2a0448d`.
+- **The red-team cases at the head**, from `python3 tools/audit/archscore/calibrate.py --only rt_15_payload_cast,rt_14_hub_write_presolve,a1_N5_annotated_return`: `rt_14` reads NULL, admissible; `rt_15` reads NULL, admissible; `a1_N5_annotated_return` reads WORSENS (`coord_footprint` 2512->2514). Each is what `expected.json` records. CI's full `arch_score.py`, over every planted and red-team case, is the verdict of record. It runs in `fast (3.14)` on this head; I cite no run here until it has finished at this head, and the next body edit will name it.
 - **Corpus re-measure**, from `python3 tools/audit/archscore/calibrate.py --measure-corpus --only-metric hub_solve_writes,footprint --jobs 2`: 87 trees, 0 errors. Then `PYTHONPATH=tests/hastub python3 tests/arch_score.py --stored` moved one corpus verdict, `c2a0448d` (GOOD, #1751), from IMPROVES to WORSENS. The rise is hub 70 -> 71: the forecast-seeded outdoor reading is a cycle write. Re-recorded, with the reason in `ABOUT.md`.
 - **Hub sites on today's tree**, from `tests/arch_score_head.py`'s `hub_writers`: 2 solve-only against 38 cycle-wide, in 13 writers. At the pin (`7952d8f9`) it is 40 against 71.
 - **The end-to-end gate.** `python3 -I tools/audit/archscore/gate.py --base 12dbd3a5^1 --head 12dbd3a5 --body <empty>` printed `FAIL: dS -0.0011 WORSENS; unexplained: coord_footprint 2515->2517` with rc=1, in 34 s.
 - **Local checks**, all from the seat venv (`~/.local/state/hpo/venv-ci`, Python 3.14):
   - `tests/structure.py` passed;
-  - `tests/entities.py` passed 2227 at the merged head (first run: 1 failure, the twin-route check above; repaired);
+  - `tests/entities.py` passed 2227 at the merged head (first run: 1 failure, the twin-route check above; repaired. Not re-run after round 1: CI's `fast (3.14)` is the record);
   - `tests/harness_headers.py` passed 109;
   - `tests/arch_score_head.py` passed 15;
-  - `tests/arch_score.py --stored` passed 58;
+  - `tests/arch_score.py --stored` passed 60 (58 plus the plant and its null control);
   - `gate.py --self-test` passed;
   - `node .claude/workflows/policy_lint.mjs` returned rc 0;
   - `codeowners_gap.py --check` returned `uncovered_files=0`, with gate.py PINNED.
-- **Scope.** `tests/closure.py select --diff origin/main` prints `MODE: FULL`, because `tests/run.sh` changes (a comment). That run is CI's: CI's dispatched run [37689221025](https://github.com/tvofi/heatpump_optimizer/actions/runs/37689221025), at `6ec6553e` (the head's parent; the head adds only the carry record). There `fast (3.14)` printed `MODE: FULL`, `ALL 169 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`. So every planted and red-team verdict is as `expected.json` records under the widened census, and none moved past `c2a0448d`.
+- **Scope.** `tests/closure.py select --diff origin/main` prints `MODE: FULL`, because `tests/run.sh` changes (a comment). The scoped run is CI's, on this head; none is cited yet.
 - **CI prediction.** The predictor is now in the tree: `python3 tools/pr/ci_predict.py --base origin/main` printed `no closures or fast red predicted against 4dbe5aace744`.
 
 ## Architecture score
@@ -134,7 +133,7 @@ Other figures:
 
 ## Red checks
 
-The two reds on the seat's dispatched run 37689221025 (at `6ec6553e`, stacked) are answered, and the ancestry reds the stacked base carried are gone with the merge.
+Two reds on an earlier, stacked dispatched run are answered below, and the ancestry reds the stacked base carried are gone with the merge. `nightly-status` is red on this head and is not this diff's: the diff does not reach what it reads (the round-1 reviewer's reading).
 
 - **`briefs`.** `carry-1774.json` named `SOLVE_PATH_HUB_WRITERS`, which this branch renamed. Fixed at `b5f01426`; `node tools/policy/brief_lint.mjs` returns rc 0 at the head. Cheaper detector: that command, about a second; a rename should `git grep` the carry files.
 - **`mutation`.** It was red on #2025's 56 package sites, not this diff. This diff touches no `custom_components/` file, and `ci_predict.py` predicts no unpinned site.
