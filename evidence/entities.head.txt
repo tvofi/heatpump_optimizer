@@ -21,14 +21,14 @@ RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-08 18:19:31.135850+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-08 18:19:31.732249+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-08 18:19:31.732249+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-08 18:19:31.732249+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-08 18:19:33.273165+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-08 19:22:44.859772+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-08 19:22:45.609068+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-08 19:22:45.609068+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-08 19:22:45.609068+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-08 19:22:47.163038+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-08 18:19:33.992172+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-08 18:19:47.503899+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-08 19:22:47.884941+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-08 19:23:05.509472+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
@@ -1521,7 +1521,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['assign_entity__dup', 'debug_collect__dup', 'set_thermal_parameters__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'run_optimization__dup', 'simulate_plan__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1650,7 +1650,7 @@ Tibber refused the configured token; reauthentication is required (Home Assistan
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmppvkepr_b/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpbmn36_kf/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1668,7 +1668,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-fc5yfg5x/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-oz4j64bp/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1830,7 +1830,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs efb7048bfab8a919123c38b66eacb9a6d7b58bb0
+  DRIFT wood_coil: 1 leaves moved vs aa80c67904265752aee81e0370919df0c99f7ac5
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
