@@ -1,5 +1,0 @@
-head feaecbca27864f6b4b05c74e690ebe7eecbbff41, check-runs.6.json (polled ~18:51Z)
-all check-runs completed; last completion 18:40:11Z = Analyze (python), CodeQL workflow, success
-red workflows: Tests (nightly-status 18:17:10, workflow end after closures 18:23:24), Budget raise gate (18:17:15)
-pr-contract runs: 18:16:59Z (push) and 18:23:41Z (re-run after the last red workflow concluded); none after 18:40:11Z
-=> the literal step-11 anchor ("a pr-contract run started after [the head's workflows]") is unmet at this head and cannot be met without a body edit

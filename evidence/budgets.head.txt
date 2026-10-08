@@ -1,3 +1,3 @@
 tools/audit/briefs/orchestrator.md               290  291     4096  4096 
-tools/audit/briefs/fix-review.md                 141  141     2442  2442 
-corpus:        ~59617 tokens, cap 59591 +band 500 = 60091
+tools/audit/briefs/fix-review.md                 141  141     2449  2449 
+corpus:        ~59624 tokens, cap 59591 +band 500 = 60091
