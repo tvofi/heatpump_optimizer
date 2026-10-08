@@ -18376,6 +18376,31 @@ R.check(
     and _af3u_after["tests/frontend.py"] == ["tests/frontend.py"],
     f"status={_af3u_status} closures={_af3u_after!r}",
 )
+# A driven child counts as its driver (#2049's review, M7): dst_checks.py's
+# reads fold into features.py's closure, so a dst_checks.py recording that
+# stopped early truncates the very closure the check names. Leaving it out and
+# merging the rest would repair features.py over a clean subset and push the
+# truncation; the refusal must hold. The null control is the same pair with
+# dst_checks.py recorded cleanly, which repairs.
+_af_dst = ({"tests/features.py": ["tests/features.py"]},)
+_af_dst_failed = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 1,
+     "files": ["tests/dst_checks.py"]}])
+_af_dst_clean = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 0,
+     "files": ["tests/dst_checks.py"]}])
+R.check(
+    "a failed recording of a driven child refuses its driver's repair; the "
+    "same pair recorded cleanly repairs",
+    _closure.DRIVEN_BY_OTHERS.get("dst_checks.py") == "features.py"
+    and _af_dst_failed == ("skip-failed-recording", True)
+    and _af_dst_clean[0] == "changed" and not _af_dst_clean[1],
+    f"failed child={_af_dst_failed} clean child={_af_dst_clean}",
+)
 # R9-CI-1: INERT READS UNDER-APPROXIMATED is the same repair -- merging the
 # Linux recordings folds `inert_reads` (#1886's own remedy, ci-autofix.md) --
 # and was 15 of the 15 skip-manual-repair-owed runs read (2026-10-06..07).
