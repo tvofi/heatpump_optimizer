@@ -1,0 +1,4 @@
+RESULT ['dev/audit/harnesses/zz_planted.py'] skip rederive= 0 harness_headers recorded: False
+RESULT ['dev/audit/harnesses/zz_planted.py', 'tests/wood_advisor.py'] scoped rederive= 1 harness_headers recorded: False
+RESULT ['dev/audit/harnesses/zz_planted.py', 'custom_components/heatpump_optimizer/away.py'] scoped rederive= 23 harness_headers recorded: True
+RESULT ['dev/audit/harnesses/zz_planted.py', 'tests/harness_headers.py'] scoped rederive= 2 harness_headers recorded: True

@@ -1,0 +1,5 @@
+PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py (a new file beside 14 it lists)
+CI PREDICT: 1 INERT READS red(s) -- a warning; closures-autofix merges them from CI's Linux recordings after the push, so do not hand-edit tests/closures.json for them
+CI PREDICT: no closures or fast red predicted against 49aba55c46eb (a data-file read is not seen)
+RESULT predict rc=0
+RESULT closures arm case=scoped rederive=['tests/wood_advisor.py'] harness_headers recorded=False
