@@ -4,7 +4,7 @@
 # -- the author identity decision 0011 built this tool for, with the body's
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
-#   tools/pr/app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
+#   tools/pr/app_push.sh [--dry-run] [--recarry] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
 #   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
 #   tools/pr/app_push.sh --self-test
 #
@@ -77,6 +77,24 @@
 # proof commit, a merge of pull requests already past prepr, so there is no
 # body to check and no pull request to open. Any other branch name refuses,
 # so the flag cannot carry a fix branch past prepr.
+#
+# --recarry is remerge_main.sh's push of origin/main merged into an open pull
+# request (merge_train.py's recarry; decision on #201, comment 6070202495).
+# It prefixes `## Head` with the note naming the new head, which pr-contract
+# requires (REMERGE_WHY adds the occasion in one clause), and SKIPS prepr only
+# when every one of these holds, each read here and failing closed:
+#   (a) HEAD has exactly two parents; parent 1 is the pull request's live head
+#       from the open-pull-request listing; parent 2 is an ancestor of
+#       origin/main, fetched here;
+#   (b) HEAD's tree is what `git merge-tree --write-tree <p1> <p2>` writes,
+#       with that merge clean -- a resolution, or any commit on top, fails it;
+#   (c) the body file, before the note, is the live body modulo trailing
+#       newlines -- so the only body change is the note this script writes.
+# Anything else runs prepr exactly as without the flag, so the flag carries no
+# fix-branch change and no body edit past prepr. One `app_push: RECARRY:`
+# line names the path taken and why. The branch's own diff and body passed
+# prepr and review, main's commits passed on main, and CI's pr-contract and
+# suite run at the new head before the train merges.
 set -uo pipefail
 
 API=https://api.github.com
@@ -111,16 +129,42 @@ else:
     print("unknown")'
 }
 
+# The --recarry verdict: prints why, and returns 0 only when prepr may be
+# skipped -- (a), (b) and (c) of the header, in that order, first failure named.
+recarry_verdict() { # worktree listing body -> reason line; rc 0 = skip prepr
+  local wt=$1 listing=$2 body=$3 live p1 p2 tree ps
+  live=$(printf '%s' "$listing" | python3 -c 'import sys, json; print(json.load(sys.stdin)[0]["head"]["sha"])' 2>/dev/null) \
+    && [[ $live =~ ^[0-9a-f]{40}$ ]] || { echo "no open pull request whose live head reads back"; return 1; }
+  ps=($(git -C "$wt" rev-parse 'HEAD^@' 2>/dev/null)) # shas: word splitting is the parse
+  [ "${#ps[@]}" -eq 2 ] || { echo "HEAD has ${#ps[@]} parent(s), not a 2-parent merge"; return 1; }
+  p1=${ps[0]} p2=${ps[1]}
+  [ "$p1" = "$live" ] || { echo "parent 1 ${p1:0:8} is not the live pull-request head ${live:0:8}"; return 1; }
+  git -C "$wt" fetch -q origin main 2>/dev/null || { echo "origin/main could not be fetched"; return 1; }
+  git -C "$wt" merge-base --is-ancestor "$p2" refs/remotes/origin/main 2>/dev/null \
+    || { echo "parent 2 ${p2:0:8} is not reachable from the freshly fetched origin/main"; return 1; }
+  tree=$(git -C "$wt" merge-tree --write-tree "$p1" "$p2" 2>/dev/null) \
+    || { echo "parent 1 and parent 2 do not merge cleanly; a resolution goes through prepr"; return 1; }
+  [ "$tree" = "$(git -C "$wt" rev-parse 'HEAD^{tree}' 2>/dev/null)" ] \
+    || { echo "HEAD's tree is not the clean merge of its parents: it carries more than the merge"; return 1; }
+  printf '%s' "$listing" | python3 -c 'import sys, json
+live = json.load(sys.stdin)[0].get("body") or ""
+sys.exit(open(sys.argv[1]).read().rstrip("\n") != live.rstrip("\n"))' "$body" 2>/dev/null \
+    || { echo "the body file is not the live pull-request body"; return 1; }
+  echo "HEAD is the clean merge of the live head ${p1:0:8} and origin/main's ${p2:0:8}, and the body is the live one"
+}
+
 push_and_open() {
-  local dry=0 bonly=0
+  local dry=0 bonly=0 recarry=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
+  [ "${1:-}" = "--recarry" ] && { recarry=1; shift; }
   if [ "${1:-}" = "--branch-only" ]; then
     bonly=1; shift
     [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
     [[ ${3:-} == batch/* ]] || die "--branch-only pushes a batch/ branch only, never '${3:-}'"
     set -- "$1" "$2" "$3" /dev/null
   fi
-  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
+  [ "$recarry$bonly" != 11 ] || die "--recarry and --branch-only do not combine: a batch/ branch has no pull request to recarry"
+  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
   local repo=$1 wt=$2 br=$3 body=$4
   shift 4
   [[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "repo '$repo' is not owner/repo"
@@ -148,26 +192,6 @@ push_and_open() {
   local appid; appid=$(cat "$appid_f")
   [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
 
-  # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
-  # derives its diff from the worktree it runs in, so it runs with the
-  # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
-  local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
-  [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
-  [ "$bonly" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
-    || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
-
-  # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
-  # clean. A dirty worktree would push a sha whose tree the body never
-  # measured, and a HEAD elsewhere would push a branch the seat is not on.
-  local head tip
-  head=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || die "'$wt' is not a git worktree"
-  tip=$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null) \
-    || die "no local branch '$br' in $wt"
-  [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
-  [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] \
-    || die "worktree $wt is dirty; only a committed tip is pushed -- commit or clean it first"
-  local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
-
   # Is a pull request open on this branch? Read through `gh` before minting,
   # so a query that cannot answer refuses while nothing is minted. The head
   # filter is percent-encoded: a slash in a branch name is legal in a query
@@ -184,6 +208,44 @@ push_and_open() {
   [ "$prnum" != "unknown" ] \
     || die "the open-pull-request query on $br answered <<$listing>>, which names no pull request and states none is open; NOTHING was minted or pushed"
   }
+
+  # --recarry: the verdict reads the live head and body from that listing,
+  # then the note is written in both paths, from the head about to be pushed.
+  local skip=0 mainsha
+  if [ "$recarry" = 1 ]; then
+    mainsha=$(git -C "$wt" rev-parse --short refs/remotes/origin/main 2>/dev/null) || die "--recarry: no origin/main in $wt"
+    local why; why=$(recarry_verdict "$wt" "$listing" "$body") && skip=1
+    if [ "$skip" = 1 ]; then echo "app_push: RECARRY: prepr SKIPPED: $why"; else echo "app_push: RECARRY: prepr RUNS: $why"; fi
+    [ "$dry" = 1 ] || python3 - "$body" "$(git -C "$wt" rev-parse HEAD)" "$mainsha" "${REMERGE_WHY:-}" <<'NOTE' || die "--recarry: $body has no ## Head to name the new head under"
+import sys
+p, H, M, why = sys.argv[1:5]; s = open(p).read()
+i = s.index('\n', s.index('## Head')) + 1
+while s[i:i + 1] == '\n': i += 1
+why = " (%s)" % why if why else ""
+s = s[:i] + "`%s` merges main `%s` into the previous head: an automatic merge by the orchestrator, no resolution%s. The reviewed code is unchanged.\n\n" % (H, M, why) + s[i:]
+open(p, 'w').write(s)
+NOTE
+  fi
+
+  # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
+  # derives its diff from the worktree it runs in, so it runs with the
+  # worktree as cwd; a refusal here leaves nothing minted, pushed or posted.
+  local prepr; prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
+  [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
+  [ "$bonly" = 1 ] || [ "$skip" = 1 ] || ( cd "$wt" && bash "$prepr" "$body" "$@" ) \
+    || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
+
+  # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
+  # clean. A dirty worktree would push a sha whose tree the body never
+  # measured, and a HEAD elsewhere would push a branch the seat is not on.
+  local head tip
+  head=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || die "'$wt' is not a git worktree"
+  tip=$(git -C "$wt" rev-parse --verify "refs/heads/$br" 2>/dev/null) \
+    || die "no local branch '$br' in $wt"
+  [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
+  [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] \
+    || die "worktree $wt is dirty; only a committed tip is pushed -- commit or clean it first"
+  local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
 
   if [ "$dry" = 1 ]; then
     if [ "$prnum" = "none" ]; then
@@ -341,6 +403,14 @@ cat > "$W/bin/git" <<'STUB'
 printf 'git %s\n' "$*" >> "$STUB/log"
 case "$*" in
   *"rev-parse HEAD")    cat "$STUB/../head.sha" ;;
+  *"rev-parse HEAD^@")  if [ -f "$STUB/parents" ]; then cat "$STUB/parents"; else printf '%s\n%s\n' "$P1_STUB" "$P2_STUB"; fi ;;
+  *"rev-parse HEAD^{tree}") if [ -f "$STUB/tree-differs" ]; then echo 4444; else echo 3333; fi ;;
+  *"rev-parse --short refs/remotes/origin/main") echo abcdef1 ;;
+  *"fetch -q origin main") ;;
+  *"merge-base --is-ancestor $P2_STUB refs/remotes/origin/main") [ ! -f "$STUB/p2-off-main" ] ;;
+  *"merge-tree --write-tree $P1_STUB $P2_STUB")
+    if [ -f "$STUB/conflict" ]; then printf '3333\n\nCONFLICT (content): Merge conflict in x\n'; exit 1; fi
+    echo 3333 ;;
   *"rev-parse --verify"*)
     if [ -f "$STUB/tip-moved" ]; then printf '%s\n' "$OTHER_SHA_STUB"; else cat "$STUB/../head.sha"; fi ;;
   *"status --porcelain") [ -f "$STUB/dirty" ] && printf ' M tools/audit/x.sh'; true ;;
@@ -354,7 +424,8 @@ case "$*" in
   *) exit 9 ;;
 esac
 STUB
-OTHER_SHA_STUB=$OTHER export OTHER_SHA_STUB
+OTHER_SHA_STUB=$OTHER P1_STUB=5555555555555555555555555555555555555555 P2_STUB=6666666666666666666666666666666666666666
+export OTHER_SHA_STUB P1_STUB P2_STUB
 # The stub curl: answers the App's calls; logs METHOD and path for the pulls
 # endpoints so create/patch/read-back are distinguishable in the log.
 cat > "$W/bin/curl" <<'STUB'
@@ -532,6 +603,63 @@ st "$(calls bonly 'curl DELETE installation/token')$(leftover bonly)$(leaks bonl
 mkcase bonlyfix
 run bonlyfix --branch-only o/r "$W/tool-wt" "$BR"; st $? 1 "REFUSE: --branch-only on a fix branch, which would skip its prepr"
 st "$(wc -l < "$W/bonlyfix/log" | tr -d ' ')" 0 "before any call (null control for the pair above: same flag, another branch)"
+
+# --recarry (decision on #201, comment 6070202495). Every case has its own
+# body copy and a listing whose live head is P1 and whose live body is the
+# body less its trailing newline (the normalisation (c) allows).
+recase() { # name [live-head] [live-body-file] -> a case with its listing
+  mkcase "$1"; cp "$W/body.md" "$W/$1/body.md"
+  python3 -c 'import json, sys
+print(json.dumps([{"number": 7, "head": {"sha": sys.argv[1]}, "body": open(sys.argv[2]).read().rstrip("\n")}]))' \
+    "${2:-$P1_STUB}" "${3:-$W/body.md}" > "$W/$1/listing.json"
+}
+noted() { grep -c "^\`$SHA\` merges main \`abcdef1\` into the previous head: an automatic merge" "$W/$1/live-body" 2>/dev/null; }
+recase rok; : > "$W/rok/prepr-fails"
+run rok --recarry o/r "$W/tool-wt" "$BR" "$W/rok/body.md"; st $? 0 "--recarry: a clean 2-parent merge of the live head and main, live body: pushed (prepr-fails set, so a prepr call would refuse it)"
+st "$(calls rok prepr)" 0 "and prepr was skipped"
+st "$(grep -c '^app_push: RECARRY: prepr SKIPPED: HEAD is the clean merge of the live head 55555555' "$W/rok/out")" 1 "naming the path and why in one line"
+st "$(noted rok)" 1 "the PATCHed body names the new head under ## Head, which pr-contract requires"
+st "$(python3 -c 'import sys; a, b = (open(f).read() for f in sys.argv[1:]); print(a.replace(a[a.index("`"):a.index("unchanged.") + 12], "", 1) == b)' "$W/rok/live-body" "$W/body.md")" True "and nothing else in it moved: less the note, it is the live body"
+st "$(grep -c '^curl PATCH repos/o/r/pulls/7$' "$W/rok/log")" 1 "and the open pull request is re-bodied, not duplicated"
+refused() { # name want-reason -- each refusal arm runs prepr once, exactly as without the flag
+  run "$1" --recarry o/r "$W/tool-wt" "$BR" "$W/$1/body.md"; st $? 0 "--recarry REFUSES the skip ($1): prepr runs and passes, so it pushes"
+  st "$(calls "$1" prepr)$(grep -c "^app_push: RECARRY: prepr RUNS: $2" "$W/$1/out")$(noted "$1")" 111 "... prepr ran once, the one line names why ($2), the note is still written"
+}
+recase rp1 "$OTHER";        refused rp1 "parent 1 55555555 is not the live pull-request head 22222222"
+recase rone; printf '%s\n' "$P1_STUB" > "$W/rone/parents"; refused rone "HEAD has 1 parent(s), not a 2-parent merge"
+recase rp2; : > "$W/rp2/p2-off-main"; refused rp2 "parent 2 66666666 is not reachable from the freshly fetched origin/main"
+recase rtree; : > "$W/rtree/tree-differs"; refused rtree "HEAD's tree is not the clean merge of its parents"
+recase rconf; : > "$W/rconf/conflict"; refused rconf "parent 1 and parent 2 do not merge cleanly"
+printf 'an edited body\n' > "$W/edited.md"
+recase rbody "" "$W/edited.md"; refused rbody "the body file is not the live pull-request body"
+mkcase rnone; cp "$W/body.md" "$W/rnone/body.md"; refused rnone "no open pull request whose live head reads back"
+recase rbodyfail "" "$W/edited.md"; : > "$W/rbodyfail/prepr-fails"
+run rbodyfail --recarry o/r "$W/tool-wt" "$BR" "$W/rbodyfail/body.md"; st $? 1 "--recarry: a body edit goes to prepr, and prepr's refusal stands"
+st "$(grep -c '^git .*push' "$W/rbodyfail/log")$(calls rbodyfail curl)" 00 "and nothing was minted or pushed"
+# The stubs above encode what git prints; this drives the production
+# recarry_verdict, extracted from this file, against REAL git: a bare origin,
+# a clean main merge (skips), that merge amended with one more file, and a
+# conflicted merge resolved by hand (both refuse).
+R="$W/real"; mkdir -p "$R"
+rgit() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 git -c user.name=t -c user.email=t@example.test -c init.defaultBranch=main "$@" >/dev/null 2>&1; }
+eval "$(sed -n '/^recarry_verdict() {/,/^}/p' "$SELF")"
+rv() { GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 recarry_verdict "$R/wt" "$(python3 -c 'import json, sys
+print(json.dumps([{"number": 7, "head": {"sha": sys.argv[1]}, "body": "b"}]))' "$(git -C "$R/wt" rev-parse "origin/$1")")" "$W/rbody.md"; }
+printf 'b\n' > "$W/rbody.md"
+rgit init -q --bare "$R/origin.git" && rgit clone -q "$R/origin.git" "$R/wt" \
+  && (cd "$R/wt" && printf 'x\n' > x && rgit add x && rgit commit -qm base && rgit push -q origin HEAD:main \
+      && rgit checkout -q -b fix && printf 'f\n' > f && printf 'fx\n' > x && rgit add f x && rgit commit -qm fix && rgit push -q origin fix \
+      && rgit checkout -q main && printf 'm\n' > m && rgit add m && rgit commit -qm main && rgit push -q origin main \
+      && rgit checkout -q -b conf origin/main~1 && printf 'cm\n' > m && rgit add m && rgit commit -qm conf && rgit push -q origin conf \
+      && rgit checkout -q fix && rgit merge -q --no-edit origin/main)
+st "$(rv fix >/dev/null; echo $?)" 0 "real git: a clean merge of the live head and origin/main passes (a), (b) and (c)"
+(cd "$R/wt" && printf 'y\n' > y && rgit add y && rgit commit -q --amend --no-edit)
+st "$(rv fix)" "HEAD's tree is not the clean merge of its parents: it carries more than the merge" "real git: the same merge amended with one more file refuses (b)"
+(cd "$R/wt" && rgit checkout -q conf && rgit merge -q --no-edit origin/main; printf 'resolved\n' > m && rgit add m && rgit commit -qm resolved)
+st "$(rv conf)" "parent 1 and parent 2 do not merge cleanly; a resolution goes through prepr" "real git: a conflicted merge resolved by hand refuses (b)"
+
+mkcase rbonly
+run rbonly --recarry --branch-only o/r "$W/tool-wt" batch/proof-1; st $? 1 "REFUSE: --recarry does not combine with --branch-only"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
