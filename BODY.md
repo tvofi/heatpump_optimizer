@@ -35,7 +35,7 @@ Alternatives considered:
 
 ## Head
 
-`28ce083bc7a96ccfec193a83f53697d33fa82c44`: the authored commits with origin/main `e2a4f7c6` merged in, clean, no resolution.
+`37e560679ba0760f014a668fc5f1b95d4c93bbfc`: round 1's commit on the previous head `04b8b4bd` (that head carried this PR's delivery row on `28ce083b`). Merge base `e2a4f7c6` is origin/main, so there is no resolution delta.
 
 ## Mutation proof
 
@@ -49,7 +49,8 @@ Each mutant was applied in a separate worktree; `tests/entities.py` was run, the
 - F, `merge_pin_shards` takes the first shard's status → FAIL, same check.
 - G, `pin_summary` counts every unpinned site as a survivor → FAIL "the pin summary counts budget cuts and timeouts apart from survivors, and names a survivor's remedy only when one survived".
 - H, the ten-shard cap removed → FAIL "the pin shard count scales with the diff's new sites, six a shard, capped at ten, and sizes the matrix the shards run".
-- Unmutated at the head: `ALL 2209 ENTITY CHECKS PASSED`.
+- I (the reviewer's M7, at the head), the line counting a failed driven child as its driver emptied → FAIL "a failed recording of a driven child refuses its driver's repair; the same pair recorded cleanly repairs" (failed child: `changed`; it must be `skip-failed-recording`). Null control in the same check: `dst_checks.py` recorded cleanly beside a stale `features.py` gives `changed`.
+- Unmutated at the head: `ALL 2210 ENTITY CHECKS PASSED`.
 
 ## Null control
 
@@ -57,7 +58,7 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
 
 - **Mutation, before.** On #2025 (run 37663843895), `56 not started for --budget-minutes`, then `AUTOFIX: skip-no-measurement`.
 - **Mutation, one runner.** #2031 (#2025's head on `718c94c8`, run 37671395581) pinned 10 of 56. The other 46 were budget cuts, not survivors; the bot pushed `0fb472cd`.
-- **Mutation, scaled shards.** #2048 (#2025's head `0dfb63a8` on its merge base `c327da7f` plus this branch's diff), run 37710478042, 10 shards:
+- **Mutation, scaled shards.** #2048 (#2025's head `0dfb63a8` on its merge base `c327da7f` plus this branch's diff), run 37711053129, 10 shards:
 
 | shards | sites | pinned | survived | timed out | not measured |
 |---|---|---|---|---|---|
@@ -70,10 +71,10 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
   - Wall clock from `mutation` start (01:04) to `mutation-autofix` end (02:56) was 1 h 52 m. The shards took 12 min to 1 h 50 m.
   - Survivors, each `-- lives` after every driver including `stress.py` and `harness_headers.py`: `coordinator.py:5048 GUARD_OFF`, `:5459 BOOLOP`, `:6855 GUARD_OFF`, `:6855 BOOLOP`, `:10817 GUARD_OFF`; `entry_config.py:52 GUARD_OFF`, `:255 GUARD_OFF`; `silent_mode.py:104 GUARD_OFF`.
   - Timed out in `tests/boost_drift_replay.py`: `coordinator.py:8975 GUARD_OFF`, `:6855 CMP_BOUND`.
-  - Shard 2 refused before driving: the null control `binary_sensor.py:39 NULL_COMMENT` was "killed" by `tests/entities.py`'s `a3:roster`. The other nine shards ran the same null control under the same script and it survived, so this is a flaky check under load, not this diff (see Forward-carry).
+  - Shard 2 refused before driving: the null control `binary_sensor.py:39 NULL_COMMENT` was "killed" by `tests/entities.py`. The check that went red was `tools/release/stamp.py's --self-test passes` (`OSError: [Errno 39] Directory not empty` under a temporary `.git/objects/pack`), a cleanup race. The refusal message names `a3:roster` only because `mutation_table` joins every `FAIL` line of the red run, and entities.py prints its deliberate negative-control `FAIL` lines first. The other nine shards drove the same null control under the same script and it survived, so this is a flake under load, not this diff (see Forward-carry).
 - **Four shards, earlier datapoints.**
   - 90-minute shards (#2045): 19 pinned, 36 not started, 1 timed out, 0 survived.
-  - 200-minute shards (#2047): reported separately.
+  - 200-minute shards (#2047, run 37710478042): 43 pinned, 7 survived, 4 not started, 2 timed out, in 2 h 44 m. Six survivors are the same in both runs. The other three differ only between surviving and not finishing (timed out or not started); no site was killed in one run and survived in the other.
 - **Mutation, the old program.** #2032's base carried only the closures change; on #2010's 37 sites it printed `37 not started`, then `skip-no-measurement` (run 37673851552).
 - **Mutation, a head CI kept green.** #2033's `mutation` succeeded; there was no `mutation-pins` run and no bot commit (run 37674068287).
 - **Closures, INERT READS.** #2032 (#2010's head, run 37673851552): `left out 2 failed recording(s) … tests/entities.py, tests/stress.py`, then `AUTOFIX: changed`. The bot pushed `ecf32e9d`, whose `inert_reads` lists `tools/audit/harnesses/ux5_idle_codes.py`. On #2010 the job had ended `skip-manual-repair-owed`.
@@ -82,8 +83,8 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
 
 ## Figures
 
-- 116 jobs ran, 63 statuses read, 53 logs unavailable: `tools/audit/seat/autofix_statuses.sh <dir> 3`, run 2026-10-07.
-- #2048's split and times: CI run 37710478042, from each `mutation-pins (k)` job log's `PIN SHARD`, `PIN KILLED:` and `UNPINNED` lines, and from the jobs API `started_at`/`completed_at`.
+- 116 jobs ran, 63 statuses read, 53 logs unavailable: `tools/audit/seat/autofix_statuses.sh <dir> 3`, run 2026-10-07. A paced rerun on 2026-10-08 covered a 200-run window and is not comparable: 88 jobs ran, 66 statuses read, 22 unavailable, and it already counts this PR's proof runs as `changed`.
+- #2048's split and times: CI run 37711053129, from each `mutation-pins (k)` job log's `PIN SHARD`, `PIN KILLED:` and `UNPINNED` lines, and from the jobs API `started_at`/`completed_at`.
 - ~4069 s first-site estimate before the fix: recomputed from `tests/closures.json` recorded seconds for the lazy drivers in run 37663843895, with the old formula. It is an estimate of what admission compared, not a measurement.
 - 6 of 9 failed recordings not stale: each surviving `closure-recordings` artifact's `rc != 0` scripts intersected with its `check.txt` `UNDER-SCOPED:` names.
 - At the head:
@@ -94,13 +95,17 @@ CI's evidence. Each proof pull request is a draft, closed after reading, never m
 
 ## Red checks
 
-`none` at the head. The earlier `fixer.md` cap refusal was main's own, and #2042 cleared it.
+- `delivery-status` (check-run 113131807985: `DELIVERY STATUS UNCHECKED — 68 rowed, 0 pending, 0 overdue`) is main's own. `python3 tests/delivery_status.py` on a clean worktree at origin/main `e2a4f7c6`, with this diff absent, prints the same `UNCHECKED` line. Its `merge-collection` skip names 9 merge commits whose subjects `subject_number` cannot attribute (e.g. `618d014`, `0a60e06`, `f6ac991`); none is on this branch. This PR touches `.github/workflows/tests.yml`, which the check reads, so `pr-contract` asks it to be named here. Cheaper detector: none is owed by this PR. The check already reports the skip; making those 9 subjects attributable is the record lane's job, not a CI-autofix change.
+- `pr-contract` was red three times (113131801566, 113132030985, 113132492257), each time only because `## Red checks` said `none` while `delivery-status` was red. This section answers it.
 
 ## Forward-carry
 
 - `dev/governance/rules/ci-autofix.md`, in this diff: INERT READS is now the bot's to merge, and a failed recording blocks only its own stale script.
 - For #2025 (EG-B11): after this merges, its next push gets one sharded pin run. The 8 survivors listed above need a killing check or a `survivor_triage` verdict before `mutation` goes green; that is the fixer's work.
-- Follow-up, not done here: each shard still spends about 2000 s of driver work per site, because `drive_pin_pool` hands a site's later drivers to idle workers before its likeliest killer returns. Making them wait would change the in-flight design that `entities.py`'s "four (mutant, driver) runs in flight at once" check pins. Separately, `entities.py`'s `a3:roster` check refused a comment-only null control on one shard under load.
+- The follow-ups are carried to R9-RO-9 in `.claude/workflows/wave-r9-groups.json` (handoff/audit-r9-fixplan `4d7aa048`, corrected in `c716b8f8`):
+  - the pin drive's ~2000 s per killed site, from dispatching a site's later drivers before its likeliest killer returns (any change must keep entities.py's four-in-flight pin);
+  - `tests/boost_drift_replay.py` timing out as a mutation driver on 2 sites per run;
+  - the `stamp.py --self-test` cleanup race that refused shard 2's null control, and the misattribution in the refusal message, which names the first deliberate negative-control `FAIL` line rather than the check that went red.
 
 ## Friction
 
