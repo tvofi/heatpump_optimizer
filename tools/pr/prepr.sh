@@ -398,8 +398,9 @@ PY
 # UNDER-SCOPED, INERT READS and NO RECORDING and entities' unclassified file,
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
 # the handoff while the autofix jobs repaired none of them; those refuse, but
-# INERT READS, which only CI's Linux recordings can produce and
-# `closures-autofix` merges after the push, warns (`ci_predict.warns`). The
+# INERT READS on a diff CI records (`closure.py affected` not skip), which only
+# CI's Linux recordings can produce and `closures-autofix` merges after the
+# push, warns (`ci_predict.warns`); on a skip diff it refuses. The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
