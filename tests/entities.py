@@ -4222,6 +4222,25 @@ if _EntryConfig is not None:
         c._comfort_learner.learned_weight = 9.0
         return c._comfort_weight()
 
+    def _ec_capacity(on):
+        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+        c._capacity_envelope = {-2: [1.0, _min]}
+        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+        p_max = float(c._ctx._thermal_params.max_electrical_power)
+        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+        c._fold_capacity_envelope(3.0)
+        return capped, len(c._capacity_envelope)
+
+    def _ec_silent_caps(fraction):
+        try:
+            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                             const.CONF_SILENT_MODE_FRACTION: fraction},
+                                      _ec_start, 96, 0.25, 6.0) is not None
+        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+            return type(err).__name__
+
     _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
     _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
     _ec_gates = {
@@ -4232,13 +4251,8 @@ if _EntryConfig is not None:
         "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
         "a parsed configuration is returned as it is": (
             _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
-        "an unreadable silent fraction caps nothing": (
-            _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
-                                      const.CONF_SILENT_MODE_FRACTION: "abc"},
-                               _ec_start, 96, 0.25, 6.0) is None,
-            _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
-                                      const.CONF_SILENT_MODE_FRACTION: 0.5},
-                               _ec_start, 96, 0.25, 6.0) is not None),
+        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
     }
     _ec_want = {
         "lower floor learns only from a configured sensor": (0, 1),
@@ -4246,7 +4260,8 @@ if _EntryConfig is not None:
         "rain weighting needs the switch on": (2.0, 0.5714),
         "learning off plans with the configured weight": (5.0, 9.0),
         "a parsed configuration is returned as it is": (True, True),
-        "an unreadable silent fraction caps nothing": (True, True),
+        "an unreadable silent fraction caps nothing": (False, True),
+        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
     }
     _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
     R.check(
