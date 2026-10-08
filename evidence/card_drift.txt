@@ -1,0 +1,6 @@
+wrote /private/tmp/plandata-c0dc113a3fe6.json
+plan reason codes, price provenance and slot energy OK
+  identical  history_unavailable
+  identical  history_pending
+
+card_drift: 2 state(s) moved and claimed, 38 identical

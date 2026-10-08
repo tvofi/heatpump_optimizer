@@ -1,55 +1,82 @@
-Fix review: blocked ace05371ed47a6a9d378883c9fefbad08315c343 other: typing ruler 0 to 5 in coordinator.py; mutation measured none of 47 new sites; advisor screenshot still shows Open schedule
+Fix review: merge dc4e3f13a345d794a0621744b22fef8479140ae9
 
-bus-nonce: 5871e48d6939cc3ebf5d4ec1ec793c35
+bus-nonce: 4fd41e3fd74bc78a939d10f39ada12c0
 
-Round 1. No earlier `Fix review:` comment on #2010. A repair is owed, not a re-cut.
+This is round 2. Round 1 was the blocked verdict at ace05371ed47a6a9d378883c9fefbad08315c343. A repair is owed, not a re-cut.
 
-Head measured: ace05371ed47a6a9d378883c9fefbad08315c343. The body's `## Head` names that SHA. `git ls-remote origin refs/heads/fix/r9-ux-actions` returned the same SHA at posting. Worktree: /Users/timmalmstrom/hpo-seats/r9-ux-5-review, detached. `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/` was empty.
+Merge conditions. The orchestrator holds each of these. None of them is a defect in the authored work.
+1. `mutation` stays red until R9-CI-1's sharded pin run pins this diff's sites. The brief asked me to judge everything else. Merge waits on that pin run.
+2. `closures` is red at this head on `dev/audit/harnesses/r9_ro12_batch_mutants.sh`. That is main's red: `closures` on origin/main 6b91e238 printed the same failure. It is not this PR's.
+3. The cancelled `budget-raise-gate` twin needs a re-run. A successful twin exists, and the diff contains no `*_budgets.json`.
 
-`git merge-tree --write-tree origin/main ace05371ed47a6a9d378883c9fefbad08315c343` exited 0 and wrote no `MERGE-CLAIM` line.
+Head measured: dc4e3f13a345d794a0621744b22fef8479140ae9. The body's `## Head` names it. At posting, `git ls-remote origin refs/heads/fix/r9-ux-actions` returned the same SHA. The merge base is origin/main 6b91e238f6883af6eedef0fc541bce76b14fc46c, so `git merge-tree` against main is trivially clean. `git diff $(git merge-base origin/main HEAD)...origin/main -- tools/audit/briefs/` was empty. Worktree: /Users/timmalmstrom/hpo-seats/review-2010/wt, detached.
 
-VERSION, the manifest version and the notes heading are absent from `git diff --name-only 6001b09a557259f37319b400d219cf83e02c563f...HEAD`. `claims-for:` in both claim files is 6.7.16, equal to `VERSION`. The pr-contract job printed `no version edit`.
+## Round-1 blocking points
 
-## What blocks
+- **typing.** At this head, CI `typing` (job 113163961692) printed `ok errors did not grow`, `ok type_ignores did not grow` and `ALL 9 typing-ruler checks PASSED`. Commit 5cb01b65 makes the fix. `_fold_away` now takes `away_mode.AwayState` and `Mapping[str, object]` and returns a new `AwayFold(AwayView, total=False)` TypedDict. It narrows `state.as_dict()` with `cast`; it adds no `type: ignore`. Fixed.
+- **mutation unmeasured and unnamed.** The body now names `mutation` and `mutation-autofix` under `## Red checks` and lists every site under `## Unpinned sites`. At this head, CI `mutation` (job 113163961812) printed `MUTATION TABLE REFUSED -- 4706 unpinned site(s) against 4670 ..., 37 of them added by this diff` and `nothing was measured: 0 mutant(s) timed out, 37 not started for --budget-minutes`. The trigger is answered. The pins wait on R9-CI-1, which is condition 1.
+- **advisor screenshot.** Commit 2ada816b regenerates `docs/img/card/advisor-{light,dark}.png` and `plan-why-{light,dark}.png`. I opened advisor-light.png: the row "Hot-water setpoint 55 → 48 °C" now has an Apply button. I opened plan-why-light.png: the tooltip says "Because:", lists two sub-code reasons, and sits inside the chart without clipping, which also meets the UX-1 forward-carry. Fixed.
+- **env-matrix unnamed.** At this head, `env-matrix` (job 113163961997) is green. The body names it anyway. Both `pr-contract` runs at this head are green (113163961294, 113164713101). Fixed.
 
-The typing job 112558412302 (run 37548451646) printed `FAIL errors did not grow [recorded 0, measured 5 (+5)]`, `by_code[arg-type]` 0 to 1, `by_code[no-any-return]` 0 to 3, `by_code[typeddict-item]` 0 to 1, all in `coordinator.py`. A single-file `mypy --strict` with the pinned 2.3.1 interpreter named the five: `coordinator.py:1795`, `:1799` and `:1802` `no-any-return` (`_fold_away` returns `state.as_dict()` while `state` is `Any`), and `:8027` `typeddict-item` plus `arg-type` (spreading that dict into the payload, and passing the payload where `dict[str, Any]` is annotated). `## Red checks` does not name `typing`.
+## Delta since round 1
 
-The mutation job 112558411932 printed `MUTATION TABLE REFUSED -- 4741 unpinned site(s) against 4695 at the ratchet base 6001b09a557259f37319b400d219cf83e02c563f, 47 of them added by this diff`, then `MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 47 not started for --budget-minutes`. `mutation-autofix` job 112560320989 printed `skip-no-measurement -- THE REPAIR DID NOT HAPPEN.` `## Red checks` does not name `mutation`.
+The non-merge commits that are on HEAD but not on origin/main or ace05371 are 5cb01b65, 2ada816b, 4f4e882c, 13fc4a45, c0a3e641 (a net revert of 13fc4a45), c75b7770 (the approved one-pass `idle_codes`) and c79b4bdd (the closures entry).
 
-`docs/img/card/advisor-light.png` is not in the diff. The image shows the hot-water row's button as Open schedule. `docs/dashboard-card.md` now says that row has an Apply button. The card change replaces `open_schedule` with `apply_dhw`, labelled `advisor.act_apply`. The group brief's documentation rule requires the changed card pages' screenshots in the same PR. `card_drift` reports `advisor_page` identical, so that catalogue state does not render the button this figure shows.
+`git show --remerge-diff` on each merge:
+- **3c061213** (main 8d7903e6). The only change in `tests/features.py` is removing the conflict markers. Both blocks are kept, UX-5 first and R9-DBG-1 after. `claimed_drift.txt` keeps the 31 UX-5 claims and drops the stale R9-DIAG-2S note. The `claimnotes` driver printed `MERGE-CLAIM: refused tests/golden/claimed_drift.txt` because both sides rewrote the claim list. The hand resolution keeps main's `config_flow` line byte-identical, and env_drift reports `config_flow is byte-identical`. The usage line in `ux5_idle_codes.py` was moved to `dev/audit/harnesses/`. All of this matches the body's `## Delta`.
+- **a5379d67** (main e2a4f7c6). The ledger driver printed `LEDGER-MERGE: resolved tests/closures.json`, merging inert_reads as a set.
+- **dc4e3f13** (main 6b91e238). No remerge difference.
 
-`pr-contract` jobs 112558118698 and 112558576251 failed on one error: `check env-matrix is red and ## Red checks does not name it`. At that moment the red list the job built was `delivery-status,env-matrix,nightly-status` (`typing` completed after, at 23:49:41Z). `env-matrix` is also red on origin/main at 6001b09a (governance run 37531301054). The body's only red-check paragraph names the local R9-F2.1 P3 solve, which is not a check name on this head.
+The `inert_reads` entry. CI `closures` at 5eaf0982 (job 112899052762) printed `tests/harness_headers.py: tools/audit/harnesses/ux5_idle_codes.py`. The entry the PR adds names the post-move path, `dev/audit/harnesses/ux5_idle_codes.py`. I ran a plant against the merge base: with the entry deleted, `tools/pr/ci_predict.py --base 6b91e238` printed `PREDICT closures INERT READS tests/harness_headers.py: dev/audit/harnesses/ux5_idle_codes.py`. With the entry restored it printed `no closures or fast red predicted`. At this head, CI `closures` (job 113164048164) no longer names the ux5 harness. Its only line is `tests/harness_headers.py: dev/audit/harnesses/r9_ro12_batch_mutants.sh`. origin/main's own `closures` at 6b91e238 (job 113159208937) printed exactly the same line. That red came from #2044 on main. `closures-autofix` printed `skip-manual-repair-owed`. The movement is earned.
 
-`delivery-status` printed `DELIVERY STATUS UNCHECKED — 42 rowed, 2 pending, 0 overdue` for #2003 and #2001 on main. `nightly-status` printed `NIGHTLY FAILED: record-autofix failed last night` for scheduled run 37440269774. The diff adds `docs/delivery/2010.md` and does not touch those jobs' other inputs. Those two reds are not this pull request's.
+The ledger triage `survivor_triage/notifier.py/_comfort_cause.RETURN_DEL.da9e8e97.json` (4f4e882c) marks the trailing `return None` of `_comfort_cause` as equivalent. That is correct: deleting it falls off the end of the function, which also returns None.
 
-`fast (3.14)`, `closures`, `coverage` and CodeQL `Analyze (python)` were still `in_progress` when the checks were read. Not cited as green or red.
+## Mutation proof (my own probe, from this tree)
 
-## Mutation proof the body names
+`evidence/ux5_block.py` executes the UX-5 block of `tests/features.py` one statement at a time with a stub `R`. It skipped 9 statements that need names from earlier blocks. Each mutant was applied in place and restored with `git checkout`.
 
-In `idle_reason`, `return REASON_IDLE_FUSE` was replaced with `return REASON_IDLE`. The features check's inputs (idle step, cap 0, price 0.2, room at the floor) then returned `idle`.
+RESULT baseline checks_run=38 failed=0 skipped=9
+RESULT del-other checks_run=38 failed=2 skipped=9
+RESULT del-fuse checks_run=38 failed=2 skipped=9
+RESULT del-dearer checks_run=38 failed=1 skipped=9
+RESULT del-solar checks_run=38 failed=3 skipped=9
+RESULT coast-0.10 checks_run=38 failed=1 skipped=9
+RESULT cause-none checks_run=38 failed=1 skipped=9
+RESULT del-fold-equal checks_run=38 failed=1 skipped=9
 
-RESULT mutant fuse-check got=idle want=idle_fuse bare_idle=True
+The body names two mutants: the deleted fuse line and the deleted `_fold_away` equal-floor return. Both are among the mutants above, and both fail named checks. The null is the baseline row: 0 checks failed. The suite as a whole is CI's: `fast (3.14)` (job 113163961690) is green at this head.
 
-Restored. The same call returned `idle_fuse`.
+## Claims and goldens (three-dot, against 6b91e238)
 
-RESULT restored fuse-check got=idle_fuse want=idle_fuse
+- `claims-for: 6.7.16` in both claim files equals `VERSION` 6.7.16. `pr-contract` printed `no version edit: origin/main...dc4e3f13 moves none of VERSION, the manifest version or a notes heading`.
+- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 6b91e238` exited 0. It printed `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE: 56 committed fixture(s)`, with 31 CLAIMED, 19 MAY-DRIFT and 6 byte-identical (`config_flow` and the five `coord_*`).
+- I wrote my own leaf classifier, `evidence/leaves.py`. It captures HEAD's scenarios and diffs their leaves against env_drift's cached capture of the merge base. Result: `RESULT leaves scenarios_moved=50 reasons_leaves=6050 other_leaves=0`. Every moved leaf in all 50 moved scenarios, may-drift ones included, is `space_reasons` or `dhw_reasons`. No claimed value moved.
+- `node tests/card_drift.mjs 6b91e238` (after `tests/plan_view.py`) printed `2 state(s) moved and claimed, 38 identical`. The two states are `tooltip_hover` and `shared_steps_hover`, which are the claim file's two UX-5 annotations.
+- `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`. The diff contains no `*_budgets.json`.
 
-`REASON_IDLE_FUSE` is absent at the merge base 6001b09a557259f37319b400d219cf83e02c563f. The proof is not vacuous. It is one return. The CI table did not measure the other 46.
+## Red checks at this head (check-runs API, read at 06:2xZ)
 
-## Null controls re-run
+- `mutation` and `mutation-autofix` are named in the body and wait on R9-CI-1 (condition 1).
+- `closures` and `closures-autofix` are main's (see above). The body's `closures` paragraph explains the red at 5eaf0982, which this head repairs. It does not explain the new red, which is main's. It should get a one-line update when the body is next re-taken. I am not blocking on it: the check is named, and the red is not this diff's (`defect-root-cause.md`).
+- `delivery-status` printed `DELIVERY STATUS UNCHECKED — 69 rowed, 1 pending` for #2029 on main. It is not this PR's.
+- `budget-raise-gate` was cancelled; its twin succeeded (condition 3).
+- All other checks are green: `fast (3.14)`, `coverage`, `coverage-ratchet`, `browser`, `typing`, `env-matrix`, `pr-contract` x2, `instrument-self-tests`, `hassfest`, `closure-scope`, CodeQL.
 
-RESULT null at-floor step1=idle want=idle pass=True
+## Unpinned-site list: an instrument finding
 
-RESULT null no-signal=idle want=idle pass=True
+CI's NOT RUN set and the body's `## Unpinned sites` list (from `ci_predict.py`) agree on 34 of their 35 distinct sites. They differ on one site:
+- CI names `optimizer.py:1028 RETURN_DEL`. That is the new `return out` in `_padded`.
+- ci_predict and the body name `optimizer.py:4035 RETURN_DEL` instead. That is an old, identical `return out` in `_seed_pinned_guess`, which the diff does not touch.
 
-The body's other nulls (no setback; comfort event with no forecast; a hot-water row already at the recommendation) are the checks in `tests/features.py` and `tests/card.mjs` under those sentences. `tests/features.py` was not re-run here; `fast (3.14)` had not finished.
+CI also lists `optimizer.py:1079 CMP_BOUND` three times, because that line has three comparisons. That is why CI counts 37 sites and the body 35. The predictor has a line-attribution fault: it puts an added line on an earlier line with the same text. The body should list 1028 instead of 4035 when it is next re-taken. I did not fix the predictor. This needs carrying to whoever owns `tools/pr/ci_predict.py` (orchestrator).
 
-## Claims and the ratchet
+## Forward-carry and class
 
-`PYTHONPATH=tests/hastub python3 tests/env_drift.py --all origin/main` exited 0. `NO UNCLAIMED DRIFT: 56 scenario(s)`. `NO STALE FIXTURE`. 31 CLAIMED scenarios, and every leaf under them is `space_reasons` or `dhw_reasons` (0 other leaves). Six of those scenarios move only to `idle_coasting`, including `away_setback`. `node tests/card_drift.mjs origin/main`, after `tests/plan_view.py` wrote `/private/tmp/plandata-7eea360d005e.json`, exited 0: `2 state(s) moved and claimed, 38 identical` (`tooltip_hover`, `shared_steps_hover`).
+The body says `none`. I checked each carry in the brief and found it in the diff:
+- UX-1: the tooltip fits.
+- UX-4: the comfort event's `cause`, plus the blueprint and `docs/automations.md`. The `cause-none` mutant above pins it.
+- EG-B1: the what-if prices the active setback, and the payload publishes the floor the plan used beside the configured one. The `del-fold-equal` mutant and the null controls pin it.
 
-`python3 tests/structure.py` exited 0. `STRUCTURE RATCHET PASSED`. `seam_cut_total` 766 <= 766. No `*_budgets.json` is in the diff. `tests/arch_score_head.py` was not re-run; the mutation log lists it `LAZY AND NEVER RUN`.
+The EG-A4 arch-score carry does not apply: there is no `arch-score` check-run at this head. This is a feature, so there is no class to open.
 
-## Class
-
-#1795 is the lane issue. The group brief is a feature, and it says there is no class. No enumeration rule is named because there is no defect class to open. The design's behaviours are what was checked. Forward-carry in the body is `none`; nothing measured here changes a later group's method beyond that brief.
+Evidence: /Users/timmalmstrom/hpo-seats/review-2010/evidence
