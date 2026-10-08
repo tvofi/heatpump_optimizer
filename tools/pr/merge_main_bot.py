@@ -244,7 +244,7 @@ def self_test() -> int:
         # driver that resolves what the text merge cannot.
         drv = os.path.join(td, "union.sh")
         Path(drv).write_text('#!/bin/sh\nsort -u "$2" "$3" -o "$2"\n')
-        os.chmod(drv, 0o755)
+        os.chmod(drv, 0o700)
         g("config", "merge.fake.driver", f"{drv} %O %A %B")
         Path(r, ".gitattributes").write_text("led.json merge=fake\n")
         Path(r, "led.json").write_text("a\nz\n")
