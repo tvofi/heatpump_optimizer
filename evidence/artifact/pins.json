@@ -1,0 +1,22 @@
+{
+  "custom_components/heatpump_optimizer/entry_config.py:EntryConfig.__reduce__ RETURN_DEL 5a1c704f": {
+    "killed_by": "tests/entities.py",
+    "old": "        return (_restore, (dict(self.raw), parsed))",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 816547efe270a08e18e3b92f52185fe8c1fee2ef: RETURN_DEL (`pass`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/entry_config.py:EntryConfig.fuse_kw CMP_BOUND abdad8ea": {
+    "killed_by": "tests/entities.py",
+    "old": "        return self.fuse_kw_at(amps) if amps > 0 else None",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 816547efe270a08e18e3b92f52185fe8c1fee2ef: CMP_BOUND (`return self.fuse_kw_at(amps) if amps >= 0 else None`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=7."
+  },
+  "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.async_track GUARD_OFF aaf62cf9": {
+    "killed_by": "tests/features.py",
+    "old": "        if EntryConfig.from_mapping(self._config).dhw_free_disinfection_enabled:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 816547efe270a08e18e3b92f52185fe8c1fee2ef: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
+  },
+  "custom_components/heatpump_optimizer/pump_arbiter.py:_silent_target RETURN_DEL b9ef128b": {
+    "killed_by": "tests/structure.py",
+    "old": "    return _inside_silent(spec, cfg.quiet_off_windows, now)",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 816547efe270a08e18e3b92f52185fe8c1fee2ef: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

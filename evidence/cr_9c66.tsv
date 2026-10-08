@@ -1,0 +1,40 @@
+Analyze (actions)	completed	success	113305916762
+Analyze (javascript-typescript)	completed	success	113305916474
+Analyze (python)	completed	success	113305916660
+CodeQL	completed	success	113306132493
+briefs	completed	success	113305917159
+browser	completed	success	113305917094
+budget-raise-gate	completed	success	113305915175
+budget-raise-gate	completed	success	113305920889
+claims-autofix	completed	skipped	113324253407
+closure-scope	completed	success	113305916855
+closures	completed	success	113306030467
+closures-autofix	completed	skipped	113328535318
+coverage	completed	success	113305917186
+coverage-ratchet	completed	success	113330361413
+delivery-status	completed	failure	113305917800
+delivery-status-publish	completed	skipped	113305920298
+env-matrix	completed	success	113305918167
+fast (3.14)	completed	success	113305917408
+graders-head-copy	completed	success	113330361365
+hassfest	completed	success	113305915770
+instrument-self-tests	completed	success	113305918174
+mutation	completed	success	113305917181
+mutation-autofix	completed	skipped	113324658350
+mutation-ledger	completed	skipped	113305919542
+mutation-ledger-push	completed	skipped	113305920014
+mutation-nightly	completed	skipped	113305918517
+mutation-pin-plan	completed	skipped	113324656304
+mutation-pins	completed	skipped	113324657325
+nightly-ha	completed	skipped	113305918380
+nightly-status	completed	failure	113305916670
+policy-docs	completed	success	113305918259
+pr-contract	completed	success	113305915291
+pr-contract	completed	success	113330626245
+recheck-gate	completed	skipped	113305918164
+record	completed	skipped	113305919974
+record-autofix	completed	skipped	113305919402
+slow	completed	skipped	113305919726
+typing	completed	success	113305917174
+validate-hacs	completed	success	113305915575
+wave-script	completed	success	113305918269

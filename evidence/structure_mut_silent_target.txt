@@ -87,6 +87,7 @@
 
 ########## dead top-level symbols ##########
   custom_components/heatpump_optimizer/const.py:1570  ENTITY_FAMILY_OVERRIDES
+  custom_components/heatpump_optimizer/pump_arbiter.py:541  _inside_silent
 
 ########## dead members (no live attribute load reaches them) ##########
   dead_methods = 0 (methods and properties; receiver-resolved, reachability from live code)
@@ -300,7 +301,7 @@ RESULT coordinator_attrs=153 count
 RESULT coordinator_multiassigned_attrs=120 count
 RESULT coordinator_private_reach=0 count
 RESULT dead_methods=0 count
-RESULT dead_top_level_symbols=1 count
+RESULT dead_top_level_symbols=2 count
 RESULT duplication_copies=38 count
 RESULT functions_cc_over_15=31 count
 RESULT functions_cc_over_25=8 count
@@ -319,7 +320,7 @@ RESULT thread_factor=1.0 ratio
   ok   coordinator_multiassigned_attrs 120 <= 120
   ok   coordinator_private_reach 0 <= 0
   ok   dead_methods 0 <= 0
-  ok   dead_top_level_symbols 1 <= 1
+FAIL dead_top_level_symbols 2 > 1 (+1)
   ok   duplication_copies 38 <= 38
   ok   functions_cc_over_15 31 <= 31
   ok   functions_cc_over_25 8 <= 8
@@ -331,4 +332,17 @@ RESULT thread_factor=1.0 ratio
   ok   methods_over_200 9 <= 9
   ok   seam_cut_total 760 <= 760
 
-STRUCTURE RATCHET PASSED
+1 STRUCTURE BUDGET(S) BREACHED
+Three responses, all of them deliberate: pay for the lines
+elsewhere; re-record because the tree genuinely improved; or, for
+a genuine new production FEATURE, RAISE the budget because the
+capability is worth the structure it costs. Paying is the first
+question; a raise is for when the honest answer is that you
+cannot. A raise needs the repository OWNER'S EXPLICIT CONFIRMATION
+before the branch is pushed -- stop and ask, do not push and
+explain.
+A budget may only be re-recorded deliberately, on a clean tree,
+with the reason in the COMMIT -- never to make a failure go away.
+--record refuses any row that moves the wrong way unless you pass
+--allow-regression="<reason>", and that reason belongs in the commit
+message: main's history keeps it and never a pull-request body.
