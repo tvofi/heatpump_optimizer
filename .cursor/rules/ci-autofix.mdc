@@ -22,20 +22,19 @@ and it did not happen. **A red autofix job means there will be no bot commit.** 
 the autofix holds the recordings *and will merge them*. Read the summary
 line, re-derive the script it names and commit `tests/closures.json`; Python
 lanes record through `sys.addaudithook`, so Darwin is sound for them — except
-the inert dimension, which is Linux-recorded (`strace`-only): repair a missing
-`inert_reads` entry by merging the CI closure-recordings artifact
-(`closure.py merge --in-dir <dir> --partial`, #1886). On
-`skip-failed-recording` the script named in the `closures` log stopped while
-being recorded — fix that script first; re-deriving it would only record the
-same truncation.
+the inert dimension, which is Linux-recorded (`strace`-only): the bot merges
+INERT READS from the CI recordings too (#1886, R9-CI-1). On
+`skip-failed-recording` a script the check named stopped while being recorded —
+fix it first; re-deriving would record the same truncation. A failed recording
+of an unnamed script is left out of the merge.
 
 **What green means, exactly — read the summary line, not the tick.** Green is
 `changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
 repair was owed *to the bot*), or `skip-not-allowed` (it declined to
 classify). It runs the base's `tests/closure.py`: if that stops early
 (a PR moving a file out of INERT) where `closures` printed UNDER-SCOPED, the
-status is `skip-classifier-disagrees`; any other failed check (INERT READS,
-PHANTOM) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` reddens on nothing it
+status is `skip-classifier-disagrees`; any other failed check (PHANTOM, NOT A
+FILE, an INERT pair) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` reddens on nothing it
 can return today — `apply_inherited_claims` has no failure status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure — so its summary line is its only signal.

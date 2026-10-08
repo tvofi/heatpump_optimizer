@@ -98,6 +98,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
   fetch that half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through.
+- `autofix_statuses.sh` — re-derives what `mutation-autofix` and
+  `closures-autofix` answered on recent pull-request runs, from their job
+  logs, with the `closures` failure heading behind each closures skip. When:
+  judging whether the autofix chain repairs anything. Refusal: a log GitHub
+  no longer serves is counted beside the totals, never read as a status.
 - `bus.sh` — git refs as the programme's message bus: seats publish verdicts
   on refs, the orchestrator watches. When: a reviewer seat with no other
   channel, or an orchestrator collecting several lanes' verdicts at once.
