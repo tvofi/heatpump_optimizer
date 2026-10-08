@@ -866,51 +866,155 @@ jobs:
           path: ${{ runner.temp }}/mutation-table.txt
           if-no-files-found: ignore
 
-      # The measuring half of `mutation-autofix`, here because this job holds
-      # the installed drivers and no write grant: the drivers are the pull
-      # request's code, so they never run beside a token that can push. Only
-      # a ratchet refusal ("N unpinned site(s) against M") is measured -- a
-      # breached survivor cap is a finding, not a missing pin. The measuring
-      # PROGRAM is the base's copy of mutation_table.py, so a pull request that
-      # edits the tool cannot change how its own kills are measured; the status
-      # and the apply step are this head's code, the trust every autofix job
-      # already extends. The copy is kept out of the worker overlay
-      # (`.git/info/exclude`): an untracked script there reddens entities.py's
-      # closure checks at baseline and no kill could ever be measured (#1599's
-      # review). The status is `measurement()`'s, read from the program's own
-      # summary line, so a run that did not measure reddens the job.
+  # The measuring half of `mutation-autofix`: no write grant, because the
+  # drivers are the pull request's code and never run beside a token that can
+  # push. Only a ratchet refusal ("N unpinned site(s) against M") is measured
+  # -- a breached survivor cap is a finding, not a missing pin. The measuring
+  # PROGRAM is the base's copy of mutation_table.py -- the pull request's base
+  # commit, as mutation-autofix restores it, so a stacked pull request
+  # measures with the program its base carries -- and a pull request that
+  # edits the tool cannot change how its own kills are measured; the status
+  # and the apply step are this head's code, the trust every autofix job
+  # already extends. The copy is kept out of the worker overlay
+  # (`.git/info/exclude`): an untracked script there reddens entities.py's
+  # closure checks at baseline and no kill could ever be measured (#1599's
+  # review). The status is `measurement()`'s, read from the program's own
+  # summary line, so a run that did not measure reddens the autofix job.
+  #
+  # SHARDED (R9-CI-1). One runner pinned 10 of #2025's 56 sites in its budget
+  # and left 46 for later pushes, each paying the baselines again. The shards
+  # split the sites by anchor (`pin_shard`) and run at once, each with the
+  # whole budget; mutation-autofix merges their artifacts (`merge_pin_shards`)
+  # into one commit. `mutation-pin-plan` sizes the matrix from the refusal's
+  # site count (`pin_shard_count`: six sites a shard, at most ten), so a big
+  # diff costs runners rather than wall clock. A base program without --shard
+  # runs whole on shard 1 and the other shards stand down.
+  mutation-pin-plan:
+    needs: [mutation]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Download the lane's table
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}
+
+      - name: Size the shard matrix from the sites the diff added
+        id: plan
+        run: |
+          touch "$RUNNER_TEMP/mutation-table.txt"
+          python3 -I - "$RUNNER_TEMP/mutation-table.txt" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tests")
+          import mutation_table
+          n = mutation_table.pin_shard_count(open(sys.argv[1]).read())
+          print(f"count={n}")
+          print(f"shards={json.dumps(list(range(1, n + 1)))}")
+          PY
+          cat "$GITHUB_OUTPUT"
+
+  mutation-pins:
+    needs: [mutation, mutation-pin-plan]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: ${{ fromJSON(needs.mutation-pin-plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Download the lane's table
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}
+
       - name: Measure pins for the sites this diff added unpinned
         id: pins
-        if: >-
-          failure()
-          && github.event_name == 'pull_request'
-          && github.event.pull_request.head.repo.full_name == github.repository
-        timeout-minutes: 60
+        timeout-minutes: 170
         shell: bash
         env:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}
         run: |
           set -uo pipefail
+          git fetch --no-tags origin main
           out="$RUNNER_TEMP/mutation-pins"
           mkdir -p "$out"
           printf '%s\n' "$PR_HEAD" > "$out/head"
+          touch "$RUNNER_TEMP/mutation-table.txt"
           python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
             > "$RUNNER_TEMP/ledger-before.json"
           rm -f "$RUNNER_TEMP/pin-run.txt"
-          # Under the 60-minute step timeout with room for the runs in flight
-          # (R9-F10.12); only a base program that has the flag gets it.
+          # Under the 170-minute step timeout with room for the runs in flight
+          # (R9-F10.12): admission charges a lazy driver its run alone, so a
+          # red run's baseline and null control are paid past the deadline --
+          # boost_drift_replay.py's three runs are ~26 minutes at its recorded
+          # seconds. At 90 minutes four shards of 14 pinned 19 of #2025's 56
+          # sites, each site ~2000 s of driver work; six sites a shard fit 120
+          # (R9-CI-1). Only a base program that has a flag gets it.
           budget=()
+          shard=()
+          run=1
           if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \
                "$RUNNER_TEMP/mutation-table.txt" \
-             && git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py \
+             && git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py \
              && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
             echo tests/_mutation_table_base.py >> .git/info/exclude
             grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
-              && budget=(--budget-minutes 35)
-            python3 tests/_mutation_table_base.py --pin-killed --base origin/main --jobs 3 \
-              "${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"
+              && budget=(--budget-minutes 120)
+            if grep -q -- '--shard' tests/_mutation_table_base.py; then
+              shard=(--shard "$SHARD/$SHARDS")
+            elif [ "$SHARD" != 1 ]; then
+              run=0
+              echo "base program has no --shard: shard 1 measures the whole pool"
+            fi
+            # A refusal exits non-zero; the runner's `bash -e` would end the
+            # step there, before measurement() wrote any status, and
+            # mutation-autofix then read a missing file as skip-no-measurement
+            # (#2025, run 37663843895). measurement() grades the run instead.
+            [ "$run" = 1 ] && { python3 tests/_mutation_table_base.py --pin-killed --base origin/main --jobs 3 \
+              "${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt" \
+              || echo "pin run exited non-zero; measurement() grades it"; }
           fi
           rm -f tests/_mutation_table_base.py
+          [ "$run" = 1 ] || exit 0
           python3 - "$RUNNER_TEMP" "$out" <<'PY'
           import json, sys
           from pathlib import Path
@@ -931,7 +1035,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always() && steps.pins.outcome != 'skipped'
         with:
-          name: mutation-pins
+          name: mutation-pins-${{ matrix.shard }}
           path: ${{ runner.temp }}/mutation-pins/
           if-no-files-found: ignore
 
@@ -1892,10 +1996,11 @@ jobs:
           retention-days: 3
 
   # Same-repo PR only: the closures job already re-recorded under strace.
-  # If check printed UNDER-SCOPED, merge those recordings and push. Not a
+  # If check printed UNDER-SCOPED or INERT READS UNDER-APPROXIMATED, merge
+  # those recordings and push (R9-CI-1: the second is the same merge). Not a
   # coding agent -- Linux CI already paid the derive. Does not push on
-  # no-copies, a failed recording, an INERT contradiction, or its own
-  # follow-up commit (`ci: re-record closures`).
+  # no-copies, a failed recording of a script the check named, an INERT
+  # contradiction, or its own follow-up commit (`ci: re-record closures`).
   #
   # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
   # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the
@@ -2430,7 +2535,7 @@ jobs:
   # as `ci: pin killed mutants`. A survivor is never written: it stays
   # unpinned and `mutation` stays red on it for a human.
   mutation-autofix:
-    needs: [mutation]
+    needs: [mutation, mutation-pins]
     if: >-
       !cancelled()
       && github.event_name == 'pull_request'
@@ -2472,12 +2577,15 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Download the pins the mutation lane measured
+      # One artifact per shard (mutation-pins-1..4), each in its own
+      # subdirectory; `merge_pin_shards` folds them into the one directory
+      # `apply_pins` reads.
+      - name: Download the pins the mutation-pins shards measured
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         continue-on-error: true
         with:
-          name: mutation-pins
-          path: ${{ runner.temp }}/mutation-pins
+          pattern: mutation-pins*
+          path: ${{ runner.temp }}/mutation-pins-shards
 
       # No driver runs here: the pins were measured in `mutation`, which holds
       # no write grant, and this job only merges the entries it measured into
@@ -2490,6 +2598,7 @@ jobs:
           HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
           REPO: ${{ github.repository }}
           PINS: ${{ runner.temp }}/mutation-pins
+          SHARDS_DIR: ${{ runner.temp }}/mutation-pins-shards
         run: |
           export SUBJECT=$(git log -1 --pretty=%s)
           python3 -I - <<'PY'
@@ -2511,7 +2620,15 @@ jobs:
               import subprocess, mutation_table
               head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
                                     text=True).stdout.strip()
-              status = mutation_table.apply_pins(os.environ["PINS"], head)
+              pins = os.environ["PINS"]
+              if hasattr(mutation_table, "merge_pin_shards"):
+                  merged = mutation_table.merge_pin_shards(
+                      os.environ["SHARDS_DIR"], pins)
+                  print(f"shards merged: {merged}")
+              else:
+                  # A base older than the shards: whole on shard 1.
+                  pins = os.environ["SHARDS_DIR"] + "/mutation-pins-1"
+              status = mutation_table.apply_pins(pins, head)
           print(f"AUTOFIX: {status}")
           with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
               fh.write(f"status={status}\n")
