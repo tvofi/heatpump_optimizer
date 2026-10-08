@@ -1,12 +1,12 @@
 file                                           lines cap  ~tokens  cap always
 tests/README.md                                  459  800     6671  6686 
-tools/audit/briefs/fixer.md                      310  310     5109  5109 
-tools/audit/briefs/orchestrator.md               290  291     4096  4096 
+tools/audit/briefs/fixer.md                      315  315     5216  5216 
+tools/audit/briefs/orchestrator.md               290  291     4090  4096 
 tools/audit/README.md                            239  250     3877  3880 
 CLAUDE.md                                        220  221     3588  3590   yes
 .claude/workflows/web-fragments.md               155  168     2427  2427 
 .claude/rules/defect-root-cause.md               153  153     1880  1887 
-tools/audit/briefs/fix-review.md                 137  140     2391  2393 
+tools/audit/briefs/fix-review.md                 137  140     2384  2393 
 .claude/skills/steward/SKILL.md                  134  135     1532  1533 
 tools/audit/briefs/nudge.md                      115  115     3776  3814 
 .claude/rules/ratchet-budgets.md                 111  114     1626  1664 
@@ -41,7 +41,7 @@ tools/audit/briefs/judge.md                       30   30      469   469
 AGENTS.md                                         12   13      166   183 
 
 always-loaded: ~3588 tokens, cap 3349 +band 500 = 3849
-corpus:        ~59817 tokens, cap 59591 +band 500 = 60091
+corpus:        ~59911 tokens, cap 59591 +band 500 = 60091
 role fixer     ~6219 tokens, cap 5852 +band 500 = 6352
 role record    ~7226 tokens, cap 6904 +band 500 = 7404
 role policy    ~9988 tokens, cap 9958 +band 500 = 10458

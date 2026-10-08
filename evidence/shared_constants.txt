@@ -1,0 +1,14 @@
+rule: relative 'from .X import NAME' with X != const and NAME all-caps; head 9d9f44ad296c1dbda6d94974cb05dac1493a35f4
+RESULT import_sites 61 distinct_constants 45
+  config_flow.py dhw_schedule ERROR_TOO_SHORT
+  config_flow.py dhw_schedule MIN_WINDOW_MINUTES
+  config_flow.py freq_control FREQ_MODE_CONTROL
+  config_flow.py freq_control FREQ_MODE_OBSERVE
+  coordinator.py inputs UNBOUNDED
+  coordinator.py accuracy LEAD_BUCKETS
+  coordinator.py accuracy REFIT_SETTLED_DAYS
+  coordinator.py manual_plan CHANNEL_DHW
+  coordinator.py manual_plan CHANNEL_SPACE
+  coordinator.py price_model TIBBER_API_URL
+  coordinator.py dhw_learning DHW_PROFILE_STORE_VERSION
+  coordinator.py ledger KEEP_MONTHS
