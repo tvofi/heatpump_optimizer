@@ -108,7 +108,9 @@ def commit(tree: Path, msg: str) -> None:
 
 
 def clone(at: str, dest: Path) -> Path:
-    subprocess.run(["git", "clone", "-q", "--shared", "--no-checkout", str(ROOT), str(dest)], check=True)
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_clone
+    throwaway_git_clone(ROOT, dest, "-q", "--shared", "--no-checkout")
     git(dest, "checkout", "-q", "--detach", at)
     return dest
 

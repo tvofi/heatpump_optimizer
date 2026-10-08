@@ -370,6 +370,18 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # A throwaway git repository built without the shared helper
+      # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
+      # even a tiny repository, and it outlives the temporary directory. The
+      # helper turns auto-maintenance off; the check refuses a raw `git init`
+      # in a tracked script, and the self-test pins both layers and the shell
+      # twin. Here for tmp_paths.py's reason, one step up.
+      - name: Refuse a throwaway git repository built without the shared helper
+        run: |
+          set -euo pipefail
+          python3 -I tests/throwaway_git.py --self-test
+          python3 -I tests/throwaway_git.py --check
+
       # The merge train (tools/audit/seat/merge_train.py, landed from the
       # round-9 orchestrator's session scratch): each stop -- red or incomplete
       # CI, no carry, main moved, a policy path or a renamed one, a refusal

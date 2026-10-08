@@ -614,6 +614,8 @@ class Train:
 
 # ----------------------------------------------------------------- self-test
 def _self_test() -> int:
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_env, throwaway_git_init
     passed = failed = 0
     H0, H1, V = "a" * 40, "b" * 40, "c" * 40
 
@@ -754,9 +756,10 @@ def _self_test() -> int:
         g = Path(gd) / "repo"
         g.mkdir()
         def rg(*argv: str, cwd: Path | None = None) -> tuple[int, str]:
-            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True)
+            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True,
+                               env=throwaway_git_env())
             return r.returncode, (r.stdout + r.stderr).strip()
-        rg("init", "-q", "-b", "main", ".")
+        throwaway_git_init(g, "-q", "-b", "main")
         rg("config", "user.email", "fixture@example.test")
         rg("config", "user.name", "fixture")
         (g / "one.txt").write_text("one\n")
@@ -881,16 +884,17 @@ def _batch_self_test(check) -> None:
     `git merge --no-ff` with no driver configured) and the train's clone. The
     fake CI grades a tree by a ratchet: the files under units/ may not outnumber
     cap.txt. Every other GitHub call is a stub keyed on argv."""
+    from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_init  # on sys.path: _self_test
     R0 = "fast (3.14)"
 
     def g(cwd: Path, *a: str) -> tuple[int, str]:
-        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, env=throwaway_git_env())
         return r.returncode, (r.stdout + r.stderr).strip()
 
     def world(d: Path, base: str, prs: dict[int, dict[str, str]], cap: int = 2) -> dict:
         R, L = d / "remote", d / "local"
         R.mkdir()
-        g(R, "init", "-q", "-b", base, ".")
+        throwaway_git_init(R, "-q", "-b", base)
         for k, v in (("user.email", "f@example.test"), ("user.name", "f"), ("uploadpack.allowAnySHA1InWant", "true")):
             g(R, "config", k, v)
         tree = {"cap.txt": f"{cap}\n", "units/u0": "0\n", "a.txt": "a\n", "b.txt": "b\n",
@@ -913,7 +917,7 @@ def _batch_self_test(check) -> None:
             g(R, "commit", "-qm", f"pr {n}")
             heads[n] = g(R, "rev-parse", "HEAD")[1]
             g(R, "checkout", "-q", base)
-        g(d, "clone", "-q", str(R), str(L))
+        throwaway_git_clone(R, L, "-q")
         for k, v in (("user.email", "f@example.test"), ("user.name", "f"),
                      ("merge.led.driver", "printf LOCAL > %A")):  # a driver GitHub never runs
             g(L, "config", k, v)

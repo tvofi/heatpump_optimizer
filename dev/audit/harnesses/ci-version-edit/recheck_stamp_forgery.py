@@ -19,6 +19,11 @@ three CI shapes, with the environment each run carries:
 """
 import os, re, subprocess, sys, tempfile
 
+# The shared throwaway-repository helper, from the checkout this harness sits in
+# (SRC may be an older commit that predates it).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "tests"))
+from throwaway_git import throwaway_git_clone  # noqa: E402
+
 SRC = os.getcwd()
 REV = sys.argv[1]
 
@@ -32,7 +37,7 @@ def git(*a, cwd):
 
 root = tempfile.mkdtemp(prefix="hvh2-")
 w = os.path.join(root, "w")
-git("clone", "-q", "--no-local", SRC, w, cwd=root)
+throwaway_git_clone(SRC, w, "-q", "--no-local", cwd=root)
 git("checkout", "-q", "--detach", git("rev-parse", REV, cwd=SRC), cwd=w)
 git("config", "user.name", "h", cwd=w); git("config", "user.email", "h@h", cwd=w)
 ver = open(os.path.join(w, "VERSION")).read().strip()

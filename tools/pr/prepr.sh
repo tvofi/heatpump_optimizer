@@ -397,7 +397,9 @@ PY
 # under the owner's heavy-scripts rule (2026-10-07). It predicts `closures`'s
 # UNDER-SCOPED, INERT READS and NO RECORDING and entities' unclassified file,
 # which R9-RO-11's pre-study measured reddening this round's fix heads after
-# the handoff while the autofix jobs repaired none of them; those refuse. The
+# the handoff while the autofix jobs repaired none of them; those refuse, but
+# INERT READS, which only CI's Linux recordings can produce and
+# `closures-autofix` merges after the push, warns (`ci_predict.warns`). The
 # `mutation` sites the diff adds are a WARNING, never a refusal: ci-autofix.md
 # has `mutation-autofix` pin them after the push, so the step lists them into
 # a file and step 7's `unpinned_line` asks the body for each one's disposition.
@@ -968,6 +970,13 @@ fi
 # (merge base, gate mode, version edit, claim files) are demonstrated by the
 # `pr-contract` job running this script on every pull request.
 if [ "${1:-}" = "--self-test" ]; then
+  # Every throwaway repository below takes the shared helper: auto-maintenance
+  # off and no inherited git config (R9-RCA-stamp-race). The cwd is the top level.
+  . tests/throwaway_git.sh || exit 2
+  # ...and every git call it makes takes the env, its own and the step code's
+  # under test: an inherited GIT_CONFIG_PARAMETERS outranks a repository's own
+  # config, so the repository layer alone does not hold (the #2054 review).
+  throwaway_git_env
   D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves
@@ -1101,7 +1110,7 @@ if [ "${1:-}" = "--self-test" ]; then
   RAFIX=$(cd tools/policy/fixtures/red-ancestry && pwd -P)
   RA=$(mktemp -d)
   (
-    set -e; cd "$RA"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$RA"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     git remote add origin https://github.com/tvofi/heatpump_optimizer.git
     # The identity is pinned through the environment, not only `git config`:
@@ -1175,7 +1184,7 @@ EOS
   # body check that refused on other grounds would satisfy a status alone.
   BR=$(mktemp -d)
   (
-    set -e; cd "$BR"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$BR"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     echo a > README; git add -A; git -c commit.gpgsign=false commit -qm nogate; git tag nogate
     mkdir -p .claude/workflows tests
@@ -1329,7 +1338,7 @@ EOS
   # merged arm is the ordinary state of a branch updated with `git merge`.
   VER=$(mktemp -d)
   (
-    set -e; cd "$VER"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$VER"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     mkdir -p custom_components/heatpump_optimizer docs
     printf '6.5.1\n' > VERSION
@@ -1487,7 +1496,7 @@ EOS
   # aborting this whole `&&` chain before `inh` is ever created. Detach and
   # delete whatever the clone started on first, so the fixture is hermetic
   # to the outer checkout's branch name -- `main` included.
-  (git clone -q --shared . "$CLM/r" && cd "$CLM/r" \
+  (throwaway_git_clone -q --shared . "$CLM/r" && cd "$CLM/r" \
     && startbr=$($G symbolic-ref --quiet --short HEAD || :) \
     && $G checkout -q --detach \
     && { [ -z "$startbr" ] || $G branch -q -D "$startbr"; } \
@@ -1567,7 +1576,7 @@ PY
   # predictor names is planted alone on its own branch and must trip it with
   # its own PREDICT line -- R9-RO-11's perturbation, one arm per class.
   PDX=$(mktemp -d)
-  (git clone -q --shared . "$PDX/r" && cd "$PDX/r" \
+  (throwaway_git_clone -q --shared . "$PDX/r" && cd "$PDX/r" \
     && $G checkout -q --detach && $G checkout -q -b pfork \
     && git update-ref refs/remotes/origin/main pfork \
     && cp "$OLDPWD/tools/pr/ci_predict.py" tools/pr/ci_predict.py \
@@ -1601,10 +1610,12 @@ PY
   st $? 0 "6d predicts entities' refusal of a new file in no closure and not on INERT"
   got=$(predict_at pimport); grep -q 'PREDICT closures .*UNDER-SCOPED custom_components/heatpump_optimizer/zz_planted.py: read by .*a new import from custom_components/heatpump_optimizer/away.py' <<<"$got"
   st $? 0 "6d predicts UNDER-SCOPED for a new import from a file a closure lists"
+  st "$(tail -1 <<<"$got")" rc=1 "and an UNDER-SCOPED red still refuses (null control)"
   got=$(predict_at pfunc); grep -q 'PREDICT closures .*UNDER-SCOPED' <<<"$got"
   st $? 1 "6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)"
   got=$(predict_at pinert); grep -q 'PREDICT closures .*INERT READS tests/harness_headers.py: dev/audit/harnesses/zz_planted.py' <<<"$got"
   st $? 0 "6d predicts INERT READS for a new harness beside the ones a glob-reading script lists"
+  st "$(tail -1 <<<"$got")" rc=0 "and an INERT READS red warns, never refuses: closures-autofix merges it from CI's Linux recordings after the push"
   got=$(predict_at plane); grep -q 'PREDICT closures .*NO RECORDING tests/zz_planted_check.py' <<<"$got"
   st $? 0 "6d predicts NO RECORDING for a selectable script no derive lane records"
   got=$(predict_at pmut); grep -q 'PREDICT mutation .*ADDED UNPINNED custom_components/heatpump_optimizer/away.py' <<<"$got"
@@ -1742,7 +1753,7 @@ PY
   # that must pass, and each refused shape built the way a seat produced it.
   TR=$(mktemp -d)
   (
-    set -e; cd "$TR"; git init -q -b main .
+    set -e; throwaway_git_env; cd "$TR"; throwaway_git_init . -q -b main
     git config user.name st; git config user.email st@st
     mkdir -p tools/audit/handoff/old; echo x > tools/audit/handoff/old/BODY.md
     echo a > code; git add -A; git commit -qm base
