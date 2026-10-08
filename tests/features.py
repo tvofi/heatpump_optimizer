@@ -60391,16 +60391,16 @@ R.check(
     _fm_zero_kw == 0.0 and _fm_zero_rd is not None and _fm_zero_rd.ok,
     f"kw={_fm_zero_kw} problem={getattr(_fm_zero_rd, 'problem', None)}",
 )
-# The health record keeps the first reason a flow reading was refused: a stale
-# negative reading stays "stale" (the age outranks the value), while a fresh
-# negative one is "implausible" and an unknown unit "unknown_unit".
+# The health record keeps the first reason a flow reading was refused, and no
+# value: a stale negative reading stays "stale" (the age outranks the value),
+# a fresh negative one is "implausible" and an unknown unit "unknown_unit".
 
 
 def _fm_problem(flow_state, unit="L/min", flow_age_min=1):
     r, cfg = _fm_reader({}, flow_state, unit=unit, flow_age_min=flow_age_min)
     _fm.read_heat_output_kw(r, cfg)
     rd = r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
-    return None if rd is None else rd.problem
+    return None if rd is None else (rd.problem, rd.value)
 
 
 _fm_problems = (
@@ -60409,8 +60409,8 @@ _fm_problems = (
     _fm_problem("15.0", unit="gal/min"),
 )
 R.check(
-    "a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit)",
-    _fm_problems == ("stale", "implausible", "unknown_unit"),
+    "a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value",
+    _fm_problems == (("stale", None), ("implausible", None), ("unknown_unit", None)),
     f"{_fm_problems}",
 )
 
