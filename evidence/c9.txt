@@ -1,0 +1,8 @@
+RESULT C9a order=0 mt_old added=[('p/o.py:_seed', 41)]
+RESULT C9a order=0 mt_new added=[('p/o.py:_padded', 10)]
+RESULT C9a order=1 mt_old added=[('p/o.py:_padded', 10)]
+RESULT C9a order=1 mt_new added=[('p/o.py:_padded', 10)]
+RESULT C9a-null mt_old added=[]
+RESULT C9a-null mt_new added=[]
+RESULT C9b n=3 old_keys=['/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpxvisxtb1/chain.py:2 CMP_BOUND', '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpxvisxtb1/chain.py:2 CMP_BOUND', '/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpxvisxtb1/chain.py:2 CMP_BOUND'] new_keys=['/var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpxvisxtb1/chain.py:2 CMP_BOUND*3']
+RESULT fuzz 20000 count-mismatch=0 identity-differs=2501

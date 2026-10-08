@@ -1,0 +1,6 @@
+merge_train self-test: 81 checks, 0 failed
+layout self-test: ok
+ALL 40 closure shrink pins PASSED
+tmp_paths self-test: 50 checks, 0 failed
+record_row self-test: all checks passed
+STRUCTURE RATCHET PASSED

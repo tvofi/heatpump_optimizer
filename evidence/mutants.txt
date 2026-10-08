@@ -1,0 +1,8 @@
+MUTANT M8 rc=1 ::   FAIL guard self-test: a stale command whose marker names a longer path: {'new-reference': 0, 'unswept': 0, 'placement': 0}|layout self-test: 1 case(s) FAILED|
+MUTANT M10 rc=1 ::   FAIL guard self-test: the citation in a generated .claude/rules copy: {'new-reference': 1, 'unswept': 0, 'placement': 0}|  FAIL guard self-test: the citation in a generated .cursor/rules copy: {'new-reference': 1, 'unswept': 0, 'placement': 0}|layout self-test: 2 case(s) FAILED|
+MUTANT Mc4 rc=1 ::   FAIL prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)  [closures['all-dead'] after=None]|1 of 40 closure shrink pins FAILED|
+MUTANT RR-i rc=1 :: 
+MUTANT RR-ii rc=1 :: 
+MUTANT MT-del rc=1 ::   FAIL a proof branch the remote would not delete is reported left, never deleted (R9-RO-9a)|merge_train self-test: 81 checks, 1 failed|
+MUTANT TP-stock rc=1 ::   FAIL a ledger line main already carries is not charged to the diff (stock)|  FAIL the same line under another ledger file is still stock (a re-key moves it)|tmp_paths self-test: 50 checks, 2 failed|
+MUTANT TP-regex-seat rc=0 :: 
