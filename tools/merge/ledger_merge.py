@@ -480,13 +480,14 @@ def self_test() -> int:
         unrelated_refused = "recorded_at" in str(why)
     check("structure: a recorded_at pair with no ancestry is refused",
           unrelated_refused)
+    sys.path.insert(0, os.path.join(ROOT, "tests"))
+    from throwaway_git import throwaway_git_init
     with tempfile.TemporaryDirectory() as tmp:
+        env = throwaway_git_init(tmp, "-q")
+
         def git(*a):
             return subprocess.run(["git", *a], cwd=tmp, check=True, capture_output=True,
-                                  text=True, env=dict(os.environ, GIT_AUTHOR_NAME="t",
-                                                      GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-                                                      GIT_COMMITTER_EMAIL="t@t")).stdout.strip()
-        git("init", "-q")
+                                  text=True, env=env).stdout.strip()
         git("commit", "-q", "--allow-empty", "-m", "old")
         old = git("rev-parse", "HEAD")
         git("commit", "-q", "--allow-empty", "-m", "new")
