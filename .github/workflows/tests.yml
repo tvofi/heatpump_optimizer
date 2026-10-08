@@ -882,12 +882,14 @@ jobs:
   # summary line, so a run that did not measure reddens the autofix job.
   #
   # SHARDED (R9-CI-1). One runner pinned 10 of #2025's 56 sites in its budget
-  # and left 46 for later pushes, each paying the baselines again. Four
-  # shards split the sites by anchor (`pin_shard`) and run at once, each with
-  # the whole budget; mutation-autofix merges their artifacts
-  # (`merge_pin_shards`) into one commit. A base program without --shard runs
-  # whole on shard 1 and the other shards stand down.
-  mutation-pins:
+  # and left 46 for later pushes, each paying the baselines again. The shards
+  # split the sites by anchor (`pin_shard`) and run at once, each with the
+  # whole budget; mutation-autofix merges their artifacts (`merge_pin_shards`)
+  # into one commit. `mutation-pin-plan` sizes the matrix from the refusal's
+  # site count (`pin_shard_count`: six sites a shard, at most ten), so a big
+  # diff costs runners rather than wall clock. A base program without --shard
+  # runs whole on shard 1 and the other shards stand down.
+  mutation-pin-plan:
     needs: [mutation]
     if: >-
       !cancelled()
@@ -895,12 +897,50 @@ jobs:
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 260
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Download the lane's table
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}
+
+      - name: Size the shard matrix from the sites the diff added
+        id: plan
+        run: |
+          touch "$RUNNER_TEMP/mutation-table.txt"
+          python3 -I - "$RUNNER_TEMP/mutation-table.txt" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tests")
+          import mutation_table
+          n = mutation_table.pin_shard_count(open(sys.argv[1]).read())
+          print(f"count={n}")
+          print(f"shards={json.dumps(list(range(1, n + 1)))}")
+          PY
+          cat "$GITHUB_OUTPUT"
+
+  mutation-pins:
+    needs: [mutation, mutation-pin-plan]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
     strategy:
       fail-fast: false
-      max-parallel: 4
+      max-parallel: 10
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: ${{ fromJSON(needs.mutation-pin-plan.outputs.shards) }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -925,13 +965,13 @@ jobs:
 
       - name: Measure pins for the sites this diff added unpinned
         id: pins
-        timeout-minutes: 250
+        timeout-minutes: 170
         shell: bash
         env:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
           PR_BASE: ${{ github.event.pull_request.base.sha }}
           SHARD: ${{ matrix.shard }}
-          SHARDS: "4"
+          SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}
         run: |
           set -uo pipefail
           git fetch --no-tags origin main
@@ -942,15 +982,13 @@ jobs:
           python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
             > "$RUNNER_TEMP/ledger-before.json"
           rm -f "$RUNNER_TEMP/pin-run.txt"
-          # Under the 250-minute step timeout with room for the runs in flight
+          # Under the 170-minute step timeout with room for the runs in flight
           # (R9-F10.12): admission charges a lazy driver its run alone, so a
           # red run's baseline and null control are paid past the deadline --
           # boost_drift_replay.py's three runs are ~26 minutes at its recorded
-          # seconds. 200 minutes is what one shard of #2025's 56 sites needed:
-          # at 90, four shards pinned 19 and left 36 unstarted, each site
-          # costing ~2000 s of driver work before features.py killed it
-          # (R9-CI-1). A small diff ends when its pool does, not at the
-          # budget. Only a base program that has a flag gets it.
+          # seconds. At 90 minutes four shards of 14 pinned 19 of #2025's 56
+          # sites, each site ~2000 s of driver work; six sites a shard fit 120
+          # (R9-CI-1). Only a base program that has a flag gets it.
           budget=()
           shard=()
           run=1
@@ -960,7 +998,7 @@ jobs:
              && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
             echo tests/_mutation_table_base.py >> .git/info/exclude
             grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
-              && budget=(--budget-minutes 200)
+              && budget=(--budget-minutes 120)
             if grep -q -- '--shard' tests/_mutation_table_base.py; then
               shard=(--shard "$SHARD/$SHARDS")
             elif [ "$SHARD" != 1 ]; then

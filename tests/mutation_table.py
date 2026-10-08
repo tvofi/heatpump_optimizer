@@ -976,6 +976,23 @@ UNPINNED_REFUSAL = re.compile(
 PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
 
 
+ADDED_UNPINNED = re.compile(r"(\d+) of them added by this diff")
+SITES_PER_SHARD, MAX_SHARDS = 6, 10
+
+
+def pin_shard_count(table: str) -> int:
+    """How many `mutation-pins` shards a ratchet refusal gets (R9-CI-1).
+
+    One per SITES_PER_SHARD sites the diff added unpinned, at most MAX_SHARDS:
+    a shard pays its baselines (15-22 minutes on CI) before any site, then
+    about 2000 s of driver work per site over its three workers, so six sites
+    end inside the 120-minute budget. One when the table names no count.
+    """
+    m = ADDED_UNPINNED.search(table)
+    sites = int(m.group(1)) if m else 0
+    return max(1, min(MAX_SHARDS, -(-sites // SITES_PER_SHARD)))
+
+
 def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
     """Shard `k` of `n` (1-based) of a pin pool, split by anchor (R9-CI-1).
 

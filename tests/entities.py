@@ -30880,7 +30880,7 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation-pins", "&& budget=(--budget-minutes 200)"),
+    ("mutation-pins", "&& budget=(--budget-minutes 120)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
@@ -31280,6 +31280,23 @@ R.check(
     and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed",
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
     f"quiet={_sh_q} failed={_sh_f}",
+)
+# The shard count scales with the sites the diff added: six a shard, at most
+# ten, one when the table names none -- read off the refusal line the lane
+# prints, and wired into the matrix the pin job runs.
+_MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
+                                f"against 3 at the ratchet base x, {n} of them "
+                                f"added by this diff.") for n in (1, 6, 7, 56, 200)]
+_MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
+_MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
+R.check(
+    "the pin shard count scales with the diff's new sites, six a shard, "
+    "capped at ten, and sizes the matrix the shards run",
+    _MUT_SC == [1, 1, 2, 10, 10] and _MUT_SC0 == 1
+    and "mutation_table.pin_shard_count(" in _MUT_PLAN
+    and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
+    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins,
+    f"counts={_MUT_SC} none={_MUT_SC0}",
 )
 # The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
 # "46 left unpinned -- a survivor needs a killing check" was 46 sites the
