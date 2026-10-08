@@ -1,2 +1,3 @@
 measured code head: cef15d6352e970806dc9a3e32b4c23c92e212e95
 verdict head: 93184bb07cd6606e017ebf1bb93795db19ff0f52 (delta from measured: delivery row, RCA section 7, clean main merge; code files byte-identical)
+carry destinations: 546089cad07d7ae0a1606fd87527b53d76a1803f (R9-RO-9), f4c8df63 at #2024 head 1e92e0e8f3fa097a57ac5aa4a93604042ee65814
