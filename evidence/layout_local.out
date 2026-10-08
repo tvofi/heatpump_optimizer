@@ -15,7 +15,7 @@ layout: 4244 tracked path(s) enumerated
     planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
     reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
     reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
-  reference 1292 finding(s)
+  reference 1291 finding(s)
     .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
     .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
     .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
@@ -26,12 +26,11 @@ layout: 4244 tracked path(s) enumerated
     .claude/rules/gate-scoping.md:44 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
     .claude/rules/gate-scoping.md:45 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
     .claude/rules/ratchet-budgets.md:8 cites retired path tools/audit/README.md; use dev/audit/README.md
-    ... 1282 more (--verbose)
+    ... 1281 more (--verbose)
   dead      1 finding(s)
     category dev/programme: glob matches no tracked file: dev/programme/rosters/*.json
 layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
-    new-reference: tools/pr/prepr.sh cites retired path docs/delivery/: (cd "$CLM/r" && $G checkout -q -b rowedit rec && echo edited > docs/delivery/9999.md \
-layout: GUARD: 1 refusal(s) against 0b89f781f340
+layout: GUARD: 0 refusal(s) against b296779f0e96
   ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
   ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 215 of 215 listed
   ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 214 of 214 listed
@@ -80,4 +79,3 @@ layout: GUARD: 1 refusal(s) against 0b89f781f340
   ok   guard self-test: a move landed, a citation left: {'new-reference': 0, 'unswept': 1, 'placement': 0}
   ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
 layout self-test: ok
-rc=1

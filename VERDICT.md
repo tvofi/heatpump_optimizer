@@ -1,34 +1,43 @@
-Fix review: blocked e6e5aea73809387f3b75f09cebcd04e74e6e2701 root-cause-unanswered: fast (3.14) went red at this head (tests/layout.py GUARD new-reference: the new prepr.sh self-test fixture cites retired path docs/delivery/), unanswered
-bus-nonce: 932156bcb954d611a3d6bd75c4e15faa
+Fix review: merge 5964b5836ca3fbaa041964e1c33943b8b852e964
+bus-nonce: e99e5ded129789087091c423425c90a9
 
-PR #2062, delta round (round 2). Measured at e6e5aea73809387f3b75f09cebcd04e74e6e2701; the live head re-read at posting was unchanged. The delta from 539d300b is af5560f8 (test), a6984468 (fix), 23e200ad (RCA note) and a703959f (row), joined by e6e5aea = merge(539d300b, a703959f). This is not a main merge: origin/main has moved on to b296779f and merge-tree against it gives rc 0.
+PR #2062, round 3. Measured at 5964b5836ca3fbaa041964e1c33943b8b852e964. I re-read the live head at posting and it was unchanged.
 
-## The blocker: a red this diff caused
-- CI `fast (3.14)` job 113385312852 is completed/failure. The scoped gate passed entities.py and harness_headers.py; the always-run tests/layout.py FAILED:
-    new-reference: tools/pr/prepr.sh cites retired path docs/delivery/: (cd "$CLM/r" && $G checkout -q -b rowedit rec && echo edited > docs/delivery/9999.md \
-    layout: GUARD: 1 refusal(s) against b296779f0e96
-  The cited line is af5560f8's new fixture line. At 539d300b `fast (3.14)` was green.
-- I reproduced it locally: `python3 tests/layout.py` in the CI venv gives rc=1 with the same single refusal (against merge base 0b89f781). This is the cheap local detector, about 4 s; the fixer's push gate did not run it.
-- The body's `## Red checks` names only delivery-status and nightly-status at 539d300b, so this red is unanswered (fix-review.md step 11, defect-root-cause.md second trigger). It is the PR's own red, so naming it is not enough: the fixture line has to change. Moving the 9999 fixture row to dev/programme/delivery/ (DELIVERY_ROW accepts both homes) or using a form layout.py exempts would clear it. Either way the body owes the cheaper-detector answer.
+The delta from e6e5aea:
+- 3eb8d53a: the fixture path fix.
+- 5a042830: merges 3eb8d53a.
+- 5964b583: merges origin/main b296779f, the v6.7.17 stamp.
 
-## What passed (these numbers survive into the next round if the fix touches only the fixture path)
-- Failing test first and mutation, `bash tools/pr/prepr.sh --self-test` in the CI venv:
-  RESULT head: 212 passed, 0 failed
-  RESULT at af5560f8 (test without fix): 211/1, the failure being `pr-body exempts a main-graded red when the diff only ADDS its own delivery row (got 1, wanted 0)`
-  RESULT M_fix_removed (the `args+=(--existing-file "$ex")` line deleted at head): 211/1, the same failure
-- Null control is real, not vacuous: RESULT M_null_no_red (drop `delivery-status` from both row_red calls): the null case flips to rc 0 (`got 0, wanted 1`). So the null control's rc 1 comes from the delivery-status refusal, not from some unrelated error swallowed by >/dev/null.
-- Can --existing-file in prepr exempt a red the PR causes? Not beyond what CI already exempts:
-  * prepr derives existing with the same rule pr-contract uses (`git diff --no-renames --name-only --diff-filter=a $BASE...HEAD`). It feeds the same base-copy function `reporterInputsTouched`, over the same range as PATHS (`diff_paths "$BASE"`, the live caller at line 2080).
-  * --diff-filter=a keeps edited and deleted base rows. A moved row is a delete plus an add under --no-renames, so its old path still counts. Edits to REPORTER_INPUTS are matched over `paths`, not `existing`.
-  * Only rows the PR adds become exempt. delivery-status grades main's first-parent rowless merges and nightly-status grades main's scheduled run, so an added row cannot cause either red.
-  * If BASE is unset or the diff fails, no --existing-file is passed and the stricter reading stands. The self-test runs before BASE is assigned (line 974 vs 1824), so the other self-test callers are unchanged.
-  * I found no widening. One residual: `$BASE...HEAD` reads the cwd's HEAD while `$2` is the head argument. In every live caller those are the same commit.
-- RCA note (23e200ad) matches the code. The delivery row is at the new path dev/programme/delivery/2062.md. VERSION, the manifest version, the notes heading, both claim files and the budgets are untouched.
-- Round-1 findings at 539d300b (the token fix, the entities pin and its mutants, the replays, the cost test) concern files the delta did not touch, so they carry.
+`git diff --cc` at the head is empty, so no conflict resolution was done by hand. merge-tree against origin/main b296779f gives rc 0. Against the three-dot base, VERSION, the manifest version, the notes heading, both claim files and every budget file are untouched (0 lines). The claim-file change in e6e5aea..HEAD is main's own stamp, inherited.
 
-## Other CI at e6e5aea (one poll, 37 runs)
-- nightly-status failed: main's reporter, exempt as in round 1.
-- delivery-status was not red at this poll.
-- closures, coverage and Analyze (python) were still in progress. coverage is not required. closures may still turn red; read it before the next round.
+## The round-2 blocker is cleared
+- 3eb8d53a builds its own rows under dev/programme/delivery/: `rowadd` off `fork` adds the row, and `rowedit` off `rowadd` edits it. The cases are now `row_red rowadd fork` → 0 and `row_red rowedit rowadd` → 1. The semantics are preserved: the positive case is a diff that only adds its own row, and the null case edits a row the base had.
+- RESULT layout (local, CI venv): `python3 tests/layout.py` rc=0, `layout: GUARD: 0 refusal(s) against b296779f0e96`.
+- RESULT CI `fast (3.14)` 113396389610: success. RESULT CI `closures` 113396530637: success.
 
-Evidence: /Users/timmalmstrom/hpo-seats/review-2062/evidence2
+## prepr self-test and mutants, re-run at this head (my harness, evidence3/run_mutants.sh)
+- RESULT head: 212 passed, 0 failed.
+- RESULT M_fix_removed (`args+=(--existing-file "$ex")` deleted): 211/1. The failure is `pr-body exempts ... only ADDS its own delivery row (got 1, wanted 0)`.
+- RESULT M_null_no_red (`delivery-status` dropped from row_red): 211/1. The null case gives `got 0, wanted 1`, so the control's rc 1 is the delivery-status refusal and is not vacuous.
+
+## Body
+- `## Red checks` names `fast (3.14)` red at e6e5aea7 (job 113385312852) as the PR's own red. It gives the cause (layout.py new-reference to the retired docs/delivery/) and the cheaper detector, `python3 tests/layout.py`: about 4 s on CI, standing cost those seconds per push, and not in prepr.sh or the scoped selection. It owns the miss. That answers defect-root-cause.md's second trigger.
+- It names nightly-status and delivery-status as main's reporters, exempt.
+- Its "closures was green at e6e5aea7" checks out: run 113385453475 concluded success.
+- `## Head` names 5964b583 and describes its two merges correctly.
+- `Closes #2028` is still on its own line.
+
+## CI at the head (two polls; the second is the settled one)
+- Every check is completed except `coverage`, which is not required (coordinator).
+- The only red is `nightly-status` 113396389907. It is main's scheduled-run reporter, the diff touches no reporter input except its own new row, and pr-contract's exemption passed: both pr-contract runs, 113396126320 and 113396697695, are success.
+- `Analyze (python)` was in progress at the first poll and had settled non-red by the second.
+
+## Carried
+Round 1 at 539d300b covered the token on the body-check step, the entities pin with mutants M0 and M1, the six planted variants, the #2053 and #2058 replays, the bus re-derivation and the cost test. Those files are unchanged since then, so those results carry. Round 2's checks on the --existing-file exemption (no widening beyond CI's rule) also carry, because prepr.sh's body_check is unchanged since a6984468.
+
+The round-1 non-blocking notes still stand:
+(a) The red-history walk adds GITHUB_TOKEN API calls per contract run and fails closed when a read fails.
+(b) The RCA §6 item 3 owner proposal needs surfacing on #201 or in HANDOVER.
+(c) The workflow file is code-owned, so it needs the orchestrator's or tvofi's approving review.
+
+Evidence: /Users/timmalmstrom/hpo-seats/review-2062/evidence3
