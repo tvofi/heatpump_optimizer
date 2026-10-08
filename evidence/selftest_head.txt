@@ -1,0 +1,7 @@
+  ok   the committed tests/closures.json is in the layout
+
+ALL 52 closure shrink pins PASSED
+rc=0
+  ok   a .gitattributes routing only one ledger is refused
+
+all passed

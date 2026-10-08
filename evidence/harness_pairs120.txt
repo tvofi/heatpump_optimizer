@@ -1,0 +1,19 @@
+layout conflict: branch #2055 against main #2015
+layout conflict: branch #2041 against main #1987
+layout conflict: branch #2041 against main #2015
+layout conflict: branch #2041 against main #1997
+layout conflict: branch #2041 against main #1867
+layout conflict: branch #2041 against main #1851
+layout conflict: branch #2049 against main #2015
+layout conflict: branch #2026 against main #2015
+layout conflict: branch #1987 against main #1851
+layout conflict: branch #2015 against main #2022
+layout conflict: branch #2015 against main #1980
+layout conflict: branch #2015 against main #1957
+layout conflict: branch #1980 against main #1957
+layout conflict: branch #1957 against main #1867
+layout conflict: branch #1957 against main #1851
+layout conflict: branch #1874 against main #1851
+layout conflict: branch #1865 against main #1851
+RESULT pairs=506 semantic=0 conflicts_as_written=87 conflicts_layout=17
+python3 dev/audit/harnesses/r9_ci2b_closures_merge.py pairs 120  27.73s user 18.07s system 27% cpu 2:46.02 total

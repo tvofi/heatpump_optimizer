@@ -1,0 +1,2 @@
+  FAIL check refuses an unsorted table  [rc=0 'closure: committed closures cover every file this run touched\n']
+1 of 52 closure shrink pins FAILED
