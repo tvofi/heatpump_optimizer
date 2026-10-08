@@ -1,0 +1,37 @@
+== #2025 mb=dcc77dd0c5
+5d4f3b049e ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 5d4f3b049ee51393b617e040d796dfb89bb2609d, ledger lines added since 816547efe270
+REFUSE tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._forecast_arrays.CMP_BOUND.54c3c7b5.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9c-egb11/ev7/equiv_6840.py
+0864a8d240 ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 0864a8d2408d645595330291defd3c7bf60c5dc6, ledger lines added since 816547efe270
+REFUSE tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._forecast_arrays.CMP_BOUND.54c3c7b5.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9c-egb11/ev7/equiv_6840.py
+95b083063f ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 95b083063f3ebce013d38726bd329c729438bc7c, ledger lines added since 0c25836e5a84
+37ac4d841b ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 37ac4d841b24a4fc49ff5f2f48ec8ebc41486702, ledger lines added since 6b91e238f688
+f324454701 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at f32445470105937cd7e264fed8ad371eea12e13f, ledger lines added since 8d7903e69cfe
+e0f87d5b9e ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at e0f87d5b9e4dcec8c39ed1bdf0ebbc7368dad909, ledger lines added since e0f0b6fb397b
+5947316c55 ledger-grep-hits=29 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 5947316c55e06b03c9e37fca93f4bf8e9b64a9fb, ledger lines added since 38c03d941924
+bdc519b9e2 ledger-grep-hits=29 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at bdc519b9e2b547d6ed74313b69ea30ee23c4e50a, ledger lines added since 3910026eed30
+f67d4729d4 ledger-grep-hits=0 ledger-refusals=0 | tmp_paths: 12 refused, 10 stale allow entries at f67d4729d44f31cd1186898fd9400452a46ab6b4, ledger lines added since 86dbf0ca1d5e
+== #2010 mb=4647321d8b
+6eafd3a5ef ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 6eafd3a5ef72968f463a1a0818f309ff6c643584, ledger lines added since 4647321d8b33
+9a8255b393 ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 9a8255b393b4f07fb99e378bcbfb4c058a8914a4, ledger lines added since 4647321d8b33
+REFUSE tests/mutation_ledger/survivor_triage/optimizer.py/idle_codes.CMP_BOUND.a02b3552.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux5-fix3/ev/probe_idle_codes.py
+0208cec67c ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 0208cec67c0eea852d7bbe3427c6257330bd64c1, ledger lines added since dcc77dd0c53e
+REFUSE tests/mutation_ledger/survivor_triage/optimizer.py/idle_codes.CMP_BOUND.a02b3552.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux5-fix3/ev/probe_idle_codes.py
+54c10bf71d ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 54c10bf71d155d0ac3a71a59da466949aa7df5be, ledger lines added since 816547efe270
+REFUSE tests/mutation_ledger/survivor_triage/optimizer.py/idle_codes.CMP_BOUND.a02b3552.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux5-fix3/ev/probe_idle_codes.py
+0592789211 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 0592789211ea271112306158ec6eb0ac1d618de3, ledger lines added since 816547efe270
+b78e58109c ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at b78e58109ce293e87693955ce75b4d82b99e1c93, ledger lines added since 0c25836e5a84
+dc4e3f13a3 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at dc4e3f13a345d794a0621744b22fef8479140ae9, ledger lines added since 6b91e238f688
+ccd40d51f5 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at ccd40d51f538c0683fd8ed04f40936caf035b6c6, ledger lines added since e2a4f7c67b28
+d6572679ee ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at d6572679ee9afa4131de57e1487a1db009abf732, ledger lines added since 17f30f9cedf2
+== #2024 mb=13b6d12150
+1e92e0e8f3 ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 1e92e0e8f3fa097a57ac5aa4a93604042ee65814, ledger lines added since 13b6d12150e8
+REFUSE tests/mutation_ledger/survivor_triage/inputs.py/normalize_flow_kg_s.GUARD_OFF.b46fca00.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux9-fix2/ev/probe_inputs.py
+9901b4a9be ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at 9901b4a9be9f358bdc87a82db84a63955d2f6321, ledger lines added since 9cac1947e7c5
+REFUSE tests/mutation_ledger/survivor_triage/inputs.py/normalize_flow_kg_s.GUARD_OFF.b46fca00.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux9-fix2/ev/probe_inputs.py
+f92aa4b074 ledger-grep-hits=32 ledger-refusals=1 | tmp_paths: 1 refused, 0 stale allow entries at f92aa4b074a28897c4d34641a78226df1ca27e45, ledger lines added since 816547efe270
+REFUSE tests/mutation_ledger/survivor_triage/inputs.py/normalize_flow_kg_s.GUARD_OFF.b46fca00.json:4: [ledger-machine-path] /Users/timmalmstrom/hpo-seats/r9-ux9-fix2/ev/probe_inputs.py
+c1cae32dc0 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at c1cae32dc0b7781880e1fb8806a04083e1185a59, ledger lines added since 816547efe270
+e575850bdb ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at e575850bdbe369669ddedfc1137c8007d52094b9, ledger lines added since 0c25836e5a84
+e4218c25fd ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at e4218c25fd92c26b1926cd01fd3e00cc6a02fe6f, ledger lines added since 0c25836e5a84
+4394b4c401 ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 4394b4c4011eb449cf87adce7c598c087fb5a042, ledger lines added since 8d7903e69cfe
+111521f31b ledger-grep-hits=31 ledger-refusals=0 | tmp_paths: 0 refused, 0 stale allow entries at 111521f31baff7debe1637827d14478ece766b39, ledger lines added since 17f30f9cedf2

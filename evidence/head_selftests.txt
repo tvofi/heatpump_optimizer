@@ -1,0 +1,10 @@
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+layout self-test: ok
+
+ALL 40 closure shrink pins PASSED
+record_row self-test: all checks passed
+  ok   the same line under another ledger file is still stock (a re-key moves it)
+tmp_paths self-test: 50 checks, 0 failed
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 4647321d8b33
+  ok   validate.yml is in this tree and takes workflow_dispatch
+merge_train self-test: 81 checks, 0 failed
