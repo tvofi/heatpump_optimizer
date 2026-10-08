@@ -1,9 +1,9 @@
 #!/bin/bash
-# Reviewer's own mutants for PR #2049 at 04b8b4bd; each applied in the detached
+# Reviewer's own mutants for PR #2049 at 245468e2 (round 2); each applied in the detached
 # review worktree, tests/entities.py run, tree restored with git checkout.
 set -u
-WT=/Users/timmalmstrom/hpo-seats/review-2049/wt
-OUT=/Users/timmalmstrom/hpo-seats/review-2049/ev/mutants
+WT=/Users/timmalmstrom/hpo-seats/review-2049/wt2
+OUT=/Users/timmalmstrom/hpo-seats/review-2049/ev2/mutants
 PY=/Users/timmalmstrom/.local/state/hpo/venv-ci/bin/python3
 cd "$WT" || exit 2
 mut() { # id file python-replace-expr-old new
@@ -21,6 +21,7 @@ PY
   echo "RESULT $id rc=$rc $summ"
   grep -E '^\s*FAIL ' "$OUT/$id.txt" | grep -iE 'shard|pin summary|INERT|failed recording|UNRELATED|EXCLUSIVE|reddens' | head -4
 }
+PYTHONPATH=tests/hastub $PY tests/entities.py > "$OUT/M0_baseline.txt" 2>&1; echo "RESULT M0_baseline rc=$? $(grep -E "ENTITY CHECKS" "$OUT/M0_baseline.txt" | tail -1)"
 mut M1_pin_shard_overlap tests/mutation_table.py 'order[s["anchor"]] % n == k - 1]' 'order[s["anchor"]] % n <= k - 1]'
 mut M2_merge_mixed_heads tests/mutation_table.py '(heads.pop() if len(heads) == 1 else "")' '(sorted(heads)[0] if heads else "")'
 mut M3_merge_status_first tests/mutation_table.py 'status = min(statuses, key=lambda s: rank.get(s, 1))' 'status = statuses[-1]'

@@ -1,2 +1,0 @@
-2026-10-08T03:19:26.2965648Z   ERROR   [pr-body] /tmp/pr-body.md: check `delivery-status` is red and `## Red checks` does not name it. It grades `main`, but this diff touches what it reads (.github/workflows/tests.yml), so the red may be this pull request's own. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
-2026-10-08T03:19:26.2966957Z PR-BODY: 1 error(s) in /tmp/pr-body.md
