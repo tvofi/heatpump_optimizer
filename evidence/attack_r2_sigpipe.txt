@@ -1,0 +1,5 @@
+first-parent commits on origin/main: 1296
+RESULT run=1 honest-recarry-real-history pipefail=on rc=1 verdict=parent 2 421c77f9 is not on the freshly fetched origin/main's first-parent chain
+RESULT run=2 honest-recarry-real-history pipefail=on rc=1 verdict=parent 2 421c77f9 is not on the freshly fetched origin/main's first-parent chain
+RESULT run=3 honest-recarry-real-history pipefail=on rc=1 verdict=parent 2 421c77f9 is not on the freshly fetched origin/main's first-parent chain
+RESULT control pipefail=off rc=0 verdict=HEAD 7abd7492 is the clean merge of the live head 1a009532 and origin/main's 421c77f9, and the body is the live one
