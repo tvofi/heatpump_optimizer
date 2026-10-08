@@ -163,11 +163,31 @@ def throwaway_git_clone(src, dest, *clone_args: str, git=("git",), cwd=None) -> 
 # The check: no raw `git init` in a tracked script.
 
 _SITE = (re.compile(r"(?i:\bgit\b).*\binit\b"),
-         re.compile(r"(?i:\bgit\b)[\"'}]?(?:\s+(?:-[Cc]\s+\S+|--?[A-Za-z][\w-]*(?:=\S+)?))*\s+clone\b"),
          re.compile(r"[\"']clone[\"']\s*[,\]]"),
          re.compile(r"[\"']init[\"']\s*,\s*[\"'](?:-q|--quiet|-b|--bare|--initial-branch|--template"
                     r"|--object-format)"))
 _LOCAL_LAYER_INLINE = "maintenance.auto=false"
+_GIT_WORD = re.compile(r"(?i)\bgit\b")
+_TAKES_VALUE = ("-C", "-c")
+_SCOPE_DIRS = ("tools/", "tests/", ".claude/", "dev/audit/harnesses/")
+_SCOPE_EXTS = (".sh", ".py", ".mjs", ".js", ".cjs")
+
+
+def _shell_clone(text: str) -> bool:
+    """`git` (any case, as a word, so `"$GIT"` counts) whose subcommand, after
+    any global options, is `clone`. A token scan, not one regex: the regex it
+    replaced backtracked exponentially on repeated `-c -a` (CodeQL py/redos,
+    #2054)."""
+    for m in _GIT_WORD.finditer(text):
+        rest = text[m.end():].lstrip("\"'}")
+        if not rest[:1].isspace():
+            continue
+        toks, i = rest.split(), 0
+        while i < len(toks) and toks[i].startswith("-"):
+            i += 2 if toks[i] in _TAKES_VALUE else 1
+        if i < len(toks) and re.match(r"clone\b", toks[i]):
+            return True
+    return False
 
 # (file, text the line must contain, reason). Exact and per file.
 ALLOW = (
@@ -177,9 +197,8 @@ ALLOW = (
 
 
 def scope(path: str) -> bool:
-    if re.match(r"tools/audit/round\d+/", path):
-        return False
-    return bool(re.match(r"(?:tools|tests|\.claude|dev/audit/harnesses)/.*\.(?:sh|py|mjs|js|cjs)$", path))
+    return (path.startswith(_SCOPE_DIRS) and path.endswith(_SCOPE_EXTS)
+            and not re.match(r"tools/audit/round\d+/", path))
 
 
 def is_site(text: str) -> bool:
@@ -188,7 +207,7 @@ def is_site(text: str) -> bool:
         return False
     if re.search(r"\bclone\b", text) and _LOCAL_LAYER_INLINE in text and not re.search(r"\binit\b", text):
         return False  # a clone that writes the local layer itself
-    return any(rx.search(text) for rx in _SITE)
+    return _shell_clone(text) or any(rx.search(text) for rx in _SITE)
 
 
 def classify(lines, allow=ALLOW) -> tuple[list[str], list[str]]:
@@ -250,7 +269,8 @@ def self_test() -> int:
             ("execFileSync clone", "tools/policy/x.mjs", "execFileSync('git', ['clone', src, dir])"),
             ("a shell clone through a git variable", sh, '"$GIT" clone -q "$a" "$b"'),
             ("a shell clone after a global option", sh, 'git --no-pager clone -q "$a" "$b"'),
-            ("a list clone after -c options", py, 'run(["git", "-c", "x=y", "clone", a, b])')):
+            ("a list clone after -c options", py, 'run(["git", "-c", "x=y", "clone", a, b])'),
+            ("a shell clone after -C and -c", sh, 'git -C "$d" -c a=b clone -q "$a" "$b"')):
         check(f"refused: {name}", one(path, text) != [])
     for name, path, text in (
             ("the helper call", py, 'env = throwaway_git_init(d, "-q", "-b", "trunk")'),

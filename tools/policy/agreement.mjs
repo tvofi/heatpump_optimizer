@@ -224,7 +224,6 @@ const SHARED_GRAMMARS = {
   "\\|[\\s|:-]+\\|": "identical:the markdown table separator row, three readers",
   "[-*]\\s+\\[#(\\d+)\\]\\((?:[^()\\s]*\\/pull\\/)(\\d+)\\)": "identical:the Delivery-status row anchor, policy_lint.mjs and the record-predicate sweep",
   "refuse\\s+since-ref\\b": "identical:the `refuse since-ref` output marker, policy_lint.mjs and its env-matrix",
-  "(?:tools|tests|\\.claude|dev/audit/harnesses)/.*\\.(?:sh|py|mjs|js|cjs)": "identical:the tracked-script scope, tmp_paths.py's temp-path scan and throwaway_git.py's raw init/clone scan",
   "<svg class=\"setup-svg[\\s\\S]*?<\\/svg>": "identical:the setup-page SVG extractor, card.mjs and setup_qa_render.mjs",
   "\\d+\\.\\d+\\.\\d+": "not-a-concept:the semantic-version shape",
   "[\\[{]\"(\\d+)\\xb7([^\"<]+?)(?:<br/>|\")": "identical:the README flow-diagram step grammar, doc_claims.py and entities.py",
