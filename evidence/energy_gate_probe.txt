@@ -1,4 +1,0 @@
-RESULT flow only: heat_output_kw=5.2325 feedback_gaps=[]
-RESULT flow+energy: heat_output_kw=5.2325 feedback_gaps=[]
-RESULT flow+power: heat_output_kw=None feedback_gaps=[]
-RESULT flow+freq sensor: heat_output_kw=None feedback_gaps=[]

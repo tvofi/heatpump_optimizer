@@ -1,4 +1,0 @@
-RESULT fresh(1min) -> (5.222035, None)
-RESULT stale(90min) -> (None, 'stale')
-RESULT unit gal/min -> (None, 'unknown_unit')
-RESULT m3/h 0.9 -> (5.222035, None)

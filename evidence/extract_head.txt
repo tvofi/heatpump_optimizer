@@ -1,5 +1,5 @@
 
-=== UX-9 extract ===
+=== UX-9 extract r2 ===
   ok   an install with no power, energy, frequency or flow signal is told which four classes to add
   ok   any one of the signals silences the recommendation (null control: each alone)
   ok   an unrelated entity does not count as feedback
@@ -16,5 +16,8 @@
   ok   the thermal-output estimate is published on the recommended-power sensor, and absent stays None
   ok   the options step asks for the flow sensor beside the compressor frequency sensor
   ok   an unknown flow unit is absent rather than guessed
+  ok   a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)
+  ok   a zero flow reading is a measured 0 kW, not absent
+  ok   a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit)
 
-ALL 16 UX9 EXTRACT CHECKS PASSED
+ALL 19 UX9 EXTRACT CHECKS PASSED
