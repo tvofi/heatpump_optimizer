@@ -117,12 +117,16 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     }
     if state:
         snap.update(state.learner_summaries)
-    for key, view in _VIEWS:
-        try:
-            snap[key] = view(coord)
-        except Exception:  # noqa: BLE001 -- diagnostics never breaks
-            snap[key] = "unavailable"
+    snap.update({key: _never_breaks(view, coord) for key, view in _VIEWS})
     return snap
+
+
+def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
+    """One module's view, or ``"unavailable"``: diagnostics never breaks."""
+    try:
+        return view(coord)
+    except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        return "unavailable"
 
 
 #: Each module's own ``diagnostics_view``, one ``(key, view)`` row per module.
