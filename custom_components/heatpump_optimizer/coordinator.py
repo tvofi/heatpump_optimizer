@@ -214,7 +214,6 @@ from . import pv as pv_model
 from .accuracy import (
     COP_REFUSED_BLENDED,
     COP_REFUSED_DISTORTED,
-    COP_REFUSED_DUTY_FLOOR,
     COP_REFUSED_FROST_BAND,
     COP_REFUSED_FROZEN,
     COP_REFUSED_MODELLED,
@@ -4456,9 +4455,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
-        floor = ctx._thermal_params.flow_lift_power_floor_kw
-        if commanded < floor or self._measured_power < floor:
-            return COP_REFUSED_DUTY_FLOOR
+        params = ctx._thermal_params
+        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):
+            return refusal
 
         # In the frosting band the shortfall belongs to the defrost derate,
         # which learns from the same signal; letting both learners fold in
@@ -4507,7 +4506,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if refusal := MeasuredCop.judge_ratio(ratio, ewma, draw):
+        if refusal := MeasuredCop.judge_ratio(ratio, ewma, commanded, params, draw):
             _LOGGER.debug(
                 "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
                 "against the running ratio %.2f -- not an efficiency reading",

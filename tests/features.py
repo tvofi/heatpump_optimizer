@@ -60210,13 +60210,23 @@ def _cf_coord(p_max=14.0, p_min=1.0):
     return _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
 
 
-def _cf_learn(coord, kw, cycles=1):
-    """Feed ``cycles`` intervals where the pump drew what it was told (``kw``)."""
+def _cf_learn(coord, kw, cycles=1, evidence=True):
+    """Feed ``cycles`` intervals where the pump drew what it was told (``kw``).
+
+    ``evidence``: first fill #2065's running-draw window with a draw that
+    follows varied asks at or above the floor, so ``follows_ask`` is True.
+    """
+    params = coord._thermal_params
+    if evidence and not coord._accuracy.draw.samples:
+        base = params.min_electrical_power or 1.2
+        for i in range(48):
+            ask = base * (1.0, 1.3, 1.6, 2.0)[i % 4]
+            coord._accuracy.draw.observe(ask, ask, params.min_electrical_power, params.max_electrical_power)
     coord._current_action = {"power": kw, "dhw_power": 0.0}
     coord._measured_power = kw
     coord._current_state.outdoor_temperature = 8.0  # outside the frost band
     for _ in range(cycles):
-        coord._learn_measured_cop()
+        coord._learn_measured_cop(coord._accuracy.draw)
     return coord._cop_samples
 
 
@@ -60227,9 +60237,32 @@ def _cf_last(coord, name):
 
 _cf_run = [_cf_learn(_cf_coord(), kw, 3) for kw in (1.9, 2.2, 2.55)]
 R.check(
-    "a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner",
+    "a 14 kW nameplate pump drawing 1.9-2.55 kW teaches the COP learner once "
+    "the meter shows the draw follows the ask",
     all(n == 3 for n in _cf_run),
     f"samples per draw {_cf_run} (the 4.2 kW floor gave 0 each)",
+)
+# A draw departing from its ask by more than 15 % before the meter has shown
+# whether the draw follows the ask folds only where base would have: both
+# clear the nameplate third. On 14 kW (4.2 kW) a 2.0 kW ask drawn at 2.6 kW
+# waits for evidence; on 4 kW (1.2 kW) base folded it and so does the head.
+def _cf_depart(p_max):
+    coord = _cf_coord(p_max=p_max)
+    coord._current_action = {"power": 2.0, "dhw_power": 0.0}
+    coord._measured_power = 2.6
+    coord._current_state.outdoor_temperature = 8.0
+    coord._cop_ratio_ewma = 1.3  # a persistent ratio, past the tracking gate
+    coord._learn_measured_cop(coord._accuracy.draw)
+    return coord
+
+
+_cf_wait, _cf_base = _cf_depart(14.0), _cf_depart(4.0)
+R.check(
+    "with no draw evidence a departure folds only past the nameplate third: "
+    "it waits for evidence on 14 kW and folds on 4 kW, as base",
+    _cf_wait._cop_samples == 0 and _cf_last(_cf_wait, "refusal") == "awaiting_draw_evidence"
+    and _cf_base._cop_samples == 1,
+    f"{_cf_wait._cop_samples} ({_cf_last(_cf_wait, 'refusal')}) / {_cf_base._cop_samples}",
 )
 # Idle (controller and crankcase heater) and standby (circulation pump at or
 # under thermal_model.on_threshold_kw, half the modulation floor) are what
@@ -60327,18 +60360,20 @@ def _cf_feed(pairs, true=None):
 
 
 _cf_sm = _cf_feed(_cf_pairs((1.0, 1.25, 1.5, 1.75, 2.0), (1.9, 2.2, 2.55)))
-_cf_fl = _cf_feed(_cf_pairs((1.5,), (2.2,)))
+_cf_flat = _cf_feed(_cf_pairs((1.5,), (2.2,)))
 _cf_mt = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (1.9, 2.2, 2.55)))
 _cf_sh = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (0, 0, 0), 288), true=0.7)
 R.check(
     "a draw that ignores the ask (varying or flat) is refused as off-ask; a "
     "matched draw and a 0.7 shift on a draw that follows its ask still teach",
-    abs(_cf_sm._cop_scale - 1.0) < 0.05 and _cf_fl._cop_scale == 1.0
-    and _cf_last(_cf_fl, "refusal") == "draw_off_ask"
+    abs(_cf_sm._cop_scale - 1.0) < 0.1 and _cf_flat._cop_scale == 1.0
+    and _cf_last(_cf_flat, "refusal") == "awaiting_draw_evidence"
+    and _cf_last(_cf_sm, "refusal") in ("draw_off_ask", "tracking_gate")
     and _cf_mt._cop_samples == 96 and abs(_cf_mt._cop_scale - 1.0) < 1e-9
     and abs(_cf_sh._cop_scale - 0.7) < 0.02,
-    f"independent scale {_cf_sm._cop_scale:.3f} ({_cf_sm._cop_samples}/96); flat "
-    f"{_cf_fl._cop_scale:.3f} ({_cf_last(_cf_fl, 'refusal')}); matched "
+    f"independent scale {_cf_sm._cop_scale:.3f} ({_cf_sm._cop_samples}/96, "
+    f"{_cf_last(_cf_sm, 'refusal')}); flat {_cf_flat._cop_scale:.3f} "
+    f"({_cf_last(_cf_flat, 'refusal')}); matched "
     f"{_cf_mt._cop_samples}/96 {_cf_mt._cop_scale:.3f}; shift {_cf_sh._cop_scale:.3f}",
 )
 

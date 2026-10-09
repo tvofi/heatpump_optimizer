@@ -633,6 +633,7 @@ def heat_loss_refit(
 COP_REFUSED_NO_POWER = "no_measured_power"
 COP_REFUSED_FROZEN = "learners_frozen"
 COP_REFUSED_DUTY_FLOOR = "duty_floor"
+COP_REFUSED_NO_EVIDENCE = "awaiting_draw_evidence"
 COP_REFUSED_FROST_BAND = "frost_band"
 COP_REFUSED_DISTORTED = "draw_distorted"
 COP_REFUSED_TRACKING = "tracking_gate"
@@ -642,8 +643,8 @@ COP_REFUSED_MODELLED = "modelled_cop"
 COP_REFUSED_OBSERVED = "observed_cop"
 
 #: How far the metered draw may depart from the plan's ask, as a share of the
-#: ask, before the interval needs ``draw_range.follows_ask``'s evidence that
-#: the draw follows the ask (``MeasuredCop.judge_ratio``).
+#: ask, before the interval is judged on ``draw_range.follows_ask``'s evidence
+#: (``MeasuredCop.judge_ratio``).
 COP_ASK_TOLERANCE = 0.15
 
 
@@ -671,22 +672,42 @@ class MeasuredCop:
     refusal: str | None = None
 
     @staticmethod
-    def judge_ratio(ratio: float, ewma: float, draw: DrawRange | None) -> str | None:
+    def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
+        """``COP_REFUSED_DUTY_FLOOR`` when the ask or the draw is under the duty
+        floor (``flow_lift_power_floor_kw``), else None."""
+        if min(asked_kw, drawn_kw) < params.flow_lift_power_floor_kw:
+            return COP_REFUSED_DUTY_FLOOR
+        return None
+
+    @staticmethod
+    def judge_ratio(
+        ratio: float, ewma: float, asked_kw: float, params: Any, draw: DrawRange | None
+    ) -> str | None:
         """The ratio gates' refusal for this interval's metered/asked ``ratio``, or None.
 
         ``ewma`` is the walking ratio BEFORE this interval, so an interval
         cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
-        the walking ratio (v4.0.5). ``COP_REFUSED_OFF_ASK``: a departure from
-        the ask unless ``draw_range.follows_ask(draw)`` says the draw
-        follows the ask -- a pump that sets its own power would otherwise fold
-        its departures as a COP shortfall, while an efficiency shift on a draw
-        that follows its ask still folds, so no error is beyond reach.
+        the walking ratio (v4.0.5). A departure from the ask beyond
+        ``COP_ASK_TOLERANCE`` is then judged on ``draw_range.follows_ask``:
+        evidence that the draw follows the ask lets it fold (an efficiency
+        shift); evidence that it does not refuses it (``COP_REFUSED_OFF_ASK``:
+        a pump that sets its own power, whose departures would fold as a COP
+        shortfall); with no evidence yet it folds only where base would have
+        -- the ask and the draw both clear the nameplate third -- and is
+        otherwise ``COP_REFUSED_NO_EVIDENCE``. So no install folds a departure
+        base refused before the evidence says the draw follows its ask; one
+        whose asks never span ``FOLLOW_ASK_SPAN`` keeps base's reach for them.
         """
         if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
             return COP_REFUSED_TRACKING
-        if abs(ratio - 1.0) > COP_ASK_TOLERANCE and follows_ask(draw) is not True:
-            return COP_REFUSED_OFF_ASK
-        return None
+        if abs(ratio - 1.0) <= COP_ASK_TOLERANCE:
+            return None
+        follows = follows_ask(draw)
+        if follows is None:
+            if min(asked_kw, ratio * asked_kw) >= params.nameplate_power_floor_kw:
+                return None
+            return COP_REFUSED_NO_EVIDENCE
+        return None if follows else COP_REFUSED_OFF_ASK
 
     def record(self, cop: float, curve_dhw: bool, dhw_temp: float | None) -> None:
         """One folded interval's COP and its curve, together."""
@@ -716,15 +737,18 @@ class MeasuredCop:
         return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)
 
 
-def diagnostics_view(record: MeasuredCop, params: Any) -> dict[str, Any]:
+def diagnostics_view(record: MeasuredCop, params: Any, draw: DrawRange | None) -> dict[str, Any]:
     """The COP learner's diagnostics: its last refusal and the floor it judged by.
 
-    ``params`` is the live ``ThermalParameters``; ``power_floor_kw`` is its
-    ``flow_lift_power_floor_kw``, the floor the COP and flow-lift folds read --
-    not the optimizer's ``duty_floor_kw``, a different quantity.
+    ``params`` is the live ``ThermalParameters``, ``draw`` the running-draw
+    window. ``power_floor_kw`` is ``flow_lift_power_floor_kw``, the floor the
+    COP and flow-lift folds read -- not the optimizer's ``duty_floor_kw``, a
+    different quantity; ``draw_follows_ask`` is the evidence a departure from
+    the ask is judged on (None: none yet).
     """
     return {
         "last_refusal": record.refusal,
         "measured_cop": record.cop,
         "power_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
+        "draw_follows_ask": follows_ask(draw),
     }
