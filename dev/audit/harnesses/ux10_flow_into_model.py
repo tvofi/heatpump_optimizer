@@ -50,8 +50,9 @@ Trees, each copied from the checkout into a temp dir:
 - ``m_veto``: ``_interval_measured_heat_kw``'s blend refusal removed, so an
   interval the plan split with hot water is spent on the house.
 
-Expected, as measured at HEAD_SHA on HEAD_DATE against merge base
-a8ce87571 (both under Python 3.14.7):
+Expected, as measured at eed6aee8 on 2026-10-09 against merge base
+a8ce87571 (both under Python 3.14.7; the commit that carries this line adds
+only the recorded budget table and it):
     BLOCK head: rc=0 failing_checks=0   (ALL 7 UX-10 EXTRACT PASSED)
     BLOCK base: rc=0 failing_checks=6
     BLOCK m_precedence: rc=0 failing_checks=1

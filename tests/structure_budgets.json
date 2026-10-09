@@ -5,15 +5,15 @@
  "coordinator_private_reach": 0,
  "dead_methods": 0,
  "dead_top_level_symbols": 1,
- "duplication_copies": 38,
+ "duplication_copies": 37,
  "functions_cc_over_15": 31,
  "functions_cc_over_25": 8,
  "import_cycle_modules": 0,
  "max_cc": 45,
- "max_class_loc": 8818,
+ "max_class_loc": 8795,
  "max_method_loc": 373,
  "methods_over_150": 17,
  "methods_over_200": 9,
- "recorded_at": "2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38",
- "seam_cut_total": 762
+ "recorded_at": "a8ce87571e6b1c093e57036207828c74c70644f4",
+ "seam_cut_total": 760
 }
