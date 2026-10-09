@@ -137,6 +137,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   the default for a queue. Refusal: a red main admits nothing; a red proof
   drops its entry to serial,
   and main's tree differing from the proof's before or after a merge stops it.
+  Residual: a proved pair's second merge does not wait for main's run on the
+  first; the proof graded the tree both make. A `batch/` branch the remote
+  will not delete is logged `NOT deleted`, for deletion by hand.
 - `moved_paths.py` — lists every line in the given files that names a path
   `tests/layout.json` marks moved: a retired file, its emptied directory, or
   a lifted prefix. Each hit is tagged FALLBACK when the line also names the
@@ -220,7 +223,9 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   Refusal: every match on its own line — a `/tmp` state name, a `$TMPDIR`
   with a fixed name, a home path, an instrument run from `~/`; the 2026-10-03
   temp cleanup deleted three tracked tools' state and one decision's design
-  note.
+  note. It also refuses a temp, home or seat-directory path on a
+  `tests/mutation_ledger/` line the diff adds (a triage citing a probe no
+  other seat can run); main's stock is not charged.
 - `update_pr.sh` — brings an open PR branch to its head + a code SHA (merge) +
   origin/main (merge), prefixes ## Head with what happened, pushes as
   `hpo-author`. When: updating a PR after review prep or a main merge.

@@ -84,9 +84,13 @@ Same queue file; no head is re-merged with main. In order:
                  green, re-read), and main's tree must equal P_i's after;
   5. serial   -- routed and dropped entries go through `run`'s steps, in queue
                  order; after a D merge, only once main's run on it is green.
-The spent batch/ branches are deleted when the batch completes. Residual: GitHub's
+The spent batch/ branches are deleted when the batch completes; a delete the
+remote refuses is logged as NOT deleted, never as done. Residuals: GitHub's
 merge takes no expected base, so a merge landing between the guard and ours is
-caught only by step 4's after-check.
+caught only by step 4's after-check; and a proved pair's second merge lands
+before main's push run on the first finishes, so a red that run would show
+does not hold the second back -- accepted, because the proof graded the tree
+both merges make, and main's run on the last merge grades it again.
 A single merge thus rests on main's FULL push run, red there reverted first
 (orchestrator.md section 11). `--base batch/<name>` REHEARSES on a throwaway
 base: steps 1's carry, row and policy reads, 4's approval and 5 are skipped.
@@ -603,8 +607,10 @@ class Train:
             self.log(f"TRAIN STOPPED {s.step}: {s.why}")
             return 1
         if self.branches:  # the proofs are spent; their shas are in the log above
-            self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
-            self.log(f"deleted {', '.join(self.branches)}")
+            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+            names = ", ".join(self.branches)
+            self.log(f"deleted {names}" if code == 0 else
+                     f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
         self.log("TRAIN DONE")
         return 0
 
@@ -949,6 +955,9 @@ def _batch_self_test(check) -> None:
     def stub(w: dict):
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if argv[0] == "git" and "--delete" in argv:  # the proof branches live only in w["pushed"]
+                w["deleted"] = argv[argv.index("--delete") + 1:]
+                return w.get("delete_rc", (0, ""))
             if argv[0] == "git":
                 if argv[1:3] == ["fetch", "-q"]:
                     return g(w["L"], "fetch", "-q", "origin", *argv[4:])
@@ -1117,7 +1126,14 @@ def _batch_self_test(check) -> None:
           w["rc"] == 1 and not w["merged"] and not w["pushed"] and not any("dropped" in ln for ln in w["lines"]))
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1)
     check("... the same pair on a green main is proved and merges (null control)",
-          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and "deleted batch/t-1" in w["lines"][-2])
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and "deleted batch/t-1" in w["lines"][-2]
+          and w.get("deleted") == ["batch/t-1"])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1,
+           setup=lambda w: w.update(delete_rc=(1, "error: unable to delete 'batch/t-1'")))
+    check("a proof branch the remote would not delete is reported left, never deleted (R9-RO-9a)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and w["lines"][-2].startswith("NOT deleted batch/t-1")
+          and not any(ln.startswith("deleted ") for ln in w["lines"]))
 
     w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
            setup=lambda w: w.update(on_sleep=lambda: w["red"].add(w["base_sha"])))
