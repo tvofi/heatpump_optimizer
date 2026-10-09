@@ -60305,6 +60305,12 @@ R.check(
     30.0 < _frs_lim <= 180.0,
     f"{_frs_lim} min",
 )
+R.check(
+    "ninety minutes of silence raises the repair: an owner hears within the "
+    "hour and a half, read on the clock rather than through the constant",
+    _frs_run([(0, _frs_dead), (90, _frs_dead)])[0] == [0, 1],
+    str(_frs_run([(0, _frs_dead), (90, _frs_dead)])[0]),
+)
 # Null controls: the same clock with nothing wrong, or nothing configured,
 # raises nothing; and a gap shorter than the period restarts the count.
 R.check(
