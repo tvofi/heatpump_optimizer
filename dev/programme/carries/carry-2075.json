@@ -1,0 +1,31 @@
+{
+  "_comment": [
+    "Carry destination for R9-RC-Carry-Pins (#2075). Round 1's review blocked on",
+    "four grounds; three are fixed on this branch (a dead retired-path fallback,",
+    "a glob-named pathspec poisoning the exclusion, and the coarse whole-subtree",
+    "exclusion that hid a rewritten or deleted row). The fourth is not a defect",
+    "this branch may fix: #2010's shape, where an automatic merge of main shifts",
+    "only the CONTEXT around content the branch never touched, and `carry` still",
+    "refuses because its own-diff comparison keeps context. That rule is",
+    "deliberate and pinned by this file's own arms (`H_CTX`, `H_TOUCH` in",
+    "tools/pr/app_approve.sh) and by its header docstring; whether it should hold",
+    "against a pure context-line shift, given #2075 now proves a bot can",
+    "legitimately hide a real rewrite behind an added file, is a policy question",
+    "for the round-9 roster, not a fix here. The roster is not on main, so this",
+    "file is the in-tree destination, per the same shape as",
+    "dev/programme/carries/carry-1922.json. Shape and required fields:",
+    "dev/governance/rules/finding-propagation.md. Linted by",
+    "tools/policy/brief_lint.mjs (the `briefs` CI job)."
+  ],
+  "issue": 2075,
+  "stage": "R9-RO-13, the mandate-gated batch-policy group",
+  "carries": [
+    {
+      "from": "#2075 round 1, ground 3's remaining measurement and ground 4's fix",
+      "effect": "narrows",
+      "control": "Measured with the instrument that will change, not beside it: `bash tools/pr/app_approve.sh --self-test` gains four arms over the base (`H_PINMOD`, `H_PINDEL`, `H_PINGLOB`, `H_PIN_BADMSG`), each a confined bot-identity `ci: pin killed mutants` commit that differs only in what it did to a path already in the branch's own diff. Against main's coarse whole-subtree exclusion all four carry (the planted regression, 6 failed arms at `git diff origin/main HEAD`); against #2075's narrowing all four refuse on `the branch's own diff differs` and stay confined. The null control is the pair the mutation `no_literal` prints: removing the `literal` from `:(exclude,literal)` re-carries exactly the glob-named arm and nothing else, so the metacharacter and the modification are separated. The #2010 case this does NOT fix is measured the same way and left standing: `--carry d67d8a44ec6e6a2c93e2cedf126ba10ea00b2470 87849cd277485bd28bc85d64bc104293c5c7e6de origin/main` at the base refuses, and still refuses at #2075's head -- the branch's own added/removed text is byte-identical across the pair, one line of 16,965 differs and it is pure context, and the rule refuses anyway by design.",
+      "remeasure": "At your merge base, run `bash tools/pr/app_approve.sh --self-test` and confirm the four #2075 arms are present and green; then re-run `--carry` on the #2010 pair and confirm it still refuses. If a later change makes that pair carry, that is this constraint spent and the ground moved: the strict context-equal rule no longer holds, and #2075's narrowed subtree exclusion is then the only thing separating a carried head from a rewritten reviewed row, which must be re-argued, not assumed.",
+      "brief": "The branch's-own-diff comparison in `carry` keeps context lines as well as added and removed ones. #2075 proves this rule is load-bearing for exactly one reason it was not written down for: a bot commit may add a file whose name is a glob metacharacter, and `bot_paths` names a whole subtree, so a plain pathspec for one added file silently widens to the subtree, and context is the only thing left standing between that and a hidden rewrite. Whatever R9-RO-13 decides about pure context shifts, it must not decide them by deleting the context from the comparison -- the additions-only narrowing #2075 lands is the guard that holds a bot's rewrite of an already-reviewed row visible, and it holds because the comparison is byte-exact, not because the rule tolerates a moved line."
+    }
+  ]
+}
