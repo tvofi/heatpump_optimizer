@@ -1,12 +1,13 @@
 # RCA-stale-pins: a fix that edits a pinned line reddens `mutation`, and 6d did not say so
 
-The root-cause seat for the red that recurred four times on 2026-10-08 and 09.
+The root-cause seat for the red that recurred in three stale-pin PRs on 2026-10-08 and 09.
 It follows `dev/governance/roles/root-cause.md` and
 `dev/governance/rules/defect-root-cause.md`, and ran at `origin/main` `47b083b0`.
 The fix is PR #2073. The seat posted no issue.
 
 The trigger is the second one in `defect-root-cause.md`: a check went red on a
-commit in the branch, and a cheaper detector could have run. The four cases:
+commit in the branch, and a cheaper detector could have run. The three stale-pin
+PRs:
 
 - #2066: a new property shifted `thermal_model.py`; two `killed_by` entries
   went stale and the frozen brief_lint fixture at `wood_share:1152` went vacuous.
@@ -14,8 +15,10 @@ commit in the branch, and a cheaper detector could have run. The four cases:
   leaving the `coordinator.py:_on_off_service` RETURN_DEL pin stale.
 - #2065: round 2 deleted a `from_dict` isinstance line that the bot had just
   pinned.
-- the pr-contract observation: a Red checks answer from an earlier head
-  satisfies the check, because it matches names and not heads.
+
+A fourth observation, that a Red checks answer from an earlier head satisfies
+the check because it matches names and not heads, is a separate item (section 6),
+not a stale-pin red.
 
 ## 1. The cause, reproduced
 
@@ -55,8 +58,11 @@ backward direction with only the forward one ported. Not covered, and left to
 CI: a pin whose killing script's closure no longer reaches the module
 (`stale_pins`), which `--drain` drops itself.
 
-The fourth item, the brief_lint fixture, is a separate instance of the same
+The brief_lint fixture that #2066 also broke is a separate instance of the same
 family, a check pinned to a production line layout, and is section 6.
+The #2070 observation that CI never runs a round's `--perturb` arms is a
+different class, with no detector at any cost; it is its own carry in
+`carry-201.json`, for D11 or D13.
 
 ## 4. Cost test
 
@@ -68,31 +74,37 @@ family, a check pinned to a production line layout, and is section 6.
   tree.
 - cost(defect): one CI fast and mutation cycle, about 30 min (the coordinator's
   figure, not measured here), plus the fixer's re-push and re-review.
-- P(recurrence): 4 occurrences in one night, from PRs that each touched a pinned
-  production line. No release-note frequency was measured.
+- P(recurrence): 3 stale-pin PRs in one night, each touching a pinned production line. No release-note frequency was measured.
 
-0.01 s per run against 4 x 30 min leaves the countermeasure well inside the
+0.01 s per run against 3 x 30 min leaves the countermeasure well inside the
 test.
 
 ## 5. The countermeasure
 
 `ci_predict.unpinned` also returns `completeness_problems` as `PREDICT ledger
-STALE PIN ...`, a refusing prediction (rc 1), with a remedy line: delete the
-stale pin's file under `tests/mutation_ledger/`. One `--self-test` arm plants it.
+STALE PIN ...`, a refusing prediction (rc 1) when the stale pin's anchor file or
+its own file under `tests/mutation_ledger/` is in the diff, with a remedy line: delete the
+stale pin's file under `tests/mutation_ledger/`. A stale pin the base already carries is a warning that names main
+(`STALE PIN ON MAIN`), never a refusal: `mutation` is required but not strict, so
+PR A's autofix pin and PR B's edit of that line can both merge, and a whole-tree
+refusal would then block every unrelated push (review round 1, measured rc 1 on
+a README-only diff). Two `--self-test` arms: the plant, and the unrelated
+branch on a base that carries a stale pin (rc 0, warning).
 
 Shown failing and passing:
 
 - planted edit of the pinned line: old predictor rc 0; new predictor `PREDICT
   ledger STALE PIN ...away.py:_parse_return_time RETURN_DEL 17d5e3f1`, rc 1.
 - the ledger file deleted: no STALE PIN line, rc 0.
-- null control, the unmodified tree: rc 0.
+- null control, the unmodified tree: rc 0; an unrelated edit on a base that
+  carries a stale pin: rc 0 with the STALE PIN ON MAIN warning.
 - `prepr.sh --self-test`: "6d predicts STALE PIN for a pinned line the diff
   edits" and "a stale pin refuses, unlike an unpinned site" both ok.
 
 ## 6. Refused, with the number
 
 **brief_lint in prepr on every production diff.** `node tools/policy/brief_lint.mjs`
-took 1 m 45 s on this machine under load, to guard one fixture, in one of four
+took 1 m 45 s on this machine under load, to guard one fixture, in one of three
 cases. Refused. The fixture itself is the defect, and it is carried, not filed:
 `dev/programme/carries/carry-201.json`, the entry from this RCA, for the D11
 round or the next seat that edits `tools/policy/brief_lint.mjs`.
