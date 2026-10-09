@@ -1,6 +1,6 @@
 <!-- The headings below are what `pr-contract` requires: each is content or an
 explicit `n/a: <reason>`, since silence and "nothing to report" differ. Run
-`tools/audit/prepr.sh <this body>` before opening; the job re-checks what it can. -->
+`tools/pr/prepr.sh <this body>` before opening; the job re-checks what it can. -->
 
 Why this change, and what it measures.
 
@@ -20,8 +20,8 @@ What the unmodified tree does.
 
 `none`, or one line per figure the body states, with the command that printed it;
 name the instrument rather than restate what it prints. `pr-contract` refuses a
-command that does not resolve, and never re-runs one. Optional, report-only:
-`python3 tools/audit/archscore/score.py --diff origin/main`, with a reason for any gate rise.
+command that does not resolve, and never re-runs one. Required check `arch-score`:
+a gate rise passes only explained under `## Architecture score`, one line per metric.
 
 ## Red checks
 

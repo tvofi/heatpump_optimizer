@@ -170,6 +170,12 @@ NOT_A_TEST = {
     "dom_stub.mjs", "card_rig.mjs",
     # Preload for `_record_node` when strace is missing. Not a test.
     "node_fs_trace.mjs",
+    # The shared throwaway-repository helper (R9-RCA-stamp-race): a library
+    # the scripts that build a scratch git repository import. Its own
+    # `--check` and `--self-test` run in governance's instrument-self-tests,
+    # which is never scoped. NOT inert: entities.py, layout.py and
+    # doc_claims.py import it, so an edit to it selects them.
+    "throwaway_git.py",
 }
 # dst_checks.py is a test, but features.py runs it in a subprocess; it is
 # recorded so its closure can be folded into features.py's, never selected.
@@ -375,6 +381,11 @@ INERT = (
     # any of them, and each of these three runs on `pull_request`.
     # A manual QA render (writes ../setup-qa/). No gate script reads it.
     "tests/setup_qa_render.mjs",
+    # The shell twin of tests/throwaway_git.py. Only shell self-tests source
+    # it (prepr.sh, app_approve.sh, bus.sh, the stop hook), and governance runs
+    # those, never this gate; tests/throwaway_git.py's own --self-test, which
+    # pins the twin's variables, runs there too.
+    "tests/throwaway_git.sh",
     # tests/nightly_ha.py was here, on the argument that a lane needing Docker
     # is one "no gate script reads and none ever will". The first half held and
     # still does -- it stays on NOT_A_TEST above, and nothing in this gate runs
@@ -1500,23 +1511,98 @@ def prune(out: Path = CLOSURES) -> int:
         print(f"closure: {out} is missing", file=sys.stderr)
         return 1
     payload = json.loads(out.read_text())
-    closures = payload.get("closures", {})
     total = 0
-    for name in sorted(closures):
-        files = closures[name]
-        real = [f for f in files if _is_real_file(f)]
-        phantom = sorted(set(files) - set(real))
-        if phantom:
-            print(f"closure: {name} drops {len(phantom)} phantom entry(ies):",
-                  file=sys.stderr)
-            for p in phantom:
-                print(f"    {p}", file=sys.stderr)
-            total += len(phantom)
-        closures[name] = sorted(real)
-    out.write_text(json.dumps(payload, indent=1) + "\n")
+    for table_key in ("closures", "inert_reads"):
+        table = payload.get(table_key, {})
+        for name in sorted(table):
+            files = table[name]
+            real = [f for f in files if _is_real_file(f)]
+            phantom = sorted(set(files) - set(real))
+            if phantom:
+                print(f"closure: {table_key} {name} drops {len(phantom)} phantom entry(ies):",
+                      file=sys.stderr)
+                for p in phantom:
+                    print(f"    {p}", file=sys.stderr)
+                total += len(phantom)
+            if real or table_key == "closures":
+                table[name] = sorted(real)
+            else:
+                del table[name]  # `_fold_inert_reads`: a script that read none has no key
+    write_closures(out, payload)
     print(f"closure: pruned {total} phantom entry(ies) from {out}")
     return 0
 
+
+
+#: A re-recorded timing inside this factor of the committed one keeps the
+#: committed value (R9-CI-2b, tvofi 2026-10-08). Recordings of one script vary
+#: 0.3x-3.4x run to run, and every rewrite inside that noise made two branches
+#: that re-recorded the same script conflict on GitHub, which runs no merge
+#: driver: 60 of 72 rewrites over 21 merges were inside 2x. The one reader,
+#: mutation_table.recorded_seconds(), seeds three things: the sweep order, the
+#: budget estimate (budget_seconds) and a lazy driver's timeout, max(floor,
+#: TIMEOUT_SCALE x seconds) with TIMEOUT_SCALE 3 -- so a run up to 2x the kept
+#: value still fits its timeout. Keep SECONDS_BAND below TIMEOUT_SCALE.
+#: tools/merge/ledger_merge.py's SECONDS_BAND is the driver's twin.
+SECONDS_BAND = 2.0
+#: The tables whose keys and string lists the layout sorts.
+_LAYOUT_TABLES = ("closures", "inert_reads", "recorded")
+
+
+def stable_seconds(committed, measured):
+    """`measured`, unless it lies inside SECONDS_BAND of `committed`."""
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and v > 0
+               for v in (committed, measured)):
+        return measured
+    if committed / SECONDS_BAND <= measured <= committed * SECONDS_BAND:
+        return committed
+    return measured
+
+
+def canonical_text(payload: dict) -> str:
+    """write_closures' serialisation of `payload`: the one text the layout allows."""
+    payload = dict(payload)
+    for t in _LAYOUT_TABLES:
+        if t in payload:
+            payload[t] = {k: sorted(set(v)) if isinstance(v, list) else v
+                          for k, v in payload[t].items()}
+    return json.dumps(payload, indent=1, sort_keys=True) + "\n"
+
+
+def layout_errors(payload: dict, text: str | None = None) -> list[str]:
+    """Where `payload` departs from the layout two branches can text-merge.
+
+    Every table's keys and every string list in sorted order, each list free
+    of duplicates: an entry's line is then fixed by its value, not by which
+    writer appended it, so two branches adding different entries edit
+    different lines (R9-CI-2b: #2010's INERT list grew at its tail on both
+    sides and conflicted on GitHub)."""
+    errs = []
+    for t in _LAYOUT_TABLES:
+        table = payload.get(t, {})
+        if list(table) != sorted(table):
+            errs.append(f"{t}: keys out of order")
+        for k, v in table.items():
+            if isinstance(v, list) and v != sorted(set(v)):
+                errs.append(f"{t}.{k}: entries out of order")
+    # Order alone is not the layout: a {seconds, rc} entry, unsorted top-level
+    # keys or another indent pass it and are rewritten by the next canonical
+    # write, which is the churn the layout exists to stop (#2057 round 1).
+    if text is not None and not errs and text != canonical_text(payload):
+        errs.append("text is not write_closures' serialisation (indent 1, keys sorted at every depth)")
+    return errs
+
+
+def write_closures(out: Path, payload: dict) -> None:
+    """Write the table in the layout `layout_errors` checks -- the only writer."""
+    out.write_text(canonical_text(payload))
+
+
+def canonical(out: Path = CLOSURES) -> int:
+    """Rewrite the committed table in the layout, changing no entry."""
+    write_closures(out, json.loads(out.read_text()))
+    print(f"closure: {out} is in the layout")
+    return 0
 
 
 def _fold_inert_reads(table: dict, records: dict) -> None:
@@ -1639,7 +1725,8 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             closures[k] = _keep_committed_files(k, old, set(overlay[k]))
             if k in records:
                 recorded[k] = {
-                    "seconds": records[k].get("seconds", 0),
+                    "seconds": stable_seconds(recorded.get(k, {}).get("seconds"),
+                                              records[k].get("seconds", 0)),
                     "rc": records[k]["rc"],
                 }
         # The #357 refusal the full fold applies, scoped to the entries this
@@ -1664,13 +1751,14 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
             return 1
         payload["closures"] = closures
         _fold_inert_reads(payload.setdefault("inert_reads", {}), records)
-        out.write_text(json.dumps(payload, indent=1) + "\n")
+        write_closures(out, payload)
         print(f"closure: updated {len(touched)} closure(s) in {out}")
         for k in sorted(touched):
             print(f"  {k:26s} {len(closures[k]):4d} files")
         return 0
     closures = _fold(records)
     prev_inert: dict[str, list[str]] = {}
+    prev_recorded: dict = {}
     if out.exists():
         prev_payload = json.loads(out.read_text())
         prev = prev_payload.get("closures", {})
@@ -1680,6 +1768,7 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         # every INERT open an earlier recording measured. Entries for scripts
         # this fold does not emit are retired, and drop here rather than
         # surviving every re-derivation.
+        prev_recorded = prev_payload.get("recorded", {})
         prev_inert = {k: list(v) for k, v in
                       prev_payload.get("inert_reads", {}).items()
                       if k in records}
@@ -1694,13 +1783,15 @@ def merge(in_dir: Path, out: Path, allow_failures: bool = False,
         return 1
     payload = {
         "_comment": CLOSURES_COMMENT,
-        "recorded": {k: {"seconds": records[k]["seconds"], "rc": records[k]["rc"]}
+        "recorded": {k: {"seconds": stable_seconds(
+                             prev_recorded.get(k, {}).get("seconds"), records[k]["seconds"]),
+                         "rc": records[k]["rc"]}
                      for k in sorted(records)},
         "closures": closures,
         "inert_reads": prev_inert,
     }
     _fold_inert_reads(payload["inert_reads"], records)
-    out.write_text(json.dumps(payload, indent=1) + "\n")
+    write_closures(out, payload)
     print(f"closure: wrote {out} ({len(closures)} scripts)")
     for k, v in closures.items():
         print(f"  {k:26s} {len(v):4d} files")
@@ -1860,9 +1951,14 @@ def check(in_dir: Path, partial: bool = False) -> int:
     # read it instead of running FULL for the unmeasured file. Fail rather
     # than note, and name the repair. The committed file is pruned in the
     # pull request that added this rule (#1310).
+    # inert_reads too (R9-RO-10): a move leaves a dead old-path entry there
+    # with no other warning, and the merge fast path then believes a script
+    # reads a file that cannot change -- #2015's merge kept the EG-B7
+    # harness's old path that way.
     phantoms = sorted(
-        (script, name)
-        for script, files in committed.items()
+        (script if table_key == "closures" else f"{script} (inert_reads)", name)
+        for table_key in ("closures", "inert_reads")
+        for script, files in table.get(table_key, {}).items()
         for name in files
         if not _is_real_file(name)
     )
@@ -1911,7 +2007,7 @@ def check(in_dir: Path, partial: bool = False) -> int:
         if _is_real_file(name)
         and name not in table.get("inert_reads", {}).get(script, ()))
     if missed:
-        print("INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the")
+        print(f"{_INERT_READS_HEAD} a recording opened an INERT file the")
         print("  committed `inert_reads` does not list for it; the merge fast path")
         print("  would treat a change to it as unread (R9-F10.9d). Re-derive:")
         print("  ./tests/derive_closures.sh --single <script>")
@@ -1984,6 +2080,15 @@ def check(in_dir: Path, partial: bool = False) -> int:
         print("and commit tests/closures.json. A full derive_closures.sh off")
         print("Linux replaces node-lane recordings; --single cannot shrink them.")
         return 1
+    layout = layout_errors(table, CLOSURES.read_text())
+    if layout:
+        # GitHub merges this file with no driver; a table out of the layout
+        # conflicts with every branch that re-records it (R9-CI-2b).
+        print(f"closure: tests/closures.json is out of its layout ({len(layout)}):")
+        for e in layout[:10]:
+            print(f"    {e}")
+        print("  rewrite it with: python3 tests/closure.py canonical")
+        return 1
     print(_CHECK_OK_LINE)
     return 0
 
@@ -2054,10 +2159,10 @@ _AUTOFIX_STATUS_REMEDY = {
         "Fix the failing script first; the closures job re-records on the next\n"
         "push and this repair then happens on its own.\n",
     "skip-manual-repair-owed":
-        "The closures job's check failed, and not on UNDER-SCOPED, the only\n"
-        "failure this job repairs. Repair it by hand from the closures log:\n"
-        "INERT READS: --single the script it names, commit tests/closures.json;\n"
-        "PHANTOM: python3 tests/closure.py prune.\n",
+        "The closures job's check failed, and not on UNDER-SCOPED or INERT\n"
+        "READS, the only failures this job repairs. Repair it by hand from the\n"
+        "closures log: PHANTOM: python3 tests/closure.py prune; NOT A FILE or an\n"
+        "INERT pair: fix the recording or the INERT list it contradicts.\n",
     "skip-classifier-disagrees":
         "The closures job (this PR's tests/closure.py) printed UNDER-SCOPED;\n"
         "the base's copy this job is pinned to stops before that comparison\n"
@@ -2119,8 +2224,28 @@ def _autofix_report_cmd(job: str, status: str) -> int:
     return rc
 
 
+_INERT_READS_HEAD = "INERT READS UNDER-APPROXIMATED:"
+
+
+def stale_scripts(check_output: str) -> set[str]:
+    """The scripts `check` named as under-approximated: each UNDER-SCOPED
+    line's, and each entry under the INERT READS heading."""
+    names = set(re.findall(r"^UNDER-SCOPED: (\S+)", check_output, re.M))
+    inert = False
+    for line in check_output.splitlines():
+        if line.startswith(_INERT_READS_HEAD):
+            inert = True
+        elif inert and (m := re.match(r"^    (\S+): ", line)):
+            names.add(m.group(1))
+        elif inert and not line.startswith("  "):
+            inert = False
+    return names
+
+
 def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
-    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED.
+    """Merge recordings into CLOSURES only when check printed UNDER-SCOPED
+    or INERT READS UNDER-APPROXIMATED -- the two failures a merge of the
+    Linux recordings repairs (#1886 for the second; R9-CI-1 made it the bot's).
 
     Returns one of: changed, skip-clean, skip-not-under-scoped,
     skip-classifier-disagrees, skip-failed-recording, skip-manual-repair-owed,
@@ -2171,7 +2296,8 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
         return "skip-merge-failed"
     if rc == 0:
         return "skip-clean"
-    if "UNDER-SCOPED" not in out.getvalue() + err.getvalue():
+    said = out.getvalue() + err.getvalue()
+    if "UNDER-SCOPED" not in said and _INERT_READS_HEAD not in said:
         # This job runs the BASE's closure.py (D11-s1-03); the closures job
         # ran the PR's and tee'd it to check.txt. Quiet is true only where
         # that check PASSED (its success line). UNDER-SCOPED there is #1846;
@@ -2195,8 +2321,28 @@ def apply_under_scoped_recordings(in_dir: Path, *, partial: bool = True) -> str:
     # itself be an artefact of the failure (an error path reads files the
     # clean path does not), which is why the remedy is "fix the script", not
     # "re-derive it".
-    if any(r.get("rc", 0) != 0 for r in records):
+    #
+    # Only a failed recording OF a stale script refuses (R9-CI-1): one of an
+    # unrelated script -- stress.py on a timing verdict, a consumer whose
+    # producer the scoped lane recorded late (#1146) -- truncates only its own
+    # trace, which is left out of the merge below, so it cannot under-scope
+    # the closure being repaired. A driven child counts as its driver, whose
+    # closure it folds into.
+    failed = {r.get("script") for r in records if r.get("rc", 0) != 0}
+    failed |= {f"tests/{DRIVEN_BY_OTHERS[Path(s).name]}" for s in set(failed)
+               if s and Path(s).name in DRIVEN_BY_OTHERS}
+    if failed & stale_scripts(said):
         return "skip-failed-recording"
+    if failed:
+        print(f"closures-autofix: left out {len(failed)} failed recording(s) of "
+              f"script(s) the check did not name: {', '.join(sorted(failed))}",
+              file=sys.stderr)
+        good = in_dir / "recorded-cleanly"
+        good.mkdir(exist_ok=True)
+        for i, r in enumerate(records):
+            if r.get("rc", 0) == 0:
+                (good / f"{i:04d}.json").write_text(json.dumps(r))
+        in_dir = good
 
     mout, merr = io.StringIO(), io.StringIO()
     try:
@@ -3022,13 +3168,23 @@ def selftest() -> int:
             crc2 == 0,
             f"rc={crc2} log={log2[-300:]!r}",
         )
+        # R9-RO-10: the same refusal over inert_reads, which a move leaves
+        # dead with no other warning; null control is the table above.
+        crc3, log3 = _selftest_phantom_check(
+            fake, {caller: [caller, kept_real]}, rec, {caller: [phantom]})
+        pin(
+            "check fails on a phantom in the committed inert_reads (R9-RO-10)",
+            crc3 == 1 and phantom in log3 and "(inert_reads)" in log3,
+            f"rc={crc3} log={log3[-300:]!r}",
+        )
 
     with tempfile.TemporaryDirectory() as td:
         td_path = Path(td)
         out = td_path / "closures.json"
         out.write_text(json.dumps({
-            "closures": {caller: [caller, phantom, kept_real]},
+            "closures": {caller: [caller, phantom, kept_real], "all-dead": [phantom]},
             "recorded": {},
+            "inert_reads": {caller: [phantom, kept_real], "only-dead": [phantom]},
         }))
         pruner = globals().get("prune")
         if pruner is None:
@@ -3043,6 +3199,19 @@ def selftest() -> int:
                 "prune drops committed phantom entries (#1310)",
                 prc == 0 and phantom not in after and kept_real in after,
                 f"rc={prc} after={sorted(after)!r}",
+            )
+            dead = json.loads(out.read_text())["closures"].get("all-dead")
+            pin(
+                "prune keeps a closures key whose every entry was a phantom, "
+                "empty: select reads a missing key as no closure recorded (R9-RO-9a)",
+                dead == [],
+                f"closures['all-dead'] after={dead!r}",
+            )
+            ir = json.loads(out.read_text())["inert_reads"]
+            pin(
+                "prune drops dead inert_reads entries, and a key left with none (R9-RO-10)",
+                ir == {caller: [kept_real]},
+                f"inert_reads after={ir!r}",
             )
             with contextlib.redirect_stdout(io.StringIO()), \
                     contextlib.redirect_stderr(io.StringIO()):
@@ -3196,11 +3365,137 @@ def selftest() -> int:
             pin(f"derive_closures.sh's done line reports a recording's exit {code}",
                 f"done   tests/x.py (exit {code})" in res.stdout, res.stdout[-300:])
 
+    print("\n=== a layout git merges without a driver (R9-CI-2b) ===")
+    _selftest_layout(pin)
+
     if failed:
         print(f"\n{failed} of {n} closure shrink pins FAILED")
         return 1
     print(f"\nALL {n} closure shrink pins PASSED")
     return 0
+
+
+def _selftest_layout(pin) -> None:
+    """GitHub merges tests/closures.json with no driver, so the writer's layout
+    is what decides whether two branches conflict (R9-CI-2b). Drives the real
+    merge(), check() and a real `git merge-file` over their output."""
+    real = ["LICENSE", "README.md", "VERSION", "tests/layout.py"]
+    script = "tests/layout.py"
+
+    def table(seconds: float, files: list, inert: list) -> dict:
+        return {"_comment": CLOSURES_COMMENT,
+                "recorded": {script: {"seconds": seconds, "rc": 0}},
+                "closures": {script: files},
+                "inert_reads": {script: inert} if inert else {}}
+
+    def record(td: Path, name: str, seconds: float, files: list,
+               inert: list | None = None) -> Path:
+        rec = td / name
+        rec.mkdir()
+        (rec / "layout.py.json").write_text(json.dumps({
+            "script": script, "rc": 0, "seconds": seconds, "files": files,
+            **({"inert_reads": inert} if inert else {})}))
+        return rec
+
+    def merged(td: Path, base: dict, rec: Path, tag: str) -> Path:
+        out = td / f"{tag}.json"
+        out.write_text(json.dumps(base, indent=1) + "\n")
+        with contextlib.redirect_stdout(io.StringIO()), \
+                contextlib.redirect_stderr(io.StringIO()):
+            rc = merge(rec, out, partial=True)
+        pin(f"{tag}: the partial merge succeeds", rc == 0, f"rc={rc}")
+        return out
+
+    with tempfile.TemporaryDirectory() as tds:
+        td = Path(tds)
+        base = table(200.0, [script, "VERSION"], [])
+        # Two branches re-record the same script, both inside the band.
+        a = merged(td, base, record(td, "ra", 180.0, [script, "VERSION"]), "within-band")
+        got = json.loads(a.read_text())["recorded"][script]["seconds"]
+        pin("a timing re-recorded within 2x keeps the committed seconds",
+            got == 200.0, f"seconds={got}")
+        b = merged(td, base, record(td, "rb", 450.0, [script, "VERSION"]), "outside-band")
+        got = json.loads(b.read_text())["recorded"][script]["seconds"]
+        pin("a timing re-recorded outside 2x takes the new seconds",
+            got == 450.0, f"seconds={got}")
+        # The live #2010/#2053/#2054 shape: both sides re-time the script and
+        # one also grows its closure. With the band, only the growth is a change.
+        canon = td / "base.json"
+        write_closures(canon, base)
+        o = merged(td, json.loads(canon.read_text()),
+                   record(td, "ro", 180.0, [script, "VERSION"]), "ours")
+        t = merged(td, json.loads(canon.read_text()),
+                   record(td, "rt", 230.0, [script, "VERSION", "README.md"]), "theirs")
+        res = subprocess.run(["git", "merge-file", "-p", str(o), str(canon), str(t)],
+                             capture_output=True, text=True)
+        pin("two branches re-timing one script merge with no driver",
+            res.returncode == 0, res.stdout[:300])
+
+    with tempfile.TemporaryDirectory() as tds:
+        td = Path(tds)
+        # A committed table in the pre-R9-CI-2b order: an INERT list appended
+        # at its tail, keys out of order. Any write puts it in the layout.
+        legacy = {"_comment": CLOSURES_COMMENT,
+                  "recorded": {script: {"seconds": 1.0, "rc": 0},
+                               "README.md": {"seconds": 1.0, "rc": 0}},
+                  "closures": {script: [script], "README.md": ["README.md"]},
+                  "inert_reads": {script: ["VERSION", "LICENSE"]}}
+        out = merged(td, legacy, record(td, "rl", 1.0, [script]), "legacy")
+        text = out.read_text()
+        pin("a merge writes sorted keys and sorted lists",
+            layout_errors(json.loads(text)) == []
+            and text == json.dumps(json.loads(text), indent=1, sort_keys=True) + "\n",
+            text[:300])
+        pin("layout_errors names an unsorted list and unsorted keys",
+            layout_errors(legacy) == ["closures: keys out of order",
+                                      "inert_reads.tests/layout.py: entries out of order",
+                                      "recorded: keys out of order"],
+            repr(layout_errors(legacy)))
+        global CLOSURES
+        orig, fake = CLOSURES, td / "committed.json"
+        rec = record(td, "rc", 1.0, [script])
+        for name, payload, want in (("a sorted table", table(1.0, [script], ["LICENSE", "VERSION"]), 0),
+                                    ("an unsorted table", table(1.0, [script], ["VERSION", "LICENSE"]), 1)):
+            fake.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
+            CLOSURES = fake
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    rc = check(rec, partial=True)
+            finally:
+                CLOSURES = orig
+            pin(f"check {'passes' if want == 0 else 'refuses'} {name}",
+                rc == want and (want == 0 or "closure.py canonical" in buf.getvalue()),
+                f"rc={rc} {buf.getvalue()[-300:]!r}")
+        # The layout is write_closures' serialisation, byte for byte, not only
+        # the order of keys and lists: three texts a pre-R9-CI-2b writer or a
+        # hand edit produces passed an order-only check (#2057 round 1).
+        good = table(1.0, [script], ["LICENSE", "VERSION"])
+        canon_text = json.dumps(good, indent=1, sort_keys=True) + "\n"
+        rec_first = json.loads(canon_text)
+        rec_first["recorded"][script] = {"seconds": 1.0, "rc": 0}
+        variants = (
+            ("write_closures' own text (null control)", canon_text, 0),
+            ("a recorded entry as {seconds, rc}", json.dumps(rec_first, indent=1, sort_keys=False)
+             .replace('"_comment"', '"_comment"'), 1),
+            ("top-level keys unsorted", json.dumps(
+                {k: good[k] for k in ("recorded", "closures", "inert_reads", "_comment")},
+                indent=1) + "\n", 1),
+            ("indent 2", json.dumps(good, indent=2, sort_keys=True) + "\n", 1),
+        )
+        for name, text, want in variants:
+            fake.write_text(text)
+            CLOSURES = fake
+            buf = io.StringIO()
+            try:
+                with contextlib.redirect_stdout(buf), contextlib.redirect_stderr(buf):
+                    rc = check(rec, partial=True)
+            finally:
+                CLOSURES = orig
+            pin(f"check {'passes' if want == 0 else 'refuses'} {name}", rc == want,
+                f"rc={rc} {buf.getvalue()[-200:]!r}")
+    errs = layout_errors(json.loads(CLOSURES.read_text()), CLOSURES.read_text())
+    pin("the committed tests/closures.json is in the layout", errs == [], repr(errs[:5]))
 
 
 def _selftest_broken_message() -> tuple[int, str]:
@@ -3284,7 +3579,8 @@ def _selftest_inert_sequence() -> tuple[int, str]:
         return rc, buf.getvalue() + err.getvalue()
 
 
-def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int, str]:
+def _selftest_phantom_check(fake: Path, closures: dict, rec: Path,
+                            inert_reads: dict | None = None) -> tuple[int, str]:
     """Drive check() against a committed table `closures`, captured (#1310).
 
     check() reads the module-level CLOSURES, so the table under test is
@@ -3293,7 +3589,10 @@ def _selftest_phantom_check(fake: Path, closures: dict, rec: Path) -> tuple[int,
     Returns (rc, captured stdout+stderr).
     """
     global CLOSURES
-    fake.write_text(json.dumps({"closures": closures, "recorded": {}}))
+    # Through the writer, so the table is in its layout and check() reaches
+    # the phantom test rather than refusing the order (R9-CI-2b).
+    write_closures(fake, {"closures": closures, "recorded": {},
+                          "inert_reads": inert_reads or {}})
     orig = CLOSURES
     CLOSURES = fake
     buf, err = io.StringIO(), io.StringIO()
@@ -3366,6 +3665,7 @@ def main() -> int:
     # Not required: a merge step that crashed leaves the output empty, and
     # that has to reach the table as a status rather than as a usage error.
     ar.add_argument("--status", default="")
+    sub.add_parser("canonical")
     pr = sub.add_parser("prune")
     pr.add_argument("--out", default=str(CLOSURES))
     s = sub.add_parser("select")
@@ -3401,6 +3701,8 @@ def main() -> int:
         return _autofix_report_cmd(a.job, a.status)
     if a.cmd == "prune":
         return prune(Path(a.out))
+    if a.cmd == "canonical":
+        return canonical()
     if a.cmd == "coverage-split":
         return coverage_split_cli(Path(a.plan), Path(a.reuse_dir))
     if a.cmd == "not-run":

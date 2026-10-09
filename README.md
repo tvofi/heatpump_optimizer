@@ -988,7 +988,7 @@ gate refuses you, the refusal message names the rule and usually the remedy.
 
 **Using an LLM to prepare a contribution is a reasonable shortcut**, and the
 repository is arranged to make that work: point it at `CLAUDE.md` and the
-relevant contract in `tools/audit/briefs/`, which describe the required
+relevant contract in `dev/governance/roles/`, which describe the required
 evidence in the form the gate checks for. That is a convenience, not a
 requirement, and it does not lower the bar — the evidence is verified
 mechanically either way.

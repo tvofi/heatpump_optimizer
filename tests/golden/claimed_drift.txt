@@ -54,12 +54,11 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 6.7.16
+# claims-for: 6.7.17
 #
-# v6.7.16: EG-A2 one-formula class closure; mutation wall-clock budget; instruments into the tree; card and site polish; coverage tracer diet; nightly ledger CPU bounds. The stamp empties the list; the
+# v6.7.17: Round 9: silent windows, sharded mutation pins, gate and closures fixes, debugger download cap. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-config_flow  # adds debug_collect_enabled on the options seed, the seeded learning page and the learning page (#1939); those leaves are absent on the baseline
 #
 # may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
@@ -657,3 +656,16 @@ config_flow  # adds debug_collect_enabled on the options seed, the seeded learni
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
+#
+# R9-UX-9 (#1956, #2016): this diff claims config_flow and the five coordinator
+# captures and NOTHING ELSE. The direction is ADD-ONLY: every moved leaf is a
+# key absent on the baseline (feedback_gaps, measured_heat_output_kw,
+# flow_meter_entity). No plan, schedule or solver leaf moves. These names are
+# not may-drift.
+
+config_flow # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_all_features # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_dhw # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_grid_fee # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_minimal # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_two_zone # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved

@@ -2,8 +2,7 @@
 
 You run the programme: you dispatch seats, merge their work, write the record,
 file and close issues, edit the rosters, hold the freeze, stamp releases, and
-report to the owner. Every other role here has a contract — `fixer.md`,
-`fix-review.md`, `judge.md`, `root-cause.md`, `verifier.md`.
+report to the owner.
 
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
@@ -43,8 +42,7 @@ cannot answer the second, you have not measured — you have expected.
   not the check refused. Use `check && publish` — and for the body and the
   push, that `&&` is already wired as `tools/pr/push.sh` (#678).
 
-A claim that turns out wrong is corrected under `fixer.md` step 9, never to a
-bare line number.
+A claim that turns out wrong is corrected under `fixer.md` step 9.
 
 ## 2. Delegate what a seat can do; do only what only you can do
 
@@ -132,6 +130,9 @@ exactly that.
 - **Every brief names the identity** (decisions 0011, 0013): seats push refs (`tools/audit/seat/bus.sh`), never a pull request; every GitHub write is yours (`CLAUDE.md`, Identity). Seats share one push credential: verdicts post only on `bus.sh confirm`, signed by `hpo-approver`'s key, yours alone; code-owned paths still need tvofi. The retired account makes no GitHub write: its writes vanish retroactively.
 - **Brief a seat its own roster group** (`jq`), and give a judgement-free turn
   (a relay, a delivery row) the cheapest model that does it.
+- **Concurrent fixes sharing a concern push only after an architect note**
+  you dispatch into each group's roster brief (owning module, each fix's
+  shape); it binds them (`fixer.md` 17).
 - **Dispatch a fix's reviewer when the fixer pushes**, not when CI settles; until
   the handoff it prepares against the merge base only (`fix-review.md`).
 - **Name its scratch directory ABSOLUTE, and its own worktree under it.** A
@@ -191,8 +192,7 @@ is not one.
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end, and
-batching to the end is how an abort loses it. A merge whose own pull request is
+`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
 frozen by the handoff costs a record pull request; that is the price, not zero.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
@@ -222,7 +222,7 @@ additionally, because you write the rosters and you decide the merge order.
 ## 10b. You edit the rosters, so `brief-citations.mdc` binds you
 
 `brief_lint.mjs` reads the roster and the carry files and never
-`docs/plan-*.md`, `docs/HANDOVER.md` or `tools/audit/briefs/`, so a load-bearing
+`dev/programme/plan-*.md`, `dev/programme/HANDOVER.md` or `dev/governance/`, so a load-bearing
 citation left only in markdown is unchecked, and putting one there is not
 carrying it. The remedies for a symbol that does not exist yet are that rule's;
 a tag citation is no reflex fix: the symbols measured biting here exist at
@@ -239,11 +239,11 @@ shape that lets a real error be waved through.
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
   <head>` names miss the branch's own diff, and the claim files equal
   `origin/main`'s. Anything else is a resolution delta for the same reviewer.
-- CI green at a head containing current `origin/main`: if main moved, merge it in
-  (a carry or resolution delta) and wait, watching CI from a background task
-  (`fixer.md`), never a timer.
-  **Except** `tools/audit/merge_fastpath.py --head <sha>` ELIGIBLE: you merge
-  it, the queue's one bypass.
+- CI green at the verdicted head, landed onto a green `main` by
+  `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
+  a proved batch merges while `main`'s tree equals its proof's; one entry merges
+  unproved, gated by `main`'s FULL push run below. A workflow, claim, grader,
+  budget or conflicting change takes `run`: `main` merged in, CI green again.
 - **Any red check on the branch is answered in the body**, or the reviewer
   returns `blocked <sha> root-cause-unanswered: <check> went red, unanswered`
   (`defect-root-cause.md`).
@@ -253,7 +253,7 @@ shape that lets a real error be waved through.
 - Then `main` is green after it. If a merge reddens main: a behaviour change in
   the merged diff → revert first and diagnose after; a failure the diff cannot
   reach → establish that, and it is its own issue. Never `--allow-red`.
-- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept; not at session end.
+- After each merge: run `tools/audit/worktree_gc.sh <owner/repo>` — its worktree, branch and seat scratch go now, cited evidence kept.
 
 ## 12. The gate lease
 

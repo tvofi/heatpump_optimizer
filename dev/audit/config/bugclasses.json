@@ -1585,7 +1585,7 @@
     "max_per_round": 2,
     "detector": "PYTHONPATH=tests/hastub python3 tests/arch_score_head.py -- hub_solve_writes (tools/audit/archscore/metrics/hub_solve_writes.py) enumerates every write into _opt_config, _thermal_params or _current_state reachable from async_run_optimization and async_simulate through calls, aliases and parameters, in any module",
     "detector_idea": "alt/evidence/m1_hub_writes.py: solve-path hub write sites must be 0 once the per-solve record lands (26 sites / 23 fields at c54b20d2); extend to _current_action and the what-if cache (#1752, #1753)",
-    "barrier": "R9-EG-B1 (#1736): each solve plans from one SolveRecord of private hub copies built on the loop. Three checks, each refusing exactly what it can see. tests/arch_score_head.py refuses any WRITE into a hub reachable from the solve roots (async_run_optimization, async_simulate) outside SOLVE_PATH_HUB_WRITERS (the two event-driven producers its tail runs), with a planted write as control. tests/features.py (#1736 block) walks the record's and the what-if base's object identity against the three hubs and refuses any shared MUTABLE object, nested containers included (kills the deep-copy-removal mutant, #240). tests/entities.py refuses only a hub spelled as a hub attribute (ctx._opt_config, self._current_state, ...) as an argument to the hand-offs P12 enumerates plus _await_optimize and _await_off_loop -- an alias, a lambda capture or a wrapped copy passes it, which is the gap the identity walk covers.",
+    "barrier": "R9-EG-B1 (#1736): each solve plans from one SolveRecord of private hub copies built on the loop. Three checks, each refusing exactly what it can see. tests/arch_score_head.py refuses any WRITE into a hub reachable from the scheduled cycle or a solve (_async_update_data, async_run_optimization, async_simulate; R9-EG-A4 widened the roots past the solve) outside CYCLE_HUB_WRITERS (each producer with the fields it writes and its event), with planted writes at the top of the solve and in the pre-solve step as controls. tests/features.py (#1736 block) walks the record's and the what-if base's object identity against the three hubs and refuses any shared MUTABLE object, nested containers included (kills the deep-copy-removal mutant, #240). tests/entities.py refuses only a hub spelled as a hub attribute (ctx._opt_config, self._current_state, ...) as an argument to the hand-offs P12 enumerates plus _await_optimize and _await_off_loop -- an alias, a lambda capture or a wrapped copy passes it, which is the gap the identity walk covers.",
     "status": "barriered",
     "nearest_existing": "P2",
     "mechanism_difference": "P2 is a guard present at a sibling and missing here; this is shared mutable state across the solve boundary (no snapshot), which P2's call-site detector cannot see",
@@ -2831,19 +2831,17 @@
       "subject": "CI mutation job 90-minute timeouts",
       "trigger": "recurring (lane)",
       "date": "2026-09-24",
-      "status": "partial",
-      "parts_missing": [
-        "process_state",
-        "cost_test"
-      ],
-      "process_state": null,
-      "countermeasure": "spread over worker trees; mutate touched lines; 160-min job",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) the lane judged its own bound while the suite was green; (d) the bound arm -- its precondition (solo recording -> 3-worker pool) changed under it",
+      "countermeasure": "bound each driver by max(solo recording, the pool cost the lane persists via actions/cache) so it covers the measured pool factor, decoupled from SECONDS_BAND; a baseline TIMEOUT names the stale recording and the bound, not 'fix the suite first'. The EXCLUSIVE-under---scope-full arm (iv) is routed to the owner as an unpinned-count raise. (2026-09-24 partial: spread over worker trees; mutate touched lines; 160-min job.)",
       "landed": "0974905c (#1565)",
       "doc": [
         "origin/main:docs/delivery/1565.md",
-        "RELEASE_NOTES.md (#1565)"
+        "RELEASE_NOTES.md (#1565)",
+        "dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md"
       ],
-      "in_tree_home": null
+      "in_tree_home": "dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md"
     },
     "RCA-1577-ledger-anchors": {
       "class": null,
@@ -3687,6 +3685,22 @@
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-1985.md"
     },
+    "R9-RCA-2004": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#2004 harness friction key at 5 PRs: a parent verdict class over four reviewer obligations; class-open the only child at threshold; the filer itself red on main since #1919",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) key and class-open; (d) moved program paths",
+      "countermeasure": "friction_issues.mjs and preflight.sh find policy_lint.mjs where the tree keeps it, each pinned by a check shown failing first; fixer.md step-8 alignment refused by the cost test; sub-keying recommended to D13",
+      "landed": null,
+      "doc": [
+        "handoff/r9-rca-2004:dev/audit/rca/R9-RCA-2004.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-2004.md"
+    },
     "R9-RCA-stress-recording": {
       "class": "I2",
       "level": "instance-or-process",
@@ -3702,6 +3716,22 @@
         "handoff/r9-rca-stress-recording"
       ],
       "in_tree_home": "dev/audit/rca/R9-RCA-stress-recording.md"
+    },
+    "R9-RCA-bugclasses": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "_rca appends conflict: 4 hand-resolved merges of the register on 2026-10-07 (#2012, #2018, #2014 twice); every RCA PR appends after the same last entry",
+      "trigger": "recurring friction",
+      "date": "2026-10-07",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(d)",
+      "countermeasure": "route dev/audit/config/bugclasses.json to the ledgermerge driver (_rca merges entry by entry; a class record both sides changed refuses); replay of 27 merges: 4 conflicts without, 0 with, JSON equal to every recorded resolution",
+      "landed": null,
+      "doc": [
+        "dev/audit/rca/R9-RCA-bugclasses.md"
+      ],
+      "in_tree_home": "dev/audit/rca/R9-RCA-bugclasses.md"
     }
   }
 }

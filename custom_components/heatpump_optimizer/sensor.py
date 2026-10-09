@@ -51,6 +51,7 @@ from .entity import HeatPumpOptimizerEntity, commanded_power_kw
 from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
+from .thermal_model import feedback_gaps
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -645,6 +646,15 @@ class CurrentPowerSensor(HeatPumpOptimizerSensorBase):
         if self.coordinator.data:
             return commanded_power_kw(self.coordinator.data.get("current_action"))
         return None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        # Read off the flow meter on an install with no power or frequency
+        # signal (#2016); None everywhere else.
+        heat = (self._data()).get("measured_heat_output_kw")
+        return {
+            "measured_heat_output_kw": None if heat is None else round(heat, 3)
+        }
 
 
 class CurrentCOPSensor(HeatPumpOptimizerSensorBase):
@@ -3032,7 +3042,11 @@ class SensorGapAdvisorSensor(HeatPumpOptimizerSensorBase):
     def extra_state_attributes(self) -> dict[str, Any]:
         gaps = self._gaps()
         top = next((g for g in gaps if g.get("empty") and g.get("sek_per_month")), None)
-        return {"gaps": gaps, "top_slot": None if top is None else top.get("key")}
+        return {
+            "gaps": gaps,
+            "top_slot": None if top is None else top.get("key"),
+            "feedback_gaps": feedback_gaps(self.coordinator.effective_config),
+        }
 
 
 class WoodBurnAdvisorSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):

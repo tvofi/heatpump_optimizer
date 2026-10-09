@@ -1126,7 +1126,7 @@
           "comfort_learning_enabled": "Every time you override the temperature, you are saying the plan went too far in one direction. This slowly adjusts the comfort setting from that. The learned value is shown on its own sensor and there is a button to reset it.",
           "system_identification_enabled": "Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly, instead of waiting weeks to infer it. The change is kept too small to notice and it stops if the temperature drifts.",
           "price_prior_enabled": "Tomorrow's prices arrive around 13:00. Before then the rest of the horizon used to be a flat repeat of the last price, which hides every cheap hour ahead. This learns your typical daily price shape and uses it instead, and the plan marks which hours are estimated.",
-          "debug_collect_enabled": "Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Download diagnostics on this entry then carries the week, for a bug report. Turning this off deletes what was collected.",
+          "debug_collect_enabled": "Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Ending it runs a few self-tests that only read (15 minutes at most; nothing is switched). Download diagnostics on this entry then carries the week and the test results, for a bug report. Turning this off deletes what was collected.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1167,10 +1167,11 @@
             }
           },
           "compressor": {
-            "name": "Compressor frequency",
+            "name": "Compressor frequency and flow",
             "data": {
               "compressor_freq_entity": "Compressor frequency entity",
               "compressor_freq_sensor": "Actual frequency sensor (recommended for control)",
+              "flow_meter_entity": "Water flow sensor (optional)",
               "freq_control_mode": "Frequency mode",
               "compressor_freq_min_hz": "Lowest compressor frequency",
               "compressor_freq_max_hz": "Highest compressor frequency"
@@ -1178,6 +1179,7 @@
             "data_description": {
               "compressor_freq_entity": "A number entity exposing the compressor frequency, typically from a Modbus or ESPHome integration. With it configured the optimizer learns a kW-per-Hz map and recommends a frequency — observation only, until you explicitly switch the mode below to control.",
               "compressor_freq_sensor": "A sensor carrying the compressor's ACTUAL frequency, if your integration exposes one separately. Many number entities are setpoint registers that simply echo the last written value — read from an echo, the watchdog can never see divergence and the learned map follows the setpoint instead of the machine. Leave empty only if the number entity's state genuinely tracks the real frequency. Without a number entity this sensor alone is enough to observe; control needs the number.",
+              "flow_meter_entity": "A sensor carrying the heating circuit's water flow, in L/min, L/s, m³/h or kg/s. With the supply and return temperatures it lets the integration read the heat the pump delivers on an install with no power or frequency signal. Ignored when either exists; an energy sensor does not switch it off.",
               "freq_control_mode": "Observe learns and recommends but never writes. Switch to control only after you have validated the entity against your real hardware: writes go via number.set_value, at most one per five minutes, clamped to the entity's own range, and a reported frequency diverging from the commanded one for three ticks stands the controller back down to observe. Control needs the number entity.",
               "compressor_freq_min_hz": "The compressor's frequency range, used when only the sensor is configured, or when the number entity does not publish its own minimum and maximum. The learned map is divided across this range.",
               "compressor_freq_max_hz": "The top of that range. A number entity's own maximum always wins over this."

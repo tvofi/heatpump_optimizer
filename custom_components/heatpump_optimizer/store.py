@@ -41,6 +41,7 @@ from .accuracy import HISTORY_LENGTH, LEAD_BUCKETS
 from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
+from .draw_range import RUNNING_FLOOR_KW
 from .drift import STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
@@ -260,6 +261,8 @@ _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
 #: module, so the ceiling is a literal, held equal to its own by Arm 6.
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
+_DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
+
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
     **{f"samples/#/{k}": _N for k in (
@@ -275,6 +278,12 @@ _ACCURACY: dict[str, Domain | str] = {
     "lead_pending/#/2": _R,
     # #1936: the last restore -- pairs before it never feed a refit.
     "evidence_since": _AT,
+    # The metered running draw beside the space level asked (draw_range):
+    # a sample at or below standby is not a running one, and is dropped.
+    "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
+    "draw/samples/#/1": _Z,
+    "draw/engaged": Domain("flag", whole=_DRAW_KEY),
+    "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {
@@ -437,6 +446,8 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
         "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
         "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
+        # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
+        "self_tests": _TEXT,
     },
 }
 

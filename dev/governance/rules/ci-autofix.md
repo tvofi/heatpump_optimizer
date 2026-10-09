@@ -1,5 +1,5 @@
 ---
-description: CI autofixes UNDER-SCOPED closures, inherited claims and killed mutants — do not duplicate
+description: CI autofixes UNDER-SCOPED and INERT READS closures, inherited claims and killed mutants — do not duplicate
 paths:
   - "tests/closures.json"
   - "tests/golden/claimed_drift.txt"
@@ -23,24 +23,21 @@ job summary (#523). `closures-autofix` goes red on `skip-failed-recording`,
 `skip-merge-failed`, `skip-still-fails`, `skip-unchanged`,
 `skip-classifier-disagrees` and `skip-manual-repair-owed` — a repair was owed
 and it did not happen. **A red autofix job means there will be no bot commit.** The
-`--single` prohibition above does not survive it: that prohibition assumes
-the autofix holds the recordings *and will merge them*. Read the summary
+`--single` prohibition above, which assumes the bot will merge, lapses. Read the summary
 line, re-derive the script it names and commit `tests/closures.json`; Python
 lanes record through `sys.addaudithook`, so Darwin is sound for them — except
-the inert dimension, which is Linux-recorded (`strace`-only): repair a missing
-`inert_reads` entry by merging the CI closure-recordings artifact
-(`closure.py merge --in-dir <dir> --partial`, #1886). On
-`skip-failed-recording` the script named in the `closures` log stopped while
-being recorded — fix that script first; re-deriving it would only record the
-same truncation.
+the inert dimension, which is Linux-recorded (`strace`-only): the bot merges
+INERT READS from the CI recordings too (#1886, R9-CI-1). On
+`skip-failed-recording` a script the check named (or its driven child) stopped
+while being recorded — fix it first; re-deriving would record the same truncation.
 
 **What green means, exactly — read the summary line, not the tick.** Green is
 `changed` (repaired and pushed), `skip-clean` or `skip-not-under-scoped` (no
 repair was owed *to the bot*), or `skip-not-allowed` (it declined to
 classify). It runs the base's `tests/closure.py`: if that stops early
 (a PR moving a file out of INERT) where `closures` printed UNDER-SCOPED, the
-status is `skip-classifier-disagrees`; any other failed check (INERT READS,
-PHANTOM) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` reddens on nothing it
+status is `skip-classifier-disagrees`; any other failed check (PHANTOM, NOT A
+FILE, an INERT pair) is `skip-manual-repair-owed`, so `skip-not-under-scoped` means it passed (#1864). `claims-autofix` reddens on nothing it
 can return today — `apply_inherited_claims` has no failure status, and its
 `skip-not-inherited` is the ordinary answer for every unrelated `fast`
 failure — so its summary line is its only signal.
@@ -60,7 +57,8 @@ failure — so its summary line is its only signal.
 - **A truncated recording masking the under-scope.** `check` never inspects a
   recording's `rc`, and a script that exits early records only what it
   reached — so where that truncation hides the *only* under-approximation,
-  `check` passes and the job is green on `skip-clean`. `skip-failed-recording`
+  `check` passes and the job is green on `skip-clean` — or on `changed`, since
+  an unnamed script's cut-short recording is left out (R9-CI-1). `skip-failed-recording`
   fires only *after* UNDER-SCOPED has been printed, deliberately: a failed
   recording is common to unrelated `no-copies` and NOT-A-FILE failures, and
   would send their reader to re-derive a closure that was never stale. The
@@ -72,7 +70,7 @@ failure — so its summary line is its only signal.
 
 | Failure | Job | Commit subject | Code |
 |---|---|---|---|
-| `UNDER-SCOPED` | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
+| `UNDER-SCOPED`, INERT READS | `closures-autofix` | `ci: re-record closures` | `closure.apply_under_scoped_recordings` |
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
@@ -85,9 +83,8 @@ When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate s
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
 
-## The claim-file conflict is prevented, not autofixed
+## A driver-file conflict: one bot merges it, none autofixes it
 
-A conflict in the two claim files is **not** an autofix case: CI never runs on a `DIRTY` pull
-request, so no job is red and there is no failure to key on, and the repair would push to
-branches frozen for review. `claim-files.md` carries the refusal — do not replace it with
-`merge=union`, or add a job that pushes resolutions.
+CI never runs on a `DIRTY` pull request, so no job is red to key on. Do not replace a driver
+with `merge=union`. Only `.github/workflows/merge-main.yml` pushes a resolution (tvofi,
+2026-10-08): `ci: merge main`, where `main`'s drivers resolve every conflicting file.

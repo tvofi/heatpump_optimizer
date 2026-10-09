@@ -217,7 +217,7 @@ jobs:
           EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/field_coverage.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/field_coverage.mjs" 2>/dev/null; then
             echo "field coverage: the base does not carry it, so there is no pinned copy to run; skipped"
           elif [ "$EVENT" != schedule ] && [ "$EVENT" != workflow_dispatch ] && git diff --quiet "$SINCE" HEAD -- .claude/settings.json .claude/hooks .claude/workflows .github/workflows tools/release tools/audit/round6/D11/fix dev/audit/rounds/round6/D11/fix 'tests/structure*'; then
             echo "field coverage: no input changed since $SINCE; skipped"
@@ -314,6 +314,12 @@ jobs:
       - name: Show the App approval refusing its own fixtures
         run: if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi
 
+      # The merge-main bot (R9-CI-2b): what it pushes and what it leaves for a
+      # human, over a scratch repository with a stand-in driver -- no network --
+      # and that its commit is the one pr-contract's AUTOFIX_BOT_COMMITS accepts.
+      - name: Show the merge-main bot refusing its own fixtures
+        run: python3 tools/pr/merge_main_bot.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures
@@ -369,6 +375,18 @@ jobs:
           set -euo pipefail
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
+
+      # A throwaway git repository built without the shared helper
+      # (R9-RCA-stamp-race): git >= 2.54 detaches a repack after a commit in
+      # even a tiny repository, and it outlives the temporary directory. The
+      # helper turns auto-maintenance off; the check refuses a raw `git init`
+      # in a tracked script, and the self-test pins both layers and the shell
+      # twin. Here for tmp_paths.py's reason, one step up.
+      - name: Refuse a throwaway git repository built without the shared helper
+        run: |
+          set -euo pipefail
+          python3 -I tests/throwaway_git.py --self-test
+          python3 -I tests/throwaway_git.py --check
 
       # The merge train (tools/audit/seat/merge_train.py, landed from the
       # round-9 orchestrator's session scratch): each stop -- red or incomplete
@@ -604,7 +622,7 @@ jobs:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
         run: |
           set -euo pipefail
-          if ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs"; then
+          if ! git cat-file -e "$PINNED:tools/policy/agreement.mjs" 2>/dev/null && ! git cat-file -e "$PINNED:.claude/workflows/agreement.mjs" 2>/dev/null; then
             echo "agreement lane: the base does not carry it, so its readers were restored from a base that predates it; skipped"
           else
             if test -f .claude/workflows/agreement_py.py; then python3 -I .claude/workflows/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; else python3 -I tools/policy/agreement_py.py --out "$RUNNER_TEMP/agreement.json"; fi

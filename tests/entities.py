@@ -37,6 +37,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate
+from throwaway_git import throwaway_git_env, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -4149,6 +4150,138 @@ if _EntryConfig is not None:
         f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
     )
 
+    # A parsed configuration rides inside state that is deep-copied (the boost
+    # drift replay forks its replay state) or pickled; the read-only view of
+    # the stored values cannot be, so EntryConfig copies by value (#1745).
+    import copy as _ec_copy
+    import pickle as _ec_pickle
+    _ec_orig = _EntryConfig.from_mapping({
+        const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
+        const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
+    })
+    _ec_copies, _ec_copy_err = [], None
+    try:
+        _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_copy_err = f"{type(err).__name__}: {err}"
+    R.check(
+        "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
+        "its parsed fields kept, its stored values still read-only",
+        _ec_copy_err is None and len(_ec_copies) == 2
+        and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
+                and c.pv_enabled is True and c.quiet_off_windows == ""
+                and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
+        f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
+    )
+    # The fuse's continuous capacity is the configuration's, not the
+    # coordinator's: amps x phases x 230 V, None with no fuse configured.
+    _ec_fuse = (
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
+    )
+    R.check(
+        "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
+        abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
+        f"{_ec_fuse}",
+    )
+
+    # The gates that read a parsed switch or slot, each driven on both arms
+    # (#2025's eight mutation survivors: the drives that ran never reached
+    # the arm the gate closes).
+    from dataclasses import replace as _ec_replace
+    from datetime import timezone as _ec_tz
+    import numpy as _ec_np
+    from heatpump_optimizer import silent_mode as _ec_silent
+    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+    from heatpump_optimizer.thermal_model import ThermalState as _EcState
+    from types import SimpleNamespace as _EcNS
+
+    def _ec_lower_floor_samples(sensor):
+        """One replayable two-zone interval; the lower-floor learner's samples after it."""
+        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                        lower_floor_temperature=20.0, slab_temperature=27.0,
+                        outdoor_temperature=-5.0)
+        c._last_house_sample = prev
+        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                       lower_floor_temperature=19.9)
+        c._current_action = {"power": 2.0}
+        asyncio.run(c._async_learn_lower_floor_loss())
+        return c._lower_floor_loss_samples
+
+    def _ec_widening(tripped):
+        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+        c._vent_cusum.tripped = tripped
+        return c._floor_widening()
+
+    def _ec_rain(flag):
+        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+        c._apply_open_meteo = lambda solar, *a: solar
+        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                        snowfall_for=lambda *a: 1.0)
+        c._update_snow_memory = lambda *a: False
+        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+    def _ec_weight(on):
+        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+        c._comfort_learner.learned_weight = 9.0
+        return c._comfort_weight()
+
+    def _ec_capacity(on):
+        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+        c._capacity_envelope = {-2: [1.0, _min]}
+        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+        p_max = float(c._ctx._thermal_params.max_electrical_power)
+        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+        c._fold_capacity_envelope(3.0)
+        return capped, len(c._capacity_envelope)
+
+    def _ec_silent_caps(fraction):
+        try:
+            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                             const.CONF_SILENT_MODE_FRACTION: fraction},
+                                      _ec_start, 96, 0.25, 6.0) is not None
+        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+            return type(err).__name__
+
+    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+    _ec_gates = {
+        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                             _ec_lower_floor_samples("sensor.lower")),
+        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+        "a parsed configuration is returned as it is": (
+            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
+    }
+    _ec_want = {
+        "lower floor learns only from a configured sensor": (0, 1),
+        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+        "rain weighting needs the switch on": (2.0, 0.5714),
+        "learning off plans with the configured weight": (5.0, 9.0),
+        "a parsed configuration is returned as it is": (True, True),
+        "an unreadable silent fraction caps nothing": (False, True),
+        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
+    }
+    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+    R.check(
+        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+        + "; ".join(_ec_want),
+        not _ec_wrong, f"{_ec_wrong}",
+    )
+
     # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
     # slot are parsed fields, a blank or None spec reading "" (unset) and an
     # empty slot None. A set_thermal_parameters call carrying a spec applies
@@ -4207,6 +4340,9 @@ _EC_RESIDUAL = {
                    "options at setup and written back through an options update; EntryConfig "
                    "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "flow_meter.py": "read_heat_output_kw .gets the flow-meter key off the config mapping it "
+                     "is handed and passes that mapping to probe_install; EntryConfig does "
+                     "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
@@ -11721,6 +11857,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
+    "CurrentPowerSensor": frozenset({"measured_heat_output_kw"}),
     "CurrentSetpointSensor": frozenset({
         "lower_floor_setpoint", "upper_floor_setpoint"
     }),
@@ -11864,7 +12001,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
-    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
+    "SensorGapAdvisorSensor": frozenset({"feedback_gaps", "gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
@@ -17907,8 +18044,7 @@ def _stale_corpus_fixture():
     def g(d, *a):
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                 "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e"},
+            env={**throwaway_git_env(), "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e"},
         )
 
     def run(d):
@@ -17928,7 +18064,7 @@ def _stale_corpus_fixture():
         shutil.copy(_preflight, d / "tools/audit/preflight.sh")
         for f in ("fix-review.md", "fixer.md", "orchestrator.md"):
             (d / "tools/audit/briefs" / f).write_text("v1\n")
-        g(d, "init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         g(d, "add", "-A")
         g(d, "commit", "-q", "-m", "base")
         base = g(d, "rev-parse", "HEAD").stdout.strip()
@@ -17966,12 +18102,22 @@ def _stale_corpus_fixture():
             "console.log('TOTAL: 0 error(s)')\n"
         )
         old_lint = run(d)
-        return stale, authored, current, old_lint
+        # Arm 5: the same stale head in the layout the tree has had since
+        # #1919 -- policy_lint.mjs under tools/policy/ and not under
+        # .claude/workflows/. A pre-flight that spells only the old path finds
+        # no program there, fails the sentinel probe and prints NOT compared on
+        # every checkout (R9-RCA-2004). Arms 1-4 build the old layout, so they
+        # stayed green while the live check went dark.
+        (d / ".claude/workflows/policy_lint.mjs").unlink()
+        (d / "tools/policy").mkdir(parents=True)
+        _copy_policy_lint_tree(d / "tools/policy")
+        moved_layout = run(d)
+        return stale, authored, current, old_lint, moved_layout
     finally:
         shutil.rmtree(d, ignore_errors=True)
 
 
-_sc_stale, _sc_authored, _sc_current, _sc_old_lint = _stale_corpus_fixture()
+_sc_stale, _sc_authored, _sc_current, _sc_old_lint, _sc_moved_layout = _stale_corpus_fixture()
 _sc_stale_block = _sc_stale.split("authored here AND moved")[0]
 R.check(
     "the pre-flight names a policy file main moved and this branch did not touch",
@@ -18043,13 +18189,12 @@ def _mirror_age_fixture():
                 when = f"@{now - ago * 3600} +0000"
                 return subprocess.run(
                     ["git", "-C", str(d), *a], capture_output=True, text=True,
-                    env={**os.environ,
-                         "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@e",
-                         "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@e",
+                    env={**throwaway_git_env(),
+                         "GIT_AUTHOR_EMAIL": "t@e", "GIT_COMMITTER_EMAIL": "t@e",
                          "GIT_AUTHOR_DATE": when, "GIT_COMMITTER_DATE": when},
                 )
 
-            g("init", "-q", "-b", "trunk")
+            throwaway_git_init(d, "-q", "-b", "trunk")
             g("add", "-A")
             g("commit", "-q", "-m", "base", ago=commit_age_h)
             sha = g("rev-parse", "HEAD").stdout.strip()
@@ -18092,6 +18237,14 @@ R.check(
     "indistinguishable from nothing being stale. Without the sentinel probe the "
     "check reports `ok` on precisely the stale checkouts it exists to catch, "
     "and this run is the same stale head that fires in the first arm",
+)
+R.check(
+    "and compares in the moved layout, policy_lint.mjs under tools/policy/",
+    "policy corpus -- 1 file(s) origin/main moved" in _sc_moved_layout
+    and "NOT compared" not in _sc_moved_layout,
+    "#1919 moved policy_lint.mjs to tools/policy/ and the pre-flight kept "
+    "spelling .claude/workflows/, so every checkout of main printed NOT "
+    "compared: the sentinel probe reported it, and nothing failed (R9-RCA-2004)",
 )
 
 # HA loads repairs.py dynamically, so a witness must import it or it is an
@@ -18489,11 +18642,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18683,9 +18836,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -18742,21 +18897,102 @@ def _af_case(committed, records, check_txt=None, inert=()):
             _closure.CLOSURES, _closure.is_inert = orig, real_is_inert
 
 
+# R9-CI-1: the refusal is owed only where the failed recording IS a stale
+# script's (or its driven child's): its truncated trace may be the whole
+# under-scope. A failed recording of an UNRELATED script blocked the repair of
+# every stale one -- 6 of the 9 skip-failed-recording runs whose artifacts
+# survived (2026-10-06..07) failed on a script the check did not name, mostly
+# stress.py on a timing verdict -- so that recording is left out and the rest
+# merge. The overlap case keeps the refusal.
 _af3_status, _af3_kept = _af_case(
     {"tests/open_meteo.py": ["tests/open_meteo.py"],
      "tests/frontend.py": ["tests/frontend.py"]},
-    [{"script": "tests/open_meteo.py", "rc": 0,
+    [{"script": "tests/open_meteo.py", "rc": 1,
       "files": ["tests/open_meteo.py", "tests/harness.py"]},
-     {"script": "tests/frontend.py", "rc": 1,
+     {"script": "tests/frontend.py", "rc": 0,
       "files": ["tests/frontend.py"]}],
 )
 R.check(
-    "one failed recording beside a real under-approximation reddens, not skips",
+    "a failed recording OF the under-scoped script reddens, not skips",
     _af3_status == "skip-failed-recording" and _af3_kept
     and _closure.autofix_repair_failed("closures-autofix", _af3_status),
-    f"status={_af3_status}: open_meteo.py under-approximates and the repair "
-    "is refused because frontend.py failed to record -- a human is waiting "
-    "for a commit no step will push",
+    f"status={_af3_status}: open_meteo.py under-approximates and its own "
+    "recording stopped early -- a human is waiting for a commit no step will push",
+)
+with _tempfile.TemporaryDirectory() as _af3u_td:
+    _af3u_path = Path(_af3u_td) / "closures.json"
+    _af3u_path.write_text(json.dumps({"closures": {
+        "tests/open_meteo.py": ["tests/open_meteo.py"],
+        "tests/frontend.py": ["tests/frontend.py"]}, "recorded": {}}))
+    _af3u_rec = Path(_af3u_td) / "rec"
+    _af3u_rec.mkdir()
+    for _i, _r in enumerate([
+            {"script": "tests/open_meteo.py", "rc": 0,
+             "files": ["tests/open_meteo.py", "tests/harness.py"]},
+            {"script": "tests/frontend.py", "rc": 1,
+             "files": ["tests/frontend.py"]}]):
+        (_af3u_rec / f"{_i}.json").write_text(json.dumps(_r))
+    _af3u_orig, _closure.CLOSURES = _closure.CLOSURES, _af3u_path
+    try:
+        _af3u_status = _closure.apply_under_scoped_recordings(_af3u_rec)
+    finally:
+        _closure.CLOSURES = _af3u_orig
+    _af3u_after = json.loads(_af3u_path.read_text())["closures"]
+R.check(
+    "a failed recording of an UNRELATED script no longer blocks the repair; "
+    "its own truncated trace is left out of the merge",
+    _af3u_status == "changed"
+    and "tests/harness.py" in _af3u_after["tests/open_meteo.py"]
+    and _af3u_after["tests/frontend.py"] == ["tests/frontend.py"],
+    f"status={_af3u_status} closures={_af3u_after!r}",
+)
+# A driven child counts as its driver (#2049's review, M7): dst_checks.py's
+# reads fold into features.py's closure, so a dst_checks.py recording that
+# stopped early truncates the very closure the check names. Leaving it out and
+# merging the rest would repair features.py over a clean subset and push the
+# truncation; the refusal must hold. The null control is the same pair with
+# dst_checks.py recorded cleanly, which repairs.
+_af_dst = ({"tests/features.py": ["tests/features.py"]},)
+_af_dst_failed = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 1,
+     "files": ["tests/dst_checks.py"]}])
+_af_dst_clean = _af_case(*_af_dst, [
+    {"script": "tests/features.py", "rc": 0,
+     "files": ["tests/features.py", "tests/harness.py"]},
+    {"script": "tests/dst_checks.py", "rc": 0,
+     "files": ["tests/dst_checks.py"]}])
+R.check(
+    "a failed recording of a driven child refuses its driver's repair; the "
+    "same pair recorded cleanly repairs",
+    _closure.DRIVEN_BY_OTHERS.get("dst_checks.py") == "features.py"
+    and _af_dst_failed == ("skip-failed-recording", True)
+    and _af_dst_clean[0] == "changed" and not _af_dst_clean[1],
+    f"failed child={_af_dst_failed} clean child={_af_dst_clean}",
+)
+# R9-CI-1: INERT READS UNDER-APPROXIMATED is the same repair -- merging the
+# Linux recordings folds `inert_reads` (#1886's own remedy, ci-autofix.md) --
+# and was 15 of the 15 skip-manual-repair-owed runs read (2026-10-06..07).
+# The bot merges it; a PHANTOM or NOT A FILE stays a human's.
+_af3i_status, _af3i_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 0,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+_af3j_status, _af3j_kept = _af_case(
+    {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+    [{"script": "tests/open_meteo.py", "rc": 1,
+      "files": ["tests/open_meteo.py"], "inert_reads": ["LICENSE"]}],
+    inert={"LICENSE"},
+)
+R.check(
+    "an INERT READS under-approximation is merged by the bot; its script's "
+    "own failed recording still refuses",
+    (_af3i_status, _af3i_kept) == ("changed", False)
+    and (_af3j_status, _af3j_kept) == ("skip-failed-recording", True),
+    f"inert={_af3i_status},{_af3i_kept} failed={_af3j_status},{_af3j_kept}",
 )
 # The other half of the split, and the reason it is a split rather than a
 # reclassification: a failed recording with nothing under-scoped must stay
@@ -20196,10 +20432,11 @@ with _tempfile.TemporaryDirectory() as _cm_td:
 
     def _cm_git(*args, **kw):
         return _subprocess.run(
-            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True, **kw
+            ["git", *args], cwd=str(_cm_repo), capture_output=True, text=True,
+            env=throwaway_git_env(), **kw
         )
 
-    _cm_git("init", "-q", "-b", "main")
+    throwaway_git_init(_cm_repo, "-q", "-b", "main")
     _cm_git("config", "user.email", "t@example.invalid")
     _cm_git("config", "user.name", "t")
     _cm_claim = _cm_repo / _env_drift.CLAIM_FILE
@@ -20468,13 +20705,13 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
         "x = 1\n"
     )
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
     base = _sp.run(
-        ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+        ["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True
     ).stdout.strip()
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text(card_head)
     for rel, text in extra.items():
@@ -20485,8 +20722,8 @@ def _hygiene_git(card_head: str, extra: dict[str, str], py_touch: bool,
         (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text(
             "x = 2\n"
         )
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "head"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "head"], cwd=root, env=env, check=True, capture_output=True)
     return root, base
 
 
@@ -20564,23 +20801,23 @@ def _merge_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 1\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "base"], cwd=root, check=True, capture_output=True)
-    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "base"], cwd=root, env=env, check=True, capture_output=True)
+    base = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "custom_components" / "heatpump_optimizer" / "optimizer.py").write_text("x = 2\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # A note keeps the merge tree's list the baseline's while its bytes are
     # not: byte-identical is the no-claim state (R9-F10.8), checked below.
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(
         five + "# a note the merge tree carries\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "merge tree"], cwd=root, env=env, check=True, capture_output=True)
     return root, base, branch
 
 
@@ -20653,24 +20890,24 @@ def _untouched_hygiene_git():
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(five)
     (Path(root) / "tests" / "golden" / "card_claimed_drift.txt").write_text("# claims-for: 6.3.15\n")
     (Path(root) / "docs" / "rust.txt").write_text("start\n")
-    _sp.run(["git", "init"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, check=True)
-    _sp.run(["git", "config", "user.name", "t"], cwd=root, check=True)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "fork"], cwd=root, check=True, capture_output=True)
+    env = throwaway_git_init(root)
+    _sp.run(["git", "config", "user.email", "t@t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "config", "user.name", "t"], cwd=root, env=env, check=True)
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "fork"], cwd=root, env=env, check=True, capture_output=True)
     # the branch: a docs-only change, both claim files left exactly as found
     (Path(root) / "docs" / "rust.txt").write_text("branch\n")
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "branch"], cwd=root, check=True, capture_output=True)
-    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "branch"], cwd=root, env=env, check=True, capture_output=True)
+    branch = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # main moves the solver list after the fork (the branch is not its author)
-    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "checkout", "-q", "HEAD~1"], cwd=root, env=env, check=True, capture_output=True)
     (Path(root) / "tests" / "golden" / "claimed_drift.txt").write_text(moved)
-    _sp.run(["git", "add", "-A"], cwd=root, check=True, capture_output=True)
-    _sp.run(["git", "commit", "-m", "main"], cwd=root, check=True, capture_output=True)
-    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+    _sp.run(["git", "add", "-A"], cwd=root, env=env, check=True, capture_output=True)
+    _sp.run(["git", "commit", "-m", "main"], cwd=root, env=env, check=True, capture_output=True)
+    ref = _sp.run(["git", "rev-parse", "HEAD"], cwd=root, env=env, check=True, capture_output=True, text=True).stdout.strip()
     # the synthetic merge tree a `pull_request` checks out: main merged with branch
-    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, check=True, capture_output=True)
+    _sp.run(["git", "merge", "--no-edit", "-q", branch], cwd=root, env=env, check=True, capture_output=True)
     return root, ref, branch
 
 
@@ -20835,7 +21072,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     root = _tempfile.mkdtemp(prefix="f108_")
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     def _put(rel: str, text: str) -> None:
@@ -20849,7 +21086,7 @@ def _f108_repo(branch_note: bool, branch_claim: bool = False):
     _put(_env_drift.CARD_CLAIM_FILE, hdr)
     _put("custom_components/heatpump_optimizer/optimizer.py", "x = 1\n")
     _put(_env_drift.CARD_JS, "// card\n")
-    _git("init", "-q")
+    throwaway_git_init(root, "-q")
     _git("config", "user.email", "t@t")
     _git("config", "user.name", "t")
     _git("add", "-A")
@@ -20973,7 +21210,7 @@ def _f108_tip_moved():
     root, main_sha = _f108_repo(branch_note=False)
 
     def _git(*args: str) -> str:
-        return _sp.run(["git", *args], cwd=root, check=True,
+        return _sp.run(["git", *args], cwd=root, check=True, env=throwaway_git_env(),
                        capture_output=True, text=True).stdout.strip()
 
     _git("checkout", "-q", "main")
@@ -23644,8 +23881,9 @@ R.check(
 
 # --- the nightly's own telling (#533) ---------------------------------------
 #
-# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
-# and pull request, and are not required contexts on `main-protect`. So a
+# `nightly-ha` and `slow` run on `schedule` (and dispatch), are `skipped` on
+# every push and on a pull request that does not touch the nightly driver's
+# reads, and are not required contexts on `main-protect`. So a
 # scheduled run's conclusion lands on whatever commit was main's head when the
 # cron fired and the next merge strands it: both `nightly-ha` arms failed on
 # two consecutive nights and a seat sent looking found it, not the lane.
@@ -23766,8 +24004,15 @@ R.check(
 # cannot see for itself. A future lane added to the nightly is therefore
 # refused by this gate until it is registered, instead of being watched by
 # nobody -- which is the silence #533 is about, one level further out.
+# A pull-request admission gated on a `closure-scope` diff flag does not count:
+# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
+# no other, so every other pull request still cannot see it for itself.
+_NS_DIFF_GATED = re.compile(
+    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
+    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
 _NS_HEADS = {
-    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    _n: _NS_DIFF_GATED.sub("", " ".join(
+        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
 _NS_SCHEDULE_ONLY = sorted(
@@ -24436,6 +24681,54 @@ R.check(
     "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
     "translation and buys nothing",
 )
+
+# R9-RO-9a: a two-parent direct push -- a local merge pushed to main, or the
+# record bot merging main into its rows -- names no pull request, so v6.7.17's
+# window read UNCHECKED over nine of them and the stamp needed --allow-rowless.
+# Each gets a disposition instead: one that changes only delivery rows is
+# record-only by its file list, and any other is exempt only through a
+# tracked line in `DIRECT_PUSHES` naming its sha. A commit whose file list is
+# unknown, or that touches one file outside the rows, stays UNCHECKED.
+_DS_ROWS = _ds.ROW_DIR + "/1998.md"
+_DS_DIRECT = [
+    {"sha": "0a60e06" + "0" * 33, "parents": 2, "subject": "record: delivery rows for #1998 (autofix)",
+     "body": "", "files": [_DS_ROWS]},
+    {"sha": "618d014" + "0" * 33, "parents": 2, "subject": "Count dimension briefs", "body": "",
+     "files": ["tools/policy/counts.mjs"]},
+]
+_ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
+try:
+    _DS_D = tuple(
+        (sorted(b.get("disposition") or "-" for b in blind),
+         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+        for m, blind in (
+            _ds.collect(_DS_DIRECT[:1]),
+            _ds.collect(_DS_DIRECT, allow=_ds_allow),
+            _ds.collect(_DS_DIRECT),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                "- 1234567: a disposition for another commit\n")),
+            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
+        ))
+except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+R.check(
+    "a direct-push merge commit is dispositioned -- record-only by its files, "
+    "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
+    _DS_D == ((["record-only"], _ds.EMPTY),
+              (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
+              (["-", "record-only"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED)),
+    f"(rows only, both with the allow line, code without it, rows plus a "
+    f"script, files unknown, an allow line for another sha, the allow list "
+    f"itself edited, a row lookalike) -> {_DS_D}",
+)
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
     "parents",
@@ -24777,6 +25070,46 @@ R.check(
         _PC_RED_STEP.replace("set -euo pipefail", "", 1)
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
+)
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
@@ -25120,6 +25453,34 @@ _RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
                          if "_rr" in globals() else "?")
 
 
+# The one review the job posts is the approver App's, and only behind the
+# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
+# sits after the guard's call at the live head, and the POST carries the
+# approver token, never the author's -- an author cannot approve its own pull
+# request, and a review ahead of the guard would approve what it never read.
+_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
+
+
+def _raf_review_gated(job: str) -> bool:
+    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
+    g = job.find(_RAF_GUARD)
+    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
+                     r'[^\n]*pulls/\$NUM/reviews"', job)
+    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
+
+
+# The merge is the beat's own, pinned to the head the guard judged (#2029
+# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
+# the guard's `--require-green` call, and never GitHub's auto-merge, which
+# merges later on a head nobody judged.
+def _raf_merge_pinned(job: str) -> bool:
+    g = job.find("guard --require-green")
+    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
+    return (0 < g < put
+            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
+            and "AutoMerge" not in job)
+
+
 def _raf_job_ok(job: str) -> bool:
     """The wiring record-autofix owes, read over non-comment lines."""
     adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
@@ -25139,7 +25500,9 @@ def _raf_job_ok(job: str) -> bool:
         and all(_RAF_LEASE in p for p in pushes)
         and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
                     for p in pushes)
-        and not re.search(r"pulls/.*/reviews", job))
+        and "--automerge-check --hold" in job
+        and _raf_review_gated(job)
+        and _raf_merge_pinned(job))
 
 
 R.check(
@@ -25167,11 +25530,19 @@ R.check(
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
     and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1)),
+    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
+    and not _raf_job_ok(_RAF_JOB.replace(
+        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
+    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1)),
     "stripping the ref guard, the ci: subject, the guarded add, or the "
     "lease's anchor -- or replacing the lease with an unanchored "
     "--force-with-lease or a bare --force, or dropping the self-row write "
-    "that runs only after NUM is known -- must each turn the pin red -- "
+    "that runs only after NUM is known, or dropping the automerge guard "
+    "ahead of the review, or posting it with the author's token, or the "
+    "merge's green gate or its sha pin -- must "
+    "each turn the pin red -- "
     "or the pin matched a comment, not the wiring",
 )
 # The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
@@ -25444,16 +25815,16 @@ def _pt_trigger(script: str, planted: str) -> str:
     """Run the arm's `changed` step on a planted one-file diff; its governance output."""
     with tempfile.TemporaryDirectory() as _td:
         _g = ["git", "-C", _td, "-c", "user.name=t", "-c", "user.email=t@invalid"]
-        subprocess.run(["git", "init", "-q", _td], check=True)
+        _env = throwaway_git_init(_td, "-q")
         Path(_td, "seed").write_text("0\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "base"], check=True)
-        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "base"], check=True, env=_env)
+        _base = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         Path(_td, planted).parent.mkdir(parents=True, exist_ok=True)
         Path(_td, planted).write_text("1\n")
-        subprocess.run(_g + ["add", "-A"], check=True)
-        subprocess.run(_g + ["commit", "-qm", "head"], check=True)
-        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        subprocess.run(_g + ["add", "-A"], check=True, env=_env)
+        subprocess.run(_g + ["commit", "-qm", "head"], check=True, env=_env)
+        _head = subprocess.run(_g + ["rev-parse", "HEAD"], capture_output=True, text=True, env=_env).stdout.strip()
         _out = Path(_td, ".out")
         subprocess.run(["bash", "-c", script], cwd=_td, capture_output=True, text=True,
                        env={**os.environ, "BASE": _base, "HEAD": _head,
@@ -25868,7 +26239,7 @@ def _autofix_head_fixture():
         c = committer or who
         return subprocess.run(
             ["git", "-C", str(d), *a], capture_output=True, text=True,
-            env={**os.environ, "GIT_AUTHOR_NAME": who[0],
+            env={**throwaway_git_env(), "GIT_AUTHOR_NAME": who[0],
                  "GIT_AUTHOR_EMAIL": who[1], "GIT_COMMITTER_NAME": c[0],
                  "GIT_COMMITTER_EMAIL": c[1]},
         ).stdout.strip()
@@ -25909,7 +26280,7 @@ def _autofix_head_fixture():
         (d / "tests/golden/claimed_drift.txt").write_text("# claims-for: 1.0\nfix_a\n")
         (d / "tests/golden/card_claimed_drift.txt").write_text("# claims-for: 1.0\n")
         (d / "other.txt").write_text("v1\n")
-        g("init", "-q", "-b", "trunk")
+        throwaway_git_init(d, "-q", "-b", "trunk")
         (d / ".gitignore").write_text("body.md\n")
         base = commit("base", {}, who=seat)
         closures = {"tests/closures.json": '{"closures": {"a": []}}\n'}
@@ -25943,6 +26314,38 @@ def _autofix_head_fixture():
         out["between"] = run(commit(R_, closures, parent=human), base)
         sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
         out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        # R9-CI-2b: the merge-main bot's `ci: merge main` -- main merged into
+        # the named head with no resolution -- and, on top, a pin commit.
+        # Its first parent is the named head; a hand-edited tree refuses.
+        mainline = commit("main moved", {"main.txt": "m\n"}, who=seat, parent=base)
+        # A real main for the bot merge's second parent (#2059 round 1): the
+        # check reads origin/main, as pr-contract's fetch-depth-0 clone has it.
+        g("update-ref", "refs/remotes/origin/main", mainline)
+        fixhead = commit("fix: own", {"other.txt": "fix\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        mm = g("rev-parse", "HEAD")
+        out["merge_main"] = run(mm, fixhead) + (mm,)
+        out["merge_main_pin"] = run(commit(R_, closures, parent=mm), fixhead)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_hand"] = run(g("rev-parse", "HEAD"), fixhead)
+        out["merge_main_one_parent"] = run(commit("ci: merge main", {"main.txt": "m\n"}, parent=fixhead), fixhead)
+        # The review's two forgeries: a bot-identity merge of a branch that is
+        # not main, editing code; and one whose side adds a driver attribute
+        # for that code, then hand-edits it in the merge.
+        offmain = commit("not main", {"code.py": "evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", offmain, who=bot)
+        out["merge_main_offmain"] = run(g("rev-parse", "HEAD"), fixhead)
+        evilattr = commit("not main", {".gitattributes": "other.txt merge=evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", evilattr, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_evilattr"] = run(g("rev-parse", "HEAD"), fixhead)
         return out
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -25958,6 +26361,13 @@ R.check(
     f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
     f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
     "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "pr-contract accepts the merge-main bot's automatic `ci: merge main`, and a bot commit on it (R9-CI-2b)",
+    _AH["merge_main"][0] == 0 and f"{_AH['merge_main'][2][:7]} (ci: merge main)" in _AH["merge_main"][1]
+    and _AH["merge_main_pin"][0] == 0,
+    f"merge rc={_AH['merge_main'][0]}, merge+pin rc={_AH['merge_main_pin'][0]}; "
+    f"{_AH['merge_main'][1].strip()[-300:]!r}",
 )
 R.check(
     "and a body naming the real head passes with no autofix line (null control)",
@@ -25978,6 +26388,10 @@ _AH_REFUSED = {
     "merge": "parents",
     "between": "not authored",
     "not_ancestor": "not authored",
+    "merge_main_hand": "not the automatic merge",
+    "merge_main_one_parent": "parents",
+    "merge_main_offmain": "not on origin/main",
+    "merge_main_evilattr": "not on origin/main",
 }
 _AH_WRONG = {
     k: (_AH[k][0], _AH[k][1].strip()[-240:])
@@ -26271,7 +26685,10 @@ R.check(
                       # A base retarget moves the merge base the gate reads;
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
-                      "budget-raise-gate.yml": ["budget-raise-gate"]},
+                      "budget-raise-gate.yml": ["budget-raise-gate"],
+                      # R9-EG-A4: the required score check reads the body, so
+                      # a body edit is the answer to its red; one job, no `if:`.
+                      "arch-score.yml": ["arch-score"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -26369,15 +26786,21 @@ R.check(
 # --- round-9 process review item 3, shrunk: a superseded long-job
 # pull-request run is an older SHA replaced by a newer one in the same
 # group, and that pair is cancelled; two events at one SHA of the
-# required short contract job are not (R9-RC-PRCONTRACT). Every workflow
-# a pull request starts declares one top-level `concurrency:`; each
-# `${{ }}` in it is evaluated here under the events the file lists. Two
-# `pull_request` runs of one pull request share a group. `tests.yml` and
-# the other long `on: pull_request` workflows cancel the older SHA;
-# `pr-contract.yml` shares the group and does not cancel, so an `edited`
-# twin at the live SHA finishes instead of writing a cancelled required
-# context. Only `pr-contract.yml` lists `edited`, so only it can receive
-# that twin. Two runs of any other event -- a push to main, a merge
+# required short contract job are not (R9-RC-PRCONTRACT, R9-CI-2a). Every
+# workflow a pull request starts declares one top-level `concurrency:`; each
+# `${{ }}` in it is evaluated here under the events the file lists. A
+# workflow that does not list `edited` receives no same-SHA twin: its two
+# `pull_request` runs of one pull request share a group and the older SHA
+# is cancelled. One that lists `edited` receives a twin at every author
+# push that re-bodies the pull request (`app_push.sh` pushes, then PATCHes
+# the body), and must never cancel it; `_CC_TWIN_ROUTE` names how each
+# such file keeps it, and a file listing `edited` that it does not name is
+# a problem. "serialised": one group, no cancel -- the twins queue
+# (`pr-contract.yml`, whose body read races the PATCH). "per-run": a group
+# per run, so no run ever cancels or queues another -- not even the
+# newer-pending-cancels-older-pending GitHub applies whatever
+# `cancel-in-progress` says, which a serialised file still meets while an
+# older head's run holds the group. Two runs of any other event -- a push to main, a merge
 # queue entry, the nightly, an autofix push or dispatch, a review -- get
 # groups of their own, because a group they shared would queue them, and
 # a newer pending run cancels the older pending one whatever
@@ -26417,6 +26840,19 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
     return event
 
 
+# How each workflow that lists `pull_request: edited` keeps its same-SHA
+# twin from being cancelled. A design choice per file, not a derived fact.
+_CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
+                  "budget-raise-gate.yml": "per-run",
+                  "arch-score.yml": "per-run"}
+
+
+def _cc_lists_edited(doc: dict) -> bool:
+    on = doc.get("on", doc.get(True)) or {}
+    pr = on.get("pull_request") if isinstance(on, dict) else None
+    return "edited" in ((pr or {}).get("types") or [])
+
+
 def _cc_problems(name: str, doc: dict) -> "list[str]":
     on = doc.get("on", doc.get(True)) or {}
     events = [on] if isinstance(on, str) else list(on)
@@ -26426,14 +26862,19 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
     if not isinstance(cc, dict):
         return [f"{name}: no top-level concurrency"]
     out = []
+    twin = _cc_lists_edited(doc)
+    route = _CC_TWIN_ROUTE.get(name) if twin else None
+    if twin and route is None:
+        out.append(f"{name}: lists `edited` but names no twin route")
     for ev in [e for e in _CC_EVENTS if e in events]:
         for who in ("hpo-author[bot]", "github-actions[bot]"):
             # A superseded pair is sha-1 replaced by sha-2, not two events
             # at one SHA. An autofix push never cancels.
             def at(run_id, ev=ev, who=who):
                 return _cc_pr_event(doc, run_id, f"sha-{run_id}", who=who, ev=ev)
-            share = ev == "pull_request" and who != "github-actions[bot]"
-            cancel_want = share and name != "pr-contract.yml"
+            share = (ev == "pull_request" and who != "github-actions[bot]"
+                     and route != "per-run")
+            cancel_want = share and not twin
             older, newer = at(1), at(2)
             cancel = _cc_value(cc.get("cancel-in-progress"), older)
             a, b = (_cc_value(cc.get("group"), older),
@@ -26446,7 +26887,7 @@ def _cc_problems(name: str, doc: dict) -> "list[str]":
                 sa, sb = older.get("github.sha"), newer.get("github.sha")
                 if not sa or not sb:
                     out.append(f"{name}: pull_request pair by {who} carries no SHA")
-                elif name != "pr-contract.yml" and sa == sb:
+                elif not twin and sa == sb:
                     out.append(f"{name}: superseded pair by {who} is one SHA, "
                                "not an older SHA replaced by a newer")
     return out
@@ -26510,6 +26951,45 @@ R.check(
     and not _cc_problems("pr-contract.yml", {**_PC_DOC, "concurrency": {
         **(_PC_DOC.get("concurrency") or {}), "cancel-in-progress": False}}),
     f"{_cc_problems('pr-contract.yml', _PC_CANCEL_TRUE)}",
+)
+
+_BRG_DOC = _RC_DOCS["budget-raise-gate.yml"]
+_BRG_CC = (_BRG_DOC.get("concurrency") or {})
+_CC_BRG_TWIN = (_cc_pr_event(_BRG_DOC, 1, _CC_TWIN_SHA),
+                _cc_pr_event(_BRG_DOC, 2, _CC_TWIN_SHA))
+R.check(
+    "budget-raise-gate gives each author-app pull_request event at one SHA a "
+    "group of its own and cancels none (R9-CI-2a)",
+    _cc_lists_edited(_BRG_DOC)
+    and _cc_value(_BRG_CC.get("cancel-in-progress"), _CC_BRG_TWIN[0]) == "False"
+    and None not in (_cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0]),
+                     _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]))
+    and _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[0])
+    != _cc_value(_BRG_CC.get("group"), _CC_BRG_TWIN[1]),
+    f"groups={_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[0])!r}/"
+    f"{_cc_value(_BRG_CC.get('group'), _CC_BRG_TWIN[1])!r} "
+    f"cancel={_cc_value(_BRG_CC.get('cancel-in-progress'), _CC_BRG_TWIN[0])!r}",
+)
+# The block the gate carried until R9-CI-2a: one group per pull request,
+# cancelling. It cancelled a same-SHA twin at every author push that
+# re-bodied a pull request (#2007, #2029, #2041, #2049).
+_BRG_OLD_CC = {
+    "group": "${{ github.workflow }}-${{ github.event_name == 'pull_request' && "
+             "github.event.sender.login != 'github-actions[bot]' && "
+             "github.event.pull_request.number || github.run_id }}",
+    "cancel-in-progress": "${{ github.event_name == 'pull_request' && "
+                          "github.event.sender.login != 'github-actions[bot]' }}"}
+_BRG_OLD = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": _BRG_OLD_CC})
+_BRG_SERIAL = _cc_problems("budget-raise-gate.yml", {**_BRG_DOC, "concurrency": {
+    **_BRG_OLD_CC, "cancel-in-progress": False}})
+_CC_UNROUTED = _cc_problems("unrouted.yml", {**_BRG_DOC, "name": "x"})
+R.check(
+    "and the cancelling block, a serialised one, or an unrouted `edited` "
+    "file is refused (null control)",
+    any("cancel-in-progress" in p for p in _BRG_OLD)
+    and any("get groups" in p for p in _BRG_SERIAL)
+    and any("names no twin route" in p for p in _CC_UNROUTED),
+    f"old={_BRG_OLD} serialised={_BRG_SERIAL} unrouted={_CC_UNROUTED}",
 )
 
 # A superseded run must stop: a job-level `always()` keeps running after the
@@ -29443,6 +29923,53 @@ R.check(
     f"a move, the moved one of two twins) -> {_AU_GOT}",
 )
 
+# R9-RO-9a (C9): which identical line is the added one. The base holds one
+# `return out` in `_seed`; the head adds a twin in a new def ABOVE it. The
+# match must give the base's site to its own def before any other def may
+# take it, whatever order the head lists them in -- one greedy pass charged
+# the old line and let the new one through. Null control: a head that only
+# re-indents the old site adds nothing.
+_au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
+_au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
+try:
+    _AU_TWIN = tuple(
+        [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
+        for head in ([_au_new, dict(_au_r, line=40)],
+                     [dict(_au_r, line=40, old="        return out")]))
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_unpinned charges a twin line to the def that gained it, not to the "
+    "def that already had it (R9-RO-9a)",
+    _AU_TWIN == ([("p/o.py:_padded", 10)], []),
+    f"(twin added above, re-indent only) -> {_AU_TWIN}",
+)
+
+# R9-RO-9a (C9): one line, three comparison bounds, one ledger anchor. The
+# ledger pins an anchor only when every mutant under it is killed
+# (`pin_results`), so the key a body disposes of must say how many there are;
+# three bare copies of one key read as three sites a single line covers.
+# Driven through the real operators over a synthetic module, and through
+# the key list ci_predict prints for prepr's step 6d.
+with tempfile.TemporaryDirectory() as _au_d:
+    _au_p = Path(_au_d) / "chain.py"
+    _au_p.write_text("def f(x, y):\n    if 0 < x < 9 < y:\n        return 1\n"
+                     "    return 0\n")
+    _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
+_AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
+try:
+    _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
+             [k for k, _ in _AU_KEYS(_au_cmp[:1])])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_keys gives a line with three comparison mutants one key carrying "
+    "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
+    len(_au_cmp) == 3 and _AU_K == ([f"{_au_p}:2 CMP_BOUND*3"],
+                                     [f"{_au_p}:2 CMP_BOUND"]),
+    f"{len(_au_cmp)} CMP_BOUND mutant(s); (all three, one) -> {_AU_K}",
+)
+
 # The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an
 # `else`, an `elif`, or a comment after the colon is a GUARD_OFF site, and a
 # numpy/math clamp is a CLAMP_DROP; each mutant keeps the header's tail and
@@ -29632,7 +30159,8 @@ R.check(
 def _mut_git(root: Path, *args: str) -> str:
     return _subprocess.run(["git", "-c", "user.name=t", "-c",
                             "user.email=t@example.invalid", *args], cwd=root,
-                           capture_output=True, text=True, check=True).stdout.strip()
+                           capture_output=True, text=True, check=True,
+                           env=throwaway_git_env()).stdout.strip()
 
 
 _MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
@@ -29650,7 +30178,7 @@ try:
         "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
             _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
                                             "old": "    if x:"}}}))
-    _mut_git(_mb_root, "init", "-q")
+    throwaway_git_init(_mb_root, "-q")
     _mut_git(_mb_root, "add", "-A")
     _mut_git(_mb_root, "commit", "-qm", "A")
     _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
@@ -29873,15 +30401,15 @@ _LL_GOT: dict = {}
 try:
     _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
                "-c", "commit.gpgsign=false"]
-    subprocess.run(["git", "init", "-q", str(_LL_DIR)], check=True)
+    _ll_env = throwaway_git_init(_LL_DIR, "-q")
     (_LL_DIR / "tests").mkdir()
     _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
     _mut.write_budgets(_ll_led)
     _ll_d = _mut.ledger_dir()
     _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
     _LL_GOT["clean"] = _mut.layout_problems()
-    subprocess.run([*_ll_git, "add", "-A"], check=True)
-    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True)
+    subprocess.run([*_ll_git, "add", "-A"], check=True, env=_ll_env)
+    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True, env=_ll_env)
     _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
     _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
     _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
@@ -29976,11 +30504,14 @@ R.check(
 # same-repo ratchet failure, graded by `measurement`, and a push grant only
 # in the job that runs no pull-request driver.
 _ma_mut = _workflow_job(_TESTS_YML, "mutation")
+_ma_pins = _workflow_job(_TESTS_YML, "mutation-pins")
 _ma_fix = _workflow_job(_TESTS_YML, _MA)
-_ma_meas = [s for s in _ma_mut.split("\n      - ") if "mutation-pins" in s
+_ma_meas = [s for s in _ma_pins.split("\n      - ") if "mutation-pins" in s
             and "measurement(" in s]
 _MA_WIRING = [w for w in (
-    "git show origin/main:tests/mutation_table.py > tests/_mutation_table_base.py",
+    'git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py',
+    "PR_BASE: ${{ github.event.pull_request.base.sha }}",
+    '|| echo "pin run exited non-zero; measurement() grades it"',
     "tests/_mutation_table_base.py --pin-killed",
     "_mutation_table_base.py >> .git/info/exclude",
     "mutation_table.measurement(",
@@ -29991,12 +30522,12 @@ _MA_WIRING = [w for w in (
     "PR_HEAD: ${{ github.event.pull_request.head.sha }}",
     "printf '%s\\n' \"$PR_HEAD\" > \"$out/head\"",
     "if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\\(s\\) against'",
-) if not _ma_meas or w not in _ma_meas[0]]
+) if not _ma_meas or w not in _ma_pins]
 R.check(
     "mutation's measure step runs the base's tool, hidden, and grades by measurement()",
     len(_ma_meas) == 1 and not _MA_WIRING
-    and "failure()" in _ma_meas[0]
-    and "contents: write" not in _ma_mut,
+    and "needs.mutation.result == 'failure'" in _ma_pins
+    and "contents: write" not in _ma_mut and "contents: write" not in _ma_pins,
     f"measure steps={len(_ma_meas)} missing={_MA_WIRING}",
 )
 R.check(
@@ -30005,7 +30536,10 @@ R.check(
     and "github.event.pull_request.head.repo.full_name == github.repository" in _ma_fix
     and "contents: write" in _ma_fix
     and 'head = subprocess.run(["git", "rev-parse", "HEAD"]' in _ma_fix
-    and 'mutation_table.apply_pins(os.environ["PINS"], head)' in _ma_fix,
+    and "mutation_table.merge_pin_shards(" in _ma_fix
+    and "pattern: mutation-pins*" in _ma_fix
+    and "needs: [mutation, mutation-pins]" in _ma_fix
+    and "mutation_table.apply_pins(pins, head)" in _ma_fix,
     "the job's if:, its push grant, and the head it hands apply_pins",
 )
 
@@ -30314,6 +30848,93 @@ R.check(
     f"crons={_CRONS!r}",
 )
 
+# nightly-ha on the pull request that changes its driver (#2056's root cause).
+# #2041's A16 check had a container half no pull-request lane ran, and both
+# arms went red at the next schedule on main. Three things are pinned. REACH:
+# the job's own `if:` is evaluated over every event and both answers of
+# `closure-scope`'s `nightly_ha` output, so a guard that is only text fails.
+# THE OUTPUT exists and comes from the step that decides it. COVERAGE: what
+# `_stage` reads from the repository outside custom_components/ -- everything
+# it mounts into the container, measured here with an audit hook -- is
+# matched by the pathspecs that step diffs, so a newly staged file cannot
+# leave the lane dark on the pull request that adds it.
+_NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_REACH: list = []
+try:
+    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _nf in ("true", "false", ""):
+            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                       "needs.closure-scope.outputs.nightly_ha": _nf})
+            _nwant = _nv in ("schedule", "workflow_dispatch") or (
+                _nv == "pull_request" and _nf == "true")
+            if _ngot != _nwant:
+                _NHA_REACH.append((_nv, _nf, _ngot))
+except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+R.check(
+    "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
+    "touches its driver's reads, and on nothing else",
+    not _NHA_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
+                  re.M) is not None
+    and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
+    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+)
+_nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
+                        r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
+_NHA_SPECS = _nha_spec_m.group(1).replace("\\", " ").split() if _nha_spec_m else []
+_NHA_ROOT = Path(__file__).resolve().parents[1]
+_nha_reads: set = set()
+_nha_on = [False]
+
+
+def _nha_audit(event, args):
+    if _nha_on[0] and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
+        _p = Path(os.fspath(args[0])).resolve()
+        if _p.is_relative_to(_NHA_ROOT) and _p.is_file():
+            _nha_reads.add(_p.relative_to(_NHA_ROOT).as_posix())
+
+
+sys.addaudithook(_nha_audit)
+_nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
+try:
+    _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
+    _nightly._stage(_nha_tmp)
+except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+finally:
+    _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
+    import shutil as _nha_shutil
+    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
+_NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
+                  if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
+R.check(
+    "every file nightly-ha's driver stages from outside the package is a path whose "
+    "change runs nightly-ha on the pull request",
+    _NHA_SPECS and not _NHA_UNCOVERED
+    and {"tests/nightly_ha.py", "tests/ha_contract.py"} <= set(_NHA_DRIVER_READS)
+    and any(f.startswith("tests/hastub/") for f in _NHA_DRIVER_READS),
+    f"pathspecs={_NHA_SPECS}; staged reads not covered={_NHA_UNCOVERED}; "
+    f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
+)
+
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
 # and that job runs in the `ledger` environment, whose deployment branches the
 # owner restricts to main -- so no other job, branch or workflow is handed the
@@ -30340,7 +30961,7 @@ _PP_DIR = Path(tempfile.mkdtemp(prefix="hpo-drain-push-"))
 
 def _pp_git(*a: str) -> str:
     return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t",
-                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR,
+                           "-c", "commit.gpgsign=false", *a], cwd=_PP_DIR, env=throwaway_git_env(),
                           capture_output=True, text=True, check=True).stdout.strip()
 
 
@@ -30353,7 +30974,7 @@ def _pp_row(name: str, text: str, subject: str) -> None:
 
 
 try:
-    _pp_git("init", "-q", "-b", "main")
+    throwaway_git_init(_PP_DIR, "-q", "-b", "main")
     (_PP_DIR / "a.txt").write_text("a\n")
     _pp_row("old.json", "{}\n", "base")
     _pp_main = _pp_git("rev-parse", "HEAD")
@@ -31264,6 +31885,236 @@ R.check(
 )
 _mut_shutil.rmtree(_MUT_T_DIR, ignore_errors=True)
 
+# RCA-1565-mutation-timeouts: the nightly's baseline bound was TIMEOUT_SCALE x a
+# SOLO recording the 3-worker pool can cost several times over. The pool/solo
+# factor measured 0.47x-3.27x across the 51 driver rows of the three
+# 2026-10-07/08 nightly runs (rule and per-row enumerator:
+# `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` §2). That is NOT the `0.3x-3.4x`
+# in `closure.py`'s SECONDS_BAND comment, which states how much one script's
+# RECORDINGS vary run to run and is the reason the band exists -- two different
+# quantities, and conflating them is how the figure this replaces travelled.
+# What binds is the band: it keeps a committed value up to 2x below the cost CI
+# last measured, so 3x the solo number left ~1.5x of headroom over the script's
+# true cost, against a factor whose top end is above 3x. boost_drift_replay.py
+# reached it on two nights: 2026-10-07 bound 1576 / pool 1573 completed (factor
+# 2.99, 3 s of margin, rc 0) in one lane and rc 124 at the same bound in the
+# other, 2026-10-08 bound 2401 / rc 124 -- a timed-out row's factor is a floor
+# (>= 3.00), not a measurement, because its "pool" is the bound it hit. The fix
+# seeds the bound from the MEASURED pool cost the lane
+# persists (`seed_pool_seconds`, `pool_seconds`), decoupled from SECONDS_BAND, and
+# makes a baseline TIMEOUT name the stale recording instead of "fix the suite
+# first" (`baseline_refusal`). Fixtures are the committed solo seconds at the two
+# heads that reddened (`git show <head>:tests/closures.json`) and the CI-measured
+# pool seconds (job logs 112708109605 / 112708109541 / 113233890923); driven as
+# functions, never a nightly run. `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`.
+_mut_seed = getattr(_mut, "seed_pool_seconds", None)
+_mut_pool_read = getattr(_mut, "pool_seconds", None)
+_mut_pool_write = getattr(_mut, "write_pool_seconds", None)
+_mut_tmo = getattr(_mut, "driver_timeout", None)
+_RCA_FLOOR = 1200
+# boost_drift_replay.py at the 10-08 head 816547efe: solo recording 800.2 (rc 0),
+# pool cost reached the 2401 s bound and timed out (rc 124). A completed run the
+# night before measured the same script's pool cost at 1573 s against a 1576 s
+# bound -- three seconds of margin.
+_RCA_SOLO = 800.2
+_RCA_POOL = 2401.0
+_rca_old_bound = _mut_tmo(_RCA_FLOOR, _RCA_SOLO) if _mut_tmo else None
+_rca_basis = (_mut_seed({"b": _RCA_SOLO}, {"b": _RCA_POOL})["b"]
+              if _mut_seed else None)
+_rca_new_bound = (_mut_tmo(_RCA_FLOOR, _rca_basis)
+                  if (_mut_tmo and _rca_basis is not None) else None)
+R.check(
+    "RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's "
+    "margin, not TIMEOUT_SCALE x a band-stale solo recording",
+    # The defect, reproduced from the committed table with the tree's own
+    # function: 3x the solo recording IS the bound the lane timed out at, so it
+    # carried zero margin over the pool cost.
+    _rca_old_bound == 2401 and _rca_old_bound <= _RCA_POOL
+    # The fix: bounding by max(solo, pool) gives the pool cost the full
+    # TIMEOUT_SCALE headroom the scale exists to provide.
+    and _rca_new_bound is not None
+    and _rca_new_bound >= _mut.TIMEOUT_SCALE * _RCA_POOL,
+    f"old bound driver_timeout({_RCA_FLOOR}, {_RCA_SOLO}) = {_rca_old_bound} "
+    f"(the bound the 10-08 pool cost reached and exceeded, rc 124); new bound "
+    f"driver_timeout({_RCA_FLOOR}, max({_RCA_SOLO}, {_RCA_POOL})) = "
+    f"{_rca_new_bound}, need >= {_mut.TIMEOUT_SCALE} x {_RCA_POOL} = "
+    f"{_mut.TIMEOUT_SCALE * _RCA_POOL}",
+)
+# Null control, re-taken at THIS merge base: a driver whose solo recording already
+# covers its pool cost is untouched -- the seed only ever raises a bound
+# (max(solo, pool) >= solo, and driver_timeout is monotonic), and a
+# floor-protected driver stays floor-protected. Committed solo seconds via the
+# tree's own recorded_seconds(); pool costs are the CI-measured values from job
+# 113233890923 (2026-10-08). env_drift's solo recording is the declared 0.9 s
+# stub (closure.py #934), so the FLOOR covers its 524 s pool cost, not the scale
+# -- the fix reads flat on it, which is the point.
+_RCA_POOL_MEASURED = {
+    "tests/features.py": 772.0,
+    "tests/stress.py": 434.0,
+    "tests/entities.py": 142.0,
+    "tests/env_drift.py": 524.0,
+    "tests/harness_headers.py": 211.0,
+}
+_rca_rec = getattr(_mut, "recorded_seconds", lambda: {})()
+_rca_null = {}
+for _s, _pool in _RCA_POOL_MEASURED.items():
+    _solo = _rca_rec.get(_s, 0.0)
+    _oldb = _mut_tmo(_RCA_FLOOR, _solo) if _mut_tmo else None
+    _basis = _mut_seed({_s: _solo}, {_s: _pool})[_s] if _mut_seed else _solo
+    _newb = _mut_tmo(_RCA_FLOOR, _basis) if _mut_tmo else None
+    _rca_null[_s] = (_solo, _pool, _oldb, _newb)
+R.check(
+    "RCA-1565 null control: a healthy driver's bound still covers its pool cost, "
+    "the seed never lowers a bound, and env_drift stays floor-bound (not scaled)",
+    all(oldb is not None and newb is not None and newb >= _pool and newb >= oldb
+        for (_solo, _pool, oldb, newb) in _rca_null.values())
+    and _rca_null["tests/env_drift.py"][2] == _RCA_FLOOR,
+    f"rows (solo, pool, old bound, new bound) = {_rca_null}",
+)
+# Item 3: the pool measurement persists and reads back, fail-soft -- an absent or
+# malformed file seeds NOTHING, so the bound falls back to the solo recording
+# (today's behaviour) and is never smaller for a missing measurement.
+_rca_roundtrip = False
+if _mut_pool_read is not None and _mut_pool_write is not None:
+    _rca_dir = Path(_tempfile.mkdtemp(prefix="rca1565-pool-"))
+    _rca_path = _rca_dir / "pool_seconds.json"
+    _mut_pool_write({"tests/boost_drift_replay.py": 1573.0}, _rca_path, "abc123")
+    _rca_back = _mut_pool_read(str(_rca_path))
+    _rca_roundtrip = (
+        _rca_back == {"tests/boost_drift_replay.py": 1573.0}
+        and _mut_pool_read(None) == {}
+        and _mut_pool_read(str(_rca_dir / "absent.json")) == {}
+    )
+    _rca_bad = _rca_dir / "bad.json"
+    _rca_bad.write_text("{not json")
+    _rca_roundtrip = _rca_roundtrip and _mut_pool_read(str(_rca_bad)) == {}
+    _mut_shutil.rmtree(_rca_dir, ignore_errors=True)
+R.check(
+    "RCA-1565: the pool measurement round-trips through pool_seconds.json, and an "
+    "absent/unreadable/malformed file seeds nothing (fail-soft, never a smaller bound)",
+    _rca_roundtrip,
+    f"round-trip and fail-soft ok = {_rca_roundtrip}",
+)
+# Item 1: a baseline TIMEOUT against a green committed recording must NOT read as
+# "fix the suite first" -- the suite was green (`fast` ran it rc 0); the lane was
+# judging its own bound. `baseline_refusal` gained an optional `recorded` param,
+# so on the unfixed 2-arg tree this falls back and the timeout reads as a generic
+# red, which is exactly the defect the check refuses.
+_mut_br2 = getattr(_mut, "baseline_refusal", None)
+_rca_arity = getattr(getattr(_mut_br2, "__code__", None), "co_argcount", 0)
+_RCA_TO_RUN = _mut.ScriptRun(
+    _mut.TIMEOUT_RC, 0, 2401.0, "",
+    "tests/boost_drift_replay.py: timed out after 2401s", True)
+_RCA_TO_REC = {"tests/boost_drift_replay.py": {"seconds": 800.2, "rc": 0}}
+
+
+def _rca_br(baseline, scope, recorded):
+    _buf = _mutb_io.StringIO()
+    with _mutb_contextlib.redirect_stdout(_buf):
+        if _mut_br2 is None:
+            _rc = None
+        elif _rca_arity >= 3:
+            _rc = _mut_br2(baseline, scope, recorded)
+        else:
+            _rc = _mut_br2(baseline, scope)
+    return _rc, _buf.getvalue()
+
+
+_RCA_TO_RC, _RCA_TO_OUT = _rca_br(
+    {"tests/boost_drift_replay.py": _RCA_TO_RUN}, "full", _RCA_TO_REC)
+R.check(
+    "RCA-1565: a baseline that TIMED OUT against a green committed recording "
+    "names the stale recording and the bound, not 'fix the suite first'",
+    _RCA_TO_RC == 1 and "MUTATION TABLE INCONCLUSIVE" in _RCA_TO_OUT
+    and "Fix the suite first" not in _RCA_TO_OUT
+    and "STALE" in _RCA_TO_OUT
+    and "2401" in _RCA_TO_OUT and "800.2" in _RCA_TO_OUT,
+    f"rc={_RCA_TO_RC!r} out={_RCA_TO_OUT.strip()!r} -- a timeout is the lane's "
+    "own bound, which no cheaper check measures, so it must not be reported as "
+    "the suite's red",
+)
+# Null control on the wording: a REAL red baseline (a failing check, not a
+# timeout) still reads as "fix the suite first" -- the timeout arm did not
+# weaken the case the refusal exists for.
+_RCA_RED_RUN = _mut.ScriptRun(1, 2, 41.0,
+                              "  FAIL payroll rounding\n"
+                              "  2 of 3 ENTITY CHECKS FAILED\n")
+_RCA_RED_RC, _RCA_RED_OUT = _rca_br(
+    {"tests/entities.py": _RCA_RED_RUN}, "changed",
+    {"tests/entities.py": {"seconds": 259.6, "rc": 0}})
+R.check(
+    "RCA-1565 null control: a real red baseline (a failing check, not a timeout) "
+    "still says 'fix the suite first' and names the check",
+    _RCA_RED_RC == 0 and "Fix the suite first" in _RCA_RED_OUT
+    and "payroll rounding" in _RCA_RED_OUT
+    and "TIMED OUT" not in _RCA_RED_OUT,
+    f"rc={_RCA_RED_RC!r} out={_RCA_RED_OUT.strip()!r}",
+)
+# Wired in the driver. The five checks above drive the functions; none of them
+# would notice a `main()` that never called one -- "defined-but-never-called is
+# the silent-green shape this repository keeps finding" (this file's own words at
+# the `_MUT_BODY` definition), and the class this PR countermeasures IS a lane that
+# did not consult its own measurement. So each new function is pinned at its CALL
+# SITE: reverting the seed to `own_s = recorded_seconds()`, dropping the
+# `--pool-seconds` flag, or moving the persist out of the `finally` each reddens
+# this check while leaving all five above green.
+_RCA_WIRE_MISSING = [w for w in (
+    'ap.add_argument("--pool-seconds"',
+    'prior_pool = pool_seconds(getattr(args, "pool_seconds", None))',
+    "own_s = seed_pool_seconds(recorded_seconds(), prior_pool)",
+    "measured_pool[s] = run.seconds",
+    "write_pool_seconds({**prior_pool, **measured_pool},",
+) if w not in _MUT_BODY]
+# The persist rides the `finally` on purpose: a run that refuses on its own bound
+# returns before `write_drain`, so a persist placed beside the drain write would
+# leave nothing behind on exactly the night the next run needs it.
+_RCA_FIN = _MUT_BODY.find("    finally:\n        # Persist the pool cost")
+_RCA_CLEANUP = _MUT_BODY.find("        for tree in made:\n            drop_tree(tree)")
+R.check(
+    "RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound "
+    "with it, records each pool baseline, and persists from the finally",
+    not _RCA_WIRE_MISSING and 0 < _RCA_FIN < _RCA_CLEANUP,
+    f"missing={_RCA_WIRE_MISSING!r}; finally-persist at {_RCA_FIN}, tree cleanup "
+    f"at {_RCA_CLEANUP} -- the persist must be inside the finally and first in it",
+)
+# Wired, against the YAML, in the `_MUT_BW_MISSING` idiom: the carrier is what
+# makes the seed anything but a local variable. Deleting `--pool-seconds` from a
+# nightly lane, or the cache pair that carries the measurement between runs,
+# leaves every check above green and the nightly back on TIMEOUT_SCALE x a solo
+# recording -- this PR's defect, restorable without tripping a check. The save is
+# pinned to `if: always()` IN THE MEASURING JOB and pinned ABSENT from
+# `mutation-ledger-push`, which is the trap the RCA names: that job is gated on
+# `needs.mutation-ledger.result == 'success'`, so it does not run on the night the
+# bound trips. Both jobs stay grant-free (decision 0011's measuring-job invariant).
+_RCA_YAML_MISSING = [(j, w) for j, w in (
+    ("mutation-nightly", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-nightly", "actions/cache/restore@"),
+    ("mutation-nightly", "restore-keys: pool-seconds-"),
+    ("mutation-ledger", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-ledger", "actions/cache/restore@"),
+    ("mutation-ledger", "actions/cache/save@"),
+    ("mutation-ledger", "Save the pool measurement for the next nightly"),
+) if w not in _workflow_job(_TESTS_YML, j)]
+_rca_ledger_job = _workflow_job(_TESTS_YML, "mutation-ledger")
+_rca_push_job = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+R.check(
+    "RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and "
+    "mutation-ledger persists on an if: always() cache save in the measuring job, "
+    "never in the success-gated push job",
+    not _RCA_YAML_MISSING
+    # The save step carries `if: always()` -- pinned as the adjacency, so a SHA
+    # bump does not break it and moving the condition off the save does.
+    and bool(_re.search(r"actions/cache/save@[0-9a-f]{40}[^\n]*\n\s+if: always\(\)",
+                        _rca_ledger_job))
+    and "actions/cache/save@" not in _rca_push_job
+    and "needs.mutation-ledger.result == 'success'" in _rca_push_job
+    # The carrier costs the measuring job no grant and no secret.
+    and "secrets." not in _rca_ledger_job
+    and "contents: write" not in _rca_ledger_job,
+    f"missing={_RCA_YAML_MISSING!r}; save-if-always="
+    f"{bool(_re.search(r'actions/cache/save@[0-9a-f]{40}[^\\n]*\\n\\s+if: always\\(\\)', _rca_ledger_job))}",
+)
+
 # R9-F10.12 (A): the mutant phase's wall-clock budget. Each pool runs on one
 # worker under a fake clock that each drive advances by the driver's cost, so
 # the admission arithmetic is exact. tests/a.py costs 10, tests/stress.py
@@ -31338,8 +32189,8 @@ R.check(
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation", "&& budget=(--budget-minutes 35)"),
-    ("mutation", '"${budget[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+    ("mutation-pins", "&& budget=(--budget-minutes 120)"),
+    ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
@@ -31655,6 +32506,138 @@ R.check(
     if _MUT_BG2_OUT else f"drive_pin_pool="
                          f"{'absent' if _mut_pin is None else 'present'}",
 )
+# R9-CI-1: #2025's pin step started none of 56 sites (run 37663843895). The
+# split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py
+# and harness_headers.py at three runs each, ~2535 s -- and every lazy driver
+# at three runs too, so the first anchor's estimate (~4069 s) outgrew the whole
+# 35-minute budget before env_drift.py's 353 s baseline even counted. The tail
+# runs only for a mutant that survives every shared driver, so the split now
+# admits on the shared work alone and checks the tail against the deadline when
+# a survivor reaches it; a lazy driver is charged its run, its settle paid on
+# the clock when a red run actually needs it. Fixture: tests/a.py (shared, 10)
+# kills mutant 0; mutant 1 survives it; tests/stress.py (EXCLUSIVE) costs 90
+# against a deadline of 50.
+_MUT_CI_T = [0.0]
+
+
+def _mut_ci_run(deadline):
+    _MUT_CI_T[0] = 0.0
+    ran: list = []
+
+    def drive(w, m, s):
+        ran.append((m["line"], s))
+        _MUT_CI_T[0] += {"tests/a.py": 10, "tests/stress.py": 90}[s]
+        return m["line"] == 0 and s == "tests/a.py"
+
+    pool = [{"file": "x.py", "line": i, "kind": "CONST", "anchor": f"x.py:{i}",
+             "drivers": ["tests/a.py", "tests/stress.py"]} for i in range(2)]
+    out = _mut_pin(pool, 3, {"tests/a.py": 10, "tests/stress.py": 90}, drive,
+                   deadline=deadline, clock=lambda: _MUT_CI_T[0])
+    return [v for _, v in out], sorted(ran)
+
+
+_MUT_CI_OUT = ((_mut_ci_run(50), _mut_ci_run(None))
+               if _mut_pin is not None else None)
+_mut_bsec = getattr(_mut, "budget_seconds", None)
+_MUT_CI_SEC = (_mut_bsec({"tests/a.py": 10.0, "tests/stress.py": 90.0},
+                         ["tests/stress.py"]) if _mut_bsec else None)
+R.check(
+    "the split admits a mutant on its shared work and charges the EXCLUSIVE "
+    "tail only to a survivor that reaches it; a lazy driver costs one run",
+    _MUT_CI_OUT == (
+        (["killed by tests/a.py", "SKIP-BUDGET"],
+         [(0, "tests/a.py"), (1, "tests/a.py")]),
+        (["killed by tests/a.py", "LIVES"],
+         [(0, "tests/a.py"), (1, "tests/a.py"), (1, "tests/stress.py")]))
+    and _MUT_CI_SEC == {"tests/a.py": 10.0, "tests/stress.py": 270.0}
+    and "seconds = budget_seconds(own_s, deferred)" in _MUT_MAIN_DEFER,
+    f"out={_MUT_CI_OUT!r} seconds={_MUT_CI_SEC!r}",
+)
+# R9-CI-1, the shards: one runner pinned 10 of #2025's 56 sites in its
+# budget. `pin_shard` deals anchors round-robin, so the shards are disjoint,
+# cover the pool, and never split an anchor's twins; `merge_pin_shards` folds
+# the shard artifacts into the one directory `apply_pins` reads, `measured`
+# when any shard measured, else the most owing status.
+_MUT_SH_POOL = [{"anchor": a, "line": i} for i, a in
+                enumerate(["p:a", "p:b", "p:b", "p:c", "p:d", "p:e", "p:a"])]
+_MUT_SH = [_mut.pin_shard(_MUT_SH_POOL, k, 4) for k in range(1, 5)]
+_MUT_SH_ANCH = [{s["anchor"] for s in sh} for sh in _MUT_SH]
+with _tempfile.TemporaryDirectory() as _sh_td:
+    _sh_root = Path(_sh_td) / "shards"
+    for _n, _st, _pins in (("mutation-pins-1", "measured", {"p:a": {"killed_by": "t"}}),
+                           ("mutation-pins-2", "skip-nothing-drivable", {}),
+                           ("mutation-pins-3", "measured", {"p:c": {"killed_by": "u"}}),
+                           ("mutation-pins-4", "skip-nothing-killed", {})):
+        (_sh_root / _n).mkdir(parents=True)
+        (_sh_root / _n / "status").write_text(_st + "\n")
+        (_sh_root / _n / "pins.json").write_text(json.dumps(_pins))
+        (_sh_root / _n / "head").write_text("h\n")
+    _sh_st = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "m"))
+    _sh_pins = json.loads((Path(_sh_td) / "m" / "pins.json").read_text())
+    for _n in ("mutation-pins-1", "mutation-pins-3"):
+        (_sh_root / _n / "status").write_text("skip-nothing-killed\n")
+    _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
+    (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
+    _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+    # One shard is one matching artifact, and download-artifact extracts a
+    # lone match into `path` itself, not into a subdirectory: six of the first
+    # nine post-#2049 autofix runs, three of them measured pins read as
+    # skip-no-measurement (#2025 at de81043a, run 37763212023).
+    _sh_one = Path(_sh_td) / "one"
+    _sh_one.mkdir()
+    (_sh_one / "status").write_text("measured\n")
+    (_sh_one / "pins.json").write_text(json.dumps({"p:a": {"killed_by": "t"}}))
+    (_sh_one / "head").write_text("h\n")
+    _sh_1 = _mut.merge_pin_shards(str(_sh_one), str(Path(_sh_td) / "o"))
+    _sh_1p = sorted(json.loads((Path(_sh_td) / "o" / "pins.json").read_text())) \
+        if _sh_1 == "measured" else []
+R.check(
+    "the pin shards are disjoint, cover the pool and keep an anchor's twins "
+    "together; their merge is measured when any shard measured, one shard too",
+    sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
+    and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
+            for b in _MUT_SH_ANCH[i + 1:])
+    and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed"
+    and (_sh_1, _sh_1p) == ("measured", ["p:a"]),
+    f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
+    f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
+)
+# The shard count scales with the sites the diff added: six a shard, at most
+# ten, one when the table names none -- read off the refusal line the lane
+# prints, and wired into the matrix the pin job runs.
+_MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
+                                f"against 3 at the ratchet base x, {n} of them "
+                                f"added by this diff.") for n in (1, 6, 7, 56, 200)]
+_MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
+_MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
+R.check(
+    "the pin shard count scales with the diff's new sites, six a shard, "
+    "capped at ten, and sizes the matrix the shards run",
+    _MUT_SC == [1, 1, 2, 10, 10] and _MUT_SC0 == 1
+    and "mutation_table.pin_shard_count(" in _MUT_PLAN
+    and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
+    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins,
+    f"counts={_MUT_SC} none={_MUT_SC0}",
+)
+# The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
+# "46 left unpinned -- a survivor needs a killing check" was 46 sites the
+# budget never started and no survivor. The head stays PIN_SUMMARY's.
+_MUT_PS = [(dict(anchor=f"s:{i}"), v) for i, v in enumerate(
+    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET", "LIVES", "SKIP-TIMED-OUT in t"])]
+_MUT_PS_CUT = _mut.pin_summary(1, 3, [r for r in _MUT_PS if r[1] != "LIVES"],
+                               {"s:0": {}})
+_MUT_PS_LIVE = _mut.pin_summary(1, 4, _MUT_PS, {"s:0": {}})
+R.check(
+    "the pin summary counts budget cuts and timeouts apart from survivors, "
+    "and names a survivor's remedy only when one survived",
+    "(0 survived, 2 not started for the budget, 1 timed out, 0 skipped)" in _MUT_PS_CUT
+    and "survivor needs" not in _MUT_PS_CUT
+    and "(1 survived, 2 not started" in _MUT_PS_LIVE
+    and "survivor needs" in _MUT_PS_LIVE
+    and _mut.PIN_SUMMARY.search(_MUT_PS_CUT.strip()) is not None,
+    f"cut={_MUT_PS_CUT.strip()!r} live={_MUT_PS_LIVE.strip()!r}",
+)
 _MUT_ROUTED = ("drive_phase = drive_pin_pool if args.pin_killed "
                "else drive_pool" in _MUT_MAIN_DEFER)
 R.check(
@@ -31903,7 +32886,7 @@ def _mutl_git(*args):
     return _mutl_sp.run(
         ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid",
          "-c", "commit.gpgsign=false", *args],
-        cwd=_MUTL_DIR, capture_output=True, text=True, check=True).stdout
+        cwd=_MUTL_DIR, capture_output=True, text=True, check=True, env=throwaway_git_env()).stdout
 
 
 def _mutl_branch(name, edits):
@@ -31919,7 +32902,7 @@ def _mutl_branch(name, edits):
 
 (_MUTL_DIR / _MUTL_REL).parent.mkdir(parents=True)
 (_MUTL_DIR / _MUTL_REL).write_text(_MUTL_SRC)
-_mutl_git("init", "-q")
+throwaway_git_init(_MUTL_DIR, "-q")
 _mutl_git("add", "-A")
 _mutl_git("commit", "-q", "--no-verify", "-m", "base")
 _mutl_git("branch", "base")
@@ -32554,8 +33537,9 @@ def _jb_run() -> dict:
                 **({"judge_batch": "not an object"} if name == "badjb" else {}),
             })
         git = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
-        for cmd in (["init", "-q"], ["add", "-A"], ["commit", "-qm", "fixture"]):
-            _subprocess.run(git + cmd, check=True, capture_output=True)
+        _jb_env = throwaway_git_init(repo, "-q")
+        for cmd in (["add", "-A"], ["commit", "-qm", "fixture"]):
+            _subprocess.run(git + cmd, check=True, capture_output=True, env=_jb_env)
         rows = judge_batch.run_batch(findings, repo=repo, lock_dir=lock_dir,
                                       label="entities-jb", timeout=30)
         after = _gate_lock.read_owner(lock_dir)
@@ -33147,10 +34131,10 @@ def _pg_staging_defects(stage: str, guard: str) -> "list[str]":
                     (repo / rel).parent.mkdir(parents=True, exist_ok=True)
                     (repo / rel).write_text(body or "untracked")
             if tracked:
-                subprocess.run(git + ["init", "-q"], cwd=repo, check=True)
-                subprocess.run(git + ["add", "-A"], cwd=repo, check=True)
+                env = throwaway_git_init(repo, "-q")
+                subprocess.run(git + ["add", "-A"], cwd=repo, check=True, env=env)
                 subprocess.run(git + ["commit", "-qm", "t"], cwd=repo,
-                               check=True)
+                               check=True, env=env)
         rc = _pg_run(stage, repo)
         site = repo / "_site"
         got = {p.relative_to(site).as_posix() for p in site.rglob("*")

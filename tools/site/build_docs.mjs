@@ -1,6 +1,6 @@
 // The documentation sub-page generator (R9-WEB-3, ported from the design prototype). It renders the README and every
 // row of the README Documentation table into one HTML page each, in the product page's design, with markdown-it
-// 14.1.0, the parser the repository already vendors at .claude/workflows/vendor/ (the path render_md.mjs requires).
+// 14.1.0, the parser the repository already vendors at tools/policy/vendor/ (the path render_md.mjs requires).
 // The docs stay the only source: nothing here is hand-written per document, so a page cannot say what its markdown
 // does not. Nothing it makes is tracked: it writes only into the directory it is given, and the Pages workflow runs it
 // at deploy (S7).

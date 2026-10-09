@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_silent_target GUARD_OFF 84fa9ad3",
+  "old": "    if _entities(inp.config)[\"silent\"] is None:",
+  "reason": "GUARD_OFF (`if False`). With the guard forced off, a binary_sensor, a select, and no entity at all, inside 06:00-08:00, _silent_target is True and apply makes 3 service calls, none of them a switch or binary_sensor: _write returns before the call because the slot state is None. Measured by apply on those three configs with the guard replaced by `if False`, then restored.",
+  "verdict": "equivalent"
+}

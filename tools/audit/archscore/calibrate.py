@@ -4,17 +4,19 @@
                                                                every verdict equals calibration/expected.json
     python3 tools/audit/archscore/calibrate.py --record        write expected.json from this run, listing each change
     python3 tools/audit/archscore/calibrate.py --measure-corpus   re-measure the corpus trees from git history
+    python3 tools/audit/archscore/calibrate.py --measure-corpus --only-metric hub_solve_writes,footprint
+                                                               re-measure those vector jobs, keep the stored rest
     python3 tools/audit/archscore/calibrate.py --jobs N        worker processes (default min(4, cpus))
     python3 tools/audit/archscore/calibrate.py --stored-only | --only ID,ID   subsets, for development
 
-Three sets, 103 labelled cases and the red-team attempts:
+Three sets, the labelled cases and the red-team attempts:
 
   corpus   45 commits of main's history, each labelled GOOD / BAD / NEUTRAL from a source that is not a
            metric (an RCA, a probe-confirmed review verdict, an issue, a PR body, an owner decision; the
            quote is in ``calibration/corpus.tsv``). Both sides of each commit are STORED vectors
            (``calibration/corpus_vectors.json``): the trees are history, and re-measuring ~90 of them costs minutes.
            ``--measure-corpus`` re-derives them.
-  planted  58 scripted edits of the pinned tree (``planted/``), measured LIVE on every run: this is what
+  planted  the scripted edits of the pinned tree (``planted/``), measured LIVE on every run: this is what
            notices a metric change.
   redteam  the attempts to raise the score without improving the architecture, measured live.
 
@@ -148,31 +150,35 @@ def summary(rows: list[dict]) -> list[str]:
     return lines
 
 
-def measure_corpus(jobs: int) -> None:
+def measure_corpus(jobs: int, only: set[str] | None = None) -> None:
+    """Re-derive the stored corpus vectors. With ``only`` (``vector.measure`` job names), those jobs'
+    keys are re-measured and every other stored value is kept: a definition change to one metric moves
+    no other, and the full re-measure costs minutes."""
     shas = set()
     with open(CORPUS) as f:
         for r in csv.DictReader(f, delimiter="\t"):
             shas |= {r["sha"], r["parent"]}
-    done = {}
+    done = json.loads(VECTORS.read_text()) if only else {}
     with multiprocessing.get_context("spawn").Pool(jobs) as pool:
-        for sha, vec in pool.imap_unordered(_measure_sha, sorted(shas)):
-            done[sha] = vec
+        for sha, vec in pool.imap_unordered(_measure_sha, [(s, only) for s in sorted(shas)]):
+            done[sha] = {**done.get(sha, {}), **vec}
             print(sha, "ok" if not any(k.startswith("_") and k.endswith("_error") for k in vec) else "ERRORS", flush=True)
     VECTORS.write_text(json.dumps(done, sort_keys=True, indent=0, separators=(",", ": ")) + "\n")
 
 
-def _measure_sha(sha: str) -> tuple[str, dict]:
+def _measure_sha(args: tuple) -> tuple[str, dict]:
+    sha, only = args
     with tempfile.TemporaryDirectory(prefix="archscore-hist-") as tmp:
         archive = subprocess.run(["git", "-C", str(REPO), "archive", sha, "custom_components"],
                                  capture_output=True, check=True).stdout
         subprocess.run(["tar", "-x", "-C", tmp], input=archive, check=True)
-        return sha, vector.measure(Path(tmp))
+        return sha, vector.measure(Path(tmp), only)
 
 
 def main(argv: list[str]) -> int:
     jobs = int(argv[argv.index("--jobs") + 1]) if "--jobs" in argv else min(4, os.cpu_count() or 1)
     if "--measure-corpus" in argv:
-        measure_corpus(jobs)
+        measure_corpus(jobs, set(argv[argv.index("--only-metric") + 1].split(",")) if "--only-metric" in argv else None)
         return 0
     only = set(argv[argv.index("--only") + 1].split(",")) if "--only" in argv else None
     collected = collect("--stored-only" in argv, jobs, only)

@@ -18,10 +18,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    end of `.claude/hooks/pre-edit.sh` left `policy_lint --hooks` at rc=0.
    A mutant run from a `git archive` copy fails the #363 `recorded_at` check
    on every mutant, baseline included — the M0 null run attributes it to
-   the runner (#1713, #1723). **Pinning is `mutation-autofix`'s**
-   (`ci-autofix.md`): no local `--pin-killed`; the body lists survivors on the
-   sites you touched (`mutation_table.py --scope changed`), each with a value
-   check or a written triage.
+   the runner (#1713, #1723). **When `--pin-killed` runs is `ci-autofix.md`'s.**
+   `prepr.sh` step 6d lists the unpinned sites the diff adds; the body's
+   `## Unpinned sites` gives each its disposition: pinned by
+   `mutation-autofix`, a value check, or a written triage.
 3. **Re-execute the finding's harness on your branch**: before and after, with
    the head SHA measured, in the PR body. It may not be at your head — a round's
    `D*/*.py` harnesses stay out of the tree (a Linux-only closure re-derivation;
@@ -44,17 +44,16 @@ background task, whose exit wakes you; never end a turn on a detached one.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
-5. **Measure the gate's scope, then run what it names.** The gate is scoped
-   from measured closures, so derive the selection rather than assume it:
+5. **Measure the gate's scope, then run what it names.** Derive it:
 
        D=$(mktemp -d); python3 tests/closure.py select \
          --diff $(git merge-base origin/main HEAD) --workdir "$D"
        cat "$D/scope.txt"; cat "$D/scope.run"
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
-   `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI; `tests/README.md` ("The scoped gate") says why that is safe. So
-   `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+   `scope.run` and `tests/run.sh`'s `run_always` lines name, with
+   `PYTHONPATH=tests/hastub`, leaving the rest to CI; `tests/README.md`
+   ("The scoped gate") says why. So `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
 
@@ -68,7 +67,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    run it locally per mutant.
 
    `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
-   `python3 tests/structure.py` is seconds and runs before every push regardless.
+   `python3 tests/structure.py` runs before every push.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
@@ -80,8 +79,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
-   head is the reviewer's measuring surface and **only the orchestrator moves
-   it**: a head that moves mid-review invalidates measurements already taken,
+   head is the reviewer's measuring surface and **only the orchestrator, the
+   merge-main bot or `--carry` moves it**: a head that moves mid-review invalidates measurements taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
@@ -89,10 +88,10 @@ background task, whose exit wakes you; never end a turn on a detached one.
    alone (`fix-review.md` step 12).
 
    Landing the pull request is the **orchestrator's**, or a merge-and-release
-   seat it starts. "Coordinator" here is `coordinator.py` and its ratchet
-   budgets, never a seat.
-7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
-   and carries every executed number, each in `## Figures` with its command.
+   seat it starts.
+7. The PR body closes its issues (`Closes #N`), names the head SHA measured
+   (a `--carry` head: no re-take; name bot reds), and carries every executed number,
+   each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
    Three agents counting "the same" published-attribute census (#373) got 59, 50,
    and 124/147/50, because each asked a subtly different question; only a count whose
@@ -182,9 +181,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
     name the route.** #714 rerouted the caller and left `worker.wait(timeout=2)`
     in place: grepping the report's own call, file and snippet finds them
     unchanged and reads the defect as open, and grepping for their absence
-    finds nothing and reads the same. The line is no help either — not in the
-    key, and #714's own fix moved that call 24 lines. Anchor the claim to
-    what moved: branch, registration, frame count.
+    finds nothing and reads the same. Anchor the claim to what moved: branch,
+    registration, frame count.
 
 15. **A bitwise-parity claim over numpy reductions is per-architecture.**
     `np.sum(matrix, axis=1)` is not `np.sum(matrix[b])`, and neither is a
@@ -220,16 +218,40 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
 16. **An age computed from a stamp ahead of the reading clock is unknowable,
     never 0** (#775's refusal; #1532 pinned the technique #775 had refused).
-17. **Take the fix that yields the better code.** Where one fix satisfies the
-    check and another removes the cause or simplifies the design, take the
-    second; the body names the alternatives and why each lost. An improvement
-    claim names its mechanism, which the reviewer removes as the null control
-    (`fix-review.md` step 14). Never move a metric by a change that does not
-    improve the code: a mechanical split, code moved to an unmeasured path, a
-    triage on a killable mutant, or cases enumerated where a structural fix
-    exists (#1874: a spelling list, three review rounds, class still open). Cost
-    is no reason to take the worse fix; scope and the ratchet still bind
-    (below).
+17. **Take the fix that yields the better code; it is architecturally sound**
+    (tvofi, 2026-10-08). Where one fix satisfies the check and another removes
+    the cause or simplifies the design, take the second; the body names the
+    alternatives and why each lost. Soundness is judged on added lines:
+    - one owner per concern: the module owning the concept, or a small new
+      one; `coordinator.py` orchestrates and does not compute;
+    - no `homeassistant` import added to model, optimizer or learner modules
+      (`dhw_learning.py`, `defrost.py` and others hold one); the HA glue
+      calls into them, never the reverse;
+    - side effects at the edges: entity reads through `inputs.py`'s
+      `InputReader`, actuator writes from the coordinator or `pump_arbiter.py`,
+      store, network, notification and issue-registry calls in the module
+      owning that edge; computation stays pure;
+    - inputs passed in, no `entry.options` read below the glue; module state
+      only as a per-coordinator `WeakKeyDictionary` side table (`boost.py`);
+    - units in names; a constant beside the module owning it, one shared
+      across modules in `const.py`; each literal justified;
+    - missing or invalid input returns `None` or refuses, never a guess;
+    - the existing mechanism, never a parallel one: entity descriptions,
+      repairs, diagnostics, translations, the store's versioned migration;
+    - the smallest public surface, testable without HA; no concept duplicated;
+    - `tests/structure.py` and `tools/audit/archscore/score.py --diff` not
+      regressed, or the raise path below where only it lands the better
+      architecture;
+    - a group's architect note (`orchestrator.md` section 5) followed.
+
+    Cost is no reason to take the worse fix; the preamble's scope still binds,
+    and a fix that cannot be sound within it stops and asks the orchestrator.
+    An improvement claim names its mechanism, which the reviewer removes as the
+    null control (`fix-review.md` step 14). Never move a metric by a change
+    that does not improve the code: a mechanical split, code moved to an
+    unmeasured path, a triage on a killable mutant, or cases enumerated where
+    a structural fix exists (#1874: a spelling list, three review rounds,
+    class still open).
 18. **What a later round or seat reruns, or a body figure needs reproduced,
     lands in the same pull request** (tvofi, 2026-10-03): a harness in
     `tools/audit/harnesses/`, a driver or env recipe in `tools/audit/seat/`; a
@@ -288,6 +310,6 @@ trigger, not analysing it; the analysis is `root-cause.md`'s seat.
 The owner's rule. At the **fourth** round, replace the body instead of repairing
 it: the headings `.github/PULL_REQUEST_TEMPLATE.md` requires, the arms that
 fire, and only figures re-taken in that pass. Round history is deleted, not
-restated — except a **disclosed self-correction** (`docs/HANDOVER.md`'s #1058
+restated — except a **disclosed self-correction** (`dev/programme/HANDOVER.md`'s #1058
 tie-break). **A re-cut body blocked on `claims` again is a signal about the fix**,
 so the orchestrator splits the branch or closes it.

@@ -11,11 +11,21 @@ listener calls the coordinator makes when ``optimization_running`` flips.
 The ring is a store of its own, saved once an hour and flushed at unload, so a
 reload mid-week keeps every row. The collection stops itself after seven days
 and stays final until it is started again; turning the option off deletes it.
+
+Ending it -- the seven days, the stop action or the finalize button -- runs the
+pre-study's five self-tests once (#1940): read-only, no actuation, no network,
+fifteen minutes between them at most. Their results are saved with the ring and
+ride the bundle's manifest. Download diagnostics carries the bundle inline while
+the download stays within ``INLINE_CAP_BYTES`` and, past it, the manifest and
+where the ring is stored.
 """
 from __future__ import annotations
 
+import asyncio
+import inspect
 import json
 import logging
+import statistics
 import time
 from collections.abc import Callable, Coroutine
 from datetime import date, datetime, timedelta
@@ -27,9 +37,19 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.util import dt as dt_util
 
+from .accuracy import AccuracyTracker
 from .const import CONF_DEBUG_COLLECT, DEFAULT_DEBUG_COLLECT, DOMAIN
 from .drift import stored_instant
-from .store import DOMAINS, QuarantiningStore, admitted, load_mapping
+from .store import (
+    DOMAINS,
+    QuarantiningStore,
+    _sanitize,
+    _store_name,
+    admitted,
+    in_domain,
+    load_mapping,
+    stored_fields,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -39,6 +59,18 @@ COLLECT_SPAN = timedelta(days=7)
 SAVE_EVERY = timedelta(hours=1)
 SNAPSHOT_EVERY = timedelta(days=1)
 DEBUG_ACTIONS = ("start", "stop", "status")
+#: The owner's ceiling over all the self-tests together (pre-study section 4).
+SELF_TEST_BUDGET = timedelta(minutes=15)
+#: The largest diagnostics download that carries the bundle inline (pre-study
+#: section 3, "8 MB"). Home Assistant writes the download as
+#: ``json.dumps(..., indent=2)`` with the entry's payload under ``data``, so the
+#: bundle is measured that way, at that depth (``download_bytes``), and
+#: ``DOWNLOAD_HEADROOM_BYTES`` stands for the rest of the file: Home Assistant's
+#: own system and custom-component sections and this entry's other keys.
+INLINE_CAP_BYTES = 8 * 1024 * 1024
+DOWNLOAD_HEADROOM_BYTES = 256 * 1024
+_INPUTS = ("indoor_temp", "outdoor_temp", "dhw_temp")
+_HEALTH = ("problem_inputs", "input_ages_minutes", "learners_frozen")
 
 #: Keyed by the coordinator, as ``pump_arbiter`` keeps its state: the
 #: collector holds no reference back, or the entry would never be freed.
@@ -49,6 +81,11 @@ _IDLE = {"active": False, "final": False, "rows": 0, "bytes": 0, "started_at": N
 
 def _store(hass: HomeAssistant, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(hass, DEBUG_STORE_VERSION, f"{DOMAIN}_{entry_id}_debug")
+
+
+def store_keys(entry_id: str) -> dict[str, str]:
+    """``DOMAINS`` name -> this entry's store key, the debug ring's own excluded."""
+    return {name: f"{DOMAIN}_{entry_id}_{name}" for name in DOMAINS if name != "debug"}
 
 
 def _wire(value: Any) -> Any:
@@ -153,6 +190,142 @@ def _parsed(text: str) -> Any:
         return None
 
 
+# -- the self-tests (pre-study section 4); each reads, none actuates -----------
+def store_report(stores: dict[str, tuple[Any, Any]]) -> dict[str, Any]:
+    """Per store document: its fields off their declared domain, and whether the
+    quarantine would scrub a leaf of it on the next load."""
+    report = {}
+    for key, (version, data) in stores.items():
+        off = list(dict.fromkeys(
+            "/".join(map(str, path))
+            for path, _key, domain, value in stored_fields(_store_name(key) or "", data)
+            if domain is None or not in_domain(domain, value)
+        ))
+        report[key] = {"version": version, "off_domain": off[:10], "off_count": len(off),
+                       "quarantined": _dumps(_sanitize(data)) != _dumps(data)}
+    return report
+
+
+def accuracy_report(document: Any, live: AccuracyTracker) -> dict[str, Any]:
+    """The monitor re-derived from the accuracy store's window beside the live deque's."""
+    stored = document.get("accuracy") if isinstance(document, dict) else None
+    restored = AccuracyTracker.from_dict(stored if isinstance(stored, dict) else None)
+    raw = stored.get("samples") if isinstance(stored, dict) else None
+    return {
+        "window": "the store keeps the newest 192 samples; the live tracker more",
+        "stored_samples": len(raw) if isinstance(raw, list) else 0,
+        "restored_samples": len(restored.samples),
+        "store": _monitor(restored),
+        "live": _monitor(live),
+    }
+
+
+def _monitor(tracker: AccuracyTracker) -> dict[str, Any]:
+    summary = tracker.summary()
+    return {"samples": summary["samples"], "temperature_bias": summary["temperature_bias"],
+            "temperature_mae": summary["temperature_mae"], "trust": summary["trust"]}
+
+
+def spread(values: list[float]) -> dict[str, Any] | None:
+    if not values:
+        return None
+    return {"n": len(values), "min": min(values), "median": statistics.median(values),
+            "max": max(values)}
+
+
+def _longest_flat(values: list[Any]) -> int:
+    """The longest run of one unchanged reading: a sensor that stopped updating."""
+    longest = run = 0
+    previous: Any = object()
+    for value in values:
+        run = run + 1 if value == previous else 1
+        longest, previous = max(longest, run), value
+    return longest
+
+
+def sensor_sanity(rows: list[dict[str, Any]], data: Any) -> dict[str, Any]:
+    """Per input: readings missing and its longest unchanged run; and the live health view."""
+    out: dict[str, Any] = {}
+    for field in _INPUTS:
+        present = [row[field] for row in rows if field in row]
+        out[field] = {"missing": len(rows) - len(present), "range": spread(present),
+                      "longest_flat": _longest_flat(present)}
+    view = data if isinstance(data, dict) else {}
+    out["now"] = {key: view.get(key) for key in _HEALTH}
+    return out
+
+
+def feed_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Whether a feed starved the week: price rows, forecast staleness, solve failures."""
+    stale = [row["weather_stale_h"] for row in rows if "weather_stale_h" in row]
+    failures = [row.get("solve_failures", 0) for row in rows]
+    return {
+        "cycles": len(rows),
+        "no_prices": sum(1 for row in rows if not row.get("prices_rows")),
+        "weather_stale_cycles": sum(1 for hours in stale if hours > 0),
+        "weather_stale_h_max": max(stale, default=None),
+        "solve_failures_added": max(failures) - min(failures) if failures else 0,
+    }
+
+
+async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """One what-if solve with no override, which the live plan should equal."""
+    began = time.monotonic()
+    result = await coordinator.async_simulate({}, limited=False)
+    return {
+        "wall_ms": round((time.monotonic() - began) * 1000.0, 1),
+        "error": result.get("error"),
+        "cost_delta": result.get("cost_delta"),
+        "week_solve_ms": spread(
+            [row["payload_solve_time_ms"] for row in rows if "payload_solve_time_ms" in row]),
+    }
+
+
+async def run_self_tests(
+    checks: list[tuple[str, Callable[[], Any]]], budget: float
+) -> dict[str, Any]:
+    """Each check in turn inside what is left of ``budget`` seconds; one failing stops none.
+
+    A check returns its result, or an awaitable of it; only an awaited one can
+    be cut off at the budget.
+    """
+    deadline = time.monotonic() + budget
+    out: dict[str, Any] = {}
+    for name, check in checks:
+        left = deadline - time.monotonic()
+        if left <= 0:
+            out[name] = {"skipped": "budget"}
+            continue
+        began = time.monotonic()
+        try:
+            async with asyncio.timeout(left):
+                result = check()
+                outcome = {"result": await result if inspect.isawaitable(result) else result}
+        except TimeoutError:
+            outcome = {"error": "timeout"}
+        except Exception as err:  # noqa: BLE001 - one broken self-test must not hide the rest
+            outcome = {"error": repr(err)}
+        out[name] = {**outcome, "ms": round((time.monotonic() - began) * 1000.0, 1)}
+    return out
+
+
+def download_bytes(bundle: dict[str, Any]) -> int:
+    """The bytes ``bundle`` takes in the diagnostics download, as that file writes it."""
+    return len(json.dumps({"data": {"debug": bundle}}, indent=2, default=_wire).encode())
+
+
+def capped(bundle: dict[str, Any], store_key: str, cap: int | None = None) -> dict[str, Any]:
+    """``bundle`` when its download fits the inline cap; else its manifest and where
+    the ring is stored."""
+    limit = INLINE_CAP_BYTES if cap is None else cap
+    size = download_bytes(bundle) + DOWNLOAD_HEADROOM_BYTES
+    if size <= limit:
+        return bundle
+    return {"schema": bundle.get("schema"), "manifest": bundle.get("manifest"),
+            "inline": False, "bytes": size, "cap_bytes": limit,
+            "store_file": f".storage/{store_key}"}
+
+
 class DebugCollector:
     """One entry's ring: its rows, its daily payload snapshots, and whether it is final."""
 
@@ -175,6 +348,7 @@ class DebugCollector:
         self._solve_started: float | None = None
         self._solve_wall_ms: float | None = None
         self._closed = False
+        self.self_tests: dict[str, Any] | None = None
 
     async def async_load(self) -> None:
         raw = await load_mapping(self._store, "the debug collection") or {}
@@ -184,11 +358,14 @@ class DebugCollector:
         self.final = raw.get("final") is True
         self.rows = _kept(raw, "rows", {"t"})
         self.snapshots = _kept(raw, "snapshots", {"t", "cycle", "data"})
+        tests = raw.get("self_tests")
+        self.self_tests = _parsed(tests) if isinstance(tests, str) else None
 
     def as_dict(self) -> dict[str, Any]:
         start = {"started_at": self.started_at.isoformat()} if self.started_at else {}
+        tests = {"self_tests": _dumps(self.self_tests)} if self.self_tests is not None else {}
         return {**start, "final": self.final, "rows": list(self.rows),
-                "snapshots": list(self.snapshots)}
+                "snapshots": list(self.snapshots), **tests}
 
     async def async_save(self) -> None:
         try:
@@ -216,7 +393,7 @@ class DebugCollector:
         if self.started_at is None:
             self.started_at = now
         if now - self.started_at >= COLLECT_SPAN:
-            self.finalize()
+            self.finalize(coordinator)
             return
         last = stored_instant(self.snapshots[-1]["t"]) if self.snapshots else None
         if last is None or now - last >= SNAPSHOT_EVERY:
@@ -231,13 +408,42 @@ class DebugCollector:
         self._closed = True
         await self.async_save()
 
-    def finalize(self) -> None:
+    def finalize(self, coordinator: Any) -> None:
+        """Stop collecting now; the self-tests then run in the background and save."""
         self.final = True
-        self._spawn(self.async_save())
+        self._spawn(self._async_finish(coordinator, self.started_at))
+
+    async def _async_finish(self, coordinator: Any, started_at: datetime | None) -> None:
+        rows = list(self.rows)
+        stores: dict[str, tuple[Any, Any]] = {}
+        accuracy_key = store_keys(self._entry_id)["accuracy"]
+
+        async def read_stores() -> dict[str, Any]:
+            stores.update(await self._read())
+            return store_report(stores)
+
+        tests = await run_self_tests([
+            ("stores", read_stores),
+            ("accuracy", lambda: accuracy_report(
+                stores.get(accuracy_key, (None, None))[1], coordinator.accuracy)),
+            ("solver", lambda: _solver_smoke(coordinator, rows)),
+            ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
+            ("feeds", lambda: feed_health(rows)),
+        ], SELF_TEST_BUDGET.total_seconds())
+        # Unless the collection restarted meanwhile:
+        if self.final and self.started_at == started_at:
+            self.self_tests = tests
+        await self.async_save()
+
+    async def _read(self) -> dict[str, tuple[Any, Any]]:
+        return await self._hass.async_add_executor_job(
+            _read_stores, Path(self._hass.config.path(".storage")),
+            list(store_keys(self._entry_id).values()),
+        )
 
     def restart(self) -> None:
         self.started_at, self.final, self.rows, self.snapshots = None, False, [], []
-        self._saved_at = None
+        self._saved_at, self.self_tests = None, None
         self._spawn(self.async_save())
 
     def status(self) -> dict[str, Any]:
@@ -249,10 +455,7 @@ class DebugCollector:
 
     async def async_bundle(self, coordinator: Any, diagnostics: Any = None) -> dict[str, Any]:
         """The ``hpo-debug/1`` bundle; ``replay`` is the repo-side harness's to fill."""
-        keys = [f"{DOMAIN}_{self._entry_id}_{name}" for name in DOMAINS if name != "debug"]
-        stores = await self._hass.async_add_executor_job(
-            _read_stores, Path(self._hass.config.path(".storage")), keys
-        )
+        stores = await self._read()
         return {
             "schema": BUNDLE_SCHEMA,
             "manifest": {
@@ -265,6 +468,7 @@ class DebugCollector:
                 "cycles": len(self.rows),
                 "replay_verdict": None,
                 "store_versions": {key: version for key, (version, _d) in stores.items()},
+                "self_tests": self.self_tests,
             },
             "replay": None,
             "cycle_rows": list(self.rows),
@@ -321,7 +525,7 @@ def async_command(hass: HomeAssistant, entry: Any, action: str) -> dict[str, Any
             translation_placeholders={"entry_id": entry.entry_id},
         )
     if action == "stop":
-        collector.finalize()
+        collector.finalize(entry.runtime_data)
     elif action == "start" and collector.final:
         collector.restart()
     return collector.status()
