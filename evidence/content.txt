@@ -1,0 +1,15 @@
+branch's own three-dot patch: changed +/- lines excluding the row file
+  verdict head d8988a47 merge-base bd59a4af -> 271 changed lines
+  head dfd5227d8 merge-base b2b6acd64 -> 271 changed lines
+  IDENTICAL, order preserved (context hunk headers and blob index lines shift only)
+claim files at head vs origin/main:
+  tests/golden/claimed_drift.txt 62bf9eaba2372bb05cdb42076273c18bdceb0f39 == main 62bf9eaba2372bb05cdb42076273c18bdceb0f39
+  tests/golden/card_claimed_drift.txt c683379dafc29aa923baac9325d82bacfb43f7b9 == main c683379dafc29aa923baac9325d82bacfb43f7b9
+merge-tree origin/main x head: rc=0 tree 6bf35903a9127f4cb4125f99dc022e65fc59abab (clean; no MERGE-CLAIM marker in stderr)
+
+Per-file line test at the head (branch's own additions and main's additions, each vs merge base bd59a4af):
+  tools/audit/seat/merge_train.py  branch+=14 main+=21  absent at head: 0 / 0
+  tools/audit/seat/INSTRUMENTS.md  branch+=5  main+=6   absent at head: 0 / 0
+  tools/pr/app_push.sh             branch+=191 main+=0  absent at head: 0 / 0  (blob unchanged)
+  tools/audit/seat/remerge_main.sh branch+=10 main+=0   absent at head: 0 / 0  (blob unchanged)
+main's commits in bd59a4af..b2b6acd64 that touch these paths: 42bf40f99 / de5f65497 (R9-RO-9a), merge_train.py + INSTRUMENTS.md only.

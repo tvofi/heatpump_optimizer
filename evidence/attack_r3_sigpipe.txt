@@ -1,5 +1,0 @@
-first-parent commits on origin/main: 1296
-RESULT run=1 honest-recarry-real-history pipefail=on rc=0 verdict=HEAD 1b658a87 is the clean merge of the live head e9728402 and origin/main's 421c77f9, and the body is the live one
-RESULT run=2 honest-recarry-real-history pipefail=on rc=0 verdict=HEAD 1b658a87 is the clean merge of the live head e9728402 and origin/main's 421c77f9, and the body is the live one
-RESULT run=3 honest-recarry-real-history pipefail=on rc=0 verdict=HEAD 1b658a87 is the clean merge of the live head e9728402 and origin/main's 421c77f9, and the body is the live one
-RESULT control pipefail=off rc=0 verdict=HEAD 1b658a87 is the clean merge of the live head e9728402 and origin/main's 421c77f9, and the body is the live one
