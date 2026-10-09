@@ -61207,4 +61207,120 @@ R.check(
 )
 
 
+# --- Round 5: killing checks for the guards/clamps/bounds the pin drive found
+# unkilled. Each drives production early_cutoff code through this harness (or a
+# production function directly for an exact bound the public path cannot reach);
+# none re-implements a formula. Line numbers are of early_cutoff.py at this head.
+
+# 201 release: the room listener is unsubscribed and release is idempotent.
+_ec_rel = _EcCoord()
+_ec_rel.arm()
+_ec_rel_registered = bool(_ec_rel.hass.state_listeners)
+_ec.release(_ec.state_for(_ec_rel))
+_ec.release(_ec.state_for(_ec_rel))          # second release must not raise
+R.check(
+    "release unsubscribes the room listener and is idempotent",
+    _ec_rel_registered and not _ec_rel.hass.state_listeners,
+    f"{_ec_rel.hass.state_listeners}",
+)
+
+# 215 disinfection hold: a running disinfection exempts the step.
+_ec_dis = _EcCoord()
+_ec_dis._legionella = _PaNS(disinfect=_PaNS(memo=True))
+_ec_dis.arm()
+_ec_dis.room(22.0)
+R.check(
+    "a disinfection hold is never cut, however warm the room",
+    _ec_dis.offs() == [],
+    f"{_ec_dis.offs()}",
+)
+
+# 259 switch_not_on: a pump whose switch already reads off is not cut.
+_ec_swoff = _EcCoord()
+_ec_swoff.arm()
+_ec_swoff.hass.states.get(_EC_SW).state = "off"
+_ec_swoff.room(22.0)
+R.check(
+    "a cut is refused when the switch already reads off",
+    _ec_swoff.offs() == [],
+    f"{_ec_swoff.hass.services.calls}",
+)
+
+# 266 MIN_OFF boundary: the stop guard is a strict <. Drive _cycle_guard directly with
+# a fixed now so cycle_end - utc is exactly MIN_OFF (arm/room skew cannot hit equality
+# deterministically). Clean returns None (cut allowed); a `<=` mutant returns "min_off".
+_ec_moff = _EcCoord()
+_ec_moff.arm()
+_ec_moff_h = _ec.state_for(_ec_moff)
+_ec_moff_now = _ec_dt.now()
+_ec_moff_h.cut_this_cycle = False
+_ec_moff_h.cycle_end = _ec.dt_util.as_utc(_ec_moff_now) + _ec.MIN_OFF
+R.check(
+    "the min_off guard is a strict < (a cycle exactly MIN_OFF away is not held)",
+    _ec._cycle_guard(_ec_moff.arbiter_inputs(), _ec_moff_h, _ec_moff_now) is None,
+    f"{_ec._cycle_guard(_ec_moff.arbiter_inputs(), _ec_moff_h, _ec_moff_now)}",
+)
+
+# 275 two-zone cold lower floor: the cut is blocked when a second zone is below target.
+_ec_zone = _EcCoord()
+_ec_zone._thermal_params = _PaNS(
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+_ec_zone._current_state = _PaNS(
+    dhw_temperature=50.0, lower_floor_temperature=18.0, outdoor_temperature=2.0)
+_ec_zone.arm()
+_ec_zone.room(22.0)
+R.check(
+    "a cold lower floor in a two-zone house is never cut",
+    _ec_zone.offs() == [],
+    f"{_ec_zone.offs()} {getattr(_ec.state_for(_ec_zone), 'last_held', None)}",
+)
+
+# 275 CMP_BOUND: _second_zone_cold at the exact lower == limit - MARGIN_K boundary.
+_ec_sz = _EcCoord()
+_ec_sz._thermal_params = _PaNS(
+    dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=True, dhw_setpoint=48.0)
+_ec_sz._current_state = _PaNS(
+    dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
+R.check(
+    "_second_zone_cold is False at the exact target-margin boundary (strict <)",
+    _ec._second_zone_cold(_ec_sz.arbiter_inputs(), 21.5) is False,
+    "lower 21.0, limit 21.5, margin 0.5 -> boundary equality",
+)
+
+# 284 _reading: a plausible-range bound. Both the high bound (via the pump path) and
+# the low bound (via _reading directly -- a below-target room never cuts, so the low
+# bound is observable only there).
+_ec_over = _ec_fire(61.0)        # above ROOM_AIR_RANGE_C high (60.0) -> rejected
+R.check(
+    "a room reading above the plausible range is never cut",
+    _ec_over.offs() == [],
+    f"{_ec_over.offs()}",
+)
+_ec_at_high = _ec_fire(60.0)     # exactly the high bound -> in range, above threshold -> cut
+R.check(
+    "a room reading exactly at the plausible-range high bound is accepted and cut",
+    len(_ec_at_high.offs()) == 1,
+    f"{_ec_at_high.offs()} {getattr(_ec.state_for(_ec_at_high), 'last_held', None)}",
+)
+_ec_read_low = _ec._reading(_PaNS(data={"new_state": FakeState("-30.0", unit="°C")}))
+R.check(
+    "_reading accepts exactly the low plausible bound",
+    _ec_read_low == -30.0,
+    f"{_ec_read_low}",
+)
+
+# 293 entry released: a reading that arrives after the entry is released stops
+# cutting. Arm first (the listener registers), then release the entry -- arming on
+# an already-released entry bails in arm() (line 164), which would hide this guard.
+_ec_reld = _EcCoord()
+_ec_reld.arm()
+_ec_reld._entry_released = True
+_ec_reld.room(22.0)
+R.check(
+    "a reading after the entry is released writes no cut",
+    _ec_reld.offs() == [],
+    f"{_ec_reld.offs()}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
