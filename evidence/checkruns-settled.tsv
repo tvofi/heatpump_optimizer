@@ -1,0 +1,30 @@
+claims-autofix	completed	skipped	113754885638
+closures-autofix	completed	skipped	113750910897
+graders-head-copy	completed	skipped	113748477639
+coverage-ratchet	completed	success	113748475506
+mutation-autofix	completed	skipped	113738323073
+mutation-pins	completed	skipped	113738322953
+mutation-pin-plan	completed	skipped	113738322164
+CodeQL	completed	success	113738283770
+mutation-ledger-push	completed	skipped	113738075513
+slow	completed	skipped	113738075315
+mutation-nightly	completed	skipped	113738075219
+mutation-ledger	completed	skipped	113738074361
+mutation	completed	failure	113738072853
+briefs	completed	success	113738072810
+fast (3.14)	completed	success	113738072766
+coverage	completed	success	113738072749
+typing	completed	success	113738072747
+browser	completed	success	113738072738
+Analyze (javascript-typescript)	completed	success	113738053625
+record-autofix	completed	skipped	113738053342
+Analyze (python)	completed	success	113738053186
+Analyze (actions)	completed	success	113738052857
+validate-hacs	completed	success	113738041529
+hassfest	completed	success	113738032304
+closure-scope	completed	skipped	113738023731
+nightly-status	completed	skipped	113738023557
+nightly-ha (stable)	completed	failure	113738022964
+closures	completed	success	113738022637
+nightly-ha (2025.2.0)	completed	success	113738022618
+recheck-gate	completed	success	113738022229

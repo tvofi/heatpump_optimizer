@@ -1,0 +1,31 @@
+=== mutation-pins (1) (job 113695181917)
+mutation-pins (1)	UNKNOWN STEP	2026-10-09T06:10:39.4552198Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (1)	UNKNOWN STEP	2026-10-09T07:56:50.9940022Z PIN KILLED: 4 pinned, 4 left unpinned (0 survived, 4 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-pins (9) (job 113695181923)
+mutation-pins (9)	UNKNOWN STEP	2026-10-09T06:10:41.8803375Z PIN KILLED -- 7 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (9)	UNKNOWN STEP	2026-10-09T07:47:57.8047067Z PIN KILLED: 5 pinned, 2 left unpinned (1 survived, 1 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+=== mutation-pins (5) (job 113695181935)
+mutation-pins (5)	Measure pins for the sites this diff added unpinned	2026-10-09T06:10:36.6946074Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (5)	Measure pins for the sites this diff added unpinned	2026-10-09T08:31:43.8909429Z PIN KILLED: 2 pinned, 6 left unpinned (0 survived, 6 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-pins (2) (job 113695181960)
+mutation-pins (2)	UNKNOWN STEP	2026-10-09T06:10:31.5191028Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (2)	UNKNOWN STEP	2026-10-09T07:51:45.4887651Z PIN KILLED: 4 pinned, 4 left unpinned (4 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+=== mutation-pins (6) (job 113695182015)
+mutation-pins (6)	UNKNOWN STEP	2026-10-09T06:10:30.8652974Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (6)	UNKNOWN STEP	2026-10-09T07:04:53.3053446Z PIN KILLED: 7 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+=== mutation-pins (8) (job 113695182038)
+mutation-pins (8)	UNKNOWN STEP	2026-10-09T06:10:47.2214254Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (8)	UNKNOWN STEP	2026-10-09T08:01:25.4611373Z PIN KILLED: 2 pinned, 6 left unpinned (0 survived, 6 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-pins (7) (job 113695182040)
+mutation-pins (7)	UNKNOWN STEP	2026-10-09T06:10:34.1015573Z PIN KILLED -- 7 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (7)	UNKNOWN STEP	2026-10-09T07:59:55.2499615Z PIN KILLED: 4 pinned, 3 left unpinned (0 survived, 3 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-pins (3) (job 113695182059)
+mutation-pins (3)	UNKNOWN STEP	2026-10-09T06:10:42.3768811Z PIN KILLED -- 8 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (3)	UNKNOWN STEP	2026-10-09T08:09:33.1098723Z PIN KILLED: 3 pinned, 5 left unpinned (0 survived, 5 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-pins (4) (job 113695182065)
+mutation-pins (4)	UNKNOWN STEP	2026-10-09T06:10:40.8124586Z PIN KILLED -- 9 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (4)	UNKNOWN STEP	2026-10-09T07:43:47.4176836Z PIN KILLED: 3 pinned, 6 left unpinned (1 survived, 5 not started for the budget, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+=== mutation-pins (10) (job 113695182210)
+mutation-pins (10)	UNKNOWN STEP	2026-10-09T06:10:38.5107497Z PIN KILLED -- 7 new unpinned site(s) against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49 to drive
+mutation-pins (10)	UNKNOWN STEP	2026-10-09T08:12:27.6978930Z PIN KILLED: 2 pinned, 5 left unpinned (0 survived, 5 not started for the budget, 0 timed out, 0 skipped) -- no survivor: a later run drives the rest
+=== mutation-autofix (job 113737880799)

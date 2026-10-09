@@ -1,0 +1,42 @@
+[waiter] iter 1 09:03:56Z: total=28 pending=2
+  pending: fast (3.14) in_progress run 113738072766
+  pending: closures in_progress run 113738022637
+[waiter] iter 2 09:08:56Z: total=28 pending=2
+  pending: fast (3.14) in_progress run 113738072766
+  pending: closures in_progress run 113738022637
+[waiter] iter 3 09:13:57Z: total=29 pending=1
+  pending: fast (3.14) in_progress run 113738072766
+[waiter] iter 4 09:18:58Z: total=29 pending=1
+  pending: fast (3.14) in_progress run 113738072766
+[waiter] iter 5 09:23:59Z: total=30 pending=0
+[waiter] SETTLED at iter 5
+Analyze (actions)	completed	success	113738052857
+Analyze (javascript-typescript)	completed	success	113738053625
+Analyze (python)	completed	success	113738053186
+CodeQL	completed	success	113738283770
+briefs	completed	success	113738072810
+browser	completed	success	113738072738
+claims-autofix	completed	skipped	113754885638
+closure-scope	completed	skipped	113738023731
+closures	completed	success	113738022637
+closures-autofix	completed	skipped	113750910897
+coverage	completed	success	113738072749
+coverage-ratchet	completed	success	113748475506
+fast (3.14)	completed	success	113738072766
+graders-head-copy	completed	skipped	113748477639
+hassfest	completed	success	113738032304
+mutation	completed	failure	113738072853
+mutation-autofix	completed	skipped	113738323073
+mutation-ledger	completed	skipped	113738074361
+mutation-ledger-push	completed	skipped	113738075513
+mutation-nightly	completed	skipped	113738075219
+mutation-pin-plan	completed	skipped	113738322164
+mutation-pins	completed	skipped	113738322953
+nightly-ha (2025.2.0)	completed	success	113738022618
+nightly-ha (stable)	completed	failure	113738022964
+nightly-status	completed	skipped	113738023557
+recheck-gate	completed	success	113738022229
+record-autofix	completed	skipped	113738053342
+slow	completed	skipped	113738075315
+typing	completed	success	113738072747
+validate-hacs	completed	success	113738041529

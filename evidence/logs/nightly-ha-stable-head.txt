@@ -1,0 +1,740 @@
+nightly-ha (stable)	Set up job	﻿2026-10-09T08:32:15.4972145Z Current runner version: '2.337.0'
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4994482Z ##[group]Runner Image Provisioner
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4995214Z Hosted Compute Agent
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4995648Z Version: 20261002.596
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4996096Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4996678Z Build Date: 2026-10-02T22:28:27Z
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4997233Z Worker ID: {a223650f-1546-48ad-ae37-bedbc7e08b01}
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4997750Z Region: westus3
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4998153Z Cloud: Azure
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4998542Z ##[endgroup]
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4999464Z ##[group]Operating System
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.4999930Z Ubuntu
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5000289Z 24.04.5
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5000712Z LTS
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5001080Z ##[endgroup]
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5001492Z ##[group]Runner Image
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5001998Z Image: ubuntu-24.04
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5002387Z Version: 20261004.327.1
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5003347Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5004926Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5005644Z ##[endgroup]
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5006453Z ##[group]GITHUB_TOKEN Permissions
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5007894Z Contents: read
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5008351Z Metadata: read
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5008797Z ##[endgroup]
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5010739Z Secret source: Actions
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5011458Z Cache mode: write
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5012064Z Prepare workflow directory
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5620916Z Prepare all required actions
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.5675723Z Getting action download info
+nightly-ha (stable)	Set up job	2026-10-09T08:32:15.8863228Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+nightly-ha (stable)	Set up job	2026-10-09T08:32:16.2548444Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+nightly-ha (stable)	Set up job	2026-10-09T08:32:16.8347958Z Complete job name: nightly-ha (stable)
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-09T08:32:16.9061579Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9062348Z with:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9062679Z   repository: tvofi/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9065791Z   token: ***
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9066100Z   ssh-strict: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9066421Z   ssh-user: git
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9066750Z   persist-credentials: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9067144Z   clean: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9067472Z   sparse-checkout-cone-mode: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9067847Z   fetch-depth: 1
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9068161Z   fetch-tags: false
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9068493Z   show-progress: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9068822Z   lfs: false
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9069124Z   submodules: false
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9069569Z   set-safe-directory: true
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9070083Z   allow-unsafe-pr-checkout: false
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9070672Z env:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9071066Z   HPO_JOB_GRADES: nothing
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9071413Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9887514Z Syncing repository: tvofi/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9889404Z ##[group]Getting Git version info
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9889972Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9890709Z [command]/usr/bin/git version
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9960766Z git version 2.55.0
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:16.9997147Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0005255Z Temporarily overriding HOME='/home/runner/work/_temp/c9497c00-c808-45f2-a3b1-fb26a0195ee7' before making global git config changes
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0006474Z Adding repository directory to the temporary git global config as a safe directory
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0007300Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0092436Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0095463Z ##[group]Initializing the repository
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0099929Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0198319Z hint: Using 'master' as the name for the initial branch. This default branch name
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0200013Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0206173Z hint: to use in all of your new repositories, which will suppress this warning,
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0207261Z hint: call:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0207878Z hint:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0208604Z hint: 	git config --global init.defaultBranch <name>
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0209369Z hint:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0210308Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0211480Z hint: 'development'. The just-created branch can be renamed via this command:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0212452Z hint:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0213200Z hint: 	git branch -m <name>
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0214166Z hint:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0215016Z hint: Disable this message with "git config set advice.defaultBranchName false"
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0216727Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0225503Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0297505Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0299843Z ##[group]Disabling automatic garbage collection
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0301097Z [command]/usr/bin/git config --local gc.auto 0
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0497103Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0497822Z ##[group]Setting up auth
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0503442Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0540558Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0856741Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.0894502Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.1110376Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.1146454Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.1358120Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.2094842Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.2095669Z ##[group]Fetching the repository
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:17.2106719Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +6308498975f49b3ed0f152700ee7c23b242387f8:refs/remotes/origin/fix/cop-duty-floor
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7859384Z From https://github.com/tvofi/heatpump_optimizer
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7860773Z  * [new ref]         6308498975f49b3ed0f152700ee7c23b242387f8 -> origin/fix/cop-duty-floor
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7863405Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7864074Z ##[group]Determining the checkout info
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7864874Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7870708Z [command]/usr/bin/git sparse-checkout disable
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7922704Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7956674Z ##[group]Checking out the ref
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:19.7960847Z [command]/usr/bin/git checkout --progress --force -B fix/cop-duty-floor refs/remotes/origin/fix/cop-duty-floor
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:20.2136427Z Switched to a new branch 'fix/cop-duty-floor'
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:20.2137156Z branch 'fix/cop-duty-floor' set up to track 'origin/fix/cop-duty-floor'.
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:20.2155534Z ##[endgroup]
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:20.2200609Z [command]/usr/bin/git log -1 --format=%H
+nightly-ha (stable)	Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:32:20.2228945Z 6308498975f49b3ed0f152700ee7c23b242387f8
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	﻿2026-10-09T08:32:20.2461095Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2461472Z with:
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2461646Z   python-version: 3.13
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2461832Z   check-latest: false
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2463814Z   token: ***
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464000Z   update-environment: true
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464201Z   allow-prereleases: false
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464392Z   freethreaded: false
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464569Z env:
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464734Z   HPO_JOB_GRADES: nothing
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.2464920Z ##[endgroup]
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.3444564Z ##[group]Installed versions
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.3535520Z Successfully set up CPython (3.13.16)
+nightly-ha (stable)	Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1	2026-10-09T08:32:20.3536112Z ##[endgroup]
+nightly-ha (stable)	Install pinned test dependencies	﻿2026-10-09T08:32:20.3679438Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt -r tests/requirements-nightly-ha.txt
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.3680334Z ^[[36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt -r tests/requirements-nightly-ha.txt^[[0m
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4042747Z shell: /usr/bin/bash -e {0}
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4043204Z env:
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4043423Z   HPO_JOB_GRADES: nothing
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4043700Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4044074Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4044420Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4044719Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4045008Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4045298Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:20.4045664Z ##[endgroup]
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.0267321Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.0976802Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.4426666Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.4533245Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.6081076Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 13.2 MB/s  0:00:00
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.6271625Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.6375683Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.6561335Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.6666063Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.7180548Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.7288420Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.7596633Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.7701607Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.9313806Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:23.9424912Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.0849177Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.0969616Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.5119659Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 40.6 MB/s  0:00:00
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.5719148Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.5819771Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.6129212Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.6231264Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:24.6998953Z   Installing build dependencies: started
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:26.0001767Z   Installing build dependencies: finished with status 'done'
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:26.0006240Z   Getting requirements to build wheel: started
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.2136349Z   Getting requirements to build wheel: finished with status 'done'
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.2144734Z   Preparing metadata (pyproject.toml): started
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.3914516Z   Preparing metadata (pyproject.toml): finished with status 'done'
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.4707397Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.4810702Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.8748805Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 89.3 MB/s  0:00:00
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.9217896Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.9316302Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.9488707Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:27.9587202Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.1475055Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.1578095Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.1843909Z Collecting py-spy==0.4.2 (from -r tests/requirements-nightly-ha.txt (line 7))
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.1943767Z   Downloading py_spy-0.4.2-py2.py3-none-manylinux_2_5_x86_64.manylinux1_x86_64.whl (2.9 MB)
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.3163359Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 2.9/2.9 MB 22.4 MB/s  0:00:00
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.3287691Z Building wheels for collected packages: pyyaml
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:28.3295216Z   Building wheel for pyyaml (pyproject.toml): started
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:30.0150946Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:30.0156217Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=4279164bf0860ecff3e5632b57e1ce3e59e7462faa6cf0e610022b53b8a533d3
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:30.0157329Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:30.0172235Z Successfully built pyyaml
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:30.0573119Z Installing collected packages: py-spy, voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:35.6376360Z 
+nightly-ha (stable)	Install pinned test dependencies	2026-10-09T08:32:35.6393360Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 py-spy-0.4.2 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+nightly-ha (stable)	Pull the Home Assistant image	﻿2026-10-09T08:32:35.8299869Z ##[group]Run docker pull "homeassistant/home-assistant:stable"
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8300212Z ^[[36;1mdocker pull "homeassistant/home-assistant:stable"^[[0m
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8363758Z shell: /usr/bin/bash -e {0}
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8363981Z env:
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8364123Z   HPO_JOB_GRADES: nothing
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8364327Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8364612Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8364889Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8365142Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8365396Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8365653Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:35.8365872Z ##[endgroup]
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.3136836Z stable: Pulling from homeassistant/home-assistant
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7861419Z c5cfc437e4cd: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7862187Z a0599c81070e: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7862352Z 37f806cc4461: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7862496Z 9077abe198c0: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7862638Z bb63c4cacedb: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7862780Z 2c1ce468d9f3: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7863090Z 7787303eb4c2: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7863298Z b5c7d9056a22: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7863525Z 338f09b2964b: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7863833Z d2a5bb1a42cc: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864057Z f2f052bcb674: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864286Z ada65c4cb763: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864438Z a32396551a70: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864572Z 89811b755046: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864709Z 2c47ece656fa: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864849Z 28e3d11d7c8b: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7864983Z 73564860a377: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865126Z c5233d3fa4a3: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865275Z 031ab61ddbcd: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865414Z dce9484604a6: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865552Z ba817d8ba525: Pulling fs layer
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865688Z 9077abe198c0: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865815Z bb63c4cacedb: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7865937Z a32396551a70: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866053Z 2c1ce468d9f3: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866167Z 89811b755046: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866281Z 7787303eb4c2: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866395Z f2f052bcb674: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866514Z 2c47ece656fa: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866633Z ada65c4cb763: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866748Z 28e3d11d7c8b: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866860Z 73564860a377: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7866974Z c5233d3fa4a3: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867089Z b5c7d9056a22: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867208Z 031ab61ddbcd: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867325Z ba817d8ba525: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867439Z dce9484604a6: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867562Z 338f09b2964b: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.7867682Z d2a5bb1a42cc: Waiting
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.9735270Z c5cfc437e4cd: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:38.9735641Z c5cfc437e4cd: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.0037023Z a0599c81070e: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.0129107Z 37f806cc4461: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.0550158Z 37f806cc4461: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.0550431Z c5cfc437e4cd: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.1860382Z 2c1ce468d9f3: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.1860999Z 2c1ce468d9f3: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.1981649Z bb63c4cacedb: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.1982351Z bb63c4cacedb: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.2795955Z 9077abe198c0: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.2797324Z 9077abe198c0: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.3538730Z 7787303eb4c2: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.4037368Z b5c7d9056a22: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.4038396Z b5c7d9056a22: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.4660017Z 338f09b2964b: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.4660555Z 338f09b2964b: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.5609358Z d2a5bb1a42cc: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.5609685Z d2a5bb1a42cc: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.5768669Z f2f052bcb674: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.5768966Z f2f052bcb674: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.6375973Z ada65c4cb763: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.6376243Z ada65c4cb763: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.7290834Z a32396551a70: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.7291203Z a32396551a70: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.7685010Z 89811b755046: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.7685382Z 89811b755046: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.8065010Z 2c47ece656fa: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.8065371Z 2c47ece656fa: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.9522285Z 73564860a377: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:39.9522661Z 73564860a377: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.1331825Z 28e3d11d7c8b: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.1332519Z 28e3d11d7c8b: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.2085559Z 031ab61ddbcd: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.2085934Z 031ab61ddbcd: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.3660265Z dce9484604a6: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.3660652Z dce9484604a6: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.3956592Z ba817d8ba525: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.3958086Z ba817d8ba525: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.8494926Z c5233d3fa4a3: Verifying Checksum
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:40.8495216Z c5233d3fa4a3: Download complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:45.0060866Z a0599c81070e: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:46.5017900Z 37f806cc4461: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.0960757Z 9077abe198c0: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.3057221Z bb63c4cacedb: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.3156864Z 2c1ce468d9f3: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.3292596Z 7787303eb4c2: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.3750311Z b5c7d9056a22: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.3843329Z 338f09b2964b: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.4761102Z d2a5bb1a42cc: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.4872699Z f2f052bcb674: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.5144913Z ada65c4cb763: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.5289268Z a32396551a70: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.6934486Z 89811b755046: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:48.7008841Z 2c47ece656fa: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:52.5826993Z 28e3d11d7c8b: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:32:52.5942711Z 73564860a377: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:17.8291871Z c5233d3fa4a3: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:28.7924712Z 031ab61ddbcd: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:32.0714339Z dce9484604a6: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:32.0789895Z ba817d8ba525: Pull complete
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:32.0825123Z Digest: sha256:1b64d38f38d922bf9d59336451fd6453e1d614f934456af4ee3d2a51061be3a4
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:32.0837092Z Status: Downloaded newer image for homeassistant/home-assistant:stable
+nightly-ha (stable)	Pull the Home Assistant image	2026-10-09T08:33:32.0845952Z docker.io/homeassistant/home-assistant:stable
+nightly-ha (stable)	Run the integration inside Home Assistant	﻿2026-10-09T08:33:32.0902722Z ##[group]Run python tests/nightly_ha.py \
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0903408Z ^[[36;1mpython tests/nightly_ha.py \^[[0m
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0903755Z ^[[36;1m  --image "homeassistant/home-assistant:stable"^[[0m
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0966805Z shell: /usr/bin/bash -e {0}
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0966977Z env:
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0967110Z   HPO_JOB_GRADES: nothing
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0967308Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0967591Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0967874Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0968122Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0968371Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0968621Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:32.0968838Z ##[endgroup]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:33:33.4857083Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-vo_21kpa/config:/config -v /tmp/nightly-ha-vo_21kpa/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:34:12.5061962Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-a3e-wppyjlen/config:/config -v /tmp/nightly-ha-a3e-wppyjlen/opt:/opt/hpo:ro --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --a3e-only
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:34:25.6905384Z $ docker run --rm --add-host api.tibber.com:127.0.0.1 -e TZ=Europe/Stockholm -v /tmp/nightly-ha-hb-p0cdgb0u/config:/config -v /tmp/nightly-ha-hb-p0cdgb0u/opt:/opt/hpo:ro --cap-add SYS_PTRACE --entrypoint python3 homeassistant/home-assistant:stable /opt/hpo/nightly_ha.py --inside --plan-budget 240.0 --heartbeat-only
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1381345Z   ok   run:driver_reported  [1 result markers in the container's output]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1381718Z --- inside the container ---
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1382673Z   ok   shape:package_at_config_path  [/config/custom_components/heatpump_optimizer is not an integration]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1383481Z   ok   shape:no_tests_sibling  [a tests/ sibling puts _worker_env on the branch no install takes]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1384212Z   ok   shape:inherited_pythonpath_cannot_mask  [inherited PYTHONPATH already resolves custom_components: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1384732Z   ok   contract:real_provider  [exit 0; rty
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1385119Z   ok   helpers.entity.Entity: every platform entity base resolves entity_category
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1385570Z   ok   walker refuses a NumberSelector built outside _number
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1385860Z   ok   walker accepts _number and _widen_to_fit
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1386071Z   ok   walker refuses _number that omits mode
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1386281Z   ok   walker refuses description={advanced: True}
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1386557Z   ok   contract:stub_provider  [exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1386869Z   ok   walker refuses a NumberSelector built outside _number
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1387099Z   ok   walker accepts _number and _widen_to_fit
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1387305Z   ok   walker refuses _number that omits mode
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1387507Z   ok   walker refuses description={advanced: True}
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1387732Z   ok   the two reports are one stub run and one real run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1388086Z   ok   every member of components.binary_sensor.BinarySensorDeviceClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1388534Z   ok   every member of components.climate.ClimateEntityFeature exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1388933Z   ok   every member of components.climate.HVACAction exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1389336Z   ok   every member of components.climate.HVACMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1389651Z   ok   components.diagnostics.REDACTED equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1390196Z   ok   every entry of components.sensor.DEVICE_CLASS_STATE_CLASSES matches upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1390747Z   ok   every member of components.sensor.NON_NUMERIC_DEVICE_CLASSES exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1391189Z   ok   every member of components.sensor.SensorDeviceClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1391587Z   ok   every member of components.sensor.SensorStateClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1391969Z   ok   every member of config_entries.ConfigEntryState exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1392279Z   ok   config_entries.SOURCE_RECONFIGURE equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1392548Z   ok   every member of const.Platform exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1392847Z   ok   every member of const.units exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1393318Z   ok   every member of core.SupportsResponse exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1393687Z   ok   every member of helpers.device_registry.DeviceEntryType exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1394081Z   ok   every member of helpers.entity.EntityCategory exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1394465Z   ok   every member of helpers.issue_registry.IssueSeverity exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1394866Z   ok   every member of helpers.selector.NumberSelectorMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1395263Z   ok   every member of helpers.selector.SelectSelectorMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1395656Z   ok   every member of helpers.selector.TextSelectorType exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1396000Z   ok   helpers.storage: how a stored document decodes equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1396468Z   ok   contract:probes_agree  [exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1396905Z   ok   ha:home_assistant_is_real  [bootstrap returned None]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1397256Z   ok   ha:core_running  [core state is RUNNING]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1397514Z   ok   entry:loaded  [entry state is ConfigEntryState.LOADED (reason: None)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1397788Z   ok   a6:loaded  [entry loaded after corrupt stores]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1398001Z   ok   a6:list  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1398196Z   ok   a6:string  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1398388Z   ok   a6:number  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1398577Z   ok   a12:migrates  [after=7 expected=7]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1398783Z   ok   a13:currency  [coordinator='EUR' instance='EUR']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1399153Z   ok   entities:registered  [51 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1399620Z   ok   entities:coordinator_healthy  [last_update_success is False: every entity is unavailable at once]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1400012Z   ..   79 registered, 28 disabled by default, 9 unavailable, 9 of those self-gated
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1400378Z   ok   entities:none_unavailable_by_coordinator  [0 unavailable without gating themselves: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1400754Z   ok   a3:roster  [79 registered, 79 in the committed collect() roster; missing=[]; extra=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1401031Z   ok   a3:orjson  [0 failed HA json_bytes]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1401216Z   ok   a3:finite  [0 non-finite]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1401417Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1401652Z   ok   a10:no_credential  [no demanded token in payload]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1401888Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1402191Z   ok   a16:debug_inline  [the download 8077533B against the 8388608B cap; 63717 row(s) inline]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1402535Z   ok   a16:debug_capped  [bundle 9376254B against the 8388608B cap; the download 13227B]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1402853Z   ok   plan:optimization_result  [no solve completed; solve_failures=0]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1404870Z   ok   plan:last_optimization_published  [the payload's last_optimization is the repair notice's em-dash]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1406424Z   ok   plan:current_action_published  [current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 0.9, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1407975Z   ok   plan:setpoints_non_empty  [96 setpoints in the plan]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1408539Z   ok   plan:no_solve_repair  [solve-route repairs raised: []; everything raised: ['lower_floor_modelled']]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1409136Z   ok   a4:failed  [last_update_success=False]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1409478Z   ok   a4:unavailable  [51 unavailable]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1409786Z   ok   a4:buttons  [5 button(s) unavailable]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1410101Z   ok   a4:no_stale  [42 pre-break value(s) gone]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1410533Z   ok   a4:recovered  [recovered 42 after last_update_success=True]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1410900Z   ok   a5:pages_ok  [25 step(s) save-or-menu]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1411096Z   ok   a5:byte_unchanged  [4666B identical]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1411299Z   ok   a5:service_examples  [8 example(s) accepted]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1411509Z   ok   a5:service_bounds  [90 bound(s) accepted]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1411726Z   ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1411947Z   ok   a9:roster_unchanged  [79 id(s) unchanged]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1412196Z   ok   a9:no_growth  [ceiling tasks=1 listeners=89 stop=55; max t/l/s=1/89/55]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1412446Z   ok   a11:invalid  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1412623Z   ok   a11:no_entry  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1412799Z   ok   a11:run_failed  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1413243Z   ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1413718Z   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1414063Z   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1414397Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1414686Z   ..   hb:positive_control| stall >= 275 ms; loop thread:
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1414963Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3506, in <module>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1415279Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3502, in main
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1415593Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 2912, in _run_inside
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1415951Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 205, in run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1416344Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 128, in run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1416770Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1417213Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1417628Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1418022Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/events.py", line 94, in _run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1418365Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 1871, in _hb_spin
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1418839Z   ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1419380Z   FAIL hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1419920Z   ok   hb:untouched_exit  [max gap 2.4 ms over 2819 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1420341Z   ok   hb:changed_save  [max gap 12.7 ms over 2770 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1420742Z   ok   hb:menu_saves  [max gap 14.1 ms over 3055 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1421046Z   FAIL run:exit_status  [the container exited 1]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1421249Z   ok   log:no_module_not_found  [0 line(s)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1421439Z   ok   log:no_worker_exit  [0 line(s)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1421737Z   ok   log:no_integration_traceback  [0 traceback(s) naming heatpump_optimizer]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1422058Z   ok   log:blocking_report_parsed  [0 report(s) blame this package, 0 unparsed]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1422344Z   ok   log:no_new_blocking_call  [0 offender(s) seen; new: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1422628Z   ok   log:blocking_pin_not_stale  [0 pinned; fixed but still pinned: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1423362Z   ok   log:blocking_positive_control  [1 report(s) inside the probe window: [('import_module', 'custom_components/heatpump_optimizer/__init__.py', 'return importlib.import_module(f".{module}", __package__)')]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1423921Z   ok   run:all_checks_ran  [64 of 64 ran; missing: []; undeclared: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424094Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424165Z --- container output ---
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424338Z ker refuses description={advanced: True}
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424461Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424534Z ALL 4 convention checks PASSED
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424718Z Error fetching contract data: source refused
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1424915Z Error fetching contract data: down
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425139Z Authentication failed while fetching contract data: token refused]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425318Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425397Z === tests/hastub against real Home Assistant ===
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425646Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425747Z -- probes: the stub's values against real Home Assistant's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1425995Z   ok   the two reports are one stub run and one real run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1426344Z   ok   every member of components.binary_sensor.BinarySensorDeviceClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1426788Z   ok   every member of components.climate.ClimateEntityFeature exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1427183Z   ok   every member of components.climate.HVACAction exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1427545Z   ok   every member of components.climate.HVACMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1427849Z   ok   components.diagnostics.REDACTED equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1428146Z   ok   every entry of components.sensor.DEVICE_CLASS_STATE_CLASSES matches upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1428536Z   ok   every member of components.sensor.NON_NUMERIC_DEVICE_CLASSES exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1428956Z   ok   every member of components.sensor.SensorDeviceClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1429355Z   ok   every member of components.sensor.SensorStateClass exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1429739Z   ok   every member of config_entries.ConfigEntryState exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1430048Z   ok   config_entries.SOURCE_RECONFIGURE equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1430315Z   ok   every member of const.Platform exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1430606Z   ok   every member of const.units exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1430913Z   ok   every member of core.SupportsResponse exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1431288Z   ok   every member of helpers.device_registry.DeviceEntryType exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1431676Z   ok   every member of helpers.entity.EntityCategory exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1432165Z   ok   every member of helpers.issue_registry.IssueSeverity exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1432563Z   ok   every member of helpers.selector.NumberSelectorMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1433115Z   ok   every member of helpers.selector.SelectSelectorMode exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1433535Z   ok   every member of helpers.selector.TextSelectorType exists upstream with the same value
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1433877Z   ok   helpers.storage: how a stored document decodes equals upstream's
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1434056Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1434159Z -- upstream names the stub does not model (informational)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1434678Z        homeassistant.helpers.entity_component: the per-domain entity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1435903Z        homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1436831Z        real provider reported 21 probes
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1436955Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1437021Z ALL 22 probe comparisons PASSED
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1437132Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1437425Z   ok   contract:probes_agree  [exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1438547Z        homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1439549Z        real provider reported 21 probes
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1439670Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1439737Z ALL 22 probe comparisons PASSED]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1439941Z   ok   ha:home_assistant_is_real  [bootstrap returned None]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1440171Z   ok   ha:core_running  [core state is RUNNING]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1440432Z   ok   entry:loaded  [entry state is ConfigEntryState.LOADED (reason: None)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1440705Z   ok   a6:loaded  [entry loaded after corrupt stores]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1440912Z   ok   a6:list  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1441105Z   ok   a6:string  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1441294Z   ok   a6:number  [corrupt payload dropped]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1441483Z   ok   a12:migrates  [after=7 expected=7]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1441688Z   ok   a13:currency  [coordinator='EUR' instance='EUR']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1442065Z   ok   entities:registered  [51 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1442532Z   ok   entities:coordinator_healthy  [last_update_success is False: every entity is unavailable at once]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1443034Z   ..   79 registered, 28 disabled by default, 9 unavailable, 9 of those self-gated
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1443349Z        binary_sensor.heat_pump_optimizer_away_mode = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1443604Z        binary_sensor.heat_pump_optimizer_external_heat_source = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1443866Z        binary_sensor.heat_pump_optimizer_input_problem = on
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1444119Z        binary_sensor.heat_pump_optimizer_mold_floor_breach = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1444387Z        binary_sensor.heat_pump_optimizer_open_window_detected = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1444658Z        binary_sensor.heat_pump_optimizer_wood_cheaper = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1444923Z        button.heat_pump_optimizer_diagnose_last_interval = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1445324Z        button.heat_pump_optimizer_learning_finalize_debug = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1445615Z        button.heat_pump_optimizer_learning_reset_comfort_weight = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1445919Z        button.heat_pump_optimizer_learning_run_system_identification = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1446192Z        button.heat_pump_optimizer_optimize_now = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1446407Z        climate.heat_pump_optimizer = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1446629Z        datetime.heat_pump_optimizer_away_return = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1446892Z        sensor.heat_pump_optimizer_buffer_tank_temperature_model = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1447193Z        sensor.heat_pump_optimizer_compressor_frequency_advisor = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1447474Z        sensor.heat_pump_optimizer_compressor_starts = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1447716Z        sensor.heat_pump_optimizer_cost_baseline = 18.77
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1447971Z        sensor.heat_pump_optimizer_cost_contract_comparison = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1448254Z        sensor.heat_pump_optimizer_cost_current_electricity_price = 0.9
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1448532Z        sensor.heat_pump_optimizer_cost_monthly_peak_power = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1466297Z        sensor.heat_pump_optimizer_cost_power_headroom = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1466714Z        sensor.heat_pump_optimizer_cost_predicted = 4.88
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1467073Z        sensor.heat_pump_optimizer_cost_total_heating = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1467428Z        sensor.heat_pump_optimizer_dhw_cost = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1467775Z        sensor.heat_pump_optimizer_dhw_energy = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1468152Z        sensor.heat_pump_optimizer_dhw_heating_cost = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1468557Z        sensor.heat_pump_optimizer_dhw_heating_schedule = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1468891Z        sensor.heat_pump_optimizer_dhw_heavy_day_demand = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1469336Z        sensor.heat_pump_optimizer_dhw_mixed_water = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1469599Z        sensor.heat_pump_optimizer_dhw_setpoint_advisor = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1469861Z        sensor.heat_pump_optimizer_dhw_temperature = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1470113Z        sensor.heat_pump_optimizer_ecl110_displace = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1470385Z        sensor.heat_pump_optimizer_ecl110_effective_displace = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1470730Z        sensor.heat_pump_optimizer_floor_heating_return_temperature = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1471019Z        sensor.heat_pump_optimizer_heat_pump_action = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1471293Z        sensor.heat_pump_optimizer_indoor_temperature_optimizer = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1471618Z        sensor.heat_pump_optimizer_last_optimization = 2026-10-09T08:33:47+00:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1471917Z        sensor.heat_pump_optimizer_learning_comfort_weight = 5.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1472193Z        sensor.heat_pump_optimizer_learning_estimated_cop = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1472480Z        sensor.heat_pump_optimizer_learning_observed_cop = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1472769Z        sensor.heat_pump_optimizer_lower_floor_temperature = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1473218Z        sensor.heat_pump_optimizer_measured_power = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1473470Z        sensor.heat_pump_optimizer_model_restart_advisor = 1.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1473753Z        sensor.heat_pump_optimizer_next_optimization = 2026-10-09T09:03:47+00:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1474037Z        sensor.heat_pump_optimizer_optimal_setpoint = 19.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1474280Z        sensor.heat_pump_optimizer_optimization_mode = auto
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1474536Z        sensor.heat_pump_optimizer_optimization_schedule = 96 steps
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1474809Z        sensor.heat_pump_optimizer_optimization_schedule_steps = 96
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1475076Z        sensor.heat_pump_optimizer_optimization_status = optimal
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1475470Z        sensor.heat_pump_optimizer_outdoor_temperature_optimizer = unknown
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1475758Z        sensor.heat_pump_optimizer_plan_dhw_heating = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1476028Z        sensor.heat_pump_optimizer_plan_monthly_savings = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1476300Z        sensor.heat_pump_optimizer_plan_narrative = cheap_price
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1476580Z        sensor.heat_pump_optimizer_plan_optimization_score = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1476863Z        sensor.heat_pump_optimizer_plan_predicted_savings = 10.52
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1477129Z        sensor.heat_pump_optimizer_plan_savings_percentage = 56.1
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1477406Z        sensor.heat_pump_optimizer_plan_space_heating = 8 slots planned
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1477689Z        sensor.heat_pump_optimizer_prediction_accuracy = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1477979Z        sensor.heat_pump_optimizer_predictive_optimization_insight = normal
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1478256Z        sensor.heat_pump_optimizer_recommended_power = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1478505Z        sensor.heat_pump_optimizer_sensor_gap_advisor = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1478780Z        sensor.heat_pump_optimizer_slab_temperature_estimated = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1479047Z        sensor.heat_pump_optimizer_solar_heat_gain = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1479280Z        sensor.heat_pump_optimizer_solar_irradiance = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1479535Z        sensor.heat_pump_optimizer_solar_surplus_forecast = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1479796Z        sensor.heat_pump_optimizer_space_heating_cost = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1480039Z        sensor.heat_pump_optimizer_space_heating_energy = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1480303Z        sensor.heat_pump_optimizer_thermal_battery_charge = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1480586Z        sensor.heat_pump_optimizer_thermal_battery_energy = unavailable
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1480845Z        sensor.heat_pump_optimizer_total_energy = 0.0
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1481096Z        sensor.heat_pump_optimizer_upper_floor_temperature = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1481497Z        sensor.heat_pump_optimizer_valve_target_recommendation = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1481782Z        sensor.heat_pump_optimizer_wood_burn_advisor = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1482013Z        switch.heat_pump_optimizer_away = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1482228Z        switch.heat_pump_optimizer_block_dhw = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1482456Z        switch.heat_pump_optimizer_block_space = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1482679Z        switch.heat_pump_optimizer_boost_space = off
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1482904Z        switch.heat_pump_optimizer_dhw_boost = <no state>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1483360Z        switch.heat_pump_optimizer_optimizer_active = on
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1483674Z   ok   entities:none_unavailable_by_coordinator  [0 unavailable without gating themselves: []]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1484062Z   ok   a3:roster  [79 registered, 79 in the committed collect() roster; missing=[]; extra=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1484350Z   ok   a3:orjson  [0 failed HA json_bytes]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1484546Z   ok   a3:finite  [0 non-finite]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1484752Z   ok   a3:device_class_state_class  [0 forbidden pair(s)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1484988Z   ok   a10:no_credential  [no demanded token in payload]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1485229Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1485541Z   ok   a16:debug_inline  [the download 8077533B against the 8388608B cap; 63717 row(s) inline]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1485903Z   ok   a16:debug_capped  [bundle 9376254B against the 8388608B cap; the download 13227B]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1486299Z   a16: the download writer judged was diagnostics._async_get_json_file_response; 63717 row(s) inline
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1486664Z   ok   plan:optimization_result  [no solve completed; solve_failures=0]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1487036Z   ok   plan:last_optimization_published  [the payload's last_optimization is the repair notice's em-dash]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1488084Z   ok   plan:current_action_published  [current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 0.9, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1489134Z   ok   plan:setpoints_non_empty  [96 setpoints in the plan]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1489477Z   ok   plan:no_solve_repair  [solve-route repairs raised: []; everything raised: ['lower_floor_modelled']]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1489801Z   ok   a4:failed  [last_update_success=False]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1490004Z   ok   a4:unavailable  [51 unavailable]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1490195Z   ok   a4:buttons  [5 button(s) unavailable]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1490398Z   ok   a4:no_stale  [42 pre-break value(s) gone]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1490637Z   ok   a4:recovered  [recovered 42 after last_update_success=True]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1490876Z   ok   a5:pages_ok  [25 step(s) save-or-menu]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1491083Z   ok   a5:byte_unchanged  [4666B identical]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1491286Z   ok   a5:service_examples  [8 example(s) accepted]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1491500Z   ok   a5:service_bounds  [90 bound(s) accepted]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1491716Z   ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1491937Z   ok   a9:roster_unchanged  [79 id(s) unchanged]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1492194Z   ok   a9:no_growth  [ceiling tasks=1 listeners=89 stop=55; max t/l/s=1/89/55]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1492454Z   ok   a11:invalid  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1492634Z   ok   a11:no_entry  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1492812Z   ok   a11:run_failed  [service raised]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1493252Z   ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1493601Z   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1493947Z   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1494393Z <<<nightly-ha-blocking-probe-begin>>>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1494592Z <<<nightly-ha-blocking-probe-end>>>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1494852Z   ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1495144Z   ..   hb:positive_control| stall >= 275 ms; loop thread:
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1495421Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3506, in <module>
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1495736Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 3502, in main
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1496052Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 2912, in _run_inside
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1496412Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 205, in run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1496796Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/runners.py", line 128, in run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1497225Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 706, in run_until_complete
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1497678Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 677, in run_forever
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1498102Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/base_events.py", line 2056, in _run_once
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1498503Z   ..   hb:positive_control|   File "/usr/local/lib/python3.14/asyncio/events.py", line 94, in _run
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1498850Z   ..   hb:positive_control|   File "/opt/hpo/nightly_ha.py", line 1871, in _hb_spin
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1499335Z   ..   hb:positive_control| py-spy did not run: TimeoutExpired: Command '['/opt/hpo/py-spy', 'dump', '--nonblocking', '--pid', '1']' timed out after 30 seconds
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1499877Z   FAIL hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1500322Z   ok   hb:untouched_exit  [max gap 2.4 ms over 2819 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1500849Z   ok   hb:changed_save  [max gap 12.7 ms over 2770 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1501249Z   ok   hb:menu_saves  [max gap 14.1 ms over 3055 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1513612Z <<<nightly-ha-json>>>{"shape:package_at_config_path": [true, "/config/custom_components/heatpump_optimizer is not an integration"], "shape:no_tests_sibling": [true, "a tests/ sibling puts _worker_env on the branch no install takes"], "shape:inherited_pythonpath_cannot_mask": [true, "inherited PYTHONPATH already resolves custom_components: []"], "contract:real_provider": [true, "exit 0; rty\n  ok   helpers.entity.Entity: every platform entity base resolves entity_category\n\nprobes written to /tmp/ha-contract-s7po8tto/real.json\n\nALL 61 contracts PASSED\n\n=== #590 NumberSelector / advanced convention ===\n  ok   walker refuses a NumberSelector built outside _number\n  ok   walker accepts _number and _widen_to_fit\n  ok   walker refuses _number that omits mode\n  ok   walker refuses description={advanced: True}\n\nALL 4 convention checks PASSED\nError fetching contract data: source refused\nError fetching contract data: down\nAuthentication failed while fetching contract data: token refused"], "contract:stub_provider": [true, "exit 0; nator.REQUEST_REFRESH_DEFAULT_COOLDOWN\n       holder     homeassistant.util.dt.freeze\n\nprobes written to /tmp/ha-contract-s7po8tto/stub.json\n\nALL 94 contracts PASSED\n\n=== #590 NumberSelector / advanced convention ===\n  ok   walker refuses a NumberSelector built outside _number\n  ok   walker accepts _number and _widen_to_fit\n  ok   walker refuses _number that omits mode\n  ok   walker refuses description={advanced: True}\n\nALL 4 convention checks PASSED\nError fetching contract data: source refused\nError fetching contract data: down\nAuthentication failed while fetching contract data: token refused"], "contract:probes_agree": [true, "exit 0; ity component. nightly_ha.py reaches it through the real package to resolve an entity object; no lane here needs one.\n       homeassistant.util.loop: Home Assistant's blocking-call detector. It fires TWICE on this integration at every setup and shutdown, and both warnings tell the user to file a bug here (#525) -- invisible to every lane in tests/, found only by the first green run of the real-Home-Assistant lane. Covered by nightly_ha.py's log:no_new_blocking_call, which pins the two known offenders and fails on a third.\n       real provider reported 21 probes\n\nALL 22 probe comparisons PASSED"], "ha:home_assistant_is_real": [true, "bootstrap returned None"], "ha:core_running": [true, "core state is RUNNING"], "entry:loaded": [true, "entry state is ConfigEntryState.LOADED (reason: None)"], "a6:loaded": [true, "entry loaded after corrupt stores"], "a6:list": [true, "corrupt payload dropped"], "a6:string": [true, "corrupt payload dropped"], "a6:number": [true, "corrupt payload dropped"], "a12:migrates": [true, "after=7 expected=7"], "a13:currency": [true, "coordinator='EUR' instance='EUR'"], "entities:registered": [true, "51 enabled entities across ['binary_sensor', 'button', 'climate', 'datetime', 'sensor', 'switch']"], "entities:coordinator_healthy": [true, "last_update_success is False: every entity is unavailable at once"], "entities:none_unavailable_by_coordinator": [true, "0 unavailable without gating themselves: []"], "a3:roster": [true, "79 registered, 79 in the committed collect() roster; missing=[]; extra=[]"], "a3:orjson": [true, "0 failed HA json_bytes"], "a3:finite": [true, "0 non-finite"], "a3:device_class_state_class": [true, "0 forbidden pair(s)"], "a10:no_credential": [true, "no demanded token in payload"], "a10:no_precise_location": [true, "0 coordinate(s) beyond 2 dp"], "a16:debug_inline": [true, "the download 8077533B against the 8388608B cap; 63717 row(s) inline"], "a16:debug_capped": [true, "bundle 9376254B against the 8388608B cap; the download 13227B"], "plan:optimization_result": [true, "no solve completed; solve_failures=0"], "plan:last_optimization_published": [true, "the payload's last_optimization is the repair notice's em-dash"], "plan:current_action_published": [true, "current_action={'power': 0.0, 'setpoint': 19.0, 'mode': 'off', 'price': 0.9, 'power_normalized': 0.0, 'heat_pump_on': False, 'displace_value': -3.3, 'space_reason': 'idle', 'dhw_reason': None, 'upper_setpoint': 19.0, 'lower_setpoint': 19.0, 'solar_gain_kw': 0.0, 'baseline_kw': 1.8625137374007164, 'solar_reduction_factor': np.float64(1.0), 'wind_anticipation_factor': 1.0, 'pre_heat_urgency': 0.0}"], "plan:setpoints_non_empty": [true, "96 setpoints in the plan"], "plan:no_solve_repair": [true, "solve-route repairs raised: []; everything raised: ['lower_floor_modelled']"], "a4:failed": [true, "last_update_success=False"], "a4:unavailable": [true, "51 unavailable"], "a4:buttons": [true, "5 button(s) unavailable"], "a4:no_stale": [true, "42 pre-break value(s) gone"], "a4:recovered": [true, "recovered 42 after last_update_success=True"], "a5:pages_ok": [true, "25 step(s) save-or-menu"], "a5:byte_unchanged": [true, "4666B identical"], "a5:service_examples": [true, "8 example(s) accepted"], "a5:service_bounds": [true, "90 bound(s) accepted"], "a9:reload_loaded": [true, "5 of 5 reload(s) loaded (need 5)"], "a9:roster_unchanged": [true, "79 id(s) unchanged"], "a9:no_growth": [true, "ceiling tasks=1 listeners=89 stop=55; max t/l/s=1/89/55"], "a11:invalid": [true, "service raised"], "a11:no_entry": [true, "service raised"], "a11:run_failed": [true, "service raised"], "a8:already_configured": [true, "duplicate setup aborted as 'already_configured'"], "a8:register_once": [true, "13 registered after two entries; catalog 13; extra=[]; missing=[]"], "a8:deregister": [true, "13 registered after unload; catalog 13; extra=[]; missing=[]"], "a3:no_constructor_defaults": [true, "0 constructor default(s) published as available"], "hb:positive_control": [false, "a 600 ms spin read as 600.2 ms; dump names the spin: True; py-spy rc=0 names it: False"], "hb:untouched_exit": [true, "max gap 2.4 ms over 2819 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)"], "hb:changed_save": [true, "max gap 12.7 ms over 2770 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)"], "hb:menu_saves": [true, "max gap 14.1 ms over 3055 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)"]}
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1525746Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1526020Z .heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1526730Z 2026-10-09 10:34:33.989 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1527553Z 2026-10-09 10:34:33.989 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_legionella: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1528384Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_thermal_learning: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1529198Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_price_model: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1530003Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_accuracy: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1530791Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_energy: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1531570Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1532459Z 2026-10-09 10:34:33.990 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1533428Z 2026-10-09 10:34:33.991 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1534213Z 2026-10-09 10:34:33.991 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_away: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1534984Z 2026-10-09 10:34:33.995 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1535622Z 2026-10-09 10:34:34.001 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1536262Z 2026-10-09 10:34:34.001 WARNING (MainThread) [custom_components.heatpump_optimizer.coordinator] Empty forecast returned for weather.ci_weather. Plans continue on the last forecast, marked stale.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1537020Z 2026-10-09 10:34:34.003 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh completed without a solve; the real solve follows in the background
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1537724Z 2026-10-09 10:34:34.004 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.013 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1538467Z 2026-10-09 10:34:34.008 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_notifier: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1539289Z 2026-10-09 10:34:34.010 INFO (MainThread) [custom_components.heatpump_optimizer.frontend] Registered Heat Pump Optimizer card resource: /heatpump_optimizer_static/heatpump-optimizer-card.js?v=6.7.17
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1540049Z 2026-10-09 10:34:34.065 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1540647Z 2026-10-09 10:34:34.065 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Weather forecast still failing (Empty forecast returned for weather.ci_weather)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1541290Z 2026-10-09 10:34:34.065 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1542315Z 2026-10-09 10:34:34.068 WARNING (MainThread) [custom_components.heatpump_optimizer.coordinator] No weather forecast available — using current conditions. Predictive optimization will be limited.
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1543348Z 2026-10-09 10:34:34.068 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.0-0.0 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1544189Z 2026-10-09 10:34:36.820 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=53.2%, cost=7.00, status=optimal, dhw_enabled=True, starts=16, peak=2.3 kW
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1544929Z 2026-10-09 10:34:36.830 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.771 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1545675Z 2026-10-09 10:35:10.188 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1546473Z 2026-10-09 10:35:10.188 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1547371Z 2026-10-09 10:35:10.188 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1548144Z 2026-10-09 10:35:10.188 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1548864Z 2026-10-09 10:35:10.188 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1549610Z 2026-10-09 10:35:10.190 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1550415Z 2026-10-09 10:35:10.191 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned buffer tank cooling rate 0.40 °C/h (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1551040Z 2026-10-09 10:35:10.191 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned house heat loss scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1551646Z 2026-10-09 10:35:10.191 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned lower floor loss ratio 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1552228Z 2026-10-09 10:35:10.191 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned COP scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1553153Z 2026-10-09 10:35:10.193 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T11:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:10.193189+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1554181Z 2026-10-09 10:35:10.193 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T13:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:10.193189+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1555307Z 2026-10-09 10:35:10.193 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T16:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:10.193189+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1556313Z 2026-10-09 10:35:10.193 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T22:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:10.193189+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1557325Z 2026-10-09 10:35:10.193 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-10T10:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:10.193189+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1558221Z 2026-10-09 10:35:10.195 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1558865Z 2026-10-09 10:35:10.212 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1559477Z 2026-10-09 10:35:10.213 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1560142Z 2026-10-09 10:35:10.214 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1560934Z 2026-10-09 10:35:10.219 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1561774Z 2026-10-09 10:35:12.727 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=46.5%, cost=13.14, status=optimal, dhw_enabled=True, starts=8, peak=2.5 kW
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1562628Z 2026-10-09 10:35:12.736 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 2.530 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1563476Z 2026-10-09 10:35:13.190 DEBUG (MainThread) [custom_components.heatpump_optimizer] Options saved without changes for 01JHPA9NGHTHACNTNR00000001; skipping reload
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1564144Z 2026-10-09 10:35:13.192 DEBUG (MainThread) [custom_components.heatpump_optimizer] Options saved without changes for 01JHPA9NGHTHACNTNR00000001; skipping reload
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1564884Z 2026-10-09 10:35:13.195 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1565698Z 2026-10-09 10:35:13.195 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1566510Z 2026-10-09 10:35:13.196 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1567292Z 2026-10-09 10:35:13.196 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1568028Z 2026-10-09 10:35:13.196 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1568787Z 2026-10-09 10:35:13.198 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1569600Z 2026-10-09 10:35:13.199 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned buffer tank cooling rate 0.40 °C/h (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1570323Z 2026-10-09 10:35:13.199 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned house heat loss scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1570934Z 2026-10-09 10:35:13.199 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned lower floor loss ratio 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1571520Z 2026-10-09 10:35:13.199 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned COP scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1572320Z 2026-10-09 10:35:13.201 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T11:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.201026+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1573535Z 2026-10-09 10:35:13.201 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T13:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.201026+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1574555Z 2026-10-09 10:35:13.201 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T16:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.201026+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1575566Z 2026-10-09 10:35:13.201 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T22:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.201026+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1576574Z 2026-10-09 10:35:13.201 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-10T10:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.201026+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1577593Z 2026-10-09 10:35:13.203 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1578345Z 2026-10-09 10:35:13.218 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.004 seconds (success: False)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1579115Z 2026-10-09 10:35:13.221 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1579942Z 2026-10-09 10:35:13.221 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1580759Z 2026-10-09 10:35:13.221 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1581547Z 2026-10-09 10:35:13.221 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1582277Z 2026-10-09 10:35:13.221 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1583099Z 2026-10-09 10:35:13.223 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned buffer tank cooling rate 0.40 °C/h (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1583724Z 2026-10-09 10:35:13.223 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned house heat loss scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1584332Z 2026-10-09 10:35:13.223 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned lower floor loss ratio 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1585017Z 2026-10-09 10:35:13.223 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned COP scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1585699Z 2026-10-09 10:35:13.223 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1586623Z 2026-10-09 10:35:13.225 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T11:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.224996+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1587650Z 2026-10-09 10:35:13.225 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T13:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.224996+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1588668Z 2026-10-09 10:35:13.225 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T16:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.224996+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1589686Z 2026-10-09 10:35:13.225 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T22:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.224996+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1590702Z 2026-10-09 10:35:13.225 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-10T10:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.224996+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1591615Z 2026-10-09 10:35:13.228 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1592467Z 2026-10-09 10:35:13.242 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.002 seconds (success: False)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1593404Z 2026-10-09 10:35:13.244 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_profile: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1594221Z 2026-10-09 10:35:13.244 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_dhw_draws: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1595030Z 2026-10-09 10:35:13.245 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_ledger: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1595811Z 2026-10-09 10:35:13.245 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] First refresh republishes the pre-reload plan; the real solve follows in the background
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1596551Z 2026-10-09 10:35:13.245 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 0.000 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1597309Z 2026-10-09 10:35:13.247 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_manual_plan: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1598113Z 2026-10-09 10:35:13.247 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned buffer tank cooling rate 0.40 °C/h (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1598737Z 2026-10-09 10:35:13.247 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned house heat loss scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1599348Z 2026-10-09 10:35:13.247 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned lower floor loss ratio 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1600035Z 2026-10-09 10:35:13.247 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Loaded learned COP scale 1.000 (0 samples)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1600710Z 2026-10-09 10:35:13.250 DEBUG (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_boost: 1 stored field(s) off their declared domain: ['']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1601617Z 2026-10-09 10:35:13.250 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T11:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.250591+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1602643Z 2026-10-09 10:35:13.250 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T13:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.250591+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1603724Z 2026-10-09 10:35:13.250 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T16:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.250591+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1604741Z 2026-10-09 10:35:13.250 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-09T22:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.250591+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1605753Z 2026-10-09 10:35:13.250 WARNING (MainThread) [custom_components.heatpump_optimizer.store] heatpump_optimizer_01JHPA9NGHTHACNTNR00000001_snapshots: stored instant 2026-10-10T10:30:00+02:00 is ahead of the clock; bounded to 2026-10-09 10:35:13.250591+02:00
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1606508Z 2026-10-09 10:35:13.268 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 72 price entries
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1607120Z 2026-10-09 10:35:13.268 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Fetched 48 weather forecast entries (full 24h+ trajectory: temp, wind, rain, solar)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1607926Z 2026-10-09 10:35:13.269 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Running heat pump optimization (predictive MPC)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1608706Z 2026-10-09 10:35:13.274 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Forecast data: 96 steps (96 from published prices), wind range=0.8-0.8 m/s, precip range=0.0-0.0 mm/h, solar range=0-0 W/m²
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1609547Z 2026-10-09 10:35:16.517 INFO (MainThread) [custom_components.heatpump_optimizer.coordinator] Optimization complete: savings=48.2%, cost=13.28, status=optimal, dhw_enabled=True, starts=7, peak=2.7 kW
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.1610302Z 2026-10-09 10:35:16.526 DEBUG (MainThread) [custom_components.heatpump_optimizer.coordinator] Finished fetching heatpump_optimizer data in 3.263 seconds (success: True)
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.2127461Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.2127578Z 
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.2128098Z FAILED: 2 of 64 checks: ['hb:positive_control', 'run:exit_status']
+nightly-ha (stable)	Run the integration inside Home Assistant	2026-10-09T08:35:18.3261468Z ##[error]Process completed with exit code 1.
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	﻿2026-10-09T08:35:18.3368015Z Post job cleanup.
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4034625Z [command]/usr/bin/git version
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4072684Z git version 2.55.0
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4101750Z Temporarily overriding HOME='/home/runner/work/_temp/baa33734-b2bd-4a38-9738-2b6756c75c9e' before making global git config changes
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4102584Z Adding repository directory to the temporary git global config as a safe directory
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4106269Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4147383Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4182155Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4447437Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4478707Z http.https://github.com/.extraheader
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4488601Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4526930Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4781197Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-ha (stable)	Post Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09	2026-10-09T08:35:18.4820318Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-ha (stable)	Complete job	﻿2026-10-09T08:35:18.5196125Z Cleaning up orphan processes

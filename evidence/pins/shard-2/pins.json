@@ -1,0 +1,22 @@
+{
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.as_dict RETURN_DEL 6f8909cf": {
+    "killed_by": "tests/features.py",
+    "old": "        return {\"cop\": self.cop, \"curve_dhw\": self.curve_dhw, \"dhw_temp\": self.dhw_temp}",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio RETURN_DEL 4c7c13c0": {
+    "killed_by": "tests/features.py",
+    "old": "        return None if follows else COP_REFUSED_OFF_ASK",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop GUARD_OFF c31691cd": {
+    "killed_by": "tests/structure.py",
+    "old": "        if refusal := MeasuredCop.judge_floor(commanded, self._measured_power, params):",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.flow_lift_power_floor_kw CLAMP_DROP 2a0bab27": {
+    "killed_by": "tests/features.py",
+    "old": "            return max(0.8 * self.min_electrical_power, 0.2)",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CLAMP_DROP (`return (0.8 * self.min_electrical_power)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+  }
+}
