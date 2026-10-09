@@ -1,6 +1,6 @@
 A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate maximum, and its pump draws 1.9-2.55 kW. The duty floor was `max(0.3 x max_electrical_power, 0.2)` = 4.2 kW, above every draw, so the observed-COP sensor stayed unavailable and the flow-lift fold was starved too. All numbers below are synthetic. This is the round-4 body, a minimal re-cut (`fixer.md`): only the headings, the arms that fire, and figures re-taken in this pass.
 
-**Stacked on #2065 (7a): this PR merges after #2065.** The branch contains #2065's head `e408b9a28` (re-merged in this round), and its diff over that head is this fix.
+**Stacked on #2065 (7a): this PR merges after #2065.** The branch contains #2065's round-3 head `1e957282e` (re-merged in this round), and its diff over that head is this fix.
 
 **The fix**, decided under tvofi's mandate and the #201 decisions:
 
@@ -22,7 +22,7 @@ A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate max
 
 ## Head
 
-`e0d7f2450bd67623442bd7fa5be019a450446fda` (code head). Its parents include #2065's head `e408b9a28` and origin/main `bd59a4af1`. Round 5 changes no production logic. It re-merges #2065's moved head, re-keys two mutation-ledger pins, re-anchors one `brief_lint` fixture, and re-takes this body. The harness, probe 6 and probe 7 were re-run at this head and at #2065's head `e408b9a28`. Every row is identical to round 4's at both ends. The base column below is therefore #2065's head, `e408b9a28`, which gives the same results as `325960ef6` did. The test block passes 18 of 18 at this head.
+`c42863e65c21638025df6036de46f2702303cff4` (code head). Its parents include #2065's round-3 head `1e957282e` and origin/main `bd59a4af1`. Round 5 changes no production logic. It re-merges #2065's moved head, re-keys two mutation-ledger pins, re-anchors one `brief_lint` fixture, and re-takes this body. The harness, probe 6 and probe 7 were re-run at this head, and at #2065's `e408b9a28`. #2065's round-3 head `1e957282e` changes only one ledger file over `e408b9a28`, so its production tree is identical. Every row is identical to round 4's at both ends, and the base column below is #2065's head. The test block passes 18 of 18 at this head.
 
 ## Mutation proof
 
@@ -73,7 +73,7 @@ Each mutant is applied in its own worktree at `2808a8a94` (production identical 
 - `min3_running_folded`: 0/15 -> 3/15, carried to 7b
 
 **Gates.**
-- `python3 tests/structure.py` passes at this head, with no raise in this PR. `python3 tests/layout.py` exits 0. `node tools/policy/brief_lint.mjs` exits 0. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base e408b9a28fa0` predicts no closures or fast red, with 42 unpinned sites over #2065's head. Against the main merge base it lists 64, 22 of them #2065's; all are listed below.
+- `python3 tests/structure.py` passes at this head, with no raise in this PR. `python3 tests/layout.py` exits 0. `node tools/policy/brief_lint.mjs` exits 0. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base e408b9a28fa0` (production-identical to `1e957282e`) predicts no closures or fast red, with 42 unpinned sites over #2065's head. Against the main merge base it lists 64, 22 of them #2065's; all are listed below.
 - `node tools/policy/brief_lint.mjs` reads both carry files with 0 errors.
 - Heavy scripts are left to CI. This pass ran only the filtered test block, the harness, the three probes, `structure`, `layout` and the predictor.
 
@@ -87,8 +87,7 @@ Each red seen at round 4's head `9d77a97b1`, and its answer:
   - **Cheaper detector:** `brief_lint.mjs` itself, a seconds-long run that I did not run before the round-4 push. Its standing cost is one run per push that shifts lines in a cited file. A frozen expected error checked against the live tree is the known line-pinned-artifact class, and this round hit it twice, which is the `root-cause.md` trigger. That analysis is the root-cause seat's, not this PR's.
 - **`mutation`** and **`fast (3.14)`** (`tests/entities.py`, 1 of 2227): two stale `killed_by` pins, `ThermalParameters.flow_lift_power_floor_kw.{CLAMP_DROP,RETURN_DEL}.c0871d84`. Round 4 moved their line into `nameplate_power_floor_kw`.
   - **Repair:** both re-keyed to `ThermalParameters.nameplate_power_floor_kw`, with the same `old` text and digest, then `python3 tests/mutation_table.py --normalize`.
-  - **Measured:** the table's source-only ledger checks (`ledger_form_problems` and `completeness_problems` from `tests/mutation_table.py`) report 3 completeness problems before the re-key and 1 after.
-  - **The one left is #2065's:** `draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734`. It reads the same at #2065's head `e408b9a28`, where #2065 rewrote `from_dict`, so `mutation` stays red here until #2065 re-keys it.
+  - **Measured:** the table's source-only ledger checks (`ledger_form_problems` and `completeness_problems` from `tests/mutation_table.py`) report 3 completeness problems before the re-key. After the re-key 1 remains, and it is #2065's: `draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734`, which #2065's round-3 head `1e957282e` deletes. With that head merged, the checks report 0 problems.
   - **Cheaper detector:** those same ledger checks, which run in seconds. mutation-autofix does not re-key, so no bot commit was coming.
 - **`fast (3.14)`** (`tests/layout.py`): round 4 inherited #2065's retired `tools/audit/harnesses/draw_range_evidence.py`. #2065 has since moved it, and `python3 tests/layout.py` exits 0 at this head.
 - **`nightly-status`**: this reports main's last scheduled run, not this diff.
