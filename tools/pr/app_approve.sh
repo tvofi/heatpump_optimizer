@@ -1021,7 +1021,7 @@ done
 # The planted metacharacter arm: without `:(exclude,literal)` this head would
 # carry, its glob-named addition silently hiding the rewrite beside it.
 ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
-st $? 1 "NO CARRY: a path named `*` is not a wildcard, it is one added file"
+st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
 st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
