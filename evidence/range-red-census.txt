@@ -1,0 +1,10 @@
+== 63e4eba35582afb3899a67d0060429e95ee51350 record: the delivery row for #2073
+== 5bcf9d2b201951ff8dfb0e414c633546f1bef453 rca: three stale-pin PRs, second carry for the --perturb gap
+nightly-status|failure
+== 422e47975ffec4e239cf9480afe829f9a3e025a1 prepr 6d: a stale pin refuses only when the diff stales it; 
+== 3637f1c780ae030ba19bcd0818a7e19ee18ee9f2 rca: R9-RCA-stale-pins record and the brief_lint fixture car
+nightly-status|failure
+== 5c937c9bcae142cc72fba6b15f3f03c824e284b3 prepr: step 6d predicts a stale mutation-ledger pin
+Analyze (python)|cancelled
+nightly-status|failure
+== 63e4eba35 record: the delivery row for #2073

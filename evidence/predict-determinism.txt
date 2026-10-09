@@ -1,0 +1,2 @@
+CI PREDICT: no closures or fast red predicted against b2b6acd64cde (a data-file read is not seen)
+rc1=0

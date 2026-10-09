@@ -1,33 +1,22 @@
-Fix review: blocked 63e4eba35582afb3899a67d0060429e95ee51350 conflict-resolution: origin/main b2b6acd64 x this head conflicts in tools/pr/ci_predict.py and tools/pr/prepr.sh (step 13, non-claim paths); head has 0 check-runs, so 0 of the 17 required contexts ran and the merged result is not knowable
+Fix review: merge e2821b6dcaa9a00e74b20df6713f5cb5a1f445e6
 
-bus-nonce: be36a6804e1752e80e05dc9435f67749
-seat: review-deltas-1015
-Evidence: /Users/timmalmstrom/hpo-seats/review-deltas-1015/2073/evidence
+Round 4 — judgment of the resolution merge only (previous verdict at `5bcf9d2b20`;
+reviewed code unchanged from `63e4eba355` except the two step-6d conflicts).
 
-Round 3 of this PR, judging a **resolution delta**: the live head moved from `5bcf9d2b201951ff8dfb0e414c633546f1bef453` (the round-2 `merge` verdict, comment 6075945640) to `63e4eba35582afb3899a67d0060429e95ee51350` under an orchestrator push.
+RESULT: silent-revert sweep — branch 3-dot: 188 added lines, 186 verbatim at HEAD; the 2 absent are the branch's pre-merge `triage_key` spelling of the single chained ADDED UNPINNED return, superseded by main's multiplicity line with the stale prefix kept. Main-side in the same files: 82 added, 80 verbatim; the 2 absent are main's un-prefixed spelling of that one line. Full-tree `git diff origin/main HEAD` (2-dot) touches EXACTLY the branch's five files (188+/6−) — no main line reverted anywhere.
+RESULT: literal sweep of both parents' `ci_predict.py`/`prepr.sh`: MAIN 812 literals, 0 missing at HEAD; BRANCH 798, 5 missing, all five shared lines main reworded (sed regex, section-missing message, pmut plant, two no_recording/unpinned spellings). Arms named present per side: branch — `stale_pin_preds()`, `stale =` compute, both `stale +` chains (BASE UNREADABLE, ADDED UNPINNED), ledger remedy line, `startswith("ADDED")` sites count, pstale/pstaleun plants, the three STALE PIN assertions, step-6d header; main — `no_recording(root, base…)` lane-drop arm and call site, `added_keys` multiplicity, `*N` sed capture, whole-key awk + near-hint, `--existing-file` body_check with rc/rm, rowadd/rowedit, planes/pdrop, `if 0 < x < 3:` pmut, CMP_BOUND*2, b4-b7 arms.
+RESULT: `bash tools/pr/prepr.sh --self-test` at HEAD → 223 passed, 0 failed, exit 0 (fixer's figure re-measured); STALE PIN arms AND main's NO-RECORDING/delivery-row/multiplicity/whole-key arms all ok, exact assertion lines cited in evidence.
+RESULT: mutation proof — deleted `stale = stale_pin_preds(...)` and both `stale + ` prefixes (local scratch commit, never pushed; self-test clones committed history, so the removal was committed before the run) → 220 passed, 3 failed, exit 2: exactly the three STALE PIN arms, nothing else. File restored byte-identically, worktree reset clean to e2821b6dc.
+RESULT: determinism — two `ci_predict.py --base origin/main` runs byte-identical, rc 0, null-control text as in the body; predict() appends in fixed order, dedups `seen, out`, `completeness_problems` sorts dispositions.
+RESULT: step 11 — head ran 40 check-runs (38 names), all completed, latest-per-name 26 success + 14 skipped, 0 red; all 17 required contexts of ruleset 23698884 ran and succeeded. Own range census per commit: `nightly-status` failed at three heads (5c937c9bc, 3637f1c78, 5bcf9d2b2) and `Analyze (python)` was cancelled at 5c937c9bc. The body names and answers nightly-status (main's, unread by this diff — confirmed: branch touches no nightly record; green at head); its census says "the one red," true of the cited head only — a finding, not a block; the cancel is not a red conclusion and the check is green at head.
+RESULT: step 13 — `git merge-tree --write-tree origin/main e2821b6dc` exit 0, stderr empty, no MERGE-CLAIM marker (driver installed); result tree == HEAD tree; `tests/closures.json` blob `ca36c9b2` identical main/HEAD/result.
+RESULT: step 14 — no budget/ledger/claim/closures file moved; structure ratchet PASSED; `env_drift.py --all` → NO UNCLAIMED DRIFT, NO STALE FIXTURE; claim files byte-identical to origin/main (`62bf9eaba2`, `c683379daf`); VERSION/manifest/RELEASE_NOTES untouched.
+RESULT: cost re-derived quiet (first read of 3.4 s was my own contention under the self-test): `completeness_problems(load_budgets(), inventory())` median 2.3 ms (min 1.8, max 11.1 ms over 25 calls; 5891 sites, 1251 dispositions, 0 problems) — body's 0.0068 s same order, cost test unaffected.
+RESULT: forward-carry — `dev/programme/carries/carry-201.json` carries both #2073 entries (brief_lint `wood_share:1152` fixture; `--perturb` gap) with control, remeasure and precondition; RCA doc complete with state (c), class scope, refusals with numbers.
+RESULT: step 12 — head unchanged from measurement to post (`headRefOid == e2821b6dc`), origin/main still b2b6acd64 fully merged, PR OPEN/MERGEABLE.
 
-## The delta itself is exactly what it claims — that part passes
+Body's head SHA matches the head measured. The resolution kept both sides; every failure mode I planted or swept says so.
 
-`git log --first-parent 5bcf9d2b..63e4eba35` is **one commit, not "main merges + one commit"** as my brief was handed it:
-
-- `63e4eba35 tvofi record: the delivery row for #2073` — `dev/programme/delivery/2073.md`, `1 file changed, 1 insertion(+)`. Delta diff stat: 1 file, 1 insertion. `git rev-list --count 5bcf9d2b..63e4eba35` = 1, reverse 0; `origin/main` is **not** an ancestor of this head, so no main merge arrived.
-- RESULT the row is one line, anchors #2073 once, and matches main's row shape.
-- RESULT nothing else moved: the branch's own three-dot patch (merge base `47b083b0`, unchanged) is **byte-identical once the row file is excluded**; all four branch-owned paths — `dev/audit/rca/R9-RCA-stale-pins.md`, `dev/programme/carries/carry-201.json`, `tools/pr/ci_predict.py`, `tools/pr/prepr.sh` — are blob-identical `5bcf9d2b`→`63e4eba35`. So the round-2 measurement (its plants, the wedge control, the `--perturb` carry) still describes the code, and nothing already verified is invalidated by this delta.
-- RESULT claim files byte-identical to `origin/main` at this head (`62bf9eaba2…`, `c683379daf…`).
-
-## Why the verdict is blocked anyway — two things, neither of them this branch's authored work
-
-**1. Step 13: the branch now conflicts with `origin/main`, and not on a claim file.**
-
-`git merge-tree --write-tree origin/main 63e4eba35` → **rc=1**, with conflicts in `tools/pr/ci_predict.py` and `tools/pr/prepr.sh`. There is **no `MERGE-CLAIM` marker in the driver's stderr** for either run, so this is not the `claimnotes` refusal the orchestrator resolves by hand as a matter of routine; it is a content conflict on two paths this branch owns and main has since edited. Step 13 binds here: a conflict on any path other than the two claim files is mine to block on, because I cannot know the merged result is correct.
-
-- RESULT main, not this delta, caused it: the **same** rc=1 conflict, on the same two paths, is present at the round-2 head `5bcf9d2b`, and the row commit touched neither file. `origin/main` advanced (through `b2b6acd64`) into these two scripts after this branch's base `47b083b0`: `git log 47b083b0..origin/main -- tools/pr/prepr.sh tools/pr/ci_predict.py` names #2061's INERT READS arms (`c94842ed9`, `6ae385f29`, `4cdba2ac1`, `0f64774f6`) and #2028's body-check fix (`af5560f81`, `a6984468b`, `3eb8d53a5`) — the same `6d` region this PR edits with its STALE PIN arm. GitHub agrees: `mergeable=false`, `mergeable_state=dirty`, base `47b083b0`.
-- RESULT the other two pull requests in this batch show the split: `#2072` (which also edits `prepr.sh`) merges with rc=0 and reads `clean`; `#2069` merges with rc=0 after its main merges. So #2073's conflict is specific to what main changed in `ci_predict.py`/`prepr.sh` — the recarry and step-6d regions — not a batch-wide artifact.
-
-**2. Step 11: the head has never been gated, and absent is not green.**
-
-The commit's own `check-runs` API at `63e4eba35` reports **total_count = 0**. That is the `claim-files.md`/S2 consequence of `DIRTY` in general and of any conflict in particular: GitHub builds no merge commit and no `pull_request` workflow queues, so the PR does not go red — it **cannot run**. Zero of the 17 required status contexts (ruleset 23698884) exist at this head, the governance family (`policy-docs`, `env-matrix`, `wave-script`, `instrument-self-tests`, `record`, `delivery-status`) among them. `orchestrator.md` section 11's first bullet — every gate lane ran — is unmet; no head is green because a lane never ran.
-
-## What unblocks it, and who does it
-
-Merge `origin/main` into the branch **locally**, where the merge drivers run (`claim-files.md`, steward S2), resolve `ci_predict.py` and `prepr.sh` by hand — this is the orchestrator's resolution, not a defect in the authored work and not a fixer re-cut — and push. The resulting head comes back to me as its resolution delta: I will judge the conflict resolution itself (both sides' lines carried, the union of any `prepr.sh` step labels, `bash -n`, and CI's `closures`/`fast` lanes settled at that head) and the step-11 table at it. Until then nothing is owed by the fixer: the round-2 verdict's substance stands on the branch's own lines, which this delta left byte-identical.
+bus-nonce: 96514bfe0ba86041c9f83097bd18a63a
+seat: review-2073b
+Evidence: /Users/timmalmstrom/hpo-seats/review-2073b/evidence/
