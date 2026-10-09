@@ -1,0 +1,67 @@
+graders-head-copy	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113732718546
+coverage-ratchet	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113732717409
+graders-head-copy	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113732549853
+coverage-ratchet	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113732549598
+mutation-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113725035580
+mutation-pin-plan	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113725035343
+mutation-pins	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113725035270
+closures-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113724074922
+closures-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113723414608
+claims-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113722449997
+claims-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113722034108
+mutation-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113721504180
+mutation-pins	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113721503497
+mutation-pin-plan	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113721503296
+nightly-ha	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113713367998
+closures	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113713366905
+CodeQL	completed	success	https://github.com/tvofi/heatpump_optimizer/runs/113713080420
+mutation-ledger-push	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712785007
+mutation-nightly	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712784570
+slow	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712784526
+mutation-ledger	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712783704
+briefs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782421
+coverage	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782401
+mutation	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782376
+browser	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782290
+typing	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782278
+fast (3.14)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712782271
+hassfest	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700265/job/113712774001
+validate-hacs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700433/job/113712769794
+budget-raise-gate	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700393/job/113712769196
+Analyze (javascript-typescript)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700411/job/113712767301
+Analyze (python)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700411/job/113712767066
+Analyze (actions)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700411/job/113712766807
+record	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712765723
+delivery-status-publish	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712765422
+pr-contract	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700351/job/113712765082
+wave-script	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712764828
+env-matrix	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712764593
+policy-docs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712764420
+instrument-self-tests	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712764359
+delivery-status	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700295/job/113712764176
+mutation-ledger-push	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712763520
+mutation-ledger	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712763473
+mutation-nightly	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712763174
+slow	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712762900
+recheck-gate	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712762812
+record-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712762640
+mutation	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761726
+typing	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761660
+fast (3.14)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761647
+briefs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761640
+coverage	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761629
+browser	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761600
+closure-scope	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761598
+nightly-status	completed	failure	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897700382/job/113712761192
+Analyze (actions)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897701733/job/113712748155
+Analyze (python)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897701733/job/113712748083
+Analyze (javascript-typescript)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897701733/job/113712747989
+validate-hacs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897699319/job/113712740618
+hassfest	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897696758/job/113712731521
+record-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712726065
+nightly-status	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712725960
+closure-scope	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712725908
+closures	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712724681
+recheck-gate	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712724679
+nightly-ha (2025.2.0)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712724576
+nightly-ha (stable)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37897694222/job/113712724392

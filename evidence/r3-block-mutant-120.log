@@ -1,0 +1,18 @@
+
+=== features block ===
+  ok   the coordinator publishes an unreadable floor-return sensor as a problem, a live one and an unconfigured slot as none
+  ok   a configured floor-return sensor silent for the sustained period raises one repair, not before, and it clears when readings return
+  ok   the repair names the entity and the period, is a warning and is not fixable
+  ok   the finding is pure: it starts the clock, waits the period, then names the entity
+  ok   the silence period outlasts a restart's or a brief outage's gap and is shorter than three hours of unannounced open-loop slab estimate
+  FAIL ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant  [[0, 0]]
+  ok   a live sensor and an unconfigured slot never raise it, at any age
+  ok   another input's failure beside a live floor-return sensor never raises it
+  ok   a short gap does not accumulate: a reading in between restarts the period
+  ok   a payload that does not carry the input signal leaves the watch alone
+  ok   the entry's notifier setup raises and clears the repair on coordinator updates
+  ok   the floor-return repair is translated in strings.json
+  ok   the floor-return repair is translated in translations/en.json
+  ok   the floor-return repair is translated in translations/sv.json
+
+1 of 14 FEATURES BLOCK FAILED

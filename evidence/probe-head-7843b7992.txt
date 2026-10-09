@@ -1,0 +1,13 @@
+## probe at live head 7843b7992 (round 3, reviewer re-run)
+RESULT diag config.min_kw=1.2 config.max_kw=6.0 (live 1.2/6.0, setup 3.0/14.0)
+RESULT diag config_setup.min_kw=3.0 overridden=['heat_pump_max_power', 'heat_pump_min_power', 'name', 'solar_location', 'tibber_token']
+RESULT diag config.location={'latitude': 61.9, 'longitude': 15.2}
+RESULT diag leaks=[]
+RESULT diag token_fields=['**REDACTED**', '**REDACTED**'] name=**REDACTED**
+RESULT floor stale_7h: problems=[('floor_return_temp_entity', 'stale')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+RESULT floor fresh_5min: problems=[] floor_return_temp=31.5 issues_at[0,lim-1,lim,10lim]=[0, 0, 0, 0]
+RESULT floor fresh_5h_under_limit: problems=[] floor_return_temp=31.5 issues_at[0,lim-1,lim,10lim]=[0, 0, 0, 0]
+RESULT floor implausible_85C: problems=[('floor_return_temp_entity', 'implausible')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+RESULT floor unknown: problems=[('floor_return_temp_entity', 'unavailable')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+## probe_other_input at live head
+RESULT other-input-dead: problems=[('indoor_temp_entity', 'unavailable')] floor_return_temp=31.5 floor_return_silent_raised=0 named=[]
