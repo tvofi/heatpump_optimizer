@@ -1,0 +1,26 @@
+== RM3: window check disabled in shared mandate_state ==
+  FAIL a mandate whose window has passed behaves as no mandate (expiry arm)
+merge_train self-test: 92 checks, 1 failed
+  FAIL mandate: a review submitted after `until` fails: got 0, want 1
+  FAIL mandate: a review submitted exactly at `until` fails: got 0, want 1
+budget_raise_gate self-test: 206 checks, 2 failed
+== RM1: MANDATE_COVERS_POLICY widened to code-owned+budget-raise+all ==
+122:MANDATE_COVERS_POLICY = ("code-owned", "budget-raise", "all")
+  FAIL a mandate scoped budget-raise does not cover policy merging
+  FAIL a code-owned mandate licenses approvals, not the train landing policy (MANDATE_COVERS_POLICY is `all`)
+merge_train self-test: 92 checks, 2 failed
+== RM2: cite-by-id requirement deleted in policy_gate ==
+mutated
+  FAIL a policy head with NO mandate is refused as before -- the approval is at the head, so the refusal names the mandate, not the review (the fallback is the point)
+merge_train self-test: 92 checks, 1 failed
+RESTORED
+== RM5: _policy_move call removed from the refusal line ==
+mutated
+  FAIL policy content that moved after the owner's review is refused and named as that change
+merge_train self-test: 92 checks, 1 failed
+== RM6: fail-closed catch-all narrowed (Exception -> ZeroDivisionError) ==
+merge_train self-test: 92 checks, 0 failed
+RESTORED-CLEAN
+RM6 mutated: fail-closed catch-all narrowed to ZeroDivisionError
+merge_train self-test: 92 checks, 0 failed
+RM6 RESTORED-CLEAN

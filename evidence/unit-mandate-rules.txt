@@ -1,0 +1,6 @@
+two-mandate review: REFUSE -- no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driv
+edited mandate: REFUSE -- no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driv
+code-owned scope: REFUSE -- no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driv
+revoked mandate: REFUSE -- no decisive review by tvofi (id 70032254) on this pull request; 1 under that account declare an agent gave them, and an agent-driv
+gate reader, budget-raise scope: ACCEPT -- an agent approved this head aaaaaaaaaaaa under tvofi's account, declared as an agent's, under mandate 6000000006 (scope budget-rai
+scope all in window: ACCEPT -- mandate 6000000007 (scope all, from 2026-10-09T17:50:18Z until 2026-10-09T19:50:18Z)
