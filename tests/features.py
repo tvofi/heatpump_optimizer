@@ -60433,6 +60433,39 @@ R.check(
     f"{_ec_ib.hass.services.calls}",
 )
 
+# The same hold through the real cycle: a cut on record, then the coordinator's
+# own _apply_action inside MIN_OFF (an early refresh) must not turn the switch
+# on; past MIN_OFF the same cycle does. Reverting the coordinator's allow_on
+# line to the plan's raw value turns the first check red.
+def _ec_cycle_writes(minutes_since_cut):
+    hass = FakeHass({"switch.hp": FakeState("off"), "sensor.indoor": FakeState("22.0")})
+    coord = _Coord(hass, _FakeEntry(data={
+        "tibber_token": "x", "heat_pump_switch_entity": "switch.hp",
+        "indoor_temp_entity": "sensor.indoor"}))
+    now = _ec_dt.now()
+    coord._optimization_result = _ec_plan("ss")
+    coord._current_action = {"heat_pump_on": True, "displace_value": 0.0}
+    _asyncio.run(coord._apply_action())  # the scheduled cycle that armed
+    held = _ec.state_for(coord)
+    held.cut_at = _ec_dt.as_utc(now) - timedelta(minutes=minutes_since_cut)
+    hass.services.calls.clear()
+    _asyncio.run(coord._apply_action())  # the early refresh
+    return [c[:2] for c in hass.services.calls if (c[2] or {}).get("entity_id") == "switch.hp"]
+
+
+_ec_cyc_in = _ec_cycle_writes(1)
+_ec_cyc_out = _ec_cycle_writes(11)
+R.check(
+    "the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on",
+    ("switch", "turn_on") not in _ec_cyc_in,
+    f"{_ec_cyc_in}",
+)
+R.check(
+    "null control: the same cycle past MIN_OFF turns it on as the plan says",
+    _ec_cyc_out == [("switch", "turn_on")],
+    f"{_ec_cyc_out}",
+)
+
 # The arbiter does not switch the pump back on inside the cycle: with the
 # supply reading off after the cut, its next tick writes nothing at all.
 _ec_arb = _ec_fire(22.0)
