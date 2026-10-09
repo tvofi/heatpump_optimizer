@@ -670,6 +670,7 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
   local first hint; first=$(printf '%s\n' "$out" | grep -m1 '^    ' | sed 's/^ *//')
   case "$first" in
+    new-reference:*|unswept:*) hint="re-point the citation to its new path in tests/layout.json" ;;
     *'it lives at'*) hint="move it to the new path" ;;
     *) hint="place it where tests/layout.json says" ;;
   esac
@@ -1281,6 +1282,11 @@ EOS
   got=$(moved_line "$LR" "$LB"); r=$?
   st "$r" 0 "the same file at dev/audit/harnesses/ passes (null control)"
   case "$got" in *'GUARD: 0 refusal'*) st 1 1 "and the ok line is the guard's own, so it ran";; *) st 0 1 "and the ok line is the guard's own, so it ran";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b cite >/dev/null 2>&1; printf '# see %s/x.py\n' "$RD" >> "$LR/dev/audit/harnesses/seed.py"
+  lg add -A >/dev/null 2>&1; lg commit -qm cite >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new line citing a retired path is refused"
+  case "$got" in *'re-point the citation'*) st 1 1 "and the hint says to re-point the citation, not to place a file";; *) st 0 1 "and the hint says to re-point the citation, not to place a file";; esac
   lg checkout -q main >/dev/null 2>&1; lg checkout -q -b nocat >/dev/null 2>&1; mkdir -p "$LR/zz_no_category"; echo "# h" > "$LR/zz_no_category/x.md"
   lg add -A >/dev/null 2>&1; lg commit -qm nocat >/dev/null 2>&1
   got=$(moved_line "$LR" "$LB"); r=$?
@@ -2087,7 +2093,7 @@ fi
 rm -f "$COPY_PATHS"
 
 # --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
-# `moved_line` above, ~0.7 s. It reads the index against $BASE, so it needs
+# `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
 # no changed-path list.
 MOVED_LINE=$(moved_line "$PWD" "$BASE")
 case $? in

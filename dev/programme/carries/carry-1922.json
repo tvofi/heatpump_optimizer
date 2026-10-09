@@ -37,9 +37,9 @@
     {
       "from": "R9-RCA-harness-path (#2072): three fix PRs (#2065, #2066, #2070) re-added the retired harness directory because CLAUDE.md and fixer.md still named it; the round-runner workflows name the same retired tree",
       "effect": "narrows",
-      "control": "At your merge base, run grep -n 'tools/audit/round' .claude/workflows/audit-find.js .claude/workflows/audit-verify.js: both tell a seat to write a round's reports, LEADS.md, JUDGE and ISSUES files under tools/audit/round${round}/, and name the finding schema, judge_batch.py and fold_ledger.py at their retired paths. tests/layout.py --guard catches the first commit (a planted tools/audit/round10/D0/report.md is refused by the zero-categories arm, rc 1), and prepr.sh step 6e runs that guard, so the cost is a refused first commit, not a silent wrong path.",
+      "control": "At your merge base, run grep -n 'tools/audit/round' .claude/workflows/audit-find.js .claude/workflows/audit-verify.js: both tell a seat to write a round's reports, LEADS.md, JUDGE and ISSUES files under tools/audit/round${round}/, and name the finding schema at its retired path. tests/layout.py --guard catches the first commit (a planted tools/audit/round10/D0/report.md is refused by the zero-categories arm, rc 1), and prepr.sh step 6e runs that guard, so the cost is a refused first commit, not a silent wrong path.",
       "remeasure": "Re-run the grep above at your merge base and python3 tests/layout.py --stale; the count of live lines citing a landed move is the distance left.",
-      "brief": "When R9-RO-9 retires canon, in the same change: re-point the round-runner workflows to dev/audit/rounds/round${round}/ and to dev/audit/config/finding.schema.json and the moved judge_batch.py and fold_ledger.py, then re-run the wave-script checks the workflows are graded by (prepr.sh step 4). Read the destination of each instrument from tests/layout.json, never from this entry."
+      "brief": "When R9-RO-9 retires canon, in the same change: re-point the round-runner workflows to dev/audit/rounds/round${round}/ and to dev/audit/config/finding.schema.json, then re-run the wave-script checks the workflows are graded by (prepr.sh step 4). Read the destination of each instrument from tests/layout.json, never from this entry."
     }
   ]
 }
