@@ -63,6 +63,7 @@ for _extra in ("tests/hastub", "tests", "custom_components"):
     sys.path.insert(0, str(ROOT / _extra))
 
 from harness import Results  # noqa: E402
+from throwaway_git import throwaway_git_init  # noqa: E402
 
 R = Results("doc claims vs code facts (#1413)")
 
@@ -2430,8 +2431,8 @@ def check_docs_build_controls() -> None:
             (d / name).parent.mkdir(parents=True, exist_ok=True)
             (d / name).write_text(text)
         if git:
-            subprocess.run(["git", "init", "-q"], cwd=d, check=True)
-            subprocess.run(["git", "add", "-A"], cwd=d, check=True)
+            env = throwaway_git_init(d, "-q")
+            subprocess.run(["git", "add", "-A"], cwd=d, check=True, env=env)
         return d
 
     base = docs_build(c := corpus())

@@ -13,12 +13,10 @@ from typing import Any, Callable
 from homeassistant.helpers import issue_registry as ir
 
 from .const import (
-    CONF_DHW_SETPOINT_ENTITY,
-    CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY,
-    CONF_SPACE_SETPOINT_ENTITY,
     DOMAIN,
     MIXING_VALVE_WRITE_EPSILON,
 )
+from .entry_config import EntryConfig
 from .inputs import state_unit, temperature_c, temperature_from_c
 from .quiet_windows import silent_unenforceable
 
@@ -78,7 +76,7 @@ def _quiet(hass: Any, config: dict[str, Any]) -> None:
     unknown is not off. A GCHV night-mode schedule that is only partly
     holdable (two windows, or days that differ) raises it too (#1913).
     """
-    entity_id = config.get(CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY)
+    entity_id = EntryConfig.from_mapping(config).heat_pump_capacity_limited_entity
     _set_issue(
         hass,
         ISSUE_QUIET,
@@ -95,7 +93,7 @@ def _dhw_floor(params: Any) -> float:
 
 
 def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> None:
-    entity_id = config.get(CONF_DHW_SETPOINT_ENTITY)
+    entity_id = EntryConfig.from_mapping(config).dhw_setpoint_entity
     pump, unit = _setpoint_and_unit(hass, entity_id) or (None, None)
     floor = _dhw_floor(params)
     # The pump-duty arbiter's own space-only gate is a step decision, not
@@ -121,7 +119,7 @@ def _dhw(hass: Any, config: dict[str, Any], params: Any, gated: Any = None) -> N
 
 
 def _space(hass: Any, config: dict[str, Any]) -> None:
-    entity_id = config.get(CONF_SPACE_SETPOINT_ENTITY)
+    entity_id = EntryConfig.from_mapping(config).space_setpoint_entity
     if not entity_id:
         _set_issue(hass, ISSUE_SPACE, False)
         return

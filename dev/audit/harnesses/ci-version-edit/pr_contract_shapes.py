@@ -17,6 +17,11 @@ import json, os, re, subprocess, sys, tempfile
 
 import yaml
 
+# The shared throwaway-repository helper, from the checkout this harness sits in
+# (SRC may be an older commit that predates it).
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", "..", "tests"))
+from throwaway_git import throwaway_git_clone, throwaway_git_init  # noqa: E402
+
 SRC = os.getcwd()
 REV = sys.argv[1]
 
@@ -31,7 +36,7 @@ def git(*a, cwd, check=True):
 root = tempfile.mkdtemp(prefix="hvh-")
 bare = os.path.join(root, "origin.git")
 work = os.path.join(root, "work")
-git("clone", "-q", "--no-local", SRC, work, cwd=root)
+throwaway_git_clone(SRC, work, "-q", "--no-local", cwd=root)
 git("checkout", "-q", "--detach", git("rev-parse", REV, cwd=SRC), cwd=work)
 for k, v in (("user.name", "h"), ("user.email", "h@h")):
     git("config", k, v, cwd=work)
@@ -81,7 +86,7 @@ wf = yaml.safe_load(git("show", f"{B}:.github/workflows/governance.yml", cwd=wor
 steps = [s for s in wf["jobs"]["pr-contract"]["steps"]
          if "tools/audit/prepr.sh" in (s.get("run") or "")]
 
-git("init", "-q", "--bare", bare, cwd=root)
+throwaway_git_init(bare, "-q", "--bare")
 git("remote", "remove", "origin", cwd=work, check=False)
 git("remote", "add", "origin", bare, cwd=work)
 wrong = 0

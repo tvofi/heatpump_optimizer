@@ -527,9 +527,9 @@ chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
 # The carry's fixture: a real repository whose `origin` is a local bare one,
 # so `git fetch` and the carry run for real and no case reaches the network.
-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
 g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
-git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
+throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
 echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
@@ -934,7 +934,7 @@ carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driv
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
-( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
+( R="$W/reloc"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
   body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
   printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
   git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"
