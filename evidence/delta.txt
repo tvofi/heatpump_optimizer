@@ -1,0 +1,7 @@
+delta 4abbc7c4..6308498975f49b3ed0f152700ee7c23b242387f8:
+630849897 ci: pin killed mutants
+ 35 files changed, 210 insertions(+)
+
+unpinned at 4abbc7c45:       67 listing lines
+unpinned at head:       37 listing lines
+new unpinned at head (must be 0): 0

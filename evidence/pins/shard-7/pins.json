@@ -1,0 +1,22 @@
+{
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop GUARD_OFF 358a268d": {
+    "killed_by": "tests/features.py",
+    "old": "        if _cop_fold_blocked(self):",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop RETURN_DEL b11bbc76#2": {
+    "killed_by": "tests/features.py",
+    "old": "            return refusal",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/draw_range.py:DrawRange.from_dict GUARD_OFF 58d599ba": {
+    "killed_by": "tests/features.py",
+    "old": "        if not (np.isfinite(lo) and np.isfinite(hi)):",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/draw_range.py:follows_ask GUARD_OFF 9ff154d2": {
+    "killed_by": "tests/features.py",
+    "old": "    if len(pairs) < MIN_SAMPLES:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

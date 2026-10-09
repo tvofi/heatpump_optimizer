@@ -1,0 +1,32 @@
+{
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict GUARD_OFF 0cacf25d": {
+    "killed_by": "tests/features.py",
+    "old": "        if not np.isfinite(cop) or cop < 0.1 or (dhw and temp is None):",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+  },
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio CMP_BOUND 6e785259": {
+    "killed_by": "tests/features.py",
+    "old": "            if min(asked_kw, ratio * asked_kw) >= params.nameplate_power_floor_kw:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CMP_BOUND (`if min(asked_kw, ratio * asked_kw) > params.nameplate_power_floor_kw:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._fold_measured_cop GUARD_OFF fb4de4b6": {
+    "killed_by": "tests/features.py",
+    "old": "        if modelled_cop is None:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/draw_range.py:<module> CONST e1d6494f": {
+    "killed_by": "tests/features.py",
+    "old": "DISAGREE_FACTOR = 1.25",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CONST (`DISAGREE_FACTOR = 2.5`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  },
+  "custom_components/heatpump_optimizer/draw_range.py:DrawRange.from_dict CMP_BOUND ec8fe83f": {
+    "killed_by": "tests/entities.py",
+    "old": "            if np.isfinite(drawn) and np.isfinite(asked) and drawn > RUNNING_FLOOR_KW and asked >= 0.0:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CMP_BOUND (`if np.isfinite(drawn) and np.isfinite(asked) and drawn >= RUNNING_FLOOR_KW and asked >= 0.0:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1. Each of the 2 sites under this anchor was killed."
+  },
+  "custom_components/heatpump_optimizer/draw_range.py:follows_ask GUARD_OFF 695c3a8d": {
+    "killed_by": "tests/structure.py",
+    "old": "    if high < FOLLOW_ASK_SPAN * low:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+  }
+}

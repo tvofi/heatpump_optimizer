@@ -1,0 +1,12 @@
+{
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.from_dict RETURN_DEL 7c227e9b": {
+    "killed_by": "tests/features.py",
+    "old": "        return cls(cop=cop, curve_dhw=dhw, dhw_temp=temp)",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+  },
+  "custom_components/heatpump_optimizer/accuracy.py:MeasuredCop.judge_ratio GUARD_OFF 5ac3fff9": {
+    "killed_by": "tests/features.py",
+    "old": "        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:",
+    "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  }
+}
