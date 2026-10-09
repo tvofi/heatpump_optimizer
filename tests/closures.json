@@ -149,6 +149,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -232,7 +233,10 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -278,6 +282,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -362,6 +367,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -445,6 +451,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -533,6 +540,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -628,6 +636,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -741,6 +750,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -842,6 +852,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -956,6 +967,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1073,7 +1085,10 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -1145,6 +1160,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1230,6 +1246,7 @@
    "tests/golden/claimed_drift.txt",
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",
+   "tests/ha_contract.py",
    "tests/ha_floor.py",
    "tests/ha_floor_names.json",
    "tests/harness.py",
@@ -1364,6 +1381,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1539,6 +1557,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1669,6 +1688,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1792,6 +1812,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -1955,6 +1976,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -2079,6 +2101,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2430,6 +2453,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2528,7 +2552,10 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -2574,6 +2601,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2654,6 +2682,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2722,7 +2751,10 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -2780,6 +2812,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2857,6 +2890,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -2913,7 +2947,10 @@
    "custom_components/heatpump_optimizer/dhw_planner.py",
    "custom_components/heatpump_optimizer/dhw_schedule.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/freq_control.py",
+   "custom_components/heatpump_optimizer/inputs.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
    "custom_components/heatpump_optimizer/optimizer.py",
@@ -2957,6 +2994,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/drift.py",
    "custom_components/heatpump_optimizer/entity.py",
+   "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
@@ -3040,6 +3078,7 @@
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/dual_path.py",
+   "dev/audit/harnesses/eg_b11_equiv_6840.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
    "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
@@ -3571,47 +3610,47 @@
  "recorded": {
   "tests/arch_score.py": {
    "rc": 0,
-   "seconds": 342.6
+   "seconds": 306.2
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 41.8
+   "seconds": 46.4
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 159.6
+   "seconds": 153.9
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 2.8
+   "seconds": 2.6
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,
-   "seconds": 1804.3
+   "seconds": 1489.6
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 19.4
+   "seconds": 18.7
   },
   "tests/card_drift.mjs": {
    "rc": 0,
-   "seconds": 5.4
+   "seconds": 5.3
   },
   "tests/config_flow_steps.py": {
    "rc": 0,
-   "seconds": 39.3
+   "seconds": 38.0
   },
   "tests/debug_collect.py": {
    "rc": 0,
-   "seconds": 1.7
+   "seconds": 1.4
   },
   "tests/deployment_shape.py": {
    "rc": 0,
-   "seconds": 3.6
+   "seconds": 3.3
   },
   "tests/doc_claims.py": {
    "rc": 0,
-   "seconds": 10.3
+   "seconds": 8.6
   },
   "tests/dst_checks.py": {
    "rc": 0,
@@ -3619,23 +3658,23 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 53.6
+   "seconds": 48.4
   },
   "tests/entities.py": {
    "rc": 0,
-   "seconds": 354.4
+   "seconds": 259.6
   },
   "tests/env_drift.py": {
    "rc": 0,
-   "seconds": 1.0
+   "seconds": 0.9
   },
   "tests/features.py": {
    "rc": 0,
-   "seconds": 896.1
+   "seconds": 730.5
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 90.4
+   "seconds": 84.6
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -3643,11 +3682,11 @@
   },
   "tests/golden.py": {
    "rc": 0,
-   "seconds": 1.0
+   "seconds": 0.9
   },
   "tests/guard_pins.py": {
    "rc": 0,
-   "seconds": 1.4
+   "seconds": 1.2
   },
   "tests/ha_contract.py": {
    "rc": 0,
@@ -3655,15 +3694,15 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 220.7
+   "seconds": 199.0
   },
   "tests/layout.py": {
    "rc": 0,
-   "seconds": 17.3
+   "seconds": 15.5
   },
   "tests/manual_plan.py": {
    "rc": 0,
-   "seconds": 9.2
+   "seconds": 8.5
   },
   "tests/md_tables.mjs": {
    "rc": 0,
@@ -3675,35 +3714,35 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 186.3
+   "seconds": 171.9
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.6
+   "seconds": 1.5
   },
   "tests/solar_alignment.py": {
    "rc": 0,
-   "seconds": 1.4
+   "seconds": 1.3
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 1077.8
+   "seconds": 760.6
   },
   "tests/structure.py": {
    "rc": 0,
-   "seconds": 19.9
+   "seconds": 10.4
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 56.0
+   "seconds": 57.7
   },
   "tests/wood_advisor.py": {
    "rc": 0,
-   "seconds": 1.8
+   "seconds": 1.6
   }
  }
 }
