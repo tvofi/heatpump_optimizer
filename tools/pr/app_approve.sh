@@ -569,11 +569,6 @@ g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
 throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
-# `tests/closures.json` and the ledger dir start as ordinary tracked files, not
-# merge-driver files (only `led.json` gets a driver here) -- so a bot commit
-# that MODIFIES closures.json is the shape `autofixCommit` accepts for the
-# closures job, and one that ADDS a fresh file it does not stage is not.
-echo '{"closures": {}}' > "$W/clone/c.json"; mkdir -p "$W/clone/tests"; mv "$W/clone/c.json" "$W/clone/tests/closures.json"
 echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
 g checkout -qb fixa; ed1 's/^5$/five/' a.txt; echo 'a.txt merge=ledgermerge' >> "$W/clone/.gitattributes"
 g commit -qam "fix: own, with a driver for its own file"; V_A=$(g rev-parse HEAD)
