@@ -36,8 +36,16 @@ later pull request would be graded against a `main` the refused one never joined
   5. policy   -- no changed file (`--no-renames`, so a rename names the path it
                  left; a failing merge-base or diff stops the train) is policy, as `policy_lint.mjs --corpus-filter`
                  defines it (probed with a sentinel pair first, as preflight.sh
-                 does). A POLICY PULL REQUEST IS NEVER APPROVED HERE, by the App
-                 or under a mandate: it waits for the owner's own review;
+                 does). A POLICY HEAD LANDS ONLY UNDER A VALID MANDATE: the
+                 owner's APPROVED review at exactly this head, cited by id to
+                 a mandate whose window is open AT THE MERGE, both re-read by
+                 `land` when it merges -- the mandate read is `budget_raise_gate.py`'s own (mandate_state,
+                 decision 0013 amended 2026-10-02, tvofi's scope for policy
+                 merging `all`). With no such mandate the train refuses exactly
+                 as it did before one existed (tvofi, 2026-10-09, #201 comment 6083743563:
+                 batch merging of policy under an exceptional mandate, falling
+                 back when there is none -- after its window no code edit is
+                 needed);
   6. approve  -- `app_approve.sh` at the head. When its refusal is exactly its own
                  code-owned line for this pull request (anchored: a blocked
                  verdict's echoed reason can carry the same words), and `--mandate` was given,
@@ -65,7 +73,9 @@ Same queue file; no head is re-merged with main. In order:
                  merge_fastpath.py's `file_class`: a workflow, claim, grader or
                  any `*_budgets.json` change goes SERIAL. The rest must be green
                  at their head (all check runs, less --ignore-red), carry their
-                 verdict, carry their row and change no policy -- else it stops;
+                 verdict, carry their row and pass step 5's policy decision --
+                 else it stops; `land` re-reads that decision at the merge, so
+                 admission is only the early refusal, not the verdict;
   2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
                  (git's text merge in place of every .gitattributes driver, which
                  GitHub never runs), P_0 = origin/main; a head that does not merge
@@ -303,6 +313,120 @@ class Train:
             raise Stop("policy", "policy_lint.mjs --corpus-filter failed its sentinel probe, so what is policy is undefined here")
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
 
+    def _mandate_read(self, cid: int) -> "tuple[dict | None, list[dict]]":
+        """The cited comment (None on GitHub's 404) and the tracking issue's
+        comments since it was written, where a revocation would be --
+        budget_raise_gate._mandate's routes, run through `self.run` so the
+        self-test answers them and nothing here touches the remote elsewhere."""
+        g = _mandate_gate()
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/issues/comments/{cid}"])
+        if code:
+            if "HTTP 404" in o:
+                return None, []
+            raise Stop("policy", f"mandate {cid} could not be read: " + o.strip()[-160:])
+        comment = json.loads(o)
+        if not str(comment.get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL):
+            return comment, []
+        code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                            f"repos/{self.repo}/issues/{g.MANDATE_ISSUE}/comments"
+                            f"?per_page=100&since={comment.get('created_at')}"])
+        if code:
+            raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
+        return comment, [c for page in json.loads(o) for c in page]
+
+    def policy_gate(self, pr: int, h: str, files: list[str]) -> "str | None":
+        """THE policy decision, ONE function so the run pass and the batch
+        cannot drift (step 5; tvofi's ruling of 2026-10-09, #201 comment
+        6083743563: the train lands policy under a valid mandate and falls
+        back to refusing when there is none -- after the window closes the
+        pre-mandate refusal returns with no code edit). A head changing no
+        policy file (as `policy_paths` decides, sentinel probe unchanged)
+        is not stopped. A head changing one lands only when BOTH hold, each
+        re-read at the merge moment by the caller (`land`; batch admission
+        calls this too, as an early refusal that costs no proof):
+
+          1. the owner's APPROVED review sits at EXACTLY this head -- never
+             a stale approval, the review is the substitute for the human
+             the stop existed to keep in the loop; policy content that
+             moved after the review is refused as that change, since the
+             carry behaviour (a blob-identical bot commit, an automatic
+             main merge) binds a verdict, not an owner's review of content;
+          2. a mandate covering policy merging is in force AT THE MERGE,
+             read by budget_raise_gate's own rules (mandate_state: the
+             pinned owner's grammar comment on the tracking issue, its
+             window open now, never edited, not revoked, scope `all`), and
+             cited by id in that head's owner approval -- the citation is
+             how the stop knows which mandate the owner pointed at, and it
+             keeps the landing from reading as self-approval.
+
+    Every refusal names which of these it found, and returns None; success
+    returns the mandate's own line for the log."""
+        pol = self.policy_paths(files)
+        if not pol:
+            return None
+        head_pol = f"policy paths changed ({', '.join(pol)})"
+        g = _mandate_gate()
+        now = datetime.datetime.now(datetime.timezone.utc)
+        at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        def merge_mandate(review, cid, comment, thread):
+            return g.mandate_state(cid, comment, thread, now, at, "merge",
+                                   g.MANDATE_COVERS_POLICY, "policy merging")
+        read: dict = {}
+
+        def mandate_fn(cid):
+            if cid not in read:
+                read[cid] = self._mandate_read(cid)
+            return read[cid]
+        try:
+            code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+            if code:
+                raise Stop("policy", head_pol + ": the reviews could not be read: " + o.strip()[-160:])
+            reviews = [r for page in json.loads(o) for r in page]
+            ok, why = g.approval(reviews, h, mandate_fn, merge_mandate)
+            if not ok:
+                raise Stop("policy", head_pol + ": " + (self._policy_move(h, pol, reviews) or why))
+            cited = {int(a or b) for r in reviews
+                     if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"
+                     and r.get("commit_id") == h
+                     for a, b in g.MANDATE_CITE.findall(r.get("body") or "")}
+            if not cited:
+                raise Stop("policy", head_pol + ": the owner's approval at this head cites no mandate "
+                           "id, and the train lands policy only under a mandate in force named by it")
+            states = [merge_mandate(None, cid, *mandate_fn(cid)) for cid in sorted(cited)]
+            live = next((why for w, why in states if w), None)
+            if live is None:
+                raise Stop("policy", head_pol + ": " + "; ".join(why for _, why in states))
+            return live
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: an unread approval or mandate lands nothing
+            raise Stop("policy", head_pol + f": the policy read failed "
+                       f"({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+                       "an unread mandate grants nothing") from None
+
+    def _policy_move(self, h: str, pol: list[str], reviews: list[dict]) -> str:
+        """When the approval read refused, name whether the policy CONTENT
+        moved after the owner's last approval: fetch the reviewed commit and
+        diff it to the merge head. A moved policy file is the case the stop
+        was written for -- fresh review or nothing. '' when the diff says
+        otherwise or cannot be read: the caller then names approval()'s own
+        refusal (a head moved only by blobs that did not touch policy is
+        still 'not this head' -- the train does not re-review)."""
+        g = _mandate_gate()
+        last = next((r for r in reversed(reviews)
+                     if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"), None)
+        c = str((last or {}).get("commit_id") or "")
+        if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
+            return ""
+        code, o = self.run(["git", "diff", "--no-renames", "--name-only", c, h])
+        if code:
+            return ""
+        moved = [f for f in o.split() if f in pol]
+        return (f"policy content changed after the owner's review at {c[:12]} "
+                f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
+
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
         if code == 0 and "REFUSE" not in o:
@@ -387,9 +511,6 @@ class Train:
             raise Stop("row", f"#{pr} has no {row} in the three-dot diff; "
                        "the train writes none and the stamp's --require-rows "
                        "bar refuses an unrowed merge")
-        pol = self.policy_paths(files)
-        if pol:
-            raise Stop("policy", f"policy paths changed ({', '.join(pol)}): only the owner's own review approves it")
         def guard() -> None:
             if not self.contains_main(h):
                 raise Stop("merge", "origin/main moved before the merge; run the train again")
@@ -401,6 +522,9 @@ class Train:
         if self.head(pr) != h:
             raise Stop("approve", "head moved")
         if self.real:
+            under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
+            if under:
+                self.log(f"#{pr} policy head lands under {under}")
             self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
         self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
@@ -486,9 +610,9 @@ class Train:
                 raise Stop("carry", f"#{pr} " + (o.strip().splitlines() or ["(no output)"])[-1][:200])
             if f"{ROW_DIR}/{pr}.md" not in files:
                 raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff")
-            pol = self.policy_paths(files)
-            if pol:
-                raise Stop("policy", f"#{pr} changes policy ({', '.join(pol)}): only the owner's own review approves it")
+            under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
+            if under:
+                self.log(f"#{pr} policy head admitted under {under}")
         self.log(f"#{pr} admitted at {h[:8]}")
         return a
 
@@ -807,6 +931,10 @@ def _self_test() -> int:
           rc == 1 and "policy:" in lines[-1] and "revoked" in lines[-1] and not merged(calls) and no_app())
     rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, scope="budget-raise")})
     check("a mandate scoped budget-raise does not cover policy merging",
+          rc == 1 and "policy:" in lines[-1] and "does not cover policy merging" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, scope="code-owned")})
+    check("a code-owned mandate licenses approvals, not the train landing policy (MANDATE_COVERS_POLICY is `all`)",
           rc == 1 and "policy:" in lines[-1] and "does not cover policy merging" in lines[-1]
           and not merged(calls) and no_app())
     rc, lines, calls = go({**POL, "reviews": [owner_review("f" * 40, NOW)], "mandate": mandate(NOW),
