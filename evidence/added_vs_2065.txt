@@ -1,0 +1,15 @@
+#2065 head rows: 1304   this head rows: 1346
+rows in #2065 not here: 11 ['@module.CONST.443a79fc', '@module.CONST.c5323864', '@module.CONST.ff698611', 'DrawRange._disagrees.CMP_BOUND.142ccd7f', 'DrawRange._disagrees.CMP_BOUND.a10fdc16', 'DrawRange._metered_range.GUARD_OFF.a5d6d1be']
+rows here not in #2065: 53 ['@module.CONST.0152a5a3', '@module.CONST.1daff593', '@module.CONST.bb50e45a', 'HeatPumpOptimizerCoordinator._fold_measured_cop.CLAMP_DROP.2a1bdb6a', 'HeatPumpOptimizerCoordinator._fold_measured_cop.CMP_BOUND.a3cd4cc3', 'HeatPumpOptimizerCoordinator._fold_measured_cop.GUARD_OFF.358a268d', 'HeatPumpOptimizerCoordinator._fold_measured_cop.GUARD_OFF.7f2adbd4', 'HeatPumpOptimizerCoordinator._fold_measured_cop.GUARD_OFF.a3cd4cc3']
+
+-- each added site: its ledger filename at #2065 / here
+     45 CONST      key=custom_components/heatpump_optimizer/draw_range.py:<module> CONST 443a in2065=False inHEAD=False
+     48 CONST      key=custom_components/heatpump_optimizer/draw_range.py:<module> CONST ff69 in2065=False inHEAD=False
+     60 CONST      key=custom_components/heatpump_optimizer/draw_range.py:<module> CONST c532 in2065=False inHEAD=False
+    108 GUARD_OFF  key=custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_ in2065=False inHEAD=False
+    122 CMP_BOUND  key=custom_components/heatpump_optimizer/draw_range.py:DrawRange._disagree in2065=False inHEAD=False
+    125 CMP_BOUND  key=custom_components/heatpump_optimizer/draw_range.py:DrawRange._disagree in2065=False inHEAD=False
+    125 CMP_BOUND  key=custom_components/heatpump_optimizer/draw_range.py:DrawRange._disagree in2065=False inHEAD=False
+    149 GUARD_OFF  key=custom_components/heatpump_optimizer/draw_range.py:DrawRange.planned G in2065=False inHEAD=False
+    296 GUARD_OFF  key=custom_components/heatpump_optimizer/draw_range.py:planned_range GUARD in2065=False inHEAD=False
+    305 CLAMP_DROP key=custom_components/heatpump_optimizer/draw_range.py:planned_range CLAMP in2065=False inHEAD=False

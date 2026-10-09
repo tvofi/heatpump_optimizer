@@ -1,0 +1,14 @@
+poll 1 19:12:08 rc=0 runs=36 not_completed=6 red=1
+poll 2 19:17:10 rc=0 runs=36 not_completed=6 red=1
+poll 3 19:22:12 rc=0 runs=36 not_completed=6 red=1
+poll 4 19:27:18 rc=0 runs=36 not_completed=5 red=1
+poll 5 19:32:19 rc=0 runs=36 not_completed=5 red=1
+poll 6 19:37:21 rc=0 runs=36 not_completed=5 red=1
+poll 7 19:42:22 rc=0 runs=36 not_completed=5 red=1
+poll 8 19:47:23 rc=0 runs=37 not_completed=4 red=1
+poll 9 19:52:25 rc=0 runs=37 not_completed=4 red=1
+poll 10 19:57:25 rc=0 runs=37 not_completed=4 red=1
+poll 11 20:02:26 rc=0 runs=38 not_completed=3 red=1
+poll 12 20:07:27 rc=0 runs=40 not_completed=2 red=1
+poll 13 20:12:28 rc=0 runs=40 not_completed=2 red=1
+poll 14 20:17:29 rc=0 runs=40 not_completed=2 red=1

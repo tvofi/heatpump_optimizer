@@ -1,0 +1,7 @@
+ dev/audit/rounds/round4/D6/claims.json |   4 +-
+ dev/audit/rounds/round4/D6/claims.md   |   4 +-
+ dev/audit/rounds/round4/D6/claims.py   |  12 +-
+ docs/architecture.md                   |   4 +-
+ tests/deployment_shape.py              |  34 ++-
+ tests/features.py                      | 457 ++++++++++++++++-----------------
+ 6 files changed, 250 insertions(+), 265 deletions(-)

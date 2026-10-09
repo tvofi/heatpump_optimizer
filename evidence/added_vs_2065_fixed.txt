@@ -1,0 +1,5 @@
+ledger paths: #2065=1304  HEAD=1346
+sample #2065-only: ['killed_by/draw_range.py/@module.CONST.443a79fc.json', 'killed_by/draw_range.py/@module.CONST.c5323864.json', 'killed_by/draw_range.py/@module.CONST.ff698611.json', 'killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.142ccd7f.json']
+Traceback (most recent call last):
+  File "<stdin>", line 20, in <module>
+IndexError: list index out of range
