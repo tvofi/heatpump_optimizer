@@ -1,6 +1,0 @@
-fast (3.14) check-runs, from commits/<sha>/check-runs (head_sha conclusion started completed id):
-#2065 325960ef67 failure 2026-10-08T22:33:45Z 2026-10-08T23:04:13Z 113574473913  (30m28s; refused draw_range_evidence.py)
-#2066 d65c68c96c failure 2026-10-08T22:41:36Z 2026-10-08T23:12:24Z 113577108665  (30m48s; refused cop_duty_floor.py)
-#2070 f74924e09c failure 2026-10-08T23:40:59Z 2026-10-09T00:10:49Z 113595667988  (29m50s; refused early_cutoff_closed_loop.py)
-#2066 9d77a97b1e failure 2026-10-09T00:38:08Z 2026-10-09T01:05:34Z 113611787157  (27m26s; refused draw_range_evidence.py)
-Head 71f7a612a0: 38 check-runs, all completed; only failure nightly-status (not this diff's).

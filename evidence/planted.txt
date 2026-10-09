@@ -1,13 +1,12 @@
-moved_line extracted from tools/pr/prepr.sh at 71f7a612a0, run against the real tree, base bd59a4af1b (merge base):
-null (head as is)                      rc 0  layout: GUARD: 0 refusal(s) against bd59a4af1b26
-A new tools/audit/harnesses/plant_probe.py committed   rc 1  placement: ... re-adds a moved path; it lives at dev/audit/harnesses/
-B git mv dev/audit/harnesses/boost_replay_fork_parity.py back into tools/audit/harnesses/   rc 1  placement: ... re-adds a moved path
-C new tools/audit/round9/p.py           rc 1  placement: ... it lives at dev/audit/rounds/round9/
-D staged-only tools/audit/harnesses/s.py (HEAD == merge base)   rc 1  placement: ... re-adds a moved path
-R10 new tools/audit/round10/D0/report.md   rc 1  placement: ... is in 0 categories of tests/layout.json ... -- move it to the new path (suffix wrong for this arm)
-wedge 1: base commit itself adds tools/audit/harnesses/onmain.py; branch edits fixer.md   rc 0  GUARD: 0 refusal(s)
-wedge 2: base commit adds a stale citation line to README.md; branch appends elsewhere in README.md   rc 0
-wedge 2 control: same stale citation charged to the branch   rc 1  new-reference: README.md cites retired path tools/audit/harnesses/
-absent tests/layout.py                  rc 3  "no tests/layout.py under ..., so the layout guard was not run"
-timing, python3 -I tests/layout.py --guard at head, load avg 46-58 on 8 cores: 2.10 1.63 2.03 1.55 1.25 1.35 0.98 1.16 1.36 1.34 0.95 s
-mutation (guard call -> out=ok; r=0): rows 77,78,80 FAIL (refused / names new path / ok line is the guard's); run killed after 154 ok rows, see selftest-mutant.txt
+== null
+layout: GUARD: 0 refusal(s) against bd59a4af1b26
+rc=0
+== moved-path
+placement: tools/audit/harnesses/p.py re-adds a moved path; it lives at dev/audit/harnesses/ -- move it to the new path, or the fast job refuses it
+rc=1
+== zero-category
+placement: tools/audit/round10/D0/r.md is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind -- place it where tests/layout.json says, or the fast job refuses it
+rc=1
+== new-reference
+new-reference: README.md cites retired path tools/audit/harnesses/: see tools/audit/harnesses/foo.py -- place it where tests/layout.json says, or the fast job refuses it
+rc=1

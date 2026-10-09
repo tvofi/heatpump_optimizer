@@ -1,3 +1,0 @@
-2026-10-09T01:05:32.3091284Z     placement: tools/audit/harnesses/draw_range_evidence.py re-adds a moved path; it lives at dev/audit/harnesses/
-2026-10-09T01:05:32.3091397Z layout: GUARD: 1 refusal(s) against bd59a4af1b26
-2026-10-09T01:05:32.3336305Z ##[error]Process completed with exit code 1.
