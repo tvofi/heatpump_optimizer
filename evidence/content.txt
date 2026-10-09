@@ -1,0 +1,19 @@
+branch's own three-dot patch identical at both heads (merge base bd59a4af unchanged):
+  git diff bd59a4af...8766b840  vs  git diff bd59a4af...316a36414  -> identical once dev/programme/delivery/2072.md is excluded (4 files -> 5 files, +7 patch lines = the new row alone)
+branch owns 5 paths now:
+  CLAUDE.md
+  dev/governance/roles/fixer.md
+  dev/programme/carries/carry-1922.json
+  dev/programme/delivery/2072.md
+  tools/pr/prepr.sh
+policy/carry paths the round-3 review describes — blob id at 8766b840 vs at head (all UNCHANGED):
+  CLAUDE.md  4227323168ad65a7f50c1c60f92369b4815acdc8  ==  4227323168ad65a7f50c1c60f92369b4815acdc8
+  dev/governance/roles/fixer.md  db02b3db48b7cadfc9022e4b0e45be53f23ae7b8  ==  db02b3db48b7cadfc9022e4b0e45be53f23ae7b8
+  dev/programme/carries/carry-1922.json  54bc1ff310ae5b137dea7aaed281a7792446d683  ==  54bc1ff310ae5b137dea7aaed281a7792446d683
+  tools/pr/prepr.sh  7b4d32c80da594aa3491da5fef578119bbdab444  ==  7b4d32c80da594aa3491da5fef578119bbdab444
+  AGENTS.md  89cbf83a232465a1b9ee8072991f08556145b789  ==  89cbf83a232465a1b9ee8072991f08556145b789
+claim files at head == origin/main:
+  tests/golden/claimed_drift.txt 62bf9eaba2372bb05cdb42076273c18bdceb0f39
+  tests/golden/card_claimed_drift.txt c683379dafc29aa923baac9325d82bacfb43f7b9
+merge-tree origin/main x head: rc=0 tree cbdf53fce1f7dc46c8630e359de4764a763452cd (clean; no MERGE-CLAIM marker)
+GitHub: mergeable=true mergeable_state=clean base bd59a4af draft=false

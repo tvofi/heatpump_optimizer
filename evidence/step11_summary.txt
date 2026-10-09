@@ -1,0 +1,7 @@
+40 check-run records, 38 distinct names, all completed. Latest per name: success or skipped only; ZERO red (no red-then-green to misread: the two names with more than one run are pr-contract (113796819988, 113796991843) and budget-raise-gate (113796820024, 113796824763), success on both runs).
+nightly-status: success at this head (it was the only red at 8766b840 in round 3).
+All 17 required status contexts of ruleset 23698884 (main-protect-checks) are present and success.
+pr-contract id=113796991843 success
+budget-raise-gate id=113796824763 success
+budget-raise-gate id=113796820024 success
+pr-contract id=113796819988 success
