@@ -90,9 +90,16 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-function git(args, { allowFail = false, env, quiet = false } = {}) {
+// `root` defaults to this module's own repository, which is what every
+// internal caller wants. A caller inspecting commits in a DIFFERENT clone --
+// `tools/pr/app_approve.sh`'s `--carry`, over the throwaway repository its
+// `--self-test` builds or the orchestrator's checkout it was asked about --
+// passes that clone's root, since `ROOT` here would read a sha that only the
+// other repository has and report it "not a commit in this clone" (the same
+// fail-closed refusal, for the wrong reason).
+function git(args, { allowFail = false, env, quiet = false, root = ROOT } = {}) {
   try {
-    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
+    return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
       ...(quiet ? { stdio: ['ignore', 'pipe', 'pipe'] } : {}) })
   } catch (e) {
     if (allowFail) return ''
@@ -5936,12 +5943,15 @@ const AUTOFIX_BOT_COMMITS = {
 
 // One commit's answer: `{ parent, message }` when it is an autofix commit, or
 // `{ why }` naming the first condition it fails. Fail-closed: a commit this
-// clone cannot read is refused, never assumed.
-function autofixCommit(sha) {
+// clone cannot read is refused, never assumed. `root` is the clone to read it
+// from; a caller that walks a repository other than this file's own (the
+// `--carry` predicate in `tools/pr/app_approve.sh`) passes its clone's root,
+// and every other caller keeps the default of `ROOT` exactly as before.
+function autofixCommit(sha, root = ROOT) {
   const bot = `${AUTOFIX_BOT_COMMITS.name} <${AUTOFIX_BOT_COMMITS.email}>`
   const short = sha.slice(0, 7)
   if (!/^[0-9a-f]{40}$/.test(sha)) return { why: `${short} is not a full commit SHA` }
-  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true })
+  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true, root })
   if (!meta) return { why: `${short} is not a commit in this clone` }
   const [author, committer, parents, raw] = meta.split('\0')
   if (author !== bot || committer !== bot) return { why: `${short} is not authored and committed as ${bot}` }
@@ -5950,9 +5960,9 @@ function autofixCommit(sha) {
   const rule = AUTOFIX_BOT_COMMITS.messages[message]
   const ps = parents.trim().split(/\s+/).filter(Boolean)
   if (ps.length !== 1) return { why: `${short} has ${ps.length} parents` }
-  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true })
+  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true, root })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
-  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true })
+  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true, root })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
   if (!status.length) return { why: `${short} changes no file` }
   const underDir = (p) => rule.paths.some((r) => r.endsWith('/') && p.startsWith(r))
@@ -6950,7 +6960,7 @@ function main() {
 // asymmetry rather than assuming the two modes agree on both shapes.
 export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
-export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS, autofixCommit }
 
 // For field_coverage.mjs's budgets arm (class I3), which drives the real
 // per-file comparison on a perturbed file rather than a temp copy of this module.

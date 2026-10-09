@@ -89,6 +89,12 @@ API=https://api.github.com
 ACCEPT='Accept: application/vnd.github+json'
 VERDICT_AUTHORS="hpo-approver[bot]"
 VERDICT_AUTHOR_ID=330097732
+# This script's own directory, resolved from its path, not from the caller's
+# current directory: `--self-test` runs the `--carry` arms inside a throwaway
+# repository under a temporary directory, and `carry`'s new bot-commit check
+# must still find `tools/policy/policy_lint.mjs` in the checkout this script
+# was called from, not wherever `git` happens to be pointed.
+SELF_DIR=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 die() { printf 'app_approve: REFUSE: %s\n' "$*" >&2; exit 1; }
 
 # A JSON document per page from `gh api --paginate`, flattened to one list.
@@ -110,9 +116,83 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
   [ "$head" = "$3" ] || die "head moved: asked to approve $3, the live head of #$2 is $head"
 }
 
+# A `ci:` commit whose diff reaches past main's merge-driver files is still a
+# carry only when it is one of the autofix bot's own repairs, judged by the one
+# function that already bounds what such a push may contain: `autofixCommit` in
+# `tools/policy/policy_lint.mjs` -- bot identity on both author and committer,
+# exactly one parent, a message that is one of the autofix messages, and a diff
+# confined to the paths that message's job stages (additions only under a
+# directory that message's rule opens). `tests/entities.py` pins that rule
+# against `tests.yml`'s own `git add` line, so reading the table here cannot
+# drift from what the jobs really commit; reimplementing the rule in shell
+# would be a second bound nothing keeps in step with the first.
+#
+# Only `ci: pin killed mutants` is widened below. The other two autofix jobs
+# stage merge-driver files already, so their commits pass the `git diff` check
+# in `carry` before this is reached; a pin commit is the one autofix shape
+# whose files main's `.gitattributes` never named, since the mutation ledger
+# moved to one file per pinned row.
+#
+# The clone `autofixCommit` reads is the one this script already runs its own
+# `git` against -- `--self-test`'s throwaway repository, or the checkout
+# `--carry` was called from -- not the clone `policy_lint.mjs`'s own file lives
+# in: a commit that exists only in the repository under test is not in
+# policy_lint's, which would refuse it as "not a commit in this clone."
+#
+# bot_commit <sha> -> the paths the commit changed on stdout and 0, when the
+# commit is the pinned mutation-autofix shape; the reason it is not, and 1.
+bot_commit() {
+  local sha=$1 lint abs out val parent
+  lint="$SELF_DIR/../policy/policy_lint.mjs"
+  [ -f "$lint" ] || lint="$SELF_DIR/../../.claude/workflows/policy_lint.mjs"
+  [ -f "$lint" ] || { echo "could not find policy_lint.mjs beside tools/pr/"; return 1; }
+  abs=$(cd -- "$(dirname -- "$lint")" && pwd)/$(basename -- "$lint")
+  out=$(node --input-type=module -e '
+import(process.argv[1]).then((m) => {
+  if (typeof m.autofixCommit !== "function") {
+    console.log(JSON.stringify({ why: "policy_lint.mjs here exports no autofixCommit" })); return;
+  }
+  console.log(JSON.stringify(m.autofixCommit(process.argv[2], process.cwd())));
+}, () => console.log(JSON.stringify({ why: "could not import policy_lint.mjs" })));
+' "file://$abs" "$sha") \
+    || { echo "could not run node on policy_lint.mjs"; return 1; }
+  # The parent and the message are decided by key PRESENCE, not by splitting the
+  # answer on whitespace: `autofixCommit`'s refusals read `{ why: "<7-char sha>
+  # is not authored..." }`, whose leading token would land in `parent` under a
+  # naive split, and every later branch would then read that garbage as a real
+  # ancestor -- caught below by a message that cannot match, but only by luck.
+  val=$(printf '%s' "$out" | python3 -c '
+import sys, json
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("policy_lint.mjs answered something that is not JSON")
+    sys.exit(1)
+p, m, w = d.get("parent"), d.get("message"), d.get("why")
+if not (isinstance(p, str) and p):
+    print(w if isinstance(w, str) and w else "policy_lint.mjs refused without naming a reason")
+    sys.exit(1)
+if m != "ci: pin killed mutants":
+    print(repr(m) + " is an autofix commit, but not the mutation ledger pin commit")
+    sys.exit(1)
+print(p)
+') || { echo "$val"; return 1; }
+  parent=$val
+  # Only the files this commit ADDS are collected, not the ones it MODIFIES.
+  # `autofixCommit` permits modifying a ledger row too (its own rule, shared with
+  # `checkPrBody`, which reads the same function), but `carry`'s job here is to
+  # excuse the head for GAINING files the verdict never had -- a row a pinned
+  # anchor newly earned. A row that already existed and the bot rewrote is not
+  # that: it is content the verdict's head already carried, so `carry`'s own
+  # branch-diff comparison below must still see, and refuse on, any difference
+  # in it. Widening the exclusion to modifications would let a bot rewrite of an
+  # already-reviewed row pass unseen -- the one thing this fix must not trade away.
+  git diff --no-renames --diff-filter=A --name-only "$parent" "$sha"
+}
+
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps subj p mv mh t x
+  local v=$1 h=$2 main=$3 c ps subj p mv mh t x bx why2
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -122,6 +202,12 @@ carry() {
   t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
   x=()
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
+  # Paths an accepted `ci: pin killed mutants` commit wrote, collected as the
+  # commit loop meets each one. They are the only files the head gained past
+  # the verdict that are not the branch's own work, so the branch's own diff
+  # comparison below excludes them -- exactly as it already excludes the
+  # merge-driver files -- and nothing else does.
+  bx=()
   while IFS=$'\t' read -r c ps subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
@@ -138,18 +224,23 @@ carry() {
     else
       # Anyone who can push can write the subject, and the header-free
       # comparison below cannot see a change moved to other code with the
-      # same context: a `ci:` commit may touch only the driver files.
-      git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
-        || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      # same context: a `ci:` commit may touch only the driver files -- or be
+      # `bot_commit`'s one autofix shape, bounded by the same rule checkPrBody
+      # already applies to a head the body names.
+      if ! git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"}; then
+        why2=$(bot_commit "$c") \
+          && { while IFS= read -r p; do [ -z "$p" ] || bx[${#bx[@]}]=":(exclude)$p"; done <<<"$why2"; } \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files, and it is not an accepted autofix repair: $why2"; return 1; }
+      fi
     fi
   done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
   local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
-  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} ${bx[@]+"${bx[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
-  echo "only automatic merges from $main or ci: commits, and the branch's own diff compares equal"
+  echo "only automatic merges from $main, ci: commits and the autofix bot's own, and the branch's own diff compares equal"
 }
 
 cleanup() {
@@ -410,6 +501,13 @@ FAILS=0; N=0
 st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
 SHA=1111111111111111111111111111111111111111
 OTHER=2222222222222222222222222222222222222222
+# The autofix bot's identity, the same two constants `tools/policy/policy_lint.mjs`
+# holds in `AUTOFIX_BOT_COMMITS` and `tests/entities.py` pins against the
+# autofix jobs' own `git config` lines -- a `ci: pin killed mutants` commit must
+# be authored AND committed as this, or it is a branch's own commit under a
+# borrowed subject, and `carry` must not mistake the two.
+BOT_NAME='github-actions[bot]'
+BOT_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
 TOKEN=ghs_STUBTOKEN_must_never_print
 JWTHEAD=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9   # base64url of the JWT header
 SIGB64=U1RVQlNJR05BVFVSRQ                      # base64url of STUBSIGNATURE
@@ -483,6 +581,11 @@ g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
 throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
+# `tests/closures.json` and the ledger dir start as ordinary tracked files, not
+# merge-driver files (only `led.json` gets a driver here) -- so a bot commit
+# that MODIFIES closures.json is the shape `autofixCommit` accepts for the
+# closures job, and one that ADDS a fresh file it does not stage is not.
+echo '{"closures": {}}' > "$W/clone/c.json"; mkdir -p "$W/clone/tests"; mv "$W/clone/c.json" "$W/clone/tests/closures.json"
 echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
 g checkout -qb fixa; ed1 's/^5$/five/' a.txt; echo 'a.txt merge=ledgermerge' >> "$W/clone/.gitattributes"
 g commit -qam "fix: own, with a driver for its own file"; V_A=$(g rev-parse HEAD)
@@ -516,6 +619,56 @@ H_TOUCH=$(mkmerge "$V" main "Merge origin/main into fix")
 g checkout -q main; ed1 's/^7$/seven/' a.txt; g commit -qam m3
 H_CTX=$(mkmerge "$V" main "Merge origin/main into fix")
 H_A=$(mkmerge "$V_A" main "Merge origin/main into fixa")
+# The mutation-autofix bot's own `ci: pin killed mutants` commit (measured on
+# #2065 at 3c9fe53fa, 2026-10-09, and again on #2066 and #2071 the same day):
+# the mutation ledger moved to one file per pinned row, so this commit adds
+# files under `tests/mutation_ledger/`, which main's `.gitattributes` never
+# names as a merge-driver file. Two conditions refuse it at once: the `ci:`
+# guard's own path check, and -- since the head gains files the verdicted head
+# never had -- the branch's-own-diff comparison below. Every arm here exercises
+# both, so a fix that widens one but not the other goes red on the positive arm.
+pinrow() { # relpath -> one ledger row file, in a directory created on demand
+  mkdir -p "$(dirname -- "$W/clone/$1")"
+  printf '{"anchor":"%s","killed_by":"t.py","old":"o","reason":"r"}\n' "$1" > "$W/clone/$1"
+}
+as_bot() { # commit message... -> the env that makes it the autofix bot's own
+  GIT_AUTHOR_NAME="$BOT_NAME" GIT_AUTHOR_EMAIL="$BOT_EMAIL" \
+  GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL" \
+    g commit -q "$@"
+}
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+as_bot -m "ci: pin killed mutants"; H_PIN=$(g rev-parse HEAD)
+# Same subject, same identity, but reaching past the ledger into the branch's
+# own code: the row alone would carry, this must not.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json
+echo evil >> "$W/clone/a.txt"; g add -A
+as_bot -m "ci: pin killed mutants"; H_PIN_EVIL=$(g rev-parse HEAD)
+# Same subject and confined paths, but not the bot's own identity: that is
+# forgeable, and exactly why the subject, the parent count and the path set
+# must carry it too, each by itself.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+g commit -q -m "ci: pin killed mutants"; H_PIN_NOAUTH=$(g rev-parse HEAD)
+# The bot's identity and confined paths, under a `ci:` subject the mutation
+# ledger never uses: the subject gate is not decoration.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+as_bot -m "ci: not the bot's own message"; H_PIN_BADMSG=$(g rev-parse HEAD)
+# The bot's identity, confined to one file ITS OWN rule already stages, but a
+# different autofix message: `checkPrBody` accepts this shape (tests/closures.json
+# is exactly what "ci: re-record closures" stages), but this fixture's own
+# `.gitattributes` names only `led.json` as a driver, so it reaches the pin-only
+# guard, where the brief says any other subject must still refuse.
+g checkout -q --detach "$V"; pinrow tests/closures.json; g add -A
+as_bot -m "ci: re-record closures"; H_OTHERBOT=$(g rev-parse HEAD)
+# The bot's identity and the pin message, but reaching a row the branch ALREADY
+# carries rather than adding a new one: `autofixCommit` allows the modification
+# (its rule is "modify its files", and a row already present is its file too),
+# but `carry` must not stop comparing it -- a rewrite of reviewed content is
+# not a head that gained files the verdict never had, and the branch's own diff
+# below still sees the difference and refuses.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+g commit -q -m "fix: own row" ; V_PINMOD=$(g rev-parse HEAD)
+g checkout -q --detach "$V_PINMOD"; printf '{"anchor":"other","killed_by":"t.py","old":"o","reason":"bot rewrite"}\n' > "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; H_PINMOD=$(g rev-parse HEAD)
 g checkout -q main; g push -q origin main
 setpr() { g push -q -f origin "$1:refs/pull/7/head"; }
 
@@ -691,7 +844,7 @@ st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err"
 # the boundary class). A source pin backs this up, since a behavioral test
 # alone can't distinguish "'(' was removed" from "some other boundary char
 # also covers this case by accident".
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+st "$(sed -n '1,472p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
    "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
 mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
 run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
@@ -746,9 +899,9 @@ st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
 # segment tells them apart, and that's not otherwise part of this suite),
 # so this is a straight source pin, same technique as the VERDICT_AUTHORS
 # pin above.
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+st "$(sed -n '1,472p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
    "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
+st "$(sed -n '1,472p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
    "pin: a resolved path that is its own mount point is refused"
 if [ -d /System/Volumes/Data ]; then
   mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
@@ -862,6 +1015,27 @@ carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, w
 carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as a ci: commit outside the driver files"
 carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driver file"
+carried "$H_PIN"; st $? 0 "CARRY: the mutation-autofix bot's own ci: pin killed mutants commit, adding only ledger rows"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 0 \
+  "(null control) the accepted pin commit names no driver-file refusal"
+carried "$H_PIN_EVIL"; st $? 1 "NO CARRY: the bot's pin subject and identity, but reaching past the ledger"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as reaching outside what the pin stages"
+carried "$H_PIN_NOAUTH"; st $? 1 "NO CARRY: the pin subject and paths, but not the bot's own author and committer"
+st "$(grep -c "not authored and committed as" "$W/carry.out")" 1 "refused for its identity, not only its shape"
+carried "$H_PIN_BADMSG"; st $? 1 "NO CARRY: the bot's identity and confined paths, under a ci: subject the ledger never uses"
+st "$(grep -c "is not an accepted autofix repair" "$W/carry.out")" 1 "refused by the subject gate, not only the path set"
+# The narrowing to the pin subject is not decoration either: `autofixCommit`
+# itself accepts this shape (its own rule, shared with checkPrBody, covers all
+# three autofix messages), so a second gate must exist for the brief's promise
+# that "ANY other path still refuses."
+carried "$H_OTHERBOT"; st $? 1 "NO CARRY: the bot's identity and a real autofix shape, but not the ledger's pin message"
+st "$(grep -c "not the mutation ledger pin commit" "$W/carry.out")" 1 "refused by the message, though autofixCommit accepts it"
+# A pin commit that REWRITES an already-reviewed row: accepted by autofixCommit
+# (modification is within its rule) but excluded from nothing here, so the
+# branch's own diff below still sees the rewrite and refuses.
+( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINMOD" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the bot's pin commit overwriting a row the branch's own diff already carried"
+st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, not the autofix rule"
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
