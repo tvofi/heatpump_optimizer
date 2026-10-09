@@ -283,7 +283,7 @@ def feed_health(
     }
 
 
-def _outage(coordinator: Any) -> int | None:
+def _ending_streak(coordinator: Any) -> int | None:
     """The price feed's outage streak, through the view the coordinator
     publishes: this module names no private member, as ``diagnostics.py`` does
     not. A coordinator with no view (a duck-typed harness) has no streak here.
@@ -453,7 +453,7 @@ class DebugCollector:
                 stores.get(accuracy_key, (None, None))[1], coordinator.accuracy)),
             ("solver", lambda: _solver_smoke(coordinator, rows)),
             ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
-            ("feeds", lambda: feed_health(rows, _outage(coordinator))),
+            ("feeds", lambda: feed_health(rows, _ending_streak(coordinator))),
         ], SELF_TEST_BUDGET.total_seconds())
         # Unless the collection restarted meanwhile:
         if self.final and self.started_at == started_at:

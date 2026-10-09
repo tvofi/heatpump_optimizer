@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/debugger.py:_outage GUARD_OFF 7b428e6a",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    if not hasattr(coordinator, \"diagnostics_state\"):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against a8ce87571e6b1c093e57036207828c74c70644f4: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}
