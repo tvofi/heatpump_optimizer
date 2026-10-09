@@ -1,1 +1,1 @@
-head d65c68c96c8f90633d423d12822f7045cbcb541d (record-only over code head 43fa593d772361c51cde95c22ca333fdb0b03569; git diff --stat between them: dev/programme/delivery/2066.md only)
+head 9d77a97b1edc5ea02b808ab4cee0f4c630f119b3 (round 4; code head 42920d3c56a511a1f7e02d094dc2abc377cd05d0; stacked on #2065 head 325960ef672efb78539c18887d25b9caf6bf6f26)

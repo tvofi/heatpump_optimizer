@@ -1,6 +1,0 @@
-== base
-RESULT pmax4_selfmod_independent_folded=62/96 cop_scale=0.636
-RESULT pmax4_honest_tracking_folded=96/96 cop_scale=1.000
-== wt
-RESULT pmax4_selfmod_independent_folded=66/96 cop_scale=0.549
-RESULT pmax4_honest_tracking_folded=96/96 cop_scale=1.000
