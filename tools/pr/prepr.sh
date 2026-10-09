@@ -556,10 +556,22 @@ body_check() { # body file, head sha, title, paths file, red names...
   # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
-  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  # The paths the base already had go along as `--existing-file`, the list
+  # pr-contract derives with `--diff-filter=a`: without it policy_lint counts
+  # every delivery row, the pull request's own new row included, as a touch of
+  # what `delivery-status` reads, and refuses a main-graded red CI exempts
+  # (#2028). No resolvable BASE, no list: the stricter reading stands.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n rc
+  local ex=/tmp/prepr-existing.$$
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
+  if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
+    args+=(--existing-file "$ex")
+  fi
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  rc=$?
+  rm -f "$ex"
+  return "$rc"
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
@@ -1508,6 +1520,21 @@ EOS
   got=$(claims_at unt); st "$got" '0:' "6a passes a branch that never edited the claim file it inherited (R9-F10.8)"
   got=$(claims_at rec); st "$got" '0:' "6a passes a row-only branch forked before main claimed (the fork point, not the tip)"
   got=$(claims_at own); st "$got" '0:' "6a passes a branch that writes its own claim (null control)"
+  # #2028: body_check hands policy_lint the paths the base already had
+  # (`--existing-file`), as pr-contract does. Without it every delivery row the
+  # diff names voids the main-reporter exemption -- the pull request's OWN new
+  # row included -- so open_pr.sh's row push refused a body for a red main
+  # carried (`delivery-status`, `nightly-status`) that CI's contract exempts.
+  (cd "$CLM/r" && $G checkout -q -b rowadd fork && mkdir -p dev/programme/delivery \
+    && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
+    && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
+    && $G commit -qam rowedit) >/dev/null 2>&1
+  row_red() { (cd "$CLM/r" && git checkout -q "$1" \
+    && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
+    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+    >/dev/null 2>&1; echo $?); }
+  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
