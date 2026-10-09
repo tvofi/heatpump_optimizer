@@ -1,0 +1,27 @@
+=== reviewer re-derivation of CI's refusal, SOURCE-ONLY, tree clean at 3c9fe53fafcd3e9336ecc3574fedc713f3c3d530 (2 s, no mutant run) ===
+inventory sites        : 5933
+unpinned sites         : 4637 (CI at this head: 4637 -- agrees)
+completeness problems  : 0 (0 = no stale pin among the 8 files the delta added; round 2's d3b18734 refusal is gone)
+killed_by entries      : 1195  survivor_triage entries: 83  triage naming draw_range: 0
+draw_range.py sites    : 41  of them unpinned: 15 (CI: 15 added by this diff -- agrees)
+    CONST 45 RUNNING_FLOOR_KW = 0.25
+    CONST 48 WINDOW = 336
+    CONST 51 MIN_SAMPLES = 48
+    CONST 54 LOW_PERCENTILE = 10.0
+    CONST 60 DISAGREE_SHARE = 0.25
+    GUARD_OFF 99 if seen is None:
+    CMP_BOUND 102 top = high if high < (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_ma
+    CMP_BOUND 103 bottom = cfg_min if abs(low - cfg_min) <= AGREE_TOLERANCE * cfg_mi
+    CMP_BOUND 113 on_level = [(d, a) for d, a in self.samples if a >= cfg_min]
+    CMP_BOUND 116 if a > DISAGREE_FACTOR * d or d > DISAGREE_FACTOR * a
+    CMP_BOUND 116 if a > DISAGREE_FACTOR * d or d > DISAGREE_FACTOR * a
+    GUARD_OFF 140 if metered is None or metered == (cfg_min, cfg_max):
+    GUARD_OFF 175 if not (np.isfinite(lo) and np.isfinite(hi)):
+    GUARD_OFF 262 if cap.plan_writes_power():
+    CLAMP_DROP 271 low = min(cfg_min, high)
+thermal_model.py sites : 339  unpinned: 273 (its pin in the delta covers 1 of them)
+--- reconciliation ---
+24 added-unpinned at 1e957282  -  9 sites covered by the delta's 8 pin files  =  15 at this head.
+(DrawRange.from_dict.CMP_BOUND.ec8fe83f records 'Each of the 2 sites under this anchor was killed'.)
+ratchet base 4624 at both heads; the base ref moved 47b083b03 -> 4dbe5aace (CI re-fetches main).
+survivor_triage names 0 draw_range sites, so all 15 must be pinned by the lane or triaged by hand.

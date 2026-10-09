@@ -1,0 +1,15 @@
+=== delta 1e957282..3c9fe53fa (git log/diff, run in /private/tmp/r9-main after fetch) ===
+commits: 3c9fe53fa 'ci: pin killed mutants' (github-actions[bot], 2026-10-09T07:21:48Z) -- 1 commit
+files  : 8 added, 48 insertions, all under tests/mutation_ledger/killed_by/:
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.26ebe546.json
+tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.e1d6494f.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._disagrees.CMP_BOUND.9222b098.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CLAMP_DROP.2aa4786a.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.BOOLOP.58d599ba.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.CMP_BOUND.ec8fe83f.json
+tests/mutation_ledger/killed_by/draw_range.py/DrawRange.planned.RETURN_DEL.d913088d.json
+tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json
+outside tests/mutation_ledger/killed_by/: NONE
+no production, test-source, body-figure, budget or claim file moved.
+=== source lines untouched by the delta (so round 2's mutant/harness/block numbers survive) ===
+(empty above = no such file in the delta)

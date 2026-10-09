@@ -1,39 +1,39 @@
-mutation job 113615566185 at e408b9a:
-MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:
-    - custom_components/heatpump_optimizer/draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734: disposition names no site the inventory generates (old pin '        if not isinstance(data, dict):')
-
-fast (3.14) job 113615566266 at e408b9a:
-  [00:52:16] ok     python3 tests/env_drift.py --claims-only bd59a4af1b2616a7f00761a3769d22a335e4df7c (1s)
-  [00:52:18] ok     python3 tests/closure.py selftest (2s)
-  [00:52:56] ok     python3 tests/validate.py (41s)
-  [00:53:31] ok     python3 tests/edge.py (35s)
-  [00:55:39] ok     python3 tests/env_drift.py --all bd59a4af1b2616a7f00761a3769d22a335e4df7c (204s)
-  [00:55:45] ok     python3 tests/backtest.py (134s)
-  [01:00:16] ok     python3 tests/features.py (478s)
-  [01:02:10] FAILED python3 tests/entities.py (114s)
-  [01:02:11] ok     python3 tests/block_duty.py (1s)
-  [01:02:16] ok     python3 tests/doc_claims.py (5s)
-  [01:02:17] ok     node tests/md_tables.mjs (1s)
-  [01:02:17] ok     python3 tests/wood_advisor.py (0s)
-  [01:02:36] ok     python3 tests/config_flow_steps.py (19s)
-  [01:02:47] ok     python3 tests/structure.py (11s)
-  [01:03:20] ok     python3 tests/arch_score_head.py (33s)
-  [01:03:21] ok     python3 tests/typing_ruler.py (1s)
-  [01:03:28] ok     python3 tests/manual_plan.py (7s)
-  [01:03:29] ok     python3 tests/solar_alignment.py (1s)
-  [01:03:30] ok     python3 tests/guard_pins.py (1s)
-  [01:03:31] ok     python3 tests/debug_collect.py (1s)
-  [01:04:35] ok     python3 tests/finite_boundary.py (64s)
-  [01:07:37] ok     python3 tests/harness_headers.py (182s)
-  [01:07:42] ok     python3 tests/layout.py (5s)
-  [01:07:45] ok     python3 tests/deployment_shape.py (3s)
-  [01:17:37] ok     python3 tests/boost_drift_replay.py (1312s)
-  [01:20:10] ok     python3 tests/optimality.py (153s)
-  [01:20:11] ok     python3 tests/plan_view.py (1s)
-  [01:20:28] ok     node tests/card.mjs (17s)
-  [01:20:33] ok     node tests/card_drift.mjs bd59a4af1b2616a7f00761a3769d22a335e4df7c (5s)
-  [01:26:48] ok     python3 tests/stress.py (375s)
-  FAIL --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)  [has pin=True real=(1, "MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n
-1 of 2227 ENTITY CHECKS FAILED
-
-pin file tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.GUARD_OFF.d3b18734.json (becd4e383, github-actions[bot]) old: '        if not isinstance(data, dict):' -- absent from draw_range.py at e408b9a (git grep rc=1)
+fast (3.14) job 113574473913 at 325960ef:
+  [22:34:17] ok     python3 tests/env_drift.py --claims-only 4dbe5aace7440d0a7d43a249892fc63da890338c (1s)
+  [22:34:18] ok     python3 tests/closure.py selftest (1s)
+  [22:34:44] ok     python3 tests/validate.py (28s)
+  [22:35:27] ok     python3 tests/edge.py (43s)
+  [22:37:17] ok     python3 tests/backtest.py (110s)
+  [22:39:25] ok     python3 tests/env_drift.py --all 4dbe5aace7440d0a7d43a249892fc63da890338c (309s)
+  [22:42:13] ok     python3 tests/features.py (475s)
+  [22:43:56] ok     python3 tests/entities.py (103s)
+  [22:43:57] ok     python3 tests/block_duty.py (1s)
+  [22:44:01] ok     python3 tests/doc_claims.py (4s)
+  [22:44:01] ok     node tests/md_tables.mjs (0s)
+  [22:44:02] ok     python3 tests/wood_advisor.py (1s)
+  [22:44:18] ok     python3 tests/config_flow_steps.py (16s)
+  [22:44:27] ok     python3 tests/structure.py (9s)
+  [22:44:54] ok     python3 tests/arch_score_head.py (27s)
+  [22:44:54] ok     python3 tests/typing_ruler.py (0s)
+  [22:45:01] ok     python3 tests/manual_plan.py (7s)
+  [22:45:02] ok     python3 tests/solar_alignment.py (1s)
+  [22:45:03] ok     python3 tests/guard_pins.py (1s)
+  [22:45:03] ok     python3 tests/debug_collect.py (0s)
+  [22:45:59] ok     python3 tests/finite_boundary.py (56s)
+  [22:48:34] ok     python3 tests/harness_headers.py (155s)
+  [22:48:38] FAILED python3 tests/layout.py (4s)
+  [22:48:40] ok     python3 tests/deployment_shape.py (2s)
+  [22:56:21] ok     python3 tests/boost_drift_replay.py (1144s)
+  [22:58:35] ok     python3 tests/optimality.py (134s)
+  [22:58:35] ok     python3 tests/plan_view.py (0s)
+  [22:58:50] ok     node tests/card.mjs (15s)
+  [22:58:54] ok     node tests/card_drift.mjs 4dbe5aace7440d0a7d43a249892fc63da890338c (4s)
+  [23:04:09] ok     python3 tests/stress.py (315s)
+  ok   R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it
+mutation job 113574474024 at 325960ef / 113569898848 at 7c5f647:
+MUTATION TABLE REFUSED -- 4667 unpinned site(s) against 4624 at the ratchet base 4dbe5aace7440d0a7d43a249892fc63da890338c, 44 of them added by this diff. A new guard, clamp, removable return, doubled c
+pr-contract 113570034036 at 7c5f647:
+  ERROR   [pr-body] /tmp/pr-body.md: check `mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+layout.py (in fast (3.14) 113574473913 at 325960ef):
+    placement: tools/audit/harnesses/draw_range_evidence.py re-adds a moved path; it lives at dev/audit/harnesses/
+layout: GUARD: 1 refusal(s) against 4dbe5aace744
