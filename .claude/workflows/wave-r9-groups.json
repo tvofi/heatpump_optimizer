@@ -7190,7 +7190,7 @@
    "after": [
     "R9-DBG-1"
    ],
-   "brief": "Pre-study R9-DBG-0 sections 4 and 7: the debugger module self-test orchestration (the priced self-test table in the doc's section 4; 15 minutes total), the diagnostics bundle inclusion with the 8 MB inline cap and the summary fallback (the nightly-ha-lane size check owed), the finalize button if DBG-1 did not land it, translations. Oracle: the synthetic bundle fixtures and the priced table. After R9-DBG-1. ~200 production lines.",
+   "brief": "Pre-study R9-DBG-0 sections 4 and 7: the debugger module self-test orchestration (the priced self-test table in the doc's section 4; 15 minutes total), the diagnostics bundle inclusion with the 8 MB inline cap and the summary fallback (the nightly-ha-lane size check owed), the finalize button if DBG-1 did not land it, translations. Oracle: the synthetic bundle fixtures and the priced table. After R9-DBG-1. ~200 production lines.\n\nARCHITECT NOTE (tvofi, 2026-10-09, orchestrator.md section 5 -- concurrent lanes share these concerns): this group's surface is the debugger module's own self-test orchestration and the diagnostics bundle's INCLUSION, so register the inclusion through the mechanism the bundle already uses rather than keeping a parallel list, and do not re-shape the diagnostics export. The bundle's inline size cap is being settled by another lane (the nightly lane's own size check, plus the chain-repair group); if this group needs that cap moved, report it, do not change it.",
    "resume": {
     "stage": "not-started",
     "branch": "fix/r9-dbg-2",
