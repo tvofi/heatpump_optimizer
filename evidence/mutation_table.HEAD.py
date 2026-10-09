@@ -1,0 +1,3706 @@
+#!/usr/bin/env python3
+"""A mutation table as a gate: does the suite NOTICE a changed production line?
+
+Coverage says a line ran. It cannot say a check would fail if the line were
+wrong, and five W5-G7 tranches measured the gap: twenty-two checks executed the
+line they were named for and pinned nothing, and twenty-five production guards
+turned out to be deletable with no check failing. Every one of those was green
+coverage. `tests/coverage_ratchet.py` holds the floor; this holds the meaning.
+
+**Scope is the lines the pull request touched.** `--scope changed` draws its
+mutants only from sites on production lines the diff adds or modifies
+(`changed_lines`), so a survivor it reports is on a line the branch wrote. A
+pre-existing line is the nightly's, and a comment-only, docs-only or test-only
+diff draws nothing. `--scope full` puts every production module in scope, which
+is the nightly's job and far too slow for a pull request.
+
+**Each mutant is driven only by the scripts whose recorded closure reaches its
+file.** Driving every script would cost a full suite per mutant; driving one
+hand-picked script would let a mutant survive because its driver never imports
+the module, and a survivor that says nothing about the suite is worse than no
+survivor at all.
+
+**A kill is a failing check, read out of the whole output.** #805 recorded
+the alternative to reading all of it: a pre-screen that read the last 1200 bytes
+scored seven real kills as survivors, because two scripts print their summary
+line before trailing log noise. A mutant is killed when a driver's run is red
+AND names more failing checks than the unmutated baseline's (`killed()`). An
+exit status alone is not a failed check: #1453 scored structure.py's "improved,
+not yet recorded" exit as a kill, and #1521 scored env_drift.py's INHERITED
+CLAIMS refusal -- which fires on ANY production edit, a comment included, before
+anything is captured -- as a kill of every mutant it drove. Every run also
+drives one comment-only edit through every driver in play, and refuses itself
+if that null control dies.
+
+**Nothing is mutated in the working tree.** Each worker mutates its own copy, so
+a run killed mid-mutant cannot leave a production file edited -- the failure mode
+an in-place `try/finally` still has, because a SIGKILL does not run `finally`.
+
+**The budget carries two caps, for two different things.** The survivor
+FRACTION (`max_survivor_fraction`) stays a one-sided cap on the sampled run: the
+pool is a seeded sample drawn from whichever files the diff put in scope, so two
+clean branches touching different modules draw different pools and score
+differently through no fault of either, and an exact count over the sample would
+go red at random. Beside it sits the exact-count ratchet the sample could not
+carry: `unpinned_sites`, an exact count over a DETERMINISTIC inventory of every
+candidate site the seven operators generate, which `tests/structure.py`'s ratchet
+could use only because it measures the whole tree. The inventory below is that
+whole tree, so an exact count over it is reproducible. A site is unpinned until
+it carries a disposition -- a `killed_by` driver or a `survivor_triage` verdict,
+keyed by the site's content anchor rather than its line -- and a diff that adds
+a site without one raises the count above the same count at the ratchet base
+(the merge base; HEAD^1 on main) and is refused. The count is derived at both
+ends and committed nowhere: a committed record was a line every branch that
+recorded rewrote, and it went DIRTY on every merge. The ratchet is what stops a
+guard from leaving the tree unaccounted for; recording the sampled run's kills
+into the ledger (`killed_by`) is the nightly burn-in's follow-up, not this
+enforcement.
+
+A survivor is not automatically a defect. An equivalent mutant cannot be killed
+by any test, and several of the twenty-five guards W5-G7 measured are worth
+keeping for the cause they buy rather than the outcome a check could see. When
+the audit measures a survivor indistinguishable from its original at every
+input, record it under `survivor_triage` in the budgets file, pinned to the
+line text it was measured on: the fraction then counts only the survivors no
+triage has called equivalent, and an unmarked survivor stays a gap (#1217).
+
+    python3 tests/mutation_table.py --scope changed --base origin/main
+    python3 tests/mutation_table.py --scope full --jobs 4
+    python3 tests/mutation_table.py --scope changed --record --reason "..."
+
+Prior art, deliberately not imported: `dev/audit/rounds/round3/D3/mutant_pool.py` and
+its `prescreen.py` measure the same property over a hand-recorded mutant list at
+a frozen baseline SHA. That is audit evidence and has to keep answering for the
+tree it was run against; a gate has to follow the tree instead. Six of the
+operators below are that tool's, and a change to either should read the other;
+the seventh, CMP_BOUND, is this file's own (R9 F10.6).
+"""
+from __future__ import annotations
+
+import argparse
+import ast
+import contextlib
+import io
+import json
+import math
+import os
+import hashlib
+import random
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import tokenize
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any, NamedTuple
+
+
+ROOT = Path(__file__).resolve().parent.parent
+PKG = "custom_components/heatpump_optimizer/"
+PRODUCTION = ROOT / PKG
+BUDGETS = ROOT / "tests" / "mutation_budgets.json"
+CLOSURES = ROOT / "tests" / "closures.json"
+
+_NUM = re.compile(r"-?\d+\.?\d*")
+_FAILED = re.compile(r"^\s*(\d+) of (\d+) .*FAILED\s*$", re.M)
+# The per-check line the shared harness prints (`tests/harness.py`,
+# `Results.check`), and the three drivers that keep their own counter with it.
+_CHECK_FAIL = re.compile(r"^\s*FAIL\s+(.+?)\s*$", re.M)
+# The other failing-check forms the drivers print (#1521). A summary count:
+# `N [<WHAT>] CHECK(S) FAILED` (frontend and deployment_shape name what;
+# open_meteo and solar_alignment do not), `N FAILURES` (edge), `N ISSUES:`
+# (validate) and env_drift.py's three verdicts. And plan_view.py's `PLAN VIEW
+# ISSUES:` heading over one `  - ` bullet per issue. `main()` refuses a run
+# whose drivers include one whose source prints none of these forms
+# (`verdict_form_problems`), so a driver cannot go blind by printing a new one.
+_SUMMARY_FAILS = re.compile(
+    r"^\s*(\d+) (?:(?:[A-Z][A-Z -]* )?CHECK\(S\) FAILED|FAILURES\b|ISSUES:"
+    r"|UNCLAIMED DRIFT\(S\)|COMMITTED FIXTURE\(S\) ARE STALE"
+    r"|STALE CLAIM\(S\))", re.M)
+_ISSUE_BULLETS = re.compile(r"^[A-Z][A-Z ]*ISSUES:\n((?:[ \t]+- .*(?:\n|$))+)",
+                            re.M)
+# An uncaught exception prints its traceback to stderr, whatever the class is
+# called -- UpdateFailed, AbortFlow, StopIteration, one carrying notes or a
+# multi-line assert message all end differently, so the header is the key.
+_TRACEBACK = "Traceback (most recent call last):"
+TIMEOUT_RC = 124
+# A driver's per-run timeout is this multiple of its own measured seconds,
+# never under --timeout (`driver_timeout`, R9-F10.12). The `seconds` it scales
+# is the larger of the committed solo recording and the last measured POOL cost
+# (`seed_pool_seconds`): the nightly drives three worker trees at once, so the
+# same script costs 1.3-3.3x its solo recording there, and 3x a solo number the
+# band keeps up to 2x stale can sit below one pool run (RCA-1565).
+TIMEOUT_SCALE = 3
+# `run_script`'s timeout stderr, so `baseline_refusal` can name the bound a
+# baseline tripped without threading it back through the ScriptRun.
+_TIMED_OUT_AFTER = re.compile(r"timed out after (\d+)s")
+
+# Candidate drivers for `--scripts` are the GATE's recorded set, not a
+# hand-kept shortlist (#1211, D3-01). `default_scripts()` derives the list
+# from tests/closures.json -- the universe tests/closure.py's `select`
+# chooses from when it scopes a diff -- minus the scripts the instrument
+# cannot honestly drive, each named below with its property. The previous
+# eight-script default drove mutants with 8 of the 24 recorded scripts and
+# never ran the differential golden step, so a recorded survivor fraction
+# was not the fraction this repository's gate would produce.
+#
+# This is a derivation, not a preference list: tests/entities.py checks that
+# every recorded script is either in DEFAULT_SCRIPTS or below with a reason.
+DRIVER_EXCLUSIONS = {
+    # `run_script` drives `[sys.executable, script]`; these two are Node
+    # programs -- tests/run.sh's e2e lane runs them with `node` -- and their
+    # input, the plan payload, is another driver's output (closure.py's
+    # PRODUCERS edge), which a one-script invocation never builds.
+    "tests/card.mjs": "node program; needs plan_view.py's payload run first",
+    "tests/card_drift.mjs": "node program; needs plan_view.py's payload run "
+                            "first",
+    # golden.py's DEFAULT mode IS the differential: its resolve_mode says
+    # "Unset means drift", and drift execs env_drift.py --all <ref> -- the
+    # step below. Driving it here would run the same comparison twice. The
+    # strict comparison it can run instead reads fixtures recorded on
+    # another machine, which tests/run.sh says would "cry wolf": that
+    # non-portability is what the drift mode exists to replace.
+    "tests/golden.py": "its default mode IS the env_drift.py step",
+}
+
+
+# ---------------------------------------------------------------- operators
+
+def _one_line(node, lines) -> bool:
+    end = getattr(node, "end_lineno", None)
+    return end is not None and end == node.lineno
+
+
+# The clamp spellings CLAMP_DROP reduces to their first argument: the builtins,
+# and the numpy/math forms R9 D14-s5-02 found were never inventoried (#1316's
+# `np.clip` was one of them).
+_CLAMP_ATTRS = {("np", "clip"), ("np", "minimum"), ("np", "maximum"),
+                ("np", "fmin"), ("np", "fmax"), ("numpy", "clip"),
+                ("math", "fmin"), ("math", "fmax")}
+
+
+def _clamp_call(func: ast.expr) -> bool:
+    if isinstance(func, ast.Name):
+        return func.id in ("min", "max")
+    return (isinstance(func, ast.Attribute) and isinstance(func.value, ast.Name)
+            and (func.value.id, func.attr) in _CLAMP_ATTRS)
+
+
+def _indent(s: str) -> str:
+    return s[: len(s) - len(s.lstrip())]
+
+
+# The operators the ratcheted inventory and the sampled pool draw from, and the
+# set `--list` reports: an operator can sit in LISTED alone while its stock and
+# per-PR pin burden are priced, and joins RATCHETED on the owner's ruling.
+# CMP_BOUND (R9 F10.6, the I1 RCA's residual (b)) moves one ordering bound by
+# one: before it no operator touched a comparison, so D3-s1-01's
+# `-5.0 <= value` could tighten to `<` and the ledger still read that line as
+# accounted for. tvofi priced it and ruled "enable now" (2026-10-02): every
+# diff that adds or edits a one-line ordering comparison now owes a pin.
+RATCHETED = frozenset(("CLAMP_DROP", "GUARD_OFF", "RAISE_DEL", "RETURN_DEL",
+                       "BOOLOP", "CONST", "CMP_BOUND"))
+LISTED = RATCHETED
+_BOUND_FLIP = {ast.Lt: ("<", "<="), ast.LtE: ("<=", "<"),
+               ast.Gt: (">", ">="), ast.GtE: (">=", ">")}
+
+
+def _bound_mutants(node: ast.Compare, line: str):
+    """Each ordering operator of a one-line comparison, its bound moved by one.
+
+    The operator's text is the gap between its two operands (offsets are UTF-8
+    bytes), so a chain's second `<=` is rewritten in place and never its first.
+    """
+    raw = line.encode()
+    left = node.left
+    for op, right in zip(node.ops, node.comparators):
+        flip = _BOUND_FLIP.get(type(op))
+        gap = raw[left.end_col_offset:right.col_offset].decode()
+        if flip and gap.strip(" \t()") == flip[0]:
+            yield (raw[:left.end_col_offset].decode()
+                   + gap.replace(flip[0], flip[1], 1)
+                   + raw[right.col_offset:].decode())
+        left = right
+
+
+def candidates(path: Path, kinds: frozenset = RATCHETED):
+    """Single-line mutants of one production file, of the operators in `kinds`.
+
+    Seven ratcheted operators, each a change a careless edit could really make:
+    a clamp dropped, a guard switched off, a raise or a return removed, a
+    conjunction weakened, a module constant doubled, a comparison bound moved
+    by one.
+    """
+    return (m for m in _generate(path, "CMP_BOUND" in kinds)
+            if m["kind"] in kinds)
+
+
+def _generate(path: Path, bounds: bool):
+    src = path.read_text()
+    lines = src.splitlines()
+    try:
+        tree = ast.parse(src)
+    except SyntaxError:
+        return
+    sole = set()
+    for node in ast.walk(tree):
+        for field in ("body", "orelse", "finalbody"):
+            body = getattr(node, field, None)
+            if isinstance(body, list) and len(body) == 1:
+                sole.add(body[0].lineno)
+
+    try:
+        rel = str(path.relative_to(ROOT))
+    except ValueError:
+        # Called on a file outside the checkout -- a worker's copy, or the
+        # synthetic module tests/entities.py drives the operators over.
+        rel = str(path)
+    for node in ast.walk(tree):
+        ln = getattr(node, "lineno", None)
+        if ln is None or ln > len(lines):
+            continue
+        line = lines[ln - 1]
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if (isinstance(node, ast.Call) and _one_line(node, lines)
+                and len(node.args) >= 2 and _clamp_call(node.func)):
+            # The node is on one line, so its segment is a slice of that line
+            # (offsets are UTF-8 bytes). ast.get_source_segment re-splits the
+            # whole file per call: 94 of 98 profiled inventory seconds.
+            raw = line.encode()
+            seg = raw[node.col_offset:node.end_col_offset].decode()
+            a0 = node.args[0]
+            arg0 = (raw[a0.col_offset:a0.end_col_offset].decode()
+                    if a0.lineno == ln and a0.end_lineno == ln else None)
+            if seg and arg0 and seg in line and line.count(seg) == 1:
+                yield dict(kind="CLAMP_DROP", file=rel, line=ln, old=line,
+                           new=line.replace(seg, f"({arg0})"))
+        # Any one-line `if`/`elif` test, whatever follows it (an `else`, a
+        # comment after the colon): the test is replaced in place, so the
+        # header's own tail survives. R9 D14-s5-02 measured the narrower rule
+        # leaving guards of those shapes out of the inventory entirely.
+        kw = stripped.split(" ", 1)[0]
+        if (isinstance(node, ast.If) and _one_line(node.test, lines)
+                and node.test.lineno == ln and kw in ("if", "elif")):
+            yield dict(kind="GUARD_OFF", file=rel, line=ln, old=line,
+                       new=_indent(line) + kw + " False"
+                       + line[node.test.end_col_offset:])
+        if isinstance(node, (ast.Raise, ast.Return)) and _one_line(node, lines):
+            if ln in sole:
+                continue
+            kind = "RAISE_DEL" if isinstance(node, ast.Raise) else "RETURN_DEL"
+            if kind == "RETURN_DEL" and getattr(node, "value", None) is None:
+                continue
+            yield dict(kind=kind, file=rel, line=ln, old=line,
+                       new=_indent(line) + "pass")
+        if (isinstance(node, ast.BoolOp) and isinstance(node.op, ast.And)
+                and _one_line(node, lines) and " and " in line
+                and line.count(" and ") == 1):
+            yield dict(kind="BOOLOP", file=rel, line=ln, old=line,
+                       new=line.replace(" and ", " or "))
+        if bounds and isinstance(node, ast.Compare) and _one_line(node, lines):
+            for new in _bound_mutants(node, line):
+                yield dict(kind="CMP_BOUND", file=rel, line=ln, old=line,
+                           new=new)
+    for node in tree.body:
+        if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+            continue
+        tgt = node.targets[0]
+        if not isinstance(tgt, ast.Name) or not tgt.id.isupper():
+            continue
+        if not isinstance(node.value, ast.Constant):
+            continue
+        v = node.value.value
+        if not isinstance(v, (int, float)) or isinstance(v, bool):
+            continue
+        ln = node.lineno
+        line = lines[ln - 1]
+        if "=" not in line:
+            continue
+        head, tail = line.split("=", 1)
+        m = _NUM.search(tail)
+        if not m:
+            continue
+        new_val = "1.0" if v == 0 else repr(
+            round(v * 2, 6) if isinstance(v, float) else v * 2
+        )
+        yield dict(kind="CONST", file=rel, line=ln, old=line,
+                   new=head + "=" + tail[: m.start()] + new_val + tail[m.end():])
+
+
+# -------------------------------------------------------------------- scope
+
+def load_closures() -> dict[str, list[str]]:
+    raw = json.loads(CLOSURES.read_text())
+    return raw.get("closures", raw)
+
+
+def _git(*args: str, root: Path | None = None) -> str:
+    return subprocess.run(["git", *args], cwd=root or ROOT,
+                          capture_output=True, text=True).stdout
+
+
+def _code(lines: list[str]) -> list[tuple[str, tuple[str, ...]]]:
+    """Each line's indentation and code tokens, comments and blanks dropped.
+
+    Tokenized a line at a time, so a line that opens a bracket or a string
+    keeps the tokens read before the tokenizer gives up.
+    """
+    skip = {tokenize.COMMENT, tokenize.NL, tokenize.NEWLINE, tokenize.INDENT,
+            tokenize.DEDENT, tokenize.ENDMARKER}
+    out = []
+    for line in lines:
+        toks: list[str] = []
+        try:
+            for tok in tokenize.generate_tokens(io.StringIO(line.strip()).readline):
+                if tok.type not in skip:
+                    toks.append(tok.string)
+        except (tokenize.TokenError, SyntaxError):
+            pass
+        if toks:
+            out.append((_indent(line), tuple(toks)))
+    return out
+
+
+def hunk_lines(diff: str) -> dict[str, set[int]]:
+    """The new-side lines of a `git diff -U0`, per file, code hunks only.
+
+    A pure deletion leaves no line to mutate. A hunk whose code tokens and
+    indentation match on both sides -- a comment or whitespace edit, a
+    trailing comment added to a code line -- is dropped whole.
+    """
+    out: dict[str, set[int]] = {}
+    path, start, old, new = None, 0, [], []
+
+    def flush() -> None:
+        if path and new and _code(old) != _code(new):
+            out.setdefault(path, set()).update(range(start, start + len(new)))
+
+    for line in diff.splitlines():
+        if line.startswith("+++ ") or line.startswith("@@"):
+            flush()
+            old, new = [], []
+            if line.startswith("+++ "):
+                path = line[6:] if line.startswith("+++ b/") else None
+            else:
+                start = int(re.match(r"@@ -\S+ \+(\d+)", line).group(1))
+        elif line.startswith("-") and not line.startswith("--- "):
+            old.append(line[1:])
+        elif line.startswith("+"):
+            new.append(line[1:])
+    flush()
+    return out
+
+
+def changed_lines(base: str, root: Path | None = None) -> dict[str, set[int]]:
+    """The production lines this branch adds or modifies, per file.
+
+    Three-dot against the merge base (never two-dot, which would count
+    `base`'s own newer commits), plus what is not committed yet: run by hand
+    that is the work in front of the seat, and in CI it adds nothing. An
+    untracked production file counts whole.
+    """
+    root = root or ROOT
+    merge_base = _git("merge-base", base, "HEAD", root=root).strip()
+    if not merge_base:
+        return {}
+    out = hunk_lines(_git("diff", "-U0", "--no-renames", "--no-ext-diff",
+                          merge_base, "--", PKG, root=root))
+    for rel in _git("ls-files", "--others", "--exclude-standard", "--", PKG,
+                    root=root).splitlines():
+        if rel.endswith(".py"):
+            n = len((root / rel).read_text().splitlines())
+            out[rel] = set(range(1, n + 1))
+    return {f: ln for f, ln in out.items() if f.endswith(".py") and ln}
+
+
+def scope_files(scope: str, base: str) -> tuple[list[Path], str]:
+    """The production files in scope, and the sentence that says why."""
+    if scope == "full":
+        return sorted(PRODUCTION.rglob("*.py")), "every production module"
+    touched = sorted(ROOT / f for f in changed_lines(base)
+                     if (ROOT / f).exists())
+    if touched:
+        return touched, (f"{len(touched)} production file(s) whose code this "
+                         "diff adds or modifies")
+    return [], "no production code line added or modified against the base"
+
+
+def drawable(path: Path, rel: str, touched: dict[str, set[int]] | None) -> list[dict]:
+    """The candidate sites the pool may draw from one file.
+
+    Every site under `--scope full` (`touched` None); under `--scope changed`
+    only the sites on lines `changed_lines` returned for `rel`.
+    """
+    return [m for m in candidates(path)
+            if touched is None or m["line"] in touched.get(rel, ())]
+
+
+def drivers_for(rel: str, closures: dict, allow: list[str]) -> list[str]:
+    """The candidate scripts whose MEASURED closure contains one file."""
+    return [s for s in allow if rel in closures.get(s, ())]
+
+
+def default_scripts() -> str:
+    """Every recorded gate script the instrument can drive (#1211).
+
+    The net is derived from tests/closures.json, the recorded table
+    tests/closure.py's `select` chooses from, so the instrument scores what
+    the gate could run rather than a hand-kept subset that drifts. The only
+    names missing are DRIVER_EXCLUSIONS, each carrying the property that
+    makes a `run_script` call dishonest.
+    """
+    recorded = load_closures()
+    keep = [s for s in sorted(recorded) if s not in DRIVER_EXCLUSIONS]
+    return ",".join(keep)
+
+
+DEFAULT_SCRIPTS = default_scripts()
+
+# Drivers that compare this tree against a REF rather than a recorded
+# fixture. tests/run.sh exports GOLDEN_REF (default origin/main) and its CI
+# resolves that per event: the pull request's merge-base -- "exactly the
+# code this PR forked from" -- and HEAD^1 on a push or on the nightly. A
+# bare `run_script` call would hand env_drift its own origin/main default
+# whatever the event, and on a tree that IS origin/main that is the
+# self-comparison run.sh skips rather than making ("...is this commit").
+# The instrument mirrors the gate's resolution and, where the gate would
+# skip, drops the driver for this run with the gate's own sentence.
+REF_DRIVEN = ("tests/env_drift.py", "tests/stress.py")
+
+
+def gate_ref(scope: str, base: str) -> str | None:
+    """The ref tests/run.sh would compare this tree against."""
+    env = os.environ.get("GOLDEN_REF", "").strip()
+    if env:
+        return env
+    if scope == "full":
+        # The nightly's comparison ref (tests.yml resolves HEAD^1 for it).
+        return "HEAD^1"
+    sha = subprocess.run(
+        ["git", "merge-base", base, "HEAD"], cwd=ROOT,
+        capture_output=True, text=True,
+    ).stdout.strip()
+    return sha or None
+
+
+def _rev(tree: Path, ref: str) -> str | None:
+    out = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}"],
+        cwd=tree, capture_output=True, text=True,
+    )
+    return out.stdout.strip() or None
+
+
+def ref_skip_reason(ref: str | None, tree: Path) -> str | None:
+    """tests/run.sh's reason not to run a ref-driven driver here, or None.
+
+    The two sentences are lane_golden's own skips: an unresolvable ref
+    ("is not available here") and one that resolves to HEAD ("is this
+    commit; use GOLDEN_REF=HEAD^1 to check it"). env_drift refuses either
+    run itself -- a comparison that cannot fail is not a gate -- so the
+    gate skips it out loud; so does the instrument, at the baseline.
+    """
+    if not ref:
+        return "the comparison ref could not be resolved"
+    if _rev(tree, ref) is None:
+        return f"{ref} is not available here"
+    if _rev(tree, ref) == _rev(tree, "HEAD"):
+        return f"{ref} is this commit; use GOLDEN_REF=HEAD^1 to check it"
+    return None
+
+
+def drive_spec(script: str, ref: str | None) -> tuple[list[str], dict[str, str]]:
+    """How the GATE invokes this script: run.sh's arguments and environment.
+
+    env_drift.py is the drift step and takes its ref after --all
+    (tests/run.sh lane_golden); stress.py reads GOLDEN_REF from the
+    environment, as the gate exports it. Every other recorded script runs
+    bare, and so does env_drift.py when no ref survived the skip check.
+    """
+    if script == "tests/env_drift.py":
+        return ["--all", ref or "origin/main"], {}
+    if script == "tests/stress.py":
+        return [], ({"GOLDEN_REF": ref} if ref else {})
+    return [], {}
+
+
+# ------------------------------------------------------------ survivor triage
+#
+# A survivor is not automatically a defect (#1217, D3-07): a mutant measured
+# EQUIVALENT to its original -- no input can tell the two apart -- cannot be
+# killed by any check, so counting it as a gap makes the recorded fraction
+# read worse than the suite is. The marks live in tests/mutation_budgets.json
+# under "survivor_triage", keyed by the site's content anchor (see
+# `anchor_sites` below) and pinned to the exact `old` line text the triage was
+# made on: an entry whose file, enclosing def, operator OR line text no longer
+# matches is not applied, because a mark must not outlive the line it explains.
+#
+# The fraction the cap reads counts only survivors no triage has called
+# equivalent. The default for an unmarked survivor is "a real gap": absence
+# of a triage is not a finding of equivalence, so a mark can only ever relax
+# the one-sided cap deliberately, with a reason, in a reviewed edit.
+TRIAGE_VERDICTS = ("equivalent", "gap")
+# The ledger's key: `FILE:SCOPE KIND DIGEST[#N]` -- SCOPE the dotted def/class
+# path around the line, DIGEST the first 8 hex of sha1(old), #N the ordinal of
+# an identical line inside the same scope (omitted for the first).
+_TRIAGE_KEY = re.compile(
+    rf"^{re.escape(PKG)}[^:\s]+:[\w.<>]+ [A-Z_]+ [0-9a-f]{{8}}(#\d+)?$")
+# The retired key, `FILE:LINE KIND`: refused, and rewritten by --normalize.
+_LINE_KEY = re.compile(r"^[^:\s]+:\d+ [A-Z_]+$")
+
+
+def triage_key(mut: dict) -> str:
+    """The survivor TABLE's display key, `FILE:LINE KIND` -- not the ledger's.
+
+    A run's table says where a mutant sat on the tree it ran on; the ledger
+    says which site a disposition belongs to, and that is `ledger_key`.
+    """
+    return f"{mut['file']}:{mut['line']} {mut['kind']}"
+
+
+# ---------------------------------------------------------- ledger anchors
+#
+# A disposition is keyed by what the site IS -- its file, the def around it,
+# its operator and the exact line text -- never by its line number (RCA
+# fix/rca-ledger-anchors). A `FILE:LINE KIND` key moved whenever any edit above
+# the site shifted the file, so every merge that shifted a production file
+# re-keyed pins every other open branch had copied, and GitHub cannot merge a
+# JSON map whose keys both sides rewrote: 11 hand resolutions of this file in
+# the two days after #1412 landed. The anchor survives a shift; it changes
+# only when the pinned text does, which is exactly when the old pin went stale.
+
+
+def line_scopes(src: str) -> list[str]:
+    """The dotted def/class path enclosing each line; index 0 is unused."""
+    n = len(src.splitlines())
+    scope = ["<module>"] * (n + 2)
+
+    def visit(node: ast.AST, prefix: str) -> None:
+        for child in ast.iter_child_nodes(node):
+            name = prefix
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                  ast.ClassDef)):
+                name = f"{prefix}.{child.name}" if prefix else child.name
+                end = getattr(child, "end_lineno", None) or child.lineno
+                for ln in range(child.lineno, min(end, n) + 1):
+                    scope[ln] = name
+            visit(child, name)
+
+    visit(ast.parse(src), "")
+    return scope
+
+
+def anchor_sites(src: str, sites: list[dict]) -> list[dict]:
+    """Attach each site's content anchor, the ledger key, from its file text.
+
+    Two sites share an anchor only when they share file, scope, operator and
+    line text AND the ordinal of that text inside the scope -- i.e. exactly
+    when they share a line, which is what a `FILE:LINE KIND` key grouped
+    (#1412's carry: a line with two clamps is two CLAMP_DROP candidates under
+    one key), so a migrated ledger covers the same sites it covered before.
+    """
+    scope = line_scopes(src)
+    nth: dict[int, int] = {}
+    seen: dict[tuple[str, str], int] = {}
+    for ln, text in enumerate(src.splitlines(), 1):
+        seen[(scope[ln], text)] = seen.get((scope[ln], text), 0) + 1
+        nth[ln] = seen[(scope[ln], text)]
+    for s in sites:
+        digest = hashlib.sha1(s["old"].encode()).hexdigest()[:8]
+        k = nth.get(s["line"], 1)
+        s["anchor"] = (f"{s['file']}:{scope[s['line']]} {s['kind']} {digest}"
+                       + (f"#{k}" if k > 1 else ""))
+    return sites
+
+
+def ledger_key(mut: dict) -> str:
+    """The ledger key of one mutant: its anchor, derived from its file if absent.
+
+    The sampled pool is generated from checkout files by `candidates()`, which
+    carries no anchor; the file it names is unmutated in the checkout (workers
+    mutate copies), so its anchor is read off that file.
+    """
+    if "anchor" not in mut:
+        src = (ROOT / mut["file"]).read_text()
+        anchor_sites(src, [mut])
+    return mut["anchor"]
+
+
+def triaged_equivalent(triage: dict, mut: dict) -> bool:
+    """True when a triage marks THIS exact mutant equivalent.
+
+    The key must match and the `old` pin must equal the line text the mutant
+    was generated from -- file:line coordinates survive edits that the text
+    does not, and an equivalence claim is a claim about the text.
+    """
+    entry = triage.get(ledger_key(mut))
+    return bool(
+        entry
+        and entry.get("verdict") == "equivalent"
+        and entry.get("old") == mut["old"]
+    )
+
+
+def survivor_gaps(survivors: list[dict], triage: dict):
+    """The survivors, split into (counted as gaps, triaged equivalent).
+
+    The first list is the fraction's numerator: survivors no triage has
+    called equivalent, in the order they were reported.
+    """
+    gaps: list[dict] = []
+    equivalent: list[dict] = []
+    for mut in survivors:
+        (equivalent if triaged_equivalent(triage, mut) else gaps).append(mut)
+    return gaps, equivalent
+
+
+# The one driver whose checks judge a triage mark against the tree it runs in
+# ("every mark still names a mutant this tree generates", tests/entities.py):
+# a mutant on a marked line makes its own mark stale there, so that driver
+# reports it killed for the mark's sake and not for the code's.
+TRIAGE_JUDGE = "tests/entities.py"
+
+
+def triaged_site(triage: dict, mut: dict) -> bool:
+    """True when a survivor_triage mark covers THIS site, by the key and the
+    `old` pin every disposition uses (`disposition_matches`)."""
+    return disposition_matches(triage.get(ledger_key(mut)), mut)
+
+
+def triage_problems(triage: dict) -> list[str]:
+    """Every way the recorded triage is malformed, one sentence each.
+
+    An equivalence mark relaxes a one-sided cap, so it must carry the verdict
+    that says so, the line pin it was measured against, and a reason -- an
+    unargued claim is exactly the shape this validator exists to refuse.
+    """
+    out: list[str] = []
+    for key, entry in sorted(triage.items()):
+        if not _TRIAGE_KEY.match(key):
+            out.append(f"{key!r} is not 'FILE:SCOPE KIND DIGEST' under "
+                       f"{PKG}")
+            continue
+        if not isinstance(entry, dict):
+            out.append(f"{key}: entry is not an object")
+            continue
+        if entry.get("verdict") not in TRIAGE_VERDICTS:
+            out.append(f"{key}: verdict {entry.get('verdict')!r} is not one "
+                       f"of {TRIAGE_VERDICTS}")
+        if not str(entry.get("reason", "")).strip():
+            out.append(f"{key}: no reason -- an unargued equivalence claim "
+                       "would quietly relax the fraction")
+        if not str(entry.get("old", "")):
+            out.append(f"{key}: no `old` line pin -- the mark would outlive "
+                       "the line it explains")
+    return out
+
+
+# ------------------------------------------------ deterministic inventory
+#
+# The fraction cap above is a sample: the seeded draw over `--per-file` and
+# `--max` reaches ~1% of the tree, so a guard the sample never draws cannot
+# fail the lane, and a cap parked at 1.0 cannot refuse anyway (the rate is a
+# fraction in [0, 1]). The inventory below enumerates EVERY candidate the
+# ratcheted operators generate, deterministically -- `candidates()` walks the AST in a
+# fixed order -- so an exact count over it is reproducible and comparable
+# between clean branches, which is the property `tests/structure.py`'s ratchet
+# has and the sampled pool could not. A site carries a disposition (`killed_by`
+# or `survivor_triage`) or it is unpinned; the ratchet refuses when the unpinned
+# count grows, and the completeness check refuses when the ledger disagrees
+# with the inventory in either direction.
+
+
+def inventory(files: list[Path] | None = None,
+              kinds: frozenset = RATCHETED) -> list[dict]:
+    """Every candidate site the `kinds` operators generate, deterministically.
+
+    `candidates()` walks the AST breadth-first in a fixed order and `rglob`
+    sorts the files, so the list is stable across runs and across clean
+    branches. The sort key is the whole identity -- file, line, kind, then the
+    `old` text -- so unlike the seeded sample this is the whole tree and an
+    exact count over it is a fair ratchet.
+    """
+    files = files if files is not None else sorted(PRODUCTION.rglob("*.py"))
+    out: list[dict] = []
+    for path in files:
+        out.extend(anchor_sites(path.read_text(),
+                                list(candidates(path, kinds))))
+    out.sort(key=lambda m: (m["file"], m["line"], m["kind"], m["old"]))
+    return out
+
+
+def listed_sites(kind: str, budgets: dict,
+                 files: list[Path] | None = None) -> list[tuple[dict, bool]]:
+    """`--list KIND`: every site of one operator, and whether it is unpinned.
+
+    Read-only and outside the ratchet, so an operator can be priced -- its
+    stock, and what the ledger already covers -- before it joins RATCHETED.
+    """
+    sites = [s for s in inventory(files, LISTED) if s["kind"] == kind]
+    loose = {id(s) for s in unpinned_sites(budgets, sites)}
+    return [(s, id(s) in loose) for s in sites]
+
+
+def dispositions(budgets: dict) -> dict[str, dict]:
+    """Every recorded disposition, merged from the two ledger maps.
+
+    `survivor_triage` holds verdicts (equivalent/gap); `killed_by` holds a
+    driver name. Both are keyed by the site's anchor and pinned to the `old`
+    text.
+    """
+    out: dict[str, dict] = {}
+    for key, entry in budgets.get("survivor_triage", {}).items():
+        out[key] = dict(entry)
+    for key, entry in budgets.get("killed_by", {}).items():
+        out[key] = dict(entry)
+    return out
+
+
+def disposition_matches(entry: object, site: dict) -> bool:
+    """True when a recorded disposition covers THIS exact site.
+
+    The key is the site's anchor and the pin is the exact `old` line text -- a
+    mark must not outlive the line it explains.
+    """
+    if not isinstance(entry, dict):
+        return False
+    if entry.get("old") != site["old"]:
+        return False
+    return (
+        entry.get("verdict") in TRIAGE_VERDICTS
+        or "killed_by" in entry
+    )
+
+
+def unpinned_sites(budgets: dict, sites: list[dict]) -> list[dict]:
+    """The candidate sites no recorded disposition covers."""
+    disp = dispositions(budgets)
+    return [s for s in sites
+            if not disposition_matches(disp.get(s["anchor"]), s)]
+
+
+def ratchet_refusal(base_count: int | None, unpinned: list[dict]) -> int | None:
+    """The exact-count ratchet's verdict: 1 (refuse) or None (proceed).
+
+    The count is compared with the SAME count at the ratchet base
+    (`base_unpinned`), not with a committed number: a diff that adds a
+    candidate site without a disposition raises it and is refused, and a count
+    at or below the base proceeds. A base that could not be read is refused --
+    a ratchet with nothing to compare against must not go green by skipping.
+    """
+    if base_count is None:
+        return 1
+    return 1 if len(unpinned) > base_count else None
+
+
+def ratchet_base(scope: str, base: str) -> str | None:
+    """The ref the ratchet compares against: the gate's, or HEAD^1 at HEAD.
+
+    `gate_ref` answers the merge base on a pull request and HEAD^1 on the
+    nightly; on a push to main the merge base IS HEAD, a comparison that cannot
+    fail, so the ratchet takes the parent there -- run.sh's push resolution.
+    """
+    ref = gate_ref(scope, base)
+    if ref and _rev(ROOT, ref) == _rev(ROOT, "HEAD"):
+        ref = "HEAD^1"
+    return ref
+
+
+def _git_or_none(*args: str) -> str | None:
+    out = subprocess.run(["git", *args], cwd=ROOT, capture_output=True,
+                         text=True)
+    return out.stdout if out.returncode == 0 else None
+
+
+def base_unpinned(ref: str | None, sites: list[dict]) -> int | None:
+    """The unpinned count at `ref`: its ledger over its own inventory."""
+    got = base_unpinned_sites(ref, sites)
+    return None if got is None else len(got)
+
+
+def base_unpinned_sites(ref: str | None,
+                        sites: list[dict]) -> list[dict] | None:
+    """The unpinned SITES at `ref`: its ledger over its own inventory.
+
+    Only the production files whose blob differs from this tree's are
+    re-enumerated; every other file's sites are this tree's own, line for
+    line. The base ledger goes through `normalize`, so a base written in the
+    retired `FILE:LINE KIND` form is counted exactly. None when the ref, its
+    ledger or its listing cannot be read.
+    """
+    if not ref:
+        return None
+    base_ledger = load_budgets_at(ref)
+    listing = _git_or_none("ls-tree", "-r", ref, "--", PKG)
+    if base_ledger is None or listing is None:
+        return None
+    theirs = {}
+    for row in listing.splitlines():
+        meta, path = row.split("\t", 1)
+        if path.endswith(".py"):
+            theirs[path] = meta.split()[2]
+    here = sorted(str(p.relative_to(ROOT)) for p in PRODUCTION.rglob("*.py"))
+    blobs = (_git_or_none("hash-object", "--", *here) or "").split()
+    ours = dict(zip(here, blobs))
+    by_file: dict[str, list[dict]] = {}
+    for s in sites:
+        by_file.setdefault(s["file"], []).append(s)
+    base_sites: list[dict] = []
+    with tempfile.TemporaryDirectory() as tmp:
+        for rel, blob in sorted(theirs.items()):
+            if ours.get(rel) == blob:
+                base_sites.extend(by_file.get(rel, []))
+                continue
+            src = _git_or_none("cat-file", "blob", blob) or ""
+            path = Path(tmp) / rel
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(src)
+            muts = [dict(m, file=rel) for m in candidates(path)]
+            base_sites.extend(anchor_sites(src, muts))
+    ledger, _ = normalize(base_ledger, base_sites)
+    return unpinned_sites(ledger, base_sites)
+
+
+# ------------------------------------------------------------ --pin-killed
+#
+# The ratchet refuses a diff that adds a candidate site with no disposition,
+# and until this mode the only repair was a seat measuring each site by hand:
+# the mutation lane went red on "N unpinned against M at the ratchet base" on
+# pull requests and on pushes to main alike (the 2026-09-24 CI census in the
+# project's ci-autofix notes). Half of that repair is mechanical. A kill is a
+# MEASUREMENT -- the same `killed()` rule, baseline and null control the
+# sampled table uses -- so recording one under `killed_by` asserts nothing the
+# run did not see. A survivor is the other half and is never written: an
+# equivalence verdict is a judgement, and a gap is a finding, so a site no
+# driver kills stays unpinned and the ratchet stays red on it.
+
+
+def _scope_tail(s: dict[str, Any]) -> str:
+    """The innermost def/class name around a site, read off its anchor."""
+    scope = str(s.get("anchor", ""))[len(s["file"]) + 1:].split(" ", 1)[0]
+    return scope.rsplit(".", 1)[-1]
+
+
+def diff_sides(ref: str | None) -> tuple[set[str], set[str]]:
+    """(files the diff removes lines from, files it adds lines to) since `ref`.
+
+    Working tree against `ref`, production files only -- the inventory's own
+    pair of trees. Empty when the ref cannot be read: no site then counts as
+    moved, which refuses more, never less.
+    """
+    out = _git_or_none("diff", "--numstat", "--no-renames", ref, "--", PKG) \
+        if ref else None
+    removed: set[str] = set()
+    added: set[str] = set()
+    for row in (out or "").splitlines():
+        plus, minus, path = row.split("\t", 2)
+        if minus not in ("0", "-"):
+            removed.add(path)
+        if plus not in ("0", "-"):
+            added.add(path)
+    # A new module not yet added to the index is all added lines too; the
+    # inventory already counts it (`rglob`), so the move match must see it.
+    if out is not None:
+        added.update((_git_or_none("ls-files", "--others", "--exclude-standard",
+                                   "--", PKG) or "").split())
+    return removed, added
+
+
+def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
+                   sides: tuple[set[str], set[str]] = (set(), set()),
+                   ) -> list[dict[str, Any]]:
+    """The unpinned sites this tree has and the base did not, by CONTENT.
+
+    The count ratchet compares two totals, so a diff that adds an unpinned
+    guard and pins or deletes any other unpinned site nets to zero and passes:
+    R9 RCA I1 measured 28 content-new unpinned sites entering across ten
+    post-#1426 merges with no refusal. This is the per-site half. Identity is
+    (file, operator, stripped line text) as a multiset, so a site that only
+    moved inside its file, was re-indented, or had its enclosing def renamed
+    is the base's, and an edited or new guard is not.
+
+    A site that LEFT one file and reappears unchanged in another is moved,
+    not added (#1748: a verbatim module split otherwise charged the moving
+    cluster's whole pre-ratchet stock to the move). `sides` is `diff_sides`:
+    the match pairs a leftover base site in a file the diff removes lines from
+    with a leftover site here in a file it adds lines to, same operator, same
+    stripped text, AND the same innermost def/class name -- so a generic line
+    such as `return None` that left one function cannot launder a new guard
+    into another.
+    """
+    def ident(s: dict[str, Any]) -> tuple[str, str, str]:
+        return (s["file"], s["kind"], s["old"].strip())
+    left: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
+    for s in base:
+        left.setdefault(ident(s), []).append(s)
+    # Of identical lines in one file, every site first takes a base twin under
+    # its own def, and only then may a leftover take any twin: one greedy pass
+    # let a twin added in a new def above consume the base's line, and charged
+    # the base's own line as the added one (R9-RO-9a). The same-def pass also
+    # leaves the twin that really left over to match a move below.
+    rest = []
+    for s in unpinned:
+        group = left.get(ident(s), [])
+        same = [i for i, b in enumerate(group)
+                if _scope_tail(b) == _scope_tail(s)]
+        if same:
+            group.pop(same[-1])
+        else:
+            rest.append(s)
+    out = []
+    for s in rest:
+        group = left.get(ident(s))
+        if group:
+            group.pop()
+        else:
+            out.append(s)
+    removed, added = sides
+    gone: dict[tuple[str, str, str], int] = {}
+    for group in left.values():
+        for s in group:
+            if s["file"] in removed:
+                k = (s["kind"], s["old"].strip(), _scope_tail(s))
+                gone[k] = gone.get(k, 0) + 1
+    kept = []
+    for s in out:
+        k = (s["kind"], s["old"].strip(), _scope_tail(s))
+        if s["file"] in added and gone.get(k, 0):
+            gone[k] -= 1
+        else:
+            kept.append(s)
+    return kept
+
+
+def added_keys(added: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
+    """One `FILE:LINE KIND` key per line and operator the added sites hold.
+
+    A line's mutants of one operator share one ledger anchor, and
+    `pin_results` pins an anchor only when every mutant under it is killed, so
+    the key carries how many there are (`*N`) when it is more than one: three
+    copies of a bare key read as three sites that one line disposes of.
+    """
+    n: dict[str, int] = {}
+    first: dict[str, dict[str, Any]] = {}
+    for s in added:
+        k = triage_key(s)
+        n[k] = n.get(k, 0) + 1
+        first.setdefault(k, s)
+    return [(k + (f"*{n[k]}" if n[k] > 1 else ""), s) for k, s in first.items()]
+
+
+def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
+    """The unpinned sites the diff added: unpinned here, not at the base.
+
+    Keyed by anchor, the ledger's own key, so a site the diff merely moved
+    (same scope, operator and text) is the base's and is not re-measured.
+    """
+    was = {s["anchor"] for s in base}
+    return [s for s in unpinned if s["anchor"] not in was]
+
+
+UNPINNED_REFUSAL = re.compile(
+    r"^MUTATION TABLE REFUSED -- \d+ unpinned site\(s\) against", re.M)
+PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
+
+
+ADDED_UNPINNED = re.compile(r"(\d+) of them added by this diff")
+SITES_PER_SHARD, MAX_SHARDS = 6, 10
+
+
+def pin_shard_count(table: str) -> int:
+    """How many `mutation-pins` shards a ratchet refusal gets (R9-CI-1).
+
+    One per SITES_PER_SHARD sites the diff added unpinned, at most MAX_SHARDS:
+    a shard pays its baselines (15-22 minutes on CI) before any site, then
+    about 2000 s of driver work per site over its three workers, so six sites
+    end inside the 120-minute budget. One when the table names no count.
+    """
+    m = ADDED_UNPINNED.search(table)
+    sites = int(m.group(1)) if m else 0
+    return max(1, min(MAX_SHARDS, -(-sites // SITES_PER_SHARD)))
+
+
+def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
+    """Shard `k` of `n` (1-based) of a pin pool, split by anchor (R9-CI-1).
+
+    A disposition covers every site under its anchor (`pin_results`), so an
+    anchor's twins stay on one shard; anchors are dealt round-robin in sorted
+    order, which every shard computes alike from the same inventory, so the
+    shards are disjoint and together the whole pool.
+    """
+    if not 1 <= k <= n:
+        raise ValueError(f"--shard {k}/{n}: K must be 1..N")
+    order = {a: i for i, a in enumerate(sorted({s["anchor"] for s in pool}))}
+    return [s for s in pool if order[s["anchor"]] % n == k - 1]
+
+
+# The merged status's precedence when no shard measured: a failure a shard
+# owes a human outranks a quiet "nothing to pin" from an empty shard.
+_SHARD_PRECEDENCE = ("measured", "skip-measure-failed", "skip-no-base-program",
+                     "skip-nothing-killed", "skip-nothing-drivable",
+                     "skip-not-unpinned")
+
+
+def merge_pin_shards(root: str, out: str) -> str:
+    """Fold every shard's `mutation-pins` directory under `root` into `out`.
+
+    `mutation-autofix` downloads one artifact per shard (R9-CI-1); `apply_pins`
+    reads one directory. A shard that measured contributes its entries; the
+    merged status is `measured` when any did, else the most owing shard
+    status (`_SHARD_PRECEDENCE`). Shards measured different heads only if
+    a push raced them, which `apply_pins`'s head check then refuses. Returns
+    the merged status; `out` is left empty when no shard wrote one.
+
+    One shard is one matching artifact, and download-artifact extracts a lone
+    match into `root` itself rather than a subdirectory, so a `root` holding
+    a status is that one shard (R9-CI-2: #2025's four pins read as no
+    measurement).
+    """
+    statuses: list[str] = []
+    pins: dict = {}
+    heads: set[str] = set()
+    r = Path(root)
+    shards = [r] if (r / "status").is_file() else sorted(r.iterdir()) if r.is_dir() else []
+    for d in shards:
+        try:
+            st = (d / "status").read_text().strip()
+        except OSError:
+            continue
+        statuses.append(st)
+        try:
+            heads.add((d / "head").read_text().strip())
+        except OSError:
+            pass
+        if st == "measured":
+            try:
+                pins.update(json.loads((d / "pins.json").read_text()))
+            except (OSError, ValueError):
+                statuses[-1] = "skip-measure-failed"
+    if not statuses:
+        return "skip-no-measurement"
+    rank = {s: i for i, s in enumerate(_SHARD_PRECEDENCE)}
+    status = min(statuses, key=lambda s: rank.get(s, 1))
+    o = Path(out)
+    o.mkdir(parents=True, exist_ok=True)
+    (o / "status").write_text(status + "\n")
+    (o / "pins.json").write_text(json.dumps(pins, indent=2))
+    (o / "head").write_text((heads.pop() if len(heads) == 1 else "") + "\n")
+    return status
+
+
+def measurement(table: str, run: str | None, before: dict,
+                after: dict) -> tuple[str, dict]:
+    """The status and `killed_by` entries `mutation`'s measure step uploads.
+
+    Only a ratchet refusal is measured (`table` is the lane's output). The
+    status comes from the base program's OWN summary line, never from the
+    ledger diff alone: a red baseline (INCONCLUSIVE, rc 0), a refusal or a
+    crash prints no `PIN KILLED:` line and changes nothing, which a diff
+    would read as "every site survived" -- the #523 class, measured by the
+    #1599 review. `run` is None when the base had no `--pin-killed`.
+    """
+    if not UNPINNED_REFUSAL.search(table):
+        return "skip-not-unpinned", {}
+    if run is None:
+        return "skip-no-base-program", {}
+    if "PIN KILLED: nothing to pin" in run:
+        return "skip-nothing-drivable", {}
+    summary = PIN_SUMMARY.search(run)
+    old = before.get("killed_by", {})
+    added = {k: v for k, v in after.get("killed_by", {}).items() if old.get(k) != v}
+    if summary is None or (int(summary.group(1)) > 0) != bool(added):
+        return "skip-measure-failed", {}
+    return ("measured" if added else "skip-nothing-killed"), added
+
+
+def apply_pins(pins_dir: str, head: str) -> str:
+    """Merge the `killed_by` entries `mutation` measured into this ledger.
+
+    `mutation-autofix`'s apply step (tests.yml). The measurement ran on the
+    merge ref of one pull-request head, so a checkout at any other head is
+    refused: a push since may have removed the check that killed. The
+    entries are then re-checked against THIS tree's inventory -- same
+    anchor, same `old` text, not already disposed -- and only those are
+    written. The status is the job's summary line; `closure.AUTOFIX_QUIET`
+    decides which ones owe a human nothing.
+    """
+    d = Path(pins_dir)
+    try:
+        status = (d / "status").read_text().strip()
+    except OSError:
+        return "skip-no-measurement"
+    if status != "measured":
+        return status or "skip-no-measurement"
+    try:
+        pins = json.loads((d / "pins.json").read_text())
+        measured_at = (d / "head").read_text().strip()
+    except (OSError, ValueError):
+        return "skip-no-measurement"
+    if measured_at != head:
+        return "skip-head-moved"
+    budgets = load_budgets()
+    sites = inventory()
+    by_anchor = {s["anchor"]: s for s in sites}
+    disp = dispositions(budgets)
+    added = 0
+    for key, entry in sorted(pins.items()):
+        site = by_anchor.get(key)
+        if (site is None or not isinstance(entry, dict)
+                or entry.get("old") != site["old"] or "killed_by" not in entry
+                or disposition_matches(disp.get(key), site)):
+            continue
+        budgets.setdefault("killed_by", {})[key] = {
+            "killed_by": entry["killed_by"], "old": entry["old"],
+            "reason": entry.get("reason", "")}
+        added += 1
+    if not added:
+        return "skip-unchanged"
+    fixed, _ = normalize(budgets, sites)
+    write_budgets(fixed)
+    return "changed"
+
+
+def pin_entry(site: dict, script: str, run: "ScriptRun",
+              baseline: "ScriptRun", ref: str, how: str = "--pin-killed") -> dict:
+    """The `killed_by` disposition one measured kill earns."""
+    return {
+        "killed_by": script,
+        "old": site["old"],
+        "reason": (f"Recorded by `mutation_table.py {how}` against "
+                   f"{ref}: {site['kind']} (`{site['new'].strip()}`) took "
+                   f"{script} from rc={baseline.rc} failed={baseline.failed} "
+                   f"to rc={run.rc} failed={run.failed}."),
+    }
+
+
+def pin_results(results: list[tuple[dict, str]],
+                kill_runs: dict[tuple[int, str], "ScriptRun"],
+                baseline: dict[str, "ScriptRun"], sites: list[dict],
+                ref: str, how: str = "--pin-killed") -> tuple[dict, list[str], int]:
+    """The `killed_by` entries a `--pin-killed` drive earned, its report, its rc.
+
+    A disposition covers EVERY inventory site under its anchor, and an anchor
+    can hold more than one mutant: a clamp's `max(` and `min(` drops share a
+    line, a kind and so a digest (the #1594 review measured 46 such pairs, all
+    unpinned). Pinning the killed twin would pin its survivor with it. So an
+    anchor is pinned only when every site the inventory holds under it was
+    driven here and killed with its run kept; one survivor, skip or undriven
+    twin leaves the whole anchor unpinned. The rc is 1 while anything is left.
+    """
+    under: dict[str, int] = {}
+    for site in sites:
+        under[site["anchor"]] = under.get(site["anchor"], 0) + 1
+    by_anchor: dict[str, list[tuple[dict, str | None, "ScriptRun | None", str]]] = {}
+    for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
+        script = verdict[len("killed by "):] if verdict.startswith("killed by ") else None
+        run = kill_runs.get((id(mut), script)) if script else None
+        by_anchor.setdefault(mut["anchor"], []).append((mut, script, run, verdict))
+    entries: dict[str, dict] = {}
+    report: list[str] = []
+    left = 0
+    for anchor, got in by_anchor.items():
+        whole = (len(got) == under.get(anchor, 0)
+                 and all(run is not None for _, _, run, _ in got))
+        for mut, script, run, verdict in got:
+            if whole:
+                report.append(f"  pinned   {triage_key(mut)} -- killed by {script}")
+            elif run is not None:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- killed by {script}, "
+                              f"but its anchor also covers a site no run killed")
+            else:
+                left += 1
+                report.append(f"  UNPINNED {triage_key(mut)} -- {verdict.lower()}")
+        if whole:
+            mut, script, run, _ = got[0]
+            entries[anchor] = pin_entry(mut, script, run, baseline[script], ref,
+                                        how)
+            if len(got) > 1:
+                entries[anchor]["reason"] += (
+                    f" Each of the {len(got)} sites under this anchor was killed.")
+    pinned = len(results) - left
+    report.append(pin_summary(pinned, left, results, entries))
+    return entries, report, 1 if left else 0
+
+
+def pin_summary(pinned: int, left: int, results: list[tuple[dict, str]],
+                entries: dict) -> str:
+    """The `PIN KILLED:` line, its unpinned count split by cause (R9-CI-1).
+
+    A site the budget never started, or whose driver timed out, is not a
+    survivor: a later run pins it. Only a driven site no driver killed (or
+    one sharing an anchor with such a site) owes a test or a triage. The
+    line's head is `PIN_SUMMARY`'s, unchanged, so `measurement()` reads it.
+    """
+    cut = sum(1 for m, v in results
+              if v == "SKIP-BUDGET" and m["anchor"] not in entries)
+    timed = sum(1 for m, v in results
+                if v.startswith("SKIP-TIMED-OUT") and m["anchor"] not in entries)
+    other = sum(1 for m, v in results if v.startswith("SKIP")
+                and v != "SKIP-BUDGET" and not v.startswith("SKIP-TIMED-OUT")
+                and m["anchor"] not in entries)
+    lived = left - cut - timed - other
+    line = f"\nPIN KILLED: {pinned} pinned, {left} left unpinned"
+    if left:
+        line += (f" ({lived} survived, {cut} not started for the budget, "
+                 f"{timed} timed out, {other} skipped)")
+    if lived:
+        line += (" -- a survivor needs a killing check or a survivor_triage "
+                 "verdict, which no tool writes")
+    elif left:
+        line += " -- no survivor: a later run drives the rest"
+    return line
+
+
+LEDGER_MAPS = ("survivor_triage", "killed_by")
+
+
+def ledger_form_problems(budgets: dict) -> list[str]:
+    """Every way the ledger departs from its merge-friendly canonical form.
+
+    Three shapes, each of which turned an unrelated pull request DIRTY: a key
+    carrying a line number (any shift above it rewrites the key), a map not in
+    key order (every branch appended at the same tail), and a committed
+    `unpinned_sites` (every branch that recorded rewrote the same line). The
+    fix for all three is `--normalize`.
+    """
+    out: list[str] = []
+    for m in LEDGER_MAPS:
+        keys = list(budgets.get(m, {}))
+        legacy = [k for k in keys if _LINE_KEY.match(k)]
+        if legacy:
+            out.append(f"{m}: {len(legacy)} key(s) carry a line number, e.g. "
+                       f"{legacy[0]!r} -- run --normalize")
+        bad = [k for k in keys if not _LINE_KEY.match(k)
+               and not _TRIAGE_KEY.match(k)]
+        if bad:
+            out.append(f"{m}: {len(bad)} key(s) are not 'FILE:SCOPE KIND "
+                       f"DIGEST', e.g. {bad[0]!r}")
+        if keys != sorted(keys):
+            out.append(f"{m}: keys are not in sorted order -- run --normalize")
+    if "unpinned_sites" in budgets:
+        out.append("a committed `unpinned_sites` count: the ratchet reads the "
+                   "count at its base, so a committed one is a line every "
+                   "branch rewrites -- run --normalize")
+    return out
+
+
+# ------------------------------------------------------ the ledger on disk
+#
+# One file per disposition (design/ledger-layout). The caps -- the survivor
+# fractions and what was last measured against them -- stay in
+# tests/mutation_budgets.json, the file `budget-raise-gate` grades; every row
+# of `survivor_triage` and `killed_by` is its own file under
+# tests/mutation_ledger/, at a path derived from its anchor. Two branches that
+# record different sites therefore touch different paths, and GitHub's own
+# merge -- which never runs `tools/merge/ledger_merge.py` -- has nothing to
+# conflict on. Two branches that write the SAME site still conflict, and a
+# branch that deletes a row the other side edited is a modify/delete
+# conflict: git refuses both, which is the refusal the driver made by hand.
+#
+# `load_budgets()` returns the one dict every caller already reads, so the
+# checks below are unchanged; a row still sitting in the caps file (a writer
+# older than this layout) is read, and `layout_problems()` refuses it until
+# `--normalize` moves it out.
+
+LEDGER_DIRNAME = "mutation_ledger"
+
+
+def ledger_dir() -> Path:
+    """The row directory beside whatever BUDGETS currently points at."""
+    return BUDGETS.parent / LEDGER_DIRNAME
+
+
+# ---------------------------------------------------------------- --drain
+#
+# `--pin-killed` reaches only the sites a diff ADDS, so the stock that predates
+# the ratchet has no path to a disposition: `mutation-nightly` draws a seeded
+# sample over the whole package and records nothing (R9 RCA I1, residual (a)).
+# `--drain` is that path. It drives a slice of the unpinned stock with the same
+# kill rule, baseline and null control, and writes what it killed as
+# `killed_by` rows for `mutation-ledger-push` to commit to main; a survivor is
+# listed for a human verdict and never written, exactly as under --pin-killed.
+# The measuring job holds no write grant and the pushing job runs no driver,
+# the split `mutation` / `mutation-autofix` already keeps (D11-s1-03).
+
+DRAIN_SUBJECT = "ci: record nightly kills"
+DRAIN_ROWS = f"tests/{LEDGER_DIRNAME}/killed_by/"
+# The statuses `drain_report` lets end green: a row pushed, or nothing owed.
+# Every other status means a slice was measured and its rows did not reach
+# main -- `skip-no-writer` included: the writer App exists, so a credential the
+# `ledger` environment did not hand over is a fault, never a quiet skip.
+DRAIN_QUIET = ("changed", "skip-unchanged", "skip-nothing-killed",
+               "skip-nothing-drivable")
+
+
+def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
+               seed: int, cap: int) -> list[dict]:
+    """The slice of the unpinned stock one `--drain` run drives.
+
+    Whole anchors only: a disposition covers every site under its anchor, so
+    `pin_results` pins one only when all of them were driven and killed, and a
+    slice that split an anchor would spend runs on sites it can never pin. The
+    anchors are ordered by a hash of (seed, anchor), so the slice is fixed for
+    one seed and the nightly's date seed walks the stock rather than retrying
+    the same survivors every night; an anchor no recorded closure reaches is
+    left out, and anchors are taken while their sites fit under `cap`.
+    """
+    by_anchor: dict[str, list[dict]] = {}
+    for s in unpinned:
+        by_anchor.setdefault(s["anchor"], []).append(s)
+    order = sorted(by_anchor, key=lambda a: hashlib.sha1(
+        f"{seed}:{a}".encode()).hexdigest())
+    pool: list[dict] = []
+    for anchor in order:
+        group = by_anchor[anchor]
+        drivers = drivers_for(group[0]["file"], closures, allow)
+        if not drivers or len(pool) + len(group) > cap:
+            continue
+        pool.extend(dict(s, drivers=drivers) for s in group)
+    return pool
+
+
+def write_drain(out: Path, entries: dict, head: str,
+                survivors: list[str]) -> str:
+    """The measurement `mutation-ledger-push` applies: status, pins, head.
+
+    The status says whether there is anything to apply; `survivors.txt` is the
+    human's list, one `triage_key` line per site no driver killed.
+    """
+    out.mkdir(parents=True, exist_ok=True)
+    status = "measured" if entries else "skip-nothing-killed"
+    (out / "pins.json").write_text(json.dumps(entries, indent=2, sort_keys=True))
+    (out / "head").write_text(head + "\n")
+    (out / "survivors.txt").write_text("".join(f"{s}\n" for s in survivors))
+    (out / "status").write_text(status + "\n")
+    return status
+
+
+def stale_pins(pins: dict, closures: dict) -> list[str]:
+    """The pins whose killing script no longer reaches the module it mutated.
+
+    A kill names the driver `drain_pool` chose because its recorded closure
+    contained the mutated module (`drivers_for`); a pin whose driver has left
+    the closures, or whose closure no longer holds that module, names a check
+    the head cannot run against the site, and is dropped.
+
+    Edits elsewhere in the closure are not a reason: the ledger keeps a
+    standing row through any change to its killer, judging it by anchor and
+    `old` text alone (`completeness_problems`), so a row that landed one merge
+    earlier would have survived the same edits. A closure-wide rule dropped all
+    39 pins of run 37050037132, whose killers' closures every merge touches.
+    """
+    out = []
+    for key, entry in pins.items():
+        script = entry.get("killed_by", "") if isinstance(entry, dict) else ""
+        if key.split(":", 1)[0] not in closures.get(script, ()):
+            out.append(key)
+    return sorted(out)
+
+
+def apply_drained(pins_dir: str, head: str, changed: list[str] | None) -> str:
+    """Merge a `--drain` measurement into this checkout's ledger.
+
+    `changed` is the paths main changed between the measured head and `head`,
+    None when the measured head is not in this clone's history -- a
+    measurement of no tree main has, which applies nothing. On a moved head the
+    pins `stale_pins` names are dropped; every pin then goes through
+    `apply_pins`'s re-key against THIS tree's inventory -- same anchor, same
+    `old` text, not already disposed -- so a pin whose line changed is dropped
+    and a second apply of the same measurement writes nothing.
+    """
+    d = Path(pins_dir)
+    try:
+        status = (d / "status").read_text().strip()
+    except OSError:
+        return "skip-no-measurement"
+    if status != "measured":
+        return status or "skip-no-measurement"
+    try:
+        measured_at = (d / "head").read_text().strip()
+        pins = json.loads((d / "pins.json").read_text())
+    except (OSError, ValueError):
+        return "skip-no-measurement"
+    if measured_at != head:
+        if changed is None:
+            return "skip-head-moved"
+        drop = set(stale_pins(pins, load_closures()))
+        pins = {k: v for k, v in pins.items() if k not in drop}
+        if not pins:
+            return "skip-head-moved"
+    tmp = d / "applied"
+    tmp.mkdir(exist_ok=True)
+    (tmp / "status").write_text("measured\n")
+    (tmp / "pins.json").write_text(json.dumps(pins))
+    (tmp / "head").write_text(head + "\n")
+    return apply_pins(str(tmp), head)
+
+
+def drain_write_set_problems(porcelain: str) -> list[str]:
+    """Every path `git status --porcelain` shows outside the writer's grant.
+
+    The ledger writer may only ADD `killed_by` rows (decision 0011's
+    amendment): a modified, deleted or renamed path, or any path outside
+    `DRAIN_ROWS`, is refused before the commit.
+    """
+    out = []
+    for line in porcelain.splitlines():
+        if not line.strip():
+            continue
+        code, path = line[:2], line[3:]
+        if code != "??" or not path.startswith(DRAIN_ROWS):
+            out.append(f"{code} {path}")
+    return out
+
+
+def drain_changed(at: str, head: str, cwd: str | None = None) -> list[str] | None:
+    """The paths main changed between the measured head `at` and `head`.
+
+    None -- which `apply_drained` turns into applying nothing on a moved head --
+    when there is no measured head or git cannot diff it (a head outside
+    main's history, a shallow clone); never an empty list, which would read as
+    "nothing changed" and keep every pin.
+    """
+    if not at:
+        return None
+    diff = subprocess.run(["git", "diff", "--name-only", at, head], cwd=cwd,
+                          capture_output=True, text=True)
+    return diff.stdout.split() if diff.returncode == 0 else None
+
+
+def drain_push_problems(cwd: str | None = None) -> list[str]:
+    """What is wrong with the commits `origin/main..HEAD` the writer would push.
+
+    The write-set check reads the working tree; this reads what is SENT:
+    exactly one commit, whose parent is main's tip, under DRAIN_SUBJECT, that
+    only adds files under DRAIN_ROWS. A checkout of any other ref, or a reset
+    that did not happen, puts that ref's own commits under the row commit and
+    is refused here, before the push.
+    """
+    def git(*a: str) -> str:
+        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True)
+        return r.stdout.strip() if r.returncode == 0 else "\0"
+    out = []
+    commits = git("rev-list", "origin/main..HEAD").split()
+    if len(commits) != 1:
+        out.append(f"{len(commits)} commit(s) ahead of origin/main, not 1")
+    if git("rev-parse", "HEAD^") != git("rev-parse", "origin/main"):
+        out.append("HEAD's parent is not origin/main")
+    if git("log", "-1", "--format=%s", "HEAD") != DRAIN_SUBJECT:
+        out.append(f"subject is not {DRAIN_SUBJECT!r}")
+    for line in git("diff", "--name-status", "origin/main", "HEAD").splitlines():
+        code, _, path = line.partition("\t")
+        if code != "A" or not path.startswith(DRAIN_ROWS):
+            out.append(f"{code} {path}")
+    return out
+
+
+def drain_report(status: str) -> int:
+    """`mutation-ledger-push`'s verdict: 0 when nothing was owed or it landed.
+
+    The #523 shape: a status that skipped an owed repair must not fall through
+    to green, so anything outside DRAIN_QUIET -- an empty one included -- is 1.
+    """
+    ok = status in DRAIN_QUIET
+    print(f"MUTATION LEDGER: {status or '(no status)'} -- "
+          + ("nothing owed" if ok else "a measured slice did not reach main"))
+    return 0 if ok else 1
+
+
+def ledger_relpath(m: str, anchor: str) -> str | None:
+    """`<map>/<module path>/<scope>.<KIND>.<digest>[~N].json`, or None.
+
+    Injective over anchors `_TRIAGE_KEY` accepts: the package prefix is
+    dropped, `<module>` -- the one scope that is not an identifier path --
+    becomes `@module`, and the ordinal `#N` becomes `~N`. A key the regex
+    refuses (a retired line key) has no path and stays in the caps file.
+    """
+    if not _TRIAGE_KEY.match(anchor):
+        return None
+    file, rest = anchor.split(":", 1)
+    scope, kind, digest = rest.split(" ")
+    digest, _, nth = digest.partition("#")
+    scope = scope.replace("<module>", "@module")
+    return (f"{m}/{file[len(PKG):]}/{scope}.{kind}.{digest}"
+            + (f"~{nth}" if nth else "") + ".json")
+
+
+def row_text(anchor: str, entry: dict) -> str:
+    """One row's canonical bytes: the entry plus its own anchor, sorted."""
+    return json.dumps({**entry, "anchor": anchor}, indent=2,
+                      sort_keys=True) + "\n"
+
+
+def _row_entry(text: str) -> tuple[str, dict]:
+    try:
+        row = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"does not parse: {exc}") from None
+    if not isinstance(row, dict) or not isinstance(row.get("anchor"), str):
+        raise ValueError("not an object carrying its anchor")
+    entry = {k: v for k, v in row.items() if k != "anchor"}
+    return row["anchor"], entry
+
+
+def _merge_rows(budgets: dict, rows: dict[str, dict]) -> dict:
+    out = dict(budgets)
+    for m in LEDGER_MAPS:
+        merged = dict(budgets.get(m, {}))
+        merged.update(rows.get(m, {}))
+        out[m] = dict(sorted(merged.items()))
+    return out
+
+
+def read_rows(d: Path | None = None) -> dict[str, dict]:
+    """{map: {anchor: entry}} from the row directory (unparseable rows skipped;
+    `layout_problems` names them)."""
+    d = d or ledger_dir()
+    rows: dict[str, dict] = {m: {} for m in LEDGER_MAPS}
+    for m in LEDGER_MAPS:
+        for p in sorted((d / m).rglob("*.json")) if (d / m).is_dir() else ():
+            try:
+                anchor, entry = _row_entry(p.read_text())
+            except ValueError:
+                continue
+            rows[m][anchor] = entry
+    return rows
+
+
+def load_budgets() -> dict:
+    """The whole ledger as one dict: the caps file plus every row file."""
+    return _merge_rows(json.loads(BUDGETS.read_text()), read_rows())
+
+
+def load_budgets_at(ref: str) -> dict | None:
+    """`load_budgets()` at a commit; None when its caps file cannot be read.
+
+    A ref from before the split has no row directory and its rows are in the
+    caps file, which `_merge_rows` reads as they are -- so the ratchet base of
+    the pull request that performs the split is counted exactly.
+    """
+    rel_b = str(BUDGETS.relative_to(ROOT))
+    rel_d = str(ledger_dir().relative_to(ROOT))
+    raw = _git_or_none("show", f"{ref}:{rel_b}")
+    if raw is None:
+        return None
+    listing = _git_or_none("ls-tree", "-r", ref, "--", rel_d) or ""
+    rows: dict[str, dict] = {m: {} for m in LEDGER_MAPS}
+    blobs = []
+    for line in listing.splitlines():
+        meta, path = line.split("\t", 1)
+        m = path[len(rel_d) + 1:].split("/", 1)[0]
+        if m in rows and path.endswith(".json"):
+            blobs.append((m, meta.split()[2]))
+    if blobs:
+        out = subprocess.run(["git", "cat-file", "--batch"], cwd=ROOT,
+                             input="".join(b + "\n" for _, b in blobs).encode(),
+                             capture_output=True).stdout
+        pos = 0
+        for m, _ in blobs:
+            header_end = out.index(b"\n", pos)
+            size = int(out[pos:header_end].split()[2])
+            body = out[header_end + 1:header_end + 1 + size].decode()
+            pos = header_end + 1 + size + 1
+            try:
+                anchor, entry = _row_entry(body)
+            except ValueError:
+                continue
+            rows[m][anchor] = entry
+    return _merge_rows(json.loads(raw), rows)
+
+
+def write_budgets(budgets: dict) -> None:
+    """Split `budgets` back onto disk: caps file, then one file per row.
+
+    Only files whose bytes change are written and only rows that left the
+    ledger are removed, so a writer touches exactly the paths its rows
+    changed -- the property the layout exists for. A row whose key has no
+    path (a retired line key `normalize` could not map) stays in the caps
+    file, where `layout_problems` keeps refusing it.
+    """
+    d = ledger_dir()
+    caps = {k: v for k, v in budgets.items() if k not in LEDGER_MAPS}
+    want: dict[str, str] = {}
+    for m in LEDGER_MAPS:
+        stay = {}
+        for key, entry in sorted(budgets.get(m, {}).items()):
+            rel = ledger_relpath(m, key)
+            if rel is None:
+                stay[key] = entry
+            else:
+                want[rel] = row_text(key, entry)
+        if stay:
+            caps[m] = stay
+    BUDGETS.write_text(json.dumps(caps, indent=2) + "\n")
+    have = ({p.relative_to(d).as_posix() for p in d.rglob("*") if p.is_file()}
+            if d.is_dir() else set())
+    for rel in sorted(have - set(want)):
+        (d / rel).unlink()
+    for rel, text in want.items():
+        p = d / rel
+        if not p.is_file() or p.read_text() != text:
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(text)
+    if d.is_dir():
+        for sub in sorted((p for p in d.rglob("*") if p.is_dir()),
+                          key=lambda p: -len(p.parts)):
+            if not any(sub.iterdir()):
+                sub.rmdir()
+
+
+def layout_problems() -> list[str]:
+    """Every way the ledger on disk departs from its one-file-per-row form.
+
+    A row left in the caps file, a file outside the two map directories, a
+    file that does not parse, one whose path is not its anchor's, one whose
+    bytes are not `row_text`'s (#1612's lesson: a non-canonical byte is where
+    the next merge refuses), and an anchor recorded in both maps. The fix
+    for every one is `--normalize`.
+    """
+    out: list[str] = []
+    caps = json.loads(BUDGETS.read_text())
+    for m in LEDGER_MAPS:
+        if caps.get(m):
+            out.append(f"{BUDGETS.name}: {len(caps[m])} {m} row(s) still in "
+                       f"the caps file -- run --normalize")
+    d = ledger_dir()
+    seen: dict[str, str] = {}
+    for p in sorted(d.rglob("*")) if d.is_dir() else ():
+        if not p.is_file():
+            continue
+        rel = p.relative_to(d).as_posix()
+        m = rel.split("/", 1)[0]
+        if m not in LEDGER_MAPS or not rel.endswith(".json"):
+            out.append(f"{LEDGER_DIRNAME}/{rel}: not a row of "
+                       f"{' or '.join(LEDGER_MAPS)}")
+            continue
+        text = p.read_text()
+        try:
+            anchor, entry = _row_entry(text)
+        except ValueError as exc:
+            out.append(f"{LEDGER_DIRNAME}/{rel}: {exc}")
+            continue
+        if ledger_relpath(m, anchor) != rel:
+            out.append(f"{LEDGER_DIRNAME}/{rel}: its anchor {anchor!r} "
+                       f"belongs at {ledger_relpath(m, anchor)!r}")
+        elif text != row_text(anchor, entry):
+            out.append(f"{LEDGER_DIRNAME}/{rel}: not in canonical form -- "
+                       f"run --normalize")
+        if anchor in seen and seen[anchor] != m:
+            out.append(f"{anchor}: recorded under both {seen[anchor]} and {m}")
+        seen[anchor] = m
+    return out
+
+
+def carry_rows(base_ref: str, head_ref: str) -> tuple[dict, list[str]]:
+    """This checkout's ledger with the rows `head_ref` changed since `base_ref`.
+
+    The migration's one hand step, and the general "re-apply my rows onto
+    main's ledger". Both refs are read by `load_budgets_at`, which reads
+    either layout, so a branch cut before the split carries its rows onto the
+    split main exactly: every row it added, changed or deleted relative to
+    its base is applied to the ledger on disk, and nothing else moves. Why
+    not simply split the branch and merge: a split of a pre-split branch
+    ADDS every row, so a row main deleted since the branch base comes back
+    as the branch's addition (the demo's migration arm measures it). A row
+    both sides changed differently is not chosen: it is returned, and the
+    caller refuses.
+    """
+    base, head = load_budgets_at(base_ref), load_budgets_at(head_ref)
+    if base is None or head is None:
+        raise SystemExit(f"cannot read the ledger at {base_ref if base is None else head_ref}")
+    return carry(base, head, load_budgets())
+
+
+def carry(base: dict, head: dict, here: dict) -> tuple[dict, list[str]]:
+    """`carry_rows` over three loaded ledgers: `here` plus head's delta."""
+    here = json.loads(json.dumps(here))
+    clash: list[str] = []
+    for m in LEDGER_MAPS:
+        bm, hm, cur = base.get(m, {}), head.get(m, {}), here.setdefault(m, {})
+        for k in sorted(set(bm) | set(hm)):
+            if bm.get(k) == hm.get(k):
+                continue
+            if cur.get(k) not in (bm.get(k), hm.get(k)):
+                clash.append(f"{m}/{k}")
+                continue
+            if k in hm:
+                cur[k] = hm[k]
+            else:
+                cur.pop(k, None)
+        here[m] = dict(sorted(cur.items()))
+    return here, clash
+
+
+def normalize(budgets: dict, sites: list[dict]) -> tuple[dict, list[str]]:
+    """The ledger in canonical form, and every retired key it could not map.
+
+    A `FILE:LINE KIND` key is rewritten to the anchor of the site at that
+    file, line and operator whose text equals the entry's `old` pin -- the
+    same match the line key was checked by -- and both maps are sorted by key;
+    `unpinned_sites` is dropped. A retired key naming no site is kept as it is,
+    so `completeness_problems` still reports the stale mark.
+    """
+    at = {(s["file"], s["line"], s["kind"], s["old"]): s["anchor"]
+          for s in sites}
+    out = dict(budgets)
+    out.pop("unpinned_sites", None)
+    unmapped: list[str] = []
+    for m in LEDGER_MAPS:
+        fixed: dict[str, dict] = {}
+        for key, entry in budgets.get(m, {}).items():
+            new = key
+            if _LINE_KEY.match(key):
+                where, kind = key.split(" ", 1)
+                rel, ln = where.rsplit(":", 1)
+                old = entry.get("old") if isinstance(entry, dict) else None
+                new = at.get((rel, int(ln), kind, old), key)
+                if new == key:
+                    unmapped.append(f"{m}: {key}")
+            if new in fixed:
+                unmapped.append(f"{m}: {key} collides with {new}")
+                new = key
+            fixed[new] = entry
+        out[m] = dict(sorted(fixed.items()))
+    return out, unmapped
+
+
+def completeness_problems(budgets: dict, sites: list[dict]) -> list[str]:
+    """Every way the ledger and the deterministic inventory disagree.
+
+    Two directions, plus the null control: a disposition whose key and `old`
+    pin no longer name a site the inventory generates (a mark outliving its
+    line, or the inventory having dropped a site), and an empty inventory,
+    which is RED rather than green-by-skipping. The forward direction -- a
+    site with no disposition -- is the ratchet's count, not a refusal here.
+    """
+    if not sites:
+        return ["0 candidate site(s) in scope -- an empty inventory is a "
+                "failed enumeration, not a passing one"]
+    out: list[str] = []
+    named = {(s["anchor"], s["old"]) for s in sites}
+    for key, entry in sorted(dispositions(budgets).items()):
+        old = entry.get("old") if isinstance(entry, dict) else None
+        if (key, old) not in named:
+            out.append(f"{key}: disposition names no site the inventory "
+                       f"generates (old pin {old!r})")
+    return out
+
+
+# A VERBATIM copy of tests/structure.py's cap_problem, the recorded-number
+# barrier every ratchet shares (#1583's review). This grader is a single
+# standard-library file on purpose -- a job may restore it from the base
+# and run it under `python3 -I`, where a sibling import neither resolves
+# nor stays the base's -- so it carries the copy, and tests/entities.py
+# refuses any copy that differs from the original by one character.
+def cap_problem(where: str, table: object, key: str, *, integer: bool = False,
+                low: float = 0.0, low_open: bool = False,
+                high: float | None = None) -> str | None:
+    """Why ``table[key]`` cannot be a ratchet's recorded number, or None.
+
+    The class this closes (#1583's review): Python's json reads ``NaN``,
+    ``Infinity``, ``-Infinity`` and ``1e999`` as floats without complaint, and
+    every comparison against NaN is False -- ``current > nan`` never fires and
+    ``raw < nan`` never fires -- so a cap edited to NaN was an unlimited raise
+    that this script printed as ``ok cut_views 110 <= nan``. Infinity passes
+    by arithmetic. The other spellings fail differently per script and none of
+    them says why: a string crashed one comparison and ``float()``-coerced in
+    another (``"nan"`` into NaN), and a bool is 0 or 1 to Python.
+
+    So every ratchet calls this on load and refuses before it compares. It
+    refuses: an absent key, a bool, anything not an int or float, a
+    non-finite number, a float where ``integer`` asks for a count, a value
+    below ``low`` (or equal to it when ``low_open``), and one above ``high``.
+    The message names the file, the key and the value, so the refusal is the
+    fix's instructions.
+    """
+    if not isinstance(table, dict) or key not in table:
+        return (f"{where}: {key} is absent -- a ratchet with no recorded "
+                f"number compares against nothing")
+    value = table[key]
+    label = f"{where}: {key}={value!r:.40}"
+    if isinstance(value, bool):
+        return (f"{label} is a boolean, which Python compares as "
+                f"{int(value)}; record the number")
+    if not isinstance(value, (int, float)):
+        return f"{label} is a {type(value).__name__}, not a number"
+    # An int before isfinite: json reads a 400-digit integer as an exact int,
+    # and math.isfinite (like every float() a ratchet then applies) raises
+    # OverflowError on one no float can hold.
+    if isinstance(value, int):
+        if abs(value) > 2 ** 53:
+            return (f"{label} is past the largest integer a float holds "
+                    f"exactly, so no comparison with a measurement means "
+                    f"anything")
+    elif not math.isfinite(value):
+        return (f"{label} is not finite: every comparison against NaN is "
+                f"false and nothing exceeds Infinity, so this cap would be an "
+                f"unlimited raise")
+    if integer and not isinstance(value, int):
+        return f"{label} is a float where a count is recorded"
+    if value < low or (low_open and value == low):
+        return f"{label} is {'at or ' if low_open else ''}below {low:g}"
+    if high is not None and value > high:
+        return f"{label} is above {high:g}"
+    return None
+
+
+def cap_problems(budgets: dict) -> list[str]:
+    """Every recorded cap that cannot refuse, one sentence each.
+
+    `rate = survivors/evaluated` is a fraction in [0, 1], so a cap of 1.0
+    makes `if rate > cap` unreachable: a run in which every mutant survives
+    still prints PASSED. A cap has to be saturable to be a gate.
+
+    Before that, each cap passes `cap_problem` (the verbatim copy above), the
+    barrier every ratchet shares: `rate > nan` is False, so a NaN cap was an
+    unlimited raise this pre-pass let through, and `float()` turned a string
+    "nan" into one (#1583's review). The exact-count ratchet has no committed
+    number to guard: `base_unpinned` derives it from the base's ledger, and
+    `ledger_form_problems` refuses a committed `unpinned_sites`.
+    """
+    where = BUDGETS.name
+    fractions = budgets.get("max_survivor_fraction")
+    out: list[str] = []
+    for scope in ("changed", "full"):
+        problem = cap_problem(where, fractions, scope, high=1.0)
+        if problem:
+            out.append(problem.replace(f": {scope}", f": max_survivor_fraction[{scope}]", 1))
+        elif fractions[scope] >= 1.0:
+            out.append(f"max_survivor_fraction[{scope}]={fractions[scope]} is "
+                       f"unsatisfiable: a survivor rate in [0, 1] can never "
+                       f"exceed it")
+    return out
+
+
+# ------------------------------------------------------------------- runner
+
+class ScriptRun(NamedTuple):
+    """One gate script's measured result, carrying the output it was judged on.
+
+    The failure count is read out of stdout (#805) and that text -- with
+    stderr -- is returned alongside it rather than discarded once the count is
+    pulled. It is the only place the failing CHECK is named, and #1134 is a
+    refusal that could once name the red script and nothing more.
+    """
+    rc: int
+    failed: int
+    seconds: float
+    stdout: str = ""
+    stderr: str = ""
+    timed_out: bool = False
+
+
+def failed_checks(run: ScriptRun) -> list[str]:
+    """The failing checks one run reported, in the order it printed them.
+
+    The shared harness prints `  FAIL <name>  [detail]` per failed check
+    (`tests/harness.py`, `Results.check`) and the drivers that keep their own
+    counter print the same line, so the red CHECK is recoverable from the
+    stdout `run_script` captures.
+
+    A script that crashes, or one that prints `ISSUES:` bullets rather than
+    harness FAIL lines (`tests/plan_view.py`, `tests/validate.py`), names no
+    check in that form; the last non-empty line of its output is returned
+    instead, which for those is the reason it went red. That fallback is taken
+    only on a RED run: a green script has no failing check, so it returns none.
+    """
+    names = [m.group(1) for m in _CHECK_FAIL.finditer(run.stdout)]
+    if names:
+        return names
+    if run.rc == 0:
+        return []
+    tail = [ln.strip() for ln in (run.stdout + "\n" + run.stderr).splitlines()
+            if ln.strip()]
+    return tail[-1:]
+
+
+def _leased_if_exclusive(fn):
+    """Off CI, a LEASED driver runs under `tests/gate_lock.py auto-lease`,
+    the lease held for that run alone. A CI runner is the job's own machine,
+    and the scheduler already runs the driver alone there, so the lease buys
+    nothing and gate_lock.py stays out of the required job's code."""
+    def wrapped(script: str, cwd: Path, timeout: int, extra_args=None, extra_env=None):
+        if script not in LEASED or os.environ.get("GITHUB_ACTIONS") == "true":
+            return fn(script, cwd, timeout, extra_args, extra_env)
+        lease = ["auto-lease", "--label", f"mutation_table-{os.getpid()}", "--",
+                 sys.executable, script, *(extra_args or ())]
+        run = fn("tests/gate_lock.py", cwd, timeout, lease, extra_env)
+        return run._replace(stderr=run.stderr.replace("tests/gate_lock.py", script))
+    return wrapped
+
+
+@_leased_if_exclusive
+def run_script(script: str, cwd: Path, timeout: int,
+               extra_args: list[str] | None = None,
+               extra_env: dict[str, str] | None = None) -> ScriptRun:
+    """(exit status, failed-check count, seconds, stdout, stderr) for one script.
+
+    Reads the WHOLE of stdout: the last `N of M ... FAILED` line anywhere in it,
+    not the tail of a buffer (#805). The captured output is returned with the
+    counts, so a caller can name the failing CHECK inside a red script and not
+    only the script (#1134).
+
+    ``extra_args``/``extra_env`` are how the GATE invokes the ref-driven
+    drivers (#1211): `env_drift.py --all <ref>` and stress.py's exported
+    GOLDEN_REF. Default None is the bare invocation every other lane uses.
+    """
+    started = time.monotonic()
+    try:
+        proc = subprocess.run(
+            [sys.executable, script, *(extra_args or ())], cwd=cwd,
+            capture_output=True, text=True,
+            timeout=timeout,
+            env={**os.environ, "PYTHONPATH": "tests/hastub", **(extra_env or {})},
+        )
+    except subprocess.TimeoutExpired:
+        # Inconclusive, never a kill: a hang and a merely slower driver look
+        # the same from here (R9-F10.12). LazyBaselines.killed says which.
+        return ScriptRun(TIMEOUT_RC, 0, time.monotonic() - started, "",
+                         f"{script}: timed out after {timeout}s", True)
+    run = ScriptRun(proc.returncode, 0, time.monotonic() - started,
+                    proc.stdout, proc.stderr)
+    return run._replace(failed=failing_count(run))
+
+
+def failing_count(run: ScriptRun) -> int:
+    """How many failing checks a run names as its own -- 0 for a green run.
+
+    A green run names none, whatever it printed: tests/entities.py's green run
+    prints dozens of `FAIL` lines, every one a negative control it drove on
+    purpose. A red run's tally is read from the first form it prints, most
+    authoritative first: the harness's closing `N of M ... FAILED` (the LAST
+    one, as a nested control may print its own earlier), the sum of the
+    summary counts (`_SUMMARY_FAILS`; env_drift.py prints up to three), the
+    `ISSUES:` bullets, and only then the `FAIL <name>` lines -- plus one for an
+    uncaught exception, an assertion the driver never finished. A timeout
+    names none: it is no kill (R9-F10.12). A red run that names none of these
+    is a refusal, not a verdict.
+    """
+    if run.rc == 0:
+        return 0
+    out = run.stdout
+    n_of_m = _FAILED.findall(out)
+    summaries = [int(n) for n in _SUMMARY_FAILS.findall(out)]
+    bullets = [len(b.splitlines()) for b in _ISSUE_BULLETS.findall(out)]
+    if n_of_m:
+        n = int(n_of_m[-1][0])
+    elif summaries:
+        n = sum(summaries)
+    elif bullets:
+        n = sum(bullets)
+    else:
+        n = len(_CHECK_FAIL.findall(out))
+    return n + int(_TRACEBACK in run.stderr)
+
+
+def driver_timeout(floor: int, seconds: float) -> int:
+    """One driver run's timeout: TIMEOUT_SCALE times that driver's own
+    measured seconds, never under the fixed `floor` (--timeout).
+
+    A fixed limit turned a driver's growth into kills: tests/features.py's
+    nightly baseline went from 95 s to 833 s against a 1200 s limit, and a
+    mutant that only slowed it past the limit read as killed and was pinned
+    under --drain (R9-F10.12). Scaled, growth moves the limit with it, and a
+    hang still ends.
+    """
+    return max(floor, math.ceil(TIMEOUT_SCALE * seconds))
+
+
+def killed(script: str, run: ScriptRun, baseline: ScriptRun) -> bool:
+    """Whether `script`'s run on a mutant noticed the mutation (#1453, #1521).
+
+    Killed when the run is red AND names more failing checks than the
+    unmutated baseline's did -- which, the baseline being green by the time any
+    mutant is driven (`baseline_refusal`), means at least one. A changed exit status alone is not a kill: it
+    is how a driver also says "nothing here is a violation" (structure.py's
+    exit 2 for a metric that only IMPROVED, #1453) and "I refuse to measure
+    this diff" (env_drift.py's INHERITED CLAIMS refusal, which fires before any
+    capture on every production edit while the fork point carries a claim
+    list, #1521). The rule is the same for every driver, so a driver that
+    gains a new non-violation status needs no entry anywhere; the old
+    per-driver table (`NON_VIOLATION_EXITS`) is retired, because this rule
+    reads structure.py's exit 2 as no kill without it. `script` names the
+    driver for the caller's verdict line; the rule itself is driver-blind.
+    """
+    del script
+    return run.rc != 0 and failing_count(run) > failing_count(baseline)
+
+
+# How a driver's SOURCE prints each form `failing_count` reads: a string
+# literal (an f-string's constant parts included) that opens a FAIL line or
+# carries a summary's wording. Source text, not a run: running every driver
+# red is the nightly's cost, and this only has to see that one form exists.
+_VERDICT_SOURCE = re.compile(
+    r"^\s*FAIL\b|FAILED\b|FAILURES\b|ISSUES:|UNCLAIMED DRIFT\(S\)"
+    r"|COMMITTED FIXTURE\(S\) ARE STALE")
+
+
+def verdict_form_problems(scripts: list[str]) -> list[str]:
+    """Each driver whose source prints no failing-check form the rule reads.
+
+    Such a driver can exit red on a mutant and never kill it, which reads as
+    a survivor and as a finding about production. A driver that imports
+    `tests/harness.py` prints through `Results.check`/`close`, so the harness's
+    literals count as its own.
+    """
+    out: list[str] = []
+    for script in scripts:
+        path = Path(script) if Path(script).is_absolute() else ROOT / script
+        if path.suffix != ".py" or not path.exists():
+            continue
+        tree = ast.parse(path.read_text())
+        sources = [tree]
+        if any(isinstance(n, (ast.Import, ast.ImportFrom))
+               and "harness" in ([a.name for a in n.names]
+                                 + [getattr(n, "module", None) or ""])
+               for n in ast.walk(tree)):
+            sources.append(ast.parse((ROOT / "tests/harness.py").read_text()))
+        if not any(isinstance(n, ast.Constant) and isinstance(n.value, str)
+                   and _VERDICT_SOURCE.search(n.value)
+                   for t in sources for n in ast.walk(t)):
+            out.append(f"{script}: prints no FAIL line, FAILED/FAILURES "
+                       "count, ISSUES list or drift verdict, so a red run of "
+                       "it can never read as a kill")
+    return out
+
+
+def null_control(path: Path) -> dict | None:
+    """A comment-only edit of `path`: the run's built-in null control (#1521).
+
+    The first line that holds a comment and nothing else gains a few words at
+    its end, so no line number, no code token and no line count moves. No
+    driver can notice it through behaviour, so a driver that "kills" it is
+    reacting to the diff's shape -- env_drift.py's claim hygiene did, on every
+    mutant -- and every verdict that driver gave in the same run is suspect.
+    """
+    import io
+    import tokenize
+
+    src = path.read_text()
+    lines = src.splitlines()
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(src).readline))
+    except (tokenize.TokenError, SyntaxError):
+        return None
+    for tok in toks:
+        ln = tok.start[0]
+        if (tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string
+                and len(lines[ln - 1]) < 60):
+            try:
+                rel = str(path.relative_to(ROOT))
+            except ValueError:
+                rel = str(path)
+            return dict(kind="NULL_COMMENT", file=rel, line=ln,
+                        old=lines[ln - 1],
+                        new=lines[ln - 1] + " (null control)")
+    return None
+
+
+def null_control_verdict(runs: dict[str, ScriptRun],
+                         baseline: dict[str, ScriptRun]) -> str:
+    """LIVES, or which drivers "killed" the null control and on what.
+
+    Every driver in play is scored, none is skipped at the first kill, and a
+    driver the null control never ran under is a verdict too ("not run"): the
+    point is to name every driver that is judging the diff.
+    """
+    missing = sorted(set(baseline) - set(runs))
+    if missing:
+        return "not run under " + ", ".join(missing)
+    slow = [s for s in sorted(baseline) if runs[s].timed_out]
+    if slow:
+        return "timed out under " + ", ".join(slow)
+    killers = [
+        f"{s} ({'; '.join(failed_checks(runs[s])) or 'no FAIL line'})"
+        for s in sorted(baseline) if killed(s, runs[s], baseline[s])
+    ]
+    return "killed by " + ", ".join(killers) if killers else "LIVES"
+
+
+def null_control_refusal(key: str, verdict: str) -> str | None:
+    """The run's refusal when its null control did not survive, else None.
+
+    Anything but LIVES refuses -- a kill, and equally a null control that was
+    skipped or never ran, because then nothing separates a kill from a driver
+    reacting to the diff itself.
+    """
+    if verdict == "LIVES":
+        return None
+    return (f"\nMUTATION TABLE REFUSED -- the null control {key} was "
+            f"{verdict}. A comment-only edit changes no behaviour, so a driver "
+            "that notices it is judging the diff rather than the code, and "
+            "none of this run's kills can be told apart from that.")
+
+
+def null_for(pool: list[dict]) -> dict | None:
+    """The run's null control: a whole-line comment in a file of the pool.
+
+    Read off the file itself, never through `drawable`: the null control is
+    this tool's own edit, not the diff's, and a line-scoped pool would
+    otherwise filter out the only kind of line it can edit. An empty pool has
+    no null control, and main() passes it before asking.
+    """
+    return next(filter(None, (null_control(ROOT / f)
+                              for f in sorted({m["file"] for m in pool}))),
+                None)
+
+
+@contextlib.contextmanager
+def null_edit(tree: Path, null: dict):
+    """`tree` with the null control's comment written in, restored on exit.
+
+    The edit is the whole null control: a run in a tree it never reached is
+    the unmutated baseline again, and would "survive" every driver while
+    measuring nothing.
+    """
+    path = tree / null["file"]
+    original = path.read_text()
+    lines = original.splitlines(True)
+    lines[null["line"] - 1] = null["new"] + "\n"
+    path.write_text("".join(lines))
+    try:
+        yield path
+    finally:
+        path.write_text(original)
+
+
+def clone_tree(dest: Path) -> Path:
+    """A real, independent checkout for one worker to mutate.
+
+    `git worktree add` rather than a plain file copy, and the reason is
+    measured: the first version copied files alone, the copy had no `.git`,
+    and thirteen `tests/entities.py` checks plus one in `tests/features.py`
+    failed there for the environment rather than for the code. A baseline that
+    red makes every verdict after it meaningless -- which the baseline guard
+    below caught, but a driver with fourteen broken checks cannot kill a
+    mutant those checks were the ones to see.
+
+    The worktree carries HEAD; the working tree is then overlaid on top of it,
+    tracked edits and untracked-not-ignored files alike, so the mutants are
+    driven against the tree in front of the seat rather than against its last
+    commit. The object store is shared, so this costs a checkout and not the
+    83 MB gitdir, four times over.
+    """
+    subprocess.run(
+        ["git", "worktree", "add", "--detach", "--quiet", str(dest), "HEAD"],
+        cwd=ROOT, check=True, capture_output=True,
+    )
+    listing = subprocess.run(
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+        cwd=ROOT, check=True, capture_output=True,
+    ).stdout
+    tar = subprocess.run(
+        ["tar", "-c", "--null", "-T", "-", "-f", "-"], cwd=ROOT, check=True,
+        input=listing, stdout=subprocess.PIPE,
+    ).stdout
+    subprocess.run(["tar", "-x", "-C", str(dest)], input=tar, check=True)
+    return dest
+
+
+def drop_tree(dest: Path) -> None:
+    subprocess.run(
+        ["git", "worktree", "remove", "--force", str(dest)],
+        cwd=ROOT, capture_output=True,
+    )
+
+
+# ----------------------------------------------------------------- schedule
+#
+# The job's wall clock is the baseline plus the slowest worker, and both were
+# serial where the verdict did not need them to be (the mutation-timeout root
+# cause). The baseline drove every driver in play on one tree while the other
+# workers idled -- one full sweep of the net, which #1211 made env_drift.py and
+# stress.py part of -- and a mutant's drivers ran only on the worker that drew
+# it, so a survivor, which every driver must see, was a second full sweep on
+# one worker. Both are spread over the worker trees below. No driver leaves
+# the net and no mutant stops sooner than it did, so every verdict is the one
+# the serial sweep gave; only which driver is NAMED as a mutant's killer can
+# change, as it already could with the measured cheapest-first order.
+# The drivers kept off that sharing are EXCLUSIVE below.
+
+
+def _share(workers: int, work) -> None:
+    """Run `work(worker)` on every worker at once; re-raise what any raised."""
+    with ThreadPoolExecutor(max_workers=workers) as ex:
+        for fut in [ex.submit(work, w) for w in range(workers)]:
+            fut.result()
+
+
+# Drivers that measure the MACHINE while they run, so they never share it.
+# stress.py times its solves against tests/stress_budgets.json -- the reason
+# `/tmp/hpo-gate.lock` serialises it locally -- and beside three other drivers
+# on a CI runner its baseline hit the 1200 s per-driver timeout (#1565's first
+# run: rc=124, the table INCONCLUSIVE with no mutant scored) where alone it
+# takes 674-960 s. An exclusive driver runs with no other driver in flight, in
+# the baseline and for every mutant alike.
+#
+# harness_headers.py bounds each round harness it executes by CPU seconds, and
+# a CPU second billed beside the pool is not one billed alone: the frontier
+# harness costs 96.8 CPU-s serially on the runner (`slow`, run 37130986490) and
+# was SIGXCPU'd at 240 on the null control inside this pool (mutation-ledger,
+# run 37108891698) -- the same work billed at least 2.48x. Alone, it is billed
+# what a pull request's serial run.sh bills it.
+# nightly/ledger --scope full still drives these (#1930 (a)): three
+# killed_by rows name them. The two stress pins survived every remaining
+# driver that was green unmutated here (structure, edge, validate,
+# finite_boundary, optimality). tests/features.py's unmutated run was
+# already red, so it is not a remaining driver. Dropping the pair is an
+# unpinned-count raise. harness_headers's one pin is also killed by
+# tests/manual_plan.py.
+EXCLUSIVE = ("tests/harness_headers.py", "tests/stress.py")
+
+# The gate lease (`tests/gate_lock.py`, gate-scoping.md) is stress.py's alone:
+# it serialises the one driver that times solves across seats. Off CI an
+# exclusive driver is still alone within this table's pool.
+LEASED = ("tests/stress.py",)
+
+
+def driver_order(rel: str, drivers: list[str], seconds: dict[str, float],
+                 killed_by: dict) -> list[str]:
+    """`drivers` in the order that makes a mutant's expected sweep cheapest.
+
+    Smith's rule: ascending seconds over the chance the driver kills a mutant
+    in `rel`, that chance read off the ledger's measured kills (`killed_by`) --
+    the file's own, shrunk toward the whole ledger's so a file with none still
+    has one, and never zero. Cheapest-first alone drove every cheap driver
+    before tests/features.py, which holds 197 of the ledger's 232 kills.
+
+    Order cannot change a verdict: a mutant is killed iff SOME driver kills it
+    and LIVES only once every driver ran (`drive_pool`). Only which driver is
+    NAMED as the killer can differ, as it could under any order.
+    """
+    here: dict[str, int] = {}
+    everywhere: dict[str, int] = {}
+    for key, entry in killed_by.items():
+        script = entry.get("killed_by") if isinstance(entry, dict) else None
+        everywhere[script] = everywhere.get(script, 0) + 1
+        if key.split(":", 1)[0] == rel:
+            here[script] = here.get(script, 0) + 1
+    total = sum(everywhere.values()) + len(drivers)
+
+    def smith(s: str) -> float:
+        share = (everywhere.get(s, 0) + 1) / total
+        chance = (here.get(s, 0) + 2 * share) / (sum(here.values()) + 2)
+        return seconds.get(s, 0.0) / chance
+
+    return sorted(drivers, key=lambda s: (smith(s), s))
+
+
+def drive_baselines(needed: list[str], workers: int, run, *, null_run=None,
+                    null_out: dict | None = None) -> dict[str, ScriptRun]:
+    """Every driver's unmutated run, spread over `workers` trees.
+
+    `run(worker, script)` drives one script in that worker's tree. The shared
+    drivers go first, the ref-driven ones at the head of the queue: they are
+    the net's longest shared runs, and a long run started last is what sets
+    the makespan. Each EXCLUSIVE driver then runs alone.
+
+    `null_run(worker, script)`, when given, drives the null control under the
+    same script, and its result lands in `null_out`: a task in the same queue
+    beside that script's baseline, never a process beside the workers, and
+    alone like the baseline when the script is EXCLUSIVE.
+    """
+    kinds = (False, True) if null_run is not None else (False,)
+    tasks = [(s, k) for s in sorted(needed,
+                                    key=lambda s: (s not in REF_DRIVEN, s))
+             for k in kinds]
+    queue = [t for t in tasks if t[0] not in EXCLUSIVE]
+    lock = threading.Lock()
+    out: dict[str, ScriptRun] = {}
+
+    def one(w: int, task: tuple[str, bool]) -> None:
+        script, is_null = task
+        if is_null:
+            null_out[script] = null_run(w, script)
+        else:
+            out[script] = run(w, script)
+
+    def work(w: int) -> None:
+        while True:
+            with lock:
+                if not queue:
+                    return
+                task = queue.pop(0)
+            one(w, task)
+
+    _share(workers, work)
+    for task in (t for t in tasks if t[0] in EXCLUSIVE):
+        one(0, task)
+    return out
+
+
+def drive_pool(pool: list[dict], workers: int, cost: dict[str, float],
+               drive, settle=None, deadline: float | None = None,
+               clock=time.monotonic) -> list[tuple[dict, str]]:
+    """Each mutant's verdict, its drivers shared over `workers` trees.
+
+    `drive(worker, mut, script)` runs one driver on `mut` in that worker's tree
+    and says whether it killed it -- or None when the run timed out, which is
+    neither: a mutant no driver killed that timed one out is SKIP-TIMED-OUT,
+    never LIVES. A worker sweeps the next unstarted mutant,
+    its shared drivers in the order given (`driver_order`), stopping at the
+    first kill. Once no mutant is left unstarted it helps instead: it takes the
+    costliest not-yet-started shared driver of a mutant still undecided, since
+    a survivor's sweep is the one that cannot stop early. Every EXCLUSIVE
+    driver is deferred past that phase and run alone, one at a time, for each
+    mutant no shared driver killed -- so only those pay for it. A mutant is
+    killed by the first driver to report a kill, and LIVES only once every one
+    of its drivers has run and none did.
+
+    `settle(script)`, when given, runs once before an EXCLUSIVE driver's first
+    mutant, and only if one reaches it: main() defers that driver's baseline
+    and null control to it.
+
+    `deadline`, a `clock()` reading, is the budget (R9-F10.12). A mutant is
+    started only if its every driver at `cost` -- the sweep it costs if it
+    survives -- plus the EXCLUSIVE runs still owed by started mutants no driver
+    has killed, ends by then. The first that does not fit closes the pool:
+    it and every later one are SKIP-BUDGET, never started, so what ran is the
+    shuffled pool's prefix and not a sample biased to cheap drivers. The cut
+    falls on an anchor boundary: a mutant is admitted with every queued site
+    of its anchor or not at all, since a disposition covers the whole anchor
+    and a split one can never be pinned; a granted twin is started even
+    after a site between them closes the pool. A started mutant finishes.
+    Its sweep ends at its first timed-out driver, so a hang costs one
+    timeout over the estimate, not one per driver.
+    """
+    lock = threading.Lock()
+    todo = [[s for s in m["drivers"] if s not in EXCLUSIVE] for m in pool]
+    owes = [sum(cost.get(s, 0.0) for s in m["drivers"] if s in EXCLUSIVE)
+            for m in pool]
+    verdict: list[str | None] = [None] * len(pool)
+    timed: list[list[str]] = [[] for _ in pool]
+    queue = list(range(len(pool)))
+    owed = [0.0]
+    granted: set[int] = set()
+    own: list[int | None] = [None] * workers
+
+    def admit() -> int | None:
+        """The next mutant to start, under `lock`; None once none is left."""
+        while queue:
+            i = queue[0]
+            twins = [j for j in queue if "anchor" in pool[i]
+                     and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
+            need = sum(sum(cost.get(s, 0.0) for s in todo[j]) + owes[j]
+                       for j in twins)
+            if (i not in granted and deadline is not None
+                    and clock() + need + owed[0] > deadline):
+                # Closed: every site not granted with an admitted twin.
+                for j in queue:
+                    if j not in granted:
+                        verdict[j] = "SKIP-BUDGET"
+                queue[:] = [j for j in queue if j in granted]
+                continue
+            granted.update(twins)
+            queue.pop(0)
+            owed[0] += owes[i]
+            if todo[i]:
+                return i
+        return None
+
+    def take(w: int) -> tuple[int, str] | None:
+        with lock:
+            i = own[w]
+            if i is None or verdict[i] is not None or not todo[i]:
+                i = own[w] = admit()
+            if i is not None:
+                script = todo[i].pop(0)
+            else:
+                open_ = [j for j in range(len(pool))
+                         if verdict[j] is None and todo[j]]
+                if not open_:
+                    return None
+                i, script = max(((j, s) for j in open_ for s in todo[j]),
+                                key=lambda js: cost.get(js[1], 0.0))
+                todo[i].remove(script)
+            return i, script
+
+    def judge(i: int, script: str, hit: bool | None) -> None:
+        if hit is None:
+            timed[i].append(script)
+            todo[i].clear()
+        elif verdict[i] is None and hit:
+            verdict[i] = f"killed by {script}"
+        else:
+            return
+        # Killed or timed out, it runs no EXCLUSIVE driver: release. A second
+        # release can come only from a helper, and helpers run only once no
+        # mutant is left to admit, so nothing reads `owed` after it.
+        owed[0] -= owes[i]
+
+    def work(w: int) -> None:
+        while (task := take(w)) is not None:
+            i, script = task
+            hit = drive(w, pool[i], script)
+            with lock:
+                judge(i, script, hit)
+
+    _share(workers, work)
+    settled: set[str] = set()
+    for i, mut in enumerate(pool):
+        for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if verdict[i] is None and settle and script not in settled:
+                settled.add(script)
+                settle(script)
+            if verdict[i] is None and not timed[i]:
+                judge(i, script, drive(0, mut, script))
+    return [(m, v or (f"SKIP-TIMED-OUT in {', '.join(t)}" if t else "LIVES"))
+            for m, v, t in zip(pool, verdict, timed)]
+
+
+# The pin drive's own schedule (R9-FR-7, #1945). --pin-killed's pool is not
+# the sampled lane's: every site the diff added must be driven to a verdict,
+# there is no --max cap, and the autofix lane caps the wall clock
+# (--budget-minutes, #1880). drive_pool admits a mutant only if its WHOLE
+# serial sweep -- the sum of every driver's cost, what a survivor costs --
+# ends by the deadline, so a 13-driver anchor whose estimate alone outgrows
+# the budget is never started (#1887 measured 34 sites refused with nothing
+# driven: "34 not started for --budget-minutes"), and each worker it does
+# start grinds one mutant's drivers back to back, so the ~500 s features.py
+# kill a diff of N sites needs is paid N times over, a sweep at a time
+# (#1779: 8 sites overran the pin step's 60 minutes with no table). The
+# drives are independent -- mutant x driver, no shared state but the worker
+# tree a run mutates -- so the pin drive queues the admitted mutants' shared
+# drivers as individual tasks any worker can take. The cap is worker trees:
+# each is a checkout, and past the runner's cores the drivers only slow one
+# another down.
+MAX_PIN_JOBS = 8
+
+
+def drive_pin_pool(pool: list[dict], workers: int, cost: dict[str, float],
+                   drive, settle=None, deadline: float | None = None,
+                   clock=time.monotonic) -> list[tuple[dict, str]]:
+    """Each pin-drive mutant's verdict, its shared drivers run N-way.
+
+    The tasks are (mutant, driver) pairs, not whole mutants: a worker takes
+    the next dispatchable driver of the earliest admitted mutant, so one
+    mutant's drivers run concurrently on different trees and the phase's
+    wall clock is the outstanding work over `workers`, not a mutant's serial
+    sweep. Everything the verdicts depend on is drive_pool's, unchanged: the
+    verdict strings, the anchor-twin admission (a disposition covers the
+    whole anchor, so the budget cut falls on an anchor boundary and a
+    granted twin is started even after a dearer site closed the pool), a
+    started mutant always finishes, the EXCLUSIVE drivers run alone at the
+    tail for the mutants no shared driver killed, `settle` pays such a
+    driver's baseline once before its first mutant, and a driver timeout is
+    never a kill (#1880): a mutant whose driver timed out runs nothing
+    further and pins nothing, whatever an in-flight run then reports.
+
+    Pin equality constrains the rest. A kill names the driver the SERIAL
+    sweep would name -- the earliest in the mutant's own order
+    (`driver_order`'s) -- and is read only once every earlier-ordered shared
+    driver has completed green; drivers ordered after the earliest observed
+    kill are never dispatched, because no verdict can need them. `--jobs 1`
+    therefore reproduces the serial schedule exactly, which is the
+    pin-equality oracle (tests/entities.py drives both on one fixture).
+
+    `deadline` still governs the whole phase. Its admission compares the
+    shared work outstanding against the workers left to run it -- the
+    split's own wall-clock model. The EXCLUSIVE tail is NOT reserved at
+    admission, as drive_pool reserves it: it runs only for a mutant that
+    survives every shared driver, and charging it to every mutant up front
+    (stress.py and harness_headers.py at three runs each, ~2500 s on CI)
+    refused #2025's first anchor before a single run (R9-CI-1). A survivor's
+    tail is admitted when it reaches it, against the clock then, and one
+    that no longer fits is SKIP-BUDGET: it pins nothing either way.
+    """
+    k = max(1, workers)
+    lock = threading.Lock()
+    order = [{s: i for i, s in enumerate(m["drivers"])} for m in pool]
+    shared0 = [[s for s in m["drivers"] if s not in EXCLUSIVE]
+               for m in pool]
+    todo = [list(s) for s in shared0]
+    verdict: list[str | None] = [None] * len(pool)
+    timed: list[list[str]] = [[] for _ in pool]
+    kill_at: list[str | None] = [None] * len(pool)
+    stop_at: list[int | None] = [None] * len(pool)
+    done: list[set[str]] = [set() for _ in pool]
+    inflight = [0] * len(pool)
+    queue = list(range(len(pool)))
+    active: list[int] = []
+    granted: set[int] = set()
+    outstanding = [0.0]
+
+    def admit() -> bool:
+        """Grant the next anchor group under `lock`; False once none is left."""
+        while queue:
+            i = queue[0]
+            twins = [j for j in queue if "anchor" in pool[i]
+                     and pool[j].get("anchor") == pool[i]["anchor"]] or [i]
+            need = sum(sum(cost.get(s, 0.0) for s in todo[j]) for j in twins)
+            if (i not in granted and deadline is not None
+                    and (outstanding[0] + need) / k > deadline - clock()):
+                # Closed: every site not granted with an admitted twin.
+                for j in queue:
+                    if j not in granted:
+                        verdict[j] = "SKIP-BUDGET"
+                queue[:] = [j for j in queue if j in granted]
+                continue
+            granted.update(twins)
+            queue.pop(0)
+            outstanding[0] += sum(cost.get(s, 0.0) for s in todo[i])
+            active.append(i)
+            return True
+        return False
+
+    def take(w: int) -> tuple[int, str] | None:
+        with lock:
+            while True:
+                got = None
+                for i in active:
+                    while todo[i]:
+                        s = todo[i][0]
+                        if (kill_at[i] is not None
+                                and order[i][s] >= order[i][kill_at[i]]):
+                            todo[i].pop(0)
+                            continue
+                        if stop_at[i] is not None and kill_at[i] is None:
+                            todo[i] = []
+                            break
+                        got = (i, s)
+                        break
+                    if got is not None:
+                        break
+                if got is not None:
+                    i, s = got
+                    todo[i].pop(0)
+                    inflight[i] += 1
+                    outstanding[0] -= cost.get(s, 0.0)
+                    return i, s
+                if not queue:
+                    return None
+                admit()
+
+    def _resolve(i: int) -> None:
+        """Read the kill once the serial sweep's evidence is complete."""
+        if verdict[i] is not None or kill_at[i] is None:
+            return
+        ko = order[i][kill_at[i]]
+        if (all(s in done[i] for s in shared0[i] if order[i][s] < ko)
+                and not any(order[i][s] < ko for s in timed[i])):
+            verdict[i] = f"killed by {kill_at[i]}"
+            todo[i] = []
+
+    def judge(i: int, script: str, hit: bool | None) -> None:
+        with lock:
+            inflight[i] -= 1
+            done[i].add(script)
+            if hit is None:
+                timed[i].append(script)
+                if stop_at[i] is None:
+                    stop_at[i] = order[i][script]
+            elif hit and (kill_at[i] is None
+                          or order[i][script] < order[i][kill_at[i]]):
+                kill_at[i] = script
+            _resolve(i)
+
+    def work(w: int) -> None:
+        while (task := take(w)) is not None:
+            i, script = task
+            hit = drive(w, pool[i], script)
+            judge(i, script, hit)
+
+    _share(k, work)
+    settled: set[str] = set()
+    for i, mut in enumerate(pool):
+        for script in (s for s in mut["drivers"] if s in EXCLUSIVE):
+            if (verdict[i] is None and not timed[i] and deadline is not None
+                    and clock() + cost.get(script, 0.0) > deadline):
+                # `cost` carries an unsettled driver's baseline and null run
+                # (budget_seconds); settling resets it to the run's own.
+                verdict[i] = "SKIP-BUDGET"
+            if verdict[i] is None and settle and script not in settled:
+                settled.add(script)
+                settle(script)
+            if verdict[i] is None and not timed[i]:
+                judge(i, script, drive(0, mut, script))
+    return [(m, v or (f"SKIP-TIMED-OUT in {', '.join(t)}" if t else "LIVES"))
+            for m, v, t in zip(pool, verdict, timed)]
+
+
+def sampled_pool(files: list[Path], closures: dict, allow: list[str],
+                 touched: dict[str, set[int]] | None, triage: dict,
+                 rng: random.Random, per_file: int,
+                 cap: int) -> tuple[list[dict], int]:
+    """The sampled pool, and how many drawn sites a triage mark constrains.
+
+    A triaged site is still driven -- by every driver but `TRIAGE_JUDGE` -- so
+    a driver that kills an "equivalent" mutant refutes its mark. A site whose
+    only driver is that one is left out (R9-F10.13).
+    """
+    pool: list[dict] = []
+    held = 0
+    for path in files:
+        rel = str(path.relative_to(ROOT))
+        drivers = drivers_for(rel, closures, allow)
+        if not drivers:
+            print(f"  no recorded closure reaches {rel}; skipped")
+            continue
+        got = anchor_sites(path.read_text(), drawable(path, rel, touched))
+        rng.shuffle(got)
+        for mut in got[:per_file]:
+            mut["drivers"] = drivers
+            if triaged_site(triage, mut):
+                held += 1
+                mut["drivers"] = [d for d in drivers if d != TRIAGE_JUDGE]
+            if mut["drivers"]:
+                pool.append(mut)
+    rng.shuffle(pool)
+    return pool[:cap], held
+
+
+def order_pool_drivers(pool: list[dict], seconds: dict[str, float],
+                       killed_by: dict) -> None:
+    """Order every mutant's drivers (`driver_order`), a pinned site's own
+    killer first so a kill by another driver cannot leave the pin unread
+    (`pin_reverification`). A mutant is killed iff some driver kills it, so no
+    verdict moves; only which driver is named, and the order of the cost."""
+    for mut in pool:
+        mut["drivers"] = driver_order(mut["file"], mut["drivers"], seconds,
+                                      killed_by)
+        pin = pinned_script(killed_by, mut)
+        if pin in mut["drivers"]:
+            mut["drivers"].remove(pin)
+            mut["drivers"].insert(0, pin)
+
+
+def pinned_script(killed_by: dict, mut: dict) -> str | None:
+    """The driver a `killed_by` pin names for THIS site, or None.
+
+    Keyed by the anchor and pinned to the `old` line text, as every
+    disposition is (`disposition_matches`)."""
+    entry = killed_by.get(ledger_key(mut))
+    if isinstance(entry, dict) and disposition_matches(entry, mut):
+        return entry.get("killed_by")
+    return None
+
+
+def pin_reverification(results: list[tuple[dict, str]],
+                       outcomes: dict[tuple[int, str], bool | None],
+                       killed_by: dict) -> list[str]:
+    """The nightly's report on the pins its draw re-drove (R9-F10.13).
+
+    Report only: a pin is never rewritten here, and what a mismatch needs --
+    a re-pin, a triage or a new test -- is a human's (ci-autofix.md). Each
+    pinned site drawn is one of three, read from what `drive` recorded for
+    its pinned script: it killed (reproduced); it ran and did not, or the
+    mutant LIVES (NOT REPRODUCED); or it never completed a run, because the
+    budget cut the mutant, another driver killed it first, or the script timed
+    out (not re-verified -- never a confirmation).
+    """
+    out: list[str] = []
+    tally = {"reproduced": 0, "not reproduced": 0, "not re-verified": 0}
+    for mut, verdict in results:
+        pin = pinned_script(killed_by, mut)
+        if pin is None:
+            continue
+        ran = (id(mut), pin) in outcomes
+        hit = outcomes.get((id(mut), pin))
+        key = ledger_key(mut)
+        if ran and hit:
+            tally["reproduced"] += 1
+        elif verdict == "LIVES" or (ran and hit is False):
+            tally["not reproduced"] += 1
+            out.append(f"  PIN NOT REPRODUCED {key}: pinned to {pin}, "
+                       f"{verdict}" + ("" if ran else f"; {pin} no longer "
+                                       "drives this file") + " -- a human "
+                       "re-pins, triages or adds the test; the pin is untouched")
+        else:
+            tally["not re-verified"] += 1
+            why = ("timed out" if ran else
+                   "not started for the budget" if verdict == "SKIP-BUDGET" else
+                   f"no run of it completed ({verdict})")
+            out.append(f"  pin not re-verified {key}: {pin} {why}")
+    if any(tally.values()):
+        out.append("PIN RE-VERIFICATION: " + ", ".join(
+            f"{n} {k}" for k, n in tally.items()))
+    return out
+
+
+def budget_refusal(results: list[tuple[dict, str]]) -> int | None:
+    """Name every mutant the budget left unstarted; 1 when none was evaluated
+    for the budget or a timeout.
+
+    A run that measured nothing must not read as PASSED (R9-F10.12): when
+    every mutant is a SKIP and any was cut by the budget or timed out, the
+    run is refused, the reason counting each cause. One that evaluated some
+    reports its cap over those, named as partial (`partial_note`).
+    """
+    left = [m for m, v in results if v == "SKIP-BUDGET"]
+    timed = sum(1 for _, v in results if v.startswith("SKIP-TIMED-OUT"))
+    for m in left:
+        print(f"  NOT RUN {triage_key(m)} -- not started: it would have "
+              f"overrun --budget-minutes")
+    if (left or timed) and all(v.startswith("SKIP") for _, v in results):
+        print(f"\nMUTATION TABLE REFUSED -- nothing was measured: {timed} "
+              f"mutant(s) timed out, {len(left)} not started for "
+              f"--budget-minutes")
+        return 1
+    return None
+
+
+def partial_note(results: list[tuple[dict, str]]) -> str:
+    """The PASSED line's suffix when a timeout or the budget left mutants
+    unscored, so a night with hangs never reads as a whole measurement."""
+    timed = sum(1 for _, v in results if v.startswith("SKIP-TIMED-OUT"))
+    unrun = sum(1 for _, v in results if v == "SKIP-BUDGET")
+    if not (timed or unrun):
+        return ""
+    evaluated = sum(1 for _, v in results if not v.startswith("SKIP"))
+    return (f" (partial: {evaluated} evaluated, {timed} timed out, {unrun} "
+            f"not started for the budget)")
+
+
+def drain_survivors(results: list[tuple[dict, str]], entries: dict) -> list[str]:
+    """`survivors.txt`: the sites a human owes a verdict. Never a site the
+    budget left unstarted, nor any site of an anchor holding one -- that
+    anchor goes back to the stock untouched for a later night."""
+    cut = {m["anchor"] for m, v in results if v == "SKIP-BUDGET"}
+    return [triage_key(m) for m, _ in results
+            if m["anchor"] not in entries and m["anchor"] not in cut]
+
+
+def deferred_drivers(needed: list[str], scope: str) -> list[str]:
+    """The EXCLUSIVE drivers whose baseline and null run wait for `settle`.
+
+    Under --scope changed they wait until a mutant survives every shared
+    driver: alone, they were a third of #1611's 100 minutes, spent for no
+    mutant. Every mutant such a driver drives still has both first, so no
+    kill or LIVES verdict moves. What can move is the headline: when no mutant
+    reaches it, a red or timed-out baseline (INCONCLUSIVE, exit 0) or a killed
+    null control (REFUSED, exit 1) now leaves the table PASSED (exit 0), with a
+    line naming the driver as never run. --scope full keeps the eager refusal.
+    """
+    return [s for s in needed if s in EXCLUSIVE and scope == "changed"]
+
+
+def lazy_drivers(needed: list[str], scope: str) -> list[str]:
+    """The shared drivers whose baseline and null run wait for a red mutant run.
+
+    Under --scope changed (R9-F10.9b, #1812). `killed()` reads a baseline only
+    for a RED run: a green one kills under any baseline. So a driver's
+    baseline and null control are run, on that worker's restored tree, the
+    first time one of its mutant runs comes back red, and every kill is still
+    judged against them -- no kill or LIVES verdict moves. What moves is the
+    headline when no mutant run of a driver is red, as for `deferred_drivers`:
+    its red baseline or killed null control, which no verdict then reads, is
+    never run. #1806 spent 17 minutes on baselines, tests/features.py's 712 s
+    of them, before a table that driver killed nothing in. A ref-driven driver
+    stays eager: its recorded seconds time a cheap stub (closure.py #934), and
+    its measured baseline is what orders the sweep. --scope full stays eager.
+    """
+    if scope != "changed":
+        return []
+    # env_drift stays eager (#1930 (b)): recorded_seconds times the stub
+    # (~1 s), not the CI `--all` baseline, so a lazy Smith-order would
+    # understate its cost and run it before the long shared drivers.
+    return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
+
+
+def recorded_entries() -> dict[str, dict]:
+    """Each script's committed recording as tests/closures.json records it:
+    ``{"seconds": float, "rc": int, ...}``. The solo-gate measurement, one
+    script at a time -- NOT the 3-worker pool's cost of the same script."""
+    raw = json.loads(CLOSURES.read_text()).get("recorded", {})
+    return {s: r for s, r in raw.items() if isinstance(r, dict)}
+
+
+def recorded_seconds() -> dict[str, float]:
+    """Each script's seconds as tests/closures.json's recording measured them:
+    the sweep order's cost for a lazy driver, which has no baseline yet."""
+    return {s: float(r.get("seconds", 0.0))
+            for s, r in recorded_entries().items()}
+
+
+#: The file name the nightly persists its pool measurement under, inside the
+#: `--drain` directory the `mutation-ledger` artifact already carries. A data
+#: file, not a policy one: it holds one script's wall-clock seconds in the
+#: 3-worker pool, the cost `driver_timeout` must bound but the solo recording
+#: in tests/closures.json cannot state (RCA-1565-mutation-timeouts).
+POOL_SECONDS_NAME = "pool_seconds.json"
+
+
+def pool_seconds(path: str | None) -> dict[str, float]:
+    """The last pool cost the nightly measured per driver, or {} (fail-soft).
+
+    `path` is the prior run's persisted measurement, which the workflow restores
+    from the `actions/cache` entry the last nightly saved (tests.yml's
+    "Restore the prior pool measurement" step). Absent, unreadable or malformed
+    reads as NO measurement, so the bound falls back to the committed solo
+    recording -- today's behaviour, and never a smaller bound than the lane
+    already used. The pool cost is what the 3-worker lane actually pays for a
+    script; the solo recording is kept by `closure.SECONDS_BAND` up to 2x below
+    the cost CI last measured, so 3x the solo number can sit below one pool run
+    (RCA-1565: boost_drift_replay.py recorded 525.3 solo -> bound 1576, pool
+    cost 1573 on 2026-10-07, >2401 on 2026-10-08).
+    """
+    if not path:
+        return {}
+    try:
+        raw = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return {}
+    table = raw.get("seconds", {}) if isinstance(raw, dict) else {}
+    out = {}
+    for s, sec in (table.items() if isinstance(table, dict) else ()):
+        if isinstance(sec, (int, float)) and not isinstance(sec, bool) and sec > 0:
+            out[s] = float(sec)
+    return out
+
+
+def write_pool_seconds(seconds: dict[str, float], path, head: str = "") -> None:
+    """Persist the pool cost the lane measured, for the next run's bound.
+
+    Written from `main()`'s `finally`, so a run that refuses on its own bound
+    (the night the measurement is needed) still leaves it: the artifact carries
+    it whether or not the lane concluded. One script's seconds, sorted, in the
+    canonical layout `closure.write_closures` uses for the solo table.
+    """
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"head": head,
+               "seconds": {s: round(float(v), 1)
+                           for s, v in sorted(seconds.items())}}
+    p.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
+
+
+def seed_pool_seconds(recorded: dict[str, float],
+                      pool: dict[str, float]) -> dict[str, float]:
+    """The bound basis per driver: the larger of the committed solo recording
+    and the last measured pool cost.
+
+    `driver_timeout(floor, s)` is `max(floor, TIMEOUT_SCALE x s)`, so feeding it
+    this max is the RCA's `max(floor, ceil(TIMEOUT_SCALE x max(recorded,
+    pool_recorded)))`: the bound then covers the pool/solo factor the lane
+    itself measured (1.3-3.3x across drivers on 2026-10-07/08) instead of 3x a
+    solo number the band keeps up to 2x stale. A driver with no pool measurement
+    keeps its solo recording, so this never lowers a bound. Decoupled from
+    `SECONDS_BAND` on purpose: the band is merge-text hygiene (tvofi,
+    2026-10-08), the bound is a pool-cost cover, and re-tuning one to fix the
+    other would trade a stale recording for a churned table.
+    """
+    out = dict(recorded)
+    for s, sec in pool.items():
+        out[s] = max(out.get(s, 0.0), sec)
+    return out
+
+
+def budget_seconds(own: dict[str, float],
+                   deferred: list[str]) -> dict[str, float]:
+    """The budget's per-run cost estimate, from the measured or recorded seconds.
+
+    A deferred (EXCLUSIVE) driver's first run also pays its baseline and null
+    control -- once, at the tail, so its estimate carries all three until it
+    settles. A lazy driver is charged its run alone: its baseline is paid only
+    if a mutant run of it is red, and then on the clock the admission reads.
+    Charging every lazy driver three runs per mutant made #2025's first
+    anchor cost ~4069 s against a 35-minute budget, so nothing ran (R9-CI-1).
+    """
+    out = dict(own)
+    for s in deferred:
+        out[s] = 3 * out.get(s, 0.0)
+    return out
+
+
+class LazyBaselines:
+    """Kill verdicts that pay for a lazy driver's baseline at its first red run.
+
+    `settle(worker, script)` runs that driver's baseline and null control on
+    the worker's unmutated tree, stores the baseline in `baseline` when both
+    pass, and returns None -- or the run's exit status when either refuses,
+    which stops every later verdict (`stop`) and is main()'s to return.
+    """
+
+    def __init__(self, baseline: dict[str, "ScriptRun"], settle) -> None:
+        self.baseline = baseline
+        self._settle = settle
+        self._guard = threading.Lock()
+        self._locks: dict[str, threading.Lock] = {}
+        self.stop: int | None = None
+
+    def killed(self, worker: int, script: str,
+               run: "ScriptRun") -> bool | None:
+        """Whether `run` killed its mutant; None when it timed out, which
+        `drive_pool` reads as inconclusive rather than either verdict."""
+        if run.timed_out:
+            return None
+        if run.rc == 0 or self.stop is not None:
+            return False
+        with self._guard:
+            lock = self._locks.setdefault(script, threading.Lock())
+        with lock:
+            if script not in self.baseline and self.stop is None:
+                self.stop = self._settle(worker, script)
+        if self.stop is not None:
+            return False
+        return killed(script, run, self.baseline[script])
+
+
+class Deferred(Exception):
+    """A deferred driver's baseline or null control refused the run."""
+
+    def __init__(self, rc: int) -> None:
+        super().__init__(rc)
+        self.rc = rc
+
+
+# The pin drive's fixture: the driver seconds the two overrun incidents paid
+# (tests.yml's baseline lines on #1779 and #1887: features.py 563 s,
+# env_drift.py 484 s, entities.py 108 s), and the ledger's kill pattern --
+# features.py holds 197 of the ledger's 232 kills, so every site's likeliest
+# killer is its costliest driver.
+SELFTEST_COST = {"tests/features.py": 563.0, "tests/env_drift.py": 484.0,
+                 "tests/entities.py": 108.0, "tests/finite_boundary.py": 42.0,
+                 "tests/doc_claims.py": 5.0}
+
+
+def selftest_pin_drive(sites: int = 8, jobs: int = 4,
+                       scale: float = 300.0) -> int:
+    """The pin-equality oracle and the split's timing pair, on a fixture.
+
+    No tree, no clone, no driver: the drives are fakes that sleep each
+    driver's recorded seconds divided by `scale`, so the wall-clock pair
+    below is the SCHEDULES' difference and not a driver measurement. The
+    fixture is `sites` mutants of the ledger's shape -- one survives, the
+    rest features.py or env_drift.py kills. Equality is the oracle: the
+    split's verdicts and `pin_results` entries must equal the serial
+    schedule's (`drive_pool` at one worker), byte for byte, and the exit
+    status says whether they do.
+    """
+    cost = SELFTEST_COST
+    drivers = list(cost)
+    pool = [{"file": f"m{i}.py", "line": i, "kind": "CONST",
+             "anchor": f"m{i}.py:a", "old": "o", "new": "n",
+             "drivers": list(drivers)} for i in range(sites)]
+    kills = ({(i, "tests/features.py") for i in range(sites - 2)}
+             | {(sites - 1, "tests/env_drift.py")})
+
+    def run(schedule, workers):
+        kill_runs: dict = {}
+
+        def drive(w, m, s):
+            hit = (m["line"], s) in kills
+            time.sleep(cost[s] / scale)
+            if hit:
+                kill_runs[(id(m), s)] = ScriptRun(1, 2, cost[s] / scale)
+            return hit
+
+        out = schedule(pool, workers, cost, drive)
+        entries, _, _ = pin_results(
+            out, kill_runs, {s: ScriptRun(0, 0, 1.0) for s in drivers},
+            pool, "r")
+        return ([v for _, v in out],
+                json.dumps(entries, sort_keys=True, indent=2))
+
+    t0 = time.monotonic()
+    serial = run(drive_pool, 1)
+    serial_s = time.monotonic() - t0
+    t0 = time.monotonic()
+    split = run(drive_pin_pool, jobs)
+    split_s = time.monotonic() - t0
+    same = serial == split
+    print(f"PIN EQUALITY: {'identical' if same else 'DIFFER'} -- "
+          f"{sum(v.startswith('killed by') for v in serial[0])} pin(s) of "
+          f"{sites} site(s)")
+    print(f"WALL CLOCK serial drive_pool(1) {serial_s:.1f}s, "
+          f"drive_pin_pool({jobs}) {split_s:.1f}s -- sleeps at 1/{scale:.0f} "
+          f"of the recorded seconds, so the RATIO is the schedules' and the "
+          f"seconds are not")
+    kill_s = cost["tests/features.py"]
+    for n in (sites, 21):
+        total = n * kill_s
+        print(f"COST MODEL {n} site(s) x {kill_s:.0f} s features.py kill = "
+              f"{total:.0f} s of driver work; at --jobs 3 that is "
+              f"{total / 3:.0f} s of wall clock, at --jobs {jobs} "
+              f"{total / jobs:.0f} s (arithmetic over the recorded seconds, "
+              f"not a measurement)")
+    return 0 if same else 1
+
+
+def _timeout_bound(run: ScriptRun) -> int:
+    """The bound a timed-out run tripped, from its own stderr (or its elapsed
+    seconds, which `run_script` stops at the bound)."""
+    m = _TIMED_OUT_AFTER.search(run.stderr or "")
+    return int(m.group(1)) if m else round(run.seconds)
+
+
+def baseline_refusal(baseline: dict[str, ScriptRun], scope: str,
+                     recorded: dict[str, dict] | None = None) -> int | None:
+    """The verdict on a red baseline, or ``None`` when it is green.
+
+    A red baseline makes every mutant's verdict meaningless: the table
+    evaluated nothing, so no mutation information is lost either way. The two
+    scopes differ only in what that is worth reporting as, and `mutation` is
+    not a required context while `fast` is.
+
+    **The baseline's driver set is a subset of the scoped gate's selection.**
+    The drivers are those whose measured closure reaches a file the diff
+    wrote code in, and the gate selects every script whose closure reaches a
+    changed file, so a red here is `fast`'s red restated -- **for a FAILING
+    CHECK.** Re-derive that at your own merge base: `scope_files("changed",
+    base)` with `drivers_for`, against `tests/closure.py select --diff
+    <merge-base>`.
+
+    **A TIMEOUT is not `fast`'s red restated** (RCA-1565). `fast` bounds a
+    script by its serial cost; this lane bounds it by `TIMEOUT_SCALE` x a solo
+    recording the 3-worker pool exceeds. When a baseline's only fault is
+    `rc=TIMEOUT_RC` and the committed recording for the same head says `rc: 0`,
+    `fast` ran that script GREEN while this lane's own bound was too small: the
+    recording is stale, not the suite. Naming that distinction is the whole
+    point -- "Fix the suite first" sends the reader to a suite that is green.
+
+    `--scope full` keeps the refusal: it runs on a schedule, where nothing
+    else reports that lane's baseline per commit.
+
+    `run_script` returns the stdout and stderr it judged alongside the counts,
+    so this names the red SCRIPT and, from that captured output, the failing
+    CHECK inside it -- rather than sending the reader back to re-run the script
+    to learn which check went red (#1134).
+    """
+    red = sorted(s for s, run in baseline.items() if run.rc != 0)
+    if not red:
+        return None
+    if recorded is None:
+        recorded = recorded_entries()
+    timeouts = [s for s in red if baseline[s].timed_out]
+    failed = [s for s in red if not baseline[s].timed_out]
+    print("\nMUTATION TABLE INCONCLUSIVE")
+    if failed:
+        print("  - the baseline is already red in " + ", ".join(failed) +
+              ", so no mutant's verdict means anything. Fix the suite first. "
+              "A script the scoped gate also selected carries this red on "
+              "`fast`; one it scoped out does not, and is covered by the forced "
+              "`full` run on `main` rather than by any check on this pull "
+              "request.")
+        for s in failed:
+            checks = failed_checks(baseline[s])
+            print(f"      {s}: " + ("; ".join(checks) if checks
+                                     else "no FAIL line in its output"))
+    if timeouts:
+        print("  - the baseline TIMED OUT in " + ", ".join(timeouts) +
+              ": the lane's own bound was exceeded, which is NOT `fast`'s red "
+              "restated -- `fast` bounds a script by its serial cost, this lane "
+              f"by {TIMEOUT_SCALE}x a solo recording the 3-worker pool exceeds. "
+              "No mutant's verdict means anything, but a green suite is not "
+              "what went red here.")
+        for s in timeouts:
+            run = baseline[s]
+            entry = recorded.get(s, {})
+            solo = entry.get("seconds")
+            rc = entry.get("rc")
+            bound = _timeout_bound(run)
+            has_solo = isinstance(solo, (int, float)) and not isinstance(solo, bool)
+            solo_txt = f"{solo}s" if has_solo else "no committed recording"
+            factor = f" = {bound / solo:.2f}x the recording" if has_solo and solo else ""
+            if rc == 0:
+                judge = ("the recording is STALE, not the suite -- the same "
+                         "head commits rc:0 for it, so `fast` ran it green "
+                         "while this lane's bound for the pool cost did not")
+                remedy = (f"re-record with `tests/derive_closures.sh --single "
+                          f"{s}`, or let the next CI recording adopt the pool "
+                          "cost (seed_pool_seconds)")
+            else:
+                judge = ("the driver has no green solo recording to judge the "
+                         "pool cost against")
+                remedy = (f"re-record with `tests/derive_closures.sh --single "
+                          f"{s}`, or raise the --timeout floor for it")
+            print(f"      {s}: pool cost reached the {bound}s bound "
+                  f"({TIMEOUT_SCALE} x the committed solo recording {solo_txt}"
+                  f"{factor}, committed rc {rc}); {judge}. Remedy: {remedy}.")
+    return 1 if scope == "full" else 0
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--scope", choices=("changed", "full"), default="changed")
+    ap.add_argument("--base", default="origin/main")
+    ap.add_argument(
+        "--scripts",
+        default=DEFAULT_SCRIPTS,
+        help="candidate drivers; defaults to default_scripts(): every script "
+             "tests/closures.json records, minus the DRIVER_EXCLUSIONS, "
+             "which carry the property that excludes them. Each mutant runs "
+             "only those whose recorded closure contains its file, cheapest "
+             "measured first",
+    )
+    ap.add_argument("--per-file", type=int, default=3,
+                    help="cap per production file, so one big module cannot "
+                         "crowd out every other file in scope")
+    ap.add_argument("--max", type=int, default=8)
+    ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--seed", type=int, default=20260911)
+    ap.add_argument("--timeout", type=int, default=1200,
+                    help="the floor of every driver run's timeout, which "
+                         "scales from that driver's own seconds "
+                         "(driver_timeout)")
+    ap.add_argument("--budget-minutes", type=float, metavar="M",
+                    help="the run's wall clock from start: no mutant is "
+                         "started that would end past it (drive_pool; the "
+                         "pin drive's split divides the work it admits by "
+                         "the workers); the rest are named NOT RUN and the "
+                         "cap is over the evaluated ones")
+    ap.add_argument("--record", action="store_true")
+    ap.add_argument("--reason", default="",
+                    help="with --record: echoed for the commit message; the "
+                         "budget file's `reason` is not rewritten")
+    ap.add_argument("--pin-killed", action="store_true",
+                    help="drive every candidate site this diff added without "
+                         "a disposition, record each one a driver kills "
+                         "under killed_by, and leave the survivors unpinned")
+    ap.add_argument("--shard", metavar="K/N",
+                    help="with --pin-killed: drive only shard K of N (1-based) "
+                         "of the new unpinned sites, split by anchor "
+                         "(pin_shard), so N runners pin one diff in parallel")
+    ap.add_argument("--drain", metavar="OUT_DIR",
+                    help="with --scope full: drive a --max slice of the "
+                         "unpinned stock, chosen by --seed (drain_pool), and "
+                         "write what it killed to OUT_DIR for "
+                         "mutation-ledger-push; the ledger here is untouched "
+                         "and survivors are listed in OUT_DIR/survivors.txt")
+    ap.add_argument("--pool-seconds", metavar="PATH",
+                    help="a prior nightly's persisted pool measurement "
+                         "(pool_seconds), read to seed each driver's bound from "
+                         "the cost the 3-worker lane actually pays rather than "
+                         "3x a solo recording the band keeps stale "
+                         "(seed_pool_seconds, RCA-1565). Absent or unreadable "
+                         "seeds nothing and the bound falls back to the solo "
+                         "recording. With --drain, the fresh measurement is "
+                         "written to OUT_DIR/pool_seconds.json, which the "
+                         "workflow stages into the actions/cache entry the next "
+                         "nightly restores")
+    ap.add_argument("--anchor", metavar="ANCHOR",
+                    help="drive every site of ONE ledger anchor (as `PIN NOT "
+                         "REPRODUCED` names it) with --scripts, and report "
+                         "its verdict and its pin's re-verification; records "
+                         "nothing, and drives a triaged or pinned site too -- "
+                         "the step a human takes on that report, which "
+                         "--pin-killed (diff-added sites only) cannot")
+    ap.add_argument("--normalize", action="store_true",
+                    help="rewrite the ledger into its canonical form -- "
+                         "content-anchored keys, sorted maps, no committed "
+                         "count -- and exit; the one command a hand merge of "
+                         "tests/mutation_budgets.json needs afterwards")
+    ap.add_argument("--list", metavar="KIND", choices=sorted(LISTED),
+                    help="print every inventory site of one operator, ratcheted "
+                         "or only listed, with its unpinned count, and exit")
+    ap.add_argument("--carry-rows", nargs=2, metavar=("BASE", "HEAD"),
+                    help="apply the dispositions HEAD changed since BASE to "
+                         "the ledger on disk and exit: after `git merge "
+                         "origin/main` conflicts in the ledger, check out "
+                         "main's ledger and carry the branch's own rows onto "
+                         "it (BASE = the old merge base, HEAD = the branch "
+                         "before the merge); refuses a row both changed")
+    ap.add_argument("--selftest-pin-drive", action="store_true",
+                    help="run the pin-equality oracle and the split's "
+                         "timing pair on a synthetic fixture "
+                         "(selftest_pin_drive) and exit: no tree, no "
+                         "driver -- the drives are fakes sleeping the "
+                         "recorded seconds, scaled")
+    args = ap.parse_args(argv)
+    if args.selftest_pin_drive:
+        return selftest_pin_drive(jobs=max(1, min(args.jobs, MAX_PIN_JOBS)))
+    if args.anchor and (args.drain or args.pin_killed or args.record):
+        print("--anchor re-drives one site and records nothing: not with "
+              "--drain, --pin-killed or --record")
+        return 2
+    if args.drain and (args.scope != "full" or args.pin_killed):
+        print("--drain drives the whole package's stock: use it with --scope "
+              "full and without --pin-killed")
+        return 2
+    if args.record and args.budget_minutes is not None:
+        print("--record sets a cap from a whole pool: not with --budget-minutes")
+        return 2
+    deadline = (None if args.budget_minutes is None
+                else time.monotonic() + 60 * args.budget_minutes)
+    if args.carry_rows:
+        carried, clash = carry_rows(*args.carry_rows)
+        if clash:
+            print("CARRY REFUSED -- both sides changed these rows differently; "
+                  "resolve them by hand:")
+            for c in clash:
+                print(f"    {c}")
+            return 1
+        write_budgets(carried)
+        print(f"CARRIED the rows {args.carry_rows[1]} changed since "
+              f"{args.carry_rows[0]} into {LEDGER_DIRNAME}/")
+        return 0
+    # Line-buffered on purpose. A nightly whose whole table appears only when
+    # the process exits shows NOTHING when its timeout kills it -- the one run
+    # whose partial table is worth most.
+    sys.stdout.reconfigure(line_buffering=True)
+
+    budgets = load_budgets()
+    if args.list:
+        rows = listed_sites(args.list, budgets)
+        for site, loose in rows:
+            print(f"  {'UNPINNED' if loose else 'pinned  '} {triage_key(site)}: "
+                  f"{site['new'].strip()[:72]}")
+        print(f"LIST {args.list}: {len(rows)} site(s) in "
+              f"{len({s['file'] for s, _ in rows})} file(s), "
+              f"{sum(1 for _, u in rows if u)} unpinned, "
+              f"{'ratcheted' if args.list in RATCHETED else 'listed only'}")
+        return 0
+    if args.normalize:
+        fixed, unmapped = normalize(budgets, inventory())
+        write_budgets(fixed)
+        print(f"NORMALIZED {BUDGETS.name} and {LEDGER_DIRNAME}/: "
+              f"{sum(len(fixed.get(m, {})) for m in LEDGER_MAPS)} disposition(s)"
+              f", {len(unmapped)} retired key(s) naming no site")
+        for u in unmapped:
+            print(f"    - {u}")
+        return 1 if unmapped else 0
+    # A cap that cannot fail is not a gate (#1412). Refused before any
+    # baseline cost, symmetric to the triage check below.
+    cap_p = cap_problems(budgets)
+    if cap_p:
+        print("MUTATION TABLE REFUSED -- a cap that cannot fail:")
+        for p in cap_p:
+            print(f"    - {p}")
+        return 1
+    cap = float(budgets["max_survivor_fraction"][args.scope])
+    # The survivor triage (#1217): recorded equivalence marks are audit
+    # measurements pinned to the line text they were made on. A malformed one
+    # moves the fraction, so the run refuses before any baseline cost.
+    triage = budgets.get("survivor_triage", {})
+    problems = triage_problems(triage)
+    if problems:
+        print("MUTATION TABLE REFUSED -- survivor_triage in "
+              f"{BUDGETS.name} is malformed:")
+        for p in problems:
+            print(f"    - {p}")
+        return 1
+    # The deterministic inventory + completeness ledger (#1412). Source-only:
+    # no clone, no baseline, no solve, and it covers the WHOLE tree -- the
+    # 3816 sites the sampled pool never draws. It runs before the sample
+    # because the ratchet is over the whole tree, not over the diff's pool.
+    form = ledger_form_problems(budgets) + layout_problems()
+    if form:
+        print("MUTATION TABLE REFUSED -- the ledger is not in canonical form:")
+        for p in form:
+            print(f"    - {p}")
+        return 1
+    sites = inventory()
+    comp = completeness_problems(budgets, sites)
+    if comp:
+        print("MUTATION TABLE REFUSED -- the ledger disagrees with the "
+              "deterministic inventory:")
+        for p in comp:
+            print(f"    - {p}")
+        return 1
+    unpinned = unpinned_sites(budgets, sites)
+    rbase = ratchet_base(args.scope, args.base)
+    base_sites = base_unpinned_sites(rbase, sites)
+    base_count = None if base_sites is None else len(base_sites)
+    if base_count is None and not args.anchor:
+        print(f"MUTATION TABLE REFUSED -- the ratchet base {rbase!r} could not "
+              f"be read, so {len(unpinned)} unpinned site(s) have nothing to "
+              f"be compared with; fetch the base (CI checks out fetch-depth 0)")
+        return 1
+    added = added_unpinned(unpinned, base_sites or [], diff_sides(rbase))
+    if ((ratchet_refusal(base_count, unpinned) == 1 or added)
+            and not (args.pin_killed or args.drain or args.anchor)):
+        for k, s in added_keys(added):
+            print(f"    ADDED UNPINNED {k}: {s['old'].strip()[:72]}")
+        print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
+              f"against {base_count} at the ratchet base {rbase}, {len(added)} "
+              f"of them added by this diff. A new guard, "
+              f"clamp, removable return, doubled constant or comparison "
+              f"bound left the tree "
+              f"without a recorded disposition; record it under killed_by or "
+              f"survivor_triage and the count falls back. `python3 "
+              f"tests/mutation_table.py --pin-killed --base {args.base}` "
+              f"records every one a driver kills.")
+        for s in sorted(unpinned, key=lambda m: (m["file"], m["line"]))[:20]:
+            print(f"    {triage_key(s)}: {s['old'].strip()[:72]}")
+        return 1
+    print(f"  {len(unpinned)} unpinned site(s) of {len(sites)} candidate "
+          f"sites, {base_count} at the ratchet base {rbase}; the ledger agrees "
+          f"with the deterministic inventory")
+    files, why = scope_files(args.scope, args.base)
+    allow = [s for s in args.scripts.split(",") if s]
+    closures = load_closures()
+    print(f"MUTATION TABLE -- scope {args.scope}: {why}")
+    # The ref the gate would compare against, resolved once in this checkout
+    # -- every clone below is a worktree of it at this same HEAD (#1211). A
+    # ref-driven driver whose ref the gate itself would skip cannot drive
+    # anything here: drop it from the net now, so it never costs a baseline
+    # that would then be red for the environment rather than for the code.
+    ref = gate_ref(args.scope, args.base)
+    for s in list(allow):
+        if s in REF_DRIVEN:
+            why_skip = ref_skip_reason(ref, ROOT)
+            if why_skip:
+                allow.remove(s)
+                print(f"  SKIP {s} ({why_skip})")
+    if args.pin_killed:
+        pool = []
+        for site in new_unpinned(unpinned, base_sites or []):
+            drivers = drivers_for(site["file"], closures, allow)
+            if drivers:
+                pool.append(dict(site, drivers=drivers))
+            else:
+                print(f"  no recorded closure reaches {site['file']}; "
+                      f"{triage_key(site)} stays unpinned")
+        if args.shard:
+            k, n = (int(x) for x in args.shard.split("/"))
+            total = len(pool)
+            pool = pin_shard(pool, k, n)
+            print(f"PIN SHARD {k}/{n} -- {len(pool)} of {total} site(s), "
+                  f"split by anchor")
+        print(f"PIN KILLED -- {len(pool)} new unpinned site(s) against "
+              f"{rbase} to drive")
+        if not pool:
+            print("\nPIN KILLED: nothing to pin")
+            return 0
+    elif args.anchor:
+        pool = [dict(s, drivers=drivers_for(s["file"], closures, allow))
+                for s in sites if s["anchor"] == args.anchor]
+        if not pool or not pool[0]["drivers"]:
+            print(f"ANCHOR REFUSED -- {args.anchor!r} names "
+                  + ("no inventory site" if not pool else
+                     "a file no --scripts closure reaches"))
+            return 2
+        files = [ROOT / pool[0]["file"]]
+        print(f"ANCHOR -- {len(pool)} site(s) of {args.anchor}")
+    elif args.drain:
+        pool = drain_pool(unpinned, closures, allow, args.seed, args.max)
+        print(f"DRAIN -- {len(pool)} of {len(unpinned)} unpinned site(s), "
+              f"whole anchors under --seed {args.seed}, to drive")
+        if not pool:
+            (Path(args.drain)).mkdir(parents=True, exist_ok=True)
+            (Path(args.drain) / "status").write_text("skip-nothing-drivable\n")
+            print("\nDRAIN: nothing drivable")
+            return 0
+    elif not files:
+        print("  no production file in scope; nothing to mutate")
+        print("\nMUTATION TABLE PASSED (empty scope)")
+        return 0
+
+    rng = random.Random(args.seed)
+    if not (args.pin_killed or args.drain or args.anchor):
+        # A pull request draws only from the lines it wrote (`changed_lines`).
+        touched = changed_lines(args.base) if args.scope == "changed" else None
+        pool, held_n = sampled_pool(files, closures, allow, touched, triage,
+                                    rng, args.per_file, args.max)
+        if held_n:
+            print(f"  {held_n} drawn site(s) hold a survivor_triage mark: "
+                  f"{TRIAGE_JUDGE}, which would call them killed for the "
+                  f"mark's sake, is not one of their drivers")
+        if not pool:
+            print("  no mutant is both generatable and drivable")
+            print("\nMUTATION TABLE PASSED (empty pool)")
+            return 0
+    needed = sorted({s for mut in pool for s in mut["drivers"]})
+    print(f"  {len(pool)} mutant(s) over {len(files)} file(s); "
+          f"drivers in play: {', '.join(needed)}")
+    if any(s in REF_DRIVEN for s in needed):
+        print(f"  ref-driven drivers compare against {ref!r} "
+              f"(run.sh's GOLDEN_REF resolution)")
+    # A driver whose red output the kill rule cannot read can never kill, and
+    # every mutant only it reaches would read as a survivor: refuse first.
+    blind = verdict_form_problems(needed)
+    if blind:
+        print("\nMUTATION TABLE REFUSED -- a driver in play prints no "
+              "failing-check form `failing_count` reads:")
+        for b in blind:
+            print(f"    - {b}")
+        return 1
+    # The null control: a comment-only edit in a file the pool already
+    # mutates (`null_for`), driven by EVERY driver in play and never stopped
+    # at the first "kill". Its runs are baseline-phase tasks on the worker
+    # trees (`drive_baselines`), so it is never a process beside them, and its
+    # stress.py run is EXCLUSIVE like any other (#1565).
+    null = null_for(pool)
+    if null is None:
+        print("\nMUTATION TABLE REFUSED -- no full-line comment in any file "
+              "in the pool, so the run has no null control and no verdict "
+              "can be told apart from a driver reacting to the diff itself")
+        return 1
+    print(f"  null control: {triage_key(null)}, a comment-only edit every "
+          f"driver in play must let survive")
+
+    work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
+    made: list[Path] = []
+    # The prior nightly's pool measurement, read to seed each driver's bound,
+    # and this run's, written back for the next one (RCA-1565). Both live
+    # outside the try so the `finally` can persist what was measured even when
+    # the run refuses on its own bound -- the night the measurement is needed.
+    prior_pool = pool_seconds(getattr(args, "pool_seconds", None))
+    measured_pool: dict[str, float] = {}
+    try:
+        # One tree per worker, cloned before the baseline: the baseline and
+        # the null control run in them too, each on an unmutated tree. The
+        # pin drive's split caps its worker trees at MAX_PIN_JOBS; the
+        # sampled lane takes --jobs as given.
+        jobs = max(1, min(args.jobs, MAX_PIN_JOBS) if args.pin_killed
+                   else args.jobs)
+        trees = [clone_tree(work / f"w{i}") for i in range(jobs)]
+        made.extend(trees)
+
+        # A driver's timeout scales from its own seconds (R9-F10.12): the
+        # larger of the committed solo recording and the last measured pool
+        # cost, until its baseline here measures this run's (RCA-1565). The
+        # solo recording alone under-bounds the first baseline of a driver the
+        # 3-worker pool costs more than 3x its band-stale recording.
+        own_s = seed_pool_seconds(recorded_seconds(), prior_pool)
+
+        def run_baseline(w: int, s: str) -> ScriptRun:
+            extra_args, extra_env = drive_spec(s, ref)
+            limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+            run = run_script(s, trees[w], limit, extra_args, extra_env)
+            if not run.timed_out:
+                own_s[s] = run.seconds
+                measured_pool[s] = run.seconds
+            # One write per line: the workers print concurrently.
+            print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
+                  f"{run.seconds:.0f}s\n", end="")
+            return run
+
+        def run_null(w: int, s: str) -> ScriptRun:
+            with null_edit(trees[w], null):
+                extra_args, extra_env = drive_spec(s, ref)
+                limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+                return run_script(s, trees[w], limit, extra_args, extra_env)
+
+        deferred = deferred_drivers(needed, args.scope)
+        for s in deferred:
+            print(f"  {s}: baseline and null control deferred until a mutant "
+                  f"survives every shared driver")
+        lazy = lazy_drivers(needed, args.scope)
+        for s in lazy:
+            print(f"  {s}: baseline and null control deferred until a mutant "
+                  f"run of it is red")
+        null_runs: dict[str, ScriptRun] = {}
+        baseline = drive_baselines([s for s in needed
+                                    if s not in deferred and s not in lazy],
+                                   jobs, run_baseline,
+                                   null_run=run_null, null_out=null_runs)
+        verdict = baseline_refusal(baseline, args.scope)
+        if verdict is not None:
+            return verdict
+        refusal = null_control_refusal(
+            triage_key(null), null_control_verdict(null_runs, baseline))
+        if refusal:
+            print(refusal)
+            return 1
+        print(f"  null control {triage_key(null)} survived every driver")
+
+        def settle_on(w: int, s: str) -> int | None:
+            """A deferred or lazy driver's baseline and null run on tree `w`."""
+            base, nul = run_baseline(w, s), run_null(w, s)
+            stop = baseline_refusal({s: base}, args.scope)
+            if stop is None:
+                why = null_control_refusal(triage_key(null),
+                                           null_control_verdict({s: nul},
+                                                                {s: base}))
+                stop = 1 if why else None
+                print(why or f"  null control {triage_key(null)} survived {s}")
+            if stop is None:
+                baseline[s] = base
+                seconds[s] = base.seconds
+            return stop
+
+        def settle(s: str) -> None:
+            """A deferred driver's baseline and null run, alone on tree 0."""
+            stop = settle_on(0, s)
+            if stop is not None:
+                raise Deferred(stop)
+
+        verdicts = LazyBaselines(baseline, settle_on)
+        # The baselines' seconds, and the recorded ones for a lazy or deferred
+        # driver, which has none yet.
+        order_pool_drivers(pool, own_s, budgets.get("killed_by", {}))
+        seconds = budget_seconds(own_s, deferred)
+
+        results: list[tuple[dict, str]] = []
+        mutated: dict[int, str] = {}
+        kill_runs: dict[tuple[int, str], ScriptRun] = {}
+        outcomes: dict[tuple[int, str], bool | None] = {}
+        for mut in pool:
+            lines = (trees[0] / mut["file"]).read_text().splitlines(True)
+            i = mut["line"] - 1
+            if i >= len(lines) or lines[i].rstrip("\n") != mut["old"]:
+                results.append((mut, "SKIP-MOVED"))
+                continue
+            lines[i] = mut["new"] + "\n"
+            try:
+                ast.parse("".join(lines))
+            except SyntaxError:
+                # A mutant that cannot run reports as a survivor, and a survivor
+                # reads as a finding about production. W5-G7 t5 measured two.
+                results.append((mut, "SKIP-UNPARSEABLE"))
+                continue
+            mutated[id(mut)] = "".join(lines)
+
+        def drive(w: int, mut: dict, s: str) -> bool:
+            # One task per worker at a time, so a tree carries one mutant.
+            if verdicts.stop is not None:
+                return False
+            path = trees[w] / mut["file"]
+            original = path.read_text()
+            path.write_text(mutated[id(mut)])
+            try:
+                extra_args, extra_env = drive_spec(s, ref)
+                limit = driver_timeout(args.timeout, own_s.get(s, 0.0))
+                run = run_script(s, trees[w], limit, extra_args, extra_env)
+            finally:
+                path.write_text(original)
+            if not run.timed_out:
+                # The budget's cost estimate: the dearest run seen.
+                seconds[s] = max(seconds.get(s, 0.0), run.seconds)
+            # After the restore: a lazy driver's baseline runs on this tree.
+            hit = verdicts.killed(w, s, run)
+            outcomes[(id(mut), s)] = hit
+            if hit:
+                kill_runs[(id(mut), s)] = run
+            return hit
+
+        # --pin-killed is the one mode that must drive EVERY site the diff
+        # added inside a wall-clock budget: it gets the split
+        # (drive_pin_pool). Every other mode keeps drive_pool's schedule.
+        drive_phase = drive_pin_pool if args.pin_killed else drive_pool
+        try:
+            results += drive_phase(
+                [m for m in pool if id(m) in mutated], jobs, seconds, drive,
+                settle=lambda s: (s in deferred and verdicts.stop is None
+                                  and settle(s)), deadline=deadline)
+        except Deferred as stop:
+            return stop.rc
+        if verdicts.stop is not None:
+            return verdicts.stop
+        for s in (s for s in lazy if s not in baseline):
+            print(f"  {s}: LAZY AND NEVER RUN -- every mutant run of it was "
+                  f"green, so no verdict read its baseline; a red one would "
+                  f"have made it INCONCLUSIVE, a killed null REFUSED")
+        for s in (s for s in deferred if s not in baseline):
+            print(f"  {s}: DEFERRED AND NEVER RUN -- no mutant survived every "
+                  f"shared driver, so its baseline was never checked here; a "
+                  f"red one would have made it INCONCLUSIVE, a killed null REFUSED")
+    finally:
+        # Persist the pool cost this lane measured, merged over the prior seed
+        # (fresh per script, prior kept for one not measured here), EVEN on a
+        # refusal: the night the bound tripped is exactly when the next run
+        # needs the measurement that would have covered it (RCA-1565). The
+        # workflow stages this file into the actions/cache entry the next
+        # nightly restores (the `mutation-ledger` artifact carries a copy too).
+        # A write that fails must not mask the run's own verdict, so it is
+        # warned, not raised.
+        if args.drain:
+            try:
+                write_pool_seconds({**prior_pool, **measured_pool},
+                                   Path(args.drain) / POOL_SECONDS_NAME,
+                                   _rev(ROOT, "HEAD") or "")
+            except OSError as exc:
+                print(f"  pool_seconds: not persisted ({exc})", file=sys.stderr)
+        for tree in made:
+            drop_tree(tree)
+        subprocess.run(["git", "worktree", "prune"], cwd=ROOT,
+                       capture_output=True)
+        shutil.rmtree(work, ignore_errors=True)
+
+    verdict = budget_refusal(results)
+    if verdict is not None:
+        return verdict
+    if args.drain:
+        head = _rev(ROOT, "HEAD") or ""
+        entries, report, _ = pin_results(results, kill_runs, baseline, sites,
+                                         head, how="--drain")
+        print("\n".join(report))
+        survivors = drain_survivors(results, entries)
+        status = write_drain(Path(args.drain), entries, head, survivors)
+        print(f"DRAIN: {status}, {len(entries)} anchor(s) to record, "
+              f"{len(survivors)} site(s) left for a human verdict")
+        return 0
+    if args.pin_killed:
+        entries, report, pin_rc = pin_results(results, kill_runs, baseline,
+                                              sites, rbase)
+        print("\n".join(report))
+        budgets.setdefault("killed_by", {}).update(entries)
+        fixed, _ = normalize(budgets, sites)
+        write_budgets(fixed)
+        return pin_rc
+
+    if not (args.drain or args.pin_killed):
+        for line in pin_reverification(results, outcomes,
+                                       budgets.get("killed_by", {})):
+            print(line)
+    if args.anchor:
+        for mut, verdict in results:
+            print(f"  {verdict}: {mut['file']}:{mut['line']} {mut['kind']}")
+        return 0
+    survivors = []
+    for mut, verdict in sorted(results, key=lambda r: (r[0]["file"], r[0]["line"])):
+        mark = "LIVES" if verdict == "LIVES" else (
+            "SKIP " if verdict.startswith("SKIP") else "ok   ")
+        note = "" if verdict in ("LIVES",) else f"  -- {verdict.lower()}"
+        print(f"  {mark} {mut['file']}:{mut['line']} {mut['kind']}{note}")
+        if verdict == "LIVES":
+            survivors.append(mut)
+
+    evaluated = sum(1 for _, v in results if not v.startswith("SKIP"))
+    n = len(survivors)
+    gaps, equivalent = survivor_gaps(survivors, triage)
+    rate = len(gaps) / evaluated if evaluated else 0.0
+    raw = n / evaluated if evaluated else 0.0
+    equiv_note = (f" ({len(equivalent)} triaged equivalent, raw {raw:.1%})"
+                  if equivalent else "")
+    print(f"\n  {n} survivor(s) of {evaluated} evaluated = {rate:.1%}"
+          f"{equiv_note}, cap {cap:.1%}")
+    for mut in survivors:
+        tri = ("  [triaged equivalent]"
+               if triaged_equivalent(triage, mut) else "")
+        print(f"    {mut['file']}:{mut['line']} {mut['kind']}: "
+              f"{mut['old'].strip()[:72]}{tri}")
+
+    if args.record:
+        if rate > cap:
+            print("\nREFUSED to record: a cap only moves down. "
+                  f"{rate:.1%} > the recorded {cap:.1%}; either kill the "
+                  "survivors, triage the equivalent ones, or raise it as a "
+                  "deliberate, argued edit.")
+            return 1
+        budgets["max_survivor_fraction"][args.scope] = round(rate, 4)
+        budgets["last_measured"][args.scope] = {
+            # `survivors` is the fraction's numerator -- survivors no triage
+            # has called equivalent -- and `equivalent` the part of this run
+            # the triage took off it. `survivor_lines` carries the whole
+            # table, marks included, so the count can be read back line by
+            # line.
+            "survivors": len(gaps), "equivalent": len(equivalent),
+            "evaluated": evaluated,
+            "at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "survivor_lines": [triage_key(m) for m in survivors],
+        }
+        # The reason goes in the commit message, not the file: a top-level
+        # string every recording branch rewrote is the same one-line merge
+        # conflict the committed `unpinned_sites` was.
+        write_budgets(budgets)
+        print(f"\nRECORDED max_survivor_fraction[{args.scope}]={rate:.4f}")
+        if args.reason:
+            print(f"  for the commit message: {args.reason}")
+        return 0
+    if evaluated == 0:
+        print("\nMUTATION TABLE PASSED (nothing evaluated)")
+        return 0
+    if rate > cap:
+        print("\nMUTATION TABLE BREACHED")
+        print(f"  - {rate:.1%} of mutants survived against a cap of {cap:.1%}. "
+              "A survivor is a production line no check would notice being "
+              "wrong. Pin the ones above, or record the ones measured "
+              "equivalent under survivor_triage in tests/mutation_budgets.json "
+              "with the reason that says so.")
+        return 1
+    print("\nMUTATION TABLE PASSED" + partial_note(results))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
