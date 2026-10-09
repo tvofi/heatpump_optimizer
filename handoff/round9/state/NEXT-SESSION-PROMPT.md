@@ -14,14 +14,16 @@ git show origin/handoff/audit-r9-fixplan:.claude/workflows/wave-r9-groups.json  
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R9-EG-B11 (stage in-flight, branch `handoff/r9-eg-entry-config`, note `handoff/round9/fix/resume/EG-B11.md on handoff/r9-eg-entry-config`): `git fetch origin handoff/r9-eg-entry-config && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R9-EG-A4 (stage in-flight, branch `handoff/r9-eg-archscore-required`, note `handoff/round9/fix/resume/EG-A4.md on handoff/r9-eg-archscore-required`): `git fetch origin handoff/r9-eg-archscore-required && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-SW-2 (stage in-flight, branch `handoff/r9-sw-actuation`, note `handoff/round9/fix/resume/SW-2.md on handoff/r9-sw-actuation`): `git fetch origin handoff/r9-sw-actuation && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-RO-8 (stage in-flight, branch `handoff/r9-ro-8`, note `handoff/round9/fix/resume/RO-8.md on handoff/r9-ro-8`): `git fetch origin handoff/r9-ro-8 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-UX-5 (stage in-flight, branch `handoff/r9-ux-actions`, note `handoff/round9/fix/resume/UX-5.md on handoff/r9-ux-actions`): `git fetch origin handoff/r9-ux-actions && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-SW-5 (stage in-flight, branch `handoff/r9-sw-5`, note `handoff/round9/fix/resume/SW-5.md on handoff/r9-sw-block`): `git fetch origin handoff/r9-sw-5 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DBG-1 (stage in-flight, branch `handoff/r9-dbg-1`, note `handoff/round9/fix/resume/DBG-1.md on fix/r9-dbg-1`): `git fetch origin handoff/r9-dbg-1 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
+- R9-UX-9 (stage in-flight, branch `handoff/r9-ux9`, note `handoff/round9/fix/resume/UX-9.md`): `git fetch origin handoff/r9-ux9 && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 - R9-DEFER-1793 (stage deferred, branch `none`, note `None`): `git fetch origin none && git worktree add --detach $SEAT/wt FETCH_HEAD`; read the note file and check its commit equals the fetched head
 
-Ready next (after-edges satisfied; nothing open constrains them): R9-CI-1, R9-DBG-1, R9-DEFER-1793, R9-EG-B11, R9-RO-11, R9-RO-8, R9-SW-2, R9-SW-5, R9-UX-5, R9-UX-9
+Ready next (after-edges satisfied; nothing open constrains them): R9-CI-1, R9-DBG-1, R9-DEFER-1793, R9-EG-B11, R9-RC-CARRY-PINS, R9-RO-11, R9-RO-8, R9-SW-2, R9-SW-5, R9-UX-5, R9-UX-9
 
 ## Resume steps
 
