@@ -11,14 +11,17 @@ the body. The PR branch `fix/cop-duty-floor` was **not** pushed -- the orchestra
    `tests/closures.json` conflict was resolved to the merge driver's own bytes (verified:
    `git merge-tree --write-tree origin/main 630849897`'s `tests/closures.json` blob `diff`s
    empty against `git show HEAD:tests/closures.json`). Production is untouched by the merge:
-   `git diff --stat 16c06fd32 HEAD -- custom_components/` is empty, so round 5's harness and
-   probe rows carry instead of being re-taken.
+   `git diff --stat 16c06fd32 HEAD -- custom_components/` is empty, which is why the acceptance
+   rows read the same at both heads (item 4 re-ran the harness to confirm it).
 2. Added 12 `features.py` boundary checks (3917 -> 3929 checks; the block is green; the single
    failure at both heads is the known Mac/BLAS `R9-F2.1 P3`).
 3. Wrote 25 ledger rows: 20 `killed_by` (all naming `tests/features.py`) + 5 `survivor_triage`
    (4 equivalent, 1 gap). 24 of the 37 charged sites are now disposed; 13 remain and all are
    #2065's lines. `unpinned 4620 <= base 4623`, `ratchet_refusal None`, `added 13`.
-4. Re-cut the body (`body/BODY-r6.md`), including the disclosed correction of round 5's false
+4. Re-took the fixer's harness at this head (`dev/audit/harnesses/cop_duty_floor.py`, 31 RESULT
+   lines, exit 0, every row identical to round 5's reading) -- it is cheap, so the body quotes a
+   re-run rather than a carry. The reviewer's probes carry on the production-identity argument.
+5. Re-cut the body (`body/BODY-r6.md`), including the disclosed correction of round 5's false
    "This PR's heads skip that lane" claim about `nightly-ha (stable)`.
 
 ## The method that mattered (do not re-derive it blind)
