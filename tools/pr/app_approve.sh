@@ -143,8 +143,14 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
 # commit is the pinned mutation-autofix shape; the reason it is not, and 1.
 bot_commit() {
   local sha=$1 lint abs out val parent
+  # The canonical location only. The lane that moved these instruments left no
+  # file at the pre-reorganisation path (`tests/layout.py`'s retired-path guard
+  # refuses a new citation of it, and it is genuinely absent from
+  # `origin/main`'s tree), so a fallback there is a dead arm, not insurance.
+  # If the canonical file were ever absent, the next line's fail-closed refusal
+  # is the answer: `carry` will not accept an autofix commit it cannot judge,
+  # which is the correct outcome and needs no legacy path to paper over it.
   lint="$SELF_DIR/../policy/policy_lint.mjs"
-  [ -f "$lint" ] || lint="$SELF_DIR/../../.claude/workflows/policy_lint.mjs"
   [ -f "$lint" ] || { echo "could not find policy_lint.mjs beside tools/pr/"; return 1; }
   abs=$(cd -- "$(dirname -- "$lint")" && pwd)/$(basename -- "$lint")
   out=$(node --input-type=module -e '
