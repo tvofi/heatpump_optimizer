@@ -18478,11 +18478,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18672,9 +18672,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -24410,6 +24412,54 @@ R.check(
     "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
     "translation and buys nothing",
 )
+
+# R9-RO-9a: a two-parent direct push -- a local merge pushed to main, or the
+# record bot merging main into its rows -- names no pull request, so v6.7.17's
+# window read UNCHECKED over nine of them and the stamp needed --allow-rowless.
+# Each gets a disposition instead: one that changes only delivery rows is
+# record-only by its file list, and any other is exempt only through a
+# tracked line in `DIRECT_PUSHES` naming its sha. A commit whose file list is
+# unknown, or that touches one file outside the rows, stays UNCHECKED.
+_DS_ROWS = _ds.ROW_DIR + "/1998.md"
+_DS_DIRECT = [
+    {"sha": "0a60e06" + "0" * 33, "parents": 2, "subject": "record: delivery rows for #1998 (autofix)",
+     "body": "", "files": [_DS_ROWS]},
+    {"sha": "618d014" + "0" * 33, "parents": 2, "subject": "Count dimension briefs", "body": "",
+     "files": ["tools/policy/counts.mjs"]},
+]
+_ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
+try:
+    _DS_D = tuple(
+        (sorted(b.get("disposition") or "-" for b in blind),
+         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+        for m, blind in (
+            _ds.collect(_DS_DIRECT[:1]),
+            _ds.collect(_DS_DIRECT, allow=_ds_allow),
+            _ds.collect(_DS_DIRECT),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                "- 1234567: a disposition for another commit\n")),
+            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
+        ))
+except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+R.check(
+    "a direct-push merge commit is dispositioned -- record-only by its files, "
+    "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
+    _DS_D == ((["record-only"], _ds.EMPTY),
+              (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
+              (["-", "record-only"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED)),
+    f"(rows only, both with the allow line, code without it, rows plus a "
+    f"script, files unknown, an allow line for another sha, the allow list "
+    f"itself edited, a row lookalike) -> {_DS_D}",
+)
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
     "parents",
@@ -24751,6 +24801,46 @@ R.check(
         _PC_RED_STEP.replace("set -euo pipefail", "", 1)
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
+)
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
@@ -29515,6 +29605,53 @@ R.check(
     f"count verdict on the trade {_AU_COUNT}; (trade, null, re-indent, moved, "
     f"no sides, source untouched, other def, generic return, new guard beside "
     f"a move, the moved one of two twins) -> {_AU_GOT}",
+)
+
+# R9-RO-9a (C9): which identical line is the added one. The base holds one
+# `return out` in `_seed`; the head adds a twin in a new def ABOVE it. The
+# match must give the base's site to its own def before any other def may
+# take it, whatever order the head lists them in -- one greedy pass charged
+# the old line and let the new one through. Null control: a head that only
+# re-indents the old site adds nothing.
+_au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
+_au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
+try:
+    _AU_TWIN = tuple(
+        [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
+        for head in ([_au_new, dict(_au_r, line=40)],
+                     [dict(_au_r, line=40, old="        return out")]))
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_unpinned charges a twin line to the def that gained it, not to the "
+    "def that already had it (R9-RO-9a)",
+    _AU_TWIN == ([("p/o.py:_padded", 10)], []),
+    f"(twin added above, re-indent only) -> {_AU_TWIN}",
+)
+
+# R9-RO-9a (C9): one line, three comparison bounds, one ledger anchor. The
+# ledger pins an anchor only when every mutant under it is killed
+# (`pin_results`), so the key a body disposes of must say how many there are;
+# three bare copies of one key read as three sites a single line covers.
+# Driven through the real operators over a synthetic module, and through
+# the key list ci_predict prints for prepr's step 6d.
+with tempfile.TemporaryDirectory() as _au_d:
+    _au_p = Path(_au_d) / "chain.py"
+    _au_p.write_text("def f(x, y):\n    if 0 < x < 9 < y:\n        return 1\n"
+                     "    return 0\n")
+    _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
+_AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
+try:
+    _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
+             [k for k, _ in _AU_KEYS(_au_cmp[:1])])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_keys gives a line with three comparison mutants one key carrying "
+    "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
+    len(_au_cmp) == 3 and _AU_K == ([f"{_au_p}:2 CMP_BOUND*3"],
+                                     [f"{_au_p}:2 CMP_BOUND"]),
+    f"{len(_au_cmp)} CMP_BOUND mutant(s); (all three, one) -> {_AU_K}",
 )
 
 # The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an

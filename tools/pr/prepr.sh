@@ -410,7 +410,7 @@ predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 
   fi
   out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
-    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+): .*/\1/p' > "$2"
+    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
     0|1) printf '%s\n' "$out" | grep '^PREDICT' | sed 's/^/           /' >&2
          printf '%s\n' "$out" | tail -1; return "$r" ;;
@@ -419,19 +419,27 @@ predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 
 }
 
 # Step 7d's whole body: every unpinned site step 6d listed has a line under
-# `## Unpinned sites` naming it by its `file:line KIND` key, with its
-# disposition (pinned by `mutation-autofix`, a value check, or a written
-# triage). rc 3 when no site is owed, so a body that adds none needs no section.
+# `## Unpinned sites` naming it by its `file:line KIND` key (`*N` when one line
+# holds N mutants of the operator), with its disposition (pinned by
+# `mutation-autofix`, a value check, or a written triage). A key matches whole:
+# `f.py:12 CONST` is not named by `f.py:12 CONST_X`. rc 3 when no site is owed,
+# so a body that adds none needs no section.
 unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
-  local sec missing n
+  local sec missing n near whole
+  # One function, so a harness that extracts it whole still runs it.
+  whole='{ s = $0; while ((i = index(s, k)) > 0) {
+      b = (i == 1) ? "" : substr(s, i - 1, 1); a = substr(s, i + length(k), 1)
+      if (b !~ /[A-Za-z0-9_.\/-]/ && a !~ /[A-Za-z0-9_*]/) { f = 1; exit }
+      s = substr(s, i + 1) } } END { exit !f }'
   n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
   if [ "$n" -eq 0 ]; then echo "the diff adds no unpinned mutation site"; return 3; fi
   sec=$(awk '/^## /{on=($0 ~ /^## Unpinned sites[[:space:]]*$/)} on' "$1")
   if [ -z "$sec" ]; then
-    echo "$n unpinned site(s) the diff adds and no \`## Unpinned sites\` section -- give each its key and disposition"
+    near=$(grep -im1 '^## *unpinned' "$1")
+    echo "$n unpinned site(s) the diff adds and no section headed exactly \`## Unpinned sites\`${near:+ (found \`$near\`)} -- give each its key and disposition"
     return 1
   fi
-  missing=$(while read -r k; do grep -qF -- "$k" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
+  missing=$(while read -r k; do awk -v k="$k" "$whole" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
   if [ -n "$missing" ]; then
     echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
   fi
@@ -557,10 +565,22 @@ body_check() { # body file, head sha, title, paths file, red names...
   # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
-  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  # The paths the base already had go along as `--existing-file`, the list
+  # pr-contract derives with `--diff-filter=a`: without it policy_lint counts
+  # every delivery row, the pull request's own new row included, as a touch of
+  # what `delivery-status` reads, and refuses a main-graded red CI exempts
+  # (#2028). No resolvable BASE, no list: the stricter reading stands.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n rc
+  local ex=/tmp/prepr-existing.$$
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
+  if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
+    args+=(--existing-file "$ex")
+  fi
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  rc=$?
+  rm -f "$ex"
+  return "$rc"
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
@@ -1509,6 +1529,21 @@ EOS
   got=$(claims_at unt); st "$got" '0:' "6a passes a branch that never edited the claim file it inherited (R9-F10.8)"
   got=$(claims_at rec); st "$got" '0:' "6a passes a row-only branch forked before main claimed (the fork point, not the tip)"
   got=$(claims_at own); st "$got" '0:' "6a passes a branch that writes its own claim (null control)"
+  # #2028: body_check hands policy_lint the paths the base already had
+  # (`--existing-file`), as pr-contract does. Without it every delivery row the
+  # diff names voids the main-reporter exemption -- the pull request's OWN new
+  # row included -- so open_pr.sh's row push refused a body for a red main
+  # carried (`delivery-status`, `nightly-status`) that CI's contract exempts.
+  (cd "$CLM/r" && $G checkout -q -b rowadd fork && mkdir -p dev/programme/delivery \
+    && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
+    && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
+    && $G commit -qam rowedit) >/dev/null 2>&1
+  row_red() { (cd "$CLM/r" && git checkout -q "$1" \
+    && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
+    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+    >/dev/null 2>&1; echo $?); }
+  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
@@ -1589,8 +1624,11 @@ PY
     && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
     && $G add -A && $G commit -qm pmainred \
     && $G checkout -q -b pinh pmainred && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pinh \
+    && $G checkout -q -b planes pmainred && echo "# a comment" >> tests/derive_closures.sh && $G commit -qam planes \
+    && $G checkout -q -b pdrop origin/main && sed -i.bak '/rec tests\/wood_advisor.py/d' tests/derive_closures.sh \
+    && rm tests/derive_closures.sh.bak && $G commit -qam pdrop \
     && $G checkout -q -b pmut origin/main \
-    && printf '\n\ndef _zz_planted(x):\n    if x > 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
+    && printf '\n\ndef _zz_planted(x):\n    if 0 < x < 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
     && $G commit -qam pmut \
     && $G checkout -q -b pstale origin/main \
     && python3 -c "import pathlib as P;p=P.Path('custom_components/heatpump_optimizer/away.py');t=p.read_text();o='    return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)\\n';assert o in t;p.write_text(t.replace(o,o[:-1]+' or None\\n'))" \
@@ -1623,8 +1661,15 @@ PY
   grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d charges no branch with an unrecorded script main already carries (null control)"
   st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
+  got=$(cd "$PDX/r" && git checkout -q planes && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
+  grep -q 'NO RECORDING' <<<"$got"
+  st $? 1 "6d charges no branch that only edits the lane file with a script main already left unrecorded"
+  got=$(predict_at pdrop); grep -q 'PREDICT closures .*NO RECORDING tests/wood_advisor.py' <<<"$got"
+  st $? 0 "6d still predicts NO RECORDING for a recording the lane edit drops (null control)"
   (cd "$PDX/r" && git checkout -q pmut && predict_line origin/main "$PDX/sites" >/dev/null 2>&1)
   st "$(grep -c . "$PDX/sites")" 3 "6d writes the three planted site keys for step 7d"
+  grep -q ' CMP_BOUND\*2$' "$PDX/sites"
+  st $? 0 "and a line holding two comparison mutants is one key carrying its multiplicity"
   printf 'Why.\n\n## Head\n\nx\n' > "$PDX/b0.md"
   unpinned_line "$PDX/b0.md" "$PDX/sites" >/dev/null; st $? 1 "7d refuses a body with no ## Unpinned sites when sites are owed"
   { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- %s: pinned by mutation-autofix\n' "$(head -1 "$PDX/sites")"; } > "$PDX/b1.md"
@@ -1635,6 +1680,18 @@ PY
   unpinned_line "$PDX/b2.md" "$PDX/sites" >/dev/null; st $? 0 "7d passes a section naming every listed site (null control)"
   { cat "$PDX/b0.md"; printf '\n## Figures\n\n'; sed 's/^/- /' "$PDX/sites"; } > "$PDX/b3.md"
   unpinned_line "$PDX/b3.md" "$PDX/sites" >/dev/null; st $? 1 "7d reads the keys under ## Unpinned sites only, not anywhere in the body"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites (3)\n\n'; sed 's/$/: pinned by mutation-autofix/; s/^/- /' "$PDX/sites"; } > "$PDX/b4.md"
+  got=$(unpinned_line "$PDX/b4.md" "$PDX/sites"); r=$?
+  st "$r" 1 "7d refuses a section whose heading is not exactly ## Unpinned sites"
+  grep -qF '`## Unpinned sites (3)`' <<<"$got" && grep -qF 'exactly `## Unpinned sites`' <<<"$got"
+  st $? 0 "and its refusal names the heading it found and the one it expects"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n'; sed 's/^/- `/; s/$/`: pinned/' "$PDX/sites"; } > "$PDX/b5.md"
+  unpinned_line "$PDX/b5.md" "$PDX/sites" >/dev/null; st $? 0 "7d passes keys written in backticks (null control)"
+  printf 'p/a.py:12 CONST\n' > "$PDX/k12"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- p/a.py:12 CONST_X: pinned\n- xp/a.py:12 CONST: pinned\n'; } > "$PDX/b6.md"
+  unpinned_line "$PDX/b6.md" "$PDX/k12" >/dev/null; st $? 1 "7d matches a key whole, never inside a longer key"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- p/a.py:12 CONST: pinned\n'; } > "$PDX/b7.md"
+  unpinned_line "$PDX/b7.md" "$PDX/k12" >/dev/null; st $? 0 "and passes the same key named whole (null control)"
   : > "$PDX/none"
   unpinned_line "$PDX/b0.md" "$PDX/none" >/dev/null; st $? 3 "7d owes nothing when the diff adds no site"
   rm -rf "$PDX"

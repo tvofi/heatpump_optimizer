@@ -211,20 +211,24 @@ def inert_siblings(changed, inert_reads, closure):
     return preds
 
 
-def no_recording(root, changed, closure):
+def no_recording(root, base, changed, closure):
     """A selectable script no derive lane records: `NO recording this run`.
 
-    Only scripts the diff adds or changes, and the lane file when the diff
-    edits it: a script main already carries unrecorded is main's red, and
-    charging it to every branch would refuse pushes nothing on them can fix.
+    Only scripts the diff adds or changes, and scripts whose recording an
+    edit to the lane file drops: a script main already carries unrecorded is
+    main's red, and charging it to every branch -- or to every branch that
+    touches the lane file -- would refuse pushes nothing on them can fix.
     """
-    lanes = (root / "tests" / "derive_closures.sh").read_text()
-    recorded = set(re.findall(r"\brec (tests/\S+)", lanes))
-    lanes_changed = "tests/derive_closures.sh" in changed
+    lane = "tests/derive_closures.sh"
+
+    def recs(text):
+        return set(re.findall(r"\brec (tests/\S+)", text or ""))
+    recorded = recs((root / lane).read_text())
+    dropped = recs(show(root, base, lane)) - recorded if lane in changed else set()
     return [("closures", f"NO RECORDING {s}: selectable, and no lane of "
-             f"tests/derive_closures.sh records it")
+             f"{lane} records it")
             for s in closure.selectable_scripts()
-            if s not in recorded and (s in changed or lanes_changed)]
+            if s not in recorded and (s in changed or s in dropped)]
 
 
 def orphans(changed, closure):
@@ -276,8 +280,8 @@ def unpinned(base):
         return stale + [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
                  f"to compare against, and CI refuses that too")]
     added = m.added_unpinned(pinned_out, base_sites, m.diff_sides(base))
-    return stale + [("mutation", f"ADDED UNPINNED {m.triage_key(s)}: "
-                     f"{s['old'].strip()[:60]}") for s in added]
+    return stale + [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}")
+                    for k, s in m.added_keys(added)]
 
 
 def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]:
@@ -293,7 +297,7 @@ def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]
     closures, inert_reads = table["closures"], table.get("inert_reads", {})
     preds: list[tuple[str, str]] = []
     preds += orphans(changed, closure)
-    preds += no_recording(root, changed, closure)
+    preds += no_recording(root, base, changed, closure)
     preds += under_scoped(root, base, changed, tracked, closures, inert_reads, closure)
     preds += inert_siblings(changed, inert_reads, closure)
     preds += unpinned(base)
