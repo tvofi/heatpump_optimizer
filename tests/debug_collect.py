@@ -459,6 +459,37 @@ R.check(
     "the feed self-test of an empty ring adds no failures",
     debugger.feed_health([])["solve_failures_added"] == 0,
 )
+# A week whose price feed failed for twelve cycles: the fetch raises, so the
+# coordinator publishes nothing and the ring simply has a hole in it (#1940).
+SILENT = [_row(t=(T0 + timedelta(minutes=30 * i)).isoformat(), prices_rows=96)
+          for i in range(6)]
+SILENT += [_row(t=(T0 + timedelta(hours=8, minutes=30 + 30 * i)).isoformat(),
+                prices_rows=96) for i in range(6)]
+holey = debugger.feed_health(SILENT)
+R.check(
+    "the feed self-test names the hole the ring shows when cycles published nothing, "
+    "where its price and forecast counters read clean",
+    holey["row_gaps_h"] == {"n": 11, "min": 0.5, "median": 0.5, "max": 6.0}
+    and holey["no_prices"] == 0 and holey["weather_stale_cycles"] == 0,
+    str(holey),
+)
+R.check(
+    "the feed self-test of an even ring reports its cadence, not a hole",
+    feeds["row_gaps_h"] == {"n": 4, "min": 0.0, "median": 0.0, "max": 0.0},
+    str(feeds),
+)
+R.check(
+    "the feed self-test reports the outage streak the collection ended in, and none "
+    "when it was not told",
+    debugger.feed_health(SILENT, outage_cycles=12)["tibber_outage_cycles"] == 12
+    and holey["tibber_outage_cycles"] is None,
+    str(debugger.feed_health(SILENT, outage_cycles=12)),
+)
+R.check(
+    "the feed self-test of a ring whose stamps do not parse reports no gaps",
+    debugger.feed_health([])["row_gaps_h"] is None
+    and debugger.feed_health([{"mode": "auto"}, _row(t="not a stamp")])["row_gaps_h"] is None,
+)
 
 
 async def _boom():
@@ -506,10 +537,15 @@ class _SimCoord(_Coord):
         self.accuracy = live
         self.simulated = []
         self.integration_version = "0.0.0"
+        self.outage = 12
 
     async def async_simulate(self, overrides, *, limited=True, base=None):
         self.simulated.append((overrides, limited))
         return {"cost_delta": 0.0, "baseline_cost": 12.5}
+
+    def diagnostics_state(self):
+        """The published view (#1739): the caller names no private member."""
+        return type("V", (), {"tibber_outage_cycles": self.outage})()
 
 
 def _disk_hass(folder):
@@ -572,6 +608,11 @@ R.check(
     "a ring carrying its self-test results is inside the debug store's domain",
     admitted("debug", finished.as_dict()),
 )
+R.check(
+    "the feed self-test reads the outage streak through the coordinator's published view",
+    tests["feeds"]["result"]["tibber_outage_cycles"] == 12,
+    str(tests.get("feeds"))[:200],
+)
 
 
 async def _stale_finish():
@@ -596,6 +637,28 @@ R.check(
     "self-test results that finish after the collection restarted are discarded",
     stale.self_tests is None and stale.final is False,
     str(stale.self_tests)[:200],
+)
+
+
+async def _no_view_finish():
+    pending: list = []
+    collector = debugger.DebugCollector(FakeHass(), "dbg", pending.append)
+    collector._read = lambda: _no_stores()
+    coord = _Coord()
+    collector.record(coord, {"mode": "auto"}, T0)
+    collector.finalize(coord)
+    for coro in pending:
+        await coro
+    return collector
+
+
+no_view = asyncio.run(_no_view_finish())
+R.check(
+    "the feed self-test of a coordinator that publishes no view reports no streak, "
+    "not an error",
+    "result" in no_view.self_tests["feeds"]
+    and no_view.self_tests["feeds"]["result"]["tibber_outage_cycles"] is None,
+    str(no_view.self_tests.get("feeds"))[:200],
 )
 async def _overtaken():
     pending: list = []
