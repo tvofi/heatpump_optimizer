@@ -18478,11 +18478,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18672,9 +18672,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
