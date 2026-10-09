@@ -1,0 +1,4 @@
+MUTATE :262 -> 'if False:'
+         (was 'if cap.plan_writes_power():')
+MUTANT:  rc=1 failed=1 total=51
+   FAIL S4 where the plan writes the frequency: None, the draw is its own echo

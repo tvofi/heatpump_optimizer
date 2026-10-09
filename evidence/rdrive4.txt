@@ -1,0 +1,54 @@
+16 inventory sites over the body's 14 lines
+
+BASELINE block: rc=0 out_tail='ALL 51 DR BLOCK PASSED'
+
+:45 CONST      KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL S2: the standby floor is 0.25 kW counted in the test -- 0.3 kW is the pump at its minimum modulation and 
+     ROW : S2: the standby floor is 0.25 kW counted in the test -- 0.3 kW is the 
+:48 CONST      KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL and the window is a week counted in the test: after 386 running samples only the last 336 stand, so a dra
+     ROW : and the window is a week counted in the test: after 386 running sample
+:51 CONST      KILLED rc=1 failed=3 (row claims failed=['3'], killed_by=tests/features.py)
+     MINE: FAIL the evidence floor is a day of half-hour runs counted in the test, not read off the constant: 47 samples 
+     MINE: FAIL a level asked at EXACTLY the configured floor is a level the pump was asked to run at, so its disagreemen
+     MINE: FAIL the latch engages at a quarter of the window disagreeing, not below it: 12 of 48 engages, 11 of 48 does n
+     ROW : the evidence floor is a day of half-hour runs counted in the test, not
+:54 CONST      KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL the floor is the TENTH percentile: a run of samples at the pump's true minimum sets it when they are 15 %
+     ROW : the floor is the TENTH percentile: a run of samples at the pump's true
+:60 CONST      KILLED rc=1 failed=2 (row claims failed=['2'], killed_by=tests/features.py)
+     MINE: FAIL a level asked at EXACTLY the configured floor is a level the pump was asked to run at, so its disagreemen
+     MINE: FAIL the latch engages at a quarter of the window disagreeing, not below it: 12 of 48 engages, 11 of 48 does n
+     ROW : a level asked at EXACTLY the configured floor is a level the pump was 
+:99 GUARD_OFF  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+:102 CMP_BOUND  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % below the configured one keeps the c
+     ROW : the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % b
+:103 CMP_BOUND  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL and inclusive at the bottom: a metered min exactly 15 % above the configured one keeps the configured one
+     ROW : and inclusive at the bottom: a metered min exactly 15 % above the conf
+:113 CMP_BOUND  KILLED rc=1 failed=2 (row claims failed=['2'], killed_by=tests/features.py)
+     MINE: FAIL a level asked at EXACTLY the configured floor is a level the pump was asked to run at, so its disagreemen
+     MINE: FAIL the latch engages at a quarter of the window disagreeing, not below it: 12 of 48 engages, 11 of 48 does n
+     ROW : a level asked at EXACTLY the configured floor is a level the pump was 
+:116 CMP_BOUND  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees with the plan: the factor boun
+     ROW : a draw exactly DISAGREE_FACTOR times the ask -- either way round -- ag
+:116 CMP_BOUND  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees with the plan: the factor boun
+     ROW : a draw exactly DISAGREE_FACTOR times the ask -- either way round -- ag
+:140 GUARD_OFF  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL an engaged latch whose metered ends EACH stand within the tolerance returns None: the configured range st
+     ROW : an engaged latch whose metered ends EACH stand within the tolerance re
+:175 BOOLOP     KILLED rc=1 failed=1 (row claims failed=['2'], killed_by=tests/features.py)
+     MINE: FAIL a record whose configuration is non-finite is dropped whole: no samples, no latch  [[(2.0, 3.0)]]
+:175 GUARD_OFF  KILLED rc=1 failed=1 (row claims failed=['2'], killed_by=tests/features.py)
+     MINE: FAIL a record whose configuration is non-finite is dropped whole: no samples, no latch  [[(2.0, 3.0)]]
+:262 GUARD_OFF  KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/structure.py)
+     MINE: FAIL S4 where the plan writes the frequency: None, the draw is its own echo
+:271 CLAMP_DROP KILLED rc=1 failed=1 (row claims failed=['1'], killed_by=tests/features.py)
+     MINE: FAIL S4 on a duty-cycling install that runs below its configured min: the min end is capped at the metered max
+     ROW : S4 on a duty-cycling install that runs below its configured min: the m
+
+DR MUT (reviewer): 16 killed of 16 site(s) driven; baseline failing_count=0
+tree clean? YES

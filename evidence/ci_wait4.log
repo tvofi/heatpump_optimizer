@@ -1,0 +1,14 @@
+12:46:21Z completed=15/17 open=['closures', 'mutation'] red=[]
+12:46:21Z poll 1 rc=7
+12:51:22Z completed=15/17 open=['closures', 'mutation'] red=[]
+12:51:22Z poll 2 rc=7
+12:56:23Z completed=15/17 open=['closures', 'mutation'] red=[]
+12:56:23Z poll 3 rc=7
+13:01:24Z completed=15/17 open=['closures', 'mutation'] red=[]
+13:01:24Z poll 4 rc=7
+13:06:25Z completed=15/17 open=['closures', 'mutation'] red=[]
+13:06:25Z poll 5 rc=7
+13:11:26Z completed=17/17 open=[] red=[]
+13:11:26Z poll 6 rc=0
+ALL SETTLED at poll 6
+WAIT LOOP DONE 2026-10-09T13:11:26Z
