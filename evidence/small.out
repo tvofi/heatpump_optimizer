@@ -1,0 +1,4 @@
+RESULT small impl=stamp_paths.base.sh lines=13 calls=3000 missed=1 load={ 58.35 55.52 58.11 }
+RESULT small impl=stamp_paths.final.sh lines=13 calls=3000 missed=0 load={ 61.90 57.31 58.63 }
+RESULT small impl=stamp_paths.base.sh lines=13 calls=3000 missed=0 load={ 50.99 55.08 57.74 }
+RESULT small impl=stamp_paths.final.sh lines=13 calls=3000 missed=0 load={ 39.91 51.45 56.24 }

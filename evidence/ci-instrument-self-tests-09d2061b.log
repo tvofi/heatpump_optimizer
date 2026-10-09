@@ -1,0 +1,2048 @@
+﻿2026-10-08T23:12:16.6810192Z Current runner version: '2.337.0'
+2026-10-08T23:12:16.6829724Z ##[group]Runner Image Provisioner
+2026-10-08T23:12:16.6830459Z Hosted Compute Agent
+2026-10-08T23:12:16.6830932Z Version: 20261002.596
+2026-10-08T23:12:16.6831479Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-08T23:12:16.6832083Z Build Date: 2026-10-02T22:28:27Z
+2026-10-08T23:12:16.6832621Z Worker ID: {8ecefe19-c761-468b-a8ca-d476bec7fe58}
+2026-10-08T23:12:16.6833229Z Region: centralus
+2026-10-08T23:12:16.6833671Z Cloud: Azure
+2026-10-08T23:12:16.6834123Z ##[endgroup]
+2026-10-08T23:12:16.6835164Z ##[group]Operating System
+2026-10-08T23:12:16.6835647Z Ubuntu
+2026-10-08T23:12:16.6836112Z 24.04.5
+2026-10-08T23:12:16.6836528Z LTS
+2026-10-08T23:12:16.6836953Z ##[endgroup]
+2026-10-08T23:12:16.6837577Z ##[group]Runner Image
+2026-10-08T23:12:16.6838081Z Image: ubuntu-24.04
+2026-10-08T23:12:16.6838551Z Version: 20261004.327.1
+2026-10-08T23:12:16.6839571Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-08T23:12:16.6840823Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-08T23:12:16.6841576Z ##[endgroup]
+2026-10-08T23:12:16.6842489Z ##[group]GITHUB_TOKEN Permissions
+2026-10-08T23:12:16.6844112Z Contents: read
+2026-10-08T23:12:16.6844603Z Metadata: read
+2026-10-08T23:12:16.6845099Z ##[endgroup]
+2026-10-08T23:12:16.6846702Z Secret source: Actions
+2026-10-08T23:12:16.6847653Z Cache mode: write
+2026-10-08T23:12:16.6848224Z Prepare workflow directory
+2026-10-08T23:12:16.8198433Z Prepare all required actions
+2026-10-08T23:12:16.8259137Z Getting action download info
+2026-10-08T23:12:17.0552221Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-08T23:12:17.2628745Z Download action repository 'actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444' (SHA:a0853c24544627f65ddf259abe73b1d18a591444)
+2026-10-08T23:12:17.4661403Z Complete job name: instrument-self-tests
+2026-10-08T23:12:17.5347323Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-08T23:12:17.5348439Z with:
+2026-10-08T23:12:17.5348922Z   fetch-depth: 0
+2026-10-08T23:12:17.5349387Z   fetch-tags: true
+2026-10-08T23:12:17.5349823Z   repository: tvofi/heatpump_optimizer
+2026-10-08T23:12:17.5353247Z   token: ***
+2026-10-08T23:12:17.5353674Z   ssh-strict: true
+2026-10-08T23:12:17.5354095Z   ssh-user: git
+2026-10-08T23:12:17.5354527Z   persist-credentials: true
+2026-10-08T23:12:17.5354997Z   clean: true
+2026-10-08T23:12:17.5355443Z   sparse-checkout-cone-mode: true
+2026-10-08T23:12:17.5355951Z   show-progress: true
+2026-10-08T23:12:17.5356371Z   lfs: false
+2026-10-08T23:12:17.5356775Z   submodules: false
+2026-10-08T23:12:17.5357203Z   set-safe-directory: true
+2026-10-08T23:12:17.5357806Z   allow-unsafe-pr-checkout: false
+2026-10-08T23:12:17.5358438Z env:
+2026-10-08T23:12:17.5358829Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:17.5359293Z ##[endgroup]
+2026-10-08T23:12:17.6207237Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-08T23:12:17.6209913Z ##[group]Getting Git version info
+2026-10-08T23:12:17.6211049Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T23:12:17.6212639Z [command]/usr/bin/git version
+2026-10-08T23:12:17.6227323Z git version 2.55.0
+2026-10-08T23:12:17.6243833Z ##[endgroup]
+2026-10-08T23:12:17.6256568Z Temporarily overriding HOME='/home/runner/work/_temp/13e83637-53cc-40bf-bb4a-7b162ab23fd2' before making global git config changes
+2026-10-08T23:12:17.6258575Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T23:12:17.6260988Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:12:17.6301127Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T23:12:17.6303816Z ##[group]Initializing the repository
+2026-10-08T23:12:17.6307017Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:12:17.6375230Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-08T23:12:17.6377891Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-08T23:12:17.6379229Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-08T23:12:17.6380200Z hint: call:
+2026-10-08T23:12:17.6380881Z hint:
+2026-10-08T23:12:17.6381582Z hint: 	git config --global init.defaultBranch <name>
+2026-10-08T23:12:17.6382379Z hint:
+2026-10-08T23:12:17.6383233Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-08T23:12:17.6384580Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-08T23:12:17.6385594Z hint:
+2026-10-08T23:12:17.6386185Z hint: 	git branch -m <name>
+2026-10-08T23:12:17.6386835Z hint:
+2026-10-08T23:12:17.6387914Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-08T23:12:17.6389676Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-08T23:12:17.6392094Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-08T23:12:17.6421591Z ##[endgroup]
+2026-10-08T23:12:17.6422982Z ##[group]Disabling automatic garbage collection
+2026-10-08T23:12:17.6424437Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-08T23:12:17.6449615Z ##[endgroup]
+2026-10-08T23:12:17.6450638Z ##[group]Setting up auth
+2026-10-08T23:12:17.6454113Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T23:12:17.6478023Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T23:12:17.6764886Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T23:12:17.6790869Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T23:12:17.6969802Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T23:12:17.7020731Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T23:12:17.7195670Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-08T23:12:17.7227668Z ##[endgroup]
+2026-10-08T23:12:17.7228921Z ##[group]Fetching the repository
+2026-10-08T23:12:17.7236599Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +a63b7f5e160e4d36dec95847a239312e19aa23ce:refs/remotes/pull/2067/merge
+2026-10-08T23:12:25.2316133Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-08T23:12:25.2319389Z  * [new branch]        bus/approvals           -> origin/bus/approvals
+2026-10-08T23:12:25.2327603Z  * [new branch]        cursor/r9-eg-entry-config-9aac -> origin/cursor/r9-eg-entry-config-9aac
+2026-10-08T23:12:25.2330575Z  * [new branch]        cursor/r9-sw-1-resume-826f -> origin/cursor/r9-sw-1-resume-826f
+2026-10-08T23:12:25.2333277Z  * [new branch]        cursor/r9-sw-2-actuation-6d19 -> origin/cursor/r9-sw-2-actuation-6d19
+2026-10-08T23:12:25.2335799Z  * [new branch]        fix/cop-duty-floor      -> origin/fix/cop-duty-floor
+2026-10-08T23:12:25.2338511Z  * [new branch]        fix/live-power-clamp-foundation-pr -> origin/fix/live-power-clamp-foundation-pr
+2026-10-08T23:12:25.2341676Z  * [new branch]        fix/r9-ci-2b            -> origin/fix/r9-ci-2b
+2026-10-08T23:12:25.2343823Z  * [new branch]        fix/r9-ci-2b-carry      -> origin/fix/r9-ci-2b-carry
+2026-10-08T23:12:25.2345850Z  * [new branch]        fix/r9-eg-a4            -> origin/fix/r9-eg-a4
+2026-10-08T23:12:25.2348124Z  * [new branch]        fix/r9-nightly-ha-on-pr -> origin/fix/r9-nightly-ha-on-pr
+2026-10-08T23:12:25.2349876Z  * [new branch]        fix/r9-rca-2028         -> origin/fix/r9-rca-2028
+2026-10-08T23:12:25.2352231Z  * [new branch]        fix/r9-rca-prepr-tmp    -> origin/fix/r9-rca-prepr-tmp
+2026-10-08T23:12:25.2354557Z  * [new branch]        fix/r9-review-timing    -> origin/fix/r9-review-timing
+2026-10-08T23:12:25.2356510Z  * [new branch]        fix/r9-ro-9a-pr         -> origin/fix/r9-ro-9a-pr
+2026-10-08T23:12:25.2358548Z  * [new branch]        fix/r9-ux-actions       -> origin/fix/r9-ux-actions
+2026-10-08T23:12:25.2360833Z  * [new branch]        fix/r9-ux9              -> origin/fix/r9-ux9
+2026-10-08T23:12:25.2363033Z  * [new branch]        fix/recarry-skip-prepr  -> origin/fix/recarry-skip-prepr
+2026-10-08T23:12:25.2365369Z  * [new branch]        handoff-body/arch-sound-fixes -> origin/handoff-body/arch-sound-fixes
+2026-10-08T23:12:25.2367961Z  * [new branch]        handoff-body/cop-duty-floor -> origin/handoff-body/cop-duty-floor
+2026-10-08T23:12:25.2370237Z  * [new branch]        handoff-body/early-cutoff -> origin/handoff-body/early-cutoff
+2026-10-08T23:12:25.2372899Z  * [new branch]        handoff-body/live-power-clamp-foundation -> origin/handoff-body/live-power-clamp-foundation
+2026-10-08T23:12:25.2375570Z  * [new branch]        handoff-body/r9-ci-1    -> origin/handoff-body/r9-ci-1
+2026-10-08T23:12:25.2378064Z  * [new branch]        handoff-body/r9-ci-1-autofix-skip -> origin/handoff-body/r9-ci-1-autofix-skip
+2026-10-08T23:12:25.2380476Z  * [new branch]        handoff-body/r9-ci-2a   -> origin/handoff-body/r9-ci-2a
+2026-10-08T23:12:25.2382529Z  * [new branch]        handoff-body/r9-ci-2b   -> origin/handoff-body/r9-ci-2b
+2026-10-08T23:12:25.2384738Z  * [new branch]        handoff-body/r9-ci-2b-carry -> origin/handoff-body/r9-ci-2b-carry
+2026-10-08T23:12:25.2388074Z  * [new branch]        handoff-body/r9-closures-eg-b7 -> origin/handoff-body/r9-closures-eg-b7
+2026-10-08T23:12:25.2391670Z  * [new branch]        handoff-body/r9-dbg-1   -> origin/handoff-body/r9-dbg-1
+2026-10-08T23:12:25.2394509Z  * [new branch]        handoff-body/r9-dbg-2   -> origin/handoff-body/r9-dbg-2
+2026-10-08T23:12:25.2397550Z  * [new branch]        handoff-body/r9-eg-a4   -> origin/handoff-body/r9-eg-a4
+2026-10-08T23:12:25.2400604Z  * [new branch]        handoff-body/r9-eg-b7-harness -> origin/handoff-body/r9-eg-b7-harness
+2026-10-08T23:12:25.2403224Z  * [new branch]        handoff-body/r9-eg-coordinator-seams -> origin/handoff-body/r9-eg-coordinator-seams
+2026-10-08T23:12:25.2406439Z  * [new branch]        handoff-body/r9-eg-entry-config -> origin/handoff-body/r9-eg-entry-config
+2026-10-08T23:12:25.2409036Z  * [new branch]        handoff-body/r9-eg-solve-inputs -> origin/handoff-body/r9-eg-solve-inputs
+2026-10-08T23:12:25.2411347Z  * [new branch]        handoff-body/r9-fixer-cap -> origin/handoff-body/r9-fixer-cap
+2026-10-08T23:12:25.2413374Z  * [new branch]        handoff-body/r9-gittmp  -> origin/handoff-body/r9-gittmp
+2026-10-08T23:12:25.2415885Z  * [new branch]        handoff-body/r9-main-closures -> origin/handoff-body/r9-main-closures
+2026-10-08T23:12:25.2419235Z  * [new branch]        handoff-body/r9-nightly-bdr -> origin/handoff-body/r9-nightly-bdr
+2026-10-08T23:12:25.2422356Z  * [new branch]        handoff-body/r9-nightly-ha -> origin/handoff-body/r9-nightly-ha
+2026-10-08T23:12:25.2425612Z  * [new branch]        handoff-body/r9-nightly-ha-on-pr -> origin/handoff-body/r9-nightly-ha-on-pr
+2026-10-08T23:12:25.2429332Z  * [new branch]        handoff-body/r9-prepr-selftest -> origin/handoff-body/r9-prepr-selftest
+2026-10-08T23:12:25.2431689Z  * [new branch]        handoff-body/r9-rca-1985 -> origin/handoff-body/r9-rca-1985
+2026-10-08T23:12:25.2434102Z  * [new branch]        handoff-body/r9-rca-1990 -> origin/handoff-body/r9-rca-1990
+2026-10-08T23:12:25.2436341Z  * [new branch]        handoff-body/r9-rca-2004 -> origin/handoff-body/r9-rca-2004
+2026-10-08T23:12:25.2438528Z  * [new branch]        handoff-body/r9-rca-2028 -> origin/handoff-body/r9-rca-2028
+2026-10-08T23:12:25.2440855Z  * [new branch]        handoff-body/r9-rca-bugclasses -> origin/handoff-body/r9-rca-bugclasses
+2026-10-08T23:12:25.2443158Z  * [new branch]        handoff-body/r9-rca-prepr-tmp -> origin/handoff-body/r9-rca-prepr-tmp
+2026-10-08T23:12:25.2445524Z  * [new branch]        handoff-body/r9-rca-stamp-race -> origin/handoff-body/r9-rca-stamp-race
+2026-10-08T23:12:25.2448156Z  * [new branch]        handoff-body/r9-rca-stress-recording -> origin/handoff-body/r9-rca-stress-recording
+2026-10-08T23:12:25.2450729Z  * [new branch]        handoff-body/r9-record-automerge -> origin/handoff-body/r9-record-automerge
+2026-10-08T23:12:25.2452985Z  * [new branch]        handoff-body/r9-record-path -> origin/handoff-body/r9-record-path
+2026-10-08T23:12:25.2455136Z  * [new branch]        handoff-body/r9-review-timing -> origin/handoff-body/r9-review-timing
+2026-10-08T23:12:25.2457165Z  * [new branch]        handoff-body/r9-ro-10   -> origin/handoff-body/r9-ro-10
+2026-10-08T23:12:25.2459263Z  * [new branch]        handoff-body/r9-ro-11   -> origin/handoff-body/r9-ro-11
+2026-10-08T23:12:25.2461124Z  * [new branch]        handoff-body/r9-ro-12   -> origin/handoff-body/r9-ro-12
+2026-10-08T23:12:25.2462971Z  * [new branch]        handoff-body/r9-ro-8    -> origin/handoff-body/r9-ro-8
+2026-10-08T23:12:25.2464799Z  * [new branch]        handoff-body/r9-ro-9a   -> origin/handoff-body/r9-ro-9a
+2026-10-08T23:12:25.2466640Z  * [new branch]        handoff-body/r9-sw-5    -> origin/handoff-body/r9-sw-5
+2026-10-08T23:12:25.2468724Z  * [new branch]        handoff-body/r9-sw-actuation -> origin/handoff-body/r9-sw-actuation
+2026-10-08T23:12:25.2470742Z  * [new branch]        handoff-body/r9-sw6     -> origin/handoff-body/r9-sw6
+2026-10-08T23:12:25.2472542Z  * [new branch]        handoff-body/r9-ux-10   -> origin/handoff-body/r9-ux-10
+2026-10-08T23:12:25.2474418Z  * [new branch]        handoff-body/r9-ux-6    -> origin/handoff-body/r9-ux-6
+2026-10-08T23:12:25.2476406Z  * [new branch]        handoff-body/r9-ux-7    -> origin/handoff-body/r9-ux-7
+2026-10-08T23:12:25.2478569Z  * [new branch]        handoff-body/r9-ux-actions -> origin/handoff-body/r9-ux-actions
+2026-10-08T23:12:25.2480586Z  * [new branch]        handoff-body/r9-ux9     -> origin/handoff-body/r9-ux9
+2026-10-08T23:12:25.2482459Z  * [new branch]        handoff/arch-sound-fixes -> origin/handoff/arch-sound-fixes
+2026-10-08T23:12:25.2484400Z  * [new branch]        handoff/audit-r9-alt    -> origin/handoff/audit-r9-alt
+2026-10-08T23:12:25.2486241Z  * [new branch]        handoff/audit-r9-evidence -> origin/handoff/audit-r9-evidence
+2026-10-08T23:12:25.2488402Z  * [new branch]        handoff/audit-r9-find-B1 -> origin/handoff/audit-r9-find-B1
+2026-10-08T23:12:25.2490428Z  * [new branch]        handoff/audit-r9-find-B10 -> origin/handoff/audit-r9-find-B10
+2026-10-08T23:12:25.2492366Z  * [new branch]        handoff/audit-r9-find-B2 -> origin/handoff/audit-r9-find-B2
+2026-10-08T23:12:25.2494339Z  * [new branch]        handoff/audit-r9-find-B3 -> origin/handoff/audit-r9-find-B3
+2026-10-08T23:12:25.2496308Z  * [new branch]        handoff/audit-r9-find-B4 -> origin/handoff/audit-r9-find-B4
+2026-10-08T23:12:25.2498352Z  * [new branch]        handoff/audit-r9-find-B5 -> origin/handoff/audit-r9-find-B5
+2026-10-08T23:12:25.2500297Z  * [new branch]        handoff/audit-r9-find-B6 -> origin/handoff/audit-r9-find-B6
+2026-10-08T23:12:25.2502245Z  * [new branch]        handoff/audit-r9-find-B7 -> origin/handoff/audit-r9-find-B7
+2026-10-08T23:12:25.2504217Z  * [new branch]        handoff/audit-r9-find-B8 -> origin/handoff/audit-r9-find-B8
+2026-10-08T23:12:25.2506138Z  * [new branch]        handoff/audit-r9-find-B9 -> origin/handoff/audit-r9-find-B9
+2026-10-08T23:12:25.2508181Z  * [new branch]        handoff/audit-r9-fixplan -> origin/handoff/audit-r9-fixplan
+2026-10-08T23:12:25.2510152Z  * [new branch]        handoff/audit-r9-issues -> origin/handoff/audit-r9-issues
+2026-10-08T23:12:25.2512012Z  * [new branch]        handoff/audit-r9-judge  -> origin/handoff/audit-r9-judge
+2026-10-08T23:12:25.2513942Z  * [new branch]        handoff/audit-r9-leads  -> origin/handoff/audit-r9-leads
+2026-10-08T23:12:25.2515835Z  * [new branch]        handoff/audit-r9-leads-l2 -> origin/handoff/audit-r9-leads-l2
+2026-10-08T23:12:25.2517951Z  * [new branch]        handoff/audit-r9-leads-l3 -> origin/handoff/audit-r9-leads-l3
+2026-10-08T23:12:25.2519995Z  * [new branch]        handoff/audit-r9-leads-l4 -> origin/handoff/audit-r9-leads-l4
+2026-10-08T23:12:25.2522006Z  * [new branch]        handoff/audit-r9-leads-lc -> origin/handoff/audit-r9-leads-lc
+2026-10-08T23:12:25.2523982Z  * [new branch]        handoff/audit-r9-plan   -> origin/handoff/audit-r9-plan
+2026-10-08T23:12:25.2525920Z  * [new branch]        handoff/audit-r9-register -> origin/handoff/audit-r9-register
+2026-10-08T23:12:25.2527996Z  * [new branch]        handoff/audit-r9-runner-1 -> origin/handoff/audit-r9-runner-1
+2026-10-08T23:12:25.2529960Z  * [new branch]        handoff/audit-r9-sweep-s1 -> origin/handoff/audit-r9-sweep-s1
+2026-10-08T23:12:25.2532025Z  * [new branch]        handoff/audit-r9-sweep-s2 -> origin/handoff/audit-r9-sweep-s2
+2026-10-08T23:12:25.2534097Z  * [new branch]        handoff/audit-r9-sweep-s3 -> origin/handoff/audit-r9-sweep-s3
+2026-10-08T23:12:25.2536221Z  * [new branch]        handoff/audit-r9-sweep-s4 -> origin/handoff/audit-r9-sweep-s4
+2026-10-08T23:12:25.2538536Z  * [new branch]        handoff/audit-r9-sweep-s5 -> origin/handoff/audit-r9-sweep-s5
+2026-10-08T23:12:25.2540567Z  * [new branch]        handoff/audit-r9-sweep-s6 -> origin/handoff/audit-r9-sweep-s6
+2026-10-08T23:12:25.2542612Z  * [new branch]        handoff/audit-r9-sweep-s7 -> origin/handoff/audit-r9-sweep-s7
+2026-10-08T23:12:25.2544702Z  * [new branch]        handoff/audit-r9-verify-g1-v1 -> origin/handoff/audit-r9-verify-g1-v1
+2026-10-08T23:12:25.2546948Z  * [new branch]        handoff/audit-r9-verify-g1-v2 -> origin/handoff/audit-r9-verify-g1-v2
+2026-10-08T23:12:25.2549443Z  * [new branch]        handoff/audit-r9-verify-g1-v3 -> origin/handoff/audit-r9-verify-g1-v3
+2026-10-08T23:12:25.2551591Z  * [new branch]        handoff/audit-r9-verify-g2-v1 -> origin/handoff/audit-r9-verify-g2-v1
+2026-10-08T23:12:25.2553792Z  * [new branch]        handoff/audit-r9-verify-g2-v2 -> origin/handoff/audit-r9-verify-g2-v2
+2026-10-08T23:12:25.2555873Z  * [new branch]        handoff/audit-r9-verify-g2-v3 -> origin/handoff/audit-r9-verify-g2-v3
+2026-10-08T23:12:25.2558267Z  * [new branch]        handoff/audit-r9-verify-g3-v1 -> origin/handoff/audit-r9-verify-g3-v1
+2026-10-08T23:12:25.2560353Z  * [new branch]        handoff/audit-r9-verify-g3-v2 -> origin/handoff/audit-r9-verify-g3-v2
+2026-10-08T23:12:25.2562372Z  * [new branch]        handoff/audit-r9-verify-g3-v3 -> origin/handoff/audit-r9-verify-g3-v3
+2026-10-08T23:12:25.2564466Z  * [new branch]        handoff/audit-r9-verify-g4-v1 -> origin/handoff/audit-r9-verify-g4-v1
+2026-10-08T23:12:25.2566527Z  * [new branch]        handoff/audit-r9-verify-g4-v2 -> origin/handoff/audit-r9-verify-g4-v2
+2026-10-08T23:12:25.2568988Z  * [new branch]        handoff/audit-r9-verify-g4-v3 -> origin/handoff/audit-r9-verify-g4-v3
+2026-10-08T23:12:25.2570904Z  * [new branch]        handoff/cop-duty-floor  -> origin/handoff/cop-duty-floor
+2026-10-08T23:12:25.2572654Z  * [new branch]        handoff/early-cutoff    -> origin/handoff/early-cutoff
+2026-10-08T23:12:25.2574765Z  * [new branch]        handoff/live-power-clamp-foundation -> origin/handoff/live-power-clamp-foundation
+2026-10-08T23:12:25.2576815Z  * [new branch]        handoff/r9-ci-1         -> origin/handoff/r9-ci-1
+2026-10-08T23:12:25.2578907Z  * [new branch]        handoff/r9-ci-1-autofix-skip -> origin/handoff/r9-ci-1-autofix-skip
+2026-10-08T23:12:25.2580765Z  * [new branch]        handoff/r9-ci-2a        -> origin/handoff/r9-ci-2a
+2026-10-08T23:12:25.2582384Z  * [new branch]        handoff/r9-ci-2b        -> origin/handoff/r9-ci-2b
+2026-10-08T23:12:25.2584094Z  * [new branch]        handoff/r9-ci-2b-carry  -> origin/handoff/r9-ci-2b-carry
+2026-10-08T23:12:25.2585967Z  * [new branch]        handoff/r9-closures-eg-b7 -> origin/handoff/r9-closures-eg-b7
+2026-10-08T23:12:25.2587937Z  * [new branch]        handoff/r9-dbg-0        -> origin/handoff/r9-dbg-0
+2026-10-08T23:12:25.2589505Z  * [new branch]        handoff/r9-dbg-1        -> origin/handoff/r9-dbg-1
+2026-10-08T23:12:25.2591001Z  * [new branch]        handoff/r9-dbg-2        -> origin/handoff/r9-dbg-2
+2026-10-08T23:12:25.2592604Z  * [new branch]        handoff/r9-dbg-3        -> origin/handoff/r9-dbg-3
+2026-10-08T23:12:25.2594175Z  * [new branch]        handoff/r9-diag-1       -> origin/handoff/r9-diag-1
+2026-10-08T23:12:25.2595729Z  * [new branch]        handoff/r9-diag-2s      -> origin/handoff/r9-diag-2s
+2026-10-08T23:12:25.2597291Z  * [new branch]        handoff/r9-eg-a4        -> origin/handoff/r9-eg-a4
+2026-10-08T23:12:25.2599477Z  * [new branch]        handoff/r9-eg-archscore -> origin/handoff/r9-eg-archscore
+2026-10-08T23:12:25.2601219Z  * [new branch]        handoff/r9-eg-b0        -> origin/handoff/r9-eg-b0
+2026-10-08T23:12:25.2603073Z  * [new branch]        handoff/r9-eg-b7-harness -> origin/handoff/r9-eg-b7-harness
+2026-10-08T23:12:25.2605401Z  * [new branch]        handoff/r9-eg-collaborator-interfaces -> origin/handoff/r9-eg-collaborator-interfaces
+2026-10-08T23:12:25.2608091Z  * [new branch]        handoff/r9-eg-coordinator-seams -> origin/handoff/r9-eg-coordinator-seams
+2026-10-08T23:12:25.2610482Z  * [new branch]        handoff/r9-eg-dhw-closure-dedupe-v2 -> origin/handoff/r9-eg-dhw-closure-dedupe-v2
+2026-10-08T23:12:25.2612731Z  * [new branch]        handoff/r9-eg-dhw-planner -> origin/handoff/r9-eg-dhw-planner
+2026-10-08T23:12:25.2614691Z  * [new branch]        handoff/r9-eg-entry-config -> origin/handoff/r9-eg-entry-config
+2026-10-08T23:12:25.2616580Z  * [new branch]        handoff/r9-eg-one-copy  -> origin/handoff/r9-eg-one-copy
+2026-10-08T23:12:25.2618646Z  * [new branch]        handoff/r9-eg-param-objects -> origin/handoff/r9-eg-param-objects
+2026-10-08T23:12:25.2620777Z  * [new branch]        handoff/r9-eg-register-fold -> origin/handoff/r9-eg-register-fold
+2026-10-08T23:12:25.2622762Z  * [new branch]        handoff/r9-eg-solve-inputs -> origin/handoff/r9-eg-solve-inputs
+2026-10-08T23:12:25.2624582Z  * [new branch]        handoff/r9-eg-store-version -> origin/handoff/r9-eg-store-version
+2026-10-08T23:12:25.2626549Z  * [new branch]        handoff/r9-eg-surface-identity -> origin/handoff/r9-eg-surface-identity
+2026-10-08T23:12:25.2628699Z  * [new branch]        handoff/r9-eg-typed-payload -> origin/handoff/r9-eg-typed-payload
+2026-10-08T23:12:25.2630711Z  * [new branch]        handoff/r9-eg-typed-payload-b -> origin/handoff/r9-eg-typed-payload-b
+2026-10-08T23:12:25.2632800Z  * [new branch]        handoff/r9-f1-coordinator-10 -> origin/handoff/r9-f1-coordinator-10
+2026-10-08T23:12:25.2634685Z  * [new branch]        handoff/r9-f1-coordinator-2 -> origin/handoff/r9-f1-coordinator-2
+2026-10-08T23:12:25.2636547Z  * [new branch]        handoff/r9-f1-coordinator-3 -> origin/handoff/r9-f1-coordinator-3
+2026-10-08T23:12:25.2638713Z  * [new branch]        handoff/r9-f1-coordinator-4 -> origin/handoff/r9-f1-coordinator-4
+2026-10-08T23:12:25.2640627Z  * [new branch]        handoff/r9-f1-coordinator-5 -> origin/handoff/r9-f1-coordinator-5
+2026-10-08T23:12:25.2642547Z  * [new branch]        handoff/r9-f1-coordinator-7 -> origin/handoff/r9-f1-coordinator-7
+2026-10-08T23:12:25.2644576Z  * [new branch]        handoff/r9-f1-coordinator-7-review -> origin/handoff/r9-f1-coordinator-7-review
+2026-10-08T23:12:25.2646501Z  * [new branch]        handoff/r9-f10-12       -> origin/handoff/r9-f10-12
+2026-10-08T23:12:25.2648307Z  * [new branch]        handoff/r9-f10-13       -> origin/handoff/r9-f10-13
+2026-10-08T23:12:25.2649850Z  * [new branch]        handoff/r9-f10-14       -> origin/handoff/r9-f10-14
+2026-10-08T23:12:25.2651415Z  * [new branch]        handoff/r9-f10-15       -> origin/handoff/r9-f10-15
+2026-10-08T23:12:25.2652932Z  * [new branch]        handoff/r9-f10-16       -> origin/handoff/r9-f10-16
+2026-10-08T23:12:25.2654707Z  * [new branch]        handoff/r9-f10-ci-efficiency -> origin/handoff/r9-f10-ci-efficiency
+2026-10-08T23:12:25.2656816Z  * [new branch]        handoff/r9-f10-claims-baseline-rca -> origin/handoff/r9-f10-claims-baseline-rca
+2026-10-08T23:12:25.2659209Z  * [new branch]        handoff/r9-f10-closure-runalways -> origin/handoff/r9-f10-closure-runalways
+2026-10-08T23:12:25.2661224Z  * [new branch]        handoff/r9-f10-gate-infra-1 -> origin/handoff/r9-f10-gate-infra-1
+2026-10-08T23:12:25.2663124Z  * [new branch]        handoff/r9-f10-gate-infra-1d -> origin/handoff/r9-f10-gate-infra-1d
+2026-10-08T23:12:25.2665016Z  * [new branch]        handoff/r9-f10-gate-infra-4 -> origin/handoff/r9-f10-gate-infra-4
+2026-10-08T23:12:25.2666909Z  * [new branch]        handoff/r9-f10-gate-infra-5 -> origin/handoff/r9-f10-gate-infra-5
+2026-10-08T23:12:25.2669103Z  * [new branch]        handoff/r9-f10-gate-infra-6 -> origin/handoff/r9-f10-gate-infra-6
+2026-10-08T23:12:25.2671092Z  * [new branch]        handoff/r9-f10-harness-timeout -> origin/handoff/r9-f10-harness-timeout
+2026-10-08T23:12:25.2673275Z  * [new branch]        handoff/r9-f10-loop-heartbeat -> origin/handoff/r9-f10-loop-heartbeat
+2026-10-08T23:12:25.2675141Z  * [new branch]        handoff/r9-f10-merge-queue -> origin/handoff/r9-f10-merge-queue
+2026-10-08T23:12:25.2677046Z  * [new branch]        handoff/r9-f11-governance-1 -> origin/handoff/r9-f11-governance-1
+2026-10-08T23:12:25.2679107Z  * [new branch]        handoff/r9-f11-governance-3 -> origin/handoff/r9-f11-governance-3
+2026-10-08T23:12:25.2681009Z  * [new branch]        handoff/r9-f11-governance-4 -> origin/handoff/r9-f11-governance-4
+2026-10-08T23:12:25.2683067Z  * [new branch]        handoff/r9-f11-governance-4-review -> origin/handoff/r9-f11-governance-4-review
+2026-10-08T23:12:25.2685138Z  * [new branch]        handoff/r9-f11-governance-5 -> origin/handoff/r9-f11-governance-5
+2026-10-08T23:12:25.2687044Z  * [new branch]        handoff/r9-f11-governance-6 -> origin/handoff/r9-f11-governance-6
+2026-10-08T23:12:25.2689250Z  * [new branch]        handoff/r9-f11-governance-7 -> origin/handoff/r9-f11-governance-7
+2026-10-08T23:12:25.2691051Z  * [new branch]        handoff/r9-f2-solver-1  -> origin/handoff/r9-f2-solver-1
+2026-10-08T23:12:25.2692693Z  * [new branch]        handoff/r9-f2-solver-3  -> origin/handoff/r9-f2-solver-3
+2026-10-08T23:12:25.2694338Z  * [new branch]        handoff/r9-f2-solver-4  -> origin/handoff/r9-f2-solver-4
+2026-10-08T23:12:25.2696048Z  * [new branch]        handoff/r9-f2-solver-5  -> origin/handoff/r9-f2-solver-5
+2026-10-08T23:12:25.2697775Z  * [new branch]        handoff/r9-f3-stores-1  -> origin/handoff/r9-f3-stores-1
+2026-10-08T23:12:25.2699439Z  * [new branch]        handoff/r9-f3-stores-3  -> origin/handoff/r9-f3-stores-3
+2026-10-08T23:12:25.2701199Z  * [new branch]        handoff/r9-f4-inputs-sysid-1 -> origin/handoff/r9-f4-inputs-sysid-1
+2026-10-08T23:12:25.2703086Z  * [new branch]        handoff/r9-f4-inputs-sysid-2 -> origin/handoff/r9-f4-inputs-sysid-2
+2026-10-08T23:12:25.2704926Z  * [new branch]        handoff/r9-f5-config-text-1 -> origin/handoff/r9-f5-config-text-1
+2026-10-08T23:12:25.2706608Z  * [new branch]        handoff/r9-f6-card-1    -> origin/handoff/r9-f6-card-1
+2026-10-08T23:12:25.2708387Z  * [new branch]        handoff/r9-f6-card-2    -> origin/handoff/r9-f6-card-2
+2026-10-08T23:12:25.2710000Z  * [new branch]        handoff/r9-f6-card-4    -> origin/handoff/r9-f6-card-4
+2026-10-08T23:12:25.2711628Z  * [new branch]        handoff/r9-f7-entities-1 -> origin/handoff/r9-f7-entities-1
+2026-10-08T23:12:25.2713331Z  * [new branch]        handoff/r9-f7-entities-2 -> origin/handoff/r9-f7-entities-2
+2026-10-08T23:12:25.2715101Z  * [new branch]        handoff/r9-f7-family-splits -> origin/handoff/r9-f7-family-splits
+2026-10-08T23:12:25.2716751Z  * [new branch]        handoff/r9-f8-docs-1    -> origin/handoff/r9-f8-docs-1
+2026-10-08T23:12:25.2718630Z  * [new branch]        handoff/r9-f8-docs-2    -> origin/handoff/r9-f8-docs-2
+2026-10-08T23:12:25.2720248Z  * [new branch]        handoff/r9-f8-docs-3    -> origin/handoff/r9-f8-docs-3
+2026-10-08T23:12:25.2722005Z  * [new branch]        handoff/r9-f9-test-pins-2 -> origin/handoff/r9-f9-test-pins-2
+2026-10-08T23:12:25.2723721Z  * [new branch]        handoff/r9-f9-test-pins-3 -> origin/handoff/r9-f9-test-pins-3
+2026-10-08T23:12:25.2725357Z  * [new branch]        handoff/r9-fixer-cap    -> origin/handoff/r9-fixer-cap
+2026-10-08T23:12:25.2726901Z  * [new branch]        handoff/r9-fr-10        -> origin/handoff/r9-fr-10
+2026-10-08T23:12:25.2728820Z  * [new branch]        handoff/r9-friction-study -> origin/handoff/r9-friction-study
+2026-10-08T23:12:25.2730470Z  * [new branch]        handoff/r9-gittmp       -> origin/handoff/r9-gittmp
+2026-10-08T23:12:25.2732066Z  * [new branch]        handoff/r9-main-closures -> origin/handoff/r9-main-closures
+2026-10-08T23:12:25.2733688Z  * [new branch]        handoff/r9-nightly-bdr  -> origin/handoff/r9-nightly-bdr
+2026-10-08T23:12:25.2735335Z  * [new branch]        handoff/r9-nightly-ha   -> origin/handoff/r9-nightly-ha
+2026-10-08T23:12:25.2737100Z  * [new branch]        handoff/r9-nightly-ha-measure -> origin/handoff/r9-nightly-ha-measure
+2026-10-08T23:12:25.2739064Z  * [new branch]        handoff/r9-nightly-ha-on-pr -> origin/handoff/r9-nightly-ha-on-pr
+2026-10-08T23:12:25.2740969Z  * [new branch]        handoff/r9-nightly-status-k5uati -> origin/handoff/r9-nightly-status-k5uati
+2026-10-08T23:12:25.2742811Z  * [new branch]        handoff/r9-prepr-selftest -> origin/handoff/r9-prepr-selftest
+2026-10-08T23:12:25.2744424Z  * [new branch]        handoff/r9-proc-1       -> origin/handoff/r9-proc-1
+2026-10-08T23:12:25.2745933Z  * [new branch]        handoff/r9-proc-3       -> origin/handoff/r9-proc-3
+2026-10-08T23:12:25.2747610Z  * [new branch]        handoff/r9-proc-4       -> origin/handoff/r9-proc-4
+2026-10-08T23:12:25.2749099Z  * [new branch]        handoff/r9-proc-5       -> origin/handoff/r9-proc-5
+2026-10-08T23:12:25.2750806Z  * [new branch]        handoff/r9-rc-prcontract-fix -> origin/handoff/r9-rc-prcontract-fix
+2026-10-08T23:12:25.2752634Z  * [new branch]        handoff/r9-rca-1985     -> origin/handoff/r9-rca-1985
+2026-10-08T23:12:25.2754130Z  * [new branch]        handoff/r9-rca-1990     -> origin/handoff/r9-rca-1990
+2026-10-08T23:12:25.2755644Z  * [new branch]        handoff/r9-rca-2004     -> origin/handoff/r9-rca-2004
+2026-10-08T23:12:25.2757158Z  * [new branch]        handoff/r9-rca-2028     -> origin/handoff/r9-rca-2028
+2026-10-08T23:12:25.2759597Z  * [new branch]        handoff/r9-rca-avoidable-interpreter-bound-recomputation -> origin/handoff/r9-rca-avoidable-interpreter-bound-recomputation
+2026-10-08T23:12:25.2762115Z  * [new branch]        handoff/r9-rca-bugclasses -> origin/handoff/r9-rca-bugclasses
+2026-10-08T23:12:25.2763902Z  * [new branch]        handoff/r9-rca-cpu-gate-blind -> origin/handoff/r9-rca-cpu-gate-blind
+2026-10-08T23:12:25.2765561Z  * [new branch]        handoff/r9-rca-i1       -> origin/handoff/r9-rca-i1
+2026-10-08T23:12:25.2767047Z  * [new branch]        handoff/r9-rca-i3       -> origin/handoff/r9-rca-i3
+2026-10-08T23:12:25.2768777Z  * [new branch]        handoff/r9-rca-i4       -> origin/handoff/r9-rca-i4
+2026-10-08T23:12:25.2770474Z  * [new branch]        handoff/r9-rca-i5       -> origin/handoff/r9-rca-i5
+2026-10-08T23:12:25.2771951Z  * [new branch]        handoff/r9-rca-p1       -> origin/handoff/r9-rca-p1
+2026-10-08T23:12:25.2773408Z  * [new branch]        handoff/r9-rca-p11      -> origin/handoff/r9-rca-p11
+2026-10-08T23:12:25.2774925Z  * [new branch]        handoff/r9-rca-p2       -> origin/handoff/r9-rca-p2
+2026-10-08T23:12:25.2776368Z  * [new branch]        handoff/r9-rca-p3       -> origin/handoff/r9-rca-p3
+2026-10-08T23:12:25.2777938Z  * [new branch]        handoff/r9-rca-p5       -> origin/handoff/r9-rca-p5
+2026-10-08T23:12:25.2779466Z  * [new branch]        handoff/r9-rca-p6       -> origin/handoff/r9-rca-p6
+2026-10-08T23:12:25.2780930Z  * [new branch]        handoff/r9-rca-p9       -> origin/handoff/r9-rca-p9
+2026-10-08T23:12:25.2783418Z  * [new branch]        handoff/r9-rca-persisted-future-instant-trusted-without-bound -> origin/handoff/r9-rca-persisted-future-instant-trusted-without-bound
+2026-10-08T23:12:25.2786079Z  * [new branch]        handoff/r9-rca-prepr-tmp -> origin/handoff/r9-rca-prepr-tmp
+2026-10-08T23:12:25.2788008Z  * [new branch]        handoff/r9-rca-stamp-race -> origin/handoff/r9-rca-stamp-race
+2026-10-08T23:12:25.2789850Z  * [new branch]        handoff/r9-rca-stress-recording -> origin/handoff/r9-rca-stress-recording
+2026-10-08T23:12:25.2791720Z  * [new branch]        handoff/r9-record-automerge -> origin/handoff/r9-record-automerge
+2026-10-08T23:12:25.2793438Z  * [new branch]        handoff/r9-record-path  -> origin/handoff/r9-record-path
+2026-10-08T23:12:25.2795040Z  * [new branch]        handoff/r9-review-timing -> origin/handoff/r9-review-timing
+2026-10-08T23:12:25.2796584Z  * [new branch]        handoff/r9-ro-1         -> origin/handoff/r9-ro-1
+2026-10-08T23:12:25.2798150Z  * [new branch]        handoff/r9-ro-10        -> origin/handoff/r9-ro-10
+2026-10-08T23:12:25.2799578Z  * [new branch]        handoff/r9-ro-11        -> origin/handoff/r9-ro-11
+2026-10-08T23:12:25.2801053Z  * [new branch]        handoff/r9-ro-12        -> origin/handoff/r9-ro-12
+2026-10-08T23:12:25.2802496Z  * [new branch]        handoff/r9-ro-2         -> origin/handoff/r9-ro-2
+2026-10-08T23:12:25.2803915Z  * [new branch]        handoff/r9-ro-3         -> origin/handoff/r9-ro-3
+2026-10-08T23:12:25.2805349Z  * [new branch]        handoff/r9-ro-4         -> origin/handoff/r9-ro-4
+2026-10-08T23:12:25.2806751Z  * [new branch]        handoff/r9-ro-5         -> origin/handoff/r9-ro-5
+2026-10-08T23:12:25.2808405Z  * [new branch]        handoff/r9-ro-6         -> origin/handoff/r9-ro-6
+2026-10-08T23:12:25.2809839Z  * [new branch]        handoff/r9-ro-7         -> origin/handoff/r9-ro-7
+2026-10-08T23:12:25.2811248Z  * [new branch]        handoff/r9-ro-8         -> origin/handoff/r9-ro-8
+2026-10-08T23:12:25.2812674Z  * [new branch]        handoff/r9-ro-9a        -> origin/handoff/r9-ro-9a
+2026-10-08T23:12:25.2814199Z  * [new branch]        handoff/r9-sw-5         -> origin/handoff/r9-sw-5
+2026-10-08T23:12:25.2815705Z  * [new branch]        handoff/r9-sw-actuation -> origin/handoff/r9-sw-actuation
+2026-10-08T23:12:25.2817286Z  * [new branch]        handoff/r9-sw-card      -> origin/handoff/r9-sw-card
+2026-10-08T23:12:25.2818870Z  * [new branch]        handoff/r9-sw-gchv      -> origin/handoff/r9-sw-gchv
+2026-10-08T23:12:25.2820398Z  * [new branch]        handoff/r9-sw-model     -> origin/handoff/r9-sw-model
+2026-10-08T23:12:25.2821855Z  * [new branch]        handoff/r9-sw6          -> origin/handoff/r9-sw6
+2026-10-08T23:12:25.2823293Z  * [new branch]        handoff/r9-ux-10        -> origin/handoff/r9-ux-10
+2026-10-08T23:12:25.2824730Z  * [new branch]        handoff/r9-ux-6         -> origin/handoff/r9-ux-6
+2026-10-08T23:12:25.2826126Z  * [new branch]        handoff/r9-ux-7         -> origin/handoff/r9-ux-7
+2026-10-08T23:12:25.2828097Z  * [new branch]        handoff/r9-ux-actions   -> origin/handoff/r9-ux-actions
+2026-10-08T23:12:25.2829673Z  * [new branch]        handoff/r9-ux-events    -> origin/handoff/r9-ux-events
+2026-10-08T23:12:25.2831275Z  * [new branch]        handoff/r9-ux-health    -> origin/handoff/r9-ux-health
+2026-10-08T23:12:25.2832881Z  * [new branch]        handoff/r9-ux-insight-text -> origin/handoff/r9-ux-insight-text
+2026-10-08T23:12:25.2834442Z  * [new branch]        handoff/r9-ux9          -> origin/handoff/r9-ux9
+2026-10-08T23:12:25.2835877Z  * [new branch]        handoff/r9-web-3        -> origin/handoff/r9-web-3
+2026-10-08T23:12:25.2837328Z  * [new branch]        handoff/r9-web-4        -> origin/handoff/r9-web-4
+2026-10-08T23:12:25.2838851Z  * [new branch]        handoff/r9-web-5        -> origin/handoff/r9-web-5
+2026-10-08T23:12:25.2840343Z  * [new branch]        handoff/r9-web-page     -> origin/handoff/r9-web-page
+2026-10-08T23:12:25.2841807Z  * [new branch]        handoff/rca-1747        -> origin/handoff/rca-1747
+2026-10-08T23:12:25.2843327Z  * [new branch]        handoff/repo-reorg-plan -> origin/handoff/repo-reorg-plan
+2026-10-08T23:12:25.2845073Z  * [new branch]        handoff/silent-windows-plan -> origin/handoff/silent-windows-plan
+2026-10-08T23:12:25.2846601Z  * [new branch]        main                    -> origin/main
+2026-10-08T23:12:25.2848093Z  * [new branch]        proof/r9-ci-1-pr2010    -> origin/proof/r9-ci-1-pr2010
+2026-10-08T23:12:25.2849602Z  * [new branch]        proof/r9-ci-1-pr2025    -> origin/proof/r9-ci-1-pr2025
+2026-10-08T23:12:25.2851125Z  * [new branch]        proof/r9-ci-1-sw1       -> origin/proof/r9-ci-1-sw1
+2026-10-08T23:12:25.2852550Z  * [new branch]        review/1987             -> origin/review/1987
+2026-10-08T23:12:25.2853916Z  * [new branch]        review/1997             -> origin/review/1997
+2026-10-08T23:12:25.2855246Z  * [new branch]        review/2002             -> origin/review/2002
+2026-10-08T23:12:25.2856587Z  * [new branch]        review/2006             -> origin/review/2006
+2026-10-08T23:12:25.2858064Z  * [new branch]        review/2007             -> origin/review/2007
+2026-10-08T23:12:25.2859391Z  * [new branch]        review/2010             -> origin/review/2010
+2026-10-08T23:12:25.2860762Z  * [new branch]        review/2011             -> origin/review/2011
+2026-10-08T23:12:25.2862115Z  * [new branch]        review/2012             -> origin/review/2012
+2026-10-08T23:12:25.2863425Z  * [new branch]        review/2013             -> origin/review/2013
+2026-10-08T23:12:25.2864792Z  * [new branch]        review/2014             -> origin/review/2014
+2026-10-08T23:12:25.2866128Z  * [new branch]        review/2015             -> origin/review/2015
+2026-10-08T23:12:25.2867627Z  * [new branch]        review/2017             -> origin/review/2017
+2026-10-08T23:12:25.2869006Z  * [new branch]        review/2018             -> origin/review/2018
+2026-10-08T23:12:25.2870341Z  * [new branch]        review/2021             -> origin/review/2021
+2026-10-08T23:12:25.2871724Z  * [new branch]        review/2022             -> origin/review/2022
+2026-10-08T23:12:25.2873159Z  * [new branch]        review/2024             -> origin/review/2024
+2026-10-08T23:12:25.2874478Z  * [new branch]        review/2025             -> origin/review/2025
+2026-10-08T23:12:25.2875825Z  * [new branch]        review/2026             -> origin/review/2026
+2026-10-08T23:12:25.2877150Z  * [new branch]        review/2027             -> origin/review/2027
+2026-10-08T23:12:25.2878707Z  * [new branch]        review/2029             -> origin/review/2029
+2026-10-08T23:12:25.2880080Z  * [new branch]        review/2030             -> origin/review/2030
+2026-10-08T23:12:25.2881406Z  * [new branch]        review/2040             -> origin/review/2040
+2026-10-08T23:12:25.2882787Z  * [new branch]        review/2041             -> origin/review/2041
+2026-10-08T23:12:25.2884122Z  * [new branch]        review/2042             -> origin/review/2042
+2026-10-08T23:12:25.2885450Z  * [new branch]        review/2044             -> origin/review/2044
+2026-10-08T23:12:25.2886790Z  * [new branch]        review/2049             -> origin/review/2049
+2026-10-08T23:12:25.2888315Z  * [new branch]        review/2051             -> origin/review/2051
+2026-10-08T23:12:25.2889671Z  * [new branch]        review/2053             -> origin/review/2053
+2026-10-08T23:12:25.2890996Z  * [new branch]        review/2054             -> origin/review/2054
+2026-10-08T23:12:25.2892359Z  * [new branch]        review/2055             -> origin/review/2055
+2026-10-08T23:12:25.2893688Z  * [new branch]        review/2056             -> origin/review/2056
+2026-10-08T23:12:25.2895004Z  * [new branch]        review/2057             -> origin/review/2057
+2026-10-08T23:12:25.2896345Z  * [new branch]        review/2058             -> origin/review/2058
+2026-10-08T23:12:25.2897758Z  * [new branch]        review/2059             -> origin/review/2059
+2026-10-08T23:12:25.2899092Z  * [new branch]        review/2060             -> origin/review/2060
+2026-10-08T23:12:25.2900441Z  * [new branch]        review/2061             -> origin/review/2061
+2026-10-08T23:12:25.2901847Z  * [new branch]        review/2062             -> origin/review/2062
+2026-10-08T23:12:25.2903211Z  * [new branch]        review/2063             -> origin/review/2063
+2026-10-08T23:12:25.2904511Z  * [new branch]        review/2064             -> origin/review/2064
+2026-10-08T23:12:25.2905822Z  * [new branch]        review/2068             -> origin/review/2068
+2026-10-08T23:12:25.2907159Z  * [new branch]        review/2069             -> origin/review/2069
+2026-10-08T23:12:25.2908702Z  * [new branch]        verdict/1987            -> origin/verdict/1987
+2026-10-08T23:12:25.2910069Z  * [new branch]        verdict/1997            -> origin/verdict/1997
+2026-10-08T23:12:25.2911406Z  * [new branch]        verdict/2002            -> origin/verdict/2002
+2026-10-08T23:12:25.2912758Z  * [new branch]        verdict/2006            -> origin/verdict/2006
+2026-10-08T23:12:25.2914133Z  * [new branch]        verdict/2007            -> origin/verdict/2007
+2026-10-08T23:12:25.2915470Z  * [new branch]        verdict/2010            -> origin/verdict/2010
+2026-10-08T23:12:25.2916810Z  * [new branch]        verdict/2011            -> origin/verdict/2011
+2026-10-08T23:12:25.2918288Z  * [new branch]        verdict/2012            -> origin/verdict/2012
+2026-10-08T23:12:25.2919965Z  * [new branch]        verdict/2013            -> origin/verdict/2013
+2026-10-08T23:12:25.2921401Z  * [new branch]        verdict/2014            -> origin/verdict/2014
+2026-10-08T23:12:25.2922738Z  * [new branch]        verdict/2015            -> origin/verdict/2015
+2026-10-08T23:12:25.2924132Z  * [new branch]        verdict/2017            -> origin/verdict/2017
+2026-10-08T23:12:25.2925451Z  * [new branch]        verdict/2018            -> origin/verdict/2018
+2026-10-08T23:12:25.2926772Z  * [new branch]        verdict/2021            -> origin/verdict/2021
+2026-10-08T23:12:25.2928418Z  * [new branch]        verdict/2022            -> origin/verdict/2022
+2026-10-08T23:12:25.2929845Z  * [new branch]        verdict/2024            -> origin/verdict/2024
+2026-10-08T23:12:25.2931175Z  * [new branch]        verdict/2025            -> origin/verdict/2025
+2026-10-08T23:12:25.2932526Z  * [new branch]        verdict/2026            -> origin/verdict/2026
+2026-10-08T23:12:25.2933902Z  * [new branch]        verdict/2027            -> origin/verdict/2027
+2026-10-08T23:12:25.2935259Z  * [new branch]        verdict/2029            -> origin/verdict/2029
+2026-10-08T23:12:25.2936593Z  * [new branch]        verdict/2030            -> origin/verdict/2030
+2026-10-08T23:12:25.2938014Z  * [new branch]        verdict/2040            -> origin/verdict/2040
+2026-10-08T23:12:25.2939353Z  * [new branch]        verdict/2041            -> origin/verdict/2041
+2026-10-08T23:12:25.2940733Z  * [new branch]        verdict/2042            -> origin/verdict/2042
+2026-10-08T23:12:25.2942077Z  * [new branch]        verdict/2044            -> origin/verdict/2044
+2026-10-08T23:12:25.2943439Z  * [new branch]        verdict/2049            -> origin/verdict/2049
+2026-10-08T23:12:25.2944774Z  * [new branch]        verdict/2051            -> origin/verdict/2051
+2026-10-08T23:12:25.2946128Z  * [new branch]        verdict/2053            -> origin/verdict/2053
+2026-10-08T23:12:25.2947681Z  * [new branch]        verdict/2054            -> origin/verdict/2054
+2026-10-08T23:12:25.2949047Z  * [new branch]        verdict/2055            -> origin/verdict/2055
+2026-10-08T23:12:25.2950390Z  * [new branch]        verdict/2056            -> origin/verdict/2056
+2026-10-08T23:12:25.2951706Z  * [new branch]        verdict/2057            -> origin/verdict/2057
+2026-10-08T23:12:25.2953041Z  * [new branch]        verdict/2058            -> origin/verdict/2058
+2026-10-08T23:12:25.2954420Z  * [new branch]        verdict/2059            -> origin/verdict/2059
+2026-10-08T23:12:25.2956111Z  * [new branch]        verdict/2060            -> origin/verdict/2060
+2026-10-08T23:12:25.2957508Z  * [new branch]        verdict/2061            -> origin/verdict/2061
+2026-10-08T23:12:25.2958941Z  * [new branch]        verdict/2062            -> origin/verdict/2062
+2026-10-08T23:12:25.2960284Z  * [new branch]        verdict/2063            -> origin/verdict/2063
+2026-10-08T23:12:25.2961638Z  * [new branch]        verdict/2064            -> origin/verdict/2064
+2026-10-08T23:12:25.2962973Z  * [new branch]        verdict/2069            -> origin/verdict/2069
+2026-10-08T23:12:25.2964570Z  * [new branch]        wip-sync/orchestrator-scratch -> origin/wip-sync/orchestrator-scratch
+2026-10-08T23:12:25.2966159Z  * [new tag]           audit-round2-evidence   -> audit-round2-evidence
+2026-10-08T23:12:25.2967564Z  * [new tag]           v2.3.0-beta.1           -> v2.3.0-beta.1
+2026-10-08T23:12:25.2968759Z  * [new tag]           v2.4.0                  -> v2.4.0
+2026-10-08T23:12:25.2969847Z  * [new tag]           v2.4.1                  -> v2.4.1
+2026-10-08T23:12:25.2970925Z  * [new tag]           v2.5.0                  -> v2.5.0
+2026-10-08T23:12:25.2971979Z  * [new tag]           v2.6.0                  -> v2.6.0
+2026-10-08T23:12:25.2973139Z  * [new tag]           v2.6.1                  -> v2.6.1
+2026-10-08T23:12:25.2974213Z  * [new tag]           v2.7.0                  -> v2.7.0
+2026-10-08T23:12:25.2975292Z  * [new tag]           v2.8.0                  -> v2.8.0
+2026-10-08T23:12:25.2976372Z  * [new tag]           v3.0.0                  -> v3.0.0
+2026-10-08T23:12:25.2977517Z  * [new tag]           v3.1.0                  -> v3.1.0
+2026-10-08T23:12:25.2978667Z  * [new tag]           v3.1.1                  -> v3.1.1
+2026-10-08T23:12:25.2979790Z  * [new tag]           v3.1.2                  -> v3.1.2
+2026-10-08T23:12:25.2980868Z  * [new tag]           v3.14.0                 -> v3.14.0
+2026-10-08T23:12:25.2982010Z  * [new tag]           v3.16.0                 -> v3.16.0
+2026-10-08T23:12:25.2983094Z  * [new tag]           v3.2.0                  -> v3.2.0
+2026-10-08T23:12:25.2984195Z  * [new tag]           v3.3.0                  -> v3.3.0
+2026-10-08T23:12:25.2985287Z  * [new tag]           v3.3.1                  -> v3.3.1
+2026-10-08T23:12:25.2986442Z  * [new tag]           v3.4.0                  -> v3.4.0
+2026-10-08T23:12:25.2987746Z  * [new tag]           v3.4.1                  -> v3.4.1
+2026-10-08T23:12:25.2988858Z  * [new tag]           v3.5.0                  -> v3.5.0
+2026-10-08T23:12:25.2989979Z  * [new tag]           v3.6.0                  -> v3.6.0
+2026-10-08T23:12:25.2991102Z  * [new tag]           v3.6.1                  -> v3.6.1
+2026-10-08T23:12:25.2992166Z  * [new tag]           v3.7.0                  -> v3.7.0
+2026-10-08T23:12:25.2993269Z  * [new tag]           v3.7.1                  -> v3.7.1
+2026-10-08T23:12:25.2994336Z  * [new tag]           v3.8.0                  -> v3.8.0
+2026-10-08T23:12:25.2995450Z  * [new tag]           v4.0.0                  -> v4.0.0
+2026-10-08T23:12:25.2996546Z  * [new tag]           v4.0.1                  -> v4.0.1
+2026-10-08T23:12:25.2997684Z  * [new tag]           v4.0.2                  -> v4.0.2
+2026-10-08T23:12:25.2998796Z  * [new tag]           v4.0.3                  -> v4.0.3
+2026-10-08T23:12:25.2999920Z  * [new tag]           v4.0.4                  -> v4.0.4
+2026-10-08T23:12:25.3001036Z  * [new tag]           v4.0.5                  -> v4.0.5
+2026-10-08T23:12:25.3002112Z  * [new tag]           v4.0.6                  -> v4.0.6
+2026-10-08T23:12:25.3003190Z  * [new tag]           v4.0.7                  -> v4.0.7
+2026-10-08T23:12:25.3004299Z  * [new tag]           v4.1.0                  -> v4.1.0
+2026-10-08T23:12:25.3005375Z  * [new tag]           v4.2.0                  -> v4.2.0
+2026-10-08T23:12:25.3006457Z  * [new tag]           v4.3.0                  -> v4.3.0
+2026-10-08T23:12:25.3007805Z  * [new tag]           v5.0.0                  -> v5.0.0
+2026-10-08T23:12:25.3008937Z  * [new tag]           v5.1.0                  -> v5.1.0
+2026-10-08T23:12:25.3010032Z  * [new tag]           v5.1.1                  -> v5.1.1
+2026-10-08T23:12:25.3011105Z  * [new tag]           v5.1.10                 -> v5.1.10
+2026-10-08T23:12:25.3012202Z  * [new tag]           v5.1.2                  -> v5.1.2
+2026-10-08T23:12:25.3013367Z  * [new tag]           v5.1.3                  -> v5.1.3
+2026-10-08T23:12:25.3014461Z  * [new tag]           v5.1.4                  -> v5.1.4
+2026-10-08T23:12:25.3015526Z  * [new tag]           v5.1.5                  -> v5.1.5
+2026-10-08T23:12:25.3016604Z  * [new tag]           v5.1.6                  -> v5.1.6
+2026-10-08T23:12:25.3017786Z  * [new tag]           v5.1.7                  -> v5.1.7
+2026-10-08T23:12:25.3018901Z  * [new tag]           v5.1.9                  -> v5.1.9
+2026-10-08T23:12:25.3019962Z  * [new tag]           v5.2.0                  -> v5.2.0
+2026-10-08T23:12:25.3021024Z  * [new tag]           v5.3.0                  -> v5.3.0
+2026-10-08T23:12:25.3022095Z  * [new tag]           v5.4.0                  -> v5.4.0
+2026-10-08T23:12:25.3023166Z  * [new tag]           v5.4.1                  -> v5.4.1
+2026-10-08T23:12:25.3024276Z  * [new tag]           v5.5.0                  -> v5.5.0
+2026-10-08T23:12:25.3025338Z  * [new tag]           v5.6.0                  -> v5.6.0
+2026-10-08T23:12:25.3026437Z  * [new tag]           v5.6.1                  -> v5.6.1
+2026-10-08T23:12:25.3027743Z  * [new tag]           v5.6.2                  -> v5.6.2
+2026-10-08T23:12:25.3028845Z  * [new tag]           v5.7.0                  -> v5.7.0
+2026-10-08T23:12:25.3029935Z  * [new tag]           v5.7.1                  -> v5.7.1
+2026-10-08T23:12:25.3031009Z  * [new tag]           v6.0.0                  -> v6.0.0
+2026-10-08T23:12:25.3032066Z  * [new tag]           v6.0.1                  -> v6.0.1
+2026-10-08T23:12:25.3033147Z  * [new tag]           v6.0.2                  -> v6.0.2
+2026-10-08T23:12:25.3034241Z  * [new tag]           v6.0.3                  -> v6.0.3
+2026-10-08T23:12:25.3035350Z  * [new tag]           v6.0.4                  -> v6.0.4
+2026-10-08T23:12:25.3036404Z  * [new tag]           v6.0.5                  -> v6.0.5
+2026-10-08T23:12:25.3037519Z  * [new tag]           v6.0.6                  -> v6.0.6
+2026-10-08T23:12:25.3038719Z  * [new tag]           v6.0.7                  -> v6.0.7
+2026-10-08T23:12:25.3039794Z  * [new tag]           v6.0.8                  -> v6.0.8
+2026-10-08T23:12:25.3040866Z  * [new tag]           v6.0.9                  -> v6.0.9
+2026-10-08T23:12:25.3041951Z  * [new tag]           v6.1.0                  -> v6.1.0
+2026-10-08T23:12:25.3043024Z  * [new tag]           v6.1.1                  -> v6.1.1
+2026-10-08T23:12:25.3044165Z  * [new tag]           v6.1.2                  -> v6.1.2
+2026-10-08T23:12:25.3045235Z  * [new tag]           v6.2.0                  -> v6.2.0
+2026-10-08T23:12:25.3046297Z  * [new tag]           v6.2.1                  -> v6.2.1
+2026-10-08T23:12:25.3047477Z  * [new tag]           v6.2.10                 -> v6.2.10
+2026-10-08T23:12:25.3048613Z  * [new tag]           v6.2.11                 -> v6.2.11
+2026-10-08T23:12:25.3049732Z  * [new tag]           v6.2.12                 -> v6.2.12
+2026-10-08T23:12:25.3050788Z  * [new tag]           v6.2.13                 -> v6.2.13
+2026-10-08T23:12:25.3051877Z  * [new tag]           v6.2.14                 -> v6.2.14
+2026-10-08T23:12:25.3052999Z  * [new tag]           v6.2.15                 -> v6.2.15
+2026-10-08T23:12:25.3054076Z  * [new tag]           v6.2.16                 -> v6.2.16
+2026-10-08T23:12:25.3055180Z  * [new tag]           v6.2.17                 -> v6.2.17
+2026-10-08T23:12:25.3056270Z  * [new tag]           v6.2.2                  -> v6.2.2
+2026-10-08T23:12:25.3057329Z  * [new tag]           v6.2.3                  -> v6.2.3
+2026-10-08T23:12:25.3058516Z  * [new tag]           v6.2.4                  -> v6.2.4
+2026-10-08T23:12:25.3059591Z  * [new tag]           v6.2.5                  -> v6.2.5
+2026-10-08T23:12:25.3060707Z  * [new tag]           v6.2.6                  -> v6.2.6
+2026-10-08T23:12:25.3061809Z  * [new tag]           v6.2.7                  -> v6.2.7
+2026-10-08T23:12:25.3062862Z  * [new tag]           v6.2.8                  -> v6.2.8
+2026-10-08T23:12:25.3063963Z  * [new tag]           v6.2.9                  -> v6.2.9
+2026-10-08T23:12:25.3065107Z  * [new tag]           v6.3.0                  -> v6.3.0
+2026-10-08T23:12:25.3066209Z  * [new tag]           v6.3.1                  -> v6.3.1
+2026-10-08T23:12:25.3067281Z  * [new tag]           v6.3.10                 -> v6.3.10
+2026-10-08T23:12:25.3068592Z  * [new tag]           v6.3.11                 -> v6.3.11
+2026-10-08T23:12:25.3069698Z  * [new tag]           v6.3.12                 -> v6.3.12
+2026-10-08T23:12:25.3070831Z  * [new tag]           v6.3.13                 -> v6.3.13
+2026-10-08T23:12:25.3071903Z  * [new tag]           v6.3.14                 -> v6.3.14
+2026-10-08T23:12:25.3072990Z  * [new tag]           v6.3.15                 -> v6.3.15
+2026-10-08T23:12:25.3074068Z  * [new tag]           v6.3.16                 -> v6.3.16
+2026-10-08T23:12:25.3075208Z  * [new tag]           v6.3.17                 -> v6.3.17
+2026-10-08T23:12:25.3076303Z  * [new tag]           v6.3.18                 -> v6.3.18
+2026-10-08T23:12:25.3077532Z  * [new tag]           v6.3.19                 -> v6.3.19
+2026-10-08T23:12:25.3078727Z  * [new tag]           v6.3.2                  -> v6.3.2
+2026-10-08T23:12:25.3079848Z  * [new tag]           v6.3.20                 -> v6.3.20
+2026-10-08T23:12:25.3080957Z  * [new tag]           v6.3.3                  -> v6.3.3
+2026-10-08T23:12:25.3082057Z  * [new tag]           v6.3.4                  -> v6.3.4
+2026-10-08T23:12:25.3083136Z  * [new tag]           v6.3.5                  -> v6.3.5
+2026-10-08T23:12:25.3084225Z  * [new tag]           v6.3.6                  -> v6.3.6
+2026-10-08T23:12:25.3085276Z  * [new tag]           v6.3.7                  -> v6.3.7
+2026-10-08T23:12:25.3086375Z  * [new tag]           v6.3.8                  -> v6.3.8
+2026-10-08T23:12:25.3087585Z  * [new tag]           v6.3.9                  -> v6.3.9
+2026-10-08T23:12:25.3088726Z  * [new tag]           v6.4.0                  -> v6.4.0
+2026-10-08T23:12:25.3089794Z  * [new tag]           v6.4.1                  -> v6.4.1
+2026-10-08T23:12:25.3090876Z  * [new tag]           v6.4.2                  -> v6.4.2
+2026-10-08T23:12:25.3092036Z  * [new tag]           v6.4.3                  -> v6.4.3
+2026-10-08T23:12:25.3093114Z  * [new tag]           v6.4.4                  -> v6.4.4
+2026-10-08T23:12:25.3094180Z  * [new tag]           v6.5.0                  -> v6.5.0
+2026-10-08T23:12:25.3095286Z  * [new tag]           v6.5.1                  -> v6.5.1
+2026-10-08T23:12:25.3096343Z  * [new tag]           v6.6.0                  -> v6.6.0
+2026-10-08T23:12:25.3097527Z  * [new tag]           v6.6.1                  -> v6.6.1
+2026-10-08T23:12:25.3098651Z  * [new tag]           v6.6.10                 -> v6.6.10
+2026-10-08T23:12:25.3099723Z  * [new tag]           v6.6.11                 -> v6.6.11
+2026-10-08T23:12:25.3100834Z  * [new tag]           v6.6.12                 -> v6.6.12
+2026-10-08T23:12:25.3101905Z  * [new tag]           v6.6.2                  -> v6.6.2
+2026-10-08T23:12:25.3102972Z  * [new tag]           v6.6.3                  -> v6.6.3
+2026-10-08T23:12:25.3104076Z  * [new tag]           v6.6.4                  -> v6.6.4
+2026-10-08T23:12:25.3105169Z  * [new tag]           v6.6.5                  -> v6.6.5
+2026-10-08T23:12:25.3106290Z  * [new tag]           v6.6.6                  -> v6.6.6
+2026-10-08T23:12:25.3107352Z  * [new tag]           v6.6.7                  -> v6.6.7
+2026-10-08T23:12:25.3108602Z  * [new tag]           v6.6.8                  -> v6.6.8
+2026-10-08T23:12:25.3109716Z  * [new tag]           v6.6.9                  -> v6.6.9
+2026-10-08T23:12:25.3110792Z  * [new tag]           v6.7.0                  -> v6.7.0
+2026-10-08T23:12:25.3111882Z  * [new tag]           v6.7.1                  -> v6.7.1
+2026-10-08T23:12:25.3112944Z  * [new tag]           v6.7.10                 -> v6.7.10
+2026-10-08T23:12:25.3114067Z  * [new tag]           v6.7.11                 -> v6.7.11
+2026-10-08T23:12:25.3115169Z  * [new tag]           v6.7.12                 -> v6.7.12
+2026-10-08T23:12:25.3116244Z  * [new tag]           v6.7.13                 -> v6.7.13
+2026-10-08T23:12:25.3117356Z  * [new tag]           v6.7.14                 -> v6.7.14
+2026-10-08T23:12:25.3118619Z  * [new tag]           v6.7.15                 -> v6.7.15
+2026-10-08T23:12:25.3119711Z  * [new tag]           v6.7.16                 -> v6.7.16
+2026-10-08T23:12:25.3120814Z  * [new tag]           v6.7.17                 -> v6.7.17
+2026-10-08T23:12:25.3121886Z  * [new tag]           v6.7.2                  -> v6.7.2
+2026-10-08T23:12:25.3123008Z  * [new tag]           v6.7.3                  -> v6.7.3
+2026-10-08T23:12:25.3124072Z  * [new tag]           v6.7.4                  -> v6.7.4
+2026-10-08T23:12:25.3125153Z  * [new tag]           v6.7.5                  -> v6.7.5
+2026-10-08T23:12:25.3126244Z  * [new tag]           v6.7.6                  -> v6.7.6
+2026-10-08T23:12:25.3127305Z  * [new tag]           v6.7.7                  -> v6.7.7
+2026-10-08T23:12:25.3128526Z  * [new tag]           v6.7.8                  -> v6.7.8
+2026-10-08T23:12:25.3129625Z  * [new tag]           v6.7.9                  -> v6.7.9
+2026-10-08T23:12:25.3130935Z  * [new ref]           a63b7f5e160e4d36dec95847a239312e19aa23ce -> pull/2067/merge
+2026-10-08T23:12:25.3133894Z ##[endgroup]
+2026-10-08T23:12:25.3135142Z ##[group]Determining the checkout info
+2026-10-08T23:12:25.3136542Z ##[endgroup]
+2026-10-08T23:12:25.3137419Z [command]/usr/bin/git sparse-checkout disable
+2026-10-08T23:12:25.3139692Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T23:12:25.3142376Z ##[group]Checking out the ref
+2026-10-08T23:12:25.3143565Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2067/merge
+2026-10-08T23:12:25.6362844Z Note: switching to 'refs/remotes/pull/2067/merge'.
+2026-10-08T23:12:25.6364547Z 
+2026-10-08T23:12:25.6365046Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-08T23:12:25.6365843Z changes and commit them, and you can discard any commits you make in this
+2026-10-08T23:12:25.6366589Z state without impacting any branches by switching back to a branch.
+2026-10-08T23:12:25.6366920Z 
+2026-10-08T23:12:25.6367928Z If you want to create a new branch to retain commits you create, you may
+2026-10-08T23:12:25.6368657Z do so (now or later) by using -c with the switch command. Example:
+2026-10-08T23:12:25.6369007Z 
+2026-10-08T23:12:25.6369163Z   git switch -c <new-branch-name>
+2026-10-08T23:12:25.6369423Z 
+2026-10-08T23:12:25.6369626Z Or undo this operation with:
+2026-10-08T23:12:25.6369810Z 
+2026-10-08T23:12:25.6370007Z   git switch -
+2026-10-08T23:12:25.6370178Z 
+2026-10-08T23:12:25.6370519Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-08T23:12:25.6370809Z 
+2026-10-08T23:12:25.6371177Z HEAD is now at a63b7f5e Merge 09d2061b247a77e27ba625c81ef25a9909726ef9 into bd59a4af1b2616a7f00761a3769d22a335e4df7c
+2026-10-08T23:12:25.6379717Z ##[endgroup]
+2026-10-08T23:12:25.6422916Z [command]/usr/bin/git log -1 --format=%H
+2026-10-08T23:12:25.6443673Z a63b7f5e160e4d36dec95847a239312e19aa23ce
+2026-10-08T23:12:25.6665621Z ##[group]Run actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+2026-10-08T23:12:25.6666117Z with:
+2026-10-08T23:12:25.6666405Z   node-version: 22
+2026-10-08T23:12:25.6666716Z   always-auth: false
+2026-10-08T23:12:25.6667047Z   check-latest: false
+2026-10-08T23:12:25.6669768Z   token: ***
+2026-10-08T23:12:25.6670125Z   package-manager-cache: true
+2026-10-08T23:12:25.6670450Z env:
+2026-10-08T23:12:25.6670763Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:25.6671122Z ##[endgroup]
+2026-10-08T23:12:25.7940360Z Found in cache @ /opt/hostedtoolcache/node/22.23.3/x64
+2026-10-08T23:12:25.7943898Z (node:2079) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-08T23:12:25.7944575Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-08T23:12:25.7946490Z ##[group]Environment details
+2026-10-08T23:12:26.1259372Z node: v22.23.3
+2026-10-08T23:12:26.1259952Z npm: 10.9.9
+2026-10-08T23:12:26.1260579Z yarn: 1.22.22
+2026-10-08T23:12:26.1261433Z ##[endgroup]
+2026-10-08T23:12:26.1419873Z ##[group]Run if test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs; else node tools/policy/policy_lint_mutants.mjs; fi
+2026-10-08T23:12:26.1420930Z [36;1mif test -f .claude/workflows/policy_lint_mutants.mjs; then node .claude/workflows/policy_lint_mutants.mjs; else node tools/policy/policy_lint_mutants.mjs; fi[0m
+2026-10-08T23:12:26.1574543Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:26.1574956Z env:
+2026-10-08T23:12:26.1575297Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:26.1575564Z ##[endgroup]
+2026-10-08T23:12:52.4066738Z   DRIVEN   entry  exit-status          the exit status tracks the findings both ways: 1 on the red fixture, 0 on the corpus as it stands, each driven as a process with this one's environment
+2026-10-08T23:12:52.4068995Z   PIN      corpus checkIndex           FIXTURE VACUOUS: check 'index' produced 0 error(s) on the rot fixtures, 2 required
+2026-10-08T23:12:52.4070355Z   PIN      corpus checkDuplicates      FIXTURE VACUOUS: check 'duplicates' produced 0 error(s) on the rot fixtures, 1 required
+2026-10-08T23:12:52.4071863Z   PIN      corpus checkBudgets         FIXTURE VACUOUS: the 'file' budget comparison produced nothing against a zero budget, so deleting it would change no output. Every cap is false on a healthy cor
+2026-10-08T23:12:52.4073497Z   PIN      corpus coverageOverTree     FIXTURE VACUOUS: checkCoverage did not report .cursor/rules/Probe_9.mdc; a rule file with a digit in its name would leave the corpus unread, in silence
+2026-10-08T23:12:52.4075181Z   PIN      corpus namedDocsOverTree    FIXTURE VACUOUS: checkNamedDocs reported nothing against an empty budget, where every document the corpus names is uncapped by definition. Prose moved into a na
+2026-10-08T23:12:52.4077006Z   PIN      corpus citationPresenceOverTree FIXTURE VACUOUS: checkCitationPresence reported 0 of 2 earned exclusions with every citation of them elided from the corpus. That is arm B of #1058's citation t
+2026-10-08T23:12:52.4079009Z   PIN      corpus orphanCapsOverTree   FIXTURE VACUOUS: checkOrphanCaps did not report docs/a-file-no-glob-matches.md exactly once (got []); a cap that measures nothing would read exactly like one th
+2026-10-08T23:12:52.4080827Z   PIN      corpus requiredContextsOverTree FIXTURE VACUOUS: the required-contexts literal scan produced 0 finding(s) on the rot fixture, 3 required (one per literal shape). A deleted regex in REQUIRED_CO
+2026-10-08T23:12:52.4082955Z   PIN      corpus checkProvenance      FIXTURE VACUOUS: checkProvenance did not refuse 5760879, a parentless commit that cannot be an ancestor of anything. A ledger stamped from HEAD names a SHA the 
+2026-10-08T23:12:52.4084808Z   PIN      corpus rowFreezeOverPlan    FIXTURE VACUOUS: recordRegion ["the wired freeze check does not read its source, or reads it against no freeze"]. The record's region is what makes a mention a 
+2026-10-08T23:12:52.4086667Z   PIN      corpus ruleBindingOverTree  FIXTURE VACUOUS: the rule-binding 'unscoped' arm produced [] against a model built to trip it. A refusal with no witness is deletable in silence.
+2026-10-08T23:12:52.4090754Z   PIN      record checkRecord          FIXTURE VACUOUS: recordRegion ["a mention OUTSIDE the section counted as a disposition","the region did not CLOSE at the next section heading","a mention inside
+2026-10-08T23:12:52.4092368Z   PIN      record checkTableSplit      FIXTURE VACUOUS: check 'table' produced 0 error(s) on the rot fixtures, 1 required
+2026-10-08T23:12:52.4093628Z   PIN      record checkRender          FIXTURE VACUOUS: check 'render' produced 0 error(s) on the rot fixtures, 4 required
+2026-10-08T23:12:52.4095201Z   PIN      record enumSkipLine         FIXTURE VACUOUS: the merge-enumeration fetch-failure marker lost its skip/UNCHECKED shape; a dead fetch would then keep rc=0 with `0 merged pull request(s)` rea
+2026-10-08T23:12:52.4097626Z   PIN      record badRefLine           FIXTURE VACUOUS: the since-ref marker lost its refuse/DERIVED shape; an unresolvable --since would then print `0 merged pull request(s)` at rc=0, which is what 
+2026-10-08T23:12:52.4099387Z   PIN      record checkCounts          FIXTURE VACUOUS: check 'counts' produced 0 error(s) on the rot fixtures, 13 required
+2026-10-08T23:12:52.4100569Z   PIN      record CAP_RES              FIXTURE VACUOUS: check 'counts' produced 2 error(s) on the rot fixtures, 13 required
+2026-10-08T23:12:52.4101683Z   PIN      record checkPrBody          FIXTURE VACUOUS: the author check did not fire on a tvofi-authored body
+2026-10-08T23:12:52.4103090Z   PIN      record frictionEntries      FIXTURE VACUOUS: check 'pr-body' produced no error saying "does not parse"; that sub-claim refuses nothing the fixtures can produce
+2026-10-08T23:12:52.4104424Z   PIN      record frictionKey          FIXTURE VACUOUS: check 'stats' produced 12 error(s) on the rot fixtures, 19 required
+2026-10-08T23:12:52.4105976Z   PIN      record recordClassPaths     FIXTURE VACUOUS: recordClassPaths ["a code file beside a delivery row did not break the record class","an empty diff classified as record-class; one that cannot
+2026-10-08T23:12:52.4107955Z   PIN      record sunsetMarkerLine     FIXTURE VACUOUS: the sunset marker census does not name the corpus's marker population, so `proposed (0) held (0)` prints with nothing to say whether a rule has
+2026-10-08T23:12:52.4108874Z 
+2026-10-08T23:12:52.4111773Z MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+2026-10-08T23:12:52.4438949Z ##[group]Run if test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs --self-test; else node tools/policy/fragments_sync.mjs --self-test; fi
+2026-10-08T23:12:52.4440017Z [36;1mif test -f .claude/workflows/fragments_sync.mjs; then node .claude/workflows/fragments_sync.mjs --self-test; else node tools/policy/fragments_sync.mjs --self-test; fi[0m
+2026-10-08T23:12:52.4480525Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:52.4480839Z env:
+2026-10-08T23:12:52.4481095Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:52.4481409Z ##[endgroup]
+2026-10-08T23:12:52.4830795Z   ok   the tree as committed reports no drift (null control)
+2026-10-08T23:12:52.4839694Z   ok   at least one canonical fragment is carried by a script, so there is something to compare
+2026-10-08T23:12:52.4862991Z   ok   one character changed in `GH_READ` is reported for all 4 script(s) carrying it (got 4)
+2026-10-08T23:12:52.4864042Z   ok   and for no other fragment
+2026-10-08T23:12:52.4864898Z   ok   two declarations split into two
+2026-10-08T23:12:52.4865780Z   ok   a comment banner ends a declaration rather than being absorbed into it
+2026-10-08T23:12:52.4866684Z   ok   an empty file declares nothing rather than throwing
+2026-10-08T23:12:52.4867651Z   ok   GH_READ and GH_MERGE are split (null control)
+2026-10-08T23:12:52.4868406Z   ok   putting merge_pull_request in GH_READ is reported
+2026-10-08T23:12:52.4869203Z   ok   putting issue_read in GH_MERGE is reported
+2026-10-08T23:12:52.4870239Z   ok   putting merge_pull_request in GH_WRITE is reported
+2026-10-08T23:12:52.9689495Z   ok   no tracked stamp --push lacks --push-key (null control)
+2026-10-08T23:12:52.9694370Z   ok   tools/release/stamp.py would be reported unexempted, so its exemption is load-bearing
+2026-10-08T23:12:52.9698300Z   ok   .claude/workflows/fragments_sync.mjs would be reported unexempted, so its exemption is load-bearing
+2026-10-08T23:12:52.9698893Z   ok   a keyless stamp --push is reported
+2026-10-08T23:12:52.9708354Z   ok   so is one wrapped across lines, as the fragments wrap it
+2026-10-08T23:12:52.9709075Z   ok   the same text with --push-key is not
+2026-10-08T23:12:52.9709515Z   ok   a --push with no stamp.py before it is not
+2026-10-08T23:12:52.9710250Z   ok   nor one a sentence end separates from stamp.py
+2026-10-08T23:12:52.9710623Z   ok   an exempt path is skipped
+2026-10-08T23:12:52.9710887Z 
+2026-10-08T23:12:52.9711043Z 20 passed, 0 failed
+2026-10-08T23:12:52.9816274Z ##[group]Run if test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi
+2026-10-08T23:12:52.9817321Z [36;1mif test -f .claude/workflows/field_coverage.mjs; then node .claude/workflows/field_coverage.mjs --self-test; else node tools/policy/field_coverage.mjs --self-test; fi[0m
+2026-10-08T23:12:52.9855107Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:52.9855416Z env:
+2026-10-08T23:12:52.9855683Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:52.9855967Z ##[endgroup]
+2026-10-08T23:12:53.0346509Z   ok   a field the check never reads is BLIND
+2026-10-08T23:12:53.0350773Z   ok   an IGNORE with a reason clears it
+2026-10-08T23:12:53.0352301Z   ok   an IGNORE matching no field is DEAD
+2026-10-08T23:12:53.0352912Z   ok   an input red before any perturbation is REFUSED
+2026-10-08T23:12:53.0353735Z   ok   a skip on a perturbation is REFUSED, never a detection
+2026-10-08T23:12:53.0354843Z   ok   a load failure is REFUSED
+2026-10-08T23:12:53.0355799Z   skip     probe: cannot load probe (down); its field coverage is UNCHECKED this run, not confirmed
+2026-10-08T23:12:53.0356698Z   ok   the ruleset arm's load failure is a printed skip, not a refusal
+2026-10-08T23:12:53.0357888Z   ok   env-matrix's nothing-skipped row passes the token-hidden line alone
+2026-10-08T23:12:53.0360294Z   ok   and fails on a second, non-token skip line beside it
+2026-10-08T23:12:53.0360903Z   ok   and fails on a lone non-token skip line
+2026-10-08T23:12:53.0361621Z   ok   the UNCHECKED pattern matches every field the token cannot see
+2026-10-08T23:12:53.0362412Z   ok   and refuses the same line for any other field (pinned to bypass_actors)
+2026-10-08T23:12:53.0392152Z   ok   a census whose count rises by one for one planted member is read
+2026-10-08T23:12:53.0398790Z   ok   a count that never moves is BLIND (the silent zero)
+2026-10-08T23:12:53.0406065Z   ok   a count that moves by the wrong amount is BLIND
+2026-10-08T23:12:53.0409329Z   ok   a count line that cannot be read is REFUSED, never a pass
+2026-10-08T23:12:56.0554166Z   ok   a derived check DECLARED lacks is REFUSED as unregistered
+2026-10-08T23:12:56.0554906Z   ok   a DECLARED key the set does not yield is DEAD
+2026-10-08T23:12:56.0555894Z   ok   a DECLARED arm that does not exist is REFUSED
+2026-10-08T23:12:56.0556380Z FIELD COVERAGE SELF-TEST ok
+2026-10-08T23:12:56.0628788Z ##[group]Run if test -f .claude/workflows/gh_comment.py; then python3 .claude/workflows/gh_comment.py self-test; else python3 tools/pr/gh_comment.py self-test; fi
+2026-10-08T23:12:56.0629741Z [36;1mif test -f .claude/workflows/gh_comment.py; then python3 .claude/workflows/gh_comment.py self-test; else python3 tools/pr/gh_comment.py self-test; fi[0m
+2026-10-08T23:12:56.0666119Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:56.0666445Z env:
+2026-10-08T23:12:56.0666749Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:56.0667052Z ##[endgroup]
+2026-10-08T23:12:56.1011926Z   live first line: 'the body that was sent'
+2026-10-08T23:12:56.1012715Z   live first line: 'a completely different comment body'
+2026-10-08T23:12:56.1013158Z   live first line: ''
+2026-10-08T23:12:56.1023760Z ok   arm1_defect_body_refused
+2026-10-08T23:12:56.1024428Z ok   arm1_defect_message_names_the_flag
+2026-10-08T23:12:56.1025058Z ok   arm1_defect_predicate_true
+2026-10-08T23:12:56.1025686Z ok   arm2_healthy_body_accepted
+2026-10-08T23:12:56.1026234Z ok   arm3_positive[@/abs/path.md]
+2026-10-08T23:12:56.1026787Z ok   arm3_positive[@rel/path.md]
+2026-10-08T23:12:56.1027237Z ok   arm3_positive[@bare-name.md]
+2026-10-08T23:12:56.1027936Z ok   arm3_positive[@./x]
+2026-10-08T23:12:56.1028333Z ok   arm3_positive[@~/x]
+2026-10-08T23:12:56.1028891Z ok   arm3_positive[/private/tmp/x/out/body.md]
+2026-10-08T23:12:56.1029725Z ok   arm3_positive[@../up/one.md]
+2026-10-08T23:12:56.1030264Z ok   arm3_negative[frozen at b86a4bd]
+2026-10-08T23:12:56.1031323Z ok   arm3_negative[claimed-by: zcode · branch zcode/audit-r2-216]
+2026-10-08T23:12:56.1031992Z ok   arm3_negative[docs/HANDOVER.md is stale.]
+2026-10-08T23:12:56.1032709Z ok   arm3_negative[Fix review: merge]
+2026-10-08T23:12:56.1033263Z ok   arm3_negative[v6.3.18]
+2026-10-08T23:12:56.1033738Z ok   arm3_negative[#201]
+2026-10-08T23:12:56.1034552Z ok   arm3_negative[https://github.com/tvofi/heatpump_optimizer/pull/738]
+2026-10-08T23:12:56.1035260Z ok   arm3_negative[leaves #201 open.]
+2026-10-08T23:12:56.1036099Z ok   arm3_negative[See tools/audit/briefs/fixer.md step 3 for the null control.]
+2026-10-08T23:12:56.1036747Z ok   arm3_negative[LGTM]
+2026-10-08T23:12:56.1037771Z READBACK id=1 live_len=23 want_len=23 live_sha=4f4546b123666c53 want_sha=4f4546b123666c53 identical=True
+2026-10-08T23:12:56.1038598Z ok   arm4_identical_passes
+2026-10-08T23:12:56.1039419Z READBACK id=1 live_len=22 want_len=23 live_sha=457b99a0ab6ab3bb want_sha=4f4546b123666c53 identical=False
+2026-10-08T23:12:56.1040236Z ok   arm4_refuses_one_byte_difference
+2026-10-08T23:12:56.1041057Z READBACK id=1 live_len=36 want_len=23 live_sha=32051c7c55a86106 want_sha=4f4546b123666c53 identical=False
+2026-10-08T23:12:56.1041927Z ok   arm4_refuses_wrong_comment_id
+2026-10-08T23:12:56.1042591Z ok   arm4_refuses_no_body_field
+2026-10-08T23:12:56.1043187Z ok   arm4_refuses_null_body_field
+2026-10-08T23:12:56.1043700Z ok   arm4_refuses_nonstring_body_field
+2026-10-08T23:12:56.1044577Z READBACK id=1 live_len=0 want_len=23 live_sha=e3b0c44298fc1c14 want_sha=4f4546b123666c53 identical=False
+2026-10-08T23:12:56.1045291Z ok   arm4_refuses_empty_body_field
+2026-10-08T23:12:56.1045821Z ok   arm4_refuses_absent_file
+2026-10-08T23:12:56.1046289Z ok   arm4_refuses_empty_file
+2026-10-08T23:12:56.1046775Z ok   arm4_refuses_whitespace_only_file
+2026-10-08T23:12:56.1047273Z ok   arm4_refuses_over_cap_body
+2026-10-08T23:12:56.1048058Z ok   arm4_accepts_body_at_cap
+2026-10-08T23:12:56.1048596Z ok   arm5_refuses_body_directly_in_scratchpad
+2026-10-08T23:12:56.1049204Z ok   arm5_refuses_body_directly_in_tmp
+2026-10-08T23:12:56.1049735Z ok   arm5_accepts_body_in_seat_subdirectory
+2026-10-08T23:12:56.1050261Z ok   arm5_accepts_body_in_mkdtemp
+2026-10-08T23:12:56.1050760Z ok   arm5_refuses_body_directly_in_TMPDIR
+2026-10-08T23:12:56.1051297Z ok   arm5_refuses_body_directly_in_HOME
+2026-10-08T23:12:56.1051851Z ok   arm5_refuses_body_directly_in_claude_uid
+2026-10-08T23:12:56.1052435Z ok   arm5_refuses_plain_mkstemp_file
+2026-10-08T23:12:56.1053189Z ok   arm5_refuses_link_to_root_file
+2026-10-08T23:12:56.1053676Z ok   arm5_accepts_link_to_seat_file
+2026-10-08T23:12:56.1054258Z ok   arm4_refuses_non_integer_id
+2026-10-08T23:12:56.1054754Z ok   arm4_refuses_zero_id
+2026-10-08T23:12:56.1055190Z TOTAL: 0 failed
+2026-10-08T23:12:56.1055566Z SELF-TEST PASSED
+2026-10-08T23:12:56.1106610Z ##[group]Run if test -f tools/audit/record-predicate/sweep.mjs; then node tools/audit/record-predicate/sweep.mjs --self-test; else node tools/policy/record-predicate/sweep.mjs --self-test; fi
+2026-10-08T23:12:56.1107939Z [36;1mif test -f tools/audit/record-predicate/sweep.mjs; then node tools/audit/record-predicate/sweep.mjs --self-test; else node tools/policy/record-predicate/sweep.mjs --self-test; fi[0m
+2026-10-08T23:12:56.1141231Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:56.1141538Z env:
+2026-10-08T23:12:56.1141782Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:56.1142103Z ##[endgroup]
+2026-10-08T23:12:56.1440383Z 
+2026-10-08T23:12:56.1441018Z SWEEP SELF-TEST: 0 failure(s) over 21 assertion(s)
+2026-10-08T23:12:56.1489366Z ##[group]Run if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi
+2026-10-08T23:12:56.1490111Z [36;1mif test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi[0m
+2026-10-08T23:12:56.1519901Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:12:56.1520319Z env:
+2026-10-08T23:12:56.1520639Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:12:56.1520950Z ##[endgroup]
+2026-10-08T23:12:56.2483781Z   ok   a body with missing-section is refused
+2026-10-08T23:12:56.3315769Z   ok   a body with no-figures is refused
+2026-10-08T23:12:56.4134906Z   ok   a body with empty-section is refused
+2026-10-08T23:12:56.4956559Z   ok   a body with wrong-head is refused
+2026-10-08T23:12:56.5732185Z   ok   a body with dead-carry is refused
+2026-10-08T23:12:56.6573787Z   ok   a body with bad-friction is refused
+2026-10-08T23:12:56.7383828Z   ok   a body with backtick-bad-event is refused
+2026-10-08T23:12:56.8177746Z   ok   a body with bare-na is refused
+2026-10-08T23:12:56.9004070Z   ok   a body with folded-entry is refused
+2026-10-08T23:12:56.9819307Z   ok   a body with bullet-after-entry is refused
+2026-10-08T23:12:57.0691539Z   ok   a body that does not name its red check is refused
+2026-10-08T23:12:57.1488050Z   ok   a healthy body with a well-formed friction line is silent (null control)
+2026-10-08T23:12:57.2339997Z   ok   a healthy body answering every section with a word is silent (null control)
+2026-10-08T23:12:57.3170423Z   ok   a settings file whose hook is missing is refused
+2026-10-08T23:12:57.3965954Z   ok   a settings file whose hook is empty is refused
+2026-10-08T23:12:57.4785540Z   ok   a settings file whose hook is unreadable is refused
+2026-10-08T23:12:57.5608454Z   ok   a settings file whose hook is broken is refused
+2026-10-08T23:12:57.6435231Z   ok   a settings file whose hook is self-test-fails is refused
+2026-10-08T23:12:58.0156519Z   ok   a settings file whose hook is bad-matcher is refused
+2026-10-08T23:12:58.0949204Z   ok   a settings file whose hook is bad-type is refused
+2026-10-08T23:12:59.1394605Z   ok   this repository's own three wired hooks pass (null control)
+2026-10-08T23:13:00.2624967Z   ok   a settings file whose PreToolUse matcher is star-matcher passes (null control)
+2026-10-08T23:13:01.1930185Z   ok   a settings file whose PreToolUse matcher is no-matcher passes (null control)
+2026-10-08T23:13:02.1720557Z   ok   a settings file whose PreToolUse matcher is empty-matcher passes (null control)
+2026-10-08T23:13:02.1743605Z   ok   a detached HEAD has no branch and so nothing to compare -- compared against -
+2026-10-08T23:13:02.1744417Z   ok   a detached HEAD has no branch and so nothing to compare
+2026-10-08T23:13:02.1768685Z   ok   a branch with no remote branch yet reports that it cannot compare -- compared against origin/never-pushed
+2026-10-08T23:13:02.1770147Z   ok   a branch with no remote branch yet reports that it cannot compare
+2026-10-08T23:13:02.1792482Z   ok   a remote branch already at this head is silent (null control) -- compared against origin/own-branch
+2026-10-08T23:13:02.1793412Z   ok   a remote branch already at this head is silent (null control)
+2026-10-08T23:13:02.1812393Z   ok   an unpushed head warns rather than refusing -- compared against origin/own-branch
+2026-10-08T23:13:02.1813176Z   ok   an unpushed head warns rather than refusing
+2026-10-08T23:13:02.1833706Z   ok   a remote branch ahead of this head is refused -- compared against origin/own-branch
+2026-10-08T23:13:02.1834446Z   ok   a remote branch ahead of this head is refused
+2026-10-08T23:13:02.1856621Z   ok   a diverged branch is refused -- compared against origin/own-branch
+2026-10-08T23:13:02.1857250Z   ok   a diverged branch is refused
+2026-10-08T23:13:02.1879276Z   ok   a branch tracking main is compared against its own remote branch, not @{u} -- compared against origin/w5-g3-tail
+2026-10-08T23:13:02.1880588Z   ok   a branch tracking main is compared against its own remote branch, not @{u}
+2026-10-08T23:13:02.3259714Z   ok   a body whose figure command cannot resolve is refused
+2026-10-08T23:13:02.3271493Z   ok   and the step's own output names the flag, so the step runs the figure check
+2026-10-08T23:13:02.3591659Z   ok   a body whose figure command resolves is silent (null control)
+2026-10-08T23:13:02.3602585Z   ok   and it reached a verdict rather than examining nothing (null control)
+2026-10-08T23:13:02.4528367Z   ok   a body with no `## Approval` is refused when the diff touches a policy path
+2026-10-08T23:13:02.4539531Z   ok   and the refusal is the approval gate's own, so the paths reached the check
+2026-10-08T23:13:02.5360384Z   ok   the same body is silent when the diff touches no policy path (null control)
+2026-10-08T23:13:02.6183126Z   ok   a path list that derived nothing is refused, not read as "touches no policy file"
+2026-10-08T23:13:02.7425479Z   ok   a red an earlier pushed commit carried and the body does not name is refused
+2026-10-08T23:13:02.7426362Z   ok   and the refusal is the red gate's own, naming the check
+2026-10-08T23:13:02.8163772Z   ok   the same ancestry with a body that names the red passes (null control)
+2026-10-08T23:13:02.8164584Z   ok   and the ok line names what was answered
+2026-10-08T23:13:02.8346754Z   ok   an ancestry whose only failure is pr-contract's own run passes (the exclusion key)
+2026-10-08T23:13:02.8348014Z   ok   and the ok line says no red stands, so green was measured, not assumed
+2026-10-08T23:13:02.8545025Z   ok   an ancestry no commit of which carries any check run skips, never refuses
+2026-10-08T23:13:02.8546099Z   ok   and the skip line names the boundary
+2026-10-08T23:13:02.8610890Z   ok   a branch nothing of which is pushed past the merge base skips
+2026-10-08T23:13:02.8674638Z   ok   a remote head ref that does not resolve skips
+2026-10-08T23:13:02.8706177Z   ok   no credential gh can use skips the arm (never refuses)
+2026-10-08T23:13:02.8706910Z   ok   and the skip line says why
+2026-10-08T23:13:02.8719708Z   ok   an absent gh skips the arm (never refuses)
+2026-10-08T23:13:02.8720423Z   ok   and the skip line says why
+2026-10-08T23:13:03.0437674Z   ok   a diff raising a budget leaf with a body silent on budget-raise-gate is refused before the push
+2026-10-08T23:13:03.0438768Z   ok   and the refusal is the red gate's own, naming budget-raise-gate
+2026-10-08T23:13:03.1630140Z   ok   the same raise with a body naming budget-raise-gate passes (null control)
+2026-10-08T23:13:03.1630719Z   ok   and the ok line names the raise it fed
+2026-10-08T23:13:03.2811980Z   ok   a budget re-recorded down owes no answer
+2026-10-08T23:13:03.2812732Z   ok   and the ok line says no raise was found, so the gate ran
+2026-10-08T23:13:03.4027660Z   ok   a diff touching no budget file passes
+2026-10-08T23:13:03.4727890Z   ok   a merge base with no gate skips the arm and says so
+2026-10-08T23:13:03.4728867Z   ok   and the body check still runs, fed nothing (skip, never refuse)
+2026-10-08T23:13:03.5554478Z   ok   a test file defining a production top-level name is refused
+2026-10-08T23:13:03.5555299Z   ok   and the refusal is no-copies' own line
+2026-10-08T23:13:03.6137738Z   ok   the same test with the name renamed passes (null control)
+2026-10-08T23:13:03.6138316Z   ok   and the ok line is no-copies' own, so it ran
+2026-10-08T23:13:03.6156967Z   ok   a diff touching no .py under tests/ or custom_components/ skips, even over a copy
+2026-10-08T23:13:03.6158255Z   ok   and the skip line names the boundary
+2026-10-08T23:13:03.6181648Z   ok   a tree with no tests/closure.py skips, never refuses
+2026-10-08T23:13:03.6217772Z   ok   the pr-body step calls body_line, so a predicted raise reaches the body check before the push
+2026-10-08T23:13:03.6221263Z   ok   the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push
+2026-10-08T23:13:03.6252896Z   ok   a base that does not resolve makes the path derivation fail
+2026-10-08T23:13:03.6253980Z   ok   and leaves no list behind, not even an empty one, so the file key fails closed too
+2026-10-08T23:13:03.6294484Z   ok   a base that resolves makes the path derivation succeed (null control)
+2026-10-08T23:13:03.6295690Z   ok   and leaves no `.part` behind either, so the temp file is the function's own
+2026-10-08T23:13:03.6353257Z   ok   a derivation whose rename fails is refused
+2026-10-08T23:13:03.6354275Z   ok   and cleans up after itself, so a failing `mv` leaks no `.part`
+2026-10-08T23:13:03.6390341Z   ok   a manifest edit that is not the version field passes (over-fire control)
+2026-10-08T23:13:03.6418255Z   ok   a manifest version bump is refused, and named by field
+2026-10-08T23:13:03.6445491Z   ok   a VERSION edit is refused
+2026-10-08T23:13:03.6475058Z   ok   a stamp-shaped diff is refused on both, and the added key does not mask it
+2026-10-08T23:13:03.6503148Z   ok   a release-notes heading is refused, and named
+2026-10-08T23:13:03.6530798Z   ok   a notes subsection or bullet passes (over-fire control)
+2026-10-08T23:13:03.7656404Z   ok   a pull request editing VERSION is refused
+2026-10-08T23:13:03.7768249Z   ok   a pull request editing the manifest version is refused
+2026-10-08T23:13:03.7874925Z   ok   a pull request adding a notes heading is refused
+2026-10-08T23:13:03.8004942Z   ok   a manifest version edit hidden by a .gitattributes -diff line is still refused
+2026-10-08T23:13:03.8132063Z   ok   a notes heading hidden by a .gitattributes -diff line is still refused
+2026-10-08T23:13:03.8257029Z   ok   a .gitattributes-only pull request passes (over-fire control for the two arms above)
+2026-10-08T23:13:03.8385688Z   ok   a manifest version edit hidden by a diff=<driver> textconv is still refused
+2026-10-08T23:13:03.8566709Z   ok   a notes heading hidden by a diff=<driver> textconv is still refused
+2026-10-08T23:13:03.8691561Z   ok   a diff=<driver> line with no version edit under it passes (over-fire control for the two arms above)
+2026-10-08T23:13:03.8819244Z   ok   a docs-only pull request passes (null control)
+2026-10-08T23:13:03.8925380Z   ok   a pull request whose main has stamped since it forked passes (the arm two dots fail)
+2026-10-08T23:13:03.9029567Z   ok   a pull request that merged a stamped main passes (null control)
+2026-10-08T23:13:03.9048635Z   ok   a main ref that does not resolve is refused, not read as no edit
+2026-10-08T23:13:03.9197821Z   ok   --version-edit exits non-zero on a VERSION edit
+2026-10-08T23:13:03.9198616Z   ok   and names what it refused
+2026-10-08T23:13:03.9346999Z   ok   --version-edit exits zero on a merged, stamped main (null control)
+2026-10-08T23:13:03.9460553Z   ok   a body directly in a scratchpad is refused
+2026-10-08T23:13:03.9486540Z   ok   a body directly in /tmp is refused
+2026-10-08T23:13:03.9518619Z   ok   a body directly in $TMPDIR is refused
+2026-10-08T23:13:03.9558997Z   ok   a plain mktemp file is refused (the stated choice)
+2026-10-08T23:13:03.9603098Z   ok   a body directly in $HOME is refused
+2026-10-08T23:13:03.9648404Z   ok   a body directly in a claude-<uid> root is refused
+2026-10-08T23:13:03.9700928Z   ok   a link in a seat directory to a root file is refused
+2026-10-08T23:13:03.9753838Z   ok   a link to a seat-directory file passes (null control)
+2026-10-08T23:13:03.9799360Z   ok   a body in the seat's own subdirectory passes (null control)
+2026-10-08T23:13:03.9844035Z   ok   a body in a mktemp -d directory passes (null control)
+2026-10-08T23:13:03.9978162Z   ok   prepr.sh refuses a root body at its call site
+2026-10-08T23:13:03.9979009Z   ok   and names the step
+2026-10-08T23:13:04.0111026Z   ok   and passes a seat body there (null control)
+2026-10-08T23:13:04.0112064Z   ok   printing an ok line, so a skipped step is visible
+2026-10-08T23:13:04.0586703Z   ok   a node script is not recorded without strace
+2026-10-08T23:13:04.1047999Z   ok   and is recorded with it (null control)
+2026-10-08T23:13:04.1505968Z   ok   a Python script is recorded without strace
+2026-10-08T23:13:04.1952157Z   ok   stress.py is left to CI: a push takes no gate lease
+2026-10-08T23:13:04.2053814Z   ok   an override that cannot parse the tree is refused, never skipped past
+2026-10-08T23:13:04.2064116Z   ok   and that refusal names the override, so it is not read as a missing venv
+2026-10-08T23:13:04.2078668Z   ok   an override that parses the tree wins over every candidate behind it
+2026-10-08T23:13:04.2092877Z   ok   a parsing seat venv outranks a parsing ambient
+2026-10-08T23:13:04.2115359Z   ok   a venv that cannot parse is skipped for a parsing ambient: the guard is the parse, not the path
+2026-10-08T23:13:04.2130244Z   ok   a parsing ambient is used as-is, so a recording under it is byte-unchanged (null control)
+2026-10-08T23:13:04.2144124Z   ok   no candidate parsing the tree is refused before anything is recorded
+2026-10-08T23:13:04.2155342Z   ok   and that refusal names the venv build command, not the recording
+2026-10-08T23:13:05.3698398Z   ok   6a refuses a branch that edited the claim file and kept main's list, naming --drop-inherited
+2026-10-08T23:13:05.4610525Z   ok   6a passes a branch that never edited the claim file it inherited (R9-F10.8)
+2026-10-08T23:13:05.5529643Z   ok   6a passes a row-only branch forked before main claimed (the fork point, not the tip)
+2026-10-08T23:13:05.6458184Z   ok   6a passes a branch that writes its own claim (null control)
+2026-10-08T23:13:07.6863177Z   ok   6b passes a scoped script its committed closure covers (null control)
+2026-10-08T23:13:09.6450423Z   ok   6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED
+2026-10-08T23:13:11.5106158Z   ok   6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED
+2026-10-08T23:13:11.5816770Z   ok   6b skips a diff that reaches no selectable script, recording nothing
+2026-10-08T23:13:11.8274979Z   ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
+2026-10-08T23:13:11.8286679Z   ok   and the recorder received that interpreter as $PYTHON
+2026-10-08T23:13:11.9464117Z   ok   6b refuses an override that cannot parse the tree instead of recording under it
+2026-10-08T23:13:11.9475478Z   ok   and the step's refusal names the venv build command
+2026-10-08T23:13:11.9476385Z   ok   and nothing recorded under the refused interpreter
+2026-10-08T23:13:14.5706651Z   ok   6d stays quiet on a comment in a selectable script (null control)
+2026-10-08T23:13:15.7422254Z   ok   6d predicts entities' refusal of a new file in no closure and not on INERT
+2026-10-08T23:13:16.9389836Z   ok   6d predicts UNDER-SCOPED for a new import from a file a closure lists
+2026-10-08T23:13:18.1328389Z   ok   6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)
+2026-10-08T23:13:19.2979420Z   ok   6d predicts INERT READS for a new harness beside the ones a glob-reading script lists
+2026-10-08T23:13:20.4580871Z   ok   6d predicts NO RECORDING for a selectable script no derive lane records
+2026-10-08T23:13:21.6726268Z   ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
+2026-10-08T23:13:21.6736703Z   ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
+2026-10-08T23:13:22.8230476Z   ok   6d charges no branch with an unrecorded script main already carries (null control)
+2026-10-08T23:13:22.8242530Z   ok   and so the unrelated branch passes 6d
+2026-10-08T23:13:24.0219562Z   ok   6d writes the three planted site keys for step 7d
+2026-10-08T23:13:24.0252240Z   ok   7d refuses a body with no ## Unpinned sites when sites are owed
+2026-10-08T23:13:24.0341370Z   ok   7d refuses a section that omits a listed site
+2026-10-08T23:13:24.0362560Z   ok   and names the omitted site
+2026-10-08T23:13:24.0446485Z   ok   7d passes a section naming every listed site (null control)
+2026-10-08T23:13:24.0495952Z   ok   7d reads the keys under ## Unpinned sites only, not anywhere in the body
+2026-10-08T23:13:24.0511375Z   ok   7d owes nothing when the diff adds no site
+2026-10-08T23:13:24.1653944Z   ok   the pin reader finds codeowners_gap.py in a pinned job that grades main
+2026-10-08T23:13:24.2775853Z   ok   this script and these workflows pass the verdict (null control)
+2026-10-08T23:13:24.2871106Z   ok   a pin that never grades main is not counted, and is not a problem (null control)
+2026-10-08T23:13:24.2933613Z   ok   a reader that finds no pinned grader at all is refused
+2026-10-08T23:13:24.3830779Z   ok   a pinned grader with its local run deleted is named
+2026-10-08T23:13:24.4724422Z   ok   a pinned grader whose local run is commented out is named
+2026-10-08T23:13:24.5621102Z   ok   a pinned grader called only above rc=0 is named
+2026-10-08T23:13:24.6927588Z   ok   governance.yml perturbed (unquoted), with step 3e's run deleted, is refused
+2026-10-08T23:13:24.8232771Z   ok   governance.yml perturbed (braced), with step 3e's run deleted, is refused
+2026-10-08T23:13:24.9061949Z Traceback (most recent call last):
+2026-10-08T23:13:24.9062631Z   File "<stdin>", line 19, in <module>
+2026-10-08T23:13:24.9063072Z AssertionError: no-pinned-line
+2026-10-08T23:13:25.0334322Z   ok   governance.yml perturbed (no-pinned-line), with step 3e's run deleted, is refused
+2026-10-08T23:13:25.1092230Z Traceback (most recent call last):
+2026-10-08T23:13:25.1093136Z   File "<stdin>", line 19, in <module>
+2026-10-08T23:13:25.1093958Z AssertionError: env-indirect
+2026-10-08T23:13:25.2354586Z   ok   governance.yml perturbed (env-indirect), with step 3e's run deleted, is refused
+2026-10-08T23:13:25.3659890Z   ok   governance.yml perturbed (x-flag), with step 3e's run deleted, is refused
+2026-10-08T23:13:25.4767289Z   ok   governance.yml perturbed (x-flag), with step 3e's run present, passes (null control)
+2026-10-08T23:13:25.6188686Z   ok   governance.yml perturbed (bare-python), with step 3e's run deleted, is refused
+2026-10-08T23:13:25.7304979Z   ok   governance.yml perturbed (bare-python), with step 3e's run present, passes (null control)
+2026-10-08T23:13:25.8615780Z   ok   governance.yml perturbed (uv-run), with step 3e's run deleted, is refused
+2026-10-08T23:13:25.9743153Z   ok   governance.yml perturbed (uv-run), with step 3e's run present, passes (null control)
+2026-10-08T23:13:26.1313225Z   ok   governance.yml perturbed (continuation), with step 3e's run deleted, is refused
+2026-10-08T23:13:26.2435561Z   ok   governance.yml perturbed (continuation), with step 3e's run present, passes (null control)
+2026-10-08T23:13:26.3960244Z   ok   governance.yml perturbed (indent4), with step 3e's run deleted, is refused
+2026-10-08T23:13:26.5134569Z   ok   governance.yml perturbed (indent4), with step 3e's run present, passes (null control)
+2026-10-08T23:13:26.5436000Z   ok   governance.yml perturbed (renamed), with step 3e's run deleted, is refused
+2026-10-08T23:13:26.6188425Z Traceback (most recent call last):
+2026-10-08T23:13:26.6189214Z   File "<stdin>", line 19, in <module>
+2026-10-08T23:13:26.6189998Z AssertionError: queue-base
+2026-10-08T23:13:26.7472623Z   ok   governance.yml perturbed (queue-base), with step 3e's run deleted, is refused
+2026-10-08T23:13:26.8584621Z   ok   governance.yml perturbed (queue-base), with step 3e's run present, passes (null control)
+2026-10-08T23:13:26.8631074Z   ok   a problem names the file its job is in, not the file read next
+2026-10-08T23:13:26.8674665Z   ok   a pin named outside every job is refused
+2026-10-08T23:13:26.8801992Z   ok   a change to a pinned .mjs touches a pin
+2026-10-08T23:13:26.8929013Z   ok   a change under a pinned directory touches a pin
+2026-10-08T23:13:26.9067034Z   ok   a change to no pinned path touches none (null control)
+2026-10-08T23:13:27.0569631Z   ok   preflight refuses an unintended closing keyword
+2026-10-08T23:13:27.2040793Z   ok   preflight accepts an intended one (null control)
+2026-10-08T23:13:27.3034123Z   ok   transport: a code head over a base that carries a transport file passes (null control)
+2026-10-08T23:13:27.3078085Z   ok   transport: a code commit above a body transport commit is refused
+2026-10-08T23:13:27.3122658Z   ok   transport: a body added and deleted again is still refused
+2026-10-08T23:13:27.3166929Z   ok   transport: a resume note hidden behind a tree-identical merge is refused
+2026-10-08T23:13:27.3209896Z   ok   transport: deleting a transport file main carries passes (null control)
+2026-10-08T23:13:27.3253556Z   ok   transport: merging a main that carries a transport file passes (null control)
+2026-10-08T23:13:27.3299468Z   ok   transport: a body written in a merge's own resolution is refused
+2026-10-08T23:13:27.3321454Z   ok   transport: an unreadable range is refused, never passed
+2026-10-08T23:13:27.4315746Z   ok   a change to prepr.sh owes the self-test
+2026-10-08T23:13:27.5308603Z   ok   a change to a program a step runs owes the self-test
+2026-10-08T23:13:27.6264475Z   ok   a change to a fixture owes the self-test
+2026-10-08T23:13:27.7211360Z   ok   a change to none of them owes nothing (null control)
+2026-10-08T23:13:27.8158996Z   ok   the derived inputs name tools/pr/preflight.sh
+2026-10-08T23:13:27.8167299Z   ok   the derived inputs name tools/policy/figure_lint.mjs
+2026-10-08T23:13:27.8178656Z   ok   the derived inputs name tests/env_drift.py
+2026-10-08T23:13:27.8187458Z   ok   the derived inputs name tools/policy/counts.mjs
+2026-10-08T23:13:27.8197937Z   ok   the derived inputs name tools/policy/render_md.mjs
+2026-10-08T23:13:27.9595032Z   ok   stamp_paths names a manifest version line followed by 2 MB of diff
+2026-10-08T23:13:28.0842607Z   ok   stamp_paths names a notes heading followed by 2 MB of diff
+2026-10-08T23:13:28.2479359Z   ok   and names nothing in 2 MB with no version line or heading (null control)
+2026-10-08T23:13:28.2544320Z   ok   a mktemp file or directory inside the self-test lands under its root
+2026-10-08T23:13:28.2558753Z   ok   and the root is gone after a normal exit
+2026-10-08T23:13:28.2607497Z   ok   and after the run is killed with TERM
+2026-10-08T23:13:28.2633853Z   ok   a temp dir under the floor refuses with rc 3
+2026-10-08T23:13:28.2634717Z   ok   and says ENVIRONMENT, not a test failure
+2026-10-08T23:13:28.2654344Z   ok   a temp dir with room passes the floor (null control)
+2026-10-08T23:13:28.2674610Z   ok   an unmeasurable temp dir runs anyway, never refuses
+2026-10-08T23:13:28.2701419Z   ok   no early-exit grep reads a pipe under pipefail in the drained scripts
+2026-10-08T23:13:28.2719681Z   ok   and a planted early-exit grep site is found (null control)
+2026-10-08T23:13:28.2723470Z   ok   the hooks step prints the failing hook's row, not only the count
+2026-10-08T23:13:28.2743005Z   ok   the self-test checks the floor, then takes its temp root, before any fixture
+2026-10-08T23:13:28.2743475Z 
+2026-10-08T23:13:28.2743737Z 224 passed, 0 failed
+2026-10-08T23:13:28.2790603Z ##[group]Run if test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi
+2026-10-08T23:13:28.2791402Z [36;1mif test -f tools/audit/push.sh; then bash tools/audit/push.sh --self-test; else bash tools/pr/push.sh --self-test; fi[0m
+2026-10-08T23:13:28.2825789Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:28.2826154Z env:
+2026-10-08T23:13:28.2826477Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:28.2826820Z ##[endgroup]
+2026-10-08T23:13:28.2950741Z   ok   the head section's SHA is read out of a healthy body
+2026-10-08T23:13:28.2971676Z   ok   and out of the stale-head fixture, which is the defect's shape
+2026-10-08T23:13:28.2993052Z   ok   a body missing a LATER section still has its head read
+2026-10-08T23:13:28.3013719Z   ok   a body with no head section yields no SHA
+2026-10-08T23:13:28.3030015Z   ok   an empty listing is a POSITIVE statement that no pull request is open
+2026-10-08T23:13:28.3063318Z   ok   a listing naming one pull request yields its number
+2026-10-08T23:13:28.3095781Z   ok   two open pull requests on one head: the first is taken, as the old --jq did
+2026-10-08T23:13:28.3100615Z   ok   A QUERY THAT FAILED IS unknown, NOT none -- the shape the fix review blocked on
+2026-10-08T23:13:28.3104751Z   ok   and a failing status outranks even a well-formed listing (rc is read first)
+2026-10-08T23:13:28.3121047Z   ok   exit 0 and nothing printed did not answer either -- gh's --jq does exactly this
+2026-10-08T23:13:28.3136454Z   ok   prose on stdout is not a listing (null control on the two array cases)
+2026-10-08T23:13:28.3167982Z   ok   an array with no number field is unknown, not a number
+2026-10-08T23:13:28.3203439Z   ok   and that answer refuses rather than pushing
+2026-10-08T23:13:28.3207196Z   ok   no pull request: the opened run is the first pr-contract run there is
+2026-10-08T23:13:28.3211052Z   ok   a pull request exists: the body is set before the push, per S10
+2026-10-08T23:13:28.3214585Z   ok   an unanswered query picks no arm; the arm that guesses is the one that pushes
+2026-10-08T23:13:28.3218499Z   ok   AN EMPTY ANSWER REFUSES -- it used to read as no pull request, which is the defect
+2026-10-08T23:13:28.3221736Z   ok   and so does any other non-number: only the literal none selects the push arm
+2026-10-08T23:13:28.3229910Z   ok   a query that failed while a pull request exists does NOT select push-then-create
+2026-10-08T23:13:28.3249357Z   ok   and a query that answered none still does (null control on the refusal above)
+2026-10-08T23:13:28.3284859Z   ok   and a query that named one still sets the body first
+2026-10-08T23:13:28.3285513Z   ok   a policy title over a policy subject agrees
+2026-10-08T23:13:28.3286070Z   ok   a non-policy pair agrees (null control)
+2026-10-08T23:13:28.3286737Z   ok   a policy title over a non-policy subject disagrees (the WARN arm)
+2026-10-08T23:13:28.3287854Z   ok   and the same disagreement the other way round
+2026-10-08T23:13:28.4211739Z   ok   before the repair, the contract check refuses the stale head
+2026-10-08T23:13:28.4339098Z   ok   write_head reports success on a body that has the heading
+2026-10-08T23:13:28.4359996Z   ok   and the section now names the head it was given
+2026-10-08T23:13:28.5176090Z   ok   after the repair, the same body passes the contract check
+2026-10-08T23:13:28.5199530Z   ok   the rewrite kept every other heading (null control on the repair)
+2026-10-08T23:13:28.5227150Z   ok   write_head refuses a `## Head` section containing a code fence
+2026-10-08T23:13:28.5238236Z   ok   and leaves the fenced body untouched (null control on the refusal)
+2026-10-08T23:13:28.5248271Z   ok   write_head refuses a body with no `## Head` heading
+2026-10-08T23:13:28.5257759Z   ok   and leaves that body untouched
+2026-10-08T23:13:28.5396673Z   ok   write_head succeeds on a `## Head` section carrying prose beside the SHA
+2026-10-08T23:13:28.5417895Z   ok   and the section names the head it was given
+2026-10-08T23:13:28.5428983Z   ok   AND THE PROSE SURVIVED -- the section is the record, not a slot for one token
+2026-10-08T23:13:28.5454386Z   ok   the repair substitutes one line rather than truncating the section (line count unchanged)
+2026-10-08T23:13:28.5464868Z   ok   an unrelated SHA the record cites is left where it stands
+2026-10-08T23:13:28.6300772Z   ok   the repaired body passes the contract check at the new head
+2026-10-08T23:13:28.7183868Z   ok   AND IS REFUSED AT THE SUPERSEDED ONE -- naming both would empty the `does not name` refusal
+2026-10-08T23:13:28.7185160Z   ok   nothing warned: the superseded SHA is gone from the section (null control on the warn below)
+2026-10-08T23:13:28.7274961Z   ok   write_head succeeds on a body that already names the head
+2026-10-08T23:13:28.7285179Z   ok   and leaves it BYTE-IDENTICAL rather than rewriting it
+2026-10-08T23:13:28.7384718Z   ok   write_head succeeds on a section declaring an ABBREVIATED head
+2026-10-08T23:13:28.7396268Z   ok   and leaves THAT byte-identical too: an abbreviation names the same commit
+2026-10-08T23:13:28.8263566Z   ok   which the contract check accepts, because its test is a substring of the 7-prefix
+2026-10-08T23:13:28.8364887Z   ok   write_head succeeds on a section that names no SHA
+2026-10-08T23:13:28.8386851Z   ok   and inserts the head under the heading
+2026-10-08T23:13:28.8397575Z   ok   leaving that section's prose in place
+2026-10-08T23:13:28.9220544Z   ok   and the inserted body passes the contract check
+2026-10-08T23:13:28.9365978Z   ok   a section whose PROSE also cites the superseded SHA is still repaired
+2026-10-08T23:13:28.9387273Z   ok   and still names the new head first
+2026-10-08T23:13:28.9398373Z   ok   and it WARNS, naming the superseded SHA still standing in the prose
+2026-10-08T23:13:28.9398880Z   ok   rather than editing the record to suit the check
+2026-10-08T23:13:28.9509413Z   ok   the body arm sets the body with the seat token's scopes and succeeds
+2026-10-08T23:13:28.9520513Z   ok   and it wrote the body with one REST PATCH, not gh pr edit
+2026-10-08T23:13:28.9530749Z   ok   gh pr edit was not called at all
+2026-10-08T23:13:28.9543785Z   ok   in order: the write, then the read-back, then the push, and nothing else
+2026-10-08T23:13:28.9552234Z   ok   and the live body is byte-identical to the checked body file
+2026-10-08T23:13:28.9629048Z   ok   an unchanged body passes the arm again (null control)
+2026-10-08T23:13:28.9638218Z   ok   and still reaches the push
+2026-10-08T23:13:28.9665889Z   ok   a refused PATCH refuses the arm
+2026-10-08T23:13:28.9676641Z   ok   and NOTHING was pushed
+2026-10-08T23:13:28.9689217Z   ok   and the refusal keeps its message and names the stage that failed
+2026-10-08T23:13:28.9764626Z   ok   a body that reads back different refuses, though the PATCH returned 0
+2026-10-08T23:13:28.9774659Z   ok   and NOTHING was pushed
+2026-10-08T23:13:28.9785180Z   ok   and names the difference as the reason
+2026-10-08T23:13:28.9838875Z   ok   a body that cannot be read back refuses
+2026-10-08T23:13:28.9849015Z   ok   and NOTHING was pushed
+2026-10-08T23:13:28.9860237Z   ok   and names the failed read, not a difference (the read's status is read)
+2026-10-08T23:13:28.9876702Z   ok   no line of this script invokes gh pr edit
+2026-10-08T23:13:28.9888979Z   ok   and the body-then-push arm calls body_then_push
+2026-10-08T23:13:28.9889723Z   ok   one trailing newline is allowed on the live side
+2026-10-08T23:13:28.9890207Z   ok   and on the wanted side
+2026-10-08T23:13:28.9890795Z   ok   a trailing space is a difference (null control on the allowance)
+2026-10-08T23:13:28.9891671Z   ok   and so are two trailing newlines
+2026-10-08T23:13:28.9907090Z 
+2026-10-08T23:13:28.9907594Z 77 passed, 0 failed
+2026-10-08T23:13:28.9944821Z ##[group]Run if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi
+2026-10-08T23:13:28.9945702Z [36;1mif test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi[0m
+2026-10-08T23:13:28.9988393Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:28.9988747Z env:
+2026-10-08T23:13:28.9989020Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:28.9989312Z ##[endgroup]
+2026-10-08T23:13:29.2482895Z ok   the allowlist is exactly the approver App's login and id
+2026-10-08T23:13:29.5555846Z ok   a merge verdict at the live head of an open, unowned pull request is approved
+2026-10-08T23:13:29.5568999Z ok   with exactly one review POST
+2026-10-08T23:13:29.5748567Z ok   whose event is APPROVE and whose commit_id is the asked-for SHA
+2026-10-08T23:13:29.5757605Z ok   and whose body cites the verdict comment
+2026-10-08T23:13:29.5769340Z ok   the POST carried the installation token, from a header file
+2026-10-08T23:13:29.5779169Z ok   and that header file was mode 600 while it existed
+2026-10-08T23:13:29.5791775Z ok   the head was read twice: before the mint and again before the POST
+2026-10-08T23:13:29.5802885Z ok   the installation token is revoked on exit
+2026-10-08T23:13:29.5820083Z ok   the private directory is gone after a success
+2026-10-08T23:13:29.5835027Z ok   no token, JWT, key or signature text in stdout or stderr after a success
+2026-10-08T23:13:29.5846774Z ok   (null control: the leak grep does find the token where it really is)
+2026-10-08T23:13:29.5858103Z ok   (null control: and the JWT header, where it really is)
+2026-10-08T23:13:29.5869492Z ok   and the read-back line is printed
+2026-10-08T23:13:29.5880652Z ok   (fixture: the evidence dir names the head, so the approval above passed the gate honestly)
+2026-10-08T23:13:29.8927697Z ok   under bash -x the approval still runs
+2026-10-08T23:13:29.8944422Z ok   and no token, JWT, key or signature text reaches the trace
+2026-10-08T23:13:29.8955350Z ok   (null control: a JWT was signed on that run)
+2026-10-08T23:13:29.9675242Z ok   REFUSE: the live head moved off the asked-for SHA
+2026-10-08T23:13:29.9687713Z ok   naming the moved head
+2026-10-08T23:13:29.9699319Z ok   and nothing was minted or posted
+2026-10-08T23:13:30.2253216Z ok   REFUSE: the head moved between the mint and the POST
+2026-10-08T23:13:30.2264773Z ok   and no review was posted
+2026-10-08T23:13:30.2276964Z ok   the minted token is revoked after that refusal
+2026-10-08T23:13:30.2294832Z ok   and the private directory is gone, token and all
+2026-10-08T23:13:30.3016322Z ok   REFUSE: a merged pull request, even at its own head with a merge verdict
+2026-10-08T23:13:30.3027645Z ok   and nothing was minted or posted
+2026-10-08T23:13:30.4070490Z ok   REFUSE: no Fix review verdict at all
+2026-10-08T23:13:30.4081922Z ok   saying so, not falling through to the SHA comparison
+2026-10-08T23:13:30.4093399Z ok   and nothing was minted or posted
+2026-10-08T23:13:30.5130491Z ok   REFUSE: the merge verdict is for another SHA
+2026-10-08T23:13:30.5141694Z ok   naming the SHA the verdict is for
+2026-10-08T23:13:30.6181793Z ok   REFUSE: a newer blocked verdict, on a later page, overrides an older merge
+2026-10-08T23:13:30.7222394Z ok   REFUSE: a merge verdict from an outsider (association NONE)
+2026-10-08T23:13:30.7233557Z ok   and nothing was minted or posted
+2026-10-08T23:13:30.8277328Z ok   REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist
+2026-10-08T23:13:30.9323145Z ok   REFUSE: a tvofi verdict, the identity decision 0013 retired from verdicts
+2026-10-08T23:13:30.9335352Z ok   read as no App verdict, its OWNER association and evidence notwithstanding
+2026-10-08T23:13:30.9347103Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.0396934Z ok   REFUSE: a verdict as the author App (#1233's defect)
+2026-10-08T23:13:31.1466953Z ok   REFUSE: the App's login on a non-Bot user record
+2026-10-08T23:13:31.2510959Z ok   REFUSE: the App's login and type under another numeric id
+2026-10-08T23:13:31.2523201Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.3566620Z ok   REFUSE: a verdict from the retired seat account is outside the allowlist
+2026-10-08T23:13:31.3578700Z ok   read as no allowlisted verdict, its evidence dir notwithstanding
+2026-10-08T23:13:31.3590493Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.5140086Z ok   REFUSE: the verdict cites an evidence directory that does not exist
+2026-10-08T23:13:31.5152588Z ok   naming the missing directory
+2026-10-08T23:13:31.5164590Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.6724278Z ok   REFUSE: the evidence directory holds no file naming the head
+2026-10-08T23:13:31.6735857Z ok   naming the exact-sha rule it failed
+2026-10-08T23:13:31.6747516Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.8294670Z ok   REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash
+2026-10-08T23:13:31.8307557Z ok   read as citing no path at all, not as citing '/'
+2026-10-08T23:13:31.8319224Z ok   and nothing was minted or posted
+2026-10-08T23:13:31.9864729Z ok   REFUSE: a bare root surrounded by spaces starts no token either
+2026-10-08T23:13:31.9877112Z ok   and nothing was minted or posted
+2026-10-08T23:13:32.1422630Z ok   REFUSE: a single path component, even one that exists, is refused outright
+2026-10-08T23:13:32.1435287Z ok   naming the component-count rule it failed
+2026-10-08T23:13:32.1446791Z ok   and nothing was minted or posted
+2026-10-08T23:13:32.4495147Z ok   a trailing slash on an otherwise-good evidence path is stripped, not refused
+2026-10-08T23:13:32.6039931Z ok   REFUSE: a missing directory cited with a trailing slash
+2026-10-08T23:13:32.6052341Z ok   (kills the trailing-slash-strip mutant) the cited path in the message has no trailing slash
+2026-10-08T23:13:32.6065668Z ok   (null control) that same message never carries a trailing slash either
+2026-10-08T23:13:32.6085733Z ok   pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it
+2026-10-08T23:13:32.9154320Z ok   (kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it
+2026-10-08T23:13:33.2209370Z ok   (kills the bracket-boundary mutant) '[' starts a token, ']' is stripped off it
+2026-10-08T23:13:33.5258468Z ok   (kills the backtick-boundary mutant) a backtick starts a token, and ends it
+2026-10-08T23:13:33.8309858Z ok   (kills the token-character-class mutant) the token stops at the backtick, not after it
+2026-10-08T23:13:34.1358527Z ok   (kills the quote-boundary mutant) a single quote starts a token too
+2026-10-08T23:13:34.2900521Z ok   REFUSE: /tmp/../ resolves to the root, however many slashes it typed
+2026-10-08T23:13:34.2913879Z ok   and nothing was minted or posted
+2026-10-08T23:13:34.4473088Z ok   REFUSE: <a real component>/../../ collapses to the root too
+2026-10-08T23:13:34.4485502Z ok   and nothing was minted or posted
+2026-10-08T23:13:34.6038390Z ok   REFUSE: a doubled slash alongside a dot-segment still resolves to the root
+2026-10-08T23:13:34.6050574Z ok   and nothing was minted or posted
+2026-10-08T23:13:34.6067696Z ok   pin M18: resolution reads the PHYSICAL directory; `pwd` alone can report a symlink's logical name instead
+2026-10-08T23:13:34.6083239Z ok   pin: a resolved path that is its own mount point is refused
+2026-10-08T23:13:34.7637184Z ok   REFUSE: //tmp/../ resolves to // (not /), and still must be refused
+2026-10-08T23:13:34.7649845Z ok   and nothing was minted or posted
+2026-10-08T23:13:34.9195858Z ok   REFUSE: //dev/fd must not slip past the /dev refusal and reopen the forgery hole
+2026-10-08T23:13:34.9209108Z ok   naming the devfs refusal specifically, not just a missing directory
+2026-10-08T23:13:35.0756383Z ok   REFUSE: //proc/self must not slip past the /proc refusal either
+2026-10-08T23:13:35.0769358Z ok   naming the procfs refusal specifically, where /proc exists
+2026-10-08T23:13:35.2313539Z ok   REFUSE: /proc/self is never qualifying evidence
+2026-10-08T23:13:35.2325679Z ok   naming the procfs refusal specifically, where /proc exists
+2026-10-08T23:13:35.3870138Z ok   REFUSE: /dev/fd is the same hole under devfs
+2026-10-08T23:13:35.3881624Z ok   naming the devfs refusal specifically
+2026-10-08T23:13:35.5432560Z ok   REFUSE: /sys/kernel is the same hole under sysfs
+2026-10-08T23:13:35.5443694Z ok   naming the sysfs refusal specifically
+2026-10-08T23:13:35.6484315Z ok   REFUSE: an outsider's later merge does not displace an allowlisted blocked
+2026-10-08T23:13:35.6495903Z ok   the allowlisted blocked verdict is the one read
+2026-10-08T23:13:35.9545995Z ok   an outsider's later blocked does not displace an allowlisted merge either
+2026-10-08T23:13:36.1248683Z ok   REFUSE: a pull request touching a CODEOWNERS path
+2026-10-08T23:13:36.1260448Z ok   naming the owned path
+2026-10-08T23:13:36.1272363Z ok   and nothing was minted or posted
+2026-10-08T23:13:36.2973021Z ok   REFUSE: an exact owned file at the root
+2026-10-08T23:13:36.4505956Z ok   REFUSE: a rename whose OLD path is owned
+2026-10-08T23:13:36.7707985Z ok   a later owner-less line un-owns: COMMON.md is approvable (last match wins)
+2026-10-08T23:13:36.9237714Z ok   REFUSE: CODEOWNERS unreadable at ref=main, failing closed
+2026-10-08T23:13:36.9249311Z ok   and it was asked for at ref=main
+2026-10-08T23:13:37.0804838Z ok   REFUSE: a CODEOWNERS holding no rules, failing closed
+2026-10-08T23:13:37.1226168Z ok   REFUSE: the App private key is missing
+2026-10-08T23:13:37.1238358Z ok   failing closed with a clear message
+2026-10-08T23:13:37.1252724Z ok   before any gh, openssl or curl call
+2026-10-08T23:13:37.1683286Z ok   REFUSE: an App id with a non-digit in it
+2026-10-08T23:13:37.1695393Z ok   refused as malformed, not stripped to digits
+2026-10-08T23:13:37.1710077Z ok   before any gh, openssl or curl call
+2026-10-08T23:13:37.2134484Z ok   REFUSE: an abbreviated SHA is not an exact head
+2026-10-08T23:13:37.2146419Z ok   refused as a malformed argument, before any call
+2026-10-08T23:13:37.4681987Z ok   a refused POST exits non-zero
+2026-10-08T23:13:37.4693671Z ok   the token is revoked after the failed POST
+2026-10-08T23:13:37.4711844Z ok   the private directory is gone after the failed POST
+2026-10-08T23:13:37.4723032Z ok   (the token header file did exist during that POST)
+2026-10-08T23:13:37.4738575Z ok   and no token, JWT, key or signature text reached stdout or stderr
+2026-10-08T23:13:37.6275291Z ok   --dry-run passes every refusal
+2026-10-08T23:13:37.6287813Z ok   and makes no curl call: nothing minted, nothing posted
+2026-10-08T23:13:37.6299046Z ok   and signs nothing
+2026-10-08T23:13:37.6310135Z ok   reporting what it would do
+2026-10-08T23:13:37.8021536Z ok   --dry-run still refuses what a real run would
+2026-10-08T23:13:37.8196720Z ok   CARRY: a merge from main that leaves the branch's own diff byte-identical
+2026-10-08T23:13:37.8340366Z ok   CARRY: a ci: commit that changes nothing
+2026-10-08T23:13:37.8454032Z ok   NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)
+2026-10-08T23:13:37.8465021Z ok   refused as a hand-resolved merge
+2026-10-08T23:13:37.8537628Z ok   NO CARRY: a commit of the branch's own
+2026-10-08T23:13:37.8636838Z ok   NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass
+2026-10-08T23:13:37.8721351Z ok   NO CARRY: a ci: commit that changes the branch's diff
+2026-10-08T23:13:37.8732583Z ok   refused as a ci: commit outside the driver files
+2026-10-08T23:13:37.8867233Z ok   CARRY: a ci: commit that rewrites only a merge-driver file
+2026-10-08T23:13:37.9333698Z ok   NO CARRY: a hand resolution that moves the branch's change to another function with the same context
+2026-10-08T23:13:37.9344644Z ok   refused as a hand-resolved merge, whatever the diffs compare
+2026-10-08T23:13:37.9529504Z ok   NO CARRY: a ci: commit that moves the branch's change to another function with the same context
+2026-10-08T23:13:37.9540509Z ok   refused by the ci: guard
+2026-10-08T23:13:37.9624391Z ok   NO CARRY: a merge of a branch that is not main
+2026-10-08T23:13:38.0543302Z ok   NO CARRY: one merge of main and another branch at once
+2026-10-08T23:13:38.0584469Z ok   NO CARRY: a rewritten head, not a descendant of the verdict's
+2026-10-08T23:13:38.0627518Z ok   NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)
+2026-10-08T23:13:38.0834395Z ok   CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file
+2026-10-08T23:13:38.1015655Z ok   NO CARRY: a merge from main that changed a context line of the branch's hunk
+2026-10-08T23:13:38.1185639Z ok   NO CARRY: a driver the branch gave its own file, since drivers are read at main
+2026-10-08T23:13:38.4341960Z ok   a merge verdict at V is approved at a head it carries to
+2026-10-08T23:13:38.4522725Z ok   at the live head, and the review says it was carried
+2026-10-08T23:13:38.4532318Z ok   printing the carry it relied on
+2026-10-08T23:13:38.6159239Z ok   REFUSE: the verdict at V does not carry to a head one byte away (null control)
+2026-10-08T23:13:38.6171187Z ok   saying why
+2026-10-08T23:13:38.6183344Z ok   and nothing was minted or posted
+2026-10-08T23:13:38.7814844Z ok   REFUSE: a carried verdict whose evidence names neither head
+2026-10-08T23:13:38.7815740Z app_approve self-test: 147 checks, 0 failed
+2026-10-08T23:13:38.7954211Z ##[group]Run if test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh --self-test; else bash tools/pr/app_comment.sh --self-test; fi
+2026-10-08T23:13:38.7954984Z [36;1mif test -f tools/audit/app_comment.sh; then bash tools/audit/app_comment.sh --self-test; else bash tools/pr/app_comment.sh --self-test; fi[0m
+2026-10-08T23:13:38.7990370Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:38.7990601Z env:
+2026-10-08T23:13:38.7990783Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:38.7990988Z ##[endgroup]
+2026-10-08T23:13:39.0505302Z ok   a merge verdict at the live head of an open pull request is posted
+2026-10-08T23:13:39.0516523Z ok   with exactly one comment POST
+2026-10-08T23:13:39.0528353Z ok   whose body is the file, byte for byte
+2026-10-08T23:13:39.0539163Z ok   the POST carried the installation token, from a header file
+2026-10-08T23:13:39.0548250Z ok   and that header file was mode 600 while it existed
+2026-10-08T23:13:39.0559540Z ok   the head was read twice: before the mint and again before the POST
+2026-10-08T23:13:39.0570228Z ok   the comment was read back off the API
+2026-10-08T23:13:39.0581917Z ok   and gh_comment.py printed an identical read-back
+2026-10-08T23:13:39.0592869Z ok   naming the App it posted as
+2026-10-08T23:13:39.0603915Z ok   the installation token is revoked on exit
+2026-10-08T23:13:39.0620540Z ok   the private directory is gone after a success
+2026-10-08T23:13:39.0634796Z ok   no token, JWT, key or signature text in stdout or stderr
+2026-10-08T23:13:39.0645298Z ok   (null control: the leak grep does find the token where it really is)
+2026-10-08T23:13:39.3113830Z ok   under bash -x the post still runs
+2026-10-08T23:13:39.3129609Z ok   and no token, JWT, key or signature text reaches the trace
+2026-10-08T23:13:39.3139975Z ok   (null control: a JWT was signed on that run)
+2026-10-08T23:13:39.5581932Z ok   a blocked head-moved verdict posts although its SHA is not the live head
+2026-10-08T23:13:39.6161977Z ok   REFUSE: a merge verdict for a head that is not the live one
+2026-10-08T23:13:39.6173145Z ok   naming the moved head
+2026-10-08T23:13:39.6183900Z ok   and nothing was minted or posted
+2026-10-08T23:13:39.7499442Z ok   REFUSE: the head moved between the mint and the POST
+2026-10-08T23:13:39.7510347Z ok   and no comment was posted
+2026-10-08T23:13:39.7521415Z ok   the minted token is revoked after that refusal
+2026-10-08T23:13:39.7538096Z ok   and the private directory is gone, token and all
+2026-10-08T23:13:39.8126590Z ok   REFUSE: a closed pull request
+2026-10-08T23:13:39.8502974Z ok   REFUSE: a first line outside the verdict grammar: 'LGTM'
+2026-10-08T23:13:39.8514091Z ok     and nothing was minted or posted
+2026-10-08T23:13:39.8887083Z ok   REFUSE: a first line outside the verdict grammar: 'Fix review: merge 1111111'
+2026-10-08T23:13:39.8897979Z ok     and nothing was minted or posted
+2026-10-08T23:13:39.9273783Z ok   REFUSE: a first line outside the verdict grammar: 'Fix review: merge 1111111111111111111111111111111111111111 extra'
+2026-10-08T23:13:39.9284594Z ok     and nothing was minted or posted
+2026-10-08T23:13:39.9717987Z ok   REFUSE: a first line outside the verdict grammar: 'fix review: merge 1111111111111111111111111111111111111111'
+2026-10-08T23:13:39.9728603Z ok     and nothing was minted or posted
+2026-10-08T23:13:40.0108293Z ok   REFUSE: a first line outside the verdict grammar: 'Fix review: blocked 1111111111111111111111111111111111111111'
+2026-10-08T23:13:40.0118992Z ok     and nothing was minted or posted
+2026-10-08T23:13:40.0494303Z ok   REFUSE: a first line outside the verdict grammar: 'Fix review: approve 1111111111111111111111111111111111111111'
+2026-10-08T23:13:40.0504787Z ok     and nothing was minted or posted
+2026-10-08T23:13:40.0890369Z ok   REFUSE: a body file directly in a shared root (gh_comment.py's refusal)
+2026-10-08T23:13:40.0901798Z ok     refused before the mint: nothing minted or posted
+2026-10-08T23:13:40.1262266Z ok   REFUSE: an absent body file
+2026-10-08T23:13:40.1275712Z ok     before any gh, openssl or curl call
+2026-10-08T23:13:40.3168253Z ok   REFUSE: a post that reads back as the author App (#1233's defect)
+2026-10-08T23:13:40.3179185Z ok   naming the identity it landed as
+2026-10-08T23:13:40.3190164Z ok     and it is not reported as verified
+2026-10-08T23:13:40.3201134Z ok     and the token is still revoked
+2026-10-08T23:13:40.3244770Z ok   REFUSE: only the author App's key present; it is never used
+2026-10-08T23:13:40.3258567Z ok     before any gh, openssl or curl call
+2026-10-08T23:13:40.5645891Z ok   REFUSE: a comment that does not read back byte-identical
+2026-10-08T23:13:40.5658032Z ok   naming the id it left on the record
+2026-10-08T23:13:40.7353159Z ok   a refused POST exits non-zero
+2026-10-08T23:13:40.7364967Z ok   the token is revoked after the failed POST
+2026-10-08T23:13:40.7381190Z ok   the private directory is gone after the failed POST
+2026-10-08T23:13:40.7395851Z ok   and no secret text reached stdout or stderr
+2026-10-08T23:13:40.7984085Z ok   --dry-run passes every refusal
+2026-10-08T23:13:40.7996042Z ok   and makes no curl call: nothing minted, nothing posted
+2026-10-08T23:13:40.8006276Z ok   and signs nothing
+2026-10-08T23:13:40.8587358Z ok   --dry-run still refuses what a real run would
+2026-10-08T23:13:40.8588358Z app_comment self-test: 57 checks, 0 failed
+2026-10-08T23:13:40.8676457Z ##[group]Run bash tools/audit/seat/bus.sh --self-test
+2026-10-08T23:13:40.8676802Z [36;1mbash tools/audit/seat/bus.sh --self-test[0m
+2026-10-08T23:13:40.8711835Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:40.8712066Z env:
+2026-10-08T23:13:40.8712249Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:40.8712451Z ##[endgroup]
+2026-10-08T23:13:41.3018516Z   ok   a verdict posts as a comment through app_comment.sh, never as an approving review
+2026-10-08T23:13:41.3098250Z   ok   push-verdict refuses a first line outside the grammar
+2026-10-08T23:13:41.3190809Z   ok   push-verdict refuses a verdict with no nonce line
+2026-10-08T23:13:41.3289923Z   ok   push-verdict refuses evidence that names no head
+2026-10-08T23:13:41.3382815Z   ok   push-verdict refuses a verdict with no evidence directory
+2026-10-08T23:13:41.3439692Z   ok   push-verdict refuses a non-numeric pull request
+2026-10-08T23:13:41.3468097Z   ok   no refused push left a review ref
+2026-10-08T23:13:41.3609151Z   ok   a first pass records a baseline and posts nothing
+2026-10-08T23:13:41.4630144Z   ok   watch --post posts neither a forged proposal nor a forged verdict ref
+2026-10-08T23:13:41.4887130Z   ok   confirm promotes no proposal that was never dispatched
+2026-10-08T23:13:41.5565058Z   ok   a verdict signed with a key that is not the approver's does not post
+2026-10-08T23:13:41.5652013Z   ok   dispatch records pr, head and reviewer and prints a fresh nonce
+2026-10-08T23:13:41.5725954Z   ok   two dispatches mint two nonces
+2026-10-08T23:13:41.6543805Z   ok   another dispatch's nonce does not count
+2026-10-08T23:13:41.7020800Z   ok   push-verdict proposes on review/<pr>, fast-forwarding it
+2026-10-08T23:13:41.7349512Z   ok   watch reports a new handoff ref
+2026-10-08T23:13:41.7361150Z   ok   watch reports a new review ref
+2026-10-08T23:13:41.7387135Z   ok   a dispatched proposal waits for the orchestrator's confirmation, naming the reviewer
+2026-10-08T23:13:41.7524225Z   ok   a confirmation for a commit that is not the tip posts nothing
+2026-10-08T23:13:41.7598277Z   ok   confirm refuses on a machine without the approver key
+2026-10-08T23:13:41.8370525Z   ok   confirm signs the proposal onto verdict/<pr> and posts it once
+2026-10-08T23:13:41.8396823Z   ok   the signed verdict carries the reviewer's tree unchanged
+2026-10-08T23:13:41.8407897Z   ok   the posted body names the reviewer and the proposal
+2026-10-08T23:13:41.8417710Z   ok   the posted body keeps the reviewer's first line
+2026-10-08T23:13:41.8440149Z   ok   the posted body cites an absolute evidence directory that names the head
+2026-10-08T23:13:41.8448974Z   ok   the poster is called with the repository and pull request
+2026-10-08T23:13:41.8628816Z   ok   watch passes over a verdict it already posted
+2026-10-08T23:13:41.8746525Z   ok   an unchanged pass reports and posts nothing
+2026-10-08T23:13:41.8941324Z   ok   post refuses a commit already posted
+2026-10-08T23:13:42.0001226Z   ok   a signed verdict moved to another pull request does not post
+2026-10-08T23:13:42.0012338Z   ok   a signature over another tree does not post
+2026-10-08T23:13:42.0730233Z   ok   round 1's nonce does not count at another head
+2026-10-08T23:13:42.2208425Z   ok   a later round fast-forwards the verdict ref and is posted
+2026-10-08T23:13:42.2996080Z   ok   a confirmed verdict replayed after a later round does not post again
+2026-10-08T23:13:42.3546304Z   ok   a replay with its signature line re-encoded does not post again
+2026-10-08T23:13:42.4096030Z   ok   a replay with its signature line re-encoded does not post again
+2026-10-08T23:13:42.4204325Z   ok   a signature line that is not canonical base64 does not verify
+2026-10-08T23:13:42.4623881Z   ok   watch refuses a raw ref outside the grammar and posts nothing
+2026-10-08T23:13:42.4738437Z   ok   a refused verdict is not retried on the next pass
+2026-10-08T23:13:42.5156203Z   ok   watch refuses a raw proposal whose only naming file is VERDICT.md
+2026-10-08T23:13:42.6365450Z   ok   a poster refusal is reported and not recorded as posted
+2026-10-08T23:13:42.6766790Z   ok   post retries a refused verdict by hand
+2026-10-08T23:13:42.6965020Z   ok   watch reports a deleted ref
+2026-10-08T23:13:42.7224842Z   ok   watch without --once exits on its first event
+2026-10-08T23:13:45.7248889Z   ok   watch without --once keeps waiting while nothing changes
+2026-10-08T23:13:45.7318462Z bus self-test: 45 checks, 0 failed
+2026-10-08T23:13:45.7350232Z ##[group]Run set -o pipefail
+2026-10-08T23:13:45.7350504Z [36;1mset -o pipefail[0m
+2026-10-08T23:13:45.7351178Z [36;1mif test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"[0m
+2026-10-08T23:13:45.7352022Z [36;1mgrep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"[0m
+2026-10-08T23:13:45.7387493Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:45.7387747Z env:
+2026-10-08T23:13:45.7388039Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:45.7388247Z ##[endgroup]
+2026-10-08T23:13:45.7953932Z   ok   structure: null control
+2026-10-08T23:13:45.7954541Z   ok   structure: a metric re-recorded down is routine
+2026-10-08T23:13:45.7955037Z   ok   structure: a metric up is a raise
+2026-10-08T23:13:45.7955482Z   ok   structure: a metric deleted is a raise
+2026-10-08T23:13:45.7955989Z   ok   structure: a new metric is not a raise
+2026-10-08T23:13:45.7956387Z   ok   mutation: null control
+2026-10-08T23:13:45.7956883Z   ok   mutation: ledger rows re-keyed after a line shift are routine
+2026-10-08T23:13:45.7957543Z   ok   mutation: the unpinned count up is a raise
+2026-10-08T23:13:45.7958036Z   ok   mutation: a survivor fraction up is a raise
+2026-10-08T23:13:45.7958548Z   ok   mutation: the committed count removed is a raise
+2026-10-08T23:13:45.7959010Z   ok   coverage: null control
+2026-10-08T23:13:45.7959459Z   ok   coverage: a floor up, a pragma paid off, is routine
+2026-10-08T23:13:45.7959919Z   ok   coverage: a floor down is a raise
+2026-10-08T23:13:45.7960331Z   ok   coverage: the ceiling down is a raise
+2026-10-08T23:13:45.7960753Z   ok   coverage: a pragma added is a raise
+2026-10-08T23:13:45.7961145Z   ok   stress: null control
+2026-10-08T23:13:45.7961569Z   ok   stress: a scenario re-recorded cheaper is routine
+2026-10-08T23:13:45.7962016Z   ok   stress: a ratio up is a raise
+2026-10-08T23:13:45.7962422Z   ok   stress: a scenario dropped is a raise
+2026-10-08T23:13:45.7962849Z   ok   stress: the override lowered is a raise
+2026-10-08T23:13:45.7963401Z   ok   stress: the override withdrawn is routine (the literal is stricter)
+2026-10-08T23:13:45.7963945Z   ok   stress: an override granted is a raise
+2026-10-08T23:13:45.7964330Z   ok   typing: null control
+2026-10-08T23:13:45.7964846Z   ok   typing: a re-measured environment and a new record sha are routine
+2026-10-08T23:13:45.7965412Z   ok   typing: a type-ignore added is a raise
+2026-10-08T23:13:45.7965871Z   ok   typing: an error code appearing is a raise
+2026-10-08T23:13:45.7966379Z   ok   typing: the ruler's toolchain moved is a raise
+2026-10-08T23:13:45.7966788Z   ok   policy: null control
+2026-10-08T23:13:45.7967337Z   ok   policy: a cap down, a deleted file's cap dropped, a sample widened are routine
+2026-10-08T23:13:45.7968047Z   ok   policy: a per-file cap up is a raise
+2026-10-08T23:13:45.7968499Z   ok   policy: the band widened is a raise
+2026-10-08T23:13:45.7968969Z   ok   policy: a role's sample narrowed is a raise
+2026-10-08T23:13:45.7969489Z   ok   policy: a cap dropped while its file stays is a raise
+2026-10-08T23:13:45.7970006Z   ok   structure: a metric set to NaN is a raise
+2026-10-08T23:13:45.7970469Z   ok   coverage: a floor set to NaN is a raise
+2026-10-08T23:13:45.7970939Z   ok   structure: a metric set to +inf is a raise
+2026-10-08T23:13:45.7971431Z   ok   coverage: a floor set to +inf is a raise
+2026-10-08T23:13:45.7972187Z   ok   structure: a metric set to -inf is a raise
+2026-10-08T23:13:45.7972655Z   ok   coverage: a floor set to -inf is a raise
+2026-10-08T23:13:45.7973148Z   ok   structure: a metric set to a string is a raise
+2026-10-08T23:13:45.7973640Z   ok   coverage: a floor set to a string is a raise
+2026-10-08T23:13:45.7974115Z   ok   structure: a metric set to null is a raise
+2026-10-08T23:13:45.7974641Z   ok   coverage: a floor set to null is a raise
+2026-10-08T23:13:45.7975258Z   ok   structure: a metric set to a bool is a raise
+2026-10-08T23:13:45.7975732Z   ok   coverage: a floor set to a bool is a raise
+2026-10-08T23:13:45.7976196Z   ok   structure: a new metric at NaN is a raise
+2026-10-08T23:13:45.7976683Z   ok   structure: a new metric as a string is a raise
+2026-10-08T23:13:45.7977214Z   ok   mutation: the survivor fraction at +inf is a raise
+2026-10-08T23:13:45.7977814Z   ok   stress: a ratio at NaN is a raise
+2026-10-08T23:13:45.7978277Z   ok   stress: the override floor at -inf is a raise
+2026-10-08T23:13:45.7978766Z   ok   typing: a new error code at +inf is a raise
+2026-10-08T23:13:45.7979234Z   ok   policy: a per-file cap at NaN is a raise
+2026-10-08T23:13:45.7979776Z   ok   a NaN base lowered to a number is not a raise (null control)
+2026-10-08T23:13:45.7980316Z   ok   unknown file: a change with no schema is a raise
+2026-10-08T23:13:45.7981186Z   ok   unknown file: added is a raise
+2026-10-08T23:13:45.7981608Z   ok   a budget file deleted is a raise
+2026-10-08T23:13:45.7982155Z   ok   a head that does not parse is a raise
+2026-10-08T23:13:45.7982678Z   ok   no raise: passes with no review at all (null control)
+2026-10-08T23:13:45.7983177Z   ok   no raise: never reads the API
+2026-10-08T23:13:45.7983578Z   ok   an approved raise passes
+2026-10-08T23:13:45.7983961Z   ok   an unapproved raise fails
+2026-10-08T23:13:45.7984425Z   ok   a raise approved only by the approver App fails
+2026-10-08T23:13:45.7984914Z   ok   a stale approval on an older SHA fails
+2026-10-08T23:13:45.7985389Z   ok   an approval then changes requested fails
+2026-10-08T23:13:45.7985840Z   ok   an approval then dismissed fails
+2026-10-08T23:13:45.7986279Z   ok   an approval then a comment still passes
+2026-10-08T23:13:45.7986786Z   ok   a stale approval then a fresh one passes
+2026-10-08T23:13:45.7987262Z   ok   an account named tvofi with another id fails
+2026-10-08T23:13:45.7988019Z   ok   the owner's id under another login fails (a rename is re-pinned, not followed)
+2026-10-08T23:13:45.7988694Z   ok   the owner's id and login on a non-User account fails
+2026-10-08T23:13:45.7989219Z   ok   a reviews read that fails, fails closed
+2026-10-08T23:13:45.7989977Z   ok   a raise approved at the head by an agent-declared review fails (the orchestrator's mandate wording)
+2026-10-08T23:13:45.7990980Z   ok   a raise approved at the head by an agent-declared review fails (the 'given by the orchestrator' wording)
+2026-10-08T23:13:45.7991864Z   ok   a raise approved at the head by an agent-declared review fails (a seat's wording)
+2026-10-08T23:13:45.7992694Z   ok   a raise approved at the head by an agent-declared review fails (a delegation's wording)
+2026-10-08T23:13:45.7993543Z   ok   a raise approved at the head by an agent-declared review fails (a mandate named alone)
+2026-10-08T23:13:45.7994342Z   ok   a raise approved at the head by an agent-declared review fails (the agent footer)
+2026-10-08T23:13:45.7995112Z   ok   the owner's own approval at the head still passes beside an agent-declared one
+2026-10-08T23:13:45.7995847Z   ok   an agent-declared approval does not revive the owner's stale one
+2026-10-08T23:13:45.7996458Z   ok   an owner approval with an empty body passes (null control)
+2026-10-08T23:13:45.7997077Z   ok   an owner approval whose body names no agent passes (null control)
+2026-10-08T23:13:45.7997659Z   ok   the refusal names why
+2026-10-08T23:13:45.7998208Z   ok   mandate: an agent's approval at the head under a budget-raise mandate passes
+2026-10-08T23:13:45.7998851Z   ok   mandate: ... and the verdict names the mandate it used
+2026-10-08T23:13:45.7999654Z   ok   mandate: ... and the review stays declared an agent's (nothing hides authorship)
+2026-10-08T23:13:45.8000216Z   ok   mandate: scope all covers a raise
+2026-10-08T23:13:45.8000651Z   ok   mandate: until programme-end is open-ended
+2026-10-08T23:13:45.8001151Z   ok   mandate: the review's comment URL is a citation too
+2026-10-08T23:13:45.8001670Z   ok   mandate: no raise reads no mandate (null control)
+2026-10-08T23:13:45.8002284Z   ok   mandate: a review submitted after `until` fails
+2026-10-08T23:13:45.8002794Z   ok   mandate: a review submitted exactly at `until` fails
+2026-10-08T23:13:45.8003298Z   ok   mandate: a review submitted before `from` fails
+2026-10-08T23:13:45.8003917Z   ok   mandate: a `from` back-dated before the comment existed starts at the comment
+2026-10-08T23:13:45.8004544Z   ok   mandate: a mandate edited after the review fails
+2026-10-08T23:13:45.8005030Z   ok   mandate: a review with no submitted_at fails
+2026-10-08T23:13:45.8005506Z   ok   mandate: a mandate tvofi revoked fails
+2026-10-08T23:13:45.8006003Z   ok   mandate: ... and the refusal names the revocation
+2026-10-08T23:13:45.8006636Z   ok   mandate: a revocation by another account revokes nothing (null control)
+2026-10-08T23:13:45.8007358Z   ok   mandate: a revocation of another mandate revokes nothing (null control)
+2026-10-08T23:13:45.8008091Z   ok   mandate: a mandate comment by another account fails
+2026-10-08T23:13:45.8008737Z   ok   mandate: a mandate comment by an account named tvofi with another id fails
+2026-10-08T23:13:45.8009381Z   ok   mandate: a mandate comment by the approver App fails
+2026-10-08T23:13:45.8009921Z   ok   mandate: a mandate comment on another issue fails
+2026-10-08T23:13:45.8010435Z   ok   mandate: a cited comment that does not exist fails
+2026-10-08T23:13:45.8011001Z   ok   mandate: a mandate comment on #201 of another repository fails
+2026-10-08T23:13:45.8011574Z   ok   mandate: a mandate read that fails, fails closed
+2026-10-08T23:13:45.8012069Z   ok   mandate: a body that is not the grammar fails
+2026-10-08T23:13:45.8012527Z   ok   mandate: a time with no zone fails
+2026-10-08T23:13:45.8013002Z   ok   mandate: scope code-owned does not cover a raise
+2026-10-08T23:13:45.8013545Z   ok   mandate: a mandated approval on a non-head commit fails
+2026-10-08T23:13:45.8014213Z   ok   mandate: an agent's approval citing no mandate still fails (null control)
+2026-10-08T23:13:45.8014806Z   ok   mandate: a review citing two mandates fails
+2026-10-08T23:13:45.8015404Z   ok   mandate: an agent's CHANGES_REQUESTED under a mandate decides nothing
+2026-10-08T23:13:45.8016057Z   ok   mandate: the owner's own later CHANGES_REQUESTED still decides
+2026-10-08T23:13:45.8016717Z   ok   mandate: a mandated approval from another account is not the owner's
+2026-10-08T23:13:45.8017456Z   ok   mandate: the revocation 'MANDATE REVOKED 4100000001.' revokes
+2026-10-08T23:13:45.8018076Z   ok   mandate: the revocation 'MANDATE REVOKED #4100000001' revokes
+2026-10-08T23:13:45.8018689Z   ok   mandate: the revocation 'MANDATE REVOKED: 4100000001' revokes
+2026-10-08T23:13:45.8019287Z   ok   mandate: the revocation 'Mandate revoked 4100000001' revokes
+2026-10-08T23:13:45.8019966Z   ok   mandate: the revocation 'Ending it now.\nMANDATE REVOKED 4100000001' revokes
+2026-10-08T23:13:45.8021001Z   ok   mandate: the revocation 'I revoke mandate https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-4100000001' revokes
+2026-10-08T23:13:45.8022099Z   ok   mandate: a revocation naming a longer id that contains this one revokes nothing (null control)
+2026-10-08T23:13:45.8022988Z   ok   mandate: tvofi's comment naming the id with no revocation word revokes nothing (null control)
+2026-10-08T23:13:45.8023651Z   ok   mandate: a mandate edited before the review fails
+2026-10-08T23:13:45.8024161Z   ok   mandate: ... and the refusal says it was edited
+2026-10-08T23:13:45.8024821Z   ok   mandate: a body that is not the grammar is refused as such, not as an unread mandate
+2026-10-08T23:13:45.8025763Z   ok   mandate: a mandated approval does not override tvofi's own earlier CHANGES_REQUESTED
+2026-10-08T23:13:45.8026400Z   ok   mandate: ... and the refusal says so
+2026-10-08T23:13:45.8027083Z   ok   mandate: tvofi's own later approval clears his CHANGES_REQUESTED, as before (null control)
+2026-10-08T23:13:45.8027879Z   ok   mandate: tvofi's own earlier DISMISSED blocks nothing
+2026-10-08T23:13:45.8028376Z   ok   the tree has budget files to read
+2026-10-08T23:13:45.8028991Z   ok   dev/governance/config/policy_budgets.json: has a schema
+2026-10-08T23:13:45.8029726Z   ok   dev/governance/config/policy_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:45.8030578Z   ok   dev/governance/config/policy_budgets.json: null control, the file against itself
+2026-10-08T23:13:45.8031505Z   ok   dev/governance/config/policy_budgets.json: every cap moved the strict way is routine (47 cap(s))
+2026-10-08T23:13:45.8032417Z   ok   dev/governance/config/policy_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4264785Z   ok   tests/coverage_budgets.json: has a schema
+2026-10-08T23:13:47.4265585Z   ok   tests/coverage_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:47.4266266Z   ok   tests/coverage_budgets.json: null control, the file against itself
+2026-10-08T23:13:47.4267021Z   ok   tests/coverage_budgets.json: every cap moved the strict way is routine (5 cap(s))
+2026-10-08T23:13:47.4267659Z   ok   tests/coverage_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4268069Z   ok   tests/mutation_budgets.json: has a schema
+2026-10-08T23:13:47.4268432Z   ok   tests/mutation_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:47.4268852Z   ok   tests/mutation_budgets.json: null control, the file against itself
+2026-10-08T23:13:47.4269294Z   ok   tests/mutation_budgets.json: every cap moved the strict way is routine (2 cap(s))
+2026-10-08T23:13:47.4269746Z   ok   tests/mutation_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4270105Z   ok   tests/stress_budgets.json: has a schema
+2026-10-08T23:13:47.4270489Z   ok   tests/stress_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:47.4270886Z   ok   tests/stress_budgets.json: null control, the file against itself
+2026-10-08T23:13:47.4271311Z   ok   tests/stress_budgets.json: every cap moved the strict way is routine (216 cap(s))
+2026-10-08T23:13:47.4271739Z   ok   tests/stress_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4272084Z   ok   tests/structure_budgets.json: has a schema
+2026-10-08T23:13:47.4272451Z   ok   tests/structure_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:47.4272858Z   ok   tests/structure_budgets.json: null control, the file against itself
+2026-10-08T23:13:47.4273308Z   ok   tests/structure_budgets.json: every cap moved the strict way is routine (16 cap(s))
+2026-10-08T23:13:47.4273754Z   ok   tests/structure_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4274102Z   ok   tests/typing_budgets.json: has a schema
+2026-10-08T23:13:47.4274441Z   ok   tests/typing_budgets.json: carries at least one cap the gate reads
+2026-10-08T23:13:47.4274828Z   ok   tests/typing_budgets.json: null control, the file against itself
+2026-10-08T23:13:47.4275245Z   ok   tests/typing_budgets.json: every cap moved the strict way is routine (2 cap(s))
+2026-10-08T23:13:47.4275663Z   ok   tests/typing_budgets.json: every cap moved the loose way is a raise
+2026-10-08T23:13:47.4276003Z   ok   e2e: a routine edit exits 0 (null control)
+2026-10-08T23:13:47.4276278Z   ok   e2e: ... reads no reviews
+2026-10-08T23:13:47.4276564Z   ok   e2e: ... compares at the fork point, not the moved base
+2026-10-08T23:13:47.4276883Z   ok   e2e: ... and reports every budget file it read
+2026-10-08T23:13:47.4277274Z   ok   e2e: a budget file moved to its new path, unchanged, is no raise (R9-RO-2)
+2026-10-08T23:13:47.4277766Z   ok   e2e: ... and one raised as it moved is a raise, named at its old path
+2026-10-08T23:13:47.4278308Z   ok   e2e: an unapproved raise exits 1
+2026-10-08T23:13:47.4278554Z   ok   e2e: ... names the raise
+2026-10-08T23:13:47.4278839Z   ok   e2e: ... after asking for this PR's reviews, every page
+2026-10-08T23:13:47.4279193Z   ok   e2e: a raise approved on the head, on the second page, exits 0
+2026-10-08T23:13:47.4279541Z   ok   e2e: a raise whose latest approval is stale exits 1
+2026-10-08T23:13:47.4279899Z   ok   e2e: a raise approved at the head under a mandate in force exits 0
+2026-10-08T23:13:47.4280352Z   ok   e2e: ... after reading the comment, then #201 since it was written
+2026-10-08T23:13:47.4280675Z   ok   e2e: ... and exits 1 once tvofi revokes it
+2026-10-08T23:13:47.4280968Z   ok   e2e: a cited mandate that does not exist exits 1
+2026-10-08T23:13:47.4281272Z   ok   e2e: a mandate read that fails otherwise exits 1
+2026-10-08T23:13:47.4281632Z   ok   e2e: a reviews read that exits non-zero exits 1, whatever it printed
+2026-10-08T23:13:47.4281955Z   ok   e2e: a cap edited to NaN exits 1
+2026-10-08T23:13:47.4282228Z   ok   e2e: an added budget file with no schema exits 1
+2026-10-08T23:13:47.4282503Z   ok   e2e: a deleted budget file exits 1
+2026-10-08T23:13:47.4282804Z   ok   e2e: a per-file cap dropped while the file stays exits 1
+2026-10-08T23:13:47.4283112Z   ok   e2e: --repo is the repository asked
+2026-10-08T23:13:47.4283388Z   ok   e2e: without --repo, GITHUB_REPOSITORY is
+2026-10-08T23:13:47.4283661Z   ok   e2e: no --pr exits 2 and asks nothing
+2026-10-08T23:13:47.4283947Z   ok   e2e: an unknown flag exits 2 and asks nothing
+2026-10-08T23:13:47.4284265Z   ok   e2e: a trailing flag with no value exits 2 and asks nothing
+2026-10-08T23:13:47.4284573Z   ok   e2e: an unresolvable base fails closed
+2026-10-08T23:13:47.4284928Z   ok   rerun: a passing review run re-runs the red pull_request run at its head
+2026-10-08T23:13:47.4285283Z   ok   rerun: two red twins at one head, both re-run
+2026-10-08T23:13:47.4285618Z   ok   rerun: an older red run beside a newer green one is still re-run
+2026-10-08T23:13:47.4285972Z   ok   rerun: ... and a newer red one beside an older green one
+2026-10-08T23:13:47.4286305Z   ok   rerun: twins both green re-run nothing (null control)
+2026-10-08T23:13:47.4286660Z   ok   rerun: a twin still going is waited for before either is re-run
+2026-10-08T23:13:47.4287014Z   ok   rerun: a failing review run re-runs nothing (the red stands)
+2026-10-08T23:13:47.4287509Z   ok   rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)
+2026-10-08T23:13:47.4288131Z   ok   rerun: another workflow's run is not the gate
+2026-10-08T23:13:47.4288430Z   ok   rerun: a red run at another head is left alone
+2026-10-08T23:13:47.4288746Z   ok   rerun: a red run of another workflow is left alone
+2026-10-08T23:13:47.4289029Z   ok   rerun: a cancelled run is left alone
+2026-10-08T23:13:47.4289297Z   ok   rerun: a run still going is waited for
+2026-10-08T23:13:47.4289607Z WAIT: run(s) [3] at hhhhhhhhhhhh still going
+2026-10-08T23:13:47.4289908Z RERUN: run(s) [3] at hhhhhhhhhhhh concluded red
+2026-10-08T23:13:47.4290174Z RESULT rerun_requested=3
+2026-10-08T23:13:47.4290447Z   ok   rerun: end to end, waits for the run and then re-runs it
+2026-10-08T23:13:47.4290766Z WAIT: run(s) [3] at hhhhhhhhhhhh still going
+2026-10-08T23:13:47.4291073Z WAIT: run(s) [3] at hhhhhhhhhhhh still going
+2026-10-08T23:13:47.4291348Z WAIT: run(s) [3] at hhhhhhhhhhhh still going
+2026-10-08T23:13:47.4291624Z WAIT: run(s) [3] at hhhhhhhhhhhh still going
+2026-10-08T23:13:47.4291975Z REFUSED: the pull_request run did not finish in time; re-run it by hand
+2026-10-08T23:13:47.4292361Z   ok   rerun: a run that never finishes is a red job, not a silent pass
+2026-10-08T23:13:47.4292709Z RERUN: run(s) [3, 4] at hhhhhhhhhhhh concluded red
+2026-10-08T23:13:47.4292971Z RESULT rerun_requested=3
+2026-10-08T23:13:47.4293183Z RESULT rerun_requested=4
+2026-10-08T23:13:47.4293436Z   ok   rerun: end to end, two red twins post two re-runs
+2026-10-08T23:13:47.4293827Z RERUN: run(s) [3] at hhhhhhhhhhhh concluded red
+2026-10-08T23:13:47.4294087Z REFUSED: HTTP 403
+2026-10-08T23:13:47.4294318Z   ok   rerun: a refused re-run request is a red job
+2026-10-08T23:13:47.4294685Z NONE: 1 pull_request run(s) at hhhhhhhhhhhh, none red; nothing is stale
+2026-10-08T23:13:47.4295034Z   ok   rerun: nothing stale posts nothing (null control)
+2026-10-08T23:13:47.4295351Z budget_raise_gate self-test: 206 checks, 0 failed
+2026-10-08T23:13:47.4368706Z ##[group]Run set -o pipefail
+2026-10-08T23:13:47.4368977Z [36;1mset -o pipefail[0m
+2026-10-08T23:13:47.4369619Z [36;1mif test -f .claude/workflows/contract_rerun.py; then python3 .claude/workflows/contract_rerun.py --self-test; else python3 tools/pr/contract_rerun.py --self-test; fi| tee "$RUNNER_TEMP/crr-self-test.txt"[0m
+2026-10-08T23:13:47.4370422Z [36;1mgrep -Eq '^contract_rerun self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/crr-self-test.txt"[0m
+2026-10-08T23:13:47.4405007Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:47.4405264Z env:
+2026-10-08T23:13:47.4405447Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:47.4405645Z ##[endgroup]
+2026-10-08T23:13:47.4658759Z   ok   a red that finished after the contract started re-runs the contract
+2026-10-08T23:13:47.4659359Z   ok   a contract that started after the red finished is left alone (null control)
+2026-10-08T23:13:47.4659784Z   ok   only the newest contract run counts
+2026-10-08T23:13:47.4660157Z   ok   ... and it is the one re-run when it is stale
+2026-10-08T23:13:47.4660453Z   ok   a green run is no new red
+2026-10-08T23:13:47.4660824Z   ok   a timed-out run re-runs the contract (the mutation lane's limit)
+2026-10-08T23:13:47.4661232Z   ok   a cancelled run at a superseded head is no new red
+2026-10-08T23:13:47.4661635Z   ok   a cancelled run with no pull request named is no new red
+2026-10-08T23:13:47.4662051Z   ok   a cancelled run still at the pull request's head re-runs the contract
+2026-10-08T23:13:47.4662385Z   ok   a skipped run is no new red
+2026-10-08T23:13:47.4662686Z   ok   the contract's own completion re-runs nothing (no loop)
+2026-10-08T23:13:47.4663003Z   ok   a contract run at another head is left alone
+2026-10-08T23:13:47.4663318Z   ok   another workflow's run is not the contract
+2026-10-08T23:13:47.4663657Z   ok   a push run at the head is not the contract the pull request shows
+2026-10-08T23:13:47.4663981Z   ok   a contract still running is waited for
+2026-10-08T23:13:47.4664252Z   ok   a missing start time is read as stale
+2026-10-08T23:13:47.4664515Z   ok   a missing finish time is read as stale
+2026-10-08T23:13:47.4664804Z   ok   a red from any other watched workflow counts
+2026-10-08T23:13:47.4665138Z WAIT: contract run 3 at hhhhhhhhhhhh is in_progress
+2026-10-08T23:13:47.4665634Z RERUN: contract run 3 started 2026-09-26T10:01:00Z, before the red run 9 finished 2026-09-26T10:20:00Z
+2026-10-08T23:13:47.4666023Z RESULT rerun_requested=3
+2026-10-08T23:13:47.4666292Z   ok   end to end: waits for the contract, then re-runs it
+2026-10-08T23:13:47.4666639Z   ok   end to end: lists the contract's runs at the red run's head
+2026-10-08T23:13:47.4666991Z WAIT: contract run 3 at hhhhhhhhhhhh is in_progress
+2026-10-08T23:13:47.4667308Z WAIT: contract run 3 at hhhhhhhhhhhh is in_progress
+2026-10-08T23:13:47.4667736Z WAIT: contract run 3 at hhhhhhhhhhhh is in_progress
+2026-10-08T23:13:47.4668047Z WAIT: contract run 3 at hhhhhhhhhhhh is in_progress
+2026-10-08T23:13:47.4668409Z REFUSED: the contract run did not finish in time; re-run it by hand
+2026-10-08T23:13:47.4668819Z   ok   end to end: a contract that never finishes is a red job, not a silent pass
+2026-10-08T23:13:47.4669343Z RERUN: contract run 3 started 2026-09-26T10:01:00Z, before the red run 9 finished 2026-09-26T10:20:00Z
+2026-10-08T23:13:47.4669711Z REFUSED: HTTP 403
+2026-10-08T23:13:47.4669957Z   ok   end to end: a refused re-run request is a red job
+2026-10-08T23:13:47.4670443Z NONE: contract run 3 started 2026-09-26T10:21:00Z, after the red finished 2026-09-26T10:20:00Z; it listed it
+2026-10-08T23:13:47.4670890Z   ok   end to end: nothing stale posts nothing (null control)
+2026-10-08T23:13:47.4671308Z REFUSED: HTTP 502
+2026-10-08T23:13:47.4671536Z   ok   end to end: an unreadable run fails closed
+2026-10-08T23:13:47.4671842Z contract_rerun self-test: 24 checks, 0 failed
+2026-10-08T23:13:47.4725901Z ##[group]Run set -o pipefail
+2026-10-08T23:13:47.4726151Z [36;1mset -o pipefail[0m
+2026-10-08T23:13:47.4726503Z [36;1mpython3 tools/audit/merge_fastpath.py --self-test | tee "$RUNNER_TEMP/mfp-self-test.txt"[0m
+2026-10-08T23:13:47.4727036Z [36;1mgrep -Eq '^merge_fastpath self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mfp-self-test.txt"[0m
+2026-10-08T23:13:47.4754909Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:47.4755142Z env:
+2026-10-08T23:13:47.4755325Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:47.4755528Z ##[endgroup]
+2026-10-08T23:13:47.5412474Z /home/runner/work/heatpump_optimizer/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: invalid escape sequence '\;'
+2026-10-08T23:13:47.5413822Z   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+2026-10-08T23:13:47.5475892Z   ok   disjoint closures are eligible (null control)
+2026-10-08T23:13:47.5476321Z   ok   main changed a file the selected script reads
+2026-10-08T23:13:47.5476747Z   ok   ... and the mirror: the pull request's file is in the closure main changed
+2026-10-08T23:13:47.5477134Z   ok   an overlap only the head's table records still refuses
+2026-10-08T23:13:47.5477620Z   ok   a merge-tree conflict refuses
+2026-10-08T23:13:47.5478029Z   ok   a workflow change on main refuses
+2026-10-08T23:13:47.5478333Z   ok   a claim-file change on the pull request refuses
+2026-10-08T23:13:47.5478630Z   ok   a pinned grader changed on main refuses
+2026-10-08T23:13:47.5478929Z   ok   an unmeasured budget file on either side refuses
+2026-10-08T23:13:47.5479315Z   ok   a measured one is the overlap's to judge, not a refusal of its own (null control)
+2026-10-08T23:13:47.5479839Z   ok   file_class with nothing measured calls every budget file a budget (merge_train.py's batch routing)
+2026-10-08T23:13:47.5480311Z   ok   ... and a measured one is no class of its own (null control)
+2026-10-08T23:13:47.5480648Z   ok   a gate file in the pull request is FULL and refuses
+2026-10-08T23:13:47.5481010Z   ok   an unmeasured file in the pull request is FULL and refuses
+2026-10-08T23:13:47.5481502Z   ok   an INERT-only pull request selects nothing and is eligible against code when no script runs always (null control)
+2026-10-08T23:13:47.5482178Z   ok   #1823's probe: the pull request links a file from SECURITY.md and main deletes it, and a run_always script reads both unrecorded
+2026-10-08T23:13:47.5482714Z   ok   ... the same pair with no run_always script is eligible (null control)
+2026-10-08T23:13:47.5483071Z   ok   an unrecorded file on main's side alone refuses too
+2026-10-08T23:13:47.5483591Z   ok   R9-F10.9d: a docs/delivery row main adds, which no run_always script opened, is eligible once the table records the INERT reads
+2026-10-08T23:13:47.5484131Z   ok   ... and the pull request's own delivery row beside a code change main made
+2026-10-08T23:13:47.5484575Z   ok   a doc a run_always script opened still refuses (null control for the pair above)
+2026-10-08T23:13:47.5484927Z   ok   ... on the pull request's side too
+2026-10-08T23:13:47.5485269Z   ok   a new page beside the docs a script opened refuses: it may glob the folder
+2026-10-08T23:13:47.5485648Z   ok   an unmeasured file that is not INERT refuses even then
+2026-10-08T23:13:47.5486029Z   ok   a table in which one side never measured the reads keeps the old answer
+2026-10-08T23:13:47.5486459Z   ok   this tree's table records harness_headers.py's INERT reads, LICENSE among them
+2026-10-08T23:13:47.5486947Z   ok   main changed what a run_always script reads, which the pull request never selected: overlap
+2026-10-08T23:13:47.5487577Z   ok   ... and with that script not run_always, the same pair is eligible (null control)
+2026-10-08T23:13:47.5488092Z   ok   the run_always scripts are read from tests/run.sh
+2026-10-08T23:13:47.5488583Z   ok   this tree's run.sh runs harness_headers.py always
+2026-10-08T23:13:47.5488888Z   ok   no determinable pull-request file refuses
+2026-10-08T23:13:47.5489350Z   ok   main unmoved since the CI base: even a gate change is eligible (null control)
+2026-10-08T23:13:47.5489698Z   ok   ... but never past a conflict
+2026-10-08T23:13:47.5490006Z   ok   the grader specs are the restore pathspecs the workflows name
+2026-10-08T23:13:47.5490356Z   ok   this tree's workflows pin the governance programs
+2026-10-08T23:13:47.5490677Z merge_fastpath self-test: 35 checks, 0 failed
+2026-10-08T23:13:47.5572258Z ##[group]Run set -euo pipefail
+2026-10-08T23:13:47.5572519Z [36;1mset -euo pipefail[0m
+2026-10-08T23:13:47.5572789Z [36;1mpython3 -I tools/audit/seat/tmp_paths.py --self-test[0m
+2026-10-08T23:13:47.5573124Z [36;1mpython3 -I tools/audit/seat/tmp_paths.py --check[0m
+2026-10-08T23:13:47.5600452Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:47.5600689Z env:
+2026-10-08T23:13:47.5600881Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:47.5601085Z ##[endgroup]
+2026-10-08T23:13:47.5880840Z   ok   a state dir under /private/tmp is refused
+2026-10-08T23:13:47.5881475Z   ok   a fixed /tmp state name is refused
+2026-10-08T23:13:47.5881739Z   ok   a home path is refused
+2026-10-08T23:13:47.5881986Z   ok   an instrument run from ~ is refused
+2026-10-08T23:13:47.5882282Z   ok   an instrument run from $HOME is refused
+2026-10-08T23:13:47.5882581Z   ok   a decision record citing /private/tmp is refused
+2026-10-08T23:13:47.5882993Z   ok   a decision record at its lifted home citing /private/tmp is refused
+2026-10-08T23:13:47.5883351Z   ok   a workflow invoking a ~/ instrument is refused
+2026-10-08T23:13:47.5883655Z   ok   a repo-relative path passes (null control)
+2026-10-08T23:13:47.5883930Z   ok   a $TMPDIR default passes
+2026-10-08T23:13:47.5884215Z   ok   a per-process temp name passes
+2026-10-08T23:13:47.5884488Z   ok   a runner's /tmp in a workflow passes
+2026-10-08T23:13:47.5884738Z   ok   the gate lease passes
+2026-10-08T23:13:47.5885018Z   ok   the lease does not excuse another /tmp name on its line
+2026-10-08T23:13:47.5885292Z   ok   the state root passes
+2026-10-08T23:13:47.5885528Z   ok   the cloud checkout root passes
+2026-10-08T23:13:47.5885768Z   ok   round evidence is out of scope
+2026-10-08T23:13:47.5886101Z   ok   a harness under dev/audit/harnesses is scanned and a wave record is not
+2026-10-08T23:13:47.5886453Z   ok   an allow entry excuses only its own file
+2026-10-08T23:13:47.5886760Z   ok   an allow entry that matches nothing is reported stale
+2026-10-08T23:13:47.5887086Z   ok   refused: an env default to /tmp with a fixed name
+2026-10-08T23:13:47.5887494Z   ok   refused: $TMPDIR with a fixed name
+2026-10-08T23:13:47.5887902Z   ok   refused: a variable holding /private/tmp
+2026-10-08T23:13:47.5888177Z   ok   refused: os.path.join over /tmp
+2026-10-08T23:13:47.5888468Z   ok   refused: tempfile.gettempdir() plus a fixed name
+2026-10-08T23:13:47.5888771Z   ok   refused: os.path.join over gettempdir()
+2026-10-08T23:13:47.5889046Z   ok   refused: a concatenation
+2026-10-08T23:13:47.5889284Z   ok   refused: $$ elsewhere on the line
+2026-10-08T23:13:47.5889531Z   ok   refused: $$ in a comment
+2026-10-08T23:13:47.5889793Z   ok   refused: the lease name with a suffix concatenated
+2026-10-08T23:13:47.5890103Z   ok   refused: /home/user outside the cloud checkout
+2026-10-08T23:13:47.5890384Z   ok   refused: pathlib's / over Path("/tmp")
+2026-10-08T23:13:47.5890654Z   ok   refused: an f-string under /tmp
+2026-10-08T23:13:47.5890929Z   ok   refused: os.environ["TMPDIR"] plus a fixed name
+2026-10-08T23:13:47.5891220Z   ok   refused: pathlib's / over gettempdir()
+2026-10-08T23:13:47.5891492Z   ok   refused: a hook command in settings.json
+2026-10-08T23:13:47.5891785Z   ok   an env default with a per-process name passes
+2026-10-08T23:13:47.5892077Z   ok   a bare $TMPDIR handed to mktemp passes
+2026-10-08T23:13:47.5892332Z   ok   a list of temp roots passes
+2026-10-08T23:13:47.5892568Z   ok   prose naming /tmp passes
+2026-10-08T23:13:47.5893004Z   ok   a TMPDIR fallback to the bare root passes
+2026-10-08T23:13:47.5893311Z   ok   refused: a fixed name after a `?? '/tmp'` fallback
+2026-10-08T23:13:47.5893594Z   ok   the cloud worktree root passes
+2026-10-08T23:13:47.5893890Z tmp_paths self-test: 43 checks, 0 failed
+2026-10-08T23:13:47.6588241Z tmp_paths: 0 refused, 0 stale allow entries at HEAD
+2026-10-08T23:13:47.6660898Z ##[group]Run set -euo pipefail
+2026-10-08T23:13:47.6661312Z [36;1mset -euo pipefail[0m
+2026-10-08T23:13:47.6661703Z [36;1mpython3 -I tests/throwaway_git.py --self-test[0m
+2026-10-08T23:13:47.6662158Z [36;1mpython3 -I tests/throwaway_git.py --check[0m
+2026-10-08T23:13:47.6691467Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:47.6691728Z env:
+2026-10-08T23:13:47.6691958Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:47.6692198Z ##[endgroup]
+2026-10-08T23:13:47.7407246Z   ok   refused: a subprocess git init
+2026-10-08T23:13:47.7407717Z   ok   refused: a runner that never spells git
+2026-10-08T23:13:47.7408073Z   ok   refused: a runner over a command list
+2026-10-08T23:13:47.7408354Z   ok   refused: a bare init
+2026-10-08T23:13:47.7408630Z   ok   refused: a shell init
+2026-10-08T23:13:47.7408960Z   ok   refused: a shell init through -C
+2026-10-08T23:13:47.7409318Z   ok   refused: a git binary in a variable
+2026-10-08T23:13:47.7409590Z   ok   refused: an init in a dev/audit harness
+2026-10-08T23:13:47.7409888Z   ok   refused: a subprocess clone
+2026-10-08T23:13:47.7410163Z   ok   refused: a runner clone that never spells git
+2026-10-08T23:13:47.7410422Z   ok   refused: a shell clone
+2026-10-08T23:13:47.7410632Z   ok   refused: a JS clone
+2026-10-08T23:13:47.7410909Z   ok   refused: a positional list clone (the #2054 review's K2)
+2026-10-08T23:13:47.7411224Z   ok   refused: a list clone with --depth
+2026-10-08T23:13:47.7411475Z   ok   refused: execFileSync clone
+2026-10-08T23:13:47.7411748Z   ok   refused: a shell clone through a git variable
+2026-10-08T23:13:47.7412039Z   ok   refused: a shell clone after a global option
+2026-10-08T23:13:47.7412327Z   ok   refused: a list clone after -c options
+2026-10-08T23:13:47.7412606Z   ok   refused: a shell clone after -C and -c
+2026-10-08T23:13:47.7412863Z   ok   passes: the helper call
+2026-10-08T23:13:47.7413096Z   ok   passes: the shell helper call
+2026-10-08T23:13:47.7413365Z   ok   passes: a comment naming git init
+2026-10-08T23:13:47.7413625Z   ok   passes: a config-flow step named init
+2026-10-08T23:13:47.7413870Z   ok   passes: a dunder init
+2026-10-08T23:13:47.7414096Z   ok   passes: the clone helper call
+2026-10-08T23:13:47.7414335Z   ok   passes: prose about a clone
+2026-10-08T23:13:47.7414653Z   ok   passes: a directory named clone
+2026-10-08T23:13:47.7414949Z   ok   passes: a clone carrying the local layer inline
+2026-10-08T23:13:47.7415217Z   ok   passes: round evidence
+2026-10-08T23:13:47.7415432Z   ok   passes: the archive
+2026-10-08T23:13:47.7415677Z   ok   an allow entry excuses only its own file
+2026-10-08T23:13:47.7415984Z   ok   an allow entry that matches nothing is reported stale
+2026-10-08T23:13:47.7416386Z   ok   the env drops every repository-local variable and every inherited config pair
+2026-10-08T23:13:47.7416752Z   ok   the env keeps what is not git's
+2026-10-08T23:13:47.7416977Z   ok   init returns the env
+2026-10-08T23:13:47.7417276Z   ok   git reads auto-maintenance off, and gc.auto 0, through the env
+2026-10-08T23:13:47.7417850Z   ok   a caller WITHOUT the env still reads both off: the repository's own config
+2026-10-08T23:13:47.7418380Z   ok   null control: an inherited -c maintenance.auto=true outranks both layers, which is why the env drops it
+2026-10-08T23:13:47.7418893Z   ok   the env survives the same hostile parameters, once rebuilt from them
+2026-10-08T23:13:47.7419286Z   ok   a clone writes both keys into its own config, and returns the env
+2026-10-08T23:13:47.7419952Z   ok   throwaway_git_environ: a call passing no env= reads auto-maintenance off under an inherited -c maintenance.auto=true, and os.environ is restored after the block
+2026-10-08T23:13:47.7420760Z   ok   the shell twin's throwaway_git_env sets exactly the same GIT_ variables
+2026-10-08T23:13:47.7421208Z   ok   the shell twin's init writes both keys and leaves the caller's shell untouched
+2026-10-08T23:13:47.7421659Z   ok   the shell twin's clone writes both keys and leaves the caller's shell untouched
+2026-10-08T23:13:47.7422177Z throwaway_git self-test: 44 checks, 0 failed
+2026-10-08T23:13:47.8565959Z throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+2026-10-08T23:13:47.8632727Z ##[group]Run set -o pipefail
+2026-10-08T23:13:47.8633223Z [36;1mset -o pipefail[0m
+2026-10-08T23:13:47.8633726Z [36;1mpython3 tools/audit/seat/merge_train.py --self-test | tee "$RUNNER_TEMP/mt-self-test.txt"[0m
+2026-10-08T23:13:47.8634280Z [36;1mgrep -Eq '^merge_train self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mt-self-test.txt"[0m
+2026-10-08T23:13:47.8670431Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:47.8670729Z env:
+2026-10-08T23:13:47.8671053Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:47.8671319Z ##[endgroup]
+2026-10-08T23:13:51.0450131Z   ok   a green, carried, non-policy pull request merges (null control)
+2026-10-08T23:13:51.0450885Z   ok   a pull request with no dev/programme/delivery/<N>.md row is refused
+2026-10-08T23:13:51.0451413Z   ok   nightly-status red is ignored by default
+2026-10-08T23:13:51.0451896Z   ok   a red required check stops the train before any approval
+2026-10-08T23:13:51.0452468Z   ok   a re-run that went green supersedes the earlier red
+2026-10-08T23:13:51.0452924Z   ok   CI that never completes stops it as TIMEOUT
+2026-10-08T23:13:51.0453349Z   ok   a verdict that does not carry stops it
+2026-10-08T23:13:51.0453782Z   ok   main moving during CI stops it
+2026-10-08T23:13:51.0454223Z   ok   a policy pull request is never approved, even under a mandate
+2026-10-08T23:13:51.0454571Z   ok   a head that moves before the approval stops it
+2026-10-08T23:13:51.0454892Z   ok   a policy filter that fails its sentinel probe stops it
+2026-10-08T23:13:51.0455206Z   ok   code-owned without --mandate stops it
+2026-10-08T23:13:51.0455498Z   ok   code-owned with --mandate approves and merges
+2026-10-08T23:13:51.0455865Z   ok   the mandate body names the label, role, paths, verdict comment and head
+2026-10-08T23:13:51.0456250Z   ok   code-owned with a budget file is not mandate-approved
+2026-10-08T23:13:51.0456600Z   ok   a missing-evidence refusal is not overridden by a mandate
+2026-10-08T23:13:51.0456917Z   ok   a recarry conflict stops it, named as one
+2026-10-08T23:13:51.0457195Z   ok   a recarry that pushed nothing stops it
+2026-10-08T23:13:51.0457625Z   ok   a head behind main is recarried, then merged at the new head
+2026-10-08T23:13:51.0458169Z   ok   an absorbed-branch recarry lands in a real fixture repo: the worktree is the branch, the tip gate passes, the merge runs
+2026-10-08T23:13:51.0458661Z   ok   a title preflight refusal stops it before the merge
+2026-10-08T23:13:51.0458975Z   ok   a REFUSE line stops it even beside a clean line
+2026-10-08T23:13:51.0459280Z   ok   the merge is retried until GitHub reports MERGED
+2026-10-08T23:13:51.0459557Z   ok   a merge GitHub never takes stops it
+2026-10-08T23:13:51.0459806Z   ok   the queue runs in order
+2026-10-08T23:13:51.0460047Z   ok   the first refusal stops the queue
+2026-10-08T23:13:51.0460391Z   ok   a blocked verdict echoing the code-owned words is not mandate-approved (B1)
+2026-10-08T23:13:51.0460907Z   ok   a blocked verdict QUOTING app_approve's own code-owned line mid-line is not mandate-approved (anchor)
+2026-10-08T23:13:51.0461361Z   ok   a merge base that exits 0 but is not a sha stops the train
+2026-10-08T23:13:51.0461779Z   ok   the anchored code-owned refusal line still takes the mandate path (null control)
+2026-10-08T23:13:51.0462263Z   ok   another pull request's code-owned line does not take the mandate path for this one
+2026-10-08T23:13:51.0462731Z   ok   a head that moves between the App's refusal and the mandate review stops it
+2026-10-08T23:13:51.0463345Z   ok   a rename that moves a policy file out of the corpus is refused as policy (B2)
+2026-10-08T23:13:51.0463698Z   ok   a failing git diff stops the train (B3)
+2026-10-08T23:13:51.0463995Z   ok   a failing git merge-base stops the train (B3)
+2026-10-08T23:13:51.0464307Z   ok   fewer check runs than --min-runs is not complete CI
+2026-10-08T23:13:51.0464591Z   ok   action_required is not green
+2026-10-08T23:13:51.0464817Z   ok   stale is not green
+2026-10-08T23:13:51.0465069Z   ok   skipped and neutral are green (null control)
+2026-10-08T23:13:51.0465464Z   ok   the CI read pages past the first 100 runs
+2026-10-08T23:13:51.0465786Z   ok   main moving after approval and before the merge stops it
+2026-10-08T23:13:51.0466101Z   ok   a preflight that never says clean stops it
+2026-10-08T23:13:51.0466414Z   ok   a queue entry with a malformed verdict sha is refused
+2026-10-08T23:13:51.0466872Z   ok   the train's app_approve script is in the tree (tools/audit/app_approve.sh or tools/pr/app_approve.sh)
+2026-10-08T23:13:51.0467675Z   ok   the train's app_push script is in the tree (tools/audit/app_push.sh or tools/pr/app_push.sh)
+2026-10-08T23:13:51.0468220Z   ok   the train's preflight script is in the tree (tools/audit/preflight.sh or tools/pr/preflight.sh)
+2026-10-08T23:13:51.0468721Z   ok   the train's remerge_main script is in the tree (tools/audit/seat/remerge_main.sh)
+2026-10-08T23:13:51.0469171Z   ok   the train's worktree_gc script is in the tree (tools/audit/worktree_gc.sh)
+2026-10-08T23:13:51.0469647Z   ok   the delivery-row directory the train requires, dev/programme/delivery/, is in the tree
+2026-10-08T23:13:51.0470128Z   ok   every script the train runs resolves through TOOLS, none by a bare path
+2026-10-08T23:13:51.0470676Z   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
+2026-10-08T23:13:51.0471264Z   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
+2026-10-08T23:13:51.0471683Z   ok   a rehearsal base approves nothing and collects no worktree
+2026-10-08T23:13:51.0472229Z   ok   a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree still equals after each merge
+2026-10-08T23:13:51.0473072Z   ok   PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, neither pair merges as one; the later goes serial and the first merges unproved (D)
+2026-10-08T23:13:51.0473825Z   ok   a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved
+2026-10-08T23:13:51.0474404Z   ok   a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges
+2026-10-08T23:13:51.0474878Z   ok   every all-but-one set red stops the batch with nothing merged
+2026-10-08T23:13:51.0475304Z   ok   workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
+2026-10-08T23:13:51.0475782Z   ok   an entry that conflicts with one before it goes serial; the rest are proved and merge
+2026-10-08T23:13:51.0476221Z   ok   D: a batch of one merges at its head with no proof and no dispatch
+2026-10-08T23:13:51.0476621Z   ok   the base moving between two merges stops the batch before the second
+2026-10-08T23:13:51.0476984Z   ok   a merge whose tree is not the proof's stops the batch
+2026-10-08T23:13:51.0477308Z   ok   a pull request aimed at another base stops the batch
+2026-10-08T23:13:51.0478080Z   ok   required contexts that cannot be read stop the batch before any proof
+2026-10-08T23:13:51.0478590Z   ok   a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry
+2026-10-08T23:13:51.0479115Z   ok   an entry red at its own head is refused at admission (pr-contract not ignored here)
+2026-10-08T23:13:51.0479642Z   ok   on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)
+2026-10-08T23:13:51.0480170Z   ok   a lone entry is not merged while main's tip is red (D's bound needs a green main)
+2026-10-08T23:13:51.0480675Z   ok   a pair on a red main merges nothing and is not bisected: no proof, no drop
+2026-10-08T23:13:51.0481099Z   ok   ... the same pair on a green main is proved and merges (null control)
+2026-10-08T23:13:51.0481668Z   ok   main's tip going red after the proof and before the first merge stops it: the gate is re-read right before
+2026-10-08T23:13:51.0482268Z   ok   after an unproved merge the train waits for main's run on it, and a red there stops it before anything else lands
+2026-10-08T23:13:51.0482893Z   ok   ... and a green run there lets the serial entry go on (null control: its recarry stops here)
+2026-10-08T23:13:51.0483306Z   ok   a base that is neither main nor batch/ is refused
+2026-10-08T23:13:51.0483640Z   ok   tests.yml is in this tree and takes workflow_dispatch
+2026-10-08T23:13:51.0483994Z   ok   governance.yml is in this tree and takes workflow_dispatch
+2026-10-08T23:13:51.0484344Z   ok   codeql.yml is in this tree and takes workflow_dispatch
+2026-10-08T23:13:51.0484688Z   ok   hassfest.yml is in this tree and takes workflow_dispatch
+2026-10-08T23:13:51.0485031Z   ok   validate.yml is in this tree and takes workflow_dispatch
+2026-10-08T23:13:51.0485377Z merge_train self-test: 80 checks, 0 failed
+2026-10-08T23:13:51.0566413Z ##[group]Run if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi
+2026-10-08T23:13:51.0567264Z [36;1mif test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --self-test; else node tools/policy/figure_lint.mjs --self-test; fi[0m
+2026-10-08T23:13:51.0603647Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:51.0603885Z env:
+2026-10-08T23:13:51.0604066Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:51.0604265Z ##[endgroup]
+2026-10-08T23:13:51.2058491Z   ok   the #715 enumerator's `--arg` is refused (got 1 error(s))
+2026-10-08T23:13:51.2059299Z   ok   and the refusal names the flag, not merely the line
+2026-10-08T23:13:51.3145149Z   ok   a `gh` subcommand that does not exist is refused (got 1)
+2026-10-08T23:13:51.3145569Z   ok   and by the subcommand arm, not the flag arm
+2026-10-08T23:13:51.3155626Z   ok   a script path that is not in the tree is refused
+2026-10-08T23:13:51.4234761Z   ok   a body whose figure commands all resolve is silent (null control; got 0)
+2026-10-08T23:13:51.4241135Z   ok   and it did not go silent by examining nothing
+2026-10-08T23:13:51.4241928Z   ok   backticked prose is not read as a command (got 0)
+2026-10-08T23:13:51.4303963Z   ok   a placeholder or an unknown program is reported unverified, not refused
+2026-10-08T23:13:51.4304827Z   ok   a body with no `## Figures` section is not this check's refusal
+2026-10-08T23:13:51.4305818Z   ok   a pipeline splits into its simple commands
+2026-10-08T23:13:51.4306333Z   ok   a pipe inside quotes does not split
+2026-10-08T23:13:51.4306631Z   ok   a quoted word is marked quoted
+2026-10-08T23:13:51.4307122Z   ok   a command substitution stays one word
+2026-10-08T23:13:51.4307824Z   ok   a heading inside a fence does not end the section early
+2026-10-08T23:13:51.4308494Z   ok   `gh` is runnable, so the flag inventory is real (gh version 2.102.0 (2026-09-30))
+2026-10-08T23:13:51.4309095Z   ok   the derived `gh api` inventory has --jq and --paginate and no --arg
+2026-10-08T23:13:51.4851078Z   ok   a `gh` shell alias really does run under `--help` (null control; without this the containment assertion is vacuous)
+2026-10-08T23:13:51.5385354Z   ok   and this check does not expand it: the word resolves to nothing and the alias does not run
+2026-10-08T23:13:51.5390159Z   ok   an existing file reached by `..` from outside the repository is not reported in the tree
+2026-10-08T23:13:51.5392793Z   ok   and a path that stays inside it still resolves (null control; the verdict above is the containment arm, not the path shape)
+2026-10-08T23:13:51.5393610Z   ok   past the `gh --help` spawn budget a command is unverified, not refused and not silently accepted
+2026-10-08T23:13:51.5394376Z 
+2026-10-08T23:13:51.5394495Z 22 passed, 0 failed
+2026-10-08T23:13:51.5443082Z ##[group]Run if test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi
+2026-10-08T23:13:51.5443990Z [36;1mif test -f .claude/workflows/figure_census.mjs; then node .claude/workflows/figure_census.mjs --self-test; else node tools/policy/figure_census.mjs --self-test; fi[0m
+2026-10-08T23:13:51.5479179Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:51.5479428Z env:
+2026-10-08T23:13:51.5479624Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:51.5479838Z ##[endgroup]
+2026-10-08T23:13:51.5802732Z   ok   the #715 enumerator counts as one `gh` command (got 1)
+2026-10-08T23:13:51.5804100Z   ok   and as templated, since `$n` is bound by the loop around it
+2026-10-08T23:13:51.5809780Z   ok   a mixed body splits into its classes (got 5 instrument, 3 gh)
+2026-10-08T23:13:51.5810465Z   ok   and one command in each class is templated -- `$D` in the scope selection, `<sha>` in the check-run listing
+2026-10-08T23:13:51.5811087Z   ok   and the rest are not (null control: a rule that called everything templated would satisfy the assertion above)
+2026-10-08T23:13:51.5818447Z   ok   and every recognised command landed in a named class
+2026-10-08T23:13:51.5820504Z   ok   backticked prose is not counted as a command (got 0)
+2026-10-08T23:13:51.5821333Z   ok   a body with no `## Figures` section is reported, not silently counted as empty
+2026-10-08T23:13:51.5822183Z   ok   `gh` and `git` are counted apart (got gh, git)
+2026-10-08T23:13:51.5823813Z   ok   a `<placeholder>` is templated
+2026-10-08T23:13:51.5824188Z   ok   a `$NAME` bound elsewhere is templated
+2026-10-08T23:13:51.5824866Z   ok   a `$(...)` alone is counted separately: a shell runs it as written, an argv spawn does not
+2026-10-08T23:13:51.5825506Z   ok   and a command with neither is not templated (null control)
+2026-10-08T23:13:51.5825863Z 
+2026-10-08T23:13:51.5826054Z 13 passed, 0 failed
+2026-10-08T23:13:51.5879671Z ##[group]Run if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi
+2026-10-08T23:13:51.5881518Z [36;1mif test -f tools/audit/round6/D11/fix/codeowners_gap.py; then python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --self-test; else python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --self-test; fi[0m
+2026-10-08T23:13:51.5918025Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:13:51.5918277Z env:
+2026-10-08T23:13:51.5918469Z   HPO_JOB_GRADES: nothing
+2026-10-08T23:13:51.5918683Z ##[endgroup]
+2026-10-08T23:13:51.6150656Z /home/runner/work/heatpump_optimizer/heatpump_optimizer/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:857: SyntaxWarning: invalid escape sequence '\;'
+2026-10-08T23:13:51.6151405Z   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+2026-10-08T23:13:51.6919382Z   ok   PROBE a listed restore never checked out: grader not pinned
+2026-10-08T23:13:51.6920056Z   ok   PROBE a listed restore checked out from another list: grader not pinned
+2026-10-08T23:13:51.6920527Z   ok   PROBE a listed restore whose list is emptied first: grader not pinned
+2026-10-08T23:13:51.6920976Z   ok   PROBE a listed restore whose list names another file: grader not pinned
+2026-10-08T23:13:51.6921430Z   ok   PROBE a listed restore whose list is truncated by cat: grader not pinned
+2026-10-08T23:13:51.6921794Z   ok   PROBE pip install: grader not pinned
+2026-10-08T23:13:51.6922075Z   ok   PROBE npm ci: grader not pinned
+2026-10-08T23:13:51.6922355Z   ok   PROBE bare tracked path: grader not pinned
+2026-10-08T23:13:51.6922663Z   ok   PROBE ./ tracked path: grader not pinned
+2026-10-08T23:13:51.6922966Z   ok   PROBE echo && script: grader not pinned
+2026-10-08T23:13:51.6923233Z   ok   PROBE ; script: grader not pinned
+2026-10-08T23:13:51.6923493Z   ok   PROBE timeout 60: grader not pinned
+2026-10-08T23:13:51.6923986Z   ok   PROBE env A=1: grader not pinned
+2026-10-08T23:13:51.6924237Z   ok   PROBE sudo: grader not pinned
+2026-10-08T23:13:51.6924495Z   ok   PROBE cd x && ./y: grader not pinned
+2026-10-08T23:13:51.6924756Z   ok   PROBE bash -c: grader not pinned
+2026-10-08T23:13:51.6925010Z   ok   PROBE source: grader not pinned
+2026-10-08T23:13:51.6925254Z   ok   PROBE . file: grader not pinned
+2026-10-08T23:13:51.6925519Z   ok   PROBE python3 -m tests.x: grader not pinned
+2026-10-08T23:13:51.6925812Z   ok   PROBE python3 -c import: grader not pinned
+2026-10-08T23:13:51.6926088Z   ok   PROBE exec: grader not pinned
+2026-10-08T23:13:51.6926330Z   ok   PROBE pytest: grader not pinned
+2026-10-08T23:13:51.6926575Z   ok   PROBE npm test: grader not pinned
+2026-10-08T23:13:51.6926831Z   ok   PROBE node --test: grader not pinned
+2026-10-08T23:13:51.6927084Z   ok   PROBE npx: grader not pinned
+2026-10-08T23:13:51.6927331Z   ok   PROBE find -exec: grader not pinned
+2026-10-08T23:13:51.6927799Z   ok   PROBE cat x | bash: grader not pinned
+2026-10-08T23:13:51.6928087Z   ok   PROBE python3 - heredoc: grader not pinned
+2026-10-08T23:13:51.6928379Z   ok   PROBE $GITHUB_PATH shim: grader not pinned
+2026-10-08T23:13:51.6928673Z   ok   PROBE $GITHUB_ENV BASH_ENV: grader not pinned
+2026-10-08T23:13:51.6928968Z   ok   PROBE PATH= assignment: grader not pinned
+2026-10-08T23:13:51.6929263Z   ok   PROBE echo $(script): grader not pinned
+2026-10-08T23:13:51.6929532Z   ok   PROBE backtick: grader not pinned
+2026-10-08T23:13:51.6929818Z   ok   PROBE github-script require: grader not pinned
+2026-10-08T23:13:51.6930112Z   ok   PROBE local action: grader not pinned
+2026-10-08T23:13:51.6930401Z   ok   PROBE unpinned setup-python: grader not pinned
+2026-10-08T23:13:51.6930790Z   ok   PROBE step shell:: grader not pinned
+2026-10-08T23:13:51.6931094Z   ok   PROBE step env names a tracked file: grader not pinned
+2026-10-08T23:13:51.6931437Z   ok   PROBE git checkout HEAD -- grader: grader not pinned
+2026-10-08T23:13:51.6931885Z   ok   PROBE redirect into the tree: grader not pinned
+2026-10-08T23:13:51.6932204Z   ok   PROBE sort -o into the grader: grader not pinned
+2026-10-08T23:13:51.6932510Z   ok   PROBE git show --output=: grader not pinned
+2026-10-08T23:13:51.6932801Z   ok   PROBE git diff --output=: grader not pinned
+2026-10-08T23:13:51.6933084Z   ok   PROBE printf -v PATH: grader not pinned
+2026-10-08T23:13:51.6933363Z   ok   PROBE read -r PATH: grader not pinned
+2026-10-08T23:13:51.6933686Z   ok   PROBE bare PINNED=HEAD before the restore: grader not pinned
+2026-10-08T23:13:51.6934039Z   ok   PROBE step env PINNED: github.sha: grader not pinned
+2026-10-08T23:13:51.6934441Z   ok   PROBE step env PINNED: github.sha before the queue's base: grader not pinned
+2026-10-08T23:13:51.6934846Z   ok   PROBE step env PINNED: the queue's head: grader not pinned
+2026-10-08T23:13:51.6935201Z   ok   PROBE grader run by an interpreter path: grader not pinned
+2026-10-08T23:13:51.6935508Z   ok   NULL  no inserted step: grader PINNED
+2026-10-08T23:13:51.6935784Z   ok   NULL  the listed restore: grader PINNED
+2026-10-08T23:13:51.6936060Z   ok   NULL  echo and printf: grader PINNED
+2026-10-08T23:13:51.6936363Z   ok   NULL  git fetch, rev-parse, hash-object: grader PINNED
+2026-10-08T23:13:51.6936671Z   ok   NULL  set, test, mkdir, cmp: grader PINNED
+2026-10-08T23:13:51.6936975Z   ok   NULL  download-artifact at its pin: grader PINNED
+2026-10-08T23:13:51.6937265Z   ok   NULL  a scratch write: grader PINNED
+2026-10-08T23:13:51.6937649Z   ok   NULL  PINNED from the queue's base: grader PINNED
+2026-10-08T23:13:51.6938000Z   ok   NULL  PINNED from the queue's base, else the push's: grader PINNED
+2026-10-08T23:13:51.6938506Z   ok   EXEC  if/then prefers the old path: ['.claude/workflows/policy_lint.mjs', 'tools/policy/policy_lint.mjs']
+2026-10-08T23:13:51.6939032Z   ok   EXEC  python3 -I dev/audit/rounds/x/fix.py --check: dev/audit/rounds/x/fix.py
+2026-10-08T23:13:51.6939420Z   ok   EXEC  python3 -I tools/audit/x.py: tools/audit/x.py
+2026-10-08T23:13:51.6939738Z   ok   EXEC  python3 -I docs/x.py: not an execution
+2026-10-08T23:13:51.6940122Z SELF-TEST: 50 probe(s), 9 null(s), 0 wrong
+2026-10-08T23:13:51.7054595Z Post job cleanup.
+2026-10-08T23:13:51.8110276Z (node:19248) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-10-08T23:13:51.8110905Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-10-08T23:13:51.8240916Z Post job cleanup.
+2026-10-08T23:13:51.8968003Z [command]/usr/bin/git version
+2026-10-08T23:13:51.9002589Z git version 2.55.0
+2026-10-08T23:13:51.9038100Z Temporarily overriding HOME='/home/runner/work/_temp/086f7bf2-db7d-4db1-a42c-6dc20cc09007' before making global git config changes
+2026-10-08T23:13:51.9039219Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T23:13:51.9043646Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:13:51.9076625Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T23:13:51.9104160Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T23:13:51.9300898Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T23:13:51.9325369Z http.https://github.com/.extraheader
+2026-10-08T23:13:51.9334410Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-08T23:13:51.9360585Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T23:13:51.9545527Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T23:13:51.9575245Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T23:13:51.9882281Z Cleaning up orphan processes

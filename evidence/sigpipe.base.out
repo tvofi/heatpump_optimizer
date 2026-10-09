@@ -1,0 +1,1 @@
+RESULT sigpipe impl=stamp_paths.base.sh calls=200 notes_missed=200 manifest_missed=200 nullctl_fired=0
