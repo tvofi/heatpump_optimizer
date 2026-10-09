@@ -2727,6 +2727,7 @@
    "tests/hastub/homeassistant/helpers/typing.py",
    "tests/seam_map.json",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/audit/archscore/__init__.py",
    "tools/audit/archscore/calibrate.py",
    "tools/audit/archscore/calibration/corpus.tsv",
