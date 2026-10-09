@@ -1,0 +1,3 @@
+2026-10-09T00:10:45.6119202Z     placement: tools/audit/harnesses/early_cutoff_closed_loop.py re-adds a moved path; it lives at dev/audit/harnesses/
+2026-10-09T00:10:45.6119376Z layout: GUARD: 1 refusal(s) against bd59a4af1b26
+2026-10-09T00:10:45.6454421Z ##[error]Process completed with exit code 1.
