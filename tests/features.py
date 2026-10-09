@@ -60446,14 +60446,14 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
     InstallCapability as _DrCap, ThermalParameters as _DrParams, probe_install as _dr_probe,
 )
 
-_DR_MIN, _DR_MAX = 1.0, 14.0
+_DR_MIN, _DR_MAX = 1.0, 10.0
 
 
 def _dr_learner(kind, n=120, seed=7, cfg=(_DR_MIN, _DR_MAX)):
     """A range fed one synthetic install shape.
 
-    ``live``: asked 3-14 kW, drew 1.9-2.55 kW (the install that motivated
-    the clamp). ``null``: the pump draws exactly what it is asked.
+    ``live``: an overstated nameplate -- configured 1-10 kW, asked U(3, 10),
+    drawing U(1.2, 1.8). Synthetic. ``null``: the pump draws exactly what it is asked.
     ``mild``: a correctly sized 6 kW pump part-loading in mild weather --
     asked 1-2 kW, drawing what it is asked within +/-10 %.
     """
@@ -60461,7 +60461,7 @@ def _dr_learner(kind, n=120, seed=7, cfg=(_DR_MIN, _DR_MAX)):
     d = _dr.DrawRange()
     for _ in range(n):
         if kind == "live":
-            asked, drawn = rng.uniform(3.0, 14.0), rng.uniform(1.9, 2.55)
+            asked, drawn = rng.uniform(3.0, 10.0), rng.uniform(1.2, 1.8)
         elif kind == "mild":
             asked = rng.uniform(1.0, 2.0)
             drawn = asked * rng.uniform(0.9, 1.1)
@@ -60492,9 +60492,9 @@ R.check(
 _dr_live = _dr_learner("live")
 _dr_live_seen = _dr_live.observed()
 R.check(
-    "the install's shape engages, at the metered running percentiles",
+    "an overstated nameplate engages, at the metered running percentiles",
     _dr_live.engaged and _dr_live.planned(_DR_MIN, _DR_MAX) == _dr_live_seen
-    and 1.9 <= _dr_live_seen[0] < _dr_live_seen[1] <= 2.55,
+    and 1.2 <= _dr_live_seen[0] < _dr_live_seen[1] <= 1.8,
     f"observed {_dr_live_seen}",
 )
 _dr_null = _dr_learner("null")
@@ -60528,7 +60528,7 @@ R.check(
 _dr_latch = _dr_learner("live")
 _dr_rng = np.random.default_rng(11)
 for _ in range(_dr.WINDOW):
-    _dr_x = _dr_rng.uniform(1.9, 2.55)
+    _dr_x = _dr_rng.uniform(1.2, 1.8)
     _dr_latch.observe(_dr_x, _dr_x, _DR_MIN, _DR_MAX)
 R.check(
     "the latch holds a full window after the plan stops out-asking the pump",
@@ -60572,6 +60572,43 @@ R.check(
     "S4 with no evidence, or a different configuration: None",
     _dr.planned_range(_dr_null, _dr_params(), _DR_SWITCH) is None
     and _dr.planned_range(_dr_live, _dr_params(hi=6.0), _DR_SWITCH) is None,
+)
+
+# The 15 % rule: an engaged range keeps each configured end its metered end
+# comes within AGREE_TOLERANCE of, and replaces only the end it contradicts.
+def _dr_engaged_at(low, high, cfg=(2.0, 10.0)):
+    d = _dr.DrawRange()
+    for i in range(_dr.MIN_SAMPLES * 2):
+        drawn = low if i % 2 else high
+        d.observe(drawn, 2.0 * drawn, *cfg)
+    return d
+
+
+_dr_top_near = _dr_engaged_at(2.6, 9.0)
+R.check(
+    "a metered top within 15 % of the configured max keeps the configured max",
+    _dr_top_near.engaged and _dr_top_near.observed()[1] < 10.0
+    and _dr_top_near.planned(2.0, 10.0)[1] == 10.0,
+    f"observed {_dr_top_near.observed()}, planned {_dr_top_near.planned(2.0, 10.0)}",
+)
+_dr_top_far = _dr_engaged_at(2.6, 8.0)
+R.check(
+    "and one beyond 15 % replaces it (the boundary's other side)",
+    _dr_top_far.planned(2.0, 10.0)[1] == _dr_top_far.observed()[1] < 8.5,
+    f"planned {_dr_top_far.planned(2.0, 10.0)}",
+)
+_dr_low_near = _dr_engaged_at(2.2, 5.0)
+R.check(
+    "a metered floor within 15 % of the configured min keeps the configured min",
+    _dr_low_near.engaged and _dr_low_near.observed()[0] != 2.0
+    and _dr_low_near.planned(2.0, 10.0)[0] == 2.0,
+    f"observed {_dr_low_near.observed()}, planned {_dr_low_near.planned(2.0, 10.0)}",
+)
+_dr_low_far = _dr_engaged_at(2.6, 5.0)
+R.check(
+    "and one beyond 15 % replaces it",
+    _dr_low_far.planned(2.0, 10.0)[0] == _dr_low_far.observed()[0] > 2.3,
+    f"planned {_dr_low_far.planned(2.0, 10.0)}",
 )
 
 # S2: the running-sample filter, one exclusion at a time against a control.
@@ -60644,16 +60681,26 @@ R.check(
     "an install with no running sample writes no draw key: its store is unchanged",
     "draw" not in _DrTracker().as_dict(),
 )
+_DR_JUNK = [[2.0, 3.0], ["x", 1], [float("nan"), 1.0], [0.1, 1.0], [2.1]]
 _dr_junk = _dr.DrawRange.from_dict(
-    {"samples": [[2.0, 3.0], ["x", 1], [float("nan"), 1.0], [0.1, 1.0], [2.1]],
-     "engaged": True, "config": ["a", 2]}
-)
+    {"samples": _DR_JUNK, "engaged": True, "config": [1.0, 6.0]})
 R.check(
-    "an unreadable sample is dropped alone; an unreadable configuration drops the latch",
-    list(_dr_junk.samples) == [(2.0, 3.0)] and _dr_junk.engaged is False
-    and _dr_junk.config is None,
+    "an unreadable sample is dropped alone, beside a readable configuration",
+    list(_dr_junk.samples) == [(2.0, 3.0)] and _dr_junk.engaged is True
+    and _dr_junk.config == (1.0, 6.0),
     f"{list(_dr_junk.samples)}",
 )
+for _dr_label, _dr_cfg in (("unreadable", ["a", 2]), ("absent", None), ("non-finite", [1.0, float("inf")])):
+    _dr_rec = {"samples": _DR_JUNK, "engaged": True}
+    if _dr_cfg is not None:
+        _dr_rec["config"] = _dr_cfg
+    _dr_nokey = _dr.DrawRange.from_dict(_dr_rec)
+    R.check(
+        f"a record whose configuration is {_dr_label} is dropped whole: no samples, no latch",
+        len(_dr_nokey.samples) == 0 and _dr_nokey.engaged is False
+        and _dr_nokey.config is None,
+        f"{list(_dr_nokey.samples)}",
+    )
 
 # Diagnostics: the learned values through the module's own view (S7).
 _dr_dg = _dr_coord(heat_pump_min_power=_DR_MIN, heat_pump_max_power=_DR_MAX)

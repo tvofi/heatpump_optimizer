@@ -5,13 +5,13 @@ configured (min, max), and the harness prints, per shape: how many seeds engaged
 effective range ``planned_range`` returns on each install surface.
 
 Shapes:
-  live        configured 1-14 kW; plan asks U(3, 14), pump draws U(1.9, 2.55) -- the install
+  over        configured 1-10 kW; plan asks U(3, 10), pump draws U(1.2, 1.8): an overstated nameplate
   null        the pump draws exactly what it is asked, asks U(min, max)
   mild        a correctly sized 6 kW pump part-loading: asks U(1, 2), draws ask * U(0.9, 1.1)
   mild-indep  the same pump whose draw does not follow the ask: asks U(1, 2), draws U(1, 2)
 
 Run from a worktree root:
-  PYTHONPATH=tests/hastub:custom_components python3 tools/audit/harnesses/draw_range_evidence.py [seeds]
+  PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/draw_range_evidence.py [seeds]
 """
 from __future__ import annotations
 
@@ -28,8 +28,8 @@ SURFACES = {
     "frequency write": InstallCapability(frozenset({"switch", "frequency"}), True, True),
 }
 SHAPES = {
-    "live": ((1.0, 14.0), lambda r, lo, hi: (r.uniform(3.0, 14.0), r.uniform(1.9, 2.55))),
-    "null": ((1.0, 14.0), lambda r, lo, hi: (lambda a: (a, a))(r.uniform(lo, hi))),
+    "over": ((1.0, 10.0), lambda r, lo, hi: (r.uniform(3.0, 10.0), r.uniform(1.2, 1.8))),
+    "null": ((1.0, 10.0), lambda r, lo, hi: (lambda a: (a, a))(r.uniform(lo, hi))),
     "mild": ((1.0, 6.0), lambda r, lo, hi: (lambda a: (a, a * r.uniform(0.9, 1.1)))(r.uniform(1.0, 2.0))),
     "mild-indep": ((1.0, 6.0), lambda r, lo, hi: (r.uniform(1.0, 2.0), r.uniform(1.0, 2.0))),
 }
