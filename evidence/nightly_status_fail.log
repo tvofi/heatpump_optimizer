@@ -1,0 +1,185 @@
+nightly-status	UNKNOWN STEP	﻿2026-10-09T07:09:13.9989030Z Current runner version: '2.337.0'
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0011564Z ##[group]Runner Image Provisioner
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0012304Z Hosted Compute Agent
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0012776Z Version: 20261002.596
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0013347Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0013931Z Build Date: 2026-10-02T22:28:27Z
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0014580Z Worker ID: {edf84d7b-cb59-4de7-aceb-4a93663f25e4}
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0015186Z Region: westus
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0015616Z Cloud: Azure
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0016107Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0017196Z ##[group]Operating System
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0017738Z Ubuntu
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0018202Z 24.04.5
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0018624Z LTS
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0019086Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0019538Z ##[group]Runner Image
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0020088Z Image: ubuntu-24.04
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0020848Z Version: 20261004.327.1
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0021922Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0023112Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0023945Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0024930Z ##[group]GITHUB_TOKEN Permissions
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0026603Z Actions: read
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0027106Z Contents: read
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0027567Z Metadata: read
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0028063Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0029860Z Secret source: Actions
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0031033Z Cache mode: write
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0031652Z Prepare workflow directory
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0302576Z Prepare all required actions
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.0341223Z Getting action download info
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.3793808Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.5026988Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7247727Z Complete job name: nightly-status
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7857036Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7857841Z with:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7858210Z   repository: tvofi/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7861399Z   token: ***
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7861753Z   ssh-strict: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7862117Z   ssh-user: git
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7862471Z   persist-credentials: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7862864Z   clean: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7863223Z   sparse-checkout-cone-mode: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7863641Z   fetch-depth: 1
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7863987Z   fetch-tags: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7864342Z   show-progress: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7864698Z   lfs: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7865026Z   submodules: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7865378Z   set-safe-directory: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7865778Z   allow-unsafe-pr-checkout: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.7866327Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.8684171Z Syncing repository: tvofi/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.8686461Z ##[group]Getting Git version info
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.8687446Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.8688833Z [command]/usr/bin/git version
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9004553Z git version 2.55.0
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9023174Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9037717Z Temporarily overriding HOME='/home/runner/work/_temp/dd117c22-4154-405c-b37f-69b1048e6711' before making global git config changes
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9039553Z Adding repository directory to the temporary git global config as a safe directory
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9042950Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9090448Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9094758Z ##[group]Initializing the repository
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9098745Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9219100Z hint: Using 'master' as the name for the initial branch. This default branch name
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9221062Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9222199Z hint: to use in all of your new repositories, which will suppress this warning,
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9223092Z hint: call:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9223422Z hint:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9224064Z hint: 	git config --global init.defaultBranch <name>
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9225032Z hint:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9225597Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9226538Z hint: 'development'. The just-created branch can be renamed via this command:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9227269Z hint:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9227801Z hint: 	git branch -m <name>
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9228351Z hint:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9229097Z hint: Disable this message with "git config set advice.defaultBranchName false"
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9230454Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9233135Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9281790Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9282469Z ##[group]Disabling automatic garbage collection
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9286840Z [command]/usr/bin/git config --local gc.auto 0
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9323288Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9323872Z ##[group]Setting up auth
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9330878Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9365865Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9683194Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9723135Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9930563Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:14.9962762Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:15.0164358Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:15.0229170Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:15.0229864Z ##[group]Fetching the repository
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:15.0237583Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +4794b67c00c78935c6f891129cb8f54f541bdeb1:refs/remotes/pull/2059/merge
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3645358Z From https://github.com/tvofi/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3646616Z  * [new ref]         4794b67c00c78935c6f891129cb8f54f541bdeb1 -> pull/2059/merge
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3649955Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3651245Z ##[group]Determining the checkout info
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3652596Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3653380Z [command]/usr/bin/git sparse-checkout disable
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3698590Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3725661Z ##[group]Checking out the ref
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.3729541Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2059/merge
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7538955Z Note: switching to 'refs/remotes/pull/2059/merge'.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7539899Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7540750Z You are in 'detached HEAD' state. You can look around, make experimental
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7541479Z changes and commit them, and you can discard any commits you make in this
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7542092Z state without impacting any branches by switching back to a branch.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7542481Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7542783Z If you want to create a new branch to retain commits you create, you may
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7543730Z do so (now or later) by using -c with the switch command. Example:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7544068Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7544259Z   git switch -c <new-branch-name>
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7544506Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7544671Z Or undo this operation with:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7544887Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7545020Z   git switch -
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7545219Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7545550Z Turn off this advice by setting config variable advice.detachedHead to false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7545959Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7546438Z HEAD is now at 4794b67 Merge b630c9e1e122e20374cc5951ad2e6a1c9f011668 into f84d891e1fdf6d09c7e5cbe4b16b39205c4db14c
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7559842Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7601193Z [command]/usr/bin/git log -1 --format=%H
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7625436Z 4794b67c00c78935c6f891129cb8f54f541bdeb1
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7862044Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7862449Z with:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7862665Z   python-version: 3.13
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7862885Z   check-latest: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7864913Z   token: ***
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7865169Z   update-environment: true
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7865407Z   allow-prereleases: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7865662Z   freethreaded: false
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.7865873Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9001387Z ##[group]Installed versions
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9689049Z Successfully set up CPython (3.13.16)
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9689677Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9845159Z ##[group]Run set -euo pipefail
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9845681Z ^[[36;1mset -euo pipefail^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9846316Z ^[[36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9846997Z ^[[36;1mgit checkout "$PINNED" -- \^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9847403Z ^[[36;1m  'tests/nightly_status.py'^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9848078Z ^[[36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:17.9848889Z ^[[36;1mpython -I -S tests/nightly_status.py^[[0m
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0196963Z shell: /usr/bin/bash -e {0}
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0197322Z env:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0197607Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0198042Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0198424Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0198836Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0199175Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0199515Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0201996Z   GITHUB_TOKEN: ***
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0202258Z   PINNED: f84d891e1fdf6d09c7e5cbe4b16b39205c4db14c
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:18.0202542Z ##[endgroup]
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1133397Z NIGHTLY FAILED: closures, mutation-nightly, nightly-ha (2025.2.0), nightly-ha (stable) failed last night.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1134461Z   scheduled run 37753990323, 2026-10-08T09:03:21+00:00, head 816547e, run conclusion 'failure'
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1135143Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/37753990323
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1135848Z   (run 37889206903 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1136431Z   failing jobs:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1136937Z     closures  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37753990323/job/113233890832
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1137711Z     mutation-nightly  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37753990323/job/113233890923
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1138540Z     nightly-ha (2025.2.0)  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37753990323/job/113233890376
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1139451Z     nightly-ha (stable)  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/37753990323/job/113233890742
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1140641Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1141660Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1142714Z 
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1143026Z A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1143474Z     gh workflow run tests.yml --ref main
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1144327Z and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1145270Z If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1232771Z ##[error]Process completed with exit code 1.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.1419388Z Post job cleanup.
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2093853Z [command]/usr/bin/git version
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2129769Z git version 2.55.0
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2159629Z Temporarily overriding HOME='/home/runner/work/_temp/81d044fe-2f3c-40bf-88e3-1249705242c7' before making global git config changes
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2160954Z Adding repository directory to the temporary git global config as a safe directory
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2164182Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2199416Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2229595Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2459701Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2484918Z http.https://github.com/.extraheader
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2495648Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2535304Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2782333Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.2816769Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+nightly-status	UNKNOWN STEP	2026-10-09T07:09:22.3165618Z Cleaning up orphan processes
