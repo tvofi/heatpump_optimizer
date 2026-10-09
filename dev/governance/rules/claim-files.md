@@ -7,8 +7,8 @@ paths:
 
 Every branch writes a note into `tests/golden/claimed_drift.txt` and
 `tests/golden/card_claimed_drift.txt` at the same place, so every branch that
-merged `main` after another branch merged conflicted in both — five branches,
-ten conflicts, in one session. `.gitattributes` now routes both files to the
+merged `main` after another branch merged conflicted in both.
+`.gitattributes` now routes both files to the
 `claimnotes` merge driver in `tests/env_drift.py`. Install it once per clone;
 a worktree shares its checkout's config, so one install covers every worktree:
 
@@ -33,8 +33,8 @@ cut before it landed conflicts once more before it is covered.
 every open pull request flips to `DIRTY` the moment `main` touches a claim file.
 GitHub will not build a merge commit for a `DIRTY` pull request, and the
 `pull_request` workflows never fire — such a PR does not go red, it **cannot
-run**. A run already in flight survives; no new one queues. Merge `main` locally,
-where the driver does run, and push. Before treating any conflict as real,
+run**. A run already in flight survives; no new one queues. The merge-main bot
+(`ci-autofix.md`) merges `main` in where the drivers can; else merge locally. Before treating any conflict as real,
 confirm it:
 
 ```

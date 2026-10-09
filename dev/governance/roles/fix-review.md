@@ -29,7 +29,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
-7. Confirm the head SHA in the PR body is the head you measured.
+7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
@@ -53,7 +53,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     or the finding that none exists. Both pass; silence is
     `blocked <sha> root-cause-unanswered: <check> went red, unanswered`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
-    (`ci-autofix.md`). You check that the trigger was answered, not the answer — the analysis is a separate seat, `root-cause.md`.
+    (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` or `delivery-status` is not this pull request's**
     unless its diff reaches what they read (`defect-root-cause.md`); deleting a
     merged row turns `delivery-status` OVERDUE.
@@ -71,15 +71,12 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     rather than its conclusion.
 
     **Cite CI's heavy runs** (tvofi, 2026-09-30): never re-run the gate or the
-    mutation table; cite the head's CI run. Cheap checks (seconds: a lint, one
+    mutation table. Cheap checks (seconds: a lint, one
     test, claims) and your targeted mutants stay yours.
 
 12. **Re-read the head before you post.** Name the SHA you measured in the
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
-
-    Step 7 checks the body's SHA, which a later move passes; this, the **live
-    head at posting time**.
 
     The handoff makes the head yours from then on, so one that moved under you
     is a broken rule rather than an accident: `blocked <sha> head-moved: measured <sha>, head is <other>`. Re-measuring
@@ -130,6 +127,8 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
     (#1867), an `inert_reads` gap (#1868). On a raise, judge each payment the
     body lists and hunt one it missed: one that truly improves the code is
     `metric-gamed` too.
+15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
+    from the architect note, is `blocked <sha> architecture-unsound: <how>`.
 
 Return a verdict with your RESULT lines, in the exact shape your dispatch
 prompt gives: `.claude/workflows/web-fix-wave.js` parses the comment's first
