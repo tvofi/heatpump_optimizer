@@ -2,10 +2,11 @@
 
 State at 2026-10-09, seat worktree `/Users/timmalmstrom/hpo-seats/dbg2/wt`,
 branch `handoff/r9-dbg-2` from `origin/main` `a8ce87571`, head
-`4568f9b140b6e2e068d805265b011e5590959dd6` after a merge of `origin/main`
-`d8a4bd36f` (16 commits; `debugger.py` and `tests/debug_collect.py` are
-byte-identical across it, so the evidence recorded under the merge still describes
-the head).
+`c901f8f34f0b566033202c1a10f0387a3c205099` after two merges of `origin/main`
+(`d8a4bd36f`, then `23d354970`). Neither moves `debugger.py` or
+`tests/debug_collect.py`, so the evidence recorded under them describes the head;
+`store.py`, `accuracy.py`, `coordinator.py` and `diagnostics.py` did move, and the
+drift catchers were re-run at `c901f8f34`.
 
 ## Where this group actually stands
 
@@ -38,8 +39,11 @@ row 5's `_tibber_outage_cycles`. Fixed here, plus the ring-gap half of the same 
 
 ## Next actions for the orchestrator
 
-1. Open the pull request from `refs/heads/handoff/r9-dbg-2` (a fast-forward over the
-   merged `a5e969565`; the body and this note ride `refs/heads/handoff-body/r9-dbg-2`).
+1. Open the pull request from `refs/heads/handoff/r9-dbg-2` =
+   `c901f8f34f0b566033202c1a10f0387a3c205099` (pushed as a fast-forward over the merged
+   `a5e969565`; the body and this note ride `refs/heads/handoff-body/r9-dbg-2`).
+   `handoff_push.sh` re-derives `## Head` at open, so a main merge before then is
+   expected and is not a stale body.
 2. Dispatch the fix reviewer at that head (`fix-review.md`, detached worktree, the
    finder's harness — here `tests/debug_collect.py` and the seat probe
    `/Users/timmalmstrom/hpo-seats/dbg2/evidence/outage_probe.py`).
