@@ -36,15 +36,23 @@ def _delegation(call: ast.AST) -> bool:
         and all(_simple(a) for a in call.args) and all(_simple(k.value) for k in call.keywords)
 
 
+def _value(e: ast.AST) -> ast.AST:
+    """What a statement's value computes: through an ``await``, and through a ``cast(T, x)``, which
+    asserts a type and computes ``x`` (counter C12: a cast is not delegation, red-team attempt 15)."""
+    e = e.value if isinstance(e, ast.Await) else e
+    while isinstance(e, ast.Call) and isinstance(e.func, ast.Name) and e.func.id == "cast" and len(e.args) == 2:
+        e = e.args[1]
+    return e
+
+
 def _plumbing(s: ast.AST) -> bool:
     if isinstance(s, ast.Expr):
-        v = s.value.value if isinstance(s.value, ast.Await) else s.value
-        return _delegation(v)
+        return _delegation(_value(s.value))
     if isinstance(s, ast.Return) and s.value is not None:
-        v = s.value.value if isinstance(s.value, ast.Await) else s.value
+        v = _value(s.value)
         return _delegation(v) or (isinstance(v, ast.Attribute) and _simple(v))
     if isinstance(s, ast.Assign) and len(s.targets) == 1 and isinstance(s.targets[0], ast.Name):
-        v = s.value.value if isinstance(s.value, ast.Await) else s.value
+        v = _value(s.value)
         return (isinstance(v, ast.Attribute) and _simple(v)) or _delegation(v)
     return False
 

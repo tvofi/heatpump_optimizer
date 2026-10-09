@@ -26420,7 +26420,10 @@ R.check(
                       # A base retarget moves the merge base the gate reads;
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
-                      "budget-raise-gate.yml": ["budget-raise-gate"]},
+                      "budget-raise-gate.yml": ["budget-raise-gate"],
+                      # R9-EG-A4: the required score check reads the body, so
+                      # a body edit is the answer to its red; one job, no `if:`.
+                      "arch-score.yml": ["arch-score"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -26575,7 +26578,8 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 # How each workflow that lists `pull_request: edited` keeps its same-SHA
 # twin from being cancelled. A design choice per file, not a derived fact.
 _CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
-                  "budget-raise-gate.yml": "per-run"}
+                  "budget-raise-gate.yml": "per-run",
+                  "arch-score.yml": "per-run"}
 
 
 def _cc_lists_edited(doc: dict) -> bool:

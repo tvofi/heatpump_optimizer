@@ -366,6 +366,12 @@
   "set": "planted",
   "verdict": "WORSENS"
  },
+ "a1_N5_annotated_return": {
+  "admissible": false,
+  "label": "NULL",
+  "set": "planted",
+  "verdict": "WORSENS"
+ },
  "a1bdb11c": {
   "admissible": true,
   "label": "BAD",
@@ -559,10 +565,10 @@
   "verdict": "WORSENS"
  },
  "c2a0448d": {
-  "admissible": true,
+  "admissible": false,
   "label": "GOOD",
   "set": "corpus",
-  "verdict": "IMPROVES"
+  "verdict": "WORSENS"
  },
  "c5fcfb17": {
   "admissible": false,
@@ -893,5 +899,17 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_14_hub_write_presolve": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_15_payload_cast": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }
