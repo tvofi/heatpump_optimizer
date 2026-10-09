@@ -31725,6 +31725,70 @@ R.check(
     and "TIMED OUT" not in _RCA_RED_OUT,
     f"rc={_RCA_RED_RC!r} out={_RCA_RED_OUT.strip()!r}",
 )
+# Wired in the driver. The five checks above drive the functions; none of them
+# would notice a `main()` that never called one -- "defined-but-never-called is
+# the silent-green shape this repository keeps finding" (this file's own words at
+# the `_MUT_BODY` definition), and the class this PR countermeasures IS a lane that
+# did not consult its own measurement. So each new function is pinned at its CALL
+# SITE: reverting the seed to `own_s = recorded_seconds()`, dropping the
+# `--pool-seconds` flag, or moving the persist out of the `finally` each reddens
+# this check while leaving all five above green.
+_RCA_WIRE_MISSING = [w for w in (
+    'ap.add_argument("--pool-seconds"',
+    'prior_pool = pool_seconds(getattr(args, "pool_seconds", None))',
+    "own_s = seed_pool_seconds(recorded_seconds(), prior_pool)",
+    "measured_pool[s] = run.seconds",
+    "write_pool_seconds({**prior_pool, **measured_pool},",
+) if w not in _MUT_BODY]
+# The persist rides the `finally` on purpose: a run that refuses on its own bound
+# returns before `write_drain`, so a persist placed beside the drain write would
+# leave nothing behind on exactly the night the next run needs it.
+_RCA_FIN = _MUT_BODY.find("    finally:\n        # Persist the pool cost")
+_RCA_CLEANUP = _MUT_BODY.find("        for tree in made:\n            drop_tree(tree)")
+R.check(
+    "RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound "
+    "with it, records each pool baseline, and persists from the finally",
+    not _RCA_WIRE_MISSING and 0 < _RCA_FIN < _RCA_CLEANUP,
+    f"missing={_RCA_WIRE_MISSING!r}; finally-persist at {_RCA_FIN}, tree cleanup "
+    f"at {_RCA_CLEANUP} -- the persist must be inside the finally and first in it",
+)
+# Wired, against the YAML, in the `_MUT_BW_MISSING` idiom: the carrier is what
+# makes the seed anything but a local variable. Deleting `--pool-seconds` from a
+# nightly lane, or the cache pair that carries the measurement between runs,
+# leaves every check above green and the nightly back on TIMEOUT_SCALE x a solo
+# recording -- this PR's defect, restorable without tripping a check. The save is
+# pinned to `if: always()` IN THE MEASURING JOB and pinned ABSENT from
+# `mutation-ledger-push`, which is the trap the RCA names: that job is gated on
+# `needs.mutation-ledger.result == 'success'`, so it does not run on the night the
+# bound trips. Both jobs stay grant-free (decision 0011's measuring-job invariant).
+_RCA_YAML_MISSING = [(j, w) for j, w in (
+    ("mutation-nightly", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-nightly", "actions/cache/restore@"),
+    ("mutation-nightly", "restore-keys: pool-seconds-"),
+    ("mutation-ledger", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-ledger", "actions/cache/restore@"),
+    ("mutation-ledger", "actions/cache/save@"),
+    ("mutation-ledger", "Save the pool measurement for the next nightly"),
+) if w not in _workflow_job(_TESTS_YML, j)]
+_rca_ledger_job = _workflow_job(_TESTS_YML, "mutation-ledger")
+_rca_push_job = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+R.check(
+    "RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and "
+    "mutation-ledger persists on an if: always() cache save in the measuring job, "
+    "never in the success-gated push job",
+    not _RCA_YAML_MISSING
+    # The save step carries `if: always()` -- pinned as the adjacency, so a SHA
+    # bump does not break it and moving the condition off the save does.
+    and bool(_re.search(r"actions/cache/save@[0-9a-f]{40}[^\n]*\n\s+if: always\(\)",
+                        _rca_ledger_job))
+    and "actions/cache/save@" not in _rca_push_job
+    and "needs.mutation-ledger.result == 'success'" in _rca_push_job
+    # The carrier costs the measuring job no grant and no secret.
+    and "secrets." not in _rca_ledger_job
+    and "contents: write" not in _rca_ledger_job,
+    f"missing={_RCA_YAML_MISSING!r}; save-if-always="
+    f"{bool(_re.search(r'actions/cache/save@[0-9a-f]{40}[^\\n]*\\n\\s+if: always\\(\\)', _rca_ledger_job))}",
+)
 
 # R9-F10.12 (A): the mutant phase's wall-clock budget. Each pool runs on one
 # worker under a fake clock that each drive advances by the driver's cost, so
