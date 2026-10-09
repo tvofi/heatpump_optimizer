@@ -1,7 +1,7 @@
 
 === DR BLOCK ===
   ok   plan_writes_power is exactly a frequency write (S1)
-  ok   the install's shape engages, at the metered running percentiles
+  ok   an overstated nameplate engages, at the metered running percentiles
   ok   null control: a pump that draws what it is asked never engages
   ok   null control: a correctly sized 6 kW pump part-loading at 1-2 kW, drawing what it is asked, never engages though its running max is far below 6 kW
   ok   short of MIN_SAMPLES running samples there is no statistic and no clamp
@@ -14,6 +14,10 @@
   ok   S4 where the install can duty-cycle: the min end stays configured
   ok   S4 where the plan writes the frequency: None, the draw is its own echo
   ok   S4 with no evidence, or a different configuration: None
+  ok   a metered top within 15 % of the configured max keeps the configured max
+  ok   and one beyond 15 % replaces it (the boundary's other side)
+  ok   a metered floor within 15 % of the configured min keeps the configured min
+  ok   and one beyond 15 % replaces it
   ok   S2 control: a running space interval is a running sample
   ok   S2: no meter is not a running sample
   ok   S2: standby draw is not a running sample
@@ -29,8 +33,11 @@
   ok   and folds nothing for an interval whose closed window saw a defrost
   ok   the samples, the latch and its configuration persist through the accuracy store
   ok   an install with no running sample writes no draw key: its store is unchanged
-  ok   an unreadable sample is dropped alone; an unreadable configuration drops the latch
+  ok   an unreadable sample is dropped alone, beside a readable configuration
+  ok   a record whose configuration is unreadable is dropped whole: no samples, no latch
+  ok   a record whose configuration is absent is dropped whole: no samples, no latch
+  ok   a record whose configuration is non-finite is dropped whole: no samples, no latch
   ok   diagnostics publish the learned range and the effective clamp
   ok   a view that raises reports unavailable; the snapshot still builds
 
-ALL 32 DR BLOCK PASSED
+ALL 39 DR BLOCK PASSED
