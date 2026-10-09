@@ -1,6 +1,6 @@
 """The planted cases, every one a scripted edit of one pinned tree.
 
-    perturb/      30 edits of the pin: GOOD moves (G*), BAD moves (B*), behaviour-neutral nulls (N*)
+    perturb/      edits of the pin: GOOD moves (G*), BAD moves (B*), behaviour-neutral nulls (N*)
     controls.py   each metric's control (adds one instance), fix (removes one) and null (rename/reformat)
     redteam/      the attempts to raise the score without improving the architecture, plus a rename null
 

@@ -97,6 +97,7 @@
     "tools/pr/**",
     "tools/audit/{judge_batch.py,check_scopes.py,prepare_baseline.sh,merge_throughput.py,worktree_gc.sh}",
     "tools/audit/seat/**",
+    "tools/audit/archscore/**",
     "tools/coverage/**",
     "tools/devices/**",
     "tools/release/**",
