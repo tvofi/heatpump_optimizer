@@ -4928,7 +4928,7 @@
    "resume": {
     "stage": "in-flight",
     "branch": "fix/r9-eg-a4",
-    "commit": null,
+    "commit": "a26f24285ccfa7f00f8ed0a0daa4bebc548c08a7",
     "last_step": null,
     "next_step": "PR #2068 def887d8 carries a merge verdict (bus review/2068, posted 08:50Z) and no approval yet; it owns tests/closures.json so a recarry is a RESOLUTION DELTA, not a carry: merge main in, CI green, delta back to the review-2068 seat, then approve (owner review if the owned paths need it) and merge",
     "note_file": "handoff/round9/fix/resume/EG-A4.md on handoff/r9-eg-archscore-required",
