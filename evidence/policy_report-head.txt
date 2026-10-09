@@ -1,0 +1,9 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 40 policy file(s)
+
+by check: {}
+derivations: {"budgets":16,"scripts":33,"rules":10,"briefs":15,"jobs":25,"states":40,"services":13,"modules":73,"goldens":56,"caps":{".claude/rules/brief-citations.md":42,".claude/rules/ci-autofix.md":96,".claude/rules/claim-files.md":53,".claude/rules/comment-readback.md":68,".claude/rules/defect-root-cause.md":153,".claude/rules/delivery-status-tracking.md":26,".claude/rules/finding-propagation.md":101,".claude/rules/gate-scoping.md":61,".claude/rules/ratchet-budgets.md":114,".claude/rules/writing-for-agents.md":65,".claude/skills/steward/SKILL.md":135,".claude/workflows/fixtures/policy-rot/budgets.md":1,".claude/workflows/web-fragments.md":168,".github/PULL_REQUEST_TEMPLATE.md":38,"AGENTS.md":13,"CLAUDE.md":221,"tests/README.md":800,"tools/audit/README.md":250,"tools/audit/briefs/COMMON.md":108,"tools/audit/briefs/D0.md":66,"tools/audit/briefs/D1.md":60,"tools/audit/briefs/D10.md":43,"tools/audit/briefs/D11.md":103,"tools/audit/briefs/D12.md":71,"tools/audit/briefs/D13.md":79,"tools/audit/briefs/D14.md":32,"tools/audit/briefs/D2.md":51,"tools/audit/briefs/D3.md":46,"tools/audit/briefs/D4.md":48,"tools/audit/briefs/D5.md":42,"tools/audit/briefs/D6.md":35,"tools/audit/briefs/D7.md":45,"tools/audit/briefs/D8.md":56,"tools/audit/briefs/D9.md":65,"tools/audit/briefs/fix-review.md":140,"tools/audit/briefs/fixer.md":315,"tools/audit/briefs/judge.md":30,"tools/audit/briefs/nudge.md":115,"tools/audit/briefs/orchestrator.md":291,"tools/audit/briefs/root-cause.md":84,"tools/audit/briefs/verifier.md":39}}
+
+FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
