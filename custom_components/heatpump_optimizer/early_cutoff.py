@@ -221,6 +221,7 @@ def _plant_exempt(inp: ArbiterInputs) -> str | None:
     """The plant states that outrank a warm room: defrost, a cold tank."""
     defrost = EntryConfig.from_mapping(inp.config).heat_pump_defrost_entity
     flag = inp.hass.states.get(defrost) if defrost else None
+    # Exempt only if it exists AND reads on, not either.
     if flag is not None and parse_bool(getattr(flag, "state", None)):
         return "defrost"
     params, state = inp.params, inp.state

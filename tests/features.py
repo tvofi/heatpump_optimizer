@@ -60391,6 +60391,20 @@ _ec_defrost.hass.states.set("binary_sensor.defrost", FakeState("on"))
 _ec_defrost.arm()
 _ec_defrost.room(25.0)
 R.check("a running defrost is never cut", _ec_defrost.offs() == [])
+# The exemption is `flag exists AND reads on`, not `flag exists OR reads on`:
+# a configured defrost entity that reads off must not exempt the cut. A BOOLOP
+# mutant flipping `and` to `or` returns "defrost" whenever the entity exists,
+# whatever its state, so only the off arm tells the two apart (#2070 r4).
+_ec_defrost_off = _EcCoord()
+_ec_defrost_off._config["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+_ec_defrost_off.hass.states.set("binary_sensor.defrost", FakeState("off"))
+_ec_defrost_off.arm()
+_ec_defrost_off.room(25.0)
+R.check(
+    "a defrost entity that exists but reads off does not exempt the step",
+    _ec_defrost_off.offs() == [("switch", "turn_off", {"entity_id": _EC_SW})],
+    f"{_ec_defrost_off.hass.services.calls}",
+)
 _ec_boost = _EcCoord()
 _ec_boost_mod.held_for(_ec_boost).until[_ec_boost_mod.CHANNEL_DHW] = (
     _ec_dt.now() + timedelta(hours=1))
