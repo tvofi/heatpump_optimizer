@@ -103,12 +103,17 @@ def report(base: dict, cur: dict) -> str:
     return "\n".join(lines)
 
 
+class UnsupportedEntry(Exception):
+    """A symlink or gitlink under ``custom_components/``: the gate refuses it by name (#2068 round 3)."""
+
+
 def tree_of(ref: str, into: Path) -> Path:
     """The package at git ref ``ref``, extracted under ``into``.
 
     Read from the tree object, never through ``git archive``: archive honours the ``export-ignore`` and
     ``export-subst`` attributes of the tree it archives, so a head's own ``.gitattributes`` would decide
-    which of its files the scorer sees (#2068 round 2). Symlinks and submodules are not extracted."""
+    which of its files the scorer sees (#2068 round 2). A symlink or gitlink is refused, not resolved:
+    Python imports through a ``.py`` symlink whose target the scorer would not read as a module (round 3)."""
     git = ["git", "-C", str(REPO)]
     listing = subprocess.run([*git, "ls-tree", "-r", "-z", ref, "custom_components"],
                              capture_output=True, check=True).stdout
@@ -116,7 +121,7 @@ def tree_of(ref: str, into: Path) -> Path:
         meta, path = entry.split(b"\t", 1)
         mode, kind, sha = meta.decode().split()
         if kind != "blob" or mode == "120000":
-            continue
+            raise UnsupportedEntry(f"{path.decode()} is a {'symlink' if mode == '120000' else 'gitlink'} at {ref[:12]}")
         dest = into / path.decode()
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(subprocess.run([*git, "cat-file", "blob", sha], capture_output=True, check=True).stdout)

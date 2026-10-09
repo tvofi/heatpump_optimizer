@@ -36,6 +36,7 @@ does not select it. tests/arch_score_head.py is the one that reads today's tree.
 from __future__ import annotations
 
 import ast
+import contextlib
 import io
 import json
 import os
@@ -86,6 +87,36 @@ def attributes_do_not_hide_code() -> None:
                 "archive kept it")
         R.check("score.tree_of extracts the module the head's .gitattributes marks export-ignore",
                 got == [".gitattributes", "a.py", "hidden.py"], f"{got}")
+        # Plant 5 (#2068 round 3): a .py symlink to a .txt blob is imported by Python and unseen by a scorer
+        # that skips links. A link is refused by name.
+        (pkg / "linked.py").symlink_to("notes.txt")
+        (pkg / "notes.txt").write_text("X = 1\n")
+        for cmd in (["add", "-A"], ["commit", "-qm", "plant5"]):
+            subprocess.run(["git", "-C", str(repo), *cmd], check=True, env=env)
+        score.REPO = repo
+        try:
+            score.tree_of("HEAD", Path(tmp) / "out5")
+            refused = ""
+        except score.UnsupportedEntry as e:
+            refused = str(e)
+        finally:
+            score.REPO = saved
+        R.check("a symlink under custom_components/ is refused by name, not skipped (plant 5)",
+                "linked.py is a symlink" in refused, f"{refused!r}")
+    # The gate's catch of that refusal: with the measurement stubbed to raise it, main() prints a named FAIL, rc 1.
+    body, buf, real = Path(tempfile.mkdtemp(prefix="archscore-body-")) / "b.md", io.StringIO(), gate.vector_at
+
+    def raising(ref):
+        raise score.UnsupportedEntry("linked.py is a symlink at stub")
+    body.write_text("")
+    gate.vector_at = raising
+    try:
+        with contextlib.redirect_stdout(buf):
+            rc = gate.main(["gate.py", "--base", "HEAD", "--head", "HEAD", "--body", str(body)])
+    finally:
+        gate.vector_at = real
+    R.check("the gate turns that refusal into a named FAIL and rc 1, not a traceback",
+            rc == 1 and "FAIL: refused, linked.py is a symlink" in buf.getvalue(), f"rc={rc} {buf.getvalue()[:200]!r}")
 
 
 def base_runs_the_gate() -> None:
