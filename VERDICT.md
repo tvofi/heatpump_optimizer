@@ -26,7 +26,7 @@ Round 1's three items are resolved. Two new defects came in with the delta, and 
   - The full three-way merge (8edf6ca919) has 22 headings: 6, 6a, 6b, 6d, 6c, 6e, 7.
 - RESULT hint: a moved path gives "move it to the new path", rc 1. A zero-categories file gives "place it where tests/layout.json says", rc 1. Null at the head: rc 0, `GUARD: 0 refusal(s)`.
 - RESULT self-test at 91b77d0cd: 218 passed, 0 failed (4m07s), including the two new rows.
-- RESULT checks: 40 check-runs, all completed. The only failure is nightly-status, which this diff does not reach. CodeQL concluded neutral.
+- RESULT checks: 40 check-runs, all completed. The only failure is nightly-status, which this diff does not reach.
 - RESULT diff: four files three-dot (CLAUDE.md, fixer.md, carry-1922.json, prepr.sh), +74 -2. VERSION, the manifest and the notes heading are untouched.
 
 ## Non-blocking
