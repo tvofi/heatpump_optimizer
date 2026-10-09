@@ -8000,6 +8000,25 @@
     "stage": "fixing",
     "branch": "handoff/r9-blas-kernel-red"
    }
+  },
+  {
+   "group": "R9-RC-RECARRY-READBACK",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 instrument fix (lane fix): `tools/pr/app_push.sh --recarry` refuses a push that succeeded, and `merge_train.py` treats that refusal as fatal and stops the pass.\n\nMEASURED 2026-10-09T21:4xZ on #2071. The round-3 batch pass recarried the PR: `main` had advanced ten merges past the judged head `1f9d606dd`, and the clean merge produced `61617145f` (`Merge remote-tracking branch 'origin/main' into fix/live-diag`, parent `23d354970`). `app_push.sh` printed `RECARRY: prepr SKIPPED: HEAD 61617145 is the clean merge of the live head 1f9d606d and origin/main's 23d35497, and the body is the live one` -- so it minted and pushed -- and then printed `REFUSE: the pull request did not read back; its state is above -- re-read it by hand before touching anything`. Minutes later `gh pr view 2071 --json headRefOid` answered `61617145f4a2cc254f90b53ba683ea74f13100d4`, the branch was `BLOCKED` on not-yet-run contexts, and the commit existed as a real object on the remote. The push landed; the read-back raced GitHub's own index. `merge_train` read the refusal as a stop and the whole pass died with `RESULT pr=2071 head=61617145f...`, `rc=1`, taking four verdicted pull requests (#2072 #2073 #2063 #2010) down with it.\n\nWHY THE READ-BACK EXISTS AND MUST NOT BE DELETED. It is the same discipline as `comment-readback.md` and the #1256 incident that put decision 0011 in place: an author seat's mint returned 201 and then 404 inside a minute and left a branch wedged, so `app_push.sh` refuses to report success it cannot re-read. The defect is not that it checks, it is that it checks ONCE, with no settle, and cannot distinguish `pushed but not yet visible` from `push refused`. A silent retry-forever is the opposite failure: a genuinely refused push would read as slow success.\n\nFIX OWED. A bounded re-read with a stated budget -- poll the live `headRefOid` (or `GET /pulls/{n}`) a fixed number of times with a sleep between, and resolve to one of THREE outcomes, not two: `pushed and confirmed`, `pushed and not visible within the budget` (a distinct refusal, so an operator can tell a race from a wedge), and `refused`. On `pushed and confirmed` the script exits 0 and prints the confirmed sha. Keep the pre-push contract check exactly as it is -- `prepr.sh` runs BEFORE anything reaches the remote (#678's ordering), and this change must not move it after the push or make it skippable by anything but the existing clean-carry condition.\n\nARMS OWED. The perturbation must be the real shape, not a stub: force the read-back to race (a first read that answers the OLD sha and a second that answers the new one) and show the script now reports success at the second read, with the injected delay visible in its own output. The control that must still refuse: a push that GitHub actually refuses (a non-fast-forward, or a wedged branch) exits non-zero with the `refused` wording, and the `pushed and not visible` arm is exercised as its own case -- that third state is the deliverable, so a test that only covers the first two pins nothing. A null control on the clean path: a normal `--recarry` whose head is already current must not loop at all.\n\nALSO OWED, same file family. `tools/audit/seat/merge_train.py`'s handling of a recarry refusal: it currently stops the entire batch. Once `app_push.sh` can answer `pushed and confirmed` the stop should be unreachable for a race, so decide by measurement whether the train needs its own retry or whether it should keep stopping on a real refusal and simply re-read the head once before declaring one -- and say which you chose and why, in the body, with the observed API latency behind it.\n\nBOUNDARY. Do not change what `--recarry` may skip: it skips `prepr` only when HEAD is exactly the clean merge of the live head and `origin/main` and the body is the live one. That condition, `--self-test`, and the identity/minting rules of decision 0011 are unchanged. `tools/pr/app_push.sh` is a measured instrument with a `--self-test` the gate runs; an arm you add must be in it, not only in the body.",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "specified retry-state change with an oracle: the three outcomes are decidable and the self-test is the harness",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
