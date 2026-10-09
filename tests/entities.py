@@ -3797,11 +3797,11 @@ def _p2_registry(sources):
                      getattr(n.left, "value", None), getattr(n.right, "value", None))),
              owners=["thermal_model.py::on_threshold_kw"], dispositions={}),
         # D12-s2-02: the domain that writes a configured entity comes from
-        # the entity (coordinator._on_off_service, #1526), never a literal.
+        # the entity (pump_arbiter.on_off_service, #1526), never a literal.
         dict(fact="entity_write_domain", finding="D12-s2-02",
              match=_p2_match_literal_domain(
                  {"select", "switch", "input_select", "input_boolean", "number", "input_number"}),
-             owners=["coordinator.py::_on_off_service"],
+             owners=["pump_arbiter.py::on_off_service"],
              dispositions={
                  "coordinator.py::HeatPumpOptimizerCoordinator._command_frequency":
                      "the compressor_freq slot is number-only "
@@ -4352,7 +4352,7 @@ _EC_NOT_ENTRY = {
 _EC_MIGRATED = {
     "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
     "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
-    "setpoint_check.py", "silent_mode.py",
+    "setpoint_check.py", "silent_mode.py", "early_cutoff.py",
 }
 
 

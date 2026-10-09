@@ -60225,7 +60225,7 @@ class _EcCoord(_PaCoord):
     def __init__(self, duties="ss", planned=21.0, switch=_EC_SW, on_minutes=30.0):
         super().__init__(_PA_TUYA, duties=duties)
         self.hass = _EcHass({
-            _EC_SW: FakeState(
+            switch or _EC_SW: FakeState(
                 "on", last_updated=_ec_dt.now() - timedelta(minutes=on_minutes)),
             _EC_ROOM: FakeState("21.0", unit="°C"),
         })
@@ -60245,8 +60245,8 @@ class _EcCoord(_PaCoord):
         self.opt = _PaNS(get_comfort_temp=lambda hour, when=None: 21.0)
 
     def arm(self, at=None):
-        wiring = _ec.CutoffInputs(self.arbiter_inputs, _ec_boost_mod.held_for(self), self.opt)
-        _pa_aio.run(_ec.arm(_ec.state_for(self), wiring, self.entry.async_on_unload, at))
+        _pa_aio.run(_ec.arm(_ec.state_for(self), self.arbiter_inputs,
+                            _ec_boost_mod.held_for(self), self.opt, self.entry.async_on_unload, at))
 
     def room(self, value):
         ev = _PaNS(data={"new_state": FakeState(str(value), unit="°C")})
@@ -60397,6 +60397,41 @@ _ec_boost_mod.held_for(_ec_boost).until[_ec_boost_mod.CHANNEL_DHW] = (
 _ec_boost.arm()
 _ec_boost.room(25.0)
 R.check("a hot-water boost is never cut", _ec_boost.offs() == [])
+
+# An early refresh (a mode change, a manual plan, a button) re-arms and would
+# write the plan's "on" a minute after the cut: allow_on holds it off for
+# MIN_OFF, and lets it through after, or on a step the cut-off would not touch.
+_ec_hold = _ec_fire(22.0)
+_ec_cut_t = _ec.state_for(_ec_hold).cut_at
+_ec_hold.arm()
+R.check(
+    "an early refresh inside MIN_OFF of a cut keeps the pump off",
+    _ec_cut_t is not None
+    and _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + timedelta(minutes=1)) is False,
+    f"cut_at {_ec_cut_t}",
+)
+R.check(
+    "past MIN_OFF the plan's on goes through, and an off is never turned on",
+    _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + _ec.MIN_OFF) is True
+    and _ec.allow_on(_ec.state_for(_ec_hold), False, _ec_cut_t + timedelta(minutes=1)) is False,
+)
+_ec_boost_mod.held_for(_ec_hold).until[_ec_boost_mod.CHANNEL_SPACE] = (
+    _ec_dt.now() + timedelta(hours=1))
+R.check(
+    "a boost set by that refresh is let through at once",
+    _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + timedelta(minutes=1)) is True,
+)
+R.check(
+    "null control: with no cut on record allow_on returns the plan's own value",
+    _ec.allow_on(_ec.CutoffState(), True) is True and _ec.allow_on(_ec.CutoffState(), False) is False,
+)
+# The cut goes through the switch's one writer, routed by the entity's domain.
+_ec_ib = _ec_fire(22.0, switch="input_boolean.heat_pump")
+R.check(
+    "the cut-off routes by the target's domain through pump_arbiter.switch_supply",
+    _ec_ib.offs() == [("input_boolean", "turn_off", {"entity_id": "input_boolean.heat_pump"})],
+    f"{_ec_ib.hass.services.calls}",
+)
 
 # The arbiter does not switch the pump back on inside the cycle: with the
 # supply reading off after the cut, its next tick writes nothing at all.

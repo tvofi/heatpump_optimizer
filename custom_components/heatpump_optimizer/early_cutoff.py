@@ -16,7 +16,7 @@ at the target would undo the price decision the plan just made, so the
 cut-off only acts on overshoot past what the plan itself expected.
 
 **A guard, measured inert.** In every closed-loop case measured
-(``tools/audit/harnesses/early_cutoff_closed_loop.py``) the 30-minute
+(``dev/audit/harnesses/early_cutoff_closed_loop.py``) the 30-minute
 re-solve already had the pump off before the room passed this threshold, so
 the cut-off never fired. The decision's literal rule (target + margin alone)
 did act, and cut a correct plan's pre-heat on the null control, so it does
@@ -33,8 +33,9 @@ nothing yet measures what another value would buy.
 own. The pump's own controller enforces its compressor's limits, but a
 power switch that cuts the supply bypasses them. So this module adds both:
 it does not cut a pump that has been on for less than :data:`MIN_ON`, or
-when the next cycle, which may switch it on again, is less than
-:data:`MIN_OFF` away. It cuts at most once per cycle.
+when the next scheduled cycle is less than :data:`MIN_OFF` away; and an
+early refresh inside :data:`MIN_OFF` of a cut keeps the pump off
+(:func:`allow_on`). It cuts at most once per cycle.
 
 **What it leaves alone.** It acts only on a step whose duty is space heating
 alone. Hot water, a both step, idle, a boost on either channel, a
@@ -42,8 +43,9 @@ disinfection hold, a running defrost and a tank below its minimum are all
 exempt, because the power switch stops the tank as well as the house. A
 non-plan mode (comfort, boost, off) and a stale plan are exempt too, as are
 an install with no switch and a two-zone house whose lower floor is below
-its target. It writes only the power switch. The ECL110 displacement, the
-arbiter's slots and the peak guard keep their own writers. The arbiter
+its target. It writes only the power switch, through ``pump_arbiter.switch_supply``,
+the switch's one writer. The ECL110 displacement, the arbiter's slots and
+the peak guard keep their own writers. The arbiter
 writes nothing while the switch reads off, so it cannot switch the pump
 back on inside the cycle.
 
@@ -72,18 +74,10 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
 from .boost import CHANNEL_DHW, CHANNEL_SPACE, BoostState
-from .const import (
-    CONF_HEAT_PUMP_DEFROST_ENTITY,
-    CONF_HEAT_PUMP_SWITCH_ENTITY,
-    CONF_INDOOR_TEMP_ENTITY,
-    CONF_OPTIMIZATION_INTERVAL,
-    DEFAULT_OPTIMIZATION_INTERVAL,
-    MODE_AUTO,
-    MODE_ECONOMY,
-    ROOM_AIR_RANGE_C,
-)
+from .const import MODE_AUTO, MODE_ECONOMY, ROOM_AIR_RANGE_C
+from .entry_config import EntryConfig
 from .inputs import parse_bool, temperature_c
-from .pump_arbiter import ArbiterInputs, step_duty
+from .pump_arbiter import ArbiterInputs, step_duty, switch_supply
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,6 +102,10 @@ class CutoffState:
     cut_this_cycle: bool = False
     #: Whether the cycle before this one was cut; see :attr:`interval_cut`.
     cut_last_cycle: bool = False
+    #: When the last cut was written (UTC); an early refresh inside
+    #: :data:`MIN_OFF` of it keeps the pump off (:func:`allow_on`).
+    cut_at: datetime | None = None
+    wiring: CutoffInputs | None = None
     count: int = 0
     last: dict[str, Any] | None = None
     #: Why the last reading above the threshold did not cut.
@@ -138,16 +136,14 @@ _STATES: WeakKeyDictionary[Any, CutoffState] = WeakKeyDictionary()
 
 def state_for(coord: Any) -> CutoffState:
     """In-memory record for this coordinator, created on first use."""
-    held = _STATES.get(coord)
-    if held is None:
-        held = CutoffState()
-        _STATES[coord] = held
-    return held
+    return _STATES.setdefault(coord, CutoffState())
 
 
 async def arm(
     held: CutoffState,
-    wiring: CutoffInputs,
+    inputs: Callable[[], ArbiterInputs],
+    boosts: BoostState,
+    opt_config: Any,
     on_unload: Callable[[Callable[[], None]], Any],
     now: datetime | None = None,
 ) -> None:
@@ -158,25 +154,45 @@ async def arm(
     the entry is released or no switch or room thermometer is configured.
     """
     now = now or dt_util.now()
-    inp = wiring.inputs()
-    minutes = float(inp.config.get(CONF_OPTIMIZATION_INTERVAL, DEFAULT_OPTIMIZATION_INTERVAL))
+    held.wiring = CutoffInputs(inputs, boosts, opt_config)
+    inp = inputs()
+    cfg = EntryConfig.from_mapping(inp.config)
     # In UTC: local wall-clock arithmetic is an hour off across a DST change.
-    held.cycle_end = dt_util.as_utc(now) + timedelta(minutes=minutes)
+    held.cycle_end = dt_util.as_utc(now) + timedelta(minutes=cfg.optimization_interval)
     held.cut_last_cycle, held.cut_this_cycle = held.cut_this_cycle, False
-    room = inp.config.get(CONF_INDOOR_TEMP_ENTITY)
-    if inp.entry_released or not room or not inp.config.get(CONF_HEAT_PUMP_SWITCH_ENTITY):
+    room = cfg.indoor_temp_entity
+    if inp.entry_released or not room or not cfg.heat_pump_switch_entity:
         release(held)
         return
     if held.unsub is None:
 
         @callback
         def _changed(event: Any) -> None:
-            on_room_event(held, wiring, event)
+            if held.wiring is not None:
+                on_room_event(held, held.wiring, event)
 
         held.unsub = async_track_state_change_event(inp.hass, [room], _changed)
         # Dropped with the entry, as every other registration is (#236).
         on_unload(lambda: release(held))
         _LOGGER.debug("Early cut-off listening on %s", room)
+
+
+def allow_on(held: CutoffState, on: bool, now: datetime | None = None) -> bool:
+    """``on``, unless a cut within :data:`MIN_OFF` must keep the pump off.
+
+    The scheduled cycle never lands inside that window, because a cut is
+    refused with less than :data:`MIN_OFF` to the cycle end. An early
+    refresh (a mode change, a manual plan, a button) can, and would
+    otherwise write the plan's ``on`` a minute after the cut. A step the
+    cut-off would not touch -- a boost, hot water, a non-plan mode -- is
+    let through.
+    """
+    if not on or held.cut_at is None or held.wiring is None:
+        return on
+    now = dt_util.as_utc(now or dt_util.now())
+    if now - held.cut_at >= MIN_OFF:
+        return True
+    return _exempt(held.wiring.inputs(), held.wiring.boosts, now) is not None
 
 
 def release(held: CutoffState) -> None:
@@ -203,7 +219,7 @@ def _exempt(inp: ArbiterInputs, boosts: BoostState, now: datetime) -> str | None
 
 def _plant_exempt(inp: ArbiterInputs) -> str | None:
     """The plant states that outrank a warm room: defrost, a cold tank."""
-    defrost = inp.config.get(CONF_HEAT_PUMP_DEFROST_ENTITY)
+    defrost = EntryConfig.from_mapping(inp.config).heat_pump_defrost_entity
     flag = inp.hass.states.get(defrost) if defrost else None
     if flag is not None and parse_bool(getattr(flag, "state", None)):
         return "defrost"
@@ -238,7 +254,7 @@ def _cycle_guard(inp: ArbiterInputs, held: CutoffState, now: datetime) -> str | 
     """The short-cycle guards: once per cycle, a minimum run, a minimum stop."""
     if held.cut_this_cycle:
         return "already_cut"
-    switch = inp.hass.states.get(inp.config.get(CONF_HEAT_PUMP_SWITCH_ENTITY))
+    switch = inp.hass.states.get(EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
     if getattr(switch, "state", None) != "on":
         return "switch_not_on"
     since = getattr(switch, "last_changed", None)
@@ -288,25 +304,16 @@ def on_room_event(held: CutoffState, wiring: CutoffInputs, event: Any) -> None:
         held.last_held = reason
         return
     held.cut_this_cycle = True
+    held.cut_at = dt_util.as_utc(now)
     held.count += 1
-    switch = inp.config[CONF_HEAT_PUMP_SWITCH_ENTITY]
+    switch = str(EntryConfig.from_mapping(inp.config).heat_pump_switch_entity)
     held.last = {"at": now.isoformat(), "room_c": room, "threshold_c": limit, "switch": switch}
     _LOGGER.info(
         "Early cut-off: room %.2f degC is above %.2f degC (plan or target + %.1f K); "
         "switching %s off until the next plan cycle",
         room, limit, MARGIN_K, switch,
     )
-    inp.hass.async_create_task(_switch_off(inp.hass, switch))
-
-
-async def _switch_off(hass: Any, switch: str) -> None:
-    """Turn the pump's supply off, routed by the target's domain (#1526)."""
-    try:
-        await hass.services.async_call(
-            switch.split(".", 1)[0], "turn_off", {"entity_id": switch}, blocking=True
-        )
-    except Exception as err:  # noqa: BLE001 -- the next cycle writes again
-        _LOGGER.error("Early cut-off could not switch %s off: %s", switch, err)
+    inp.hass.async_create_task(switch_supply(inp.hass, switch, False))
 
 
 def diagnostics_view(held: CutoffState) -> dict[str, Any]:

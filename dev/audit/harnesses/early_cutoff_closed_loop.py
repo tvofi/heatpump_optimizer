@@ -36,7 +36,7 @@ room above the target is exempt (no cut at all). CUTOFF_ARMS=on runs only
 the cut-off arm.
 SIM_STEPS shortens the simulated day (15-minute steps, default 96).
 
-    python3 tools/audit/harnesses/early_cutoff_closed_loop.py [VARIANT...]
+    python3 dev/audit/harnesses/early_cutoff_closed_loop.py [VARIANT...]
 
 Run from a worktree root with the CI venv and
 PYTHONPATH=tests/hastub:custom_components:tests.
@@ -148,10 +148,10 @@ def run(label: str, plant_kind: str, cutoff: bool) -> None:
                             state=st, thermal=ctrl, params=ctrl.params,
                             action={"heat_pump_on": on}, measured_power_kw=None,
                             disinfecting=False)
-        wiring = early_cutoff.CutoffInputs(lambda inp=inp: inp, BoostState(), cfg)
         if cutoff:
             dt_util.freeze(t0)
-            asyncio.run(early_cutoff.arm(held, wiring, unloads.append, t0))
+            asyncio.run(early_cutoff.arm(held, lambda inp=inp: inp, BoostState(), cfg,
+                                         unloads.append, t0))
         for m in range(30):
             level = plan[m // 15]
             if plant_kind in ("OWNMIN", "HOT", "LIGHT") and level > MIN_RUNNING_DRAW_KW:
@@ -172,7 +172,7 @@ def run(label: str, plant_kind: str, cutoff: bool) -> None:
                 now = t0 + timedelta(minutes=m + 1)
                 dt_util.freeze(now)
                 before, held.last_held = held.count, None
-                early_cutoff.on_room_event(held, wiring, SimpleNamespace(
+                early_cutoff.on_room_event(held, held.wiring, SimpleNamespace(
                     data={"new_state": FakeState(f"{room:.2f}")}))
                 held_why[held.last_held] += held.last_held is not None
                 if held.count > before:

@@ -75,7 +75,7 @@ against a document that is CORRECT.
                                          #1495's same mold-floor breach warning
                                          margin, whose 0-5 °C Range row is the
                                          only one this re-record adds)
-    RESULT arch_modules_on_disk=73       (72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_modules_on_disk=74       (73 until the live-fix wave's early_cutoff.py; 72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          65 until #1588's pump_arbiter.py; 64
                                          until #1408's store.py;
@@ -101,13 +101,15 @@ against a document that is CORRECT.
                                          bytes of, so nothing compared these
                                          numbers to a run between 2026-09-17
                                          and then)
-    RESULT arch_map_listed=73            (72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
+    RESULT arch_map_listed=74            (73 until the live-fix wave's early_cutoff.py; 72 until R9-EG-B11's entry_config.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 69 until R9-UX-4's notifier.py; 68 until R9-EG-B3a's payload.py; 67 until R9 EG-B5's dhw_planner.py;
                                          66 until R9 F2.5's batchmath.py;
                                          was 45; 11 were missing; 66 with
                                          #1588's pump_arbiter.py added to
                                          architecture.md's module map)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=27  (26 until R9-DBG-1's debugger.py imports
+    RESULT ha_module_level_importers=28  (27 until the live-fix wave's early_cutoff.py imports
+                                         homeassistant.core at module level;
+                                         26 until R9-DBG-1's debugger.py imports
                                          homeassistant.core at module level;
                                          25 until R9-UX-4's notifier.py; was 21; 22 until #1588's
                                          pump_arbiter.py imports
