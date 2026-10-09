@@ -7895,6 +7895,21 @@
     "next_step": "closure-time only. Measured 2026-10-09 before this group was written: 86 refs already merged into main, 42 unmerged handoff refs whose pull request merged, 10 whose pull request is open, 13 open pull-request branches, 145 orphan refs in the three parentless families, and 66 handoff refs with no pull request (mostly audit-round evidence). Re-derive all of it at closure; the open/merged split changes with every merge. The owner's archive-or-delete answer is owed on issue 201."
    },
    "fixes": []
+  },
+  {
+   "group": "R9-RO-13",
+   "lane": "fix",
+   "wave": 1,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "issues": [],
+   "after": [],
+   "brief": "Owner mandate, 2026-10-09, recorded on issue 201: batch merging of policy changes is allowed until 2026-10-12, extending the same day's ruling that batch merging is always allowed. The instrument has to catch up. tools/audit/seat/merge_train.py currently refuses a policy head before it looks for any review: in the run pass it raises the policy stop after the carry and row reads, and batch admission sends a policy-changing head to the serial route, which then hits the same stop. Its own self-test asserts that a policy pull request is never approved even under a mandate, so today the train cannot land the governance, CI and instrument lanes that make up most of the remaining roster, and each one has to be merged by hand one at a time with main's forced-full run green in between. Change the refusal into a conditional, in one place so the two passes cannot drift: a head whose changed files include a policy path (as policy_lint.mjs --corpus-filter decides, behind its existing sentinel probe) is landed only when the owner's own approving review exists at exactly that head, and is otherwise refused with the reason the tool gives today. Two rules the change must keep, both from the reason the refusal exists. First, the review must bind to the head that merges: an approving review by the owner's login at the head sha, re-read at merge time, never a stale approval, because the review is the whole substitute for the human in the loop. Second, the existing carry behaviour still applies to head moves -- a blob-identical bot commit or an automatic merge of main may carry a verdict forward -- but a policy head whose policy content actually changed after the owner's review must refuse until a fresh review exists, since that is the case the refusal was written for. Flip the self-test to cover both arms: a policy head whose owner review is present at its exact head lands; a policy head with no owner review at its head refuses; and a third arm for policy content that moved after the review. Keep the negative arms the file already has, especially the rename case (a change that moves a policy file out of the corpus still names the path it left) and the failed sentinel probe. Note for the body and for the reviewer: this widens what the train may do, on the owner's written authority, and does not touch budget-raise-gate or the code-owner rule on the protected branch -- those keep refusing a raise or an unreviewed owned change independently, and the mandated owner review is posted openly under the standing agent-approval mandate rather than silently.",
+   "resume": {
+    "stage": "not-started",
+    "next_step": "dispatched 2026-10-09; the hand merge of #2059/#2068/#2024 continues in parallel while this lands, because those three already have owner reviews at their heads"
+   },
+   "fixes": []
   }
  ]
 }
