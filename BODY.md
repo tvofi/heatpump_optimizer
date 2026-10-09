@@ -2,7 +2,10 @@ Countermeasure for `RCA-1565-mutation-timeouts`, established by a root-cause sea
 the nightly mutation lanes bound each driver's first run below the pool factor the
 lanes themselves measure. Six consecutive scheduled runs concluded `failure` from
 2026-10-03 to 2026-10-08 (last green `36984959667`, 2026-10-02T08:36:04Z) on **five**
-distinct causes; **this bound arm is the cause on two of the six** (10-07, 10-08).
+distinct causes -- counted by **mechanism** (the lane plus the rule that failed), not by
+proximate fault, which is why `record-autofix`'s three nights are one cause here while
+§2b of the doc records three different faults inside it (a credential, a request body, a
+git exit). **This bound arm is the cause on two of the six** (10-07, 10-08).
 10-03 and 10-04 reddened on its sibling -- the `EXCLUSIVE`-under-`--scope-full`
 null-control arm, which is the owner's (item iv below) and is **not** fixed here --
 and 10-05/10-06/10-07 on `record-autofix`. Per-night attribution, each from that
@@ -45,19 +48,65 @@ still owed.
 
 ## Head
 
-`7e8c5c8e4ed490a2eacab36a59aafaa3ebf0d08a` (branch `fix/r9-nightly-mutation-bound`,
-merge base `b2b6acd64` = `origin/main`, unmoved since round 1). Every figure below was
-measured at this head; the CI-evidence figures cite runs at the heads named in each line.
+`c54beab894db7210c570cd67f7cfb61212ed301c`, one commit on top of the pull request's
+round-2 head `96497ffc6` (= round-2 code head `7e8c5c8e4` plus this PR's own row
+`dev/programme/delivery/2074.md`), not re-cut from it. Remote refs: this PR's branch
+`fix/r9-nightly-bound`, this seat's handoff `handoff/r9-nightly-bound` and the body's
+orphan `handoff-body/r9-nightly-bound`. Merge base against `origin/main` is still
+`b2b6acd64`; **`origin/main` has moved past that base and this branch has not merged
+it** -- that merge is the orchestrator's, so every three-dot figure below is against
+`b2b6acd64` and none is a function of main's moving tip (which is therefore deliberately
+not quoted here: `git rev-parse origin/main` answers it at read time, and a quoted tip
+would be stale the moment it landed). The CI-evidence figures cite runs at the heads
+named in each line.
 
-Round 2, answering the review that measured `d7c830c2f` (which carried round 1's code head
-`955dd09a3`). **No production or workflow line moved**: `git diff 955dd09a3..7e8c5c8e4`
-touches only `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` (the class search §2b, the
-corrected count, the two enumerators, the named limitation) and `tests/entities.py` (the
-two wiring pins). `tests/mutation_table.py` and `.github/workflows/tests.yml` are
-byte-identical between the two heads, so every mechanism figure the review re-derived at
-`d7c830c2f` -- bound arithmetic, `SECONDS_BAND` unmoved, the refusal-path drive,
-seed-never-lowers, fail-soft, round-trip, carrier-fires-on-refusal-night -- stands
-unchanged and is not re-argued here.
+Round 3, answering the review that measured `96497ffc6` (`record-stale`). **No executable
+line moved**, and that is checked rather than asserted: with docstrings stripped, the ASTs
+of `tests/mutation_table.py` and `tests/entities.py` at this head are **identical** to
+`96497ffc6`'s (the only docstring that changed is `seed_pool_seconds`'), and of the
+changed lines in `.github/workflows/tests.yml` **zero** are not comments. Round 3 is the
+two blocked record defects and the three nits:
+
+- `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` §7 -- the demonstration bullet, rewritten in
+  round 2 and left on round 1's head ("the five checks", four `2239` tallies), now carries a
+  seven-row table: one row per arm (clean, revert, A, B, C, D, E) with what it breaks, the
+  check it reddens, the tally at this head and its log. Round 1's `2239` tallies stay,
+  labelled as that head's by the doc's own disclosure convention. The C/D/E arms -- the
+  proof the two wiring pins bite -- were absent from the landed record and are now in it,
+  which is where `defect-root-cause.md` puts a demonstration.
+- The four lines this PR adds that still asserted the superseded pool factor: the
+  `TIMEOUT_SCALE` comment and `seed_pool_seconds`' docstring in `tests/mutation_table.py`,
+  `tests.yml`'s restore-step comment, and `tests/entities.py`'s block comment (which also
+  attributed `closure.py`'s `0.3x-3.4x` as a pool factor). All four now quote the measured
+  `0.47x-3.27x` with the rule that produces it and cite §2; `entities.py` names `0.3x-3.4x`
+  as what `closure.py` actually states -- how much one script's *recordings* vary run to
+  run -- and says that conflating the two is how the superseded figure travelled.
+- Nits: §1's bound table gains the **10-06** row it skipped (head `cff39dad6`,
+  `{seconds: 765.6, rc: 0}` -> bound **2297**, both mutation lanes green, so neither
+  evidence for the mechanism nor against it); §2b's header no longer claims every member was
+  re-measured and names member 3 as the one that was not; the opening states its
+  cause-grouping rule (a mechanism, not a proximate fault) so "five distinct causes" and
+  §2b's "three different faults rather than one cause" are the same count.
+
+Because round 3 changed only text, every mechanism figure the review re-derived at
+`96497ffc6` -- bounds 1200/1576/2401/4469, seeded 4719/7200/7203, `SECONDS_BAND` unmoved,
+the refusal-path drive, seed-never-lowers, fail-soft, round-trip,
+carrier-fires-on-refusal-night -- stands unchanged. All seven arms were nevertheless
+**re-taken at this head** rather than inherited, and their tallies are below.
+
+`prepr.sh`'s `policy corpus` advisory fired and was answered rather than waved through:
+`origin/main` moved six policy files past this branch's base, four of them contracts
+(`dev/governance/roles/fixer.md`, `dev/governance/roles/fix-review.md`,
+`.claude/rules/{ci-autofix,claim-files}.md`). `fixer.md`'s diff was read, and it changes
+this seat's obligation: step 5 now says to run what `scope.run` **and `tests/run.sh`'s
+`run_always` lines** name. `scope.run` is empty at `MODE: FULL`, so the four `run_always`
+scripts are what a local run owes, and all four were run at this head -- results in
+`## Figures`. The other three diffs were read for obligations on this PR and carry none:
+`ci-autofix.md` and `claim-files.md` both add the new `merge-main.yml` bot as the one pusher
+of a driver-file conflict resolution (`ci: merge main`, tvofi 2026-10-08) -- this branch has
+no such conflict (`git merge-tree --write-tree` against the base exits clean) and touches no
+claim file, so there is nothing for it to resolve here; `fix-review.md`'s change is to the
+reviewer's step 7 (`--carry` heads), not the fixer's.
 
 ## Mutation proof
 
@@ -106,15 +155,25 @@ without tripping a check. They are written in the file's existing idiom (`_MUT_B
 "defined-but-never-called is the silent-green shape" comment, `_MUT_BW_MISSING` for the
 YAML), and D is exactly the revert the review named.
 
-Every arm's log is in the seat scratch `/Users/timmalmstrom/hpo-seats/fix-nightly-bound/logs/`:
-`entities_R2_REVERT.txt` (the revert arm), `entities_R2_MUTA.txt` / `entities_R2_MUTB.txt`
-(A, B), `entities_MUTC.txt` / `entities_MUTD.txt` / `entities_MUTE.txt` (C, D, E), and
-`entities_R2_HEAD.txt` (the green arm at this head: `ALL 2241 ENTITY CHECKS PASSED`, exit 0).
-A and B were first measured in round 1 at `2239`
-checks and are re-taken here at `2241`; C, D and E were measured on a tree whose
-`tests/mutation_table.py` and `.github/workflows/tests.yml` are byte-identical to this
-head's (`git diff 955dd09a3..7e8c5c8e4 -- tests/mutation_table.py .github/workflows/tests.yml`
-is empty), and every restore was confirmed with `git diff --quiet HEAD -- <file>`.
+**All seven arms were re-taken this round**, not inherited from round 2. Six of them ran at
+`90ef590d8`; this head differs from that one **only in the RCA document's prose** --
+`git diff 90ef590d8..HEAD --name-only` prints the RCA document alone -- and no check reads that
+document's contents (`tests/entities.py` names the path only in comments, `tests/layout.py`'s
+`GUARD_EXEMPT` exempts `dev/audit/rca/` by path prefix, `fold_ledger.py` stats
+`in_tree_home` without opening it). The clean arm was nevertheless re-run at this exact
+head, so one arm is measured at the SHA named above. Logs are in the seat scratch
+`/Users/timmalmstrom/hpo-seats/fix-nightly-bound/logs/`, one per arm:
+`entities_R3_HEAD_FINAL.txt` (clean at this head: `ALL 2241 ENTITY CHECKS PASSED`, exit 0;
+the same arm at `90ef590d8` and `51ed9aee7` is `entities_R3_HEAD.txt` /
+`entities_R3_HEAD_COMMITTED.txt`, same tally both times),
+`entities_R3_REVERT.txt` (revert: `4 of 2241 ENTITY CHECKS FAILED`),
+`entities_R3_MUTA.txt`, `entities_R3_MUTB.txt`, `entities_R3_MUTC.txt`,
+`entities_R3_MUTD.txt`, `entities_R3_MUTE.txt` (`1 of 2241` each), and the run that drove
+all seven with its per-arm red-check listing is `arms_r3_out.txt`. Every restore was
+confirmed against `HEAD`, and afterwards all three code files were re-checked
+`IDENTICAL to HEAD` -- no mutation residue. Round 1 measured five of these checks at
+`2239` total, before the two wiring pins existed; the doc's §7 keeps those four tallies
+labelled as that head's.
 
 ## Null control
 
@@ -168,6 +227,14 @@ The unmodified tree, and what the fix leaves alone:
   D and E logs named in the section above.
 - `fold_ledger.py check` clean at both ends (`101 rca entries`, `0 violation(s)`): `python3 -I tools/audit/fold_ledger.py check`.
 - Structural ratchet: `PYTHONPATH=tests/hastub python tests/structure.py` -> `STRUCTURE RATCHET PASSED`.
+- `tests/run.sh`'s four `run_always` scripts, which `fixer.md` step 5 (as `origin/main`
+  now words it) puts beside `scope.run` -- and `scope.run` is empty at `MODE: FULL`, so
+  these are what a local run owes: `PYTHONPATH=tests/hastub python tests/env_drift.py
+  --claims-only $(git merge-base origin/main HEAD)` -> `claims hygiene: b2b6acd64… ok`;
+  `python tests/closure.py selftest` -> `ALL 57 closure shrink pins PASSED`;
+  `python tests/layout.py` -> `layout self-test: ok`; `python tests/harness_headers.py`
+  -> `ALL 109 HARNESS HEADER CHECKS PASSED`. All four rc 0 at this head, in
+  `run_always_R3.txt`.
 - Scoped-gate selection: `python tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` -> `MODE: FULL -- ... .github/workflows/tests.yml changes the gate itself`; `scope.run` names nothing to run locally, so the remainder is CI's.
 
 ## Red checks
@@ -196,6 +263,19 @@ The unmodified tree, and what the fix leaves alone:
   for" is owed. Verified: `--scope full --drain "$out" --max 40`, `--seed`,
   `--budget-minutes 270` all present; no `secrets.` or `contents: write` added to the
   measuring job (decision 0011's invariant, now itself pinned).
+- **Hygiene, and one base-moved subtlety.** No `*_budgets.json` is in this diff at all, and
+  `VERSION`, `RELEASE_NOTES.md`, `hacs.json` and
+  `custom_components/heatpump_optimizer/manifest.json` are untouched -- so no budget was
+  raised and no version moved. Neither claim file is touched by this branch: both are
+  byte-identical to the **merge base** `b2b6acd64`
+  (`git diff --name-only b2b6acd64...HEAD -- tests/golden/` is empty). A diff against
+  `origin/main`'s *tip* does show `tests/golden/claimed_drift.txt` differing, and that is
+  **main's own content, not this branch's** -- R9-UX-9 added 13 lines to it after this
+  branch's base (`git log b2b6acd64..origin/main -- tests/golden/claimed_drift.txt` names
+  the commits; the tip is not quoted here because it moves). Because this side is unchanged,
+  the orchestrator's main merge takes main's version cleanly; no `claimnotes` conflict and
+  no `DIRTY` state arises from this branch. `prepr.sh`'s own `claim files` step compares
+  against the merge base and reports `byte-identical`.
 
 ## Forward-carry
 
