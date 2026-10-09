@@ -1,0 +1,20 @@
+required count: 17
+  ok   fast (3.14) ['success']
+  ok   browser ['success']
+  ok   briefs ['success']
+  ok   closure-scope ['success']
+  ok   closures ['success']
+  ok   typing ['success']
+  ok   hassfest ['success']
+  ok   validate-hacs ['success']
+  ok   policy-docs ['success']
+  ok   wave-script ['success']
+  ok   pr-contract ['success', 'success']
+  ok   env-matrix ['success']
+  ok   Analyze (actions) ['success']
+  ok   Analyze (javascript-typescript) ['success']
+  ok   Analyze (python) ['success']
+  ok   mutation ['success']
+  ok   budget-raise-gate ['success', 'success']
+ABSENT required contexts: none
+NOT-success required contexts: none

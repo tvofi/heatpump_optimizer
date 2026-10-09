@@ -1,0 +1,57 @@
+TIMEOUT_SCALE=3  POOL_SECONDS_NAME=pool_seconds.json
+FLOOR used by the nightly (--timeout): 1200
+
+--- (a) the RCA's reproduced bounds, NO pool file (the fix's fallback) ---
+  2e569748a: committed solo=None rc=None -> bound 1200
+  fb11a0172: committed solo=None rc=None -> bound 1200
+  a1da8d381: committed solo=None rc=None -> bound 1200
+  be0cb8213: committed solo=525.3 rc=0 -> bound 1576
+  816547efe: committed solo=800.2 rc=0 -> bound 2401
+  b2b6acd64: committed solo=1489.6 rc=0 -> bound 4469
+
+--- (b) same inputs WITH the measured pool cost seeded ---
+  solo=800.2 pool=1573.0 (10-07/08 measured pool 1573 s) -> bound 4719
+  solo=800.2 pool=800.2 (pool == solo (no pool pressure)) -> bound 2401
+  solo=800.2 pool=2400.0 (pool 2400 s) -> bound 7200
+
+--- (c) the three claims the dispatch names, checked by equality ---
+  ok  no recording -> 1200: got 1200 want 1200
+  ok  525.3 -> 1576: got 1576 want 1576
+  ok  800.2 -> 2401: got 2401 want 2401
+  ok  1489.6 (current main) -> 4469: got 4469 want 4469
+  ok  seed never lowers: solo 1489.6 vs pool 100: got 4469 want 4469
+  ok  pool 1573 covers 3x pool: got 4719 want 4719
+RESULT bound-arithmetic: ALL-EQUAL
+
+--- (d) seed_pool_seconds monotonicity (never lowers a bound) ---
+RESULT seed-never-lowers: PASS
+
+--- (e) fail-soft: pool_seconds(None|missing|malformed) -> {} ---
+  pool_seconds(None)          = {}
+  pool_seconds(missing path)  = {}
+  ''                           -> {}
+  '{not json'                  -> {}
+  '[]'                         -> {}
+  '{"seconds": "x"}'           -> {}
+  '{"seconds": null}'          -> {}
+  '{"seconds": {"a": -5}}'     -> {}
+  '{"seconds": {"a": true}}'   -> {}
+  '"a string"'                 -> {}
+  '{"nope": 1}'                -> {}
+  '{"seconds": [1,2]}'         -> {}
+RESULT fail-soft: read above; every case must be {} (or drop only bad rows)
+
+--- (f) round-trip: write_pool_seconds -> pool_seconds ---
+  wrote 1573.0/772.0 -> read back {'tests/boost_drift_replay.py': 1573.0, 'tests/features.py': 772.0}
+  file: {
+ "head": "d7c830c2f",
+ "seconds": {
+  "tests/boost_drift_replay.py": 1573.0,
+  "tests/features.py": 772.0
+ }
+}
+RESULT round-trip: PASS
+
+--- (g) does a seeded pool value ever LOWER vs. no-file? ---
+  drivers at head: 34; drivers whose bound would lower: 0
+RESULT monotone-over-committed-table: PASS
