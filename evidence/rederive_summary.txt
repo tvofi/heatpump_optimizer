@@ -1,0 +1,111 @@
+# Re-derivation summary — PR 2065 round 5, head 9b39bb7c6
+
+Instruments run with venv-ci python3, PYTHONPATH=tests/hastub, from the detached
+worktree at 9b39bb7c6 (nonce 5acf1e2dce6f553b0765e1f333f03868).
+
+## Item 1 — claims.py census (D6) + register equality
+Run printed:
+  arch_modules_on_disk=75  arch_map_listed=75  arch_map_missing=0
+  ha_module_level_importers=27  config_defaults_compared=89  config_ranges_compared=91
+  claims_extracted=125 true=123 false=0 stale=0 unverifiable=2
+Matches every expected figure (brief expected 75/75, missing 0, 27, 89, 91, 125/123/0/0/2).
+`git status` CLEAN immediately after the run -> the committed claims.json / claims.md
+byte-equal this instrument's output; the register is NOT stale against its own instrument.
+Committed claims.md rows: C32 documented=75 measured=75 true; C33 on disk=75 listed=75
+missing=[] phantom=[] true; C34 documented=27 measured=27 true.
+
+## Item 2 — docs/architecture.md
+Line 8 "75 modules, of which 27" -> C32 reads the 75 (true). Boundary sentence
+"27 of the 75 modules import homeassistant" -> C34 (true). "The other 47 modules" =
+75 - 27 - 1 (one function-level `inputs`) = 47, arithmetic correct; C33 module map =
+75 listed / 0 missing (true). No claims_false.
+
+## Item 3 — tests/deployment_shape.py census (re-derived via entities.py _d308_pairs)
+Merged closures.json derivation: scripts=33 (33 choose 2 = 528), prod_files=93,
+pairs>=0.80=123, comparable=406, at_1.00=18. Every headline figure and every
+per-pair shared count in the prose reproduced exactly (93/123/406/18; arch_score_head/
+deployment_shape=93, golden/env_drift=91, doc_claims/{entities,harness_headers}/
+entities-harness_headers=83, finite_boundary/{structure,typing_ruler}+structure/
+typing_ruler=75, card.mjs/card_drift=58, boost_drift_replay/{plan_view,solar_alignment}+
+plan_view/solar_alignment=57, optimality/validate/edge/backtest six pairs=21).
+full_files_on_disk=93 (closure reaches the whole tracked package).
+
+Four-tree control re-derived (see fourtree.txt):
+  base b2b6acd64   91 files / 120 pairs / 18 at 1.00
+  head debe97613   92 files / 120 pairs / 18 at 1.00
+  main d8a4bd36f   92 files / 120 pairs / 18 at 1.00
+  merged 9b39bb7c6 93 files / 123 pairs / 18 at 1.00
+The merged 123 is HIGHER than a union of the two 120s, and 93 = 92+1, so the figures
+were measured, not unioned. NOTE: the dispatch shorthand's third column (20/21) does
+not match my re-derivation, which gives at_1.00 = 18 at all four trees; the head prose
+says "Eighteen", which matches the measurement. The brief's authoritative item-3 targets
+(93/123/406/18) all reproduce.
+
+## Item 4 — tests/features.py union (static part)
+Top-level names: branch added 52 (all _dr*/_DR*/_Dr*), main added 25 (all _fm*/_fb*/
+_Fm*/_Fb*/_FB_KEYS). COLLISION = NONE (prefixes disjoint, no shared name or import
+alias). merged superset of both = YES, merged-only extras = NONE.
+Check counts: base 3488, branch +41, main +19, merged +60 = 41+19 exactly -> both
+sides' checks present, none dropped, none double-counted.
+fast (3.14) whole-file run is CI's authority (see checks file; fixer discloses the
+macOS Accelerate arm R9-F2.1 P3 = "1 of 3930", which also fails at main).
+
+## Item 5 — nothing reverted by the merge
+Evil-merge set (differ from BOTH parents) = the 9 both-touched files.
+closure.py selftest: ALL 57 closure shrink pins PASSED.
+closures.json committed blob 8756c5b7 == git merge-tree(debe97613,d8a4bd36f) driver
+output 8756c5b7; stderr marker `LEDGER-MERGE: resolved tests/closures.json`.
+Merge-tree conflict set = exactly claims.py, deployment_shape.py, features.py (three);
+coordinator.py, thermal_model.py, architecture.md auto-merged clean.
+Branch-added-line survival (base->head additions checked against merged):
+  coordinator.py 38 added / 0 lost; thermal_model.py 8/0; closures.json 28/0;
+  features.py 369/0.
+  claims.{py,json,md}, architecture.md, deployment_shape.py: the only lost branch lines
+  are the OLD wrong census numbers (74->75, 92->93, 82->83, "46"->"47 other modules"),
+  each replaced by the re-derived value confirmed true above; every descriptive
+  contribution survives — claims.py header retains "(74 until the live power clamp's
+  draw_range.py; 72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py)",
+  deployment_shape retains both the draw_range and flow_meter attributions,
+  architecture module-map line "draw_range.py  # The metered running draw..." present.
+49 head-only files: merged == branch head (0 reverts). 51 main-only files: merged == main
+(0 drops). Merge is a correct union.
+
+## Item 6 — validators + structure
+structure.py: STRUCTURE RATCHET PASSED, every metric <= budget; max_class_loc 8818<=8818,
+seam_cut_total 762<=762, coordinator_attrs 153<=153 (at cap, zero headroom, none raised).
+Budget files tests/structure_budgets.json and tests/mutation_budgets.json byte-identical
+to main (git diff --quiet).
+mutation_table source-only validators (load_budgets + inventory):
+  triage_problems CLEAN, ledger_form_problems CLEAN, layout_problems CLEAN,
+  cap_problems CLEAN, completeness_problems CLEAN. n_sites=5943.
+
+## Item 7 — unpinned
+tools/pr/ci_predict.py --base d8a4bd36f: "no closures or fast red predicted against
+d8a4bd36f" -> no ADDED UNPINNED line.
+unpinned_sites: total 4620 of 5943 (matches claim); on draw_range.py = 0.
+
+## Item 8 — files / claims identity
+VERSION, RELEASE_NOTES.md, hacs.json, package manifest.json byte-identical to main
+(d8a4bd36f). tests/golden/claimed_drift.txt and card_claimed_drift.txt byte-identical
+to main. All 17 required contexts present at the head (none ABSENT): Analyze x3,
+briefs, browser, budget-raise-gate, closure-scope, closures, env-matrix, fast (3.14),
+hassfest, mutation, policy-docs, pr-contract, typing, validate-hacs, wave-script.
+CI conclusions for the 4 lanes still in_progress recorded separately once settled.
+
+## Friction assessment (merge-main bot could ship a false census pair)
+NOT true of the merge-main bot as landed. The bot (tools/pr/merge_main_bot.py) pushes a
+resolution ONLY when every conflicting path is a `.gitattributes` driver file
+(tests/golden/claimed_drift.txt, card_claimed_drift.txt, mutation_budgets.json,
+structure_budgets.json, closures.json, bugclasses.json) that its driver resolves.
+Census figures live in claims.py / architecture.md / deployment_shape.py — none is
+driver-routed, so any conflict on them is `skip-other-conflict` and the bot refuses to
+push. A clean false-agreement merge (both sides identically wrong, e.g. architecture.md's
+naive merge-tree result = 74) is NOT a conflict, so the bot never fires on it; that hazard
+is plain git three-way merge, present with or without the bot, and the bot neither can nor
+does union two census numbers. The census IS caught downstream: claims.py's arch counts are
+an assertion harness_headers.py executes every PR (REGISTER_DIRS includes D6), and
+entities.py pins deployment_shape.py's three headline numbers to the closures derivation —
+so a wrong census number in those goes red in CI. The one genuinely uninstrumented figure
+is deployment_shape.py's at_1.00 COUNT and per-pair shared-file counts (entities checks only
+the 3 headline numbers), which would ship silently if wrong — but that is an instrument-scope
+gap in the census lane (D6/deployment_shape note), not a property of R9-CI-2b / the bot.

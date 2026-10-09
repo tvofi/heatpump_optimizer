@@ -1,44 +1,120 @@
-Fix review: merge 90b9e87f7dece277cfbf46cbc64b2b3f816d841c
+Fix review: merge 9b39bb7c68ff6a0cf5914c27c7cb93293400a9f3
 
-bus-nonce: 7653560e1f167dc7766d60757a9c25c5
-seat: review-2065, round 4
-measured at: `90b9e87f7dece277cfbf46cbc64b2b3f816d841c` — my detached worktree `/Users/timmalmstrom/hpo-seats/review-2065/wt4`, and `gh pr view 2065 --json headRefOid` names the same sha both when I opened the review and when I posted (step 12). The PR body's `## Head` names it too (step 7). `mergeable: MERGEABLE`; `mergeStateStatus: BLOCKED` is draft-plus-review, not a conflict.
-Evidence: /Users/timmalmstrom/hpo-seats/review-2065/evidence4/ (head.txt, pr.json, pr_final.json, checks_head4.txt, checkruns_head4_final.json, checkruns_6f420a.json, branch_failed_runs.json, jobs_head4.json, mutation_job4.log, mergetree4.txt, ledger4.txt, rdrive4.txt, spotkills4.txt, spotkills_99_140.txt, spotkill_262_block.txt, struct_mut262.txt, block_base_head.txt, block_base_3c9fe.txt, harness_head4.txt, features_head4.log, scope_select4.txt, class_open4.txt, marms4.txt, ci_wait4.log)
-Instruments I wrote for this round (disclosed, step 9 — I did not run the fixer's `drblock.py`/`drmut.py`/`mutproof.py`/`wholefile.py`): `block_r4.py` slices the 7a block out of the committed `tests/features.py` and execs it under the lane's own label; `drmut_r4.py` drives one site in a COPY of the package; `rdrive4.py` drives every site with the inventory's own `new` text; `ledger4.py` is the source-only ledger trio; `class_open4.py` is my own enumeration of sites on diff-side lines. The tree was clean after every arm (`git status --porcelain` empty); the one in-place mutation (the `tests/structure.py` arm and the two ledger plants) was restored by `git checkout` and verified.
+bus-nonce: 5acf1e2dce6f553b0765e1f333f03868
+seat: review-2065-r5, round 5 (resolution delta only)
+measured at: `9b39bb7c68ff6a0cf5914c27c7cb93293400a9f3` — my detached worktree
+`/Users/timmalmstrom/hpo-seats/review-2065-r5/wt5`. The PR carried `debe97613` when
+I opened; I waited for the fixer's push, and `gh pr view 2065 --json headRefOid` names
+`9b39bb7c6` both before I measured and now as I post (step 12). `mergeStateStatus:
+CLEAN`, `merge-tree origin/main HEAD` exits 0 (only `LEDGER-MERGE: resolved
+tests/closures.json`, no conflict path). Body `## Head` names `9b39bb7c6` (step 7).
+Contract current: `git diff $(git merge-base origin/main HEAD)...origin/main --
+dev/governance/roles/` empty (read before this review). CI settled at this head, all
+17 required contexts green.
+Evidence: /Users/timmalmstrom/hpo-seats/review-2065-r5/evidence/ (head.txt,
+claims_head.txt, rederive_merged.txt, fourtree.txt, mergetree_markers.txt,
+both_touched.txt, rederive_summary.txt)
+Instruments I re-ran (step 2/8, all the finder's/committed ones — I wrote no production
+harness): claims.py (D6), entities.py's `_d308_pairs` over the merged closures.json,
+closure.py selftest, structure.py, the four mutation_table source-only validators,
+ci_predict.py, unpinned_sites, and `git merge-tree`.
 
-## Round 3's blockers, at this head
+This is the round-4 `merge` carrying (decision 0013 / step 12) over the resolution merge
+of main `d8a4bd36f` (#2024 flow_meter, #2059). I judged ONLY the delta: three content
+conflicts resolved and a false agreement caught. I did not re-review the branch's own code.
 
-- **DIRTY — cleared.** `git merge-tree --write-tree origin/main <head>` exits 0 against current main `b2b6acd64`, names no conflicting path and prints no driver marker. The `tests/closures.json` resolution is complete in both directions: 0 paths main has are missing at the head, the branch's 28 added paths are all present, `closures.tests/entities.py` = **231** entries and `inert_reads.tests/harness_headers.py` = **536** exactly as `## Head` quotes, `closure.layout_errors` = `[]`, `closure.py selftest` = `ALL 57 closure shrink pins PASSED`.
-- **5 ABSENT required contexts — cleared.** All seventeen ruleset contexts exist at this head and all seventeen are `success`: `fast (3.14)`, `browser`, `briefs`, `closure-scope`, `closures`, `typing`, `hassfest`, `validate-hacs`, `policy-docs`, `wave-script`, `pr-contract`, `env-matrix`, the three `Analyze` arms, `mutation`, `budget-raise-gate`.
-- **15 undispositioned sites — closed, and I closed it rather than reading the body.** See the re-drive below.
+## Re-derived vs claimed — every figure reproduced
 
-## RESULT — the kill claims (dispatch 1, 2)
+RESULT arch_modules_on_disk=75     claimed 75  MERGED TREE TRUE (75 .py on disk)
+RESULT arch_map_listed=75          claimed 75  TRUE (C33 missing=0 phantom=0)
+RESULT arch_map_missing=0          claimed 0   TRUE
+RESULT ha_module_level_importers=27 claimed 27  TRUE (C34 documented=27 measured=27)
+RESULT config_defaults_compared=89 claimed 89  TRUE
+RESULT config_ranges_compared=91   claimed 91  TRUE
+RESULT claims_extracted/true/false/stale/unverifiable = 125/123/0/0/2  claimed same  TRUE
+  - the committed claims.json/claims.md byte-equal this run (git status clean after the
+    run); the claims.py docstring header RESULT assertion lines match the run exactly, so
+    harness_headers.py's executing assertion will pass. NOT stale against its instrument.
+  - C32 reads `(\d+) modules, of which` = 75; architecture.md's "other 47 modules" =
+    75-27-1 = 47, arithmetic correct; draw_range/flow_meter/entry_config all present on
+    disk and in the module map.
 
-- RESULT I re-drove **every** site the diff adds, with each site's own `new` text from the inventory, in a copy of the package, against the block sliced from the committed `tests/features.py`: **`DR MUT (reviewer): 16 killed of 16 site(s) driven; baseline failing_count=0`**, rc=1 and failing above baseline on each, tree clean after. Sixteen because `:116` carries two CMP_BOUND sites and `:175` two sites (BOOLOP + GUARD_OFF) under fourteen lines — the body's fifteen plus the `:175` BOOLOP pinned in an earlier round. My FAIL names and counts match each row's claim on every site, including the two shapes a block-only measurement could overstate: `:99 GUARD_OFF` dies with **no FAIL line at all** (rc=1, counted by the traceback term, as its row says) and `:116` dies identically from **either** bound flipped to `>=` (the one row covers both sites, and `unpinned_sites` agrees both are pinned).
-- RESULT the dispatch's two named spot-kills: `:54 CONST` (`LOW_PERCENTILE = 10.0 → 20.0`) → `1 of 51 FAILED`, FAIL `the floor is the TENTH percentile: …`; `:116 CMP_BOUND*2` → `1 of 51` from each bound, FAIL `a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees with the plan: the factor boundary is not a disagreement`. Both reproduce the row text verbatim.
-- RESULT ledger at the head, source-only: inventory **5933**, unpinned **4622**, `draw_range.py` unpinned **0**, completeness problems **0**, ledger form **0**, layout **0**, `killed_by` rows **1209**, `survivor_triage` rows **83** — and main's own `survivor_triage` is **83**, so the branch adds **zero** triage rows, as claimed. Every row's `old` text matches the tree line (`old_in_tree=True` on all fifteen), no row names a site the inventory does not generate, no orphan rows.
-- RESULT step 11, the lane's own conclusion at this head (CI, never re-run by me): `mutation` job 113813929493 ran 12:14:32Z→13:08:12Z and its log ends `PIN RE-VERIFICATION: 6 reproduced, 0 not reproduced, 0 not re-verified`, `0 survivor(s) of 7 evaluated = 0.0%, cap 20.0%`, `MUTATION TABLE PASSED`, over `4621 unpinned site(s) of 5933 candidate sites, 4623 at the ratchet base b2b6acd64…`. A green tick with a driven baseline, not an empty drive. The one-site difference from my 4622 is accounted: the `pull_request` lane runs on the PR merge ref, which also carries main's `b2b6acd64` accuracy.py pin.
-- RESULT the two collided anchors (`:175`, `:262`) carry **exactly one row each** on disk and in the budget map, and the head's bytes are equal to `a456c5ed4`'s (the lane's) and differ from `279212233`'s (the seat's) — resolved in the lane's favour, as `## Head` says. `:262`'s killer is `tests/structure.py`; I tested that weakest kind both ways in my own tree: with line 262 `if cap.plan_writes_power():` → `if False:`, `tests/structure.py` fails `dead_methods 1 > 0 (+1)` at rc=1, and there **is** a behavioural arm — the block gives `1 of 51` FAIL `S4 where the plan writes the frequency: None, the draw is its own echo`. Restored, clean.
+RESULT deployment_shape prod_files=93  claimed 93  MERGED closures.json + on-disk both 93
+RESULT deployment_shape pairs>=0.80=123 claimed 123  TRUE (528 total = 33 choose 2)
+RESULT deployment_shape comparable=406  claimed 406  TRUE
+RESULT deployment_shape at_1.00=18     claimed "Eighteen"  TRUE
+  - every per-pair shared count in the prose reproduced: arch_score_head/deployment_shape
+    93, golden/env_drift 91, {doc_claims,entities,harness_headers} pairwise 83,
+    {finite_boundary,structure,typing_ruler} pairwise 75, card.mjs/card_drift 58,
+    {boost_drift_replay,plan_view,solar_alignment} pairwise 57,
+    optimality/validate/edge/backtest six pairs 21.
+  - four-tree control re-derived: base 91/120/18, branch-head 92/120/18, main 92/120/18,
+    merged 93/123/18. The merged 123 exceeds a union of the two 120s, and 93 = 92+1, so
+    these were MEASURED, not unioned. (NOTE for routing: the dispatch shorthand's third
+    column "20/21" is not the at-1.00 figure — measurement gives 18 at all four trees,
+    which is what the head prose states; the authoritative targets 93/123/406/18 all match.)
 
-## RESULT — the round-4 discipline (dispatch 3, 4, 5, 6)
+## features.py union (item 4)
+Top-level names: branch adds 52 (`_dr*/_DR*/_Dr*`), main adds 25 (`_fm*/_fb*/_Fm*/_Fb*/
+_FB_KEYS`); COLLISION = NONE (prefixes disjoint, no shared name or import alias); merged
+superset of the union = YES, merged-only extras = NONE. Check-count delta: branch +41,
+main +19, merged +60 = 41+19 exactly — both sides' checks present, none dropped, none
+double-counted. Whole-file run is CI's: `fast (3.14)` **success** at this head; I did not
+reproduce the macOS Accelerate arm (R9-F2.1 P3, the disclosed `1 of 3930` that also fails
+at main) — CI's canonical Linux run is the authority (heavy lanes are CI's).
 
-- RESULT `tests/features.py`: `acba8517d` adds **12** `R.check(` registrations and removes **0**; the block executes **39** at `3c9fe53fa` (my run, round 3's tree) and **51** at this head — the same +12. My own whole-file run at this head prints **`1 of 3911 FEATURE CHECKS FAILED`**, the one failure `R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]` — the body's figure and the same pre-existing Accelerate arm, byte-for-byte. CI's authority at this head: `fast (3.14)` **success**, which runs the scoped set (my `closure.py select` reproduces `MODE: SCOPED -- 28 script(s) run`, 28 names in `scope.run`, 5 scoped out — including `golden`, `optimality`, `stress`, and **excluding** `tests/layout.py`, which is exactly what `## Red checks` says).
-- RESULT step 11 at this head: no required context red; `nightly-status` **success** and `delivery-status` **success** here. I read the branch's whole red history rather than the body's account: `actions/runs?branch=…&status=failure` returns **10** failed runs over the range — Tests at `a456c5ed4`, `6f420a1f7`, `3c9fe53fa`, `1e957282e`, `e408b9a28`, `becd4e383` (×2), `325960ef6`, and the two `PR contract` runs at `325960ef6` and `7c5f64718`. Every Tests red is the `mutation` ratchet refusal or one of the two `fast` reds the body names and answers (layout at `325960ef`, entities/ledger at `e408b9a28`), plus the heartbeat lane at `becd4e383` which the body names and answers as not this PR's; the two `PR contract` failures are the body-contract refusals this review raised in rounds 1 and 2 and are now answered. I confirmed the body's account of `6f420a1f7` from the API directly: all seventeen present, `mutation` the only required red, `nightly-ha` skipped, `nightly-status` failure. No unanswered required red in the range.
-- RESULT step 6, the class: the body's rule `tools/pr/ci_predict.py --base c518447eb804` prints **no `ADDED UNPINNED`** at this head. My own wider enumeration (every production file the PR touches, all sites on new-side hunk lines) found 45 sites and exactly **1** without a disposition: `diagnostics.py:121 RETURN_DEL 'return snap'`. That anchor is unpinned on `origin/main` **and** at the merge base — identical text sits at main's `diagnostics.py:123` — so it is pre-ratchet stock whose line **shifted**, not a site this diff adds; and CI's own run at this head drove it and printed `ok … diagnostics.py:121 RETURN_DEL -- killed by tests/entities.py`. No seam is open and undispositioned, so no `harness: class-open`.
-- RESULT ratchet and version hygiene: `git diff --name-only origin/main...HEAD` contains **no** `*_budgets.json`, no claim file and no policy file; `tests/structure_budgets.json` and `tests/mutation_budgets.json` are byte-identical to main's; both claim files byte-identical to `origin/main`'s; `VERSION`, `hacs.json`, `RELEASE_NOTES.md` and `manifest.json` untouched by the branch's three-dot diff; `budget-raise-gate` success. `structure.py` = `STRUCTURE RATCHET PASSED` (41 rules), `layout.py` = `GUARD: 0 refusal(s) against c518447eb804`, `archscore --diff origin/main` = `Architecture score: dS +0.0000 NULL`.
-- RESULT step 3, the null control re-run at this head with the lane's committed harness (`dev/audit/harnesses/draw_range_evidence.py 20`): `over` engaged 20/20, effective `(1.268, 1.739)` switch+setpoint, `(1.0, 1.739)` duty-cycling, `None` on a frequency write; `null` 0/20 and `None` on every surface; `mild` 0/20 with running P90 `1.943`; `mild-indep` 20/20. Every figure in `## Null control` reproduces. Two `## Mutation proof` arms re-run in a copy: M2 (`thermal_model.py:1261` → `return False`) = `2 of 51` with exactly the two checks the body names; M5 (`accuracy.py:474` draw restore dropped) = `1 of 51` with the persistence check.
-- RESULT the delta is what my dispatch said: `git diff --name-only 6f420a1f7 279212233` = `tests/features.py` plus 14 `killed_by` rows under `draw_range.py` only — no production line, test-list, budget, claim or policy file moved by the branch's round-4 commits; the rest of the delta is main's own merge and the bot's two rows.
-- RESULT step 14, planted unasked on the two instruments this delta moves. (a) **Delete** one seat row → `ci_predict` immediately prints `PREDICT mutation ADDED UNPINNED … draw_range.py:54 CONST: LOW_PERCENTILE = 10.0`; the clean body cannot be had without the rows, so the movement is earned. (b) **Hand-edit** a row's JSON → `tests/mutation_table.py` refuses `not in canonical form -- run --normalize` (`layout_problems` 1), so rows must come through the lane's writer, which `## Figures` says they did. (c) But changing only a row's `killed_by` **value** to a script that does not drive the file trips nothing in memory (`completeness 0, form 0`) — the ledger cannot cross-check a kill claim, which is precisely why the rows are worth only what a reviewer's drive says they are. That drive is mine above: 16/16, plus CI's 6 pin re-verifications and 0 survivors of 7 at this head.
+## Nothing reverted by the merge (item 5)
+Evil-merge set = exactly the 9 both-touched files. `closure.py selftest` -> ALL 57 closure
+shrink pins PASSED. Committed closures.json blob 8756c5b7 == `git merge-tree(debe97613,
+d8a4bd36f)` driver output 8756c5b7 (stderr `LEDGER-MERGE: resolved`); it came from main's
+driver, not a hand union. merge-tree conflict set = claims.py, deployment_shape.py,
+features.py (three); coordinator.py/thermal_model.py/architecture.md auto-merged clean.
+Branch-added-line survival (base->head vs merged): coordinator.py 38/0 lost,
+thermal_model.py 8/0, closures.json 28/0, features.py 369/0. The census files' only lost
+branch lines are the OLD wrong numbers (74->75, 92->93, 82->83, 46->47), each replaced by
+the re-derived value confirmed true above; every descriptive contribution survives
+(draw_range attribution in claims.py/deployment_shape, the module-map entry in
+architecture.md). 49 head-only files match the branch head (0 reverts); 51 main-only files
+match main (0 drops). Correct union.
 
-## Findings this round turns up (not this PR's to carry)
+## Budget / structure / ledger (item 6)
+structure.py -> STRUCTURE RATCHET PASSED; max_class_loc 8818<=8818, seam_cut_total
+762<=762, coordinator_attrs 153<=153 (at cap, zero headroom, none raised). Both budget
+files byte-identical to main. Source-only validators (load_budgets + inventory, 5943 sites):
+triage_problems / ledger_form_problems / layout_problems / cap_problems /
+completeness_problems ALL CLEAN.
 
-- **The shard-precedence finding is real, and I verified it in the code.** `tests/mutation_table.py:1039` heads `_SHARD_PRECEDENCE` with `measured` (rank 0) and `merge_pin_shards` folds with `status = min(statuses, key=rank)` (line 1081), so one shard reporting `measured` makes the merged status `measured` however many report `skip-measure-failed`. At `6f420a1f7` the check-runs API shows `mutation-pins (1)`, `(2)`, `(3)` and `mutation-autofix` all **success** while, on the body's log quotations, two of the three shards measured nothing — a green `changed` carrying 2 of 15 dispositions. I report **2 refused of 3 shards**, not "eight refusals": the eight is not what this head's run shows, and I could not re-derive it (step 8). The body keys the finding to rule_id `ci-autofix.md`, which exists; `## Friction`'s contract in `.github/PULL_REQUEST_TEMPLATE.md` is `<rule_id>: <class>: <evidence>` — a report channel to the rule's owner, not a policy edit, and policy edits need the owner's approval before merging. So it is correctly **not** this PR's to carry, and I do not block on step 10. It dies unless the orchestrator lands it in `dev/governance/rules/ci-autofix.md` (or the pin lane's contract): the rule currently tells a seat to wait for a bot commit whose tick cannot say how much of the work arrived.
-- My round-3 instrument finding (a `ci: pin killed mutants` push costs a fresh review round because `tests/mutation_ledger/**` is outside the carry driver set) **recurred exactly as predicted**: this round exists because of a bot commit plus a main merge. Still for the pin lane's contract, not this PR.
+## Unpinned (item 7)
+`ci_predict.py --base d8a4bd36f` -> "no closures or fast red predicted" (no ADDED
+UNPINNED line). `unpinned_sites`: 4620 of 5943 (matches the pin-lane inventory claim);
+**0 unpinned on draw_range.py** — every draw_range site is disposed in the ledger.
 
-## Not re-derived by me (step 8)
+## Files / claims identity (item 8)
+VERSION, RELEASE_NOTES.md, hacs.json, package manifest.json, and BOTH claim files byte-
+identical to main. `mergeStateStatus: CLEAN`. All 17 required contexts present (none
+ABSENT) and green at the head; nightly-ha/nightly-status skipped/success; all autofix jobs
+skipped (nothing owed to the bot). No check went red in the range 90b9e87f7..9b39bb7c6, so
+there is no unanswered `## Red checks` for this delta (step 11 trigger not fired).
 
-The three `mutation-pins` job logs themselves (I used the check-run conclusions, the lane's rows in the tree, and the fold's source); the 13 `## Mutation proof` arms beyond M2 and M5 (R1-R3 and `AGREE_TOLERANCE` were mine at rounds 1-3, and the 51-check baseline reproduces at this head); the lane's whole-file `failed=2` counts on the two `:175` rows (my slice gives 1, the same kill at narrower scope); `dispatch claim 6`'s `flow_meter.py`, which I could not confirm because it is not a premise the tree answers — no `flow_meter.py` exists at `origin/main` or at this head (it lives only on `handoff/r9-ux-10`, `bb410745a`/`f58108526`, neither in main), and the merge's main side added **no** paths to either closures list, so there was no `flow_meter` entry on either side to preserve; requiring one would plant a phantom path, which `closure.py check` refuses (#1310). What I could measure is the thing that matters: the merge lost no path from either side.
-
-## What is left to the orchestrator
-
-The PR is still a **draft** with `mergeStateStatus: BLOCKED`; marking it ready, merging and stamping are not mine, and I posted nothing but this verdict. Per step 12 a `merge` verdict carries to a head passing `orchestrator.md` §11's carry predicate — and given the finding above, a further `ci:` pin push would return as its resolution delta, not as round 5.
+## Friction — assessed plainly (for routing, not a block)
+The `## Friction` claim that "the merge-main bot could union two identically-wrong census
+numbers and ship a false pair silently" is NOT true of the bot as landed.
+`tools/pr/merge_main_bot.py` pushes a resolution ONLY when every conflicting path is a
+`.gitattributes` driver file (claimed_drift.txt, card_claimed_drift.txt,
+mutation_budgets.json, structure_budgets.json, closures.json, bugclasses.json) that its
+driver resolves. Census figures live in claims.py / architecture.md / deployment_shape.py —
+none is driver-routed — so any conflict on them is `skip-other-conflict` and the bot
+refuses to push. A clean false-agreement merge (both sides identically wrong, e.g.
+architecture.md's naive merge-tree line 8 = "74") is NOT a conflict, so the bot never fires
+on it; that hazard is plain git three-way merge, present with or without the bot. The bot
+neither can nor does union two census numbers.
+The hazard the fixer is really pointing at is broader and pre-existing: a clean merge of two
+identical-but-wrong figures ships silently, and it is caught only where an instrument reads
+the prose. claims.py's arch counts are such an assertion (harness_headers.py executes the
+header every PR, REGISTER_DIRS includes D6), and entities.py pins deployment_shape.py's
+THREE headline numbers to the closures derivation — so a wrong number in those goes red in
+CI. The genuinely uninstrumented figures are deployment_shape.py's at-1.00 COUNT and each
+per-pair shared-file count (entities checks only the three headline numbers): a wrong one
+would ship with no test. That is an instrument-scope gap in the D6 / deployment_shape note,
+NOT a property of R9-CI-2b / the merge-main bot. Do not file it against the bot; if filed,
+it belongs to the census-lane brief.

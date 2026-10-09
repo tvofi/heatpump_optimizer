@@ -1,0 +1,5 @@
+cl_b2b6acd64cde.json: scripts=33 prod_files=91 pairs>=0.80=120 total=528 at_1.00=18
+cl_90b9e87f7.json: scripts=33 prod_files=92 pairs>=0.80=120 total=528 at_1.00=18
+cl_debe97613.json: scripts=33 prod_files=92 pairs>=0.80=120 total=528 at_1.00=18
+cl_d8a4bd36f6384.json: scripts=33 prod_files=92 pairs>=0.80=120 total=528 at_1.00=18
+cl_9b39bb7c6.json: scripts=33 prod_files=93 pairs>=0.80=123 total=528 at_1.00=18
