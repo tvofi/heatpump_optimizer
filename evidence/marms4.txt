@@ -1,0 +1,14 @@
+plan_writes_power at thermal_model.py line [1253]
+--- thermal_model.py:1254 '"""The plan sets the compressor\'s draw itself: a frequency write.' -> 'return False'
+    rc=1 failed=1
+     (no FAIL line; traceback counted)
+accuracy draw-restore lines: []
+--- thermal_model.py:1261
+    was 'return "frequency" in self.writes' -> 'return False'
+    rc=1 failed=2
+     FAIL plan_writes_power is exactly a frequency write (S1)
+     FAIL S4 where the plan writes the frequency: None, the draw is its own echo
+--- accuracy.py:474
+    was 'tracker.draw = DrawRange.from_dict(data.get("draw"))' -> 'pass  # reviewer plant: drop the draw restore'
+    rc=1 failed=1
+     FAIL the samples, the latch and its configuration persist through the accuracy store

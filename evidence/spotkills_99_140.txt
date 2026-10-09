@@ -1,0 +1,10 @@
+### :99 GUARD_OFF (claimed: no FAIL line, counted by the traceback term)
+MUTATE :99 -> 'if False:'
+         (was 'if seen is None:')
+MUTANT:  rc=1 failed=1 total=None
+
+### :140 GUARD_OFF (claimed: FAIL the tolerance-returns-None check)
+MUTATE :140 -> 'if False:'
+         (was 'if metered is None or metered == (cfg_min, cfg_max):')
+MUTANT:  rc=1 failed=1 total=51
+   FAIL an engaged latch whose metered ends EACH stand within the tolerance returns None: the configured range stands, it is not echoed back as a cl

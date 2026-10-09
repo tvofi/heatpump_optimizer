@@ -1,4 +1,0 @@
-measured-and-posted: 3c9fe53fafcd3e9336ecc3574fedc713f3c3d530 (live head, round 3 completion)
-reviewed as the delta from 1e957282edf0ffd46cd07d0cb1adf2468571ac6a (the head the round-3 draft measured)
-origin/main at review: 83f7ca55879097258b971d483345459f18629491 (git ls-remote agrees)
-merge-base(origin/main, head): 4dbe5aace7440d0a7d43a249892fc63da890338c

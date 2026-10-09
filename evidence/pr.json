@@ -1,0 +1,1 @@
+{"author":{"is_bot":true,"login":"app/hpo-author"},"baseRefName":"main","headRefName":"fix/live-power-clamp-foundation-pr","headRefOid":"90b9e87f7dece277cfbf46cbc64b2b3f816d841c","isDraft":true,"mergeStateStatus":"BLOCKED","mergeable":"MERGEABLE","number":2065,"state":"OPEN","title":"fix(live-power-clamp 7a): the metered running draw, its evidence latch and effective range"}

@@ -1,0 +1,6 @@
+      SKIP  tests/open_meteo.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
