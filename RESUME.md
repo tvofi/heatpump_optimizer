@@ -52,6 +52,28 @@ the body. The PR branch `fix/cop-duty-floor` was **not** pushed -- the orchestra
   branch carries, and its ledger already disposes two of the 13 (`draw_range.py:113 CLAMP_DROP`,
   `thermal_model.py:1280 RETURN_DEL`) -- an orchestrator lever, not this seat's call.
 
+## Round 7 (the orchestrator's two refusals, both fixed)
+The first handoff body failed `prepr` at `b511f9dc5` on two arms. Neither needed a code change.
+1. **`ancestry reds` REFUSED** (`briefs fast (3.14) mutation nightly-ha (stable) nightly-status`
+   unanswered). The re-cut had dropped `briefs` and `fast (3.14)` because their causes are closed --
+   but the arm enumerates every red on every commit of `git rev-list <merge-base>..origin/<head-ref>`
+   (39 commits here), so a closed round-4 red still has to be named. Enumerate it yourself with
+   `ev/r6/ancestry_reds.sh` (one `gh api --paginate .../commits/<sha>/check-runs` per commit, the
+   same jq as prepr's `REDS_JQ`): 37 red rows, 5 names -- mutation 14, nightly-status 12,
+   fast (3.14) 7 (3 of them on #2065's commits, which this range carries through the stack),
+   briefs 2, nightly-ha (stable) 2. Answer each by name in `## Red checks`; for a red on a
+   `#2065` commit, attribute it to that PR and say what you measured here, do not guess its cause.
+   NOTE: the step is SKIPPED unless the local branch has a remote head ref -- create one
+   (`git branch handoff/<topic> <sha>` + `branch.handoff/<topic>.remote origin`) before you trust
+   a local rc=0.
+2. **`unpinned sites` WARN counted 11, not 12/13.** Not drift: this head's `predict_line` sed has a
+   `(\*[0-9]+)?` group and captures `draw_range.py:125 CMP_BOUND*2`; the pre-merge copy has no such
+   group and silently drops that line from the SAME `ci_predict` output. Three instruments, three
+   counts, one tree: lane `added_unpinned` 13 sites, `ci_predict` summary 12, step-6d file 12 (new
+   sed) or 11 (old sed). The body names the pair in BOTH printed forms so step 7d is disposed under
+   either, and states the three counts with their commands. Logged as `prepr-6d: contradiction` in
+   `## Friction`.
+
 ## Next
 1. The orchestrator pushes the head as the App -> that creates the `pull_request` run the pin
    lane needs (`event_name == 'pull_request'` gates all three jobs; a bot `GITHUB_TOKEN` head
