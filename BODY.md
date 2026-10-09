@@ -26,6 +26,7 @@ What changed:
    - It passes when delta-S >= 0 and no gate metric rises from the merge base to the head. A rise passes only when the body's `## Architecture score` section has a line naming the metric with a reason. This is "explained in the body like a budget raise", with the reason judged by the fix reviewer. Owner approval of a score rise is not required: neither the brief nor R3-6 asks for it, and that is an open question below.
    - The template states the rule within its policy cap. `pr-contract-rerun.yml` watches the new workflow, and `tests/entities.py` admits it to the files that list `edited`.
    - The scorer reads each commit's `custom_components/` from the tree objects (`ls-tree` and `cat-file`), not `git archive`: archive honours a head's `export-ignore`, which hid code from the gate (round 2, plant 2). On the real tree the two extractions are identical (`diff -r` empty).
+   - A symlink or gitlink under `custom_components/` is refused by name (`FAIL: refused, <path> is a symlink ...`), not resolved or skipped: Python imports through a `.py` symlink to a `.txt` blob, which the scorer would not read as a module (round 3, plant 5). `tests/arch_score.py` plants one and reads the refusal, and drives `gate.main` with the measurement stubbed to raise it (named `FAIL`, rc 1; with the `except` replaced the run dies on the uncaught `UnsupportedEntry`); `main` and its history hold none.
    - The weights stay at their frozen hash.
 
 ## After merge
@@ -37,7 +38,7 @@ The ruleset context `arch-score` is tvofi's to add to `main-protect-checks` (rul
 This changes policy and the enforcement surface, so it merges only on tvofi's approving review at the head, which CODEOWNERS requires. It touches:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
-- `tests/arch_score.py`, which gains the two plants below;
+- `tests/arch_score.py`, which gains the three plants below;
 - `tests/layout.json` (owned), which gains `tools/audit/archscore/**` in the `tools` category;
 - `.github/workflows/arch-score.yml`, which is new;
 - `.github/workflows/pr-contract-rerun.yml`;
@@ -56,13 +57,17 @@ Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by t
 
 ## Head
 
-`95d6e6ab616109b6139a35d8757e6b09ff84be23` merges the authored code head `3f0f1abb542d14fa9017c528d00bc5b8a81ba060` and then merges origin/main `47b083b03` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`5fcc51f140e259c9699725af40ead521b6ee830f` merges the authored code head `8fd37f2db6e0a941f22eb1917d393c364e5b35b5` and then merges origin/main `47b083b03` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`f14e77c95e6a3e030ac2ee709cf3d87ff3899188` merges the authored code head `3f0f1abb542d14fa9017c528d00bc5b8a81ba060` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`df53152ebedf546af75d80a74737ce88eae9b243` merges the authored code head `8fd37f2db6e0a941f22eb1917d393c364e5b35b5` and then merges origin/main `47b083b03` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-`0e646922505fd7c271954dddbd828c716eab36ef` merges the authored code head `3f0f1abb542d14fa9017c528d00bc5b8a81ba060` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+`95d6e6ab616109b6139a35d8757e6b09ff84be23` merges the authored code head `8fd37f2db6e0a941f22eb1917d393c364e5b35b5` and then merges origin/main `47b083b03` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
-The code head is `handoff/r9-eg-a4` at `3f0f1abb542d14fa9017c528d00bc5b8a81ba060`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. Round 1 of #2068 then blocked e9a7b9b4; `004807db` is its fix (base-copy gate, CODEOWNERS entry dropped, the plant). Round 2 then blocked a3734e79; `3f0f1abb` is that fix (it also merges origin/main 47b083b0 and adds `tests/throwaway_git.py` to `tests/arch_score.py`'s closure, which the predictor refused as UNDER-SCOPED). The figures were taken at this head on 2026-10-09.
+`f14e77c95e6a3e030ac2ee709cf3d87ff3899188` merges the authored code head `8fd37f2db6e0a941f22eb1917d393c364e5b35b5` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`0e646922505fd7c271954dddbd828c716eab36ef` merges the authored code head `8fd37f2db6e0a941f22eb1917d393c364e5b35b5` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+The code head is `handoff/r9-eg-a4` at `8fd37f2db6e0a941f22eb1917d393c364e5b35b5`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. Round 1 of #2068 then blocked e9a7b9b4; `004807db` is its fix (base-copy gate, CODEOWNERS entry dropped, the plant). Round 3 then blocked, and `8fd37f2d` adds the link refusal. Round 2 had blocked a3734e79; `3f0f1abb` is that fix (it also merges origin/main 47b083b0 and adds `tests/throwaway_git.py` to `tests/arch_score.py`'s closure, which the predictor refused as UNDER-SCOPED). The figures were taken at this head on 2026-10-09.
 
 ## Mutation proof
 
@@ -128,7 +133,7 @@ Other figures:
   - `tests/entities.py` passed 2227 at the merged head (first run: 1 failure, the twin-route check above; repaired. Not re-run after round 1: CI's `fast (3.14)` is the record);
   - `tests/harness_headers.py` passed 109;
   - `tests/arch_score_head.py` passed 15;
-  - `tests/arch_score.py --stored` passed 62 (58 plus two plants and two controls);
+  - `tests/arch_score.py --stored` passed 64 (58 plus three plants, two controls and the gate-level catch);
   - `gate.py --self-test` passed;
   - `node .claude/workflows/policy_lint.mjs` returned rc 0;
   - `codeowners_gap.py --check` returned `uncovered_files=0`, with gate.py PINNED.
