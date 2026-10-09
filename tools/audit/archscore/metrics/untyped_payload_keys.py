@@ -169,6 +169,10 @@ class Flow:
                         self.merge(keys, sk, set(), where)
                         dyn |= sd
                 return keys, dyn
+            if isinstance(f, ast.Name) and f.id == "cast" and len(e.args) == 2:
+                # Counter C12: a cast asserts a type and checks no key, so the census follows the
+                # value through it and the cast types nothing (red-team attempt 15, #1852 round 1).
+                return self.expr_keys(fn, e.args[1], stack)
             quals = [q for q, _s, _o in self.eng.callees(fn, e, self.env(fn))]
             if isinstance(f, ast.Name):
                 # ``for view in (self._a_view, self._b_view): data.update(view())``

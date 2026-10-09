@@ -81,13 +81,14 @@ name: Tests
 #   integration inside a real Home Assistant instead of tests/hastub, in
 #   the container and at the /config path an installation actually uses.
 #   Asserts that a PLAN CAME OUT, which is what #511 broke and what every
-#   other lane structurally could not see. Never gates a pull request.
+#   other lane structurally could not see. Never gates a pull request; runs,
+#   unrequired, on one whose diff touches what its driver reads (#2056).
 #
 # * nightly-status — every pull request, seconds, stdlib only. Reads the
 #   last CONCLUDED scheduled run of this workflow and goes RED if any of
 #   its jobs failed, if none concluded recently, or if it could not look.
-#   The schedule-only lanes above are `skipped` on every push and pull
-#   request and are not required contexts, so their conclusions land on a
+#   The schedule-only lanes above are `skipped` on every push and nearly
+#   every pull request and are not required contexts, so their conclusions land on a
 #   commit nobody re-reads and the next merge strands them: #533's lane
 #   was red on both arms for two nights and nothing said so. This is the
 #   telling. It is deliberately NOT a required context either.
@@ -1079,6 +1080,26 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
+      # The prior nightly's pool measurement (RCA-1565). The lane bounds each
+      # driver's first run by `driver_timeout`, which scales a solo recording the
+      # 3-worker pool can cost several times over -- measured 0.47x-3.27x across
+      # the 51 driver rows of the three 2026-10-07/08 nightly runs, by the rule
+      # in dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2, so the top of that range
+      # is above the scale's own 3x and a band-stale recording leaves ~1.5x of
+      # headroom. `--pool-seconds` seeds the bound from the cost the lane measured
+      # last run, so it covers the pool cost instead of 3x a number
+      # `SECONDS_BAND` keeps up to 2x stale. The cache needs no write grant and no
+      # secret, so this job keeps both (decision 0011: "the measuring job holds no
+      # secret and no write grant"). A miss (first run, eviction) seeds nothing and
+      # the bound falls back to the solo recording -- today's behaviour, never a
+      # smaller bound.
+      - name: Restore the prior pool measurement
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
+          restore-keys: pool-seconds-
+
       # --budget-minutes (R9-F10.12): the run starts no mutant that would end
       # past 270 of the job's 330 minutes, so the drivers' growth shrinks the
       # night's sample, named as partial, instead of timing the job out. The
@@ -1098,6 +1119,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --max 40 --jobs 3 --budget-minutes 270 \
             --seed "$(date -u +%Y%m%d)" \
+            --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-table-full.txt"
 
       - name: Report the pins the draw did not reproduce
@@ -1158,6 +1180,17 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
+      # The prior nightly's pool measurement (RCA-1565); see mutation-nightly's
+      # restore step. This job is the one that persists the fresh measurement
+      # back (the save step below), because it is the lane with a `--drain`
+      # directory the measurement is written into.
+      - name: Restore the prior pool measurement
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
+          restore-keys: pool-seconds-
+
       # Survivors are listed for a human verdict, never triaged here
       # (ci-autofix.md); the step is green on them, and red only when the
       # run itself refused or crashed, which leaves no status behind.
@@ -1169,6 +1202,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --drain "$out" --max 40 --jobs 3 \
             --seed "$(date -u +%Y%m%d)" --budget-minutes 270 \
+            --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-ledger.txt"
           test -s "$out/status"
           {
@@ -1180,6 +1214,38 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cp "$RUNNER_TEMP/mutation-ledger.txt" "$out/"
+
+      # Persist the pool cost this lane measured, for the next nightly's bound
+      # (RCA-1565). `if: always()`: mutation_table writes pool_seconds.json from
+      # its own `finally`, so the measurement exists even on the night the lane
+      # refused on its bound -- exactly the night the next run needs it. This is
+      # the trap the RCA names: the natural carrier (mutation-ledger-push) is
+      # gated on this job's SUCCESS, so it does not run then; the cache save
+      # rides this job instead, which runs on the schedule whatever the drive
+      # concluded, and needs no write grant and no secret. The file carries the
+      # prior seed merged with this run's measurements, so a refusal night with
+      # no new measurement still forwards the seed it read rather than clobbering
+      # it with an empty one.
+      - name: Save the pool measurement for the next nightly
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pool-seed"
+          cp "$RUNNER_TEMP/mutation-ledger/pool_seconds.json" \
+             "$RUNNER_TEMP/pool-seed/pool_seconds.json" 2>/dev/null \
+            && echo "staged the pool measurement for the cache" \
+            || echo "no pool_seconds.json measured this run; the prior seed stays"
+
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: always()
+        # Fail-soft: a cache key is immutable, so a RE-RUN of this job (same
+        # run_id) would collide on the key. The seed is a bound cover, not a
+        # verdict -- a missed save only means the next nightly restores an older
+        # measurement, never a wrong one -- so a save that cannot happen must not
+        # redden the lane.
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
@@ -1424,11 +1490,22 @@ jobs:
   # succeeded throughout #511, so a lane asserting only "it loaded" would
   # have been green for the whole release.
   #
-  # Nightly and on demand, never on a pull request. It costs minutes, needs
-  # Docker, and is the first lane here that can go red for a reason outside
-  # this repository -- a registry outage, or a Home Assistant release
-  # changing setup behaviour. It blocks nothing, and it is not one of the
-  # required contexts on the main-protect ruleset.
+  # Nightly and on demand, and on a pull request only when its three-dot diff
+  # touches a file the lane's own driver reads outside the package (the
+  # `nightly_ha` output of `closure-scope`). It costs minutes, needs Docker,
+  # and is the first lane here that can go red for a reason outside this
+  # repository -- a registry outage, or a Home Assistant release changing
+  # setup behaviour. It blocks nothing, and it is not one of the required
+  # contexts on the main-protect ruleset.
+  #
+  # Why a pull request at all (#2056's root cause): #2041 added the A16 check,
+  # whose container half no pull-request lane executes, and its reviewer wrote
+  # that it "runs on schedule or dispatch only" and was not run. Both arms went
+  # red at the next schedule on main. A change to the driver is the one change
+  # whose container half nothing else can run, so it runs here before merge.
+  # A change to the package alone does not: catching the product late in real
+  # Home Assistant is what this lane is for, and running it on every product
+  # pull request would put a registry outage on all of them.
   #
   # "It reports loudly" is what this comment used to say next, and it was
   # measured false. What it does is attach its conclusion to whatever commit
@@ -1444,11 +1521,20 @@ jobs:
   # notice, so the cheap checks that keep it runnable belong in the PR gate
   # instead: `tests/entities.py` pins the wiring of the step below.
   nightly-ha:
+    needs: [closure-scope]
     if: >-
+      !cancelled() && (
       github.event_name == 'schedule'
       || github.event_name == 'workflow_dispatch'
+      || (github.event_name == 'pull_request'
+          && needs.closure-scope.outputs.nightly_ha == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    # Unrequired, and on a pull request its verdict is about the pull
+    # request's own driver: it grades nothing (codeowners_gap.py's rule), so
+    # the driver it runs from the pull request's copy needs no pin.
+    env:
+      HPO_JOB_GRADES: nothing
     strategy:
       # Both images report. A floor that breaks while stable does not is the
       # most informative outcome this lane has, and fail-fast would hide it.
@@ -1508,8 +1594,9 @@ jobs:
           python tests/ha_floor.py verify
           --image "homeassistant/home-assistant:${{ matrix.image }}"
 
-  # The telling. `nightly-ha` and `slow` run on `schedule` alone, are `skipped`
-  # on every push and pull request, and are not required contexts -- so a
+  # The telling. `nightly-ha` and `slow` run on `schedule` (and dispatch), are
+  # `skipped` on every push and on a pull request that does not touch the
+  # nightly driver's reads, and are not required contexts -- so a
   # scheduled run's conclusion attaches to whatever commit was main's head when
   # the cron fired, beside that same commit's own `skipped` from the push, and
   # the next merge moves the head and strands it. Nothing notifies. Both
@@ -1765,6 +1852,7 @@ jobs:
     outputs:
       case: ${{ steps.decide.outputs.case }}
       scripts: ${{ steps.decide.outputs.scripts }}
+      nightly_ha: ${{ steps.decide.outputs.nightly_ha }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -1788,6 +1876,24 @@ jobs:
           # exists to keep cheap, and main moved four times today while a single
           # PR was open. fetch-depth: 0 above is what makes ... resolvable.
           git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          # `nightly-ha` on this pull request: what tests/nightly_ha.py reads
+          # outside custom_components/, MEASURED by `closure.py record` over a
+          # real run of the lane (run 37764931838, both images, the same 37
+          # paths), plus the requirements file its job installs.
+          # tests/entities.py re-measures what `_stage` mounts into the
+          # container and refuses a path this list does not cover.
+          if git diff --quiet "$BASE"..."$HEAD" -- \
+              tests/nightly_ha.py \
+              tests/ha_contract.py \
+              tests/harness.py \
+              tests/hastub \
+              tests/golden/config_flow.json \
+              tests/requirements-nightly-ha.txt; then
+            echo "nightly_ha=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "nightly_ha=true" >> "$GITHUB_OUTPUT"
+            echo "the diff touches what nightly-ha's driver reads: nightly-ha runs"
+          fi
           python tests/closure.py affected \
             --files-from "$RUNNER_TEMP/changed.txt" \
             --workdir "$RUNNER_TEMP/affected"

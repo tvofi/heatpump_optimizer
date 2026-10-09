@@ -4329,6 +4329,9 @@ _EC_RESIDUAL = {
                    "options at setup and written back through an options update; EntryConfig "
                    "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "flow_meter.py": "read_heat_output_kw .gets the flow-meter key off the config mapping it "
+                     "is handed and passes that mapping to probe_install; EntryConfig does "
+                     "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
@@ -11700,6 +11703,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
+    "CurrentPowerSensor": frozenset({"measured_heat_output_kw"}),
     "CurrentSetpointSensor": frozenset({
         "lower_floor_setpoint", "upper_floor_setpoint"
     }),
@@ -11837,7 +11841,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
-    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
+    "SensorGapAdvisorSensor": frozenset({"feedback_gaps", "gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
@@ -18478,11 +18482,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18672,9 +18676,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -23610,8 +23616,9 @@ R.check(
 
 # --- the nightly's own telling (#533) ---------------------------------------
 #
-# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
-# and pull request, and are not required contexts on `main-protect`. So a
+# `nightly-ha` and `slow` run on `schedule` (and dispatch), are `skipped` on
+# every push and on a pull request that does not touch the nightly driver's
+# reads, and are not required contexts on `main-protect`. So a
 # scheduled run's conclusion lands on whatever commit was main's head when the
 # cron fired and the next merge strands it: both `nightly-ha` arms failed on
 # two consecutive nights and a seat sent looking found it, not the lane.
@@ -23732,8 +23739,15 @@ R.check(
 # cannot see for itself. A future lane added to the nightly is therefore
 # refused by this gate until it is registered, instead of being watched by
 # nobody -- which is the silence #533 is about, one level further out.
+# A pull-request admission gated on a `closure-scope` diff flag does not count:
+# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
+# no other, so every other pull request still cannot see it for itself.
+_NS_DIFF_GATED = re.compile(
+    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
+    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
 _NS_HEADS = {
-    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    _n: _NS_DIFF_GATED.sub("", " ".join(
+        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
 _NS_SCHEDULE_ONLY = sorted(
@@ -24402,6 +24416,54 @@ R.check(
     "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
     "translation and buys nothing",
 )
+
+# R9-RO-9a: a two-parent direct push -- a local merge pushed to main, or the
+# record bot merging main into its rows -- names no pull request, so v6.7.17's
+# window read UNCHECKED over nine of them and the stamp needed --allow-rowless.
+# Each gets a disposition instead: one that changes only delivery rows is
+# record-only by its file list, and any other is exempt only through a
+# tracked line in `DIRECT_PUSHES` naming its sha. A commit whose file list is
+# unknown, or that touches one file outside the rows, stays UNCHECKED.
+_DS_ROWS = _ds.ROW_DIR + "/1998.md"
+_DS_DIRECT = [
+    {"sha": "0a60e06" + "0" * 33, "parents": 2, "subject": "record: delivery rows for #1998 (autofix)",
+     "body": "", "files": [_DS_ROWS]},
+    {"sha": "618d014" + "0" * 33, "parents": 2, "subject": "Count dimension briefs", "body": "",
+     "files": ["tools/policy/counts.mjs"]},
+]
+_ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
+try:
+    _DS_D = tuple(
+        (sorted(b.get("disposition") or "-" for b in blind),
+         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+        for m, blind in (
+            _ds.collect(_DS_DIRECT[:1]),
+            _ds.collect(_DS_DIRECT, allow=_ds_allow),
+            _ds.collect(_DS_DIRECT),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                "- 1234567: a disposition for another commit\n")),
+            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
+        ))
+except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+R.check(
+    "a direct-push merge commit is dispositioned -- record-only by its files, "
+    "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
+    _DS_D == ((["record-only"], _ds.EMPTY),
+              (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
+              (["-", "record-only"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED)),
+    f"(rows only, both with the allow line, code without it, rows plus a "
+    f"script, files unknown, an allow line for another sha, the allow list "
+    f"itself edited, a row lookalike) -> {_DS_D}",
+)
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
     "parents",
@@ -24743,6 +24805,46 @@ R.check(
         _PC_RED_STEP.replace("set -euo pipefail", "", 1)
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
+)
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
@@ -25947,6 +26049,38 @@ def _autofix_head_fixture():
         out["between"] = run(commit(R_, closures, parent=human), base)
         sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
         out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        # R9-CI-2b: the merge-main bot's `ci: merge main` -- main merged into
+        # the named head with no resolution -- and, on top, a pin commit.
+        # Its first parent is the named head; a hand-edited tree refuses.
+        mainline = commit("main moved", {"main.txt": "m\n"}, who=seat, parent=base)
+        # A real main for the bot merge's second parent (#2059 round 1): the
+        # check reads origin/main, as pr-contract's fetch-depth-0 clone has it.
+        g("update-ref", "refs/remotes/origin/main", mainline)
+        fixhead = commit("fix: own", {"other.txt": "fix\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        mm = g("rev-parse", "HEAD")
+        out["merge_main"] = run(mm, fixhead) + (mm,)
+        out["merge_main_pin"] = run(commit(R_, closures, parent=mm), fixhead)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_hand"] = run(g("rev-parse", "HEAD"), fixhead)
+        out["merge_main_one_parent"] = run(commit("ci: merge main", {"main.txt": "m\n"}, parent=fixhead), fixhead)
+        # The review's two forgeries: a bot-identity merge of a branch that is
+        # not main, editing code; and one whose side adds a driver attribute
+        # for that code, then hand-edits it in the merge.
+        offmain = commit("not main", {"code.py": "evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", offmain, who=bot)
+        out["merge_main_offmain"] = run(g("rev-parse", "HEAD"), fixhead)
+        evilattr = commit("not main", {".gitattributes": "other.txt merge=evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", evilattr, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_evilattr"] = run(g("rev-parse", "HEAD"), fixhead)
         return out
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -25962,6 +26096,13 @@ R.check(
     f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
     f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
     "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "pr-contract accepts the merge-main bot's automatic `ci: merge main`, and a bot commit on it (R9-CI-2b)",
+    _AH["merge_main"][0] == 0 and f"{_AH['merge_main'][2][:7]} (ci: merge main)" in _AH["merge_main"][1]
+    and _AH["merge_main_pin"][0] == 0,
+    f"merge rc={_AH['merge_main'][0]}, merge+pin rc={_AH['merge_main_pin'][0]}; "
+    f"{_AH['merge_main'][1].strip()[-300:]!r}",
 )
 R.check(
     "and a body naming the real head passes with no autofix line (null control)",
@@ -25982,6 +26123,10 @@ _AH_REFUSED = {
     "merge": "parents",
     "between": "not authored",
     "not_ancestor": "not authored",
+    "merge_main_hand": "not the automatic merge",
+    "merge_main_one_parent": "parents",
+    "merge_main_offmain": "not on origin/main",
+    "merge_main_evilattr": "not on origin/main",
 }
 _AH_WRONG = {
     k: (_AH[k][0], _AH[k][1].strip()[-240:])
@@ -26275,7 +26420,10 @@ R.check(
                       # A base retarget moves the merge base the gate reads;
                       # its one job carries no `if:`, which `_brg_defects`
                       # below pins, so an `edited` run is a full verdict.
-                      "budget-raise-gate.yml": ["budget-raise-gate"]},
+                      "budget-raise-gate.yml": ["budget-raise-gate"],
+                      # R9-EG-A4: the required score check reads the body, so
+                      # a body edit is the answer to its red; one job, no `if:`.
+                      "arch-score.yml": ["arch-score"]},
     f"workflows listing `edited` and their jobs: {_EDITED_FILES} -- any other "
     "job in such a file writes a check run on every body edit, skipped or "
     "not, at the unchanged head: a skipped run of a required context "
@@ -26430,7 +26578,8 @@ def _cc_pr_event(doc, run_id, sha, *, who="hpo-author[bot]", ev="pull_request"):
 # How each workflow that lists `pull_request: edited` keeps its same-SHA
 # twin from being cancelled. A design choice per file, not a derived fact.
 _CC_TWIN_ROUTE = {"pr-contract.yml": "serialised",
-                  "budget-raise-gate.yml": "per-run"}
+                  "budget-raise-gate.yml": "per-run",
+                  "arch-score.yml": "per-run"}
 
 
 def _cc_lists_edited(doc: dict) -> bool:
@@ -29509,6 +29658,53 @@ R.check(
     f"a move, the moved one of two twins) -> {_AU_GOT}",
 )
 
+# R9-RO-9a (C9): which identical line is the added one. The base holds one
+# `return out` in `_seed`; the head adds a twin in a new def ABOVE it. The
+# match must give the base's site to its own def before any other def may
+# take it, whatever order the head lists them in -- one greedy pass charged
+# the old line and let the new one through. Null control: a head that only
+# re-indents the old site adds nothing.
+_au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
+_au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
+try:
+    _AU_TWIN = tuple(
+        [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
+        for head in ([_au_new, dict(_au_r, line=40)],
+                     [dict(_au_r, line=40, old="        return out")]))
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_unpinned charges a twin line to the def that gained it, not to the "
+    "def that already had it (R9-RO-9a)",
+    _AU_TWIN == ([("p/o.py:_padded", 10)], []),
+    f"(twin added above, re-indent only) -> {_AU_TWIN}",
+)
+
+# R9-RO-9a (C9): one line, three comparison bounds, one ledger anchor. The
+# ledger pins an anchor only when every mutant under it is killed
+# (`pin_results`), so the key a body disposes of must say how many there are;
+# three bare copies of one key read as three sites a single line covers.
+# Driven through the real operators over a synthetic module, and through
+# the key list ci_predict prints for prepr's step 6d.
+with tempfile.TemporaryDirectory() as _au_d:
+    _au_p = Path(_au_d) / "chain.py"
+    _au_p.write_text("def f(x, y):\n    if 0 < x < 9 < y:\n        return 1\n"
+                     "    return 0\n")
+    _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
+_AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
+try:
+    _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
+             [k for k, _ in _AU_KEYS(_au_cmp[:1])])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_keys gives a line with three comparison mutants one key carrying "
+    "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
+    len(_au_cmp) == 3 and _AU_K == ([f"{_au_p}:2 CMP_BOUND*3"],
+                                     [f"{_au_p}:2 CMP_BOUND"]),
+    f"{len(_au_cmp)} CMP_BOUND mutant(s); (all three, one) -> {_AU_K}",
+)
+
 # The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an
 # `else`, an `elif`, or a comment after the colon is a GUARD_OFF site, and a
 # numpy/math clamp is a CLAMP_DROP; each mutant keeps the header's tail and
@@ -30385,6 +30581,93 @@ R.check(
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
     f"crons={_CRONS!r}",
+)
+
+# nightly-ha on the pull request that changes its driver (#2056's root cause).
+# #2041's A16 check had a container half no pull-request lane ran, and both
+# arms went red at the next schedule on main. Three things are pinned. REACH:
+# the job's own `if:` is evaluated over every event and both answers of
+# `closure-scope`'s `nightly_ha` output, so a guard that is only text fails.
+# THE OUTPUT exists and comes from the step that decides it. COVERAGE: what
+# `_stage` reads from the repository outside custom_components/ -- everything
+# it mounts into the container, measured here with an audit hook -- is
+# matched by the pathspecs that step diffs, so a newly staged file cannot
+# leave the lane dark on the pull request that adds it.
+_NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_REACH: list = []
+try:
+    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _nf in ("true", "false", ""):
+            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                       "needs.closure-scope.outputs.nightly_ha": _nf})
+            _nwant = _nv in ("schedule", "workflow_dispatch") or (
+                _nv == "pull_request" and _nf == "true")
+            if _ngot != _nwant:
+                _NHA_REACH.append((_nv, _nf, _ngot))
+except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+R.check(
+    "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
+    "touches its driver's reads, and on nothing else",
+    not _NHA_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
+                  re.M) is not None
+    and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
+    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+)
+_nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
+                        r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
+_NHA_SPECS = _nha_spec_m.group(1).replace("\\", " ").split() if _nha_spec_m else []
+_NHA_ROOT = Path(__file__).resolve().parents[1]
+_nha_reads: set = set()
+_nha_on = [False]
+
+
+def _nha_audit(event, args):
+    if _nha_on[0] and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
+        _p = Path(os.fspath(args[0])).resolve()
+        if _p.is_relative_to(_NHA_ROOT) and _p.is_file():
+            _nha_reads.add(_p.relative_to(_NHA_ROOT).as_posix())
+
+
+sys.addaudithook(_nha_audit)
+_nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
+try:
+    _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
+    _nightly._stage(_nha_tmp)
+except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+finally:
+    _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
+    import shutil as _nha_shutil
+    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
+_NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
+                  if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
+R.check(
+    "every file nightly-ha's driver stages from outside the package is a path whose "
+    "change runs nightly-ha on the pull request",
+    _NHA_SPECS and not _NHA_UNCOVERED
+    and {"tests/nightly_ha.py", "tests/ha_contract.py"} <= set(_NHA_DRIVER_READS)
+    and any(f.startswith("tests/hastub/") for f in _NHA_DRIVER_READS),
+    f"pathspecs={_NHA_SPECS}; staged reads not covered={_NHA_UNCOVERED}; "
+    f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
 )
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
@@ -31336,6 +31619,236 @@ R.check(
     f"call sites={_MUT_MAIN_TMO}",
 )
 _mut_shutil.rmtree(_MUT_T_DIR, ignore_errors=True)
+
+# RCA-1565-mutation-timeouts: the nightly's baseline bound was TIMEOUT_SCALE x a
+# SOLO recording the 3-worker pool can cost several times over. The pool/solo
+# factor measured 0.47x-3.27x across the 51 driver rows of the three
+# 2026-10-07/08 nightly runs (rule and per-row enumerator:
+# `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` §2). That is NOT the `0.3x-3.4x`
+# in `closure.py`'s SECONDS_BAND comment, which states how much one script's
+# RECORDINGS vary run to run and is the reason the band exists -- two different
+# quantities, and conflating them is how the figure this replaces travelled.
+# What binds is the band: it keeps a committed value up to 2x below the cost CI
+# last measured, so 3x the solo number left ~1.5x of headroom over the script's
+# true cost, against a factor whose top end is above 3x. boost_drift_replay.py
+# reached it on two nights: 2026-10-07 bound 1576 / pool 1573 completed (factor
+# 2.99, 3 s of margin, rc 0) in one lane and rc 124 at the same bound in the
+# other, 2026-10-08 bound 2401 / rc 124 -- a timed-out row's factor is a floor
+# (>= 3.00), not a measurement, because its "pool" is the bound it hit. The fix
+# seeds the bound from the MEASURED pool cost the lane
+# persists (`seed_pool_seconds`, `pool_seconds`), decoupled from SECONDS_BAND, and
+# makes a baseline TIMEOUT name the stale recording instead of "fix the suite
+# first" (`baseline_refusal`). Fixtures are the committed solo seconds at the two
+# heads that reddened (`git show <head>:tests/closures.json`) and the CI-measured
+# pool seconds (job logs 112708109605 / 112708109541 / 113233890923); driven as
+# functions, never a nightly run. `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`.
+_mut_seed = getattr(_mut, "seed_pool_seconds", None)
+_mut_pool_read = getattr(_mut, "pool_seconds", None)
+_mut_pool_write = getattr(_mut, "write_pool_seconds", None)
+_mut_tmo = getattr(_mut, "driver_timeout", None)
+_RCA_FLOOR = 1200
+# boost_drift_replay.py at the 10-08 head 816547efe: solo recording 800.2 (rc 0),
+# pool cost reached the 2401 s bound and timed out (rc 124). A completed run the
+# night before measured the same script's pool cost at 1573 s against a 1576 s
+# bound -- three seconds of margin.
+_RCA_SOLO = 800.2
+_RCA_POOL = 2401.0
+_rca_old_bound = _mut_tmo(_RCA_FLOOR, _RCA_SOLO) if _mut_tmo else None
+_rca_basis = (_mut_seed({"b": _RCA_SOLO}, {"b": _RCA_POOL})["b"]
+              if _mut_seed else None)
+_rca_new_bound = (_mut_tmo(_RCA_FLOOR, _rca_basis)
+                  if (_mut_tmo and _rca_basis is not None) else None)
+R.check(
+    "RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's "
+    "margin, not TIMEOUT_SCALE x a band-stale solo recording",
+    # The defect, reproduced from the committed table with the tree's own
+    # function: 3x the solo recording IS the bound the lane timed out at, so it
+    # carried zero margin over the pool cost.
+    _rca_old_bound == 2401 and _rca_old_bound <= _RCA_POOL
+    # The fix: bounding by max(solo, pool) gives the pool cost the full
+    # TIMEOUT_SCALE headroom the scale exists to provide.
+    and _rca_new_bound is not None
+    and _rca_new_bound >= _mut.TIMEOUT_SCALE * _RCA_POOL,
+    f"old bound driver_timeout({_RCA_FLOOR}, {_RCA_SOLO}) = {_rca_old_bound} "
+    f"(the bound the 10-08 pool cost reached and exceeded, rc 124); new bound "
+    f"driver_timeout({_RCA_FLOOR}, max({_RCA_SOLO}, {_RCA_POOL})) = "
+    f"{_rca_new_bound}, need >= {_mut.TIMEOUT_SCALE} x {_RCA_POOL} = "
+    f"{_mut.TIMEOUT_SCALE * _RCA_POOL}",
+)
+# Null control, re-taken at THIS merge base: a driver whose solo recording already
+# covers its pool cost is untouched -- the seed only ever raises a bound
+# (max(solo, pool) >= solo, and driver_timeout is monotonic), and a
+# floor-protected driver stays floor-protected. Committed solo seconds via the
+# tree's own recorded_seconds(); pool costs are the CI-measured values from job
+# 113233890923 (2026-10-08). env_drift's solo recording is the declared 0.9 s
+# stub (closure.py #934), so the FLOOR covers its 524 s pool cost, not the scale
+# -- the fix reads flat on it, which is the point.
+_RCA_POOL_MEASURED = {
+    "tests/features.py": 772.0,
+    "tests/stress.py": 434.0,
+    "tests/entities.py": 142.0,
+    "tests/env_drift.py": 524.0,
+    "tests/harness_headers.py": 211.0,
+}
+_rca_rec = getattr(_mut, "recorded_seconds", lambda: {})()
+_rca_null = {}
+for _s, _pool in _RCA_POOL_MEASURED.items():
+    _solo = _rca_rec.get(_s, 0.0)
+    _oldb = _mut_tmo(_RCA_FLOOR, _solo) if _mut_tmo else None
+    _basis = _mut_seed({_s: _solo}, {_s: _pool})[_s] if _mut_seed else _solo
+    _newb = _mut_tmo(_RCA_FLOOR, _basis) if _mut_tmo else None
+    _rca_null[_s] = (_solo, _pool, _oldb, _newb)
+R.check(
+    "RCA-1565 null control: a healthy driver's bound still covers its pool cost, "
+    "the seed never lowers a bound, and env_drift stays floor-bound (not scaled)",
+    all(oldb is not None and newb is not None and newb >= _pool and newb >= oldb
+        for (_solo, _pool, oldb, newb) in _rca_null.values())
+    and _rca_null["tests/env_drift.py"][2] == _RCA_FLOOR,
+    f"rows (solo, pool, old bound, new bound) = {_rca_null}",
+)
+# Item 3: the pool measurement persists and reads back, fail-soft -- an absent or
+# malformed file seeds NOTHING, so the bound falls back to the solo recording
+# (today's behaviour) and is never smaller for a missing measurement.
+_rca_roundtrip = False
+if _mut_pool_read is not None and _mut_pool_write is not None:
+    _rca_dir = Path(_tempfile.mkdtemp(prefix="rca1565-pool-"))
+    _rca_path = _rca_dir / "pool_seconds.json"
+    _mut_pool_write({"tests/boost_drift_replay.py": 1573.0}, _rca_path, "abc123")
+    _rca_back = _mut_pool_read(str(_rca_path))
+    _rca_roundtrip = (
+        _rca_back == {"tests/boost_drift_replay.py": 1573.0}
+        and _mut_pool_read(None) == {}
+        and _mut_pool_read(str(_rca_dir / "absent.json")) == {}
+    )
+    _rca_bad = _rca_dir / "bad.json"
+    _rca_bad.write_text("{not json")
+    _rca_roundtrip = _rca_roundtrip and _mut_pool_read(str(_rca_bad)) == {}
+    _mut_shutil.rmtree(_rca_dir, ignore_errors=True)
+R.check(
+    "RCA-1565: the pool measurement round-trips through pool_seconds.json, and an "
+    "absent/unreadable/malformed file seeds nothing (fail-soft, never a smaller bound)",
+    _rca_roundtrip,
+    f"round-trip and fail-soft ok = {_rca_roundtrip}",
+)
+# Item 1: a baseline TIMEOUT against a green committed recording must NOT read as
+# "fix the suite first" -- the suite was green (`fast` ran it rc 0); the lane was
+# judging its own bound. `baseline_refusal` gained an optional `recorded` param,
+# so on the unfixed 2-arg tree this falls back and the timeout reads as a generic
+# red, which is exactly the defect the check refuses.
+_mut_br2 = getattr(_mut, "baseline_refusal", None)
+_rca_arity = getattr(getattr(_mut_br2, "__code__", None), "co_argcount", 0)
+_RCA_TO_RUN = _mut.ScriptRun(
+    _mut.TIMEOUT_RC, 0, 2401.0, "",
+    "tests/boost_drift_replay.py: timed out after 2401s", True)
+_RCA_TO_REC = {"tests/boost_drift_replay.py": {"seconds": 800.2, "rc": 0}}
+
+
+def _rca_br(baseline, scope, recorded):
+    _buf = _mutb_io.StringIO()
+    with _mutb_contextlib.redirect_stdout(_buf):
+        if _mut_br2 is None:
+            _rc = None
+        elif _rca_arity >= 3:
+            _rc = _mut_br2(baseline, scope, recorded)
+        else:
+            _rc = _mut_br2(baseline, scope)
+    return _rc, _buf.getvalue()
+
+
+_RCA_TO_RC, _RCA_TO_OUT = _rca_br(
+    {"tests/boost_drift_replay.py": _RCA_TO_RUN}, "full", _RCA_TO_REC)
+R.check(
+    "RCA-1565: a baseline that TIMED OUT against a green committed recording "
+    "names the stale recording and the bound, not 'fix the suite first'",
+    _RCA_TO_RC == 1 and "MUTATION TABLE INCONCLUSIVE" in _RCA_TO_OUT
+    and "Fix the suite first" not in _RCA_TO_OUT
+    and "STALE" in _RCA_TO_OUT
+    and "2401" in _RCA_TO_OUT and "800.2" in _RCA_TO_OUT,
+    f"rc={_RCA_TO_RC!r} out={_RCA_TO_OUT.strip()!r} -- a timeout is the lane's "
+    "own bound, which no cheaper check measures, so it must not be reported as "
+    "the suite's red",
+)
+# Null control on the wording: a REAL red baseline (a failing check, not a
+# timeout) still reads as "fix the suite first" -- the timeout arm did not
+# weaken the case the refusal exists for.
+_RCA_RED_RUN = _mut.ScriptRun(1, 2, 41.0,
+                              "  FAIL payroll rounding\n"
+                              "  2 of 3 ENTITY CHECKS FAILED\n")
+_RCA_RED_RC, _RCA_RED_OUT = _rca_br(
+    {"tests/entities.py": _RCA_RED_RUN}, "changed",
+    {"tests/entities.py": {"seconds": 259.6, "rc": 0}})
+R.check(
+    "RCA-1565 null control: a real red baseline (a failing check, not a timeout) "
+    "still says 'fix the suite first' and names the check",
+    _RCA_RED_RC == 0 and "Fix the suite first" in _RCA_RED_OUT
+    and "payroll rounding" in _RCA_RED_OUT
+    and "TIMED OUT" not in _RCA_RED_OUT,
+    f"rc={_RCA_RED_RC!r} out={_RCA_RED_OUT.strip()!r}",
+)
+# Wired in the driver. The five checks above drive the functions; none of them
+# would notice a `main()` that never called one -- "defined-but-never-called is
+# the silent-green shape this repository keeps finding" (this file's own words at
+# the `_MUT_BODY` definition), and the class this PR countermeasures IS a lane that
+# did not consult its own measurement. So each new function is pinned at its CALL
+# SITE: reverting the seed to `own_s = recorded_seconds()`, dropping the
+# `--pool-seconds` flag, or moving the persist out of the `finally` each reddens
+# this check while leaving all five above green.
+_RCA_WIRE_MISSING = [w for w in (
+    'ap.add_argument("--pool-seconds"',
+    'prior_pool = pool_seconds(getattr(args, "pool_seconds", None))',
+    "own_s = seed_pool_seconds(recorded_seconds(), prior_pool)",
+    "measured_pool[s] = run.seconds",
+    "write_pool_seconds({**prior_pool, **measured_pool},",
+) if w not in _MUT_BODY]
+# The persist rides the `finally` on purpose: a run that refuses on its own bound
+# returns before `write_drain`, so a persist placed beside the drain write would
+# leave nothing behind on exactly the night the next run needs it.
+_RCA_FIN = _MUT_BODY.find("    finally:\n        # Persist the pool cost")
+_RCA_CLEANUP = _MUT_BODY.find("        for tree in made:\n            drop_tree(tree)")
+R.check(
+    "RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound "
+    "with it, records each pool baseline, and persists from the finally",
+    not _RCA_WIRE_MISSING and 0 < _RCA_FIN < _RCA_CLEANUP,
+    f"missing={_RCA_WIRE_MISSING!r}; finally-persist at {_RCA_FIN}, tree cleanup "
+    f"at {_RCA_CLEANUP} -- the persist must be inside the finally and first in it",
+)
+# Wired, against the YAML, in the `_MUT_BW_MISSING` idiom: the carrier is what
+# makes the seed anything but a local variable. Deleting `--pool-seconds` from a
+# nightly lane, or the cache pair that carries the measurement between runs,
+# leaves every check above green and the nightly back on TIMEOUT_SCALE x a solo
+# recording -- this PR's defect, restorable without tripping a check. The save is
+# pinned to `if: always()` IN THE MEASURING JOB and pinned ABSENT from
+# `mutation-ledger-push`, which is the trap the RCA names: that job is gated on
+# `needs.mutation-ledger.result == 'success'`, so it does not run on the night the
+# bound trips. Both jobs stay grant-free (decision 0011's measuring-job invariant).
+_RCA_YAML_MISSING = [(j, w) for j, w in (
+    ("mutation-nightly", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-nightly", "actions/cache/restore@"),
+    ("mutation-nightly", "restore-keys: pool-seconds-"),
+    ("mutation-ledger", '--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"'),
+    ("mutation-ledger", "actions/cache/restore@"),
+    ("mutation-ledger", "actions/cache/save@"),
+    ("mutation-ledger", "Save the pool measurement for the next nightly"),
+) if w not in _workflow_job(_TESTS_YML, j)]
+_rca_ledger_job = _workflow_job(_TESTS_YML, "mutation-ledger")
+_rca_push_job = _workflow_job(_TESTS_YML, "mutation-ledger-push")
+R.check(
+    "RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and "
+    "mutation-ledger persists on an if: always() cache save in the measuring job, "
+    "never in the success-gated push job",
+    not _RCA_YAML_MISSING
+    # The save step carries `if: always()` -- pinned as the adjacency, so a SHA
+    # bump does not break it and moving the condition off the save does.
+    and bool(_re.search(r"actions/cache/save@[0-9a-f]{40}[^\n]*\n\s+if: always\(\)",
+                        _rca_ledger_job))
+    and "actions/cache/save@" not in _rca_push_job
+    and "needs.mutation-ledger.result == 'success'" in _rca_push_job
+    # The carrier costs the measuring job no grant and no secret.
+    and "secrets." not in _rca_ledger_job
+    and "contents: write" not in _rca_ledger_job,
+    f"missing={_RCA_YAML_MISSING!r}; save-if-always="
+    f"{bool(_re.search(r'actions/cache/save@[0-9a-f]{40}[^\\n]*\\n\\s+if: always\\(\\)', _rca_ledger_job))}",
+)
 
 # R9-F10.12 (A): the mutant phase's wall-clock budget. Each pool runs on one
 # worker under a fake clock that each drive advances by the driver's cost, so

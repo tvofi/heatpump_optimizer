@@ -409,7 +409,7 @@ predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 
   fi
   out=$(PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base "$1" 2>&1); r=$?
   [ -n "${2:-}" ] && printf '%s\n' "$out" \
-    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+): .*/\1/p' > "$2"
+    | sed -nE 's/^PREDICT mutation +ADDED UNPINNED ([^ ]+ [A-Z_]+(\*[0-9]+)?): .*/\1/p' > "$2"
   case "$r" in
     0|1) printf '%s\n' "$out" | grep '^PREDICT' | sed 's/^/           /' >&2
          printf '%s\n' "$out" | tail -1; return "$r" ;;
@@ -418,19 +418,27 @@ predict_line() { # base ref, [file the unpinned site keys are written to]; rc 0 
 }
 
 # Step 7d's whole body: every unpinned site step 6d listed has a line under
-# `## Unpinned sites` naming it by its `file:line KIND` key, with its
-# disposition (pinned by `mutation-autofix`, a value check, or a written
-# triage). rc 3 when no site is owed, so a body that adds none needs no section.
+# `## Unpinned sites` naming it by its `file:line KIND` key (`*N` when one line
+# holds N mutants of the operator), with its disposition (pinned by
+# `mutation-autofix`, a value check, or a written triage). A key matches whole:
+# `f.py:12 CONST` is not named by `f.py:12 CONST_X`. rc 3 when no site is owed,
+# so a body that adds none needs no section.
 unpinned_line() { # body, site-key file; rc 0 disposed, 1 refused, 3 none owed
-  local sec missing n
+  local sec missing n near whole
+  # One function, so a harness that extracts it whole still runs it.
+  whole='{ s = $0; while ((i = index(s, k)) > 0) {
+      b = (i == 1) ? "" : substr(s, i - 1, 1); a = substr(s, i + length(k), 1)
+      if (b !~ /[A-Za-z0-9_.\/-]/ && a !~ /[A-Za-z0-9_*]/) { f = 1; exit }
+      s = substr(s, i + 1) } } END { exit !f }'
   n=$(grep -c . "$2" 2>/dev/null); n=${n:-0}
   if [ "$n" -eq 0 ]; then echo "the diff adds no unpinned mutation site"; return 3; fi
   sec=$(awk '/^## /{on=($0 ~ /^## Unpinned sites[[:space:]]*$/)} on' "$1")
   if [ -z "$sec" ]; then
-    echo "$n unpinned site(s) the diff adds and no \`## Unpinned sites\` section -- give each its key and disposition"
+    near=$(grep -im1 '^## *unpinned' "$1")
+    echo "$n unpinned site(s) the diff adds and no section headed exactly \`## Unpinned sites\`${near:+ (found \`$near\`)} -- give each its key and disposition"
     return 1
   fi
-  missing=$(while read -r k; do grep -qF -- "$k" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
+  missing=$(while read -r k; do awk -v k="$k" "$whole" <<<"$sec" || printf '%s; ' "$k"; done < "$2")
   if [ -n "$missing" ]; then
     echo "\`## Unpinned sites\` omits: ${missing%; }"; return 1
   fi
@@ -556,10 +564,22 @@ body_check() { # body file, head sha, title, paths file, red names...
   # raises a budget leaf; step 7c passes every red the branch's pushed
   # commits carry -- one implementation, `policy_lint.mjs --pr-body`, decides
   # whether the body answers a red in both callers.
-  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n
+  # The paths the base already had go along as `--existing-file`, the list
+  # pr-contract derives with `--diff-filter=a`: without it policy_lint counts
+  # every delivery row, the pull request's own new row included, as a touch of
+  # what `delivery-status` reads, and refuses a main-graded red CI exempts
+  # (#2028). No resolvable BASE, no list: the stricter reading stands.
+  local args=(--pr-body "$1" --head "$2" --title "$3" --paths-file "$4") n rc
+  local ex=/tmp/prepr-existing.$$
   shift 4
   for n in "$@"; do args+=(--red "$n"); done
+  if [ -n "${BASE:-}" ] && git diff --no-renames --name-only --diff-filter=a "$BASE"...HEAD > "$ex" 2>/dev/null; then
+    args+=(--existing-file "$ex")
+  fi
   if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  rc=$?
+  rm -f "$ex"
+  return "$rc"
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
@@ -845,13 +865,17 @@ stamp_paths() { # name-only diff over VERSION, unified diffs of manifest.json an
   # ordinary production state; only its `version` line is the stamp's.
   local out=""
   if [ -n "${1// /}" ]; then out="VERSION"; fi
-  if printf '%s\n' "$2" | grep -qE '^[-+][[:space:]]*"version"[[:space:]]*:'; then
+  # `grep >/dev/null`, never `grep -q`: -q exits on the first match and can
+  # SIGPIPE the writer, which `pipefail` reads as no match -- a version edit
+  # passed as none on a large diff (R9-RCA-prepr-tmp; the note above
+  # `pinned_unrun`). A reader that drains its input cannot do that.
+  if printf '%s\n' "$2" | grep -E '^[-+][[:space:]]*"version"[[:space:]]*:' >/dev/null; then
     out="${out:+$out }custom_components/heatpump_optimizer/manifest.json(version)"
   fi
   # The notes: a `## ` line added or removed is a release heading, which only
   # the stamp writes. `### ` subsections do not match, because the pattern
   # needs the space straight after two hashes.
-  if printf '%s\n' "${3:-}" | grep -qE '^[-+]## '; then
+  if printf '%s\n' "${3:-}" | grep -E '^[-+]## ' >/dev/null; then
     out="${out:+$out }RELEASE_NOTES.md(heading)"
   fi
   printf '%s' "$out"
@@ -974,6 +998,64 @@ if [ "${1:-}" = "--version-edit" ]; then
   exit "$ve"
 fi
 
+# --- the class: an early-exit grep reading a pipe under pipefail ---------------
+# `printf|echo ... | grep -q` under `set -o pipefail` reads a SIGPIPE'd writer
+# (141) as no match, on a tiny input too: driven 3,000 times at load 90-110,
+# stamp_paths's form missed once (R9-RCA-prepr-tmp). PIPE_GREP_Q_FILES are the
+# scripts whose sites were drained; this lists any that came back. Comment
+# lines are skipped; the pattern is built from parts so this file's own
+# definition of it does not match itself.
+PIPE_GREP_Q_FILES=(tools/pr/prepr.sh .claude/hooks/session-start.sh .claude/hooks/stop-selfcheck.sh
+  .claude/hooks/pre-edit.sh tools/pr/approve_held_runs.sh tools/audit/worktree_gc.sh)
+pipe_grep_q_sites() { # files... -> one `file:line: text` per site; rc 0 none, 1 found
+  local pat out
+  pat='(printf|echo)[^|]*[|][[:space:]]*grep[[:space:]]+-[a-zA-Z]*'"q"
+  out=$(grep -nE "$pat" "$@" 2>/dev/null | grep -vE '^[^:]+:[0-9]+:[[:space:]]*#')
+  [ -z "$out" ] && return 0
+  printf '%s\n' "$out"; return 1
+}
+
+# --- the self-test's own environment (R9-RCA-prepr-tmp) ----------------------
+# THE FLOOR IS THE SELF-TEST'S MEASURED PEAK, TWICE. One run's temporary files
+# peaked at SELFTEST_PEAK_KB (measured with `du -sk` on its root every second
+# over a full run); a box with less free than twice that cannot finish one run,
+# and what it prints then is a list of false failures -- `No space left on
+# device` from a fixture's `git commit` reads as 14 broken checks. Below the
+# floor the self-test refuses as an ENVIRONMENT fault, rc 3, before building
+# anything. A free space `df` cannot read is not a refusal: it runs.
+SELFTEST_PEAK_KB=223124
+tmp_floor_check() { # dir, floor KB -> rc 0 room or unmeasured, 3 below; one line
+  local avail
+  avail=$(df -Pk "$1" 2>/dev/null | awk 'NR==2 {print $4}')
+  case "$avail" in
+    ''|*[!0-9]*) printf 'temp floor: free space under %s is unmeasured; running anyway\n' "$1"; return 0 ;;
+  esac
+  if [ "$avail" -lt "$2" ]; then
+    printf 'ENVIRONMENT: %s has %s KB free, under the self-test floor of %s KB (twice its measured peak). Free space and re-run; this is not a test failure.\n' "$1" "$avail" "$2"
+    return 3
+  fi
+  return 0
+}
+# ONE ROOT FOR EVERY TEMPORARY PATH, REMOVED ON ANY EXIT THE SHELL SEES. The
+# fixtures each `mktemp -d` and `rm -rf` at their own end, so a run killed in
+# between left its clones in $TMPDIR: 492 directories, 7.1 GB, on the box that
+# ran out. `mktemp` is wrapped rather than $TMPDIR alone being set, because
+# macOS's `mktemp` with no template ignores $TMPDIR; children (git, python)
+# read $TMPDIR, so it is set too. TERM, INT and HUP become exits so the EXIT
+# trap runs, and QUIT too; a KILL cannot be trapped, and leaves one root, not
+# one per fixture.
+selftest_tmp_root() {
+  ST_ROOT=$(command mktemp -d "${TMPDIR:-/tmp}/prepr-st.XXXXXXXX") || return 1
+  export TMPDIR="$ST_ROOT"
+  mktemp() {
+    local a
+    for a in "$@"; do case $a in *XXX*) command mktemp "$@"; return ;; esac; done
+    command mktemp "$@" "$ST_ROOT/tmp.XXXXXXXX"
+  }
+  trap 'rm -rf "$ST_ROOT"' EXIT
+  trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 131' QUIT; trap 'exit 143' TERM
+}
+
 # --- self-test ---------------------------------------------------------------
 # A check that cannot be shown failing does not merge. This drives the two steps
 # that are pure functions of their input -- the body checks -- against the rot
@@ -988,6 +1070,9 @@ if [ "${1:-}" = "--self-test" ]; then
   # under test: an inherited GIT_CONFIG_PARAMETERS outranks a repository's own
   # config, so the repository layer alone does not hold (the #2054 review).
   throwaway_git_env
+  # The box first, then the root every later path lives under (above).
+  tmp_floor_check "${TMPDIR:-/tmp}" "${PREPR_SELFTEST_FLOOR_KB:-$((2 * SELFTEST_PEAK_KB))}" || exit 3
+  selftest_tmp_root || { echo "ENVIRONMENT: no temporary directory could be made"; exit 3; }
   D=tools/policy/fixtures/policy-rot/prepr
   ZERO=0000000000000000000000000000000000000000
   # A base that DOES resolve, for the success arm below. HEAD always resolves
@@ -1025,8 +1110,9 @@ if [ "${1:-}" = "--self-test" ]; then
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 1 "a settings file whose hook is $f is refused"
   done
-  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks >/dev/null 2>&1; fi
-  st $? 0 "this repository's own three wired hooks pass (null control)"
+  if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks 2>&1); fi
+  r=$?; st "$r" 0 "this repository's own three wired hooks pass (null control)"
+  [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
   # spellings, not a pattern to compile -- `"*"` alone threw out of `RegExp`
@@ -1034,9 +1120,13 @@ if [ "${1:-}" = "--self-test" ]; then
   # (Cloud reviewer 2, PR #1692). Each fixture below is otherwise a complete,
   # correctly-wired settings file, so a regression here shows up as this
   # loop's REFUSE, not as the bad-matcher.json loop's silence.
+  # The output is kept, and printed when a row fails: this row failed once
+  # in five serial runs on a loaded box (R9-RCA-prepr-tmp) and did not
+  # reproduce in 18 more, and a discarded output left nothing to read.
   for f in star-matcher no-matcher empty-matcher; do
-    if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
-    st $? 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+    if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); fi
+    r=$?; st "$r" 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
+    [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
   done
 
   # The push-order verdict, one fixture per branch shape. Named in a list rather
@@ -1067,15 +1157,15 @@ if [ "${1:-}" = "--self-test" ]; then
   # body check refuses the same rot fixture and passes the same healthy one, so
   # a `figures_check` rewired to it would satisfy a status-only assertion. Each
   # arm therefore also reads a string only this instrument prints.
-  figures_check tools/policy/fixtures/figures/gh-arg.md >/tmp/prepr-figst.$$ 2>&1
+  figures_check tools/policy/fixtures/figures/gh-arg.md >"$ST_ROOT/figst.$$" 2>&1
   st $? 1 "a body whose figure command cannot resolve is refused"
-  grep -q -- 'has no `--arg` flag' /tmp/prepr-figst.$$
+  grep -q -- 'has no `--arg` flag' "$ST_ROOT/figst.$$"
   st $? 0 "and the step's own output names the flag, so the step runs the figure check"
-  figures_check "$D/good.md" >/tmp/prepr-figst.$$ 2>&1
+  figures_check "$D/good.md" >"$ST_ROOT/figst.$$" 2>&1
   st $? 0 "a body whose figure command resolves is silent (null control)"
-  grep -q '0 refused' /tmp/prepr-figst.$$
+  grep -q '0 refused' "$ST_ROOT/figst.$$"
   st $? 0 "and it reached a verdict rather than examining nothing (null control)"
-  rm -f /tmp/prepr-figst.$$
+  rm -f "$ST_ROOT/figst.$$"
 
   # Step 7's body check, driven through `body_check` -- the function the step
   # calls -- over ONE body and three path lists. One arm alone would pin a check
@@ -1092,15 +1182,15 @@ if [ "${1:-}" = "--self-test" ]; then
   # fires on everything pins nothing. The exit status alone does not pin WHICH
   # refusal fired -- this body is refusable on other grounds by other flags -- so
   # the policy arm also reads the approval gate's own sentence.
-  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >/tmp/prepr-bodyst.$$ 2>&1
+  body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-real.txt" >"$ST_ROOT/bodyst.$$" 2>&1
   st $? 1 "a body with no \`## Approval\` is refused when the diff touches a policy path"
-  grep -q 'no `## Approval` section' /tmp/prepr-bodyst.$$
+  grep -q 'no `## Approval` section' "$ST_ROOT/bodyst.$$"
   st $? 0 "and the refusal is the approval gate's own, so the paths reached the check"
   body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-nonpolicy.txt" >/dev/null 2>&1
   st $? 0 "the same body is silent when the diff touches no policy path (null control)"
   body_check "$D/needs-approval.md" "$ZERO" '' "$D/paths-empty.txt" >/dev/null 2>&1
   st $? 1 "a path list that derived nothing is refused, not read as \"touches no policy file\""
-  rm -f /tmp/prepr-bodyst.$$
+  rm -f "$ST_ROOT/bodyst.$$"
 
   # Step 7c, driven through `reds_line` -- the function the step calls -- over
   # a throwaway repository whose two pushed commits carry OFFLINE check-run
@@ -1301,9 +1391,9 @@ EOS
   # calls them: the #1591 self-test drove a helper while the step kept calling
   # the old one. The main flow is the text after this self-test returns.
   flow=$(awk 'f{print} /^rc=0$/{f=1}' "$PREPR_PATH")
-  printf '%s\n' "$flow" | grep -q 'body_line "'
+  case "$flow" in *'body_line "'*) true ;; *) false ;; esac
   st $? 0 "the pr-body step calls body_line, so a predicted raise reaches the body check before the push"
-  printf '%s\n' "$flow" | grep -q 'copies_line "'
+  case "$flow" in *'copies_line "'*) true ;; *) false ;; esac
   st $? 0 "the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push"
   printf '%s\n' "$flow" | grep -q 'moved_line "'
   st $? 0 "the layout step calls moved_line, so a re-added moved path is refused before the push"
@@ -1315,12 +1405,12 @@ EOS
   # added later that reads the file rather than the status fails closed as well.
   # `git diff` exits 128 on an unknown revision, not 1, so the first assertion is
   # on the branch taken rather than on the number.
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
-  if diff_paths "$ZERO" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; then dp=0; else dp=1; fi
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
+  if diff_paths "$ZERO" "$ST_ROOT/bodyst.$$" >/dev/null 2>&1; then dp=0; else dp=1; fi
   st "$dp" 1 "a base that does not resolve makes the path derivation fail"
-  if [ -e /tmp/prepr-bodyst.$$ ] || [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  if [ -e "$ST_ROOT/bodyst.$$" ] || [ -e "$ST_ROOT/bodyst.$$".part ]; then fp=1; else fp=0; fi
   st "$fp" 0 "and leaves no list behind, not even an empty one, so the file key fails closed too"
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
   # The SUCCESS path's own temp-file assertion, which nothing pinned before: a
   # derivation that works must also leave no `.part` behind.
   #
@@ -1331,11 +1421,11 @@ EOS
   # fix working rather than a hole -- under either verb no `.part` survives --
   # but the arm's reach is the PROPERTY, not the verb, and saying otherwise
   # would be a claim stronger than the check that backs it.
-  diff_paths "$BASE_ST" /tmp/prepr-bodyst.$$ >/dev/null 2>&1; dp=$?
-  if [ -e /tmp/prepr-bodyst.$$.part ]; then fp=1; else fp=0; fi
+  diff_paths "$BASE_ST" "$ST_ROOT/bodyst.$$" >/dev/null 2>&1; dp=$?
+  if [ -e "$ST_ROOT/bodyst.$$".part ]; then fp=1; else fp=0; fi
   st "$dp" 0 "a base that resolves makes the path derivation succeed (null control)"
   st "$fp" 0 "and leaves no \`.part\` behind either, so the temp file is the function's own"
-  rm -f /tmp/prepr-bodyst.$$ /tmp/prepr-bodyst.$$.part
+  rm -f "$ST_ROOT/bodyst.$$" "$ST_ROOT/bodyst.$$".part
 
   # THE `mv`-FAILURE ARM, and it exists because the #1054 review measured the
   # leak rather than reasoning about it: the first form cleaned up only on the
@@ -1569,6 +1659,21 @@ EOS
   got=$(claims_at unt); st "$got" '0:' "6a passes a branch that never edited the claim file it inherited (R9-F10.8)"
   got=$(claims_at rec); st "$got" '0:' "6a passes a row-only branch forked before main claimed (the fork point, not the tip)"
   got=$(claims_at own); st "$got" '0:' "6a passes a branch that writes its own claim (null control)"
+  # #2028: body_check hands policy_lint the paths the base already had
+  # (`--existing-file`), as pr-contract does. Without it every delivery row the
+  # diff names voids the main-reporter exemption -- the pull request's OWN new
+  # row included -- so open_pr.sh's row push refused a body for a red main
+  # carried (`delivery-status`, `nightly-status`) that CI's contract exempts.
+  (cd "$CLM/r" && $G checkout -q -b rowadd fork && mkdir -p dev/programme/delivery \
+    && echo row > dev/programme/delivery/9999.md && $G add -A && $G commit -qm rowadd \
+    && $G checkout -q -b rowedit rowadd && echo edited > dev/programme/delivery/9999.md \
+    && $G commit -qam rowedit) >/dev/null 2>&1
+  row_red() { (cd "$CLM/r" && git checkout -q "$1" \
+    && git diff --no-renames --name-only "$2"...HEAD > "$CLM/rowpaths" \
+    && BASE=$2 body_check "$D/good-none.md" "$ZERO" "" "$CLM/rowpaths" delivery-status \
+    >/dev/null 2>&1; echo $?); }
+  st "$(row_red rowadd fork)" 0 "pr-body exempts a main-graded red when the diff only ADDS its own delivery row"
+  st "$(row_red rowedit rowadd)" 1 "and still owes it when the diff edits a row the base had (null control)"
 
   mkdir "$CLM/ok" "$CLM/under" "$CLM/dead"
   python3 - "$CLM" <<'PY'
@@ -1649,8 +1754,11 @@ PY
     && $G checkout -q -b pmainred origin/main && echo "# planted on main" > tests/zz_main_unrecorded_check.py \
     && $G add -A && $G commit -qm pmainred \
     && $G checkout -q -b pinh pmainred && echo "# a comment" >> tests/wood_advisor.py && $G commit -qam pinh \
+    && $G checkout -q -b planes pmainred && echo "# a comment" >> tests/derive_closures.sh && $G commit -qam planes \
+    && $G checkout -q -b pdrop origin/main && sed -i.bak '/rec tests\/wood_advisor.py/d' tests/derive_closures.sh \
+    && rm tests/derive_closures.sh.bak && $G commit -qam pdrop \
     && $G checkout -q -b pmut origin/main \
-    && printf '\n\ndef _zz_planted(x):\n    if x > 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
+    && printf '\n\ndef _zz_planted(x):\n    if 0 < x < 3:\n        return 1\n    return 0\n' >> custom_components/heatpump_optimizer/away.py \
     && $G commit -qam pmut) >/dev/null 2>&1
   predict_at() { (cd "$PDX/r" && git checkout -q "$1" && predict_line origin/main 2>&1 >/dev/null; echo "rc=$?"); }
   got=$(predict_at pnull); st "$(tail -1 <<<"$got")" rc=0 "6d stays quiet on a comment in a selectable script (null control)"
@@ -1672,8 +1780,15 @@ PY
   grep -q 'NO RECORDING' <<<"$got"
   st $? 1 "6d charges no branch with an unrecorded script main already carries (null control)"
   st "$(tail -1 <<<"$got")" rc=0 "and so the unrelated branch passes 6d"
+  got=$(cd "$PDX/r" && git checkout -q planes && predict_line pmainred 2>&1 >/dev/null; echo "rc=$?")
+  grep -q 'NO RECORDING' <<<"$got"
+  st $? 1 "6d charges no branch that only edits the lane file with a script main already left unrecorded"
+  got=$(predict_at pdrop); grep -q 'PREDICT closures .*NO RECORDING tests/wood_advisor.py' <<<"$got"
+  st $? 0 "6d still predicts NO RECORDING for a recording the lane edit drops (null control)"
   (cd "$PDX/r" && git checkout -q pmut && predict_line origin/main "$PDX/sites" >/dev/null 2>&1)
   st "$(grep -c . "$PDX/sites")" 3 "6d writes the three planted site keys for step 7d"
+  grep -q ' CMP_BOUND\*2$' "$PDX/sites"
+  st $? 0 "and a line holding two comparison mutants is one key carrying its multiplicity"
   printf 'Why.\n\n## Head\n\nx\n' > "$PDX/b0.md"
   unpinned_line "$PDX/b0.md" "$PDX/sites" >/dev/null; st $? 1 "7d refuses a body with no ## Unpinned sites when sites are owed"
   { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- %s: pinned by mutation-autofix\n' "$(head -1 "$PDX/sites")"; } > "$PDX/b1.md"
@@ -1684,6 +1799,18 @@ PY
   unpinned_line "$PDX/b2.md" "$PDX/sites" >/dev/null; st $? 0 "7d passes a section naming every listed site (null control)"
   { cat "$PDX/b0.md"; printf '\n## Figures\n\n'; sed 's/^/- /' "$PDX/sites"; } > "$PDX/b3.md"
   unpinned_line "$PDX/b3.md" "$PDX/sites" >/dev/null; st $? 1 "7d reads the keys under ## Unpinned sites only, not anywhere in the body"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites (3)\n\n'; sed 's/$/: pinned by mutation-autofix/; s/^/- /' "$PDX/sites"; } > "$PDX/b4.md"
+  got=$(unpinned_line "$PDX/b4.md" "$PDX/sites"); r=$?
+  st "$r" 1 "7d refuses a section whose heading is not exactly ## Unpinned sites"
+  grep -qF '`## Unpinned sites (3)`' <<<"$got" && grep -qF 'exactly `## Unpinned sites`' <<<"$got"
+  st $? 0 "and its refusal names the heading it found and the one it expects"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n'; sed 's/^/- `/; s/$/`: pinned/' "$PDX/sites"; } > "$PDX/b5.md"
+  unpinned_line "$PDX/b5.md" "$PDX/sites" >/dev/null; st $? 0 "7d passes keys written in backticks (null control)"
+  printf 'p/a.py:12 CONST\n' > "$PDX/k12"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- p/a.py:12 CONST_X: pinned\n- xp/a.py:12 CONST: pinned\n'; } > "$PDX/b6.md"
+  unpinned_line "$PDX/b6.md" "$PDX/k12" >/dev/null; st $? 1 "7d matches a key whole, never inside a longer key"
+  { cat "$PDX/b0.md"; printf '\n## Unpinned sites\n\n- p/a.py:12 CONST: pinned\n'; } > "$PDX/b7.md"
+  unpinned_line "$PDX/b7.md" "$PDX/k12" >/dev/null; st $? 0 "and passes the same key named whole (null control)"
   : > "$PDX/none"
   unpinned_line "$PDX/b0.md" "$PDX/none" >/dev/null; st $? 3 "7d owes nothing when the diff adds no site"
   rm -rf "$PDX"
@@ -1829,6 +1956,62 @@ PY
   rm -f "$SO.in"
   rm -f "$SO"
 
+  # THE SELF-TEST'S OWN ENVIRONMENT (R9-RCA-prepr-tmp). Three ways a busy,
+  # full box turned this self-test red on trees that were healthy: 14 of 212
+  # rows refused with `No space left on device` (a clone of about 109 MB per
+  # run, left behind by every run that was killed), and single rows that
+  # flipped under load. Each arm below is the deterministic form of one.
+  #
+  # (1) An early match in a large input is still a match. `printf | grep -q`
+  # under `pipefail` lets grep exit on its first line and SIGPIPE the writer,
+  # and the pipeline then reads 141 -- no match -- the hazard the note above
+  # `pinned_unrun` names. 2 MB after the match makes the race certain.
+  FILL=$(head -c 2000000 /dev/zero | tr '\0' 'x' | fold -w 100)
+  got=$(stamp_paths "" "$(printf '+  "version": "9.9.9",\n%s' "$FILL")" "")
+  case "$got" in *'manifest.json(version)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "stamp_paths names a manifest version line followed by 2 MB of diff"
+  got=$(stamp_paths "" "" "$(printf '+## v9.9.9\n%s' "$FILL")")
+  case "$got" in *'RELEASE_NOTES.md(heading)'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "stamp_paths names a notes heading followed by 2 MB of diff"
+  got=$(stamp_paths "" "$FILL" "$FILL")
+  st "${#got}" 0 "and names nothing in 2 MB with no version line or heading (null control)"
+  unset FILL
+  # (2) Every temporary path the self-test makes lives under one root that is
+  # removed on any exit the shell can see -- normal, error, TERM, INT, HUP.
+  got=$(bash -c "$(declare -f selftest_tmp_root); selftest_tmp_root || exit 9
+    d=\$(mktemp -d); f=\$(mktemp)
+    case \$d in \"\$ST_ROOT\"/*) case \$f in \"\$ST_ROOT\"/*) echo in ;; esac ;; esac
+    echo \"\$ST_ROOT\"" 2>/dev/null)
+  case "$got" in in*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "a mktemp file or directory inside the self-test lands under its root"
+  root=$(printf '%s\n' "$got" | tail -1)
+  [ -n "$root" ] && [ ! -e "$root" ]; st $? 0 "and the root is gone after a normal exit"
+  root=$(bash -c "$(declare -f selftest_tmp_root); selftest_tmp_root || exit 9
+    mkdir \"\$ST_ROOT/clone\"; echo \"\$ST_ROOT\"; kill -TERM \$\$; sleep 5" 2>/dev/null)
+  [ -n "$root" ] && [ ! -e "$root" ]; st $? 0 "and after the run is killed with TERM"
+  # (3) Too little room is an environment refusal, never a list of failures.
+  out=$(tmp_floor_check "$PWD" 999999999999); r=$?
+  st "$r" 3 "a temp dir under the floor refuses with rc 3"
+  case "$out" in ENVIRONMENT:*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and says ENVIRONMENT, not a test failure"
+  tmp_floor_check "$PWD" 1 >/dev/null; st $? 0 "a temp dir with room passes the floor (null control)"
+  tmp_floor_check /no/such/dir 1 >/dev/null; st $? 0 "an unmeasurable temp dir runs anyway, never refuses"
+  # (4) The class, over every script whose sites were drained (above
+  # `pipe_grep_q_sites`), and a planted site the search must find.
+  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?
+  st "$r" 0 "no early-exit grep reads a pipe under pipefail in the drained scripts"
+  [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
+  printf '#!/bin/bash\nset -uo pipefail\nprintf x | grep %s y\n' "-q" > "$ST_ROOT/planted.sh"
+  pipe_grep_q_sites "$ST_ROOT/planted.sh" >/dev/null; st $? 1 "and a planted early-exit grep site is found (null control)"
+  # (5) The hooks step names the hook that failed, not only the count.
+  case "$flow" in *'step "hooks" $? "$(grep -E '"'"'^  (SELF-TEST FAILED|MISSING'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the hooks step prints the failing hook's row, not only the count"
+  # The entry wires both before the first fixture is built: driving the two
+  # helpers pins nothing if the self-test stops calling them (#1591's shape).
+  entry=$(awk '/^if \[ "\$\{1:-\}" = "--self-test" \]; then$/{f=1} f&&/^  D=tools\/policy/{exit} f' "$PREPR_PATH")
+  case "$entry" in *'tmp_floor_check '*'selftest_tmp_root'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "the self-test checks the floor, then takes its temp root, before any fixture"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
@@ -1904,7 +2087,7 @@ rm -f /tmp/prepr-frag.$$
 
 # --- 3d. the hooks this repository wires are present and self-testing.
 if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; else node tools/policy/policy_lint.mjs --hooks >/tmp/prepr-hooks.$$ 2>&1; fi
-step "hooks" $? "$(tail -1 /tmp/prepr-hooks.$$)"
+step "hooks" $? "$(grep -E '^  (SELF-TEST FAILED|MISSING|NOT WIRED|UNREADABLE) ' /tmp/prepr-hooks.$$ | head -3 | tr -s ' ' | tr '\n' ';'; tail -1 /tmp/prepr-hooks.$$)"
 rm -f /tmp/prepr-hooks.$$
 
 # --- 3e. no file a workflow executes lacks an owner, on this head's copy of

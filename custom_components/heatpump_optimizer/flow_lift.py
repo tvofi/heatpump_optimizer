@@ -147,6 +147,9 @@ class FlowCurveBias:
     #: for W1067-G3; nothing in this group's fold reads it, because the bias
     #: is a property of the SUPPLY side against the supply curve.
     last_return_c: float | None = None
+    #: This cycle's thermal output in kW read off the flow meter, or
+    #: ``None`` (#2016). Set by ``flow_meter.observe_water``; not persisted.
+    heat_output_kw: float | None = None
 
     def observe_temps(
         self, supply: float | None, return_temp: float | None
