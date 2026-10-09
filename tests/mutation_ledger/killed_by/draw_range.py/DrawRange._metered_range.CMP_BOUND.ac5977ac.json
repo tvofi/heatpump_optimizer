@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CMP_BOUND ac5977ac",
+  "killed_by": "tests/features.py",
+  "old": "        top = high if high < (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CMP_BOUND` (top = high if high <= (1.0 - AGREE_TOLERANCE) * cfg_max else cfg_max) flips the condition of tests/features.py's R.check \"a metered top exactly 15 % under the configured max keeps the configured max (the agreement bound is `<`, not `<=`)\" -- reads False: 0.85 x 10.0 is the double 8.5 and the metered top is a data point at 8.5, so `<=` replaces a configured end the tree keeps. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}

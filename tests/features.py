@@ -60432,6 +60432,116 @@ for _cf_junk in ({"cop": "x"}, {"cop": float("nan")}, {"cop": 0.05}, {"cop": 3.0
         f"{_cf_junk!r} -> {getattr(_cf_bad, '_measured_cop', '<absent>')}",
     )
 
+# The guards' own boundaries, judged on the functions rather than through a
+# cycle: every check above feeds an interval whose ask and draw are the same
+# figure and an ewma it never sets, so a mutant that drops one operand of the
+# duty floor, moves one of its bounds, or divides by the unclamped walking
+# ratio reads exactly like the original to them. Each number below is chosen so
+# the boundary is the same double on both sides of the comparison (0.8 x 1.0 is
+# the floor exactly; 1.5/5.0 is the gate exactly), and each states which way
+# the bound runs.
+from heatpump_optimizer.accuracy import (  # noqa: E402
+    COP_REFUSED_DUTY_FLOOR as _cf_DUTY, COP_REFUSED_NO_EVIDENCE as _cf_NOEV,
+    COP_REFUSED_TRACKING as _cf_TRACK, MeasuredCop as _cf_MC,
+)
+
+_cf_both = ThermalParameters(max_electrical_power=14.0, min_electrical_power=1.0)
+_cf_bar = _cf_both.flow_lift_power_floor_kw  # 0.8, exactly
+R.check(
+    "the duty floor judges the smaller of the ask and the draw: a plan asked "
+    "2.4 kW that metered 0.3 kW is refused, and so the other way round",
+    _cf_MC.judge_floor(2.4, 0.3, _cf_both) == _cf_DUTY
+    and _cf_MC.judge_floor(0.3, 2.4, _cf_both) == _cf_DUTY
+    and _cf_MC.judge_floor(2.4, 2.4, _cf_both) is None,
+    f"{_cf_MC.judge_floor(2.4, 0.3, _cf_both)} / "
+    f"{_cf_MC.judge_floor(0.3, 2.4, _cf_both)}",
+)
+R.check(
+    "the duty floor is exclusive: a draw exactly at it is running, not below it",
+    _cf_MC.judge_floor(_cf_bar, _cf_bar, _cf_both) is None
+    and _cf_MC.judge_floor(_cf_bar - 1e-9, _cf_bar, _cf_both) == _cf_DUTY,
+    f"floor {_cf_bar!r}",
+)
+R.check(
+    "the tracking gate divides by the clamped walking ratio: a zero ewma is a "
+    "refusal, not a crash",
+    _cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None) == _cf_TRACK,
+    f"{_cf_MC.judge_ratio(0.5, 0.0, 5.0, _cf_both, None)}",
+)
+# 1.5 / 5.0 is the double 0.3 exactly, so this ratio sits on the gate, not off it.
+R.check(
+    "the tracking gate is exclusive: a ratio exactly at it is on the walking "
+    "ratio (6.5 against 5.0 is 0.3 of it)",
+    _cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None) is None,
+    f"{_cf_MC.judge_ratio(6.5, 5.0, 5.0, _cf_both, None)}",
+)
+R.check(
+    "without draw evidence the nameplate bar is on both the ask and the drawn "
+    "figure: a 5.0 kW ask metering 4.0 kW waits for evidence, one metering 4.5 "
+    "kW folds (0.3 x 14 is 4.2 exactly)",
+    _cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None) == _cf_NOEV
+    and _cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None) is None,
+    f"{_cf_MC.judge_ratio(0.8, 1.0, 5.0, _cf_both, None)} / "
+    f"{_cf_MC.judge_ratio(0.9, 1.0, 5.0, _cf_both, None)}",
+)
+R.check(
+    "the store's 0.1 bar is exclusive and a non-finite tank temperature drops "
+    "the record whole: 0.1 reads back, a nan temperature does not",
+    _cf_MC.from_dict({"cop": 0.1}).cop == 0.1
+    and _cf_MC.from_dict({"cop": 0.09}).cop is None
+    and _cf_MC.from_dict({"cop": 2.0, "dhw_temp": float("nan")}).cop is None
+    and _cf_MC.from_dict({"cop": 2.0, "dhw_temp": 52.0}).cop == 2.0,
+)
+
+# `follows_ask`'s own thresholds, written as the NUMBERS the rule claims
+# rather than through the constants it reads: a window built with
+# `range(draw_range.MIN_SAMPLES)` moves with a doubled constant, which is how
+# the round-5 pin pass left `MIN_SAMPLES = 48` surviving. One case per bound.
+def _cf_win_cfg(pairs, cfg):
+    window = _cf_drm.DrawRange()
+    for asked, drawn in pairs:
+        window.observe(drawn, asked, cfg[0], cfg[1])
+    return window
+
+
+_cf_lit48 = [(a, 1.3 * a) for a, _ in _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), 48)]
+R.check(
+    "follows_ask gives evidence at 48 running samples and none at 47, and it "
+    "answers a bool, never None, once it has them",
+    _cf_drm.follows_ask(_cf_window(_cf_lit48)) is True
+    and _cf_drm.follows_ask(_cf_window(_cf_lit48[:-1])) is None,
+)
+# 8 asks at exactly the configured floor and 40 at 1.15 kW: the 10th and 90th
+# percentiles land on data points, so the span is exactly FOLLOW_ASK_SPAN.
+_cf_span = [(1.0, 1.3)] * 8 + [(1.15, 1.15 * 1.3)] * 40
+R.check(
+    "asks spanning exactly 1.15 are evidence (the span bound is `<`), and an "
+    "ask exactly at the configured floor counts as a running level",
+    _cf_drm.follows_ask(_cf_window(_cf_span)) is True,
+    f"{_cf_drm.follows_ask(_cf_window(_cf_span))}",
+)
+# 24 asks at 1.0 drawn at 1.0, 24 at 2.0 drawn at sqrt(2): the log-log slope is
+# the double 0.5 exactly, which is FOLLOW_SLOPE_MIN.
+_cf_half = [(1.0, 1.0)] * 24 + [(2.0, 2 ** 0.5)] * 24
+R.check(
+    "a draw whose log-log slope is exactly 0.5 follows the ask (the slope bound "
+    "is `>=`, not `>`)",
+    _cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0))) is True,
+    f"{_cf_drm.follows_ask(_cf_win_cfg(_cf_half, (1.0, 14.0)))}",
+)
+# With no configured minimum (0.0), the only thing that keeps a pump-off
+# sample -- asked 0.0 while the meter shows standby -- out of the window is the
+# second half of the conjunction. Both halves are needed: dropping either lets
+# a log(0.0) into the slope.
+_cf_zero = _cf_win_cfg([(a, 1.3 * a) for a, _ in _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), 48)]
+                       + [(0.0, 0.4)] * 8, (0.0, 14.0))
+R.check(
+    "a sample asked nothing is not a running level: with no configured minimum "
+    "the positive-ask half of the filter still drops it",
+    _cf_drm.follows_ask(_cf_zero) is True,
+    f"{_cf_drm.follows_ask(_cf_zero)} over {len(_cf_zero.samples)} samples",
+)
+
 # -- live power clamp, 7a: the metered running draw (draw_range) ------------
 # The foundation of the plan's clamp to the meter (#201 decision 6067353918):
 # the statistic, its evidence latch, the running-sample filter, the effective
@@ -60598,6 +60708,31 @@ R.check(
     f"planned {_dr_top_far.planned(2.0, 10.0)}",
 )
 _dr_low_near = _dr_engaged_at(2.2, 5.0)
+# The boundary itself: 0.85 x 10.0 is the double 8.5 exactly, and the metered
+# top is a data value, so `observed()[1]` equals the bar rather than falling
+# either side of it. The rule keeps a configured end the meter only *reaches*,
+# so the comparison is `<` and the fixture's own equality is what makes the
+# check non-vacuous: were the percentile not exactly 8.5, the first clause
+# would fail.
+_dr_top_at = _dr_engaged_at(2.6, 8.5)
+R.check(
+    "a metered top exactly 15 % under the configured max keeps the configured "
+    "max (the agreement bound is `<`, not `<=`)",
+    _dr_top_at.observed()[1] == 8.5
+    and _dr_top_at.engaged
+    and _dr_top_at.planned(2.0, 10.0)[1] == 10.0,
+    f"observed {_dr_top_at.observed()}, planned {_dr_top_at.planned(2.0, 10.0)}",
+)
+_dr_bottom_at = _dr_engaged_at(0.92, 9.0, cfg=(0.8, 20.0))
+R.check(
+    "and a metered floor exactly 15 % over the configured min keeps the "
+    "configured min (that bound is `<=`: 0.92-0.8 is exactly 0.15 x 0.8, which "
+    "is why the configured min is 0.8 and not 2.0)",
+    _dr_bottom_at.observed()[0] == 0.92
+    and _dr_bottom_at.engaged
+    and _dr_bottom_at.planned(0.8, 20.0)[0] == 0.8,
+    f"observed {_dr_bottom_at.observed()}, planned {_dr_bottom_at.planned(0.8, 20.0)}",
+)
 R.check(
     "a metered floor within 15 % of the configured min keeps the configured min",
     _dr_low_near.engaged and _dr_low_near.observed()[0] != 2.0

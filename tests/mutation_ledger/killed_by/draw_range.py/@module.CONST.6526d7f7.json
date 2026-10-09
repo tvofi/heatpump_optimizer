@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST 6526d7f7",
+  "killed_by": "tests/features.py",
+  "old": "MIN_SAMPLES = 48",
+  "reason": "Hand-recorded by the #2066 fixer at 4bf7bdde1 against the ratchet base b2b6acd64, not by `--pin-killed` (whose baselines need CI's Linux floats). `CONST` (MIN_SAMPLES = 96) flips the condition of tests/features.py's R.check \"follows_ask gives evidence at 48 running samples and none at 47, and it answers a bool, never None, once it has them\" -- `MIN_SAMPLES = 96` reads False on all four window cases: the 48-sample window the new check counts as a literal 48 answers None. Measured by copying the package, rewriting that one line to the operator's own text and re-evaluating the check's condition: baseline True, mutant as stated (evidence table in the pull request's body, `## Unpinned sites`). CI's `--pin-killed` at a pull_request head re-measures the driver itself."
+}
