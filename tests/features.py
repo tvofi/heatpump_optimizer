@@ -60234,6 +60234,19 @@ def _dr_params(lo=_DR_MIN, hi=_DR_MAX):
     return p
 
 
+def _dr_at(pairs, cfg=(_DR_MIN, _DR_MAX)):
+    """A range fed exactly these ``(drawn, asked)`` running samples, in order.
+
+    `_dr_learner` draws a shape from a seed; a boundary needs a POPULATION --
+    so many samples at one value, so many at another -- whose percentiles and
+    disagreeing share are countable in the check that states them.
+    """
+    d = _dr.DrawRange()
+    for drawn, asked in pairs:
+        d.observe(drawn, asked, *cfg)
+    return d
+
+
 _DR_SWITCH = _DrCap(writes=frozenset({"switch", "setpoint"}), measured_power=True, frequency=False)
 _DR_DUTY = _DrCap(writes=frozenset({"setpoint"}), measured_power=True, frequency=False)
 _DR_FREQ = _DrCap(writes=frozenset({"switch", "frequency"}), measured_power=True, frequency=True)
@@ -60252,6 +60265,15 @@ R.check(
     _dr_live.engaged and _dr_live.planned(_DR_MIN, _DR_MAX) == _dr_live_seen
     and 1.2 <= _dr_live_seen[0] < _dr_live_seen[1] <= 1.8,
     f"observed {_dr_live_seen}",
+)
+_dr_p10_real = _dr_at([(1.2, 1.2)] * 18 + [(2.0, 2.0)] * 102)
+_dr_p10_glitch = _dr_at([(1.2, 1.2)] * 11 + [(2.0, 2.0)] * 109)
+R.check(
+    "the floor is the TENTH percentile: a run of samples at the pump's true "
+    "minimum sets it when they are 15 % of the window, and a meter glitch of "
+    "9 % leaves it alone",
+    _dr_p10_real.observed()[0] == 1.2 and _dr_p10_glitch.observed()[0] == 2.0,
+    f"15 % {_dr_p10_real.observed()}, 9 % {_dr_p10_glitch.observed()}",
 )
 _dr_null = _dr_learner("null")
 R.check(
@@ -60277,6 +60299,22 @@ R.check(
 R.check(
     "and at MIN_SAMPLES the same evidence engages (the boundary's other side)",
     _dr_learner("live", n=_dr.MIN_SAMPLES).planned(_DR_MIN, _DR_MAX) is not None,
+)
+_dr_day_under = _dr_at([(1.5, 9.0)] * 47)
+_dr_day = _dr_at([(1.5, 9.0)] * 48)
+R.check(
+    "the evidence floor is a day of half-hour runs counted in the test, not read "
+    "off the constant: 47 samples is not a day, 48 is and engages",
+    _dr_day_under.observed() is None and not _dr_day_under.engaged
+    and _dr_day.observed() == (1.5, 1.5) and _dr_day.engaged,
+    f"47 -> {_dr_day_under.observed()}, 48 -> {_dr_day.observed()}",
+)
+_dr_walked = _dr_at([(9.0, 9.0)] * 50 + [(1.5, 1.5)] * 336)
+R.check(
+    "and the window is a week counted in the test: after 386 running samples only "
+    "the last 336 stand, so a draw 386 runs back is not the ceiling",
+    len(_dr_walked.samples) == 336 and _dr_walked.observed() == (1.5, 1.5),
+    f"{len(_dr_walked.samples)} samples, observed {_dr_walked.observed()}",
 )
 
 # The latch: once clamped the plan asks no more than the clamp, so the
@@ -60309,6 +60347,28 @@ R.check(
     "a sub-floor duty-cycle average overdrawn by the running pump is no evidence",
     not _dr_duty._disagrees(2.0) and not _dr_duty.engaged,
 )
+_dr_at_floor = _dr_at([(5.0, 5.0)] * 36 + [(6.0, 2.0)] * 12, cfg=(2.0, 10.0))
+R.check(
+    "a level asked at EXACTLY the configured floor is a level the pump was asked "
+    "to run at, so its disagreement counts",
+    _dr_at_floor._disagrees(2.0) and _dr_at_floor.engaged,
+    f"disagrees {_dr_at_floor._disagrees(2.0)}, engaged {_dr_at_floor.engaged}",
+)
+_dr_edge = _dr_at([(4.0, 5.0)] * 24 + [(5.0, 4.0)] * 24, cfg=(2.0, 10.0))
+R.check(
+    "a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees "
+    "with the plan: the factor boundary is not a disagreement",
+    not _dr_edge._disagrees(2.0) and not _dr_edge.engaged
+    and _dr_edge.planned(2.0, 10.0) is None,
+    f"disagrees {_dr_edge._disagrees(2.0)}, engaged {_dr_edge.engaged}",
+)
+_dr_share_under = _dr_at([(5.0, 5.0)] * 37 + [(6.0, 2.0)] * 11, cfg=(2.0, 10.0))
+R.check(
+    "the latch engages at a quarter of the window disagreeing, not below it: 12 "
+    "of 48 engages, 11 of 48 does not",
+    _dr_at_floor.engaged and not _dr_share_under.engaged,
+    f"12/48 {_dr_at_floor.engaged}, 11/48 {_dr_share_under.engaged}",
+)
 
 # S4: the effective range, by install.
 _dr_eff = _dr.planned_range(_dr_live, _dr_params(), _DR_SWITCH)
@@ -60319,6 +60379,17 @@ R.check(
 R.check(
     "S4 where the install can duty-cycle: the min end stays configured",
     _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
+)
+_dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
+_dr_below_seen = _dr_below_min.observed()
+R.check(
+    "S4 on a duty-cycling install that runs below its configured min: the min end "
+    "is capped at the metered max, never booked above the max it may book",
+    _dr_below_min.engaged and _dr_below_seen[1] < 2.0
+    and _dr.planned_range(_dr_below_min, _dr_params(2.0, _DR_MAX), _DR_DUTY)
+    == (_dr_below_seen[1], _dr_below_seen[1]),
+    f"observed {_dr_below_seen}, effective "
+    f"{_dr.planned_range(_dr_below_min, _dr_params(2.0, _DR_MAX), _DR_DUTY)}",
 )
 R.check(
     "S4 where the plan writes the frequency: None, the draw is its own echo",
@@ -60366,12 +60437,32 @@ R.check(
     _dr_low_far.planned(2.0, 10.0)[0] == _dr_low_far.observed()[0] > 2.3,
     f"planned {_dr_low_far.planned(2.0, 10.0)}",
 )
+_dr_top_edge = _dr_engaged_at(2.6, 8.5)
+R.check(
+    "the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % below "
+    "the configured one keeps the configured one",
+    _dr_top_edge.observed()[1] == 8.5 and _dr_top_edge.planned(2.0, 10.0)[1] == 10.0,
+    f"observed {_dr_top_edge.observed()}, planned {_dr_top_edge.planned(2.0, 10.0)}",
+)
+_dr_low_edge = _dr_engaged_at(2.875, 8.0, cfg=(2.5, 10.0))
+R.check(
+    "and inclusive at the bottom: a metered min exactly 15 % above the configured "
+    "one keeps the configured one (the tie, in floats that tie)",
+    _dr_low_edge.observed()[0] == 2.875 and _dr_low_edge.planned(2.5, 10.0)[0] == 2.5,
+    f"observed {_dr_low_edge.observed()}, planned {_dr_low_edge.planned(2.5, 10.0)}",
+)
 
 # S2: the running-sample filter, one exclusion at a time against a control.
 _DR_OK = dict(frozen=False, distorted=False, defrost=False)
 R.check(
     "S2 control: a running space interval is a running sample",
     _dr.is_running_space(2.3, 6.0, 0.0, **_DR_OK),
+)
+R.check(
+    "S2: the standby floor is 0.25 kW counted in the test -- 0.3 kW is the pump at "
+    "its minimum modulation and a sample, 0.2 kW is circulation and not one",
+    _dr.is_running_space(0.3, 6.0, 0.0, **_DR_OK)
+    and not _dr.is_running_space(0.2, 6.0, 0.0, **_DR_OK),
 )
 for _dr_label, _dr_args in (
     ("no meter", ((None, 6.0, 0.0), {})),
@@ -60459,6 +60550,22 @@ for _dr_label, _dr_cfg in (("unreadable", ["a", 2]), ("absent", None), ("non-fin
     )
 
 # Diagnostics: the learned values through the module's own view (S7).
+_dr_partial = _dr.DrawRange.from_dict(
+    {"samples": [[1.5, 9.0]] * 10, "engaged": True, "config": [_DR_MIN, _DR_MAX]})
+R.check(
+    "a stored latch that has not reached MIN_SAMPLES answers, it does not raise: "
+    "no statistic, so no clamp",
+    len(_dr_partial.samples) == 10 and _dr_partial.engaged
+    and _dr_partial.planned(_DR_MIN, _DR_MAX) is None,
+    f"{len(_dr_partial.samples)} samples",
+)
+_dr_both_within = _dr_at([(2.2, 3.0)] * 48 + [(8.6, 3.0)] * 48, cfg=(2.0, 10.0))
+R.check(
+    "an engaged latch whose metered ends EACH stand within the tolerance returns "
+    "None: the configured range stands, it is not echoed back as a clamp",
+    _dr_both_within.engaged and _dr_both_within.planned(2.0, 10.0) is None,
+    f"observed {_dr_both_within.observed()}",
+)
 _dr_dg = _dr_coord(heat_pump_min_power=_DR_MIN, heat_pump_max_power=_DR_MAX)
 _dr_dg._accuracy.draw = _dr_learner("live")
 _dr_snap = _dr_diag._coordinator_snapshot(_dr_dg)["draw_range"]
