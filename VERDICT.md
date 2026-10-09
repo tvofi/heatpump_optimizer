@@ -1,48 +1,31 @@
-Fix review: blocked 3637f1c780ae030ba19bcd0818a7e19ee18ee9f2 architecture-unsound: the STALE PIN arm is whole-tree, so a stale pin main carries refuses an unrelated branch (measured rc 1 on a tests/README.md-only diff); every other refusing 6d arm is diff-scoped and has a main-state null control
+Fix review: merge 5bcf9d2b201951ff8dfb0e414c633546f1bef453
 
-bus-nonce: 4e7628e8564146c85ec735d666a479ca
+bus-nonce: 18f1556c737e72f46c1e8436c27db8ff
 
-Round 1. Reviewer: review-2073. I measured head `3637f1c780ae030ba19bcd0818a7e19ee18ee9f2` against merge base `47b083b0` in a standalone clone, and I used the base copy of `ci_predict.py` as the "before" predictor. Evidence: `/Users/timmalmstrom/hpo-seats/review-2073/ev/` (RESULTS.txt and one file per arm).
+Round 2. Reviewer: review-2073. I measured head `5bcf9d2b201951ff8dfb0e414c633546f1bef453` against merge base `47b083b0` in a standalone clone. Evidence: `/Users/timmalmstrom/hpo-seats/review-2073/ev/r2/` (RESULTS.txt and one file per arm).
 
 ## RESULT lines
 
-- RESULT null: unmodified tree, rc 0.
-- RESULT edit: pinned line `away.py:574` edited. New predictor rc 1, `STALE PIN ..._parse_return_time RETURN_DEL 17d5e3f1`. Base predictor rc 0.
-- RESULT delete: `restore_override` deleted. New predictor rc 1, `STALE PIN ...restore_override GUARD_OFF 5cc88563`. Base predictor rc 0.
-- RESULT remedy: the edit with its pin file removed. rc 0, with only the ADDED UNPINNED warning.
-- RESULT shift: 14 comment lines prepended to `away.py`. rc 0, no STALE PIN, because a pure move stays valid.
-- RESULT wedge: the base commit carries a stale pin and the branch edits only `tests/README.md`. rc 1, STALE PIN.
-- RESULT cost: `completeness_problems` takes 3.4, 4.3 and 7.4 ms over 5891 sites and 1250 pins. The predictor's wall time at head (4.4-5.7 s) is the same as at the base (5.7-7.7 s) within noise. The claim of 0.01 s holds as an upper bound.
+- RESULT null: unmodified head, rc 0.
+- RESULT edit: pinned line `away.py:574` edited. rc 1, `PREDICT ledger STALE PIN ..._parse_return_time RETURN_DEL 17d5e3f1`.
+- RESULT delete: `restore_override` deleted. rc 1, `STALE PIN ...restore_override GUARD_OFF 5cc88563`.
+- RESULT remedy: the edit with its pin file removed. rc 0.
+- RESULT wedge: this is the round-1 block. The base carries a stale pin and the branch edits only `tests/README.md`. Now rc 0, with `PREDICT mutation STALE PIN ON MAIN (not this diff's)`.
+- RESULT ledger: the base carries a stale pin and the branch edits only that pin's ledger file. rc 1. With the ledger-file arm removed the same plant gives rc 0, so the arm is live.
+- RESULT CI: `instrument-self-tests` (job 113698515544) is green. Its log shows `ok` for the new `pstaleun` arm ("a stale pin main already carries warns and names main, never refuses an unrelated branch") and for both earlier STALE PIN arms.
+- RESULT settle: all 40 check-runs are complete. The only red is `nightly-status`, and this diff does not reach what it reads.
+- RESULT merge: main+#2073+#2067 (`09d2061b`)+#2072 (`8766b840`) merges cleanly in three orders, each giving tree `571a0ac7`, and `bash -n` passes. #2072 now labels its step 6e, so the labels 6a-6e are unique.
+- RESULT carry: I re-derived the `--perturb` carry at `47b083b0`. `.github` has 0 `--perturb` lines and `dev/audit` has 1704; `governance.yml:411` runs `codeowners_gap --self-test`. The prior carry's control reproduced in round 1, and `briefs` is green at head.
 
-## The blocking finding
+## Round-1 notes, all addressed
 
-`unpinned()` adds `completeness_problems(budgets, sites)` over the whole tree with no diff filter. The new code comment says "a pin whose site the diff edited, moved or deleted", but the check is broader than that claim. Every other refusing arm of 6d is diff-scoped:
-- UNCLASSIFIED: `if f in changed`
-- NO RECORDING: `s in changed or lanes_changed`
-- ADDED UNPINNED: `diff_sides`
+- The 6d header comment now names STALE PIN.
+- The body's Forward-carry section names both `carry-201` entries.
+- The count is corrected to three.
+- The `--perturb` gap is carried separately for D11/D13, as a different class.
 
-The self-test pins that property with "6d charges no branch with an unrecorded script main already carries (null control)". The new arm has no such control.
+## Residual notes (non-blocking)
 
-The state is reachable. `mutation` is required in ruleset 23698884, but `strict_required_status_checks_policy` is false. So if PR A's autofix pins a line and PR B edits that line, both merge green and main carries the stale pin. From then on, prepr refuses every seat's push with "repair before the handoff" until some unrelated PR deletes main's ledger file.
-
-Repair:
-- Refuse only a stale pin whose anchor file, or whose ledger file under `tests/mutation_ledger/`, is in the diff's changed paths.
-- Print any other stale pin as a WARN that says main carries it.
-- Add a self-test arm built like `pinh`/`pmainred`.
-
-The filter still catches all three cases in the RCA: #2065, where the branch adds the pin and also changes the file; #2066 and #2070, where the anchor file is changed.
-
-## Checked and passing (not blocking)
-
-- **Process state (c).** It matches `root-cause.md`'s own wording: the check existed in CI and in no local path. The class search is honest. Of the arms `ci_predict.py` models, the ledger was the only half-ported pair.
-- **Carry.** `briefs` is green at head, and I reproduced the carry's control: a 14-line prepend makes the fixture VACUOUS with rc 1, a 1-line prepend gives rc 0. The carry is well formed.
-- **Merge simulation.** main+#2073+#2067+#2072 merges cleanly in three orders, each giving tree `85031e98`, and `bash -n` passes. The duplicate `# --- 6d.` label comes from #2072 alone (its layout guard) against main's existing 6d. `6e` is unused, and #2073 adds no label.
-- **Red checks.** None except `nightly-status`, and this diff does not reach what that check reads.
-- **Untouched.** `VERSION`, the manifest and the claim files.
-
-## Notes for the re-push (non-blocking)
-
-1. The 6d header comment in `prepr.sh` (around lines 394-403) lists what refuses. It should name STALE PIN too.
-2. The body says "Forward-carry: none", but the PR adds an entry to `carry-201.json`. Name it there.
-3. "Four occurrences": the RCA's own list has three stale-pin PRs. The fourth item, the pr-contract observation, is not a pin red. The cost verdict is unchanged.
-4. The #2070 observation, that CI never runs a round's `--perturb` arms, is a separate class: an instrument CI never exercises, so its breakage turns nothing red. It does not belong to this RCA's class, a local predictor that ports half of a CI refusal. It belongs to D11/D13 or its own carry.
+1. `stale_pin_preds` recomputes the three-dot diff that `predict()` already holds. Passing `changed` in would remove the duplicate.
+2. No self-test arm plants the ledger-file-only case. I measured it above.
+3. The ledger stem match is on the basename only, so it does not check the module directory. A collision would need the same scope, kind and digest in two modules.

@@ -1,20 +1,17 @@
-3637f1c780ae030ba19bcd0818a7e19ee18ee9f2
-BLOCKED
-5c937c9bcae142cc72fba6b15f3f03c824e284b3
-3637f1c780ae030ba19bcd0818a7e19ee18ee9f2
-Root-cause countermeasure for the recurring "a fix edited, moved or deleted a line the mutation ledger pinned" red (four times on 2026-10-08/09: #2065, #2066, #2070 and the shifted-file case). Step 6d of `prepr.sh` (`tools/pr/ci_predict.py`) predicted the ledger's forward direction only, a site with no pin, as a warning. It did not predict the backward direction: a pin whose site the diff edited, moved or deleted, which `mutation` refuses from the same `inventory()` through `completeness_problems`. `mutation-autofix` only adds pins and never drops one, so a body that said the bot would fix it was wrong.
+5bcf9d2b201951ff8dfb0e414c633546f1bef453
+Root-cause countermeasure for the recurring "a fix edited, moved or deleted a line the mutation ledger pinned" red (three stale-pin PRs on 2026-10-08/09: #2065, #2066, #2070). Step 6d of `prepr.sh` (`tools/pr/ci_predict.py`) predicted the ledger's forward direction only, a site with no pin, as a warning. It did not predict the backward direction: a pin whose site the diff edited, moved or deleted, which `mutation` refuses from the same `inventory()` through `completeness_problems`. `mutation-autofix` only adds pins and never drops one, so a body that said the bot would fix it was wrong.
 
 Process state: (c), the process was followed and did not produce the intended result. Step 6d existed, ran, and passed on all of these; its unit covered one of the two directions the CI check refuses. Not (b): a firmer instruction would not have changed a green 6d.
 
 The change: `ci_predict.unpinned` now also returns `completeness_problems(budgets, sites)` as `PREDICT ledger STALE PIN ...` lines, a refusing job (rc 1), plus one remedy line. One new `--self-test` arm in `prepr.sh` plants it. This reuses the `inventory()` call the step already makes, so the standing cost is the completeness comparison alone.
 
-Second push: adds the RCA record and the carry entry, no further code change.
+Round-1 repair (review blocked 3637f1c7): the STALE PIN arm refuses only when the diff stales the pin (anchor file or its ledger file in the diff); a stale pin main already carries prints `STALE PIN ON MAIN` as a warning, rc 0. New self-test arm for that, 6d header comment lists STALE PIN, RCA corrected to three stale-pin PRs, second carry added.
 
-Keep-small note: #2067 and #2072 also edit `prepr.sh`. This edit there is one added branch in the 6d clone chain and four added lines of arms, after the `pmut` arm; no existing line is changed, so a textual merge with either should be clean.
+Keep-small note: #2067 and #2072 also edit `prepr.sh`. This edit there is two added branches in the 6d clone chain, a few added lines of arms after the `pmut` arm, and two reworded lines in the 6d header comment (about line 398); the reviewer's three-order merge simulation of round 1 was clean and the added hunk has grown by a few lines since.
 
 ## Head
 
-`3637f1c780ae030ba19bcd0818a7e19ee18ee9f2`
+`5bcf9d2b201951ff8dfb0e414c633546f1bef453`
 
 ## Mutation proof
 
@@ -22,6 +19,7 @@ Planted a stale pin: edited the pinned line `return stored_instant(value, dt_uti
 
 - origin/main's predictor: prints only the ADDED UNPINNED warning, "no closures or fast red predicted", rc 0.
 - this branch's predictor: `PREDICT ledger   STALE PIN ...away.py:_parse_return_time RETURN_DEL 17d5e3f1: disposition names no site the inventory generates`, rc 1.
+- unrelated edit on a base that already carries a stale pin: rc 0, `PREDICT mutation STALE PIN ON MAIN ...` warning only (the round-1 repair; `ci_predict.py --base` the stale commit).
 - after deleting that ledger file (the remedy the new line names): no STALE PIN line, rc 0.
 - `bash tools/pr/prepr.sh --self-test`: both new arms ok ("6d predicts STALE PIN for a pinned line the diff edits, and refuses on it", "a stale pin refuses, unlike an unpinned site"), and every 6d arm before and after them ok. The run was stopped once the 6d arms and the pinned-grader arms had passed; the full self-test is run by CI. The tracebacks it printed (`AssertionError: no-pinned-line`, `env-indirect`) come from the governance.yml perturbation helper, sit in lines this diff does not touch, and the arms they belong to print ok.
 
@@ -40,7 +38,7 @@ none
 
 ## Forward-carry
 
-none
+`dev/programme/carries/carry-201.json`: two entries from this PR, the brief_lint `wood_share:1152` frozen fixture, and the CI-never-runs-`--perturb` gap (a different class, for D11/D13).
 
 ## Friction
 
@@ -48,10 +46,10 @@ none
 
 ## Cost test
 
-cost(countermeasure, recurring) is 0.01 s per prepr run (a comparison over the inventory the step already builds). cost(defect) is one CI fast and mutation cycle, about 30 minutes plus the fixer's re-push and re-review, four occurrences in one night. cost 0.01 s against 4 x 30 min leaves no case for refusing it.
+cost(countermeasure, recurring) is 0.01 s per prepr run (a comparison over the inventory the step already builds). cost(defect) is one CI fast and mutation cycle, about 30 minutes plus the fixer's re-push and re-review, three stale-pin PRs in one night. cost 0.01 s against 3 x 30 min leaves no case for refusing it.
 
 Two arms of the assignment were costed and not built:
-- brief_lint on every production diff: `node tools/policy/brief_lint.mjs` took 1 m 45 s here (under load), for one frozen fixture (`wood_share:1152`, `tools/policy/brief_lint.mjs` line 1043) that broke in one of four incidents. Refused. The fixture is carried, not filed, as an entry in `dev/programme/carries/carry-201.json`, with its measured control: 14 prepended lines to `thermal_model.py` take brief_lint to rc 1 (FIXTURE VACUOUS), 1 prepended line and the unmodified tree stay rc 0.
+- brief_lint on every production diff: `node tools/policy/brief_lint.mjs` took 1 m 45 s here (under load), for one frozen fixture (`wood_share:1152`, `tools/policy/brief_lint.mjs` line 1043) that broke in one of three incidents. Refused. The fixture is carried, not filed, as an entry in `dev/programme/carries/carry-201.json`, with its measured control: 14 prepended lines to `thermal_model.py` take brief_lint to rc 1 (FIXTURE VACUOUS), 1 prepended line and the unmodified tree stay rc 0.
 - pr-contract Red checks answer naming the head: recorded as an owner decision, not filed and not built. The check matches names by design (the ancestry arm of #1860 derives names from earlier heads), the machinery is code-owned, and one stale answer is not a measured class frequency.
 
 The full analysis is `dev/audit/rca/R9-RCA-stale-pins.md`, added in this PR.
