@@ -1,0 +1,23 @@
+DELTA 7843b7992..1f9d606dd — commit accounting
+  total commits in the delta: 134
+  of those, main's own lineage (a9baf164c not reachable from 7843b7992): 133
+  of those, new on the branch side (delta --not a9baf164c): 1
+    1f9d606dd Merge remote-tracking branch 'origin/main' into fix/live-diag
+  the one new commit: 1f9d606dd 7843b7992 a9baf164c tvofi <70032254+tvofi@users.noreply.github.com> Fri Oct 9 21:19:10 2026 +0200 | Merge remote-tracking branch 'origin/main' into fix/live-diag
+  merges in the delta authored on the branch side: 1f9d606dd only; every other merge in the range is main's own history (all authored tvofi, one 'Tvofi2', one hpo-ledger[bot] ci commit is not a merge).
+
+CLEANLINESS of 1f9d606dd
+  remerge-diff body lines: 0  (0 => no hand resolution; content is exactly what the two parents' auto-merge yields)
+  git merge-tree --write-tree 7843b7992 a9baf164c: rc=0 tree=679e3c77533319522444eeb933e690cae0441e64 (no conflict section, no MERGE-CLAIM marker)
+  actual merge tree: 679e3c77533319522444eeb933e690cae0441e64  identical=YES
+  merge-tree against LIVE origin/main (23d354970): rc=0
+
+BLOB identity, round-3 judged head 7843b7992 vs live head 1f9d606dd
+    SAME custom_components/heatpump_optimizer/diagnostics.py
+    SAME custom_components/heatpump_optimizer/notifier.py
+    SAME custom_components/heatpump_optimizer/setpoint_check.py
+    SAME tools/audit/seat/features_block.py
+
+ADDITIVITY of check counts (R.check( occurrences), base + branch = head
+    tests/entities.py  oldbase=1686 newbase=1694 round3=1691 head=1699
+    tests/features.py  oldbase=3488 newbase=3507 round3=3500 head=3519

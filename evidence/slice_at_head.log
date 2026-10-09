@@ -1,0 +1,30 @@
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+
+=== Entities and platforms ===
+
+-- Reauthentication (D10-08)
+  ok   a refused token starts the reauth flow once, not per cycle
+  ok   recovery re-arms the flow for a future revocation
+  ok   the reauth flow opens a confirm form asking for the token
+  ok   a valid token is written through and the entry reloads
+
+-- Diagnostics (D10-12)
+  ok   the Tibber token never leaves the instance
+  ok   no precise coordinate leaves the instance, from data or from options
+  ok   the coordinate survives as a coarse cell rather than as a hole
+  ok   the documented coordinate precision is one decimal place
+  ok   the coarsening reaches a coordinate nested below the top level
+  ok   the live config's coordinate, from options, is coarsened too
+  ok   a coordinate that is not a number is redacted rather than published
+  ok   a non-coordinate member of the location dict is left alone
+  ok   the installation name the user typed never leaves the instance
+  ok   the entity ids and the MQTT topic survive redaction
+  ok   the diagnostics config is the live config, with options laid over setup data
+  ok   the setup data is kept beside it, with the keys options override named
+  ok   an option equal to its setup value is not named as overriding it
+  ok   the setup data is redacted like the live config
+  ok   the payload is plain JSON and names the coordinator's state
+  ok   the learner summaries are present
+
+ALL 20 ENTITY SLICE PASSED

@@ -1,0 +1,20 @@
+payload identical   hunks same   +/-= 23/ 23  custom_components/heatpump_optimizer/diagnostics.py
+payload identical   hunks same   +/-= 58/ 58  custom_components/heatpump_optimizer/notifier.py
+payload identical   hunks same   +/-= 15/ 15  custom_components/heatpump_optimizer/setpoint_check.py
+payload identical   hunks moved  +/-=  4/  4  custom_components/heatpump_optimizer/strings.json
+payload identical   hunks moved  +/-=  4/  4  custom_components/heatpump_optimizer/translations/en.json
+payload identical   hunks moved  +/-=  4/  4  custom_components/heatpump_optimizer/translations/sv.json
+payload identical   hunks same   +/-=  1/  1  dev/programme/delivery/2071.md
+payload identical   hunks moved  +/-= 57/ 57  tests/entities.py
+payload identical   hunks moved  +/-=189/189  tests/features.py
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/notifier.py/@module.CONST.fd447209.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/notifier.py/FloorReturnWatch.handle.GUARD_OFF.0c2c7df9.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/notifier.py/floor_return_silence.CMP_BOUND.5597aec9.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/notifier.py/floor_return_silence.GUARD_OFF.5597aec9.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/notifier.py/floor_return_silence.GUARD_OFF.ed69fc36.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/setpoint_check.py/set_issue.GUARD_OFF.df23403d.json
+payload identical   hunks same   +/-=  6/  6  tests/mutation_ledger/killed_by/setpoint_check.py/set_issue.GUARD_OFF.e82bd653.json
+payload identical   hunks same   +/-=  6/  6  tools/audit/seat/INSTRUMENTS.md
+payload identical   hunks same   +/-= 42/ 42  tools/audit/seat/features_block.py
+
+RESULT: 18 files in the branch diff at both heads; files whose +/- payload differs: 0; files whose diff differs in hunk headers only: 5 -> ['custom_components/heatpump_optimizer/strings.json', 'custom_components/heatpump_optimizer/translations/en.json', 'custom_components/heatpump_optimizer/translations/sv.json', 'tests/entities.py', 'tests/features.py']
