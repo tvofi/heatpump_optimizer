@@ -1,0 +1,36 @@
+=== merge of origin/main (83f7ca558) into 3c9fe53fa ===
+--- WITH a merge driver installed, run where the checkout is MAIN's (tools/merge/ledger_merge.py = main's copy):
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (231 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (536 entries)
+  re-run the gate that owns this file before pushing
+d330f17c707054f6fc41da52b2e4d1aa8e93feec
+exit=0
+--- WITH a merge driver installed, run where the checkout is the BRANCH's (its older ledger_merge.py):
+LEDGER-MERGE: refused tests/closures.json: a side is not in its writer's own JSON format
+2916750f4c223c55a4549ce046bf8618b7acaf90
+100644 732ea25330c646d5b0736eabf92b2a572bf6001b 1	tests/closures.json
+100644 ca36c9b2b8977d16442ee11b0404fc802cbe8fb0 2	tests/closures.json
+100644 e820ffa640b7515598b80d0a8f50242dd9b2d3b5 3	tests/closures.json
+
+Auto-merging tests/closures.json
+CONFLICT (content): Merge conflict in tests/closures.json
+exit=1
+--- WITHOUT any driver (what GitHub computes):
+44442d91971d98b6c1c808d437dc7658e6851a85
+100644 732ea25330c646d5b0736eabf92b2a572bf6001b 1	tests/closures.json
+100644 ca36c9b2b8977d16442ee11b0404fc802cbe8fb0 2	tests/closures.json
+100644 e820ffa640b7515598b80d0a8f50242dd9b2d3b5 3	tests/closures.json
+
+Auto-merging tests/closures.json
+CONFLICT (content): Merge conflict in tests/closures.json
+exit=1
+--- the only conflicting path in every arm: tests/closures.json (a file main's 918a8c306 moved to a layout GitHub merges without a driver)
+--- main commits that changed the driver since this branch's merge base:
+88e04a5ca ledger_merge: build the --resolve self-test repository through throwaway_git_init
+03f7be4d3 Merge remote-tracking branch 'origin/main' into fix/r9-ci-2b
+cb7d99ee3 fix(R9-CI-2b): check refuses any text that is not write_closures' serialisation (#2057 round 1)
+17f7e0296 fix(R9-CI-2b): ledger_merge --resolve finishes the one merge an older driver refuses
+918a8c306 fix(R9-CI-2b): tests/closures.json in a layout GitHub merges without a driver
+--- claim files at this head vs main: both byte-equal (git diff --stat origin/main 3c9fe53fa -- the two claim files prints nothing)
+--- gh pr view at this head: mergeable CONFLICTING, mergeStateStatus DIRTY, isDraft true

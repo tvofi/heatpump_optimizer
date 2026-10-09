@@ -1,1 +1,1 @@
-block2.py = tests/features.py from '# -- live power clamp, 7a' to before sys.exit, at e408b9a, prefixed with 'from harness import FakeHass, Results; R = Results("DR BLOCK")'
+block.py = tests/features.py lines 60191-60434 at 7c5f647 prefixed with 'from harness import FakeHass, Results; R = Results("DR BLOCK")'; not copied here because the block quotes the install's metered figures.

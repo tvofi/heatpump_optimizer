@@ -1,0 +1,16 @@
+=== step 14: is the delta's ledger movement earned? Reviewer's own targeted mutant, both arms ===
+target: @module.CONST.26ebe546.json -- the pin records AGREE_TOLERANCE 0.15 -> 0.3 taking tests/features.py from rc=0 failed=0 to rc=1 failed=4
+instrument: pinverify.sh in this seat dir; driver = tests/features.py run locally at 3c9fe53fa (Darwin, Accelerate BLAS)
+BASELINE arm  (unmodified head)          : 1 of 3899 FEATURE CHECKS FAILED   (the one failure is the disclosed environment arm)
+4860:  FAIL R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]
+MUTANT arm    (AGREE_TOLERANCE = 0.3)    : 4 of 3899 FEATURE CHECKS FAILED
+4860:  FAIL R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]
+5077:  FAIL an overstated nameplate engages, at the metered running percentiles  [observed (1.2731540323422184, 1.7426658244652335)]
+5086:  FAIL S4 on a switch-plus-setpoint install: both ends metered  [(1.0, 1.7426658244652335)]
+5091:  FAIL and one beyond 15 % replaces it (the boundary's other side)  [planned (2.6, 10.0)]
+restored after both arms: line 63 = AGREE_TOLERANCE = 0.15, tree clean.
+READING: on the seat's Darwin the mutant kills 3 of the branch's own DR-block checks (the metered-percentile
+engagement, S4 both-ends metered, and the 15 % boundary's other side) on top of the environment arm that fails
+anyway; CI measured failed=0 -> failed=4 on the canonical Linux environment. The pin is earned, and it is not
+a planted movement: an edit of the pinned line takes the ledger check red (the completeness check refuses the
+(anchor, old) pair), so the disposition is bound to the source content.
