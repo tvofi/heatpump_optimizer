@@ -1,1 +1,0 @@
-delivery-status	Report what is pending and what is overdue a row	2026-10-08T12:35:40.3768685Z This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.

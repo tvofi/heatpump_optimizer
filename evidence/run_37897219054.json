@@ -1,0 +1,1 @@
+{"conclusion":"failure","createdAt":"2026-10-09T07:07:13Z","databaseId":37897219054,"displayTitle":"fix(R9-CI-2b): verdicts carry over bot commits; a merge-main bot un-DIRTYs driver-only conflicts","event":"pull_request","headBranch":"fix/r9-ci-2b-carry","startedAt":"2026-10-09T07:07:13Z","status":"completed","updatedAt":"2026-10-09T08:09:41Z","workflowName":"Tests"}
