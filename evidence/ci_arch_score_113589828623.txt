@@ -1,0 +1,13 @@
+shell: /usr/bin/bash -e {0}
+env:
+  PR_BASE: bd59a4af1b2616a7f00761a3769d22a335e4df7c
+  PR_HEAD: f14e77c95e6a3e030ac2ee709cf3d87ff3899188
+##[endgroup]
+the base holds no tools/audit/archscore/gate.py: this pull request adopts it, so its own copy runs
+gate self-test: all cases pass
+merge base bd59a4af1b26, head f14e77c95e6a
+Architecture score: dS +0.0000 NULL
+PASS: dS +0.0000 NULL, no gate metric rose
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.55.0
