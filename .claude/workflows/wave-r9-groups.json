@@ -7981,6 +7981,25 @@
     "stage": "not-started",
     "branch": null
    }
+  },
+  {
+   "group": "R9-RC-BLAS-KERNEL-RED",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 defect fix (lane fix): a macOS seat cannot open a pull request whose closure reaches tests/features.py, because one check in it is BLAS-kernel-red at main.\n\nMEASURED 2026-10-09. `tools/pr/prepr.sh` step 6b records closures by RUNNING the scripts a change reaches; `tests/features.py` exits 1 at current `origin/main` on this machine, on one check only: `R9-F2.1 P3`, reading `shipped 110.4366` against `seeded 110.1297`. It fails identically in a clean `git archive` tree of `a8ce87571` (one seat's reading) and at `d8a4bd36f` and `23d354970` (another's), and one seat measured that pinning BLAS to a single thread does not change it. Three seats reported the same red independently tonight. Consequence: `prepr` prints `REFUSE closures -- failed while being recorded: tests/features.py (exit 1) -- fix the script first; a re-derive would record the same truncation`, and `tools/pr/app_push.sh` therefore mints, pushes and posts NOTHING. Two brand-new pull requests were refused that way at 20:5xZ tonight (R9-DBG-2 at `c901f8f34` and R9-UX-10 at `f9809c06a`), and both lanes are now stranded: their heads are complete, their bodies pass `pr-body`/`figures`/`unpinned`, and only the closures recording refuses. A lane that must wait for CI to be openable is a lane that cannot be opened.\n\nWHY THE REFUSAL IS RIGHT AND MUST STAY. A recording whose script died is a truncated closure, and a truncated closure recorded as coverage is the `UNDER-SCOPED` failure mode `ci-autofix.md` says re-deriving would record again. So the answer is NOT a flag that waves the closures step past a red script. Whatever you build must still refuse a genuinely broken `tests/features.py`, and you owe an arm proving it: plant a real failure and show `prepr` refuses it exactly as it refuses this one.\n\nCANDIDATE ARMS, priced in cost-test order, choose by measurement not preference. (a) **Make the check kernel-stable.** `tests/README.md` section 'A knife-edge optimizer comparison must be measured across BLAS kernels' names both sanctioned shapes -- `env_drift.py`'s capture-twice (a same-run quantity whose basin choice cancels) or an arm measured bit-stable across kernels -- and the instrument is `tools/audit/harnesses/k1725_blas_kernel_gap.py`, per kernel via `OPENBLAS_CORETYPE`, with CI's own green logs as the AVX-512 point. That document also records the precedent: #1725's ftol check read 60.54-63.48 SEK across four kernels against a 0.1% bound while the production arm held 61.24-61.28, i.e. a bound set from two environments. Measure `R9-F2.1 P3`'s two arms per kernel on this box first, and say which quantity does not move. This is the arm that improves the suite; it may cost lines and must not raise a cap without the owner. (b) **Declare the drift** the way `dev/governance/dimensions/D2.md` describes for the five `may-drift` golden fixtures -- but note `env_drift.py` refuses a fixture that is both claimed and may-drift, `claims-for:` must equal `VERSION`, and only a canonical environment may honestly record a value-bearing fixture: a mac seat CANNOT record one, so if you reach for this arm you must show what the Linux lane recorded and not record a float yourself. (c) Anything better you find, with the same two tests: does a real features.py red still refuse, and does a macOS seat become able to open a PR.\n\nBOUNDARY AND PROOF. `tests/features.py` is measured production-reachable: keep `tests/closures.json` honest about it, and any new tracked file deliberately classified (a closure or `INERT`) or `tests/entities.py` refuses the branch. The null control is the platform the red does not appear on: at CI's kernel class the same check is green, so your arm must show the check is green there too -- cite the check-run, do not assert it. Owes a `## Root cause` answer beside the code (this check reached a state where every macOS seat's push refused and three seats each rediscovered it separately; name the process state that let a kernel-dependent comparison be committed green, per `dev/governance/rules/defect-root-cause.md`) and one line in `dev/programme/HANDOVER.md`'s owed list is NOT yours to write -- the record pass is the orchestrator's.",
+   "model": {
+    "fixer": "opus",
+    "fixer_why": "choosing a kernel-stable quantity needs measurement across four BLAS kernels and adversarial judgement about which arm does not move; a wrong choice records a truncated closure",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "fixing",
+    "branch": "handoff/r9-blas-kernel-red"
+   }
   }
  ]
 }
