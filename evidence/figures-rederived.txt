@@ -1,0 +1,22 @@
+=== (a) #2065 range size ===
+RESULT 2065 rev-list --count (all)          = 74
+RESULT 2065 rev-list --count --first-parent = 4
+--- the first-parent commits carry() actually walks ---
+  90b9e87f7  tvofi  Merge commit 'a456c5ed442207fbf0f2f9d21b9e70a194ba44d7' into fix/live-power-clamp-foundation-pr
+  279212233  tvofi  ledger(R9 7a): record the 15 draw_range sites their own mutants prove killed
+  acba8517d  tvofi  test(R9 7a): kill the 13 draw_range sites the 39-check block left survivors
+  6f420a1f7  tvofi  Merge origin/main into fix/live-power-clamp-foundation-pr
+
+=== (b) #2010 context-shift figure, with carry's own norm() pipeline ===
+  mv = af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee
+  mh = b2b6acd64cde652676a568e93c05f021571ebe5e
+RESULT 2010 wc -l of mv..v side =    16965
+RESULT 2010 wc -l of mh..h side =    16965
+  diff of the two sides, verbatim:
+    16269c16269
+    <      coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
+    ---
+    >      with_config(coord, {_r9egb1_const.CONF_PRICE_TILES_ENABLED: True})
+RESULT 2010 diff output lines   =        4
+RESULT 2010 of those, lines whose payload starts with a single space (pure context) = 2
+RESULT 2010 of those, lines whose payload starts with + or - (branch own text)     = 0
