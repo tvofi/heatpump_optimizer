@@ -172,8 +172,10 @@ print((d[0]["head"].get("ref") or "") if isinstance(d, list) and d and isinstanc
   while IFS= read -r e; do
     [ -n "$e" ] || continue
     id=${e%% *}
-    if printf '%s\n' "$failed" | grep -qx "$e"; then : # reported as failed below
-    elif printf '%s\n' "$still" | grep -qx "$e"; then : # reported as still-held below
+    # Drained, never `grep -q`: under pipefail a SIGPIPE'd writer reads as no
+    # match and a failed run would be reported approved (R9-RCA-prepr-tmp).
+    if printf '%s\n' "$failed" | grep -x "$e" >/dev/null; then : # reported as failed below
+    elif printf '%s\n' "$still" | grep -x "$e" >/dev/null; then : # reported as still-held below
     else approved="${approved:+$approved$nl}$e"; fi
   done <<<"$held"
 
