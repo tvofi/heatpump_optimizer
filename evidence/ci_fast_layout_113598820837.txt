@@ -1,6 +1,0 @@
-10728:ALL 50 GUARD PIN CHECKS PASSED
-11115:    placement: tools/audit/archscore/gate.py is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
-11116:    placement: tools/audit/archscore/planted/perturb/N5_annotated_return.py is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
-11117:    placement: tools/audit/archscore/planted/redteam/14_hub_write_presolve.py is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
-11118:    placement: tools/audit/archscore/planted/redteam/15_payload_cast.py is in 0 categories of tests/layout.json; add it where its kind belongs, or a category for the kind
-11119:layout: GUARD: 4 refusal(s) against bd59a4af1b26
