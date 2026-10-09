@@ -1,0 +1,7 @@
+tests/structure.py, run locally at this head (detached worktree of a26f24285, venv-ci 3.14.7):
+  
+  STRUCTURE RATCHET PASSED
+  rc=0
+closure.py's layout owner at this head: layout_errors(json, text) == []  (the committed table IS in its layout)
+committed-phantom scan: 0 closures keys and 0 inert_reads keys name a path that is not a file
+claim files at head == origin/main: claimed_drift.txt 62bf9eaba2372bb05cdb42076273c18bdceb0f39, card_claimed_drift.txt c683379dafc29aa923baac9325d82bacfb43f7b9

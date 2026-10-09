@@ -1,0 +1,4 @@
+Round-4's non-blocking 'wedge risk' note, RE-TAKEN at this head (main was 83f7ca558 there; b2b6acd64 here):
+  git ls-tree -r --format='%(objectmode)' origin/main -- custom_components/ -> 91 x 100644, 0 x 120000, 0 x 160000
+  same at a26f24285 -> 91 x 100644; git log 83f7ca558..origin/main -- custom_components/ is empty, so main moved nothing there
+  -> the note still holds: no symlink or gitlink can reach custom_components/ on main, so the base-side refusal cannot wedge every PR.

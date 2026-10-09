@@ -1,0 +1,38 @@
+git log --first-parent def887d8..a26f24285
+  a26f24285 Merge origin/main into fix/r9-eg-a4
+  parents: def887d89 b2b6acd64  (def887d8 x origin/main b2b6acd64); origin/main IS an ancestor of this head
+  rev-list count def887d8..head = 51 incl. main's; first-parent commits added to the branch: 1 (the merge)
+
+delta stat def887d8..a26f24285:
+   tools/pr/prepr.sh                                  |   75 +-
+   29 files changed, 2680 insertions(+), 1294 deletions(-)
+
+delta paths NOT in main's own set (comm -13):
+  (empty above = every delta path is a path origin/main itself changed)
+
+paths main changed that this head did not take = the branch's own files:
+  .github/PULL_REQUEST_TEMPLATE.md
+  .github/workflows/arch-score.yml
+  .github/workflows/pr-contract-rerun.yml
+  dev/audit/config/bugclasses.json
+  dev/audit/harnesses/eg_a4_wave_deltas.py
+  dev/programme/carries/carry-1774.json
+  dev/programme/delivery/2068.md
+  tests/arch_score.py
+  tests/arch_score_head.py
+  tests/layout.json
+  tests/run.sh
+  tools/audit/archscore/ABOUT.md
+  tools/audit/archscore/calibrate.py
+  tools/audit/archscore/calibration/corpus_vectors.json
+  tools/audit/archscore/calibration/expected.json
+  tools/audit/archscore/gate.py
+  tools/audit/archscore/metrics/footprint.py
+  tools/audit/archscore/metrics/hub_solve_writes.py
+  tools/audit/archscore/metrics/untyped_payload_keys.py
+  tools/audit/archscore/planted/cases.py
+  tools/audit/archscore/planted/perturb/N5_annotated_return.py
+  tools/audit/archscore/planted/redteam/14_hub_write_presolve.py
+  tools/audit/archscore/planted/redteam/15_payload_cast.py
+  tools/audit/archscore/score.py
+  tools/audit/archscore/vector.py

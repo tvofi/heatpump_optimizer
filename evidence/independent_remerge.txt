@@ -1,0 +1,18 @@
+Re-derived the merge with the drivers installed in the reference clone:
+  git merge-tree --write-tree def887d8 origin/main -> rc=0, stderr:
+    "LEDGER-MERGE: resolved tests/closures.json"
+    "  inert_reads.tests/harness_headers.py: merged as a set (536 entries)"
+    "  re-run the gate that owns this file before pushing"
+  (no MERGE-CLAIM marker: neither claim file conflicted)
+  git diff -r <that tree> a26f24285 -> EMPTY.
+So the pushed merge commit is BIT-IDENTICAL to the ledger driver's deterministic
+re-derivation from the two parents alone: the resolution is not hand-written and
+GitHub's DIRTY was driver-less (claim-files.md / steward S2).
+
+At the resolved head itself:
+  git merge-tree --write-tree origin/main a26f24285 -> rc=0, tree 91c2eb6a7dfc96fb48831e38e6a1a40aba5235fa
+  git rev-parse a26f24285^{tree}                     -> 91c2eb6a7dfc96fb48831e38e6a1a40aba5235fa  (EQUAL)
+So merging origin/main into this head now writes the head's own tree with no conflict:
+the resolution is complete, GitHub reads mergeable=true (mergeable_state=blocked = the
+approval outstanding, and draft=true, which the orchestrator clears), and no MERGE-CLAIM
+marker appears because neither claim file conflicted.

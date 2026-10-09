@@ -1,0 +1,7 @@
+42 check-run records, 39 distinct names, all completed at a26f24285 (settled 13:40Z, first poll 12:51Z).
+ZERO non-green runs anywhere in the head's records. All 17 required status contexts of ruleset
+23698884 present and success; no context absent. Key ids: closures 113822628451 (the lane that owns
+tests/closures.json — the driver's "re-run the gate that owns this file"), coverage 113822544871,
+fast (3.14) 113822544801 (entities' classification arms run here), mutation 113822544901,
+arch-score 113822541077 + 113822545830 (both success), nightly-status success (red at def887d8 in round 4).
+Duplicated names green on both runs: pr-contract, arch-score, budget-raise-gate — no red-then-green.

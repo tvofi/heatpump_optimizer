@@ -1,103 +1,40 @@
-Fix review: merge def887d8905bee4d9ad39f06e75068df074362f4
+Fix review: merge a26f24285ccfa7f00f8ed0a0daa4bebc548c08a7
 
-bus-nonce: f27a5feab008496f61a54e9ee5061d0f
-seat: review-2068
+bus-nonce: e1cd51cfec69b0e78a507704c8df7648
+seat: review-deltas-1015
+Evidence: /Users/timmalmstrom/hpo-seats/review-deltas-1015/2068/evidence
 
-Round 4, the re-cut. Reviewer: review-2068 (opus). Round 3's verdict is unposted; this round supersedes it, and its file is kept as a record (evidence3/). Head measured: def887d8905bee4d9ad39f06e75068df074362f4.
+Round 5 of this PR, judging a **resolution delta** — and unlike the other three in this batch, this delta carries a real conflict resolution, so the table merge is the thing I measured, not the fact that main arrived. The live head moved from `def887d8905bee4d9ad39f06e75068df074362f4` (my round-4 `merge` verdict, comment 6077635736) to `a26f24285ccfa7f00f8ed0a0daa4bebc548c08a7`. `isDraft` is still true; marking ready stays the orchestrator's.
 
-## Step 12: the head, re-read at post time
-The live head was re-read before publishing this verdict and is still
-`def887d8905bee4d9ad39f06e75068df074362f4` (`gh pr view 2068 --json headRefOid`;
-the PR body names the same head, contract step 7). The head has not moved since
-the round-4 plants were run, so every number below is taken at this head and
-none needed re-taking. `isDraft: true` — the orchestrator marks it ready; I did not.
+## The delta
 
-## Step 11: the checks settled — the pending one the draft held open is green
-Read from the commit's own `check-runs` API at this head (latest run per name;
-42 records, 39 distinct names), at 08:47Z. Full table: `evidence/checkruns_def887d8_settled.tsv`.
+`git log --first-parent def887d8..a26f24285` is exactly one commit: `a26f24285 Merge origin/main into fix/r9-eg-a4`, parents `def887d89 b2b6acd64`. Delta diff stat `def887d8..a26f24285`: **29 files changed, 2680 insertions(+), 1294 deletions(-)**.
 
-- `coverage` — **completed, success** (check-run 113696177293, the very run that was
-  `in_progress` when the draft was written; it concluded green at 07:14:18Z).
-- `coverage-ratchet` — **completed, success** (113713288775, 07:14:38Z).
-- pending = 0. Red = `nightly-status` only. Everything else is success or skipped.
-- The three names with more than one run (`pr-contract`, `budget-raise-gate`,
-  `arch-score`) are green on both runs, so there is no red-then-green to misread.
-- All 17 required status contexts (ruleset on `main`) are **success at this head**.
-  `nightly-status` is not one of them.
-- `record` is `skipped`, not absent: `governance.yml:671` gates it with
-  `if: github.event_name != 'pull_request' && ... != 'merge_group'`, so a PR head
-  cannot carry it (#1144's trap does not apply). Same for the other skipped lanes.
+- RESULT every one of those 29 paths is a path `origin/main` itself changed (`comm -13` against `def887d8..origin/main` is empty) — nothing outside main rode in on the merge.
+- RESULT of the branch's 27 owned files, **26 have byte-identical changed `+`/`-` lines** at both heads (1012 owned lines at each); the one that differs is `tests/closures.json` — the conflicted file, and only that file. `VERSION`, the manifest version and the notes heading are untouched.
 
-## nightly-status: which arm
-**Not this pull request's — its diff does not reach what it reads**
-(`defect-root-cause.md`, the exemption at lines 142-148: their scripts, `tests.yml`,
-`governance.yml`, the plan, `HANDOVER.md`, or a row it did not add). Measured against
-the 27-file three-dot diff (`git diff --name-only 47b083b0...def887d8`; the merge base
-is `47b083b03` because this head is the orchestrator's merge of that main into the
-prior head; identical to `gh pr diff --name-only` — `evidence/diff_name_only_settled.txt`):
+## Step 13: the closures.json resolution, verified as a table merge
 
-| the exemption names | in this diff |
-|---|---|
-| `tests/nightly_status.py` (its script; the job restores only this file from the base and runs it under `-I -S`) | no |
-| `.github/workflows/tests.yml` | no |
-| `.github/workflows/governance.yml` | no |
-| the plan (`dev/programme/plan-*.md`) | no |
-| `HANDOVER.md` (`dev/programme/HANDOVER.md`) | no |
-| a delivery row it did not add | no — the only row it touches is `dev/programme/delivery/2068.md`, status `A` (its own) |
+`merge-base(def887d8, origin/main) = 47b083b0`. Both sides edited the table; the branch owns it, and GitHub's `DIRTY` was driver-less (`claim-files.md`, steward S2). I re-derived the merge myself with the drivers installed and then checked the result key by key.
 
-So the body owes it no answer, and it is not blocked. Its red is the orchestrator's on
-`main` (fix the nightly lane and dispatch Tests on the default branch, or drain the
-overdue rows). The body answers it anyway, at its line 151, with the same reading.
+- RESULT the driver now finishes what the branch's older driver refused: `git merge-tree --write-tree def887d8 origin/main` → **rc=0**, stderr `LEDGER-MERGE: resolved tests/closures.json`, `inert_reads.tests/harness_headers.py: merged as a set (536 entries)`, `re-run the gate that owns this file before pushing`. **No `MERGE-CLAIM` marker** — neither claim file conflicted, and both are byte-identical to `origin/main` at the head (`62bf9eaba2…`, `c683379daf…`).
+- RESULT the pushed resolution is reproducible, not hand-written: `git diff -r <merge-tree's tree> a26f24285` is **empty**. Bit-identical to the driver's deterministic output from the two parents alone.
+- RESULT at the head, `git merge-tree --write-tree origin/main a26f24285` writes tree `91c2eb6a7dfc96fb48831e38e6a1a40aba5235fa`, which **equals** `a26f24285^{tree}`: the resolution is complete and the merge is now clean (GitHub: `mergeable=true`; `blocked` is the approval, not a conflict).
+- **closures** (33 keys each side): main changed 0 keys vs base; the branch changed 3 — `tests/arch_score.py`, `tests/entities.py`, `tests/harness_headers.py` — each adding `.github/workflows/arch-score.yml` to the closure list. Head equals the branch on all three, and the arch-score entries survive: `tests/arch_score.py` and `tests/arch_score_head.py` are both present with the branch's exact value. Keys added or removed by either side: none.
+- **inert_reads**: the one key both sides edited, `tests/harness_headers.py` (534 entries at base). Branch adds `dev/audit/harnesses/eg_a4_wave_deltas.py`; main adds `dev/audit/harnesses/r9_ci2b_closures_merge.py`. Head holds **536 = branch ∪ main exactly** — 0 lost against the branch, 0 lost against main, 0 phantom paths present in neither. This is the case a naive value-equality test calls a defect and the set test proves is a union; both sides' EG-A4 and R9-CI-2b entries are in the merged table.
+- **recorded**: main changed 0 keys vs base; the branch changed 3 (`tests/open_meteo.py`, `tests/ha_contract.py`, `tests/md_tables.mjs`); head equals the branch on all three.
+- RESULT the semantic content of the delta in this file is **one entry, and it is main's**: comparing `def887d8` to the head by section, `closures` identical, `recorded` identical, `_comment` equal, and `inert_reads` differs on one key — `tests/harness_headers.py` gains `dev/audit/harnesses/r9_ci2b_closures_merge.py` (535 → 536), loses nothing. The rest of the textual diff (`git diff def887d8..a26f24285 -- tests/closures.json` rewrites the whole file) is **section ordering**: the branch's copy had `[recorded, closures, inert_reads]`, main and the head have the canonical `[closures, inert_reads, recorded]`. That is exactly R9-CI-2b's point — a table out of layout conflicts with every branch that re-records it — and the driver's write canonicalized it.
+- RESULT no instrument the delta moved: the merge earned no metric movement. `closures` and `recorded` are byte-equal to the branch's own values at `def887d8`, so the three arch-score closure edits and the three `recorded` edits were already reviewed at the verdict head and are unchanged here; the single `inert_reads` addition is main's recording, not a widening of this PR's scope.
 
-## Step 13: `mergeStateStatus: DIRTY` is measured, not a block
-GitHub reports `DIRTY`. `git merge-tree --write-tree origin/main def887d8` (from a
-checkout with both merge drivers installed; `origin/main` verified current against
-`git ls-remote`, both `83f7ca55879097258b971d483345459f18629491`) exits **0** with tree
-`921a5b444b47`, and its stderr is `LEDGER-MERGE: resolved tests/closures.json`
-(`inert_reads.tests/harness_headers.py: merged as a set (536 entries)`) — `evidence/merge_tree_def887d8.txt`.
+## Step 11 at this head (settled — the head was mid-flight when this seat started, so I waited rather than judging a partial table)
 
-- No `MERGE-CLAIM: refused` line, and neither claim file is in the branch's diff:
-  `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are byte-identical at
-  head, at the merge base and at current `main`. A branch that claims nothing leaves
-  both files alone, and it did. Nothing conflicts on any path, so nothing is blocked here.
-- The `DIRTY` is GitHub's, computed where the drivers cannot run: `tests/closures.json`
-  is changed on both sides (head `a379f966`, main `ca36c9b2`, base `55e5360b`), and the
-  ledger driver resolves it key by key. That is the known "DIRTY cannot run, it is not
-  red" shape, and the orchestrator's, not a defect in the authored work.
-- For the carry predicate (`orchestrator.md` §11): because `tests/closures.json` **is**
-  in this branch's own diff, a head that merges current `main` will differ from the head
-  I measured on a file the branch owns — so that update is a **resolution delta for this
-  same reviewer**, not a carry. `run` (merge main in, CI green again) is the right path.
+Polled from the commit's own `check-runs` API every 300 s from 12:51Z; **settled at 13:40Z**. `evidence/checkruns_settled.tsv` is that final read.
 
-## Plants through the base-run gate
-The gate runs from a worktree of def887d8, as arch-score.yml runs it (`python3 -I` from the base). Logs and patches are in evidence4/.
+- 42 records, 39 distinct names, **all completed**; **zero non-green runs anywhere in the head's records** — no red, no pending, and the three names with more than one run (`pr-contract` 113822541049 + 113822757824, `arch-score` 113822541077 + 113822545830, `budget-raise-gate` 113822541502 + 113822542900) are success on both, so there is no red-then-green to misread.
+- **All 17 required status contexts (ruleset 23698884, `main-protect-checks`) ran and are success. None is absent.** The four that were still running when I started are the ones that mattered: `closures` **113822628451 success**, `coverage` **113822544871 success**, `fast (3.14)` **113822544801 success**, `Analyze (python)` success.
+- RESULT the driver's instruction is discharged: `tests/closure.py`'s gate — CI's `closures` lane — **ran at this head and is green**, which is the lane that owns the file the merge resolved (and `closures-autofix` reports `skipped`, i.e. nothing was owed to the bot — `ci-autofix.md`). `tests/entities.py`'s classification arms have no context of their own; they run inside `fast (3.14)`, which is success at this head, so the new tracked files this PR adds stay classified. `mutation` 113822544901 success, `arch-score` success on both runs — the check this PR makes required graded its own head.
+- `nightly-status`, the one red at `def887d8` in round 4, is **success here**, so nothing in `## Red checks` needed re-answering; the reds the body does answer stay answered.
+- Heavy lanes are cited, not re-run. My local re-take of them was limited to the seconds-scale owners the driver named: `tests/structure.py` (**STRUCTURE RATCHET PASSED**, rc=0), `layout_errors` (**[]**), and the phantom scan (**0**).
+- RESULT nothing round 4 verified is invalidated: 26 of the 27 branch-owned files keep identical changed lines (the 27th is the table, measured above); `.gitattributes`, `tests/structure.py`, `tools/audit/archscore/*`, `tests/arch_score*.py`, `tests/layout.json` and `tests/run.sh` — what the round-4 base-run-gate plants and the entry-type class exercise — are not in the merge's 29 paths at all. Round 4's non-blocking wedge-risk count, which it re-derived at main `83f7ca558`, is re-taken here at `b2b6acd64`: `custom_components/` is still 91 × `100644` with **0** symlinks and **0** gitlinks at main and at this head, and `git log 83f7ca558..origin/main -- custom_components/` is empty, so the note still holds.
+- GitHub: `mergeable=true`, `mergeable_state=blocked` (the approval, not a conflict), `draft=true` — marking ready stays the orchestrator's, and the code-owner/tvofi review this PR's own `## Approval` section names as owed is outstanding.
 
-| Plant | Result |
-|---|---|
-| P0, control (import cycle) | FAIL, dS -2.7550, rc=1 |
-| P5, both cycle modules as `.py` symlinks to `.txt` blobs | `FAIL: refused, custom_components/heatpump_optimizer/review2068_a.py is a symlink at 9d0b004b534a`, rc=1 |
-| P6, the cycle modules mode 100755 | FAIL, dS -2.7550, rc=1 (measured like 100644) |
-| P7, a gitlink under the package | `FAIL: refused, custom_components/heatpump_optimizer/review2068_sub is a gitlink`, rc=1 |
-| P2, nested `.gitattributes` export-ignore (round 2) | FAIL, rc=1 |
-
-Python does import through a `.py` symlink (`r3_symlink_import.txt`), so refusing links rather than resolving them is right.
-
-## The entry-type class is closed
-- `ls-tree -r` can return four entry modes under custom_components/: 100644, 100755, 120000 and 160000. Trees recurse.
-- The first two are extracted and measured. The last two are refused by name, on either side of the comparison.
-- A case-only rename is not a route: the runner's filesystem is case-sensitive, so both names are extracted.
-- A non-UTF-8 path raises an uncaught exception, which exits non-zero, so it fails closed.
-
-## Earlier rounds, still holding
-- Round 1: the gate and tests/structure.py run from the base worktree. `python3 -I` keeps the head out of sys.path and env.
-- Round 2: the extraction reads tree objects, so `.gitattributes` cannot hide a file.
-- Round 2's two reds are gone at this head: `instrument-self-tests` and `fast (3.14)` are both success (re-read in the settled table).
-
-## Notes, not blocking
-- **Wedge risk.** The refusal also fires on the base side. If a symlink or gitlink ever reached custom_components/ on main, every PR's arch-score would go red. Re-derived at current main `83f7ca558`: `git ls-tree -r --format='%(objectmode)' origin/main -- custom_components/` gives 91 x 100644 and **0** of 120000/160000, and the head is the same 91 x 100644. This gate refuses any PR that adds one, so only a ruleset bypass could put one there.
-- **Known-open candidate for planted/redteam.** A `.py` that loads a `.txt` at runtime (`exec`, or `importlib.util.spec_from_file_location`) hides that code from any AST scorer. It is not an entry-type hole, and the loader call is visible in review.
-- **My own mutant.** I did not mutate the round-4 tests myself (arch_score.py is heavy). The refusal is demonstrated end to end by P5 and P7 above, and CI's `fast (3.14)` at this head is green.
-
-## Not verified
-- The C12/C13 mutation proofs: heavy, CI's (`mutation` is green at this head).
-- The red-team sweep's count of 11.
