@@ -465,12 +465,14 @@ SILENT = [_row(t=(T0 + timedelta(minutes=30 * i)).isoformat(), prices_rows=96)
           for i in range(6)]
 SILENT += [_row(t=(T0 + timedelta(hours=8, minutes=30 + 30 * i)).isoformat(),
                 prices_rows=96) for i in range(6)]
-holey = debugger.feed_health(SILENT)
+SILENT_ROWS = [{**row, "weather_stale_h": 0.0} for row in SILENT]
+holey = debugger.feed_health(SILENT_ROWS)
 R.check(
     "the feed self-test names the hole the ring shows when cycles published nothing, "
     "where its price and forecast counters read clean",
     holey["row_gaps_h"] == {"n": 11, "min": 0.5, "median": 0.5, "max": 6.0}
-    and holey["no_prices"] == 0 and holey["weather_stale_cycles"] == 0,
+    and holey["no_prices"] == 0 and holey["weather_stale_cycles"] == 0
+    and holey["weather_stale_h_max"] == 0.0,
     str(holey),
 )
 R.check(

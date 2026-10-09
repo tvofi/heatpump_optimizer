@@ -255,17 +255,42 @@ def sensor_sanity(rows: list[dict[str, Any]], data: Any) -> dict[str, Any]:
     return out
 
 
-def feed_health(rows: list[dict[str, Any]]) -> dict[str, Any]:
-    """Whether a feed starved the week: price rows, forecast staleness, solve failures."""
+def feed_health(
+    rows: list[dict[str, Any]], outage_cycles: int | None = None
+) -> dict[str, Any]:
+    """Whether a feed starved the week: price rows, forecast staleness, solve
+    failures, the holes the ring itself shows, and the outage streak it ended in.
+
+    A failed fetch publishes no payload, so it adds no row: the silence of the
+    feed is in the stamps, where every counter here reads clean, and the
+    coordinator's own streak resets the moment the feed recovers. Both halves
+    are needed, and neither is derivable from the other.
+    """
     stale = [row["weather_stale_h"] for row in rows if "weather_stale_h" in row]
     failures = [row.get("solve_failures", 0) for row in rows]
+    stamps = [seen for row in rows if (seen := stored_instant(row.get("t"))) is not None]
     return {
         "cycles": len(rows),
         "no_prices": sum(1 for row in rows if not row.get("prices_rows")),
         "weather_stale_cycles": sum(1 for hours in stale if hours > 0),
         "weather_stale_h_max": max(stale, default=None),
         "solve_failures_added": max(failures) - min(failures) if failures else 0,
+        "row_gaps_h": spread([
+            (later - earlier).total_seconds() / 3600.0
+            for earlier, later in zip(stamps, stamps[1:])
+        ]),
+        "tibber_outage_cycles": outage_cycles,
     }
+
+
+def _outage(coordinator: Any) -> int | None:
+    """The price feed's outage streak, through the view the coordinator
+    publishes: this module names no private member, as ``diagnostics.py`` does
+    not. A coordinator with no view (a duck-typed harness) has no streak here.
+    """
+    if not hasattr(coordinator, "diagnostics_state"):
+        return None
+    return coordinator.diagnostics_state().tibber_outage_cycles
 
 
 async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
@@ -428,7 +453,7 @@ class DebugCollector:
                 stores.get(accuracy_key, (None, None))[1], coordinator.accuracy)),
             ("solver", lambda: _solver_smoke(coordinator, rows)),
             ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
-            ("feeds", lambda: feed_health(rows)),
+            ("feeds", lambda: feed_health(rows, _outage(coordinator))),
         ], SELF_TEST_BUDGET.total_seconds())
         # Unless the collection restarted meanwhile:
         if self.final and self.started_at == started_at:
