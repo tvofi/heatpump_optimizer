@@ -1,0 +1,13 @@
+RESULT attack=p2-side-branch rc=1 verdict=parent 2 54890dd1 is not on the freshly fetched origin/main's first-parent chain
+RESULT control=honest-main-merge rc=0 verdict=HEAD 4e7a63dc is the clean merge of the live head 7dc6adc9 and origin/main's 3b78fd5d, and the body is the live one
+RESULT attack=extra-commit-under-p1 rc=1 verdict=parent 1 f6ca9d24 is not the live pull-request head 7dc6adc9
+RESULT attack=swapped-parents rc=1 verdict=parent 1 3b78fd5d is not the live pull-request head 7dc6adc9
+RESULT attack=strategy-ours rc=1 verdict=HEAD's tree is not the clean merge of its parents: it carries more than the merge
+RESULT attack=body-trailing-space rc=1 verdict=the body file is not the live pull-request body
+RESULT attack=body-leading-newline rc=1 verdict=the body file is not the live pull-request body
+RESULT attack=body-crlf rc=0 verdict=HEAD 7c23e669 is the clean merge of the live head 7dc6adc9 and origin/main's 3b78fd5d, and the body is the live one
+RESULT attack=listing-empty rc=1 verdict=no open pull request whose live head reads back
+RESULT attack=listing-none rc=1 verdict=no open pull request whose live head reads back
+RESULT attack=listing-error-json rc=1 verdict=no open pull request whose live head reads back
+RESULT attack=listing-no-body-key rc=1 verdict=the body file is not the live pull-request body
+RESULT attack=fetch-fails rc=1 verdict=origin/main could not be fetched
