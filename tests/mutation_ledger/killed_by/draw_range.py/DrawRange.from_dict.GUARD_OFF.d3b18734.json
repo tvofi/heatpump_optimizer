@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734",
-  "killed_by": "tests/debug_collect.py",
-  "old": "        if not isinstance(data, dict):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 4dbe5aace7440d0a7d43a249892fc63da890338c: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}
