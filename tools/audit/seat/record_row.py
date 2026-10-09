@@ -537,6 +537,15 @@ def automerge_check(repo: str, number: int, head: str, token: str,
     return why
 
 
+def automerge_rc(why: list[str]) -> int:
+    """`--automerge-check`'s exit: 0 nothing stands in the way, 3 only
+    required contexts not yet passed (the beat waits, keeping its review),
+    1 anything else -- a refusal beside a pending context is still a refusal,
+    which tests.yml's record beat answers by dismissing its approval."""
+    pending = [w for w in why if w.startswith("pending: ")]
+    return 0 if not why else 3 if len(pending) == len(why) else 1
+
+
 def find_open(repo: str, owner: str, token: str) -> int:
     """The open record pull request's number, or 0."""
     got = _api(repo, f"/pulls?head={owner}:{RECORD_BRANCH}&state=open", token)
@@ -922,6 +931,41 @@ def self_test() -> int:
        and _moved_calls == ["/pulls/2002"])
     ok("and passes the same pull request at its live head (null control)",
        _same == [])
+
+    # R9-RO-9a: `--require-green` lists the contexts not yet passed only when
+    # nothing else refused, and the exit keeps a refusal a refusal beside them
+    # -- the record beat dismisses its approval on 1 and waits on 3.
+    def _green_api(runs):
+        def _api_stub(repo, path, token):
+            if path == "/rules/branches/main":
+                return [{"type": "required_status_checks", "parameters": {
+                    "required_status_checks": [{"context": "fast (3.14)"},
+                                               {"context": "closures"}]}}]
+            if "/check-runs" in path:
+                return {"check_runs": runs}
+            return _fake_api(repo, path, token)
+        return _api_stub
+    _red = [{"name": "fast (3.14)", "id": 1, "conclusion": "failure"}]
+    _half = [{"name": "fast (3.14)", "id": 1, "conclusion": "success"}]
+    _got = []
+    try:
+        for _runs in (_red, _half, _half + [{"name": "closures", "id": 2,
+                                            "conclusion": "success"}]):
+            globals()["_api"] = _green_api(_runs)
+            _got.append(automerge_check(DEFAULT_REPO, 2002, "b" * 40, "t",
+                                        True, green=True))
+    finally:
+        globals()["_api"] = _real_api
+    ok("automerge_check lists no pending context beside a refusal",
+       _got[0] == ["required check fast (3.14) failed"])
+    ok("and lists the contexts not yet passed once nothing refused, none when "
+       "all passed (null control)",
+       _got[1:] == [["pending: closures"], []])
+    _rc = globals().get("automerge_rc", lambda _w: None)
+    ok("automerge_rc: a refusal beside a pending context exits 1, pending "
+       "alone 3, nothing 0",
+       [_rc(["pending: a", "required check b failed"]), _rc(["pending: a"]),
+        _rc([])] == [1, 3, 0])
     ok("failed_required ignores a red that is not required",
        failed_required([{"name": "delivery-status", "conclusion": "failure"},
                         {"name": "fast (3.14)", "conclusion": "success"}],
@@ -1003,7 +1047,7 @@ def main() -> int:
             print(f"AUTOMERGE {word} #{args.pr}: {w}")
         if not why:
             print(f"AUTOMERGE OK #{args.pr} at {args.head or '(live head)'}")
-        return 0 if not why else 3 if len(pending) == len(why) else 1
+        return automerge_rc(why)
     if args.write_self_row:
         if args.pr <= 0:
             print("::error::--write-self-row needs --pr", file=sys.stderr)
