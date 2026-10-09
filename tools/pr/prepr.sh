@@ -660,7 +660,7 @@ copies_line() { # tree root, changed-paths file -> one line; rc 0 clean, 1 a cop
 # THE LAYOUT GUARD IS CI'S OWN COMMAND. `tests.yml`'s fast job runs `tests/layout.py`,
 # whose guard refuses a diff that re-adds a path the reorganisation moved (a new
 # file under a directory that has since moved); that took ~30 min to
-# surface on #2065 and ran in ~0.7 s here, and no local path ran it
+# surface on #2065 (29m50s to 30m48s on the three PRs) and runs in 0.44 to 2.10 s here, and no local path ran it
 # (R9-RCA-harness-path). The merge base is passed explicitly, so a stale
 # `origin/main` ref cannot move what is compared.
 moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 skipped
@@ -668,7 +668,12 @@ moved_line() { # tree root, merge base -> one line; rc 0 clean, 1 refused, 3 ski
   [ -f "$1/tests/layout.py" ] || { echo "no tests/layout.py under $1, so the layout guard was not run"; return 3; }
   out=$(cd "$1" && python3 -I tests/layout.py --guard --base "$2" 2>&1); r=$?
   if [ "$r" -eq 0 ]; then printf '%s\n' "$out" | tail -1; return 0; fi
-  echo "$(printf '%s\n' "$out" | grep -m1 '^    ' | sed 's/^ *//') -- move it to the new path, or the fast job refuses it"
+  local first hint; first=$(printf '%s\n' "$out" | grep -m1 '^    ' | sed 's/^ *//')
+  case "$first" in
+    *'it lives at'*) hint="move it to the new path" ;;
+    *) hint="place it where tests/layout.json says" ;;
+  esac
+  echo "$first -- $hint, or the fast job refuses it"
   return 1
 }
 
@@ -1276,6 +1281,11 @@ EOS
   got=$(moved_line "$LR" "$LB"); r=$?
   st "$r" 0 "the same file at dev/audit/harnesses/ passes (null control)"
   case "$got" in *'GUARD: 0 refusal'*) st 1 1 "and the ok line is the guard's own, so it ran";; *) st 0 1 "and the ok line is the guard's own, so it ran";; esac
+  lg checkout -q main >/dev/null 2>&1; lg checkout -q -b nocat >/dev/null 2>&1; mkdir -p "$LR/zz_no_category"; echo "# h" > "$LR/zz_no_category/x.md"
+  lg add -A >/dev/null 2>&1; lg commit -qm nocat >/dev/null 2>&1
+  got=$(moved_line "$LR" "$LB"); r=$?
+  st "$r" 1 "a new file in no category is refused"
+  case "$got" in *'place it where tests/layout.json says'*) st 1 1 "and a refusal with no new path does not say to move it there";; *) st 0 1 "and a refusal with no new path does not say to move it there";; esac
   rm -f "$LR/tests/layout.py"
   got=$(moved_line "$LR" "$LB"); r=$?
   st "$r" 3 "a tree with no tests/layout.py skips, never refuses"
@@ -2076,7 +2086,7 @@ else
 fi
 rm -f "$COPY_PATHS"
 
-# --- 6d. no moved path re-added: tests.yml's fast job runs the layout guard;
+# --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
 # `moved_line` above, ~0.7 s. It reads the index against $BASE, so it needs
 # no changed-path list.
 MOVED_LINE=$(moved_line "$PWD" "$BASE")
