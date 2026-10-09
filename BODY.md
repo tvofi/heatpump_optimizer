@@ -25,6 +25,7 @@ What changed:
    - `.github/workflows/arch-score.yml` runs `tools/audit/archscore/gate.py` **from a checkout of the base commit**, and `tests/structure.py` with it: `vector.load_structure` loads that file by path into the gate's process, so it is part of the grader. A pull request therefore cannot edit the check that grades it, as `tests.yml` restores its check source. When the base holds no `gate.py` (this pull request, which adds it) the head's copy runs once, and the workflow file saying so is under the owner's review. This is the reviewer's round-1 finding on #2068 (an edit to the unowned `tests/structure.py` waved three rises through), decided on #201 comment 6070657723. CODEOWNERS is unchanged: tvofi's ruling is that audit instruments stay unowned.
    - It passes when delta-S >= 0 and no gate metric rises from the merge base to the head. A rise passes only when the body's `## Architecture score` section has a line naming the metric with a reason. This is "explained in the body like a budget raise", with the reason judged by the fix reviewer. Owner approval of a score rise is not required: neither the brief nor R3-6 asks for it, and that is an open question below.
    - The template states the rule within its policy cap. `pr-contract-rerun.yml` watches the new workflow, and `tests/entities.py` admits it to the files that list `edited`.
+   - The scorer reads each commit's `custom_components/` from the tree objects (`ls-tree` and `cat-file`), not `git archive`: archive honours a head's `export-ignore`, which hid code from the gate (round 2, plant 2). On the real tree the two extractions are identical (`diff -r` empty).
    - The weights stay at their frozen hash.
 
 ## After merge
@@ -36,7 +37,8 @@ The ruleset context `arch-score` is tvofi's to add to `main-protect-checks` (rul
 This changes policy and the enforcement surface, so it merges only on tvofi's approving review at the head, which CODEOWNERS requires. It touches:
 
 - `.github/PULL_REQUEST_TEMPLATE.md`;
-- `tests/arch_score.py`, which gains the plant below;
+- `tests/arch_score.py`, which gains the two plants below;
+- `tests/layout.json` (owned), which gains `tools/audit/archscore/**` in the `tools` category;
 - `.github/workflows/arch-score.yml`, which is new;
 - `.github/workflows/pr-contract-rerun.yml`;
 - `tests/entities.py`, which admits the new `edited` workflow;
@@ -54,7 +56,11 @@ Decisions recorded under tvofi's mandate (#201 comment 5951564627), relayed by t
 
 ## Head
 
-The code head is `handoff/r9-eg-a4` at `004807db0c778ef1236b6a580f7a2a9465dbaf2a`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. Round 1 of #2068 then blocked e9a7b9b4; `004807db` is its fix (base-copy gate, CODEOWNERS entry dropped, the plant). The figures were taken at this head on 2026-10-09.
+`f14e77c95e6a3e030ac2ee709cf3d87ff3899188` merges the authored code head `7479d542dfbd3f2a71954418efa6b1eb58041a00` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+`0e646922505fd7c271954dddbd828c716eab36ef` merges the authored code head `7479d542dfbd3f2a71954418efa6b1eb58041a00` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
+The code head is `handoff/r9-eg-a4` at `7479d542dfbd3f2a71954418efa6b1eb58041a00`, which merges `origin/main` `4dbe5aac` into the authored head `545d5bda`. The merge was clean. One repair followed it: main's twin-route check in `tests/entities.py` (R9-CI-2a, `e960a747d`) required every workflow that lists `edited` to name a route, so `arch-score.yml` takes `budget-raise-gate.yml`'s `per-run` concurrency (never cancels) and `_CC_TWIN_ROUTE` names it. Round 1 of #2068 then blocked e9a7b9b4; `004807db` is its fix (base-copy gate, CODEOWNERS entry dropped, the plant). Round 2 then blocked a3734e79; `7479d542` is that fix. The figures were taken at this head on 2026-10-09.
 
 ## Mutation proof
 
@@ -120,7 +126,7 @@ Other figures:
   - `tests/entities.py` passed 2227 at the merged head (first run: 1 failure, the twin-route check above; repaired. Not re-run after round 1: CI's `fast (3.14)` is the record);
   - `tests/harness_headers.py` passed 109;
   - `tests/arch_score_head.py` passed 15;
-  - `tests/arch_score.py --stored` passed 60 (58 plus the plant and its null control);
+  - `tests/arch_score.py --stored` passed 62 (58 plus two plants and two controls);
   - `gate.py --self-test` passed;
   - `node .claude/workflows/policy_lint.mjs` returned rc 0;
   - `codeowners_gap.py --check` returned `uncovered_files=0`, with gate.py PINNED.
@@ -137,6 +143,9 @@ Two reds on an earlier, stacked dispatched run are answered below, and the ances
 
 - **`briefs`.** `carry-1774.json` named `SOLVE_PATH_HUB_WRITERS`, which this branch renamed. Fixed at `b5f01426`; `node tools/policy/brief_lint.mjs` returns rc 0 at the head. Cheaper detector: that command, about a second; a rename should `git grep` the carry files.
 - **`mutation`.** It was red on #2025's 56 package sites, not this diff. This diff touches no `custom_components/` file, and `ci_predict.py` predicts no unpinned site.
+- **`instrument-self-tests` (this diff, repaired at `7479d542`).** `tests/arch_score.py:78` built the plant's repository with a raw `git init`. It now uses `throwaway_git_init`; `python3 -I tests/throwaway_git.py --check` reads `0 raw git init or clone site(s) refused`. Cheaper detector: that command, run locally before the push; I had run only the checks the earlier brief listed.
+- **`fast (3.14)` (this diff, repaired).** `tests/layout.py` refused four added files that sit in no category: `gate.py` and three planted cases. `tests/layout.json` now lists `tools/audit/archscore/**` under `tools`; `python3 tests/layout.py` reads `GUARD: 0 refusal(s)`. Cheaper detector: that command, seconds. The same runs printed `ALL 171 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`, so the planted and red-team verdicts are as `expected.json` records.
+- **`pr-contract` at f14e77c9.** It refused the unanswered reds above; this section answers them.
 - **`entities` (found after the merge, repaired).** Main's twin-route check refused `arch-score.yml` (see Head). Cheaper detector: `tests/entities.py` run after the merge, which is the step 2 this body's earlier draft listed.
 
 ## Forward-carry
