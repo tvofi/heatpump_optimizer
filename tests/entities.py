@@ -18478,11 +18478,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18672,9 +18672,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -23610,8 +23612,9 @@ R.check(
 
 # --- the nightly's own telling (#533) ---------------------------------------
 #
-# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
-# and pull request, and are not required contexts on `main-protect`. So a
+# `nightly-ha` and `slow` run on `schedule` (and dispatch), are `skipped` on
+# every push and on a pull request that does not touch the nightly driver's
+# reads, and are not required contexts on `main-protect`. So a
 # scheduled run's conclusion lands on whatever commit was main's head when the
 # cron fired and the next merge strands it: both `nightly-ha` arms failed on
 # two consecutive nights and a seat sent looking found it, not the lane.
@@ -23732,8 +23735,15 @@ R.check(
 # cannot see for itself. A future lane added to the nightly is therefore
 # refused by this gate until it is registered, instead of being watched by
 # nobody -- which is the silence #533 is about, one level further out.
+# A pull-request admission gated on a `closure-scope` diff flag does not count:
+# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
+# no other, so every other pull request still cannot see it for itself.
+_NS_DIFF_GATED = re.compile(
+    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
+    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
 _NS_HEADS = {
-    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    _n: _NS_DIFF_GATED.sub("", " ".join(
+        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
 _NS_SCHEDULE_ONLY = sorted(
@@ -24791,6 +24801,46 @@ R.check(
         _PC_RED_STEP.replace("set -euo pipefail", "", 1)
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
+)
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
@@ -30480,6 +30530,93 @@ R.check(
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
     f"crons={_CRONS!r}",
+)
+
+# nightly-ha on the pull request that changes its driver (#2056's root cause).
+# #2041's A16 check had a container half no pull-request lane ran, and both
+# arms went red at the next schedule on main. Three things are pinned. REACH:
+# the job's own `if:` is evaluated over every event and both answers of
+# `closure-scope`'s `nightly_ha` output, so a guard that is only text fails.
+# THE OUTPUT exists and comes from the step that decides it. COVERAGE: what
+# `_stage` reads from the repository outside custom_components/ -- everything
+# it mounts into the container, measured here with an audit hook -- is
+# matched by the pathspecs that step diffs, so a newly staged file cannot
+# leave the lane dark on the pull request that adds it.
+_NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_REACH: list = []
+try:
+    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _nf in ("true", "false", ""):
+            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                       "needs.closure-scope.outputs.nightly_ha": _nf})
+            _nwant = _nv in ("schedule", "workflow_dispatch") or (
+                _nv == "pull_request" and _nf == "true")
+            if _ngot != _nwant:
+                _NHA_REACH.append((_nv, _nf, _ngot))
+except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+R.check(
+    "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
+    "touches its driver's reads, and on nothing else",
+    not _NHA_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
+                  re.M) is not None
+    and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
+    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+)
+_nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
+                        r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
+_NHA_SPECS = _nha_spec_m.group(1).replace("\\", " ").split() if _nha_spec_m else []
+_NHA_ROOT = Path(__file__).resolve().parents[1]
+_nha_reads: set = set()
+_nha_on = [False]
+
+
+def _nha_audit(event, args):
+    if _nha_on[0] and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
+        _p = Path(os.fspath(args[0])).resolve()
+        if _p.is_relative_to(_NHA_ROOT) and _p.is_file():
+            _nha_reads.add(_p.relative_to(_NHA_ROOT).as_posix())
+
+
+sys.addaudithook(_nha_audit)
+_nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
+try:
+    _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
+    _nightly._stage(_nha_tmp)
+except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+finally:
+    _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
+    import shutil as _nha_shutil
+    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
+_NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
+                  if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
+R.check(
+    "every file nightly-ha's driver stages from outside the package is a path whose "
+    "change runs nightly-ha on the pull request",
+    _NHA_SPECS and not _NHA_UNCOVERED
+    and {"tests/nightly_ha.py", "tests/ha_contract.py"} <= set(_NHA_DRIVER_READS)
+    and any(f.startswith("tests/hastub/") for f in _NHA_DRIVER_READS),
+    f"pathspecs={_NHA_SPECS}; staged reads not covered={_NHA_UNCOVERED}; "
+    f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
 )
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
