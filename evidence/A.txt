@@ -1,0 +1,5 @@
+PREDICT ledger   STALE PIN custom_components/heatpump_optimizer/away.py:_parse_return_time RETURN_DEL 17d5e3f1: disposition names no site the inventory generates (old pin '    return stored_instant(value, dt_util.DEFAULT_TIME_ZONE)')
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/away.py:574 RETURN_DEL: return stored_instant(value, dt_util.DEFAULT_TIME_ZONE) or N
+CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is deleted by hand; `mutation-autofix` never drops one, and pins the edited line afresh once it is gone
+CI PREDICT: 1 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: 1 predicted red(s) on ledger against 47b083b03a9d -- repair before the handoff; who repairs which is ci-autofix.md's
