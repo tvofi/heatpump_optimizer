@@ -4333,6 +4333,9 @@ _EC_RESIDUAL = {
                    "options at setup and written back through an options update; EntryConfig "
                    "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "flow_meter.py": "read_heat_output_kw .gets the flow-meter key off the config mapping it "
+                     "is handed and passes that mapping to probe_install; EntryConfig does "
+                     "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
@@ -11704,6 +11707,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
+    "CurrentPowerSensor": frozenset({"measured_heat_output_kw"}),
     "CurrentSetpointSensor": frozenset({
         "lower_floor_setpoint", "upper_floor_setpoint"
     }),
@@ -11841,7 +11845,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
-    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
+    "SensorGapAdvisorSensor": frozenset({"feedback_gaps", "gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),
@@ -18482,11 +18486,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18676,9 +18680,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -23614,8 +23620,9 @@ R.check(
 
 # --- the nightly's own telling (#533) ---------------------------------------
 #
-# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
-# and pull request, and are not required contexts on `main-protect`. So a
+# `nightly-ha` and `slow` run on `schedule` (and dispatch), are `skipped` on
+# every push and on a pull request that does not touch the nightly driver's
+# reads, and are not required contexts on `main-protect`. So a
 # scheduled run's conclusion lands on whatever commit was main's head when the
 # cron fired and the next merge strands it: both `nightly-ha` arms failed on
 # two consecutive nights and a seat sent looking found it, not the lane.
@@ -23736,8 +23743,15 @@ R.check(
 # cannot see for itself. A future lane added to the nightly is therefore
 # refused by this gate until it is registered, instead of being watched by
 # nobody -- which is the silence #533 is about, one level further out.
+# A pull-request admission gated on a `closure-scope` diff flag does not count:
+# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
+# no other, so every other pull request still cannot see it for itself.
+_NS_DIFF_GATED = re.compile(
+    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
+    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
 _NS_HEADS = {
-    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    _n: _NS_DIFF_GATED.sub("", " ".join(
+        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
 _NS_SCHEDULE_ONLY = sorted(
@@ -24406,6 +24420,54 @@ R.check(
     "`(#N)` one file over -- a second vocabulary for one fact costs a reader a "
     "translation and buys nothing",
 )
+
+# R9-RO-9a: a two-parent direct push -- a local merge pushed to main, or the
+# record bot merging main into its rows -- names no pull request, so v6.7.17's
+# window read UNCHECKED over nine of them and the stamp needed --allow-rowless.
+# Each gets a disposition instead: one that changes only delivery rows is
+# record-only by its file list, and any other is exempt only through a
+# tracked line in `DIRECT_PUSHES` naming its sha. A commit whose file list is
+# unknown, or that touches one file outside the rows, stays UNCHECKED.
+_DS_ROWS = _ds.ROW_DIR + "/1998.md"
+_DS_DIRECT = [
+    {"sha": "0a60e06" + "0" * 33, "parents": 2, "subject": "record: delivery rows for #1998 (autofix)",
+     "body": "", "files": [_DS_ROWS]},
+    {"sha": "618d014" + "0" * 33, "parents": 2, "subject": "Count dimension briefs", "body": "",
+     "files": ["tools/policy/counts.mjs"]},
+]
+_ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
+try:
+    _DS_D = tuple(
+        (sorted(b.get("disposition") or "-" for b in blind),
+         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+        for m, blind in (
+            _ds.collect(_DS_DIRECT[:1]),
+            _ds.collect(_DS_DIRECT, allow=_ds_allow),
+            _ds.collect(_DS_DIRECT),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                "- 1234567: a disposition for another commit\n")),
+            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
+        ))
+except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+R.check(
+    "a direct-push merge commit is dispositioned -- record-only by its files, "
+    "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
+    _DS_D == ((["record-only"], _ds.EMPTY),
+              (["merged by hand before the PR flow; rows in #1999", "record-only"], _ds.EMPTY),
+              (["-", "record-only"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED),
+              (["-"], _ds.UNCHECKED)),
+    f"(rows only, both with the allow line, code without it, rows plus a "
+    f"script, files unknown, an allow line for another sha, the allow list "
+    f"itself edited, a row lookalike) -> {_DS_D}",
+)
 R.check(
     "a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on "
     "parents",
@@ -24747,6 +24809,46 @@ R.check(
         _PC_RED_STEP.replace("set -euo pipefail", "", 1)
         .replace('.conclusion == "failure"', '.conclusion == "success"')),
     "the predicate must read the guard and the filter, not the step's name",
+)
+# #2028: THE RED HISTORY NEEDS A CREDENTIAL IN THE STEP THAT RUNS IT. #1144's
+# arm (`redHistoryForHead`) unions the failures over every commit of the
+# branch, so a red a later push cleared -- an autofix commit on top of a red
+# `closures`, the shape that blocked #2053 -- is still owed a name. It reads
+# check runs through the API and SKIPS when neither GITHUB_TOKEN nor GH_TOKEN
+# is set. The body-check step carried neither in any of its 65 revisions from
+# the arm's landing (a07dd57d, 2026-09-19) to this fix, so CI printed `skip
+# red-history` and went green on exactly the bodies the arm exists to refuse:
+# 35 of 35 contract logs at the round-9 `root-cause-unanswered` heads, #2053's
+# among them, whose reviewer then blocked on the red the arm would have named
+# 75 minutes before.
+# Read over the comment-stripped job, so a comment naming the token cannot
+# satisfy it.
+def _red_history_credentialed(step: str) -> bool:
+    """True when the body-check step hands policy_lint a read token."""
+    env = step.split("run:", 1)[0]
+    return (
+        step.startswith("Check the body against the contract")
+        and re.search(r"\b(GH_TOKEN|GITHUB_TOKEN): \$\{\{ secrets\.GITHUB_TOKEN \}\}",
+                      env) is not None
+    )
+
+
+_PC_CONTRACT_STEP = next(
+    (_b for _b in _PC_BODY_STEP.split("\n      - name: ")
+     if _b.startswith("Check the body against the contract")), "")
+R.check(
+    "the body check holds a token, so red-history is read rather than skipped",
+    _red_history_credentialed(_PC_CONTRACT_STEP),
+    f"step found={bool(_PC_CONTRACT_STEP)}; without GH_TOKEN in the step's env "
+    "policy_lint prints `skip red-history` and a red on an earlier commit of "
+    "the branch reaches review unnamed (#2028)",
+)
+R.check(
+    "and the same step with its token removed is not (null control)",
+    bool(_PC_CONTRACT_STEP)
+    and not _red_history_credentialed(
+        re.sub(r".*secrets\.GITHUB_TOKEN.*\n", "", _PC_CONTRACT_STEP)),
+    "the predicate must read the env line, not the step's name",
 )
 # CLAUDE.md rule 4 in CI: `prepr.sh --version-edit` refuses a pull request
 # moving VERSION, the manifest version or a notes heading. Its predicate is
@@ -25951,6 +26053,38 @@ def _autofix_head_fixture():
         out["between"] = run(commit(R_, closures, parent=human), base)
         sibling = commit("sibling", {"other.txt": "v4\n"}, who=seat, parent=base)
         out["not_ancestor"] = run(commit(R_, closures, parent=base), sibling)
+        # R9-CI-2b: the merge-main bot's `ci: merge main` -- main merged into
+        # the named head with no resolution -- and, on top, a pin commit.
+        # Its first parent is the named head; a hand-edited tree refuses.
+        mainline = commit("main moved", {"main.txt": "m\n"}, who=seat, parent=base)
+        # A real main for the bot merge's second parent (#2059 round 1): the
+        # check reads origin/main, as pr-contract's fetch-depth-0 clone has it.
+        g("update-ref", "refs/remotes/origin/main", mainline)
+        fixhead = commit("fix: own", {"other.txt": "fix\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        mm = g("rev-parse", "HEAD")
+        out["merge_main"] = run(mm, fixhead) + (mm,)
+        out["merge_main_pin"] = run(commit(R_, closures, parent=mm), fixhead)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", mainline, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_hand"] = run(g("rev-parse", "HEAD"), fixhead)
+        out["merge_main_one_parent"] = run(commit("ci: merge main", {"main.txt": "m\n"}, parent=fixhead), fixhead)
+        # The review's two forgeries: a bot-identity merge of a branch that is
+        # not main, editing code; and one whose side adds a driver attribute
+        # for that code, then hand-edits it in the merge.
+        offmain = commit("not main", {"code.py": "evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", offmain, who=bot)
+        out["merge_main_offmain"] = run(g("rev-parse", "HEAD"), fixhead)
+        evilattr = commit("not main", {".gitattributes": "other.txt merge=evil\n"}, who=seat, parent=base)
+        g("checkout", "-q", "--detach", fixhead)
+        g("merge", "-q", "--no-ff", "--no-edit", "-m", "ci: merge main", evilattr, who=bot)
+        (d / "other.txt").write_text("hand\n")
+        g("commit", "-q", "--amend", "-a", "--no-edit", who=bot)
+        out["merge_main_evilattr"] = run(g("rev-parse", "HEAD"), fixhead)
         return out
     finally:
         shutil.rmtree(d, ignore_errors=True)
@@ -25966,6 +26100,13 @@ R.check(
     f"replay rc={_AH['replay'][0]}, single rc={_AH['one'][0]}; output: "
     f"{_AH['replay'][1].strip()[-300:]!r}. Run 35220336323 refused #1107 at "
     "b1afbcf for a body naming the seat's head under two bot commits",
+)
+R.check(
+    "pr-contract accepts the merge-main bot's automatic `ci: merge main`, and a bot commit on it (R9-CI-2b)",
+    _AH["merge_main"][0] == 0 and f"{_AH['merge_main'][2][:7]} (ci: merge main)" in _AH["merge_main"][1]
+    and _AH["merge_main_pin"][0] == 0,
+    f"merge rc={_AH['merge_main'][0]}, merge+pin rc={_AH['merge_main_pin'][0]}; "
+    f"{_AH['merge_main'][1].strip()[-300:]!r}",
 )
 R.check(
     "and a body naming the real head passes with no autofix line (null control)",
@@ -25986,6 +26127,10 @@ _AH_REFUSED = {
     "merge": "parents",
     "between": "not authored",
     "not_ancestor": "not authored",
+    "merge_main_hand": "not the automatic merge",
+    "merge_main_one_parent": "parents",
+    "merge_main_offmain": "not on origin/main",
+    "merge_main_evilattr": "not on origin/main",
 }
 _AH_WRONG = {
     k: (_AH[k][0], _AH[k][1].strip()[-240:])
@@ -29513,6 +29658,53 @@ R.check(
     f"a move, the moved one of two twins) -> {_AU_GOT}",
 )
 
+# R9-RO-9a (C9): which identical line is the added one. The base holds one
+# `return out` in `_seed`; the head adds a twin in a new def ABOVE it. The
+# match must give the base's site to its own def before any other def may
+# take it, whatever order the head lists them in -- one greedy pass charged
+# the old line and let the new one through. Null control: a head that only
+# re-indents the old site adds nothing.
+_au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
+_au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
+try:
+    _AU_TWIN = tuple(
+        [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
+        for head in ([_au_new, dict(_au_r, line=40)],
+                     [dict(_au_r, line=40, old="        return out")]))
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_unpinned charges a twin line to the def that gained it, not to the "
+    "def that already had it (R9-RO-9a)",
+    _AU_TWIN == ([("p/o.py:_padded", 10)], []),
+    f"(twin added above, re-indent only) -> {_AU_TWIN}",
+)
+
+# R9-RO-9a (C9): one line, three comparison bounds, one ledger anchor. The
+# ledger pins an anchor only when every mutant under it is killed
+# (`pin_results`), so the key a body disposes of must say how many there are;
+# three bare copies of one key read as three sites a single line covers.
+# Driven through the real operators over a synthetic module, and through
+# the key list ci_predict prints for prepr's step 6d.
+with tempfile.TemporaryDirectory() as _au_d:
+    _au_p = Path(_au_d) / "chain.py"
+    _au_p.write_text("def f(x, y):\n    if 0 < x < 9 < y:\n        return 1\n"
+                     "    return 0\n")
+    _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
+_AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
+try:
+    _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
+             [k for k, _ in _AU_KEYS(_au_cmp[:1])])
+except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+R.check(
+    "added_keys gives a line with three comparison mutants one key carrying "
+    "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
+    len(_au_cmp) == 3 and _AU_K == ([f"{_au_p}:2 CMP_BOUND*3"],
+                                     [f"{_au_p}:2 CMP_BOUND"]),
+    f"{len(_au_cmp)} CMP_BOUND mutant(s); (all three, one) -> {_AU_K}",
+)
+
 # The widened inventory (R9 D14-s5-02): a one-line `if`/`elif` test with an
 # `else`, an `elif`, or a comment after the colon is a GUARD_OFF site, and a
 # numpy/math clamp is a CLAMP_DROP; each mutant keeps the header's tail and
@@ -30389,6 +30581,93 @@ R.check(
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "slow")
     and "github.event.schedule" not in _workflow_job(_TESTS_YML, "nightly-ha"),
     f"crons={_CRONS!r}",
+)
+
+# nightly-ha on the pull request that changes its driver (#2056's root cause).
+# #2041's A16 check had a container half no pull-request lane ran, and both
+# arms went red at the next schedule on main. Three things are pinned. REACH:
+# the job's own `if:` is evaluated over every event and both answers of
+# `closure-scope`'s `nightly_ha` output, so a guard that is only text fails.
+# THE OUTPUT exists and comes from the step that decides it. COVERAGE: what
+# `_stage` reads from the repository outside custom_components/ -- everything
+# it mounts into the container, measured here with an audit hook -- is
+# matched by the pathspecs that step diffs, so a newly staged file cannot
+# leave the lane dark on the pull request that adds it.
+_NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_REACH: list = []
+try:
+    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _nf in ("true", "false", ""):
+            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                       "needs.closure-scope.outputs.nightly_ha": _nf})
+            _nwant = _nv in ("schedule", "workflow_dispatch") or (
+                _nv == "pull_request" and _nf == "true")
+            if _ngot != _nwant:
+                _NHA_REACH.append((_nv, _nf, _ngot))
+except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+R.check(
+    "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
+    "touches its driver's reads, and on nothing else",
+    not _NHA_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
+                  re.M) is not None
+    and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
+    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+)
+_nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
+                        r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
+_NHA_SPECS = _nha_spec_m.group(1).replace("\\", " ").split() if _nha_spec_m else []
+_NHA_ROOT = Path(__file__).resolve().parents[1]
+_nha_reads: set = set()
+_nha_on = [False]
+
+
+def _nha_audit(event, args):
+    if _nha_on[0] and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
+        _p = Path(os.fspath(args[0])).resolve()
+        if _p.is_relative_to(_NHA_ROOT) and _p.is_file():
+            _nha_reads.add(_p.relative_to(_NHA_ROOT).as_posix())
+
+
+sys.addaudithook(_nha_audit)
+_nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
+try:
+    _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
+    _nightly._stage(_nha_tmp)
+except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+finally:
+    _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
+    import shutil as _nha_shutil
+    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
+_NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
+                  if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
+R.check(
+    "every file nightly-ha's driver stages from outside the package is a path whose "
+    "change runs nightly-ha on the pull request",
+    _NHA_SPECS and not _NHA_UNCOVERED
+    and {"tests/nightly_ha.py", "tests/ha_contract.py"} <= set(_NHA_DRIVER_READS)
+    and any(f.startswith("tests/hastub/") for f in _NHA_DRIVER_READS),
+    f"pathspecs={_NHA_SPECS}; staged reads not covered={_NHA_UNCOVERED}; "
+    f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
 )
 
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,

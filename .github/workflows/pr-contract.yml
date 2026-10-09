@@ -263,6 +263,12 @@ jobs:
           # keyed on --paths-file below, and the title only adds to it.
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_HEAD: ${{ github.event.pull_request.head.sha || steps.pr.outputs.head }}
+          # #2028: the red history (#1144) reads every branch commit's check
+          # runs and SKIPS without a token; no revision of this step held one,
+          # so the contract printed `skip red-history` and passed a body silent
+          # on a red an earlier commit carried. The program is the
+          # base's (restored above) and the grant is the job's reads only.
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           # One --red flag per name, never one comma-joined value: a check
