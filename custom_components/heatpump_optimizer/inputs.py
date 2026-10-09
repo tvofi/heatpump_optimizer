@@ -45,6 +45,7 @@ from typing import Any
 
 from .const import (
     ENERGY_UNIT_TO_KWH,
+    FLOW_UNIT_TO_KG_S,
     INPUT_MAX_AGE_MINUTES,
     INPUT_PLAUSIBLE_RANGE_C,
     POWER_UNIT_TO_KW,
@@ -266,6 +267,18 @@ def normalize_power_kw(value: float, unit: Any) -> float | None:
     if factor is None:
         return None
     return value * factor
+
+
+def normalize_flow_kg_s(value: float, unit: Any) -> float | None:
+    """Convert a water flow reading to kg/s using the entity's declared unit.
+
+    The flow sibling of :func:`normalize_power_kw` (#2016): an unrecognised
+    unit is ``None``, because a wrongly scaled flow is a wrongly scaled heat.
+    """
+    if unit is None:
+        return None
+    factor = FLOW_UNIT_TO_KG_S.get(str(unit).strip())
+    return None if factor is None else value * factor
 
 
 def normalize_temperature_c(value: float, unit: Any) -> float | None:
@@ -795,6 +808,26 @@ class InputReader:
             reading.value = None
             if reading.problem is None:
                 reading.problem = "unknown_unit"
+            return reading
+        reading.value = converted
+        return reading
+
+    def read_flow_kg_s(self, key: str) -> InputReading:
+        """Read a water-flow entity and normalise it to kg/s (#2016).
+
+        An unknown unit and a negative reading are absent, not adopted.
+        """
+        reading = self.read(key)
+        if reading.value is None:
+            return reading
+        state = self.hass.states.get(reading.entity_id)
+        converted = normalize_flow_kg_s(reading.value, state_unit(state))
+        if converted is None or converted < 0.0:
+            reading.value = None
+            if reading.problem is None:
+                reading.problem = (
+                    "unknown_unit" if converted is None else "implausible"
+                )
             return reading
         reading.value = converted
         return reading

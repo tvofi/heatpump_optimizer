@@ -191,6 +191,9 @@ const VERDICT_CLASSES = [
   // that the change did not earn -- the null control leaves it standing, or the
   // reviewer's own planted gaming attempt reproduces it.
   'metric-gamed',
+  // fix-review.md step 15 (tvofi, 2026-10-08): the fix breaches a rule of
+  // fixer.md step 17's soundness list the body neither avoids nor names.
+  'architecture-unsound',
 ]
 // A class that means the fix is sound but the PROCESS owes an answer. The
 // root-cause seat runs beside a fix and never inside it (root-cause.md), so it
@@ -198,7 +201,7 @@ const VERDICT_CLASSES = [
 const ROOT_CAUSE_CLASSES = ['root-cause-unanswered']
 
 // The SHA must be the full 40-hex head SHA, not an unconstrained \S+: an
-// abbreviated form parses here but tools/audit/app_approve.sh requires exact
+// abbreviated form parses here but tools/pr/app_approve.sh requires exact
 // equality against the full head SHA and refuses it there, so an abbreviated
 // verdict passed this parser clean while being inert at the gate (#1106
 // comment 5721119468, reposted at the full SHA as 5721133970 before the merge
@@ -292,7 +295,7 @@ for (const g of groups) {
 
 const RESUMED = (g) => g.resume?.stage === 'fix' ? `THIS GROUP IS BEING RESUMED. An earlier fixer stopped after pushing ${g.resume.pushed_sha} to claude-web/${g.group.toLowerCase()}: ${g.resume.what}. That work is NOT lost and is NOT yours to redo -- the worktree command below re-attaches to that branch. Read the pushed diff first (git log origin/main..HEAD, git diff origin/main...HEAD) and continue from it. What is still missing: ${g.resume.missing}` : ''
 const fixerPrompt = (g, repair) => `You own fix group ${g.group} of the open-issues program: issues #${g.issues.join(', #')}. ${GH_READ} ${GH_WRITE} ${WT('claude-web/' + g.group.toLowerCase(), fork)} ${(g.after ?? []).length ? 'Your dependencies have already merged, so your first action in the worktree is: git merge origin/main (never rebase). Resolve any claim-file or budget-table conflict by keeping ONLY your own lines -- your dependency already landed its own.' : ''} ${RESUMED(g)} ${DOC(session)}
-Read tools/audit/briefs/fixer.md and dev/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
+Read dev/governance/roles/fixer.md and dev/audit/README.md, then every issue's body AND its comments -- the comments carry corrections that override the body, and a fixer who reads only the body will implement the superseded plan. Your brief, which already applies those corrections:
 ${g.brief}
 Follow every step of the fixer contract: a failing test first that imports the production symbol; the mutation proof with the failing check names pasted; the finding's own harness re-run before and after at your head SHA (copy a harness into the tree under test before running it -- the harnesses disagree about how they find the repository root); a null control on any cost, gain or time claim; both ends of the range for a learner or guard change. ${GATE}
 ${g.fixture ? 'This group moves fixtures. Claim each one with its expected direction in the right claim file, and never claim a fixture that is already may-drift -- env_drift refuses a name that is both. Run env_drift.py --fixtures before and after.' : 'This group must move no fixture: env_drift.py --all against the merge base reports no unclaimed drift, and both claim files stay byte-identical to origin/main.'}
@@ -301,14 +304,14 @@ ${repair ? `A reviewer BLOCKED your previous head. Their comment: ${repair}\nRep
 Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you could not open a PR -- you ran out of budget, the gate never went green, anything -- return pr: null with the reason in summary, and post the contractual "state at stop:" comment on every issue first. NEVER put prose in the pr field: a sentence there satisfies the schema, is read as a PR number, and sends a reviewer to a PR that does not exist.`
 
 const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
-Read tools/audit/briefs/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
+Read dev/governance/roles/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
 Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Use root-cause-unanswered when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists -- that dispatches the root-cause seat rather than another repair round. Return {verdict, comment} where comment's first line is that same line.`
 
 // The root-cause seat: its own context, beside the fix and never inside it, per
-// tools/audit/briefs/root-cause.md. Until now the contracts named it and no
+// dev/governance/roles/root-cause.md. Until now the contracts named it and no
 // script started one.
 const rootCausePrompt = (g, fix, v) => `You are the root-cause seat for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-rootcause', fix.head_sha)}
-Read tools/audit/briefs/root-cause.md and .cursor/rules/defect-root-cause.mdc, then follow the contract. The reviewer blocked this PR as ${v.class}: ${v.why}
+Read dev/governance/roles/root-cause.md and .cursor/rules/defect-root-cause.mdc, then follow the contract. The reviewer blocked this PR as ${v.class}: ${v.why}
 You do not fix the defect and you do not review the fix. You owe: the named cause; which of the four process states it is in (the process did not exist, existed and was not followed, was followed and did not work, was sound and its preconditions changed); a cost test measuring the class's recurrence against the standing cost of the countermeasure; and either a countermeasure demonstrated failing on the defect it was written for, or a recorded refusal saying none pays for itself. A recorded refusal is a legitimate result.
 Post it as a PR comment beginning "Root cause:" and return {cause, state, countermeasure, comment}.`
 
@@ -339,7 +342,7 @@ THEN, PER GROUP, ask origin rather than the roster:
 
 Compare each against the roster's own resume field and report a mismatch when:
   - resume.stage is 'done' but the PR is not merged, or there is no PR at all
-  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/audit/app_approve.sh --carry <verdict sha> <head> reports it carried, #1667 -- that is the whole reason this check exists)
+  - resume.stage is 'merge' but there is no "Fix review: merge" comment at the CURRENT head (a verdict at an older head counts only when bash tools/pr/app_approve.sh --carry <verdict sha> <head> reports it carried, #1667 -- that is the whole reason this check exists)
   - resume.stage is 'review' but the PR is closed or merged, or its head SHA differs from resume.head_sha
   - resume.stage is 'fix' but the branch tip differs from resume.pushed_sha, or a PR is already open for it
   - a group has NO resume field but a branch or an open PR already exists for it -- that is work the roster does not know about, and starting a fixer would duplicate or clobber it

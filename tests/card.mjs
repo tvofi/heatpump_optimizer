@@ -3314,6 +3314,52 @@ check("the hand-scheduled reason has a label",
   check("the inbox speaks Swedish",
     /Värt att göra/.test(sv.html()));
 
+  // R9-UX-9 (#1956): on an install with no power, energy or frequency
+  // signal the backend lists the classes to add; the card names them and the
+  // config key each would use, and the row can be dismissed.
+  const fbGaps = [
+    { class: "power", key: "heat_pump_power_entity" },
+    { class: "energy", key: "heat_pump_energy_entity" },
+    { class: "frequency", key: "compressor_freq_sensor" },
+  ];
+  const fbStates = (gaps) => {
+    const s = inboxStates();
+    s[`${PFX}_sensor_gap_advisor`].attributes.feedback_gaps = gaps;
+    return s;
+  };
+  const clearDismissals = () => {
+    for (const k of Object.keys(store)) if (/dismiss/.test(k)) delete store[k];
+  };
+  clearDismissals();
+  const fb = mkInbox(fbStates(fbGaps));
+  const fbPage = fb.html().slice(fb.html().indexOf('advisor-page"'));
+  check("an unmetered install gets a recommendation row naming all three sensor classes",
+    /data-advice="feedback"/.test(fbPage)
+    && /power/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"')))
+    && /energy/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"')))
+    && /frequency/i.test(fbPage.slice(fbPage.indexOf('data-advice="feedback"'))));
+  const fbFlow = mkInbox(fbStates([...fbGaps, { class: "flow", key: "flow_meter_entity" }]));
+  check("a flow class the backend adds renders with its label and key",
+    /water mass flow \(flow_meter_entity\)/.test(fbFlow.html()));
+  clearDismissals();
+  check("the row cites the config key each class would use",
+    /heat_pump_power_entity/.test(fbPage) && /heat_pump_energy_entity/.test(fbPage)
+    && /compressor_freq_sensor/.test(fbPage));
+  check("a metered install (empty list) shows no recommendation",
+    !/data-advice="feedback"/.test(mkInbox(fbStates([])).html()));
+  check("an older backend without the attribute shows no recommendation",
+    !/data-advice="feedback"/.test(mkInbox(inboxStates()).html()));
+  await press(fb.c, '[data-act="dismiss_feedback"]');
+  check("dismissing removes the row and it stays gone on a fresh card",
+    !/data-advice="feedback"/.test(fb.html())
+    && !/data-advice="feedback"/.test(mkInbox(fbStates(fbGaps)).html()));
+  clearDismissals();
+  check("null control: with the dismissal cleared the row is back",
+    /data-advice="feedback"/.test(mkInbox(fbStates(fbGaps)).html()));
+  check("the recommendation speaks Swedish",
+    /Lägg till en givare för värmepumpens effekt/.test(mkInbox(fbStates(fbGaps), "sv-SE").html()));
+  clearDismissals();
+
   // R9-DIAG-2S (#1936): the drift alarm's two restart points, each advice
   // until its button is pressed.
   const restartStates = (patch = {}) => {
@@ -8466,7 +8512,7 @@ const setupBox = (card, place) =>
 // alpha, and apply a threshold chosen per KIND of object.
 //
 // The kind split is a design choice and is stated rather than implied
-// (`tools/audit/briefs/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
+// (`dev/governance/roles/fixer.md` step 11). WCAG 1.4.11 asks 3:1 of "parts of
 // graphics required to understand the content", which is the series, the
 // "now" reference and the boundary of the estimated-price region -- not the
 // plot frame and not the gridlines, whose job is to be legible without
@@ -8674,7 +8720,7 @@ const setupBox = (card, place) =>
 // that collapses the amber/gold axis the old palette leaned on. tvofi's D4
 // (2026-09-30, #1791) extends it to protanopia and tritanopia.
 //
-// Two design choices, stated (`tools/audit/briefs/fixer.md` step 11):
+// Two design choices, stated (`dev/governance/roles/fixer.md` step 11):
 // - The pairs are the series drawn in ONE PANEL (`panel` in SERIES_DEFS,
 //   R9-UI-4's concept A). Two series in different panels never share a y
 //   range or a stretch of plot, so their colours are not what tells them

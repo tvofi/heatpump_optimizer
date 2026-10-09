@@ -207,6 +207,7 @@ from . import away as away_mode
 from . import boost
 from . import battery as battery_view
 from . import comfort_band
+from . import draw_range
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -224,7 +225,7 @@ from .comfort_learning import ComfortLearner, OverrideEvent
 from .defrost import DefrostDerate, DefrostWindow, in_frost_band
 from . import pump_arbiter, pump_signals
 from . import setpoint_check
-from . import quiet_windows, silent_mode
+from . import quiet_windows
 from .pump_mode import ModeCapability
 from .pump_signals import PumpSignals
 from .manual_plan import (
@@ -279,7 +280,8 @@ from .freq_control import (
     FrequencyWatchdog,
     resolve_reading,
 )
-from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
+from .flow_lift import FlowCurveBias, curve_supply_temp
+from .flow_meter import observe_water
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -2443,6 +2445,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     thermal_model = _view("_thermal_model")
     away_state = _view("_away_state")
     mold_floor_series = _view("_mold_floor_series")
+    optimization_running = _view("_optimization_running")
+    accuracy = _view("_accuracy")
+    solve_failures = _view("_solve_failures")
 
     def __init__(
         self,
@@ -5495,24 +5500,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if env_caps is not None:
             caps = env_caps if caps is None else np.minimum(caps, env_caps)
-        # #1067: the pump's own silent-mode schedule, the same channel.
-        caps = silent_mode.compose(
-            caps, ctx._config, solve_now, n, config.dt_hours,
-            params.max_electrical_power,
-        )
-        # #1910 (SW-1): the user's quiet windows, composed on the loop
-        # because the measured figure reads hass state. Silent rows cap
-        # through the same power_caps_extra channel; off rows come back as
-        # the per-step mask the solver zeroes space with and the planner
-        # forces hot water off with. The gate is here, not in the solver:
-        # D2 says nothing is planned for a window while the optimizer is
-        # off, and a silent row needs a control that can be held.
-        quiet = quiet_windows.compose(
-            caps, ctx._config, ctx.hass.states.get, solve_now, n,
-            config.dt_hours, params.max_electrical_power,
-            optimizer_active=self._mode != MODE_OFF,
-        )
-        caps = quiet.caps
+        quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         humidity = horizon.humidity
         return SolveRecord(config, params, SolveInputs(
             state=state,
@@ -5537,7 +5525,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             limits=SolveLimits(
                 space_pins=space_pins,
                 dhw_pins=dhw_pins,
-                power_caps_extra=caps,
+                power_caps_extra=quiet.caps,
                 # T5 (#16 #54): the comfort floor's two gated adjustments;
                 # None for both is the byte-inert default path.
                 min_temp_margins=self._confidence_margins(n),
@@ -6051,10 +6039,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._current_state.wood_tank_temperature = None
 
         # The pump's own supply and return water (#1067; the reader's rules
-        # are in ``flow_lift.read_water_temps``). Written every cycle
+        # are in ``flow_meter.observe_water``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
-        self._flow_bias.observe_temps(*read_water_temps(reader))
+        observe_water(self._flow_bias, reader, self.effective_config)
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -6561,7 +6549,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 }
             )
         return points
-
 
     def _price_series(
         self, n_steps: int, midnight: datetime, step_offset: int
@@ -7539,6 +7526,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_house_power": self._measured_house_power,
             "measured_energy": self._measured_energy,
             "measured_power_available": self._measured_power is not None,
+            "measured_heat_output_kw": self._flow_bias.heat_output_kw,
         }
 
     def _grid_view(self) -> GridView:
@@ -7628,27 +7616,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         return format_windows(params.dhw_windows)
 
     def configured_quiet_windows(self) -> dict[str, str]:
-        """The quiet-window specs as CONFIGURED, one per action (#1910).
-
-        The silent-windows counterpart of ``configured_dhw_windows``: the
-        card's editor edits the configuration, so it needs the
-        configuration -- in the shared grammar, empty string for "no rows"
-        -- not the plan's reading of it. The specs are stored canonical by
-        the services that write them, so they are handed back as stored.
-        A silent spec with no control that can hold it carries the
-        not-enforced marker beside it, decided from the entity ID's domain
-        and never the state, so a switch that has not reported yet (state
-        ``unknown``) is not dropped: unknown is not off.
-        """
-        cfg = getattr(self, "_ctx", self)._config
-        out: dict[str, str] = {
-            "quiet_silent_windows_spec": cfg.quiet_silent_windows,
-            "quiet_off_windows_spec": cfg.quiet_off_windows,
-        }
-        if quiet_windows.silent_unenforceable(
-            cfg, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None),
-        ):
-            out["quiet_silent_not_enforced"] = "true"
+        out = quiet_windows.configured_specs(getattr(self, "_ctx", self)._config, getattr(getattr(getattr(self, "hass", None), "states", None), "get", None))
         return out
 
     def describe_setup(self) -> dict[str, Any]:
@@ -8484,12 +8452,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _fuse_kw(self) -> float | None:
         """The main fuse's continuous capacity, or None when unconfigured."""
-        config = self.effective_config
-        amps = config.main_fuse_amperes
-        if amps <= 0:
-            return None
-        phases = int(config.main_fuse_phases)
-        return amps * max(1, phases) * 230.0 / 1000.0
+        return self.effective_config.fuse_kw()
     def _power_headroom(self) -> PowerHeadroom:
         """How many kW the house can draw right now without new cost (#5).
 
@@ -8607,8 +8570,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ):
             return
 
-        phases = int(self.effective_config.main_fuse_phases)
-        candidate_kw = smaller * max(1, phases) * 230.0 / 1000.0
+        candidate_kw = self.effective_config.fuse_kw_at(smaller)
         baseline_now = float(self._baseline_house_load(1)[0])
         cap_kw = max(0.0, candidate_kw - baseline_now)
         # Solve on the card's harness, never on its budget (#1753): with
@@ -9360,42 +9322,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not self._snapshot_ring.alarmed:
             ir.async_delete_issue(self.hass, DOMAIN, "accuracy_drift")
             self._rollback_done_for_alarm = False
-            await self._async_save_snapshots()
-            return
-
-        rolled_back = False
-        if (
-            self._snapshot_ring.auto_rollback_justified
-            and not self._rollback_done_for_alarm
-        ):
-            snap = self._snapshot_ring.best_restore()
-            if snap is not None:
-                self._apply_learner_payloads(snap.get("learners") or {})
-                self._rollback_done_for_alarm = True
-                rolled_back = True
-                _LOGGER.warning(
-                    "Prediction bias out of band for %d days on healthy "
-                    "inputs; learned state rolled back to the snapshot "
-                    "from %s",
-                    BIAS_TRIP_DAYS,
-                    snap.get("taken_at"),
-                )
-                await _async_save_restored(self)
-        _create_issue(
-            self.hass,
-            DOMAIN,
-            "accuracy_drift",
-            is_fixable=False,
-            # Persistent: the alarm state survives a restart in the
-            # store, so its notice must too — a repair issue that
-            # silently vanishes on reboot while the fault stays is worse
-            # than none.
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key=(
-                "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
-            ),
-        )
+        else:
+            rolled_back = False
+            if (
+                self._snapshot_ring.auto_rollback_justified
+                and not self._rollback_done_for_alarm
+            ):
+                snap = self._snapshot_ring.best_restore()
+                if snap is not None:
+                    self._apply_learner_payloads(snap.get("learners") or {})
+                    self._rollback_done_for_alarm = True
+                    rolled_back = True
+                    _LOGGER.warning(
+                        "Prediction bias out of band for %d days on healthy "
+                        "inputs; learned state rolled back to the snapshot "
+                        "from %s",
+                        BIAS_TRIP_DAYS,
+                        snap.get("taken_at"),
+                    )
+                    await _async_save_restored(self)
+            _create_issue(
+                self.hass,
+                DOMAIN,
+                "accuracy_drift",
+                is_fixable=False,
+                # Persistent: the alarm state survives a restart in the
+                # store, so its notice must too — a repair issue that
+                # silently vanishes on reboot while the fault stays is worse
+                # than none.
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=(
+                    "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
+                ),
+            )
         await self._async_save_snapshots()
 
     async def async_restore_learned_snapshot(self) -> bool:
@@ -9690,6 +9650,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
+        power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9793,7 +9755,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # can support, while the learners are not frozen for some
                 # other reason — "defrosting" alone is exempted, because
                 # that interval is the derate's own evidence (#944).
-                if self._learning_frozen(CONF_POWER_ENTITY) in (None, "defrosting"):
+                if power_frozen in (None, "defrosting"):
                     self._settle_defrost(sample, defrost_window)
 
         self._pending_prediction = {
@@ -10989,10 +10951,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     # Forcing a run, and the what-if simulator (items 3, 21)
     # ==================================================================
 
-    @property
-    def optimization_running(self) -> bool:
-        return self._optimization_running
-
     async def async_simulate(
         self,
         overrides: dict[str, Any],
@@ -11090,20 +11048,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
         # One snap for slot stamps and the shadow solve (#463).
         solve_at = _solve_anchor(now)
-        # #1067: the what-if prices the same silent-mode ceiling the plan did.
-        cap_extra = silent_mode.compose(
-            cap_extra, ctx._config, solve_at, len(horizon.prices),
-            scratch_config.dt_hours, scratch_params.max_electrical_power,
-        )
-        # #1910: and the same quiet windows, with the call's own spec and
-        # fraction overrides folded onto the configuration first.
-        _quiet = quiet_windows.compose(
-            cap_extra, quiet_windows.overridden_config(ctx._config, overrides),
-            ctx.hass.states.get, solve_at, len(horizon.prices),
-            scratch_config.dt_hours, scratch_params.max_electrical_power,
-            optimizer_active=self._mode != MODE_OFF,
-        )
-        cap_extra = _quiet.caps
+        _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
         wood_err, wood_kw, wood_sek = simulate_wood_slots(
             overrides, ctx._config, len(horizon.prices),
             ctx._opt_config.dt_hours, solve_at,
@@ -11145,7 +11090,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     ),
                 ),
                 limits=SolveLimits(
-                    power_caps_extra=cap_extra,
+                    power_caps_extra=_quiet.caps,
                     # T5: same floors as the live plan, same reasoning —
                     # except the mold cap follows the SIMULATED target, so
                     # a what-if dragging the target down sees the floor
@@ -11171,8 +11116,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     # smaller main fuse.
                     space_blocked=self._pump_signals.space_blocked,
                     dhw_blocked=self._pump_signals.dhw_blocked,
-                    # #1910: the what-if inherits the quiet windows the live
-                    # plan assumed — same reason as the mode block above.
                     off_steps=_quiet.off_steps,
                     quiet_actions=_quiet.actions,
                 ),

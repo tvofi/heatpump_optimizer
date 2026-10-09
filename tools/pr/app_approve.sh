@@ -3,14 +3,14 @@
 # Approve a pull request as the App `hpo-approver`, at one exact head SHA, and
 # only on a `merge` verdict for that SHA from an allowlisted account.
 #
-#   tools/audit/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
-#   tools/audit/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
-#   tools/audit/app_approve.sh --self-test
+#   tools/pr/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
+#   tools/pr/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
+#   tools/pr/app_approve.sh --self-test
 #
 # WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
 # ruleset requires one approving review, and GitHub never lets an author
 # approve their own pull request. An ordinary pull request's review comes from
-# the App after a `merge` verdict (`tools/audit/briefs/orchestrator.md`
+# the App after a `merge` verdict (`dev/governance/roles/orchestrator.md`
 # section 11); a policy pull request's comes from the owner, on GitHub, and
 # this script refuses one.
 #
@@ -27,7 +27,7 @@
 #     request's head fetched into this checkout. Every other comment is ignored, so an outsider's later line neither
 #     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
 #     (decision 0013, amending 0011: the orchestrator posts the reviewer
-#     seat's text with `tools/audit/app_comment.sh`; never as the author App,
+#     seat's text with `tools/pr/app_comment.sh`; never as the author App,
 #     #1233's defect, and no longer as `tvofi`). The id pin replaces the
 #     author_association guard this line carried while verdicts were
 #     `tvofi`'s: an App's association reads NONE (measured on the ten
@@ -110,9 +110,37 @@ d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"
   [ "$head" = "$3" ] || die "head moved: asked to approve $3, the live head of #$2 is $head"
 }
 
+# Each bot's own paths, by the subject it commits under (R9-CI-2b; tvofi,
+# 2026-10-08). A commit under one of these subjects may change main's
+# merge-driver files and these paths and nothing else; any other `ci:`
+# commit, the driver files alone. The subject is free text anyone who can
+# push may write, so the paths are the guard, as they are for `ci:`.
+# remerge_main.sh's claims commit is here so merge_train's own main merges
+# carry whole (Q3).
+# Each subject also names its author (#2059 round 1): git metadata anyone can
+# write, as policy_lint.mjs's AUTOFIX_BOT_COMMITS says, so it narrows the
+# surface without closing it; a claim-file subject may only REMOVE lines, so a
+# forged one cannot add a claim that excuses drift.
+bot_author() { # subject -> the author email its writer commits as
+  case "$1" in
+    "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
+      echo "41898282+github-actions[bot]@users.noreply.github.com" ;;
+    "claims: drop the claims main already carries after the main merge")
+      echo "70032254+tvofi@users.noreply.github.com" ;;
+  esac
+}
+bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
+  case "$1" in
+    "ci: pin killed mutants") printf '%s\n' tests/mutation_budgets.json tests/mutation_ledger ;;
+    "ci: re-record closures") printf '%s\n' tests/closures.json ;;
+    "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
+      printf '%s\n' tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt ;;
+  esac
+}
+
 # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
 carry() {
-  local v=$1 h=$2 main=$3 c ps subj p mv mh t x
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b
   git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
   # Read at main, never at a head: a branch that gave a file a driver would
   # otherwise take it out of the comparisons itself.
@@ -122,7 +150,8 @@ carry() {
   t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
   x=()
   while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
-  while IFS=$'\t' read -r c ps subj; do
+  local bots=""
+  while IFS=$'\t' read -r c ps ae subj; do
     set -- $ps
     if [ $# -ge 2 ]; then
       [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
@@ -133,16 +162,36 @@ carry() {
       t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
       git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
         || { echo "$c is not the automatic merge of its parents"; return 1; }
-    elif [[ $subj != ci:* ]]; then
+    elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
       echo "$c is a commit of the branch's own ($subj)"; return 1
     else
       # Anyone who can push can write the subject, and the header-free
       # comparison below cannot see a change moved to other code with the
-      # same context: a `ci:` commit may touch only the driver files.
-      git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
-        || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      # same context: a `ci:` commit may touch only the driver files, and
+      # a bot's subject its own paths besides.
+      b=$(bot_paths "$subj")
+      if [ -z "$b" ]; then
+        git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      else
+        # A bot's subject: main's driver files and its own paths, as its
+        # writer, and a claim-file subject only removing lines (#2059 round 1).
+        y=(${x[@]+"${x[@]}"})
+        while IFS= read -r p; do [ -z "$p" ] || y[${#y[@]}]=":(exclude)$p"; done <<<"$b"
+        git diff --quiet "$c^" "$c" -- . ${y[@]+"${y[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
+        [ "$ae" = "$(bot_author "$subj")" ] \
+          || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
+        case "$subj" in *claims*)
+          [ "$(git diff --numstat "$c^" "$c" | awk '{s+=$1} END {print s+0}')" = 0 ] \
+            || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
+        esac
+        bots="$bots$b"$'\n'
+      fi
     fi
-  done < <(git log --first-parent --format='%H%x09%P%x09%s' "$v..$h")
+  done < <(git log --first-parent --format='%H%x09%P%x09%ae%x09%s' "$v..$h")
+  # What a carried bot commit wrote is no part of the branch's own diff.
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=":(exclude)$p"; done <<<"$(printf '%s' "$bots" | sort -u)"
   mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
   local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
     --diff-algorithm=myers -U3)
@@ -375,7 +424,7 @@ open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" 
   python3 -c 'import sys,json
 sha, url, f, v = sys.argv[1:5]
 json.dump({"commit_id": sha, "event": "APPROVE",
-  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/audit/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
+  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
   open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" "$evsha" || die "could not write the review payload"
   local resp
   resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \
@@ -478,9 +527,9 @@ chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
 
 # The carry's fixture: a real repository whose `origin` is a local bare one,
 # so `git fetch` and the carry run for real and no case reaches the network.
-export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
+. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
 g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
-git init -q --bare "$W/remote.git" && git init -q -b main "$W/clone" && g remote add origin "$W/remote.git"
+throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
 ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
 seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
 echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
@@ -499,8 +548,28 @@ H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
 g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
-g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
 g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
+# R9-CI-2b: each bot's own paths. mutation-autofix writes the ledger, which
+# is no merge-driver file; remerge_main.sh drops inherited claims under a
+# `claims:` subject. Each beside the same subject reaching one byte further.
+pin_commit() { # base subject path... -> sha, authored as AUTHOR_EMAIL (default: the subject's writer)
+  local b=$1 sub=$2 ae; shift 2; g checkout -q --detach "$b"
+  ae=${AUTHOR_EMAIL:-$(bot_author "$sub")}; ae=${ae:-t@t}
+  for f in "$@"; do mkdir -p "$W/clone/$(dirname "$f")"; echo k >> "$W/clone/$f"; g add "$f"; done
+  GIT_AUTHOR_EMAIL=$ae g commit -qm "$sub"; g rev-parse HEAD
+}
+H_PIN=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
+H_PINOUT=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json b.txt)
+H_PINELSE=$(pin_commit "$V" "ci: re-record closures" tests/mutation_ledger/killed_by/a.json)
+H_CLAIMSOUT=$(pin_commit "$V" "claims: drop the claims main already carries after the main merge" b.txt)
+H_PINSEAT=$(AUTHOR_EMAIL=seat@e pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
+g checkout -q --detach "$V"; mkdir -p "$W/clone/tests/golden"; printf 'c1\nc2\n' > "$W/clone/tests/golden/claimed_drift.txt"
+g add tests/golden/claimed_drift.txt; g commit -qm "fix: claims"; V_CL=$(g rev-parse HEAD)
+H_CLAIMSDROP=$(g checkout -q --detach "$V_CL"; printf 'c1\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
+H_CLAIMSADD=$(g checkout -q --detach "$V_CL"; printf 'c1\nc2\nc3\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
 # The next two leave the branch's diff byte-identical, so only the rule's
 # first two conditions can refuse them: a rewrite under a `ci:` subject, and
 # a merge of an empty commit that is not on main.
@@ -691,7 +760,7 @@ st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err"
 # the boundary class). A source pin backs this up, since a behavioral test
 # alone can't distinguish "'(' was removed" from "some other boundary char
 # also covers this case by accident".
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
    "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
 mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
 run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
@@ -746,9 +815,9 @@ st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
 # segment tells them apart, and that's not otherwise part of this suite),
 # so this is a straight source pin, same technique as the VERDICT_AUTHORS
 # pin above.
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
    "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
-st "$(sed -n '1,340p' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
    "pin: a resolved path that is its own mount point is refused"
 if [ -d /System/Volumes/Data ]; then
   mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
@@ -865,7 +934,7 @@ carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driv
 # The relocation (fix review of 97df6851): a hand resolution moves the
 # branch's change from charge() to discharge(), whose three lines of context
 # are the same, and the header-free comparison alone reads the two as equal.
-( R="$W/reloc"; git init -q -b main "$R" && cd "$R" || exit 2
+( R="$W/reloc"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
   body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
   printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
   git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"
@@ -887,6 +956,17 @@ st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-re
   bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
 st $? 1 "NO CARRY: a ci: commit that moves the branch's change to another function with the same context"
 st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the ci: guard"
+carried "$H_PIN"; st $? 0 "CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)"
+carried "$H_PINOUT"; st $? 1 "NO CARRY: the same subject touching one more file outside its paths"
+carried "$H_PINELSE"; st $? 1 "NO CARRY: the ledger under another bot's subject, whose paths do not hold it"
+carried "$H_CLAIMSOUT"; st $? 1 "NO CARRY: that subject touching a file outside the claim files"
+carried "$H_PINSEAT"; st $? 1 "NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSDROP" origin/main ) >/dev/null 2>&1
+st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSADD" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the same subject adding a claim line"
+H_MERGEPIN=$(pin_commit "$H_MERGE" "ci: pin killed mutants" tests/mutation_ledger/killed_by/b.json)
+carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit it set off (#2024's shape)"
 carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
 g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
 carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"

@@ -478,6 +478,9 @@
     "tibber_fetch_failed": {
       "message": "Elpriserna kunde inte hämtas: {error}"
     },
+    "debug_collect_inactive": {
+      "message": "Ingen felsökningsinsamling pågår för konfigurationsposten \"{entry_id}\" för Heat Pump Optimizer"
+    },
     "apply_schedule_invalid_quiet_windows": {
       "message": "Ogiltiga tysta fönster: {error}"
     },
@@ -1114,6 +1117,7 @@
           "comfort_learning_enabled": "Lär dig min komfortnivå av mina justeringar",
           "system_identification_enabled": "Tillåt ett engångsförsök för att mäta huset",
           "price_prior_enabled": "Uppskatta priser bortom publicerad horisont",
+          "debug_collect_enabled": "Samla en veckas felsökningsdata",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -1122,6 +1126,7 @@
           "comfort_learning_enabled": "Varje gång du justerar temperaturen säger du att planen gick för långt åt ett håll. Detta justerar långsamt komfortinställningen utifrån det. Det inlärda värdet visas på en egen sensor och det finns en knapp för att nollställa.",
           "system_identification_enabled": "Låter optimeraren göra ett litet avsiktligt värmesteg en mild och billig natt för att mäta huset direkt, i stället för att vänta veckor på att härleda det. Steget hålls så litet att det inte märks och avbryts om temperaturen driver.",
           "price_prior_enabled": "Morgondagens priser kommer runt kl. 13. Dessförinnan var resten av horisonten en platt upprepning av senaste priset, vilket döljer alla billiga timmar framåt. Detta lär sig din typiska prisprofil över dygnet och använder den i stället, och planen märker ut vilka timmar som är uppskattade.",
+          "debug_collect_enabled": "Sparar en liten rad per optimeringscykel och en fullständig ögonblicksbild per dygn i sju dygn och slutar sedan av sig själv. När insamlingen avslutas körs några självtester som bara läser (högst 15 minuter; inget styrs). Hämta diagnostik för den här posten innehåller då veckan och testresultaten, för en felrapport. Stänger du av detta raderas det insamlade.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
@@ -1162,10 +1167,11 @@
             }
           },
           "compressor": {
-            "name": "Kompressorfrekvens",
+            "name": "Kompressorfrekvens och flöde",
             "data": {
               "compressor_freq_entity": "Entitet för kompressorfrekvens",
               "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
+              "flow_meter_entity": "Givare för vattenflöde (valfri)",
               "freq_control_mode": "Frekvensläge",
               "compressor_freq_min_hz": "Lägsta kompressorfrekvens",
               "compressor_freq_max_hz": "Högsta kompressorfrekvens"
@@ -1173,6 +1179,7 @@
             "data_description": {
               "compressor_freq_entity": "En number-entitet som exponerar kompressorfrekvensen, oftast från en Modbus- eller ESPHome-integration. Med den konfigurerad lär sig optimeraren en kW-per-Hz-karta och rekommenderar en frekvens — enbart observation tills du uttryckligen byter läget nedan till styrning.",
               "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen. Utan en number-entitet räcker den här sensorn ensam för att observera; styrning kräver number-entiteten.",
+              "flow_meter_entity": "En givare för värmekretsens vattenflöde, i L/min, L/s, m³/h eller kg/s. Tillsammans med framlednings- och returtemperaturen kan integrationen då läsa värmen pumpen levererar på en anläggning utan effekt- eller frekvenssignal. Ignoreras när någon av dem finns; en energigivare stänger inte av den.",
               "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen. Styrning kräver number-entiteten.",
               "compressor_freq_min_hz": "Kompressorns frekvensintervall, som används när bara sensorn är konfigurerad eller när number-entiteten inte publicerar sitt eget minimum och maximum. Den inlärda kartan delas upp över det här intervallet.",
               "compressor_freq_max_hz": "Intervallets övre gräns. En number-entitets eget maximum går alltid före det här."
@@ -2007,6 +2014,9 @@
       "diagnose_last_interval": {
         "name": "Prognosnoggrannhet diagnostisera senaste intervallet"
       },
+      "learning_finalize_debug": {
+        "name": "Inlärning avsluta felsökningsinsamling"
+      },
       "learning_reset_comfort_weight": {
         "name": "Inlärning återställ komfortvikt"
       },
@@ -2427,6 +2437,20 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa diagnosen till en konfigurationspost. Lämna tomt för att diagnostisera varje konfigurerad värmepump."
+        }
+      }
+    },
+    "debug_collect": {
+      "name": "Felsökningsinsamling",
+      "description": "Starta, stoppa eller läs den veckolånga felsökningsinsamling som Hämta diagnostik innehåller. Start slår på insamlingsalternativet (eller rensar en avslutad insamling och börjar om); stopp avslutar den nu; status rapporterar hur många cykler den rymmer och hur stor den är. Statusen returneras som tjänstens svar.",
+      "fields": {
+        "action": {
+          "name": "Åtgärd",
+          "description": "start, stop eller status."
+        },
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Begränsa åtgärden till en konfigurationspost. Lämna tomt för att agera på varje konfigurerad värmepump."
         }
       }
     }

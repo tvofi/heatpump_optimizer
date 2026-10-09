@@ -1,9 +1,13 @@
 # The architecture score
 
-Report-only. It prints, for a diff, delta-S, the gate rises and the per-metric deltas, so a reviewer
-can ask for a stated reason. **It is a review trigger, never a target a seat is rewarded for moving**,
-and a gain that appears only without the counters did not happen. Whether delta-S becomes a required
-check is round 10's decision (issue 1774, R9-EG-A4), after one wave of report-only data.
+It prints, for a diff, delta-S, the gate rises and the per-metric deltas, so a reviewer can ask for a
+stated reason. **It is a review trigger, never a target a seat is rewarded for moving**, and a gain that
+appears only without the counters did not happen.
+
+Since R9-EG-A4 (#1774, tvofi's decision R3-6) it is a required check: `arch-score`
+(`.github/workflows/arch-score.yml`, rule in `gate.py`) passes a pull request whose change reads
+delta-S >= 0 with no gate metric rising, or whose body explains each rise under `## Architecture score`,
+one line per metric, as a budget raise is argued. The required check runs the base's copy of this directory and of `tests/structure.py`, so an edit to the instrument takes effect only after it merges.
 
     python3 tools/audit/archscore/score.py --diff origin/main            the tree against a ref
     python3 tools/audit/archscore/score.py --diff BASE_REF HEAD_REF      two refs
@@ -41,6 +45,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C6 `family_orphan_overrides` | families declared into one-member families | 07 |
 | C7 `unread_private_globals` | a keep-alive registry | 08 |
 | C11 literal keys read from a `**kw` are parameters | keyword parameters turned into `**kw` | 11 |
+| C12 a `cast(T, x)` is its `x`: the payload census follows it and it types nothing, the footprint does not read it as delegation | the payload builder's return behind a cast (#1852 round-1 review) | 15 |
+| C13 the scheduled cycle is a hub root (`hub_solve_writes.ROOTS`) | a hub write moved out of the solve into a pre-solve step (#1887 round-1 review) | 14 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -50,17 +56,27 @@ a reflective spelling as the write it is, which retires C2 and C2b.
 
 ## The calibration
 
-`calibrate.py` classifies 103 labelled cases and the red-team attempts; `tests/arch_score.py` fails when
+`calibrate.py` classifies the labelled cases and the red-team attempts; `tests/arch_score.py` fails when
 any verdict differs from `calibration/expected.json`, misses included.
 
 - **corpus**: 45 commits of main's history, GOOD / BAD / NEUTRAL from a source that is not a metric (the
   quote is in `calibration/corpus.tsv`). Both sides are stored vectors; `calibrate.py --measure-corpus`
   re-derives them from git.
-- **planted**: 58 scripted edits of the pinned tree (`planted/cases.py`: `PINNED`), measured live.
+- **planted**: the scripted edits of the pinned tree (`planted/cases.py`: `PINNED`), measured live.
 - **redteam**: the attempts, measured live, plus a rename null.
 
 The pin is a commit on main. The scripts anchor on its text and assert each anchor occurs once, so a
 tree that is not the pin fails loudly.
+
+### What R9-EG-A4 moved
+
+Widening the hub census to the scheduled cycle (C13) re-measured `hub_solve_writes` on all 87 stored
+corpus vectors (`calibrate.py --measure-corpus --only-metric hub_solve_writes,footprint`; the footprint
+re-measure, C12's, moved none). One corpus verdict moved: `c2a0448d` (GOOD, #1751) reads WORSENS, not
+IMPROVES, because its forecast-seeded outdoor reading is one more live-state write in the cycle
+(70 -> 71). The cycle-wide census charges a new reading the way it charges a solve value; a pull request
+adding one explains the rise. `a1_N5_annotated_return` (NULL) is new and reads WORSENS: the wave's
+#1867 disagreement, an annotated alias and a bare `return <name>` that the footprint counts as logic.
 
 ### Where it differs from the pre-study's calibration (PRE-STUDY section 6)
 

@@ -54,7 +54,7 @@ it under the cap above.
 Measurement comes from the partition instrument rather than from a second
 implementation::
 
-    W5P_WORK=$(mktemp -d) tools/audit/w5-partition/coverage_tree.sh fast
+    W5P_WORK=$(mktemp -d) tools/coverage/coverage_tree.sh fast
     python3 tests/coverage_ratchet.py --coverage "$W5P_WORK/out/coverage.json"
 
 With no ``--coverage`` the pragma row is still checked and the coverage row is

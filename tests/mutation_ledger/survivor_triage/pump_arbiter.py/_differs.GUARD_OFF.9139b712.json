@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:_differs GUARD_OFF 9139b712",
+  "old": "    if slot == \"silent\":",
+  "reason": "GUARD_OFF (`if False`). For True/False pairs, `observed is not value` and `abs(observed - value) > 0.3` agree on all four combinations (bool is 0/1). hold calls _differs only after `observed is None` has already continued, and _write compares the recorded bool with the desired bool. The None arm, where the two predicates disagree, is not a call this module makes. Measured by evaluating both predicates on the four bool pairs.",
+  "verdict": "equivalent"
+}

@@ -22,15 +22,16 @@ names only.
 """
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any
 
 from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import pump_arbiter
+from . import debugger, draw_range, pump_arbiter
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
+from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
     HeatPumpOptimizerConfigEntry,
@@ -116,11 +117,26 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     }
     if state:
         snap.update(state.learner_summaries)
-    try:
-        snap["pump_duty"] = pump_arbiter.diagnostics_view(coord)
-    except Exception:  # noqa: BLE001 -- diagnostics never breaks
-        snap["pump_duty"] = "unavailable"
+    snap.update({key: _never_breaks(view, coord) for key, view in _VIEWS})
     return snap
+
+
+def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
+    """One module's view, or ``"unavailable"``: diagnostics never breaks."""
+    try:
+        return view(coord)
+    except Exception:  # noqa: BLE001 -- diagnostics never breaks
+        return "unavailable"
+
+
+#: Each module's own ``diagnostics_view``, one ``(key, view)`` row per module.
+#: A row reads the coordinator's public views and hands its module values.
+_VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
+    ("pump_duty", pump_arbiter.diagnostics_view),
+    ("draw_range", lambda c: draw_range.diagnostics_view(
+        c.accuracy.draw, c.thermal_params,
+        probe_install(c.arbiter_inputs().config))),
+)
 
 
 async def async_get_config_entry_diagnostics(
@@ -128,9 +144,12 @@ async def async_get_config_entry_diagnostics(
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     coord = entry.runtime_data if hasattr(entry, "runtime_data") else None
+    snapshot = _coordinator_snapshot(coord) if coord else None
+    collector = debugger.collector_for(coord) if coord else None
     # Both passes run over the whole payload rather than over ``entry.data``
     # alone, so a coordinate or a credential that a future coordinator
-    # summary starts carrying is covered without a second decision here.
+    # summary starts carrying is covered without a second decision here --
+    # the debug bundle's payload snapshots and store documents included.
     return async_redact_data(
         _coarsen(
             {
@@ -139,8 +158,13 @@ async def async_get_config_entry_diagnostics(
                     "options_keys": sorted(entry.options.keys()),
                 },
                 "config": dict(entry.data),
-                "coordinator": _coordinator_snapshot(coord) if coord else None,
+                "coordinator": snapshot,
                 "domain": DOMAIN,
+                # #1940: capped, so a week too large to inline is its summary.
+                "debug": debugger.capped(
+                    await collector.async_bundle(coord, snapshot),
+                    f"{DOMAIN}_{entry.entry_id}_debug",
+                ) if collector else None,
             }
         ),
         TO_REDACT,

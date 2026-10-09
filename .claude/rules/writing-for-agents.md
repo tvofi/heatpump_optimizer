@@ -1,9 +1,9 @@
 ---
 description: What a sentence in the development record must carry to stay; README and user-facing docs are outside it
 paths:
-  - "docs/HANDOVER.md"
-  - "docs/plan*.md"
-  - "tools/audit/briefs/**"
+  - "dev/programme/HANDOVER.md"
+  - "dev/programme/plan*.md"
+  - "dev/governance/**"
   - ".claude/workflows/*-groups.json"
   - ".github/PULL_REQUEST_TEMPLATE.md"
 ---

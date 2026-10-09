@@ -41,6 +41,7 @@ from .accuracy import HISTORY_LENGTH, LEAD_BUCKETS
 from .comfort_learning import COMFORT_WEIGHT_MAX, COMFORT_WEIGHT_MIN
 from .curve_learning import BIAS_MAX, BIAS_MIN
 from .defrost import DERATE_MAX, DERATE_MIN, STORE_VERSION
+from .draw_range import RUNNING_FLOOR_KW
 from .drift import STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
@@ -263,6 +264,8 @@ _RESTATED = "ledger.restate_total re-derives them from the receipt's own lines o
 #: module, so the ceiling is a literal, held equal to its own by Arm 6.
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
+_DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
+
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),
     **{f"samples/#/{k}": _N for k in (
@@ -281,6 +284,12 @@ _ACCURACY: dict[str, Domain | str] = {
     # R9-UX-6: the plan's day-ahead promise per local date (plan_promise).
     "promises/~": _DAY, "promises/*/start": _AT, "promises/*/step_minutes": Domain("real", _POS),
     "promises/*/room/#": _R, "promises/*/cost/#": _R,
+    # The metered running draw beside the space level asked (draw_range):
+    # a sample at or below standby is not a running one, and is dropped.
+    "draw/samples/#/0": Domain("real", math.nextafter(RUNNING_FLOOR_KW, math.inf)),
+    "draw/samples/#/1": _Z,
+    "draw/engaged": Domain("flag", whole=_DRAW_KEY),
+    "draw/config/#": Domain("real", whole=_DRAW_KEY),
 }
 
 DOMAINS: dict[str, dict[str, Domain | str]] = {
@@ -435,6 +444,21 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "bias_days": _COUNT, "last_day": _DAY0, "streak_started": _DAY0,
         "drift_inputs_healthy": _FLAG, "alarmed": _FLAG,
     },
+    # The debug collector's ring (#1939). A snapshot is the payload as JSON
+    # text: its plan instants lie ahead of the clock by design.
+    "debug": {
+        "started_at": _AT, "final": _FLAG,
+        "rows/#/t": _AT, "rows/#/mode": _TEXT, "rows/#/action_mode": _TEXT,
+        "rows/#/heat_pump_on": _FLAG,
+        **{f"rows/#/{k}": _R for k in (
+            "action_kw", "weather_stale_h", "indoor_temp", "outdoor_temp", "dhw_temp")},
+        **{f"rows/#/{k}": _Z for k in ("solve_wall_ms", "payload_solve_time_ms")},
+        **{f"rows/#/{k}": _COUNT for k in ("solve_failures", "prices_rows")},
+        "rows/#/accuracy_sample": "accuracy/accuracy/samples/#",
+        "snapshots/#/t": _AT, "snapshots/#/cycle": _COUNT, "snapshots/#/data": _TEXT,
+        # #1940: the self-tests' results, as their JSON text (the snapshots' precedent).
+        "self_tests": _TEXT,
+    },
 }
 
 
@@ -461,7 +485,22 @@ def _tries() -> dict[str, dict[str, Any]]:
     return tries
 
 
+def _scalar_domain(node: dict[str, Any]) -> Domain | None:
+    """The domain when this node declares one value, not a container of them.
+
+    A container walked in place of that value yields no leaf -- an empty list
+    has no element to check -- so the declaration would go unread and a list
+    where a number belongs would be admitted.
+    """
+    domain = node.get("")
+    return domain if isinstance(domain, Domain) and set(node) <= {""} else None
+
+
 def _fields(node: dict[str, Any], value: Any, path: tuple[Any, ...], out: list[Any]) -> None:
+    scalar = _scalar_domain(node)
+    if scalar is not None and isinstance(value, (dict, list)):
+        out.append((path, False, scalar, value))
+        return
     if isinstance(value, dict):
         for key, child in value.items():
             if key not in node:

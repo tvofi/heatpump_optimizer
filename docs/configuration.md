@@ -231,7 +231,7 @@ single field takes the same grammar, including day selectors such as
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
 Saving this page moves to the read-only review screen — confirming there is
-what creates the entry. All 78 entities appear at once and the first plan is
+what creates the entry. All 79 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ---
@@ -524,6 +524,7 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Whole-house power meter | none | a `power` sensor | A capacity tariff is billed on the whole house, so without this the peak being avoided is only part of the real one. |
 | Compressor frequency entity | none | a `number` entity | Typically from Modbus or ESPHome. With it the optimizer learns a kW-per-Hz map and recommends a frequency. |
 | Actual frequency sensor | none | a `frequency` sensor | Many number entities are setpoint registers that echo the last written value. Read from an echo, the watchdog can never see divergence. Leave empty only if the number entity genuinely tracks the machine. Without a number entity, this sensor alone is enough to observe. |
+| Water flow sensor | none | a `sensor` in L/min, L/s, m³/h or kg/s | The heating circuit's water flow. With the supply and return temperatures it gives the heat the pump delivers (flow × 4.186 kJ/kg/K × the drop), published as `measured_heat_output_kw` on the Recommended Power sensor. Used only while there is no power or frequency signal (an energy sensor does not switch it off); an unavailable, negative or unknown-unit reading is ignored. It is read for display only and does not feed the learners. |
 | Frequency mode | Observe | Observe / Control | Observe learns and recommends but never writes. Switch to Control only after validating the entity against your hardware: writes go through `number.set_value`, at most one per five minutes, clamped to the entity's own range, and three ticks of divergence stand the controller back down to Observe. Control needs the number entity; with only the sensor the page refuses it. |
 | Lowest compressor frequency | 20 Hz | 1–250, 1 steps | The bottom of the compressor's frequency range, used when only the sensor is configured or when the number entity does not publish its own minimum. The learned map is divided across this range. |
 | Highest compressor frequency | 120 Hz | 1–250, 1 steps | The top of that range. A number entity's own maximum always wins over this. |
@@ -942,13 +943,15 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-12 services are registered under the `heatpump_optimizer` domain. The seven
+13 services are registered under the `heatpump_optimizer` domain. The eight
 that act on a specific config entry also accept an optional `entry_id`; omitting
 it applies the call to every loaded entry, which is what a single-heat-pump
-install wants. Of those seven, only `assign_entity`, `apply_topology` and
-`apply_schedule` write configuration back into the entry — the other four act on
-the running coordinator. `run_optimization`, `set_away`, `set_mode`,
-`set_thermal_parameters` and `simulate_plan` always act on every loaded entry.
+install wants. Of those eight, `assign_entity`, `apply_topology`,
+`apply_schedule` and `debug_collect` write configuration back into the entry —
+`debug_collect`'s start turns the collection option on, which reloads the
+entry — and the other four act on the running coordinator. `run_optimization`,
+`set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
+on every loaded entry.
 
 The services are registered when the integration loads and stay registered
 while every entry is unloaded, so an automation that names one still validates.
@@ -969,6 +972,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
 | `diagnose_interval` | `entry_id` | optional |
+| `debug_collect` | `action` (required), `entry_id` | optional |
 
 **`run_optimization`** fetches prices and weather and re-solves the 24-hour plan
 immediately. The **Optimize Now** button does the same thing. A run that cannot
@@ -1083,6 +1087,20 @@ required) the call fails with an error instead of answering with an empty
 restore.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
+**`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns
+the learning page's debug-collection option on, which reloads the entry and
+begins the week (or clears a collection that has already finished and begins
+again). `stop` ends it now, which is what the Finalize Debug Collection button
+does. `status` reports how many cycles it holds and how large it is, and that
+report is the service response. The collection also stops itself after seven
+days. However it ends, five self-tests then run once in the background, read
+only and within 15 minutes together: the stored documents against their
+declared domains, the accuracy monitor re-derived from its store, one what-if
+solve with no change, the inputs' missing and unchanged readings, and the price
+and forecast feeds across the week. Turning the option off deletes what was
+collected. Download diagnostics on the entry carries the week and those
+results; a week over 8 MiB is carried as its summary and the name of the store
+file under `.storage/` that holds the rows.
 
 ---
 

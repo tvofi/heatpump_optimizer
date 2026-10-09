@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST ff698611",
+  "killed_by": "tests/features.py",
+  "old": "WINDOW = 336",
+  "reason": "7a pin drive, seat-measured at acba8517d: this site's own mutant (`CONST` -> `WINDOW = 672`) takes tests/features.py's 7a draw-range block from `ALL 51 DR BLOCK PASSED` (rc=0 failed=0) to rc=1 failed=1 -- FAIL `and the window is a week counted in the test: after 386 running samples only the last 336 stand, so a draw 386`. The kill rule is `mutation_table.killed`'s: red AND failing above a green baseline. `--pin-killed`'s own drive refuses here: asked for one anchor of this file it ran the baseline for 730 s and printed `MUTATION TABLE INCONCLUSIVE -- the baseline is already red in tests/features.py, so no mutant's verdict means anything` (`baseline_refusal`), because this host's features.py baseline is the red arm named above -- so the rule was applied per site by hand; the whole file was driven for both kill forms (FAIL-line arm 2 of 3911 against the baseline's 1, uncaught-exception arm 2 of 3911 against 1) -- commands in the pull request's `## Figures`."
+}

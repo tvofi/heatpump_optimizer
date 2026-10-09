@@ -48,9 +48,10 @@ def _nonzero_number(value: Any, default: float) -> float:
 
 
 def _optional_number(value: Any, default: float | None) -> float | None:
-    """A finite float, or the default. An empty string is absent, not zero."""
-    if value == "":
-        return None
+    """A finite float, or the default (None for every optional field).
+
+    An empty string is absent, not zero: it is refused like any other text.
+    """
     result = _refused_number(value, math.nan)
     return default if result is None else result
 
@@ -261,6 +262,25 @@ class EntryConfig(Mapping[str, Any]):
         }
         return cls(raw=MappingProxyType(dict(merged)), **parsed)
 
+    def fuse_kw_at(self, amps: float) -> float:
+        """A main fuse of ``amps`` A: its continuous capacity, kW, over the configured phases."""
+        return amps * max(1, int(self.main_fuse_phases)) * 230.0 / 1000.0
+
+    def fuse_kw(self) -> float | None:
+        """The configured main fuse's continuous capacity, kW; None when no fuse is set."""
+        amps = self.main_fuse_amperes
+        return self.fuse_kw_at(amps) if amps > 0 else None
+
+    def __reduce__(self) -> tuple[Any, ...]:
+        """Copy and pickle by value: the read-only view of ``raw`` cannot be pickled.
+
+        ``copy.deepcopy`` and ``pickle`` rebuild an equal, still frozen
+        object from a plain dict of the stored values and the parsed fields,
+        without parsing again.
+        """
+        parsed = {f.name: getattr(self, f.name) for f in fields(self) if f.metadata}
+        return (_restore, (dict(self.raw), parsed))
+
     def __getitem__(self, key: str) -> Any:
         return self.raw[key]
 
@@ -269,3 +289,8 @@ class EntryConfig(Mapping[str, Any]):
 
     def __len__(self) -> int:
         return len(self.raw)
+
+
+def _restore(raw: dict[str, Any], parsed: dict[str, Any]) -> EntryConfig:
+    """``EntryConfig.__reduce__``'s constructor: the stored values and their parse."""
+    return EntryConfig(raw=MappingProxyType(raw), **parsed)

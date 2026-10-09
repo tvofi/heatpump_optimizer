@@ -2,11 +2,11 @@
 { set +x; } 2>/dev/null # before anything: keep the argv-tracing habit even though this tool holds no secret
 # Approve the workflow runs GitHub is holding `action_required` on a branch.
 #
-#   tools/audit/approve_held_runs.sh [--dry-run] <owner/repo> [branch]
-#   tools/audit/approve_held_runs.sh --self-test
+#   tools/pr/approve_held_runs.sh [--dry-run] <owner/repo> [branch]
+#   tools/pr/approve_held_runs.sh --self-test
 #
 # WHY THIS EXISTS. Since the seats hand their branches to the orchestrator,
-# who pushes as the `hpo-author` App (tools/audit/app_push.sh), the
+# who pushes as the `hpo-author` App (tools/pr/app_push.sh), the
 # `pull_request` workflows of that push are created by the pusher -- and a
 # workflow run created from GITHUB_TOKEN side a push lands held: GitHub marks
 # it `action_required` and waits for a maintainer's approval before it runs.
@@ -172,8 +172,10 @@ print((d[0]["head"].get("ref") or "") if isinstance(d, list) and d and isinstanc
   while IFS= read -r e; do
     [ -n "$e" ] || continue
     id=${e%% *}
-    if printf '%s\n' "$failed" | grep -qx "$e"; then : # reported as failed below
-    elif printf '%s\n' "$still" | grep -qx "$e"; then : # reported as still-held below
+    # Drained, never `grep -q`: under pipefail a SIGPIPE'd writer reads as no
+    # match and a failed run would be reported approved (R9-RCA-prepr-tmp).
+    if printf '%s\n' "$failed" | grep -x "$e" >/dev/null; then : # reported as failed below
+    elif printf '%s\n' "$still" | grep -x "$e" >/dev/null; then : # reported as still-held below
     else approved="${approved:+$approved$nl}$e"; fi
   done <<<"$held"
 

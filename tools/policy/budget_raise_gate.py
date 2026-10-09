@@ -54,9 +54,9 @@ from the base commit before running it under `python3 -I`, so a pull request
 cannot edit the gate that grades it; the workflow re-runs it on
 `pull_request_review`, so an approval turns it green without a push.
 
-    python3 -I .claude/workflows/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
-    python3 .claude/workflows/budget_raise_gate.py --self-test
-    python3 -I .claude/workflows/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
+    python3 -I tools/policy/budget_raise_gate.py --base SHA --head SHA --pr N [--repo O/R]
+    python3 tools/policy/budget_raise_gate.py --self-test
+    python3 -I tools/policy/budget_raise_gate.py --rerun-stale RUN_ID [--repo O/R]
 """
 from __future__ import annotations
 
@@ -113,6 +113,13 @@ MANDATE_GRAMMAR = re.compile(
 MANDATE_REVOKED = re.compile(r"revok", re.I)
 MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:? #?(\d{6,})\b|issuecomment-(\d{6,})\b", re.I)
 MANDATE_COVERS_RAISE = ("budget-raise", "all")
+# What covers the merge train landing a POLICY head (merge_train.py's step 5,
+# tvofi's ruling of 2026-10-09 on #201): only `all`. A `code-owned` scope
+# licenses an approval of a code-owned path, and a `budget-raise` scope a
+# raise; neither is the owner's written authority for the train to land their
+# written record. The strictest reading is the safe one: a scope that does not
+# name this act does not license it.
+MANDATE_COVERS_POLICY = ("all",)
 SUFFIX = "_budgets.json"
 
 FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
@@ -306,10 +313,24 @@ def _when(text):
     return t if t.tzinfo is not None else None
 
 
-def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[bool, str]:
-    """(in force, why) for the mandate comment `cid` that `review` cites.
-    `comment` is that comment as the API returns it (None: it does not exist);
-    `thread` is the tracking issue's comments, where a revocation would be."""
+def mandate_state(cid, comment, thread, at, at_repr, when="review",
+                  covers=MANDATE_COVERS_RAISE, what="budget raises"):
+    """(in force, why) for the mandate comment `cid`, judged at the instant
+    `at` (None: the caller has none and says so in its own refusal), for a
+    reader whose act needs the scope in `covers` (`what` names that act in
+    the refusal) and calls its moment `when`.
+
+    THE one reading of a mandate, shared by its two readers (fixer.md step
+    17): this gate's review check (mandate_check, judged at the review's
+    submission and scoped for a raise) and merge_train.py's policy stop
+    (judged at the merge itself, scoped for policy merging -- when the
+    window has passed, the train falls back to refusing without further
+    code). The rules are tvofi's 2026-10-02 amendment to decision 0013:
+    the pinned owner's comment on the tracking issue, its first line the
+    recorded grammar, the window open at the instant asked for, never
+    edited, and no later comment by the same owner account naming the id
+    beside any form of "revoke" (loose on purpose: the grant is strict and
+    the kill switch is lenient, because over-revoking fails safe)."""
     name = f"mandate {cid}"
     if comment is None:
         return False, f"{name} is not a comment that exists"
@@ -326,15 +347,14 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
     created, updated = _when(comment.get("created_at")), _when(comment.get("updated_at"))
     if start is None or created is None or updated is None or (end is None and until != "programme-end"):
         return False, f"{name} carries a time that is not an ISO 8601 instant with a zone"
-    if scope not in MANDATE_COVERS_RAISE:
-        return False, f"{name} has scope {scope}, which does not cover budget raises"
-    at = _when(review.get("submitted_at"))
+    if scope not in covers:
+        return False, f"{name} has scope {scope}, which does not cover {what}"
     if at is None:
-        return False, f"the review citing {name} carries no submission time"
+        return False, f"the {when} citing {name} carries no submission time"
     if at < max(start, created):
-        return False, f"{name} was not yet in force at {review.get('submitted_at')}"
+        return False, f"{name} was not yet in force at {at_repr}"
     if end is not None and at >= end:
-        return False, f"{name} expired at {until}, before the review at {review.get('submitted_at')}"
+        return False, f"{name} expired at {until}, before the {when} at {at_repr}"
     if updated != created:
         return False, f"{name} was edited, so the text tvofi gave it under is unknown"
     for c in thread:
@@ -345,12 +365,27 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
     return True, f"{name} (scope {scope}, from {m.group(2)} until {until})"
 
 
-def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str]:
+def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[bool, str]:
+    """(in force, why) for the mandate comment `cid` that `review` cites.
+    `comment` is that comment as the API returns it (None: it does not exist);
+    `thread` is the tracking issue's comments, where a revocation would be.
+    The reading itself is mandate_state's, judged at the review's submission
+    and scoped for a budget raise; this is the gate's own reader."""
+    return mandate_state(cid, comment, thread, _when(review.get("submitted_at")),
+                         str(review.get("submitted_at")))
+
+
+def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None) -> tuple[bool, str]:
     """(approved, why): the owner's latest decisive review is an APPROVED one
     submitted on `head`. A review under the owner's account whose body says an
     agent gave it is not the owner's (AGENT_DECLARED), unless it is an approval
     that cites one mandate `mandate_fn(id)` -> (comment, thread) shows in force
-    (mandate_check). An agent's other reviews decide nothing, as before."""
+    (mandate_check). An agent's other reviews decide nothing, as before.
+    `mandate_validator(review, cid, comment, thread) -> (bool, str)` replaces
+    that reading for the gate's second reader -- merge_train.py, which judges
+    the same mandate_state rules at the merge moment and scoped for policy
+    merging (R9-RO-13); omitted, the gate's own raise reading stands."""
+    check_mandate = mandate_validator or mandate_check
     own = [r for r in reviews if _is_owner(r.get("user"))]
     decisive, under, notes = [], {}, []
     for r in own:
@@ -365,7 +400,7 @@ def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str
             notes.append(f"review {r.get('id')} cites {len(cited)} mandates, and one decides")
             continue
         cid = cited.pop()
-        ok, why = (False, "no mandate could be read") if mandate_fn is None else mandate_check(r, cid, *mandate_fn(cid))
+        ok, why = (False, "no mandate could be read") if mandate_fn is None else check_mandate(r, cid, *mandate_fn(cid))
         if ok:
             decisive.append(r)
             under[id(r)] = why
@@ -485,10 +520,10 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
 #
 # Both events write a `budget-raise-gate` check run at the head. When the owner
 # approves a raise, the `pull_request_review` run passes, but the
-# `pull_request` run that refused before the approval keeps its red on the pull
-# request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
+# `pull_request` runs that refused before the approval keep their red on the
+# pull request until someone runs `gh run rerun`. `budget-raise-gate-rerun.yml`
 # runs `--rerun-stale` on `workflow_run`, from main's copy of this file, and
-# asks GitHub to re-run that red run. A re-run re-grades from nothing -- the
+# asks GitHub to re-run each of those red runs. A re-run re-grades from nothing -- the
 # program restored from the base, the reviews read live -- so this writes no
 # verdict: a real red re-runs red, and only a head the owner approved turns.
 
@@ -496,35 +531,40 @@ GATE_WORKFLOW = ".github/workflows/budget-raise-gate.yml"
 RERUN_CONCLUSIONS = ("failure", "timed_out")
 
 
-def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, int | None, str]:
-    """(action, run id, why): "rerun", "wait" or "none" for one completed run.
+def stale_run(trigger: dict, runs: list[dict]) -> tuple[str, list[int], str]:
+    """(action, run ids, why): "rerun", "wait" or "none" for one completed run.
 
     `trigger` is the completed run `workflow_run` names; `runs` the gate's
-    `pull_request` runs at its head. Only the NEWEST of those matters -- it is
-    the one the pull request shows -- and only when the trigger is a passing
-    review run of this very workflow. A trigger that is itself a
-    `pull_request` run is refused, which is also what stops a re-run's own
-    completion from starting another.
+    `pull_request` runs at its head. EVERY red one of those is re-run, not
+    only the newest: GitHub's ruleset refuses a merge while any suite at the
+    head carries a non-success run (#2009), and an author push that re-bodies
+    the pull request starts two `pull_request` runs at one head, which both
+    refuse a raise (R9-CI-2a). Nothing is re-run while one is still going.
+    Only a passing review run of this very workflow triggers it; a trigger
+    that is itself a `pull_request` run is refused, which is also what stops
+    a re-run's own completion from starting another.
     """
     head = str(trigger.get("head_sha") or "")
     if trigger.get("path") != GATE_WORKFLOW:
-        return "none", None, f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
+        return "none", [], f"the completed run is {trigger.get('path')!r}, not {GATE_WORKFLOW}"
     if trigger.get("event") != "pull_request_review":
-        return "none", None, f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
+        return "none", [], f"the completed run is a {trigger.get('event')!r} run; only a review run re-grades"
     if trigger.get("conclusion") != "success":
-        return "none", None, f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
-    same = [r for r in runs
-            if r.get("workflow_id") == trigger.get("workflow_id")
-            and r.get("event") == "pull_request" and r.get("head_sha") == head
-            and r.get("id") != trigger.get("id")]
+        return "none", [], f"the review run concluded {trigger.get('conclusion')!r}; the red stands"
+    same = sorted((r for r in runs
+                   if r.get("workflow_id") == trigger.get("workflow_id")
+                   and r.get("event") == "pull_request" and r.get("head_sha") == head
+                   and r.get("id") != trigger.get("id")),
+                  key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
     if not same:
-        return "none", None, f"no pull_request run of the gate at {head[:12]}"
-    newest = max(same, key=lambda r: (str(r.get("created_at") or ""), r.get("id") or 0))
-    if newest.get("status") != "completed":
-        return "wait", newest.get("id"), f"run {newest.get('id')} at {head[:12]} is {newest.get('status')}"
-    if newest.get("conclusion") in RERUN_CONCLUSIONS:
-        return "rerun", newest.get("id"), f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}"
-    return "none", None, f"run {newest.get('id')} at {head[:12]} concluded {newest.get('conclusion')}; nothing is stale"
+        return "none", [], f"no pull_request run of the gate at {head[:12]}"
+    going = [r.get("id") for r in same if r.get("status") != "completed"]
+    if going:
+        return "wait", going, f"run(s) {going} at {head[:12]} still going"
+    red = [r.get("id") for r in same if r.get("conclusion") in RERUN_CONCLUSIONS]
+    if red:
+        return "rerun", red, f"run(s) {red} at {head[:12]} concluded red"
+    return "none", [], f"{len(same)} pull_request run(s) at {head[:12]}, none red; nothing is stale"
 
 
 def _gh_json(*args: str):
@@ -535,7 +575,7 @@ def _gh_json(*args: str):
 
 
 def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 30) -> int:
-    """Re-run the gate's stale red `pull_request` run after a passing review run.
+    """Re-run every stale red `pull_request` run of the gate after a passing review run.
 
     Exit 0 when a re-run was requested or nothing is stale; 1 when the API
     could not be read or refused, so the job is red and the stale verdict is
@@ -548,15 +588,16 @@ def rerun_stale(run_id: str, repo: str, api=_gh_json, sleep=None, polls: int = 3
         for _ in range(polls):
             runs = api(f"repos/{repo}/actions/workflows/{int(trigger.get('workflow_id') or 0)}/runs"
                        f"?event=pull_request&head_sha={trigger.get('head_sha')}&per_page=100")
-            action, rid, why = stale_run(trigger, runs.get("workflow_runs", []))
+            action, rids, why = stale_run(trigger, runs.get("workflow_runs", []))
             if action != "wait":
                 break
             print(f"WAIT: {why}")
             sleep(20)
         print(f"{action.upper()}: {why}")
         if action == "rerun":
-            api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
-            print(f"RESULT rerun_requested={rid}")
+            for rid in rids:
+                api("-X", "POST", f"repos/{repo}/actions/runs/{int(rid)}/rerun")
+                print(f"RESULT rerun_requested={rid}")
         elif action == "wait":
             print("REFUSED: the pull_request run did not finish in time; re-run it by hand")
             return 1
@@ -962,24 +1003,34 @@ def self_test() -> int:
                 "workflow_id": wf, "created_at": f"{at}{i}"}
 
     check("rerun: a passing review run re-runs the red pull_request run at its head",
-          stale_run(T0, [pr_run(3)])[:2], ("rerun", 3))
-    check("rerun: only the newest pull_request run counts",
-          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("none", None))
-    check("rerun: ... and it is the one re-run when it is red",
-          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", 4))
+          stale_run(T0, [pr_run(3)])[:2], ("rerun", [3]))
+    # R9-CI-2a: an author push that re-bodies the pull request starts two
+    # `pull_request` runs at one head, and both refuse a raise. The ruleset
+    # blocks on a red run in any suite at the head, not the newest alone
+    # (#2009), so every red one is re-run, never only the newest.
+    check("rerun: two red twins at one head, both re-run",
+          stale_run(T0, [pr_run(3), pr_run(4)])[:2], ("rerun", [3, 4]))
+    check("rerun: an older red run beside a newer green one is still re-run",
+          stale_run(T0, [pr_run(3), pr_run(4, "success")])[:2], ("rerun", [3]))
+    check("rerun: ... and a newer red one beside an older green one",
+          stale_run(T0, [pr_run(3, "success"), pr_run(4)])[:2], ("rerun", [4]))
+    check("rerun: twins both green re-run nothing (null control)",
+          stale_run(T0, [pr_run(3, "success"), pr_run(4, "success")])[:2], ("none", []))
+    check("rerun: a twin still going is waited for before either is re-run",
+          stale_run(T0, [pr_run(3), pr_run(4, None, "in_progress")])[:2], ("wait", [4]))
     check("rerun: a failing review run re-runs nothing (the red stands)",
-          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "conclusion": "failure"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: a pull_request trigger re-runs nothing (no loop on the re-run's own completion)",
-          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "event": "pull_request"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: another workflow's run is not the gate",
-          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", None))
+          stale_run({**T0, "path": ".github/workflows/tests.yml"}, [pr_run(3)])[:2], ("none", []))
     check("rerun: a red run at another head is left alone",
-          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", None))
+          stale_run(T0, [pr_run(3, sha=OLD)])[:2], ("none", []))
     check("rerun: a red run of another workflow is left alone",
-          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", None))
-    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", None))
+          stale_run(T0, [pr_run(3, wf=6)])[:2], ("none", []))
+    check("rerun: a cancelled run is left alone", stale_run(T0, [pr_run(3, "cancelled")])[:2], ("none", []))
     check("rerun: a run still going is waited for",
-          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", 3))
+          stale_run(T0, [pr_run(3, None, "in_progress")])[:2], ("wait", [3]))
 
     def fake(pages, fail_post=False):
         calls = []
@@ -1002,6 +1053,12 @@ def self_test() -> int:
     api, calls = fake([[pr_run(3, None, "in_progress")]])
     check("rerun: a run that never finishes is a red job, not a silent pass",
           rerun_stale("9", "o/r", api, sleep=lambda s: None, polls=3), 1)
+    api, calls = fake([[pr_run(3), pr_run(4)]])
+    check("rerun: end to end, two red twins post two re-runs",
+          (rerun_stale("9", "o/r", api, sleep=lambda s: None),
+           [c for c in calls if c[0] == "-X"]),
+          (0, [("-X", "POST", "repos/o/r/actions/runs/3/rerun"),
+               ("-X", "POST", "repos/o/r/actions/runs/4/rerun")]))
     api, calls = fake([[pr_run(3)]], fail_post=True)
     check("rerun: a refused re-run request is a red job", rerun_stale("9", "o/r", api), 1)
     api, calls = fake([[pr_run(3, "success")]])
@@ -1048,10 +1105,10 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         with open(os.path.join(stub, "gh"), "w") as f:
             f.write(_STUB_GH)
         os.chmod(os.path.join(stub, "gh"), 0o700)
-        env = {k: v for k, v in os.environ.items() if not k.startswith(("GIT_", "GH_", "GITHUB_"))}
-        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub,
-                   GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t",
-                   GIT_COMMITTER_EMAIL="t@t", GIT_CONFIG_GLOBAL=os.devnull, GIT_CONFIG_NOSYSTEM="1")
+        from throwaway_git import throwaway_git_env, throwaway_git_init  # tests/, on sys.path above
+        env = throwaway_git_env({k: v for k, v in os.environ.items()
+                                 if not k.startswith(("GIT_", "GH_", "GITHUB_"))})
+        env.update(PATH=stub + os.pathsep + os.environ.get("PATH", ""), BRG_STUB=stub)
 
         def git(*a: str) -> str:
             return subprocess.run(["git", *a], cwd=repo, env=env, capture_output=True,
@@ -1077,7 +1134,7 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         S, P = "tests/structure_budgets.json", ".claude/workflows/policy_budgets.json"
         s0 = {"coordinator_loc": 9062, "cut_views": 110, "recorded_at": "a"}
         p0 = {"always_loaded_tokens": 3349, "files": {"A.md": 10, "gone.md": 5}}
-        git("init", "-q", "-b", "main")
+        throwaway_git_init(repo, "-q", "-b", "main")
         fork = commit({S: s0, P: p0, "A.md": "a\n", "gone.md": "g\n",
                        "tests/zz_budgets.json": {"x": 1}}, "fork")
         # main moves on after the fork and TIGHTENS a cap: the head, which never

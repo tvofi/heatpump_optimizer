@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""The merge train: land a queue of verdicted pull requests, one at a time.
+"""The merge train: land a queue of verdicted pull requests, one at a time or as a batch.
 
     python3 tools/audit/seat/merge_train.py run <queue.json> [--mandate LABEL]
         [--approver-role ROLE] [--ignore-red NAME]... [--repo OWNER/REPO]
         [--state-dir DIR] [--min-runs N]
+    python3 tools/audit/seat/merge_train.py batch <queue.json> [run's options]
+        [--base main|batch/<name>] [--tag TAG]
     python3 tools/audit/seat/merge_train.py wait-ci <40-hex sha> [--min-runs N]
     python3 tools/audit/seat/merge_train.py --self-test
 
@@ -18,7 +20,8 @@ The queue is a JSON list, merged in order:
 PER PULL REQUEST, IN ORDER; THE TRAIN STOPS AT THE FIRST REFUSAL, because every
 later pull request would be graded against a `main` the refused one never joined:
   1. recarry  -- a head that does not contain `origin/main` gets main merged in by
-                 `remerge_main.sh` (an automatic merge, no resolution); a conflict
+                 `remerge_main.sh` (an automatic merge, no resolution), pushed by
+                 `app_push.sh --recarry`, whose prepr skip-or-run line is logged; a conflict
                  or a push that did not land stops the train. The recarry worktree
                  is the pull request's BRANCH checked out at `origin/<branch>`
                  (-B, so an existing local branch is reset), never a detached
@@ -34,8 +37,16 @@ later pull request would be graded against a `main` the refused one never joined
   5. policy   -- no changed file (`--no-renames`, so a rename names the path it
                  left; a failing merge-base or diff stops the train) is policy, as `policy_lint.mjs --corpus-filter`
                  defines it (probed with a sentinel pair first, as preflight.sh
-                 does). A POLICY PULL REQUEST IS NEVER APPROVED HERE, by the App
-                 or under a mandate: it waits for the owner's own review;
+                 does). A POLICY HEAD LANDS ONLY UNDER A VALID MANDATE: the
+                 owner's APPROVED review at exactly this head, cited by id to
+                 a mandate whose window is open AT THE MERGE, both re-read by
+                 `land` when it merges -- the mandate read is `budget_raise_gate.py`'s own (mandate_state,
+                 decision 0013 amended 2026-10-02, tvofi's scope for policy
+                 merging `all`). With no such mandate the train refuses exactly
+                 as it did before one existed (tvofi, 2026-10-09, #201 comment 6083743563:
+                 batch merging of policy under an exceptional mandate, falling
+                 back when there is none -- after its window no code edit is
+                 needed);
   6. approve  -- `app_approve.sh` at the head. When its refusal is exactly its own
                  code-owned line for this pull request (anchored: a blocked
                  verdict's echoed reason can carry the same words), and `--mandate` was given,
@@ -54,11 +65,52 @@ from the orchestrator's machine and identity (decisions 0011, 0013).
 Replaces the session-local train3.py / mergewhen.sh / waitci.sh of round 9;
 the stale-base guard mergewhen.sh carried is subsumed by step 4, which refuses
 any head that does not contain the `main` it merges into.
+
+BATCH (R9-RO-12; tvofi chose B and D of the merge-batching pre-study, 2026-10-07).
+Same queue file; no head is re-merged with main. In order:
+  0. main     -- every required context at main's tip completed green, or
+                 nothing is admitted (a proof on a red main blames its entries);
+  1. admit    -- each head's own files (three-dot from main) are classed by
+                 merge_fastpath.py's `file_class`: a workflow, claim, grader or
+                 any `*_budgets.json` change goes SERIAL. The rest must be green
+                 at their head (all check runs, less --ignore-red), carry their
+                 verdict, carry their row and pass step 5's policy decision --
+                 else it stops; `land` re-reads that decision at the merge, so
+                 admission is only the early refusal, not the verdict;
+  2. build    -- P_i = the merge of P_(i-1) and head i that GitHub will make
+                 (git's text merge in place of every .gitattributes driver, which
+                 GitHub never runs), P_0 = origin/main; a head that does not merge
+                 cleanly goes serial, which covers every pairwise conflict;
+  3. prove    -- B: two or more entries push P_n to batch/<tag>-<n> as the App
+                 (`app_push.sh --branch-only`), dispatch DISPATCH on it, and wait
+                 for every required context of `main-protect-checks` less
+                 PR_ONLY. Red drops the one entry whose files are in the closure
+                 of every script the red jobs name and proves the rest again;
+                 unattributed, every all-but-one set is proved side by side and
+                 the green one dropping the latest entry merges; none green
+                 stops, nothing merged. D: a batch of one is not proved;
+  4. merge    -- each entry as `run` approves and merges it, only while main's
+                 tree equals P_(i-1)'s (the first only while main's tip is still
+                 green, re-read), and main's tree must equal P_i's after;
+  5. serial   -- routed and dropped entries go through `run`'s steps, in queue
+                 order; after a D merge, only once main's run on it is green.
+The spent batch/ branches are deleted when the batch completes; a delete the
+remote refuses is logged as NOT deleted, never as done. Residuals: GitHub's
+merge takes no expected base, so a merge landing between the guard and ours is
+caught only by step 4's after-check; and a proved pair's second merge lands
+before main's push run on the first finishes, so a red that run would show
+does not hold the second back -- accepted, because the proof graded the tree
+both merges make, and main's run on the last merge grades it again.
+A single merge thus rests on main's FULL push run, red there reverted first
+(orchestrator.md section 11). `--base batch/<name>` REHEARSES on a throwaway
+base: steps 1's carry, row and policy reads, 4's approval and 5 are skipped.
 """
 
 from __future__ import annotations
 
 import argparse
+import datetime
+import functools
 import json
 import os
 import re
@@ -82,6 +134,7 @@ HEX = frozenset("0123456789abcdef")
 # `self.run` argv that bypasses this table.
 TOOLS = {
     "app_approve": ("tools/audit/app_approve.sh", "tools/pr/app_approve.sh"),
+    "app_push": ("tools/audit/app_push.sh", "tools/pr/app_push.sh"),
     "preflight": ("tools/audit/preflight.sh", "tools/pr/preflight.sh"),
     "remerge_main": ("tools/audit/seat/remerge_main.sh",),
     "worktree_gc": ("tools/audit/worktree_gc.sh",),
@@ -99,6 +152,31 @@ def tool(name: str) -> str:
 def is_sha(s: str) -> bool:
     return len(s) == 40 and set(s) <= HEX
 GREEN = ("success", "skipped", "neutral")
+# One check-runs read per head every five minutes (tvofi, 2026-10-07: every
+# seat shares one API quota, and it ran out); 24 reads wait two hours.
+POLL_SECONDS = 300
+# THE BATCH PROOF (`batch`). The required contexts are read from this ruleset at
+# run time. These three are written only by a pull-request event -- a body's
+# contract, a diff's closure scope, a budget raise -- so no dispatch writes
+# them; each is a required context, green at every head the batch admits.
+RULESET = "main-protect-checks"
+PR_ONLY = ("closure-scope", "pr-contract", "budget-raise-gate")
+# Every other required context comes from one of these, each dispatchable; a
+# PR-like `fast` needs tests.yml's recheck input (GATE_SCOPE=auto against
+# main's merge base, which is the batch's whole diff).
+DISPATCH = (("tests.yml", ("-f", "recheck=true")), ("governance.yml", ()), ("codeql.yml", ()),
+            ("hassfest.yml", ()), ("validate.yml", ()))
+FAILED_SCRIPT = re.compile(r">>> FAILED: .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b")
+
+
+@functools.lru_cache(maxsize=None)
+def _fastpath():
+    """merge_fastpath.py, whose file classes route a pull request serial."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("merge_fastpath", ROOT / "tools/audit/merge_fastpath.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 class Stop(Exception):
@@ -107,11 +185,75 @@ class Stop(Exception):
         self.step, self.why = step, why
 
 
+# The one reader of the owner's recorded mandate, old path first (the TOOLS
+# convention above).
+GATE_PATHS = (".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py")
+
+
+@functools.lru_cache(maxsize=None)
+def _mandate_gate():
+    """budget_raise_gate.py, imported, never copied (fixer.md step 17): the
+    grammar of a mandate, its scope sets, its window, the owner's pinned
+    identity and the loose revocation are the gate's and live in no other
+    file. The API plumbing in `Train._mandate_read` is the train's own
+    because every command the train runs goes through `self.run`, which the
+    self-test stubs; that is plumbing, not a second reading of the concept."""
+    p = next((ROOT / c for c in GATE_PATHS if (ROOT / c).is_file()), None)
+    if p is None:
+        raise Stop("policy", f"budget_raise_gate.py is in no place the train looks "
+                   f"({', '.join(GATE_PATHS)}), so no mandate can be read")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("budget_raise_gate", str(p))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# A fixture comment id for both self-tests (the run arms and the batch arms
+# approve-and-mandate through these builders, so they read one shape).
+MID = 4100000001
+
+
+def policy_fixture_builders():
+    """(gate module, owner_review, mandate, revoke) -- the objects the policy
+    stop reads, built from the gate's own pinned constants so a fixture can
+    never disagree with the pin it is checked against."""
+    g = _mandate_gate()
+    own = {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
+
+    def iso(dt: datetime.datetime) -> str:
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def owner_review(sha: str, at: datetime.datetime, cite: bool = True, state: str = "APPROVED") -> dict:
+        return {"user": own, "state": state, "commit_id": sha, "submitted_at": iso(at),
+                "body": (f"Agent approval (the orchestrator, not {g.OWNER_LOGIN} in person) "
+                         f"under mandate {MID}." if cite
+                         else f"Approved: the policy change reads right.")}
+
+    def mandate(at: datetime.datetime, scope: str = "all", from_min: int = -60, until_min: "int | None" = 60) -> dict:
+        created = iso(at + datetime.timedelta(minutes=from_min))
+        until = "programme-end" if until_min is None else iso(at + datetime.timedelta(minutes=until_min))
+        return {"id": MID, "user": own, "created_at": created, "updated_at": created,
+                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}",
+                "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope {scope}, "
+                        f"from {created} until {until}"}
+
+    def revoke(comment_id: int = MID) -> dict:
+        return {"id": comment_id + 1, "user": own, "body": f"MANDATE REVOKED {comment_id}"}
+    return g, owner_review, mandate, revoke
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
-                 log=print, polls: int = 120, merge_tries: int = 8) -> None:
+                 log=print, polls: int = 24, merge_tries: int = 8, base: str = "main") -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
+        if base != "main" and not base.startswith("batch/"):
+            raise ValueError(f"--base {base}: main, or a batch/ rehearsal base")
+        # A batch/ base is a REHEARSAL: no ruleset guards it and nothing merged
+        # there reaches main, so the verdict, row, policy and approval reads --
+        # which grade a merge into main -- are not made (`batch`).
+        self.base, self.real = base, base == "main"
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
         self.sleep, self.log = sleep, log
@@ -134,11 +276,13 @@ class Train:
         self.run(["git", "fetch", "-q", "origin", "main", h])
         return self.ok("git", "merge-base", "--is-ancestor", "origin/main", h)
 
-    def wait_ci(self, h: str) -> list[str]:
+    def wait_ci(self, h: str, only: "list[str] | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
 
         Green is a fixed list -- success, skipped, neutral -- so a conclusion
-        GitHub adds later, or `action_required` and `stale` today, reads red."""
+        GitHub adds later, or `action_required` and `stale` today, reads red.
+        With `only`, those names alone are waited for and judged, and each must
+        have a run: a batch proof judges the required contexts (`required`)."""
         for _ in range(self.polls):
             # One JSON object per line across every page: past 100 runs a head
             # would otherwise read as complete on its first page alone.
@@ -148,12 +292,16 @@ class Train:
                 runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
             except ValueError:
                 runs = None
-            if runs and len(runs) >= self.min_runs and all(c.get("status") == "completed" for c in runs):
-                last: dict[str, dict] = {}
-                for c in sorted(runs, key=lambda c: c.get("started_at") or ""):
-                    last[c["name"]] = c
+            last: dict[str, dict] = {}
+            for c in sorted(runs or (), key=lambda c: c.get("started_at") or ""):
+                last[c["name"]] = c
+            if only is not None and runs is not None and all(
+                    last.get(n, {}).get("status") == "completed" for n in only):
+                return sorted(n for n in only if last[n]["conclusion"] not in GREEN)
+            if only is None and runs and len(runs) >= self.min_runs and all(
+                    c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
-            self.sleep(60)
+            self.sleep(POLL_SECONDS)
         return ["TIMEOUT"]
 
     def policy_paths(self, files: list[str]) -> list[str]:
@@ -165,6 +313,120 @@ class Train:
         if probe != ["CLAUDE.md"]:
             raise Stop("policy", "policy_lint.mjs --corpus-filter failed its sentinel probe, so what is policy is undefined here")
         return self.run(filt, stdin="".join(f + "\n" for f in files))[1].split()
+
+    def _mandate_read(self, cid: int) -> "tuple[dict | None, list[dict]]":
+        """The cited comment (None on GitHub's 404) and the tracking issue's
+        comments since it was written, where a revocation would be --
+        budget_raise_gate._mandate's routes, run through `self.run` so the
+        self-test answers them and nothing here touches the remote elsewhere."""
+        g = _mandate_gate()
+        code, o = self.run(["gh", "api", f"repos/{self.repo}/issues/comments/{cid}"])
+        if code:
+            if "HTTP 404" in o:
+                return None, []
+            raise Stop("policy", f"mandate {cid} could not be read: " + o.strip()[-160:])
+        comment = json.loads(o)
+        if not str(comment.get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL):
+            return comment, []
+        code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                            f"repos/{self.repo}/issues/{g.MANDATE_ISSUE}/comments"
+                            f"?per_page=100&since={comment.get('created_at')}"])
+        if code:
+            raise Stop("policy", "the mandate thread could not be read: " + o.strip()[-160:])
+        return comment, [c for page in json.loads(o) for c in page]
+
+    def policy_gate(self, pr: int, h: str, files: list[str]) -> "str | None":
+        """THE policy decision, ONE function so the run pass and the batch
+        cannot drift (step 5; tvofi's ruling of 2026-10-09, #201 comment
+        6083743563: the train lands policy under a valid mandate and falls
+        back to refusing when there is none -- after the window closes the
+        pre-mandate refusal returns with no code edit). A head changing no
+        policy file (as `policy_paths` decides, sentinel probe unchanged)
+        is not stopped. A head changing one lands only when BOTH hold, each
+        re-read at the merge moment by the caller (`land`; batch admission
+        calls this too, as an early refusal that costs no proof):
+
+          1. the owner's APPROVED review sits at EXACTLY this head -- never
+             a stale approval, the review is the substitute for the human
+             the stop existed to keep in the loop; policy content that
+             moved after the review is refused as that change, since the
+             carry behaviour (a blob-identical bot commit, an automatic
+             main merge) binds a verdict, not an owner's review of content;
+          2. a mandate covering policy merging is in force AT THE MERGE,
+             read by budget_raise_gate's own rules (mandate_state: the
+             pinned owner's grammar comment on the tracking issue, its
+             window open now, never edited, not revoked, scope `all`), and
+             cited by id in that head's owner approval -- the citation is
+             how the stop knows which mandate the owner pointed at, and it
+             keeps the landing from reading as self-approval.
+
+    Every refusal names which of these it found, and returns None; success
+    returns the mandate's own line for the log."""
+        pol = self.policy_paths(files)
+        if not pol:
+            return None
+        head_pol = f"policy paths changed ({', '.join(pol)})"
+        g = _mandate_gate()
+        now = datetime.datetime.now(datetime.timezone.utc)
+        at = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+        def merge_mandate(review, cid, comment, thread):
+            return g.mandate_state(cid, comment, thread, now, at, "merge",
+                                   g.MANDATE_COVERS_POLICY, "policy merging")
+        read: dict = {}
+
+        def mandate_fn(cid):
+            if cid not in read:
+                read[cid] = self._mandate_read(cid)
+            return read[cid]
+        try:
+            code, o = self.run(["gh", "api", "--paginate", "--slurp",
+                                f"repos/{self.repo}/pulls/{pr}/reviews?per_page=100"])
+            if code:
+                raise Stop("policy", head_pol + ": the reviews could not be read: " + o.strip()[-160:])
+            reviews = [r for page in json.loads(o) for r in page]
+            ok, why = g.approval(reviews, h, mandate_fn, merge_mandate)
+            if not ok:
+                raise Stop("policy", head_pol + ": " + (self._policy_move(h, pol, reviews) or why))
+            cited = {int(a or b) for r in reviews
+                     if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"
+                     and r.get("commit_id") == h
+                     for a, b in g.MANDATE_CITE.findall(r.get("body") or "")}
+            if not cited:
+                raise Stop("policy", head_pol + ": the owner's approval at this head cites no mandate "
+                           "id, and the train lands policy only under a mandate in force named by it")
+            states = [merge_mandate(None, cid, *mandate_fn(cid)) for cid in sorted(cited)]
+            live = next((why for w, why in states if w), None)
+            if live is None:
+                raise Stop("policy", head_pol + ": " + "; ".join(why for _, why in states))
+            return live
+        except Stop:
+            raise
+        except Exception as e:  # fail closed: an unread approval or mandate lands nothing
+            raise Stop("policy", head_pol + f": the policy read failed "
+                       f"({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+                       "an unread mandate grants nothing") from None
+
+    def _policy_move(self, h: str, pol: list[str], reviews: list[dict]) -> str:
+        """When the approval read refused, name whether the policy CONTENT
+        moved after the owner's last approval: fetch the reviewed commit and
+        diff it to the merge head. A moved policy file is the case the stop
+        was written for -- fresh review or nothing. '' when the diff says
+        otherwise or cannot be read: the caller then names approval()'s own
+        refusal (a head moved only by blobs that did not touch policy is
+        still 'not this head' -- the train does not re-review)."""
+        g = _mandate_gate()
+        last = next((r for r in reversed(reviews)
+                     if g._is_owner(r.get("user")) and r.get("state") == "APPROVED"), None)
+        c = str((last or {}).get("commit_id") or "")
+        if not is_sha(c) or c == h or not self.ok("git", "fetch", "-q", "origin", c):
+            return ""
+        code, o = self.run(["git", "diff", "--no-renames", "--name-only", c, h])
+        if code:
+            return ""
+        moved = [f for f in o.split() if f in pol]
+        return (f"policy content changed after the owner's review at {c[:12]} "
+                f"({', '.join(moved)}): a fresh owner review, not a carry") if moved else ""
 
     def approve(self, pr: int, h: str, item: dict, files: list[str]) -> str:
         code, o = self.run(["bash", tool("app_approve"), self.repo, str(pr), h])
@@ -225,7 +487,9 @@ class Train:
                 # die). The last 200 characters were only the die.
                 raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
             h = self.head(pr)
-            self.log(f"#{pr} recarry: main merged, head {h[:8]}")
+            # app_push.sh --recarry's one line: prepr SKIPPED or RUNS, and why.
+            path = next((ln.strip() for ln in o.splitlines() if "RECARRY:" in ln), "no RECARRY line")
+            self.log(f"#{pr} recarry: main merged, head {h[:8]}; {path}")
         red = [n for n in self.wait_ci(h) if n not in self.ignore]
         self.log(f"#{pr} {h[:8]} ci red={red}")
         if red:
@@ -250,12 +514,21 @@ class Train:
             raise Stop("row", f"#{pr} has no {row} in the three-dot diff; "
                        "the train writes none and the stamp's --require-rows "
                        "bar refuses an unrowed merge")
-        pol = self.policy_paths(files)
-        if pol:
-            raise Stop("policy", f"policy paths changed ({', '.join(pol)}): only the owner's own review approves it")
+        def guard() -> None:
+            if not self.contains_main(h):
+                raise Stop("merge", "origin/main moved before the merge; run the train again")
+        self.land(pr, h, item, files, guard)
+
+    def land(self, pr: int, h: str, item: dict, files: list[str], guard) -> str:
+        """Approve, preflight and merge <pr> at <h>, `guard()` raising Stop before
+        each attempt when the base is not where the merge expects it; the merge sha."""
         if self.head(pr) != h:
             raise Stop("approve", "head moved")
-        self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
+        if self.real:
+            under = self.policy_gate(pr, h, files)  # step 5, re-read at the merge itself
+            if under:
+                self.log(f"#{pr} policy head lands under {under}")
+            self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
         self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
@@ -263,8 +536,7 @@ class Train:
             raise Stop("preflight", "the title did not pass preflight.sh: " + pf.strip()[-200:])
         for _ in range(self.merge_tries):
             self.sleep(30)
-            if not self.contains_main(h):
-                raise Stop("merge", "origin/main moved before the merge; run the train again")
+            guard()
             self.run(["gh", "pr", "merge", str(pr), "--repo", self.repo, "--merge", "--match-head-commit", h])
             st = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "state,mergeCommit",
                           "--jq", '"\\(.state) \\(.mergeCommit.oid)"')
@@ -277,7 +549,9 @@ class Train:
         q = ('query={repository(owner:"%s",name:"%s"){pullRequest(number:%d){closingIssuesReferences(first:10)'
              "{nodes{number state}}}}}" % (owner, name, pr))
         self.log(f"#{pr} closes {self.out('gh', 'api', 'graphql', '-f', q)[-160:]}")
-        self.run(["bash", tool("worktree_gc"), self.repo])
+        if self.real:
+            self.run(["bash", tool("worktree_gc"), self.repo])
+        return st.split()[-1]
 
     def train(self, queue: list[dict]) -> int:
         self.state.mkdir(parents=True, exist_ok=True)
@@ -290,9 +564,244 @@ class Train:
         self.log("TRAIN DONE")
         return 0
 
+    # ------------------------------------------------------------- the batch
+    def git(self, *argv: str) -> str:
+        code, o = self.run(["git", *argv])
+        if code:
+            raise Stop("git", f"git {' '.join(argv)[:80]}: {o.strip()[-160:]}")
+        return o.strip()
+
+    def tree(self, rev: str) -> str:
+        return self.git("rev-parse", f"{rev}^{{tree}}")
+
+    def required(self) -> list[str]:
+        code, rid = self.run(["gh", "api", f"repos/{self.repo}/rulesets", "--jq",
+                              f'.[] | select(.name == "{RULESET}") | .id'])
+        code2, o = self.run(["gh", "api", f"repos/{self.repo}/rulesets/{rid.strip()}", "--jq",
+                             '.rules[] | select(.type == "required_status_checks")'
+                             ' | .parameters.required_status_checks[].context'])
+        names = sorted({n.strip() for n in o.splitlines() if n.strip()} - set(PR_ONLY))
+        if code or code2 or not rid.strip().isdigit() or not names:
+            raise Stop("proof", f"could not read {RULESET}'s required contexts; no proof is judged against a guessed list")
+        return names
+
+    def admit(self, item: dict, base: str, graders: list[str], mf) -> dict:
+        """The pull request as a batch entry: its head, its own files, and the
+        merge_fastpath classes that route it serial (empty: it joins the batch)."""
+        pr, v = int(item["pr"]), item["verdict"]
+        if not is_sha(v):
+            raise Stop("queue", f"verdict '{v}' is not a 40-hex sha")
+        h = self.head(pr)
+        if not is_sha(h):
+            raise Stop("head", f"could not read the head: {h[:120]}")
+        target = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "baseRefName", "--jq", ".baseRefName")
+        if target != self.base:
+            raise Stop("base", f"#{pr} targets {target}, not {self.base}")
+        self.run(["git", "fetch", "-q", "origin", h])
+        files = self.git("diff", "--no-renames", "--name-only", self.git("merge-base", base, h), h).split()
+        route = sorted({c for f in files if (c := mf.file_class(f, graders))})
+        a = dict(item, pr=pr, head=h, files=files, route=route)
+        if route:
+            self.log(f"#{pr} serial: {', '.join(route)}")
+            return a
+        red = [n for n in self.wait_ci(h) if n not in self.ignore]
+        if red:
+            raise Stop("ci", f"#{pr} red at its head: " + ", ".join(red))
+        if self.real:
+            o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]
+            if "CARRY: yes" not in o:
+                raise Stop("carry", f"#{pr} " + (o.strip().splitlines() or ["(no output)"])[-1][:200])
+            if f"{ROW_DIR}/{pr}.md" not in files:
+                raise Stop("row", f"#{pr} has no {ROW_DIR}/{pr}.md in the three-dot diff")
+            under = self.policy_gate(pr, h, files)  # early refusal; land re-reads at the merge
+            if under:
+                self.log(f"#{pr} policy head admitted under {under}")
+        self.log(f"#{pr} admitted at {h[:8]}")
+        return a
+
+    def build(self, base: str, entries: list[dict]) -> tuple[list[dict], list[str], list[dict]]:
+        """Proof commits over <base>: P_i is the merge GitHub will make of P_(i-1)
+        and entry i's head -- git's own text merge in place of every driver
+        main's .gitattributes names, since GitHub runs none. An entry that does
+        not merge cleanly onto the entries before it is returned to go serial,
+        which covers every pairwise conflict and the three-way ones besides."""
+        attrs = self.run(["git", "show", f"{base}:.gitattributes"])[1]
+        drivers = [x for n in sorted(set(re.findall(r"\bmerge=([\w-]+)", attrs)))
+                   for x in ("-c", f"merge.{n}.driver=git merge-file %A %O %B")]
+        kept, proofs, conflicted, last = [], [], [], base
+        for a in entries:
+            code, o = self.run(["git", *drivers, "merge-tree", "--write-tree", last, a["head"]])
+            if code == 1:
+                self.log(f"#{a['pr']} serial: conflict onto {last[:8]}")
+                conflicted.append(a)
+                continue
+            tree = o.split()[0] if o.split() else ""
+            if code or not is_sha(tree):
+                raise Stop("build", f"git merge-tree on #{a['pr']}: {o.strip()[-160:]}")
+            last = self.git("commit-tree", tree, "-p", last, "-p", a["head"], "-m",
+                            f"batch proof: #{a['pr']} at {a['head'][:12]} onto {last[:12]}")
+            kept.append(a)
+            proofs.append(last)
+        return kept, proofs, conflicted
+
+    def launch(self, branch: str, sha: str) -> None:
+        """Push <sha> to <branch> as the App and dispatch every required context's workflow on it."""
+        wt = self.state / "batch-wt"
+        if wt.exists():
+            self.git("-C", str(wt), "checkout", "-q", "-B", branch, sha)
+        elif not self.ok("git", "worktree", "add", "-q", "-B", branch, str(wt), sha):
+            raise Stop("proof", f"could not make the proof worktree at {wt}")
+        o = self.run(["bash", tool("app_push"), "--branch-only", self.repo, str(wt), branch])[1]
+        self.branches.append(branch)
+        if "PUSHED" not in o:
+            raise Stop("proof", f"the App did not push {branch}: {o.strip()[-300:]}")
+        for wf, extra in DISPATCH:
+            code, o = self.run(["gh", "workflow", "run", wf, "--repo", self.repo, "--ref", branch, *extra])
+            if code:
+                raise Stop("proof", f"dispatching {wf} on {branch} was refused: {o.strip()[-160:]}")
+        self.log(f"proof {branch} at {sha[:8]}: pushed, {len(DISPATCH)} workflows dispatched")
+
+    def culprit(self, sha: str, base: str, kept: list[dict], red: list[str]) -> int | None:
+        """The one entry whose own files lie in the closure of every script the
+        proof's failing jobs name, under main's table or the proof's; None when
+        no script is named (a job with no script) or more than one entry owns them."""
+        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
+                              f"repos/{self.repo}/commits/{sha}/check-runs?per_page=100"])
+        runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else []
+        scripts: set[str] = set()
+        for c in runs:
+            if c.get("name") in red and c.get("conclusion") not in GREEN:
+                # gh refuses a log carrying terminal escapes -- every Actions log
+                # does -- unless told to pass them (measured on the R9-RO-12 proof).
+                log = self.run(["gh", "api", "--allow-escape-sequences",
+                                f"repos/{self.repo}/actions/jobs/{c['id']}/logs"])[1]
+                scripts |= set(FAILED_SCRIPT.findall(log))
+        if not scripts:
+            return None
+        unit = _fastpath().closure.unit_of
+        tables = [json.loads(self.git("show", f"{rev}:tests/closures.json"))["closures"] for rev in (base, sha)]
+        owners = {a["pr"] for a in kept for s in scripts for t in tables
+                  if {unit(f) for f in a["files"]} & set(t.get(s, ()))}
+        self.log(f"proof {sha[:8]} failing scripts {sorted(scripts)}, owned by {sorted(owners)}")
+        return owners.pop() if len(owners) == 1 else None
+
+    def settle(self, tag: str, base: str, kept: list[dict], req: list[str]) -> tuple[list[dict], list[str], list[dict]]:
+        """The entries whose proof is green, their proofs, and the entries dropped
+        to go serial. B: two or more are proved; D: one merges unproved."""
+        dropped: list[dict] = []
+        n = 0
+        while True:
+            kept, proofs, conflicted = self.build(base, kept)
+            dropped += conflicted
+            if len(kept) < 2:
+                return kept, proofs, dropped
+            n += 1
+            self.launch(f"batch/{tag}-{n}", proofs[-1])
+            red = self.wait_ci(proofs[-1], only=req)
+            self.log(f"proof batch/{tag}-{n} {proofs[-1][:8]} red={red}")
+            if "TIMEOUT" in red:
+                raise Stop("proof", f"batch/{tag}-{n} never completed its required contexts; nothing merged")
+            if not red:
+                return kept, proofs, dropped
+            pr = self.culprit(proofs[-1], base, kept, red)
+            if pr is None and len(kept) == 2:
+                pr = kept[1]["pr"]  # two sets of one: D merges the first unproved
+            if pr is not None:
+                self.log(f"#{pr} dropped to serial: the proof is red at {', '.join(red)}")
+                dropped += [a for a in kept if a["pr"] == pr]
+                kept = [a for a in kept if a["pr"] != pr]
+                continue
+            # Every all-but-one set, proved side by side; the green set dropping
+            # the latest entry wins, so the queue's order keeps its priority.
+            subs = []
+            for a in kept:
+                sub, p, c = self.build(base, [b for b in kept if b is not a])
+                if not c and p:
+                    n += 1
+                    self.launch(f"batch/{tag}-{n}", p[-1])
+                    subs.append((a, sub, p))
+            green = [(a, sub, p) for a, sub, p in subs if not self.wait_ci(p[-1], only=req)]
+            if not green:
+                raise Stop("proof", f"red at {', '.join(red)} with every one of "
+                           f"{', '.join('#%d' % a['pr'] for a in kept)} dropped; nothing merged: take them through run")
+            a, sub, p = green[-1]
+            self.log(f"#{a['pr']} dropped to serial: the set without it is green at {p[-1][:8]}")
+            return sub, p, dropped + [a]
+
+    def main_green(self, tip: str, req: list[str], why: str) -> None:
+        """Stop unless every required context at the base's tip completed green.
+        D's bound -- main's FULL push run, reverted first -- names one merge only
+        on a base that was green under it; a proof is only red for its entries
+        on such a base (review of #2044: a red main D-merged the wrong entry)."""
+        red = self.wait_ci(tip, only=req)
+        if red:
+            raise Stop("main", f"{self.base} at {tip[:12]} is not green ({', '.join(red)}) {why}; nothing more lands")
+
+    def batch(self, queue: list[dict], tag: str) -> int:
+        self.state.mkdir(parents=True, exist_ok=True)
+        self.branches: list[str] = []
+        try:
+            mf = _fastpath()
+            self.run(["git", "fetch", "-q", "origin", self.base])
+            base = self.git("rev-parse", f"origin/{self.base}")
+            req = self.required()
+            self.main_green(base, req, "before admission")
+            graders = mf.grader_specs(mf.workflow_texts(base, git=lambda *a: self.git(*a)))
+            entries = [self.admit(item, base, graders, mf) for item in queue]
+            serial = [a for a in entries if a["route"]]
+            kept, proofs, dropped = self.settle(tag, base, [a for a in entries if not a["route"]], req)
+            lone = len(kept) == 1
+            if lone:
+                self.log(f"#{kept[0]['pr']} D: a batch of one merges at its verdicted head, unproved; "
+                         f"{self.base}'s FULL push run is its gate, and a red there is reverted first")
+            prev, tip = base, base
+            for a, p in zip(kept, proofs):
+                def guard(prev=prev, pr=a["pr"], first=prev == base) -> None:
+                    self.run(["git", "fetch", "-q", "origin", self.base])
+                    now = self.git("rev-parse", f"origin/{self.base}")
+                    if self.tree(now) != self.tree(prev):
+                        raise Stop("merge", f"{self.base} moved: its tree is not the one #{pr}'s proof was built on; run the batch again")
+                    # Later merges land on a tree this batch's own green proof graded.
+                    if first:
+                        self.main_green(now, req, f"right before #{pr}'s merge")
+                self.land(a["pr"], a["head"], a, a["files"], guard)
+                self.run(["git", "fetch", "-q", "origin", self.base])
+                tip = self.git("rev-parse", f"origin/{self.base}")
+                if self.tree(tip) != self.tree(p):
+                    raise Stop("tree", f"after #{a['pr']} {self.base} is {tip[:12]}, whose tree is not proof {p[:12]}'s; "
+                               "read that merge before anything else lands")
+                self.log(f"#{a['pr']} {self.base} {tip[:8]} tree == proof {p[:8]}")
+                prev = p
+            order = {int(item["pr"]): i for i, item in enumerate(queue)}
+            later = sorted(serial + dropped, key=lambda a: order[a["pr"]])
+            if lone and later and self.real:
+                # A red push run must point at one merge: the unproved one is graded alone.
+                self.main_green(tip, req, f"after #{kept[0]['pr']}'s unproved merge: revert it first")
+            if later and not self.real:
+                self.log(f"rehearsal: serial {', '.join('#%d' % a['pr'] for a in later)} not run")
+            elif later:
+                self.log(f"serial: {', '.join('#%d' % a['pr'] for a in later)}")
+                for a in later:
+                    try:
+                        self.one(a)
+                    except Stop as s:
+                        raise Stop(s.step, f"#{a['pr']} {s.why}") from None
+        except Stop as s:
+            self.log(f"TRAIN STOPPED {s.step}: {s.why}")
+            return 1
+        if self.branches:  # the proofs are spent; their shas are in the log above
+            code, out = self.run(["git", "push", "-q", "origin", "--delete", *self.branches])
+            names = ", ".join(self.branches)
+            self.log(f"deleted {names}" if code == 0 else
+                     f"NOT deleted {names} (rc={code}: {out.strip()[-160:]}); the merges stand, delete them by hand")
+        self.log("TRAIN DONE")
+        return 0
+
 
 # ----------------------------------------------------------------- self-test
 def _self_test() -> int:
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_env, throwaway_git_init
     passed = failed = 0
     H0, H1, V = "a" * 40, "b" * 40, "c" * 40
 
@@ -317,6 +826,8 @@ def _self_test() -> int:
                 return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
+            if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
+                return 0, "\n".join(world.get("content_diff", []))
             if "--carry" in a:
                 return 0, world.get("carry", "CARRY: yes")
             if argv[:2] == ["git", "diff"]:
@@ -334,6 +845,13 @@ def _self_test() -> int:
                 if world.get("broken_filter"):
                     return 0, ""
                 return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
+            if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
+                return 0, json.dumps([world.get("reviews", [])])
+            if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
+                return (0, json.dumps(world["mandate"])) if world.get("mandate") \
+                    else (1, "gh: Not Found (HTTP 404)")
+            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
+                return 0, json.dumps([world.get("thread", [])])
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -389,13 +907,49 @@ def _self_test() -> int:
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
-    rc, lines, calls = go({"files": ["custom_components/x.py", f"{ROW_DIR}/7.md",
-                                     "dev/governance/roles/fixer.md"],
-                           "approve": (1, "REFUSE: #7 touches code-owned paths (dev/governance/roles/fixer.md); the owner's")},
-                          mandate="mandate 1 (tvofi)")
-    check("a policy pull request is never approved, even under a mandate", rc == 1 and "policy:" in lines[-1]
-          and "dev/governance/roles/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
-          and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
+    _g, owner_review, mandate, revoke = policy_fixture_builders()
+    NOW = datetime.datetime.now(datetime.timezone.utc)
+    POL = {"files": ["custom_components/x.py", f"{ROW_DIR}/7.md", "dev/governance/roles/fixer.md"]}
+    no_app = lambda: not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls)
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW)})
+    check("a policy head whose owner approval at this exact head cites a mandate in force lands",
+          rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE"
+          and any("policy" in ln and f"mandate {MID}" in ln for ln in lines))
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW, cite=False)], "mandate": mandate(NOW)})
+    check("a policy head with NO mandate is refused as before -- the approval is at the head, "
+          "so the refusal names the mandate, not the review (the fallback is the point)",
+          rc == 1 and "policy:" in lines[-1] and "dev/governance/roles/fixer.md" in lines[-1]
+          and "cites no mandate" in lines[-1] and not approved(calls) and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [], "mandate": mandate(NOW)})
+    check("a policy head with a mandate but no owner approval at its head is refused, named as the review",
+          rc == 1 and "policy:" in lines[-1] and "no decisive review" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, until_min=-1)})
+    check("a mandate whose window has passed behaves as no mandate (expiry arm)",
+          rc == 1 and "policy:" in lines[-1] and "expired" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
+                           "thread": [revoke()]})
+    check("a revoked mandate refuses the policy head, named as revoked",
+          rc == 1 and "policy:" in lines[-1] and "revoked" in lines[-1] and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, scope="budget-raise")})
+    check("a mandate scoped budget-raise does not cover policy merging",
+          rc == 1 and "policy:" in lines[-1] and "does not cover policy merging" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, scope="code-owned")})
+    check("a code-owned mandate licenses approvals, not the train landing policy (MANDATE_COVERS_POLICY is `all`)",
+          rc == 1 and "policy:" in lines[-1] and "does not cover policy merging" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review("f" * 40, NOW)], "mandate": mandate(NOW),
+                           "reviewed": "f" * 40, "content_diff": ["dev/governance/roles/fixer.md"]})
+    check("policy content that moved after the owner's review is refused and named as that change",
+          rc == 1 and "policy:" in lines[-1] and "changed after the owner's review" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review("f" * 40, NOW)], "mandate": mandate(NOW),
+                           "reviewed": "f" * 40, "content_diff": ["custom_components/y.py"]})
+    check("an approval not at this exact head is refused as that, when the policy blobs did not move",
+          rc == 1 and "policy:" in lines[-1] and "not this head" in lines[-1]
+          and not merged(calls) and no_app())
     rc, lines, calls = go({"heads": [H0, H1]})
     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]
           and not approved(calls) and not merged(calls))
@@ -423,6 +977,15 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    for way in ("SKIPPED: HEAD is the clean merge", "RUNS: HEAD has 3 parent(s)"):
+        rc, lines, calls = go({"contains": [False], "heads": [H0, H1],
+                               "remerge": f"app_push: RECARRY: prepr {way}\napp_push: PUSHED"})
+        check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
+              rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
+    # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
+    rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
+    check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
+          re.search(r'bash "\$_push" --recarry ', rm) is not None and "RECARRY|" in rm)
     # End-to-end absorbed-branch recarry against a REAL fixture repo (#1943):
     # the train's `git worktree add` runs for real, the remerge stub performs
     # remerge_main.sh's actual merge on that worktree, and then applies
@@ -433,9 +996,10 @@ def _self_test() -> int:
         g = Path(gd) / "repo"
         g.mkdir()
         def rg(*argv: str, cwd: Path | None = None) -> tuple[int, str]:
-            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True)
+            r = subprocess.run(["git", *argv], cwd=cwd or g, capture_output=True, text=True,
+                               env=throwaway_git_env())
             return r.returncode, (r.stdout + r.stderr).strip()
-        rg("init", "-q", "-b", "main", ".")
+        throwaway_git_init(g, "-q", "-b", "main")
         rg("config", "user.email", "fixture@example.test")
         rg("config", "user.name", "fixture")
         (g / "one.txt").write_text("one\n")
@@ -545,13 +1109,306 @@ def _self_test() -> int:
     for name, cands in TOOLS.items():
         check(f"the train's {name} script is in the tree ({' or '.join(cands)})",
               any((ROOT / c).is_file() for c in cands))
+    check("the train's mandate reader budget_raise_gate.py is in the tree ("
+          + " or ".join(GATE_PATHS) + ")", any((ROOT / c).is_file() for c in GATE_PATHS))
     check(f"the delivery-row directory the train requires, {ROW_DIR}/, is in the tree",
           (ROOT / ROW_DIR).is_dir())
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
     check("every script the train runs resolves through TOOLS, none by a bare path"
           + (f" (bare: {', '.join(bare)})" if bare else ""), not bare)
+    _batch_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _batch_self_test(check) -> None:
+    """`batch` against REAL git: a remote that plays GitHub (its merges are
+    `git merge --no-ff` with no driver configured) and the train's clone. The
+    fake CI grades a tree by a ratchet: the files under units/ may not outnumber
+    cap.txt. Every other GitHub call is a stub keyed on argv."""
+    from throwaway_git import throwaway_git_clone, throwaway_git_env, throwaway_git_init  # on sys.path: _self_test
+    R0 = "fast (3.14)"
+
+    def g(cwd: Path, *a: str) -> tuple[int, str]:
+        r = subprocess.run(["git", *a], cwd=cwd, capture_output=True, text=True, env=throwaway_git_env())
+        return r.returncode, (r.stdout + r.stderr).strip()
+
+    def world(d: Path, base: str, prs: dict[int, dict[str, str]], cap: int = 2) -> dict:
+        R, L = d / "remote", d / "local"
+        R.mkdir()
+        throwaway_git_init(R, "-q", "-b", base)
+        for k, v in (("user.email", "f@example.test"), ("user.name", "f"), ("uploadpack.allowAnySHA1InWant", "true")):
+            g(R, "config", k, v)
+        tree = {"cap.txt": f"{cap}\n", "units/u0": "0\n", "a.txt": "a\n", "b.txt": "b\n",
+                "led.json": "1\n2\n3\n4\n5\n6\n", ".gitattributes": "led.json merge=led\n",
+                ".github/workflows/t.yml": "      run: |\n        git checkout \"$PINNED\" -- \\\n          'tools/grader.sh'\n",
+                "tools/grader.sh": "g\n",
+                "tests/closures.json": json.dumps({"closures": {"tests/ratchet.py": ["tests/ratchet.py", "units/b"]}})}
+        for f, t in tree.items():
+            (R / f).parent.mkdir(parents=True, exist_ok=True)
+            (R / f).write_text(t)
+        g(R, "add", "-A")
+        g(R, "commit", "-qm", "base")
+        heads = {}
+        for n, edits in prs.items():
+            g(R, "checkout", "-q", "-b", f"pr{n}", base)
+            for f, t in {**edits, f"{ROW_DIR}/{n}.md": f"- [#{n}]\n"}.items():
+                (R / f).parent.mkdir(parents=True, exist_ok=True)
+                (R / f).write_text(t)
+            g(R, "add", "-A")
+            g(R, "commit", "-qm", f"pr {n}")
+            heads[n] = g(R, "rev-parse", "HEAD")[1]
+            g(R, "checkout", "-q", base)
+        throwaway_git_clone(R, L, "-q")
+        for k, v in (("user.email", "f@example.test"), ("user.name", "f"),
+                     ("merge.led.driver", "printf LOCAL > %A")):  # a driver GitHub never runs
+            g(L, "config", k, v)
+        return {"R": R, "L": L, "base": base, "red": set(), "base_sha": g(R, "rev-parse", base)[1], "heads": heads, "merged": {}, "pushed": [], "dispatched": [],
+                "approved": [], "gc": 0, "ci_red": "policy-docs", "after_merge": {}, "target": base,
+                "required": f"{R0}\npolicy-docs\npr-contract\n"}
+
+    def ci(w: dict, sha: str) -> list[dict]:
+        L = w["L"]
+        units = g(L, "ls-tree", "-r", "--name-only", sha, "units/")[1].split()
+        over = len(units) > int(g(L, "show", f"{sha}:cap.txt")[1] or 0) or sha in w["red"]
+        runs = [{"name": n, "id": i, "status": "completed", "started_at": "1",
+                 "conclusion": "failure" if over and n == w["ci_red"] else "success"}
+                for i, n in ((11, R0), (12, "policy-docs"))]
+        if sha == w["base_sha"]:  # main's own push run writes every required context
+            runs += [{"name": n, "id": 15, "status": "completed", "started_at": "1", "conclusion": "success"}
+                     for n in w["required"].split() if n == "never-dispatched"]
+        if sha in w["heads"].values():  # a pull-request event writes these; no dispatch does
+            runs += [{"name": "pr-contract", "id": 13, "status": "completed", "started_at": "1", "conclusion": "failure"},
+                     {"name": "nightly-status", "id": 14, "status": "completed", "started_at": "1", "conclusion": "failure"}]
+        return runs
+
+    def stub(w: dict):
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if argv[0] == "git" and "--delete" in argv:  # the proof branches live only in w["pushed"]
+                w["deleted"] = argv[argv.index("--delete") + 1:]
+                return w.get("delete_rc", (0, ""))
+            if argv[0] == "git":
+                if argv[1:3] == ["fetch", "-q"]:
+                    return g(w["L"], "fetch", "-q", "origin", *argv[4:])
+                return g(w["L"], *argv[1:])
+            if argv[:3] == ["gh", "pr", "view"]:
+                n = int(argv[3])
+                if "headRefOid" in a:
+                    return 0, w["heads"][n]
+                if "baseRefName" in a:
+                    return 0, w["target"]
+                if "state,mergeCommit" in a:
+                    return 0, f"MERGED {w['merged'][n]}" if n in w["merged"] else "OPEN None"
+                return 0, "fix: x"
+            if argv[:3] == ["gh", "pr", "merge"]:
+                n, h = int(argv[3]), argv[-1]
+                if w["heads"][n] != h:
+                    return 1, "head moved"
+                code, o = g(w["R"], "merge", "--no-ff", "--no-edit", "-q", h)
+                if code:
+                    g(w["R"], "merge", "--abort")
+                    return 1, o
+                w["after_merge"].get(n, lambda: None)()
+                w["merged"][n] = g(w["R"], "rev-parse", "HEAD")[1]
+                return 0, ""
+            if "check-runs" in a:
+                sha = a.split("/commits/")[1].split("/")[0]
+                return 0, "\n".join(json.dumps(c) for c in ci(w, sha))
+            if "/actions/jobs/" in a and "--allow-escape-sequences" not in argv:
+                return 1, "the response contains terminal escape sequences; pass --allow-escape-sequences"
+            if "/actions/jobs/11/logs" in a:
+                return 0, '2026-10-07T00:00:00Z >>> FAILED: "$PYTHON" tests/ratchet.py'
+            if "/actions/jobs/" in a:
+                return 0, "no script here"
+            if argv[:2] == ["gh", "api"] and a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if w["required"] else (1, "HTTP 404")
+            if "rulesets/7" in a:
+                return 0, w["required"]
+            if argv[:3] == ["gh", "workflow", "run"]:
+                w["dispatched"].append((argv[3], argv[argv.index("--ref") + 1]))
+                return 0, ""
+            if "--branch-only" in a:
+                w["pushed"].append((argv[-1], g(Path(argv[-2]), "rev-parse", "HEAD")[1]))
+                return 0, "app_push: PUSHED"
+            if "--carry" in a:
+                return 0, "CARRY: yes"
+            if "app_approve.sh" in a:
+                w["approved"].append(int(argv[-2]))
+                return 0, "APPROVED"
+            if "--corpus-filter" in a:
+                return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
+                n = a.split("/pulls/")[1].split("/")[0]
+                w.setdefault("reviews_reads", []).append(n)
+                rf = w.get("reviews_for")
+                return 0, json.dumps([rf(w["heads"][int(n)]) if rf else []])
+            if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
+                return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
+            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
+                return 0, json.dumps([w.get("thread", [])])
+            if "preflight.sh" in a:
+                return 0, "  clean    no refusal"
+            if "worktree_gc.sh" in a:
+                w["gc"] += 1
+            if "remerge_main.sh" in a:
+                return 0, "MERGE CONFLICT"
+            return 0, ""
+        return run
+
+    def go(prs, base="batch/base", cap=2, setup=None, ignore=("nightly-status", "pr-contract")):
+        with tempfile.TemporaryDirectory() as d:
+            w = world(Path(d), base, prs, cap)
+            (setup or (lambda w: None))(w)
+            w["base_sha"] = g(w["R"], "rev-parse", base)[1]
+            lines: list[str] = []
+            t = Train("o/r", Path(d) / "state", None, "the orchestrator", ignore, 1, run=stub(w),
+                      sleep=lambda s: w.get("on_sleep", lambda: None)(), log=lines.append, polls=2, merge_tries=2, base=base)
+            q = [{"pr": n, "verdict": w["heads"][n]} for n in prs]
+            rc = t.batch(q, "t")
+            w["rc"], w["lines"] = rc, lines
+            w["tree_ok"] = [ln for ln in lines if "tree == proof" in ln]
+            w["main_tree"] = g(w["R"], "rev-parse", f"{base}^{{tree}}")[1]
+            w["led"] = g(w["R"], "show", f"{base}:led.json")[1]
+            w["proof_trees"] = [g(w["L"], "rev-parse", f"{sha}^{{tree}}")[1] for _, sha in w["pushed"]]
+            return w
+
+    unit = {"units/a": "a\n"}
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}})
+    check("batch null control: two clean pull requests are proved once and both merge, the base's tree "
+          "equal to P_i after each", w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and len(w["pushed"]) == 1
+          and len(w["tree_ok"]) == 2 and w["main_tree"] == (w["proof_trees"] or [""])[-1] and w["lines"][-1] == "TRAIN DONE")
+    check("the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch",
+          w["pushed"][0][0] == "batch/t-1" and sorted(w["dispatched"]) == sorted((f, "batch/t-1") for f, _ in DISPATCH))
+    check("a rehearsal base approves nothing and collects no worktree", w["approved"] == [] and w["gc"] == 0)
+    w = go({1: {"led.json": "X\n2\n3\n4\n5\n6\n"}, 2: {"led.json": "1\n2\n3\n4\n5\nY\n"}})
+    check("a merge driver configured in the clone does not reach the proof: GitHub runs none, and the tree "
+          "still equals after each merge", w["rc"] == 0 and len(w["tree_ok"]) == 2
+          and w["led"] == "X\n2\n3\n4\n5\nY")
+    w = go({1: unit, 2: {"units/b": "b\n"}})
+    check("PERTURBATION: two pull requests each green alone, together past the ratchet: the proof is red, "
+          "neither pair merges as one; the later goes serial and the first merges unproved (D)",
+          w["rc"] == 0 and len(w["pushed"]) == 1 and list(w["merged"]) == [1]
+          and any("#2 dropped to serial" in ln for ln in w["lines"])
+          and any("rehearsal: serial #2 not run" in ln for ln in w["lines"]))
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"a.txt": "A\n"}}, setup=lambda w: w.update(ci_red=R0))
+    check("a red fast job naming a script owned by one entry's files drops that entry, and the rest are re-proved",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 3] and len(w["pushed"]) == 2
+          and any("owned by [2]" in ln for ln in w["lines"]) and len(w["tree_ok"]) == 2)
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"a.txt": "A\n"}})
+    check("a red with no script: every all-but-one set is proved, and the green one dropping the latest entry merges",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 3] and len(w["pushed"]) == 4
+          and any("#2 dropped to serial: the set without it is green" in ln for ln in w["lines"]))
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"units/c": "c\n"}})
+    check("every all-but-one set red stops the batch with nothing merged",
+          w["rc"] == 1 and not w["merged"] and "proof:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}, 3: {"tests/golden/claimed_drift.txt": "x\n"},
+            4: {"tests/x_budgets.json": "{}\n"}, 5: {"tools/grader.sh": "h\n"}, 6: {"b.txt": "B\n"}})
+    check("workflow, claim, budget and grader changes go serial, by merge_fastpath's classes",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 6]
+          and all(any(f"#{n} serial: {c}" in ln for ln in w["lines"])
+                  for n, c in ((2, "workflow"), (3, "claim"), (4, "budget"), (5, "grader"))))
+    w = go({1: {"a.txt": "A\n"}, 2: {"a.txt": "B\n"}, 3: {"b.txt": "B\n"}})
+    check("an entry that conflicts with one before it goes serial; the rest are proved and merge",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 3] and any("#2 serial: conflict" in ln for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}})
+    check("D: a batch of one merges at its head with no proof and no dispatch",
+          w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
+          and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    _bg, brev, bman, _brev_revoke = policy_fixture_builders()
+    bnow = datetime.datetime.now(datetime.timezone.utc)
+    w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")
+    check("batch fallback: a policy head with no owner approval at its head stops admission before any "
+          "proof is spent (the no-mandate fallback, on the batch side)",
+          w["rc"] == 1 and "policy:" in w["lines"][-1] and "no decisive review" in w["lines"][-1]
+          and not w["pushed"] and not w["merged"])
+    w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.update(reviews_for=lambda h: [brev(h, bnow)], mandate=bman(bnow)))
+    check("batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the "
+          "merge itself (admission reads, land reads again)",
+          w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1"]
+          and w["approved"] == [1])
+
+    def moved(w):
+        def push():  # after #1's merge and its tree check, before #2's attempt
+            if 1 in w["merged"] and not (w["R"] / "c.txt").exists():
+                (w["R"] / "c.txt").write_text("c\n")
+                g(w["R"], "add", "-A")
+                g(w["R"], "commit", "-qm", "someone else")
+        w["on_sleep"] = push
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=moved)
+    check("the base moving between two merges stops the batch before the second",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "merge:" in w["lines"][-1] and "moved" in w["lines"][-1])
+
+    def mangled(w):
+        def amend():
+            (w["R"] / "c.txt").write_text("c\n")
+            g(w["R"], "add", "-A")
+            g(w["R"], "commit", "-q", "--amend", "--no-edit")
+        w["after_merge"][1] = amend
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=mangled)
+    check("a merge whose tree is not the proof's stops the batch",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "tree:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(target="main"))
+    check("a pull request aimed at another base stops the batch", w["rc"] == 1 and "base:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, setup=lambda w: w.update(required=""))
+    check("required contexts that cannot be read stop the batch before any proof",
+          w["rc"] == 1 and not w["pushed"] and "proof:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(required=f"{R0}\npolicy-docs\nnever-dispatched\n"))
+    check("a required context the proof never receives is a TIMEOUT, which stops it rather than dropping an entry",
+          w["rc"] == 1 and not w["merged"] and "never completed" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, ignore=("nightly-status",))
+    check("an entry red at its own head is refused at admission (pr-contract not ignored here)",
+          w["rc"] == 1 and "ci:" in w["lines"][-1] and not w["pushed"])
+    w = go({1: unit, 2: {"units/b": "b\n"}, 3: {"b.txt": "B\n"}}, base="main",
+           setup=lambda w: w.update(ci_red=R0))
+    check("on main: entries are approved, the dropped one goes through the serial run (here its recarry stops)",
+          w["rc"] == 1 and sorted(w["merged"]) == [1, 3] and sorted(w["approved"]) == [1, 3]
+          and "recarry: #2 " in w["lines"][-1])
+    def redmain(w):  # main reddens after both heads were cut green (review-2044's probe)
+        (w["R"] / "units/u9").write_text("9\n")
+        g(w["R"], "add", "-A")
+        g(w["R"], "commit", "-qm", "main reddens")
+    w = go({1: {"a.txt": "A\n"}}, cap=1, setup=redmain)
+    check("a lone entry is not merged while main's tip is red (D's bound needs a green main)",
+          w["rc"] == 1 and not w["merged"] and "main:" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1, setup=redmain)
+    check("a pair on a red main merges nothing and is not bisected: no proof, no drop",
+          w["rc"] == 1 and not w["merged"] and not w["pushed"] and not any("dropped" in ln for ln in w["lines"]))
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1)
+    check("... the same pair on a green main is proved and merges (null control)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2] and "deleted batch/t-1" in w["lines"][-2]
+          and w.get("deleted") == ["batch/t-1"])
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}}, cap=1,
+           setup=lambda w: w.update(delete_rc=(1, "error: unable to delete 'batch/t-1'")))
+    check("a proof branch the remote would not delete is reported left, never deleted (R9-RO-9a)",
+          w["rc"] == 0 and sorted(w["merged"]) == [1, 2]
+          and w["lines"][-2].startswith("NOT deleted batch/t-1")
+          and not any(ln.startswith("deleted ") for ln in w["lines"]))
+
+    w = go({1: {"a.txt": "A\n"}, 2: {"b.txt": "B\n"}},
+           setup=lambda w: w.update(on_sleep=lambda: w["red"].add(w["base_sha"])))
+    check("main's tip going red after the proof and before the first merge stops it: the gate is re-read right before",
+          w["rc"] == 1 and not w["merged"] and "right before #1" in w["lines"][-1])
+
+    def red_after(w):
+        w["after_merge"][1] = lambda: w["red"].add(g(w["R"], "rev-parse", "HEAD")[1])
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main", setup=red_after)
+    check("after an unproved merge the train waits for main's run on it, and a red there stops it before anything else lands",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "revert it first" in w["lines"][-1])
+    w = go({1: {"a.txt": "A\n"}, 2: {".github/workflows/t.yml": "x\n"}}, base="main")
+    check("... and a green run there lets the serial entry go on (null control: its recarry stops here)",
+          w["rc"] == 1 and list(w["merged"]) == [1] and "recarry: #2 " in w["lines"][-1])
+    try:
+        Train("o/r", Path("."), None, "", (), 1, base="fix/x")
+        refused = False
+    except ValueError:
+        refused = True
+    check("a base that is neither main nor batch/ is refused", refused)
+    for wf, _ in DISPATCH:
+        text = (ROOT / ".github/workflows" / wf).read_text() if (ROOT / ".github/workflows" / wf).is_file() else ""
+        check(f"{wf} is in this tree and takes workflow_dispatch", "\n  workflow_dispatch:" in text)
 
 
 def main(argv: list[str]) -> int:
@@ -562,12 +1419,17 @@ def main(argv: list[str]) -> int:
     common.add_argument("--min-runs", type=int, default=15, help="a head with fewer check runs is not yet fully queued")
     p = argparse.ArgumentParser(prog="merge_train.py")
     sub = p.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("run", parents=[common])
+    train_opts = argparse.ArgumentParser(add_help=False)
+    train_opts.add_argument("--mandate", help="the owner's mandate, as quoted in a code-owned approval; omit to never approve one")
+    train_opts.add_argument("--approver-role", default="the orchestrator")
+    train_opts.add_argument("--ignore-red", action="append", help="a check whose red does not stop the train (default nightly-status)")
+    train_opts.add_argument("--state-dir", default=os.path.join(os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"), "merge_train"))
+    r = sub.add_parser("run", parents=[common, train_opts])
     r.add_argument("queue")
-    r.add_argument("--mandate", help="the owner's mandate, as quoted in a code-owned approval; omit to never approve one")
-    r.add_argument("--approver-role", default="the orchestrator")
-    r.add_argument("--ignore-red", action="append", help="a check whose red does not stop the train (default nightly-status)")
-    r.add_argument("--state-dir", default=os.path.join(os.environ.get("HPO_STATE_DIR") or os.path.expanduser("~/.local/state/hpo"), "merge_train"))
+    b = sub.add_parser("batch", parents=[common, train_opts])
+    b.add_argument("queue")
+    b.add_argument("--base", default="main", help="main, or a batch/ branch to rehearse on (no approval, row, policy or carry read)")
+    b.add_argument("--tag", default=time.strftime("%Y%m%d-%H%M%S", time.gmtime()), help="proof branches are batch/<tag>-<n>")
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
     a = p.parse_args(argv)
@@ -577,6 +1439,9 @@ def main(argv: list[str]) -> int:
         return 1 if red else 0
     queue = json.loads(Path(a.queue).read_text())
     ignore = tuple(a.ignore_red) if a.ignore_red else ("nightly-status",)
+    if a.cmd == "batch":
+        return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs,
+                     base=a.base).batch(queue, a.tag)
     return Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, ignore, a.min_runs).train(queue)
 
 
