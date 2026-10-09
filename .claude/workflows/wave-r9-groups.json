@@ -7846,6 +7846,23 @@
     "next_step": "fixer seat running (opus) at /Users/timmalmstrom/hpo-seats/fix-nightly-bound; handoff refs handoff/r9-nightly-bound and handoff-body/r9-nightly-bound; then a reviewer, then the orchestrator lands it -- tests/mutation_table.py is a code-OWNED path so the owner's review rides mandate 6067089637"
    },
    "fixes": []
+  },
+  {
+   "group": "R9-RC-NIGHTLY-DEFER",
+   "lane": "fix",
+   "wave": 1,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "issues": [],
+   "after": [
+    "R9-RC-NIGHTLY-BOUND"
+   ],
+   "brief": "Countermeasure for the two-of-six-nights arm of the nightly red: the full-scope mutation lane runs tests/harness_headers.py and tests/stress.py as baseline drivers, where the first died on a CPU-time limit and the second's cost budgets killed a comment-only null control. The fix is to let the full scope defer that pair, which the tree records as an unpinned-count raise -- so it needs tests/mutation_budgets.json raised to the MEASURED value, never padded, with the reason in the commit message (main keeps commit messages, never pull-request bodies). OWNER APPROVAL IS ALREADY GIVEN AND MUST NOT BE RE-ASKED: tvofi, 2026-10-09, comment 6078664059 on issue 201, answering the ask in comment 6078320192 -- verbatim 'approve the count-raise', scoped to exactly this deferral, with the root-cause seat's measured standing cost of about ten and a half minutes per lane, roughly twenty-one minutes a night. budget-raise-gate still requires tvofi's approving review at the head; that review rides mandate 6067089637 (scope all, until 2026-10-11T12:00Z), openly declared. Sequencing: this lands in tests/mutation_table.py, the file R9-RC-NIGHTLY-BOUND is editing, so it waits for that PR to merge rather than racing it (orchestrator.md section 5: concurrent fixes sharing a concern push only after an architect note). Owed beside the code: the payment considered first and why it lost, the null control (a healthy full-scope run still drives every other driver), and a demonstration that the deferral does not silently drop a site the ratchet counts -- the unpinned census must say what it deferred and why.",
+   "resume": {
+    "stage": "not-started",
+    "next_step": "dispatch when R9-RC-NIGHTLY-BOUND merges; the owner's approval is recorded in this brief and on issue 201 comment 6078664059"
+   },
+   "fixes": []
   }
  ]
 }
