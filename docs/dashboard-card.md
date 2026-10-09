@@ -572,6 +572,14 @@ own advisor sensors, not from the card.*
 - **The valve target.** The mixing valve's recommended target, which carries no
   money figure and so follows the priced rows. **Apply** appears only when the
   valve holds a manual setpoint, and calls `assign_entity` with it.
+- **A feedback sensor.** Shown only when the install has no heat pump power
+  entity (`heat_pump_power_entity`), no energy entity
+  (`heat_pump_energy_entity`), no compressor frequency entity or sensor
+  (`compressor_freq_entity`, `compressor_freq_sensor`) and no water flow sensor
+  (`flow_meter_entity`): without one of them the planner cannot see what the
+  pump really draws. The row names the four classes and the config key each
+  would use; any one is enough. **Open settings** goes to the integration's
+  page and **Dismiss** hides the row in this browser.
 
 A row reads its own state: an advisor still learning says what it is waiting
 for, and one that is unavailable says "This advice is unavailable right now".

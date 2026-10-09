@@ -656,10 +656,8 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
-
 # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
 # is space_reasons or dhw_reasons. No value leaf moves.
-
 away_setback # R9-UX-5: idle sub-codes, reasons only
 building_preset # R9-UX-5: idle sub-codes, reasons only
 capacity_curve # R9-UX-5: idle sub-codes, reasons only
@@ -691,3 +689,11 @@ valve_storage_small_tank # R9-UX-5: idle sub-codes, reasons only
 wide_band # R9-UX-5: idle sub-codes, reasons only
 winter_single_dhw # R9-UX-5: idle sub-codes, reasons only
 winter_single_no_dhw # R9-UX-5: idle sub-codes, reasons only
+
+
+config_flow # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_all_features # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_dhw # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_grid_fee # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_minimal # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_two_zone # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
