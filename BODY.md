@@ -22,6 +22,8 @@ A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate max
 
 ## Head
 
+`2876e01cef49acf81524dcf637962b912fe1c633` merges the authored code head `42920d3c56a511a1f7e02d094dc2abc377cd05d0` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
+
 `42920d3c56a511a1f7e02d094dc2abc377cd05d0` (code head). Its parents include #2065's head `325960ef6` and origin/main `bd59a4af1`. The base column below is #2065's head; the head column is this commit.
 
 ## Mutation proof
@@ -80,7 +82,7 @@ Each mutant is applied in its own worktree at `2808a8a94` (production identical 
 
 ## Red checks
 
-- `fast`: `python3 tests/layout.py` refuses one path at this head. It is #2065's `tools/audit/harnesses/draw_range_evidence.py`, a retired path that this branch inherits through the stack, and #2065 owes the move. #2066's own harness moved to `dev/audit/harnesses/` in round 2. The cheaper detector is `tests/layout.py`, a seconds-long script.
+- `fast (3.14)`, red at round 1 (`d65c68c96`): `tests/layout.py` refused #2066's harness at the retired `tools/audit/harnesses/` path. The harness has been at `dev/audit/harnesses/` since round 2. At this head `python3 tests/layout.py` still refuses one path: #2065's `tools/audit/harnesses/draw_range_evidence.py`, inherited through the stack, which #2065 owes the move for, so `fast (3.14)` will stay red here until #2065 moves it. The cheaper detector is `tests/layout.py` itself, a seconds-long script; its standing cost is one run before every push that adds a path, and `prepr.sh` does not run it today.
 - `mutation`: `MUTATION TABLE REFUSED` on unpinned sites. These are answered below, and `mutation-autofix` owns the pins.
 - `nightly-status`: this reports main's last scheduled run, not this diff.
 
