@@ -1,0 +1,25 @@
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+branch claims ['away_setback', 'building_preset', 'capacity_curve', 'capacity_tariff', 'confidence_margins', 'cool_rainy_summer', 'cop_scale_learned', 'dhw_cold_tank', 'dhw_large_tank', 'dhw_learned_windows', 'dhw_schedule_off', 'external_heat_active', 'extreme_prices', 'horizon_48h', 'horizon_6h', 'legionella_due', 'legionella_due_low_setpoint', 'legionella_off', 'mild_windy_rain', 'negative_prices', 'peak_masked', 'price_risk', 'start_above_band', 'start_below_band', 'summer_dhw_only', 'valve_storage_flat_prices', 'valve_storage_low_target', 'valve_storage_small_tank', 'wide_band', 'winter_single_dhw', 'winter_single_no_dhw'] and the merge
+brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone']. A claim excuses
+one release's golden diff and is written for that diff alone, so
+merging two lists would reinstate a claim one side deleted and
+excuse a drift by accident. Resolve it by hand: keep the claims
+that describe THIS branch's diff and delete the rest.
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (538 entries)
+  re-run the gate that owns this file before pushing
+941d42ff04a791e7cbdc1d6d5904c7b3203c0d8f Merge origin/main into fix/r9-ux-actions
+
+diff --git a/tests/golden/claimed_drift.txt b/tests/golden/claimed_drift.txt
+remerge CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt
+index a90d76755..c30b94a9c 100644
+--- a/tests/golden/claimed_drift.txt
++++ b/tests/golden/claimed_drift.txt
+@@ -656,11 +656,8 @@
+ #       sensors.dhw_heating_plan: describe_setup now carries the install
+ #       language (D4-s2-81).
+ # No plan, schedule or solver fixture moves.
+-<<<<<<< tests/golden/claimed_drift.txt (this branch)
+-
+ # R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below

@@ -1,6 +1,0 @@
-+{
-+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:idle_codes GUARD_OFF a02b3552",
-+  "killed_by": "tests/features.py",
-+  "old": "    if n <= 0:",
-+  "reason": "Recorded by `mutation_table.py --pin-killed` against dcc77dd0c53e363a7c1b20c357a3986db8293d95: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-+}

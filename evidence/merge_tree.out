@@ -1,0 +1,19 @@
+0eeb3c070baa30cfd37b0141530777dc7bd2647c
+100644 62bf9eaba2372bb05cdb42076273c18bdceb0f39 1	tests/golden/claimed_drift.txt
+100644 eda8856b96538404dc066085d4a0099c6eb8d7b4 2	tests/golden/claimed_drift.txt
+100644 e37b16ef7d2d2d484e8be2ceb2469fd2e8c4b6f4 3	tests/golden/claimed_drift.txt
+
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/payload.py
+Auto-merging custom_components/heatpump_optimizer/strings.json
+Auto-merging custom_components/heatpump_optimizer/translations/en.json
+Auto-merging custom_components/heatpump_optimizer/translations/sv.json
+Auto-merging custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+Auto-merging docs/configuration.md
+Auto-merging docs/dashboard-card.md
+Auto-merging tests/card.mjs
+Auto-merging tests/closures.json
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/golden/claimed_drift.txt
+CONFLICT (content): Merge conflict in tests/golden/claimed_drift.txt

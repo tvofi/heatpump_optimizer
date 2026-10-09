@@ -1,5 +1,0 @@
--| `apply_schedule` | 8 optional schedule fields + `entry_id` | optional |
-+| `apply_schedule` | 10 optional schedule fields + `entry_id` | optional |
--`day_end_hour`, `comfort_temp_day`, `dhw_min_temperature`, `dhw_windows`,
-+`day_end_hour`, `comfort_temp_day`, `target_temperature`, `dhw_setpoint`,
-+`dhw_min_temperature`, `dhw_windows`,

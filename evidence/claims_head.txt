@@ -1,0 +1,699 @@
+# Scenarios this branch deliberately moves, one name per line, reason after
+# the hash. env_drift.py prints their diffs but does not fail on them; a
+# stale claim (a listed scenario that did not move) DOES fail, so entries
+# cannot outlive the PR that needed them. It fails in its own right, under
+# its own heading: nothing drifted, the list is just out of date. Empty
+# list = this branch claims byte-identical behaviour everywhere.
+#
+# A claim describes exactly ONE diff and never carries forward. Two rules
+# enforce that, and a branch must satisfy both:
+#
+#   1. The `claims-for:` line below is machine-read and MUST equal the
+#      repo-root VERSION file. Both tests/env_drift.py (before any capture,
+#      in either mode) and tests/entities.py fail when the two disagree.
+#   2. In `--all` mode the list below must DIFFER from the baseline's --
+#      the same names with the same reasons mean it was written for the
+#      baseline's diff, not this one, and env_drift.py fails the run. The
+#      stamp cannot catch that on its own: it only expires claims when
+#      VERSION changes, and merges at an unchanged version are common here
+#      (7b512bc, 401db6e and 2248f64 all sit at 4.0.0). An empty list is
+#      always fine -- it claims nothing.
+#
+# So this file is rewritten by every change that touches it, and a release
+# that moves no goldens still restates its own footprint: bump the line,
+# leave the list empty. Without rule 1 the file is committed and inherited:
+# v4.0.7, v4.2.0 and v4.3.0 each moved nothing, inherited the previous
+# release's claims, and failed CI on main with N stale claims for code that
+# was never wrong. Without rule 2 the same thing happens whenever two
+# commits share a version.
+#
+# Two categories live in this file.
+#
+# A CLAIM is a bare scenario name with a reason after the hash. It asserts
+# that THIS release moves that fixture, it is checked both ways (unclaimed
+# drift fails, and so does a claim nothing matched), and it expires with the
+# `claims-for:` stamp below.
+#
+# A MAY-DRIFT entry is a comment line, `# may-drift: <name> -- <reason>`. It
+# asserts nothing about plan keys: the fixture moved here, or it did not, and
+# either is fine for schedules, trajectories and other basin-sensitive fields.
+# Diffs in prices, outdoor_temps, price_known or baseline_cost still fail —
+# see MAY_DRIFT_JUDGED_KEYS in env_drift.py (#254). It exists only for the
+# five fixtures this gate itself declares non-reproducible across BLAS builds
+# -- plus, since the #1208 owner ruling (comment 208bed25, option (a),
+# 2026-09-20) and its in-session (i) follow-up (comment fd13246), the
+# runner-conditional movers those rulings name (flat_prices,
+# winter_two_zone_no_dhw, shoulder_two_zone, see RUNNER_CONDITIONAL_1208 in
+# env_drift.py), and, since the #1207 owner directive (comment c1329fe,
+# 2026-09-20) as widened to the runner's union by ruling (i) (comment
+# 1ec15c8), the twelve movers that directive and ruling measure (see
+# RUNNER_CONDITIONAL_1207 in env_drift.py) -- and env_drift.py refuses
+# every other name -- see
+# `_may_drift` there for the full reasoning. Because it is a statement about
+# those fixtures rather than
+# about one release's diff, it does not expire with the stamp and is not part
+# of the inherited-claims comparison.
+#
+# claims-for: 6.7.17
+#
+# v6.7.17: Round 9: silent windows, sharded mutation pins, gate and closures fixes, debugger download cap. The stamp empties the list; the
+# next branch restates its own footprint, claims included.
+#
+#
+# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
+# (option (a)): the move's margin is inside the noise band (objective rel
+# -1.2171e-03, deterministic on one box), so which runner sees it move is the
+# BLAS's property, not the diff's; judged keys (prices/outdoor_temps/
+# price_known/baseline_cost) still fail. Remove when drift lanes are pinned
+# or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
+# ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
+# noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
+# runner-conditional for the same reason; judged keys still fail. Remove when
+# drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: shoulder_two_zone -- #1208 polish-every-candidate, third name
+# sanctioned by the owner's in-session (i) ruling on the options recorded in
+# #1208 comment fd13246: 452 leaves moved on the first #1282 runner only
+# (byte-identical on the dev box), the one printed money leaf at 2.19e-2
+# relative -- at/just over the band's 2e-2 top edge -- and the branch side
+# matches the committed recording, i.e. the move is toward the canonical
+# value, not away; judged keys still fail. Remove when drift lanes are
+# pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: capacity_tariff_15min -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
+# the noise band (objective rel -1.7601e-04, deterministic on one box), so
+# which runner sees it move is the BLAS's property, not the diff's; judged
+# keys (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove
+# when drift lanes are pinned or the polish improvement scale leaves
+# 5e-5-2e-2.
+# may-drift: cycling_cost -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
+# band (objective rel -1.7666e-04, deterministic on one box),
+# runner-conditional for the same reason; judged keys still fail. Remove
+# when drift lanes are pinned or the polish improvement scale leaves
+# 5e-5-2e-2.
+# may-drift: everything_on -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
+# the noise band (objective rel -5.2974e-03, deterministic on one box),
+# runner-conditional for the same reason; judged keys still fail. Remove
+# when drift lanes are pinned or the polish improvement scale leaves
+# 5e-5-2e-2.
+# may-drift: narrow_band -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
+# band (objective rel -7.8934e-04, deterministic on one box),
+# runner-conditional for the same reason; judged keys still fail. Remove
+# when drift lanes are pinned or the polish improvement scale leaves
+# 5e-5-2e-2.
+# may-drift: shoulder -- #1207 keep-gate (2e-2 -> 2e-5), owner directive
+# #1207 comment c1329fe (2026-09-20): the move's margin is inside the noise
+# band (objective rel -7.2897e-04, deterministic on one box),
+# runner-conditional for the same reason; judged keys still fail. Remove
+# when drift lanes are pinned or the polish improvement scale leaves
+# 5e-5-2e-2.
+# may-drift: winter_two_zone_dhw -- #1207 keep-gate (2e-2 -> 2e-5), owner
+# directive #1207 comment c1329fe (2026-09-20): the move's margin is inside
+# the noise band (objective rel -5.0494e-05, 1.01x over its floor -- the
+# same adoption margin the parked #1272 rounds measured on this fixture,
+# deterministic on one box), runner-conditional for the same reason; judged
+# keys still fail. Remove when drift lanes are pinned or the polish
+# improvement scale leaves 5e-5-2e-2.
+# (valve_storage_smart_write, the seventh measured #1207 mover at objective
+# rel -2.2972e-03, is one of the five SENSITIVE fixtures above; its
+# machine-sensitive entry is the one that carries it, so no second line
+# exists here.)
+# may-drift: direct_flow_carnot -- #1207 keep-gate (2e-2 -> 2e-5), widened
+# to the runner's union by the owner's ruling (i) on the options recorded
+# in #1207 comment 1ec15c8 (2026-09-20): 425 leaves moved on the CI
+# x86_64/py3.14 runner only (leaf counts from the runner's own drift log
+# as recorded on that comment; byte-identical on the dev box), so which
+# runner sees it move is the BLAS's property, not the diff's; judged keys
+# (prices/outdoor_temps/price_known/baseline_cost) still fail. Remove when
+# drift lanes are pinned or the polish improvement scale leaves 5e-5-2e-2.
+# may-drift: fuse_guard -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 418 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
+# may-drift: precip_snow -- #1207 keep-gate (2e-2 -> 2e-5), widened to the
+# runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 396 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
+# may-drift: tariff_plus_two_zone -- #1207 keep-gate (2e-2 -> 2e-5),
+# widened to the runner's union by the owner's ruling (i) on the options
+# recorded in #1207 comment 1ec15c8 (2026-09-20): 751 leaves moved on the
+# CI x86_64/py3.14 runner only (as recorded on that comment;
+# byte-identical on the dev box), runner-conditional for the same reason;
+# judged keys still fail. Remove when drift lanes are pinned or the polish
+# improvement scale leaves 5e-5-2e-2.
+# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# the runner's union by the owner's ruling (i) on the options recorded in
+# #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
+# x86_64/py3.14 runner only (as recorded on that comment; byte-identical
+# on the dev box), runner-conditional for the same reason; judged keys
+# still fail. Remove when drift lanes are pinned or the polish improvement
+# scale leaves 5e-5-2e-2.
+# W4-G9 S8 (#193, the COP-health watch): this branch claims NOTHING. Two
+# initialisations move verbatim from `_init_insurance` into
+# `_init_thermal_learning` -- an earlier call in the same `__init__`, with
+# the same constants and no read between the two call sites -- so every
+# scenario fixture is byte-identical by construction.
+# W4-G10 S9 (#224, optimize's breach-report tail): this branch claims NOTHING.
+# The cap and mode-block breach report moves verbatim out of `optimize` into
+# `_publish_breach_reports`, called at the same point, before the same
+# `return result`; the moved body is byte-identical (md5
+# fe7a7d877fc73fdb7ccb54dfee968c88 at the merge base and at this head), so no
+# arithmetic is reordered. Both keys it writes are added only under a cap or a
+# mode block, and every scenario fixture plans with neither.
+# #558 D2/D3 (lane D of the UX programme): this branch claims NOTHING.
+#
+# D2 changes narrative.py's template TEXT and threads the instance currency
+# into narrative.render. Every coordinator fixture records
+# insight.narrative as {"items": [], "language": "en", "lines": []} -- the
+# rendered lines are empty in all five -- so no recorded value can move.
+# _narrative_view's only other edit binds `hass = self.hass` once and calls
+# resolve_currency(hass) instead of reading self.currency; the resolved
+# value is identical (both go through currency.resolve_currency) and it is
+# not a recorded key.
+#
+# D3 adds a device class, an options list and state translations to three
+# sensors, plus two const.py tuples. capture_coordinator records
+# coordinator.data, not entity attributes, and capture_config_flow records
+# the flow's steps and schemas, not entity.* translation keys -- so neither
+# fixture has a key path for any of it. Measured, not assumed:
+# card_drift reports "identical in all 34 states" at this head.
+# #824: the initial config flow's user_sensors page groups its fourteen entity
+# pickers into indoor/solar/plant, the registry's own group names, which the
+# options flow already uses for the same keys. config_flow is float-free
+# (carries_floats is False), so env_drift compares it exactly at level 1: the
+# committed fixture is re-recorded AND the drift against the merge base is
+# claimed. Same class as #653, which grouped the ten wide OPTIONS pages.
+#
+# The recorded move, read before accepting it: fourteen keys leave
+# _initial/user_sensors/<field> and reappear under
+# _initial/user_sensors/<group>/fields/<field>, plus three section wrappers,
+# 4187 -> 4208 keys, every collapsed:false. Nothing else moved -- solver
+# fixtures and the card claim file are untouched by this branch.
+# Owner-requested feature (in-session 2026-09-14): the input_problem
+# binary sensor names its sources. The coordinator's _input_health_view
+# publishes two new keys beside the existing watchdog ones, so every
+# coordinator capture gains them; healthy scenarios carry empty lists.
+# Measured on this branch vs abb31e9 (drift mode): exactly 2 leaves per
+# fixture, problem_inputs and problem_messages, both empty lists, zero
+# float moves -- re-recording on this box reproduced every other leaf
+# byte-identically, which is why recording here is honest. (That diff is
+# this file's BASELINE since the merge that resolved this conflict: its
+# claims were consumed there and are not restated.)
+# Wave 1067 (the Rotenso Windmi optional inputs): this branch claims the five
+# coordinator captures and config_flow, and the direction is ADD-ONLY on all
+# six. Nothing else moved: every plan fixture is byte-identical here.
+#
+# The coordinator captures gain exactly six keys under
+# data.heat_pump_signals -- the two heater flags, the capacity-limited flag,
+# the two derived predicates and the booster's rising edge -- because
+# PumpElectricHeat.as_dict() is splatted into PumpSignals.as_dict(). Every
+# one lands at its no-evidence value, null or false, so an install mapping
+# none of the three new slots publishes what it always did. Measured, not
+# assumed: `git diff --numstat` over the five captures is 6 insertions and
+# 0 deletions each, and no pre-existing leaf appears in the diff at all.
+#
+# config_flow gains fifteen leaves: five new option keys, each appearing in
+# the plain render, the seeded render and the seed map that #547 added.
+# Recording as well as claiming is correct for this fixture and only this
+# one, for #547's reason -- it is the single fixture carries_floats()
+# reports False for, so env_drift compares it EXACTLY at level 1, and a
+# claim alone would leave that level failing against a file the code no
+# longer produces.
+#
+# Why claimed rather than only re-recorded: the two seats that produced
+# these commits both reasoned that a new key path is a re-record and not a
+# claim, and left the claim file untouched. env_drift refuted that -- a
+# fixture that moved against the baseline and is not may-drift must be
+# declared whatever the shape of the move -- and it failed the gate until
+# this entry existed. The re-record is how the committed file stops being
+# stale; the claim is how the branch states that it moved it on purpose.
+#
+# #1067 W1067-G3 (the solver half): #1068's list, inherited at an unchanged
+# VERSION, was refused by env_drift as INHERITED CLAIMS, and #1090 dropped it
+# on main. This branch moves exactly one existing fixture:
+# config_flow gains the building page's new boolean, flow_curve_cop_enabled,
+# re-recorded for #547's reason above. direct_flow_carnot is a NEW fixture
+# and is not claimed; every other fixture is byte-identical.
+#
+# #1067 W1067-G4 (the silent-mode window and derate): the v6.6.0 stamp
+# emptied G3's claim; this branch restates its own footprint. It moves
+# exactly one existing fixture: config_flow gains the grid_connection page's
+# two new option keys, silent_mode_windows and silent_mode_power_fraction,
+# in the plain render and the seeded render, re-recorded for #547's reason
+# above. Every other fixture is byte-identical: both keys default inert.
+#
+# #1067 W1067-G7 (the Modbus pre-fill page): the v6.6.1 stamp emptied G4's
+# claim; this branch restates its own footprint. It moves exactly one
+# existing fixture: config_flow gains the advanced menu's modbus_prefill entry
+# and that page's prefix field, in the plain render and the seeded render,
+# re-recorded for #547's reason above. Every other fixture is byte-identical:
+# the page reads entity states only when submitted, and no plan reads its key.
+#
+# #1067 W1067-G7b-1 (pre-filling from a heat-pump device): the pre-fill page's
+# first form gains the transient device pick, so config_flow gains exactly two
+# leaves, prefill_device in the plain render and in the seeded render, and
+# nothing else. Measured against THIS branch's own merge base, origin/main
+# da63bbb -- where G7's modbus_prefill page and its prefix key already sit, so
+# they are that baseline rather than part of this diff -- `git diff --numstat`
+# over tests/golden/config_flow.json is 12 insertions and 0 deletions, and no
+# pre-existing leaf appears in the diff. The pick is not an option key, so the
+# seed map #547 added does not gain a third. Every other fixture is
+# byte-identical: the device route reads the entity registry only when the
+# page is submitted, and no plan reads any of it.
+#
+# Both G5a's and G6's bare claims are dropped here, following the G5a
+# precedent above: both already merged to main (G5a f02a790, G6 in this
+# absorb's origin/main tip d25e5333d) and their golden diffs are baked into
+# the committed baseline this branch merges, so no diff remains for this
+# branch to excuse under either name. The v6.6.3 stamp has since emptied
+# G7's own claim in turn.
+#
+# G5b's bare claim -- and the note that introduced it -- is dropped here for
+# the same reason, and this is the line the absorb's `claimnotes` refusal was
+# about: both sides named config_flow, so the union would have carried two
+# claims for one fixture and let the later reason speak for the earlier diff.
+# G5b merged to main as #1142 (da63bbb), which IS this absorb's baseline, so
+# its hot_water_tank disinfection mode key is already in the committed fixture
+# this branch merges; keeping the claim would state a diff this branch does
+# not own. What remains above is this branch's own footprint, re-derived at
+# da63bbb.
+#
+# #1067 W1067-POST1 (the device pre-fill offered during setup): the v6.6.3
+# stamp emptied the list above, so this branch restates its own footprint. It
+# moves exactly one existing fixture: config_flow gains the pre-fill page's
+# offer switch, prefill_offer, in the plain render, in the seeded render and
+# in the seed map #547 added, and the initial flow's new device_prefill page,
+# whose first form is now captured -- four leaves, all present on one side
+# only, re-recorded for #547's reason above. Measured against this branch's
+# own merge base, origin/main 2128a82, `git diff --numstat` over
+# tests/golden/config_flow.json is 21 insertions and 0 deletions, and no
+# pre-existing leaf appears in the diff. Every other fixture is
+# byte-identical: the offer reads the registry only when the flow reaches it,
+# and no plan reads the switch.
+#
+# The cleared-entity-picker fix (user report: after setting a temperature
+# sensor on the pump page there is no way to go back to none -- clearing the
+# picker leaves the old entity in place): this branch claims exactly one
+# fixture, and the claim covers TWO changes that land together -- the fix, and
+# the instrument repair that keeps this fixture able to see it.
+#
+# The fix: `_field_marker`'s `_STORED` arm offered the stored value as
+# `vol.Optional(key, default=stored)`. A cleared picker posts its key ABSENT,
+# and the flow manager runs `user_input = data_schema(user_input)` before the
+# handler sees the post, so voluptuous refilled the `default` and the entity
+# came straight back -- clearing was impossible. The arm now offers
+# `description={"suggested_value": stored}`, which pre-fills identically and
+# leaves a cleared post empty.
+#
+# The instrument: `schema_fingerprint` recorded `repr(key.default())` and
+# `None` on any exception, so it recorded None for every field pre-filled from
+# `suggested_value` -- exactly the arm #547's seeded render was added to make
+# visible. Left alone, the fix would have moved 41 `_seeded` entity leaves to
+# null and blinded this fixture to the pre-fill question it exists to answer.
+# It now falls back to `description["suggested_value"]`, so those 41 leaves
+# record byte-identically (measured: branch vs origin/main drift is 41 leaves
+# without the repair, 2 with it) and the only recorded move is the one below.
+#
+# The recorded move, read before accepting it: `git diff --numstat` over
+# tests/golden/config_flow.json is 2 insertions and 2 deletions, and both are
+# `two_zone_mode`'s pre-fill going null -> "'auto'", in the plain render and
+# the seeded render -- the `_Suggested` select's suggested value, which the
+# old reading could not see. No pre-existing leaf moved and no other fixture
+# is touched. Re-recording here is what #547 established for this fixture and
+# only this one: `carries_floats()` is False for config_flow, so env_drift
+# compares it EXACTLY at level 1 and a claim alone would leave that level
+# failing against a file the code no longer produces.
+#
+# (The bare claim this note introduced -- config_flow, the cleared-entity-
+# picker fix, merged as #1249 -- is dropped by the 27458c8a absorb above;
+# the note stays as history.)
+# #1208 (polish every solved candidate; owner override comment 5748462577,
+# owner ruling comment 208bed25, option (a)): this branch's BARE list is
+# EMPTY. The two fixtures it moves are carried as may-drift entries above,
+# per the ruling, because their move margins sit inside the 5e-5-2e-2 noise
+# band (measured: flat_prices objective rel -1.2171e-03,
+# winter_two_zone_no_dhw -1.3365e-03) and a bare claim cannot be true on
+# every runner for exactly that reason (#996's fleet evidence: two CI runs
+# of one tree pair moved different fixture sets). Every other fixture is
+# byte-identical (48 of 50 plan fixtures; the coordinator, config_flow and
+# card captures untouched). The five coord_* claims this file carried at
+# the merge base were main's own (#1269's sensor advisor); deleting them
+# here is this branch writing its own list, as the inherited-claims guard
+# requires.
+#
+# #1207 (the restart keep-gate 2e-2 -> 2e-5; owner directive comment
+# c1329fe / database id 5750296026, 2026-09-20, which supersedes the
+# 2026-09-20 fleet-variance refusal recorded on that issue): this branch's
+# BARE list is EMPTY. The seven fixtures it moves at its own merge base
+# (e7139a7, the #1282 merge) are carried as may-drift entries above, per
+# the directive's path, because every one of their move margins sits
+# inside the 5e-5-2e-2 noise band on the objective (measured:
+# capacity_tariff_15min -1.7601e-04, cycling_cost -1.7666e-04,
+# everything_on -5.2974e-03, narrow_band -7.8934e-04, shoulder
+# -7.2897e-04, valve_storage_smart_write -2.2972e-03 -- carried by its
+# SENSITIVE entry -- and winter_two_zone_dhw -5.0494e-05) and a bare claim
+# cannot be true on every runner for exactly that reason (#996's fleet
+# evidence: two CI runs of one tree pair moved different fixture sets).
+# The other 43 plan fixtures are byte-identical on this box; the
+# coordinator captures, config_flow and the card claim file are untouched
+# by construction -- no key outside the solver's own plan fields moves.
+#
+# The #1207 widening (owner ruling (i) on the options recorded in #1207
+# comment 1ec15c8, 2026-09-20): the CI x86_64/py3.14 runner moved FIVE
+# more of this diff's fixtures than the seven above -- direct_flow_carnot
+# (425 leaves), fuse_guard (418), precip_snow (396), tariff_plus_two_zone
+# (751), valve_storage (625), leaf counts from the runner's own drift log
+# as recorded on that comment -- all byte-identical on this box (the
+# scalar dumps behind the table above), i.e. the same runner-conditional
+# class one release after #996: the set measured on one environment was
+# not the union. The ruling widens RUNNER_CONDITIONAL_1207 to exactly the
+# twelve (the seven + these five), same removal conditions, and the five
+# entries above carry them. The stress coverage floor breach the same
+# runner reported (38/51 judged vs the 40 floor; 13 re-planned there vs
+# 11 here) is downstream of the same environment variance; this box
+# measures 40/51 and the floor holds -- the #387 non-tunable literal is
+# untouched by this branch.
+#
+# The pre-fill rename and menu lift (owner request, Part of #201): this
+# branch claims exactly one fixture, config_flow, and the direction is a
+# MOVE, not a value change. `_P("modbus_prefill", ...)` changes its label
+# to "Pre-fill from a heat pump device" and its menu column from advanced
+# to top, so the fixture's `_menu.advanced` loses the modbus_prefill pair
+# and `_menu.init` gains it between away and quick_setup -- measured as
+# `git diff --numstat` 4 insertions and 4 deletions over
+# tests/golden/config_flow.json, both hunks inside `_menu`, no page schema
+# or default touched. The internal key and CONF_MODBUS_PREFILL_PREFIX are
+# unchanged, so no stored entry and no rendered field moves. Re-recorded
+# as well as claimed for #547's reason: config_flow is the one fixture
+# carries_floats() reports False for, so env_drift compares it exactly at
+# level 1 and a claim alone leaves that level failing. Every other
+# fixture is byte-identical by construction: no solver, coordinator or
+# card input is touched.
+# R5-D12-01 (#1302, the unconfigured ECL110 MQTT surface): this branch
+# claims the five coordinator captures plus config_flow and nothing else;
+# the direction is MOVE-TO-EMPTY, never a value the solver touches. A config
+# with no ecl110_* topic key no longer stands the DEFAULT_ECL110_*_TOPIC
+# strings in inside _init_ecl110, so each unconfigured capture's
+# data.ecl110_command_topic / data.ecl110_state_topic and its
+# sensors.ecl110_effective_displace.extra_state_attributes pair move
+# "ecl110/command" / "ecl110/flow_temp_control/displace" -> "" -- 4
+# insertions and 4 deletions per fixture, 20/20 across the five (git diff
+# --numstat), every float leaf byte-identical in the recording
+# environment (GOLDEN_MODE=strict --only coord_ showed only these four
+# leaves per fixture before --record ran). No plan, schedule or solver
+# fixture is touched: the published coordinator dict's topic strings are
+# the only surface the fix reaches. config_flow moves the heat_curve
+# page's three topic fields' suggested default, shipped strings -> "",
+# in both the plain and the _seeded schema (6 insertions / 6 deletions,
+# git diff --numstat): the form now suggests empty so an untouched page
+# save stays the no-op #100 promised while absent runs as the same empty
+# -- the equivalence tests/config_flow_steps.py proves for every
+# _ABSENT_FALLBACKS key. Re-recorded as well as claimed for #547's
+# reason: config_flow is compared exactly at level 1.
+# R5-D8-03 (#1335), fix branch fix/r5-defaults: this diff claims the five
+# coordinator captures and NOTHING ELSE; the direction is ADD-ONLY. The
+# OptimizationScoreSensor -- a card headline stat kept enabled -- now names
+# its missing evidence while no machine or operation sub-score has arrived,
+# so each capture's sensors.optimization_score.extra_state_attributes gains
+# exactly one leaf, waiting_for: "first_scored_day" -- one leaf added, none
+# removed; git diff --numstat reads 2/1 per file only because the previous
+# last key gains its trailing comma. No solver input, output or intermediate changes; the plan
+# fixtures are untouched and unclaimed. The R5-D12-01 entries that sat here
+# were the baseline's own claims (fixtures already re-recorded at bc5d62b)
+# and move nothing under this diff; config_flow does not move either.
+# The five R5-D8-03 lines that sat here were the baseline's own claims (the
+# waiting_for leaf is already in d4e33c2b, the merge base) and move nothing
+# under this diff -- fix/r5-renames touches no coordinator capture -- so they
+# are dropped rather than inherited. See the header's rule 2.
+# R5-D2-02 (#1307), fix branch fix/r5-valved-config: this diff claims
+# valve_storage_small_tank and NOTHING ELSE. It is the only scenario whose
+# tank is small enough for the buffer's emitter coupling to be stiff (35 L,
+# u*dt/C_buf = 8.62; every other valved scenario is 750 L, ratio 0.40, and
+# their step count is unchanged -- tools/audit/round5/D2/seat-a/
+# control_substeps.py prints the per-family count both ways). Direction: the
+# tank stops ringing, so buffer_temp_trajectory loses its step-1 overshoot
+# (44.505886 -> 32.796098, first of 96/97 indices), and a plan costed against
+# a non-chaotic tank is cheaper: baseline_cost 158.826466 -> 149.153601,
+# deferred_energy_cost 13.073536 -> 15.494942, with displace_schedule,
+# heat_pump_on_schedule and lower_setpoints re-shaped to match. No solver,
+# card or config fixture moves.
+#
+# R5-W3 (#1294 #1295), fix branch fix/r5-w3-search: this branch's BARE list is
+# EMPTY, and that is the whole claim. Two solver knobs were measured for this
+# round and only one ships.
+#
+#   * The refinement cut (4 -> 6) and the two structured seeds the raised cut
+#     admits (#1294) are NOT in this diff. They bought plan quality here, but
+#     they cost about a quarter of the whole sweep's solver CPU on a
+#     Raspberry-Pi-class target -- tests/stress.py's sweep reading against the
+#     merge base's on the same box -- and that is over the D9 sweep budget. The
+#     gain also does not travel across BLAS: the two checks that pinned it read
+#     IDENTICAL arms on CI, where the box reads a small percentage. A 24%
+#     solver-CPU bill for an effect that does not reproduce is not worth it, so
+#     the finding is dropped and nothing it moved is owed here.
+#
+#   * The previous cycle's shipped plan offered as one more first-solve
+#     candidate (#1295) does ship, but it moves NO fixture. Its only writer is
+#     coordinator._warm_seeded, and no capture runs it: capture_coordinator
+#     builds the published dict and the sensors without ever solving, and
+#     golden.capture builds its optimizer directly, so a capture seeds no
+#     previous plan and the knob is inert on all 56. It is pinned by mechanism,
+#     not by a fixture.
+#
+# With #1294 out and #1295 inert on every capture, this branch's capture is
+# identical to the merge base's, so it claims nothing and the bare list is
+# empty. An empty list is not the same as an untouched file here: with #1294
+# out the branch moves nothing, but the merge base's own list moves nothing
+# either once our capture equals its, and a list exactly equal to the
+# baseline's is refused as INHERITED CLAIMS -- the R5-D2-02 bare line that sat
+# at the end of this file (valve_storage_small_tank, the valved 35 L buffer
+# substep fix, fix/r5-valved-config at 9ca86655) is the baseline's claim for
+# the baseline's diff, and a claim describes one diff. It comes out rather than
+# carried, and its note above stays as history.
+#
+# Measured, not assumed: at this head,
+# `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all 9ca86655` prints
+# `NO UNCLAIMED DRIFT: 56` and `NO STALE FIXTURE: 56`, exit 0.
+#
+# R6-D12-01 (#1404), fix branch fix/r6-d12-01-battery-is-store-guard: this
+# diff claims the five coordinator captures and NOTHING ELSE. The direction is
+# DROP-ONE-COMPONENT. battery.build() now gates the buffer tank on the config
+# signal `buffer_is_store` (a throttling valve AND >= 100 L) instead of the
+# never-None `state.buffer_tank_temperature`, so a 35 L tank with no valve
+# leaves the view. Each capture's data.battery.components and
+# modelled_components lose exactly one entry (buffer_tank), and the derived
+# discharge_rate_kw, hours_of_autonomy and round_trip_efficiency_6h move with
+# the dropped standing loss. No plan, schedule or solver fixture moves: the
+# view is report-only and the optimizer never reads it.
+# R7-D0-01 (#1447), fix branch fix/r7-optimizer: this diff claims ONE fixture
+# and NOTHING ELSE, and its direction is CHEAPER.
+# `_optimize_space_only`'s seed set gains a fifth bang-bang anchor at 0.20x
+# the baseline energy (`_DEEP_LOW_ENERGY_START_FRACTION`), below the 0.35x and
+# 1.0x anchors it had, so a cell whose objective prefers under-heating reaches
+# that basin now. Measured through the same capture the fixture is recorded
+# from: this valved flat-price cell 89.785511 -> 89.328352 (-0.509 %) and
+# winter_two_zone_no_dhw 58.784961 -> 57.725197 (-1.80 %), each strictly
+# cheaper and each holding the room floor (minimum 17.2119 K). The change is
+# on the DHW-DISABLED path only, so no dhw=True fixture can move; the memory
+# pass's own probe reads the same 3.5 MiB traced peak at both ends of the diff.
+# winter_two_zone_no_dhw is already may-drifted under the #1208 ruling, so its
+# move is printed rather than judged, and the reason recorded there
+# (polish-every-candidate) predates this diff -- restating it here would claim
+# a fixture the gate has already exempted.
+# `PYTHONPATH=tests/hastub python3 tests/env_drift.py --all <merge-base>`
+# prints NO UNCLAIMED DRIFT when this list is current.
+#
+# #1512 (R8-D2-s2-01, capacity peaks on distinct days): the grid page gains
+# the peak_tariff_distinct_days toggle, so config_flow's captured schema
+# gains that field in both rendered steps and the seeded entry's options.
+# ADD-ONLY: 13 inserted lines, 0 deleted.
+# The plan side (fix-review round 1): peak_cost_smooth, the solver's
+# capacity term, now charges a plan day once under distinct days, so every
+# plan solved under a k=3 capacity tariff sees a weaker same-day charge and
+# settles elsewhere. Measured against 233a36bd (and 99231bc3, the same
+# figures) in one environment: the
+# published peak_cost stays 0.0 and projected_peak_kw stays 6.5 kW;
+# predicted_cost 29.146650 -> 32.416769, deferred_energy_cost
+# 32.764410 -> 30.681727, compressor_starts 7 -> 6. The three other
+# capacity fixtures that move (capacity_tariff_15min, everything_on,
+# tariff_plus_two_zone) are may-drift and move in plan keys only.
+# R7-D8-01 (#1460), branch fix/r7-coordinator: this diff claims the five
+# coordinator captures and NOTHING ELSE. The direction is ADD-ONLY.
+# `_build_data_dict` now publishes the three keys `SensorGapAdvisorSensor`
+# reads and no seam wrote -- `heat_pump_power_series` (the measured pump
+# draw per settled interval), `house_power_series` (the whole-house meter's
+# own readings, empty without one) and `peak_tariff` (the configured
+# capacity tariff's price_per_kw / window_minutes / peaks_averaged) -- so
+# each capture's `data` gains those keys and nothing else moves. No plan,
+# schedule or solver fixture moves and the optimizer is not modified: the
+# published dict is the only surface the new keys reach. The five fixtures
+# were re-recorded (`golden.py --record --only coord_`) and then cut back to
+# the three keys this branch adds: at this head
+# `tests/env_drift.py --all 6e2a0f2a` reports `32 fixture(s), 13972
+# leaf/leaves differ from the committed files in value alone` -- reported,
+# never failed -- and those value differences predate the branch, so
+# recording them here would write values this diff did not measure.
+# R7-D0-01 merge of origin/main (cdf82daa) into fix/r7-optimizer-seeds: the
+# five coordinator claims this file inherited from the merge base (R7-D8-01
+# / #1461's note above) come OUT. They were main's own -- written for #1489's
+# diff -- and on this merged tree every one of the five coord captures is
+# byte-identical to cdf82daa, so `env_drift.py --all cdf82daa` reports all
+# five STALE ("nothing drifted, remove it") and exits 1. A claim describes
+# exactly ONE diff and never carries forward (header rule 2), so this
+# branch's bare list keeps only what THIS diff moves. The deletion is
+# hand-made: the list ADDED a line beside the baseline's, which
+# `drop_inherited_claim_lines` treats as a rewrite and refuses to touch
+# (#1255), so `apply_inherited_claims` cannot lift this one.
+# R8-P3 (#1530, #1520): this branch claims wood_coil and nothing else. It is the
+# one fixture with a throttling valve AND hot water, so the only one where
+# compute_cop_dhw now prices the tank at the buffer's Carnot lift instead of its
+# own penalty. Direction, measured base vs branch in one environment: the tank
+# COP falls, so the plan buys MORE hot-water electricity (dhw_heating_cost and
+# predicted_cost up) and the always-hot baseline's DHW costs more too
+# (baseline_cost up). baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift
+# entry cannot excuse and a name cannot be both, so the entry is suspended
+# above. The wood-coil forecast now reads the published physics instead of a
+# re-derived drain (found by this group, with the RCA coil-drain seat), so later
+# steps are credited against the wood tank the coil actually cooled: again more
+# hot-water electricity, same direction. The humidity half moves nothing here:
+# no fixture learns a derate.
+# #1495 (mold-floor breach warning): this branch's own diff claims the
+# config_flow fixture and nothing else, ADD-ONLY. The comfort page's mold
+# section gains the mold_floor_breach_margin option, so capture_config_flow's
+# schema carries two new leaves (both under comfort.mold.fields), each present
+# on one side only.
+# #1588 (DHW arbiter): this branch's own diff claims the config_flow
+# fixture and nothing else, ADD-ONLY -- the pump_duty_mode select grows both
+# flows' schema; no values move.
+# R9-F2.1 (D2-s2-81, the two-zone floor price): each zone of a two-zone house
+# now pays the single-zone _COMFORT_FLOOR_L1 per kelvin under min_temp; the
+# quadratic undershoot stays averaged. Every two-zone fixture's objective
+# changes, so its plan moves. Thirteen two-zone scenarios moved against the
+# merge base in one environment; ten are may-drift names, these three are
+# claimed. Direction, same environment (summed degree-steps under min_temp over
+# both zones; predicted_cost): valve_storage_flat_prices 0 -> 0, 89.70 -> 89.86;
+# valve_storage_low_target 0 -> 0, 59.02 -> 62.08; valve_storage_small_tank
+# 1.315 -> 1.291, 54.24 -> 52.56. Every other fixture is byte-identical, so
+# the PV margin and the power fraction move none.
+# R9-F2.1 follow-up (main red on tests/backtest.py after #1694): a two-zone
+# solve refines its first start at the half floor price before the true solve.
+# The objective is unchanged; each claimed fixture ships a plan with a LOWER
+# true objective than main's, in the same environment: valve_storage_flat_prices
+# 127.2155 -> 127.1950, valve_storage_small_tank 80.4944 -> 79.9648. The three
+# claims inherited from #1694 are dropped (env_drift --drop-inherited); of them,
+# valve_storage_low_target does not move here.
+# R9-F2.3 (#1671, D2-s2-03): this branch claims wood_coil and nothing else. It
+# is the one fixture with a DHW coil in the wood tank, and the baseline
+# thermostat house now owns the same coil and draws the plan does, so the coil
+# debits the baseline's wood store as it debits the plan's. Direction, measured
+# base 9c6b923f vs branch in one environment (OpenBLAS Haswell, 1 thread): net
+# of the smaller draw the coil credits, baseline_cost rises 156.407745 ->
+# 157.190147, so reported savings fall by the same 0.78. baseline_cost is a MAY_DRIFT_JUDGED_KEY, which a may-drift entry
+# cannot excuse and a name cannot be both, so the entry is suspended above.
+#
+# F8.3 (handoff/r9-f8-docs-3): the empty list is this diff's own footprint --
+# measured, not inherited: with the list empty, env_drift --all reports
+# NO UNCLAIMED DRIFT / NO STALE FIXTURE over all 56 scenarios against
+# origin/main, and `config_flow is byte-identical to origin/main here`
+# (the entity-name renames move no captured leaf; docs and test-only
+# changes otherwise).
+#
+# R9-F2.4 (handoff/r9-f2-solver-4, D12-s2-01, #1644 P2): the plan's on schedule
+# reads the plan's own running rule -- thermal_model.MIN_RUNNING_DRAW_KW, the
+# 0.1 kW floor the solve's bounds already assume for a duty-cycled step and
+# count_compressor_starts already counted a start at -- instead of half the
+# pump's modulation floor, which on a fixed-speed pump (min == max) put the
+# switch at half the rating and switched off steps whose heat the same plan's
+# trajectory, cost and published savings booked as delivered.
+#
+# Direction is one-way by construction: the new floor is at or below the old on
+# every plant (0.1 against max(0.1, min_electrical_power * 0.5)), and the
+# comparison reads the step's whole booked draw, so a step can only gain the
+# pump, never lose it. Every moved leaf is heat_pump_on_schedule[i] and every
+# one goes False -> True; measured over all 56 scenarios in one environment
+# (hpo-ci container, CPython 3.14.7, numpy 2.4.6, OPENBLAS_CORETYPE=Sandybridge,
+# BLAS at 1 thread) against merge base bd79bc9e by
+# tools/audit/handoff/r9-f2-solver-4/drift_leaves.py, whose complete leaf census
+# is in that directory's ev/. The 16 MAY-DRIFT fixtures that also moved are not
+# claimed here -- a name cannot be both -- and the 5 coordinator captures, which
+# are the fixtures carrying a published power, are byte-identical: this PR's D8
+# arm gates entity.commanded_power_kw on the action's own heat_pump_on and moves
+# no published number in any fixture that has one.
+#
+# R9-EG-B8 (#1747's carry from F9.3's review): DhwProfileLearner seeds its
+# hourly profile through normalize_profile, now a projection, instead of
+# holding the shipped DHW_HOURLY_DRAW_PATTERN raw. Every moved leaf is one of
+# the 24 cells of the published dhw_usage_profile, in data and in the
+# predictive_insight sensor's attribute (48 per capture); no plan, cost or
+# power leaf moves. Direction: hours 01-03 rise from 0.103896 to the 0.2 floor
+# and every other hour falls by the same factor (0.207792 -> 0.205263), mean
+# held at 1.0 -- the profile a base install already published after its first
+# restart. Measured against 3dfebc16 by tests/env_drift.py --all with the
+# inherited list emptied (Linux cloud box, CPython 3.14.7, pinned
+# requirements-ci, OPENBLAS_CORETYPE=Haswell, 1 thread).
+#
+# F6.4 (D4-s2-81, indoor source-entity carry-in): this diff claims the five
+# coordinator captures and NOTHING ELSE. Every moved leaf is deterministic, not
+# a solver float, and the direction is ADD-ONLY on two leaves per fixture:
+#   (a) sensors.indoor_temp.extra_state_attributes goes None -> {'source_entity':
+#       None}: IndoorTempSensor gains a source_entity attribute, None here
+#       because no capture maps an indoor entity;
+#   (b) setup_topology.language is new on sensors.space_heating_plan and
+#       sensors.dhw_heating_plan: describe_setup now carries the install
+#       language (D4-s2-81).
+# No plan, schedule or solver fixture moves.
+# R9-UX-5: idle steps publish a sub-code instead of idle. Every leaf below
+# is space_reasons or dhw_reasons. No value leaf moves.
+away_setback # R9-UX-5: idle sub-codes, reasons only
+building_preset # R9-UX-5: idle sub-codes, reasons only
+capacity_curve # R9-UX-5: idle sub-codes, reasons only
+capacity_tariff # R9-UX-5: idle sub-codes, reasons only
+confidence_margins # R9-UX-5: idle sub-codes, reasons only
+cool_rainy_summer # R9-UX-5: idle sub-codes, reasons only
+cop_scale_learned # R9-UX-5: idle sub-codes, reasons only
+dhw_cold_tank # R9-UX-5: idle sub-codes, reasons only
+dhw_large_tank # R9-UX-5: idle sub-codes, reasons only
+dhw_learned_windows # R9-UX-5: idle sub-codes, reasons only
+dhw_schedule_off # R9-UX-5: idle sub-codes, reasons only
+external_heat_active # R9-UX-5: idle sub-codes, reasons only
+extreme_prices # R9-UX-5: idle sub-codes, reasons only
+horizon_48h # R9-UX-5: idle sub-codes, reasons only
+horizon_6h # R9-UX-5: idle sub-codes, reasons only
+legionella_due # R9-UX-5: idle sub-codes, reasons only
+legionella_due_low_setpoint # R9-UX-5: idle sub-codes, reasons only
+legionella_off # R9-UX-5: idle sub-codes, reasons only
+mild_windy_rain # R9-UX-5: idle sub-codes, reasons only
+negative_prices # R9-UX-5: idle sub-codes, reasons only
+peak_masked # R9-UX-5: idle sub-codes, reasons only
+price_risk # R9-UX-5: idle sub-codes, reasons only
+start_above_band # R9-UX-5: idle sub-codes, reasons only
+start_below_band # R9-UX-5: idle sub-codes, reasons only
+summer_dhw_only # R9-UX-5: idle sub-codes, reasons only
+valve_storage_flat_prices # R9-UX-5: idle sub-codes, reasons only
+valve_storage_low_target # R9-UX-5: idle sub-codes, reasons only
+valve_storage_small_tank # R9-UX-5: idle sub-codes, reasons only
+wide_band # R9-UX-5: idle sub-codes, reasons only
+winter_single_dhw # R9-UX-5: idle sub-codes, reasons only
+winter_single_no_dhw # R9-UX-5: idle sub-codes, reasons only
+
+
+config_flow # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_all_features # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_dhw # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_grid_fee # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_minimal # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_two_zone # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
