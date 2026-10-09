@@ -36,9 +36,12 @@ does not select it. tests/arch_score_head.py is the one that reads today's tree.
 from __future__ import annotations
 
 import ast
+import io
 import json
 import os
+import subprocess
 import sys
+import tarfile
 import tempfile
 from pathlib import Path
 
@@ -47,6 +50,7 @@ sys.path.insert(0, str(ROOT / "tests"))
 sys.path.insert(0, str(ROOT / "tools" / "audit"))
 
 from harness import Results  # noqa: E402
+from throwaway_git import throwaway_git_init  # noqa: E402
 
 from archscore import calibrate, gate, score, vector  # noqa: E402
 
@@ -55,13 +59,41 @@ FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd8679
 R = Results("architecture score calibration (R9-EG-A1)")
 
 
+def attributes_do_not_hide_code() -> None:
+    """#2068 round 2, plant 2: ``git archive`` honours ``export-ignore``, so a head's own (nested) ``.gitattributes``
+    could hide a module from the scorer. ``score.tree_of`` reads the tree object instead."""
+    with tempfile.TemporaryDirectory(prefix="archscore-attr-") as tmp:
+        repo, pkg = Path(tmp) / "r", Path(tmp) / "r" / "custom_components" / "p"
+        pkg.mkdir(parents=True)
+        env = throwaway_git_init(repo, "-q")
+        for name in ("a.py", "hidden.py"):
+            (pkg / name).write_text("X = 1\n")
+        (pkg / ".gitattributes").write_text("hidden.py export-ignore\n")
+        for cmd in (["add", "-A"], ["commit", "-qm", "plant"]):
+            subprocess.run(["git", "-C", str(repo), *cmd], check=True, env=env)
+        archived = subprocess.run(["git", "-C", str(repo), "archive", "HEAD", "custom_components"],
+                                  capture_output=True, check=True, env=env).stdout
+        out, saved = Path(tmp) / "out", score.REPO
+        out.mkdir()
+        score.REPO = repo
+        try:
+            score.tree_of("HEAD", out)
+        finally:
+            score.REPO = saved
+        got = sorted(f.name for f in (out / "custom_components" / "p").iterdir())
+        R.check("the plant is real: git archive drops the export-ignore'd module (control)",
+                not any(n.endswith("/hidden.py") for n in tarfile.open(fileobj=io.BytesIO(archived)).getnames()),
+                "archive kept it")
+        R.check("score.tree_of extracts the module the head's .gitattributes marks export-ignore",
+                got == [".gitattributes", "a.py", "hidden.py"], f"{got}")
+
+
 def base_runs_the_gate() -> None:
     """The reviewer's plant on #2068 (round 1): ``vector.load_structure`` runs ``tests/structure.py`` inside the
     gate's process, so a pull request that edits it could wave its own rises through. The workflow runs the
     gate from a checkout of the BASE; this drives the workflow's own score step over a throwaway repository
     whose stub gate prints the ``tests/structure.py`` it can see. The head's copy is the plant."""
     import re
-    import subprocess
 
     import yaml
     steps = yaml.safe_load((ROOT / ".github" / "workflows" / "arch-score.yml").read_text())["jobs"]["arch-score"]["steps"]
@@ -74,26 +106,27 @@ def base_runs_the_gate() -> None:
             repo, env = Path(tmp) / "r", {**os.environ, "RUNNER_TEMP": str(Path(tmp) / "t")}
             (Path(tmp) / "t").mkdir()
             (repo / "tests").mkdir(parents=True)
-            g = ["git", "-c", "user.name=p", "-c", "user.email=p@p", "-C", str(repo)]
-            subprocess.run([*g, "init", "-q"], check=True)
+            g = ["git", "-C", str(repo)]
+            env = {**env, **throwaway_git_init(repo, "-q")}
             (repo / "tests" / "structure.py").write_text("BASE\n")
             if base_has_gate:
                 (repo / "tools" / "audit" / "archscore").mkdir(parents=True)
                 (repo / "tools" / "audit" / "archscore" / "gate.py").write_text(stub)
-            subprocess.run([*g, "add", "-A"], check=True)
-            subprocess.run([*g, "commit", "-qm", "base"], check=True)
+            subprocess.run([*g, "add", "-A"], check=True, env=env)
+            subprocess.run([*g, "commit", "-qm", "base"], check=True, env=env)
             base = subprocess.run([*g, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
             (repo / "tests" / "structure.py").write_text("PLANT\n")
             gate_dir = repo / "tools" / "audit" / "archscore"
             gate_dir.mkdir(parents=True, exist_ok=True)
             (gate_dir / "gate.py").write_text(stub)
-            subprocess.run([*g, "add", "-A"], check=True)
-            subprocess.run([*g, "commit", "-qm", "head"], check=True)
+            subprocess.run([*g, "add", "-A"], check=True, env=env)
+            subprocess.run([*g, "commit", "-qm", "head"], check=True, env=env)
             head = subprocess.run([*g, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
             r = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True,
                                env={**env, "PR_BASE": base, "PR_HEAD": head})
             return r.stdout + r.stderr
 
+    attributes_do_not_hide_code()
     out = run(True)
     R.check("arch-score.yml: a head edit to tests/structure.py is not what the gate loads (the #2068 plant)",
             re.search(r"^SAW BASE$", out, re.M) is not None and "PLANT" not in out, out[-300:])
