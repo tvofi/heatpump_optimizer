@@ -36,9 +36,10 @@ floor do not move; the slab and the upper floor are where it lands.
 
 Trees, each copied from the checkout into a temp dir:
 - ``head``: unchanged;
-- ``base``: this head's ``tests/`` over the merge base's three production
-  files, where ``measured_heat_kw`` does not exist -- the failing-first red,
-  reproducible without a checkout of the branch;
+- ``base``: this head's ``tests/`` over the merge base's (``BASE_SHA``,
+  ``UX10_BASE_SHA`` overrides) three production files, where
+  ``measured_heat_kw`` does not exist -- the failing-first red, reproducible
+  without a checkout of the branch;
 - ``m_precedence``: ``flow_meter.read_heat_output_kw``'s precedence predicate
   (``cap.measured_power or cap.frequency``) to ``False``, so a power or a
   frequency signal no longer outranks the meter;
@@ -68,8 +69,8 @@ Trees, each copied from the checkout into a temp dir:
   ``if predicted_state is None:`` to ``if False:``, so the None a raising
   replay returns is spent and the AttributeError escapes the learner.
 
-Expected, as measured on 2026-10-09 under Python 3.14.7 against merge base
-a8ce87571, on the tree that carries this file (the pull-request body names the
+Expected, as measured on 2026-10-10 under Python 3.14.7 against merge base
+23d354970, on the tree that carries this file (the pull-request body names the
 head; re-run it to re-derive):
     BLOCK head: rc=0 failing_checks=0   (ALL 8 UX-10 EXTRACT PASSED)
     BLOCK base: rc=0 failing_checks=6
@@ -232,7 +233,7 @@ VARIANTS = {
                                "if predicted_state is None:", "if False:"))],
 }
 #: ``base``: the merge base's three production files under this head's tests.
-BASE_SHA = os.environ.get("UX10_BASE_SHA", "a8ce87571e6b1c093e57036207828c74c70644f4")
+BASE_SHA = os.environ.get("UX10_BASE_SHA", "23d354970fcaababe8e67a5c04c326cc8bc79e49")
 BASE_FILES = (FLOW_METER, THERMAL, COORD)
 
 DRIVER = r'''
