@@ -7844,7 +7844,8 @@
    "resume": {
     "stage": "in-flight",
     "next_step": "fixer seat running (opus) at /Users/timmalmstrom/hpo-seats/fix-nightly-bound; handoff refs handoff/r9-nightly-bound and handoff-body/r9-nightly-bound; then a reviewer, then the orchestrator lands it -- tests/mutation_table.py is a code-OWNED path so the owner's review rides mandate 6067089637",
-    "commit": "955dd09a3eab730ecaa3f6be55359781c5b4d201"
+    "commit": "955dd09a3eab730ecaa3f6be55359781c5b4d201",
+    "branch": "fix/r9-nightly-bound"
    },
    "fixes": []
   },
