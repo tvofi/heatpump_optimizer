@@ -1,0 +1,26 @@
+V = 6b77cd235bb9dfa0789c3cde4385a5dfb741166b
+origin/main = a5097ec7e44bb33268605fefe6256a07c673390e
+Auto-merging tests/mutation_ledger/ctx.json
+merge head = b3048ae3503073686ab9b395817a4c640d3b7c7d
+########## N1-ordinary-pin-over-same-merge  head=ae9e720e656a55789ae742fa08cc5b27bac46419
+    commit-diff A	tests/mutation_ledger/killed_by/n1.json
+  [main-copy]  rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> ae9e720e656a55789ae742fa08cc5b27bac46419: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> ae9e720e656a55789ae742fa08cc5b27bac46419: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..ae9e720e656a55789ae742fa08cc5b27bac46419
+RESULT N1-ordinary-pin-over-same-merge main-copy=CARRY fixed-copy=REFUSE
+########## N2-glob-pin-over-same-merge  head=1937982d9053c917b3be277090e971f0da4f952e
+    commit-diff A	tests/mutation_ledger/*
+  [main-copy]  rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 1937982d9053c917b3be277090e971f0da4f952e: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 1937982d9053c917b3be277090e971f0da4f952e: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..1937982d9053c917b3be277090e971f0da4f952e
+RESULT N2-glob-pin-over-same-merge main-copy=CARRY fixed-copy=REFUSE
+
+=== the two heads differ ONLY in the added file's NAME ===
+  N1 tree: 958041399024eab825a2b5defaecc0213fdb3d1b
+  N2 tree: 76714ccb20753a7dedbd3d9cb2ac7a2c35c26104
+    A	tests/mutation_ledger/*
+    D	tests/mutation_ledger/killed_by/n1.json
+
+=== remedy probe: is ':(exclude,literal)<path>' valid, and does it keep the
+    deep paths visible while still excluding the one added file? ===
+  plain   :(exclude)tests/mutation_ledger/*  -> visible: []
+  literal :(exclude,literal)tests/mutation_ledger/* -> visible: [tests/mutation_ledger/ctx.json ]
+  (the file literally named '*' exists in this tree: tests/mutation_ledger/* tests/mutation_ledger/ctx.json tests/mutation_ledger/killed_by/branchrow.json tests/mutation_ledger/killed_by/mainrow.json )

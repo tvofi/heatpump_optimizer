@@ -1,0 +1,84 @@
+layout: 4328 tracked path(s) enumerated
+  category  113 finding(s)
+    outside the allowed categories: .claude/workflows/carry-1921.json
+    outside the allowed categories: .claude/workflows/wave-3l-groups.json
+    outside the allowed categories: handoff/round9/fix/resume/FR-8.md
+    outside the allowed categories: handoff/round9/plan-table-live.md
+    outside the allowed categories: tools/audit/archscore/ABOUT.md
+    outside the allowed categories: tools/audit/archscore/__init__.py
+    outside the allowed categories: tools/audit/archscore/calibrate.py
+    outside the allowed categories: tools/audit/archscore/calibration/corpus.tsv
+    outside the allowed categories: tools/audit/archscore/calibration/corpus_vectors.json
+    outside the allowed categories: tools/audit/archscore/calibration/expected.json
+    ... 103 more (--verbose)
+  retired   3 finding(s)
+    planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
+    reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
+    reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
+  reference 1289 finding(s)
+    .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:102 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:107 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:202 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/defect-root-cause.md:145 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/gate-scoping.md:44 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/gate-scoping.md:45 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/ratchet-budgets.md:8 cites retired path tools/audit/README.md; use dev/audit/README.md
+    ... 1279 more (--verbose)
+  dead      1 finding(s)
+    category dev/programme: glob matches no tracked file: dev/programme/rosters/*.json
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+layout: GUARD: 0 refusal(s) against d8a4bd36f638
+  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 214 of 214 listed
+  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 214 of 214 listed
+  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 215 of 215 listed
+  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 214 of 214 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 214 of 214 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 214 of 214 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 215 of 215 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
+  ok   locate .claude/workflows/agreement.mjs with ['.claude/workflows/agreement.mjs', 'tools/policy/agreement.mjs']: .claude/workflows/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with ['tools/policy/agreement.mjs']: tools/policy/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with neither: .claude/workflows/agreement.mjs
+  ok   guard self-test: null: the base tree unchanged: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a doc gains a citation of a landed path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line naming the new path too: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line through the move map: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line marked as building the old tree: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command whose marker names another path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command whose marker names a longer path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation in a generated .claude/rules copy: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation in a generated .cursor/rules copy: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command with an unkeyed marker: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command beside a locate of another path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: prose naming the marker: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the old path as the move map's own argument: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation under a historical prefix: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: an old citation kept while the file changes: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a second copy of an old citation: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file renamed with its old citation: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of a planned path: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a nested file sharing a retired top-level name: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the retired top-level name itself: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of a directory the moves emptied: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file re-added in a directory the moves emptied: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file outside every category: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file in its category: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file in two categories: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file citation inside an emptied directory, counted once: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file under a planned move: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file re-added at a landed path: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a move landed, a citation left: {'new-reference': 0, 'unswept': 1, 'placement': 0}
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+layout self-test: ok

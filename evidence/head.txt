@@ -1,1 +1,3 @@
-094f2c0d2696b4bd04cd485b9e7fc3f144620053
+measured head cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2 (PR #2075, round 2, seat review-2075)
+PR live head at verdict time: see poll-head.log (094f2c0d2696b4bd04cd485b9e7fc3f144620053 through 13 passes)
+Poll stopped by the reviewer after 15 passes (75 min at 300 s); the head never moved.
