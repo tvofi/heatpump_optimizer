@@ -1,0 +1,6 @@
+RESULT P1 dst-spring min_on: run 7 min UTC (67 wall) offs=1 held=None
+RESULT P1b dst-fall min_off: 2 min to cycle end offs=0 held=min_on
+RESULT P2 unscheduled re-arm: first cut=1 total cuts=2 off-period=1 min (second cut after an 11-min run) held=None
+RESULT P3 measured-start: threshold=21.50 offs=1
+RESULT P4 pre-heat null: offs=0
+RESULT P5 domains written: none

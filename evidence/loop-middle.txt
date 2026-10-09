@@ -1,0 +1,7 @@
+mild day 12.0 degC, model p_min 1.0, comfort 21 day / 19.5 night; slab open-loop; plant stepped per minute
+NULL   cut-off on              room 20.11-21.02  >21.5:  0.00 h  >22.0:  0.00 h  pump   2.0 kWh  cuts 0  warm+on 0 min  held {}
+LIGHT  cut-off on              room 17.65-22.60  >21.5:  5.82 h  >22.0:  3.87 h  pump  26.6 kWh  cuts 0  warm+on 54 min  held {}
+OWNMIN cut-off on              room 20.22-21.06  >21.5:  0.00 h  >22.0:  0.00 h  pump   2.5 kWh  cuts 0  warm+on 0 min  held {}
+HOT    cut-off on              room 20.58-21.43  >21.5:  0.00 h  >22.0:  0.00 h  pump   3.0 kWh  cuts 0  warm+on 0 min  held {}
+SUN    cut-off on              room 20.91-22.84  >21.5: 12.70 h  >22.0:  8.12 h  pump   2.0 kWh  cuts 0  warm+on 0 min  held {}
+COLDSUN cut-off on             room 20.48-23.05  >21.5: 10.77 h  >22.0:  7.47 h  pump  18.4 kWh  cuts 0  warm+on 0 min  held {}
