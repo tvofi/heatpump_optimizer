@@ -1,0 +1,3 @@
+PREDICT ledger   STALE PIN custom_components/heatpump_optimizer/away.py:restore_override GUARD_OFF 5cc88563: disposition names no site the inventory generates (old pin '    if raw is not None:')
+CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is deleted by hand; `mutation-autofix` never drops one, and pins the edited line afresh once it is gone
+CI PREDICT: 1 predicted red(s) on ledger against 47b083b03a9d -- repair before the handoff; who repairs which is ci-autofix.md's

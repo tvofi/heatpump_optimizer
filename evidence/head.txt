@@ -1,0 +1,3 @@
+head 3637f1c780ae030ba19bcd0818a7e19ee18ee9f2
+merge-base 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49
+reviewer review-2073, standalone clone /Users/timmalmstrom/hpo-seats/review-2073/r, detached worktree /Users/timmalmstrom/hpo-seats/review-2073/wt
