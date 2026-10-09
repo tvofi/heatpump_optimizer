@@ -2,6 +2,7 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "closures": {
   "tests/arch_score.py": [
+   ".github/workflows/arch-score.yml",
    "tests/arch_score.py",
    "tests/harness.py",
    "tests/hastub/homeassistant/__init__.py",
@@ -10,12 +11,14 @@
    "tests/hastub/homeassistant/helpers/typing.py",
    "tests/seam_map.json",
    "tests/structure.py",
+   "tests/throwaway_git.py",
    "tools/audit/archscore/__init__.py",
    "tools/audit/archscore/calibrate.py",
    "tools/audit/archscore/calibration/corpus.tsv",
    "tools/audit/archscore/calibration/corpus_vectors.json",
    "tools/audit/archscore/calibration/expected.json",
    "tools/audit/archscore/counters.py",
+   "tools/audit/archscore/gate.py",
    "tools/audit/archscore/metrics/__init__.py",
    "tools/audit/archscore/metrics/common.py",
    "tools/audit/archscore/metrics/family_splits.py",
@@ -56,6 +59,7 @@
    "tools/audit/archscore/planted/perturb/N2_docstring.py",
    "tools/audit/archscore/planted/perturb/N3_seam_relabel.py",
    "tools/audit/archscore/planted/perturb/N4_const_namespace_import.py",
+   "tools/audit/archscore/planted/perturb/N5_annotated_return.py",
    "tools/audit/archscore/planted/perturb/_b1_common.py",
    "tools/audit/archscore/planted/perturb/_freq_common.py",
    "tools/audit/archscore/planted/perturb/_lib.py",
@@ -105,6 +109,8 @@
    "tools/audit/archscore/planted/redteam/12_combined_evasions.py",
    "tools/audit/archscore/planted/redteam/12b_combined_without_06.py",
    "tools/audit/archscore/planted/redteam/13_hub_handle_accessor.py",
+   "tools/audit/archscore/planted/redteam/14_hub_write_presolve.py",
+   "tools/audit/archscore/planted/redteam/15_payload_cast.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -1133,6 +1139,7 @@
   "tests/entities.py": [
    ".claude/workflows/web-fix-wave.js",
    ".gitattributes",
+   ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/codeql.yml",
@@ -2090,6 +2097,7 @@
    "tests/hastub/homeassistant/util/dt.py"
   ],
   "tests/harness_headers.py": [
+   ".github/workflows/arch-score.yml",
    ".github/workflows/budget-raise-gate-rerun.yml",
    ".github/workflows/budget-raise-gate.yml",
    ".github/workflows/codeql.yml",
@@ -3130,6 +3138,7 @@
    "dev/audit/harnesses/d907_kernel_band.py",
    "dev/audit/harnesses/draw_range_evidence.py",
    "dev/audit/harnesses/dual_path.py",
+   "dev/audit/harnesses/eg_a4_wave_deltas.py",
    "dev/audit/harnesses/eg_b11_equiv_6840.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",
    "dev/audit/harnesses/git_auto_maintenance_race.sh",
@@ -3743,7 +3752,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.4
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -3759,11 +3768,11 @@
   },
   "tests/md_tables.mjs": {
    "rc": 0,
-   "seconds": 0.3
+   "seconds": 0.2
   },
   "tests/open_meteo.py": {
    "rc": 0,
-   "seconds": 0.4
+   "seconds": 0.3
   },
   "tests/optimality.py": {
    "rc": 0,

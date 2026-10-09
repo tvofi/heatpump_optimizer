@@ -1,10 +1,14 @@
 """hub_solve_writes: in-place writes to the coordinator's three live hubs
 (``_opt_config``, ``_thermal_params``, ``_current_state``) reachable from the
-solve path.
+scheduled cycle or a solve.
 
-Definition. Roots: ``HeatPumpOptimizerCoordinator.async_run_optimization``
-(the scheduled solve) and ``async_simulate`` (the what-if solve), ``self``
-bound to the coordinator. Everything reachable from them through calls and
+Definition. Roots: ``HeatPumpOptimizerCoordinator._async_update_data`` (the
+scheduled cycle, which runs the solve), ``async_run_optimization`` (the solve,
+also reached from a service call) and ``async_simulate`` (the what-if solve),
+``self`` bound to the coordinator. The cycle is a root so that a write moved
+out of the solve into a step before it is the same site, not a removed one
+(R9-EG-A4: the #1887 round-1 review's probe, red-team attempt 14); the name
+stays, because the frozen weights key on it. Everything reachable from them through calls and
 callback references, in any module, with roles propagated through arguments
 (see _common). A site is an assignment / augmented assignment / ``del`` /
 ``setattr`` / item store / container mutation whose base evaluates to a hub
@@ -27,7 +31,7 @@ from pathlib import Path
 
 from . import common as C
 
-ROOTS = ("async_run_optimization", "async_simulate")
+ROOTS = ("_async_update_data", "async_run_optimization", "async_simulate")
 
 
 def _sites(eng: C.Engine, root_qual: str) -> set[tuple]:
