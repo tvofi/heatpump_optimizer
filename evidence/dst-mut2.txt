@@ -178,5 +178,10 @@ Update gap of 3584165 minutes reads as an outage; staggered recovery active for 
   ok   open_meteo's loader finds every package module it imports among those it loads
   ok   and every Home Assistant module those import is one of the loader's stubs (stdlib and numpy aside)
 
-ALL 131 DST / QUARTER-GRID CHECKS PASSED
-rc=0
+-- early cut-off: the minimum run and stop are true time across a DST change
+  FAIL spring forward: a 7-minute true run (67 on the wall) is held by MIN_ON, not cut  [(turn_off, held) (1, None)]
+  FAIL fall back: 2 true minutes to the cycle end are held by MIN_OFF, not cut  [(turn_off, held) (0, 'min_on')]
+  ok   NULL CONTROL: past both minimums on the transition day the warm room is cut
+
+2 of 134 DST / QUARTER-GRID CHECKS FAILED
+rc=1

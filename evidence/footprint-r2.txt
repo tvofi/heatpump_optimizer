@@ -1,4 +1,4 @@
-TOTAL 2594
+TOTAL 2589
 away._away_store:1
 away._migrate_helpers:14
 away.persist_override:2
@@ -46,7 +46,7 @@ debugger.async_unload_debugger:1
 debugger.collector_for:0
 debugger.cycle_row:3
 diagnostics._coordinator_snapshot:10
-early_cutoff.state_for:3
+early_cutoff.state_for:1
 entity.has_hot_water:2
 entity.input_configured:2
 notifier.async_setup_notifier:3
