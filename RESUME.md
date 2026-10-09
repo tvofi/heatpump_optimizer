@@ -7,59 +7,68 @@ nameplate or metered draw range in code, tests, harnesses, bodies, commits or
 reports. The synthetic overstated-nameplate shape used everywhere is
 configured 1-10 kW, asked U(3, 10), drawing U(1.2, 1.8).
 
-## 7a: #2065, handed off for round 4
+## 7a: #2065, handed off for round 5
 
 - PR: https://github.com/tvofi/heatpump_optimizer/pull/2065, branch
-  `fix/live-power-clamp-foundation-pr`. Remote head `a456c5ed` (`ci: pin killed
-  mutants`, the lane's own `AUTOFIX: changed`). The frozen handoff head is
-  `90b9e87f7dece277cfbf46cbc64b2b3f816d841c` on `handoff/r9-live-power-clamp-foundation`,
-  body on the orphan `handoff-body/r9-live-power-clamp-foundation` (with this note
-  as `RESUME.md`). Do not push the PR branch: the orchestrator moves a frozen head.
-- Round 3 blocked because 15 `draw_range.py` sites had no disposition, not because
-  the fix was wrong ("The fix itself is sound and this is round 3"). Round 4 is a
-  re-cut body (`fixer.md`: past three rounds, re-cut rather than repair), plus:
-  - `acba8517d` -- twelve new checks in `tests/features.py`'s 7a block (107 lines,
-    with a `_dr_at(pairs)` helper that feeds an exact population). The block is
-    now 51 checks; `ALL 51 DR BLOCK PASSED`; the file prints `1 of 3911 FEATURE
-    CHECKS FAILED` (the disclosed Accelerate arm, the only failure).
-  - `279212233` -- 14 `killed_by` rows under
-    `tests/mutation_ledger/killed_by/draw_range.py/` (84 lines;
-    `tests/mutation_budgets.json` untouched). 15 sites, 14 anchors: the two
-    comparison bounds on line 116 share an anchor and both were driven.
-  - `90b9e87f7` -- merge of the lane's `a456c5ed`, whose two rows (`:175` killed by
-    `tests/features.py`, `:262` killed by `tests/structure.py`) replaced this
-    seat's rows for the same anchors (add/add resolved in the lane's favour).
-- **Measured facts a later round must not re-derive from the body's prose:**
-  - 13 of the 15 sites survived the branch's original 39 checks, because those
-    checks read the threshold *through* the constant (`n=_dr.MIN_SAMPLES`,
-    `range(_dr.WINDOW)`, `_dr.RUNNING_FLOOR_KW`) and so adapted to the mutant.
-    A check that wants to kill a constant has to count in literals. CI's own shards
-    agree independently: they drove `:48`, `:51`, `:102` and printed `lives` for
-    all three.
-  - The pin lane at `6f420a1f7` pinned 2 of 15, proved 3 survivors, and started
-    nothing else: shards 1 and 3 spent 2 h 14 min and printed `MUTATION TABLE
-    REFUSED -- nothing was measured: 0 mutant(s) timed out, 5 not started for
-    --budget-minutes` / `measure: skip-measure-failed, 0 anchor(s)`, while
-    `mutation-autofix` still answered `changed` and stood green. Waiting for a bot
-    commit was never going to dispose of 13 sites.
-  - `--pin-killed` cannot drive on this host: run for one anchor with
-    `tests/features.py` as its only driver it spent 730 s on the baseline and
-    printed `MUTATION TABLE INCONCLUSIVE -- the baseline is already red in
-    tests/features.py, so no mutant's verdict means anything` (`baseline_refusal`).
-    The kills were therefore measured per site with that tool's own rule
-    (`killed()`: red AND failing above a green baseline) on the block, and the rows
-    were written through `normalize` + `write_budgets` -- the two calls
-    `apply_pins` uses -- so the layout is the lane's. Both kill forms were re-taken
-    on the whole file: FAIL-line arm `2 of 3911` against the baseline's `1`,
-    crash arm counted `2` by `failing_count`'s traceback term.
-  - At `90b9e87f7`: `unpinned_sites` 4622 (base 4624 at `c518447eb804`), 0 in
-    `draw_range.py`; `completeness_problems` 0; `ledger_form_problems` 0;
-    `tools/pr/ci_predict.py --base c518447eb804` prints no `ADDED UNPINNED`;
-    `--pin-killed` answers `PIN KILLED: nothing to pin` (rc=0); structure PASSED,
-    layout 0 refusals, archscore `dS +0.0000 NULL`, `MODE: SCOPED -- 28 script(s)
-    run, 5 scoped out`, both claim files byte-identical to main's.
-  - `bash tools/pr/prepr.sh <body>` passes rc=0 at this head, with only the
-    push-order WARN (the head is ahead of the PR branch, which is the handoff).
+  `fix/live-power-clamp-foundation-pr`. Round 4's `merge` verdict stands at
+  `90b9e87f7`; the frozen handoff head is now
+  `9b39bb7c68ff6a0cf5914c27c7cb93293400a9f3` on
+  `handoff/r9-live-power-clamp-foundation`, body on the orphan
+  `handoff-body/r9-live-power-clamp-foundation` (with this note as `RESUME.md`;
+  round-5 body at `/Users/timmalmstrom/hpo-seats/live-power-clamp/body/BODY5.md`,
+  round-5 evidence under `scratch/r5/`).
+  Do not push the PR branch: the orchestrator moves a frozen head.
+- Round 5 is one commit: `9b39bb7c6`, the update-branch merge of main
+  `d8a4bd36f638` (#2059; #2024's flow meter at `a8ce87571`). The PR was **DIRTY**
+  -- three content conflicts -- so no CI ran at all, and no code line of the lane
+  moved: 6 files carry a hand resolution (`dev/audit/rounds/round4/D6/claims.py`,
+  `tests/deployment_shape.py`, `tests/features.py`, `docs/architecture.md`, and the
+  two regenerated register files `claims.json`/`claims.md`). `tests/closures.json`
+  was settled by main's own ledger driver at the merge (`LEDGER-MERGE: resolved`,
+  22 lists as sets) and `closure.py selftest` is green on it.
+- Measured at `9b39bb7c6`, main `d8a4bd36f638` (all of it re-derived, nothing
+  carried -- see the trap list below): `arch_modules_on_disk=75`,
+  `arch_map_listed=75`, `arch_map_missing=0`, `ha_module_level_importers=27`,
+  `config_defaults_compared=89`, `config_ranges_compared=91`,
+  `claims_extracted=125 / true=123 / false=0 / stale=0 / unverifiable=2`;
+  `architecture.md` = 75 modules, 27 importers, "the other 47"; deployment-shape
+  census = 93 production files, 528 pairs, 406 comparable, 123 at >= 0.80, 18 at
+  1.00, per-pair 93/83/75/57/21/91/58; `MODE: SCOPED -- 28 script(s) run, 5 scoped
+  out`; `structure.py` PASSES with `max_class_loc 8818 <= 8818` and
+  `seam_cut_total 762 <= 762` (16 budget keys, 21 ok lines, 41 counting rules --
+  derive, never carry); `layout: GUARD: 0 refusal(s)`; archscore `dS +0.0000 NULL`;
+  ledger inventory 5943, unpinned 4620 against 4622 at the base, `draw_range`
+  unpinned 0, completeness 0, form 0, `killed_by` 1220, `survivor_triage` 84;
+  `--pin-killed` `PIN KILLED: nothing to pin` (rc=0); `ci_predict --base
+  d8a4bd36f638` prints no `ADDED UNPINNED`; both claim files byte-identical to
+  main's; `merge-tree origin/main HEAD` now exits 0.
+- Round 4's evidence stands unchanged and is NOT re-derived here: the 7a block is
+  the file's own 51 (`ALL 51 DR BLOCK PASSED` re-taken at this head), the 16
+  mutation arms are `16 of 16 red (0 survived)` re-run at this head with identical
+  tallies, the null-control harness at 20 seeds prints the same four rows, and the
+  fifteen `draw_range.py` sites' dispositions are the 12 seat rows + 2 lane rows
+  recorded at `279212233` and `a456c5ed`.
+- Whole-file `tests/features.py` at the merged head: `1 of 3930 FEATURE CHECKS
+  FAILED` (3911 + #2024's 19, the disclosed `R9-F2.1 P3` Accelerate arm only).
+  The scoped local run got through `env_drift --claims-only`, `closure selftest`,
+  `features`, `env_drift --all` (56/56), `validate`, `edge`, `backtest` before the
+  orchestrator stopped it at 41 min -- the box was at load 62-110 with other seats
+  mid-merge. The other 19 scripts are CI's at this head; say so in the body rather
+  than re-running them: **tvofi's standing rule is heavy lanes run in CI**
+  (2026-10-07), and a seat's 28-script local run at that load is queue pressure,
+  not evidence. `run.sh` leases only `stress.py`, which never started, so
+  `gate_lock.py status` read `no lease` before and after.
+- Two reds in that partial run were NOT the tree's, and each needs a control run
+  to say so: `entities.py` reported `FAILED (190s)` in its lane while a hand run of
+  the same script prints `ALL 2236 ENTITY CHECKS PASSED` (its own output shows it
+  waiting on another seat's gate lease, and the lane's log died with `run.sh`'s
+  workdir, so don't explain a lane exit you cannot read -- re-run and cite the
+  re-run). And every entities run on this box prints ~46 `FAIL` lines (`hb:positive_control`,
+  `a3:roster`, `a5:byte_unchanged`, ...) that are the harness's NEGATIVE-CONTROL
+  arms: the rows that judge them print `ok`, and the closing tally is `ALL 2236
+  ENTITY CHECKS PASSED`. Counting `^  FAIL` lines as failures would have reported
+  a red at main too -- compare the two trees' name sets (`diff` of sorted unique
+  names) rather than reading a count.
 
 ## #2066 is stacked on #2065
 
@@ -143,8 +152,52 @@ byte-identically); the carry-2065 harness rows above at both ends.
 - A harness belongs under `dev/audit/harnesses/`, never `tools/audit/harnesses/`
   (`tests/layout.py`). List it in `harness_headers.py`'s inert reads in
   `tests/closures.json`.
-- A new module changes the D6 claims headers (`dev/audit/rounds/round4/D6/claims.py`),
-  the architecture module counts, and `tests/deployment_shape.py`'s selection-cost
-  note.
+- **A new production module moves five records at once, and a merge where two
+  lanes each add one resolves them to neither side's number.** The records are:
+  `docs/architecture.md`'s three sentences (headline `N modules, of which 27`,
+  `27 of the N`, `the other N-27-1` -- the last two are read by NO check, only
+  C32 reads the first), `dev/audit/rounds/round4/D6/claims.py`'s two arch headers
+  (executed by `tests/harness_headers.py`), the committed register
+  `claims.json`/`claims.md` (regenerate by running `claims.py`, never hand-edit),
+  `tests/deployment_shape.py`'s selection-cost note (its `all N files` and the
+  per-pair counts, re-derived by `tests/entities.py`'s `_d308_pairs` rule -- the
+  lane script itself does not print them), and `tests/closures.json` (the ledger
+  driver's business, not yours). Round 5's live case: both sides printed `74`, the
+  merged tree had `75`; git reported those lines as CLEAN and the prose would have
+  shipped false. The instrument, not the diff, is the resolution.
+- **Both-sides-write-the-same-number is the silent case**: `git diff` shows no
+  conflict for `all 92 files` when the merged tree has 93, because each side
+  independently moved 91 to 92. Sweep the merged TEXT against the merged TREE for
+  every count main and your branch both touched -- `comm -12` of the two
+  `git diff --name-only <merge-base> <side>` lists is the file set; the census
+  commands above are the per-number test.
+- A `tests/features.py` block slice must end at the next top-level block header
+  (`^# --- `), not at `sys.exit(R.close(`: your block stops being the last one in
+  the file the moment another lane appends after yours, and the old rule then
+  over-captures and dies on names it never imported (`NameError: FakeState`). The
+  r4 harness broke exactly that way; r5's asserts the slice holds one block.
+- `/usr/bin/timeout` does not exist on macOS: wrapping a venv run in it exits 127
+  and prints nothing, which reads as "the tool produced no answer". Run the tool.
+- `closure.py select` keys on the diff against the merge base: after the merge the
+  base IS main's tip, so derive scope only once the merge commit exists.
+- `main`'s claim file grows under you (`658 -> 671` lines this window, #2024's
+  rows). A lane that claims nothing must come out byte-identical to main's --
+  `git show origin/main:tests/golden/claimed_drift.txt | cmp - <path>` is the
+  check, and it passed here because the branch touches no fixture at all.
 - Re-run the ledger check after editing any line `mutation-autofix` has pinned.
-  That is round 2's lesson.
+  That is round 2's lesson. The rows are content-anchored
+  (`FILE:SCOPE KIND DIGEST`), so main's line shifts move no key:
+  `layout_problems()` returning 0 is the measurement that says `--normalize` has
+  nothing to do. Don't run it "because a merge happened".
+- `tests/run.sh` takes the gate lease for `stress.py` itself: never set
+  `HPO_GATE_LOCK_LABEL` for a lease you did not take (`gate-scoping.md`).
+- A `## Friction` entry that wraps so a continuation LINE starts with a backticked
+  token and a colon (`` `LEDGER-MERGE: resolved`, and ...``) is read by
+  `policy_lint.mjs`'s `frictionEntries` as a NEW entry and refuses the whole body
+  (`does not parse`), which in turn makes `prepr`'s ancestry-reds step report every
+  red as UNANSWERED even the ones the body does answer. Re-wrap the sentence (name
+  the instrument, not the quoted marker) and both refusals clear.
+- A `git ls-files | xargs grep -l` sweep can report files that contain nothing:
+  xargs batches + `head` truncation produced three phantom "stale census" hits at
+  this head, none real. Re-run any such sweep as `git grep -lE`, one process, no
+  batching, before you edit a file because a pipeline named it.
