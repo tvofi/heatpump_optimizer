@@ -1,0 +1,14 @@
+CONFLICT RESOLUTION — tests/closures.json (the only conflicted path; step 13)
+merge-base(def887d8, origin/main) = 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49
+closures: 33 keys at base/branch/main/head. main changed 0 keys vs base; branch changed 3 (tests/arch_score.py, tests/entities.py, tests/harness_headers.py); head == branch on all 3, each carrying the branch's added .github/workflows/arch-score.yml. keys added/removed by either side: 0/0.
+inert_reads: 1 key differs on both sides (tests/harness_headers.py, 534 entries at base). branch adds dev/audit/harnesses/eg_a4_wave_deltas.py, main adds dev/audit/harnesses/r9_ci2b_closures_merge.py; head = 536 = branch UNION main exactly (lost vs branch 0, vs main 0, phantoms 0).
+recorded: main changed 0 vs base; branch changed 3 (open_meteo.py, ha_contract.py, md_tables.mjs); head == branch on all.
+
+Delta-only view (def887d8 -> a26f24285) by section, computed from the blobs:
+  closures     identical   recorded   identical   _comment  equal
+  inert_reads  one key differs: tests/harness_headers.py 535 -> 536
+               + dev/audit/harnesses/r9_ci2b_closures_merge.py (main's)   - nothing
+  The textual diff rewrites the whole file because of SECTION ORDER only:
+    def887d8   ["recorded","closures","inert_reads"]   (out of layout)
+    main/head  ["closures","inert_reads","recorded"]   (canonical; layout_errors == [])
+  The merge thus carries the branch's union AND canonicalizes the table; both sides' entries present.

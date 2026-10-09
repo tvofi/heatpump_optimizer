@@ -1,0 +1,34 @@
+merge-base(def887d8, origin/main) = 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49
+
+== closures: base=33 branch+0 main+0 merged=33
+   branch adds: []
+   branch removes: []  branch changes: 3 ['tests/arch_score.py', 'tests/entities.py', 'tests/harness_headers.py']
+   main adds 0: []
+   main removes 0: []
+
+== inert_reads: base=3 branch+0 main+0 merged=3
+   branch adds: []
+   branch removes: []  branch changes: 1 ['tests/harness_headers.py']
+   main adds 0: []
+   main removes 0: []
+
+== recorded: base=34 branch+0 main+0 merged=34
+   branch adds: []
+   branch removes: []  branch changes: 3 ['tests/ha_contract.py', 'tests/md_tables.mjs', 'tests/open_meteo.py']
+   main adds 0: []
+   main removes 0: []
+
+==== PROBLEMS ====
+   inert_reads: BRANCH value not carried for tests/harness_headers.py
+   inert_reads: MAIN value not carried for tests/harness_headers.py
+
+branch keys lost or closures-value-changed at head: NONE
+  tests/arch_score.py in head closures: True (identical to def887d8: True)
+  tests/arch_score_head.py in head closures: True (identical to def887d8: True)
+  eg_a4_wave_deltas.py present in head inert_reads lists: True
+NOTE on the two PROBLEMS lines above: that key script compares each side's value for EQUALITY.
+For inert_reads.tests/harness_headers.py equality is the wrong test — BOTH sides edited the same
+list, so the correct merged value is the UNION, which is what the head holds. The set-level check
+(delta.txt/closures_merge.txt and the run below) is the one that matters:
+  base=534 branch=535 main=535 merged=536; branch adds ['dev/audit/harnesses/eg_a4_wave_deltas.py']; main adds ['dev/audit/harnesses/r9_ci2b_closures_merge.py']
+  merged LOST vs branch: none  LOST vs main: none  phantom: none  merged==branch|main: True

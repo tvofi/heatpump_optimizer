@@ -1,8 +1,0 @@
-git merge-tree --write-tree origin/main(83f7ca558) def887d8905bee4d9ad39f06e75068df074362f4 -> rc=0 tree 921a5b444b47fd669de66787b11fb73276f77b17
-stderr:
-LEDGER-MERGE: resolved tests/closures.json
-  inert_reads.tests/harness_headers.py: merged as a set (536 entries)
-  re-run the gate that owns this file before pushing
-
-claim files head==base==origin/main: claimed_drift.txt 62bf9eaba2372bb05cdb42076273c18bdceb0f39; card_claimed_drift.txt c683379dafc29aa923baac9325d82bacfb43f7b9
-tests/closures.json head=a379f966a1efe6be1a1caedd9dd721cba95405dd main=ca36c9b2b8977d16442ee11b0404fc802cbe8fb0 (both changed since base 55e5360b052b3dabd089d4328d5c691b08c16cc3)
