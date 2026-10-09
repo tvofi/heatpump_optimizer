@@ -31570,12 +31570,21 @@ R.check(
 _mut_shutil.rmtree(_MUT_T_DIR, ignore_errors=True)
 
 # RCA-1565-mutation-timeouts: the nightly's baseline bound was TIMEOUT_SCALE x a
-# SOLO recording the 3-worker pool exceeds. `closure.SECONDS_BAND` keeps a
-# committed value up to 2x below the cost CI last measured, so 3x the solo number
-# left ~1.5x headroom against a pool factor the tree's own comment states reaches
-# 3.4x. boost_drift_replay.py sat at exactly 3.00x on two nights: 2026-10-07
-# bound 1576 / pool 1573 (3 s of margin, rc 0), 2026-10-08 bound 2401 / pool
-# >2401 (rc 124). The fix seeds the bound from the MEASURED pool cost the lane
+# SOLO recording the 3-worker pool can cost several times over. The pool/solo
+# factor measured 0.47x-3.27x across the 51 driver rows of the three
+# 2026-10-07/08 nightly runs (rule and per-row enumerator:
+# `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` §2). That is NOT the `0.3x-3.4x`
+# in `closure.py`'s SECONDS_BAND comment, which states how much one script's
+# RECORDINGS vary run to run and is the reason the band exists -- two different
+# quantities, and conflating them is how the figure this replaces travelled.
+# What binds is the band: it keeps a committed value up to 2x below the cost CI
+# last measured, so 3x the solo number left ~1.5x of headroom over the script's
+# true cost, against a factor whose top end is above 3x. boost_drift_replay.py
+# reached it on two nights: 2026-10-07 bound 1576 / pool 1573 completed (factor
+# 2.99, 3 s of margin, rc 0) in one lane and rc 124 at the same bound in the
+# other, 2026-10-08 bound 2401 / rc 124 -- a timed-out row's factor is a floor
+# (>= 3.00), not a measurement, because its "pool" is the bound it hit. The fix
+# seeds the bound from the MEASURED pool cost the lane
 # persists (`seed_pool_seconds`, `pool_seconds`), decoupled from SECONDS_BAND, and
 # makes a baseline TIMEOUT name the stale recording instead of "fix the suite
 # first" (`baseline_refusal`). Fixtures are the committed solo seconds at the two

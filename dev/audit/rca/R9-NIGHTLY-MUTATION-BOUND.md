@@ -6,17 +6,21 @@ The countermeasure seat for `bugclasses.json`'s `RCA-1565-mutation-timeouts`
 the two missing parts and the fix, and ran beside the fix, not inside it
 (`dev/governance/rules/defect-root-cause.md`).
 
-- Base measured: `origin/main` at `b2b6acd64` (2026-10-09). Every bound below is
-  re-derived there with the tree's own `driver_timeout`, not carried from the
-  diagnosing seat. Where a figure IS that seat's and was not re-taken, the line says
-  so.
+- Base measured: merge base `b2b6acd64`, and this branch has **not** merged
+  `origin/main` since -- main has moved past the base (its tip is whatever
+  `git rev-parse origin/main` prints when you read this; it is deliberately not
+  quoted here, because a sliding-window figure is stale the moment it is
+  written), so every three-dot figure below is against `b2b6acd64` and none is a
+  function of main's moving tip. Every bound is re-derived there with the tree's
+  own `driver_timeout`, not carried from the diagnosing seat. Where a figure IS
+  that seat's, or the round-1 review's, and was not re-taken, the line says so.
 - Evidence: `/Users/timmalmstrom/hpo-seats/fix-nightly-bound/logs/` --
   `bounds_reproduction.txt`, `pool_tables.txt`, `enum_factor_rule.txt`,
   `enum_figures.txt`, `red_jobs_1003_1007.txt`, `jobs_1008.txt`,
   `record_autofix_nights.txt`, `schedule_created.txt`, the CI job logs
   `job-{111162760555,111397325352,111692063912,112192034609,112708108856,112708109541,112708109605,113233890923}.log`,
-  and the `entities.py` failing/mutation/green arms. §7 names the command behind
-  every figure. GitHub reads against `tvofi/heatpump_optimizer`.
+  and the seven `entities_R3_*.txt` arms (§7's table names each). §7 names the
+  command behind every figure. GitHub reads against `tvofi/heatpump_optimizer`.
 
 **The defect in one sentence.** The nightly mutation lanes bound every driver's
 first run by `max(--timeout floor 1200 s, TIMEOUT_SCALE 3 x that driver's
@@ -33,6 +37,12 @@ therefore trips whenever a driver's pool factor exceeds `3 x (committed / true)`
 **How many nights this arm reddened: two of the six, not four.** Six consecutive
 scheduled runs concluded `failure` from 2026-10-03 to 2026-10-08 (last green
 `36984959667`, 2026-10-02T08:36:04Z), and they had **five** distinct causes. The
+grouping rule, stated because two counts of the same nights are in circulation: a
+cause here is a **mechanism** -- the lane plus the rule that failed -- not a
+proximate fault, so `record-autofix`'s three nights are one cause even though
+§2b member 2 records three different faults inside it (a credential, a request
+body, a git exit). The five are the bound, the `EXCLUSIVE` null-control arm,
+`record-autofix`, `closures`' INERT READS and `nightly-ha`'s a16 size check. The
 bound arm below is the cause on **10-07 and 10-08**; 10-03 and 10-04 reddened on
 its sibling -- the `EXCLUSIVE`-under-`--scope-full` null-control arm, which §5
 routes to the owner and this PR does **not** fix; 10-05, 10-06 and 10-07 reddened
@@ -66,6 +76,7 @@ rather than something CI printed:
 | 10-03 `37108891698` | `2e569748a` | absent (`None`) | `1200` (the floor) | **no timeout printed** -- the lane refused on the `EXCLUSIVE` null control. *Inferred* exposure only: the floor is below the 1573 s this script measured in the pool on 10-07 |
 | 10-04 `37189092011` | `fb11a0172` | absent | `1200` | **no timeout printed** -- refused on the `EXCLUSIVE` null control; same *inferred* exposure |
 | 10-05 `37288195257` | `a1da8d381` | absent | `1200` | **no timeout printed** -- that night reddened on `record-autofix` alone; same *inferred* exposure |
+| 10-06 `37440269774` | `cff39dad6` | `{seconds: 765.6, rc: 0}` | `2297` | **no timeout printed** -- both mutation lanes were green; only `record-autofix` failed. The one night of the streak whose bound was neither the floor nor tripped, so it is neither evidence for the mechanism nor against it |
 | 10-07 `37595831734` | `be0cb8213` | `{seconds: 525.3, rc: 0}` | `1576` | `timed out after 1576s` (job `112708109605`) -- **printed** |
 | 10-08 `37753990323` | `816547efe` | `{seconds: 800.2, rc: 0}` | `2401` | `timed out after 2401s` (job `113233890923`) -- **printed** |
 
@@ -87,7 +98,9 @@ the streak without this fix, on the luck of that re-recorded number.
 Each nightly prints `baseline <script>: rc=… <N>s` per driver, inside the
 3-worker pool. Comparing those against the committed solo recording at the same
 head (`pool_tables.txt`, from the three job logs) gives the pool/solo factor per
-driver. The long drivers on 2026-10-08 (job `113233890923`):
+driver. The long drivers on 2026-10-08 (job `113233890923`, head `816547efe`; its
+committed solo seconds are that head's, not this merge base's -- §6 re-takes the
+same drivers at `b2b6acd64`, where several recordings have since moved):
 
 | driver | solo | pool | factor | bound | margin |
 |---|---|---|---|---|---|
@@ -97,7 +110,7 @@ driver. The long drivers on 2026-10-08 (job `113233890923`):
 | `structure.py` | 5.7 | 13 | 2.28 | 1200 | +1187 |
 | `stress.py` | 616.7 | 430 | 0.70 | 1851 | +1421 |
 | `entities.py` | 196.6 | 140 | 0.71 | 1200 | +1060 |
-| `env_drift.py` | 0.9 (stub) | 524 | -- | 1200 (floor) | +676 |
+| `env_drift.py` | 0.6 (stub) | 524 | -- | 1200 (floor) | +676 |
 | `harness_headers.py` | 167.0 | 211 | 1.26 | 1200 | +989 |
 
 The table above is the long drivers only, a subset of the rows the enumerator
@@ -127,9 +140,13 @@ the floor with a factor at the scale, which is why it is the driver that reddene
 ## 2b. Class search: where else this shape reaches
 
 `root-cause.md` §3/§6 make the class search part of the deliverable, so it is
-recorded here and not only in the diagnosing seat's scratch. Each member below was
-re-measured at this head; where the diagnosing seat's §3 was wrong, the correction
-is stated rather than carried.
+recorded here and not only in the diagnosing seat's scratch. Members 1, 2, 4, 5
+and 6 were re-measured at this head from the tree or from a job log this seat
+fetched; **member 3 was not** -- its reach claim is derived here, but the two
+pull-request-gate reds it cites are the diagnosing seat's sample and the
+empty-scope read of this PR's own round-1 head is the round-1 review's, each
+labelled where it appears. Where the diagnosing seat's §3 was wrong, the
+correction is stated rather than carried.
 
 1. **A `closures` red on `main` has no repair lane -- confirmed.** `closures-autofix`'s
    job condition at this head is `!cancelled() && github.event_name ==
@@ -349,7 +366,9 @@ recording is honest is untouched and nothing is skipped to reach green. Committe
 solo seconds via the tree's own `recorded_seconds()` at `b2b6acd64`; pool costs are
 the CI-measured values (job `113233890923`). `tests/entities.py` drives all five as
 a check ("RCA-1565 null control"): for `features.py` (solo 730.5, pool 772),
-`stress.py` (760.6, 434), `entities.py` (259.6, 142), `env_drift.py` (0.9 stub, 524)
+`stress.py` (760.6, 434), `entities.py` (259.6, 142), `env_drift.py` (0.9 stub, 524
+-- 0.9 at this merge base, 0.6 at the head §2's table quotes; the stub's own
+recording moves, which is why the floor and not the scale is what covers it)
 and `harness_headers.py` (199.0, 211), the seeded bound still covers the pool cost,
 the seed never lowers a bound (`max(solo, pool) >= solo` and `driver_timeout` is
 monotonic), and `env_drift.py` stays **floor**-bound at 1200 rather than scaled --
@@ -400,14 +419,44 @@ suite first" and names the check.
   workflow_dispatch)`, which is the correction to the diagnosing seat's "no `if:`";
   `git show 83f7ca558:.github/workflows/tests.yml` prints the same block, so the
   claim was already stale at the head that seat measured.
-- **Failing arm, surgical mutations, green arm.**
-  `PYTHONPATH=tests/hastub python tests/entities.py`, the five checks named
-  "RCA-1565 …": with the merge-base `tests/mutation_table.py`,
-  `entities_FAILINGARM.txt` = "3 of 2239 ENTITY CHECKS FAILED" (both null controls
-  green); with `seed_pool_seconds`'s fold neutered, `entities_MUTA.txt` = "1 of
-  2239"; with `baseline_refusal`'s timeout arm neutered, `entities_MUTB.txt` =
-  "1 of 2239"; with the fix, `entities_FINAL.txt` = "ALL 2239 ENTITY CHECKS
-  PASSED".
+- **The demonstration: seven checks, one revert arm and five surgical mutations, all
+  at this head.** One command for every arm,
+  `PYTHONPATH=tests/hastub python tests/entities.py` (2241 checks total, of which
+  seven are named "RCA-1565 …": three defect checks, two null controls, two wiring
+  pins). Each arm breaks one thing, restores with `git checkout HEAD -- <file>`, and
+  the restore is confirmed `git diff --quiet HEAD`:
+
+  | arm | what is broken | red check(s) | tally | log |
+  |---|---|---|---|---|
+  | clean | nothing | none | `ALL 2241 ENTITY CHECKS PASSED` | `entities_R3_HEAD.txt` |
+  | revert | `tests/mutation_table.py` replaced by the merge base's | the three defect checks + the driver-wiring pin; both null controls and the workflow pin stay green (the YAML is still wired when only the driver is reverted) | `4 of 2241 ENTITY CHECKS FAILED` | `entities_R3_REVERT.txt` |
+  | A | `seed_pool_seconds`'s fold neutered (`out[s] = max(...)` -> `pass`) | *the baseline bound covers the MEASURED pool cost* -- the bound falls back to `3 x solo = 2401`, below the `3 x 2401 = 7203` it needs | `1 of 2241` | `entities_R3_MUTA.txt` |
+  | B | `baseline_refusal`'s timeout arm neutered (`timeouts = []`) | *a baseline that TIMED OUT … names the stale recording* -- the verdict reverts to "Fix the suite first" and omits "STALE" | `1 of 2241` | `entities_R3_MUTB.txt` |
+  | C | `--pool-seconds` deleted from **both** nightly lanes in `tests.yml` | *wired in the workflow* | `1 of 2241` | `entities_R3_MUTC.txt` |
+  | D | the seed call site reverted to `own_s = recorded_seconds()` | *wired in the driver* | `1 of 2241` | `entities_R3_MUTD.txt` |
+  | E | `if: always()` removed from the `actions/cache/save` step | *wired in the workflow* (it bites through the adjacency regex, not the step name) | `1 of 2241` | `entities_R3_MUTE.txt` |
+
+  C, D and E are the arms that prove the two **wiring** pins bite: before them,
+  deleting `--pool-seconds` from `tests.yml`, or reverting the seed call site, left
+  every check green and the nightly back on `TIMEOUT_SCALE x` a solo recording --
+  this defect, restorable without tripping a check, which is the class this document
+  is the countermeasure for. Round 1 measured the same five checks at **2239** total
+  (revert arm `3 of 2239`, A and B `1 of 2239`, green `ALL 2239 PASSED`;
+  `entities_FAILINGARM.txt`, `entities_MUTA.txt`, `entities_MUTB.txt`,
+  `entities_FINAL.txt`) -- those four tallies are the round-1 head's, before the two
+  wiring pins existed, and are kept only as that head's record.
+
+  **Which head the arms ran at, stated so nobody has to reason about it.** The six
+  mutation arms ran at `90ef590d8` and the clean arm at `51ed9aee7`
+  (`entities_R3_HEAD_COMMITTED.txt`; the earlier clean arm at `90ef590d8` is
+  `entities_R3_HEAD.txt`, same tally). Every commit after `90ef590d8` in this series
+  changed **only this document** -- `git diff 90ef590d8..HEAD --name-only` prints
+  this file alone -- and no check reads this file's contents: `tests/entities.py`
+  names this path only inside comments, `tests/layout.py`'s `GUARD_EXEMPT` exempts
+  `dev/audit/rca/` by path prefix, and `fold_ledger.py` stats `in_tree_home` with
+  `os.path.isfile` without opening it. So the code those arms mutate and restore is
+  byte-identical to the head a reader finds this at, and each tally above is that
+  head's tally.
 - **`fold_ledger.py check` clean at both ends.** `python3 -I
   tools/audit/fold_ledger.py check` at `b2b6acd64` and at this head: "28 classes,
   549 instances, 39 in-tree judge survivors, 101 rca entries / 0 violation(s)".

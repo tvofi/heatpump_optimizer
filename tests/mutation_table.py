@@ -133,8 +133,14 @@ TIMEOUT_RC = 124
 # never under --timeout (`driver_timeout`, R9-F10.12). The `seconds` it scales
 # is the larger of the committed solo recording and the last measured POOL cost
 # (`seed_pool_seconds`): the nightly drives three worker trees at once, so the
-# same script costs 1.3-3.3x its solo recording there, and 3x a solo number the
-# band keeps up to 2x stale can sit below one pool run (RCA-1565).
+# same script's pool cost measured 0.47x-3.27x its solo recording over the 51
+# driver rows of three nightly runs (rule and per-row enumerator:
+# dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2 -- pool / the committed solo at
+# that run's head, excluding tests/env_drift.py's declared stub and any solo
+# under the log's 1-second resolution). A factor below 1 is no hazard, it is a
+# recording stale high; the top end is what binds, because 3x a solo number the
+# band keeps up to 2x stale leaves ~1.5x of headroom over the script's true cost
+# (RCA-1565).
 TIMEOUT_SCALE = 3
 # `run_script`'s timeout stderr, so `baseline_refusal` can name the bound a
 # baseline tripped without threading it back through the ScriptRun.
@@ -2879,13 +2885,16 @@ def seed_pool_seconds(recorded: dict[str, float],
 
     `driver_timeout(floor, s)` is `max(floor, TIMEOUT_SCALE x s)`, so feeding it
     this max is the RCA's `max(floor, ceil(TIMEOUT_SCALE x max(recorded,
-    pool_recorded)))`: the bound then covers the pool/solo factor the lane
-    itself measured (1.3-3.3x across drivers on 2026-10-07/08) instead of 3x a
-    solo number the band keeps up to 2x stale. A driver with no pool measurement
-    keeps its solo recording, so this never lowers a bound. Decoupled from
-    `SECONDS_BAND` on purpose: the band is merge-text hygiene (tvofi,
-    2026-10-08), the bound is a pool-cost cover, and re-tuning one to fix the
-    other would trade a stale recording for a churned table.
+    pool_recorded)))`: the bound then covers the pool cost the lane actually
+    measured instead of 3x a solo number the band keeps up to 2x stale. That
+    factor is a measurement, not a constant -- 0.47x-3.27x over the 51 driver
+    rows of the three 2026-10-07/08 nightly runs, by the rule and enumerator in
+    dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2 -- so nothing here hard-codes
+    it; the seed IS the per-driver measurement. A driver with no pool
+    measurement keeps its solo recording, so this never lowers a bound.
+    Decoupled from `SECONDS_BAND` on purpose: the band is merge-text hygiene
+    (tvofi, 2026-10-08), the bound is a pool-cost cover, and re-tuning one to
+    fix the other would trade a stale recording for a churned table.
     """
     out = dict(recorded)
     for s, sec in pool.items():
