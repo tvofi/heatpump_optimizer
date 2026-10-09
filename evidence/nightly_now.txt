@@ -1,0 +1,8 @@
+NIGHTLY PASSED: every job of the scheduled run below succeeded or was skipped, in the last verification dispatch.
+  dispatched run 37889206903, 2026-10-09T05:34:18+00:00, head 47b083b, run conclusion 'success'
+  https://github.com/tvofi/heatpump_optimizer/actions/runs/37889206903
+  (run 37909555545 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+  24 job(s) in that run, 9 succeeded, 15 skipped.
+
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+rc=0

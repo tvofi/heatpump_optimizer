@@ -1,0 +1,25 @@
+  ok   decide: a DIRTY head conflicting only on a driver file the driver resolves merges
+  ok   decide: a clean head is not pushed (skip-not-dirty)
+  ok   decide: a head GitHub has not computed is not pushed (skip-not-dirty)
+  ok   decide: a fork is not pushed (skip-fork)
+  ok   decide: a head already containing main is not pushed (skip-contains-main)
+  ok   decide: a DIRTY head git's text merge does not conflict on is not pushed (skip-no-text-conflict)
+  ok   decide: a conflict on a file no driver owns is not pushed (skip-other-conflict a.py)
+  ok   decide: a driver that refused is not pushed (skip-driver-refused led.json)
+  ok   decide: a driver that left a conflict is not pushed (skip-driver-refused led.json)
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt5/tools/pr/merge_main_bot.py", line 338, in <module>
+    raise SystemExit(main(sys.argv))
+                     ~~~~^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt5/tools/pr/merge_main_bot.py", line 322, in main
+    return self_test()
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt5/tools/pr/merge_main_bot.py", line 250, in self_test
+    g("config", "merge.fake.driver", f"{drv} %O %A %B")
+    ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt5/tools/pr/merge_main_bot.py", line 244, in <lambda>
+    g = lambda *a, **k: git(r, *a, **k)
+                        ~~~^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt5/tools/pr/merge_main_bot.py", line 74, in git
+    raise RuntimeError(f"git {' '.join(args)}: rc={r.returncode} {r.stderr.strip()}")
+RuntimeError: git config merge.fake.driver /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp27mntbzv/union.sh %O %A %B: rc=128 fatal: not in a git directory
+rc=1

@@ -1,0 +1,27 @@
+  ok   decide: a DIRTY head conflicting only on a driver file the driver resolves merges
+  ok   decide: a clean head is not pushed (skip-not-dirty)
+  ok   decide: a head GitHub has not computed is not pushed (skip-not-dirty)
+  ok   decide: a fork is not pushed (skip-fork)
+  ok   decide: a head already containing main is not pushed (skip-contains-main)
+  ok   decide: a DIRTY head git's text merge does not conflict on is not pushed (skip-no-text-conflict)
+  ok   decide: a conflict on a file no driver owns is not pushed (skip-other-conflict a.py)
+  ok   decide: a driver that refused is not pushed (skip-driver-refused led.json)
+  ok   decide: a driver that left a conflict is not pushed (skip-driver-refused led.json)
+  FAIL a ledger-only conflict the driver resolves is planned for a merge  [skip-no-text-conflict]
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2059/mut5/tools/pr/merge_main_bot.py", line 340, in <module>
+    raise SystemExit(main(sys.argv))
+                     ~~~~^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/mut5/tools/pr/merge_main_bot.py", line 324, in main
+    return self_test()
+  File "/Users/timmalmstrom/hpo-seats/review-2059/mut5/tools/pr/merge_main_bot.py", line 265, in self_test
+    sha = commit_merge(r, tree, fix, m1)
+  File "/Users/timmalmstrom/hpo-seats/review-2059/mut5/tools/pr/merge_main_bot.py", line 143, in commit_merge
+    return git(repo, "commit-tree", tree, "-p", head, "-p", main, "-m", SUBJECT,
+           ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+               env=env).stdout.strip()
+               ^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/mut5/tools/pr/merge_main_bot.py", line 74, in git
+    raise RuntimeError(f"git {' '.join(args)}: rc={r.returncode} {r.stderr.strip()}")
+RuntimeError: git commit-tree  -p b12e2dc97eda165e94c0ab14d80042d1daed214e -p 6abdc5a82ff0deffb01f82458a04ed4da553912c -m ci: merge main: rc=128 fatal: not a valid object name
+B5 rc=1

@@ -1,0 +1,4 @@
+mutants-killed-at    0ac45f641  lines=61  sha1=11e32b6dbf48
+round-2-approved     afe9cfd87  lines=61  sha1=11e32b6dbf48
+round-3-blocked      b630c9e1  lines=61  sha1=11e32b6dbf48
+HEAD                 0632f89c8  lines=61  sha1=11e32b6dbf48

@@ -1,6 +1,0 @@
-.github/workflows/governance.yml
-dev/governance/roles/fix-review.md
-dev/governance/roles/fixer.md
-tests/closures.json
-tests/entities.py
-tools/pr/app_approve.sh

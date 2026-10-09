@@ -1,0 +1,5 @@
+Architecture score: dS +0.0000 NULL
+real 29.11
+user 25.41
+sys 0.68
+rc=0

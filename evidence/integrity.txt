@@ -1,0 +1,20 @@
+=== repair commit stat ===
+47ba57929400c2594c497275699e93d6361b795c
+fix(R9-CI-2b): the bot's self-test uses the shared throwaway-git helper
+
+ tools/pr/merge_main_bot.py | 23 ++++++++++++++++-------
+ 1 file changed, 16 insertions(+), 7 deletions(-)
+=== repair numstat ===
+16	7	tools/pr/merge_main_bot.py
+=== three-dot shortstat ===
+ 16 files changed, 734 insertions(+), 49 deletions(-)
+=== blob equality vs origin/main ===
+tests/golden/claimed_drift.txt  same=YES
+tests/golden/card_claimed_drift.txt  same=YES
+VERSION  same=YES
+custom_components/heatpump_optimizer/manifest.json  same=YES
+RELEASE_NOTES.md  same=YES
+=== any budgets file in the three-dot diff? ===
+0
+=== repair commit files ===
+tools/pr/merge_main_bot.py

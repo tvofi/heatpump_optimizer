@@ -1,0 +1,25 @@
+  ok   decide: a DIRTY head conflicting only on a driver file the driver resolves merges
+  ok   decide: a clean head is not pushed (skip-not-dirty)
+  ok   decide: a head GitHub has not computed is not pushed (skip-not-dirty)
+  ok   decide: a fork is not pushed (skip-fork)
+  ok   decide: a head already containing main is not pushed (skip-contains-main)
+  ok   decide: a DIRTY head git's text merge does not conflict on is not pushed (skip-no-text-conflict)
+  ok   decide: a conflict on a file no driver owns is not pushed (skip-other-conflict a.py)
+  ok   decide: a driver that refused is not pushed (skip-driver-refused led.json)
+  ok   decide: a driver that left a conflict is not pushed (skip-driver-refused led.json)
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt-blocked/tools/pr/merge_main_bot.py", line 331, in <module>
+    raise SystemExit(main(sys.argv))
+                     ~~~~^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt-blocked/tools/pr/merge_main_bot.py", line 315, in main
+    return self_test()
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt-blocked/tools/pr/merge_main_bot.py", line 242, in self_test
+    g("init", "-q", "-b", "main")
+    ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt-blocked/tools/pr/merge_main_bot.py", line 241, in <lambda>
+    g = lambda *a, **k: git(r, *a, env=env, **k)
+                        ~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2059/wt-blocked/tools/pr/merge_main_bot.py", line 73, in git
+    raise RuntimeError(f"git {' '.join(args)}: rc={r.returncode} {r.stderr.strip()}")
+RuntimeError: git init -q -b main: rc=128 fatal: Cannot access work tree '/nonexistent': No such file or directory
+rc=1
