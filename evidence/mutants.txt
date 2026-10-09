@@ -1,0 +1,8 @@
+Targeted mutants, extracted check block (block.py) at 7c5f647, seat venv-ci python:
+M3 evidence gate off (observe engages on count)       -> 4 FAIL (killed)
+M6 defrost dropped from is_running_space               -> 2 FAIL (killed)
+M1 fold call removed, walrus kept                      -> 1 FAIL (killed)
+R3 frozen forced False at the coordinator call         -> 1 FAIL (killed)
+R4 distorted forced False at the coordinator call      -> 1 FAIL (killed)
+R1 bottom = low always (AGREE_TOLERANCE min rule off)  -> ALL 32 PASS (SURVIVED)
+R2 top = high always (AGREE_TOLERANCE max rule off)    -> ALL 32 PASS (SURVIVED)

@@ -1,0 +1,1 @@
+block.py = tests/features.py lines 60191-60434 at 7c5f647 prefixed with 'from harness import FakeHass, Results; R = Results("DR BLOCK")'; not copied here because the block quotes the install's metered figures.
