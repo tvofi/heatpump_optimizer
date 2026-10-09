@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._disagrees CMP_BOUND 9222b098",
+  "killed_by": "tests/entities.py",
+  "old": "        return disagree >= DISAGREE_SHARE * len(self.samples)",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CMP_BOUND (`return disagree > DISAGREE_SHARE * len(self.samples)`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

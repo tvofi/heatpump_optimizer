@@ -54400,6 +54400,11 @@ def _p5_feeders(tree):
             if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Name)
                     and x.func.id == "_sysid_step_off_loop"):
                 hit.add("_sysid.step")
+            # #2016: the flow-bias fold goes through flow_meter.observe_water,
+            # the same sink the call it replaced fed.
+            if (isinstance(x, _p5_ast.Call) and isinstance(x.func, _p5_ast.Name)
+                    and x.func.id == "observe_water"):
+                hit.add("_flow_bias.observe_temps")
         if hit and name != "_learning_frozen":
             feeders[name] = hit
     open_seams = {
@@ -60188,7 +60193,629 @@ R.check(
 )
 
 
+# -- live power clamp, 7a: the metered running draw (draw_range) ------------
+# The foundation of the plan's clamp to the meter (#201 decision 6067353918):
+# the statistic, its evidence latch, the running-sample filter, the effective
+# range and its install gate. No solve reads it yet (7b); the diagnostics do.
+from harness import FakeEntry as _dr_entry  # noqa: E402
+from heatpump_optimizer import diagnostics as _dr_diag  # noqa: E402
+from heatpump_optimizer import draw_range as _dr  # noqa: E402
+from heatpump_optimizer.accuracy import AccuracyTracker as _DrTracker  # noqa: E402
+from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as _DrCoord  # noqa: E402
+from heatpump_optimizer.defrost import DefrostObservation as _DrDefrost  # noqa: E402
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    InstallCapability as _DrCap, ThermalParameters as _DrParams, probe_install as _dr_probe,
+)
+
+_DR_MIN, _DR_MAX = 1.0, 10.0
+
+
+def _dr_learner(kind, n=120, seed=7, cfg=(_DR_MIN, _DR_MAX)):
+    """A range fed one synthetic install shape.
+
+    ``live``: an overstated nameplate -- configured 1-10 kW, asked U(3, 10),
+    drawing U(1.2, 1.8). Synthetic. ``null``: the pump draws exactly what it is asked.
+    ``mild``: a correctly sized 6 kW pump part-loading in mild weather --
+    asked 1-2 kW, drawing what it is asked within +/-10 %.
+    """
+    rng = np.random.default_rng(seed)
+    d = _dr.DrawRange()
+    for _ in range(n):
+        if kind == "live":
+            asked, drawn = rng.uniform(3.0, 10.0), rng.uniform(1.2, 1.8)
+        elif kind == "mild":
+            asked = rng.uniform(1.0, 2.0)
+            drawn = asked * rng.uniform(0.9, 1.1)
+        else:
+            asked = rng.uniform(*cfg)
+            drawn = asked
+        d.observe(drawn, asked, *cfg)
+    return d
+
+
+def _dr_params(lo=_DR_MIN, hi=_DR_MAX):
+    p = _DrParams()
+    p.min_electrical_power, p.max_electrical_power = lo, hi
+    return p
+
+
+def _dr_at(pairs, cfg=(_DR_MIN, _DR_MAX)):
+    """A range fed exactly these ``(drawn, asked)`` running samples, in order.
+
+    `_dr_learner` draws a shape from a seed; a boundary needs a POPULATION --
+    so many samples at one value, so many at another -- whose percentiles and
+    disagreeing share are countable in the check that states them.
+    """
+    d = _dr.DrawRange()
+    for drawn, asked in pairs:
+        d.observe(drawn, asked, *cfg)
+    return d
+
+
+_DR_SWITCH = _DrCap(writes=frozenset({"switch", "setpoint"}), measured_power=True, frequency=False)
+_DR_DUTY = _DrCap(writes=frozenset({"setpoint"}), measured_power=True, frequency=False)
+_DR_FREQ = _DrCap(writes=frozenset({"switch", "frequency"}), measured_power=True, frequency=True)
+
+R.check(
+    "plan_writes_power is exactly a frequency write (S1)",
+    _DR_FREQ.plan_writes_power() and not _DR_SWITCH.plan_writes_power()
+    and not _DR_DUTY.plan_writes_power()
+    and not _DrCap(writes=frozenset(), measured_power=True, frequency=True).plan_writes_power(),
+)
+
+_dr_live = _dr_learner("live")
+_dr_live_seen = _dr_live.observed()
+R.check(
+    "an overstated nameplate engages, at the metered running percentiles",
+    _dr_live.engaged and _dr_live.planned(_DR_MIN, _DR_MAX) == _dr_live_seen
+    and 1.2 <= _dr_live_seen[0] < _dr_live_seen[1] <= 1.8,
+    f"observed {_dr_live_seen}",
+)
+_dr_p10_real = _dr_at([(1.2, 1.2)] * 18 + [(2.0, 2.0)] * 102)
+_dr_p10_glitch = _dr_at([(1.2, 1.2)] * 11 + [(2.0, 2.0)] * 109)
+R.check(
+    "the floor is the TENTH percentile: a run of samples at the pump's true "
+    "minimum sets it when they are 15 % of the window, and a meter glitch of "
+    "9 % leaves it alone",
+    _dr_p10_real.observed()[0] == 1.2 and _dr_p10_glitch.observed()[0] == 2.0,
+    f"15 % {_dr_p10_real.observed()}, 9 % {_dr_p10_glitch.observed()}",
+)
+_dr_null = _dr_learner("null")
+R.check(
+    "null control: a pump that draws what it is asked never engages",
+    not _dr_null.engaged and _dr_null.planned(_DR_MIN, _DR_MAX) is None
+    and _dr_null.observed() is not None,
+    f"observed {_dr_null.observed()}",
+)
+_dr_mild = _dr_learner("mild", cfg=(_DR_MIN, 6.0), n=_dr.WINDOW)
+R.check(
+    "null control: a correctly sized 6 kW pump part-loading at 1-2 kW, drawing "
+    "what it is asked, never engages though its running max is far below 6 kW",
+    not _dr_mild.engaged and _dr_mild.planned(_DR_MIN, 6.0) is None
+    and _dr_mild.observed()[1] < 0.5 * 6.0,
+    f"observed {_dr_mild.observed()}",
+)
+_dr_short = _dr_learner("live", n=_dr.MIN_SAMPLES - 1)
+R.check(
+    "short of MIN_SAMPLES running samples there is no statistic and no clamp",
+    _dr_short.observed() is None and not _dr_short.engaged
+    and _dr_short.planned(_DR_MIN, _DR_MAX) is None,
+)
+R.check(
+    "and at MIN_SAMPLES the same evidence engages (the boundary's other side)",
+    _dr_learner("live", n=_dr.MIN_SAMPLES).planned(_DR_MIN, _DR_MAX) is not None,
+)
+_dr_day_under = _dr_at([(1.5, 9.0)] * 47)
+_dr_day = _dr_at([(1.5, 9.0)] * 48)
+R.check(
+    "the evidence floor is a day of half-hour runs counted in the test, not read "
+    "off the constant: 47 samples is not a day, 48 is and engages",
+    _dr_day_under.observed() is None and not _dr_day_under.engaged
+    and _dr_day.observed() == (1.5, 1.5) and _dr_day.engaged,
+    f"47 -> {_dr_day_under.observed()}, 48 -> {_dr_day.observed()}",
+)
+_dr_walked = _dr_at([(9.0, 9.0)] * 50 + [(1.5, 1.5)] * 336)
+R.check(
+    "and the window is a week counted in the test: after 386 running samples only "
+    "the last 336 stand, so a draw 386 runs back is not the ceiling",
+    len(_dr_walked.samples) == 336 and _dr_walked.observed() == (1.5, 1.5),
+    f"{len(_dr_walked.samples)} samples, observed {_dr_walked.observed()}",
+)
+
+# The latch: once clamped the plan asks no more than the clamp, so the
+# disagreement fades from the window. The clamp must hold through that.
+_dr_latch = _dr_learner("live")
+_dr_rng = np.random.default_rng(11)
+for _ in range(_dr.WINDOW):
+    _dr_x = _dr_rng.uniform(1.2, 1.8)
+    _dr_latch.observe(_dr_x, _dr_x, _DR_MIN, _DR_MAX)
+R.check(
+    "the latch holds a full window after the plan stops out-asking the pump",
+    _dr_latch.engaged and not _dr_latch._disagrees(_DR_MIN)
+    and _dr_latch.planned(_DR_MIN, _DR_MAX) is not None,
+)
+_dr_latch.observe(2.3, 2.5, _DR_MIN, 3.0)
+R.check(
+    "a changed configuration releases the latch and restarts the evidence",
+    not _dr_latch.engaged and len(_dr_latch.samples) == 1
+    and _dr_latch.config == (_DR_MIN, 3.0) and _dr_latch.planned(_DR_MIN, 3.0) is None,
+    f"{len(_dr_latch.samples)} samples",
+)
+R.check(
+    "and a range judged under one configuration answers for no other",
+    _dr_learner("live").planned(_DR_MIN, 3.0) is None,
+)
+_dr_duty = _dr.DrawRange()
+for _ in range(120):
+    _dr_duty.observe(2.0, 0.5, 2.0, 6.0)
+R.check(
+    "a sub-floor duty-cycle average overdrawn by the running pump is no evidence",
+    not _dr_duty._disagrees(2.0) and not _dr_duty.engaged,
+)
+_dr_at_floor = _dr_at([(5.0, 5.0)] * 36 + [(6.0, 2.0)] * 12, cfg=(2.0, 10.0))
+R.check(
+    "a level asked at EXACTLY the configured floor is a level the pump was asked "
+    "to run at, so its disagreement counts",
+    _dr_at_floor._disagrees(2.0) and _dr_at_floor.engaged,
+    f"disagrees {_dr_at_floor._disagrees(2.0)}, engaged {_dr_at_floor.engaged}",
+)
+_dr_edge = _dr_at([(4.0, 5.0)] * 24 + [(5.0, 4.0)] * 24, cfg=(2.0, 10.0))
+R.check(
+    "a draw exactly DISAGREE_FACTOR times the ask -- either way round -- agrees "
+    "with the plan: the factor boundary is not a disagreement",
+    not _dr_edge._disagrees(2.0) and not _dr_edge.engaged
+    and _dr_edge.planned(2.0, 10.0) is None,
+    f"disagrees {_dr_edge._disagrees(2.0)}, engaged {_dr_edge.engaged}",
+)
+_dr_share_under = _dr_at([(5.0, 5.0)] * 37 + [(6.0, 2.0)] * 11, cfg=(2.0, 10.0))
+R.check(
+    "the latch engages at a quarter of the window disagreeing, not below it: 12 "
+    "of 48 engages, 11 of 48 does not",
+    _dr_at_floor.engaged and not _dr_share_under.engaged,
+    f"12/48 {_dr_at_floor.engaged}, 11/48 {_dr_share_under.engaged}",
+)
+
+# S4: the effective range, by install.
+_dr_eff = _dr.planned_range(_dr_live, _dr_params(), _DR_SWITCH)
+R.check(
+    "S4 on a switch-plus-setpoint install: both ends metered",
+    _dr_eff == _dr_live_seen, f"{_dr_eff}",
+)
+R.check(
+    "S4 where the install can duty-cycle: the min end stays configured",
+    _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
+)
+_dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
+_dr_below_seen = _dr_below_min.observed()
+R.check(
+    "S4 on a duty-cycling install that runs below its configured min: the min end "
+    "is capped at the metered max, never booked above the max it may book",
+    _dr_below_min.engaged and _dr_below_seen[1] < 2.0
+    and _dr.planned_range(_dr_below_min, _dr_params(2.0, _DR_MAX), _DR_DUTY)
+    == (_dr_below_seen[1], _dr_below_seen[1]),
+    f"observed {_dr_below_seen}, effective "
+    f"{_dr.planned_range(_dr_below_min, _dr_params(2.0, _DR_MAX), _DR_DUTY)}",
+)
+R.check(
+    "S4 where the plan writes the frequency: None, the draw is its own echo",
+    _dr.planned_range(_dr_live, _dr_params(), _DR_FREQ) is None,
+)
+R.check(
+    "S4 with no evidence, or a different configuration: None",
+    _dr.planned_range(_dr_null, _dr_params(), _DR_SWITCH) is None
+    and _dr.planned_range(_dr_live, _dr_params(hi=6.0), _DR_SWITCH) is None,
+)
+
+# The 15 % rule: an engaged range keeps each configured end its metered end
+# comes within AGREE_TOLERANCE of, and replaces only the end it contradicts.
+def _dr_engaged_at(low, high, cfg=(2.0, 10.0)):
+    d = _dr.DrawRange()
+    for i in range(_dr.MIN_SAMPLES * 2):
+        drawn = low if i % 2 else high
+        d.observe(drawn, 2.0 * drawn, *cfg)
+    return d
+
+
+_dr_top_near = _dr_engaged_at(2.6, 9.0)
+R.check(
+    "a metered top within 15 % of the configured max keeps the configured max",
+    _dr_top_near.engaged and _dr_top_near.observed()[1] < 10.0
+    and _dr_top_near.planned(2.0, 10.0)[1] == 10.0,
+    f"observed {_dr_top_near.observed()}, planned {_dr_top_near.planned(2.0, 10.0)}",
+)
+_dr_top_far = _dr_engaged_at(2.6, 8.0)
+R.check(
+    "and one beyond 15 % replaces it (the boundary's other side)",
+    _dr_top_far.planned(2.0, 10.0)[1] == _dr_top_far.observed()[1] < 8.5,
+    f"planned {_dr_top_far.planned(2.0, 10.0)}",
+)
+_dr_low_near = _dr_engaged_at(2.2, 5.0)
+R.check(
+    "a metered floor within 15 % of the configured min keeps the configured min",
+    _dr_low_near.engaged and _dr_low_near.observed()[0] != 2.0
+    and _dr_low_near.planned(2.0, 10.0)[0] == 2.0,
+    f"observed {_dr_low_near.observed()}, planned {_dr_low_near.planned(2.0, 10.0)}",
+)
+_dr_low_far = _dr_engaged_at(2.6, 5.0)
+R.check(
+    "and one beyond 15 % replaces it",
+    _dr_low_far.planned(2.0, 10.0)[0] == _dr_low_far.observed()[0] > 2.3,
+    f"planned {_dr_low_far.planned(2.0, 10.0)}",
+)
+_dr_top_edge = _dr_engaged_at(2.6, 8.5)
+R.check(
+    "the tolerance is INCLUSIVE at the top: a metered max at exactly 15 % below "
+    "the configured one keeps the configured one",
+    _dr_top_edge.observed()[1] == 8.5 and _dr_top_edge.planned(2.0, 10.0)[1] == 10.0,
+    f"observed {_dr_top_edge.observed()}, planned {_dr_top_edge.planned(2.0, 10.0)}",
+)
+_dr_low_edge = _dr_engaged_at(2.875, 8.0, cfg=(2.5, 10.0))
+R.check(
+    "and inclusive at the bottom: a metered min exactly 15 % above the configured "
+    "one keeps the configured one (the tie, in floats that tie)",
+    _dr_low_edge.observed()[0] == 2.875 and _dr_low_edge.planned(2.5, 10.0)[0] == 2.5,
+    f"observed {_dr_low_edge.observed()}, planned {_dr_low_edge.planned(2.5, 10.0)}",
+)
+
+# S2: the running-sample filter, one exclusion at a time against a control.
+_DR_OK = dict(frozen=False, distorted=False, defrost=False)
+R.check(
+    "S2 control: a running space interval is a running sample",
+    _dr.is_running_space(2.3, 6.0, 0.0, **_DR_OK),
+)
+R.check(
+    "S2: the standby floor is 0.25 kW counted in the test -- 0.3 kW is the pump at "
+    "its minimum modulation and a sample, 0.2 kW is circulation and not one",
+    _dr.is_running_space(0.3, 6.0, 0.0, **_DR_OK)
+    and not _dr.is_running_space(0.2, 6.0, 0.0, **_DR_OK),
+)
+for _dr_label, _dr_args in (
+    ("no meter", ((None, 6.0, 0.0), {})),
+    ("standby draw", ((_dr.RUNNING_FLOOR_KW, 6.0, 0.0), {})),
+    ("space circuit off", ((2.3, 0.0, 0.0), {})),
+    ("hot water asked", ((2.3, 6.0, 2.0), {})),
+    ("learners frozen on the meter", ((2.3, 6.0, 0.0), {"frozen": True})),
+    ("immersion or capped compressor", ((2.3, 6.0, 0.0), {"distorted": True})),
+    ("defrost in the interval", ((2.3, 6.0, 0.0), {"defrost": True})),
+):
+    R.check(
+        f"S2: {_dr_label} is not a running sample",
+        not _dr.is_running_space(*_dr_args[0], **{**_DR_OK, **_dr_args[1]}),
+    )
+
+
+# The fold, from the coordinator's per-cycle settlement.
+def _dr_coord(**extra):
+    c = _DrCoord(FakeHass(), _dr_entry(data={
+        "tibber_token": "x", "weather_entity": "weather.home", **extra}))
+    c._current_action = {"power": 6.0, "dhw_power": 0.0}
+    c._measured_power = 2.3
+    return c
+
+
+_dr_cycle = _dr_coord()
+_dr_cycle._record_accuracy()
+R.check(
+    "the per-cycle settlement folds one running sample: (drawn, space asked)",
+    list(_dr_cycle._accuracy.draw.samples) == [(2.3, 6.0)],
+    f"{list(_dr_cycle._accuracy.draw.samples)}",
+)
+for _dr_label, _dr_mut in (
+    ("an immersion latch", lambda c: setattr(c, "_immersion_active", True)),
+    ("an external heat freeze", lambda c: setattr(c, "_external_heat_active", True)),
+    ("a hot-water ask", lambda c: c._current_action.update(dhw_power=2.0)),
+):
+    _dr_c = _dr_coord()
+    _dr_mut(_dr_c)
+    _dr_c._record_accuracy()
+    R.check(
+        f"and folds nothing under {_dr_label}",
+        len(_dr_c._accuracy.draw.samples) == 0,
+    )
+_dr_frost = _dr_coord()
+_dr_frost._defrost_window.close = lambda now: _DrDefrost(events=1, observed=True)
+_dr_frost._record_accuracy()
+R.check(
+    "and folds nothing for an interval whose closed window saw a defrost",
+    len(_dr_frost._accuracy.draw.samples) == 0,
+)
+
+# Persistence: one additive key in the accuracy document.
+_dr_tracker = _DrTracker()
+_dr_tracker.draw = _dr_learner("live")
+_dr_back = _DrTracker.from_dict(_dr_tracker.as_dict()).draw
+R.check(
+    "the samples, the latch and its configuration persist through the accuracy store",
+    _dr_back.engaged and _dr_back.config == (_DR_MIN, _DR_MAX)
+    and list(_dr_back.samples) == [(round(d, 3), round(a, 3)) for d, a in _dr_tracker.draw.samples],
+)
+R.check(
+    "an install with no running sample writes no draw key: its store is unchanged",
+    "draw" not in _DrTracker().as_dict(),
+)
+_DR_JUNK = [[2.0, 3.0], ["x", 1], [float("nan"), 1.0], [0.1, 1.0], [2.1]]
+_dr_junk = _dr.DrawRange.from_dict(
+    {"samples": _DR_JUNK, "engaged": True, "config": [1.0, 6.0]})
+R.check(
+    "an unreadable sample is dropped alone, beside a readable configuration",
+    list(_dr_junk.samples) == [(2.0, 3.0)] and _dr_junk.engaged is True
+    and _dr_junk.config == (1.0, 6.0),
+    f"{list(_dr_junk.samples)}",
+)
+for _dr_label, _dr_cfg in (("unreadable", ["a", 2]), ("absent", None), ("non-finite", [1.0, float("inf")])):
+    _dr_rec = {"samples": _DR_JUNK, "engaged": True}
+    if _dr_cfg is not None:
+        _dr_rec["config"] = _dr_cfg
+    _dr_nokey = _dr.DrawRange.from_dict(_dr_rec)
+    R.check(
+        f"a record whose configuration is {_dr_label} is dropped whole: no samples, no latch",
+        len(_dr_nokey.samples) == 0 and _dr_nokey.engaged is False
+        and _dr_nokey.config is None,
+        f"{list(_dr_nokey.samples)}",
+    )
+
+# Diagnostics: the learned values through the module's own view (S7).
+_dr_partial = _dr.DrawRange.from_dict(
+    {"samples": [[1.5, 9.0]] * 10, "engaged": True, "config": [_DR_MIN, _DR_MAX]})
+R.check(
+    "a stored latch that has not reached MIN_SAMPLES answers, it does not raise: "
+    "no statistic, so no clamp",
+    len(_dr_partial.samples) == 10 and _dr_partial.engaged
+    and _dr_partial.planned(_DR_MIN, _DR_MAX) is None,
+    f"{len(_dr_partial.samples)} samples",
+)
+_dr_both_within = _dr_at([(2.2, 3.0)] * 48 + [(8.6, 3.0)] * 48, cfg=(2.0, 10.0))
+R.check(
+    "an engaged latch whose metered ends EACH stand within the tolerance returns "
+    "None: the configured range stands, it is not echoed back as a clamp",
+    _dr_both_within.engaged and _dr_both_within.planned(2.0, 10.0) is None,
+    f"observed {_dr_both_within.observed()}",
+)
+_dr_dg = _dr_coord(heat_pump_min_power=_DR_MIN, heat_pump_max_power=_DR_MAX)
+_dr_dg._accuracy.draw = _dr_learner("live")
+_dr_snap = _dr_diag._coordinator_snapshot(_dr_dg)["draw_range"]
+R.check(
+    "diagnostics publish the learned range and the effective clamp",
+    _dr_snap.get("engaged") is True and _dr_snap.get("running_samples") == 120
+    and _dr_snap.get("observed_max_kw") == round(_dr_live_seen[1], 3)
+    and _dr_snap.get("effective_max_kw") == round(_dr_live_seen[1], 3)
+    and _dr_probe(_dr_dg.arbiter_inputs().config).plan_writes_power() is False,
+    f"{_dr_snap}",
+)
+_dr_dg._accuracy.draw = None
+R.check(
+    "a view that raises reports unavailable; the snapshot still builds",
+    _dr_diag._coordinator_snapshot(_dr_dg)["draw_range"] == "unavailable",
+)
+
+
+# --- #1956 the card recommends a feedback sensor on an unmetered install ---
+# The probe is #1955's own: power and frequency come from ``probe_install``;
+# the energy and flow entities are the classes the probe does not carry. The
+# flow class is guarded on its config key existing in ``const`` (#2016).
+from harness import FakeCoordinator as _fb_coord  # noqa: E402
+from harness import FakeEntry as _fb_entry  # noqa: E402
+from heatpump_optimizer import const as _fb_const  # noqa: E402
+from heatpump_optimizer.sensor import SensorGapAdvisorSensor as _FbGapSensor  # noqa: E402
+from heatpump_optimizer.thermal_model import feedback_gaps as _fb_gaps  # noqa: E402
+
+_FB_KEYS = {
+    _fb_const.CONF_POWER_ENTITY,
+    _fb_const.CONF_ENERGY_ENTITY,
+    _fb_const.CONF_COMPRESSOR_FREQ_SENSOR,
+    _fb_const.CONF_FLOW_METER_ENTITY,
+}
+_fb_bare = _fb_gaps({})
+R.check(
+    "an install with no power, energy, frequency or flow signal is told which four classes to add",
+    {g["key"] for g in _fb_bare} == _FB_KEYS
+    and [g["class"] for g in _fb_bare] == ["power", "energy", "frequency", "flow"],
+    f"{_fb_bare}",
+)
+R.check(
+    "any one of the signals silences the recommendation (null control: each alone)",
+    all(
+        _fb_gaps({_fb_key: "sensor.x"}) == []
+        for _fb_key in (
+            _fb_const.CONF_POWER_ENTITY,
+            _fb_const.CONF_ENERGY_ENTITY,
+            _fb_const.CONF_COMPRESSOR_FREQ_ENTITY,
+            _fb_const.CONF_COMPRESSOR_FREQ_SENSOR,
+            _fb_const.CONF_FLOW_METER_ENTITY,
+        )
+    ),
+)
+R.check(
+    "an unrelated entity does not count as feedback",
+    len(_fb_gaps({_fb_const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.hp"})) == 4,
+)
+# The guard: a class whose config key const does not define is not offered.
+_fb_saved_flow_key = _fb_const.CONF_FLOW_METER_ENTITY
+del _fb_const.CONF_FLOW_METER_ENTITY
+try:
+    _fb_unkeyed = _fb_gaps({})
+finally:
+    _fb_const.CONF_FLOW_METER_ENTITY = _fb_saved_flow_key
+R.check(
+    "guard: with no flow key in const the table emits no flow row, and with it the row appears",
+    [g["class"] for g in _fb_unkeyed] == ["power", "energy", "frequency"]
+    and _fb_bare[-1] == {"class": "flow", "key": "flow_meter_entity"},
+    f"{_fb_unkeyed}",
+)
+
+
+def _fb_attr(cfg):
+    coord = _fb_coord({}, _config=dict(cfg))
+    gap = _FbGapSensor(coord, _fb_entry())
+    gap.hass = FakeHass()
+    return gap.extra_state_attributes
+
+
+R.check(
+    "the gap advisor publishes the probe's list for the card to read",
+    _fb_attr({}).get("feedback_gaps") == _fb_bare
+    and _fb_attr({_fb_const.CONF_POWER_ENTITY: "sensor.p"}).get("feedback_gaps") == [],
+    f"{_fb_attr({}).get('feedback_gaps')}",
+)
+
+# --- #2016 the flow meter: unit, conversion, and the thermal-output estimate --
+from heatpump_optimizer import flow_meter as _fm  # noqa: E402
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputReader as _fmReader,
+    normalize_flow_kg_s as _fm_norm,
+)
+
+_FM_KG_PER_L = 0.998
+R.check(
+    "L/min, L/s, m3/h and kg/s all convert to kg/s at 0.998 kg/L",
+    abs(_fm_norm(60.0, "L/min") - _FM_KG_PER_L) < 1e-9
+    and abs(_fm_norm(1.0, "L/s") - _FM_KG_PER_L) < 1e-9
+    and abs(_fm_norm(3.6, "m³/h") - _FM_KG_PER_L) < 1e-9
+    and abs(_fm_norm(2.0, "kg/s") - 2.0) < 1e-9
+    and _fm_norm(5.0, "furlongs/fortnight") is None
+    and _fm_norm(5.0, None) is None,
+)
+# A planted flow and temperature difference: 0.25 kg/s of water cooling 5 K
+# at c_p 4.186 kJ/(kg K) hands over 0.25 * 4.186 * 5 = 5.2325 kW.
+R.check(
+    "a planted 0.25 kg/s over a 5 K drop is 5.2325 kW",
+    abs(_fm.thermal_output_kw(0.25, 45.0, 40.0) - 5.2325) < 1e-9,
+    f"{_fm.thermal_output_kw(0.25, 45.0, 40.0)}",
+)
+R.check(
+    "no drop, a rise or a missing temperature is no estimate",
+    _fm.thermal_output_kw(0.25, 40.0, 40.0) is None
+    and _fm.thermal_output_kw(0.25, 38.0, 40.0) is None
+    and _fm.thermal_output_kw(0.25, None, 40.0) is None
+    and _fm.thermal_output_kw(0.25, 45.0, None) is None
+    and _fm.thermal_output_kw(None, 45.0, 40.0) is None,
+)
+
+
+def _fm_reader(cfg, flow_state, unit="L/min", flow_age_min=1):
+    states = {
+        "sensor.flow": FakeState(
+            flow_state, last_updated=minutes_ago(flow_age_min, NOW), unit=unit
+        ),
+        "sensor.sup": FakeState("45.0", last_updated=minutes_ago(1, NOW), unit="°C"),
+        "sensor.ret": FakeState("40.0", last_updated=minutes_ago(1, NOW), unit="°C"),
+    }
+    full = {
+        _fb_const.CONF_FLOW_METER_ENTITY: "sensor.flow",
+        _fb_const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.sup",
+        _fb_const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "sensor.ret",
+        **cfg,
+    }
+    return _fmReader(FakeHass(states), full, now=lambda: NOW), full
+
+
+_fm_r, _fm_cfg = _fm_reader({}, "15.0")
+_fm_kw = _fm.read_heat_output_kw(_fm_r, _fm_cfg)
+R.check(
+    "the estimate follows the sensor: 15 L/min over a 5 K drop",
+    _fm_kw is not None and abs(_fm_kw - 15.0 / 60.0 * 0.998 * 4.186 * 5.0) < 1e-6,
+    f"{_fm_kw}",
+)
+_fm_r2, _fm_cfg2 = _fm_reader({}, "30.0")
+R.check(
+    "doubling the flow doubles the estimate (null control for the follow claim)",
+    abs(_fm.read_heat_output_kw(_fm_r2, _fm_cfg2) - 2 * _fm_kw) < 1e-9,
+)
+R.check(
+    "an unavailable or negative flow reading is absent",
+    all(
+        _fm.read_heat_output_kw(*_fm_reader({}, bad)) is None
+        for bad in ("unavailable", "unknown", "-3.0", "nan")
+    ),
+)
+R.check(
+    "a power or a frequency signal keeps the estimate off (the signal outranks the flow meter)",
+    _fm.read_heat_output_kw(*_fm_reader({_fb_const.CONF_POWER_ENTITY: "sensor.p"}, "15.0")) is None
+    and _fm.read_heat_output_kw(
+        *_fm_reader({_fb_const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, "15.0")
+    ) is None,
+)
+_fm_unset = _fm_reader({}, "15.0")
+_fm_unset[1].pop(_fb_const.CONF_FLOW_METER_ENTITY)
+R.check(
+    "null control: with the flow key unset nothing is estimated",
+    _fm.read_heat_output_kw(*_fm_unset) is None,
+)
+from heatpump_optimizer.sensor import CurrentPowerSensor as _FmPowerSensor  # noqa: E402
+
+
+def _fm_power_attrs(data):
+    sens = _FmPowerSensor(_fb_coord(data), _fb_entry())
+    sens.hass = FakeHass()
+    return sens.extra_state_attributes
+
+
+R.check(
+    "the thermal-output estimate is published on the recommended-power sensor, and absent stays None",
+    _fm_power_attrs({"measured_heat_output_kw": 1.23456})["measured_heat_output_kw"] == 1.235
+    and _fm_power_attrs({"measured_heat_output_kw": None})["measured_heat_output_kw"] is None
+    and _fm_power_attrs({})["measured_heat_output_kw"] is None,
+)
+from heatpump_optimizer.config_flow import _OPTION_FIELDS as _fm_fields  # noqa: E402
+
+R.check(
+    "the options step asks for the flow sensor beside the compressor frequency sensor",
+    any(f.key == _fb_const.CONF_FLOW_METER_ENTITY and f.group == "compressor" for f in _fm_fields),
+)
+R.check(
+    "an unknown flow unit is absent rather than guessed",
+    _fm.read_heat_output_kw(*_fm_reader({}, "15.0", unit="gal/min")) is None,
+)
+
+# R9-UX-9 review round 1: a flow reading older than its age limit
+# (INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY], 30 min) is stale, and a stale
+# flow is no estimate. 45 min sits past that limit and inside no other one, so
+# dropping the flow key's limit or reading a stale flow's value both show here.
+_fm_stale_r, _fm_stale_cfg = _fm_reader({}, "15.0", flow_age_min=45)
+_fm_stale_kw = _fm.read_heat_output_kw(_fm_stale_r, _fm_stale_cfg)
+_fm_stale_rd = _fm_stale_r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+_fm_fresh_kw = _fm.read_heat_output_kw(*_fm_reader({}, "15.0", flow_age_min=20))
+R.check(
+    "a flow reading 45 min old is stale and gives no estimate (null control: 20 min old gives one)",
+    _fm_stale_kw is None
+    and _fm_stale_rd is not None
+    and _fm_stale_rd.problem == "stale"
+    and _fm_fresh_kw is not None
+    and abs(_fm_fresh_kw - _fm_kw) < 1e-9,
+    f"stale={_fm_stale_kw} problem={getattr(_fm_stale_rd, 'problem', None)} fresh={_fm_fresh_kw}",
+)
+# A pump at rest with the flow sensor reading zero is a measured 0 kW, not an
+# absent one: only a negative flow is implausible.
+_fm_zero_r, _fm_zero_cfg = _fm_reader({}, "0.0")
+_fm_zero_kw = _fm.read_heat_output_kw(_fm_zero_r, _fm_zero_cfg)
+_fm_zero_rd = _fm_zero_r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+R.check(
+    "a zero flow reading is a measured 0 kW, not absent",
+    _fm_zero_kw == 0.0 and _fm_zero_rd is not None and _fm_zero_rd.ok,
+    f"kw={_fm_zero_kw} problem={getattr(_fm_zero_rd, 'problem', None)}",
+)
+# The health record keeps the first reason a flow reading was refused, and no
+# value: a stale negative reading stays "stale" (the age outranks the value),
+# a fresh negative one is "implausible" and an unknown unit "unknown_unit".
+
+
+def _fm_problem(flow_state, unit="L/min", flow_age_min=1):
+    r, cfg = _fm_reader({}, flow_state, unit=unit, flow_age_min=flow_age_min)
+    _fm.read_heat_output_kw(r, cfg)
+    rd = r.health.readings.get(_fb_const.CONF_FLOW_METER_ENTITY)
+    return None if rd is None else (rd.problem, rd.value)
+
+
+_fm_problems = (
+    _fm_problem("-3.0", flow_age_min=45),
+    _fm_problem("-3.0"),
+    _fm_problem("15.0", unit="gal/min"),
+)
+R.check(
+    "a refused flow reading's health record keeps its first reason (stale, implausible, unknown unit) and no value",
+    _fm_problems == (("stale", None), ("implausible", None), ("unknown_unit", None)),
+    f"{_fm_problems}",
+)
 
 
 sys.exit(R.close("FEATURE CHECKS"))
-

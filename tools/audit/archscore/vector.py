@@ -56,7 +56,7 @@ _IS_ANY = untyped_payload_keys.is_any
 
 # metric -> (register class it guards or None, the property it prices)
 SCORE_METRICS = {
-    "hub_solve_writes": ("N-shared-config", "writes into the live config hubs reachable from the solve"),
+    "hub_solve_writes": ("N-shared-config", "writes into the live config hubs reachable from the scheduled cycle or a solve"),
     "shared_inplace_writes": ("N-shared-config", "in-place writes of operation values into long-lived shared objects"),
     "duplication_copies": ("P2+P3", "copies of a function sharing an AST-identical statement window, package-wide"),
     "untyped_payload_keys": ("P6", "coordinator payload keys published with no declared type"),
@@ -131,8 +131,10 @@ def structure_rows(root: Path) -> dict:
             "dead_members": m["dead_methods"] + m["dead_top_level_symbols"]}
 
 
-def measure(root: Path) -> dict:
-    """The score vector of ``root``. A metric that raises is recorded as None with its error."""
+def measure(root: Path, only: set[str] | None = None) -> dict:
+    """The score vector of ``root``. A metric that raises is recorded as None with its error.
+    ``only`` names the jobs to run (``structure`` and ``footprint`` each fill several keys): what
+    ``calibrate.py --measure-corpus --only-metric`` re-derives after one definition changes."""
     root = Path(root).resolve()
     out: dict = {}
     with tempfile.TemporaryDirectory(prefix="archscore-") as tmp:
@@ -158,6 +160,8 @@ def measure(root: Path) -> dict:
             "unread_private_globals": lambda: K.unread_private_globals(ts),
         }
         for name, fn in {**jobs, **tripwires}.items():
+            if only is not None and name not in only:
+                continue
             if (name in ("reflective_writes", "computed_attr_access") and "C2" in off) \
                     or (name == "family_orphan_overrides" and "C6" in off) \
                     or (name == "unread_private_globals" and "C7" in off):
