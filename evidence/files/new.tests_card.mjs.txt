@@ -1,0 +1,48 @@
++  const fused = idleWhyHtml([row("space_power", 3, 0, "idle_fuse")], ctx);
++  check("UX-5 a published sub-code says because and replaces the inferred lines",
++    /Because:/.test(fused) && !/Likely because/.test(fused) &&
++      /fuse limit caps heating/.test(fused) && !/dearest/.test(fused), fused);
++  check("UX-5 an idle step with no sub-code still says likely because",
++    /Likely because/.test(dear) && !/Because:/.test(dear));
++  check("UX-5 an idle sub-code is not also a reason label",
++    reasonHtml([{ reason: "idle_fuse" }]) === "");
++  const idleExact = typeof idle.reason === "string" && idle.reason.startsWith("idle_");
+-    /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
++    idleExact
++      ? /Because:/.test(htt) && !/Likely because/.test(htt)
++      : /Likely because/.test(htt) && htt.includes(maxP.toFixed(2)), htt);
++  const dExact = typeof dfc[di].reason === "string" && dfc[di].reason.startsWith("idle_");
+-    dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
+-      `${whyClock(ms(dEnd) + dStep)}`) &&
+-      dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
++    dExact
++      ? /Because:/.test(dtt) && !/Likely because/.test(dtt)
++      : dtt.includes(`tank was heated ${whyClock(ms(dStart))}\u2013` +
++          `${whyClock(ms(dEnd) + dStep)}`) &&
++        dtt.includes(`next hot-water run is at ${whyClock(ms(dNext))}`), dtt);
+-    dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
++    dExact || dtt.includes(`tank is at ${dfc[di].dhw_temp.toFixed(1)} \u00b0C, ` +
+-             "dhw_min_temperature"]
+-    .every((k) => called.data[k] !== undefined));
++             "target_temperature", "dhw_min_temperature"]
++    .every((k) => called.data[k] !== undefined)
++    && called.data.target_temperature === called.data.comfort_temp_day);
+-  const order = ['data-act="try_degree"', 'data-act="open_schedule"',
++  const order = ['data-act="try_degree"', 'data-act="apply_dhw"',
+-    !/data-act="open_schedule"/.test(mkInbox(dz).html()));
++    !/data-act="apply_dhw"/.test(mkInbox(dz).html()));
+-  await press(d.c, '[data-act="open_schedule"]');
+-  check("the hot-water row opens the schedule editor, and calls no service",
+-    d.c.dialog.activePage() === "plan" && d.calls.length === 0);
++  await press(d.c, '[data-act="apply_dhw"]');
++  check("the hot-water row applies the recommended setpoint, not an interpolated one",
++    d.c.dialog.activePage() === "advisor" && d.calls.length === 1
++    && d.calls[0][1] === "apply_schedule"
++    && d.calls[0][2].dhw_setpoint === 48
++    && d.calls[0][2].dhw_setpoint !== 55, JSON.stringify(d.calls));
+-    && !/data-act="assign"|data-act="apply_valve"|data-act="open_schedule"/.test(emptyHtml));
++    && !/data-act="assign"|data-act="apply_valve"|data-act="apply_dhw"/.test(emptyHtml));
+-    ['data-act="try_degree"', 'data-act="open_schedule"', 'data-act="assign"']
++    ['data-act="try_degree"', 'data-act="apply_dhw"', 'data-act="assign"']
+-    ['try_degree', 'open_schedule', 'assign', 'adopt_refit']
++    ['try_degree', 'apply_dhw', 'assign', 'adopt_refit']
