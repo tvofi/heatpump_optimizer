@@ -192,10 +192,17 @@ carry() {
         # one reviewed file, excluded whole, as before. An entry that is a
         # DIRECTORY (a subtree, like the mutation ledger's one-file-per-row
         # layout, so no single entry names a file the writer touched): exclude
-        # only the rows this very commit ADDED under it, never one it REWROTE or
-        # DELETED -- a rewrite or deletion of a row the branch already carried is
-        # reviewed content, and hiding it would let a bot's edit of an
-        # already-reviewed row pass unseen.
+        # only the rows this range ADDS that were NOT already on the verdict head
+        # `$v` -- a row `$v` already held is reviewed content, and a rewrite or a
+        # delete-then-readd of it across two `ci: pin killed mutants` commits in
+        # the same range must stay visible to the comparison below. Skipping a
+        # path that exists at `$v` closes the re-add: the first commit deletes the
+        # reviewed row (status `D`, never an addition, already visible), the
+        # second re-adds the same path, and the net over `v..h` is a rewrite of
+        # reviewed content -- so the re-add must NOT be excluded. The two ways a
+        # path is on `$v` both call for refusing: this branch reviewed it, or main
+        # owns it and a bot overwriting main's row is cross-PR interference; a
+        # path new at `$v` is the only fresh bot content safe to hide.
         ba=$(git diff --no-renames --diff-filter=A --name-only "$c^" "$c")
         bt=$(git diff --no-renames --name-only "$c^" "$c")
         while IFS= read -r e; do
@@ -204,7 +211,9 @@ carry() {
             bots="$bots$e"$'\n'
           else
             while IFS= read -r p; do
-              case "$p" in "$e"/*) bots="$bots$p"$'\n' ;; esac
+              case "$p" in "$e"/*) ;; *) continue ;; esac
+              git cat-file -e "$v:$p" 2>/dev/null && continue
+              bots="$bots$p"$'\n'
             done <<<"$ba"
           fi
         done <<<"$b"
@@ -661,6 +670,30 @@ as_bot -m "ci: not the bot's own message"; H_PIN_BADMSG=$(g rev-parse HEAD)
 g checkout -q --detach "$V_PINMOD"; pinrow "tests/mutation_ledger/*"
 printf '{"anchor":"other","killed_by":"t.py","old":"o","reason":"glob rewrite"}\n' > "$W/clone/tests/mutation_ledger/killed_by/row.json"
 g add -A; as_bot -m "ci: pin killed mutants"; H_PINGLOB=$(g rev-parse HEAD)
+# Two `ci: pin killed mutants` commits in one range. The first DELETES the
+# reviewed row; a lone deletion is already refused (H_PINDEL). What the
+# directory branch used to miss is the SECOND commit re-covering the path the
+# first deleted -- the exclusions union across `v..h`, so a later addition put a
+# reviewed path back into them. DELADD adds a DIFFERENT path (the reviewed row
+# stays deleted); DELREADD re-adds the SAME path with new bytes (net `M` on a
+# reviewed row). Both must refuse; only the same-path re-add needed the
+# `git cat-file -e "$v:$p"` guard, so keeping DELADD shows the guard is about
+# the re-add, not about deletions in general.
+DELBASE="$V_PINMOD"
+g checkout -q --detach "$DELBASE"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; _dr1=$(g rev-parse HEAD)
+g checkout -q --detach "$_dr1"; pinrow tests/mutation_ledger/killed_by/other.json
+g add -A; as_bot -m "ci: pin killed mutants"; H_DELADD=$(g rev-parse HEAD)
+g checkout -q --detach "$DELBASE"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; _rr1=$(g rev-parse HEAD)
+g checkout -q --detach "$_rr1"; pinrow tests/mutation_ledger/killed_by/row.json
+printf '{"anchor":"row","killed_by":"t.py","old":"o","reason":"delete then readd"}\n' > "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; H_DELREADD=$(g rev-parse HEAD)
+# A single bot commit that adds a fresh row (a path not on $V_PINMOD) and leaves
+# the reviewed row.json alone -- the positive control: new bot content still
+# carries, so `cat-file -e "$v:$p"` skips only the re-add of an old path.
+g checkout -q --detach "$V_PINMOD"; pinrow tests/mutation_ledger/killed_by/fresh.json
+g add -A; as_bot -m "ci: pin killed mutants"; H_OKADD=$(g rev-parse HEAD)
 g checkout -q main; g push -q origin main
 setpr() { g push -q -f origin "$1:refs/pull/7/head"; }
 
@@ -1012,12 +1045,21 @@ st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by
 # The narrowing that `bot_paths`' whole-subtree exclusion alone does not give:
 # a bot commit may confine itself to the ledger subtree and still be a forged
 # rewrite of a row the verdict already reviewed. `carried` runs from `$V`;
-# these heads sit on `$V_PINMOD`, which already carries the row being rewritten.
-for arm in "$H_PINMOD" "$H_PINDEL"; do
+# these heads sit on `$V_PINMOD`, which already carries the row being rewritten:
+# a rewrite, a deletion, a delete-then-add-of-another-path, and a
+# delete-then-readd of the SAME path (the two-commit seam the `cat-file -e`
+# guard closes). All four must refuse on the branch's own comparison.
+for arm in "$H_PINMOD" "$H_PINDEL" "$H_DELADD" "$H_DELREADD"; do
   ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$arm" origin/main ) > "$W/carry.out" 2>&1
   st $? 1 "NO CARRY: the bot's pin commit over a row the branch's own diff already carried"
   st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, not the confinement check"
 done
+# The guard skips only paths that were on `$V_PINMOD`; a genuinely fresh row is
+# still safe to hide, so a bot commit that adds a new path without touching the
+# reviewed one still carries -- the positive control that keeps `cat-file -e`
+# from over-refusing.
+( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_OKADD" origin/main ) > "$W/carry.out" 2>&1
+st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content"
 # The planted metacharacter arm: without `:(exclude,literal)` this head would
 # carry, its glob-named addition silently hiding the rewrite beside it.
 ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
