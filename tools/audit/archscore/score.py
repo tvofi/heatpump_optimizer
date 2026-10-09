@@ -104,10 +104,22 @@ def report(base: dict, cur: dict) -> str:
 
 
 def tree_of(ref: str, into: Path) -> Path:
-    """The package at git ref ``ref``, extracted under ``into``."""
-    archive = subprocess.run(["git", "-C", str(REPO), "archive", ref, "custom_components"],
+    """The package at git ref ``ref``, extracted under ``into``.
+
+    Read from the tree object, never through ``git archive``: archive honours the ``export-ignore`` and
+    ``export-subst`` attributes of the tree it archives, so a head's own ``.gitattributes`` would decide
+    which of its files the scorer sees (#2068 round 2). Symlinks and submodules are not extracted."""
+    git = ["git", "-C", str(REPO)]
+    listing = subprocess.run([*git, "ls-tree", "-r", "-z", ref, "custom_components"],
                              capture_output=True, check=True).stdout
-    subprocess.run(["tar", "-x", "-C", str(into)], input=archive, check=True)
+    for entry in filter(None, listing.split(b"\0")):
+        meta, path = entry.split(b"\t", 1)
+        mode, kind, sha = meta.decode().split()
+        if kind != "blob" or mode == "120000":
+            continue
+        dest = into / path.decode()
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_bytes(subprocess.run([*git, "cat-file", "blob", sha], capture_output=True, check=True).stdout)
     return into
 
 
