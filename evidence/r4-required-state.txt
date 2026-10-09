@@ -1,0 +1,18 @@
+required contexts at ruleset 23698884: 17
+  Analyze (actions)                  completed/success id=113706769517
+  Analyze (javascript-typescript)    completed/success id=113706769303
+  Analyze (python)                   completed/success id=113706769704
+  briefs                             completed/success id=113706784749
+  browser                            completed/success id=113706784746
+  budget-raise-gate                  ABSENT
+  closure-scope                      completed/skipped id=113706748651
+  closures                           completed/success id=113706747908
+  env-matrix                         ABSENT
+  fast (3.14)                        completed/success id=113706784720
+  hassfest                           completed/success id=113706755162
+  mutation                           completed/failure id=113706784751
+  policy-docs                        ABSENT
+  pr-contract                        ABSENT
+  typing                             completed/success id=113706784724
+  validate-hacs                      completed/success id=113706762563
+  wave-script                        ABSENT

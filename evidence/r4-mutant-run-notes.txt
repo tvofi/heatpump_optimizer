@@ -1,0 +1,60 @@
+This seat's targeted-mutant drive of tests/features.py at PR #2070's live head.
+
+INTERPRETER NOTE. python3.13 on this Mac has no `yaml`, and features.py aborts at
+its line 20866 (`__import__("yaml")`) after 1778 checks; /usr/local/bin/python3
+(3.11.5, yaml + numpy) completes all 3899. Every run below is that interpreter,
+PYTHONPATH=<worktree>/tests/hastub, cwd the worktree root.
+
+BASELINE A (clean head): "1 of 3899 FEATURE CHECKS FAILED" --
+  R9-F2.1 P3 (shipped 110.4366 vs 110.1297), the BLAS-dependent solver float round 3
+  measured at 3ecb86ada and attributed to the environment, not to this diff. Every
+  mutant delta below is against THAT set, never against zero.
+
+B  early_cutoff.py:193 CMP_BOUND, `>=` -> `>`  (the site the bot pinned as
+   `allow_on CMP_BOUND 71c6fd76`, killed_by tests/features.py)
+   -> 2 of 3899 FAILED. The one NEW failure is
+      "past MIN_OFF the plan's on goes through, and an off is never turned on".
+   => that killed_by row is a real kill, re-derived with this seat's own mutant.
+
+C  early_cutoff.py:224 BOOLOP, `and` -> `or`  (CI's shard 1 measured this site as a
+   SURVIVOR: "UNPINNED ...:224 BOOLOP -- lives")
+   -> 1 of 3899 FAILED, A's set exactly, nothing new.
+   => the survivor reproduces here. No features.py check distinguishes a defrost
+      entity that reads "off" from a missing one: the only defrost check in the
+      cut-off section sets the entity's state to "on" (tests/features.py, the
+      section at line 60193; the defrost fixture is at +196..+201), so the guard
+      `flag is not None and parse_bool(...)` is not pinned by anything.
+
+D  coordinator.py:2416 GUARD_OFF -- my driver's fault, not the tree's: it wrote
+   `        if False:` (8 spaces) where the guard has 4, so coordinator.py failed to
+   import and features.py died in 2.4 s (r4-features-D.time). Redone as D2 with the
+   line's own indentation.
+
+E  early_cutoff.py:267 RETURN_DEL, `return None` -> `pass`  (CI's shard 1:
+   "UNPINNED ...:267 RETURN_DEL -- lives")
+   -> see r4-features-E.txt. This mutant is semantically null: line 267 is the last
+      statement of `_cycle_guard` (def at 253, the function ends at 267), so `pass`
+      falls off the end and returns None exactly as before. No behavioural driver can
+      kill it; the tree's own disposition for such a site is a `survivor_triage`
+      row, which the tool says no tool writes.
+
+D2 coordinator.py:2416 GUARD_OFF, `if early_cutoff.state_for(coord).interval_cut:`
+   -> `if False:`  (the site the bot pinned as `_tail_freeze GUARD_OFF a8321916`)
+   -> see r4-features-driver3.status and r4-features-D2.txt.
+
+D4 (redo of D, coordinator.py:2416 GUARD_OFF, correct 4-space indent):
+  3 of 3899 FEATURE CHECKS FAILED vs baseline A's 1. The two NEW failures are
+    "the cut reason outranks the unmetered tail freeze, which this install trips"
+      [tail 'unmetered_power' free 'unmetered_power' cut 'unmetered_power']
+    "a cut interval freezes the learners under the one early_cutoff reason"
+      [free 'unmetered_power' cut 'unmetered_power' next 'unmetered_power']
+  -> the 4th killed_by row (`_tail_freeze GUARD_OFF a8321916`, killed_by
+     tests/features.py, recorded as rc=0 failed=0 -> rc=1 failed=3) is a real kill,
+     re-derived with this seat's own mutant. All four rows the bot commit added are
+     now verified here.
+D2 note: rc=143 -- SIGTERM'd mid-run by this seat stopping its own job, not a lane
+  result. D4 above is the complete redo.
+INTERPRETER: /usr/local/bin/python3 (3.11.5). A venv-ci interpreter exists on this
+  host (~/.local/state/hpo/venv-ci/bin/python3 -> 3.14.7) and is what other seats
+  use; this seat's runs completed all 3899 checks and reproduced round 3's single
+  macOS baseline failure, so the deltas above are interpreter-consistent with it.

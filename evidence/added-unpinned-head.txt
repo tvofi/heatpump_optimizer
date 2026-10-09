@@ -1,0 +1,42 @@
+custom_components/heatpump_optimizer/early_cutoff.py:122 RETURN_DEL: return self.cut_this_cycle or self.cut_last_cycle
+custom_components/heatpump_optimizer/early_cutoff.py:139 RETURN_DEL: return _STATES.setdefault(coord, CutoffState())
+custom_components/heatpump_optimizer/early_cutoff.py:164 GUARD_OFF: if inp.entry_released or not room or not cfg.heat_pump_switch_entity:
+custom_components/heatpump_optimizer/early_cutoff.py:167 GUARD_OFF: if held.unsub is None:
+custom_components/heatpump_optimizer/early_cutoff.py:171 GUARD_OFF: if held.wiring is not None:
+custom_components/heatpump_optimizer/early_cutoff.py:190 GUARD_OFF: if not on or held.cut_at is None or held.wiring is None:
+custom_components/heatpump_optimizer/early_cutoff.py:193 GUARD_OFF: if now - held.cut_at >= MIN_OFF:
+custom_components/heatpump_optimizer/early_cutoff.py:195 RETURN_DEL: return _exempt(held.wiring.inputs(), held.wiring.boosts, now) is not Non
+custom_components/heatpump_optimizer/early_cutoff.py:201 GUARD_OFF: if unsub is not None:
+custom_components/heatpump_optimizer/early_cutoff.py:207 GUARD_OFF: if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
+custom_components/heatpump_optimizer/early_cutoff.py:209 GUARD_OFF: if inp.plan_stale or not inp.action or not inp.action.get("heat_pump_on"
+custom_components/heatpump_optimizer/early_cutoff.py:211 GUARD_OFF: if inp.plan is None or step_duty(inp.plan, now) != "space":
+custom_components/heatpump_optimizer/early_cutoff.py:213 GUARD_OFF: if boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now):
+custom_components/heatpump_optimizer/early_cutoff.py:215 GUARD_OFF: if inp.disinfecting:
+custom_components/heatpump_optimizer/early_cutoff.py:217 RETURN_DEL: return _plant_exempt(inp)
+custom_components/heatpump_optimizer/early_cutoff.py:224 BOOLOP: if flag is not None and parse_bool(getattr(flag, "state", None)):
+custom_components/heatpump_optimizer/early_cutoff.py:224 GUARD_OFF: if flag is not None and parse_bool(getattr(flag, "state", None)):
+custom_components/heatpump_optimizer/early_cutoff.py:231 RETURN_DEL: return None
+custom_components/heatpump_optimizer/early_cutoff.py:238 CLAMP_DROP: return max(base, *_planned_room(inp.plan, now)) + MARGIN_K
+custom_components/heatpump_optimizer/early_cutoff.py:250 CMP_BOUND: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+custom_components/heatpump_optimizer/early_cutoff.py:250 RETURN_DEL: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+custom_components/heatpump_optimizer/early_cutoff.py:255 GUARD_OFF: if held.cut_this_cycle:
+custom_components/heatpump_optimizer/early_cutoff.py:258 GUARD_OFF: if getattr(switch, "state", None) != "on":
+custom_components/heatpump_optimizer/early_cutoff.py:263 CMP_BOUND: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+custom_components/heatpump_optimizer/early_cutoff.py:263 GUARD_OFF: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+custom_components/heatpump_optimizer/early_cutoff.py:265 CMP_BOUND: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+custom_components/heatpump_optimizer/early_cutoff.py:265 GUARD_OFF: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+custom_components/heatpump_optimizer/early_cutoff.py:267 RETURN_DEL: return None
+custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF: if not getattr(inp.params, "two_zone_enabled", False):
+custom_components/heatpump_optimizer/early_cutoff.py:274 CMP_BOUND: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+custom_components/heatpump_optimizer/early_cutoff.py:274 RETURN_DEL: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+custom_components/heatpump_optimizer/early_cutoff.py:283 BOOLOP: return room if room is not None and low <= room <= high else None
+custom_components/heatpump_optimizer/early_cutoff.py:283 CMP_BOUND: return room if room is not None and low <= room <= high else None
+custom_components/heatpump_optimizer/early_cutoff.py:283 RETURN_DEL: return room if room is not None and low <= room <= high else None
+custom_components/heatpump_optimizer/early_cutoff.py:288 GUARD_OFF: if (room := _reading(event)) is None:
+custom_components/heatpump_optimizer/early_cutoff.py:292 GUARD_OFF: if inp.entry_released:
+custom_components/heatpump_optimizer/early_cutoff.py:295 GUARD_OFF: if _exempt(inp, wiring.boosts, now) is not None:
+custom_components/heatpump_optimizer/early_cutoff.py:298 CMP_BOUND: if room <= limit:
+custom_components/heatpump_optimizer/early_cutoff.py:298 GUARD_OFF: if room <= limit:
+custom_components/heatpump_optimizer/early_cutoff.py:301 BOOLOP: if reason is None and _second_zone_cold(inp, limit):
+custom_components/heatpump_optimizer/early_cutoff.py:303 GUARD_OFF: if reason is not None:
+custom_components/heatpump_optimizer/early_cutoff.py:85 CONST: MARGIN_K = 0.5

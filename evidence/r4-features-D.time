@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2070/r4/tests/features.py", line 82, in <module>
+    from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+  File "/Users/timmalmstrom/hpo-seats/review-2070/r4/custom_components/heatpump_optimizer/coordinator.py", line 2416
+    if False:
+IndentationError: unexpected indent
+real 2.40
+user 1.51
+sys 0.31

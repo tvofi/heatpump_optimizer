@@ -1,0 +1,7 @@
+  4669 unpinned site(s) of 5940 candidate sites, 4624 at the ratchet base bd59a4af1b2616a7f00761a3769d22a335e4df7c; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 4 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 45 new unpinned site(s) against bd59a4af1b2616a7f00761a3769d22a335e4df7c to drive
+  45 mutant(s) over 4 file(s); drivers in play: tests/arch_score_head.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/harness_headers.py, tests/manual_plan.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'bd59a4af1b2616a7f00761a3769d22a335e4df7c' (run.sh's GOLDEN_REF resolution)
+
+MUTATION TABLE REFUSED -- no full-line comment in any file in the pool, so the run has no null control and no verdict can be told apart from a driver reacting to the diff itself

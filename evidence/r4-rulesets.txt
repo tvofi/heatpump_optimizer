@@ -1,0 +1,9 @@
+======================================================================
+22628467 main-protect | target: branch | enforcement: active
+conditions: null
+======================================================================
+23698884 main-protect-checks | target: branch | enforcement: active
+conditions: null
+======================================================================
+23937752 release-tags-protect | target: tag | enforcement: active
+conditions: null

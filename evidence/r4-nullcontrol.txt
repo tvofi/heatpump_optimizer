@@ -1,0 +1,16 @@
+custom_components/heatpump_optimizer/early_cutoff.py -> NO NULL CONTROL
+custom_components/heatpump_optimizer/coordinator.py -> line 487: '#: forecast series is resampled to.'
+custom_components/heatpump_optimizer/pump_arbiter.py -> line 181: '#: the GCHV water set-points accept 25 degC and up.'
+custom_components/heatpump_optimizer/diagnostics.py -> line 57: '#: country.'
+full-line comments in early_cutoff.py: 11
+    84 len= 77 too long  "#: Kelvin above the threshold's base before the pump is cut (decision 0.5 K)."
+    86 len= 69 too long  "#: The shortest run a cut may end; the plan's own step is 15 minutes."
+    88 len= 74 too long  '#: The shortest stop a cut may cause before the next cycle can restart it.'
+    92 len= 75 too long  '#: The ``_learning_frozen`` reason for an interval the cut-off ended early.'
+   103 len= 75 too long  '    #: Whether the cycle before this one was cut; see :attr:`interval_cut`.'
+   105 len= 67 too long  '    #: When the last cut was written (UTC); an early refresh inside'
+   106 len= 67 too long  '    #: :data:`MIN_OFF` of it keeps the pump off (:func:`allow_on`).'
+   111 len= 60 too long  '    #: Why the last reading above the threshold did not cut.'
+   160 len= 77 too long  '    # In UTC: local wall-clock arithmetic is an hour off across a DST change.'
+   175 len= 72 too long  '        # Dropped with the entry, as every other registration is (#236).'
+   262 len= 75 too long  '    # A missing stamp, or one ahead of the clock, is an unknown run (#775).'
