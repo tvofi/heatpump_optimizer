@@ -1,0 +1,30 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:45 CONST: RUNNING_FLOOR_KW = 0.25
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:48 CONST: WINDOW = 336
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:60 CONST: DISAGREE_SHARE = 0.25
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:108 GUARD_OFF: if seen is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:122 CMP_BOUND: on_level = [(d, a) for d, a in self.samples if a >= cfg_min]
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:125 CMP_BOUND*2: if a > DISAGREE_FACTOR * d or d > DISAGREE_FACTOR * a
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:149 GUARD_OFF: if metered is None or metered == (cfg_min, cfg_max):
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:296 GUARD_OFF: if cap.plan_writes_power():
+    ADDED UNPINNED custom_components/heatpump_optimizer/draw_range.py:305 CLAMP_DROP: low = min(cfg_min, high)
+MUTATION TABLE REFUSED -- 4616 unpinned site(s) against 4623 at the ratchet base b2b6acd64cde652676a568e93c05f021571ebe5e, 10 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+    custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:
+    custom_components/heatpump_optimizer/__init__.py:90 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+    custom_components/heatpump_optimizer/__init__.py:116 GUARD_OFF: if module is None:
+    custom_components/heatpump_optimizer/__init__.py:122 RETURN_DEL: return value
+    custom_components/heatpump_optimizer/__init__.py:162 RETURN_DEL: return handovers
+    custom_components/heatpump_optimizer/__init__.py:168 RETURN_DEL: return stamps
+    custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if payload is None or stamped_at is None:
+    custom_components/heatpump_optimizer/__init__.py:197 CMP_BOUND: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:197 GUARD_OFF: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:199 RETURN_DEL: return payload
+    custom_components/heatpump_optimizer/__init__.py:210 CMP_BOUND: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:210 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:218 RETURN_DEL: return False
+    custom_components/heatpump_optimizer/__init__.py:220 CMP_BOUND: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:220 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:228 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:253 GUARD_OFF: if (reg_entry.domain, reg_entry.unique_id) in retired:
+    custom_components/heatpump_optimizer/__init__.py:274 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:359 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:392 BOOLOP: if coordinator is not None and coordinator.effective_config == new_confi

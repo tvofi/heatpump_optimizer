@@ -1,4 +1,0 @@
-  File "/Users/timmalmstrom/hpo-seats/review-2066/wt-head/tests/entities.py", line 3935
-    ([f'{h[0]}:{h[1]} in {h[2] or chr(60) + 'module>'}' for h in _p2_stray])
-                                             ^^^^^^
-SyntaxError: f-string: f-string: expecting '}'
