@@ -98,6 +98,7 @@ base: steps 1's carry, row and policy reads, 4's approval and 5 are skipped.
 from __future__ import annotations
 
 import argparse
+import datetime
 import functools
 import json
 import os
@@ -171,6 +172,64 @@ class Stop(Exception):
     def __init__(self, step: str, why: str) -> None:
         super().__init__(f"{step}: {why}")
         self.step, self.why = step, why
+
+
+# The one reader of the owner's recorded mandate, old path first (the TOOLS
+# convention above).
+GATE_PATHS = (".claude/workflows/budget_raise_gate.py", "tools/policy/budget_raise_gate.py")
+
+
+@functools.lru_cache(maxsize=None)
+def _mandate_gate():
+    """budget_raise_gate.py, imported, never copied (fixer.md step 17): the
+    grammar of a mandate, its scope sets, its window, the owner's pinned
+    identity and the loose revocation are the gate's and live in no other
+    file. The API plumbing in `Train._mandate_read` is the train's own
+    because every command the train runs goes through `self.run`, which the
+    self-test stubs; that is plumbing, not a second reading of the concept."""
+    p = next((ROOT / c for c in GATE_PATHS if (ROOT / c).is_file()), None)
+    if p is None:
+        raise Stop("policy", f"budget_raise_gate.py is in no place the train looks "
+                   f"({', '.join(GATE_PATHS)}), so no mandate can be read")
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("budget_raise_gate", str(p))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+# A fixture comment id for both self-tests (the run arms and the batch arms
+# approve-and-mandate through these builders, so they read one shape).
+MID = 4100000001
+
+
+def policy_fixture_builders():
+    """(gate module, owner_review, mandate, revoke) -- the objects the policy
+    stop reads, built from the gate's own pinned constants so a fixture can
+    never disagree with the pin it is checked against."""
+    g = _mandate_gate()
+    own = {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
+
+    def iso(dt: datetime.datetime) -> str:
+        return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def owner_review(sha: str, at: datetime.datetime, cite: bool = True, state: str = "APPROVED") -> dict:
+        return {"user": own, "state": state, "commit_id": sha, "submitted_at": iso(at),
+                "body": (f"Agent approval (the orchestrator, not {g.OWNER_LOGIN} in person) "
+                         f"under mandate {MID}." if cite
+                         else f"Approved: the policy change reads right.")}
+
+    def mandate(at: datetime.datetime, scope: str = "all", from_min: int = -60, until_min: "int | None" = 60) -> dict:
+        created = iso(at + datetime.timedelta(minutes=from_min))
+        until = "programme-end" if until_min is None else iso(at + datetime.timedelta(minutes=until_min))
+        return {"id": MID, "user": own, "created_at": created, "updated_at": created,
+                "issue_url": f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}",
+                "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope {scope}, "
+                        f"from {created} until {until}"}
+
+    def revoke(comment_id: int = MID) -> dict:
+        return {"id": comment_id + 1, "user": own, "body": f"MANDATE REVOKED {comment_id}"}
+    return g, owner_review, mandate, revoke
 
 
 class Train:
@@ -640,6 +699,8 @@ def _self_test() -> int:
                 return 0, "\n".join(json.dumps(c) for c in world.get("runs", []))
             if argv[:3] == ["git", "merge-base", "origin/main"]:
                 return world.get("base", (0, "e" * 40 + "\n"))
+            if argv[:2] == ["git", "diff"] and len(argv) > 4 and argv[4] == world.get("reviewed"):
+                return 0, "\n".join(world.get("content_diff", []))
             if "--carry" in a:
                 return 0, world.get("carry", "CARRY: yes")
             if argv[:2] == ["git", "diff"]:
@@ -657,6 +718,13 @@ def _self_test() -> int:
                 if world.get("broken_filter"):
                     return 0, ""
                 return 0, "\n".join(f for f in (stdin or "").split() if f in ("CLAUDE.md", "AGENTS.md", "dev/governance/roles/fixer.md"))
+            if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
+                return 0, json.dumps([world.get("reviews", [])])
+            if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
+                return (0, json.dumps(world["mandate"])) if world.get("mandate") \
+                    else (1, "gh: Not Found (HTTP 404)")
+            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
+                return 0, json.dumps([world.get("thread", [])])
             if "app_approve.sh" in a:
                 return world.get("approve", (0, "APPROVED"))
             if argv[:3] == ["gh", "pr", "review"]:
@@ -712,13 +780,45 @@ def _self_test() -> int:
     check("a verdict that does not carry stops it", rc == 1 and "carry:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"contains": [True, False]})
     check("main moving during CI stops it", rc == 1 and "main:" in lines[-1] and not merged(calls))
-    rc, lines, calls = go({"files": ["custom_components/x.py", f"{ROW_DIR}/7.md",
-                                     "dev/governance/roles/fixer.md"],
-                           "approve": (1, "REFUSE: #7 touches code-owned paths (dev/governance/roles/fixer.md); the owner's")},
-                          mandate="mandate 1 (tvofi)")
-    check("a policy pull request is never approved, even under a mandate", rc == 1 and "policy:" in lines[-1]
-          and "dev/governance/roles/fixer.md" in lines[-1] and not approved(calls) and not merged(calls)
-          and not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls))
+    _g, owner_review, mandate, revoke = policy_fixture_builders()
+    NOW = datetime.datetime.now(datetime.timezone.utc)
+    POL = {"files": ["custom_components/x.py", f"{ROW_DIR}/7.md", "dev/governance/roles/fixer.md"]}
+    no_app = lambda: not any("app_approve.sh" in " ".join(c) and "--carry" not in c for c in calls)
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW)})
+    check("a policy head whose owner approval at this exact head cites a mandate in force lands",
+          rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE"
+          and any("policy" in ln and f"mandate {MID}" in ln for ln in lines))
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW, cite=False)], "mandate": mandate(NOW)})
+    check("a policy head with NO mandate is refused as before -- the approval is at the head, "
+          "so the refusal names the mandate, not the review (the fallback is the point)",
+          rc == 1 and "policy:" in lines[-1] and "dev/governance/roles/fixer.md" in lines[-1]
+          and "cites no mandate" in lines[-1] and not approved(calls) and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [], "mandate": mandate(NOW)})
+    check("a policy head with a mandate but no owner approval at its head is refused, named as the review",
+          rc == 1 and "policy:" in lines[-1] and "no decisive review" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, until_min=-1)})
+    check("a mandate whose window has passed behaves as no mandate (expiry arm)",
+          rc == 1 and "policy:" in lines[-1] and "expired" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
+                           "thread": [revoke()]})
+    check("a revoked mandate refuses the policy head, named as revoked",
+          rc == 1 and "policy:" in lines[-1] and "revoked" in lines[-1] and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW, scope="budget-raise")})
+    check("a mandate scoped budget-raise does not cover policy merging",
+          rc == 1 and "policy:" in lines[-1] and "does not cover policy merging" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review("f" * 40, NOW)], "mandate": mandate(NOW),
+                           "reviewed": "f" * 40, "content_diff": ["dev/governance/roles/fixer.md"]})
+    check("policy content that moved after the owner's review is refused and named as that change",
+          rc == 1 and "policy:" in lines[-1] and "changed after the owner's review" in lines[-1]
+          and not merged(calls) and no_app())
+    rc, lines, calls = go({**POL, "reviews": [owner_review("f" * 40, NOW)], "mandate": mandate(NOW),
+                           "reviewed": "f" * 40, "content_diff": ["custom_components/y.py"]})
+    check("an approval not at this exact head is refused as that, when the policy blobs did not move",
+          rc == 1 and "policy:" in lines[-1] and "not this head" in lines[-1]
+          and not merged(calls) and no_app())
     rc, lines, calls = go({"heads": [H0, H1]})
     check("a head that moves before the approval stops it", rc == 1 and "head moved" in lines[-1]
           and not approved(calls) and not merged(calls))
@@ -869,6 +969,8 @@ def _self_test() -> int:
     for name, cands in TOOLS.items():
         check(f"the train's {name} script is in the tree ({' or '.join(cands)})",
               any((ROOT / c).is_file() for c in cands))
+    check("the train's mandate reader budget_raise_gate.py is in the tree ("
+          + " or ".join(GATE_PATHS) + ")", any((ROOT / c).is_file() for c in GATE_PATHS))
     check(f"the delivery-row directory the train requires, {ROW_DIR}/, is in the tree",
           (ROOT / ROW_DIR).is_dir())
     bare = re.findall(r'self\.run\(\[\s*"bash",\s*"([^"]+)"', Path(__file__).read_text())
@@ -996,6 +1098,15 @@ def _batch_self_test(check) -> None:
                 return 0, "APPROVED"
             if "--corpus-filter" in a:
                 return 0, "\n".join(f for f in (stdin or "").split() if f == "CLAUDE.md")
+            if argv[:2] == ["gh", "api"] and "/pulls/" in a and "/reviews" in a:
+                n = a.split("/pulls/")[1].split("/")[0]
+                w.setdefault("reviews_reads", []).append(n)
+                rf = w.get("reviews_for")
+                return 0, json.dumps([rf(w["heads"][int(n)]) if rf else []])
+            if argv[:2] == ["gh", "api"] and "/issues/comments/" in a:
+                return (0, json.dumps(w["mandate"])) if w.get("mandate") else (1, "gh: Not Found (HTTP 404)")
+            if argv[:2] == ["gh", "api"] and "/issues/201/comments" in a:
+                return 0, json.dumps([w.get("thread", [])])
             if "preflight.sh" in a:
                 return 0, "  clean    no refusal"
             if "worktree_gc.sh" in a:
@@ -1064,6 +1175,19 @@ def _batch_self_test(check) -> None:
     check("D: a batch of one merges at its head with no proof and no dispatch",
           w["rc"] == 0 and list(w["merged"]) == [1] and not w["pushed"] and not w["dispatched"]
           and any(" D: " in ln for ln in w["lines"]) and len(w["tree_ok"]) == 1)
+    _bg, brev, bman, _brev_revoke = policy_fixture_builders()
+    bnow = datetime.datetime.now(datetime.timezone.utc)
+    w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main")
+    check("batch fallback: a policy head with no owner approval at its head stops admission before any "
+          "proof is spent (the no-mandate fallback, on the batch side)",
+          w["rc"] == 1 and "policy:" in w["lines"][-1] and "no decisive review" in w["lines"][-1]
+          and not w["pushed"] and not w["merged"])
+    w = go({1: {"CLAUDE.md": "policy text\n", "a.txt": "A\n"}}, base="main",
+           setup=lambda w: w.update(reviews_for=lambda h: [brev(h, bnow)], mandate=bman(bnow)))
+    check("batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the "
+          "merge itself (admission reads, land reads again)",
+          w["rc"] == 0 and list(w["merged"]) == [1] and w.get("reviews_reads") == ["1", "1"]
+          and w["approved"] == [1])
 
     def moved(w):
         def push():  # after #1's merge and its tree check, before #2's attempt
