@@ -60630,6 +60630,7 @@ _FM_ARMS = (
     ("an unknown unit (gal/min)", {}, None, {"unit": "gal/min"}, None),
     ("an interval the plan split with hot water", {}, None, {},
      {"power": 1.0, "dhw_power": 1.0}),
+    ("an interval the plan gave nothing", {}, None, {}, {"power": 0.0}),
 )
 _fm_refusals = {}
 for _fm_label, _fm_cfg, _fm_meter, _fm_plant_kw, _fm_action in _FM_ARMS:
@@ -60648,9 +60649,10 @@ _fm_space_seen, _fm_space = _fm_replay(
     _HOUSE_LEARNER, action={"power": 2.0, "dhw_power": 0.0}
 )
 R.check(
-    "an outranked, stale, negative, unreadable, unknown-unit or hot-water "
-    "interval reaches no learner input (null controls: 20 min old, and the "
-    "same interval with the hot water at zero, both reach one)",
+    "an outranked, stale, negative, unreadable, unknown-unit, hot-water or "
+    "nothing-commanded interval reaches no learner input (null controls: "
+    "20 min old, and the same interval with the hot water at zero, both "
+    "reach one)",
     all(
         seen["kwargs"].get("measured_heat_kw") is None
         and coord._t2_escaped is None

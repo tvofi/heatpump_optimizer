@@ -818,13 +818,14 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     Module-level on ``_fold_flow_lift``'s precedent, and the one place the
     substitution is decided: both interval learners replay through
     :func:`_replay_interval` below, so neither can diverge from the other
-    about what the elapsed interval delivered.
+    about what the elapsed interval delivered. One predicate rather than a
+    guard per question, so the rule reads as the single sentence it is.
     """
     heat_kw = coord._flow_bias.heat_output_kw
-    if heat_kw is None:
-        return None
     space_kw, dhw_kw = coord._commanded_split()
-    return heat_kw if dhw_kw <= 0.0 and space_kw > 0.0 else None
+    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:
+        return None
+    return heat_kw
 
 
 def _replay_interval(

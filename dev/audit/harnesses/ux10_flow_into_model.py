@@ -47,8 +47,9 @@ Trees, each copied from the checkout into a temp dir:
 - ``m_sub_single``: ``_simulate_step_single``'s ``if measured_heat_kw is
   None`` to ``if True``, so the single-zone step keeps inferring Q_hp;
 - ``m_sub_two_zone``: the same predicate in ``_simulate_step_two_zone``;
-- ``m_veto``: ``_interval_measured_heat_kw``'s blend refusal removed, so an
-  interval the plan split with hot water is spent on the house.
+- ``m_veto``: ``_interval_measured_heat_kw``'s whole predicate to ``if
+  False:``, so an interval the plan split with hot water, or gave nothing, is
+  spent on the house.
 
 Expected, as measured at HEAD_SHA on HEAD_DATE against merge base
 a8ce87571 (both under Python 3.14.7):
@@ -134,7 +135,8 @@ SUB_TWO_ZONE = """        pump_heat_kw = (
         )
         thermal_power = pump_heat_kw + (0.0 if two_tank else ext)
 """
-VETO = "    return heat_kw if dhw_kw <= 0.0 and space_kw > 0.0 else None\n"
+VETO = ("    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:\n"
+        "        return None\n    return heat_kw\n")
 
 VARIANTS = {
     "head": [],
@@ -157,7 +159,9 @@ VARIANTS = {
     "m_sub_two_zone": [
         (THERMAL, SUB_TWO_ZONE, SUB_TWO_ZONE.replace("if measured_heat_kw is None", "if True"))
     ],
-    "m_veto": [(COORD, VETO, "    return heat_kw\n")],
+    "m_veto": [(COORD, VETO,
+               VETO.replace("if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:",
+                          "if False:"))],
 }
 #: ``base``: the merge base's three production files under this head's tests.
 BASE_SHA = os.environ.get("UX10_BASE_SHA", "a8ce87571e6b1c093e57036207828c74c70644f4")
@@ -259,7 +263,8 @@ def main():
                 capture_output=True, text=True, env=env,
             )
         (out / f"{v}.block.txt").write_text(run.stdout + run.stderr)
-        fails = [ln for ln in run.stdout.splitlines() if "FAIL" in ln]
+        fails = [ln for ln in run.stdout.splitlines()
+                 if ln.lstrip().startswith("FAIL ")]
         figures = dict(
             (ln.split(" ", 1)[0], ln.split(" ", 1)[1])
             for ln in run.stdout.splitlines()
