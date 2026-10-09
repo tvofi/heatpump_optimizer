@@ -45,6 +45,28 @@ MODIFIES -- `autofixCommit` allows a modification, but a rewrite of a row the
 branch already carried is reviewed content, and a fix that traded that away would
 be worse than the bug.
 
+A wiring (not logic) defect in the first head of this PR, caught by `fast
+(3.14)`'s `tests/layout.py` retired-path guard: `bot_commit`'s search for
+`policy_lint.mjs` had kept a fallback to the pre-reorganisation location (a
+pattern copied from `push.sh` and `prepr.sh`, which guard against a checkout
+that predates the move). At this head that fallback is a dead arm -- no file
+sits at the old path, and the guard reports any NEW line that names it. Fixed
+by removing the fallback: if the canonical file is ever absent, the same
+line's existing fail-closed refusal is the correct answer, since `carry` should
+not accept an autofix commit it cannot judge. `tests/layout.py` reports `GUARD:
+0 refusal(s)` at the current head. `pr-contract`'s own red at the first head
+(`094f2c0d2`) was purely downstream: it named `fast (3.14)` as a red the body
+did not answer, and this paragraph is the answer; both check-runs are listed in
+`## Figures`. `tools/audit/seat/merge_train.py`'s `TOOLS` table resolves the
+same three script names old-path-first (`tools/audit/app_approve.sh`,
+`tools/audit/app_push.sh`, `tools/audit/preflight.sh`), and `find tools/audit
+-maxdepth 2 -name 'app_approve.sh' -o -name 'app_push.sh' -o -name
+'preflight.sh'` returns nothing -- all three old paths are gone from the tree,
+so that table's first candidate is a dead arm of exactly the same class as this
+PR's. It is NOT touched here: it is pre-existing debt (R9-RO-6 moved those
+scripts, R9-RO-10 owns retiring the stale candidates), not new work this diff
+introduces, and this PR stays scoped to the one line it exists to fix.
+
 A second failure mode was measured alongside this one and is NOT fixed here:
 `carry`'s "branch's own diff compares equal" condition also refuses a head whose
 only change over the verdict is an AUTOMATIC merge of main that shifted context
@@ -61,11 +83,15 @@ neither the docstring nor that arm.
 
 ## Head
 
-Measured at `094f2c0d2696b4bd04cd485b9e7fc3f144620053` (`fix(R9-RC-Carry-Pins):
-carry a mutation-autofix pin commit, not a reviewed row rewrite`), branched from
-`b2b6acd64cde652676a568e93c05f021571ebe5e` (`origin/main` at the time of the
-first measurement below, re-verified identical: `git ls-remote origin main`
-answered `b2b6acd64...  refs/heads/main`).
+Measured at `b95753f0712756c58b19b7d55f487132e95ba3ef` (`fix(R9-RC-Carry-Pins):
+call the canonical policy_lint path, not the retired GENER copy`), the head this
+fix was re-taken at after round-1 review of `094f2c0d2696b4bd04cd485b9e7fc3f144620053`
+turned up a wiring (not logic) defect, reported below. Both commits are branched
+from `b2b6acd64cde652676a568e93c05f021571ebe5e` (`origin/main` at the time of the
+first measurement, re-verified identical at both heads: `git merge-base
+origin/main HEAD` still answers `b2b6acd64...`; `origin/main` has since advanced
+to `a8ce87571...` with PR #2024, which touches neither of this branch's two
+files -- no merge, no re-cut, only the orchestrator moves the head now).
 
 ## Mutation proof
 
@@ -142,11 +168,10 @@ beside each one.
 Every command re-runnable at the head above, from `tools/pr/app_approve.sh`'s
 own `--self-test` and the tools named:
 
-- `bash tools/pr/app_approve.sh --self-test` -- 157 checks, 0 failed. Main's own
-  copy, before this PR's arms were added, reported 145 checks (`MODE` not
-  printed here; `tests/entities.py`'s `_AH` fixture counts the autofix arms
-  separately, not this script's). The 12 new checks are the 6 fixture pairs
-  added under `## Mutation proof`'s four mutant names.
+- `bash tools/pr/app_approve.sh --self-test` -- 157 checks, 0 failed. The same
+  command on main's own, untouched copy (before this PR added any arm) reported
+  145 checks, 0 failed -- the 12-check difference is exactly the 6 new fixture
+  pairs added under `## Mutation proof`'s four mutant names.
 - `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`. No metric moved:
   the caps are Python-production metrics, and this diff touches only `.sh` and
   `.mjs` files, none of which `tests/structure.py` measures (checked:
@@ -158,9 +183,19 @@ own `--self-test` and the tools named:
   (`prepr.sh`'s `--pr-body` check for this head is the remaining local step,
   reported below once it returns, since it re-derives `tests/entities.py`'s own
   closure as part of that run.)
-- `git diff --stat origin/main..HEAD` -- 2 files changed, 201 insertions(+),
-  17 deletions(-); `tools/pr/app_approve.sh` +192/-12, `tools/policy/policy_lint.mjs`
-  +26/-5 (the `-17` total counts both files' removed lines together).
+- `git diff --stat $(git merge-base origin/main HEAD) HEAD` -- 2 files changed,
+  207 insertions(+), 17 deletions(-). `git diff --numstat` of the same range
+  splits it: `tools/pr/app_approve.sh` +189/-9, `tools/policy/policy_lint.mjs`
+  +18/-8. (Two-dot against `origin/main` is the wrong frame here: `origin/main`
+  has advanced to `a8ce87571...` since this branch's base, none of that is this
+  diff's work -- the merge base is the three-dot frame `CLAUDE.md` rule 3
+  requires.)
+- `PYTHONPATH=tests/hastub python3 tests/layout.py` -- `layout: GUARD: 0
+  refusal(s) against b2b6acd64cde`, exit 0. At the first head of this branch
+  (`094f2c0d2...`) the same command reported `GUARD: 1 refusal(s)`, the
+  retired-path fallback described above; that is what turned `fast (3.14)` and,
+  downstream, `pr-contract` red at `094f2c0d2...` (check-run ids 113892203905
+  and 113894588362), and it is fixed at the current head rather than answered.
 - The `## Head`-intro #2010 figure, run from `/private/tmp/r9-main`: the
   commands are `carry`'s own step-3 `norm()` pipeline, run for `mv=git
   merge-base origin/main d67d8a44` and `mh=git merge-base origin/main 87849cd2`
@@ -178,9 +213,15 @@ own `--self-test` and the tools named:
 
 ## Red checks
 
-`none` at the branch head as of this writing, before CI first runs at it.
-`prepr.sh`'s own summary and `tests/entities.py`'s result for this head are
-recorded on the delivery row after CI reaches it, per `delivery-status-tracking.md`.
+`none` at the current head. The two reds at this branch's previous head
+(`094f2c0d2...`) are named and answered in the intro above -- `fast (3.14)`'s
+`tests/layout.py` retired-path guard and the downstream `pr-contract` refusal
+that followed from it -- with their check-run ids and the before/after guard
+result recorded in `## Figures`, not listed here again, since per
+`delivery-status-tracking.md` naming a red is owed to the head that still
+carries it, and the current head's local run of the same guard is clean.
+`prepr.sh`'s own summary for the current head is the final local step, recorded
+here once it returns.
 
 ## Forward-carry
 
