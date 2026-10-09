@@ -693,6 +693,7 @@ class MeasurementView(TypedDict, total=False):
     measured_house_power: float | None
     measured_energy: float | None
     measured_power_available: bool
+    measured_heat_output_kw: float | None
 
 
 class GridView(TypedDict, total=False):
