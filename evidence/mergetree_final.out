@@ -1,0 +1,37 @@
+3143f34c7667d2021c66063b0eb4e9ba3dfd8bbf
+100644 abf381eaee474f7fcb3975444fa1b7a4eb7c9f6f 1	tests/features.py
+100644 5c98f2235536f011704dc4e368839b5a74e3d52c 2	tests/features.py
+100644 353835593d1aadafba2d6015ac2646c02be7a8a8 3	tests/features.py
+100644 9f55609d2c4370928438df6705c67435dac35ea4 2	tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.6526d7f7.json
+100644 2c7981bc1c056b74938a0c4e06f5a2ab52e21034 3	tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.6526d7f7.json
+100644 28063b762d734d6f762bee98ff191089db1f5f9a 2	tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.a4b4e684.json
+100644 563646e6297ce7e633370ea7e380f9cc89ce2bd5 3	tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.a4b4e684.json
+100644 1d97cd3135a48b710aa949fc3bb38dff3cd2084e 2	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CLAMP_DROP.2aa4786a.json
+100644 faac1cd4b7dc408c89a8011747dac01fa9e5afe1 3	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CLAMP_DROP.2aa4786a.json
+100644 12c5e2d6f175a1b2872327fe1a4e45dfd23ac9a1 2	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.ac5977ac.json
+100644 bc6ffd39a0d7ddc79c99b2e35bbb810a267ab168 3	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.ac5977ac.json
+100644 f4d314c7c9a06071ef863b91be98d1befe660416 2	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.bae80808.json
+100644 8f2d347decaa7ff2f00b7086ed25f72f736ee451 3	tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.bae80808.json
+100644 8302dfb391e0c784825f1a18c83485f49e0aab23 2	tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.GUARD_OFF.58d599ba.json
+100644 c683cdef1a3bea716672740ea0498080bb0f42dd 3	tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.GUARD_OFF.58d599ba.json
+100644 70cb2cc530f4f91cfaaaa2fd4e9a600b9e9fa0e2 2	tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json
+100644 cb0f8fa11add8a8585c0cc5917b8650bf11c42de 3	tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json
+
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+Auto-merging tests/features.py
+CONFLICT (content): Merge conflict in tests/features.py
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.6526d7f7.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.6526d7f7.json
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.a4b4e684.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/@module.CONST.a4b4e684.json
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CLAMP_DROP.2aa4786a.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CLAMP_DROP.2aa4786a.json
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.ac5977ac.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.ac5977ac.json
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.bae80808.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/DrawRange._metered_range.CMP_BOUND.bae80808.json
+Auto-merging tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.GUARD_OFF.58d599ba.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/draw_range.py/DrawRange.from_dict.GUARD_OFF.58d599ba.json
+Auto-merging tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json
+CONFLICT (add/add): Merge conflict in tests/mutation_ledger/killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json
