@@ -2561,6 +2561,7 @@ class ThermalModel:
         external_heat_kw: float = 0.0,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        measured_heat_kw: float | None = None,
         _cop: float | None = None,
         _u_eff: float | None = None,
         _q_solar: float | None = None,
@@ -2582,8 +2583,15 @@ class ThermalModel:
         )
         # Free thermal input (a wood furnace, item 28) joins the pump's output
         # at the hydronic mix. It is heat, not electricity, so it never touches
-        # the COP and costs the plan nothing.
-        thermal_power = cop * electrical_power + max(0.0, external_heat_kw)
+        # the COP and costs the plan nothing. The pump's own term is measured
+        # where a flow meter read it (#2016) and inferred from the draw and
+        # this step's COP everywhere else.
+        pump_heat_kw = (
+            cop * electrical_power
+            if measured_heat_kw is None
+            else measured_heat_kw
+        )
+        thermal_power = pump_heat_kw + max(0.0, external_heat_kw)
 
         u_eff = (
             self.effective_heat_loss_coefficient(
@@ -2649,6 +2657,7 @@ class ThermalModel:
         valve_target: float | None = None,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        measured_heat_kw: float | None = None,
         _loss: tuple[float, float] | None = None,
     ) -> ThermalState:
         """Simulate one step with the two-zone model including buffer tank.
@@ -2689,9 +2698,15 @@ class ThermalModel:
         # not electricity, so it never touches the COP. When the wood tank is
         # modelled it charges that tank instead (below), never this sum.
         ext = max(0.0, external_heat_kw)
-        thermal_power = (
-            cop * electrical_power + (0.0 if two_tank else ext)
-        )  # total heat into the buffer
+        # Total heat into the buffer. The pump's own term is measured where a
+        # flow meter read it (#2016) and inferred from the draw and this
+        # step's COP everywhere else.
+        pump_heat_kw = (
+            cop * electrical_power
+            if measured_heat_kw is None
+            else measured_heat_kw
+        )
+        thermal_power = pump_heat_kw + (0.0 if two_tank else ext)
 
         u_upper, u_lower = (
             self._zone_loss(wind_speed, precipitation) if _loss is None else _loss
@@ -2932,6 +2947,7 @@ class ThermalModel:
         valve_target: float | None = None,
         humidity: float | None = None,
         hour_of_day: float | None = None,
+        measured_heat_kw: float | None = None,
     ) -> ThermalState:
         """Simulate one time step (dispatches to single or two-zone).
 
@@ -2942,6 +2958,18 @@ class ThermalModel:
         defrost derate; ``hour_of_day`` selects the learned internal-gains
         hour (#53). ``None`` for either falls back to the single configured
         value, which is byte-for-byte the previous behaviour.
+
+        ``measured_heat_kw`` is the pump's thermal output for this step as a
+        meter read it (#2016), and it stands in for the
+        ``cop * electrical_power`` both zone steps would otherwise infer; free
+        external heat joins it exactly as before. ``None`` -- the default, and
+        what every planning call passes, a horizon holding no measurement --
+        leaves Q_hp inferred, byte-for-byte the previous behaviour. Trusted
+        rather than validated, like ``electrical_power``: its producer
+        (``flow_meter.read_heat_output_kw``) refuses a reading that is stale,
+        negative, of an unknown unit or no warmer than the return, and only
+        the two interval learners, which replay one elapsed step, ever have
+        one to pass.
         """
         # The single-zone path has no buffer cap, so the scratch would
         # otherwise carry a stale value from an earlier two-zone step. The
@@ -2968,6 +2996,7 @@ class ThermalModel:
                     state, electrical_power, outdoor_temp,
                     wind_speed, precipitation, solar_radiation, dt_hours,
                     external_heat_kw, valve_target, humidity, hour_of_day,
+                    measured_heat_kw=measured_heat_kw,
                     _loss=(u_first, u_second),
                 )
             refused = 0.0
@@ -2978,6 +3007,7 @@ class ThermalModel:
                     wind_speed, precipitation, solar_radiation,
                     dt_hours / n_sub,
                     external_heat_kw, valve_target, humidity, hour_of_day,
+                    measured_heat_kw=measured_heat_kw,
                     _loss=(u_first, u_second),
                 )
                 refused += self._step_buffer_refused
@@ -2991,7 +3021,8 @@ class ThermalModel:
             return self._simulate_step_single(
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours,
-                external_heat_kw, humidity, hour_of_day, _u_eff=u_first,
+                external_heat_kw, humidity, hour_of_day,
+                measured_heat_kw=measured_heat_kw, _u_eff=u_first,
             )
         # Every sub-step below re-enters with the same outdoor, wind, rain,
         # solar and humidity, so the three per-call environment constants
@@ -3007,6 +3038,7 @@ class ThermalModel:
                 state, electrical_power, outdoor_temp,
                 wind_speed, precipitation, solar_radiation, dt_hours / n_sub,
                 external_heat_kw, humidity, hour_of_day,
+                measured_heat_kw=measured_heat_kw,
                 _cop=cop, _u_eff=u_first, _q_solar=q_solar,
             )
         return state

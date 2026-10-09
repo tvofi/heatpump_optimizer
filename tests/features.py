@@ -60422,4 +60422,292 @@ R.check(
 )
 
 
+# --- #2016 item 4 (R9-UX-10): the measured output into the model's own Q_hp ---
+#
+# R9-UX-9 published the flow meter's thermal output and nothing consumed it --
+# ``docs/configuration.md`` said "read for display only". The two interval
+# learners replay the elapsed interval through the model, and on an install
+# with no power entity the figure they replay is the COMMANDED electrical draw,
+# which the model turns into heat with its own COP: an inference. Where the
+# water flow is metered the heat is measured, and the replay spends the
+# measurement instead. Pinned below, in order: the model's substitution on both
+# zone paths, the value that reaches each learner's replay, what the
+# substitution then moves in the prediction the residual is taken from, and
+# every arm that must refuse one -- a power or frequency signal outranking the
+# meter, a stale reading, a negative one, an unreadable one, an unknown unit,
+# an unset key, and an interval the plan gave partly to hot water.
+#
+# 15 L/min at 0.998 kg/L over the planted 5 K drop is 5.222035 kW: the figure
+# the R9-UX-9 block above derives from these same three states, quoted here as
+# the literal the issue's acceptance names, so this block pins the wiring and
+# not a second copy of the arithmetic.
+_FM_LEARN_KW = 5.222035
+_FM_FLOW_CFG = {
+    _fb_const.CONF_FLOW_METER_ENTITY: "sensor.flow",
+    _fb_const.CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY: "sensor.sup",
+    _fb_const.CONF_HEAT_PUMP_RETURN_TEMP_ENTITY: "sensor.ret",
+}
+_FM_MODEL = ThermalModel(ThermalParameters())
+_FM_TWO_ZONE_MODEL = ThermalModel(ThermalParameters(two_zone_enabled=True))
+_FM_COP = _FM_MODEL.compute_cop(-5.0)
+_FM_TWO_ZONE_COP = _FM_TWO_ZONE_MODEL.compute_cop(-5.0)
+
+
+def _fm_sim(model, power, measured="__omit__"):
+    """One model step, and the error a parameter it does not take raises."""
+    kwargs = {} if measured == "__omit__" else {"measured_heat_kw": measured}
+    try:
+        return model.simulate_step(
+            _T2_HOUSE_STATE, power, -5.0, dt_hours=0.5, **kwargs
+        ), None
+    except Exception as err:  # noqa: BLE001
+        return None, f"{type(err).__name__}: {err}"
+
+
+# The single-zone step's room rate carries no heat-input term -- `_single_zone_rates`
+# puts `thermal_power` in the SLAB's rate and the room follows the slab on a
+# later step, and one replay at n_sub == 1 is one step -- so this reads the
+# slab, which is what the substitution moves there. The two-zone check below
+# reads both floors, whose rates the pump's heat enters directly.
+_fm_m_meas, _fm_m_err = _fm_sim(_FM_MODEL, 0.0, _FM_LEARN_KW)
+_fm_m_equiv, _ = _fm_sim(_FM_MODEL, _FM_LEARN_KW / _FM_COP)
+_fm_m_elec, _ = _fm_sim(_FM_MODEL, _FM_LEARN_KW)
+_fm_m_null, _ = _fm_sim(_FM_MODEL, 2.0, None)
+_fm_m_omit, _ = _fm_sim(_FM_MODEL, 2.0)
+R.check(
+    "the model spends a measured heat output instead of inferring one from the "
+    "draw, and None is byte-identical to omitting it",
+    _fm_m_err is None
+    and _fm_m_meas is not None
+    and _fm_m_equiv is not None
+    and _fm_m_elec is not None
+    and abs(_fm_m_meas.slab_temperature - _fm_m_equiv.slab_temperature) < 1e-9
+    and abs(_fm_m_meas.slab_temperature - _fm_m_elec.slab_temperature) > 1e-6
+    and _fm_m_null == _fm_m_omit,
+    f"err {_fm_m_err!r}; slab at the measured "
+    f"{None if _fm_m_meas is None else _fm_m_meas.slab_temperature!r}, at the "
+    f"same heat as a draw "
+    f"{None if _fm_m_equiv is None else _fm_m_equiv.slab_temperature!r} and at "
+    f"that number taken for a draw "
+    f"{None if _fm_m_elec is None else _fm_m_elec.slab_temperature!r}",
+)
+_fm_z_meas, _fm_z_err = _fm_sim(_FM_TWO_ZONE_MODEL, 0.0, _FM_LEARN_KW)
+_fm_z_equiv, _ = _fm_sim(_FM_TWO_ZONE_MODEL, _FM_LEARN_KW / _FM_TWO_ZONE_COP)
+_fm_z_elec, _ = _fm_sim(_FM_TWO_ZONE_MODEL, _FM_LEARN_KW)
+_fm_z_null, _ = _fm_sim(_FM_TWO_ZONE_MODEL, 2.0, None)
+_fm_z_omit, _ = _fm_sim(_FM_TWO_ZONE_MODEL, 2.0)
+R.check(
+    "the two-zone step spends it too, on the same rule (null control: None "
+    "byte-identical to omitting it)",
+    _fm_z_err is None
+    and _fm_z_meas is not None
+    and _fm_z_equiv is not None
+    and _fm_z_elec is not None
+    and abs(_fm_z_meas.upper_floor_temperature - _fm_z_equiv.upper_floor_temperature) < 1e-9
+    and abs(_fm_z_meas.lower_floor_temperature - _fm_z_equiv.lower_floor_temperature) < 1e-9
+    and abs(_fm_z_meas.upper_floor_temperature - _fm_z_elec.upper_floor_temperature) > 1e-6
+    and _fm_z_null == _fm_z_omit,
+    f"err {_fm_z_err!r}; upper at the measured "
+    f"{None if _fm_z_meas is None else _fm_z_meas.upper_floor_temperature!r}, "
+    f"at the same heat as a draw "
+    f"{None if _fm_z_equiv is None else _fm_z_equiv.upper_floor_temperature!r} "
+    f"and at that number taken for a draw "
+    f"{None if _fm_z_elec is None else _fm_z_elec.upper_floor_temperature!r}",
+)
+
+
+def _fm_plant(coord, flow="15.0", unit="L/min", age_min=1):
+    """Plant this cycle's three water states and run the production fold."""
+    coord.hass.states.set(
+        "sensor.flow",
+        FakeState(flow, last_updated=minutes_ago(age_min, NOW), unit=unit),
+    )
+    coord.hass.states.set(
+        "sensor.sup",
+        FakeState("45.0", last_updated=minutes_ago(1, NOW), unit="°C"),
+    )
+    coord.hass.states.set(
+        "sensor.ret",
+        FakeState("40.0", last_updated=minutes_ago(1, NOW), unit="°C"),
+    )
+    # The outranked arm configures the pump's power meter, and its learner has
+    # to reach the replay for that arm's refusal to mean something other than
+    # "the learner never ran": the fixture builds no cycle, so the meter's
+    # value is planted the way `_update_current_state` would have left it.
+    coord.hass.states.set(
+        "sensor.hp_power",
+        FakeState("2000", last_updated=minutes_ago(1, NOW), unit="W"),
+    )
+    reader = _fmReader(coord.hass, coord.effective_config, now=lambda: NOW)
+    _fm.observe_water(coord._flow_bias, reader, coord.effective_config)
+    return coord
+
+
+def _fm_spy(coord):
+    """The next replay's call to ``simulate_step``: its kwargs and its result."""
+    seen = {"kwargs": {}, "state": None}
+    real = coord._thermal_model.simulate_step
+
+    def spy(*args, **kwargs):
+        seen["kwargs"] = kwargs
+        seen["state"] = real(*args, **kwargs)
+        return seen["state"]
+
+    coord._thermal_model.simulate_step = spy
+    return seen
+
+
+def _fm_replay(
+    method,
+    *,
+    flow_cfg=True,
+    two_zone=False,
+    action=None,
+    config=None,
+    meter=None,
+    **plant,
+):
+    """One frozen-clock learner run over one planted interval.
+
+    Frozen because the fit is a Newton step on ``dt_hours`` and a live clock
+    leaves whatever gap the scheduler happens to have (#812's note above).
+    Returns ``(seen, coordinator)``.
+    """
+    dt_util.freeze(NOW)
+    try:
+        cfg = dict(_FM_FLOW_CFG) if flow_cfg else {}
+        cfg.update(config or {})
+        coord = _t2_house(two_zone=two_zone, **cfg)
+        if action is not None:
+            coord._current_action = dict(action)
+        if meter is not None:
+            coord._measured_power = float(meter)
+        _fm_plant(coord, **plant)
+        seen = _fm_spy(coord)
+        _t2_drive(coord, method)
+    finally:
+        dt_util.freeze(None)
+    return seen, coord
+
+
+_HOUSE_LEARNER = "_async_learn_house_heat_loss"
+_LOWER_LEARNER = "_async_learn_lower_floor_loss"
+_fm_seen, _fm_coord = _fm_replay(_HOUSE_LEARNER)
+R.check(
+    "a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as "
+    "5.222035 kW",
+    _fm_coord._t2_escaped is None
+    and _fm_coord._house_heat_loss_samples == 1
+    and _fm_seen["kwargs"].get("measured_heat_kw") is not None
+    and abs(_fm_seen["kwargs"]["measured_heat_kw"] - _FM_LEARN_KW) < 1e-9,
+    f"measured_heat_kw {_fm_seen['kwargs'].get('measured_heat_kw')!r} of "
+    f"{sorted(_fm_seen['kwargs'])}; samples "
+    f"{_fm_coord._house_heat_loss_samples}; escaped {_fm_coord._t2_escaped!r}",
+)
+_fm_lf_seen, _fm_lf = _fm_replay(_LOWER_LEARNER, two_zone=True)
+R.check(
+    "and the lower-floor replay, which is the two-zone step's own learner",
+    _fm_lf._t2_escaped is None
+    and _fm_lf_seen["kwargs"].get("measured_heat_kw") is not None
+    and abs(_fm_lf_seen["kwargs"]["measured_heat_kw"] - _FM_LEARN_KW) < 1e-9,
+    f"measured_heat_kw {_fm_lf_seen['kwargs'].get('measured_heat_kw')!r} of "
+    f"{sorted(_fm_lf_seen['kwargs'])}; escaped {_fm_lf._t2_escaped!r}",
+)
+# The precedence rule and the refused-reading paths, each at the learner's own
+# input rather than at the reader's: what R9-UX-9 pinned was that
+# ``read_heat_output_kw`` answers None, and a learner that read the holder
+# directly instead of through that gate would leave every one of those checks
+# green while spending a stale, negative or outranked reading. Each arm also
+# asserts the learner still folded its sample, so a refusal cannot be had by
+# breaking the replay.
+_FM_ARMS = (
+    # label, extra config, planted meter, plant kwargs, commanded action
+    ("a power entity", {_fb_const.CONF_POWER_ENTITY: "sensor.hp_power"}, 2.0, {}, None),
+    ("a frequency sensor", {_fb_const.CONF_COMPRESSOR_FREQ_SENSOR: "sensor.hz"}, None, {}, None),
+    ("stale (45 min against the key's 30)", {}, None, {"age_min": 45}, None),
+    ("negative (-3.0 L/min)", {}, None, {"flow": "-3.0"}, None),
+    ("unreadable (unavailable)", {}, None, {"flow": "unavailable"}, None),
+    ("an unknown unit (gal/min)", {}, None, {"unit": "gal/min"}, None),
+    ("an interval the plan split with hot water", {}, None, {},
+     {"power": 1.0, "dhw_power": 1.0}),
+)
+_fm_refusals = {}
+for _fm_label, _fm_cfg, _fm_meter, _fm_plant_kw, _fm_action in _FM_ARMS:
+    _fm_refusals[_fm_label] = _fm_replay(
+        _HOUSE_LEARNER,
+        config=_fm_cfg,
+        meter=_fm_meter,
+        action=_fm_action,
+        **_fm_plant_kw,
+    )
+# Each refusal's own null control: the same fixture with the one refused thing
+# put right does reach the replay, so a learner that refused everything could
+# not pass the seven above.
+_fm_fresh_seen, _fm_fresh = _fm_replay(_HOUSE_LEARNER, age_min=20)
+_fm_space_seen, _fm_space = _fm_replay(
+    _HOUSE_LEARNER, action={"power": 2.0, "dhw_power": 0.0}
+)
+R.check(
+    "an outranked, stale, negative, unreadable, unknown-unit or hot-water "
+    "interval reaches no learner input (null controls: 20 min old, and the "
+    "same interval with the hot water at zero, both reach one)",
+    all(
+        seen["kwargs"].get("measured_heat_kw") is None
+        and coord._t2_escaped is None
+        and coord._house_heat_loss_samples == 1
+        for seen, coord in _fm_refusals.values()
+    )
+    and _fm_fresh_seen["kwargs"].get("measured_heat_kw") is not None
+    and abs(_fm_fresh_seen["kwargs"]["measured_heat_kw"] - _FM_LEARN_KW) < 1e-9
+    and _fm_space_seen["kwargs"].get("measured_heat_kw") is not None
+    and abs(_fm_space_seen["kwargs"]["measured_heat_kw"] - _FM_LEARN_KW) < 1e-9,
+    f"{ {k: v[0]['kwargs'].get('measured_heat_kw') for k, v in _fm_refusals.items()} } "
+    f"samples {[v[1]._house_heat_loss_samples for v in _fm_refusals.values()]} "
+    f"fresh {_fm_fresh_seen['kwargs'].get('measured_heat_kw')!r} space-only "
+    f"{_fm_space_seen['kwargs'].get('measured_heat_kw')!r}",
+)
+_fm_unset_seen, _fm_unset = _fm_replay(_HOUSE_LEARNER, flow_cfg=False)
+R.check(
+    "null control: with the key unset the replay is handed no measured heat "
+    "and the prediction is byte-identical to a meter that read nothing",
+    _fm_unset_seen["kwargs"].get("measured_heat_kw") is None
+    and _fm_unset._house_heat_loss_samples == 1
+    and repr(_fm_unset_seen["state"])
+    == repr(_fm_refusals["unreadable (unavailable)"][0]["state"])
+    and repr(_fm_unset._house_heat_loss_scale)
+    == repr(_fm_refusals["unreadable (unavailable)"][1]._house_heat_loss_scale),
+    f"unset {_fm_unset_seen['state']!r} scale "
+    f"{_fm_unset._house_heat_loss_scale!r} against unreadable "
+    f"{_fm_refusals['unreadable (unavailable)'][0]['state']!r}",
+)
+# What the substitution moves where the residual is taken from. The two-zone
+# step's UPPER floor rate carries the radiator share of the pump's heat
+# directly, so the measurement moves the very temperature the house heat-loss
+# residual is differenced against in a two-zone house. One sample's fit cannot
+# show it: `learner_newton_step`'s trust region caps a single sample at
+# HOUSE_LOSS_MAX_STEP, and the scale reads 1.01 from its 1.0 start at every
+# power this fixture can command, planted or not -- which is why this reads the
+# prediction and not the ratio. The lower floor follows the slab a step later,
+# and the single-zone room follows it too, so neither of those two predictions
+# moves within one replay; the slab and the upper floor are where the
+# substitution lands.
+_fm_2z_seen, _fm_2z = _fm_replay(_HOUSE_LEARNER, two_zone=True)
+_fm_2z_unset_seen, _fm_2z_unset = _fm_replay(
+    _HOUSE_LEARNER, two_zone=True, flow_cfg=False
+)
+R.check(
+    "the two-zone house replay predicts a different upper floor on the "
+    "measurement than on the commanded draw it replaces",
+    _fm_2z._t2_escaped is None
+    and _fm_2z_seen["state"] is not None
+    and _fm_2z_unset_seen["state"] is not None
+    and repr(_fm_2z_seen["state"].upper_floor_temperature)
+    != repr(_fm_2z_unset_seen["state"].upper_floor_temperature)
+    and repr(_fm_2z_seen["state"].lower_floor_temperature)
+    == repr(_fm_2z_unset_seen["state"].lower_floor_temperature),
+    f"planted upper "
+    f"{None if _fm_2z_seen['state'] is None else _fm_2z_seen['state'].upper_floor_temperature!r} "
+    f"unset upper "
+    f"{None if _fm_2z_unset_seen['state'] is None else _fm_2z_unset_seen['state'].upper_floor_temperature!r}",
+)
 sys.exit(R.close("FEATURE CHECKS"))
