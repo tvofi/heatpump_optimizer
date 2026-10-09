@@ -1,0 +1,62 @@
+ok   a passing body, a clean tip and no open pull request: pushed and created
+ok   prepr ran before the mint, the mint before the push, the push before the pull request (#678's ordering)
+ok   the push resets the host's credential helpers before adding the App's
+ok   the push argv carries -c http.postBuffer=64m, so an over-1-MiB branch does not go chunked (#1267)
+ok   and pushes over a token-free https URL to the branch
+ok   the token and header text appear on NO stubbed command line, push included
+ok   the created pull request carries the body file's exact bytes
+ok   the pull request is read back once, through the App token
+ok   (null control: the token did reach GitHub, from a mode-600 header file)
+ok   and that header file was mode 600 while it existed
+ok   (null control: the credential helper delivered the token from the file, over its stdout)
+ok   the installation token is revoked on exit
+ok   the private directory is gone after a success
+ok   no token, JWT, key or signature text in stdout or stderr after a success
+ok   and the read-back success line is printed
+ok   an open pull request on the branch: pushed and re-bodied, not duplicated
+ok   its body is PATCHed with one call
+ok   and no create POST is made
+ok   the PATCHed body carries no token
+ok   REFUSE: prepr fails, so nothing is minted, pushed or posted
+ok   no curl call at all: the refusal precedes the mint
+ok   and no push either (the ok case above is the healthy arm: it pushes exactly once)
+ok   REFUSE: a dirty worktree, prepr passed
+ok   naming the dirty worktree
+ok   and nothing was minted
+ok   REFUSE: HEAD is not the branch's committed tip
+ok   naming the mismatch
+ok   and nothing was minted
+ok   REFUSE: the App private key is missing
+ok   before any prepr, gh, git, openssl or curl call
+ok   REFUSE: an App id with a non-digit in it
+ok   refused as malformed, not stripped to digits
+ok   before any prepr, gh, git, openssl or curl call
+ok   REFUSE: the open-pull-request query did not answer
+ok   no answer, no mint: nothing was minted or pushed
+ok   REFUSE: prose is not a listing (the fail-open shape push.sh refuses)
+ok   REFUSE: pushing main is not this tool's job
+ok   REFUSE: four arguments are required
+ok   REFUSE: a body path that does not resolve
+ok   naming the body path itself, not the pre-shift $4 that set -u trips on after shift 4
+ok   a refused push exits non-zero
+ok   and no pull request was created or re-bodied
+ok   the token is revoked after the failed push
+ok   and the private directory is gone, token and all
+ok   a body that reads back different refuses, though the POST returned 0
+ok   naming the byte-identity rule it failed
+ok   the token is revoked after the failed read-back
+ok   and no token, JWT, key or signature text reached stdout or stderr
+ok   --dry-run passes every refusal
+ok   and makes no curl call: nothing minted, pushed or posted
+ok   and signs nothing
+ok   and pushes nothing
+ok   reporting what it would do
+ok   --dry-run still refuses what a real run would
+ok   --branch-only pushes a batch/ branch without a body
+ok   through the App's helper, once
+ok   and opens, re-bodies and reads no pull request, runs no prepr and asks gh nothing
+ok   the token is revoked, the private directory gone, nothing leaked
+ok   REFUSE: --branch-only on a fix branch, which would skip its prepr
+ok   before any call (null control for the pair above: same flag, another branch)
+app_push self-test: 60 checks, 0 failed
+rc=0

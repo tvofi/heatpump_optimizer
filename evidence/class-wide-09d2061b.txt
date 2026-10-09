@@ -1,0 +1,40 @@
+tools/audit/seat/bus.sh:393:  [ $rc != 0 ] && echo "$out" | grep -q "outside fix-review.md's grammar"; expect "push-verdict refuses a first line outside the grammar" $?
+tools/audit/seat/bus.sh:395:  [ $rc != 0 ] && echo "$out" | grep -q "no 'bus-nonce"; expect "push-verdict refuses a verdict with no nonce line" $?
+tools/audit/seat/bus.sh:397:  [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
+tools/audit/seat/bus.sh:399:  [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
+tools/audit/seat/bus.sh:401:  [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
+tools/audit/seat/bus.sh:406:  [ $rc = 0 ] && echo "$out" | grep -q "baseline of 0 ref" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:416:  echo "$out" | grep -q "^BUS undispatched 11 $rf" && echo "$out" | grep -q "^BUS unsigned 12 $t" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:419:  echo "$out" | grep -q "^BUS undispatched 11 $rf" && [ "$(calls)" = 0 ] \
+tools/audit/seat/bus.sh:431:  echo "$out" | grep -q "^BUS unsigned 13 $t" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:444:  echo "$out" | grep -q "^BUS undispatched 7 $ra" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:452:  echo "$out" | grep -qx "BUS handoff t1 $(git -C "$W/seat" rev-parse HEAD)"; expect "watch reports a new handoff ref" $?
+tools/audit/seat/bus.sh:453:  echo "$out" | grep -qx "BUS review 7 $r1"; expect "watch reports a new review ref" $?
+tools/audit/seat/bus.sh:454:  echo "$out" | grep -q "^BUS unconfirmed 7 $r1: read cmsg_R's own output .*bus.sh confirm 7 $r1" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:457:  echo "$out" | grep -q "^BUS refused 7 $ra: the tip of review/7 is $r1" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:460:  [ $rc != 0 ] && echo "$out" | grep -q "no hpo-approver key" && [ "$(calls)" = 0 ]
+tools/audit/seat/bus.sh:464:  echo "$out" | grep -q "^BUS posted 7 $v1 Fix review: merge $h1" && [ "$(calls)" = 1 ]; expect "confirm signs the proposal onto verdict/<pr> and posts it once" $?
+tools/audit/seat/bus.sh:473:  [ $rc = 0 ] && ! echo "$out" | grep -q "^BUS refused" && [ "$(calls)" = 1 ]; expect "watch passes over a verdict it already posted" $?
+tools/audit/seat/bus.sh:477:  [ $rc != 0 ] && echo "$out" | grep -q "already posted" && [ "$(calls)" = 1 ]; expect "post refuses a commit already posted" $?
+tools/audit/seat/bus.sh:486:  echo "$out" | grep -q "^BUS unsigned 15 $v1" && [ "$(calls)" = 1 ]
+tools/audit/seat/bus.sh:488:  echo "$out" | grep -q "^BUS unsigned 7 $t"; expect "a signature over another tree does not post" $?
+tools/audit/seat/bus.sh:496:  echo "$out" | grep -q "^BUS undispatched 7 $rs" && [ "$(calls)" = 1 ]; expect "round 1's nonce does not count at another head" $?
+tools/audit/seat/bus.sh:503:  echo "$out" | grep -q "^BUS posted 7 $v2 Fix review: blocked $h2" && [ "$(calls)" = 2 ] \
+tools/audit/seat/bus.sh:512:  echo "$out" | grep -q "^BUS refused 7 $t: this signed verdict was already posted on #7 (a replay)" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:520:    echo "$out" | grep -q "^BUS \(refused\|unsigned\) 7 $t" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:533:  echo "$out" | grep -q "^BUS refused 8 $t: the first line is outside" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:540:  echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
+tools/audit/seat/bus.sh:548:  echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
+tools/audit/seat/bus.sh:551:  echo "$out" | grep -q "^BUS posted 9 "; expect "post retries a refused verdict by hand" $?
+tools/audit/seat/bus.sh:555:  echo "$out" | grep -qx "BUS handoff t1 gone"; expect "watch reports a deleted ref" $?
+tools/audit/seat/bus.sh:559:  [ $rc = 0 ] && echo "$out" | grep -q "^BUS body t1 "; expect "watch without --once exits on its first event" $?
+tools/audit/seat/cloud-setup.sh:71:[ -n "${HPO_PROFILE:-}" ] || grep -qF "$PROFILE" "$HOME/.bashrc" 2>/dev/null \
+tools/audit/seat/handoff_push.sh:36:git diff --name-only "$CODE" "$T" | grep -vqE '^handoff/' && echo "note: tip adds non-handoff files over $CODE (a later main merge?) -- pushing the code head only"
+tools/audit/seat/seat_venv.sh:159:  echo "$out" | grep -q 'venv-ha' && [ "$rc" = 0 ]
+tools/audit/seat/seat_venv.sh:179:  [ "$rc" != 0 ] && echo "$out" | grep -q 'venv-ha'
+tools/audit/seat/seat_venv.sh:187:  echo "$prod" | grep -qF -- '-m pip install -q --require-hashes'
+tools/audit/seat/seat_venv.sh:189:  echo "$prod" | grep -qF 'pins "$VENV_HA" --no-deps -r "$ROOT/tests/requirements-typing.txt"'
+tools/audit/seat/seat_venv.sh:191:  echo "$prod" | grep -qF 'import homeassistant.const as c; assert c.__version__ == "2026.9.3"'
+tools/audit/seat/update_pr.sh:11:git worktree list | grep -F "[$BR]" | grep -vqF "$WT " && { echo "branch $BR checked out elsewhere: $(git worktree list | grep -F "[$BR]")"; exit 1; }
+tools/pr/push.sh:170:    "${1:-/dev/null}" | grep -qiF "$pfx"
+tools/pr/push.sh:206:    "$body" | grep -qE '^[[:space:]]*```' && return 2

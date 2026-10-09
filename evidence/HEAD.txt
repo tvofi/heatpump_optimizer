@@ -1,0 +1,4 @@
+reviewed head: 09d2061b247a77e27ba625c81ef25a9909726ef9 (live at posting; no main merge since d8c34eeb)
+earlier code head measured: d8c34eebc26c018f7f9dcd385cf329e562509cad (harness.d8c34eeb.out, app_push.*.out, sigpipe.*.out)
+CI instrument-self-tests at 09d2061b: success, prepr self-test 224 passed 0 failed (job 113586722277, ci-instrument-self-tests-09d2061b.log:1036)
+CI instrument-self-tests at d8c34eeb: success, 221 passed 0 failed (job 113575591910)

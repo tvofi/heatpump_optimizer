@@ -1,0 +1,33 @@
+RESULT classrow head rc=0 (want 0)
+mkdir: .claude/hooks/session-start.sh: File exists
+mkdir: .claude/hooks/stop-selfcheck.sh: File exists
+mkdir: .claude/hooks/pre-edit.sh: File exists
+mkdir: tools/pr/approve_held_runs.sh: File exists
+(eval):5: no such file or directory: /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp.a5PwyVNMm2/tools/pr/prepr.sh .claude/hooks/session-start.sh .claude/hooks/stop-selfcheck.sh .claude/hooks/pre-edit.sh tools/pr/approve_held_runs.sh tools/audit/worktree_gc.sh
+RESULT classrow at-d8c34eeb-files rc=0 (want 1)
+RESULT classrow mutant .claude/hooks/session-start.sh changed_lines=1 rc=1 (want 1)
+RESULT classrow mutant .claude/hooks/stop-selfcheck.sh changed_lines=1 rc=1 (want 1)
+RESULT classrow mutant tools/pr/approve_held_runs.sh changed_lines=2 rc=1 (want 1)
+RESULT classrow mutant tools/audit/worktree_gc.sh changed_lines=1 rc=1 (want 1)
+#### hooks step strings in policy_lint --hooks
+#### hook self-tests
+8 passed, 0 failed
+26 passed, 0 failed
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  16 passed, 0 failed
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  26 passed, 0 failed
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+sed: 1: "/^pipe_grep_q_sites() //p
+": invalid command code /
+sed: 1: "/^pipe_grep_q_sites() / ...": invalid command code ^
+bash: line 4: pipe_grep_q_sites: command not found
+RESULT classrow at-d8c34eeb-files rc=127 (want 1)
+.claude/hooks/session-start.sh:93:  st() { if printf '%s' "$out" | grep -qE "$1"; then pass=$((pass+1)); printf '  ok   %s\n' "$2"
+.claude/hooks/stop-selfcheck.sh:31:  printf '%s\n' "$1" | grep -qE "$POLICY_PREFIXES"
+tools/pr/approve_held_runs.sh:175:    if printf '%s\n' "$failed" | grep -qx "$e"; then : # reported as failed below
+tools/pr/approve_held_runs.sh:176:    elif printf '%s\n' "$still" | grep -qx "$e"; then : # reported as still-held below
+tools/audit/worktree_gc.sh:588:handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -qx "$1"; }
+RESULT classrow at-d8c34eeb-files rc=1 (want 1)
+approve_held_runs self-test: 42 checks, 0 failed
+worktree_gc self-test: 66 checks, 0 failed
+16 passed, 0 failed

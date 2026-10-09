@@ -1,0 +1,40 @@
+== A. floor, planted low space, the REAL entry (df stubbed)
+RESULT floor-low avail=1000KB rc=3 secs=0 lines=1 FAIL_rows=0 tmp_entries=0
+   | ENVIRONMENT: /Users/timmalmstrom/hpo-seats/review-2067/evidence/tmpA.1000 has 1000 KB free, under the self-test floor of 446248 KB (twice its measured peak). Free space and re-run; this is not a test failure.
+RESULT floor-low avail=446247KB rc=3 secs=1 lines=1 FAIL_rows=0 tmp_entries=0
+   | ENVIRONMENT: /Users/timmalmstrom/hpo-seats/review-2067/evidence/tmpA.446247 has 446247 KB free, under the self-test floor of 446248 KB (twice its measured peak). Free space and re-run; this is not a test failure.
+== A2. boundary + unmeasurable, function alone (stubbed df)
+RESULT floor-fn avail='446247' rc=3 out=ENVIRONMENT: /x has 446247 KB free, under the self-test floo
+RESULT floor-fn avail='446248' rc=0 out=
+RESULT floor-fn avail='garbage' rc=0 out=temp floor: free space under /x is unmeasured; running anywa
+RESULT floor-fn avail='' rc=0 out=temp floor: free space under /x is unmeasured; running anywa
+== A3. null control: real df, real TMPDIR, default floor
+RESULT floor-real rc=0 df_avail=12650316
+== B. trap: every exit path (set -m: an async job in a non-job-control shell starts with INT/QUIT ignored, which a trap cannot undo -- a harness artefact, not the PR's)
+RESULT trap path=normal rc=0 leftover=0
+RESULT trap path=error rc=2 leftover=0
+RESULT trap path=seterr rc=1 leftover=0
+RESULT trap path=sigterm rc=143 leftover=0
+RESULT trap path=sighup rc=129 leftover=0
+RESULT trap path=sigint rc=130 leftover=0
+RESULT trap path=sigterm-child rc=143 leftover=0
+./harness.sh: line 49: 60744 Quit: 3                 TMPDIR="$T" bash -c "$fns"'
+selftest_tmp_root || exit 9
+d=$(mktemp -d); mkdir "$d/clone"; head -c 100000 /dev/zero > "$d/clone/blob"; echo "$ST_ROOT" > '"$EV"'/root.'"$1"'
+'"$2" > /dev/null 2>&1
+RESULT trap path=sigquit rc=131 leftover=1
+./harness.sh: line 49: 61314 User defined signal 1: 30 TMPDIR="$T" bash -c "$fns"'
+selftest_tmp_root || exit 9
+d=$(mktemp -d); mkdir "$d/clone"; head -c 100000 /dev/zero > "$d/clone/blob"; echo "$ST_ROOT" > '"$EV"'/root.'"$1"'
+'"$2" > /dev/null 2>&1
+RESULT trap path=sigusr1 rc=158 leftover=0
+./harness.sh: line 49: 61867 Killed: 9               TMPDIR="$T" bash -c "$fns"'
+selftest_tmp_root || exit 9
+d=$(mktemp -d); mkdir "$d/clone"; head -c 100000 /dev/zero > "$d/clone/blob"; echo "$ST_ROOT" > '"$EV"'/root.'"$1"'
+'"$2" > /dev/null 2>&1
+RESULT trap path=sigkill rc=137 leftover=1
+== B2. subshell exit inside the run does not fire the trap early
+RESULT subshell root=alive
+== B3. SIGPIPE on the self-test writer (prepr --self-test | head -1 shape)
+bash: line 24: echo: write error: Broken pipe
+RESULT trap path=sigpipe leftover=0
