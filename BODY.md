@@ -1,12 +1,18 @@
 # R9-RC-Carry-Pins: a mutation-autofix pin commit may add rows, not rewrite one
 
-`tools/pr/app_approve.sh --carry` must accept a head whose only change over the
-verdicted head is `mutation-autofix`'s own `ci: pin killed mutants` commit, and
-must not accept one that also rewrote or deleted something the reviewer already
-measured. Measured 2026-10-09 on #2065 at head `3c9fe53fa`, and independently
-confirmed on two still-open heads today: #2071 (`6aaba97f` -> `7843b799`, exactly
-one commit between them, that commit) and #2070 (`3ecb86ad` -> `a9ba0b88`, same
-shape).
+`tools/pr/app_approve.sh --carry` must not accept a head whose only change over
+the verdicted head is a `mutation-autofix` `ci: pin killed mutants` commit that
+REWROTE or DELETED a ledger row the reviewer already measured. That is the live
+hole this PR closes: at `origin/main` `f5fb67077` (`git merge-base` of this
+branch), `carry` carries such a commit -- the reviewer's A2/A3/A9 fixtures all
+CARRY against main's own copy, and `bash tools/pr/app_approve.sh --self-test` at
+this head's base proves it. The plain ADD a pin commit makes is already handled:
+the refuse baseline for a bare added row is the pre-`#2059` base `b2b6acd64`,
+not current main -- `#2059` landed the carry-whole-subtree mechanism in between,
+so #2071/#2070 carry at `f5fb67077` (verified: main's own copy answers
+`CARRY: yes` on both, re-run in `## Null control`), #2066 likewise per the
+round-1 review, and the round-1 brief's "refuses under main's copy" was a
+provenance error against a base that predated `#2059`.
 
 `#2059` (R9-CI-2b) landed on main while this branch sat at its base, adding
 `bot_author`/`bot_paths` to the very same `carry()` loop: a bot's subject may
@@ -53,11 +59,13 @@ were never exposed to a commit choosing its own filenames.)
 
 - Ground 1, `architecture-unsound` (a second mechanism beside the landed one,
   and a content conflict on `tools/pr/app_approve.sh`): this re-cut merges
-  `origin/main` (`d8a4bd36f`) and resolves the conflict by DELETING the first
-  cut's parallel `bot_commit` and its `autofixCommit` reading from
-  `tools/policy/policy_lint.mjs` -- `bot_paths`/`bot_author` answer those
-  questions already and are the mechanism now tightened, per `fixer.md` step
-  17's "the existing mechanism, never a parallel one".
+  `origin/main` and resolves the conflict by DELETING the first cut's parallel
+  `bot_commit` entirely (and with it the `tools/policy/policy_lint.mjs` reading
+  it added, so `policy_lint.mjs` is now byte-identical to `origin/main` and is
+  not in this diff at all) -- `bot_paths`/`bot_author` answer those questions
+  already, and the whole change is now the one loop that tightens
+  `bot_paths`' subtree accumulation, per `fixer.md` step 17's "the existing
+  mechanism, never a parallel one".
 - Ground 2, `root-cause-unanswered` on `fast (3.14)` and `pr-contract` (the
   dead retired-path fallback): the first cut's `bot_commit` carried
   `lint="$SELF_DIR/../policy/policy_lint.mjs"` with a fallback to
@@ -78,13 +86,17 @@ were never exposed to a commit choosing its own filenames.)
 
 ## Head
 
-Measured at `cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2`
-(`chore(R9-RC-Carry-Pins): drop the closures.json fixture scaffolding`), after
-`5238604de` (the `## Forward-carry` destination) and `1c458409b` (the merge of
-`origin/main` `d8a4bd36f` resolving ground 1) over the first cut's two commits.
-The merge base is `git merge-base origin/main HEAD` = `d8a4bd36f6384dde45486fff388f91ed4a3aa6df`,
-the same base the round-1 reviewer measured against, which is why the
-before/after figures below are all re-taken at it.
+Measured at `250c1564795a187334205f006d7bb055163fb102` -- the fix (`094f2c0d2`,
+`b95753f07`, and the round-1 review's four grounds at `1c458409b`/`5238604de`/
+`cfa0f3d00`, then the round-2 review's four body defects at `31c9aa95c`) with
+`origin/main` merged in. `origin/main` ran forward twice while this sat
+(`#2067`'s prepr-grep drain, then `#2069` and the archscore-gate merge through
+`f5fb67077`); each was a clean automatic `git merge` (merge-tree exit 0, no
+conflict, no reviewed line of `tools/pr/app_approve.sh` or the carry file moved),
+so the fix, its arms and `carry`'s bytes are identical under `31c9aa95c` and
+under this head -- only the head SHA and its merge base moved. The merge base is
+`git merge-base origin/main HEAD` = `f5fb67077eb1f351a904329cb387a01bbc937f97`,
+and the before/after figures below are re-taken at it.
 
 ## Mutation proof
 
@@ -120,14 +132,16 @@ unmodified subtree exclusion carries all three attacks. The fourth new arm,
 `H_PIN_BADMSG`, is green here already: it tests the generic `ci:` guard that
 main's mechanism already owns and this branch does not change.
 
-The same narrowing, measured live: at `origin/main` (`d8a4bd36f`) `#2071`'s
-`6aaba97f` -> `7843b799` pair already CARRIES (main's landed mechanism, not this
-branch), and so does `#2070`'s `3ecb86ad` -> `a9ba0b88` pair; this branch's
-copy answers identically on both (re-read at `cd /private/tmp/r9-main`,
-read-only, both shas already present). This is the null control that replaces
-the first cut's, which had to be re-taken once main moved: it can no longer say
-"refuses at main's copy" for a plain added row, because main's copy now carries
-it too.
+The narrowing does not over-tighten the legitimate case, measured live: at the
+merge base (`origin/main` = `f5fb67077`) `#2071`'s `6aaba97f` -> `7843b799`
+pair already CARRIES (main's landed mechanism), and so does `#2070`'s
+`3ecb86ad` -> `a9ba0b88` pair; this branch's copy answers identically on both
+(re-read at `cd /private/tmp/r9-main`, read-only, both shas already present).
+What this branch changes is the rewrite/delete row (`## Mutation proof`'s three
+fixtures, `H_PINMOD`/`H_PINDEL`/`H_PINGLOB`), which main carries today and this
+branch refuses -- that is the hole, and it is closed here. The round-1 brief's
+"refuses at main's copy" for a plain added row was a provenance error (its
+baseline predated `#2059`); this section states the live answer by SHA instead.
 
 Negative control, that the narrowing does not over-reach: `#2065`'s own verdict
 head `3c9fe53fa` to its current head `90b9e87f...` is a 74-commit range, not a
@@ -148,26 +162,25 @@ line in a hunk the branch never touched -- see `## Forward-carry`.
 Every command re-runnable at the head above; the count each prints is named with
 its instrument, since two of them are platform-dependent.
 
-- `bash tools/pr/app_approve.sh --self-test` at `cfa0f3d00` -- 161 checks, 0
+- `bash tools/pr/app_approve.sh --self-test` at `250c15647` -- 161 checks, 0
   failed (macOS, this seat's own `--self-test`). At `origin/main`
-  (`d8a4bd36f`) the same command reports 153 checks, 0 failed; the 8-check
-  difference is the four new arms and their paired reason-greps. CI's
-  `instrument-self-tests` prints 2 more than this seat's own
-  `--self-test` did at the first cut (157 macOS against 159 CI, and 145 against
-  147, both already measured, the delta the +2 arms for `/proc`/`/sys`
-  conditional checks), so the expected CI number here is 163 and 155 -- not
-  measured yet, since `--self-test` at a handoff ref is not what CI's required
-  context runs against, and the failing-test-first run quoted in `## Null
-  control` (6 failed at 161 macOS) will read the same delta wherever it is
-  re-run.
+  (`f5fb67077`, the merge base) the same command reports 153 checks, 0 failed;
+  the 8-check difference is the four new arms and their paired reason-greps.
+  CI's `instrument-self-tests` prints 2 more than this seat's own `--self-test`
+  did at the first cut (157 macOS against 159 CI, and 145 against 147, both
+  already measured, the delta the +2 arms for `/proc`/`/sys` conditional checks),
+  so the expected CI number here is 163 and 155 -- not measured yet, since
+  `--self-test` at a handoff ref is not what CI's required context runs against,
+  and the failing-test-first run quoted in `## Null control` (6 failed at 161
+  macOS) will read the same delta wherever it is re-run.
 - `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`, rc 0. No metric
   moved: the caps are Python-production metrics and this diff touches only a
   `.sh` and a `.json` file, neither of which `tests/structure.py` measures.
 - `PYTHONPATH=tests/hastub python3 tests/layout.py` -- `layout: GUARD: 0
-  refusal(s) against d8a4bd36f638`, rc 0, at the current head. At the first cut
-  (`094f2c0d2`) the same command reported `GUARD: 1 refusal(s)` against
-  `b2b6acd64`, rc 1 -- the dead retired-path fallback, ground 2, now deleted
-  with `bot_commit` itself.
+  refusal(s) against f5fb67077eb1`, rc 0, at the current head (the guard now
+  reports against the advanced merge base). At the first cut (`094f2c0d2`) the
+  same command reported `GUARD: 1 refusal(s)` against `b2b6acd64`, rc 1 -- the
+  dead retired-path fallback, ground 2, now deleted with `bot_commit` itself.
 - `python3 tools/audit/seat/merge_train.py --self-test` -- 81 checks, 0 failed.
   `merge_train.py` resolves `app_approve` old-path-first
   (`tools/audit/app_approve.sh` then `tools/pr/app_approve.sh`) and all three
@@ -187,7 +200,8 @@ its instrument, since two of them are platform-dependent.
   127 insertions(+), 4 deletions(-). `git diff --numstat` of the same range
   splits it: `tools/pr/app_approve.sh` +96/-4, `dev/programme/carries/carry-2075.json`
   +31/-0. Two-dot against `origin/main` is the wrong frame (main advanced to
-  `d8a4bd36f` and the merge-base is `d8a4bd36f` too now, so both agree --
+  `f5fb67077` through #2067/#2069/#2071-era merges since the first cut's base
+  `b2b6acd64`, and the merge-base is `f5fb67077` too now, so both agree --
   `CLAUDE.md` rule 3's three-dot discipline still names the merge-base as the
   frame, and `tests/layout.py`'s guard reports against it).
 - The #2010 measurement, run from `/private/tmp/r9-main` with `carry`'s own
