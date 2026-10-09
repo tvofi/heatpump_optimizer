@@ -7510,7 +7510,7 @@
     "R9-SW-6"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-ux9",
     "commit": null,
     "last_step": null,
