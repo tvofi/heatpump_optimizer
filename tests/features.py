@@ -60342,6 +60342,30 @@ R.check(
     f"{_cf_mt._cop_samples}/96 {_cf_mt._cop_scale:.3f}; shift {_cf_sh._cop_scale:.3f}",
 )
 
+# draw_range.follows_ask, the evidence itself: none until MIN_SAMPLES running
+# samples asked at or above the floor, none while the asks never moved, then
+# the log-log slope says whether the draw follows them.
+from heatpump_optimizer import draw_range as _cf_drm  # noqa: E402
+
+
+def _cf_window(pairs):
+    window = _cf_drm.DrawRange()
+    for asked, drawn in pairs:
+        window.observe(drawn, asked, 1.0, 14.0)
+    return window
+
+
+_cf_prop = _cf_pairs((1.2, 1.6, 2.0, 2.4), (0, 0, 0, 0), _cf_drm.MIN_SAMPLES)
+R.check(
+    "follows_ask: no evidence without the window, before MIN_SAMPLES, or on a flat "
+    "ask; a proportional draw follows, a self-set one does not",
+    _cf_drm.follows_ask(None) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 1.3 * a) for a, _ in _cf_prop[:-1]])) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 1.3 * a) for a, _ in _cf_prop])) is True
+    and _cf_drm.follows_ask(_cf_window([(1.5, 2.2)] * 96)) is None
+    and _cf_drm.follows_ask(_cf_window([(a, 2.2) for a, _ in _cf_prop])) is False,
+)
+
 # The last measured COP survives a restart beside cop_scale, with the curve
 # it was judged against, so the sensor does not go dark until the next fold.
 _cf_live = _cf_coord()
