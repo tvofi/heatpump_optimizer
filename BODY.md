@@ -1,6 +1,6 @@
 A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate maximum, and its pump draws 1.9-2.55 kW. The duty floor was `max(0.3 x max_electrical_power, 0.2)` = 4.2 kW, above every draw, so the observed-COP sensor stayed unavailable and the flow-lift fold was starved too. All numbers below are synthetic. This is the round-4 body, a minimal re-cut (`fixer.md`): only the headings, the arms that fire, and figures re-taken in this pass.
 
-**Stacked on #2065 (7a): this PR merges after #2065.** The branch contains #2065's head `325960ef6`, and its diff over that head is this fix.
+**Stacked on #2065 (7a): this PR merges after #2065.** The branch contains #2065's head `e408b9a28` (re-merged in this round), and its diff over that head is this fix.
 
 **The fix**, decided under tvofi's mandate and the #201 decisions:
 
@@ -10,7 +10,7 @@ A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate max
    - **Evidence that it does not:** it is refused as `draw_off_ask`, a pump that sets its own power.
    - **No evidence yet** (fewer than `MIN_SAMPLES` = 48 running samples asked at or above the floor, or asks that never vary by 15 %): it folds only where base would have, with the ask and the draw both clearing the nameplate third. Otherwise it is refused as `awaiting_draw_evidence`.
 
-   So no install folds a departure that base refused before the evidence exists, and an install whose asks never vary keeps base's reach for its departures (round 3's blocker, probe 7).
+   So no install folds a departure that base refused before the evidence exists, and an install whose asks never vary keeps base's reach for its departures (round 3's blocker, probe 7). This equivalence to base holds for departures only. Inside the 15 % tolerance the new, lower floor applies with or without evidence, so in-tolerance intervals fold where base's floor refused them. That includes a self-setting pump's in-tolerance intervals during the first 48 running samples; the round-4 reviewer's probe 3b, which never fills the draw window, reads 0.636 -> 0.590 because of this.
 3. **Refusal reason.** `MeasuredCop.refusal` holds an `accuracy.COP_REFUSED_*` code. The `cop_learner` diagnostics row (`last_refusal`, `measured_cop`, `power_floor_kw`, `draw_follows_ask`) is registered in #2065's `diagnostics._VIEWS`. The dump is available whether or not the sensor is.
 4. **Persistence.** The measured COP, its curve and the tank temperature persist under `thermal_learning/measured_cop/*` (declared in `store.DOMAINS`, store version 1). The draw evidence is #2065's `draw/samples` in the accuracy store, so it persists across a restart too.
 
@@ -22,9 +22,7 @@ A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate max
 
 ## Head
 
-`2876e01cef49acf81524dcf637962b912fe1c633` merges the authored code head `42920d3c56a511a1f7e02d094dc2abc377cd05d0` and then merges origin/main `bd59a4af1` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
-
-`42920d3c56a511a1f7e02d094dc2abc377cd05d0` (code head). Its parents include #2065's head `325960ef6` and origin/main `bd59a4af1`. The base column below is #2065's head; the head column is this commit.
+`e0d7f2450bd67623442bd7fa5be019a450446fda` (code head). Its parents include #2065's head `e408b9a28` and origin/main `bd59a4af1`. Round 5 changes no production logic. It re-merges #2065's moved head, re-keys two mutation-ledger pins, re-anchors one `brief_lint` fixture, and re-takes this body. The harness, probe 6 and probe 7 were re-run at this head and at #2065's head `e408b9a28`. Every row is identical to round 4's at both ends. The base column below is therefore #2065's head, `e408b9a28`, which gives the same results as `325960ef6` did. The test block passes 18 of 18 at this head.
 
 ## Mutation proof
 
@@ -75,16 +73,25 @@ Each mutant is applied in its own worktree at `2808a8a94` (production identical 
 - `min3_running_folded`: 0/15 -> 3/15, carried to 7b
 
 **Gates.**
-- `python3 tests/structure.py` passes, with no raise in this PR.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base 325960ef672e` predicts no closures or fast red, with 44 unpinned sites over #2065's head. Against the main merge base it lists 86, 42 of them #2065's; all are listed below.
+- `python3 tests/structure.py` passes at this head, with no raise in this PR. `python3 tests/layout.py` exits 0. `node tools/policy/brief_lint.mjs` exits 0. `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base e408b9a28fa0` predicts no closures or fast red, with 42 unpinned sites over #2065's head. Against the main merge base it lists 64, 22 of them #2065's; all are listed below.
 - `node tools/policy/brief_lint.mjs` reads both carry files with 0 errors.
 - Heavy scripts are left to CI. This pass ran only the filtered test block, the harness, the three probes, `structure`, `layout` and the predictor.
 
 ## Red checks
 
-- `fast (3.14)`, red at round 1 (`d65c68c96`): `tests/layout.py` refused #2066's harness at the retired `tools/audit/harnesses/` path. The harness has been at `dev/audit/harnesses/` since round 2. At this head `python3 tests/layout.py` still refuses one path: #2065's `tools/audit/harnesses/draw_range_evidence.py`, inherited through the stack, which #2065 owes the move for, so `fast (3.14)` will stay red here until #2065 moves it. The cheaper detector is `tests/layout.py` itself, a seconds-long script; its standing cost is one run before every push that adds a path, and `prepr.sh` does not run it today.
-- `mutation`: `MUTATION TABLE REFUSED` on unpinned sites. These are answered below, and `mutation-autofix` owns the pins.
-- `nightly-status`: this reports main's last scheduled run, not this diff.
+Each red seen at round 4's head `9d77a97b1`, and its answer:
+
+- **`briefs`**, also refused in `pr-contract`: `FIXTURE VACUOUS wood_share:1152`. `brief_lint.mjs`'s frozen 931dffe fixture cites `thermal_model.wood_share:1152`, and its pin requires that citation to keep failing. Round 4 added `nameplate_power_floor_kw` (12 lines) to `thermal_model.py`, which brought an unrelated `return` within ±1 of :1152, so the pinned error disappeared.
+  - **Repair, an instrument change with no production line moved:** the fixture citation and its pin are re-anchored to :91152, past the file's end. No ordinary edit to `thermal_model.py` can satisfy that, and deleting the anchored rule still drops the pin.
+  - **Measured:** `node tools/policy/brief_lint.mjs` exits 0 at this head. With the re-anchor stashed it exits 1 with `FIXTURE VACUOUS`.
+  - **Cheaper detector:** `brief_lint.mjs` itself, a seconds-long run that I did not run before the round-4 push. Its standing cost is one run per push that shifts lines in a cited file. A frozen expected error checked against the live tree is the known line-pinned-artifact class, and this round hit it twice, which is the `root-cause.md` trigger. That analysis is the root-cause seat's, not this PR's.
+- **`mutation`** and **`fast (3.14)`** (`tests/entities.py`, 1 of 2227): two stale `killed_by` pins, `ThermalParameters.flow_lift_power_floor_kw.{CLAMP_DROP,RETURN_DEL}.c0871d84`. Round 4 moved their line into `nameplate_power_floor_kw`.
+  - **Repair:** both re-keyed to `ThermalParameters.nameplate_power_floor_kw`, with the same `old` text and digest, then `python3 tests/mutation_table.py --normalize`.
+  - **Measured:** the table's source-only ledger checks (`ledger_form_problems` and `completeness_problems` from `tests/mutation_table.py`) report 3 completeness problems before the re-key and 1 after.
+  - **The one left is #2065's:** `draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734`. It reads the same at #2065's head `e408b9a28`, where #2065 rewrote `from_dict`, so `mutation` stays red here until #2065 re-keys it.
+  - **Cheaper detector:** those same ledger checks, which run in seconds. mutation-autofix does not re-key, so no bot commit was coming.
+- **`fast (3.14)`** (`tests/layout.py`): round 4 inherited #2065's retired `tools/audit/harnesses/draw_range_evidence.py`. #2065 has since moved it, and `python3 tests/layout.py` exits 0 at this head.
+- **`nightly-status`**: this reports main's last scheduled run, not this diff.
 
 ## Forward-carry
 
@@ -139,52 +146,30 @@ The sites `tools/pr/ci_predict.py` lists, by key. "Value check" names the `featu
 - `custom_components/heatpump_optimizer/thermal_model.py:669 GUARD_OFF`: value check `with no modulation floor configured the nameplate floor still applies`.
 - `custom_components/heatpump_optimizer/thermal_model.py:670 CLAMP_DROP`: value check `the duty floor is 0.8 x the modulation floor, never below 0.2 kW` (min 0.1 gives 0.2).
 - `custom_components/heatpump_optimizer/thermal_model.py:671 RETURN_DEL`: value check `with no modulation floor configured the nameplate floor still applies`.
-- `custom_components/heatpump_optimizer/thermal_model.py:681 CLAMP_DROP`: `mutation-autofix`.
-- `custom_components/heatpump_optimizer/thermal_model.py:681 RETURN_DEL`: value check `with no modulation floor configured the nameplate floor still applies` (4.2 kW).
 
 **#2065's, which the predictor lists against the main merge base because this branch contains #2065:**
 
-- `custom_components/heatpump_optimizer/coordinator.py:9745 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:45 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:48 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:51 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:54 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:55 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:58 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:60 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:63 CONST`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:97 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:97 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:101 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:108 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:111 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:112 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:113 CLAMP_DROP`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:113 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:122 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:125 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:127 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:127 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:134 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:139 BOOLOP`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:139 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:139 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:146 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:149 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:151 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:178 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:186 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:186 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:192 BOOLOP`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:192 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:196 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:251 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
+- `custom_components/heatpump_optimizer/draw_range.py:184 BOOLOP`: #2065's, inherited through the stack; disposed in #2065's own body.
+- `custom_components/heatpump_optimizer/draw_range.py:184 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
+- `custom_components/heatpump_optimizer/draw_range.py:194 CMP_BOUND`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:296 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:301 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:304 GUARD_OFF`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/draw_range.py:305 CLAMP_DROP`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:306 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
-- `custom_components/heatpump_optimizer/draw_range.py:317 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
 - `custom_components/heatpump_optimizer/thermal_model.py:1280 RETURN_DEL`: #2065's, inherited through the stack; disposed in #2065's own body.
 
 ## Friction
