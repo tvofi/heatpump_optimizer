@@ -656,3 +656,16 @@
 #       sensors.dhw_heating_plan: describe_setup now carries the install
 #       language (D4-s2-81).
 # No plan, schedule or solver fixture moves.
+#
+# R9-UX-9 (#1956, #2016): this diff claims config_flow and the five coordinator
+# captures and NOTHING ELSE. The direction is ADD-ONLY: every moved leaf is a
+# key absent on the baseline (feedback_gaps, measured_heat_output_kw,
+# flow_meter_entity). No plan, schedule or solver leaf moves. These names are
+# not may-drift.
+
+config_flow # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_all_features # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_dhw # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_grid_fee # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_minimal # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
+coord_two_zone # R9-UX-9: the feedback_gaps list, the measured_heat_output_kw key and the flow_meter_entity field are published; keys added, no value moved
