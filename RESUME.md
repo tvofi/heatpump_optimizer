@@ -1,10 +1,40 @@
 # #2066 cop-floor: resume
 
-State: **round 6 handed off** at code head `b511f9dc5b9ee076d3113aaad4b9e296222bbd7c` (branch
-`seat/fixer-cop-r6` in `/Users/timmalmstrom/.local/state/hpo/pr/cop-duty-floor/wt`, published to
-`handoff/r9-cop-duty-floor`; body on `handoff-body/r9-cop-duty-floor`). Round 5's block was
-`root-cause-unanswered` on the mutation lane; round 6 adds the dispositions it named and re-cuts
-the body. The PR branch `fix/cop-duty-floor` was **not** pushed -- the orchestrator moves the head.
+State: **round 9 (update-branch) handed off** at code head `386b7e2ff79821a91ae5c4bc95afca9b150b7b9d`
+in `/Users/timmalmstrom/.local/state/hpo/pr/upd-fix-cop-duty-floor` (branch `fix/cop-duty-floor`
+merged to `origin/main d8a4bd36f`), published to `handoff/r9-cop-duty-floor`; body
+`body/BODY-r9.md` on `handoff-body/r9-cop-duty-floor`. Round 8 blocked on `conflict`; the
+resolution is measured, not picked (see the PR body "What round 9 adds"). `fix/cop-duty-floor`
+was NOT pushed -- the orchestrator moves the head.
+
+## Round 9 in one screen
+- Live head at start: `d1538a73b` (round 7 head `b511f9dc5` + bot pin `ci: pin killed mutants` x1).
+- `git merge origin/main` (twice -- main moved from a8ce87571 to d8a4bd36f mid-work; second merge
+  clean). Conflicts: claims.py, deployment_shape.py, features.py. All three re-derived: claims.py
+  prints 75/75 (branch draw_range over main flow_meter+entry_config), deployment_shape merged
+  census 93/123/18 (rule reproduces the base exactly: 406/120/18/91/81/73/55/20/89/56 --
+  `ev/r9/census_full.txt`, `ev/r9/census_final.txt`).
+- features.py: both sides' appended blocks kept verbatim; module-scope name check: no collision
+  (`coord` collides only in function-local scope, 1003/1093...).
+- Silent-agreement sweep caught TWO false-clean docs numbers: architecture.md "74 modules" (both
+  sides wrote 74; merged is 75 -- claims C32 turned false until corrected) and "the other 46
+  modules HA-free" (main recorded 46 against its 74; merged is 75-28=47, caught by
+  `tests/entities.py` "architecture.md's HA-free count is the tree's"). entities then
+  ALL 2236 PASSED.
+- Ledger: the a3cd4cc3 CMP_BOUND triage's twin sentence corrected (the round-8 FINDING 3:
+  "pinned by the round-5 pass" -> pinned by this branch's own d1538a73b against b2b6acd64).
+- mutation_table --normalize: 1346 dispositions, 0 retired keys, tree byte-unchanged (ledger is
+  anchor-keyed, main line shifts need no re-key).
+- Validators all []; structure PASSED (four caps DOWN vs base 153->151,120->118,8818->8808,
+  762->760; no raise). Guard pins 50/50. Harness headers 109/109 except h7 memory line which
+  fired false once under box load and True standalone (branch touches no D9 file; CI's fast is
+  the verdict). features.py 1 of 3948 FAILED = known R9-F2.1 P3 BLAS float (3929+main's 19).
+- Counts at this head: unpinned 4615 vs base 4622, added 10 sites / 9 keys, pool 12, shards 2,
+  in-pool-not-charged 2 (coordinator.py:4526 6deb0603 CMP+GUARD, main's line re-anchored by
+  this PR's rename; r8 drove the CMP arm, survivor). Refusal None.
+- prepr rc=0 (`ev/r9/prepr_r9b.log`), PR-BODY 0 errors, ancestry reds answered (40 rows / 5
+  names, ev/r9/ancestry_reds.tsv; head census d1538a73b in ev/r9/head_d1538_census.tsv).
+- Claim files byte-identical to LIVE origin/main (3d017e611ec1 / 459c54964fa7).
 
 ## What round 6 did
 1. Merged `origin/main b2b6acd64` (50 commits over the old base) -- merge, not rebase. The
@@ -82,3 +112,13 @@ The first handoff body failed `prepr` at `b511f9dc5` on two arms. Neither needed
    body owes those rows too.
 3. The line-shift recurrence (round 4, twice) is still owed a `root-cause.md` seat; round 6 adds
    a second instance of a related class -- a disposition naming an actor that cannot act.
+
+
+## Next (unchanged lines, current reading)
+1. Orchestrator: App-push this head to `fix/cop-duty-floor` -> pull_request run -> `mutation` reds
+   on the 10 added sites + whatever the shards report for the 6deb0603 pair; #2065 must merge first
+   for green (all 10 have killed_by rows on its head, verified 9 digests x1 each).
+2. The 6deb0603 pair is this branch's disposition to write when the matrix reports it.
+3. RCA seats still owed: line-shift recurrence; disposition-naming-an-actor-that-cannot-act
+   (partly falsified this round -- the bot CAN act once the pull_request run exists; the standing
+   unenforced half is the survivor-triage deferral).
