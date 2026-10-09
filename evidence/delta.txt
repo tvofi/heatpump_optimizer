@@ -1,0 +1,22 @@
+git log --first-parent d8988a47..dfd5227d8
+  dfd5227d8 record: the delivery row for #2069
+  ee43721f1 Merge remote-tracking branch 'origin/main' into fix/recarry-skip-prepr
+  99d958b8e Merge remote-tracking branch 'origin/main' into fix/recarry-skip-prepr
+
+delta commit count: 68 (68 incl. main's); first-parent commits on branch: 3 (two automatic main merges + one row commit)
+
+git diff --stat d8988a47..review/2069
+ tools/pr/prepr.sh                                  |   75 +-
+ 33 files changed, 2784 insertions(+), 1254 deletions(-)
+
+delta paths NOT changed by origin/main since d8988a47:
+  dev/programme/delivery/2069.md
+
+the row commit's own diff:
+dfd5227d8 tvofi record: the delivery row for #2069
+
+ dev/programme/delivery/2069.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+row content (dev/programme/delivery/2069.md, 1 line):
+- [#2069](https://github.com/tvofi/heatpump_optimizer/pull/2069) — **open**, tools: app_push.sh --recarry skips prepr on a clean main merge; the merge train's recarry uses it

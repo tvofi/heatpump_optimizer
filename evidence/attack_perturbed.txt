@@ -1,2 +1,0 @@
-RESULT attack=p2-side-branch rc=1 verdict=parent 2 4c620922 is not reachable from the freshly fetched origin/main
-RESULT control=honest-main-merge rc=0 verdict=HEAD is the clean merge of the live head bc96bc35 and origin/main's e6c7f40a, and the body is the live one
