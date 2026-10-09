@@ -1,0 +1,47 @@
+## head 6aaba97fef582f7381fda9b270c1cfd25e64324d unmutated
+ALL 20 ENTITY SLICE PASSED
+ALL 14 FEATURES BLOCK PASSED
+## CONST 60.0 -> 120.0
+  FAIL ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant  [[0, 0]]
+1 of 14 FEATURES BLOCK FAILED
+## CONST 60.0 -> 89.0
+ALL 14 FEATURES BLOCK PASSED
+## CONST 60.0 -> 91.0
+  FAIL ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant  [[0, 0]]
+1 of 14 FEATURES BLOCK FAILED
+## CONST 60.0 -> 0.0
+  FAIL a configured floor-return sensor silent for the sustained period raises one repair, not before, and it clears when readings return  [[1, 0, 1, 1, 0]]
+  FAIL the repair names the entity and the period, is a warning and is not fixable  [{'is_fixable': False, 'severity': 'warning', 'translation_key': 'floor_return_silent', 'translation_placeholders': {'entity_id': 'sensor.floor_return_synthetic', 'minutes': '0'}, 'learn_more_url': 'https://github.com/tvofi/heatpump_optimizer'}]
+  FAIL the finding is pure: it starts the clock, waits the period, then names the entity
+  FAIL the silence period outlasts a restart's or a brief outage's gap and is shorter than three hours of unannounced open-loop slab estimate  [0.0 min]
+  FAIL ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant  [[1, 1]]
+  FAIL a short gap does not accumulate: a reading in between restarts the period
+  FAIL a payload that does not carry the input signal leaves the watch alone
+  FAIL the entry's notifier setup raises and clears the repair on coordinator updates  [[1, 1, 0]]
+8 of 14 FEATURES BLOCK FAILED
+## R1
+  FAIL the live config's coordinate, from options, is coarsened too  [{'latitude': 59.3, 'longitude': 18.1, 'elevation': 'not-a-number'}]
+  FAIL the diagnostics config is the live config, with options laid over setup data  [config target is 20.0, the coordinator runs on 21.0]
+2 of 20 ENTITY SLICE FAILED
+## R2
+  FAIL the setup data is kept beside it, with the keys options override named  [(20.0, ['ecl110_state_topic', 'solar_location', 'target_temperature'])]
+  FAIL an option equal to its setup value is not named as overriding it  [['ecl110_state_topic', 'solar_location', 'target_temperature']]
+2 of 20 ENTITY SLICE FAILED
+## R3
+  FAIL the entry's notifier setup raises and clears the repair on coordinator updates  [[0, 0, 0]]
+1 of 14 FEATURES BLOCK FAILED
+## R7
+  FAIL another input's failure beside a live floor-return sensor never raises it  [{'input_problems': [{'input': 'indoor_temp_entity', 'entity_id': 'sensor.indoor', 'problem': 'unavailable', 'age_minutes': None, 'max_age_minutes': 360.0}]}]
+1 of 14 FEATURES BLOCK FAILED
+## probes
+RESULT diag config.min_kw=1.2 config.max_kw=6.0 (live 1.2/6.0, setup 3.0/14.0)
+RESULT diag config_setup.min_kw=3.0 overridden=['heat_pump_max_power', 'heat_pump_min_power', 'name', 'solar_location', 'tibber_token']
+RESULT diag config.location={'latitude': 61.9, 'longitude': 15.2}
+RESULT diag leaks=[]
+RESULT diag token_fields=['**REDACTED**', '**REDACTED**'] name=**REDACTED**
+RESULT floor stale_7h: problems=[('floor_return_temp_entity', 'stale')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+RESULT floor fresh_5min: problems=[] floor_return_temp=31.5 issues_at[0,lim-1,lim,10lim]=[0, 0, 0, 0]
+RESULT floor fresh_5h_under_limit: problems=[] floor_return_temp=31.5 issues_at[0,lim-1,lim,10lim]=[0, 0, 0, 0]
+RESULT floor implausible_85C: problems=[('floor_return_temp_entity', 'implausible')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+RESULT floor unknown: problems=[('floor_return_temp_entity', 'unavailable')] floor_return_temp=None issues_at[0,lim-1,lim,10lim]=[0, 0, 1, 1]
+RESULT other-input-dead: problems=[('indoor_temp_entity', 'unavailable')] floor_return_temp=31.5 floor_return_silent_raised=0 named=[]

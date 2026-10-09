@@ -1,0 +1,65 @@
+## Round-3 measurement summary — PR #2071 at live head 7843b799255741fcfee41c6d719d3de1bef84c50
+
+Reviewer seat review-2071. Fresh detached worktree wt3 at the live head; wt3-base at merge base bd59a4af1. All runs by me, this round.
+
+### My targeted mutant (step 1 re-run), block `# Live v6.7.17 install: a configured floor-return sensor` via tools/audit/seat/features_block.py
+
+```
+RESULT head 7843b7992 unmutated block: ALL 14 FEATURES BLOCK PASSED
+RESULT CONST notifier.py:182 60.0 -> 120.0 (the lane's own operator): 1 of 14 FAILED -- FAIL "ninety minutes of silence raises the repair: an owner hears within the hour and a half, read on the clock rather than through the constant" [[0, 0]]; restored, ALL 14 PASSED, git status clean
+RESULT CONST 60.0 -> 600.0 (body's M7): 2 of 14 FAILED -- the period-bound check [600.0 min] and the ninety-minute check [[0, 0]] (matches the body's M7 claim exactly)
+RESULT CONST 60.0 -> 89.0: ALL 14 FEATURES BLOCK PASSED (boundary below the 90-min clock)
+RESULT CONST 60.0 -> 91.0: 1 of 14 FAILED -- the ninety-minute check (boundary above it)
+RESULT entities_slice at head under the 120 mutant and restored: ALL 20 ENTITY SLICE PASSED both ways
+```
+
+### Full tests/features.py at the live head (this host)
+
+```
+RESULT full features.py unmutated: 1 of 3874 FAILED -- R9-F2.1 P3 storage-plan [shipped 110.4366 vs seeded 110.1297]; a pre-existing local solver-float flake on this Mac (documented: Accelerate wheels / hpo-ci pin; CI's fast (3.14) is green at both heads), not mutation-related
+RESULT full features.py under CONST 120.0: 2 of 3874 FAILED -- the same P3 flake plus the ninety-minute check; the ninety-minute check is the only floor-return failure, and every features.py reference to FLOOR_RETURN_SILENT_MINUTES lives inside the block (grep: lines 60240-60393 only)
+```
+
+### The pin row (step 14)
+
+tests/mutation_ledger/killed_by/notifier.py/@module.CONST.fd447209.json, added solely by bot commit 7843b7992 (`ci: pin killed mutants`, github-actions[bot]):
+anchor `notifier.py:<module> CONST fd447209`, killed_by `tests/features.py`, old `FLOOR_RETURN_SILENT_MINUTES = 60.0`, reason: recorded by `mutation_table.py --pin-killed` against ratchet base 47b083b03 — CONST 120.0 took tests/features.py from rc=0 failed=0 to rc=1 failed=2.
+
+CI chain, all read from job logs (evidence dir):
+- mutation (113703687732) at pre-bot head 6aaba97fe: `ADDED UNPINNED notifier.py:182 CONST`, `MUTATION TABLE REFUSED` (4623 vs base 4624).
+- mutation-pins (1) (113704028276) at 6aaba97fe: baseline features.py rc=0 failed=0; drove the CONST mutant; `pinned notifier.py:182 CONST -- killed by tests/features.py`; `PIN KILLED: 1 pinned, 0 left unpinned`.
+- mutation-autofix (113712608918) committed and pushed the ledger row as 7843b7992 — the ci-autofix.md sanctioned path; no hand-written ledger, no survivor triage automated.
+- mutation (113712761726 at 6aaba97fe; 113712782376 at 7843b7992): `MUTATION TABLE PASSED`, `0 survivor(s) of 3 evaluated = 0.0%, cap 20.0%`, `PIN RE-VERIFICATION: 3 reproduced, 0 not reproduced, 0 not re-verified` (the 3 re-verified are the drawn GUARD_OFF pins; the CONST pin's authority is the pins-job drive above plus my own run, not this line). Not INCONCLUSIVE — mutants were drawn and evaluated at both heads.
+- No survivor_triage row for notifier.py exists (ls tests/mutation_ledger/survivor_triage/); disposition is the kill, which is real, so none is owed.
+
+### Finder's harness (step 2), re-run at both ends this round
+
+```
+RESULT probe at head 7843b7992: diag config.min_kw=1.2 config.max_kw=6.0 (live 1.2/6.0, setup 3.0/14.0); config_setup.min_kw=3.0 overridden=[heat_pump_max_power, heat_pump_min_power, name, solar_location, tibber_token]; leaks=[]; token/name REDACTED; floor stale_7h/implausible_85C/unknown raise [0,0,1,1]; fresh_5min, fresh_5h_under_limit raise 0; other-input-dead raises 0 -- byte-identical RESULT lines to round 2
+RESULT probe at merge base bd59a4af1: diag config.min_kw=3.0 config.max_kw=14.0 (the setup-only defect), config_setup missing, floor probe ends AttributeError: no FLOOR_RETURN_SILENT_MINUTES -- both ends confirmed again this round
+```
+
+Round-3 delta b83f92421..7843b7992 = 6aaba97fe (tests/features.py +6 lines, one check) + 7843b7992 (ledger row only). No production line moved, so round 2's remaining mutation kills (R1 2/20, R2 2/20, R3 1/13, R7 1/13, R8 3/20 — evidence/round2-b83f9242...txt) survive unchanged; the block's check count moved 13 -> 14 by the new check, and every block number above was re-taken at the live head this round.
+
+### Steps 4/5/6/13
+
+```
+RESULT claim files + tests/golden/: diff touches none; both byte-identical to main
+RESULT VERSION / RELEASE_NOTES.md / hacs.json: untouched by the diff
+RESULT merge-tree --write-tree at 7843b7992: rc=0 vs origin/main (c518447eb) and pairwise vs #2065 6f420a1f7, #2066 630849897, #2070 a9ba0b887 -- no conflict, no MERGE-CLAIM line
+RESULT seam census / class-open: unchanged from round 2 (delta is tests+ledger only); body's 21-slot census and one-slot disposition stand
+```
+
+### Step 11 at the live head (check-runs API, latest per name; evidence/checks-7843b799...txt)
+
+```
+RESULT check-runs at 7843b7992: total=67, pending=0; 39 success, 27 skipped, 1 failure = nightly-status only; mutation green at BOTH heads (pre-bot 6aaba97fe mutation was red-> answered; bot head green); fast (3.14) green at both; pr-contract green at head
+RESULT nightly-status red: grades main's nightly lane; gh pr diff --name-only reaches no workflow and nothing the lane reads differently; body answers it -- not this PR's
+RESULT red-history in range: 6aaba97fe ran mutation red (the unpinned CONST survivor) and nightly-status red; the body's ## Red checks names and answers both, and names the cheaper detector for the mutation trigger (run CI's own CONST operator per site, not a hand-picked value)
+```
+
+### Step 8 — qualified figures
+
+The pin reason's `failed=2` is from CI's full-features run at the pre-bot head; the log does not name the two checks and this host cannot re-derive the count (my unmutated baseline here already fails the BLAS-sensitive R9-F2.1 P3, a documented local-container gap). The kill itself does not rest on that count: my own run of the lane's exact mutant at the live head fails the pinned driver, and only the floor-return check among all block checks.
+
+Body figures re-derived and matched: 14 block checks; 120-mutant 1 of 14; M7 2 of 14; unmutated ALL 14 / ALL 20.
