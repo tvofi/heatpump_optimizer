@@ -1,0 +1,8 @@
+clean tree (no untracked claim file); merge-base b2b6acd64cde652676a568e93c05f021571ebe5e
+########## scoped gate ##########
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  changed files (16), measured against the recorded closures in tests/closures.json:
+      .claude/rules/ci-autofix.md
+scope.run:
+tests/entities.py
+tests/harness_headers.py

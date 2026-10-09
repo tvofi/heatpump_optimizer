@@ -1,0 +1,26 @@
+  ok   decide: a DIRTY head conflicting only on a driver file the driver resolves merges
+  ok   decide: a clean head is not pushed (skip-not-dirty)
+  ok   decide: a head GitHub has not computed is not pushed (skip-not-dirty)
+  ok   decide: a fork is not pushed (skip-fork)
+  ok   decide: a head already containing main is not pushed (skip-contains-main)
+  ok   decide: a DIRTY head git's text merge does not conflict on is not pushed (skip-no-text-conflict)
+  ok   decide: a conflict on a file no driver owns is not pushed (skip-other-conflict a.py)
+  ok   decide: a driver that refused is not pushed (skip-driver-refused led.json)
+  ok   decide: a driver that left a conflict is not pushed (skip-driver-refused led.json)
+  ok   a ledger-only conflict the driver resolves is planned for a merge
+  ok   the commit is a merge of main into the head, first parent the head
+  ok   its whole message is the subject pr-contract accepts
+  ok   its tree holds both sides' ledger lines and the branch's own file
+  ok   its author is the Actions bot
+  ok   a code conflict beside the ledger one is left for a human (null control)
+  ok   a ledger conflict its driver refuses is left for a human
+  ok   a head that already contains main is left alone
+  ok   pr-contract accepts this bot's identity and message as a merge
+  ok   branch 'fix/r9-ci-2b-pr' is accepted
+  ok   branch 'handoff/x.y_z' is accepted
+  ok   branch 'a;rm -rf' is skipped
+  ok   branch '$(id)' is skipped
+  ok   branch '-x' is skipped
+  ok   branch 'a b' is skipped
+merge_main_bot self-test: 24 checks, 0 failed
+rc=0

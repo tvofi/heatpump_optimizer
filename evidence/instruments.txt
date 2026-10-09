@@ -1,0 +1,25 @@
+=== policy_lint --budgets (fixer.md rows) ===
+file                                           lines cap  ~tokens  cap always
+tools/audit/briefs/fixer.md                      315  315     5215  5216 
+always-loaded: ~3588 tokens, cap 3349 +band 500 = 3849
+corpus:        ~59899 tokens, cap 59591 +band 500 = 60091
+role fixer     ~6219 tokens, cap 5852 +band 500 = 6352
+role record    ~7226 tokens, cap 6904 +band 500 = 7404
+role policy    ~9975 tokens, cap 9958 +band 500 = 10458
+rc=0
+=== policy_lint plain ===
+
+FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+=== rules_sync --check ===
+
+RULES-SYNC ok: every generated rule is the generated form of its source
+=== throwaway_git --self-test at head ===
+  ok   the shell twin's init writes both keys and leaves the caller's shell untouched
+  ok   the shell twin's clone writes both keys and leaves the caller's shell untouched
+throwaway_git self-test: 44 checks, 0 failed
+=== structure.py ===
+  ok   seam_cut_total 760 <= 760
+
+STRUCTURE RATCHET PASSED
+=== env_drift --claims-only origin/main ===
+claims hygiene: origin/main ok
