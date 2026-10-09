@@ -1,8 +1,0 @@
-diff --git a/custom_components/heatpump_optimizer/.gitattributes b/custom_components/heatpump_optimizer/.gitattributes
-new file mode 100644
-index 000000000..9a0f43a7a
---- /dev/null
-+++ b/custom_components/heatpump_optimizer/.gitattributes
-@@ -0,0 +1,2 @@
-+review2068_a.py export-ignore
-+review2068_b.py export-ignore

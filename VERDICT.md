@@ -1,58 +1,103 @@
-Fix review: blocked a3734e793d451cf6af658dcf9d5500fd093f403a harness: class-open a head .gitattributes export-ignore hides code from the base-run gate's git archive
+Fix review: merge def887d8905bee4d9ad39f06e75068df074362f4
 
-bus-nonce: 6917a92a1e483105e9d57f3d3db0e94c
+bus-nonce: f27a5feab008496f61a54e9ee5061d0f
+seat: review-2068
 
-Round 2 (the round-1 record is VERDICT.md on review/2068 at af9929a4, which was not posted). Reviewer: review-2068 (opus).
+Round 4, the re-cut. Reviewer: review-2068 (opus). Round 3's verdict is unposted; this round supersedes it, and its file is kept as a record (evidence3/). Head measured: def887d8905bee4d9ad39f06e75068df074362f4.
 
-Head measured: a3734e793d451cf6af658dcf9d5500fd093f403a. It is f14e77c9 plus one closures-autofix bot commit ("ci: re-record closures", github-actions[bot]). That commit touches only tests/closures.json (+42/-41): timing values, plus reordered harness entries and an added `.github/workflows/arch-score.yml` entry. It is a normal ci-autofix re-record that touches no code, so every plant below, taken against f14e77c9, applies unchanged.
+## Step 12: the head, re-read at post time
+The live head was re-read before publishing this verdict and is still
+`def887d8905bee4d9ad39f06e75068df074362f4` (`gh pr view 2068 --json headRefOid`;
+the PR body names the same head, contract step 7). The head has not moved since
+the round-4 plants were run, so every number below is taken at this head and
+none needed re-taking. `isDraft: true` — the orchestrator marks it ready; I did not.
 
-Checks were settled before posting: 0 pending at 00:47Z, polled every 5 minutes (settle.log).
+## Step 11: the checks settled — the pending one the draft held open is green
+Read from the commit's own `check-runs` API at this head (latest run per name;
+42 records, 39 distinct names), at 08:47Z. Full table: `evidence/checkruns_def887d8_settled.tsv`.
 
-## Round-1 finding: closed
-- arch-score.yml now runs gate.py from `git worktree add --detach "$RUNNER_TEMP/base" "$PR_BASE"`, with `cd` into it and `python3 -I`.
-- Emulated locally from a worktree at base f14e77c9:
-  - P0, the control (an import cycle, nothing else changed): `FAIL dS -2.7550` (dead_members, import_cycle_modules and public_unused all rise), rc=1.
-  - P1, the round-1 plant (P0 plus a tests/structure.py that rewrites `__main__.decide`): now also `FAIL`, rc=1, because the base's structure.py runs.
-- Checked against the head, the gate holds on these points:
-  - `-I` ignores PYTHON* env and cwd on sys.path.
-  - `HERE`, `REPO` and the structure load all resolve inside the base worktree.
-  - ARCHSCORE_ABLATE is set only by the workflow, which is owned.
-  - The measured tree is parsed, never imported.
-  - The self-test also runs from the base.
-- The base worktree is the PR's base: PR_BASE is `pull_request.base.sha` (or `merge_group.base_sha`). That is the base branch's tip in the event payload, so the PR cannot set it.
-- The no-gate.py fallback: once main holds gate.py, every PR into main takes the base path. A PR opened against another branch that lacks gate.py takes the head path, but retargeting it to main fires `edited`, which re-runs the check on main's base. I found no route back to the head copy into main.
-- The workflow file itself is the head's, but `.github/workflows/` is code-owned.
-- CODEOWNERS revert: consistent with #201 comment 6070657723 and the base-run design. Not blocking.
+- `coverage` — **completed, success** (check-run 113696177293, the very run that was
+  `in_progress` when the draft was written; it concluded green at 07:14:18Z).
+- `coverage-ratchet` — **completed, success** (113713288775, 07:14:38Z).
+- pending = 0. Red = `nightly-status` only. Everything else is success or skipped.
+- The three names with more than one run (`pr-contract`, `budget-raise-gate`,
+  `arch-score`) are green on both runs, so there is no red-then-green to misread.
+- All 17 required status contexts (ruleset on `main`) are **success at this head**.
+  `nightly-status` is not one of them.
+- `record` is `skipped`, not absent: `governance.yml:671` gates it with
+  `if: github.event_name != 'pull_request' && ... != 'merge_group'`, so a PR head
+  cannot carry it (#1144's trap does not apply). Same for the other skipped lanes.
 
-## Blocking 1: the head decides what the base-run gate measures, through .gitattributes
-`score.tree_of` runs `git archive <ref> custom_components`. `git archive` honours the `export-ignore` and `export-subst` attributes in the tree it archives, so the head's own `.gitattributes` decides which head files the scorer sees.
-- **P2:** P0 plus `custom_components/heatpump_optimizer/.gitattributes` marking the two planted modules `export-ignore`. Result: `PASS: dS +0.0000 NULL, no gate metric rose`, rc=0, with the gate run from the base. The cycle ships, because coordinator.py imports it.
-- **P3:** the same exclusion through one line in the root `.gitattributes`. `git archive` then holds 0 of the 2 planted modules, against 2 for P0.
+## nightly-status: which arm
+**Not this pull request's — its diff does not reach what it reads**
+(`defect-root-cause.md`, the exemption at lines 142-148: their scripts, `tests.yml`,
+`governance.yml`, the plan, `HANDOVER.md`, or a row it did not add). Measured against
+the 27-file three-dot diff (`git diff --name-only 47b083b0...def887d8`; the merge base
+is `47b083b03` because this head is the orchestrator's merge of that main into the
+prior head; identical to `gh pr diff --name-only` — `evidence/diff_name_only_settled.txt`):
 
-Neither `.gitattributes` file is owned. Patches and logs are under evidence/.
+| the exemption names | in this diff |
+|---|---|
+| `tests/nightly_status.py` (its script; the job restores only this file from the base and runs it under `-I -S`) | no |
+| `.github/workflows/tests.yml` | no |
+| `.github/workflows/governance.yml` | no |
+| the plan (`dev/programme/plan-*.md`) | no |
+| `HANDOVER.md` (`dev/programme/HANDOVER.md`) | no |
+| a delivery row it did not add | no — the only row it touches is `dev/programme/delivery/2068.md`, status `A` (its own) |
 
-Fix: extract the head without attributes, for example with `git ls-tree -r -z` plus `git cat-file blob`, or with a `git --work-tree=<tmp> checkout <ref> -- custom_components`. Alternatively refuse when the head's tree carries export-* attributes reaching custom_components. Add P2 as a planted case in the throwaway-repo drive.
+So the body owes it no answer, and it is not blocked. Its red is the orchestrator's on
+`main` (fix the nightly lane and dispatch Tests on the default branch, or drain the
+overdue rows). The body answers it anyway, at its line 151, with the same reading.
 
-Out of scope: a symlink in the head tree pointing at the base worktree's copy is extracted by tar. That only fools the scorer by shipping a broken module, so I did not plant it.
+## Step 13: `mergeStateStatus: DIRTY` is measured, not a block
+GitHub reports `DIRTY`. `git merge-tree --write-tree origin/main def887d8` (from a
+checkout with both merge drivers installed; `origin/main` verified current against
+`git ls-remote`, both `83f7ca55879097258b971d483345459f18629491`) exits **0** with tree
+`921a5b444b47`, and its stderr is `LEDGER-MERGE: resolved tests/closures.json`
+(`inert_reads.tests/harness_headers.py: merged as a set (536 entries)`) — `evidence/merge_tree_def887d8.txt`.
 
-## Blocking 2: root-cause-unanswered, two reds this diff caused and `## Red checks` does not name
-- **`instrument-self-tests`** (job 113598824044; also red at f14e77c9, job 113589829114):
-  - `REFUSE tests/arch_score.py:78: subprocess.run([*g, "init", "-q"], check=True)`
-  - `throwaway_git: 1 raw git init or clone site(s) refused`
-  - This is the new workflow-step drive. It must use the throwaway_git helper. pr-contract at f14e77c9 (113590617450) also refused the unanswered red.
-- **`fast (3.14)`**, both runs (113598820837, 113598830001): `FAILED python3 tests/layout.py`, `layout: GUARD: 4 refusal(s) against bd59a4af1b26`. The four are placement refusals for files this diff adds, which sit in no category of tests/layout.json:
-  - tools/audit/archscore/gate.py
-  - planted/perturb/N5_annotated_return.py
-  - planted/redteam/14_hub_write_presolve.py
-  - planted/redteam/15_payload_cast.py
+- No `MERGE-CLAIM: refused` line, and neither claim file is in the branch's diff:
+  `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are byte-identical at
+  head, at the merge base and at current `main`. A branch that claims nothing leaves
+  both files alone, and it did. Nothing conflicts on any path, so nothing is blocked here.
+- The `DIRTY` is GitHub's, computed where the drivers cannot run: `tests/closures.json`
+  is changed on both sides (head `a379f966`, main `ca36c9b2`, base `55e5360b`), and the
+  ledger driver resolves it key by key. That is the known "DIRTY cannot run, it is not
+  red" shape, and the orchestrator's, not a defect in the authored work.
+- For the carry predicate (`orchestrator.md` §11): because `tests/closures.json` **is**
+  in this branch's own diff, a head that merges current `main` will differ from the head
+  I measured on a file the branch owns — so that update is a **resolution delta for this
+  same reviewer**, not a carry. `run` (merge main in, CI green again) is the right path.
 
-  Main's own `fast (3.14)` is green.
+## Plants through the base-run gate
+The gate runs from a worktree of def887d8, as arch-score.yml runs it (`python3 -I` from the base). Logs and patches are in evidence4/.
 
-The same `fast` runs printed `ALL 171 ARCHITECTURE SCORE CHECKS PASSED` and `ALL 15 ARCHITECTURE SCORE HEAD CHECKS PASSED`. So the planted and red-team verdicts, including rt_14 and rt_15, are as expected.json records. That answers round 1's open point on the red-team plants.
+| Plant | Result |
+|---|---|
+| P0, control (import cycle) | FAIL, dS -2.7550, rc=1 |
+| P5, both cycle modules as `.py` symlinks to `.txt` blobs | `FAIL: refused, custom_components/heatpump_optimizer/review2068_a.py is a symlink at 9d0b004b534a`, rc=1 |
+| P6, the cycle modules mode 100755 | FAIL, dS -2.7550, rc=1 (measured like 100644) |
+| P7, a gitlink under the package | `FAIL: refused, custom_components/heatpump_optimizer/review2068_sub is a gitlink`, rc=1 |
+| P2, nested `.gitattributes` export-ignore (round 2) | FAIL, rc=1 |
 
-Other reds: `nightly-status` is not this PR's (the body says so).
+Python does import through a `.py` symlink (`r3_symlink_import.txt`), so refusing links rather than resolving them is right.
+
+## The entry-type class is closed
+- `ls-tree -r` can return four entry modes under custom_components/: 100644, 100755, 120000 and 160000. Trees recurse.
+- The first two are extracted and measured. The last two are refused by name, on either side of the comparison.
+- A case-only rename is not a route: the runner's filesystem is case-sensitive, so both names are extracted.
+- A non-UTF-8 path raises an uncaught exception, which exits non-zero, so it fails closed.
+
+## Earlier rounds, still holding
+- Round 1: the gate and tests/structure.py run from the base worktree. `python3 -I` keeps the head out of sys.path and env.
+- Round 2: the extraction reads tree objects, so `.gitattributes` cannot hide a file.
+- Round 2's two reds are gone at this head: `instrument-self-tests` and `fast (3.14)` are both success (re-read in the settled table).
+
+## Notes, not blocking
+- **Wedge risk.** The refusal also fires on the base side. If a symlink or gitlink ever reached custom_components/ on main, every PR's arch-score would go red. Re-derived at current main `83f7ca558`: `git ls-tree -r --format='%(objectmode)' origin/main -- custom_components/` gives 91 x 100644 and **0** of 120000/160000, and the head is the same 91 x 100644. This gate refuses any PR that adds one, so only a ruleset bypass could put one there.
+- **Known-open candidate for planted/redteam.** A `.py` that loads a `.txt` at runtime (`exec`, or `importlib.util.spec_from_file_location`) hides that code from any AST scorer. It is not an entry-type hole, and the loader call is visible in review.
+- **My own mutant.** I did not mutate the round-4 tests myself (arch_score.py is heavy). The refusal is demonstrated end to end by P5 and P7 above, and CI's `fast (3.14)` at this head is green.
 
 ## Not verified
-- C12/C13 mutation proofs: heavy, CI's.
-- The red-team sweep's count of 11: not re-derived.
-- Step 15 (architecture-sound, fixer.md step 17): the added production lines are workflow and instrument code. No custom_components line is added, and I found no breach.
+- The C12/C13 mutation proofs: heavy, CI's (`mutation` is green at this head).
+- The red-team sweep's count of 11.

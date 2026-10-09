@@ -1,0 +1,30 @@
+=== head e611b5c9c1f7f0871e49ac32f44dca1429ae62dc
+merge base 397895df0bda, head e611b5c9c1f7
+Architecture score: dS -1.1700 WORSENS (inadmissible: dead_members 1->2; public_unused 1->2)
+  dead_members 1 -> 2  -0.5850
+  public_unused 1 -> 2  -0.5850
+FAIL: dS -1.1700 WORSENS; unexplained: dead_members 1->2; public_unused 1->2. Add a '## Architecture score' section with one line per metric: its name and why it rises
+rc=1
+=== head 9989130a56885738d4cce04c9f8a9519f86cc192
+merge base 397895df0bda, head 9989130a5688
+Architecture score: dS -1.1700 WORSENS (inadmissible: dead_members 1->2; public_unused 1->2)
+  dead_members 1 -> 2  -0.5850
+  public_unused 1 -> 2  -0.5850
+FAIL: dS -1.1700 WORSENS; unexplained: dead_members 1->2; public_unused 1->2. Add a '## Architecture score' section with one line per metric: its name and why it rises
+rc=1
+=== P1 head 8fb1148c4839e0f6d5f4e7ecee418045802c4544
+merge base 397895df0bda, head 8fb1148c4839
+Architecture score: dS -2.7550 WORSENS (inadmissible: dead_members 1->2; import_cycle_modules 0->2; public_unused 1->2)
+  dead_members 1 -> 2  -0.5850
+  import_cycle_modules 0 -> 2  -1.5850
+  public_unused 1 -> 2  -0.5850
+PASS: planted: every rise waved through
+rc=0
+=== P0 control, working tree at P0 (unhacked structure.py)
+merge base 397895df0bda, head HEAD
+Architecture score: dS -2.7550 WORSENS (inadmissible: dead_members 1->2; import_cycle_modules 0->2; public_unused 1->2)
+  dead_members 1 -> 2  -0.5850
+  import_cycle_modules 0 -> 2  -1.5850
+  public_unused 1 -> 2  -0.5850
+FAIL: dS -2.7550 WORSENS; unexplained: dead_members 1->2; import_cycle_modules 0->2; public_unused 1->2. Add a '## Architecture score' section with one line per metric: its name and why it rises
+rc=1
