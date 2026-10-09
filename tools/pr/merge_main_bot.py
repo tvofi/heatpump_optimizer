@@ -56,6 +56,7 @@ import tempfile
 import time
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[2]
 SUBJECT = "ci: merge main"
 BOT = ("github-actions[bot]", "41898282+github-actions[bot]@users.noreply.github.com")
 #: What GitHub runs in a driver's place: git's own three-way text merge.
@@ -204,6 +205,7 @@ def run(repo_slug: str, main: str, *, dry_run: bool, pushed_file: str | None,
 
 
 def self_test() -> int:
+    from throwaway_git import throwaway_git_init  # on sys.path: the --self-test arm
     fails, n = 0, 0
 
     def check(name: str, cond: bool, detail: str = "") -> None:
@@ -235,11 +237,11 @@ def self_test() -> int:
 
     with tempfile.TemporaryDirectory() as td:
         r = os.path.join(td, "r")
-        env = {"GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
-               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}
-        os.makedirs(r)
-        g = lambda *a, **k: git(r, *a, env=env, **k)
-        g("init", "-q", "-b", "main")
+        # The shared helper, not a hand-rolled init: it drops the inherited
+        # local layer, and writes maintenance.auto/gc.auto into the repository's
+        # own config so a git call made without this env still reads them off.
+        throwaway_git_init(r, "-q", "-b", "main")
+        g = lambda *a, **k: git(r, *a, **k)
         # A driver that keeps both sides' lines, sorted: a stand-in for a ledger
         # driver that resolves what the text merge cannot.
         drv = os.path.join(td, "union.sh")
@@ -290,7 +292,7 @@ def self_test() -> int:
     # pr-contract accepts this commit by identity and exact message, held as
     # constants in policy_lint.mjs; drift between the two would turn every
     # bot merge into a red contract.
-    pl = Path(__file__).resolve().parents[2] / "tools" / "policy" / "policy_lint.mjs"
+    pl = ROOT / "tools" / "policy" / "policy_lint.mjs"
     r = subprocess.run(["node", "--input-type=module", "-e",
                         f"import({json.dumps(pl.as_uri())}).then((m) => "
                         "console.log(JSON.stringify(m.AUTOFIX_BOT_COMMITS)))"],
@@ -312,7 +314,14 @@ def self_test() -> int:
 
 def main(argv: list[str]) -> int:
     if argv[1:] == ["--self-test"]:
-        return self_test()
+        # Every git call in the self-test, this runner's and the production
+        # wrapper's under test, works in a throwaway repository: all of them
+        # take the env layer, which a per-call env= cannot give the wrapper's
+        # calls that pass none (tests/throwaway_git.py's docstring).
+        sys.path.insert(0, str(ROOT / "tests"))
+        from throwaway_git import throwaway_git_environ
+        with throwaway_git_environ():
+            return self_test()
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
