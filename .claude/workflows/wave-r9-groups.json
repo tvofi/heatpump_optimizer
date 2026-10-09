@@ -7863,6 +7863,21 @@
     "next_step": "dispatch when R9-RC-NIGHTLY-BOUND merges; the owner's approval is recorded in this brief and on issue 201 comment 6078664059"
    },
    "fixes": []
+  },
+  {
+   "group": "R9-RC-AUTOFIX-GOVERNANCE",
+   "lane": "fix",
+   "wave": 1,
+   "fixerModel": "sonnet",
+   "reviewerModel": "sonnet",
+   "issues": [],
+   "after": [],
+   "brief": "A bot pin commit leaves a pull request unmergeable, and nothing reports why. Measured 2026-10-09 on two heads at once: PR #2066 at 63084989 and PR #2070 at a9ba0b88, both heads being a mutation-autofix `ci: pin killed mutants` push. A GITHUB_TOKEN push creates no `pull_request` workflow run at all, so the only runs at such a head are the four the autofix job dispatches itself (Tests, Hassfest, Validate, CodeQL); of the 17 required contexts of ruleset 23698884, five are ABSENT -- `pr-contract`, `policy-docs`, `env-matrix`, `budget-raise-gate`, `wave-script`, the governance.yml family, which fires only on `pull_request`. Absent is not green (orchestrator.md section 11), so the pull request cannot merge, and the reason is invisible: the head looks fully settled, thirty check-runs, nothing pending, because a dispatch retrigger ran everything it could. The pin lane itself is gated on `event_name == 'pull_request'`, so at such a head no further bot commit can come either, which is what turned #2066's body disposition \"left to mutation-autofix\" into a refutation. Recovery today was an orchestrator push as the App (a main merge), which creates the `pull_request` run and fires the family. Countermeasure candidates to price, in the order the cost test decides: the autofix job dispatches the governance workflows beside the four it already dispatches (it holds a dispatch path and an Actions-only App, and ci-autofix.md documents that the three autofix jobs approve held runs); or `merge_train.py` and the record lane treat an App recarry as a required follow-up to any bot pin commit, and `tools/audit/seat/ci-watch.sh` reports ABSENT required contexts at a head rather than only pending and red -- the cheap arm, since a watcher that cannot see an absence is what let two pull requests sit this way. Ownership: .github/workflows/tests.yml and governance.yml are code-OWNED paths, so the change rides the owner's review under the standing mandate; a watcher-only arm touches no owned path. Null control: at a head pushed by the App the five contexts report, and at a bot head they do not -- both arms measurable from the check-runs API without a merge.",
+   "resume": {
+    "stage": "not-started",
+    "next_step": "dispatch when a seat is free; the measuring evidence is the check-runs listings for 63084989 and a9ba0b88 (this session's scratch /Users/timmalmstrom/hpo-seats/orch-resume-1009/) and the run listings per branch showing only workflow_dispatch runs"
+   },
+   "fixes": []
   }
  ]
 }
