@@ -1,19 +1,9 @@
-/Users/timmalmstrom/hpo-seats/review-2072/sim.sh: line 4: 91b77d0cd3acbc1a5f13c400b6dd60a8910e86f4: value too great for base (error token is "91b77d0cd3acbc1a5f13c400b6dd60a8910e86f4")
-main+[P7]: clean c081da810a712445b955bc55c0a9547c23188929; 21 step headings; duplicate labels: []; bash -n ok
-main+[P3]: clean 5b2a6bce6b532846f5c08c0f380c7ba862b06561; 21 step headings; duplicate labels: []; bash -n ok
-main+[H]: clean ec1025457b264e12d4d53da61cb70cc254b514b5; 22 step headings; duplicate labels: []; bash -n ok
-main+[P7 H]: clean 0f0d3741cff75c8119e3896b119e7c64bc0484c1; 22 step headings; duplicate labels: []; bash -n ok
-main+[P3 H]: clean cfbcc0f582e4d4d379b3de1af93c1b1c18f02943; 22 step headings; duplicate labels: []; bash -n ok
-main+[P7 P3]: clean 6eec68e71726a9c7ee6720d822f78df48465226d; 21 step headings; duplicate labels: []; bash -n ok
-main+[P7 P3 H]: clean 8edf6ca919b276b4a98fce4f211a1fd4eebecc41; 22 step headings; duplicate labels: []; bash -n ok
-2119:# --- 4. the wave script's branching, when the branch touched any of its inputs.
-2150:# --- 5. VERSION, the manifest and the notes heading are untouched.
-2158:# --- 6. claim files byte-identical to origin/main.
-2169:# --- 6a. no inherited claim list: `fast`'s INHERITED CLAIMS, before CI.
-2174:# --- 6b. the closures cover what the scoped scripts read: `closures`'s
-2192:# --- 6d. the CI reds a static read of the diff predicts (`predict_line`).
-2204:# --- 6c. a test must import the production symbol: tests.yml's `no-copies`,
-2222:# --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
-2232:# --- 7. the body, when one was passed.
-main+[H P7 P3]: clean e8b65a3d1544d0bf20bd26bed0a8a5d2371d7b30; 22 step headings; duplicate labels: []; bash -n ok
-main+[P3 H P7]: clean c589cd046022817470e0b89bf467ed4c8a56d211; 22 step headings; duplicate labels: []; bash -n ok
+main+[P7]: clean f427bf66aedf815b26085771dc303d161a3f58e1; 21 step headings; duplicate labels: []; bash -n ok
+main+[P3]: clean 21a09f203495196bf0a7b8b4547049582bad7cc6; 21 step headings; duplicate labels: []; bash -n ok
+main+[H]: clean 380f5b7f67ed3e32c779de800a068e7144f25a06; 22 step headings; duplicate labels: []; bash -n ok
+main+[P7 H]: clean 27a09892e8b06e77b32c65043574e4d3b5024bc5; 22 step headings; duplicate labels: []; bash -n ok
+main+[P3 H]: clean 6e5a490b4cd64c66dc286524ea020167ae95cc14; 22 step headings; duplicate labels: []; bash -n ok
+main+[P7 P3]: clean ddbe2ea3b017f1dc928715c5f58c3106020512f3; 21 step headings; duplicate labels: []; bash -n ok
+main+[P7 P3 H]: clean 0644af1e31a54b24039062645897bd78284d0fa3; 22 step headings; duplicate labels: []; bash -n ok
+main+[H P7 P3]: clean 8174d259dbaa6818ce2735ab19180c5b8b58a739; 22 step headings; duplicate labels: []; bash -n ok
+main+[P3 H P7]: clean 647633d087c583a107065692ad7153e533b4f058; 22 step headings; duplicate labels: []; bash -n ok

@@ -83,9 +83,9 @@
   ok   a new file in no category is refused
   ok   and a refusal with no new path does not say to move it there
   ok   a tree with no tests/layout.py skips, never refuses
-  FAIL the pr-body step calls body_line, so a predicted raise reaches the body check before the push (got 141, wanted 0)
+  ok   the pr-body step calls body_line, so a predicted raise reaches the body check before the push
   ok   the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push
-  FAIL the layout step calls moved_line, so a re-added moved path is refused before the push (got 141, wanted 0)
+  ok   the layout step calls moved_line, so a re-added moved path is refused before the push
   ok   a base that does not resolve makes the path derivation fail
   ok   and leaves no list behind, not even an empty one, so the file key fails closed too
   ok   a base that resolves makes the path derivation succeed (null control)
@@ -228,6 +228,4 @@ AssertionError: queue-base
   ok   the derived inputs name tools/policy/counts.mjs
   ok   the derived inputs name tools/policy/render_md.mjs
 
-218 passed, 2 failed
-bash tools/pr/prepr.sh --self-test  50.20s user 24.44s system 65% cpu 1:53.43 total
-rc=2
+220 passed, 0 failed
