@@ -3231,6 +3231,7 @@
    "dev/audit/harnesses/ci_script_seconds.py",
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d907_kernel_band.py",
+   "dev/audit/harnesses/draw_range_evidence.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/eg_b11_equiv_6840.py",
    "dev/audit/harnesses/eg_b7_seam_hubs.py",

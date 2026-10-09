@@ -261,7 +261,7 @@ _LEADS = tuple(str(h) for h in LEAD_BUCKETS)
 #: module, so the ceiling is a literal, held equal to its own by Arm 6.
 _DHW_INTENSITY = Domain("real", 0.0, 3.5, whole=_PROFILE)
 
-_DRAW_KEY = "the latch is trusted only beside a readable configuration it was judged under"
+_DRAW_KEY = "the configuration keys the record: unreadable, the samples and the latch are dropped with it"
 
 _ACCURACY: dict[str, Domain | str] = {
     "samples/#/t": _AT, "samples/#/predicted_power_kw": Domain("real", 0.0, null=True),

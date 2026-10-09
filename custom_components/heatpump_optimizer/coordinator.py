@@ -9640,7 +9640,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
-        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=(power_frozen := self._learning_frozen(CONF_POWER_ENTITY)) is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
+        power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
