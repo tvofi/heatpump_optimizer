@@ -60684,10 +60684,10 @@ R.check(
 # step's UPPER floor rate carries the radiator share of the pump's heat
 # directly, so the measurement moves the very temperature the house heat-loss
 # residual is differenced against in a two-zone house. One sample's fit cannot
-# show it: `learner_newton_step`'s trust region caps a single sample at
-# HOUSE_LOSS_MAX_STEP, and the scale reads 1.01 from its 1.0 start at every
-# power this fixture can command, planted or not -- which is why this reads the
-# prediction and not the ratio. The lower floor follows the slab a step later,
+# show it: `learner_newton_step` moves a single sample HOUSE_LOSS_ALPHA (0.02)
+# of the way to its target, and the scale reads 1.01 from its 1.0 start at
+# every power this fixture can command, 0 to 10 kW, planted or not -- which is
+# why this reads the prediction the residual is taken from, and not the ratio. The lower floor follows the slab a step later,
 # and the single-zone room follows it too, so neither of those two predictions
 # moves within one replay; the slab and the upper floor are where the
 # substitution lands.
