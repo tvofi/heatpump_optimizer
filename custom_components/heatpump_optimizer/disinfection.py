@@ -54,11 +54,10 @@ from datetime import datetime, timedelta
 from typing import Any
 
 from .const import (
-    CONF_DHW_DISINFECTION_MODE,
     CONF_DHW_DISINFECTION_SWITCH_ENTITY,
-    DEFAULT_DHW_DISINFECTION_MODE,
     DHW_DISINFECTION_LOST_MINUTES,
 )
+from .entry_config import EntryConfig
 from .freq_control import FREQ_MODE_CONTROL
 from .inputs import UNBOUNDED, parse_bool
 from .payload import DisinfectionView
@@ -114,13 +113,12 @@ class DisinfectionSwitch:
     @property
     def entity_id(self) -> str | None:
         """The configured switch, or None."""
-        return self._config.get(CONF_DHW_DISINFECTION_SWITCH_ENTITY) or None
+        return EntryConfig.from_mapping(self._config).dhw_disinfection_switch_entity
 
     @property
     def mode(self) -> str:
         """Observe or control; anything unrecognised reads as observe."""
-        mode = self._config.get(CONF_DHW_DISINFECTION_MODE, DEFAULT_DHW_DISINFECTION_MODE)
-        return FREQ_MODE_CONTROL if mode == FREQ_MODE_CONTROL else DEFAULT_DHW_DISINFECTION_MODE
+        return EntryConfig.from_mapping(self._config).dhw_disinfection_mode
 
     @property
     def controlling(self) -> bool:

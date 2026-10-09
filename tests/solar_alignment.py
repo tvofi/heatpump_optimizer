@@ -26,6 +26,7 @@ import numpy as np
 
 from harness import FakeEntry, FakeHass
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator as Coord
+from heatpump_optimizer.entry_config import EntryConfig
 from heatpump_optimizer.open_meteo import IrradianceSeries, OpenMeteoSolar
 from heatpump_optimizer.optimizer import OptimizationConfig
 from heatpump_optimizer.price_model import PriceShapeModel
@@ -54,7 +55,7 @@ def make_coordinator(open_meteo, weather_solar: float = 0.0, n_steps: int = 96):
     c._opt_config = OptimizationConfig(
         horizon_hours=n_steps // 4, time_step_minutes=15
     )
-    c._config = {}
+    c._config = EntryConfig()
     c._prices = [{"total": 1.0} for _ in range(48)]
     c._current_state = ThermalState(outdoor_temperature=0.0)
     c._solar_radiation = 0.0

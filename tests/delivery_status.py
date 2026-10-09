@@ -243,7 +243,50 @@ def merge_parents(parents: int) -> bool:
     return int(parents) > 1
 
 
-def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
+#: The tracked dispositions of direct-push merge commits: one line per commit,
+#: `- <sha, 7 to 40 hex>: <why it owes no row>`. A merge commit that names no
+#: pull request -- a local merge pushed to main, the record bot merging main
+#: into its rows -- is otherwise UNCHECKED, and v6.7.17's window held nine,
+#: which made the stamp need --allow-rowless (R9-RO-9a).
+DIRECT_PUSHES = "dev/programme/delivery/direct-pushes.md"
+DIRECT_LINE = re.compile(r"^\s*[-*]\s+`?([0-9a-f]{7,40})`?\s*:\s*(\S.*?)\s*$")
+
+
+ROW_FILE = re.compile(r"^dev/programme/delivery/\d+\.md$")
+
+
+def row_file(path: str) -> bool:
+    """Whether `path` is a delivery row, at today's home or a pre-move one.
+
+    Read through `tests/layout.json`'s move map with no filesystem, so a row
+    an older commit wrote at the pre-lift path counts as the same row.
+    """
+    return bool(ROW_FILE.match(locate(path, is_file=lambda _p: False,
+                                      exists=lambda q: bool(ROW_FILE.match(q)))))
+
+
+def direct_pushes(text: str) -> dict[str, str]:
+    """`DIRECT_PUSHES`'s lines as {sha prefix: disposition}. Pure."""
+    return {m.group(1): m.group(2) for m in map(DIRECT_LINE.match, text.splitlines()) if m}
+
+
+def disposition(commit: dict, allow: dict[str, str]) -> str | None:
+    """Why an unnumbered merge commit owes no row, or None.
+
+    `record-only` when its first-parent diff is known and touches nothing but
+    delivery rows (`row_file`); otherwise a tracked `DIRECT_PUSHES` line naming its sha. An
+    unknown file list is no disposition: a commit nobody could read stays
+    UNCHECKED.
+    """
+    files = commit.get("files")
+    if files and all(row_file(f) for f in files):
+        return "record-only"
+    sha = str(commit.get("sha", ""))
+    return next((why for k, why in allow.items() if sha.startswith(k)), None)
+
+
+def collect(commits: list[dict], allow: dict[str, str] | None = None,
+            ) -> tuple[list[dict], list[dict]]:
     """Merges in the window, and the merge commits nothing could attribute.
 
     `commits` is the first-parent log, newest first, each entry carrying
@@ -277,8 +320,11 @@ def collect(commits: list[dict]) -> tuple[list[dict], list[dict]]:
         number = subject_number(commit["subject"], commit.get("body", ""))
         if number is None:
             if merge_parents(int(commit.get("parents", 1))):
-                unattributed.append({"sha": commit["sha"],
-                                     "subject": commit["subject"]})
+                entry = {"sha": commit["sha"], "subject": commit["subject"]}
+                why = disposition(commit, allow or {})
+                if why:  # listed, never hidden: `classify` reads it as seen
+                    entry["disposition"] = why
+                unattributed.append(entry)
             continue
         merges.append({
             "number": number,
@@ -337,13 +383,14 @@ def classify(merges: list[dict], texts: list[str],
         rows.append({**m, "state": state})
     overdue = [r for r in rows if r["state"] == "overdue"]
     pending = [r for r in rows if r["state"] == "pending"]
-    blind = list(unattributed)
+    blind = [u for u in unattributed if not u.get("disposition")]
     return {
         "verdict": OVERDUE if overdue else (
             UNCHECKED if blind else (OK if rows else EMPTY)),
         "stale_after_commits": stale_after,
         "merges": rows,
         "unattributed": blind,
+        "dispositioned": [u for u in unattributed if u.get("disposition")],
         "counts": {
             "rowed": sum(1 for r in rows if r["state"] == "rowed"),
             "pending": len(pending),
@@ -500,7 +547,14 @@ def gather(repo: str,
     log = subprocess.run(
         ["git", "log", "--first-parent", f"--format={LOG_FORMAT}", span],
         cwd=ROOT, capture_output=True, text=True).stdout
-    return collect(parse_log(log))
+    commits = parse_log(log)
+    for c in commits:
+        if merge_parents(c["parents"]) and subject_number(c["subject"], c.get("body", "")) is None:
+            got = subprocess.run(["git", "diff", "--name-only", "--no-renames", f"{c['sha']}^1", c["sha"]],
+                                 cwd=ROOT, capture_output=True, text=True)
+            c["files"] = got.stdout.split() if got.returncode == 0 else None
+    path = ROOT / DIRECT_PUSHES
+    return collect(commits, direct_pushes(path.read_text() if path.is_file() else ""))
 
 
 #: One file per pull request, `dev/programme/delivery/<N>.md`: a row there is read only
@@ -590,6 +644,9 @@ def main() -> int:
                   f"{str(r.get('merge_sha', ''))[:7]} "
                   f"{r.get('commits_after', 0)} commit(s) since — "
                   f"{r.get('title', '')[:56]}")
+    for d in ledger.get("dispositioned", []):
+        print(f"  exempt   {str(d.get('sha', ''))[:7]} {d.get('subject', '')[:40]} "
+              f"-- {d.get('disposition', '')[:80]}")
     blind = ledger.get("unattributed", [])
     if blind:
         print(unchecked_line(blind))

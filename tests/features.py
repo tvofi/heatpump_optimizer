@@ -14,7 +14,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta, timezone
 
-from harness import FakeHass, FakeState, Results, UTC, minutes_ago
+from harness import FakeHass, FakeState, Results, UTC, minutes_ago, with_config
 from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
@@ -35,6 +35,7 @@ from heatpump_optimizer.comfort_learning import (
     OverrideEvent,
 )
 from heatpump_optimizer.const import COP_SCALE_MAX, COP_SCALE_MIN
+from heatpump_optimizer.entry_config import EntryConfig
 from heatpump_optimizer.defrost import (
     DEFROST_LOSS_MULTIPLIER,
     DERATE_CONFIDENCE_SAMPLES,
@@ -7651,7 +7652,7 @@ class _PredGate:
 
     def __init__(self, mode: str) -> None:
         self._mode = mode
-        self._config = {}
+        self._config = EntryConfig()
         self._thermal_params = ThermalParameters()
 
         class _Res:
@@ -11091,7 +11092,7 @@ R.check(
     == _sv_full["slots"][0]["label"],
 )
 
-_text = _topo.render_text_summary(_full)
+_flow_text = _topo.render_text_summary(_full)
 R.check(
     "every assignable slot carries the domains it accepts",
     all(s.get("domains") for s in _full["slots"])
@@ -11139,16 +11140,16 @@ R.check(
 
 R.check(
     "the flow overview is a fenced monospaced block",
-    _text.startswith("```\n") and _text.endswith("\n```"),
+    _flow_text.startswith("```\n") and _flow_text.endswith("\n```"),
     "the one drawing surface every install already renders",
 )
 R.check(
     "with configured sensors named and empty slots called out",
-    "sensor.wood_top" in _text and "not configured" in _text,
+    "sensor.wood_top" in _flow_text and "not configured" in _flow_text,
 )
 R.check(
     "and the storage claim matches the model",
-    "used as a store" in _text,
+    "used as a store" in _flow_text,
     "a 750 L tank behind a manual valve is a store as of v3.10.0",
 )
 # _full_cfg is itself a two-tank configuration (two zones, manual valve,
@@ -11157,9 +11158,9 @@ R.check(
 # the abstraction still runs: wood present without a probe.
 R.check(
     "a modelled wood tank is claimed as its own store",
-    "modelled as its own store" in _text
-    and "modelled as heat into the heat-pump tank" not in _text
-    and "Heat pump tank: 750 L" in _text,
+    "modelled as its own store" in _flow_text
+    and "modelled as heat into the heat-pump tank" not in _flow_text
+    and "Heat pump tank: 750 L" in _flow_text,
     "issue #40: with the two-tank model active the summary stops "
     "apologizing for an abstraction it no longer uses",
 )
@@ -16783,7 +16784,7 @@ _hubs_src = inspect.getsource(_Coord._solve_hubs)
 R.check(
     "the relax sits behind its flag, inside the solve's bands",
     0
-    < _run_src.find("CONF_OPEN_WINDOW_RELAX_ENABLED")
+    < _run_src.find("open_window_relax_enabled")
     < _run_src.find("OPEN_WINDOW_RELAX_C")
     and "_vent_cusum.tripped" in _run_src
     and 0 < _hubs_src.find("if banded:") < _hubs_src.find("self._floor_widening()"),
@@ -20509,7 +20510,7 @@ R.check(
     len(_ct7.hass.services.calls) == _n7,
 )
 # The re-arm gesture: the user switches back to observe and saves.
-_ct7._config["freq_control_mode"] = "observe"
+with_config(_ct7, {"freq_control_mode": "observe"})
 _ct7._observe_frequency(_T6)
 R.check(
     "switching the mode to observe is the acknowledgement that re-arms",
@@ -20627,7 +20628,7 @@ R.check(
 # mode: neither may orphan the latch and its repair issue forever.
 _co7 = _armed_coord()
 _co7._freq_fallback = True
-_co7._config["compressor_freq_entity"] = None
+with_config(_co7, {"compressor_freq_entity": None})
 _co7._observe_frequency(_T6)
 R.check(
     "clearing the entity re-arms the latch instead of orphaning it",
@@ -22321,7 +22322,7 @@ R.check(
     )
     == 1,
 )
-_gf_bad._config["grid_fee_rules"] = "= 0.25"
+with_config(_gf_bad, {"grid_fee_rules": "= 0.25"})
 _gf_bad._fee_series(_gf_steps)
 R.check(
     "a corrected configuration clears the issue on the next cycle",
@@ -22410,7 +22411,7 @@ R.check(
         if i[1] == "grid_fee_magnitude"
     ],
 )
-_gf_neg._config["grid_fee_rules"] = "= 0.25"
+with_config(_gf_neg, {"grid_fee_rules": "= 0.25"})
 _gf_neg._fee_series(_gf_steps)
 R.check(
     "correcting the sign clears the notice on the next cycle",
@@ -23849,8 +23850,8 @@ from heatpump_optimizer.const import (  # noqa: E402
 _tib = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
 # #924: _LC_DATA now carries the offline entity source, so the tibber arms
 # here opt back into the scripted-session source explicitly.
-_tib._config[_CONF_PRICE_SOURCE] = _PRICE_SOURCE_TIBBER
-_tib._config[_CONF_TIBBER_TOKEN] = "stub-token"
+with_config(_tib, {_CONF_PRICE_SOURCE: _PRICE_SOURCE_TIBBER})
+with_config(_tib, {_CONF_TIBBER_TOKEN: "stub-token"})
 _tib_raised = None
 try:
     _asyncio.run(_tib._fetch_tibber_prices())
@@ -23989,8 +23990,8 @@ def _outage_cycle_coord():
     wrapper, nothing else: every later step patched to a no-op on the
     instance (the round-2 D10-B harness pattern)."""
     coord = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
-    coord._config[_CONF_PRICE_SOURCE] = _PRICE_SOURCE_TIBBER  # #924
-    coord._config[_CONF_TIBBER_TOKEN] = "stub-token"
+    with_config(coord, {_CONF_PRICE_SOURCE: _PRICE_SOURCE_TIBBER})  # #924
+    with_config(coord, {_CONF_TIBBER_TOKEN: "stub-token"})
 
     async def _noop(*_a, **_k):
         return None
@@ -26088,7 +26089,7 @@ class _Split:
 
     def __init__(self, signals, measured=2.0):
         self._current_action = {"power": 2.0, "dhw_power": 1.0}
-        self._config = {"heat_pump_power_entity": "sensor.pump"}
+        self._config = EntryConfig.from_mapping({"heat_pump_power_entity": "sensor.pump"})
         self._measured_power = measured
         self._immersion_active = False
         self._pump_signals = signals
@@ -27657,7 +27658,7 @@ def _g4_window_steps(start, n):
 def _g4_plan(config, simulate=None):
     """Run the production cycle (and optionally a what-if) and return the captures."""
     coord = _solve_coord()
-    coord._config.update(config)
+    with_config(coord, config)
     sink = []
     real, spy = _g4_spy(sink)
     _coord_mod._await_optimize = spy
@@ -28091,7 +28092,7 @@ R.check(
 # composed limits.
 def _qw_plan(config, simulate=None):
     coord = _solve_coord()
-    coord._config.update(config)
+    with_config(coord, config)
     sink = []
     real = _coord_mod._await_optimize
 
@@ -28176,7 +28177,7 @@ R.check(
 # it calls the method on a real coordinator, where a NameError is a red
 # check and not a typing job.
 _qw_acc = _solve_coord()
-_qw_acc._config.update({
+with_config(_qw_acc, {
     _QW_LIMITED: "switch.pump_night_mode",
     _QW_SILENT: "22:00-06:00", _QW_OFF: "09:00-09:30",
 })
@@ -28189,14 +28190,14 @@ R.check(
     },
     f"{_qw_acc_specs}",
 )
-_qw_acc._config[_QW_LIMITED] = "binary_sensor.gchv_night"
+with_config(_qw_acc, {_QW_LIMITED: "binary_sensor.gchv_night"})
 R.check(
     "a read-only capacity-limited slot marks the silent rows not enforced",
     _qw_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
     f"{_qw_acc.configured_quiet_windows()}",
 )
 from heatpump_optimizer import sensor as _qw_sensor  # noqa: E402
-_qw_acc._config[_QW_FRAC] = 0.8
+with_config(_qw_acc, {_QW_FRAC: 0.8})
 _qw_pub = _qw_sensor._quiet_windows_attributes(_qw_acc, {})
 R.check(
     "the plan sensor publishes the fraction beside the specs when rows exist",
@@ -31230,7 +31231,7 @@ _ac_entity = "switch.hp_supply"
 
 def _ac_calls(signals, heat_pump_on):
     c = _t2_coord()
-    c._config[CONF_HEAT_PUMP_SWITCH_ENTITY] = _ac_entity
+    with_config(c, {CONF_HEAT_PUMP_SWITCH_ENTITY: _ac_entity})
     c._pump_signals = signals
     c._current_action = {"heat_pump_on": heat_pump_on, "power": 0.0}
     c._mode = "comfort"
@@ -32194,6 +32195,14 @@ def _lg_coord(**over):
     return coord
 
 
+def _lg_without_probe(coord):
+    """The guard captured the parsed entry at construction, so clearing the
+    tank slot has to reach that object too. A pop used to mutate the one dict
+    both held."""
+    with_config(coord, {"dhw_temp_entity": None})
+    coord._legionella._config = coord._config
+
+
 def _lg_cycle(coord, temps):
     """Command a boost, feed it `temps`, then let the plan move on."""
     for temp in temps:
@@ -32250,7 +32259,7 @@ R.check(
 # success; see the v5.1.10 section below for why the two are the same
 # countdown and only one of them can also be honest about what happened.
 _lg_blind = _lg_coord()
-_lg_blind._config.pop("dhw_temp_entity", None)
+_lg_without_probe(_lg_blind)
 _lg_cycle_blind_before = _lg_blind._legionella.hours_since()
 _lg_blind._current_action = {"dhw_reason": _LG_REASON}
 _asyncio.run(_lg_blind._legionella.async_track_cycle(None))
@@ -32793,7 +32802,7 @@ R.section("v5.1.10 — a commanded cycle is credited only when something saw it"
 # the cycle is unverified. This integration publishes a plan; the actuation
 # may be an automation that never ran.
 _lg_blind2 = _lg_coord()
-_lg_blind2._config.pop("dhw_temp_entity", None)
+_lg_without_probe(_lg_blind2)
 _lg_blind_before = _lg_blind2._legionella.hours_since()
 _lg_cycle(_lg_blind2, [None, None])
 _lg_blind_after = _lg_blind2._legionella.hours_since()
@@ -32823,7 +32832,7 @@ R.check(
 # attempt produces the SAME countdown, which is the whole argument for not
 # writing it.
 _lg_claim = _lg_coord()
-_lg_claim._config.pop("dhw_temp_entity", None)
+_lg_without_probe(_lg_claim)
 _lg_claim._legionella.last_cycle = _lg_blind2._legionella.attempt
 R.check(
     "claiming success instead would give an identical countdown "
@@ -32834,7 +32843,7 @@ R.check(
     f"{_lg_claim._legionella.hours_since()!r}",
 )
 # A probe that later observes a real cycle takes the notice down.
-_lg_blind2._config["dhw_temp_entity"] = "sensor.tank"
+with_config(_lg_blind2, {"dhw_temp_entity": "sensor.tank"})
 _lg_blind2._current_action = {"dhw_reason": "idle"}
 _asyncio.run(_lg_blind2._legionella.async_track(60.5))
 R.check(
@@ -37329,7 +37338,7 @@ R.check(
 from types import SimpleNamespace as _WfNS
 
 _wf_probe_coord = _WfNS(
-    _config=_wf_cfg,
+    _config=EntryConfig.from_mapping(_wf_cfg),
     _external_heat=_WfNS(suppressing=False),
     _opt_config=_WfNS(min_temp=19.0, dt_hours=1.0),
     _thermal_params=_WfNS(two_tank_modelled=False),
@@ -37405,7 +37414,7 @@ R.check(
 )
 
 _g9_coord = _solve_coord()
-_g9_coord._config.update(
+with_config(_g9_coord,
     {
         "wood_furnace_enabled": True,
         "wood_type": "mixed",
@@ -40549,7 +40558,7 @@ try:
     _t3_drive(_t3_fs, "_fetch_solar_forecast")
     _t3_fs_reused = _t3_fs._open_meteo is _t3_fs_first
     _t3_fs_refreshes = len(_t3_fs_first.refreshed)
-    _t3_fs._config["solar_location"] = {"latitude": 9.0, "longitude": 8.0}
+    with_config(_t3_fs, {"solar_location": {"latitude": 9.0, "longitude": 8.0}})
     _t3_drive(_t3_fs, "_fetch_solar_forecast")
     _t3_fs_rebuilt = _t3_fs._open_meteo
     _t3_fs_built = list(_T3StubSolar.built)
@@ -41945,7 +41954,7 @@ R.check(
 # The user-facing route: the item-18 button on a DEFAULT install (no k_s bump).
 _arm1329 = _t4_coord()
 _t4_count_refresh(_arm1329)
-_arm1329._config["system_identification_enabled"] = True
+with_config(_arm1329, {"system_identification_enabled": True})
 _t4_drive(_arm1329, "async_arm_system_identification")
 R.check(
     "#1329: the item-18 button arms on a default install (was inert)",
@@ -42714,11 +42723,11 @@ _t4_arm_on = _t4_coord(system_identification_enabled=False)
 _t4_arm_on._thermal_params.slab_heat_transfer *= 100.0
 _t4_count_refresh(_t4_arm_on)
 _t4_arm_on_built = _t4_arm_on._sysid.config.enabled
-_t4_arm_on._config["system_identification_enabled"] = True
+with_config(_t4_arm_on, {"system_identification_enabled": True})
 _t4_drive(_t4_arm_on, "async_arm_system_identification")
 _t4_arm_off = _t4_coord(system_identification_enabled=True)
 _t4_count_refresh(_t4_arm_off)
-_t4_arm_off._config["system_identification_enabled"] = False
+with_config(_t4_arm_off, {"system_identification_enabled": False})
 _t4_drive(_t4_arm_off, "async_arm_system_identification")
 R.check(
     "arming re-reads the option at call time, so an edit needs no reload",
@@ -45708,7 +45717,7 @@ class _G8AwayCoord:
     def __init__(self, config=None, options=None, entity_states=None):
         self.hass = _G8AwayHass()
         self.entry = _G8AwayEntry(options)
-        self._config = dict(config or {})
+        self._config = EntryConfig.from_mapping(dict(config or {}))
         self._away_state = _g8_away.AwayState()
         self._entity_states = entity_states or {}
 
@@ -49439,7 +49448,7 @@ R.check(
 # The mode block is read live, on the same cycle: a pump whose mode entity says
 # heating-only gets no ON although no solve has run since the mode changed.
 _g5_c = _g5_control()
-_g5_c._config["heat_pump_mode_entity"] = "select.pump_mode"
+with_config(_g5_c, {"heat_pump_mode_entity": "select.pump_mode"})
 _g5_c.hass.states.set("select.pump_mode", FakeState("Heating", attributes=_G5_MODE_OPTIONS))
 _g5_blocked_tick_logs = _g5_captured(
     lambda: [_g5_tick(_g5_c, _LG_REASON) for _ in range(3)]
@@ -51453,13 +51462,13 @@ class _PaCoord:
             "number.dhw_set": FakeState("53", attributes={"min": 40, "max": 63}),
             "number.water_set": FakeState("53", attributes={"min": 25, "max": 63}),
         })
-        self._config = {
+        self._config = EntryConfig.from_mapping({
             "pump_duty_mode": duty,
             "heat_pump_mode_entity": "select.pump_mode",
             "dhw_setpoint_entity": "number.dhw_set",
             "space_setpoint_entity": "number.water_set",
             "space_setpoint_unit": "flow" if flow else "indoor",
-        }
+        })
         self._mode = _PA_AUTO
         self.stale = False
         self._current_action = {"mode": "eco"}
@@ -52024,7 +52033,7 @@ _pa_run(_pa_subs, 1)
 _pa_run(_pa_subs, 2)
 _pa_none = _PaCoord(_PA_TUYA)
 for _pa_k in ("heat_pump_mode_entity", "dhw_setpoint_entity", "space_setpoint_entity"):
-    _pa_none._config[_pa_k] = None
+    with_config(_pa_none, {_pa_k: None})
 _pa_run(_pa_none, 1)
 R.check(
     "one state subscription per coordinator, and none with no pump entity configured",
@@ -52145,7 +52154,7 @@ _pa_run(_pa_two, 6)
 _pa_two.device("select.pump_mode", "DHW (Hot Water)")
 _pa_aio.run(_pa.apply(_pa_two, _PA_T0 + timedelta(minutes=6, seconds=10)))
 _pa_two_kept = [i for i in getattr(_pa_two.hass, "issues", []) if i[1] == _pa.ISSUE_IGNORED]
-_pa_two._config["pump_duty_mode"] = "observe"
+with_config(_pa_two, {"pump_duty_mode": "observe"})
 _pa_run(_pa_two, 8)
 R.check(
     "the warning stays while any ignored write is still pending, and leaving control clears it",
@@ -52259,7 +52268,7 @@ R.check(
     and len(getattr(_pa_cb.hass, "state_listeners", [])) == 1,
 )
 _pa_pw = _PaCoord(_PA_TUYA, duties="ss")
-_pa_pw._config["heat_pump_switch_entity"] = "switch.hp"
+with_config(_pa_pw, {"heat_pump_switch_entity": "switch.hp"})
 _pa_pw.hass.states.set("switch.hp", FakeState("on"))
 _pa_settled(_pa_pw, 0)
 _pa_pw.hass.states.set("switch.hp", FakeState("off"))
@@ -52275,7 +52284,7 @@ R.check(
     f"{_pa_pw.set_modes=} {_pa_pw_off=} {_pa_pw.writes()=}",
 )
 _pa_pwn = _PaCoord(_PA_TUYA, duties="ss")
-_pa_pwn._config["heat_pump_switch_entity"] = "switch.hp"
+with_config(_pa_pwn, {"heat_pump_switch_entity": "switch.hp"})
 _pa_pwn.hass.states.set("switch.hp", FakeState("on"))
 _pa_settled(_pa_pwn, 0)
 _pa_pwn.device("number.water_set", "25")
@@ -52615,7 +52624,7 @@ R.check(
 )
 _pa_sw = _PaCoord(_PA_TUYA)
 _pa_run(_pa_sw, 1)
-_pa_sw._config["pump_duty_mode"] = "observe"
+with_config(_pa_sw, {"pump_duty_mode": "observe"})
 _pa_sw.hass.services.calls.clear()
 _pa_aio.run(_pa.release(_pa_sw))
 R.check(
@@ -52847,9 +52856,9 @@ def _pa_sw(coord):
 def _pa_silent(duties="s", spec="06:00-08:00", entity="switch.pump_night_mode", **kw):
     """A controlling arbiter with a night-mode switch and, unless ``spec`` is None, silent rows."""
     coord = _PaCoord(_PA_TUYA, duties=duties, **kw)
-    coord._config["heat_pump_capacity_limited_entity"] = entity
+    with_config(coord, {"heat_pump_capacity_limited_entity": entity})
     if spec is not None:
-        coord._config["quiet_silent_windows"] = spec
+        with_config(coord, {"quiet_silent_windows": spec})
     coord.hass.states.set(entity, FakeState("off"))
     return coord
 
@@ -52902,7 +52911,7 @@ R.check(
     f"{_pa_sw(_pa_out)} {_pa_out.writes()}",
 )
 _pa_lap = _pa_silent()
-_pa_lap._config["quiet_off_windows"] = "06:00-08:00"
+with_config(_pa_lap, {"quiet_off_windows": "06:00-08:00"})
 _pa_run(_pa_lap, 1)
 R.check(
     "where an off row overlaps a silent row the switch is held off, not on",
@@ -52996,7 +53005,7 @@ R.check(
 )
 
 _pa_pwr = _pa_silent()
-_pa_pwr._config["heat_pump_switch_entity"] = "switch.pump_power"
+with_config(_pa_pwr, {"heat_pump_switch_entity": "switch.pump_power"})
 _pa_pwr.hass.states.set("switch.pump_power", FakeState("off"))
 _pa_run(_pa_pwr, 1)
 R.check(
@@ -53044,9 +53053,9 @@ R.check(
 
 _pa_idle = _PaCoord(_PA_TUYA, duties="-")
 _pa_offw = _PaCoord(_PA_TUYA, duties="-")
-_pa_offw._config["quiet_off_windows"] = "06:00-08:00"
-_pa_offw._config["heat_pump_switch_entity"] = "switch.pump_power"
-_pa_offw._config["heat_pump_capacity_limited_entity"] = "switch.pump_night_mode"
+with_config(_pa_offw, {"quiet_off_windows": "06:00-08:00"})
+with_config(_pa_offw, {"heat_pump_switch_entity": "switch.pump_power"})
+with_config(_pa_offw, {"heat_pump_capacity_limited_entity": "switch.pump_night_mode"})
 _pa_offw.hass.states.set("switch.pump_power", FakeState("on"))
 _pa_offw.hass.states.set("switch.pump_night_mode", FakeState("on"))
 _pa_run(_pa_idle, 1)
@@ -53550,7 +53559,7 @@ _f32_route = {}
 for _f32_dom in ("select", "input_select", "sensor"):
     _f32_c = _PaCoord(_PA_TUYA)
     _f32_ent = f"{_f32_dom}.pump_mode"
-    _f32_c._config["heat_pump_mode_entity"] = _f32_ent
+    with_config(_f32_c, {"heat_pump_mode_entity": _f32_ent})
     _f32_c.hass.states._states[_f32_ent] = FakeState(
         "Heating + DHW", attributes={"options": list(_PA_TUYA)})
     _pa_run(_f32_c, 1)
@@ -54584,7 +54593,7 @@ async def _p6_setpoint(eid):
 
 async def _p6_mode(eid):
     coord = _PaCoord(_PA_TUYA)
-    coord._config[hp_const.CONF_HEAT_PUMP_MODE_ENTITY] = eid
+    with_config(coord, {hp_const.CONF_HEAT_PUMP_MODE_ENTITY: eid})
     coord.hass.states._states[eid] = FakeState(
         "Heating + DHW", attributes={"options": list(_PA_TUYA)})
     await _pa.apply(coord, _PA_T0 + timedelta(minutes=1))
@@ -56730,7 +56739,7 @@ def _z1524_learned(declared, free_kw, hours=range(24)):
     residual is the free heat the current profile still misses. The rest of
     the day never saw evidence and stays at the configured constant."""
     seat = _NS(
-        _config={_const922.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True},
+        _config=EntryConfig.from_mapping({_const922.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True}),
         _thermal_params=declared, _internal_gains_profile=None,
     )
     cap = (declared.upper_floor_thermal_mass if declared.two_zone_enabled
@@ -58082,7 +58091,7 @@ def _r9egb9_borrow_arm(borrower, kind):
         )
         # Neither borrower may run inside the seeding solve: the arm itself
         # is the only borrow window under measurement.
-        coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = False
+        with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: False})
         coord._fuse_advisor_at = _r9egb9_dt.now()
         await coord.async_run_optimization()
         coord._last_simulation = None
@@ -58090,7 +58099,7 @@ def _r9egb9_borrow_arm(borrower, kind):
         coord._last_simulation = coord._last_simulation - timedelta(seconds=10)
         u0_stamp = coord._last_simulation
         if borrower == "tile":
-            coord._config[_r9egb9_const.CONF_PRICE_TILES_ENABLED] = True
+            with_config(coord, {_r9egb9_const.CONF_PRICE_TILES_ENABLED: True})
             call = _f25_partial(
                 coord._maybe_refresh_price_tile, _solve_record_now(coord))
         else:
@@ -58698,8 +58707,8 @@ def _r9egb1_coord(*, away=False, economy=False, learned=False, dhw=False):
     if dhw:
         coord._thermal_params.dhw_enabled = True
     if learned:
-        coord._config[_r9egb1_const.CONF_SOLAR_APERTURE_LEARNING_ENABLED] = True
-        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+        with_config(coord, {_r9egb1_const.CONF_SOLAR_APERTURE_LEARNING_ENABLED: True})
+        with_config(coord, {_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True})
         coord._solar_aperture.update(scale=1.3, n=1.0e6)
         coord._internal_gains_profile = [0.35] * 24
         coord._external_heat_active = True
@@ -58933,7 +58942,7 @@ _r9egb1_bands = []
 
 def _r9egb1_h2(**arm):
     coord = _r9egb1_coord(**arm)
-    coord._config[_r9egb1_const.CONF_COMFORT_LEARNING_ENABLED] = True
+    with_config(coord, {_r9egb1_const.CONF_COMFORT_LEARNING_ENABLED: True})
     real = coord._comfort_learner.record_quiet_period
 
     def _spy(when, span, band, *a, **k):
@@ -58968,7 +58977,7 @@ R.check(
 # decision (#1736's parity lead), so this pins today's answer at both ends.
 def _r9egb1_whatifs():
     coord = _r9egb1_coord(away=True)
-    coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
+    with_config(coord, {_r9egb1_const.CONF_PRICE_TILES_ENABLED: True})
     seen = []
 
     async def _transport(hass, optimizer, first, *rest, **kw):
@@ -59018,8 +59027,8 @@ R.check(
 # compares the ratio (90.0 / 50.0), never the field itself.
 def _r9egb1_fresh():
     coord = _r9egb1_coord(dhw=True)
-    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
-    coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 50.0
+    with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_ENABLED: True})
+    with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_PRICE: 50.0})
     _r9egb1_fl = coord._dhw_learner
     # In-range shapes, set directly: ``normalize_profile`` clips to
     # [0.2, 3.5] mean 1.0, so two spikes past the ceiling project to the
@@ -59040,7 +59049,7 @@ def _r9egb1_fresh():
 
     async def _go():
         reason = await coord.async_run_optimization()
-        coord._config[_r9egb1_const.CONF_PEAK_TARIFF_PRICE] = 90.0
+        with_config(coord, {_r9egb1_const.CONF_PEAK_TARIFF_PRICE: 90.0})
         _r9egb1_fl.hourly_profile = list(_r9egb1_s2)
         now = _r9egb1_fl.pattern_for(dt_util.now().weekday() >= 5)
         coord._last_simulation = None
@@ -59082,7 +59091,7 @@ R.check(
 # The values the record takes over from the old in-place writes, each at its
 # edge (the mutation drive found these unpinned where they used to sit).
 _r9egb1_v = _solve_coord()
-_r9egb1_v._config[_r9egb1_const.CONF_PEAK_TARIFF_ENABLED] = True
+with_config(_r9egb1_v, {_r9egb1_const.CONF_PEAK_TARIFF_ENABLED: True})
 _r9egb1_v_now = dt_util.now()
 _r9egb1_v_off = _r9egb1_v._solve_hubs(4, banded=True)[0].peak_threshold_kw
 _r9egb1_v._outage_recovery_until = _r9egb1_v_now + timedelta(hours=2)
@@ -59094,7 +59103,7 @@ R.check(
     f"outside recovery {_r9egb1_v_off!r}, inside {_r9egb1_v_on!r}",
 )
 _r9egb1_f = _solve_coord()
-_r9egb1_f._config.update({
+with_config(_r9egb1_f, {
     _r9egb1_const.CONF_FUSE_GUARD_ENABLED: True,
     _r9egb1_const.CONF_MAIN_FUSE_A: 10, _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
 })
@@ -59162,7 +59171,7 @@ def _r9egb1_gains(on, profile):
     """The record's gains profile, or the exception building it raised."""
     coord = _r9egb1_coord()
     if on:
-        coord._config[_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED] = True
+        with_config(coord, {_r9egb1_const.CONF_INTERNAL_GAINS_LEARNING_ENABLED: True})
     coord._internal_gains_profile = profile
     try:
         return _solve_record_now(coord).params.internal_gains_profile
@@ -59208,7 +59217,7 @@ _r9egb1_qt = _r9egb1_coord(dhw=True)
 _r9egb1_qt_p = _r9egb1_qt._thermal_params
 _r9egb1_qt_p.dhw_schedule_enabled = True
 _r9egb1_qt_p.dhw_windows = [(6.0, 9.0), (18.0, 22.0)]
-_r9egb1_qt._config[_r9egb1_const.CONF_DHW_QUANTILE_TARGETS_ENABLED] = True
+with_config(_r9egb1_qt, {_r9egb1_const.CONF_DHW_QUANTILE_TARGETS_ENABLED: True})
 _r9egb1_qt._dhw_learner.draw_stats.reservoirs = {"06:00-09:00": [2.0, 4.0]}
 _r9egb1_qt_got = _r9egb1_qt._dhw_plan_fields(dt_util.now())[
     "dhw_window_ready_energy"]
@@ -59267,7 +59276,7 @@ def _r9egb1_caps_rig(*, fuse, curve):
     capacity envelope on: the forecast sits at -5 C, whose bucket carries a
     confident envelope entry that caps at the floor (0.6 x 5 kW nameplate)."""
     coord = _solve_coord()
-    coord._config.update({
+    with_config(coord, {
         _r9egb1_const.CONF_FUSE_GUARD_ENABLED: fuse,
         _r9egb1_const.CONF_MAIN_FUSE_A: 16,
         _r9egb1_const.CONF_MAIN_FUSE_PHASES: 1,
@@ -60039,13 +60048,13 @@ R.check(
 
 _sw4_acc = _solve_coord()
 _sw4_acc.hass = FakeHass(_SW4_STATES)
-_sw4_acc._config.update(_SW4_CFG)
+with_config(_sw4_acc, _SW4_CFG)
 R.check(
     "configured_quiet_windows does not mark a fully holdable GCHV daily window not-enforced",
     "quiet_silent_not_enforced" not in _sw4_acc.configured_quiet_windows(),
     f"{_sw4_acc.configured_quiet_windows()}",
 )
-_sw4_acc._config[_QW_SILENT] = "12:00-13:00,22:00-06:00"
+with_config(_sw4_acc, {_QW_SILENT: "12:00-13:00,22:00-06:00"})
 R.check(
     "configured_quiet_windows marks a two-window GCHV spec not-enforced for the rest",
     _sw4_acc.configured_quiet_windows().get("quiet_silent_not_enforced") == "true",
@@ -60076,9 +60085,7 @@ def _sw4_night_writes(coord):
 
 def _sw4_coord(silent="22:00-06:00", off="", duty="control"):
     coord = _PaCoord(_PA_MODBUS, duties="----", duty=duty)
-    coord._config[_QW_LIMITED] = _SW4_FLAG
-    coord._config[_QW_SILENT] = silent
-    coord._config[_QW_OFF] = off
+    with_config(coord, {_QW_LIMITED: _SW4_FLAG, _QW_SILENT: silent, _QW_OFF: off})
     coord.hass.states.set(_SW4_FLAG, FakeState("off"))
     for entity_id, state in _SW4_STATES.items():
         if entity_id != _SW4_FLAG:

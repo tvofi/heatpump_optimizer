@@ -18,7 +18,12 @@ graded without a checkout: `.github/workflows/*.yml`, `dev/governance/decisions/
 .cjs` under `tools/`, `tests/` and `.claude/` plus the seat shims, except the
 write-once round evidence under `tools/audit/round*/`, `tools/audit/handoff/`
 and `tools/audit/w5-*/`, which records where things were. Policy prose (briefs,
-rules, skills) is not scanned: it names paths to explain them.
+rules, skills) is not scanned: it names paths to explain them. The mutation
+ledger's JSON (`tests/mutation_ledger/`) is scanned too, but only the lines
+added since the merge base with origin/main (the first parent on main), and
+for any temp, home or seat-directory path: see `ledger_refusals`. Pull-request
+bodies are not scanned: fixer.md step 3 cites the finder's out-of-tree harness
+by its path on purpose.
 
 WHAT IT REFUSES, one line per hit (`path:line: [class] text`); every match is
 judged on its own, never excused by something else on its line:
@@ -198,6 +203,51 @@ def grep(ref: str) -> list[tuple[str, int, str]]:
     return out
 
 
+# The mutation ledger's rows are data, not scripts, and their `reason` is the
+# one free-text field: a disposition's provenance. A machine path there names
+# a probe no other seat can run, which is fixer.md step 18's defect in the one
+# tracked place the script scope above never reads (#2025, #2010). Any path
+# under a temp root, a home or a seat directory is refused; only the lines a
+# diff adds are judged, by their text, so main's stock is not charged to every
+# branch and a row the ledger re-keys keeps its line.
+LEDGER = "tests/mutation_ledger"
+MACHINE = re.compile(r"/private/tmp/|(?<![\w.~-])/tmp/|/(?:Users|home)/(?!user/(?:heatpump_optimizer\b|wt/))[\w.-]+/"
+                     r"|(?<![\w/])~/|\$\{?HOME\}?/|(?<![\w.-])hpo-seats/")
+
+
+def ledger_refusals(lines: list[tuple[str, int, str]], was: set[str]) -> list[str]:
+    """A refusal per ledger line naming a machine path, unless the base had that line."""
+    out = []
+    for path, n, text in lines:
+        m = MACHINE.search(text)
+        if m and text.strip() not in was:
+            out.append(f"{path}:{n}: [ledger-machine-path] {token(text, m)}")
+    return out
+
+
+def ledger_lines(ref: str, root: Path = ROOT) -> list[tuple[str, int, str]]:
+    r = subprocess.run(["git", "grep", "-n", "-I", "-E", r"/tmp/|/Users/|/home/|~/|\$\{?HOME|hpo-seats/", ref, "--", LEDGER],
+                       cwd=root, capture_output=True, text=True)
+    if r.returncode not in (0, 1):
+        raise SystemExit(f"tmp_paths: git grep failed: {r.stderr.strip()}")
+    out = []
+    for line in r.stdout.splitlines():
+        _, path, n, text = line.split(":", 3)
+        out.append((path, int(n), text))
+    return out
+
+
+def ledger_base(ref: str, root: Path = ROOT) -> str | None:
+    """The merge base with origin/main; on main itself (a push) the first parent."""
+    def rev(*a: str) -> str | None:
+        p = subprocess.run(["git", *a], cwd=root, capture_output=True, text=True)
+        return p.stdout.strip() if p.returncode == 0 and p.stdout.strip() else None
+    base = rev("merge-base", "origin/main", ref)
+    if base and base == rev("rev-parse", ref):
+        base = rev("rev-parse", "--verify", "--quiet", f"{ref}^1")
+    return base
+
+
 def self_test() -> int:
     passed = failed = 0
 
@@ -267,6 +317,25 @@ def self_test() -> int:
     check("a TMPDIR fallback to the bare root passes", one("tests/x.py", 'tmp = Path(os.environ.get("TMPDIR", "/tmp"))') == [])
     check("refused: a fixed name after a `?? '/tmp'` fallback", one("tools/x.mjs", "f(`${process.env.X ?? '/tmp'}/body.md`)") != [])
     check("the cloud worktree root passes", one(s, "git worktree add /home/user/wt/${branch}") == [])
+    # R9-RO-9a: a mutation-ledger `reason` naming a machine path (#2025, #2010:
+    # a triage citing a probe under one seat's scratch, which no reader can
+    # run). The ledger is judged on the lines a diff ADDS, by content, so the
+    # stock main already carries is not charged to every branch.
+    led = "tests/mutation_ledger/killed_by/x.py/f.GUARD_OFF.0.json"
+    ledger_new = globals().get("ledger_refusals", lambda lines, was: [])
+    for name, t in (("a seat scratch driver", '"reason": "driver /Users/me/hpo-seats/s1/drive.py"'),
+                    ("a /private/tmp probe", '"reason": "probe /private/tmp/x/probe.py"'),
+                    ("a fixed /tmp name", '"reason": "log in /tmp/drive.log"'),
+                    ("a seat dir without a root", '"reason": "see ~/hpo-seats/r9/drive.py"')):
+        check(f"a ledger reason citing {name} is refused", ledger_new([(led, 5, t)], set()) != [])
+    check("a ledger reason citing a tracked path passes (null control)",
+          ledger_new([(led, 5, '"reason": "killed by tests/features.py at 04805baa"')], set()) == [])
+    check("a ledger line main already carries is not charged to the diff (stock)",
+          ledger_new([(led, 5, '"reason": "driver /Users/me/hpo-seats/s1/drive.py"')],
+                     {'"reason": "driver /Users/me/hpo-seats/s1/drive.py"'}) == [])
+    check("the same line under another ledger file is still stock (a re-key moves it)",
+          ledger_new([(led.replace("f.", "g."), 9, '  "reason": "driver /Users/me/hpo-seats/s1/drive.py"')],
+                     {'"reason": "driver /Users/me/hpo-seats/s1/drive.py"'}) == [])
     print(f"tmp_paths self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -279,11 +348,17 @@ def main(argv: list[str]) -> int:
         return 2
     ref = argv[argv.index("--ref") + 1] if "--ref" in argv else "HEAD"
     bad, stale = classify(grep(ref))
+    base = ledger_base(ref)
+    if base is None:
+        print(f"tmp_paths: ledger SKIP -- no merge base with origin/main and no parent of {ref}")
+    else:
+        bad += ledger_refusals(ledger_lines(ref), {t.strip() for _, _, t in ledger_lines(base)})
     for b in bad:
         print("REFUSE", b)
     for s in stale:
         print("STALE ALLOW", s)
-    print(f"tmp_paths: {len(bad)} refused, {len(stale)} stale allow entr{'y' if len(stale) == 1 else 'ies'} at {ref}")
+    print(f"tmp_paths: {len(bad)} refused, {len(stale)} stale allow entr{'y' if len(stale) == 1 else 'ies'} at {ref}"
+          + (f", ledger lines added since {base[:12]}" if base else ""))
     return 1 if bad or stale else 0
 
 
