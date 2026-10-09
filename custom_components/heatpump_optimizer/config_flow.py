@@ -2156,14 +2156,14 @@ def _omit_unstored_computed(
 #: absent, so an unstored one is written even when it equals that default.
 #: The DHW pair is presence-inferred (either key switches hot-water planning
 #: on); the wood trio and the wood-valve probe publish ``None`` while absent;
-#: the credential pair could not be shown equivalent, and the initial flow
-#: always stores both. ``tests/config_flow_steps.py`` derives this whole set
+#: the Tibber token could not be shown equivalent, and the initial flow
+#: always stores it. ``tests/config_flow_steps.py`` derives this whole set
 #: and fails when it moves.
 _ABSENT_IS_NOT_DEFAULT: Final = frozenset({
     CONF_DHW_WINDOWS, CONF_DHW_TANK_VOLUME,
     CONF_WOOD_TYPE, CONF_WOOD_PACKING, CONF_WOOD_FURNACE_EFFICIENCY,
     CONF_VALVE_OUTLET_TEMP_ENTITY,
-    CONF_TIBBER_TOKEN, CONF_WEATHER_ENTITY,
+    CONF_TIBBER_TOKEN,
 })
 
 

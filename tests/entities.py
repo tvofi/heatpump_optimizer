@@ -3556,11 +3556,31 @@ def _p2_conf(e):
     return None
 
 
+try:
+    from heatpump_optimizer.entry_config import EntryConfig as _EntryConfig
+except ImportError:
+    _EntryConfig = None
+#: A parsed entry field read is the same read as ``.get`` of its stored key
+#: (#1745): field name -> the CONF_ name whose value it is.
+_P2_TYPED_READS = {
+    getattr(const, n): n for n in dir(const)
+    if n.startswith("CONF_") and _EntryConfig is not None
+    and getattr(const, n) in {f.name for f in fields(_EntryConfig) if f.metadata}
+}
+_P2_CONFIG_RECEIVER = re.compile(
+    r"(^|\.)(_config|effective_config|cfg|config)$|^EntryConfig\.from_mapping\(")
+
+
 def _p2_conf_read(n):
-    """``x.get(K)``, ``x[K]`` (a load) or ``K in x``: the CONF_ name read."""
+    """``x.get(K)``, ``x[K]`` (a load), ``K in x``, or the parsed field
+    ``<config>.<key>`` of an ``EntryConfig``: the CONF_ name read."""
     if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
             and n.func.attr == "get" and n.args:
         return _p2_conf(n.args[0])
+    if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load) \
+            and n.attr in _P2_TYPED_READS \
+            and _P2_CONFIG_RECEIVER.search(ast.unparse(n.value)):
+        return _P2_TYPED_READS[n.attr]
     if isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
         return _p2_conf(n.slice)
     if isinstance(n, ast.Compare) and len(n.ops) == 1 \
@@ -3736,7 +3756,6 @@ def _p2_registry(sources):
                  "coordinator.py::HeatPumpOptimizerCoordinator._dhw_probe_temperature":
                      "probe presence",
                  "topology.py::rank_sensor_gaps": "probe presence",
-                 "sensor.py::_gap_probe_terms": "a volume default",
                  "services.py::handle_set_thermal_params": "service data write",
                  "services.py::handle_apply_topology": "service data write",
                  "services.py::handle_apply_schedule": "service data write",
@@ -3984,6 +4003,392 @@ R.check(
     == {"p2_dead", "p2_dead_proxy"}
     and "def on_threshold_kw(" in _P2_SOURCES["thermal_model.py"],
     f"planted={_p2_planted} unfenced={_p2_unfenced} renamed={_p2_renamed}",
+)
+
+
+# ===========================================================================
+# #1745: the entry's configuration is parsed once
+# ===========================================================================
+# Readers took each key off the merged entry dict with a default and a
+# coercion of their own: optimization_interval was read raw, through float()
+# and through _as_float, so a stored "15" crashed one reader, was 15 to
+# another and the default to a third. EntryConfig declares each key's one
+# default and one coercion; the coordinator parses it once, at construction.
+R.section("#1745: one entry configuration, parsed once, one default and one coercion per key")
+R.check("EntryConfig is importable from heatpump_optimizer.entry_config", _EntryConfig is not None)
+
+
+def _ec_build(extra=None, options=None):
+    entry = FakeEntry(data={
+        const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+        const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor",
+        **(extra or {}),
+    }, options=options)
+    return entry, HeatPumpOptimizerCoordinator(FakeHass(), entry)
+
+
+def _ec_readers(extra):
+    """Two keys as four readers in three modules take them, or the error."""
+    try:
+        entry, coord = _ec_build(extra)
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        return f"{type(err).__name__}: {err}"
+    return (
+        coord.update_interval,
+        integration._handover_interval_minutes({**entry.data, **entry.options}),
+        coord._ctx._opt_config.comfort_weight,
+        coord._comfort_learner.configured_weight,
+    )
+
+
+_ec_default = (timedelta(minutes=const.DEFAULT_OPTIMIZATION_INTERVAL),
+               const.DEFAULT_OPTIMIZATION_INTERVAL, const.DEFAULT_COMFORT_WEIGHT,
+               const.DEFAULT_COMFORT_WEIGHT)
+_ec_stored = (timedelta(minutes=15), 15.0, 7.0, 7.0)
+_ec_bad = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: "soon", const.CONF_COMFORT_WEIGHT: "heavy"})
+_ec_text = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: "15", const.CONF_COMFORT_WEIGHT: "7"})
+_ec_good = _ec_readers({const.CONF_OPTIMIZATION_INTERVAL: 15, const.CONF_COMFORT_WEIGHT: 7.0})
+R.check(
+    "a stored value no reader can parse builds, and every reader takes the one declared default",
+    _ec_bad == _ec_default, f"got {_ec_bad!r}, want {_ec_default!r}",
+)
+R.check(
+    "a number stored as text is the same number to every reader",
+    _ec_text == _ec_stored, f"got {_ec_text!r}, want {_ec_stored!r}",
+)
+R.check(
+    "null control: a well-formed stored value reaches all four readers",
+    _ec_good == _ec_stored and _ec_stored != _ec_default, f"got {_ec_good!r}",
+)
+
+if _EntryConfig is not None:
+    _ec_parses = []
+    _ec_parse = _EntryConfig.from_mapping.__func__
+
+    def _ec_counting(cls, merged):
+        if not isinstance(merged, _EntryConfig):
+            _ec_parses.append(1)
+        return _ec_parse(cls, merged)
+
+    _EntryConfig.from_mapping = classmethod(_ec_counting)
+    try:
+        _ec_entry, _ec_coord = _ec_build(
+            {const.CONF_PV_ENABLED: True}, options={const.CONF_TARGET_TEMP: 22.5})
+    finally:
+        _EntryConfig.from_mapping = classmethod(_ec_parse)
+    _ec_cfg = _ec_coord._ctx._config
+    from operator import setitem as _ec_setitem
+    _ec_refusals = []
+    for _ec_write in (
+        lambda: setattr(_ec_cfg, "pv_enabled", False),
+        lambda: _ec_setitem(_ec_cfg, const.CONF_PV_ENABLED, False),
+        lambda: _ec_setitem(_ec_cfg.raw, const.CONF_PV_ENABLED, False),
+    ):
+        try:
+            _ec_write()
+        except (FrozenInstanceError, TypeError):
+            _ec_refusals.append(True)
+    R.check(
+        "the coordinator parses its entry once, into one EntryConfig",
+        type(_ec_cfg) is _EntryConfig and len(_ec_parses) == 1,
+        f"type={type(_ec_cfg).__name__} parses={len(_ec_parses)}",
+    )
+    R.check(
+        "the parsed configuration is frozen: a field, an item and the raw mapping refuse a write",
+        len(_ec_refusals) == 3 and _ec_cfg.pv_enabled is True, f"refused {len(_ec_refusals)} of 3",
+    )
+    R.check(
+        "it is still the merged entry (options over data), which the no-op-save reload skip compares",
+        _ec_coord.effective_config == {**_ec_entry.data, **_ec_entry.options}
+        and _ec_cfg.target_temperature == 22.5,
+        f"{dict(_ec_cfg)!r}",
+    )
+    _ec_fields = [f for f in fields(_EntryConfig) if f.metadata]
+    _ec_keys = {v for n, v in vars(const).items() if n.startswith("CONF_") and isinstance(v, str)}
+    R.check(
+        "every declared field is named for a stored key",
+        bool(_ec_fields) and {f.name for f in _ec_fields} <= _ec_keys,
+        f"not a key: {sorted({f.name for f in _ec_fields} - _ec_keys)}",
+    )
+    _ec_unstable = [
+        f.name for f in _ec_fields
+        if (lambda got: type(got) is not type(f.default) or got != f.default)(
+            getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name))
+    ]
+    R.check(
+        "every declared default survives its own key's parse, type included",
+        not _ec_unstable, f"{_ec_unstable}",
+    )
+
+    # A non-finite stored number is refused like text, and a stored tank
+    # volume of 0 is an unset field (a zero tank would divide the DHW model
+    # by zero), each falling to the one declared default.
+    _ec_nf = [
+        _EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: bad}).comfort_weight
+        for bad in (float("nan"), float("inf"), "-inf")
+    ]
+    _ec_tank = _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 0}).dhw_tank_volume
+    _ec_ok = (_EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: 7.5}).comfort_weight,
+              _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 150}).dhw_tank_volume)
+    R.check(
+        "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 "
+        "reads the default volume; null control: 7.5 and 150 pass through",
+        _ec_nf == [const.DEFAULT_COMFORT_WEIGHT] * 3
+        and _ec_tank == const.DEFAULT_DHW_TANK_VOLUME and _ec_ok == (7.5, 150.0)
+        and const.DEFAULT_DHW_TANK_VOLUME != 0,
+        f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
+    )
+
+    # A parsed configuration rides inside state that is deep-copied (the boost
+    # drift replay forks its replay state) or pickled; the read-only view of
+    # the stored values cannot be, so EntryConfig copies by value (#1745).
+    import copy as _ec_copy
+    import pickle as _ec_pickle
+    _ec_orig = _EntryConfig.from_mapping({
+        const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
+        const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
+    })
+    _ec_copies, _ec_copy_err = [], None
+    try:
+        _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_copy_err = f"{type(err).__name__}: {err}"
+    R.check(
+        "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
+        "its parsed fields kept, its stored values still read-only",
+        _ec_copy_err is None and len(_ec_copies) == 2
+        and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
+                and c.pv_enabled is True and c.quiet_off_windows == ""
+                and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
+        f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
+    )
+    # The fuse's continuous capacity is the configuration's, not the
+    # coordinator's: amps x phases x 230 V, None with no fuse configured.
+    _ec_fuse = (
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
+        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
+    )
+    R.check(
+        "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
+        abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
+        f"{_ec_fuse}",
+    )
+
+    # The gates that read a parsed switch or slot, each driven on both arms
+    # (#2025's eight mutation survivors: the drives that ran never reached
+    # the arm the gate closes).
+    from dataclasses import replace as _ec_replace
+    from datetime import timezone as _ec_tz
+    import numpy as _ec_np
+    from heatpump_optimizer import silent_mode as _ec_silent
+    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+    from heatpump_optimizer.thermal_model import ThermalState as _EcState
+    from types import SimpleNamespace as _EcNS
+
+    def _ec_lower_floor_samples(sensor):
+        """One replayable two-zone interval; the lower-floor learner's samples after it."""
+        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                        lower_floor_temperature=20.0, slab_temperature=27.0,
+                        outdoor_temperature=-5.0)
+        c._last_house_sample = prev
+        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                       lower_floor_temperature=19.9)
+        c._current_action = {"power": 2.0}
+        asyncio.run(c._async_learn_lower_floor_loss())
+        return c._lower_floor_loss_samples
+
+    def _ec_widening(tripped):
+        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+        c._vent_cusum.tripped = tripped
+        return c._floor_widening()
+
+    def _ec_rain(flag):
+        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+        c._apply_open_meteo = lambda solar, *a: solar
+        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                        snowfall_for=lambda *a: 1.0)
+        c._update_snow_memory = lambda *a: False
+        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+    def _ec_weight(on):
+        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+        c._comfort_learner.learned_weight = 9.0
+        return c._comfort_weight()
+
+    def _ec_capacity(on):
+        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+        c._capacity_envelope = {-2: [1.0, _min]}
+        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+        p_max = float(c._ctx._thermal_params.max_electrical_power)
+        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+        c._fold_capacity_envelope(3.0)
+        return capped, len(c._capacity_envelope)
+
+    def _ec_silent_caps(fraction):
+        try:
+            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                             const.CONF_SILENT_MODE_FRACTION: fraction},
+                                      _ec_start, 96, 0.25, 6.0) is not None
+        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+            return type(err).__name__
+
+    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+    _ec_gates = {
+        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                             _ec_lower_floor_samples("sensor.lower")),
+        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+        "a parsed configuration is returned as it is": (
+            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
+    }
+    _ec_want = {
+        "lower floor learns only from a configured sensor": (0, 1),
+        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+        "rain weighting needs the switch on": (2.0, 0.5714),
+        "learning off plans with the configured weight": (5.0, 9.0),
+        "a parsed configuration is returned as it is": (True, True),
+        "an unreadable silent fraction caps nothing": (False, True),
+        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
+    }
+    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+    R.check(
+        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+        + "; ".join(_ec_want),
+        not _ec_wrong, f"{_ec_wrong}",
+    )
+
+    # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
+    # slot are parsed fields, a blank or None spec reading "" (unset) and an
+    # empty slot None. A set_thermal_parameters call carrying a spec applies
+    # live, as on main: the coordinator swaps in a new parse with the keys
+    # folded in, never writing into the frozen one, and that parse equals the
+    # entry after the options write, so the update listener skips the reload.
+    _ec_qentry, _ec_qcoord = _ec_build({
+        const.CONF_QUIET_OFF_WINDOWS: None,
+        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
+    })
+
+    async def _ec_no_refresh():
+        return None
+
+    _ec_qcoord.async_request_refresh = _ec_no_refresh
+    _ec_qbefore = _ec_qcoord._ctx._config
+    try:
+        asyncio.run(_ec_qcoord.async_update_thermal_params(
+            {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
+        _ec_qerr = None
+    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+        _ec_qerr = f"{type(err).__name__}: {err}"
+    _ec_qcfg = _ec_qcoord._ctx._config
+    R.check(
+        "a stored None quiet spec reads unset, and a quiet window set by the service applies "
+        "live through a new parse that equals the saved entry (no reload), the old parse untouched",
+        _ec_qerr is None
+        and _ec_qbefore.quiet_off_windows == "" and _ec_qbefore.quiet_silent_windows == ""
+        and _ec_qbefore.heat_pump_capacity_limited_entity is None
+        and _ec_qcfg is not _ec_qbefore and type(_ec_qcfg) is _EntryConfig
+        and _ec_qcfg.quiet_silent_windows == "22:00-06:00"
+        and _ec_qcoord.configured_quiet_windows()["quiet_silent_windows_spec"] == "22:00-06:00"
+        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00"
+        and _ec_qcoord.effective_config == {**_ec_qentry.data, **_ec_qentry.options},
+        f"error={_ec_qerr} live={_ec_qcfg.quiet_silent_windows!r} "
+        f"options={dict(_ec_qentry.options or {})!r}",
+    )
+
+
+# The barrier: no reader in a migrated module takes a key off a mapping.
+# The shape is P2's (_p2_conf_read without the typed arm): x.get(K), x[K],
+# K in x. Blind spot, stated: a key passed to a helper that reads it
+# (reader.read(K), the input slots, which name a slot rather than parse a
+# value) is not a mapping read and is not returned.
+#: (module, function, CONF name) -> why the read is not an entry-config read.
+_EC_DISPOSITIONS = {
+    ("coordinator.py", "async_update_thermal_params", key): "the set_thermal_params service's call data"
+    for key in ("CONF_BUFFER_COOLING_RATE", "CONF_DHW_COOLING_RATE",
+                "CONF_DHW_SCHEDULE_ENABLED", "CONF_DHW_WINDOWS")
+}
+#: Modules whose readers still take the merged mapping, and why.
+_EC_RESIDUAL = {
+    "away.py": "config_from_mapping builds AwayConfig, the away subsystem's own parsed "
+               "object; _migrate_helpers pops keys off the stored options it rewrites",
+    "debugger.py": "the collector switch is an options-only flag, read from the entry's own "
+                   "options at setup and written back through an options update; EntryConfig "
+                   "does not declare it",
+    "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
+    "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
+    "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
+                        "overridden_config folds the call's quiet keys into",
+    "thermal_model.py": "ThermalParameters.from_config, the solver's own parsed object, "
+                        "rebuilt only by set_thermal_params",
+    "topology.py": "describe_setup and rank_sensor_gaps also describe the setup flow's answers",
+    "wood_fuel.py": "the wood readers also judge the options form's answers, and layer "
+                    "the service's overrides on the mapping",
+}
+#: Modules that read form answers, service data or the options being built,
+#: not a loaded entry's configuration.
+_EC_NOT_ENTRY = {
+    "config_flow.py", "quick_setup.py", "modbus_prefill.py", "services.py",
+    "device_prefill.py", "prefill_offer.py", "const.py",
+}
+_EC_MIGRATED = {
+    "coordinator.py", "__init__.py", "binary_sensor.py", "optimizer.py", "climate.py",
+    "disinfection.py", "legionella.py", "pump_arbiter.py", "pump_signals.py", "sensor.py",
+    "setpoint_check.py", "silent_mode.py",
+}
+
+
+def _ec_mapping_reads(sources):
+    """(module, innermost function, CONF name) for every mapping read of a key."""
+    out = []
+    for name, text in sources.items():
+        tree = ast.parse(text)
+        parents = {c: n for n in ast.walk(tree) for c in ast.iter_child_nodes(n)}
+        for n in ast.walk(tree):
+            key = None
+            if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) \
+                    and n.func.attr == "get" and n.args:
+                key = _p2_conf(n.args[0])
+            elif isinstance(n, ast.Subscript) and isinstance(n.ctx, ast.Load):
+                key = _p2_conf(n.slice)
+            elif isinstance(n, ast.Compare) and len(n.ops) == 1 \
+                    and isinstance(n.ops[0], (ast.In, ast.NotIn)):
+                key = _p2_conf(n.left)
+            if not key:
+                continue
+            fn = n
+            while fn in parents and not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                fn = parents[fn]
+            out.append((name, getattr(fn, "name", "<module>"), key))
+    return out
+
+
+_ec_hits = _ec_mapping_reads(_P2_SOURCES)
+_ec_stray = sorted({h for h in _ec_hits if h[0] in _EC_MIGRATED and h not in _EC_DISPOSITIONS})
+_ec_stale = sorted(set(_EC_DISPOSITIONS) - set(_ec_hits))
+_ec_unclassified = sorted(
+    {h[0] for h in _ec_hits} - _EC_MIGRATED - set(_EC_RESIDUAL) - _EC_NOT_ENTRY)
+_ec_residual_stale = sorted(set(_EC_RESIDUAL) - {h[0] for h in _ec_hits})
+R.check(
+    "no migrated module reads a key off a mapping outside a dispositioned site; every "
+    "module with a mapping read is migrated, residual or not an entry reader; no entry is stale",
+    not (_ec_stray or _ec_stale or _ec_unclassified or _ec_residual_stale),
+    f"STRAY {_ec_stray} STALE {_ec_stale} UNCLASSIFIED {_ec_unclassified} "
+    f"RESIDUAL-STALE {_ec_residual_stale} (hits={len(_ec_hits)})",
 )
 
 
@@ -18073,11 +18478,11 @@ try:
     try:
         _ir_t = json.loads(_closure.CLOSURES.read_text())
         _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
         _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(json.dumps(_ir_t))
+        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
         with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
             _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
     finally:
@@ -18267,9 +18672,11 @@ R.check(
 with _tempfile.TemporaryDirectory() as _af2_td:
     _af2_root = Path(_af2_td)
     _af2_script = "tests/open_meteo.py"
-    _af2_list = [_af2_script, "tests/harness.py", "tests/run.sh"]
+    # In the layout (write_closures' text): a table out of it is a check
+    # failure of its own (R9-CI-2b), which this loop guard is not about.
+    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
     _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(json.dumps(
+    _af2_closures.write_text(_closure.canonical_text(
         {"closures": {_af2_script: _af2_list}, "recorded": {}}))
     _af2_rec = _af2_root / "rec"
     _af2_rec.mkdir()
@@ -23205,8 +23612,9 @@ R.check(
 
 # --- the nightly's own telling (#533) ---------------------------------------
 #
-# `nightly-ha` and `slow` run on `schedule` alone, are `skipped` on every push
-# and pull request, and are not required contexts on `main-protect`. So a
+# `nightly-ha` and `slow` run on `schedule` (and dispatch), are `skipped` on
+# every push and on a pull request that does not touch the nightly driver's
+# reads, and are not required contexts on `main-protect`. So a
 # scheduled run's conclusion lands on whatever commit was main's head when the
 # cron fired and the next merge strands it: both `nightly-ha` arms failed on
 # two consecutive nights and a seat sent looking found it, not the lane.
@@ -23327,8 +23735,15 @@ R.check(
 # cannot see for itself. A future lane added to the nightly is therefore
 # refused by this gate until it is registered, instead of being watched by
 # nobody -- which is the silence #533 is about, one level further out.
+# A pull-request admission gated on a `closure-scope` diff flag does not count:
+# `nightly-ha` runs on the pull request that changes its driver (#2056) and on
+# no other, so every other pull request still cannot see it for itself.
+_NS_DIFF_GATED = re.compile(
+    r"\(\s*github\.event_name == 'pull_request'\s*&&\s*"
+    r"needs\.closure-scope\.outputs\.\w+ == 'true'\s*\)")
 _NS_HEADS = {
-    _n: _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0]
+    _n: _NS_DIFF_GATED.sub("", " ".join(
+        _workflow_job(_TESTS_YML, _n).split("\n    steps:")[0].split()))
     for _n in re.findall(r"^  ([A-Za-z][\w-]*):$", _TESTS_YML, re.M)
 }
 _NS_SCHEDULE_ONLY = sorted(
@@ -30022,6 +30437,93 @@ R.check(
     f"crons={_CRONS!r}",
 )
 
+# nightly-ha on the pull request that changes its driver (#2056's root cause).
+# #2041's A16 check had a container half no pull-request lane ran, and both
+# arms went red at the next schedule on main. Three things are pinned. REACH:
+# the job's own `if:` is evaluated over every event and both answers of
+# `closure-scope`'s `nightly_ha` output, so a guard that is only text fails.
+# THE OUTPUT exists and comes from the step that decides it. COVERAGE: what
+# `_stage` reads from the repository outside custom_components/ -- everything
+# it mounts into the container, measured here with an audit hook -- is
+# matched by the pathspecs that step diffs, so a newly staged file cannot
+# leave the lane dark on the pull request that adds it.
+_NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
+_NHA_REACH: list = []
+try:
+    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+        for _nf in ("true", "false", ""):
+            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                       "needs.closure-scope.outputs.nightly_ha": _nf})
+            _nwant = _nv in ("schedule", "workflow_dispatch") or (
+                _nv == "pull_request" and _nf == "true")
+            if _ngot != _nwant:
+                _NHA_REACH.append((_nv, _nf, _ngot))
+except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
+R.check(
+    "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
+    "touches its driver's reads, and on nothing else",
+    not _NHA_REACH
+    and re.search(r"^    needs: \[[^\]]*\bclosure-scope\b", _workflow_job(_TESTS_YML, "nightly-ha"),
+                  re.M) is not None
+    and "nightly_ha: ${{ steps.decide.outputs.nightly_ha }}" in _NHA_SCOPE,
+    f"(event, nightly_ha, ran) wrong: {_NHA_REACH}",
+)
+_nha_spec_m = re.search(r'git diff --quiet "\$BASE"\.\.\."\$HEAD" -- \\\n((?:\s+\S+ \\\n)*\s+\S+); then\n'
+                        r'\s+echo "nightly_ha=false"', _NHA_SCOPE)
+_NHA_SPECS = _nha_spec_m.group(1).replace("\\", " ").split() if _nha_spec_m else []
+_NHA_ROOT = Path(__file__).resolve().parents[1]
+_nha_reads: set = set()
+_nha_on = [False]
+
+
+def _nha_audit(event, args):
+    if _nha_on[0] and event == "open" and args and isinstance(args[0], (str, os.PathLike)):
+        _p = Path(os.fspath(args[0])).resolve()
+        if _p.is_relative_to(_NHA_ROOT) and _p.is_file():
+            _nha_reads.add(_p.relative_to(_NHA_ROOT).as_posix())
+
+
+sys.addaudithook(_nha_audit)
+_nha_tmp = Path(tempfile.mkdtemp(prefix="hpo-nha-stage-"))
+# The package's own files are not copied here: they are not triggers, and
+# opening all of them would put the whole package in this script's measured
+# closure, which the deployment-shape lane's selection-cost note (#1218)
+# pins to that lane alone.
+_nha_copy2 = _nightly.shutil.copy2
+
+
+def _nha_copy(src, dst, *args, **kwargs):
+    if Path(src).resolve().is_relative_to(_NHA_ROOT / "custom_components"):
+        return dst
+    return _nha_copy2(src, dst, *args, **kwargs)
+
+
+try:
+    _nha_on[0] = True
+    _nightly.shutil.copy2 = _nha_copy
+    _nightly._stage(_nha_tmp)
+except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+finally:
+    _nha_on[0] = False
+    _nightly.shutil.copy2 = _nha_copy2
+    import shutil as _nha_shutil
+    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
+_NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
+                  if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
+R.check(
+    "every file nightly-ha's driver stages from outside the package is a path whose "
+    "change runs nightly-ha on the pull request",
+    _NHA_SPECS and not _NHA_UNCOVERED
+    and {"tests/nightly_ha.py", "tests/ha_contract.py"} <= set(_NHA_DRIVER_READS)
+    and any(f.startswith("tests/hastub/") for f in _NHA_DRIVER_READS),
+    f"pathspecs={_NHA_SPECS}; staged reads not covered={_NHA_UNCOVERED}; "
+    f"{len(_NHA_DRIVER_READS)} staged read(s) outside the package",
+)
+
 # The credential (#1848 B2): the ledger writer's secrets are read by one job,
 # and that job runs in the `ledger` environment, whose deployment branches the
 # owner restricts to main -- so no other job, branch or workflow is handed the
@@ -31436,16 +31938,29 @@ with _tempfile.TemporaryDirectory() as _sh_td:
     _sh_q = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "q"))
     (_sh_root / "mutation-pins-2" / "status").write_text("skip-measure-failed\n")
     _sh_f = _mut.merge_pin_shards(str(_sh_root), str(Path(_sh_td) / "f"))
+    # One shard is one matching artifact, and download-artifact extracts a
+    # lone match into `path` itself, not into a subdirectory: six of the first
+    # nine post-#2049 autofix runs, three of them measured pins read as
+    # skip-no-measurement (#2025 at de81043a, run 37763212023).
+    _sh_one = Path(_sh_td) / "one"
+    _sh_one.mkdir()
+    (_sh_one / "status").write_text("measured\n")
+    (_sh_one / "pins.json").write_text(json.dumps({"p:a": {"killed_by": "t"}}))
+    (_sh_one / "head").write_text("h\n")
+    _sh_1 = _mut.merge_pin_shards(str(_sh_one), str(Path(_sh_td) / "o"))
+    _sh_1p = sorted(json.loads((Path(_sh_td) / "o" / "pins.json").read_text())) \
+        if _sh_1 == "measured" else []
 R.check(
     "the pin shards are disjoint, cover the pool and keep an anchor's twins "
-    "together; their merge is measured when any shard measured",
+    "together; their merge is measured when any shard measured, one shard too",
     sorted(s["line"] for sh in _MUT_SH for s in sh) == list(range(7))
     and all(not (a & b) for i, a in enumerate(_MUT_SH_ANCH)
             for b in _MUT_SH_ANCH[i + 1:])
     and (_sh_st, sorted(_sh_pins)) == ("measured", ["p:a", "p:c"])
-    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed",
+    and _sh_q == "skip-nothing-killed" and _sh_f == "skip-measure-failed"
+    and (_sh_1, _sh_1p) == ("measured", ["p:a"]),
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
-    f"quiet={_sh_q} failed={_sh_f}",
+    f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
 )
 # The shard count scales with the sites the diff added: six a shard, at most
 # ten, one when the table names none -- read off the refusal line the lane
