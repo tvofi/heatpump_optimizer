@@ -1,0 +1,91 @@
+# review-2074b RESULT lines (round 2, head 96497ffc694302b814eecaeea2710bfdbebf6678)
+
+RESULT scope-unchanged: PASS — `git diff 7e8c5c8e4 96497ffc6 -- tests/mutation_table.py
+  .github/workflows/tests.yml` is EMPTY; `git diff --name-only 7e8c5c8e4 96497ffc6` =
+  `dev/programme/delivery/2074.md` only; `git diff --name-only d7c830c2f 96497ffc6` =
+  the RCA doc (333+/68-) + `tests/entities.py` (+64). Head = round-2 content + the row.
+RESULT green-arm-mine: PASS — my own whole-file run at the head
+  (`PYTHONPATH=tests/hastub python3 tests/entities.py`, venv-ci 3.14.7):
+  `ALL 2241 ENTITY CHECKS PASSED`, exit 0; seven `RCA-1565` checks all `ok`.
+  evidence/entities_HEAD_green.txt.
+RESULT targeted-block[CLEAN]: 0 of 7 failed (my instrument, review_block2.py, execs the
+  tree's own entities.py lines 31585..31792 verbatim; `_workflow_job` + `_TESTS_YML`
+  lifted from the file by line marker, not re-implemented).
+RESULT targeted-block[REVERT=merge-base mutation_table]: 4 of 7 failed — the three defect
+  checks + the driver pin red, both null controls + the workflow pin green, exactly the
+  body's `4 of 2241` arm.
+RESULT targeted-block[MUTA]: 1 of 7 (bound-covers-pool) | MUTB: 1 of 7 (timeout wording) |
+  MUT_C (--pool-seconds out of both lanes): 1 of 7 (workflow pin) |
+  MUT_D (seed call site reverted, the review's own example): 1 of 7 (driver pin) |
+  MUT_E (if: always() off the cache save): 1 of 7 (workflow pin, via the adjacency regex).
+  All restores confirmed `git diff --quiet HEAD` clean.
+RESULT class-search-carry: LANDED — `grep -n -i "record-autofix|closures-autofix|class"`
+  on the doc now exits 0 (§2b, six members); round 1's failing grep is repaired.
+RESULT record-autofix-correction: TRUE — the job HAS an `if:`, at this head AND at the
+  diagnosing seat's `83f7ca558` (and at d7c830c2f): `!cancelled() && github.ref ==
+  'refs/heads/main' && (push || schedule || workflow_dispatch)`, character-for-character
+  what §2b quotes. Round 1's own verdict text carried the stale "missing if:" claim.
+RESULT closures-autofix-pull-request-only: TRUE — `if:` at head = `!cancelled() &&
+  github.event_name == 'pull_request' && needs.closures.result == 'failure' && …`; on the
+  10-08 schedule run `37753990323` job `113252338415 closures-autofix` = `skipped` while
+  `113233890832 closures` = `failure` (my own jobs fetch, evidence/my_1008_closures.txt).
+RESULT repair-shas: REAL — `b416093e9` and `387128bb3` are ancestors of main
+  (`b2b6acd64`), dated 2026-10-08, subjects match the doc's quotes exactly, and each
+  touches `tests/closures.json` and nothing else (the doc's "two hand edits to the
+  committed table").
+RESULT per-night-attribution: CORRECT — my own failing-job lists for all six runs:
+  10-03 mutation-ledger; 10-04 mutation-ledger; 10-05 record-autofix; 10-06
+  record-autofix; 10-07 record-autofix + mutation-ledger + mutation-nightly; 10-08
+  nightly-ha x2 + closures + mutation-nightly. Logs I fetched myself: 10-03 prints
+  `MUTATION TABLE REFUSED -- the null control …` with NO bound timeout; 10-05 `returned
+  HTTP 401`; 10-06 `returned HTTP 422`; 10-07 `Process completed with exit code 128` +
+  `the record step did not run; a beat owed cannot be distinguished from one skipped`;
+  10-07 `timed out after 1576s`; 10-08 `timed out after 2401s`. So the bound arm = TWO
+  nights, as corrected, and the table's Inferred/printed marking matches the logs.
+RESULT factor-range-mine: 51 ROWS / 0.47-3.27 — re-derived from three job logs I fetched
+  (112708109605, 112708109541, 113233890923) under the doc's own rule (exclude the
+  env_drift stub, exclude solo < 1 s): kept 16 + 16 + 19 = 51; min 0.4653
+  (`harness_headers.py` 449.2 → 209); max 3.2692 (`structure.py` 5.2 → 17); censored boost
+  rows rc=124 at 3.0002 / 3.0005; 10-08 min `block_duty.py` 1.6 → 1 = 0.625. The stated
+  rule reproduces the doc's number exactly. evidence/factor_range_mine.txt.
+RESULT delay-mine: 5h54m–6h53m over the twelve schedule runs I fetched, computed as
+  created_at − 02:17Z (`tests.yml:119` = `- cron: "17 2 * * *"` — line verified): min
+  `37108891698` 08:11:57Z = 5h54m, max `37909555545` 09:10:23Z = 6h53m. Both ends match.
+RESULT bound-arithmetic-mine: 1200 / 1200 / 1200 / (10-06: 2297) / 1576 / 2401 / 4469
+  with the tree's own `driver_timeout(1200, git show <head>:tests/closures.json)` over
+  seven heads; seeded solo 800.2: pool 1573 → 4719, pool 2400 → 7200, pool 2401 → 7203.
+  Round 1's numbers re-derived, not relied on. evidence/bounds_rederive_mine.txt.
+RESULT §2b-members-5-6: TRUE — `slow` timeout-minutes: 150, `nightly-ha` 45, neither
+  mentions `driver_timeout` or `mutation_table`; `governance.yml` has zero `actions/runs`
+  and zero `workflow_runs`; `tests/nightly_status.py` `OWED_WHEN_RED` at line 206 (the
+  owed text names `gh workflow run tests.yml` at 209) and line 547
+  `run.get("head_branch") != default_branch`; `_gh_if` exists at entities.py:30485.
+RESULT hygiene: PASS — claims files 0 diff lines vs live `origin/main` (= `b2b6acd64`,
+  confirmed by ls-remote); no `*_budgets.json` in the diff at all; VERSION,
+  RELEASE_NOTES.md and the manifest untouched; `tests/structure.py` → STRUCTURE RATCHET
+  PASSED (`seam_cut_total 760 <= 760`, zero headroom, the +64 lines paid); `fold_ledger.py
+  check` → "28 classes, 549 instances, 39 in-tree judge survivors … 101 rca entries / 0
+  violation(s)"; `bugclasses.json` RCA-1565 → `status: done`, `parts_missing: []`,
+  `process_state` (c)+**(d)** arm, countermeasure + doc + `in_tree_home` naming the RCA
+  file; `git merge-tree --write-tree b2b6acd64 HEAD` exits 0 with no MERGE-CLAIM line.
+RESULT FINDING-record-7: the doc's §7 arm bullet, REWRITTEN this round, still says "the
+  five checks named RCA-1565" and quotes four `2239` tallies (entities_FAILINGARM / MUTA /
+  MUTB / FINAL); this head answers seven checks and 2241 (my run + the fixer's own
+  entities_R2_* logs), and the C/D/E arms this round added are absent from the figure
+  index — the landed record does not show its own new detector failing (defect-root-cause
+  "A detector must be shown to detect", whose report is the doc, not the body).
+RESULT FINDING-record-factors: three NEW lines this PR adds still state the superseded
+  figure as measurement — tests/mutation_table.py:136, :2883 ("the pool/solo factor the
+  lane itself measured (1.3-3.3x across drivers on 2026-10-07/08)") and
+  .github/workflows/tests.yml:1085 — where §2 of the same document, and my own
+  re-derivation over exactly those nights, measure 0.47-3.27; and tests/entities.py:31576
+  (also new) attributes closure.py's `0.3x-3.4x` as "a pool factor", the mis-attribution
+  §3 corrects. The doc carries no disclosure that the code still says otherwise.
+RESULT FINDING-nits: §1's per-night bound table omits 10-06 (head `cff39dad6`, recording
+  765.6 s → bound 2297 s) from a six-night streak; §2b's header says "each member
+  re-measured at this head" while member 3 says "not re-sampled here"; the body's Head
+  section names branch `fix/r9-nightly-mutation-bound`, which does not exist on the
+  remote (only `fix/r9-nightly-bound`), and calls the row commit "an automatic merge of
+  origin/main" (955dd09a3's only parent is main; the round-2 delta is the row alone);
+  "five distinct causes" vs §2b's "three different faults rather than one cause" cannot
+  both be the count.

@@ -1,0 +1,27 @@
+parsed baseline rows in this log = 23
+kept rows = 16   dropped = 7
+   dropped: ('tests/env_drift.py', 'excl (a) stub')
+   dropped: ('tests/guard_pins.py', 'excl (b) solo < 1 s')
+   dropped: ('tests/open_meteo.py', 'excl (b) solo < 1 s')
+   dropped: ('tests/plan_view.py', 'excl (b) solo < 1 s')
+   dropped: ('tests/solar_alignment.py', 'excl (b) solo < 1 s')
+   dropped: ('tests/typing_ruler.py', 'excl (b) solo < 1 s')
+   dropped: ('tests/wood_advisor.py', 'excl (b) solo < 1 s')
+   tests/harness_headers.py               solo=   449.2 pool=   209 factor=0.4653
+   tests/stress.py                        solo=   616.7 pool=   434 factor=0.7037
+   tests/entities.py                      solo=   192.9 pool=   141 factor=0.7309
+   tests/validate.py                      solo=    36.9 pool=    39 factor=1.0569
+   tests/edge.py                          solo=    35.5 pool=    45 factor=1.2676
+   tests/deployment_shape.py              solo=     2.1 pool=     3 factor=1.4286
+   tests/backtest.py                      solo=   118.0 pool=   186 factor=1.5763
+   tests/config_flow_steps.py             solo=    12.5 pool=    22 factor=1.7600
+   tests/finite_boundary.py               solo=    47.5 pool=    86 factor=1.8105
+   tests/doc_claims.py                    solo=     4.2 pool=     8 factor=1.9048
+   tests/arch_score_head.py               solo=    18.1 pool=    38 factor=2.0994
+   tests/optimality.py                    solo=   130.7 pool=   290 factor=2.2188
+   tests/manual_plan.py                   solo=     5.2 pool=    13 factor=2.5000
+   tests/features.py                      solo=   276.5 pool=   768 factor=2.7776
+   tests/boost_drift_replay.py            solo=   525.3 pool=  1573 factor=2.9945
+   tests/structure.py                     solo=     5.2 pool=    17 factor=3.2692
+MIN = 0.4653 (tests/harness_headers.py: 449.2 -> 209)
+MAX = 3.2692 (tests/structure.py: 5.2 -> 17)

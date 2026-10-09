@@ -1,0 +1,12 @@
+TIMEOUT_SCALE = 3 | driver_timeout(1200, 0) = 1200
+10-03              2e569748a  recording=None                                       -> bound=1200
+10-04              fb11a0172  recording=None                                       -> bound=1200
+10-05              a1da8d381  recording=None                                       -> bound=1200
+10-06              cff39dad6  recording={'seconds': 765.6, 'rc': 0}                -> bound=2297
+10-07              be0cb8213  recording={'seconds': 525.3, 'rc': 0}                -> bound=1576
+10-08              816547efe  recording={'seconds': 800.2, 'rc': 0}                -> bound=2401
+base b2b6acd64     b2b6acd64  recording={'rc': 0, 'seconds': 1489.6}               -> bound=4469
+--- seeded (fix) for the 10-08 night and the 3x-pool case ---
+solo=800.2 pool=1573.0 -> basis=1573.0 bound=4719
+solo=800.2 pool=2400.0 -> basis=2400.0 bound=7200
+solo=800.2 pool=2401.0 -> basis=2401.0 bound=7203

@@ -1,4 +1,10 @@
-12:51:11Z loop=1 STILL-RUNNING live=3
-12:56:12Z loop=2 STILL-RUNNING live=3
-13:01:13Z loop=3 STILL-RUNNING live=1
-13:06:14Z loop=4 SETTLED
+14:59:10Z loop=1 STILL-RUNNING checks=36 live=4
+15:04:12Z loop=2 STILL-RUNNING checks=36 live=3
+15:09:13Z loop=3 STILL-RUNNING checks=36 live=3
+15:14:14Z loop=4 STILL-RUNNING checks=36 live=3
+15:19:15Z loop=5 STILL-RUNNING checks=37 live=2
+15:24:16Z loop=6 STILL-RUNNING checks=37 live=2
+15:29:17Z loop=7 STILL-RUNNING checks=37 live=2
+15:34:18Z loop=8 STILL-RUNNING checks=38 live=1
+15:39:19Z loop=9 STILL-RUNNING checks=38 live=1
+15:44:21Z loop=10 SETTLED checks=40
