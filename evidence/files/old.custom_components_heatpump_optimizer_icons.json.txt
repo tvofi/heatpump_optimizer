@@ -1,0 +1,5 @@
++          "idle_coasting": "mdi:weather-windy",
++          "idle_dearer": "mdi:cash-remove",
++          "idle_fuse": "mdi:fuse",
++          "idle_other_channel": "mdi:call-split",
++          "idle_solar": "mdi:solar-power-variant",

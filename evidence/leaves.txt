@@ -1,0 +1,1 @@
+RESULT leaves scenarios_moved=50 reasons_leaves=6050 other_leaves=0

@@ -1,0 +1,13 @@
++          "idle_coasting": "Above the floor, coasting",
++          "idle_dearer": "Dearer than the hours used",
++          "idle_fuse": "Capped by the fuse",
++          "idle_other_channel": "The other channel has the capacity",
++          "idle_solar": "Waiting for solar",
++        },
++        "dhw_setpoint": {
++          "name": "Hot water setpoint",
++          "description": "Tank temperature the plan heats toward. Written into the configuration, so it survives a reload."
++        },
++        "target_temperature": {
++          "name": "Comfort target",
++          "description": "Indoor temperature the plan holds. Written into the configuration, so it survives a reload."
