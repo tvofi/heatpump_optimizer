@@ -2,8 +2,8 @@
 
 The planner books ``min_electrical_power``..``max_electrical_power`` as the
 draw a step may run at and credits COP times that draw as delivered heat.
-Nothing checked those two figures against the meter: an install configured
-at 14 kW whose pump runs at 1.9-2.55 kW had every plan book levels the pump
+Nothing checked those two figures against the meter: a pump whose configured
+maximum is several times its real running draw had every plan book levels it
 never reached, and the heat they were credited with was never delivered.
 
 ``DrawRange`` keeps the running samples -- the metered draw beside the space
@@ -81,7 +81,7 @@ class DrawRange:
     configured figure is wrong. A correctly sized pump whose draw follows the
     level it is asked never engages; one whose own controller ignores that
     level engages, sized correctly or not
-    (``tools/audit/harnesses/draw_range_evidence.py``, shape ``mild-indep``).
+    (``dev/audit/harnesses/draw_range_evidence.py``, shape ``mild-indep``).
     """
 
     #: ``(drawn_kw, asked_kw)`` per running sample, oldest first.
@@ -171,12 +171,20 @@ class DrawRange:
     def from_dict(cls, data: Any) -> "DrawRange":
         """A stored range; an unreadable sample is dropped, not the record.
 
-        Without a readable configuration the latch is not trusted: the next
-        sample re-keys the range and starts the evidence afresh.
+        The configuration is the record's key: samples and latch are judged
+        against it, so without a readable one the record is dropped whole and
+        the evidence starts afresh -- never samples with nothing to judge them
+        against, which a reader of ``samples`` alone would misjudge.
         """
         out = cls()
-        if not isinstance(data, dict):
+        try:
+            lo, hi = (float(v) for v in data["config"])
+        except (TypeError, ValueError, OverflowError, KeyError, IndexError):
             return out
+        if not (np.isfinite(lo) and np.isfinite(hi)):
+            return out
+        out.config = (lo, hi)
+        out.engaged = data.get("engaged") is True
         raw = data.get("samples")
         for entry in raw if isinstance(raw, list) else ():
             try:
@@ -185,14 +193,6 @@ class DrawRange:
                 continue
             if np.isfinite(drawn) and np.isfinite(asked) and drawn > RUNNING_FLOOR_KW and asked >= 0.0:
                 out.samples.append((drawn, asked))
-        try:
-            lo, hi = (float(v) for v in data["config"])
-        except (TypeError, ValueError, OverflowError, KeyError):
-            return out  # samples with no configuration to judge them against
-        if not (np.isfinite(lo) and np.isfinite(hi)):
-            return out
-        out.config = (lo, hi)
-        out.engaged = data.get("engaged") is True
         return out
 
 
