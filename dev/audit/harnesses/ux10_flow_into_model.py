@@ -49,17 +49,42 @@ Trees, each copied from the checkout into a temp dir:
 - ``m_sub_two_zone``: the same predicate in ``_simulate_step_two_zone``;
 - ``m_veto``: ``_interval_measured_heat_kw``'s whole predicate to ``if
   False:``, so an interval the plan split with hot water, or gave nothing, is
-  spent on the house.
+  spent on the house;
+- ``m_veto_return_del``: the same function's refusal arm deleted, so it always
+  answers the reading;
+- ``m_veto_tail_del``: its tail answering ``None`` instead of ``heat_kw``,
+  which is what RETURN_DEL on that line does -- the operator replaces the
+  statement with ``pass`` and the function then falls off its end to the same
+  ``None``, so nothing measured reaches a learner;
+- ``m_bound_dhw`` and ``m_bound_space``: the predicate's two comparisons, each
+  to its closed twin (``dhw_kw > 0.0`` to ``>=``, ``space_kw <= 0.0`` to
+  ``<``), the pair CMP_BOUND*2 on that line;
+- ``m_except_return_del``: ``_replay_interval``'s ``return None`` in the
+  ``except`` arm to ``pass`` -- EQUIVALENT, and the measurement the
+  ``survivor_triage`` row
+  ``tests/mutation_ledger/survivor_triage/coordinator.py/_replay_interval.RETURN_DEL.d7923b87.json``
+  cites: the function falls off its end and returns the same None;
+- ``m_guard_off_house`` and ``m_guard_off_lower``: each learner's
+  ``if predicted_state is None:`` to ``if False:``, so the None a raising
+  replay returns is spent and the AttributeError escapes the learner.
 
-Expected, as measured at HEAD_SHA on HEAD_DATE against merge base
-a8ce87571 (both under Python 3.14.7):
-    BLOCK head: rc=0 failing_checks=0   (ALL 7 UX-10 EXTRACT PASSED)
+Expected, as measured on 2026-10-09 under Python 3.14.7 against merge base
+a8ce87571, on the tree that carries this file (the pull-request body names the
+head; re-run it to re-derive):
+    BLOCK head: rc=0 failing_checks=0   (ALL 8 UX-10 EXTRACT PASSED)
     BLOCK base: rc=0 failing_checks=6
     BLOCK m_precedence: rc=0 failing_checks=1
     BLOCK m_flow_ok: rc=0 failing_checks=1
     BLOCK m_sub_single: rc=0 failing_checks=1
     BLOCK m_sub_two_zone: rc=0 failing_checks=2
     BLOCK m_veto: rc=0 failing_checks=1
+    BLOCK m_veto_return_del: rc=0 failing_checks=1
+    BLOCK m_veto_tail_del: rc=0 failing_checks=4
+    BLOCK m_bound_dhw: rc=0 failing_checks=4
+    BLOCK m_bound_space: rc=0 failing_checks=1
+    BLOCK m_except_return_del: rc=0 failing_checks=0   (equivalent)
+    BLOCK m_guard_off_house: rc=0 failing_checks=1
+    BLOCK m_guard_off_lower: rc=0 failing_checks=1
     NULL CONTROL every unset-arm figure, head == base: True (6 figures) |
         unchanged in every mutant: True
     BITES the two-zone upper floor the residual is differenced from,
@@ -71,15 +96,20 @@ a8ce87571 (both under Python 3.14.7):
         20.921666666666667; RESIDUAL_PLANTED head -0.043135666666668016
         against RESIDUAL_UNSET -0.021666666666668277)
     SLAB_PLANTED head: 27.0422035   (unset: 27.01)
+    SCALE_UNSET and SCALE_PLANTED, every tree: 1.01
 
-Which check kills which mutant: ``m_precedence``, ``m_flow_ok`` and ``m_veto``
-each the arm check "an outranked, stale, negative, unreadable, unknown-unit or
-hot-water interval reaches no learner input"; ``m_sub_single`` "the model
-spends a measured heat output instead of inferring one from the draw";
-``m_sub_two_zone`` "the two-zone step spends it too" and "the two-zone house
-replay predicts a different upper floor"; ``base`` those four plus "a planted
-15 L/min over a 5 K drop reaches the house heat-loss replay as 5.222035 kW"
-and "and the lower-floor replay".
+Which check kills which mutant. ``m_precedence``, ``m_flow_ok``, ``m_veto``,
+``m_veto_return_del``, ``m_veto_tail_del``, ``m_bound_dhw``, ``m_bound_space``
+and both ``m_guard_off_*``: the arm check "an outranked, stale, negative,
+unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no
+learner input", except the two guard mutants, which "a replay that raises
+costs the sample and nothing else" kills, and ``m_veto_tail_del`` and
+``m_bound_dhw``, which also kill the three that assert a value does arrive.
+``m_sub_single``: "the model spends a measured heat output instead of
+inferring one from the draw". ``m_sub_two_zone``: "the two-zone step spends it
+too" and "the two-zone house replay predicts a different upper floor".
+``base``: those four plus "a planted 15 L/min over a 5 K drop reaches the
+house heat-loss replay as 5.222035 kW" and "and the lower-floor replay".
 
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/ux10_flow_into_model.py <out-dir>
 
@@ -138,6 +168,22 @@ SUB_TWO_ZONE = """        pump_heat_kw = (
 VETO = ("    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:\n"
         "        return None\n    return heat_kw\n")
 
+EXCEPT_RETURN = """    except Exception as err:  # noqa: BLE001
+        _LOGGER.debug("%s learning simulation failed: %s", label, err)
+        return None
+"""
+PREDICTED_GUARD = """        predicted_state = _replay_interval(
+            self, previous_state, previous_power, outdoor, previous_time,
+            dt_h, "%s",
+        )
+        if predicted_state is None:
+            return
+"""
+VETO_BODY = """    if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:
+        return None
+    return heat_kw
+"""
+
 VARIANTS = {
     "head": [],
     "m_precedence": [
@@ -162,6 +208,28 @@ VARIANTS = {
     "m_veto": [(COORD, VETO,
                VETO.replace("if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:",
                           "if False:"))],
+    # RETURN_DEL on the predicate's own arm: the refusal deleted, so every
+    # interval the plan split or gave nothing is spent on the house.
+    "m_veto_return_del": [(COORD, VETO_BODY, "    return heat_kw\n")],
+    # RETURN_DEL on the tail: nothing measured reaches a learner.
+    "m_veto_tail_del": [(COORD, VETO_BODY, VETO_BODY.replace(
+        "        return None\n    return heat_kw\n",
+        "        return None\n    return None\n"))],
+    # CMP_BOUND, each of the two the predicate holds, one variant each.
+    "m_bound_dhw": [(COORD, VETO_BODY, VETO_BODY.replace("dhw_kw > 0.0", "dhw_kw >= 0.0"))],
+    "m_bound_space": [(COORD, VETO_BODY, VETO_BODY.replace("space_kw <= 0.0", "space_kw < 0.0"))],
+    # RETURN_DEL in the except arm: equivalent, and the survivor_triage row's
+    # measurement -- falling off the function's end returns the same None.
+    "m_except_return_del": [(COORD, EXCEPT_RETURN, EXCEPT_RETURN.replace(
+        "        return None\n", "        pass\n"))],
+    # GUARD_OFF on each learner's None test: the prediction a raising replay
+    # left is spent, so the AttributeError escapes the learner.
+    "m_guard_off_house": [(COORD, PREDICTED_GUARD % "House heat loss",
+                           (PREDICTED_GUARD % "House heat loss").replace(
+                               "if predicted_state is None:", "if False:"))],
+    "m_guard_off_lower": [(COORD, PREDICTED_GUARD % "Lower floor loss",
+                           (PREDICTED_GUARD % "Lower floor loss").replace(
+                               "if predicted_state is None:", "if False:"))],
 }
 #: ``base``: the merge base's three production files under this head's tests.
 BASE_SHA = os.environ.get("UX10_BASE_SHA", "a8ce87571e6b1c093e57036207828c74c70644f4")
@@ -202,6 +270,8 @@ exec(compile(sliced("def _t2_count_saves(coord):", "def _t2_buffer(", "_t2_count
              "features.py#_t2_count_saves", "exec"), ns)
 exec(compile(sliced("_T2_HOUSE_CFG = {", "def _t2_raise_model(", "_T2_* / _t2_house / _t2_drive"),
              "features.py#_t2_house", "exec"), ns)
+exec(compile(sliced("def _t2_raise_model(", "_t2_hl_ok = _t2_house()", "_t2_raise_model"),
+             "features.py#_t2_raise_model", "exec"), ns)
 exec(compile(sliced("_FM_LEARN_KW = ", 'sys.exit(R.close("FEATURE CHECKS"))', "the R9-UX-10 block"),
              "features.py#ux10", "exec"), ns)
 def fig(label, value):

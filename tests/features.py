@@ -60682,6 +60682,35 @@ R.check(
     f"{_fm_unset._house_heat_loss_scale!r} against unreadable "
     f"{_fm_refusals['unreadable (unavailable)'][0]['state']!r}",
 )
+# The two learners used to carry their own try/except around the replay; the
+# helper they now share returns None where each of theirs returned, and both
+# honour it. `_t2_raise_model` is features.py's own fixture for the shape a bad
+# fit takes, sliced into the prelude the harness builds.
+def _fm_blown(method, **cfg):
+    """One learner run whose replay raises, and so returns None."""
+    dt_util.freeze(NOW)
+    try:
+        coord = _t2_raise_model(_t2_house(**dict(_FM_FLOW_CFG, **cfg)))
+        _t2_drive(coord, method)
+    finally:
+        dt_util.freeze(None)
+    return coord
+
+
+_fm_blown_hl = _fm_blown(_HOUSE_LEARNER)
+_fm_blown_lf = _fm_blown(_LOWER_LEARNER, two_zone=True)
+R.check(
+    "a replay that raises costs the sample and nothing else, through the "
+    "helper both learners now share",
+    _fm_blown_hl._t2_escaped is None
+    and _fm_blown_hl._house_heat_loss_samples == 0
+    and _fm_blown_lf._t2_escaped is None
+    and _fm_blown_lf._lower_floor_loss_samples == 0,
+    f"house escaped {_fm_blown_hl._t2_escaped!r} samples "
+    f"{_fm_blown_hl._house_heat_loss_samples}; lower escaped "
+    f"{_fm_blown_lf._t2_escaped!r} samples "
+    f"{_fm_blown_lf._lower_floor_loss_samples}",
+)
 # What the substitution moves where the residual is taken from. The two-zone
 # step's UPPER floor rate carries the radiator share of the pump's heat
 # directly, so the measurement moves the very temperature the house heat-loss
