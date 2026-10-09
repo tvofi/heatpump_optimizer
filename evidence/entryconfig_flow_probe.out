@@ -1,0 +1,7 @@
+RESULT A_entryconfig_flow=2.093 expected=2.093
+RESULT B_dict_flow=2.093
+RESULT C_entryconfig_noflowkey=None
+RESULT D_entryconfig_with_power=None
+RESULT E_probe_install_writes=[] measured_power=False frequency=False
+RESULT get_undeclared='sensor.water_flow' get_missing_default='D' in_cfg=True len=1
+VERDICT A=PASS B=PASS C=PASS D=PASS

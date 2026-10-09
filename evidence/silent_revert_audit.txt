@@ -1,0 +1,30 @@
+branch-changed files: 45
+  !! dev/audit/rounds/round4/D6/claims.json: 2/2 branch-added lines absent from the merged tree
+      -   "result": "documented=73 measured=73",
+      -   "result": "on disk=73, listed=73, missing=[], phantom=[]",
+  !! dev/audit/rounds/round4/D6/claims.md: 2/2 branch-added lines absent from the merged tree
+      - | C32 | `docs/architecture.md` | 45 modules | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py` | documented=73 measure
+      - | C33 | `docs/architecture.md` | the module map is the package's module list | `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/c
+  !! dev/audit/rounds/round4/D6/claims.py: 2/2 branch-added lines absent from the merged tree
+      -     RESULT arch_modules_on_disk=73       (72 until R9-UX-9's flow_meter.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 
+      -     RESULT arch_map_listed=73            (72 until R9-UX-9's flow_meter.py; 70 until R9-DBG-1's debugger.py and R9-SW-1's quiet_windows.py; 
+  !! docs/architecture.md: 3/6 branch-added lines absent from the merged tree
+      - knows nothing about Home Assistant: 73 modules, of which 27 import the
+      - 27 of the 73 modules import `homeassistant` at module level: `__init__`,
+      - The other 45 modules are deliberately free of it, so each can be driven
+  !! tests/closures.json: 11/33 branch-added lines absent from the merged tree
+      -    "seconds": 170.6,
+      -    "seconds": 56.2,
+      -    "seconds": 9.3,
+      -    "seconds": 187.4,
+      -    "seconds": 62.0,
+      -    "seconds": 0.7,
+  !! tests/deployment_shape.py: 3/3 branch-added lines absent from the merged tree
+      - records every read, so this lane's recorded closure is the package: all 91
+      - alike (90 until R9-UX-9's ``flow_meter.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``no
+      - (91 shared production files), entities.py/harness_headers.py,
+  !! tests/structure_budgets.json: 3/3 branch-added lines absent from the merged tree
+      -  "max_class_loc": 9049,
+      -  "recorded_at": "59b5ac6e4594b42cd5579cca182a743c25f4c48d",
+      -  "seam_cut_total": 768
+SILENT-REVERT: total branch-added lines missing = 26
