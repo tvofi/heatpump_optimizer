@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST a4b4e684",
+  "killed_by": "tests/features.py",
+  "old": "LOW_PERCENTILE = 10.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against b2b6acd64cde652676a568e93c05f021571ebe5e: CONST (`LOW_PERCENTILE = 20.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

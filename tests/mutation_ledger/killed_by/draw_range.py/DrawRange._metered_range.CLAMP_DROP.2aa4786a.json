@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._metered_range CLAMP_DROP 2aa4786a",
+  "killed_by": "tests/entities.py",
+  "old": "        return min(bottom, top), top",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against b2b6acd64cde652676a568e93c05f021571ebe5e: CLAMP_DROP (`return (bottom), top`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
+}

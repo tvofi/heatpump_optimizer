@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:InstallCapability.plan_writes_power RETURN_DEL 4ef1ee1f",
+  "killed_by": "tests/features.py",
+  "old": "        return \"frequency\" in self.writes",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against b2b6acd64cde652676a568e93c05f021571ebe5e: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
