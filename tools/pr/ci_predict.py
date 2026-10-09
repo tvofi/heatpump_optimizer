@@ -241,13 +241,17 @@ def unpinned(base):
     budgets = m.load_budgets()
     sites = m.inventory()
     pinned_out = m.unpinned_sites(budgets, sites)
+    # The other direction (RCA stale-pins): a pin whose site the diff edited,
+    # moved or deleted. `mutation` refuses it from the same `inventory()` this
+    # already ran, and `mutation-autofix` only adds pins, never drops one.
+    stale = [("ledger", f"STALE PIN {p}") for p in m.completeness_problems(budgets, sites)]
     base_sites = m.base_unpinned_sites(base, sites)
     if base_sites is None:
-        return [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
+        return stale + [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
                  f"to compare against, and CI refuses that too")]
     added = m.added_unpinned(pinned_out, base_sites, m.diff_sides(base))
-    return [("mutation", f"ADDED UNPINNED {m.triage_key(s)}: "
-             f"{s['old'].strip()[:60]}") for s in added]
+    return stale + [("mutation", f"ADDED UNPINNED {m.triage_key(s)}: "
+                     f"{s['old'].strip()[:60]}") for s in added]
 
 
 def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]:
@@ -286,6 +290,10 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     for job, line in preds:
         print(f"PREDICT {job:<8} {line}")
+    if any(j == "ledger" for j, _ in preds):
+        print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
+              "deleted by hand; `mutation-autofix` never drops one, and pins "
+              "the edited line afresh once it is gone")
     jobs = sorted({j for j, _ in preds if j != "mutation"})
     sites = sum(1 for j, _ in preds if j == "mutation")
     if sites:
