@@ -9,8 +9,8 @@ module the metrics cannot parse. This is that check, and it is the only part tha
   * every score metric and every tripwire is a number on this tree;
   * a tree compared with itself reads NULL, and the report names no metric;
   * the coordinator class the metrics key on is the one ``tests/structure.py`` keys on;
-  * nothing the scheduled solve or the what-if reaches writes the coordinator's three hubs,
-    except the event-driven producers SOLVE_PATH_HUB_WRITERS names (#1736).
+  * nothing the scheduled cycle or the what-if reaches writes the coordinator's three hubs,
+    except the producers CYCLE_HUB_WRITERS names (#1736), the pre-solve steps included.
 
     PYTHONPATH=tests/hastub python3 tests/arch_score_head.py
 """
@@ -32,22 +32,62 @@ from archscore.metrics import common, footprint, hub_solve_writes  # noqa: E402
 
 R = Results("architecture score on today's tree (R9-EG-A1)")
 
-#: #1736: a solve plans from one record built on the loop, so the hub writes
-#: hub_solve_writes still finds on the solve path are the learners its tail
-#: runs, each moving configured state at the event that changed it (RCA-1736
-#: section 3), keyed (writer, hub.field). A site outside this table is a
-#: solve-scoped value written into shared configuration: #1736's class.
-SOLVE_PATH_HUB_WRITERS = {
-    ("coordinator:HeatPumpOptimizerCoordinator._apply_comfort_weight",
-     "_opt_config.comfort_weight"):
-        "the quiet-period learner in the solve's tail moved the learned weight",
-    ("coordinator:HeatPumpOptimizerCoordinator._apply_house_heat_loss_scale",
-     "_thermal_params.house_heat_loss_scale"):
-        "a finished system identification adopts its fitted scale",
+#: #1736: a solve plans from one record built on the loop, so every hub write
+#: the scheduled cycle reaches (hub_solve_writes' roots: the cycle and the
+#: what-if, R9-EG-A4) is a producer moving live state at the event that changed
+#: it: a reading, a learner's adoption, the cycle's carried corrections. Keyed
+#: writer -> (the hub fields it writes, why). A writer or a field outside this
+#: table is a solve-scoped value written into shared state: #1736's class,
+#: wherever in the cycle it sits -- #1887's round-1 review moved one into the
+#: pre-solve step, which the solve-only roots did not reach.
+_C = "coordinator:HeatPumpOptimizerCoordinator."
+CYCLE_HUB_WRITERS = {
+    _C + "_update_current_state": (
+        {"_current_state." + f for f in (
+            "buffer_tank_temperature", "dhw_hours_since_legionella", "dhw_temperature",
+            "floor_return_temperature", "lower_floor_temperature", "outdoor_temperature",
+            "room_temperature", "slab_temperature", "solar_radiation",
+            "upper_floor_temperature", "wood_tank_temperature")}
+        | {"_thermal_params.ambient_humidity", "_thermal_params.mixing_valve_target"},
+        "this cycle's sensor readings into the live state"),
+    "thermal_model:ThermalModel.update_slab_from_return_temp": (
+        {"_current_state.floor_return_temperature", "_current_state.slab_temperature"},
+        "the slab estimate advanced from this cycle's return reading"),
+    "thermal_model:ThermalModel.update_ecl110_displace_state": (
+        {"_current_state.ecl110_displace_command", "_current_state.ecl110_effective_displace"},
+        "the ECL110 displacement state from this cycle's command"),
+    _C + "_refresh_model_corrections": (
+        {"_thermal_params." + f for f in (
+            "dhw_inlet_current", "flow_curve_bias", "flow_curve_indoor_target",
+            "internal_gains_profile", "solar_aperture_scale")},
+        "the cycle's corrections carried on the live model after the learners (#1736)"),
+    _C + "_apply_comfort_weight": (
+        {"_opt_config.comfort_weight"},
+        "the quiet-period learner in the solve's tail moved the learned weight"),
+    _C + "_apply_house_heat_loss_scale": (
+        {"_thermal_params.house_heat_loss_scale"},
+        "a finished system identification adopts its fitted scale"),
+    _C + "_apply_cop_scale": ({"_thermal_params.cop_scale"}, "the COP learner adopts its scale"),
+    _C + "_apply_lower_floor_loss_ratio": (
+        {"_thermal_params.lower_floor_loss_ratio"}, "the zone learner adopts its ratio"),
+    _C + "_apply_buffer_cooling_rate": (
+        {"_thermal_params.buffer_cooling_rate"}, "the buffer learner adopts its rate"),
+    _C + "_apply_learner_payloads": (
+        {"_thermal_params.defrost_derate"}, "a restored learner payload is adopted"),
+    "dhw_learning:DhwProfileLearner.apply_cooling_rate": (
+        {"_thermal_params.dhw_cooling_rate"}, "the DHW learner adopts its cooling rate"),
+    "dhw_learning:DhwProfileLearner.apply_payload": (
+        {"_thermal_params.dhw_hourly_draw_pattern"}, "a restored DHW profile is adopted"),
+    "dhw_learning:DhwProfileLearner.async_learn_usage": (
+        {"_thermal_params.dhw_hourly_draw_pattern"}, "the DHW learner adopts a learned draw profile"),
 }
-#: The planted write the control adds as async_run_optimization's first statement.
+LISTED = {(w, f) for w, (fields, _why) in CYCLE_HUB_WRITERS.items() for f in fields}
+#: The planted writes the controls add: one as async_run_optimization's first
+#: statement, one as the pre-solve step's last (#1887's round-1 probe).
 _PLANT_AT = '        ctx = getattr(self, "_ctx", self)\n        _LOGGER.info("Running heat pump optimization'
 _PLANT = '        ctx._opt_config.peak_count = 3\n'
+_PRESOLVE_AT = '        params.flow_curve_indoor_target = fresh["flow_curve_indoor_target"]\n'
+_PRESOLVE = '        getattr(self, "_ctx", self)._opt_config.peak_count = 3\n'
 
 #: #1776: the fragment-chain guard. ``params_over_10`` is a count, so a split
 #: that decomposes nothing RAISES it (the pre-study's perturbation B3c), and a
@@ -144,20 +184,19 @@ def hub_writers(root: Path) -> set[tuple[str, str]]:
         return out
 
 
-def planted_writers() -> tuple[bool, set[tuple[str, str]]]:
-    """The positive control: today's package with one hub write planted at the
-    top of async_run_optimization. ``(planted, writers)``."""
+def planted_writers(at: str, cut_after: str, plant: str) -> tuple[bool, set[tuple[str, str]]]:
+    """A positive control: today's package with ``plant`` inserted after
+    ``cut_after``, the head of the one occurrence of ``at``. ``(planted, writers)``."""
     with tempfile.TemporaryDirectory(prefix="archscore-plant-") as tmp:
         root = Path(tmp)
         shutil.copytree(ROOT / counters.PKG, root / counters.PKG,
                         ignore=shutil.ignore_patterns("__pycache__"))
         coord = root / counters.PKG / "coordinator.py"
         text = coord.read_text()
-        at = text.find(_PLANT_AT)
-        if at < 0:
+        if text.count(at) != 1:
             return False, set()
-        cut = at + len('        ctx = getattr(self, "_ctx", self)\n')
-        coord.write_text(text[:cut] + _PLANT + text[cut:])
+        cut = text.find(at) + len(cut_after)
+        coord.write_text(text[:cut] + plant + text[cut:])
         return True, hub_writers(root)
 
 
@@ -181,19 +220,21 @@ def main() -> int:
     R.check("...and with any gap it keeps every class the ratchet finds",
             all(any(set(g) <= set(w) for w in wide) for g in shared))
     writers = hub_writers(ROOT)
-    R.check("nothing the solve reaches writes a hub but its event-driven producers (#1736)",
-            writers <= set(SOLVE_PATH_HUB_WRITERS),
-            f"unlisted: {sorted(writers - set(SOLVE_PATH_HUB_WRITERS))}: put the value in "
-            "the solve's record, or list the producer with the event that moves it")
-    planted, seen = planted_writers()
-    R.check("the hub check refuses a write planted at the top of the solve, and lists only it",
-            planted and seen - set(SOLVE_PATH_HUB_WRITERS) == {
-                ("coordinator:HeatPumpOptimizerCoordinator.async_run_optimization",
-                 "_opt_config.peak_count")},
-            f"planted={planted}; unlisted {sorted(seen - set(SOLVE_PATH_HUB_WRITERS))}")
+    R.check("nothing the scheduled cycle reaches writes a hub but its listed producers (#1736)",
+            writers <= LISTED,
+            f"unlisted: {sorted(writers - LISTED)}: put the value in the solve's record, or "
+            "list the producer with the event that moves it")
+    for name, (at, cut_after, plant, writer) in {
+        "at the top of the solve": (_PLANT_AT, '        ctx = getattr(self, "_ctx", self)\n', _PLANT,
+                                    _C + "async_run_optimization"),
+        "in the pre-solve step": (_PRESOLVE_AT, _PRESOLVE_AT, _PRESOLVE, _C + "_refresh_model_corrections"),
+    }.items():
+        planted, seen = planted_writers(at, cut_after, plant)
+        R.check(f"the hub check refuses a write planted {name}, and lists only it",
+                planted and seen - LISTED == {(writer, "_opt_config.peak_count")},
+                f"planted={planted}; unlisted {sorted(seen - LISTED)}")
     R.check("every listed producer is still reached, so the table holds no stale row",
-            set(SOLVE_PATH_HUB_WRITERS) <= writers,
-            f"stale: {sorted(set(SOLVE_PATH_HUB_WRITERS) - writers)}")
+            LISTED <= writers, f"stale: {sorted(LISTED - writers)}")
     sites = param_sites(ROOT)
     R.check("the head census does not out-count the score's own guard (C4 can only add copies)",
             len(sites) <= here["params_over_10"],

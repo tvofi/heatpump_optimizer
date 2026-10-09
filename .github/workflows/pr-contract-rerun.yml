@@ -29,7 +29,7 @@ name: PR contract re-run
 
 on:
   workflow_run:
-    workflows: ["Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
+    workflows: ["Architecture score", "Budget raise gate", "CodeQL", "Governance", "Hassfest", "Tests", "Validate"]
     types: [completed]
 
 permissions: {}

@@ -44,17 +44,16 @@ background task, whose exit wakes you; never end a turn on a detached one.
 4. **Goldens that move are claimed by whoever measured the drift**, in
    `tests/golden/claimed_drift.txt` or `card_claimed_drift.txt`, with the
    expected direction per fixture. `claims-for:` stays at the live `VERSION`.
-5. **Measure the gate's scope, then run what it names.** The gate is scoped
-   from measured closures, so derive the selection rather than assume it:
+5. **Measure the gate's scope, then run what it names.** Derive it:
 
        D=$(mktemp -d); python3 tests/closure.py select \
          --diff $(git merge-base origin/main HEAD) --workdir "$D"
        cat "$D/scope.txt"; cat "$D/scope.run"
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
-   `scope.run` names, with `PYTHONPATH=tests/hastub`, and leave the remainder
-   to CI; `tests/README.md` ("The scoped gate") says why. So
-   `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
+   `scope.run` and `tests/run.sh`'s `run_always` lines name, with
+   `PYTHONPATH=tests/hastub`, leaving the rest to CI; `tests/README.md`
+   ("The scoped gate") says why. So `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
    doc — not an instruction to reproduce CI. An untracked scratch file is one:
    keep the body outside the worktree.
 
@@ -68,7 +67,7 @@ background task, whose exit wakes you; never end a turn on a detached one.
    run it locally per mutant.
 
    `GOLDEN_MODE=drift` against the merge base always (`CLAUDE.md` rule 3).
-   `python3 tests/structure.py` is seconds and runs before every push regardless.
+   `python3 tests/structure.py` runs before every push.
 6. Hand off to the adversarial fix reviewer. **After any rebase or merge,
    steps 2–8 are re-executed** (past the handoff, where its delta reaches):
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
@@ -80,8 +79,8 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    **The handoff freezes the branch.** Until then, update it from `origin/main`
    whenever you need to — `git merge origin/main`, never rebase. After it, the
-   head is the reviewer's measuring surface and **only the orchestrator moves
-   it**: a head that moves mid-review invalidates measurements already taken,
+   head is the reviewer's measuring surface and **only the orchestrator, the
+   merge-main bot or `--carry` moves it**: a head that moves mid-review invalidates measurements taken,
    and the reviewer cannot tell which of its numbers still describe the tree.
    **A conflict with main after it is resolved by merge, never a re-cut**
    (tvofi, 2026-10-01): the orchestrator merges `origin/main` into the head, or
@@ -90,8 +89,9 @@ background task, whose exit wakes you; never end a turn on a detached one.
 
    Landing the pull request is the **orchestrator's**, or a merge-and-release
    seat it starts.
-7. The PR body closes its issues (`Closes #N`), names the head SHA measured,
-   and carries every executed number, each in `## Figures` with its command.
+7. The PR body closes its issues (`Closes #N`), names the head SHA measured
+   (a `--carry` head: no re-take; name bot reds), and carries every executed number,
+   each in `## Figures` with its command.
 8. **A quoted number states the rule that produced it, not just its value.**
    Three agents counting "the same" published-attribute census (#373) got 59, 50,
    and 124/147/50, because each asked a subtly different question; only a count whose

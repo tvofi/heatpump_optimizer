@@ -167,9 +167,11 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
   row at its canonical path that the API's facts re-generate, or an author
   other than the hpo-author App.
 - `remerge_main.sh` — merges origin/main into an open PR (claimnotes merge
-  driver), drops inherited claims, pushes as the App, prefixes ## Head with
-  what happened. When: main moved under an open PR. Refusal: a conflict is
-  not auto-resolved — it stops loudly instead.
+  driver), drops inherited claims, pushes as the App with `app_push.sh
+  --recarry`, which prefixes ## Head with what happened and skips prepr only
+  on a clean 2-parent merge of the live head and main under the live body.
+  When: main moved under an open PR. Refusal: a conflict is not
+  auto-resolved — it stops loudly instead.
 - `run_twins.py` — counts a workflow's cancelled `pull_request` runs that
   sat beside a same-SHA sibling (two events at one head, not a
   supersession), from cached `/actions/workflows/<file>/runs` pages or
