@@ -1,3 +1,0 @@
-PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/away.py:574 RETURN_DEL: return stored_instant(value, dt_util.DEFAULT_TIME_ZONE) or N
-CI PREDICT: 1 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
-CI PREDICT: no closures or fast red predicted against 47b083b03a9d (a data-file read is not seen)

@@ -1,0 +1,35 @@
+branch's own three-dot patch identical at both heads (merge base 47b083b0 unchanged): identical once dev/programme/delivery/2073.md is excluded (4 files -> 5)
+branch owns:
+  dev/audit/rca/R9-RCA-stale-pins.md
+  dev/programme/carries/carry-201.json
+  dev/programme/delivery/2073.md
+  tools/pr/ci_predict.py
+  tools/pr/prepr.sh
+  dev/audit/rca/R9-RCA-stale-pins.md unchanged 5bcf9d2b->head: YES
+  dev/programme/carries/carry-201.json unchanged 5bcf9d2b->head: YES
+  tools/pr/ci_predict.py unchanged 5bcf9d2b->head: YES
+  tools/pr/prepr.sh unchanged 5bcf9d2b->head: YES
+claim files at head == origin/main: 62bf9eaba2372bb05cdb42076273c18bdceb0f39 / c683379dafc29aa923baac9325d82bacfb43f7b9
+MERGE STATE (step 13): git merge-tree --write-tree origin/main 63e4eba35 -> rc=1
+  100644 f495d3cba799104c9d583d1ed599b55c23e49a4a 1	tools/pr/ci_predict.py
+  100644 65119463c8c1047cc32e2cb4ea70cb854ffa5fb5 2	tools/pr/ci_predict.py
+  100644 ab72340ff12b3514e3414973d2144094bdfa3ff4 3	tools/pr/ci_predict.py
+  100755 84d3bb96b6d84ed2d71764d388ff199e530096c3 1	tools/pr/prepr.sh
+  100755 362b004428f7cb93bd74987989f73bbe2116fe62 2	tools/pr/prepr.sh
+  100755 b4739ed32cc68cbf275c9a5d1a267d10fb119a12 3	tools/pr/prepr.sh
+  
+  Auto-merging tools/pr/ci_predict.py
+  CONFLICT (content): Merge conflict in tools/pr/ci_predict.py
+  Auto-merging tools/pr/prepr.sh
+  CONFLICT (content): Merge conflict in tools/pr/prepr.sh
+  stderr markers: 
+  (no MERGE-CLAIM marker: this is not a claim-file conflict; the driver's refusal does not apply)
+  The SAME conflict exists at the PREVIOUS head 5bcf9d2b (merge-tree rc=1, same two paths), so main advanced; the row commit touched neither file.
+GitHub: mergeable=false mergeable_state=dirty base 47b083b0 draft=false
+check-runs at the head: total_count=0 (a DIRTY pull request cannot queue Tests -- claim-files.md; the head has never been gated; 0 of the 17 required contexts are present)
+
+main-side commits that moved into these two paths after this branch's base 47b083b0 (git log 47b083b0..origin/main -- tools/pr/prepr.sh tools/pr/ci_predict.py):
+  #2061 INERT READS arms: c94842ed9, 6ae385f29, 4cdba2ac1, 0f64774f6, b2e8fbf66
+  #2028 prepr body check:  af5560f81, a6984468b, 3eb8d53a5
+  R9-RO-9a / rca merges:   42bf40f99, cf84e0a45, de5f65497, 5a0428305, e6e5aea73, 539d300b8, fc8da7528
+Main's new prepr 6d rows (from the same range): "6d charges no branch that only edits the lane file with a script main already left unrecorded", "6d still predicts NO RECORDING for a recording the lane edit drops (null control)" — the region #2073's STALE PIN arm edits.
