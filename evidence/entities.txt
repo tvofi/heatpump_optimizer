@@ -15,20 +15,20 @@ Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit,
 Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
 Config entry version 8 is newer than the supported version 7; downgrade is not supported
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/hpo-seats/review-2070/r2/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/Users/timmalmstrom/hpo-seats/review-2070/r3/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
 No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-09 01:11:53.808305+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-09 01:11:54.388008+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-09 01:11:54.388008+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-09 01:11:54.388008+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-09 01:11:56.136727+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-10-09 05:58:02.120302+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-09 05:58:02.856535+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-09 05:58:02.856535+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-09 05:58:02.856535+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-09 05:58:04.453226+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-09 01:11:56.855140+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-09 01:12:10.813562+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-09 05:58:05.198493+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-09 05:58:22.659796+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
 closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
@@ -1536,7 +1536,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['diagnose_interval__dup', 'restore_learned_snapshot__dup', 'run_optimization__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['restore_learned_snapshot__dup', 'set_away__dup', 'simulate_plan__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1665,7 +1665,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpdfbumdhu/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmpr29nygu2/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1683,7 +1683,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-oby49ppt/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-whz11ntp/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1847,7 +1847,7 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs f372826246922e177398da73c316d27faa02dd5c
+  DRIFT wood_coil: 1 leaves moved vs df657283008547e0ee356a80bcb8d4d42af509cd
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2362,7 +2362,7 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   the nightly reports a pin its script did not kill, and never reads a site the budget, a timeout or another driver left unrun as re-verified (R9-F10.13)
   ok   a triage-marked site is driven by every driver but the one that judges the marks, and left out when that is its only driver; an unmarked site keeps it (R9-F10.13)
   ok   a pinned site's killer is driven first however dear it is; an unpinned site and a stale pin keep the cost order (R9-F10.13)
-  FAIL --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)  [has pin=True real=(1, 'MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/coordinator.py:_on_off_service RETURN_DEL dac85d34: disposition names no site the inventory generates (old pin \'    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"\')\n') wrong=(1, 'MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/coordinator.py:_on_off_service RETURN_DEL dac85d34: disposition names no site the inventory generates (old pin \'    return entity_id.split(".", 1)[0], "turn_on" if on else "turn_off"\')\n')]
+  ok   --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)
   ok   mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)
   ok   a changed-scope pool draws only sites on lines the diff modified
   ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
@@ -2506,4 +2506,5 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
   ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
 
-1 of 2227 ENTITY CHECKS FAILED
+ALL 2227 ENTITY CHECKS PASSED
+rc=0
