@@ -1,0 +1,3 @@
+measured-head: 86c6daf4817c49111248a390b3bb8e71f27eff45
+live-head-at-settle: 849fe5b9e6327720306b30ce25161fb747ecab27
+verdict-head: 849fe5b9e6327720306b30ce25161fb747ecab27
