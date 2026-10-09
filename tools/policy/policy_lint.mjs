@@ -90,16 +90,9 @@ const MDC_PATHLINE_RE =
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const ROOT = path.resolve(HERE, '..', '..')
 
-// `root` defaults to this module's own repository, which is what every
-// internal caller wants. A caller inspecting commits in a DIFFERENT clone --
-// `tools/pr/app_approve.sh`'s `--carry`, over the throwaway repository its
-// `--self-test` builds or the orchestrator's checkout it was asked about --
-// passes that clone's root, since `ROOT` here would read a sha that only the
-// other repository has and report it "not a commit in this clone" (the same
-// fail-closed refusal, for the wrong reason).
-function git(args, { allowFail = false, env, quiet = false, root = ROOT } = {}) {
+function git(args, { allowFail = false, env, quiet = false } = {}) {
   try {
-    return execFileSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
+    return execFileSync('git', args, { cwd: ROOT, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...(env ? { env } : {}),
       ...(quiet ? { stdio: ['ignore', 'pipe', 'pipe'] } : {}) })
   } catch (e) {
     if (allowFail) return ''
@@ -5938,20 +5931,23 @@ const AUTOFIX_BOT_COMMITS = {
     // A path ending in `/` is a directory the commit may add files under
     // (mayAdd only): the mutation ledger keeps one file per pinned site.
     'ci: pin killed mutants': { paths: ['tests/mutation_budgets.json', 'tests/mutation_ledger/'], mayAdd: true },
+    // The merge-main bot (R9-CI-2b, .github/workflows/merge-main.yml): main
+    // merged into the head with no resolution. Two parents; the tree must be
+    // git's own merge of them outside main's merge-driver files, the carry
+    // rule `app_approve.sh --carry` applies (#1667). The chain walks on down
+    // the first parent, the pull request's own.
+    'ci: merge main': { merge: true },
   },
 }
 
 // One commit's answer: `{ parent, message }` when it is an autofix commit, or
 // `{ why }` naming the first condition it fails. Fail-closed: a commit this
-// clone cannot read is refused, never assumed. `root` is the clone to read it
-// from; a caller that walks a repository other than this file's own (the
-// `--carry` predicate in `tools/pr/app_approve.sh`) passes its clone's root,
-// and every other caller keeps the default of `ROOT` exactly as before.
-function autofixCommit(sha, root = ROOT) {
+// clone cannot read is refused, never assumed.
+function autofixCommit(sha) {
   const bot = `${AUTOFIX_BOT_COMMITS.name} <${AUTOFIX_BOT_COMMITS.email}>`
   const short = sha.slice(0, 7)
   if (!/^[0-9a-f]{40}$/.test(sha)) return { why: `${short} is not a full commit SHA` }
-  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true, root })
+  const meta = git(['show', '-s', '--format=%an <%ae>%x00%cn <%ce>%x00%P%x00%B', sha], { allowFail: true, quiet: true })
   if (!meta) return { why: `${short} is not a commit in this clone` }
   const [author, committer, parents, raw] = meta.split('\0')
   if (author !== bot || committer !== bot) return { why: `${short} is not authored and committed as ${bot}` }
@@ -5959,10 +5955,11 @@ function autofixCommit(sha, root = ROOT) {
   if (!Object.hasOwn(AUTOFIX_BOT_COMMITS.messages, message)) return { why: `${short}'s message is not an autofix message` }
   const rule = AUTOFIX_BOT_COMMITS.messages[message]
   const ps = parents.trim().split(/\s+/).filter(Boolean)
+  if (rule.merge) return autofixMerge(sha, short, message, ps)
   if (ps.length !== 1) return { why: `${short} has ${ps.length} parents` }
-  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true, root })
+  const status = git(['diff', '--no-renames', '--name-status', ps[0], sha], { allowFail: true, quiet: true })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
-  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true, root })
+  const numstat = git(['diff', '--no-renames', '--numstat', ps[0], sha], { allowFail: true, quiet: true })
     .split('\n').filter(Boolean).map((l) => l.split('\t'))
   if (!status.length) return { why: `${short} changes no file` }
   const underDir = (p) => rule.paths.some((r) => r.endsWith('/') && p.startsWith(r))
@@ -5970,6 +5967,34 @@ function autofixCommit(sha, root = ROOT) {
   if (outside.length) return { why: `${short} changes ${outside.join(', ')}, outside what "${message}" stages` }
   if (status.some(([s, p]) => s !== 'M' && !(s === 'A' && rule.mayAdd && underDir(p)))) return { why: `${short} does not only modify its files` }
   if (!rule.mayAdd && numstat.some(([added]) => added !== '0')) return { why: `${short} adds lines, and "${message}" only removes them` }
+  return { parent: ps[0], message }
+}
+
+// A bot merge is accepted when its tree is git's own merge of its two parents
+// outside the files main's .gitattributes routes to a driver: the files the
+// driver resolved are re-checked by the gates that own them, as a seat's are.
+function autofixMerge(sha, short, message, ps) {
+  if (ps.length !== 2) return { why: `${short} has ${ps.length} parents, and "${message}" is a merge of two` }
+  // Main, and main's attributes, never the parent's (#2059 round 1): a merge
+  // of a branch that is not main, or one whose side routes a file to a driver
+  // so a hand edit hides in the excluded set, is not a merge of main.
+  if (!git(['rev-parse', '--verify', '--quiet', 'origin/main'], { allowFail: true, quiet: true }).trim()) {
+    return { why: `${short}: this clone has no origin/main to check "${message}"'s second parent against` }
+  }
+  try {
+    execFileSync('git', ['merge-base', '--is-ancestor', ps[1], 'origin/main'], { cwd: ROOT, stdio: 'ignore' })
+  } catch { return { why: `${short} merges ${ps[1].slice(0, 7)}, which is not on origin/main` } }
+  let out = ''
+  try {
+    out = execFileSync('git', ['merge-tree', '--write-tree', '--no-messages', ps[0], ps[1]],
+      { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+  } catch (e) { out = e.stdout ?? '' }
+  const tree = out.split('\n')[0].trim()
+  if (!/^[0-9a-f]{40}$/.test(tree)) return { why: `${short}: git merge-tree gave no tree for its parents` }
+  const drivers = git(['show', 'origin/main:.gitattributes'], { allowFail: true, quiet: true }).split('\n')
+    .filter((l) => !l.startsWith('#') && / merge=/.test(l)).map((l) => `:(exclude)${l.split(/\s+/)[0]}`)
+  const moved = git(['diff', '--name-only', tree, sha, '--', '.', ...drivers], { allowFail: true, quiet: true }).trim()
+  if (moved) return { why: `${short} is not the automatic merge of its parents (${moved.split('\n').join(', ')})` }
   return { parent: ps[0], message }
 }
 
@@ -6960,7 +6985,7 @@ function main() {
 // asymmetry rather than assuming the two modes agree on both shapes.
 export { mergedPRsFromWindow, enumerateMerges, resolvePrFromCommit, rulePaths }
 
-export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS, autofixCommit }
+export { CORPUS_CHECK_NAMES, LOOP_CHECK_NAMES, assertAcceptance, derivations, frictionEntries, AUTOFIX_BOT_COMMITS }
 
 // For field_coverage.mjs's budgets arm (class I3), which drives the real
 // per-file comparison on a perturbed file rather than a temp copy of this module.

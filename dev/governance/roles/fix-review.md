@@ -29,7 +29,7 @@ A long job runs as `fixer.md`'s preamble says, so its exit wakes you.
    is `blocked <sha> harness: class-open <seam>`. A body whose issue states more than one
    seam and names no rule is `blocked <sha> harness: class-rule-missing`. A body whose rule
    returns nothing is a body whose class is one seam — say so rather than treating the absence as compliance.
-7. Confirm the head SHA in the PR body is the head you measured.
+7. Confirm the head SHA in the PR body is the head you measured, or `--carry`s to it.
 8. **A quoted number you cannot re-derive is not verified — say so.** Re-derive
    under the PR's stated rule before trusting its count; if you cannot, or
    if you had to build your own definition to check it, write that in the verdict rather than reporting a number as confirmed.
