@@ -1,0 +1,73 @@
+RESULT BASE_scripts=33 pairs=528 ge_080=120 eq_100=18 both_nonempty=406
+RESULT BASE_arch_score_head.py+deployment_shape.py=90
+RESULT BASE_entities.py+harness_headers.py=80
+RESULT BASE_doc_claims.py+entities.py=80
+RESULT BASE_doc_claims.py+harness_headers.py=80
+RESULT BASE_structure.py+typing_ruler.py=72
+RESULT BASE_finite_boundary.py+structure.py=72
+RESULT BASE_finite_boundary.py+typing_ruler.py=72
+RESULT BASE_plan_view.py+solar_alignment.py=54
+RESULT BASE_boost_drift_replay.py+plan_view.py=54
+RESULT BASE_boost_drift_replay.py+solar_alignment.py=54
+RESULT BASE_golden.py+env_drift.py=88
+RESULT BASE_card.mjs+card_drift.mjs=55
+RESULT BASE_optimality.py+validate.py=17
+RESULT BASE_optimality.py+backtest.py=17
+RESULT BASE_validate.py+edge.py=17
+RESULT BASE_edge.py+backtest.py=17
+RESULT OURS_scripts=33 pairs=528 ge_080=120 eq_100=18 both_nonempty=406
+RESULT OURS_arch_score_head.py+deployment_shape.py=91
+RESULT OURS_entities.py+harness_headers.py=81
+RESULT OURS_doc_claims.py+entities.py=81
+RESULT OURS_doc_claims.py+harness_headers.py=81
+RESULT OURS_structure.py+typing_ruler.py=73
+RESULT OURS_finite_boundary.py+structure.py=73
+RESULT OURS_finite_boundary.py+typing_ruler.py=73
+RESULT OURS_plan_view.py+solar_alignment.py=55
+RESULT OURS_boost_drift_replay.py+plan_view.py=55
+RESULT OURS_boost_drift_replay.py+solar_alignment.py=55
+RESULT OURS_golden.py+env_drift.py=89
+RESULT OURS_card.mjs+card_drift.mjs=56
+RESULT OURS_optimality.py+validate.py=17
+RESULT OURS_optimality.py+backtest.py=17
+RESULT OURS_validate.py+edge.py=17
+RESULT OURS_edge.py+backtest.py=17
+RESULT THEIRS_scripts=33 pairs=528 ge_080=120 eq_100=18 both_nonempty=406
+RESULT THEIRS_arch_score_head.py+deployment_shape.py=91
+RESULT THEIRS_entities.py+harness_headers.py=81
+RESULT THEIRS_doc_claims.py+entities.py=81
+RESULT THEIRS_doc_claims.py+harness_headers.py=81
+RESULT THEIRS_structure.py+typing_ruler.py=73
+RESULT THEIRS_finite_boundary.py+structure.py=73
+RESULT THEIRS_finite_boundary.py+typing_ruler.py=73
+RESULT THEIRS_plan_view.py+solar_alignment.py=55
+RESULT THEIRS_boost_drift_replay.py+plan_view.py=55
+RESULT THEIRS_boost_drift_replay.py+solar_alignment.py=55
+RESULT THEIRS_golden.py+env_drift.py=89
+RESULT THEIRS_card.mjs+card_drift.mjs=56
+RESULT THEIRS_optimality.py+validate.py=20
+RESULT THEIRS_optimality.py+backtest.py=20
+RESULT THEIRS_validate.py+edge.py=20
+RESULT THEIRS_edge.py+backtest.py=20
+RESULT MERGED_scripts=33 pairs=528 ge_080=120 eq_100=18 both_nonempty=406
+RESULT MERGED_arch_score_head.py+deployment_shape.py=92
+RESULT MERGED_entities.py+harness_headers.py=82
+RESULT MERGED_doc_claims.py+entities.py=82
+RESULT MERGED_doc_claims.py+harness_headers.py=82
+RESULT MERGED_structure.py+typing_ruler.py=74
+RESULT MERGED_finite_boundary.py+structure.py=74
+RESULT MERGED_finite_boundary.py+typing_ruler.py=74
+RESULT MERGED_plan_view.py+solar_alignment.py=56
+RESULT MERGED_boost_drift_replay.py+plan_view.py=56
+RESULT MERGED_boost_drift_replay.py+solar_alignment.py=56
+RESULT MERGED_golden.py+env_drift.py=90
+RESULT MERGED_card.mjs+card_drift.mjs=57
+RESULT MERGED_optimality.py+validate.py=20
+RESULT MERGED_optimality.py+backtest.py=20
+RESULT MERGED_validate.py+edge.py=20
+RESULT MERGED_edge.py+backtest.py=20
+
+--- deployment_shape.py prose at each stage vs this re-derivation ---
+OURS: prose figures wrong on ['doc_claims', 'struct', 'boost', 'golden', 'card'] -- re-derived [81, 73, 55, 89, 56]
+THEIRS: prose figures wrong on none
+MERGED: prose figures wrong on none

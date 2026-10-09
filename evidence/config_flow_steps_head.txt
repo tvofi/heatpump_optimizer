@@ -1,0 +1,656 @@
+Invalid per-day DHW window 'x' for dhw_windows_mon (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_tue (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_wed (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_thu (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_fri (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_sat (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+Invalid per-day DHW window 'x' for dhw_windows_sun (Invalid window 'x' (expected HH:MM-HH:MM)); that day keeps the default schedule
+/Users/timmalmstrom/hpo-seats/review-2024/wt3/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+
+=== Initial config flow, walked end to end ===
+
+-- #590 NumberSelector / advanced convention
+  ok   walker refuses a NumberSelector built outside _number
+  ok   walker accepts _number and _widen_to_fit
+  ok   walker refuses _number that omits mode
+  ok   walker refuses description={advanced: True}
+  ok   production config_flow.py holds the #590 convention
+  ok   _number runtime passes min/max and explicit BOX mode with step "any" (#1679: a pinned increment left off-grid defaults unselectable)
+  ok   _number(slider=True) passes its increment as step and explicit SLIDER mode
+
+-- E1: setup, reauth and options share one token mask
+  ok   the three tibber_token surfaces agree on the same mask
+  ok   that shared mask is the password TextSelector
+
+-- user: the same plant twice, a second pump once
+  ok   a valid first screen offers finish-setup-now
+  ok   and carries the plant identity as the flow's unique id
+  ok   the same answers a second time abort as already_configured
+  ok   a second heat pump on the same account proceeds (null control)
+  ok   a flat identity payload is invalid on the grouped setup schema, the nested one is valid
+  ok   a nested user_sensors submit still identifies the plant
+
+-- user: refused and unreachable tokens, required fields
+  ok   a 401 re-shows the first screen with invalid_tibber_token
+  ok   a refused token stores nothing
+  ok   a connect failure shows cannot_connect, not invalid_tibber_token
+  ok   an HTTP 500 is cannot_connect, not invalid_tibber_token
+  ok   a server fault stores nothing
+  ok   an errors payload on HTTP 200 is an invalid token too
+  ok   the first-screen schema requires the weather entity, not the token
+  ok   Tibber without a token is tibber_token_required
+  ok   an entity source without a price sensor is price_entity_required
+  ok   an entity price source proceeds without a Tibber token
+
+-- E2/E3: finish-setup-now shows the overview, then creates
+  ok   the second screen opens the finish-setup menu
+  ok   finish-setup-now shows the setup overview
+  ok   confirming the early overview creates the entry
+  ok   the early entry carries the first two screens and no later page
+
+-- walk 1 (questionnaire): user through create_entry
+  ok   the accepted first screen offers finish-setup-now
+  ok   continuing setup lands on temperature
+  ok   a valid comfort band opens the building menu
+  ok   the band answers are accumulated
+  ok   the questionnaire proceeds to the heat pump extras
+  ok   the answers are stored and the physics derived from them
+  ok   a fresh questionnaire derives a single-zone model (no zone keys)
+  ok   the nameplate numbers proceed to hot water
+  ok   an unparseable window spec is invalid_dhw_windows
+  ok   a window shorter than one planning step is dhw_window_too_short
+  ok   a minimum with no deadband below the setpoint is dhw_min_too_close
+  ok   a valid hot-water page proceeds to weather sensitivity
+  ok   a legionella cycle above the charge limit proceeds with a warning
+  ok   the last questionnaire page shows the setup overview
+  ok   confirming the questionnaire overview creates the entry
+  ok   the entry carries one answer from every page it walked
+
+-- walk 2 (expert): thermal values and zones
+  ok   a modulation floor above the ceiling is min_power_above_max
+  ok   the thermal page refuses the same inverted power pair
+  ok   hand-typed thermal values proceed to the optional zones page
+  ok   zone answers proceed to hot water
+  ok   and the zone keys are accumulated
+  ok   hot water without a legionella cycle proceeds too
+  ok   the expert path shows the setup overview
+  ok   confirming the expert overview creates the entry with the thermal values
+
+-- temperature: every comfort-band contradiction
+  ok   comfort band: min_above_target re-shows the page with exactly that error
+  ok   comfort band: min_above_target stores nothing
+  ok   comfort band: max_below_target re-shows the page with exactly that error
+  ok   comfort band: max_below_target stores nothing
+  ok   comfort band: night_above_day re-shows the page with exactly that error
+  ok   comfort band: night_above_day stores nothing
+  ok   comfort band: day_window_empty re-shows the page with exactly that error
+  ok   comfort band: day_window_empty stores nothing
+  ok   comfort band: comfort_outside_band (day) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (day) stores nothing
+  ok   comfort band: comfort_outside_band (night) re-shows the page with exactly that error
+  ok   comfort band: comfort_outside_band (night) stores nothing
+
+-- reauth: refused, unreachable, then fixed
+  ok   the reauth flow opens on a one-field confirm form
+  ok   the refused old token is invalid_tibber_token, not a network error
+  ok   an unreachable Tibber is cannot_connect on the confirm form too
+  ok   a new token is written through, the entry reloads, reauth_successful
+  ok   the new token re-derives the entry's unique id (D10-s1-01)
+
+-- options: the two menus
+  ok   the top menu offers the revisited pages plus Quick setup and Advanced, in order
+  ok   the advanced menu lists the set-once pages, in order
+  ok   the pre-fill entry is labelled for any heat pump device, not only Modbus
+  ok   the pre-fill page sits on the first menu, off the advanced one
+
+-- options walk: six top pages, every save through async_update_entry
+  ok   the setup overview renders the configured system as text
+  ok   the setup overview is written in the install's language (Swedish hass)
+  ok   leaving the overview returns to the menu and saves nothing
+  ok   a valid comfort page saves and returns to the top menu
+  ok   a valid hot-water page saves and warns about the legionella pair
+  ok   the DHW set-point entity round-trips on the hot_water page
+  ok   clearing the DHW set-point entity writes None
+  ok   cleared entity slots on split pages are written back as None
+  ok   the tuning page saves and returns to the top menu
+  ok   the grid page saves, converting the window dropdown to minutes
+  ok   the away page no longer offers helper fields
+  ok   the away page saves temperatures and keeps an optional person
+  ok   five saved top pages accumulate on the entry, not replace each other
+  ok   'close' merges this page into every page saved before it
+
+-- options: the advanced pages
+  ok   a changed but refused token re-shows the entities page as invalid_tibber_token
+  ok   an unreachable Tibber is cannot_connect on the entities page too
+  ok   an unchanged token skips the probe and cleared slots stick as None
+  ok   an identity slot edited here re-derives the unique id (D10-s1-01)
+  ok   and so does the same edit saved with close (D10-s1-01)
+  ok   other pages' entities survive an entities-page save
+  ok   the space set-point entity and unit round-trip on the entities page
+  ok   clearing the space set-point entity writes None
+  ok   a changed token that validates is written to the options
+  ok   the building page saves to the advanced menu, clearing its entity slots
+  ok   the 'indoor' write-target kind round-trips through the page (#398)
+  ok   'flow' without the two-zone model is refused, not saved (#398)
+  ok   'flow' with the two-zone model configured saves cleanly (#398)
+  ok   'flow' with two_zone_mode=off is refused even with zone keys present (D12-01)
+  ok   'flow' with two_zone_mode=on saves cleanly even without zone keys (D12-01)
+  ok   the flow-curve lift with a throttling valve is refused, not saved (#1067)
+  ok   the flow-curve lift with no valve saves cleanly (#1067)
+  ok   empty building schema is toggle-only for wood
+  ok   a stored top probe infers the wood block on
+  ok   500 L volume alone stays toggle-only
+  ok   submitting the toggle on persists it
+  ok   toggle on shows probes, detection, type, packing, price, efficiency
+  ok   learning schema has no external_heat detection keys
+  ok   re-submitting the derived values as they are keeps the preset armed
+  ok   editing a derived number disarms the questionnaire
+  ok   enabling the preset derives physics from the answers
+  ok   a disabled preset saves the answers without deriving physics
+  ok   the solar page saves, clearing an absent production entity
+  ok   the learning page saves its watchdogs and does not carry detection
+  ok   the heat curve page saves its MQTT wiring
+
+-- options: the stored-value arm, on the four pages that had none
+  ok   an unconfigured entities page offers its entity fields undefaulted
+  ok   the entities page re-renders every stored entity as that field's pre-fill
+  ok   an unconfigured comfort page offers its entity fields undefaulted
+  ok   the comfort page re-renders every stored entity as that field's pre-fill
+  ok   an unconfigured hot_water page offers its entity fields undefaulted
+  ok   the hot_water page re-renders every stored entity as that field's pre-fill
+  ok   an unconfigured building page offers its entity fields undefaulted
+  ok   the building page re-renders every stored entity as that field's pre-fill
+
+-- options: a cleared entity picker survives the flow manager
+  ok   the two-armed entity slots, over more than one page, are what this drives
+  ok   an untouched entities page keeps price_entity
+  ok   clearing price_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears price_entity (the old path)
+  ok   an untouched entities page keeps indoor_temp_entity
+  ok   clearing indoor_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears indoor_temp_entity (the old path)
+  ok   an untouched entities page keeps outdoor_temp_entity
+  ok   clearing outdoor_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears outdoor_temp_entity (the old path)
+  ok   an untouched entities page keeps heat_pump_switch_entity
+  ok   clearing heat_pump_switch_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_switch_entity (the old path)
+  ok   an untouched entities page keeps dhw_temp_entity
+  ok   clearing dhw_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears dhw_temp_entity (the old path)
+  ok   an untouched entities page keeps buffer_tank_temp_entity
+  ok   clearing buffer_tank_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears buffer_tank_temp_entity (the old path)
+  ok   an untouched entities page keeps floor_return_temp_entity
+  ok   clearing floor_return_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears floor_return_temp_entity (the old path)
+  ok   an untouched entities page keeps lower_floor_temp_entity
+  ok   clearing lower_floor_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears lower_floor_temp_entity (the old path)
+  ok   an untouched entities page keeps space_setpoint_entity
+  ok   clearing space_setpoint_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears space_setpoint_entity (the old path)
+  ok   an untouched entities_metering page keeps solar_radiation_entity
+  ok   clearing solar_radiation_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears solar_radiation_entity (the old path)
+  ok   an untouched entities_metering page keeps heat_pump_power_entity
+  ok   clearing heat_pump_power_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_power_entity (the old path)
+  ok   an untouched entities_metering page keeps heat_pump_energy_entity
+  ok   clearing heat_pump_energy_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_energy_entity (the old path)
+  ok   an untouched entities_metering page keeps house_power_entity
+  ok   clearing house_power_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears house_power_entity (the old path)
+  ok   an untouched entities_metering page keeps compressor_freq_entity
+  ok   clearing compressor_freq_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears compressor_freq_entity (the old path)
+  ok   an untouched entities_metering page keeps compressor_freq_sensor
+  ok   clearing compressor_freq_sensor sticks once the manager validates the post
+  ok   the same clear without the schema call clears compressor_freq_sensor (the old path)
+  ok   an untouched entities_metering page keeps flow_meter_entity
+  ok   clearing flow_meter_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears flow_meter_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_mode_entity
+  ok   clearing heat_pump_mode_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_mode_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_defrost_entity
+  ok   clearing heat_pump_defrost_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_defrost_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_online_entity
+  ok   clearing heat_pump_online_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_online_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_fault_entity
+  ok   clearing heat_pump_fault_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_fault_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_backup_heater_entity
+  ok   clearing heat_pump_backup_heater_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_backup_heater_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_dhw_booster_entity
+  ok   clearing heat_pump_dhw_booster_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_dhw_booster_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_capacity_limited_entity
+  ok   clearing heat_pump_capacity_limited_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_capacity_limited_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_supply_temp_entity
+  ok   clearing heat_pump_supply_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_supply_temp_entity (the old path)
+  ok   an untouched entities_pump page keeps heat_pump_return_temp_entity
+  ok   clearing heat_pump_return_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears heat_pump_return_temp_entity (the old path)
+  ok   an untouched comfort page keeps indoor_humidity_entity
+  ok   clearing indoor_humidity_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears indoor_humidity_entity (the old path)
+  ok   an untouched hot_water page keeps dhw_setpoint_entity
+  ok   clearing dhw_setpoint_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears dhw_setpoint_entity (the old path)
+  ok   an untouched hot_water_tank page keeps dhw_inlet_entity
+  ok   clearing dhw_inlet_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears dhw_inlet_entity (the old path)
+  ok   an untouched hot_water_tank page keeps dhw_disinfection_switch_entity
+  ok   clearing dhw_disinfection_switch_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears dhw_disinfection_switch_entity (the old path)
+  ok   an untouched hot_water_pumps page keeps vvc_pump_entity
+  ok   clearing vvc_pump_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears vvc_pump_entity (the old path)
+  ok   an untouched building page keeps mixing_valve_target_entity
+  ok   clearing mixing_valve_target_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears mixing_valve_target_entity (the old path)
+  ok   an untouched building page keeps mixing_valve_write_entity
+  ok   clearing mixing_valve_write_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears mixing_valve_write_entity (the old path)
+  ok   an untouched building page keeps valve_outlet_temp_entity
+  ok   clearing valve_outlet_temp_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears valve_outlet_temp_entity (the old path)
+  ok   an untouched building page keeps wood_tank_top_entity
+  ok   clearing wood_tank_top_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears wood_tank_top_entity (the old path)
+  ok   an untouched building page keeps wood_tank_bottom_entity
+  ok   clearing wood_tank_bottom_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears wood_tank_bottom_entity (the old path)
+  ok   an untouched building page keeps external_heat_entity
+  ok   clearing external_heat_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears external_heat_entity (the old path)
+  ok   an untouched building page keeps space_circulation_pump_entity
+  ok   clearing space_circulation_pump_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears space_circulation_pump_entity (the old path)
+  ok   an untouched grid_fees page keeps grid_fee_entity
+  ok   clearing grid_fee_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears grid_fee_entity (the old path)
+  ok   an untouched solar_pv page keeps pv_export_price_entity
+  ok   clearing pv_export_price_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears pv_export_price_entity (the old path)
+  ok   an untouched solar_pv page keeps pv_production_entity
+  ok   clearing pv_production_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears pv_production_entity (the old path)
+  ok   an untouched away page keeps away_presence_entity
+  ok   clearing away_presence_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears away_presence_entity (the old path)
+  ok   an untouched away page keeps holiday_calendar_entity
+  ok   clearing holiday_calendar_entity sticks once the manager validates the post
+  ok   the same clear without the schema call clears holiday_calendar_entity (the old path)
+  ok   every two-armed slot is presented by its page under the seed this drives
+
+-- golden capture: section() nesting, added and removed fields
+  ok   the section stub matches HA: a vol.Schema, options not config, collapsed defaulting False, validating through the inner schema
+  ok   grouping a page into a section keeps every field in the fingerprint
+  ok   removing a field from inside a section moves the fingerprint
+  ok   adding a field inside a section moves the fingerprint
+  ok   rewriting a selector's bounds inside a section moves the fingerprint
+  ok   a section that silently changes its collapsed state moves the fingerprint
+  ok   the option seed still reaches every field nested inside a section
+  ok   an ungrouped page gains nothing: no marker outside a section nests
+
+-- options: every page's validation errors
+  ok   an inverted comfort band re-shows the page with min_above_target
+  ok   and stores nothing
+  ok   an unparseable window spec is invalid_dhw_windows on this page too
+  ok   a minimum with no deadband below the setpoint is dhw_min_too_close here too
+  ok   an inverted power pair is min_power_above_max on the thermal page
+  ok   a submitted floor above the STORED ceiling is caught too
+  ok   an unparseable month mask on the grid page is invalid_peak_months
+  ok   an unparseable hours mask on the grid page is invalid_peak_hours
+  ok   an unparseable fee rule is invalid_grid_fee_rules
+  ok   a negative fee rate is grid_fee_rules_negative
+  ok   the documented peak-hours form saves and reaches the coordinator's mask
+  ok   an uncoercible peak window falls back to the default, not the string
+  ok   a coercible peak window is converted to int, not defaulted
+
+-- residual: identity, house power, coercion, holiday windows
+  ok   a different price sensor is a different plant
+  ok   the same price sensor under another name is the same plant
+  ok   a hass without a state machine renders the page and suggests nothing
+  ok   an entity id holding no state is skipped, suggesting nothing
+  ok   a live Pulse power state is offered as the house power suggestion
+  ok   a picker the grouping table forgot stays on the page, flat
+  ok   the intact grouping table hides nothing: only the three sections
+  ok   a location whose default cannot be recomputed is kept, not dropped
+  ok   the same location over a working hass is dropped as the computed default
+  ok   a window coerced over a stored string keeps the stored string type
+  ok   a posted number that is not the stored string's value keeps the posted value
+  ok   a posted '0.25' over a stored 0.25 keeps the stored float
+  ok   a posted string the stored number cannot parse keeps the posted string
+  ok   an options save with no token anywhere is tibber_token_required
+  ok   an entity price source with no price sensor is price_entity_required
+  ok   a stored price sensor satisfies the entity source without being re-submitted
+  ok   an unparseable HOLIDAY window spec is invalid_dhw_windows on its own field
+  ok   a valid holiday window spec saves onto its own field
+  ok   with the toggle off the page shows no per-day fields
+  ok   the toggle on reveals all seven day fields
+  ok   the day fields offer the stored spec, empty meaning inherit
+  ok   an untouched save stores neither the toggle nor any day field
+  ok   a day field refusing 'garbage' puts invalid_dhw_windows on that field alone
+  ok   a day field refusing '06:05-06:10' puts dhw_window_too_short on that field alone
+  ok   a day field refusing 'weekdays 06:00-08:30' puts dhw_windows_day_selector on that field alone
+  ok   a valid per-day save stores the flag and the two specs, not seven keys
+  ok   switching the toggle off keeps the stored specs for a later re-enable
+  ok   a silent-mode window 'garbage' is invalid_dhw_windows on its own field (#1067)
+  ok   a silent-mode window '22:00-22:05' is silent_mode_window_too_short on its own field (#1067)
+  ok   a valid silent-mode window and derate save onto their own keys (#1067)
+  ok   a cleared silent-mode window saves as empty, not as the old schedule (#1067)
+  ok   disinfection control with no switch is refused, not saved (#1067)
+  ok   disinfection control with a switch saves both keys (#1067)
+  ok   clearing the switch under a stored control mode is refused (#1067)
+  ok   observe with the switch cleared saves, and the switch saves as None (#1067)
+  ok   control without a frequency number entity is refused on the mode field (#1067)
+  ok   control with a frequency number entity saves (#1067)
+  ok   a sensor-only observe install saves its own Hz range (#1067)
+  ok   a catalog DSO product writes its own rules and mode over the page
+
+-- options: pages re-rendered over configuration already stored
+  ok   the entities_metering page re-renders its stored entities as pre-fills
+  ok   the entities_metering page carries no entity default when nothing is stored
+  ok   the hot_water_tank page re-renders its stored entities as pre-fills
+  ok   the hot_water_tank page carries no entity default when nothing is stored
+  ok   the hot_water_pumps page re-renders its stored entities as pre-fills
+  ok   the hot_water_pumps page carries no entity default when nothing is stored
+  ok   the grid_fees page re-renders its stored entities as pre-fills
+  ok   the grid_fees page carries no entity default when nothing is stored
+  ok   the solar_pv page re-renders its stored entities as pre-fills
+  ok   the solar_pv page carries no entity default when nothing is stored
+  ok   the away page re-renders its stored entities as pre-fills
+  ok   the away page carries no entity default when nothing is stored
+  ok   a configured solar location is kept, not replaced by the HA home point
+  ok   with no configured location the map falls back to the HA home point
+
+-- options: a page's save stays inside its own schema (#542)
+  ok   a no-op save on the setup_overview page leaves keys it never offered alone
+  ok   a no-op save on the comfort page leaves keys it never offered alone
+  ok   a no-op save on the hot_water page leaves keys it never offered alone
+  ok   a no-op save on the tuning page leaves keys it never offered alone
+  ok   a no-op save on the grid page leaves keys it never offered alone
+  ok   a no-op save on the away page leaves keys it never offered alone
+  ok   a no-op save on the modbus_prefill page leaves keys it never offered alone
+  ok   a no-op save on the quick_setup page leaves keys it never offered alone
+  ok   a no-op save on the entities page leaves keys it never offered alone
+  ok   a no-op save on the entities_metering page leaves keys it never offered alone
+  ok   a no-op save on the entities_pump page leaves keys it never offered alone
+  ok   a no-op save on the building page leaves keys it never offered alone
+  ok   a no-op save on the building_preset page leaves keys it never offered alone
+  ok   a no-op save on the thermal_model page leaves keys it never offered alone
+  ok   a no-op save on the thermal_model_zones page leaves keys it never offered alone
+  ok   a no-op save on the hot_water_tank page leaves keys it never offered alone
+  ok   a no-op save on the hot_water_pumps page leaves keys it never offered alone
+  ok   a no-op save on the solar_pv page leaves keys it never offered alone
+  ok   a no-op save on the learning page leaves keys it never offered alone
+  ok   a no-op save on the learning_features page leaves keys it never offered alone
+  ok   a no-op save on the grid_connection page leaves keys it never offered alone
+  ok   a no-op save on the grid_fees page leaves keys it never offered alone
+  ok   a no-op save on the heat_curve page leaves keys it never offered alone
+
+-- options: the settings registry drives every page (#223)
+  ok   the page table and the step handlers describe the same pages
+  ok   the non-registry controls are transient: none is an option key anywhere
+  ok   every field the questions page shares is declared where it lives
+  ok   every field every page renders is a registry row for that page
+  ok   the clearable roster is exactly the slots some page offers undefaulted
+  ok   and every one of them re-renders its stored value as that field's pre-fill
+
+-- options: the registry walk reaches fields inside a section()
+  ok   every pump-telemetry picker is reached through a section() too
+  ok   a field removed from inside the section leaves the walk's result
+  ok   and an ungrouped page reaches exactly what one level reaches
+
+-- options: the ten wide pages are sectioned (#516)
+  ok   each of the ten wide pages renders at least one section()
+  ok   a nested comfort submit stores the option key, not the section name
+  ok   widening reaches a number nested inside a section()
+
+-- schema widening: what must NOT move a field's bounds
+  ok   a default that raises is skipped, the suggested value still read
+  ok   a default that works is read alongside the suggested value
+  ok   an unbounded number field is never rewritten
+  ok   a non-numeric stored value leaves a bounded field's range alone
+  ok   None stored value leaves a bounded field's range alone
+  ok   NaN stored value leaves a bounded field's range alone
+  ok   +inf stored value leaves a bounded field's range alone
+  ok   -inf stored value leaves a bounded field's range alone
+  ok   a finite out-of-range value widens the bound to exactly itself
+  ok   None data_schema is returned untouched, with nothing widened
+  ok   a non-schema data_schema is returned untouched, with nothing widened
+  ok   a schema holding an out-of-range default is widened and named
+
+-- options: menu labels, translated and not
+  ok   a failed translation lookup still renders every menu label
+  ok   a resolved translation replaces that entry's label and no other
+  ok   a translation from the other flow's category is not used
+  ok   an empty translation keeps the built-in label, not a blank row
+
+-- reconfigure: the first screen reopened over the entry it changes
+  ok   reconfigure reopens the first screen, prefilled with this entry's answers
+  ok   a refused token mid-reconfigure shows invalid_tibber_token, changing nothing
+  ok   an unreachable Tibber is cannot_connect mid-reconfigure too
+  ok   re-submitting this entry's own identity reconfigures it instead of aborting
+  ok   a rotated token is written through and the entry keeps its other settings
+  ok   reconfiguring into another entry's plant is refused
+  ok   a slot the user cleared is dropped, not silently kept
+
+-- options: an absent key runs exactly as its form default
+  ok   null control: two identical configs snapshot identically
+  ok   positive control: a non-default stored value is seen
+  .. 191 candidate key(s): 177 behave identically, 14 differ, 30 unobserved by the refresh, 74 with a named read not proven; 174 proven safe
+  .. differs when stored at its default: comfort_temp_day_weekend: .after._ctx._config.comfort_temp_day_weekend: None != 21.0
+  .. differs when stored at its default: comfort_temp_night_weekend: .after._ctx._config.comfort_temp_night_weekend: None != 19.5
+  .. differs when stored at its default: day_end_hour_weekend: .after._ctx._config.day_end_hour_weekend: None != 22
+  .. differs when stored at its default: day_start_hour_weekend: .after._ctx._config.day_start_hour_weekend: None != 7
+  .. differs when stored at its default: dhw_tank_volume: .after._thermal_model.params._dhw_pattern_cache: None != [[[0.2077922077922078, 0.1038961038961039, 0.103896103896103
+  .. differs when stored at its default: dhw_windows: .after._thermal_model.params._dhw_pattern_cache: None != [[[0.2077922077922078, 0.1038961038961039, 0.103896103896103
+  .. differs when stored at its default: holiday_comfort_temp_day: .after._ctx._config.holiday_comfort_temp_day: None != 21.0
+  .. differs when stored at its default: holiday_comfort_temp_night: .after._ctx._config.holiday_comfort_temp_night: None != 19.5
+  .. differs when stored at its default: holiday_day_end_hour: .after._ctx._config.holiday_day_end_hour: None != 22
+  .. differs when stored at its default: holiday_day_start_hour: .after._ctx._config.holiday_day_start_hour: None != 7
+  .. differs when stored at its default: solar_location: .after._ctx._config.solar_location: None != {'latitude': 59.33, 'longitude': 18.07}
+  .. differs when stored at its default: wood_furnace_efficiency: .data.wood_fuel.efficiency: None != 75.0
+  .. differs when stored at its default: wood_packing: .data.wood_fuel.packing: None != 'packed'
+  .. differs when stored at its default: wood_type: .data.wood_fuel.type: None != 'mixed'
+  .. unproven (unobserved and a named read not proven): dhw_windows_by_day
+  .. unproven (unobserved and a named read not proven): tibber_token
+  .. unproven (unobserved and a named read not proven): valve_outlet_temp_entity
+  ok   the peak window a retyped post now omits runs as its absence
+  ok   _ABSENT_FALLBACKS is exactly the proven set
+  ok   _ABSENT_IS_NOT_DEFAULT is exactly the rest, none of it padding
+  ok   every listed fallback is the value the form shows while the key is absent
+
+-- options: an untouched page does not reload
+  ok   never saved page by page: only the pages posting a behaviour-changing default reload
+  ok   an install from the full initial walk: no untouched page reloads
+  ok   a v6.5.1 install upgraded to 6.6.0 (six new keys absent): no untouched page reloads
+  ok   null control: one changed value on one page reloads exactly that page
+
+-- options: pre-filling from a GCHV Modbus package (#1067 G7)
+  ok   the first form asks for a device or a prefix, the prefix defaulted to hp
+  ok   null control: no Modbus entities, no suggestions, and the save writes nothing
+  ok   and a typed prefix that found nothing is not written either
+  ok   both raw spellings offer the setpoints, both windows and the empty DHW sensor slot, not the set outdoor slot
+  ok   the save writes what was kept, never a blank or None, and not the default prefix
+  ok   reopening the page starts again at the first form
+  ok   a custom prefix that found the package is kept, and close closes
+  ok   a value outside its field's range is not offered
+  ok   a minimum too close to the setpoint and a too-short window re-show the preview, unsaved
+  ok   an unreadable hot water window is refused on its own field
+  ok   a maximum power below the stored minimum is refused
+  ok   a water-controlled pump offers the flow target only when the canonical rule says two-zone, so two_zone_mode=off is not offered it (D12-01, R9 D14-s2-01)
+  ok   and a two_zone_mode=on install is offered it (the offer's null control)
+  ok   the pre-fill save refuses the flow target on a single-zone install (D12-01)
+  ok   'flow' through the pre-fill saves cleanly on two_zone_mode=on (D12-01 null control)
+
+-- options: pre-filling from a heat-pump device (#1067 G7b-1)
+  ok   the first form offers a device pick beside the prefix row
+  ok   null control: no device picked leaves the prefix route's suggestions exactly as they were
+  ok   a picked device offers its set-point in degrees and its four empty sensor slots
+  ok   the save writes what was kept, and never the transient device pick or a prefix
+  ok   a slot already filled by setup is not offered by the device route
+  ok   a device from an integration with no table is read by name, and the page lists every role that came from a name and names no source
+  ok   the near-tie the fallback refuses is absent from both the form and the list
+  ok   …and what the name route suggested saves like any other suggestion
+  ok   a device a source table proves is named by that source, with no name match
+  ok   a device with no entity the table names is refused the same way
+  ok   a picked device wins over a prefix typed beside it, and no prefix is stored
+
+-- config: the quick-setup path — house questions, then autodetect
+  ok   the quick path asks the five house questions plus the building questionnaire
+  ok   submitting the house questions hands off to the entity pre-fill
+  ok   the answers are written as the model's own keys
+  ok   a 1-zone answer writes the off override and never the two-zone presence keys
+
+-- options: Quick setup from Configure (#1258)
+  ok   Configure offers Quick setup on the top menu, beside Advanced
+  ok   the page asks exactly the questions the initial flow's quick setup asks
+  ok   the questionnaire pre-fills from the entry's stored answers
+  ok   null control: an entry that does not run Quick setup changes nothing
+  ok   the five questions suggest the stored answers and never default them (a default is refilled by voluptuous for a key a bare post left out)
+  ok   an entry the quick path configured is suggested its own answers back
+  ok   an untouched submit writes nothing and returns to the menu
+  ok   the untouched close choice stores no options at all
+  ok   a bare close post -- no question keys at all -- writes nothing (nightly-ha a5's untouched walk)
+  ok   submitting writes quick_setup.derive's keys onto the entry's options and returns to the menu
+  ok   the Configure path derives what the initial path derives from the same answers
+  ok   the after-save close choice creates the entry result with the same keys
+  ok   the Configure quick path ends at the menu, with no device pre-fill page
+
+-- config: the pre-fill offered when a heat-pump device is added (#1067 POST1)
+  ok   null control: with the switch off the device pre-fill is never offered
+  ok   the switch is stored, its default is off, and an install with no entry reads it as off
+  ok   with the switch on the wizard offers the pre-fill, asking which device to read
+  ok   an empty pick declines the offer: nothing is written and the wizard continues
+  ok   the offered device's entities are suggested, with the disclaimer naming the source
+  ok   the offered page presents the same keys the options flow does for that device
+  ok   submitting the page writes what was kept into the entry's data and continues the wizard
+  ok   the entry the wizard creates carries what the offer filled
+  ok   …and a submit that kept nothing writes nothing at all
+  ok   a set-point too close to the minimum in force is refused, and nothing is written
+  ok   a device that fills too few roles is refused rather than opened empty
+  ok   an install with no qualifying device is offered nothing, switch or no switch
+  ok   the pre-fill page offers the switch, and turning it on stores it
+  ok   #1107: an untouched switch at its default is not stored by the pre-fill page
+
+-- config: the pre-fill preview's labels and entity names (#1262)
+  ok   every previewed field has a label where the frontend looks, in strings.json
+  ok   and each preview label is a copy of the options pre-fill page's, in strings.json
+  ok   every previewed field has a label where the frontend looks, in en.json
+  ok   and each preview label is a copy of the options pre-fill page's, in en.json
+  ok   every previewed field has a label where the frontend looks, in sv.json
+  ok   and each preview label is a copy of the options pre-fill page's, in sv.json
+  ok   a name-matched role is named by its friendly name, the state's friendly_name winning over the registry's original name
+  ok   and an entity with no friendly_name in its state is named by its registry original_name
+  ok   null control: with no friendly names anywhere the page degrades to the bare entity id
+
+-- config: the pre-fill page's field texts and error texts (#1651 P6)
+  ok   every field the pre-fill can render is labelled where the frontend looks, in strings.json
+  ok   and every field carries a description where the frontend looks, in strings.json
+  ok   and each label is a copy of the options pre-fill page's, in strings.json
+  ok   null control: the options twin of the same page passes the same walk, in strings.json
+  ok   every error code the flow can raise is translated, in strings.json
+  ok   every field the pre-fill can render is labelled where the frontend looks, in en.json
+  ok   and every field carries a description where the frontend looks, in en.json
+  ok   and each label is a copy of the options pre-fill page's, in en.json
+  ok   null control: the options twin of the same page passes the same walk, in en.json
+  ok   every error code the flow can raise is translated, in en.json
+  ok   every field the pre-fill can render is labelled where the frontend looks, in sv.json
+  ok   and every field carries a description where the frontend looks, in sv.json
+  ok   and each label is a copy of the options pre-fill page's, in sv.json
+  ok   null control: the options twin of the same page passes the same walk, in sv.json
+  ok   every error code the flow can raise is translated, in sv.json
+
+-- config: a box-mode number field must accept any value (#1679)
+  ok   a box-mode field's step is "any": every real value renders selectable
+  ok   and a slider keeps its increment as its step (the arm this check distinguishes)
+  ok   every box-mode number field on thermal renders any value selectable
+  ok   every box-mode number field on zones renders any value selectable
+  ok   every box-mode number field on opt_thermal_model renders any value selectable
+  ok   every box-mode number field on opt_thermal_model_zones renders any value selectable
+
+-- options: the two-zone page shows the derivation-overwrite warning (#1644 P2)
+  ok   the zones description carries the warning its step computes, in strings.json
+  ok   null control: the single-zone page above it ships the placeholder
+  ok   the zones description carries the warning its step computes, in en.json
+  ok   null control: the single-zone page above it ships the placeholder
+  ok   the zones description carries the warning its step computes, in sv.json
+  ok   null control: the single-zone page above it ships the placeholder
+  ok   the step hands the warning text to the frontend as a placeholder
+
+-- config: the finished quick path is not offered again (#1685)
+  ok   null control: from the first menu the quick path is a path not yet taken
+  ok   an expert start that never answered the questionnaire still sees the offer
+  ok   walking the quick path to its end lands on a menu without it
+
+-- entity: the climate entity's own presets, translated and iconned
+  ok   the entity names itself where the frontend's catalogue looks
+  ok   its own presets are exactly auto and economy (the rest are Home Assistant's)
+  ok   both own presets have a display name where the frontend looks, in strings.json
+  ok   both own presets have a display name where the frontend looks, in en.json
+  ok   both own presets have a display name where the frontend looks, in sv.json
+  ok   and both own presets have an icon translation
+
+RESULT flow_checks_covered=476/476 checks
+RESULT step_user happy=7/7 error_branches=11/11
+RESULT step_user_sensors happy=2/2 error_branches=0/0
+RESULT step_finish_setup happy=5/5 error_branches=0/0
+RESULT step_quick_setup happy=4/4 error_branches=0/0
+RESULT step_finish_now happy=1/1 error_branches=0/0
+RESULT step_temperature happy=2/2 error_branches=12/12
+RESULT step_building happy=1/1 error_branches=0/0
+RESULT step_building_describe happy=3/3 error_branches=0/0
+RESULT step_building_extras happy=1/1 error_branches=1/1
+RESULT step_thermal happy=4/4 error_branches=1/1
+RESULT step_zones happy=3/3 error_branches=0/0
+RESULT step_dhw happy=2/2 error_branches=4/4
+RESULT step_weather_sensitivity happy=2/2 error_branches=0/0
+RESULT step_setup_overview happy=5/5 error_branches=0/0
+RESULT step_reauth_confirm happy=3/3 error_branches=2/2
+RESULT step_opt_init happy=5/5 error_branches=3/3
+RESULT step_opt_advanced happy=3/3 error_branches=0/0
+RESULT step_opt_setup_overview happy=4/4 error_branches=0/0
+RESULT step_opt_entities happy=41/41 error_branches=4/4
+RESULT step_opt_entities_metering happy=33/33 error_branches=1/1
+RESULT step_opt_entities_pump happy=28/28 error_branches=0/0
+RESULT step_opt_comfort happy=7/7 error_branches=2/2
+RESULT step_opt_hot_water happy=17/17 error_branches=6/6
+RESULT step_opt_hot_water_tank happy=11/11 error_branches=2/2
+RESULT step_opt_hot_water_pumps happy=6/6 error_branches=0/0
+RESULT step_opt_building happy=34/34 error_branches=3/3
+RESULT step_opt_thermal_model happy=7/7 error_branches=2/2
+RESULT step_opt_thermal_model_zones happy=6/6 error_branches=0/0
+RESULT step_opt_tuning happy=3/3 error_branches=0/0
+RESULT step_opt_heat_curve happy=2/2 error_branches=0/0
+RESULT step_opt_building_preset happy=3/3 error_branches=0/0
+RESULT step_opt_grid happy=6/6 error_branches=2/2
+RESULT step_opt_grid_connection happy=3/3 error_branches=2/2
+RESULT step_opt_grid_fees happy=7/7 error_branches=2/2
+RESULT step_opt_solar_pv happy=10/10 error_branches=0/0
+RESULT step_opt_away happy=11/11 error_branches=0/0
+RESULT step_opt_learning happy=3/3 error_branches=0/0
+RESULT step_opt_learning_features happy=1/1 error_branches=0/0
+RESULT step_opt_modbus_prefill happy=24/24 error_branches=5/5
+RESULT step_opt_quick_setup happy=14/14 error_branches=0/0
+RESULT options_steps_covered=25/25 pages
+RESULT step_reconfigure happy=4/4 error_branches=3/3
+RESULT reauth_round_trips=1
+RESULT reconfigure_round_trips=1
+RESULT options_close_round_trips=1
+RESULT duplicate_aborts=1
+
+ALL 499 checks PASSED
+cfgsteps rc=0

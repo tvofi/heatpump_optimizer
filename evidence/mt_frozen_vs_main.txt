@@ -1,0 +1,59 @@
+LEDGER-MERGE: resolved tests/structure_budgets.json
+  max_class_loc: 9048 + both deltas = 8818
+  seam_cut_total: 766 + both deltas = 762
+  re-run the gate that owns this file before pushing
+LEDGER-MERGE: resolved tests/closures.json
+  recorded.tests/backtest.py.seconds: kept 159.6; a re-timing inside 2x of 159.6 is noise
+  recorded.tests/edge.py.seconds: kept 53.6; a re-timing inside 2x of 53.6 is noise
+  recorded.tests/manual_plan.py.seconds: kept 9.2; a re-timing inside 2x of 9.2 is noise
+  recorded.tests/optimality.py.seconds: kept 186.3; a re-timing inside 2x of 186.3 is noise
+  recorded.tests/validate.py.seconds: kept 56.0; a re-timing inside 2x of 56.0 is noise
+  recorded.tests/typing_ruler.py.seconds: kept 0.6; a re-timing inside 2x of 0.6 is noise
+  recorded.tests/harness_headers.py.seconds: kept 220.7; a re-timing inside 2x of 220.7 is noise
+  recorded.tests/finite_boundary.py.seconds: kept 90.4; a re-timing inside 2x of 90.4 is noise
+  recorded.tests/layout.py.seconds: kept 17.3; a re-timing inside 2x of 17.3 is noise
+  recorded.tests/arch_score_head.py.seconds: kept 41.8; a re-timing inside 2x of 41.8 is noise
+  closures.tests/card.mjs: merged as a set (86 entries)
+  closures.tests/card_drift.mjs: merged as a set (91 entries)
+  closures.tests/config_flow_steps.py: merged as a set (117 entries)
+  closures.tests/entities.py: merged as a set (231 entries)
+  closures.tests/env_drift.py: merged as a set (183 entries)
+  closures.tests/features.py: merged as a set (131 entries)
+  closures.tests/golden.py: merged as a set (185 entries)
+  closures.tests/manual_plan.py: merged as a set (97 entries)
+  closures.tests/plan_view.py: merged as a set (80 entries)
+  closures.tests/solar_alignment.py: merged as a set (81 entries)
+  closures.tests/structure.py: merged as a set (77 entries)
+  closures.tests/deployment_shape.py: merged as a set (115 entries)
+  closures.tests/typing_ruler.py: merged as a set (77 entries)
+  closures.tests/wood_advisor.py: merged as a set (84 entries)
+  closures.tests/harness_headers.py: merged as a set (365 entries)
+  closures.tests/doc_claims.py: merged as a set (145 entries)
+  closures.tests/finite_boundary.py: merged as a set (106 entries)
+  closures.tests/arch_score_head.py: merged as a set (112 entries)
+  closures.tests/boost_drift_replay.py: merged as a set (82 entries)
+  closures.tests/block_duty.py: merged as a set (84 entries)
+  closures.tests/debug_collect.py: merged as a set (88 entries)
+  inert_reads.tests/harness_headers.py: merged as a set (536 entries)
+  re-run the gate that owns this file before pushing
+e3b54ba65cc35298e18707228b54103232ac513c
+100644 7d836bf1c4f8f7a73c2c3ba5db37977e18bb8cba 1	dev/audit/rounds/round4/D6/claims.py
+100644 037004d527c88ab7d671b3efe48bf40ba0d810c7 2	dev/audit/rounds/round4/D6/claims.py
+100644 b0d44e9b75cefe3a74a78f5894f354b6d9e18db6 3	dev/audit/rounds/round4/D6/claims.py
+100644 82ab77a82ce6cc284c6a84bb550777a6b22be985 1	tests/deployment_shape.py
+100644 7e52e63413bf0dec36a0b71402cb5daf60f00692 2	tests/deployment_shape.py
+100644 f93b7956fca3b054d3e56813c44bf34e55f78606 3	tests/deployment_shape.py
+
+Auto-merging custom_components/heatpump_optimizer/config_flow.py
+Auto-merging custom_components/heatpump_optimizer/coordinator.py
+Auto-merging custom_components/heatpump_optimizer/sensor.py
+Auto-merging custom_components/heatpump_optimizer/thermal_model.py
+Auto-merging dev/audit/rounds/round4/D6/claims.py
+CONFLICT (content): Merge conflict in dev/audit/rounds/round4/D6/claims.py
+Auto-merging docs/architecture.md
+Auto-merging tests/closures.json
+Auto-merging tests/deployment_shape.py
+CONFLICT (content): Merge conflict in tests/deployment_shape.py
+Auto-merging tests/entities.py
+Auto-merging tests/features.py
+Auto-merging tests/structure_budgets.json

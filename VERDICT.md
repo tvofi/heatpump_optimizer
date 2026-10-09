@@ -1,53 +1,71 @@
-Fix review: merge d916687db06cd5c1d021705170839df58670b603
+Fix review: merge bab0aeb8d4aa04a4c36b3bdfcfb2978b69cc9f85
 
-bus-nonce: 257148cbc21211e8fe50dbd0844548db
+bus-nonce: 017e8f122fe1acd55bcc84194b672886
 
-PR #2024 (R9-UX-9). This is the resolution-delta re-review at d916687db06cd5c1d021705170839df58670b603 (merge commit 45c04b7d). It follows the prior blocks on the stale body (VERDICT5) and on the triage row that cited a machine-local probe. Evidence: /Users/timmalmstrom/hpo-seats/review-2024-delta/evidence/h7. Harness run at ff77ad44: evidence/h6/harness.txt, copied to h7/harness-at-ff77.txt. The roles diff against origin/main is empty, so the contract is current.
+PR #2024 (R9-UX-9). **This is round 6** of this PR and the first look at its SECOND resolution delta: the reviewed head `d916687db` plus the merge `45f43a506` of `origin/main c518447eb` plus this PR's own delivery row. The round-3 `merge` carries to this head under `orchestrator.md` §11 (it is a main merge, no reviewer turn was taken in between, the head moved only by the handoff the contract allows), so I judged the delta alone, as instructed. Evidence: `/Users/timmalmstrom/hpo-seats/review-2024/evidence-r3` (`head.txt` names the measured head). Contract current: `git diff c518447eb...origin/main -- dev/governance/roles/` is empty, and the copy I read is byte-identical to the head's.
 
-## Delta ba83063e (the triage-row block)
-- `dev/audit/harnesses/ux9_flow_unit_guard.py` is now in the tree. I ran it myself at ff77ad44, with venv-ci and PYTHONPATH=tests/hastub. Its RESULT lines match the body and the triage row:
-  - BLOCK: head 0, m278_guard_off 0, c278_control 0, m831_return_del 2 (one failing check, "... and no value", plus its summary line), m831@8fb1b717-features 0.
-  - GRID: m278_guard_off 0/726; c278_control 29/726 (units None and no-unit-attr); m831_return_del 36/726.
-  The perturbation (c278_control) moves the grid and the 278 mutant does not, so the equivalence verdict stands on a harness that is sensitive to the guard arm.
-- Triage row `survivor_triage/inputs.py/normalize_flow_kg_s.GUARD_OFF.b46fca00.json` now cites the tree path. The file versions it names match the head: inputs.py c85c8137 and features.py 9349ab50 are the blobs at both ff77ad44 and d916687d. A grep finds no /Users/, /tmp or hpo-seats path in the row or the harness.
-- `tmp_paths --check` returns 0 refused at the head. It also returns 0 at 1e92e0e8, which still had the machine path, because ledger JSON is outside its documented scope. Its green therefore pins nothing about this defect; the grep is the evidence.
-- `closures.json`: the only hand edit is one line in `inert_reads["tests/harness_headers.py"]`, in sorted position (534 entries).
-  - Planted removal: `closure.py select/affected` gives the same `CASE: SKIP ... INERT` with and without the line, because the file is inert under `dev/audit/harnesses/` either way.
-  - The line's correctness is graded only by CI's Linux strace `closures` run. That run is green at this head (113395403658), and no `closures-autofix` commit followed (skipped, 113420448639). I could not plant it locally on macOS; this is stated, not claimed.
+## What the resolution actually authored
 
-## Resolution delta 45c04b7d (v6.7.17 stamp)
-- Structure:
-  - 45c04b7d = merge(ff77ad44, origin/main b296779f).
-  - d916687d = merge(ff77ad44, 45c04b7d).
-  - Both have tree 88e0bb5c. That tree equals `git merge-tree --write-tree ff77ad44 b296779f`'s result tree.
-  - The only conflict was `tests/golden/claimed_drift.txt`: MERGE-CLAIM refused, both sides rewrote the claim list. It is resolved as described below.
-- `git merge-tree --write-tree origin/main d916687d`: rc 0, no CONFLICT, no MERGE-CLAIM line. origin/main is b296779f, the merge base.
-- claimed_drift.txt:
-  - The active list is exactly config_flow, coord_all_features, coord_dhw, coord_grid_fee, coord_minimal and coord_two_zone, at `# claims-for: 6.7.17`.
-  - Against ff77ad44 only the claims-for line and the v6.7.17 stamp-note line changed.
-  - Against origin/main the file only appends the R9-UX-9 block.
-- `env_drift.py --claims-only`: ok against b296779f and against origin/main.
-- Nothing else moved:
-  - The three-dot diff against b296779f (45 files, +1004/-45) lists the same files as ff77ad44's against 0b89f781.
-  - Every file's branch-side +/- lines are identical, except claimed_drift.txt. That file differs only because main's stamp already removed the #1939 config_flow line, so the branch no longer deletes it.
-  - inputs.py, tests/features.py, const.py and tests/closures.json are byte-identical to ff77ad44.
-  - VERSION, manifest.json, RELEASE_NOTES.md and card_claimed_drift.txt are identical to origin/main.
-- One body inaccuracy, which does not block. Step 8 says "The ledger driver merged `tests/closures.json`". Main's stamp (0b89f781..b296779f) does not touch closures.json. My merge-tree shows no LEDGER-MERGE line, and the file is byte-identical to ff77ad44 (f1df1f1f). No driver ran on it. The sentence overstates the resolution work and is wrong; the fact it should state, that closures.json is unchanged, is stronger. A body-only edit can correct it without moving the head.
-- Also wording: the `## Head` line 15 says d916687d "then merges origin/main b296779f0". There is no such separate commit; the push script's merge was a no-op, as `## Figures` says.
+`git merge-tree --write-tree d916687db c518447eb` exits 1 with tree `e3b54ba65` and names exactly two content conflicts — `dev/audit/rounds/round4/D6/claims.py`, `tests/deployment_shape.py` — and two driver resolutions, `LEDGER-MERGE: resolved tests/structure_budgets.json` and `tests/closures.json`. `git diff --name-status e3b54ba65 bab0aeb8d` is therefore the complete resolution delta: `claims.py`, `claims.json`, `claims.md`, `deployment_shape.py`, `docs/architecture.md`, `tests/entities.py`, `dev/programme/delivery/2024.md`. Nothing else. `tests/closures.json` and `tests/structure_budgets.json` in the head are **byte-identical to the driver's own output** (blobs `89d373969bfa`, `2fae356be157` equal in both), so claim 1's "finished with the merged tree's own `ledger_merge.py --resolve`" is true, not a hand-merge dressed as a driver.
 
-## Checks at d916687d (check-runs API, 40 runs, 0 pending, evidence/h7/checkruns-settled.tsv)
-- Red:
-  - `budget-raise-gate` 113394647419 and 113394649740, both failure, by construction. The pre-approved raise is max_class_loc 9048 to 9049 and seam_cut_total 766 to 768. It needs tvofi's approving review at this head (decision 0013), which is the orchestrator's to give and is not a reviewer block.
-  - `nightly-status` 113395241587: main's, not required.
-  - All three are answered in `## Red checks` with the same job ids.
-- Green:
-  - `mutation` 113395241977, `closures` 113395403658, `fast (3.14)` 113395242428, `coverage` 113395242275, `coverage-ratchet` 113423376615, `delivery-status` 113394643567.
-  - `pr-contract` 113394643025, plus the run after the body update, 113427055955.
-  - typing, hassfest, validate-hacs, env-matrix, browser, briefs, policy-docs, instrument-self-tests, closure-scope, graders-head-copy, wave-script, Analyze x3, CodeQL.
-- Autofix jobs: `mutation-autofix`, `closures-autofix` and `claims-autofix` were skipped, and no bot commit followed.
-- Mutation: the diff since the last mutation-reviewed head adds no production line, so no new mutant is drawn.
+## 1 — the conflicts, verified per key rather than by eyeballing the union
 
-## Body
-I re-read the whole body after the update; the update only filled `## Red checks`. The body names d916687d as head, and the Red checks section matches the API. The Unpinned sites, Forward-carry and Friction sections are unchanged from the reviewed state. The only defect is the closures.json sentence noted above.
+Three stages plus the merge base (`b296779f`), every list of `closures` and `inert_reads`: **0 dropped entries, 0 invented entries, every list still sorted** (`closures_audit.py`). `flow_meter.py` appears in 21 closure lists — all of them the branch's own additions — and in 21 at the head; `entry_config.py` in 27 of main's, 27 at the head; **neither is missing from any list either side put it in**. `entry_config.py` is not in `bab0aeb8d`'s parent `d916687db` and `flow_meter.py` not in `c518447eb`, so this is a genuine union, not one side winning. The 10 `recorded.*.seconds` values that match **neither** side all equal the base (`arch_score_head` 41.8, `backtest` 159.6, `edge` 53.6, `finite_boundary` 90.4, `harness_headers` 220.7, `layout` 17.3, `manual_plan` 9.2, `optimality` 186.3, `typing_ruler` 0.6, `validate` 56.0) — the driver's documented "kept <base>; a re-timing inside 2x of it is noise" rule, and its own merge-tree output prints exactly those ten `kept` lines. Nothing was hand-tuned in the table. `tests/closure.py selftest` at the head: **ALL 57 closure shrink pins PASSED**, "the committed tests/closures.json is in the layout" — the merged table is graded by its own instrument, not only by me.
 
-Head at measurement d916687db06cd5c1d021705170839df58670b603; re-read before posting (see evidence/h7/head-at-post.txt).
+The claim prose overstates one count: the body says "27 closure lists grew by one module on each side". Measured: **21** lists on the branch's side (each exactly `+flow_meter.py`), **27** on main's, and six of main's grew by more than one module (`backtest/edge/optimality/validate/stress` also took `freq_control.py` and `inputs.py`). A body-only correction.
+
+`claims.py` and `deployment_shape.py`: both sides had written their own new module into the same provenance sentence. Unioned as `72 until R9-UX-9's flow_meter.py and R9-EG-B11's entry_config.py` / `90 until …`, with the counts re-derived, not carried: `git ls-tree -r custom_components/heatpump_optimizer` gives **72 py / 90 files** at the base, **73 / 91** at each side, **74 / 92** at the head. `claims.py` run by me at the head prints `RESULT arch_modules_on_disk=74`, `arch_map_listed=74`, `arch_map_missing=0`, `ha_module_level_importers=27`, and `claims_false=0 claims_stale=0` over 125 claims. `claims.json`/`claims.md` re-ran to byte-identical with what the fixer committed (`git status` clean after the run), so those two files are generated output, not hand-typed numbers.
+
+## 2 — the false agreement, and the class opened
+
+`docs/architecture.md` merged clean while both sides said 73; the fixer's three figures (74 / 27 of 74 / the other 46) are true: 74 from `ls-tree`, 27 from `claims.py` and from `tests/entities.py`'s own parse of the doc ("architecture.md's opening counts name the package it describes" **ok**, "…names exactly the module-level importers" **ok**), and 46 two independent ways — the doc's own rule 74−27−1, and my own AST sweep (28 importers including one `TYPE_CHECKING`-only module the instruments exclude; 74−28 = 46). `tests/doc_claims.py` at the head: **ALL 160 checks PASSED**.
+
+The population for "clean-but-false" is exactly the **13 files both sides changed** (`config_flow.py`, `coordinator.py`, `sensor.py`, `thermal_model.py`, `claims.json/md/py`, `architecture.md`, `closures.json`, `deployment_shape.py`, `entities.py`, `features.py`, `structure_budgets.json`). Six are in the delta and were checked above; `closures.json`/`structure_budgets.json` are driver-owned. For the five that merged clean with no hand edit I did not trust the instruments alone: main's `EntryConfig` is the one interaction that could be silently dead — `effective_config` now returns an `EntryConfig`, and this branch's `read_heat_output_kw` reads a key `EntryConfig` does not declare. Reviewer-built probe (`entryconfig_flow_probe.py`, disclosed per step 9), run against the head's package:
+
+    RESULT A_entryconfig_flow=2.093 expected=2.093
+    RESULT B_dict_flow=2.093
+    RESULT C_entryconfig_noflowkey=None
+    RESULT D_entryconfig_with_power=None
+    RESULT E_probe_install_writes=[] measured_power=False frequency=False
+
+The estimate fires through main's typed config exactly as through the dict it was written against (`__getitem__` reads `raw`, and `from_mapping` keeps undeclared keys there), with both null controls moving. A silent-revert sweep over all 45 files the branch changed — every branch-added line, present in the head? — returns 26 lines, all of them superseded-by-design: the 73→74 and 91→92 figures (2+2+3), the three `structure_budgets.json` lines the driver re-summed, ten `recorded` timings the driver kept from the base, and one re-wrapped `md_tables` timing whose value (0.3, the branch's own) survives intact. **No production line, no `features.py` check and none of the branch's 10 mutation pins or its triage row is missing** (each re-checked by path at the head; `--normalize` says 1261 dispositions, 0 retired keys naming no site, tree clean after).
+
+One finding in this class, **outside the delta**: at the frozen head `d916687db` the deployment-shape census prose was already false on **5 of its 7** pair figures — it said 80/72/53/88/54 where its own `closures.json` measured 81/73/55/89/56. The resolution repaired all of them (the merged tree re-derives to 92/82/74/56/20/90/57 and the head's prose says exactly those), so nothing here blocks. But nothing in the gate grades that prose — it is hand-recording — so the class is open for the next merge of the same shape. That is an instrument finding for the register, not a defect in this branch: `overlap_rederive.py` is the derivation, and the definition that reproduces all three stages is `len(prod(closures[A]) & prod(C[B]))` over all files under `custom_components/`.
+
+## 3 — the merge-caused red, with both arms
+
+The reason is true of the code, read at the head: `flow_meter.py:55` is `not cfg.get(const.CONF_FLOW_METER_ENTITY)` inside `read_heat_output_kw`, `:53` passes that same mapping to `probe_install`, `const.py:1095` defines the key, and `entry_config.py` declares no slot for it (grep: the only two hits are `const.py`). It is not an allow-list that blinds the barrier where it watches — `_EC_RESIDUAL` sits outside `_EC_MIGRATED`, so it excuses nothing about a migrated module, and the single check grades both directions:
+
+- **Arm A** (`wt4`, head minus the three added lines): `1 of 2235 ENTITY CHECKS FAILED`, and the one failure is the barrier — `STRAY [] STALE [] UNCLASSIFIED ['flow_meter.py'] RESIDUAL-STALE [] (hits=230)`. The classification is load-bearing and the red the fixer reported is real.
+- **Arm B** (`wt5`, head plus a planted entry naming a module that reads no mapping): `1 of 2235 ENTITY CHECKS FAILED` with `RESIDUAL-STALE ['zzz_reviewer_planted.py']`. The table cannot absorb a free entry, so the exemption is earned by the read rather than parked.
+- At the head itself: **ALL 2235 ENTITY CHECKS PASSED**, rc 0 (`entities_head.txt`).
+
+No `len(_EC_RESIDUAL)` pin exists anywhere in the tree to weaken: `_EC_RESIDUAL` occurs only at its definition and the two set expressions; `git grep _EC_RESIDUAL` over the head returns those three lines and nothing else. `tests/config_flow_steps.py` at the head: **ALL 499 checks PASSED** — the merge's other risk surface, the options schema, is graded.
+
+## 4 — claim files
+
+`tests/golden/claimed_drift.txt` at the head is **blob-identical to `d916687db`** (`eda8856b96`); `tests/golden/card_claimed_drift.txt` is blob-identical to `d916687db`, to `c518447eb` and to `origin/main` (`c683379daf`) and its active list is empty. Active list at the head is **exactly the six** branch fixtures (`config_flow`, `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal`, `coord_two_zone`) against **origin/main's zero**, so nothing is inherited; `claims-for: 6.7.17` equals `VERSION`. `env_drift.py --claims-only origin/main`: `claims hygiene: origin/main ok`, rc 0. I also ran the heavy arm here because the merge is the event that can move a fixture without anyone claiming it: `env_drift.py --all origin/main` at the head gives **NO UNCLAIMED DRIFT, NO STALE FIXTURE** over 56 scenarios, rc 0, with each of the six moving 3 leaves and every leaf attributable to this branch's own additions (`flow_meter_entity`, `measured_heat_output_kw`, `feedback_gaps`).
+
+## 5 — budgets
+
+`tests/structure.py` at the head, my own run: `RESULT max_class_loc=8818`, `RESULT seam_cut_total=762`, `ok max_class_loc 8818 <= 8818`, `ok seam_cut_total 762 <= 762`, **STRUCTURE RATCHET PASSED**. Three stages: `max_class_loc` base 9048 / ours 9049 / theirs 8817 / merged **8818**; `seam_cut_total` base 766 / ours 768 / theirs 760 / merged **762** — the driver's `+ both deltas` rule, and the measurement lands on the cap with zero headroom, exactly as the fixer said. `git diff d916687db bab0aeb8d -- '*budgets.json'` touches only `tests/structure_budgets.json` (driver-summed) and `dev/governance/config/policy_budgets.json`, and the latter is `merged == theirs` with `base == ours`, i.e. main's own change taken whole with nothing raised. Not metric-gamed: the raise is still *needed* at this head (measurement equals cap), so the merge neither flattered a cap nor bought headroom it did not use.
+
+## 6 — versions and the file set
+
+`VERSION`, `manifest.json`, `RELEASE_NOTES.md` and `hacs.json` are blob-identical across `bab0aeb8d`, `d916687db` and `origin/main` (`6.7.17` everywhere). The row file is the record commit alone: `git diff --name-only 45f43a506 bab0aeb8d` returns `dev/programme/delivery/2024.md` and nothing else. CI's `delivery-status` is success at this head with that row in it.
+
+## Step 11 — the head's own runs
+
+All runs belong to `bab0aeb8d` (checked per run, `checkruns_head_settled.tsv`): 39 latest runs, **all completed, 25 success, 13 skipped, 1 failure, 0 pending**, and **no absent required context** — I read the 17 from ruleset 23698884 and each has a run at this head. Green among the required: `fast (3.14)` 113802814934, `closures` 113802916899, `mutation` 113802814901, `typing`, `env-matrix`, `browser`, `hassfest`, `validate-hacs`, `briefs`, `policy-docs`, `closure-scope`, `wave-script`, `pr-contract` 113803315709, `Analyze` ×3. Also green and not required: `coverage` 113802814910, `coverage-ratchet`, `delivery-status`, `nightly-status`, both `nightly-ha` arms, `graders-head-copy`, `instrument-self-tests`, `CodeQL`. Skipped with no repair owed: `claims-autofix`, `closures-autofix`, `mutation-autofix`, `mutation-pins`, `mutation-pin-plan`, and no bot commit followed the push.
+
+The one red at the head is **required**: `budget-raise-gate` 113802816594. Cause named and answered in `## Red checks`: the owner-approved `max_class_loc` +1 / `seam_cut_total` +2, which merges only on `@tvofi`'s approving review at the head (decision 0013) — and §5 above confirms the raise is still owed at *this* head, so the red is by construction, not by the delta. It is the orchestrator's to give, not a reviewer block. `## Red checks` at the head, and no other lane turned red anywhere in the range.
+
+One body gap, non-blocking: the section is headed "At this head `d916687db…`" and cites that head's job ids (113394647419 / 113394649740), while the live head's run is 113802816594. The trigger is named and answered, which is what step 11 owes; the id line wants a body-only edit at the next touch. Two more of the same kind: the `27 … on each side` count above, and `claims.py`'s C32 claim label, which still reads `45 modules` while the check it labels parses the doc's live figure (the label is a literal in `claims.py` and was already stale on both sides — the generated `claims.json`/`claims.md` inherit it).
+
+## Carried from the earlier rounds, not re-done
+
+Rounds 1-5 established the flow-meter mutant kills (M11, M12, inputs.py:825/827, M1/M2), the stale-path null control, the `:278`/`:831` equivalence triage on the tracked harness, and the raise's minimality by removing the one payload line. This delta adds **no production line**, so it draws no mutant of its own and none of that is re-owed; the merge's effect on the pin inventory is graded instead by `mutation` green at the head plus `--normalize` naming no retired site.
+
+Head at measurement and re-read before posting: `bab0aeb8d4aa04a4c36b3bdfcfb2978b69cc9f85`. Draft, as instructed, left alone.
+
+bus: this file's first publication attempt (before the nonce existed) was refused -- `~/.zcode/bus/dispatched` had no row for 2024 at this head, and no nonce was minted here; the round-3 nonce binds only the head it was minted for. The coordinator then dispatched `2024 bab0aeb8d4aa04a4c36b3bdfcfb2978b69cc9f85 review-2024` (row 335, the nonce carried above). Head re-read immediately before publishing: `gh pr view 2024` -> `bab0aeb8d4aa04a4c36b3bdfcfb2978b69cc9f85`, unchanged since measurement, so every number here is the live head's. Verbatim refusal of the first attempt kept at `evidence-r3/bus_push_2024.txt`. Reviewer worktree `wt3` clean, perturbation worktrees removed, `/private/tmp/r9-main` untouched.
