@@ -1,0 +1,3 @@
+2026-10-09T18:29:54.9051003Z [36;1m  --scope changed --base origin/main --max 10 --jobs 3 \[0m
+2026-10-09T18:29:57.2225207Z MUTATION TABLE -- scope changed: no production code line added or modified against the base
+2026-10-09T18:29:57.2340469Z MUTATION TABLE PASSED (empty scope)

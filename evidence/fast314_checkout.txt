@@ -1,0 +1,8 @@
+2026-10-09T18:29:27.9720364Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-09T18:29:36.6311515Z ##[group]Checking out the ref
+2026-10-09T18:29:37.1004842Z HEAD is now at 3c8c2b1f Merge c54beab894db7210c570cd67f7cfb61212ed301c into d0f085ffbc3a8c38c5a36df4f2a4ca0ea3505d0a
+2026-10-09T19:20:54.9067344Z   ok   a partial merge refreshes a stale _comment
+2026-10-09T19:20:55.1273954Z   ok   a stamp-shaped commit with two parents (a pull request's merge ref, or its merge into main) or none (a graft root) is refused
+2026-10-09T19:20:55.1357073Z   ok   and the same file checking out the pull request's head is refused (null control)
+2026-10-09T19:20:55.1364385Z   ok   and the same file checking out the pull request's head, or missing a pull-request workflow, is refused (null control)
+2026-10-09T19:20:55.1859163Z ########## import cycles (function-scope imports in, TYPE_CHECKING out) ##########

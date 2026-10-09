@@ -1,0 +1,5 @@
+112192036224	mutation-ledger	success
+112192036397	mutation-nightly	success
+112192038679	mutation	skipped
+112192039529	mutation-autofix	skipped
+112273333752	mutation-ledger-push	success

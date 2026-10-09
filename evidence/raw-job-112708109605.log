@@ -471,7 +471,7 @@
 2026-10-07T08:45:06.0606103Z Successfully set up CPython (3.13.15)
 2026-10-07T08:45:06.0607292Z ##[endgroup]
 2026-10-07T08:45:06.0788495Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
-2026-10-07T08:45:06.0790475Z pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+2026-10-07T08:45:06.0790475Z [36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt[0m
 2026-10-07T08:45:06.1221979Z shell: /usr/bin/bash -e {0}
 2026-10-07T08:45:06.1222442Z env:
 2026-10-07T08:45:06.1222883Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
@@ -528,11 +528,11 @@
 2026-10-07T08:45:22.9459828Z 
 2026-10-07T08:45:22.9483781Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
 2026-10-07T08:45:23.1225460Z ##[group]Run set -o pipefail
-2026-10-07T08:45:23.1225822Z set -o pipefail
-2026-10-07T08:45:23.1226096Z python3 tests/mutation_table.py \
-2026-10-07T08:45:23.1226472Z   --scope full --max 40 --jobs 3 --budget-minutes 270 \
-2026-10-07T08:45:23.1226842Z   --seed "$(date -u +%Y%m%d)" \
-2026-10-07T08:45:23.1227184Z   | tee "$RUNNER_TEMP/mutation-table-full.txt"
+2026-10-07T08:45:23.1225822Z [36;1mset -o pipefail[0m
+2026-10-07T08:45:23.1226096Z [36;1mpython3 tests/mutation_table.py \[0m
+2026-10-07T08:45:23.1226472Z [36;1m  --scope full --max 40 --jobs 3 --budget-minutes 270 \[0m
+2026-10-07T08:45:23.1226842Z [36;1m  --seed "$(date -u +%Y%m%d)" \[0m
+2026-10-07T08:45:23.1227184Z [36;1m  | tee "$RUNNER_TEMP/mutation-table-full.txt"[0m
 2026-10-07T08:45:23.1296206Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
 2026-10-07T08:45:23.1296613Z env:
 2026-10-07T08:45:23.1296925Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64
@@ -577,17 +577,17 @@
 2026-10-07T09:48:12.9939588Z       tests/boost_drift_replay.py: tests/boost_drift_replay.py: timed out after 1576s
 2026-10-07T09:48:14.1557850Z ##[error]Process completed with exit code 1.
 2026-10-07T09:48:14.1611511Z ##[group]Run f="$RUNNER_TEMP/mutation-table-full.txt"
-2026-10-07T09:48:14.1611957Z f="$RUNNER_TEMP/mutation-table-full.txt"
-2026-10-07T09:48:14.1612308Z test -s "$f" || exit 0
-2026-10-07T09:48:14.1612556Z {
-2026-10-07T09:48:14.1612822Z   echo "### mutation-nightly: pin re-verification"
-2026-10-07T09:48:14.1613169Z   echo '```'
-2026-10-07T09:48:14.1613653Z   grep -E 'PIN NOT REPRODUCED|pin not re-verified|PIN RE-VERIFICATION' "$f" || echo "no pinned site drawn"
-2026-10-07T09:48:14.1614160Z   echo '```'
-2026-10-07T09:48:14.1614396Z } >> "$GITHUB_STEP_SUMMARY"
-2026-10-07T09:48:14.1614757Z grep -E 'PIN NOT REPRODUCED' "$f" | while IFS= read -r line; do
-2026-10-07T09:48:14.1615196Z   echo "::warning title=pin not reproduced::${line}"
-2026-10-07T09:48:14.1615544Z done || true
+2026-10-07T09:48:14.1611957Z [36;1mf="$RUNNER_TEMP/mutation-table-full.txt"[0m
+2026-10-07T09:48:14.1612308Z [36;1mtest -s "$f" || exit 0[0m
+2026-10-07T09:48:14.1612556Z [36;1m{[0m
+2026-10-07T09:48:14.1612822Z [36;1m  echo "### mutation-nightly: pin re-verification"[0m
+2026-10-07T09:48:14.1613169Z [36;1m  echo '```'[0m
+2026-10-07T09:48:14.1613653Z [36;1m  grep -E 'PIN NOT REPRODUCED|pin not re-verified|PIN RE-VERIFICATION' "$f" || echo "no pinned site drawn"[0m
+2026-10-07T09:48:14.1614160Z [36;1m  echo '```'[0m
+2026-10-07T09:48:14.1614396Z [36;1m} >> "$GITHUB_STEP_SUMMARY"[0m
+2026-10-07T09:48:14.1614757Z [36;1mgrep -E 'PIN NOT REPRODUCED' "$f" | while IFS= read -r line; do[0m
+2026-10-07T09:48:14.1615196Z [36;1m  echo "::warning title=pin not reproduced::${line}"[0m
+2026-10-07T09:48:14.1615544Z [36;1mdone || true[0m
 2026-10-07T09:48:14.1679894Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
 2026-10-07T09:48:14.1680490Z env:
 2026-10-07T09:48:14.1680791Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.15/x64

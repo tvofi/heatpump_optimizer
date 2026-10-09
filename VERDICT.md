@@ -1,287 +1,397 @@
-Fix review: blocked 96497ffc694302b814eecaeea2710bfdbebf6678 record-stale: RCA §7's arm bullet, rewritten this round, still quotes round 1's five-check/2239 tallies (this head answers seven/2241) and omits the C/D/E arms it added, and four lines this PR adds still state the 1.3-3.3x pool factor that §2 of the same document measures at 0.47-3.27
+Fix review: merge c54beab894db7210c570cd67f7cfb61212ed301c
 
-Round 2.
-`record-stale` is outside `web-fix-wave.js`'s `VERDICT_CLASSES`, so the parser routes it
-as `other` with the word kept at the front of the why (#1475's documented degradation);
-no taught word names "the landed record contradicts the measurement this PR corrected",
-and inventing one silently is worse than naming it here.
-seat: review-2074b
-bus-nonce: f4a2f01860c4a11d6dce10da0f6af16a
-Measured at `96497ffc694302b814eecaeea2710bfdbebf6678` in a detached worktree at
-`/Users/timmalmstrom/hpo-seats/review-2074b/wt`; merge base `b2b6acd64` = live
-`origin/main` (confirmed by `git ls-remote`, unmoved since round 1, so three-dot and
-two-dot coincide). Contract read at this head:
-`git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is
-empty. Python 3.14.7 (`$HOME/.local/state/hpo/venv-ci/bin/python3`).
-Evidence: /Users/timmalmstrom/hpo-seats/review-2074b/evidence
+Round 3.
+seat: review-2074c
+bus-nonce: 7f7c7f4f8ce8769fc6646f18fb01c54a
+Measured at `c54beab894db7210c570cd67f7cfb61212ed301c` in a detached worktree at
+`/Users/timmalmstrom/hpo-seats/review-2074c/wt`; merge base `b2b6acd64`.
+Python 3.14.7 (`$HOME/.local/state/hpo/venv-ci/bin/python3`).
+Evidence: /Users/timmalmstrom/hpo-seats/review-2074c/evidence
 
-## The mechanism is untouched, and I confirmed that rather than accepting it
+**Contract currency, named rather than assumed.** `git diff $(git merge-base
+origin/main HEAD)...origin/main -- dev/governance/roles/` is **not** empty this
+round (`fix-review.md` step 7's `--carry` amendment; `fixer.md` step 5's
+`run_always` wording and step 7's), so the copy I executed is `origin/main`'s —
+`git show origin/main:dev/governance/roles/fix-review.md | diff - /private/tmp/r9-main/...`
+is byte-identical. Steps 7, 11, 12, 14, 15 were taken against that text. The body
+read the same diff and states the same obligations; `fixer.md` step 5's new words
+are accurate: `tests/run.sh` has exactly four `run_always` **call** sites (427
+`env_drift.py --claims-only`, 430 `closure.py selftest`, 507 `harness_headers.py`,
+511 `layout.py`; the fifth grep hit is the function's own dispatch at 274), and I
+re-ran two of them (claims hygiene `b2b6acd64... ok`; `ALL 57 closure shrink pins
+PASSED`), citing CI for `harness_headers.py` and taking `layout.py` whole myself
+(rc 0, guard findings 0 at this head vs the base).
 
-- `git diff 7e8c5c8e4 96497ffc6 -- tests/mutation_table.py .github/workflows/tests.yml`
-  is **empty**; `git diff --name-only 7e8c5c8e4 96497ffc6` is
-  `dev/programme/delivery/2074.md` **only**; the RCA doc `+333/−68` and
-  `tests/entities.py` `+64` (one hunk, `@@ -31725,6 +31725,70 @@`) are the whole round-2
-  delta. The head is round-2 content plus this PR's row — nothing reviewed moved.
-- Because the mechanism files are byte-identical, round 1's mechanism verdicts are not
-  re-argued here; the two numbers I was told I could rely on I re-derived anyway, at
-  seconds scale: **bounds 1200 / 1576 / 2401 / 4469** with the tree's own
-  `driver_timeout` over `git show <head>:tests/closures.json` (seven heads,
-  `evidence/bounds_rederive_mine.txt`), and **seeded 4719 / 7200 / 7203**
-  (solo 800.2 with pool 1573 / 2400 / 2401). `SECONDS_BAND = 2.0`,
-  `TIMEOUT_SCALE = 3`, `git diff b2b6acd64 HEAD -- tests/closure.py` = 0 lines.
-- The one CI number I did **not** re-take: the `mutation` lane's *empty scope* (green at
-  this head, suite `102813714594` — see step 11). It is empty because the diff writes no
-  source line; that is round 1's read of the lane log (`113815002602` at its head), and it
-  survives because the mechanism files this head holds are the byte-identical ones round 1
-  read. **I relied on round 1 there.**
+**My instrument, disclosed** (`fix-review.md` step 9 — mine, not the fixer's, and
+not a re-implementation): `evidence/review_block3.py` execs the tree's own
+`tests/entities.py` lines **31594..31801 verbatim**, each boundary found by its own
+line marker rather than a carried number, with `_workflow_job`, `_TESTS_YML` and
+`_MUT_BODY` lifted verbatim the same way, `mutation_table` imported as the tree
+imports it, and the four stdlib aliases bound to the modules the file binds them
+from. Arms are applied to the files **on disk** and restored with `git checkout
+HEAD --`, every run ending `git status --short` empty and `git diff --quiet HEAD`
+clean (proved in `evidence/arms_C_D_A_B_REVERT.txt` and after the single-arm runs).
 
-## Round 1's four items, each checked with my own instrument
+## The delta, measured
 
-**1. The class search: landed, and its claims resolve.** The grep round 1 ran
-(`grep -n -i "record-autofix\|closures-autofix\|class" dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`)
-now exits 0: §2b, "Class search: where else this shape reaches", six members. Every
-checkable claim in it I verified myself:
-- `closures-autofix` **is** pull_request-only: its `if:` at this head is
-  `!cancelled() && github.event_name == 'pull_request' && needs.closures.result ==
-  'failure' && …head.repo.full_name == github.repository`, and on the 10-08 schedule run
-  `37753990323` job `113252338415` `closures-autofix` concluded **`skipped`** while
-  `113233890832` `closures` concluded **`failure`** — both from my own jobs fetch
-  (`evidence/my_1008_closures.txt`). `dev/governance/rules/ci-autofix.md`'s summary table
-  really does name `closures-autofix` as the repair for `UNDER-SCOPED, INERT READS` (its
-  "Same-repo PRs" line scopes all three repair jobs to PRs), so the member is the shape it
-  claims.
-- The two hand-edit repairs exist and are what the doc says: `b416093e9` "fix:
-  inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051)" and
-  `387128bb3` "closures: list the new harness among harness_headers.py's inert reads" —
-  ancestors of main, both 2026-10-08, and each touches `tests/closures.json` and nothing
-  else ("two hand edits to the committed table" ✓).
-- **The correction to the diagnosing seat is TRUE, and it also corrects round 1.**
-  `record-autofix` has an `if:`, character-for-character what §2b quotes, at this head,
-  at the diagnosing seat's `83f7ca558` and at round 1's `d7c830c2f`. Round 1's own verdict
-  text repeated the stale "missing job-level `if:`" claim; the class member the fixer kept
-  is the narrower one, and its three faults are real — from logs I fetched myself:
-  10-05 `returned HTTP 401`, 10-06 `returned HTTP 422`, 10-07 `Process completed with
-  exit code 128` plus `the record step did not run; a beat owed cannot be distinguished
-  from one skipped`. The three live rows' titles (#1957/#1962/#1974) being about other
-  properties I did not re-read; the body's out-of-scope routing of the lane itself is the
-  orchestrator's.
-- Members 3/5/6: `driver_timeout(1200, 0.0) = 1200` and all three call sites
-  (`3457`/`3470`/`3552`) take the same seeded basis in every scope ✓ (member 3's reach
-  claim); `slow` = `timeout-minutes: 150`, `nightly-ha` = 45, neither job's YAML mentions
-  `driver_timeout` or `mutation_table` ✓; `governance.yml` contains zero `actions/runs`
-  and zero `workflow_runs` ✓; `tests/nightly_status.py` `OWED_WHEN_RED` at line 206 (the
-  owed text names `gh workflow run tests.yml` at 209) and line 547
-  `run.get("head_branch") != default_branch` ✓; the `_gh_if` §7 cites exists at
-  `entities.py:30485` ✓.
+`git log --oneline 96497ffc6..HEAD` is one commit; `--stat` names four files —
+`.github/workflows/tests.yml` (20), `tests/entities.py` (21),
+`tests/mutation_table.py` (27), `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` (89).
 
-**2. The count is corrected, and the correction is what CI shows.** I read the failing
-jobs of all six runs myself: 10-03 `mutation-ledger`; 10-04 `mutation-ledger`; 10-05
-`record-autofix`; 10-06 `record-autofix`; 10-07 `record-autofix` + `mutation-ledger` +
-`mutation-nightly`; 10-08 `nightly-ha` ×2 + `closures` + `mutation-nightly`. In the logs I
-fetched, 10-03 prints `MUTATION TABLE REFUSED -- the null control … NULL_COMMENT was
-killed by tests/harness_headers.py` and **no** bound timeout, while 10-07 prints
-`timed out after 1576s` and 10-08 `timed out after 2401s` — the bound arm is **two**
-nights. §1's table now marks the three floor nights "*Inferred* exposure" and the two
-tripping nights "**printed**", and that marking matches the logs. §4's split — 0.33/night
-(2/6) for the arm this PR fixes, 0.67/night (4/6) for the family including the `EXCLUSIVE`
-sibling — is the arithmetic of that table, and the cost test clears on the arm alone
-(200 min of voided lane work over the two nights against 0 s standing cost).
+- **The workflow edit moves no behaviour, and I checked it by filter.** Every
+  `+`/`-` line of that diff outside the headers matches `^[+-][[:space:]]*#`; my
+  non-comment filter printed nothing. The two rounds' opposite-sounding statements
+  are both true of their own ranges: round 2 read
+  `git diff 7e8c5c8e4 96497ffc6 -- tests/mutation_table.py .github/workflows/tests.yml`
+  as **empty** (the round-2 delta moved neither), and this round's delta moves both —
+  as comment only. It is still `/.github/workflows/` text, which
+  `.github/CODEOWNERS:91` owns to `@tvofi`, so **the owner's approving review at this
+  head is owed and this verdict is not it**.
+- **`tests/mutation_table.py` and `tests/entities.py` are AST-identical to
+  `96497ffc6`'s with docstrings stripped** (my own `ast.dump` comparison:
+  `mutation_table: lines 3706->3715 AST identical: True`,
+  `entities: 34147, identical: True`), and the only docstring that moved in either
+  file is `seed_pool_seconds`' (`docstrings changed: ['seed_pool_seconds']`; entities: `[]`).
+  So `driver_timeout` and `seed_pool_seconds`' code did not move and round 1's bound
+  arithmetic needed no redo — I re-derived it anyway (below).
+- `git diff b2b6acd64...HEAD -- tests/closure.py` = **0 lines**; `TIMEOUT_SCALE = 3`
+  and `closure.SECONDS_BAND = 2.0` read at this head. The PR's file list is
+  unchanged from round 2 (six paths).
 
-**3. Both enumerators reproduce their figures.** The factor range: I fetched the three
-job logs myself (`112708109605`, `112708109541`, `113233890923`) and applied §2's stated
-rule (factor = pool / the committed solo recording at *that run's* head, excluding the
-`env_drift.py` stub and any solo < 1 s). **Kept 16 + 16 + 19 = 51 rows**; min **0.4653**
-(`harness_headers.py` 449.2 → 209) and max **3.2692** (`structure.py` 5.2 → 17) — exactly
-the doc's ends, drivers and inputs; the two `rc=124` boost rows land at 3.0002 / 3.0005,
-which is the doc's "censored, ≥ 3.00"; 10-08's min `block_duty.py` 1.6 → 1 = 0.625.
-`evidence/factor_range_mine.txt`. The delay: over the twelve schedule runs I fetched,
-`created_at` − `02:17Z` (`tests.yml:119` = `- cron: "17 2 * * *"`, line checked) gives
-**5 h 54 m** (`37108891698`, 08:11:57Z) to **6 h 53 m** (`37909555545`, 09:10:23Z) — the
-doc's two ends, both re-taken.
+## Round 2's two blocks: both closed
 
-**4. The wiring is pinned, and each pin bites.** `tests/entities.py` at this head answers
-**2241** (round 1: 2239): my own whole-file run prints `ALL 2241 ENTITY CHECKS PASSED`,
-exit 0, with seven checks named `RCA-1565 …` (`evidence/entities_HEAD_green.txt`). I
-re-ran the arms with a targeted block harness (`evidence/review_block2.py`, execs the
-tree's own lines 31585..31792 verbatim, with `_workflow_job` and `_TESTS_YML` lifted from
-`entities.py` by line marker rather than re-implemented): CLEAN **0 of 7**; the merge-base
-`mutation_table.py` **4 of 7** (three defect checks + the driver pin, both null controls
-and the workflow pin green — the body's "4 of 2241" arm); **A** 1 of 7, **B** 1 of 7,
-**C** (`--pool-seconds` out of both lanes) 1 of 7, **D** (seed call site reverted to
-`recorded_seconds()`, round 1's own example) 1 of 7, **E** (`if: always()` off the cache
-save) 1 of 7 — each red check exactly the one the body names, every restore confirmed
-`git diff --quiet HEAD` clean. **E** is the arm the brief asked me to run and it fires
-through the adjacency regex, not the step name.
+**(a) §7's arm record.** `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md:429-437` is a
+seven-row table — clean, revert, A, B, C, D, E — each row naming what it breaks, the
+check it reddens, its tally and its log; the round-1 `2239` tallies survive at 443-447
+under "those four tallies are the round-1 head's". I read round 1's four logs:
+`entities_FAILINGARM.txt` "3 of 2239", `entities_MUTA.txt`/`entities_MUTB.txt`
+"1 of 2239", `entities_FINAL.txt` "ALL 2239 ENTITY CHECKS PASSED" — the labels are
+true. Round 3's seven logs print `ALL 2241` / `4 of 2241` / `1 of 2241` x5, as the
+table states.
 
-**5. Nothing regressed.** Hygiene all clean at the head: both claim files 0 diff lines vs
-live `origin/main`; **no** `*_budgets.json` in the diff at all; `VERSION`,
-`RELEASE_NOTES.md`, `manifest.json` untouched; `tests/structure.py` → STRUCTURE RATCHET
-PASSED (`seam_cut_total 760 <= 760`, so the +64 lines paid for themselves);
-`fold_ledger.py check` → 28 classes, 549 instances, 39 in-tree judge survivors, **101 rca
-entries / 0 violation(s)**; `bugclasses.json`'s `RCA-1565-mutation-timeouts` → `status:
-done`, `parts_missing: []`, `process_state` "(c) … (d) … arm", countermeasure naming the
-(iv) refusal, `doc` and `in_tree_home` both citing the RCA file (which fold_ledger is what
-validates, and it passes) — and the doc really contains those sections: §3 "(c), with a
-(d) arm", §4 "Cost test (wall-clock, per occurrence, over this release cycle)" with both
-sides in minutes and the P(recurrence) split, §5 the countermeasure.
-`git merge-tree --write-tree b2b6acd64 HEAD` exits 0 with **no** `MERGE-CLAIM` line on
-stderr; `mergeable_state: blocked` is the draft + code-owner review, not a conflict
-(step 13).
+I did not take the portability argument on reading — **I ran all seven arms at
+`c54beab89`** (`evidence/block_CLEAN_AT_HEAD.txt`, `block_{REVERT,A,B,C,D,E}.txt`):
+CLEAN 0 of 7; REVERT **4 of 7** (the three defect checks *plus* the driver pin, both
+null controls and the workflow pin green — the body's arm exactly); **A** 1 of 7
+with its detail printing `driver_timeout(1200, max(800.2, 2401.0)) = 2401, need >=
+7203.0`; **B** 1 of 7 (verdict back to "Fix the suite first", "STALE" gone);
+**C** 1 of 7 (`missing=` naming `--pool-seconds` in `mutation-nightly` AND
+`mutation-ledger`); **D** 1 of 7
+(`missing=['own_s = seed_pool_seconds(recorded_seconds(), prior_pool)']`); **E** —
+the arm this dispatch asked me to run — **1 of 7** through the adjacency regex
+(`missing=[]; save-if-always=False`), not the step name. Each red is the one row the
+table names for that arm.
 
-## What blocks: the record this PR lands still contradicts the record this PR corrects
+Its supporting claims each check out: `git diff 90ef590d8..HEAD --name-only` prints
+`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` alone and the diff of the three code
+files between them is empty; `grep -n R9-NIGHTLY-MUTATION-BOUND tests/entities.py`
+returns 31576 and 31593, both `#` lines; `tests/layout.py:310` `GUARD_EXEMPT` names
+`dev/audit/rca/` and is consumed as `path.startswith(skip)` (403/430, 466/467);
+`fold_ledger._intree` (196-197) is `startswith(RCA_DIR + "/") and os.path.isfile(...)`
+— a stat. `dev/audit/` is an INERT prefix (`tests/closure.py:297`, its comment:
+"prose and evidence no gate script opens"), so `tests/entities.py`'s classification
+check accepts the new file; `tests/closure.py` never globs `dev/audit/rca`.
 
-Both items are edits to files the PR already touches. No production or pin line is in
-question, and every number above survives.
+**(b) The superseded pool factor.** `git grep -nE '1\.3[-–]3\.3'` over this head
+returns **nothing** (exit 1): no surviving hit of the dead claim. The four lines now
+carry `0.47x-3.27x` with the rule and a resolvable `§2` citation —
+`tests/mutation_table.py:136-143`, `:2883-2898` (inside `seed_pool_seconds`'s
+docstring), `.github/workflows/tests.yml:1083-1094`, `tests/entities.py:31572-31593`;
+`pool_seconds`' own docstring, which round 2 did not list, carries no stale figure
+either (read: it names the two driver rows, not a range). The `0.3x-3.4x` grep
+returns three hits, each correctly labelled: `tests/closure.py:1537-1539` — the
+source, and it reads "Recordings of one script vary **0.3x-3.4x run to run**", which
+is recording variation, the band's own reason (`SECONDS_BAND = 2.0` beside it, with
+"60 of 72 rewrites over 21 merges were inside 2x"); the RCA doc:223, quoting tvofi's
+reason in those words; and the new `entities.py:31576-31579`, which says in terms
+that figure "states how much one script's RECORDINGS vary run to run ... two
+different quantities, and conflating them is how the figure this replaces travelled".
+The other `3.3x` hits (`tests/stress.py:562`, `:1793`, `bugclasses.json:1432`) are
+the scenario call-growth budget — a different quantity, correctly untouched.
 
-**a) §7's figure index was rewritten this round and left on round 1's head**
-(`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md:403-410`). The new bullet — "Failing arm,
-surgical mutations, green arm" — still reads "**the five checks** named 'RCA-1565 …'" and
-quotes **four `2239` tallies** (`entities_FAILINGARM.txt` = "3 of 2239",
-`entities_MUTA/MUTB` = "1 of 2239", `entities_FINAL.txt` = "ALL 2239 ENTITY CHECKS
-PASSED"). At the head the doc claims to be measured at (lines 9-12: "Base measured:
-`origin/main` at `b2b6acd64` … Where a figure IS that seat's and was not re-taken, the
-line says so") the file answers **seven** checks and **2241**, and the PR's own body says
-so ("4 of 2241", `entities_R2_*`) — so the doc and the body now state two different
-failing-arm tallies for the same described arm, and §7's command,
-`PYTHONPATH=tests/hastub python tests/entities.py`, no longer prints the numbers beside
-it. Two of §7's neighbours were updated in the same edit (the streak-end and the
-per-night attribution bullets), which is what makes this a slip rather than a choice.
-And the **C/D/E arms this round added — the proof that the two new pins bite — are absent
-from the landed record entirely**: `defect-root-cause.md`'s "A detector must be shown to
-detect … Both runs go in the report" lands in the doc, not the body, precisely because
-"the analysis is `dev/audit/rca/<id>.md`" while "a pull-request body or comment can be
-deleted or its author retired". The demonstration exists (I re-ran it: 1 of 7 each, 4 of
-7 on the revert) — the record just does not carry it. Fix: restate the bullet at this head
-(seven checks, `entities_R2_REVERT.txt` 4 of 2241, `entities_MUTC/D/E` 1 of 2241 each,
-`entities_R2_HEAD.txt` ALL 2241), and keep round 1's `2239` lines only if labelled as the
-round-1 head's, by the doc's own disclosure convention.
+## The two figures that had no enumerator, re-derived by me
 
-**b) the pool-factor correction reached the document but not the lines this PR adds**
-— so the tree contradicts §2 of its own RCA. Three new comment lines still assert the
-superseded figure *as the measurement*: `tests/mutation_table.py:136` ("the same script
-costs 1.3-3.3x its solo recording there"), `tests/mutation_table.py:2883` — inside
-`seed_pool_seconds`'s docstring, the function this PR installs — "the pool/solo factor
-the lane itself measured **(1.3-3.3x across drivers on 2026-10-07/08)**", and
-`.github/workflows/tests.yml:1085` ("the 3-worker pool exceeds by 1.3-3.3x"). §2 of the
-same document, and my own re-derivation over exactly those drivers, nights and rule,
-measure **0.47–3.27** (51 rows; the low end is `harness_headers.py` on 10-07). "Across
-drivers on 2026-10-07/08" is the same population and the same window, so one of the two
-is false, and the code is the false one. The fourth line is the same mis-attribution the
-round-2 message says was corrected: the new `tests/entities.py:31575-31576` comment calls
-closure.py's `0.3x-3.4x` "a pool factor the tree's own comment states reaches 3.4x", where
-§2/§3 now say that figure is *how much one script's recordings vary run to run* "and is
-not the pool factor". This is the class the RCA is the countermeasure for — a lane that
-does not consult its own instrument — reproducing in the PR that lands the instrument:
-the next seat to touch the bound will read `1.3-3.3x` out of the function's own docstring,
-which is exactly how the inherited figure travelled this far. Fix: the four lines take
-`0.47-3.27 (§2)` (and entities.py names 3.4x as recording variation, not pool factor); or,
-if the correction is deliberately not going into the code this round, §2b says so in one
-line, because nothing at head currently does.
+- **Factor range.** I fetched two of the three logs myself and applied §2's rule
+  (pool ÷ the committed solo at *that run's* head, excluding the `env_drift.py`
+  stub and any solo under 1 s):
+  `112708109605` (head `be0cb8213`) — 23 rows parsed, **16 kept**, 7 excluded
+  (`env_drift.py` stub; `guard_pins.py` 0.9, `open_meteo.py` 0.3, `plan_view.py`
+  0.9, `solar_alignment.py` 0.9, `typing_ruler.py` 0.3, `wood_advisor.py` 0.8);
+  min **0.4653** (`harness_headers.py` 449.2 -> 209), max **3.0002**
+  (`boost_drift_replay.py` 525.3 -> 1576, **rc 124** — a floor, as §2 marks it);
+  `112708109541` — **16 kept**, same min, max **3.2692** (`structure.py` 5.2 -> 17,
+  rc 0, uncensored), and `boost`'s one uncensored row 1573/525.3 = **2.9945**, the
+  doc's "2.99, three seconds of margin". Both logs' row counts, both ends, both
+  drivers and all four inputs match §2's per-log table exactly. I did **not**
+  re-take the third log's 19 rows; `16+16+19 = 51` is the doc's arithmetic over a
+  population round 2 enumerated whole.
+  I also checked §2's 10-08 table against the committed table at its own head
+  `816547efe`: all seven **solos and all seven bounds** are mine from
+  `git show 816547efe:tests/closures.json` through the tree's `driver_timeout`
+  (2401/1200/1200/1200/1851/1200/1200, matching the table), and the factors follow
+  from its pool column (3.0005/2.7327/2.2800/2.2807/0.6973/0.7121/1.2635) — that
+  column I took from the doc rather than re-reading the third log's 19 rows, as
+  above. The §6 note added this round (`env_drift` stub 0.6 at `816547efe` and
+  `be0cb8213`, 0.9 at the merge base) reads correctly at all three heads.
+- **Cron-to-dispatch delay.** The body's own twelve-run query, `created_at` minus the
+  `02:17Z` `tests.yml:119` declares (line read): **5 h 54 m 57 s**
+  (`37108891698`, 2026-10-03T08:11:57Z) to **6 h 53 m 23 s**
+  (`37909555545`, 2026-10-09T09:10:23Z) — the doc's ends, both re-taken, with the
+  rule and per-run print in `evidence/delay_mine.txt`. §4 now states the rule and
+  labels the diagnosing seat's narrower "6 h 19 m - 6 h 53 m" as the same rule over
+  four runs, which is the honest form.
+- **Bounds** (`evidence/bounds_and_seeds_mine.txt`, the tree's own `driver_timeout`):
+  `1200 / 1200 / 1200 / 2297 / 1576 / 2401 / 4469` for `2e569748a fb11a0172
+  a1da8d381 cff39dad6 be0cb8213 816547efe c518447eb`; seeded `4719 / 7200 / 7203`;
+  `driver_timeout(1200, 0.0) = 1200`; seed-never-lowers holds over all three pools.
+  Voided lane work from each job's own stamps: **63.4 / 64.2 / 72.4 min** ✓ (§4).
 
-## Reported, not blocking (three nits, all in the same file)
+## Item 8, checked against CI rather than read for plausibility
 
-- §1's per-night bound table covers five of the six-night streak and silently skips
-  **10-06** (head `cff39dad6`), whose recording I read as `{seconds: 765.6, rc: 0}` →
-  bound **2297 s** — the one night of the streak with a *seeded-looking* number that is
-  neither floor nor printed. A row (or a half-line saying why 10-06 is not in it) closes
-  the gap; no figure depends on it, since 10-06's mutation lanes passed.
-- §2b's header ("Each member below was re-measured at this head") and member 3's
-  "Sampled rather than enumerated … not re-sampled here" pull opposite ways; the member's
-  own disclosure is the honest one, so the header is the line to soften.
-- The body's `## Head` names branch `fix/r9-nightly-mutation-bound`; the remote has only
-  `fix/r9-nightly-bound` (`git ls-remote`), and it calls the row commit "an automatic
-  merge of `origin/main`" when `955dd09a3`'s only parent *is* main — the operative claim,
-  that no reviewed line moved, I verified. The opening "five distinct causes" and §2b's
-  "three refusals are three different faults … rather than one cause" cannot both be the
-  count; state which grouping.
+§1's table now carries **10-06** with the bound derived from that head's own
+committed recording — `cff39dad6 {seconds: 765.6, rc: 0}` -> **2297** (my number, not
+the doc's) — and the row says both mutation lanes were green, which I confirmed from
+run `37440269774`'s jobs: the only `failure` is `record-autofix` (job `112192034609`)
+and `mutation-ledger` `112192036224` / `mutation-nightly` `112192036397` both
+`success`, so "neither evidence for the mechanism nor against it" is right.
+The streak-end sentence says `37909555545` (head `c518447eb`) concluded **success**,
+ending the streak **without this fix**, "on the luck of that re-recorded number". I
+tested that: at `c518447eb` the recording is `1489.6` -> bound **4469**, and that
+night's lanes printed `baseline tests/boost_drift_replay.py: rc=0 failed=0 **2416s**`
+(job `113751143057`) and `**2492s**` (job `113751143182`) — **both above the 2401 s
+bound that killed the same driver on 10-08**. So the mechanism was still live and
+only the higher bound carried the night: the document understates its own case, and
+the fix is indeed still owed. (`evidence/streak_end_1009.txt`,
+`ev/my_1006_*.txt`.)
 
 ## Step 11, the checks at this head
 
-CI settled at this head, polled every 300 s from 14:58:59Z to **15:44:21Z** (`evidence/ci_poll.log`).
-From the check-runs API at `96497ffc6` (`evidence/checkruns_final.tsv`, 40 runs / 38
-names) against the required list read from ruleset 23698884 `main-protect-checks`
-(enforcement active, `evidence/ruleset_raw.json`), compared in
-`evidence/ci_required_at_head.txt`: **all 17 required contexts ran and concluded
-`success`** — `fast (3.14)`, `browser`, `briefs`, `closure-scope`, `closures`, `typing`,
-`hassfest`, `validate-hacs`, `policy-docs`, `wave-script`, `pr-contract` (two arms),
-`env-matrix`, `Analyze (actions)`, `Analyze (javascript-typescript)`, `Analyze (python)`,
-`mutation`, `budget-raise-gate` (two arms). **ABSENT: none. NOT-success: none.** The two
-the brief named are green — `instrument-self-tests` (the lane that owns workflow-edit pins)
-and `fast (3.14)` (the whole-file run) — and `nightly-status`, which round 1 verified at
-the pre-merge head, is **success** here too, as are `delivery-status`, `coverage`,
-`coverage-ratchet`, `graders-head-copy` and `CodeQL`; the remaining 14 names are the
-expected `skipped` PR-only arms (`closures-autofix`, `claims-autofix`, `mutation-autofix`,
-`record-autofix`, `record`, `recheck-gate`, `slow`, `nightly-ha`, `mutation-nightly`,
-`mutation-ledger`, `mutation-ledger-push`, `mutation-pins`, `mutation-pin-plan`,
-`delivery-status-publish`). Suite ids: `102813714594` (tests.yml: closures, coverage,
-fast (3.14), mutation, nightly-status), `102813714569` (instrument-self-tests),
-`102813715254`/`102813715225` (pr-contract).
-`fast (3.14)` is the whole-file run; rather than repeat it I ran the file myself at this
-head — `ALL 2241 ENTITY CHECKS PASSED` (above) — so the seven `RCA-1565` checks including
-the two new pins are green both in CI's lane and in my own run.
-No red check needs a root-cause answer at this head, and the non-exempt arm of
-`defect-root-cause.md` was already answered by the body in round 1 and unchanged since
-(the diff still touches `.github/workflows/tests.yml`, which `nightly-status` reads, and
-the body names the cheaper detector and its standing cost). `mutation` is green; step 11's
-separation was read at round 1's head as `empty scope`, and I relied on it there rather
-than re-fetching the lane log — see the mechanism-identity argument above.
+CI settled at this head, polled every 300 s from 18:56:40Z to **19:31:51Z** (8
+polls; a failed or short fetch is retried, not counted as settled —
+`evidence/ci_poll.log`, `checkruns_poll_1..8.tsv`). From `check-runs` at
+`c54beab89` (`evidence/checkruns_final.tsv`, 40 runs / **38 distinct names**,
+latest per name) against the 17 required contexts read from ruleset
+`23698884 main-protect-checks` (`evidence/ruleset_raw.json`; they live at
+`rules[].parameters.required_status_checks` — this repo answers
+`404 Branch not protected` on the branch-protection endpoint, so the ruleset is the
+only place the required list exists, and `conditions` carries only `ref_name`):
 
+- **all 17 required contexts ran and concluded `success`**: `fast (3.14)`, `browser`,
+  `briefs`, `closure-scope`, `closures`, `typing`, `hassfest`, `validate-hacs`,
+  `policy-docs`, `wave-script`, `pr-contract`, `env-matrix`, `Analyze (actions)`,
+  `Analyze (javascript-typescript)`, `Analyze (python)`, `mutation`,
+  `budget-raise-gate`. **ABSENT: none. NOT-SUCCESS: none.**
+- Nothing else in the range is red either. Of the 38 names, **14 are `skipped`** —
+  the expected PR-only arms (`closures-autofix`, `claims-autofix`,
+  `mutation-autofix`, `record-autofix`, `record`, `recheck-gate`, `slow`,
+  `nightly-ha`, `mutation-nightly`, `mutation-ledger`, `mutation-ledger-push`,
+  `mutation-pins`, `mutation-pin-plan`, `delivery-status-publish`) — and **7 more
+  succeed** beside the required seventeen: `nightly-status`, `delivery-status`,
+  `coverage`, `coverage-ratchet`, `graders-head-copy`, `instrument-self-tests`,
+  `CodeQL`. So **nothing is red at this head, and the previous head
+  (`96497ffc6`) answers the same way** (scanned with the same filter: no
+  non-success conclusion), which means the body's `## Red checks` owes nothing
+  further for this range.
+- **The non-exempt `nightly-status` arm is answered**: this diff touches
+  `.github/workflows/tests.yml`, which that reporter reads, and the body names the
+  detector (`nightly_status.py` grades `main`, fails closed, no cheaper one), the
+  standing cost (none added) and the remedy (the orchestrator's on `main` — fix the
+  lane, then dispatch Tests on the default branch). Here it is `success` anyway,
+  because the 10-09 nightly ended the streak.
+- **`mutation` is green, and I read its own log this round** (the one number round 2
+  relied on round 1 for): job `113966243112` prints `--scope changed --base
+  origin/main --max 10 --jobs 3`, then `MUTATION TABLE -- scope changed: no
+  production code line added or modified against the base` / `MUTATION TABLE PASSED
+  (empty scope)` — "none was evaluated", not "no mutant survived"
+  (`evidence/mutation_lane_log.txt`).
+- **The whole-file citation, and the two numbers a reader will meet.** `fast (3.14)`
+  (job `113966243087`) checks out `3c8c2b1f Merge c54beab89 into d0f085ff` — the
+  merge of this head into *current* main, which is what a `pull_request` run is — and
+  prints `ALL **2243** ENTITY CHECKS PASSED` with all seven `RCA-1565 …` lines `ok`
+  (`evidence/fast314_checkout.txt`, `fast314_rca_lines.txt`). The record's **2241**
+  is this head alone: every whole-file run in the seat's logs prints 2241, including
+  `entities_R3_HEAD_FINAL.txt` (mtime 19:51, after the 19:35:48 commit), which I read
+  but did not re-take, because CI's lane is the citation and step 11 forbids
+  repeating it. The 2-row difference is **main's side of that merge ref**: main has
+  moved `tests/entities.py` since the base (`git log b2b6acd64..origin/main --
+  tests/entities.py` names `d7a5634a1 test(R9-CI-2b): pr-contract accepts the
+  merge-main bot's automatic merge…`, which adds fixture cases), while this branch
+  adds seven (`R.check(` literals: 1693 at the base, 1700 at the head, 1694 at
+  main). The printed total is not the literal count — some checks execute from a
+  loop over fixture cases — so I can say the +2 comes from main's newer cases but not
+  decompose it further, and I did not try. **Neither number contradicts the record,
+  but a seat comparing §7's tally with the `fast` log will see 2241 against 2243 and
+  nothing in the tree says why** — half a line in §7 would close that.
+
+## Step 13, and the hygiene a ratchet-bound repo owes
+
+`git merge-tree --write-tree origin/main c54beab89` (against the **moved** main,
+`d0f085ffb`) exits **0**, tree `d03f9702e`, stderr empty — no conflicting path, no
+`MERGE-CLAIM: refused`, nothing for the driver to resolve. `mergeable: true`,
+`mergeStateStatus: BLOCKED` = draft + code-owner review, not a conflict.
+Both claim files are 0 diff lines against the base (`git diff --name-only
+b2b6acd64...HEAD -- tests/golden/` empty) and against main's tip the difference is
+main's own newer content, exactly as the body says; `env_drift.py --claims-only
+b2b6acd64` -> `claims hygiene: b2b6acd64... ok`. No `*_budgets.json` in the diff;
+`VERSION`, `RELEASE_NOTES.md`, `hacs.json`, `custom_components/**` untouched
+(three-dot counts all 0) — step 5 ✓ and step 4 has no moved fixture to reconcile.
+`tests/structure.py` -> **STRUCTURE RATCHET PASSED** (`seam_cut_total 760 <= 760`,
+`max_class_loc 8817 <= 8817`), and its class metrics are measured over
+`custom_components/**` only (`tests/structure.py:21`, `:1720`), so the nine comment
+lines added to `tests/entities.py` move nothing — step 14 finds no instrument this
+delta touches, and the `2239 -> 2241` movement round 2 paid for is still earned:
+I made each of the two pins bite. `fold_ledger.py check` -> `28 classes, 549
+instances, 39 in-tree judge survivors (rounds [8]), 101 rca entries / 0
+violation(s)`, with `RCA-1565-mutation-timeouts` `status: done`,
+`parts_missing: []`, the (c)+(d) `process_state`, the (iv) refusal in
+`countermeasure`, and `doc`/`in_tree_home` naming the RCA file.
+`dev/programme/delivery/2074.md` still reads **open** ✓.
+
+## Reported, not blocking (four wording defects; no number depends on any of them)
+
+1. **§7's provenance names two SHAs that no remote ref carries.** `90ef590d8` and
+   `51ed9aee7` are the first two amends of this same round-3 commit: `git show -s
+   --format=%p` gives all three the single parent `96497ffc6`, and `git
+   merge-base --is-ancestor` refuses both, so they are siblings, not ancestors, and
+   "Every commit after `90ef590d8` in this series" describes an ancestry that does
+   not exist. Worse for a later seat: a fresh `--filter=blob:none` clone of the live
+   remote **cannot resolve them** (`git cat-file -e 90ef590d8` -> "not a valid
+   object name"; `git fetch origin 90ef590d8` -> "couldn't find remote ref"), so the
+   paragraph's own check command is unrunnable off this machine. I verified the
+   substance both ways — tree comparison *and* re-running every arm at the head — so
+   the demonstration does not rest on those objects; the record should cite
+   `96497ffc6` plus the byte-identity I measured instead of dangling SHAs.
+2. **"no check reads this file's contents" is wider than the tree.** Each of the
+   three instruments named is exactly as described, and none can move these tallies.
+   But `tests/layout.py`'s `check()` **reference** arm greps *all* tracked text for
+   retired-path citations and its `skip` (line 223) does **not** carry
+   `GUARD_EXEMPT`. I proved it: planting `site: tools/audit/app_approve.sh` in this
+   document (staged, then restored, worktree clean) moved the arm from 1289 to 1290
+   findings and printed `dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md:474 cites retired
+   path tools/audit/app_approve.sh; use tools/pr/app_approve.sh`
+   (`evidence/layout_probe_staged_citation.txt`). That arm is REPORT mode ("exit 0 on
+   findings until R9-RO-9"); the enforcing `guard()` arm does exempt the prefix (its
+   findings at this head: 0). So the inference stands and no figure moves, but the
+   universal is false, and a later seat that edits prose here and trusts it is
+   trusting the one arm that will enforce later.
+3. **The three lines this PR adds name the corpus as runs, not logs.**
+   `tests/mutation_table.py:136-137`, `.github/workflows/tests.yml:1085-1086` and
+   `tests/entities.py:31573-31575` all say "the 51 driver rows of the **three**
+   2026-10-07/08 nightly runs". The three job ids are `112708109605` and
+   `112708109541`, both of run `37595831734` (10-07), and `113233890923` of run
+   `37753990323` (10-08) — read from each job's own `run_id`. **Two runs, three
+   logs**, and 10-08's ledger lane is not in the corpus at all; §2's own rule says
+   "the three parsed job logs", which is right. A seat that enumerates *runs* gets a
+   different row count from the one the comment quotes. "three job logs of the two
+   2026-10-07/08 nightly runs" is the fix, in all three places.
+4. **Two small counts and one restore claim in the same file.** §7's evidence bullet
+   says "the seven `entities_R3_*.txt` arms (§7's table names each)": there are
+   seven arms and the table names seven logs ✓, but nine files match that glob in the
+   scratch, and `entities_R3_HEAD_FINAL.txt` — the clean run at **this** head, whose
+   mtime (19:51) postdates the commit (19:35:48 +0200) and which the body names — is
+   not named in the landed doc, so the record cites only arms taken at the two
+   dangling SHAs of finding 1. And the table's intro says each arm's "restore is
+   confirmed `git diff --quiet HEAD`", while the seat's own driver log ends
+   ` M dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` / `DIRTY` (its in-flight prose
+   edit, not mutation residue; the body's "all three code files were re-checked
+   IDENTICAL to HEAD" is the accurate wording). Naming FINAL, and scoping the restore
+   claim to the mutated files, closes both — and finding 1's rewording would carry
+   it, since a run at the head needs no byte-identity argument at all.
+
+Also worth recording: `round-2 nit closure checked` — §2b's header now says members 1,
+2, 4, 5 and 6 were re-measured and **member 3 was not**, matching member 3's own
+disclosure; the opening states its cause-grouping rule ("a cause here is a
+**mechanism** ... not a proximate fault"), which makes "five distinct causes" and
+§2b's "three different faults ... rather than one cause" one count; the body's
+`## Head` names `fix/r9-nightly-bound`, and `git ls-remote` confirms that branch and
+`handoff/r9-nightly-bound` both at `c54beab89` (the round-2 wrong-branch-name nit is
+gone), and calls `96497ffc6` "round-2 code head `7e8c5c8e4` plus this PR's own row",
+which `git diff --name-only 7e8c5c8e4 96497ffc6` = `dev/programme/delivery/2074.md`
+alone confirms (the "automatic merge" mislabel is gone). Step 10: `§2b` is in the
+tree with six members, the (iv) arm routed to the owner with its price in §4, and the
+`record-autofix` correction still true — round 2 read the `if:` verbatim at this head
+and at `83f7ca558`, and nothing this round touched it. Step 15: the added lines are
+comment and docstring text that name the measurement, its rule and its destination;
+no new concern, import, state or parallel mechanism, so `fixer.md` step 17 has
+nothing to breach.
 
 ## Step 12, head discipline
 
-I measured `96497ffc694302b814eecaeea2710bfdbebf6678` — the SHA the PR reports as its head
-and the SHA the body names under `## Head` as the reviewed-and-merged result. Re-read
-before posting: the API still answers `head.sha = 96497ffc694302b814eecaeea2710bfdbebf6678`,
-`state: open`, `draft: true` (`evidence/head_recheck.tsv`), so the head did not move under
-this verdict. If it moves after posting, the mechanism files survive only their byte-
-identity with `7e8c5c8e4`, and the CI paragraph is this head's own.
+I measured `c54beab894db7210c570cd67f7cfb61212ed301c`, the SHA the body's `## Head`
+names. Re-read before posting: `gh api pulls/2074` still answers
+`head.sha = c54beab894db7210c570cd67f7cfb61212ed301c`, `state: open`, `draft: true`
+(`evidence/head_recheck3.tsv`), so the head did not move under this verdict. My
+worktree is `git diff --quiet HEAD` clean at the end of every arm run, so no mutation
+residue is in the tree I measured. If the head moves after posting, everything in the
+CI paragraph is this head's own; the arms survive only by the tree-identity argument
+above — which is why I recommend the doc replace it with a run at the head (finding
+4) before the merge.
 
-## What this round owes
+**This is round 3.** `fixer.md` still owes a repair, not a re-cut, and the four
+items are one-sentence edits to prose this PR already touches — none of them prices a
+number. Route back to the fixer that authored `7e8c5c8e4` and this round's commit if
+they are to be made before merge; the orchestrator may equally carry them, since no
+figure changes and none of them is load-bearing. **The owner's code-owner review of
+`.github/workflows/tests.yml` at this head is owed and outstanding** (`reviewRequests:
+["tvofi"]`, `reviews: []`); this verdict is the approver's review, not that.
 
-Round 2, so `fixer.md` still owes a repair, not a re-cut. Both blocking items are text
-edits to files this PR already touches — one bullet in
-`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` (§7's arm tally, plus the C/D/E arms and the
-`entities_R2_*` log names), and four comment lines (`tests/mutation_table.py:136` and
-`:2883`, `.github/workflows/tests.yml:1085`, `tests/entities.py:31575-31576`) — with the
-three nits optional in the same round. **No production predicate, no pin, no bound number
-is in question**: the mechanism, the seven checks, the class search, the corrected count
-and both enumerators verify, and every figure in this verdict is mine, taken at this head.
-Route it back to the fixer that authored `7e8c5c8e4`, as round 1 said: the same seat owns
-the file, and the correction to be finished is its own.
+## RESULT lines (round 3)
 
-## RESULT lines (round 2)
-
-Full list with instruments in `evidence/RESULT2.txt`; the load-bearing ones:
-
-- `RESULT scope-unchanged: PASS` — the round-2 delta is the RCA doc `+333/−68` and
-  `tests/entities.py` `+64` (one hunk); `git diff 7e8c5c8e4 96497ffc6` for
-  `tests/mutation_table.py` and `.github/workflows/tests.yml` is empty, and the head adds
-  only `dev/programme/delivery/2074.md` over `7e8c5c8e4`.
-- `RESULT green-arm-mine: ALL 2241 ENTITY CHECKS PASSED`, exit 0, seven `RCA-1565` checks
-  `ok` (my own whole-file run at the head).
-- `RESULT targeted-block: CLEAN 0 of 7 | REVERT 4 of 7 | A 1 | B 1 | C 1 | D 1 | E 1` —
-  each red check exactly the one the body names; restores confirmed `git diff --quiet HEAD`.
-- `RESULT class-search-carry: LANDED` — round 1's grep now exits 0; §2b has six members;
-  `closures-autofix` is pull_request-only and job `113252338415` was `skipped` beside a
-  `failure` `closures` on run `37753990323`; `b416093e9`/`387128bb3` are ancestors of main
-  with the quoted subjects and touch `tests/closures.json` only.
-- `RESULT record-autofix-correction: TRUE` — the `if:` exists verbatim at this head, at
-  `83f7ca558` and at `d7c830c2f`; the three faults read out of logs I fetched (`HTTP 401`,
-  `HTTP 422`, `exit code 128` + the beat-owed line). Round 1's verdict text carried the
-  stale claim; the record here corrects it.
-- `RESULT per-night-attribution: CORRECT` — bound arm on TWO nights; 10-03/10-04 print the
-  `EXCLUSIVE` null-control refusal and no bound timeout; the Inferred/printed marking
-  matches CI's logs; §4's 0.33 and 0.67 are that table's arithmetic.
-- `RESULT factor-range-mine: 51 rows, 0.4653-3.2692` (`harness_headers.py` 449.2→209,
-  `structure.py` 5.2→17) from three logs I fetched under §2's stated rule; the rule
-  reproduces the doc's number. `RESULT delay-mine: 5h54m–6h53m` over twelve runs.
-- `RESULT bound-arithmetic-mine: 1200/1576/2401/4469, seeded 4719/7200/7203` with the
-  tree's own `driver_timeout` over seven heads — round 1's numbers, re-derived not relied
-  on (except the `mutation` lane's empty-scope reading, above).
-- `RESULT hygiene: PASS` — claims files 0 lines vs live `origin/main`, no budgets file in
-  the diff, VERSION/notes/manifest untouched, STRUCTURE RATCHET PASSED, `fold_ledger` 101
-  rca entries / 0 violations, RCA-1565 `done` with `parts_missing: []` and the (c)+(d)
-  process state, `merge-tree` exit 0 with no `MERGE-CLAIM`.
-- `RESULT FINDING-record-7` and `RESULT FINDING-record-factors` — the two blocks.
-- `RESULT ci-at-head: 17 of 17 required success`, `nightly-status`/`instrument-self-tests`/
-  `fast (3.14)`/`coverage`/`coverage-ratchet`/`delivery-status` success, nothing red.
+- `RESULT delta-comment-only: PASS` — 4 files; every changed `tests.yml` line matches
+  `^[+-]\s*#` (my filter printed no non-comment line); `mutation_table.py` and
+  `entities.py` **AST-identical to `96497ffc6` with docstrings stripped** (my own
+  `ast.dump`), sole docstring moved = `seed_pool_seconds`; `tests/closure.py` 0 diff
+  lines, `TIMEOUT_SCALE 3`, `SECONDS_BAND 2.0`.
+- `RESULT arms-at-head-mine: CLEAN 0 of 7 | REVERT 4 of 7 | A 1 | B 1 | C 1 | D 1 | E 1`
+  — my harness over the tree's verbatim lines 31594..31801 at `c54beab89`; each red
+  exactly the check §7's new seven-row table names; E bites through the adjacency
+  regex; every restore `git diff --quiet HEAD` clean.
+- `RESULT round2-block-record-7: CLOSED` — seven-row arm table landed (doc 429-437);
+  round-1's four `2239` tallies labelled and matched against those logs; the three
+  named instruments verified individually; `git diff 90ef590d8..HEAD --name-only` =
+  this doc alone with an empty diff for the code files.
+- `RESULT round2-block-factors: CLOSED` — `git grep -E '1\.3[-–]3\.3'` = 0 hits
+  tree-wide at this head; four lines carry `0.47x-3.27x` + rule + resolvable `§2`;
+  all three `0.3x-3.4x` hits labelled as recording variation, read against
+  `tests/closure.py:1537-1547`.
+- `RESULT factor-rule-mine: 16 rows 0.4653->3.0002(censored) | 16 rows 0.4653->3.2692`
+  from two logs I fetched and computed under §2's rule, exclusions printed (7 rows,
+  each with its solo); third log's 19 rows not re-taken; §2's 10-08 table cross-checked
+  against `git show 816547efe:tests/closures.json` (7/7 solos, factors and bounds).
+- `RESULT delay-mine: 5h54m57s -> 6h53m23s over 12 runs` (`tests.yml:119` cron read;
+  ends `37108891698`, `37909555545`).
+- `RESULT bound-arithmetic-mine: 1200/1200/1200/2297/1576/2401/4469; seeded
+  4719/7200/7203; seed never lowers` — tree's own `driver_timeout` over seven heads,
+  taken although the delta did not touch its code.
+- `RESULT streak-end-honest: TRUE and understated` — 10-09 completed that driver at
+  2416 s (nightly) / 2492 s (ledger) under the 4469 s bound from 1489.6, both above
+  the 2401 s bound that killed 10-08; §1's new 10-06 row (2297) derived by me, its
+  "both mutation lanes green" confirmed from run `37440269774`'s jobs.
+- `RESULT voided-lane-mine: 63.4 / 64.2 / 72.4 min` from the three jobs' own stamps.
+- `RESULT ci-at-head: 17 of 17 required success; ABSENT none; nothing red in the
+  range` — settled 19:31:51Z after 8 polls at 300 s; `nightly-status`,
+  `delivery-status`, `coverage`, `coverage-ratchet`, `graders-head-copy`,
+  `instrument-self-tests`, `CodeQL` success; `mutation` green **and its log read by
+  me as `empty scope`**, closing the one number round 2 relied on round 1 for.
+- `RESULT whole-file-citation: CI's fast (3.14) prints ALL 2243 on the MERGE of this
+  head into current main (`3c8c2b1f`), all seven RCA-1565 lines ok; the branch alone
+  answers 2241 (+7 `R.check(` over the base). Both taken from CI's own log; the +2 is
+  main's, not the record's, and the doc could name the difference in half a line.`
+- `RESULT ratchet-and-hygiene: PASS` — STRUCTURE RATCHET PASSED (ratchet's class
+  metrics are `custom_components/**` only, so the added comments move nothing),
+  fold_ledger 101 rca entries / 0 violations, claims hygiene ok, closure selftest 57
+  pins, layout rc 0, no budget/claim/fixture/version path in the diff, delivery row
+  reads open.
+- `RESULT merge-tree-vs-moved-main: exit 0, no MERGE-CLAIM` — step 13 clean against
+  `d0f085ffb`; `BLOCKED` = draft + code owner.
+- `RESULT findings-reported-not-blocking: 4` — §7 cites two amend SHAs that no remote
+  ref carries and a fresh clone cannot fetch (measured); "no check reads this file"
+  is falsified by `layout.py check()`'s report-mode reference arm (demonstrated with
+  a planted citation, restored); "three nightly runs" for three logs of two runs;
+  `entities_R3_HEAD_FINAL.txt` absent from the doc and the restore claim contradicted
+  by the driver's own `DIRTY` line. Also: the doc's 2241 vs CI's 2243 deserves half a
+  line.
+- `RESULT code-owner-review: OWED from @tvofi at this head` — `/.github/workflows/`
+  is owned (`CODEOWNERS:91`), the head edits it (comment-only), `reviewRequests`
+  names `tvofi` and `reviews` is empty. This verdict does not supply it, and I did
+  not approve, merge, mark ready, or post anything but this verdict.
