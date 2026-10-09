@@ -1,0 +1,61 @@
+=== git version (the pathspec magic must be this git's) ===
+git version 2.38.1
+
+=== 1. claims files byte-equal to origin/main's? ===
+RESULT claim-file tests/golden/claimed_drift.txt DIFFERS origin/main=eda8856b96538404dc066085d4a0099c6eb8d7b4 head=62bf9eaba2372bb05cdb42076273c18bdceb0f39
+RESULT claim-file tests/golden/card_claimed_drift.txt IDENTICAL to origin/main (c683379dafc29aa923baac9325d82bacfb43f7b9)
+
+=== 2. VERSION / manifest version / RELEASE_NOTES heading untouched? ===
+RESULT VERSION untouched
+RESULT manifest.json untouched
+RESULT RELEASE_NOTES.md untouched
+  any file in the diff besides the two named? 
+    tools/policy/policy_lint.mjs
+    tools/pr/app_approve.sh
+RESULT files changed = 2
+
+=== 3. delivery row for this PR ===
+RESULT docs/delivery/2075.md ABSENT at head
+  last delivery change on main: bc0f17ddb Lift governance and the programme record under dev/.
+
+=== 4. structure ratchet, head vs baseline ===
+  head     rc=0  STRUCTURE RATCHET PASSED
+  baseline rc=0  STRUCTURE RATCHET PASSED
+  diff of the two runs (empty = no metric moved):
+RESULT structure: head rc and baseline rc above; diff lines = 0
+
+=== 5. policy budgets, head vs baseline ===
+  head     rc=0
+  baseline rc=0
+  diff (empty = no cap moved):
+RESULT policy-budgets diff lines = 0
+
+=== 6. policy_lint plain run, baseline for comparison ===
+  baseline rc=0
+    
+    TOTAL: 0 error(s) across 40 policy file(s)
+    
+    FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+  head vs baseline, the two summary lines:
+    base KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+    base TOTAL: 0 error(s) across 40 policy file(s)
+    base FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+    head KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 15 recorded occurrence(s)
+    head TOTAL: 0 error(s) across 40 policy file(s)
+    head FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+
+=== 7. merge simulation: git merge-tree --write-tree origin/main HEAD ===
+  exit=0
+  stdout:
+    1883db2a171bafeed0e5903a59d4f5e2fa217829
+  stderr:
+  driver markers in stderr: 0
+RESULT merge-tree exit=0 markers=0
+  same against the branch base b2b6acd64cde652676a568e93c05f021571ebe5e:
+    exit=0
+
+=== 8. the literal-pathspec remedy, probed cleanly ===
+  changed paths, no exclusion      : [tests/mutation_ledger/* tests/mutation_ledger/ctx.json ]
+  with :(exclude)tests/mutation_ledger/*         : []
+  with :(exclude,literal)tests/mutation_ledger/* : [tests/mutation_ledger/ctx.json ]
+RESULT literal-pathspec: plain hides 2 -> 0; literal hides 2 -> 1

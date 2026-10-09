@@ -1,0 +1,26 @@
+V = 6a1bceb8f9616197cead994af9aadd37af233d77
+origin/main = 2bfc4bdef5ae24171c21fd727a19d8f0ed65d875
+Auto-merging tests/mutation_ledger/ctx.json
+merge head = dcc59b8380807e57d91111ff48385ef65f54a915
+########## N1-ordinary-pin-over-same-merge  head=65800af432177ded6fbcf9ad68370897fbe7e9f9
+    commit-diff A	tests/mutation_ledger/killed_by/n1.json
+  [main-copy]  rc=1 CARRY: no 6a1bceb8f9616197cead994af9aadd37af233d77 -> 65800af432177ded6fbcf9ad68370897fbe7e9f9: 65800af432177ded6fbcf9ad68370897fbe7e9f9 is a ci: commit that changes files outside main's merge-driver files
+  [fixed-copy] rc=1 CARRY: no 6a1bceb8f9616197cead994af9aadd37af233d77 -> 65800af432177ded6fbcf9ad68370897fbe7e9f9: the branch's own diff differs: 42bd7175ec89dd789137562f7f368640453e9d06..6a1bceb8f9616197cead994af9aadd37af233d77 against 2bfc4bdef5ae24171c21fd727a19d8f0ed65d875..65800af432177ded6fbcf9ad68370897fbe7e9f9
+RESULT N1-ordinary-pin-over-same-merge main-copy=REFUSE fixed-copy=REFUSE
+########## N2-glob-pin-over-same-merge  head=5118a2523d19ed9658ff527448a83a0a16fdb0f1
+    commit-diff A	tests/mutation_ledger/*
+  [main-copy]  rc=1 CARRY: no 6a1bceb8f9616197cead994af9aadd37af233d77 -> 5118a2523d19ed9658ff527448a83a0a16fdb0f1: 5118a2523d19ed9658ff527448a83a0a16fdb0f1 is a ci: commit that changes files outside main's merge-driver files
+  [fixed-copy] rc=0 CARRY: yes 6a1bceb8f9616197cead994af9aadd37af233d77 -> 5118a2523d19ed9658ff527448a83a0a16fdb0f1: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT N2-glob-pin-over-same-merge main-copy=REFUSE fixed-copy=CARRY
+
+=== the two heads differ ONLY in the added file's NAME ===
+  N1 tree: 958041399024eab825a2b5defaecc0213fdb3d1b
+  N2 tree: 76714ccb20753a7dedbd3d9cb2ac7a2c35c26104
+    A	tests/mutation_ledger/*
+    D	tests/mutation_ledger/killed_by/n1.json
+
+=== remedy probe: is ':(exclude,literal)<path>' valid, and does it keep the
+    deep paths visible while still excluding the one added file? ===
+  plain   :(exclude)tests/mutation_ledger/*  -> visible: []
+  literal :(exclude,literal)tests/mutation_ledger/* -> visible: [tests/mutation_ledger/ctx.json ]
+  (the file literally named '*' exists in this tree: tests/mutation_ledger/* tests/mutation_ledger/ctx.json tests/mutation_ledger/killed_by/branchrow.json tests/mutation_ledger/killed_by/mainrow.json )

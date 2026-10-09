@@ -1,0 +1,37 @@
+########## PR #2071  6aaba97fef582f7381fda9b270c1cfd25e64324d -> 7843b799255741fcfee41c6d719d3de1bef84c50   (main ref = origin/main = d8a4bd36f6384dde45486fff388f91ed4a3aa6df)
+    base-copy-b2b6acd64        rc=1 REFUSE
+      CARRY: no 6aaba97fef582f7381fda9b270c1cfd25e64324d -> 7843b799255741fcfee41c6d719d3de1bef84c50: 7843b799255741fcfee41c6d719d3de1bef84c50 is a ci: commit that changes files outside main's merge-driver files
+RESULT base-copy-b2b6acd64 6aaba97fef582f7381fda9b270c1cfd25e64324d->7843b799255741fcfee41c6d719d3de1bef84c50 REFUSE
+    main-copy-d8a4bd36f        rc=0 CARRY
+      CARRY: yes 6aaba97fef582f7381fda9b270c1cfd25e64324d -> 7843b799255741fcfee41c6d719d3de1bef84c50: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT main-copy-d8a4bd36f 6aaba97fef582f7381fda9b270c1cfd25e64324d->7843b799255741fcfee41c6d719d3de1bef84c50 CARRY
+    head-copy-094f2c0d2        rc=0 CARRY
+      CARRY: yes 6aaba97fef582f7381fda9b270c1cfd25e64324d -> 7843b799255741fcfee41c6d719d3de1bef84c50: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT head-copy-094f2c0d2 6aaba97fef582f7381fda9b270c1cfd25e64324d->7843b799255741fcfee41c6d719d3de1bef84c50 CARRY
+########## PR #2070  3ecb86adaf247f182679a175bd619fd363a5e35c -> a9ba0b8874092db8780f93fa290b282b5ce200b5   (main ref = origin/main = d8a4bd36f6384dde45486fff388f91ed4a3aa6df)
+    base-copy-b2b6acd64        rc=1 REFUSE
+      CARRY: no 3ecb86adaf247f182679a175bd619fd363a5e35c -> a9ba0b8874092db8780f93fa290b282b5ce200b5: a9ba0b8874092db8780f93fa290b282b5ce200b5 is a ci: commit that changes files outside main's merge-driver files
+RESULT base-copy-b2b6acd64 3ecb86adaf247f182679a175bd619fd363a5e35c->a9ba0b8874092db8780f93fa290b282b5ce200b5 REFUSE
+    main-copy-d8a4bd36f        rc=0 CARRY
+      CARRY: yes 3ecb86adaf247f182679a175bd619fd363a5e35c -> a9ba0b8874092db8780f93fa290b282b5ce200b5: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT main-copy-d8a4bd36f 3ecb86adaf247f182679a175bd619fd363a5e35c->a9ba0b8874092db8780f93fa290b282b5ce200b5 CARRY
+    head-copy-094f2c0d2        rc=0 CARRY
+      CARRY: yes 3ecb86adaf247f182679a175bd619fd363a5e35c -> a9ba0b8874092db8780f93fa290b282b5ce200b5: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT head-copy-094f2c0d2 3ecb86adaf247f182679a175bd619fd363a5e35c->a9ba0b8874092db8780f93fa290b282b5ce200b5 CARRY
+########## PR #2066  b511f9dc5b9ee076d3113aaad4b9e296222bbd7c -> d1538a73bbd89e806f01af6c01fc72090304e4f6   (main ref = origin/main = d8a4bd36f6384dde45486fff388f91ed4a3aa6df)
+    base-copy-b2b6acd64        rc=1 REFUSE
+      CARRY: no b511f9dc5b9ee076d3113aaad4b9e296222bbd7c -> d1538a73bbd89e806f01af6c01fc72090304e4f6: d1538a73bbd89e806f01af6c01fc72090304e4f6 is a ci: commit that changes files outside main's merge-driver files
+RESULT base-copy-b2b6acd64 b511f9dc5b9ee076d3113aaad4b9e296222bbd7c->d1538a73bbd89e806f01af6c01fc72090304e4f6 REFUSE
+    main-copy-d8a4bd36f        rc=0 CARRY
+      CARRY: yes b511f9dc5b9ee076d3113aaad4b9e296222bbd7c -> d1538a73bbd89e806f01af6c01fc72090304e4f6: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT main-copy-d8a4bd36f b511f9dc5b9ee076d3113aaad4b9e296222bbd7c->d1538a73bbd89e806f01af6c01fc72090304e4f6 CARRY
+    head-copy-094f2c0d2        rc=0 CARRY
+      CARRY: yes b511f9dc5b9ee076d3113aaad4b9e296222bbd7c -> d1538a73bbd89e806f01af6c01fc72090304e4f6: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT head-copy-094f2c0d2 b511f9dc5b9ee076d3113aaad4b9e296222bbd7c->d1538a73bbd89e806f01af6c01fc72090304e4f6 CARRY
+
+=== main's CURRENT copy: does its own self-test still pass, and how many checks? ===
+  rc=0  app_approve self-test: 153 checks, 0 failed
+  its own pin-commit arms:
+
+=== main's CURRENT layout.py guard on the HEAD's line (is the red still the head's?) ===
+  (answered by tests/layout.py at both ends; see layout-head4.txt / layout-base4.txt)

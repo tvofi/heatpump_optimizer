@@ -1,0 +1,75 @@
+=== main@d8a4bd36f: bot_paths / bot_author ===
+bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
+  case "$1" in
+    "ci: pin killed mutants") printf '%s\n' tests/mutation_budgets.json tests/mutation_ledger ;;
+    "ci: re-record closures") printf '%s\n' tests/closures.json ;;
+    "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
+      printf '%s\n' tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt ;;
+  esac
+}
+
+# carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
+carry() {
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  # Read at main, never at a head: a branch that gave a file a driver would
+  # otherwise take it out of the comparisons itself.
+  # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
+  # which has no mapfile and calls an empty array unbound under -u, so on the
+  # Mac this aborted where it should have named its refusal (2026-10-03).
+  t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
+  x=()
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
+  local bots=""
+  while IFS=$'\t' read -r c ps ae subj; do
+    set -- $ps
+    if [ $# -ge 2 ]; then
+      [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
+      git merge-base --is-ancestor "$2" "$main" || { echo "$c merges $2, which is not on $main"; return 1; }
+      # A hand-resolved merge can move the branch's change to another place
+      # with the same context, which the header-free comparison below cannot
+      # see: the merge must be git's own automatic result.
+      t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
+      git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
+        || { echo "$c is not the automatic merge of its parents"; return 1; }
+    elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
+      echo "$c is a commit of the branch's own ($subj)"; return 1
+    else
+      # Anyone who can push can write the subject, and the header-free
+      # comparison below cannot see a change moved to other code with the
+      # same context: a `ci:` commit may touch only the driver files, and
+      # a bot's subject its own paths besides.
+      b=$(bot_paths "$subj")
+      if [ -z "$b" ]; then
+        git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      else
+        # A bot's subject: main's driver files and its own paths, as its
+
+=== bot_author ===
+bot_author() { # subject -> the author email its writer commits as
+  case "$1" in
+    "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
+      echo "41898282+github-actions[bot]@users.noreply.github.com" ;;
+    "claims: drop the claims main already carries after the main merge")
+      echo "70032254+tvofi@users.noreply.github.com" ;;
+  esac
+}
+bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
+  case "$1" in
+    "ci: pin killed mutants") printf '%s\n' tests/mutation_budgets.json tests/mutation_ledger ;;
+    "ci: re-record closures") printf '%s\n' tests/closures.json ;;
+    "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
+      printf '%s\n' tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt ;;
+  esac
+}
+
+# carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
+carry() {
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  # Read at main, never at a head: a branch that gave a file a driver would
+  # otherwise take it out of the comparisons itself.
+  # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
+  # which has no mapfile and calls an empty array unbound under -u, so on the
+  # Mac this aborted where it should have named its refusal (2026-10-03).

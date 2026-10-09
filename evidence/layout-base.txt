@@ -1,0 +1,43 @@
+layout: 4310 tracked path(s) enumerated
+  category  113 finding(s)
+    outside the allowed categories: .claude/workflows/carry-1921.json
+    outside the allowed categories: .claude/workflows/wave-3l-groups.json
+    outside the allowed categories: handoff/round9/fix/resume/FR-8.md
+    outside the allowed categories: handoff/round9/plan-table-live.md
+    outside the allowed categories: tools/audit/archscore/ABOUT.md
+    outside the allowed categories: tools/audit/archscore/__init__.py
+    outside the allowed categories: tools/audit/archscore/calibrate.py
+    outside the allowed categories: tools/audit/archscore/calibration/corpus.tsv
+    outside the allowed categories: tools/audit/archscore/calibration/corpus_vectors.json
+    outside the allowed categories: tools/audit/archscore/calibration/expected.json
+    ... 103 more (--verbose)
+  retired   3 finding(s)
+    planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
+    reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
+    reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
+  reference 1289 finding(s)
+    .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
+    .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
+    .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
+    .claude/hooks/stop-selfcheck.sh:102 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:107 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/hooks/stop-selfcheck.sh:202 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/defect-root-cause.md:145 cites retired path .claude/workflows/policy_lint.mjs; use tools/policy/policy_lint.mjs
+    .claude/rules/gate-scoping.md:44 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/gate-scoping.md:45 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
+    .claude/rules/ratchet-budgets.md:8 cites retired path tools/audit/README.md; use dev/audit/README.md
+    ... 1279 more (--verbose)
+  dead      1 finding(s)
+    category dev/programme: glob matches no tracked file: dev/programme/rosters/*.json
+layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+layout: GUARD: 0 refusal(s) against c518447eb804
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2075/base/tests/layout.py", line 793, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/Users/timmalmstrom/hpo-seats/review-2075/base/tests/layout.py", line 786, in main
+    failed = self_test(ROOT) + locate_self_test(ROOT) + guard_self_test()
+             ~~~~~~~~~^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/review-2075/base/tests/layout.py", line 633, in self_test
+    from throwaway_git import throwaway_git_init
+ModuleNotFoundError: No module named 'throwaway_git'
