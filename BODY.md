@@ -1,261 +1,257 @@
-# R9-RC-Carry-Pins: carry a mutation-autofix `ci: pin killed mutants` commit
+# R9-RC-Carry-Pins: a mutation-autofix pin commit may add rows, not rewrite one
 
-`tools/pr/app_approve.sh --carry` refused a head whose only change over the
-verdicted head was `mutation-autofix`'s own pin commit. Measured 2026-10-09 on
-#2065 at head `3c9fe53fa`, and independently confirmed on two still-open heads
-today: #2071 (`6aaba97f` -> `7843b799`, exactly one commit between them, that
-commit) and #2070 (`3ecb86ad` -> `a9ba0b88`, same shape).
+`tools/pr/app_approve.sh --carry` must accept a head whose only change over the
+verdicted head is `mutation-autofix`'s own `ci: pin killed mutants` commit, and
+must not accept one that also rewrote or deleted something the reviewer already
+measured. Measured 2026-10-09 on #2065 at head `3c9fe53fa`, and independently
+confirmed on two still-open heads today: #2071 (`6aaba97f` -> `7843b799`, exactly
+one commit between them, that commit) and #2070 (`3ecb86ad` -> `a9ba0b88`, same
+shape).
 
-`carry` excuses a single-parent `ci:` commit only when its diff falls inside
-main's merge-driver set, read from `.gitattributes`: the two claim files,
-`tests/mutation_budgets.json`, `tests/structure_budgets.json`,
-`tests/closures.json`, `dev/audit/config/bugclasses.json`. The mutation ledger
-moved to one file per pinned row under `tests/mutation_ledger/`, which is not a
-merge-driver file. So every branch whose diff adds killable sites gets a bot pin
-commit after its verdict, and each one voided the carry -- costing a fresh review
-round although no reviewed file moved.
+`#2059` (R9-CI-2b) landed on main while this branch sat at its base, adding
+`bot_author`/`bot_paths` to the very same `carry()` loop: a bot's subject may
+change main's merge-driver files and its own declared paths and nothing else,
+authored as that subject's writer, and a claim-file subject may only remove
+lines. That is the mechanism, and it already carries every plain
+`ci: pin killed mutants` commit this PR was first cut to fix. The first cut's
+value is not the carry itself -- it is the hole left open beside it, and this
+re-cut now closes it inside main's own mechanism rather than beside it.
 
-There are two failure modes for one head, not one:
+`bot_paths` for the pin subject names `tests/mutation_budgets.json` and
+`tests/mutation_ledger` -- a whole subtree, since the ledger moved to one file
+per pinned row. The exclusion that hides a carried bot commit's files from the
+branch's-own-diff comparison was built from that whole declared subtree, so a
+bot commit that REWROTE or DELETED a row the branch's own diff already carried
+was hidden too: its change to reviewed content vanished from `norm()`'s
+comparison, and the head carried. Measured on main's own current copy, the
+reviewer's A2/A3/A9 fixtures, and now pinned in this file's own arms: main's
+coarse exclusion carries all three, `carry` must refuse all three.
 
-1. The commit loop's own path guard refuses the pin commit outright.
-2. Even with that guard widened, the branch's-own-diff comparison would still
-   refuse, because the head gains files the verdicted head never had -- an added
-   file is part of `mv..h` and not of `mv..v`, and the pre-existing relaxations
-   (hunk header, `index` line, driver-file pathspec exclusion) do not cover a
-   whole new file. Both were reproduced independently before writing the fix,
-   and each is proven load-bearing below.
+The exclusion is now built from what this very commit did, path by path. An
+entry `bot_paths` names that IS a file the commit changed (its exact path
+appears in the diff, as `tests/closures.json` or a claim file does for the
+other two subjects, and as `tests/mutation_budgets.json` can here) is excluded
+whole, as before. An entry that is a DIRECTORY (no single diff line ever equals
+it, only paths under it) contributes only what the commit ADDED beneath it --
+never a rewrite or a deletion, which stays visible to the comparison below and
+refuses. `bot_paths`' confinement check still decides what such a commit may
+touch at all; this only decides what the comparison may stop seeing, and now
+narrower than the subject's whole subtree.
 
-`carry` now accepts, as a third class beside a merge and a driver-file `ci:`
-commit, a single-parent `ci:` commit that is one of the autofix bot's own
-repairs -- judged by the same `autofixCommit` in `tools/policy/policy_lint.mjs`
-that `checkPrBody` already uses to accept an autofix commit on top of the head a
-body names: bot identity on author and committer, exactly one parent, a message
-that is one of the three autofix messages, a diff confined to the paths that
-message's job stages (additions only under a directory that message's rule
-opens). `tests/entities.py` already pins that rule against `tests.yml`'s own
-`git add` line for all three jobs, so reading the same table here cannot drift
-from what the jobs really commit -- reimplementing the rule in shell would be a
-second bound nothing keeps in step with the first.
+That narrowing introduced one new way to hide content, and it is fixed in the
+same breath: `carry` turns each excluded path into a git pathspec, and a
+pathspec is a glob -- `*` matches across `/`. A bot commit adding a file it
+names literally `*` would, as a plain `:(exclude)`, widen one file's exclusion
+to the whole subtree, hiding the rewrite sitting beside it -- exactly the class
+this line now refuses. So each narrowed path is excluded as
+`":(exclude,literal)$p"`, a filename and not a pattern. (`x`, read from main's
+`.gitattributes` never from a head, and the confinement `y` list, take their
+paths from main's tracked files or `bot_paths`' own hand-written list, and
+were never exposed to a commit choosing its own filenames.)
 
-The widening is narrowed to `ci: pin killed mutants` alone: the other two autofix
-jobs stage merge-driver files, so their commits already pass `carry`'s existing
-`git diff` check and never reach here. And only the files such an accepted commit
-ADDS are excluded from the branch's-own-diff comparison below, never a row it
-MODIFIES -- `autofixCommit` allows a modification, but a rewrite of a row the
-branch already carried is reviewed content, and a fix that traded that away would
-be worse than the bug.
+## Grounds from the round-1 review, and where each is addressed
 
-A wiring (not logic) defect in the first head of this PR, caught by `fast
-(3.14)`'s `tests/layout.py` retired-path guard: `bot_commit`'s search for
-`policy_lint.mjs` had kept a fallback to the pre-reorganisation location (a
-pattern copied from `push.sh` and `prepr.sh`, which guard against a checkout
-that predates the move). At this head that fallback is a dead arm -- no file
-sits at the old path, and the guard reports any NEW line that names it. Fixed
-by removing the fallback: if the canonical file is ever absent, the same
-line's existing fail-closed refusal is the correct answer, since `carry` should
-not accept an autofix commit it cannot judge. `tests/layout.py` reports `GUARD:
-0 refusal(s)` at the current head. `pr-contract`'s own red at the first head
-(`094f2c0d2`) was purely downstream: it named `fast (3.14)` as a red the body
-did not answer, and this paragraph is the answer; both check-runs are listed in
-`## Figures`. `tools/audit/seat/merge_train.py`'s `TOOLS` table resolves the
-same three script names old-path-first (`tools/audit/app_approve.sh`,
-`tools/audit/app_push.sh`, `tools/audit/preflight.sh`), and `find tools/audit
--maxdepth 2 -name 'app_approve.sh' -o -name 'app_push.sh' -o -name
-'preflight.sh'` returns nothing -- all three old paths are gone from the tree,
-so that table's first candidate is a dead arm of exactly the same class as this
-PR's. It is NOT touched here: it is pre-existing debt (R9-RO-6 moved those
-scripts, R9-RO-10 owns retiring the stale candidates), not new work this diff
-introduces, and this PR stays scoped to the one line it exists to fix.
-
-A second failure mode was measured alongside this one and is NOT fixed here:
-`carry`'s "branch's own diff compares equal" condition also refuses a head whose
-only change over the verdict is an AUTOMATIC merge of main that shifted context
-around content the branch itself did not touch -- #2010 (`d67d8a44` -> `87849cd2`)
-is the live case: one line out of 16,965 in the two branch-own-diffs differs, and
-it is a pure context line (main's own history rewrote it upstream); the branch's
-own added/removed text is byte-identical across the pair. `carry`'s own header
-docstring names this refusal as deliberate ("one changed byte in a hunk or its
-CONTEXT -- keeps today's re-review"), and `tools/pr/app_approve.sh`'s own
-`H_CTX` self-test arm pins it. Reversing that is a change to what a carried
-verdict promises, not a widening of the pin-commit bug this PR fixes, so it is
-filed as a separate owner question rather than folded in: this PR touches
-neither the docstring nor that arm.
+- Ground 1, `architecture-unsound` (a second mechanism beside the landed one,
+  and a content conflict on `tools/pr/app_approve.sh`): this re-cut merges
+  `origin/main` (`d8a4bd36f`) and resolves the conflict by DELETING the first
+  cut's parallel `bot_commit` and its `autofixCommit` reading from
+  `tools/policy/policy_lint.mjs` -- `bot_paths`/`bot_author` answer those
+  questions already and are the mechanism now tightened, per `fixer.md` step
+  17's "the existing mechanism, never a parallel one".
+- Ground 2, `root-cause-unanswered` on `fast (3.14)` and `pr-contract` (the
+  dead retired-path fallback): the first cut's `bot_commit` carried
+  `lint="$SELF_DIR/../policy/policy_lint.mjs"` with a fallback to
+  `.claude/workflows/policy_lint.mjs`, a GENER copy retired by the same
+  reorganisation this file's own layout guard (`tests/layout.py`) refuses a new
+  citation of, and which exists at neither base nor head. Deleting `bot_commit`
+  deletes that dead fallback too, rather than adding an allowance over it; see
+  `## Red checks`.
+- Ground 3 (main's landed mechanism is looser than this PR's on exactly the
+  additions-vs-rewrites axis): addressed, it is now the whole body of this
+  change -- `bot_paths`' subtree contributes only its commit's own additions to
+  the exclusion, and `## Mutation proof`'s `no_narrow` shows main's coarse
+  version carrying all three attacks this branch now refuses.
+- Ground 4, `metric-gamed: carry:` (a pathspec is a pattern): addressed with
+  `":(exclude,literal)$p"` and the planted `H_PINGLOB` arm, a file named `*`
+  beside a rewritten row; `## Mutation proof`'s `no_literal` shows that one
+  arm, and only that one, going red when the token is dropped.
 
 ## Head
 
-Measured at `b95753f0712756c58b19b7d55f487132e95ba3ef` (`fix(R9-RC-Carry-Pins):
-call the canonical policy_lint path, not the retired GENER copy`), the head this
-fix was re-taken at after round-1 review of `094f2c0d2696b4bd04cd485b9e7fc3f144620053`
-turned up a wiring (not logic) defect, reported below. Both commits are branched
-from `b2b6acd64cde652676a568e93c05f021571ebe5e` (`origin/main` at the time of the
-first measurement, re-verified identical at both heads: `git merge-base
-origin/main HEAD` still answers `b2b6acd64...`; `origin/main` has since advanced
-to `a8ce87571...` with PR #2024, which touches neither of this branch's two
-files -- no merge, no re-cut, only the orchestrator moves the head now).
+Measured at `cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2`
+(`chore(R9-RC-Carry-Pins): drop the closures.json fixture scaffolding`), after
+`5238604de` (the `## Forward-carry` destination) and `1c458409b` (the merge of
+`origin/main` `d8a4bd36f` resolving ground 1) over the first cut's two commits.
+The merge base is `git merge-base origin/main HEAD` = `d8a4bd36f6384dde45486fff388f91ed4a3aa6df`,
+the same base the round-1 reviewer measured against, which is why the
+before/after figures below are all re-taken at it.
 
 ## Mutation proof
 
-Four mutations, each a deletion of one production line or branch of the fix, run
-against the whole `--self-test` (157 checks). Each red name below is a check that
-fails ONLY while the mutant is present, and is green again on restore.
+Two mutations, each a deletion of the one mechanism this branch changed, run
+against the whole `--self-test` (161 checks). Each red name fails ONLY while the
+mutant is present, and is green again on restore.
 
 ```
-no_bx           # norm() keeps only the driver-file exclusion, not the bot's paths
-  FAIL CARRY: the mutation-autofix bot's own ci: pin killed mutants commit, adding only ledger rows
-no_botcheck     # the else-branch refuses every non-driver ci: commit, as before this PR
-  FAIL CARRY: the mutation-autofix bot's own ci: pin killed mutants commit, adding only ledger rows
-  FAIL (null control) the accepted pin commit names no driver-file refusal
-  FAIL refused for its identity, not only its shape
-  FAIL refused by the subject gate, not only the path set
-  FAIL refused by the message, though autofixCommit accepts it
-  FAIL refused by the branch's own comparison, not the autofix rule
-no_msg_narrow   # drop the narrowing to "ci: pin killed mutants", accept any autofix message
-  FAIL refused by the message, though autofixCommit accepts it
-no_afilter      # widen the exclusion back to every changed path, additions and modifications alike
-  FAIL NO CARRY: the bot's pin commit overwriting a row the branch's own diff already carried
-  FAIL refused by the branch's own comparison, not the autofix rule
+no_narrow    # the accumulation reverts to bot_paths' whole declared subtree, as main's copy does
+  FAIL NO CARRY: the bot's pin commit over a row the branch's own diff already carried  (x2: rewrite, delete)
+  FAIL refused by the branch's own comparison, not the confinement check  (x2)
+  FAIL NO CARRY: a path named `*` is not a wildcard, it is one added file
+  FAIL refused by the branch's own comparison, literal pathspec holding
+no_literal   # the narrowed path is excluded as a glob again, plain ":(exclude)"
+  FAIL NO CARRY: a path named `*` is not a wildcard, it is one added file
+  FAIL refused by the branch's own comparison, literal pathspec holding
 ```
 
-The mutation batch is what found a real defect in the first draft of the fix:
-parsing `autofixCommit`'s answer with `read -r parent message` treated the
-leading token of a `why` string (which opens with a 7-character short SHA) as if
-it were the parent SHA, so an identity refusal could be read as a successful
-carry. It was masked only because a later check happened to reject the garbled
-message; `no_msg_narrow` reproduced exactly that masking. The parser now keys on
-JSON presence, not whitespace, and `no_msg_narrow` reads clean as one red arm
-instead of six.
+`no_narrow` reproduces the reviewer's A2/A3/A9 exactly (main's own live hole,
+here caught by the four arms this branch adds: `H_PINMOD` rewrites a row,
+`H_PINDEL` deletes one, `H_PINGLOB` adds a file named `*` beside a rewritten
+row, and all three must refuse); `no_literal` separates the glob defect from
+the narrowing, and reds only the one arm the glob can poison.
 
 ## Null control
 
-The same `--carry` call, live GitHub state read 2026-10-09, main's own copy of
-`tools/pr/app_approve.sh` (unmodified) versus this branch's copy, both run with
-`cd /private/tmp/r9-main` (read-only there; fetches were not needed, both shas
-were already present):
+`bash tools/pr/app_approve.sh --self-test` at `origin/main`'s own copy, with
+this branch's test-only hunks added and NOTHING of the mechanism changed (the
+test-only hunks of `git diff origin/main HEAD`, spliced onto
+`git show origin/main:tools/pr/app_approve.sh`), is the failing-test-first run:
+161 checks, 6 failed -- exactly the arms `no_narrow` also reddens, since the
+unmodified subtree exclusion carries all three attacks. The fourth new arm,
+`H_PIN_BADMSG`, is green here already: it tests the generic `ci:` guard that
+main's mechanism already owns and this branch does not change.
 
-```
-$ bash tools/pr/app_approve.sh --carry 6aaba97f... 7843b799... origin/main   # PR #2071, main's copy
-CARRY: no ...: 7843b799... is a ci: commit that changes files outside main's merge-driver files
+The same narrowing, measured live: at `origin/main` (`d8a4bd36f`) `#2071`'s
+`6aaba97f` -> `7843b799` pair already CARRIES (main's landed mechanism, not this
+branch), and so does `#2070`'s `3ecb86ad` -> `a9ba0b88` pair; this branch's
+copy answers identically on both (re-read at `cd /private/tmp/r9-main`,
+read-only, both shas already present). This is the null control that replaces
+the first cut's, which had to be re-taken once main moved: it can no longer say
+"refuses at main's copy" for a plain added row, because main's copy now carries
+it too.
 
-$ bash /Users/timmalmstrom/hpo-seats/rc-carry-pins/wt/tools/pr/app_approve.sh --carry 6aaba97f... 7843b799... origin/main  # fixed copy
-CARRY: yes ...: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+Negative control, that the narrowing does not over-reach: `#2065`'s own verdict
+head `3c9fe53fa` to its current head `90b9e87f...` is a 74-commit range, not a
+bare pin commit (two human `test(...)`/`ledger(...)` commits and a merge of a
+commit not yet on `origin/main`). It still refuses, at this head and at main's,
+for the same unrelated reason (`... merges a456c5ed..., which is not on
+origin/main`).
 
-$ ... --carry 3ecb86ad... a9ba0b88... origin/main    # PR #2070, fixed copy (refuses identically before)
-CARRY: yes ...
-```
-
-Negative control, that the widening does not over-reach: #2065's own verdict head
-`3c9fe53fa` to its CURRENT head `90b9e87f...` is a 74-commit range, not a bare
-pin commit (it also carries two human `test(...)`/`ledger(...)` commits and a
-merge of a commit not yet on `origin/main`). It refuses at main's copy AND at
-the fixed copy, for the same unrelated reason (`... merges a456c5ed..., which is
-not on origin/main`) -- proving the new acceptance does not let a genuinely
-moved head carry.
-
-`bash tools/pr/app_approve.sh --self-test` at the pristine `origin/main` copy,
-with this PR's full 12 new arms added to it and NOTHING else of the production
-code changed (the test-only hunks spliced onto `git show origin/main:...`), is
-the failing-test-first run: 157 checks, 6 failed, before any fix existed --
-`CARRY: the mutation-autofix bot's own ci: pin killed mutants commit, adding
-only ledger rows`, its null control, and the four reason-specific greps
-(identity, subject, message-narrowing, branch-diff-after-a-rewrite) that only
-the new mechanism produces. The other two `NO CARRY: ...` rc-level arms pass at
-the unmodified tree too, since main's own generic refusal already rejects those
-shapes -- for a different reason, which is why the reason-specific greps sit
-beside each one.
+The #2010 case this branch does NOT fix, and the null control that proves it
+still refuses exactly as designed: `--carry d67d8a44... 87849cd2...
+origin/main` refuses at `origin/main` and at this head for the same reason
+(`the branch's own diff differs`); the narrowed subtree exclusion changed
+nothing there, because that pair has no added row at all, only a shifted context
+line in a hunk the branch never touched -- see `## Forward-carry`.
 
 ## Figures
 
-Every command re-runnable at the head above, from `tools/pr/app_approve.sh`'s
-own `--self-test` and the tools named:
+Every command re-runnable at the head above; the count each prints is named with
+its instrument, since two of them are platform-dependent.
 
-- `bash tools/pr/app_approve.sh --self-test` -- 157 checks, 0 failed. The same
-  command on main's own, untouched copy (before this PR added any arm) reported
-  145 checks, 0 failed -- the 12-check difference is exactly the 6 new fixture
-  pairs added under `## Mutation proof`'s four mutant names.
-- `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`. No metric moved:
-  the caps are Python-production metrics, and this diff touches only `.sh` and
-  `.mjs` files, none of which `tests/structure.py` measures (checked:
-  `grep -n 'tools/pr\|tools/policy' tests/structure.py` finds no reference).
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
-  --workdir "$D"` -- `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; the one
-  script is `tests/entities.py`. Run locally: `PYTHONPATH=tests/hastub
-  python3 tests/entities.py` -- `ALL 2234 ENTITY CHECKS PASSED`, exit 0
-  (`prepr.sh`'s `--pr-body` check for this head is the remaining local step,
-  reported below once it returns, since it re-derives `tests/entities.py`'s own
-  closure as part of that run.)
-- `git diff --stat $(git merge-base origin/main HEAD) HEAD` -- 2 files changed,
-  207 insertions(+), 17 deletions(-). `git diff --numstat` of the same range
-  splits it: `tools/pr/app_approve.sh` +189/-9, `tools/policy/policy_lint.mjs`
-  +18/-8. (Two-dot against `origin/main` is the wrong frame here: `origin/main`
-  has advanced to `a8ce87571...` since this branch's base, none of that is this
-  diff's work -- the merge base is the three-dot frame `CLAUDE.md` rule 3
-  requires.)
+- `bash tools/pr/app_approve.sh --self-test` at `cfa0f3d00` -- 161 checks, 0
+  failed (macOS, this seat's own `--self-test`). At `origin/main`
+  (`d8a4bd36f`) the same command reports 153 checks, 0 failed; the 8-check
+  difference is the four new arms and their paired reason-greps. CI's
+  `instrument-self-tests` prints 2 more than this seat's own
+  `--self-test` did at the first cut (157 macOS against 159 CI, and 145 against
+  147, both already measured, the delta the +2 arms for `/proc`/`/sys`
+  conditional checks), so the expected CI number here is 163 and 155 -- not
+  measured yet, since `--self-test` at a handoff ref is not what CI's required
+  context runs against, and the failing-test-first run quoted in `## Null
+  control` (6 failed at 161 macOS) will read the same delta wherever it is
+  re-run.
+- `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED`, rc 0. No metric
+  moved: the caps are Python-production metrics and this diff touches only a
+  `.sh` and a `.json` file, neither of which `tests/structure.py` measures.
 - `PYTHONPATH=tests/hastub python3 tests/layout.py` -- `layout: GUARD: 0
-  refusal(s) against b2b6acd64cde`, exit 0. At the first head of this branch
-  (`094f2c0d2...`) the same command reported `GUARD: 1 refusal(s)`, the
-  retired-path fallback described above; that is what turned `fast (3.14)` and,
-  downstream, `pr-contract` red at `094f2c0d2...` (check-run ids 113892203905
-  and 113894588362), and it is fixed at the current head rather than answered.
-- The `## Head`-intro #2010 figure, run from `/private/tmp/r9-main`: the
-  commands are `carry`'s own step-3 `norm()` pipeline, run for `mv=git
-  merge-base origin/main d67d8a44` and `mh=git merge-base origin/main 87849cd2`
-  -- `wc -l` of each side: 16965, 16965; `diff` reports exactly two output lines
-  (`<` and `>`, one source line each, both leading-space context lines: main's
-  own history rewrote the text between the two merge bases) -- the branch's own
-  added/removed text is unchanged. This is the measurement behind the intro's
-  second failure mode, offered here only as evidence for the separate owner
-  question, not as something this PR fixes.
-- The four mutation runs above, each `157 checks, N failed` (1/6/1/2) with only
-  the arms named beside each mutant red -- commands recorded in the seat
-  transcript at `/Users/timmalmstrom/hpo-seats/rc-carry-pins/` (scratch, not a
-  harness: not reusable by a later round without the fixture repo, so it is
-  described here rather than a path that would go stale).
+  refusal(s) against d8a4bd36f638`, rc 0, at the current head. At the first cut
+  (`094f2c0d2`) the same command reported `GUARD: 1 refusal(s)` against
+  `b2b6acd64`, rc 1 -- the dead retired-path fallback, ground 2, now deleted
+  with `bot_commit` itself.
+- `python3 tools/audit/seat/merge_train.py --self-test` -- 81 checks, 0 failed.
+  `merge_train.py` resolves `app_approve` old-path-first
+  (`tools/audit/app_approve.sh` then `tools/pr/app_approve.sh`) and all three
+  of its `TOOLS` first candidates are gone from the tree (`find tools/audit
+  -maxdepth 2 -name 'app_approve.sh' -o -name 'app_push.sh' -o -name
+  'preflight.sh'` returns nothing, and `ls` names each as `No such file or
+  directory`) -- a dead arm of exactly ground 2's class, and NOT touched here:
+  it is R9-RO-10's pre-existing debt (R9-RO-6 moved the scripts), and this PR
+  stays scoped to the mechanism it exists to fix.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+  --workdir "$D"` -- `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` (keyed
+  on the mode line, not the count, per `CLAUDE.md` rule 1). `tools/pr/app_approve.sh`
+  and `dev/programme/carries/` are in no measured closure, so the scoped gate
+  runs nothing for this diff; CI's required `instrument-self-tests` job runs
+  `--self-test` directly regardless of that scoping.
+- `git diff --stat $(git merge-base origin/main HEAD) HEAD` -- 2 files changed,
+  127 insertions(+), 4 deletions(-). `git diff --numstat` of the same range
+  splits it: `tools/pr/app_approve.sh` +96/-4, `dev/programme/carries/carry-2075.json`
+  +31/-0. Two-dot against `origin/main` is the wrong frame (main advanced to
+  `d8a4bd36f` and the merge-base is `d8a4bd36f` too now, so both agree --
+  `CLAUDE.md` rule 3's three-dot discipline still names the merge-base as the
+  frame, and `tests/layout.py`'s guard reports against it).
+- The #2010 measurement, run from `/private/tmp/r9-main` with `carry`'s own
+  `norm()` pipeline for `mv=git merge-base origin/main d67d8a44` and
+  `mh=git merge-base origin/main 87849cd2`: each side `wc -l` is 16965, and
+  `diff` prints exactly two output lines, one `<` and one `>`, both leading-space
+  context (main's own history rewrote the text between the two merge bases),
+  with zero added-or-removed lines of the branch's own. The #2065 range
+  re-derives at 74 commits, 4 first-parent, two human `test(...)`/`ledger(...)`
+  commits and a merge of a commit not on `origin/main` -- as the round-1 review
+  re-derived it too.
 
 ## Red checks
 
-`none` at the current head. The two reds at this branch's previous head
-(`094f2c0d2...`) are named and answered in the intro above -- `fast (3.14)`'s
-`tests/layout.py` retired-path guard and the downstream `pr-contract` refusal
-that followed from it -- with their check-run ids and the before/after guard
-result recorded in `## Figures`, not listed here again, since per
-`delivery-status-tracking.md` naming a red is owed to the head that still
-carries it, and the current head's local run of the same guard is clean.
-`prepr.sh`'s own summary for the current head is the final local step, recorded
-here once it returns.
+`fast (3.14)` and `pr-contract` -- check-run ids 113892203905 and
+113894588362, both red at this branch's first head `094f2c0d2` and reported by
+the round-1 review. The cheaper detector that already stands here is the very
+instrument `fast (3.14)` runs: `PYTHONPATH=tests/hastub python3 tests/layout.py`,
+whose retired-path guard refuses a NEW citation of a landed path at any head, and
+whose standing cost is nothing further -- it runs on every pull request already.
+It fired exactly as designed and named its own reason (the `||
+lint="$SELF_DIR/../../.claude/workflows/policy_lint.mjs"` fallback, which cited
+a GENER copy present at neither base nor head). The fix is deletion, not an
+allowance: with `bot_commit` gone, the fallback line does not exist to answer
+for, and `tests/layout.py` at this head reports `GUARD: 0 refusal(s)` (in
+`## Figures`); `pr-contract` was red only because the body did not yet name a
+red it read at an earlier head of this same branch, which this section now does.
+No red is left unanswered at the current head.
 
 ## Forward-carry
 
-none
+`dev/programme/carries/carry-2075.json`. The round-1 review's ground 4 stands:
+this branch's narrowed subtree exclusion admits, for `tests/mutation_ledger/**`,
+the pure-context-shift class the body elsewhere refuses to fix -- a rewrite or
+deletion is now visible again, but a context line that only MOVED, as in #2010,
+still refuses on `the branch's own diff differs` by design. Whether `carry`
+should tolerate that shift is a question for the round-9 roster group R9-RO-13
+(mandate-gated batch policy), which is not on main, so the carry file named here
+is its in-tree destination, per `dev/governance/rules/finding-propagation.md`.
 
 ## Friction
 
 brief-citations: unclear: the seat brief named `tests/mutation_table.py`'s
 `drain_write_set_problems`/`DRAIN_ROWS` as "the ledger writer's own guarded
-write set" to extend, but that guard bounds a DIFFERENT job -- `mutation-ledger-push`,
-DRAIN_SUBJECT `ci: record nightly kills`, pushing to `main` directly -- and is
-stricter (additions only, `tests/mutation_ledger/killed_by/` only) than what
-`mutation-autofix`'s own `ci: pin killed mutants` job stages (`git add
-tests/mutation_budgets.json tests/mutation_ledger/`, verified against
-`tests/entities.py`'s `_AH_CONST`/`AUTOFIX_BOT_COMMITS` pin). Verified rather
-than inherited: the shared, already-pinned bound for THIS bot's write set is
-`AUTOFIX_BOT_COMMITS`/`autofixCommit` in `tools/policy/policy_lint.mjs`, and the
-fix reads that, not `DRAIN_ROWS`.
+write set" to extend. Verified rather than inherited: that guard bounds a
+DIFFERENT job (`mutation-ledger-push`, DRAIN_SUBJECT `ci: record nightly kills`,
+pushing straight to `main`), and the live bound for THIS bot's write set is now
+`bot_paths`/`bot_author` in `tools/pr/app_approve.sh` itself, landed by #2059
+while this branch sat at its base -- so the re-cut reads main's own mechanism,
+not `DRAIN_ROWS`, not `AUTOFIX_BOT_COMMITS`, and not a hand-written table of its
+own.
 
-gate-scoping: cost: `tests/entities.py` (this branch's only scoped-out-to-run
-script) queued on `tests/gate_lock.py`'s lease for ~2 minutes against a live
-lease another process held, before it began running -- per `gate-scoping.md`
-the correct behavior is to wait, which it did; recording only so a later seat
-reading a long entities.py runtime knows the wait, not the run, is the cause.
+gate-scoping: cost: `python3 tools/audit/seat/merge_train.py --self-test` and
+`bash tools/pr/app_approve.sh --self-test` both queued behind another process's
+`tests/gate_lock.py` lease before running; per `gate-scoping.md` the correct
+behavior is to wait, which they did.
 
 gate-scoping: stale: `tools/pr/app_approve.sh`'s three source-pin assertions
-("boundary class", `pwd -P`, "filesystem root") grep `sed -n '1,340p' "$SELF"`
--- a positional, not a content-derived, window, chosen to stop just before the
-self-test section begins. Any production edit above the evidence gate shifts it
-and silently breaks all three pins at once, as this PR's did. The bound moved
-`1,340p` -> `1,472p` here; it is not new debt this PR creates, only inherits,
-and the honest fix would anchor the window on a content marker (the `SELF=`
-line's own number) rather than a bare count -- left as-is deliberately, since
-re-deriving that idiom is out of scope for a pin-commit bug fix.
+("boundary class", `pwd -P`, "filesystem root") grep the file with a positional
+`sed` window (`sed -n '1,340p'`), which a production edit above the evidence
+gate silently shifts. This branch does not move that window: #2059 landed a
+content-anchored form (`sed '/^if \[ "${1:-}" = "--carry" \]; then$/q'`) while
+this branch sat at its base, so the re-cut took main's anchor and the fragility
+class closed here on its own.
 
 ---
 
