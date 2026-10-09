@@ -1,0 +1,9 @@
+BRANCH(63e4eba35) dev/audit/rca/R9-RCA-stale-pins.md: +121 -> all present
+BRANCH(63e4eba35) dev/programme/carries/carry-201.json: +14 -> all present
+BRANCH(63e4eba35) dev/programme/delivery/2073.md: +1 -> all present
+BRANCH(63e4eba35) tools/pr/ci_predict.py: +38 -> MISSING:     return stale + [("mutation", f"ADDED UNPINNED {m.triage_key(s)}: ";                      f"{s['old'].strip()[:60]}") for s in added]
+BRANCH(63e4eba35) tools/pr/prepr.sh: +14 -> all present
+BRANCH(63e4eba35): checked 188 added lines, 2 absent verbatim (the 4 are the chained return/adjacent spelling both sides edited)
+MAIN(b2b6acd64) tools/pr/ci_predict.py: +16 -> MISSING:     return [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}");             for k, s in m.added_keys(added)]
+MAIN(b2b6acd64) tools/pr/prepr.sh: +66 -> all present
+MAIN(b2b6acd64): checked 82 added lines, 2 absent verbatim (the 4 are the chained return/adjacent spelling both sides edited)
