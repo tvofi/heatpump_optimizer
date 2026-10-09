@@ -933,17 +933,27 @@ def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
     left: dict[tuple[str, str, str], list[dict[str, Any]]] = {}
     for s in base:
         left.setdefault(ident(s), []).append(s)
-    out = []
+    # Of identical lines in one file, every site first takes a base twin under
+    # its own def, and only then may a leftover take any twin: one greedy pass
+    # let a twin added in a new def above consume the base's line, and charged
+    # the base's own line as the added one (R9-RO-9a). The same-def pass also
+    # leaves the twin that really left over to match a move below.
+    rest = []
     for s in unpinned:
+        group = left.get(ident(s), [])
+        same = [i for i, b in enumerate(group)
+                if _scope_tail(b) == _scope_tail(s)]
+        if same:
+            group.pop(same[-1])
+        else:
+            rest.append(s)
+    out = []
+    for s in rest:
         group = left.get(ident(s))
-        if not group:
+        if group:
+            group.pop()
+        else:
             out.append(s)
-            continue
-        # Of identical lines in one file, consume the one under the same def
-        # first, so the twin that really left is the one left over to match.
-        tail = _scope_tail(s)
-        same = [i for i, b in enumerate(group) if _scope_tail(b) == tail]
-        group.pop(same[-1] if same else -1)
     removed, added = sides
     gone: dict[tuple[str, str, str], int] = {}
     for group in left.values():
@@ -959,6 +969,23 @@ def added_unpinned(unpinned: list[dict[str, Any]], base: list[dict[str, Any]],
         else:
             kept.append(s)
     return kept
+
+
+def added_keys(added: list[dict[str, Any]]) -> list[tuple[str, dict[str, Any]]]:
+    """One `FILE:LINE KIND` key per line and operator the added sites hold.
+
+    A line's mutants of one operator share one ledger anchor, and
+    `pin_results` pins an anchor only when every mutant under it is killed, so
+    the key carries how many there are (`*N`) when it is more than one: three
+    copies of a bare key read as three sites that one line disposes of.
+    """
+    n: dict[str, int] = {}
+    first: dict[str, dict[str, Any]] = {}
+    for s in added:
+        k = triage_key(s)
+        n[k] = n.get(k, 0) + 1
+        first.setdefault(k, s)
+    return [(k + (f"*{n[k]}" if n[k] > 1 else ""), s) for k, s in first.items()]
 
 
 def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
@@ -3129,8 +3156,8 @@ def main(argv: list[str] | None = None) -> int:
     added = added_unpinned(unpinned, base_sites or [], diff_sides(rbase))
     if ((ratchet_refusal(base_count, unpinned) == 1 or added)
             and not (args.pin_killed or args.drain or args.anchor)):
-        for s in added:
-            print(f"    ADDED UNPINNED {triage_key(s)}: {s['old'].strip()[:72]}")
+        for k, s in added_keys(added):
+            print(f"    ADDED UNPINNED {k}: {s['old'].strip()[:72]}")
         print(f"MUTATION TABLE REFUSED -- {len(unpinned)} unpinned site(s) "
               f"against {base_count} at the ratchet base {rbase}, {len(added)} "
               f"of them added by this diff. A new guard, "
