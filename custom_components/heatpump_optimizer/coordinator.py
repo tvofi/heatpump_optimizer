@@ -207,6 +207,7 @@ from . import away as away_mode
 from . import boost
 from . import battery as battery_view
 from . import comfort_band
+from . import draw_range
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -273,7 +274,8 @@ from .freq_control import (
     FrequencyWatchdog,
     resolve_reading,
 )
-from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
+from .flow_lift import FlowCurveBias, curve_supply_temp
+from .flow_meter import observe_water
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -6031,10 +6033,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._current_state.wood_tank_temperature = None
 
         # The pump's own supply and return water (#1067; the reader's rules
-        # are in ``flow_lift.read_water_temps``). Written every cycle
+        # are in ``flow_meter.observe_water``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
-        self._flow_bias.observe_temps(*read_water_temps(reader))
+        observe_water(self._flow_bias, reader, self.effective_config)
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -7518,6 +7520,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_house_power": self._measured_house_power,
             "measured_energy": self._measured_energy,
             "measured_power_available": self._measured_power is not None,
+            "measured_heat_output_kw": self._flow_bias.heat_output_kw,
         }
 
     def _grid_view(self) -> GridView:
@@ -9311,42 +9314,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not self._snapshot_ring.alarmed:
             ir.async_delete_issue(self.hass, DOMAIN, "accuracy_drift")
             self._rollback_done_for_alarm = False
-            await self._async_save_snapshots()
-            return
-
-        rolled_back = False
-        if (
-            self._snapshot_ring.auto_rollback_justified
-            and not self._rollback_done_for_alarm
-        ):
-            snap = self._snapshot_ring.best_restore()
-            if snap is not None:
-                self._apply_learner_payloads(snap.get("learners") or {})
-                self._rollback_done_for_alarm = True
-                rolled_back = True
-                _LOGGER.warning(
-                    "Prediction bias out of band for %d days on healthy "
-                    "inputs; learned state rolled back to the snapshot "
-                    "from %s",
-                    BIAS_TRIP_DAYS,
-                    snap.get("taken_at"),
-                )
-                await _async_save_restored(self)
-        _create_issue(
-            self.hass,
-            DOMAIN,
-            "accuracy_drift",
-            is_fixable=False,
-            # Persistent: the alarm state survives a restart in the
-            # store, so its notice must too — a repair issue that
-            # silently vanishes on reboot while the fault stays is worse
-            # than none.
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key=(
-                "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
-            ),
-        )
+        else:
+            rolled_back = False
+            if (
+                self._snapshot_ring.auto_rollback_justified
+                and not self._rollback_done_for_alarm
+            ):
+                snap = self._snapshot_ring.best_restore()
+                if snap is not None:
+                    self._apply_learner_payloads(snap.get("learners") or {})
+                    self._rollback_done_for_alarm = True
+                    rolled_back = True
+                    _LOGGER.warning(
+                        "Prediction bias out of band for %d days on healthy "
+                        "inputs; learned state rolled back to the snapshot "
+                        "from %s",
+                        BIAS_TRIP_DAYS,
+                        snap.get("taken_at"),
+                    )
+                    await _async_save_restored(self)
+            _create_issue(
+                self.hass,
+                DOMAIN,
+                "accuracy_drift",
+                is_fixable=False,
+                # Persistent: the alarm state survives a restart in the
+                # store, so its notice must too — a repair issue that
+                # silently vanishes on reboot while the fault stays is worse
+                # than none.
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=(
+                    "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
+                ),
+            )
         await self._async_save_snapshots()
 
     async def async_restore_learned_snapshot(self) -> bool:
@@ -9641,6 +9642,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
+        power_frozen = self._learning_frozen(CONF_POWER_ENTITY)  # read once: the defrost settlement below gates on it too
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9744,7 +9747,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # can support, while the learners are not frozen for some
                 # other reason — "defrosting" alone is exempted, because
                 # that interval is the derate's own evidence (#944).
-                if self._learning_frozen(CONF_POWER_ENTITY) in (None, "defrosting"):
+                if power_frozen in (None, "defrosting"):
                     self._settle_defrost(sample, defrost_window)
 
         self._pending_prediction = {

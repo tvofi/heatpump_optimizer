@@ -177,6 +177,24 @@ POWER_UNIT_TO_KW: Final = {
     "mW": 1e-6,
 }
 
+#: Water density the flow conversion uses, kg per litre (#2016).
+WATER_KG_PER_L: Final = 0.998
+#: Water's specific heat, kJ per kg per K (#2016).
+WATER_CP_KJ_PER_KG_K: Final = 4.186
+#: Flow units the flow meter may report in, normalised to kg/s: a volume rate
+#: goes through :data:`WATER_KG_PER_L`. An unlisted unit is no reading, never
+#: a guess.
+FLOW_UNIT_TO_KG_S: Final = {
+    "L/min": WATER_KG_PER_L / 60.0,
+    "L/s": WATER_KG_PER_L,
+    "L/h": WATER_KG_PER_L / 3600.0,
+    "m³/h": WATER_KG_PER_L * 1000.0 / 3600.0,
+    "m³/s": WATER_KG_PER_L * 1000.0,
+    "kg/s": 1.0,
+    "kg/min": 1.0 / 60.0,
+    "kg/h": 1.0 / 3600.0,
+}
+
 # Temperature units a sensor may report in, as (offset, factor) pairs taking
 # the reading to the degC the model works in: (value + offset) * factor. Home
 # Assistant converts a device_class:temperature sensor to the instance unit
@@ -1070,6 +1088,11 @@ CONF_COMPRESSOR_FREQ_ENTITY: Final = "compressor_freq_entity"
 #: value — feedback read from one can never diverge, which makes the
 #: watchdog decorative and teaches the map against a frozen setpoint.
 CONF_COMPRESSOR_FREQ_SENSOR: Final = "compressor_freq_sensor"
+#: Optional water mass-flow sensor on the heating circuit (#2016). With the
+#: supply and return temperatures it gives the heat the pump hands the water
+#: (``flow_meter.read_heat_output_kw``), used only while the install has
+#: neither a power nor a frequency signal.
+CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
 #: The compressor's frequency range where no number entity publishes one:
@@ -1519,6 +1542,8 @@ INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY] = 30.0
 # precisely because outdoor air does not move fast.
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_SUPPLY_TEMP_ENTITY] = 30.0
 INPUT_MAX_AGE_MINUTES[CONF_HEAT_PUMP_RETURN_TEMP_ENTITY] = 30.0
+# Flow is read with those two temperatures, so it shares their horizon.
+INPUT_MAX_AGE_MINUTES[CONF_FLOW_METER_ENTITY] = 30.0
 
 # Physical windows, degC, for every temperature key ``InputReader.read``
 # serves (D1-s5-52). A DS18B20 reports -127 for a lost bus and 85 for a
