@@ -130,8 +130,21 @@ _ISSUE_BULLETS = re.compile(r"^[A-Z][A-Z ]*ISSUES:\n((?:[ \t]+- .*(?:\n|$))+)",
 _TRACEBACK = "Traceback (most recent call last):"
 TIMEOUT_RC = 124
 # A driver's per-run timeout is this multiple of its own measured seconds,
-# never under --timeout (`driver_timeout`, R9-F10.12).
+# never under --timeout (`driver_timeout`, R9-F10.12). The `seconds` it scales
+# is the larger of the committed solo recording and the last measured POOL cost
+# (`seed_pool_seconds`): the nightly drives three worker trees at once, so the
+# same script's pool cost measured 0.47x-3.27x its solo recording over the 51
+# driver rows of three nightly runs (rule and per-row enumerator:
+# dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2 -- pool / the committed solo at
+# that run's head, excluding tests/env_drift.py's declared stub and any solo
+# under the log's 1-second resolution). A factor below 1 is no hazard, it is a
+# recording stale high; the top end is what binds, because 3x a solo number the
+# band keeps up to 2x stale leaves ~1.5x of headroom over the script's true cost
+# (RCA-1565).
 TIMEOUT_SCALE = 3
+# `run_script`'s timeout stderr, so `baseline_refusal` can name the bound a
+# baseline tripped without threading it back through the ScriptRun.
+_TIMED_OUT_AFTER = re.compile(r"timed out after (\d+)s")
 
 # Candidate drivers for `--scripts` are the GATE's recorded set, not a
 # hand-kept shortlist (#1211, D3-01). `default_scripts()` derives the list
@@ -2798,12 +2811,95 @@ def lazy_drivers(needed: list[str], scope: str) -> list[str]:
     return [s for s in needed if s not in EXCLUSIVE and s not in REF_DRIVEN]
 
 
+def recorded_entries() -> dict[str, dict]:
+    """Each script's committed recording as tests/closures.json records it:
+    ``{"seconds": float, "rc": int, ...}``. The solo-gate measurement, one
+    script at a time -- NOT the 3-worker pool's cost of the same script."""
+    raw = json.loads(CLOSURES.read_text()).get("recorded", {})
+    return {s: r for s, r in raw.items() if isinstance(r, dict)}
+
+
 def recorded_seconds() -> dict[str, float]:
     """Each script's seconds as tests/closures.json's recording measured them:
     the sweep order's cost for a lazy driver, which has no baseline yet."""
-    raw = json.loads(CLOSURES.read_text()).get("recorded", {})
-    return {s: float(r.get("seconds", 0.0)) for s, r in raw.items()
-            if isinstance(r, dict)}
+    return {s: float(r.get("seconds", 0.0))
+            for s, r in recorded_entries().items()}
+
+
+#: The file name the nightly persists its pool measurement under, inside the
+#: `--drain` directory the `mutation-ledger` artifact already carries. A data
+#: file, not a policy one: it holds one script's wall-clock seconds in the
+#: 3-worker pool, the cost `driver_timeout` must bound but the solo recording
+#: in tests/closures.json cannot state (RCA-1565-mutation-timeouts).
+POOL_SECONDS_NAME = "pool_seconds.json"
+
+
+def pool_seconds(path: str | None) -> dict[str, float]:
+    """The last pool cost the nightly measured per driver, or {} (fail-soft).
+
+    `path` is the prior run's persisted measurement, which the workflow restores
+    from the `actions/cache` entry the last nightly saved (tests.yml's
+    "Restore the prior pool measurement" step). Absent, unreadable or malformed
+    reads as NO measurement, so the bound falls back to the committed solo
+    recording -- today's behaviour, and never a smaller bound than the lane
+    already used. The pool cost is what the 3-worker lane actually pays for a
+    script; the solo recording is kept by `closure.SECONDS_BAND` up to 2x below
+    the cost CI last measured, so 3x the solo number can sit below one pool run
+    (RCA-1565: boost_drift_replay.py recorded 525.3 solo -> bound 1576, pool
+    cost 1573 on 2026-10-07, >2401 on 2026-10-08).
+    """
+    if not path:
+        return {}
+    try:
+        raw = json.loads(Path(path).read_text())
+    except (OSError, ValueError):
+        return {}
+    table = raw.get("seconds", {}) if isinstance(raw, dict) else {}
+    out = {}
+    for s, sec in (table.items() if isinstance(table, dict) else ()):
+        if isinstance(sec, (int, float)) and not isinstance(sec, bool) and sec > 0:
+            out[s] = float(sec)
+    return out
+
+
+def write_pool_seconds(seconds: dict[str, float], path, head: str = "") -> None:
+    """Persist the pool cost the lane measured, for the next run's bound.
+
+    Written from `main()`'s `finally`, so a run that refuses on its own bound
+    (the night the measurement is needed) still leaves it: the artifact carries
+    it whether or not the lane concluded. One script's seconds, sorted, in the
+    canonical layout `closure.write_closures` uses for the solo table.
+    """
+    p = Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    payload = {"head": head,
+               "seconds": {s: round(float(v), 1)
+                           for s, v in sorted(seconds.items())}}
+    p.write_text(json.dumps(payload, indent=1, sort_keys=True) + "\n")
+
+
+def seed_pool_seconds(recorded: dict[str, float],
+                      pool: dict[str, float]) -> dict[str, float]:
+    """The bound basis per driver: the larger of the committed solo recording
+    and the last measured pool cost.
+
+    `driver_timeout(floor, s)` is `max(floor, TIMEOUT_SCALE x s)`, so feeding it
+    this max is the RCA's `max(floor, ceil(TIMEOUT_SCALE x max(recorded,
+    pool_recorded)))`: the bound then covers the pool cost the lane actually
+    measured instead of 3x a solo number the band keeps up to 2x stale. That
+    factor is a measurement, not a constant -- 0.47x-3.27x over the 51 driver
+    rows of the three 2026-10-07/08 nightly runs, by the rule and enumerator in
+    dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2 -- so nothing here hard-codes
+    it; the seed IS the per-driver measurement. A driver with no pool
+    measurement keeps its solo recording, so this never lowers a bound.
+    Decoupled from `SECONDS_BAND` on purpose: the band is merge-text hygiene
+    (tvofi, 2026-10-08), the bound is a pool-cost cover, and re-tuning one to
+    fix the other would trade a stale recording for a churned table.
+    """
+    out = dict(recorded)
+    for s, sec in pool.items():
+        out[s] = max(out.get(s, 0.0), sec)
+    return out
 
 
 def budget_seconds(own: dict[str, float],
@@ -2938,7 +3034,15 @@ def selftest_pin_drive(sites: int = 8, jobs: int = 4,
     return 0 if same else 1
 
 
-def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
+def _timeout_bound(run: ScriptRun) -> int:
+    """The bound a timed-out run tripped, from its own stderr (or its elapsed
+    seconds, which `run_script` stops at the bound)."""
+    m = _TIMED_OUT_AFTER.search(run.stderr or "")
+    return int(m.group(1)) if m else round(run.seconds)
+
+
+def baseline_refusal(baseline: dict[str, ScriptRun], scope: str,
+                     recorded: dict[str, dict] | None = None) -> int | None:
     """The verdict on a red baseline, or ``None`` when it is green.
 
     A red baseline makes every mutant's verdict meaningless: the table
@@ -2949,9 +3053,18 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     **The baseline's driver set is a subset of the scoped gate's selection.**
     The drivers are those whose measured closure reaches a file the diff
     wrote code in, and the gate selects every script whose closure reaches a
-    changed file, so a red here is `fast`'s red restated. Re-derive that at
-    your own merge base: `scope_files("changed", base)` with `drivers_for`,
-    against `tests/closure.py select --diff <merge-base>`.
+    changed file, so a red here is `fast`'s red restated -- **for a FAILING
+    CHECK.** Re-derive that at your own merge base: `scope_files("changed",
+    base)` with `drivers_for`, against `tests/closure.py select --diff
+    <merge-base>`.
+
+    **A TIMEOUT is not `fast`'s red restated** (RCA-1565). `fast` bounds a
+    script by its serial cost; this lane bounds it by `TIMEOUT_SCALE` x a solo
+    recording the 3-worker pool exceeds. When a baseline's only fault is
+    `rc=TIMEOUT_RC` and the committed recording for the same head says `rc: 0`,
+    `fast` ran that script GREEN while this lane's own bound was too small: the
+    recording is stale, not the suite. Naming that distinction is the whole
+    point -- "Fix the suite first" sends the reader to a suite that is green.
 
     `--scope full` keeps the refusal: it runs on a schedule, where nothing
     else reports that lane's baseline per commit.
@@ -2964,17 +3077,53 @@ def baseline_refusal(baseline: dict[str, ScriptRun], scope: str) -> int | None:
     red = sorted(s for s, run in baseline.items() if run.rc != 0)
     if not red:
         return None
+    if recorded is None:
+        recorded = recorded_entries()
+    timeouts = [s for s in red if baseline[s].timed_out]
+    failed = [s for s in red if not baseline[s].timed_out]
     print("\nMUTATION TABLE INCONCLUSIVE")
-    print("  - the baseline is already red in " + ", ".join(red) +
-          ", so no mutant's verdict means anything. Fix the suite first. "
-          "A script the scoped gate also selected carries this red on "
-          "`fast`; one it scoped out does not, and is covered by the forced "
-          "`full` run on `main` rather than by any check on this pull "
-          "request.")
-    for s in red:
-        checks = failed_checks(baseline[s])
-        print(f"      {s}: " + ("; ".join(checks) if checks
-                                 else "no FAIL line in its output"))
+    if failed:
+        print("  - the baseline is already red in " + ", ".join(failed) +
+              ", so no mutant's verdict means anything. Fix the suite first. "
+              "A script the scoped gate also selected carries this red on "
+              "`fast`; one it scoped out does not, and is covered by the forced "
+              "`full` run on `main` rather than by any check on this pull "
+              "request.")
+        for s in failed:
+            checks = failed_checks(baseline[s])
+            print(f"      {s}: " + ("; ".join(checks) if checks
+                                     else "no FAIL line in its output"))
+    if timeouts:
+        print("  - the baseline TIMED OUT in " + ", ".join(timeouts) +
+              ": the lane's own bound was exceeded, which is NOT `fast`'s red "
+              "restated -- `fast` bounds a script by its serial cost, this lane "
+              f"by {TIMEOUT_SCALE}x a solo recording the 3-worker pool exceeds. "
+              "No mutant's verdict means anything, but a green suite is not "
+              "what went red here.")
+        for s in timeouts:
+            run = baseline[s]
+            entry = recorded.get(s, {})
+            solo = entry.get("seconds")
+            rc = entry.get("rc")
+            bound = _timeout_bound(run)
+            has_solo = isinstance(solo, (int, float)) and not isinstance(solo, bool)
+            solo_txt = f"{solo}s" if has_solo else "no committed recording"
+            factor = f" = {bound / solo:.2f}x the recording" if has_solo and solo else ""
+            if rc == 0:
+                judge = ("the recording is STALE, not the suite -- the same "
+                         "head commits rc:0 for it, so `fast` ran it green "
+                         "while this lane's bound for the pool cost did not")
+                remedy = (f"re-record with `tests/derive_closures.sh --single "
+                          f"{s}`, or let the next CI recording adopt the pool "
+                          "cost (seed_pool_seconds)")
+            else:
+                judge = ("the driver has no green solo recording to judge the "
+                         "pool cost against")
+                remedy = (f"re-record with `tests/derive_closures.sh --single "
+                          f"{s}`, or raise the --timeout floor for it")
+            print(f"      {s}: pool cost reached the {bound}s bound "
+                  f"({TIMEOUT_SCALE} x the committed solo recording {solo_txt}"
+                  f"{factor}, committed rc {rc}); {judge}. Remedy: {remedy}.")
     return 1 if scope == "full" else 0
 
 
@@ -3025,6 +3174,17 @@ def main(argv: list[str] | None = None) -> int:
                          "write what it killed to OUT_DIR for "
                          "mutation-ledger-push; the ledger here is untouched "
                          "and survivors are listed in OUT_DIR/survivors.txt")
+    ap.add_argument("--pool-seconds", metavar="PATH",
+                    help="a prior nightly's persisted pool measurement "
+                         "(pool_seconds), read to seed each driver's bound from "
+                         "the cost the 3-worker lane actually pays rather than "
+                         "3x a solo recording the band keeps stale "
+                         "(seed_pool_seconds, RCA-1565). Absent or unreadable "
+                         "seeds nothing and the bound falls back to the solo "
+                         "recording. With --drain, the fresh measurement is "
+                         "written to OUT_DIR/pool_seconds.json, which the "
+                         "workflow stages into the actions/cache entry the next "
+                         "nightly restores")
     ap.add_argument("--anchor", metavar="ANCHOR",
                     help="drive every site of ONE ledger anchor (as `PIN NOT "
                          "REPRODUCED` names it) with --scripts, and report "
@@ -3278,6 +3438,12 @@ def main(argv: list[str] | None = None) -> int:
 
     work = Path(tempfile.mkdtemp(prefix="mutation-table-"))
     made: list[Path] = []
+    # The prior nightly's pool measurement, read to seed each driver's bound,
+    # and this run's, written back for the next one (RCA-1565). Both live
+    # outside the try so the `finally` can persist what was measured even when
+    # the run refuses on its own bound -- the night the measurement is needed.
+    prior_pool = pool_seconds(getattr(args, "pool_seconds", None))
+    measured_pool: dict[str, float] = {}
     try:
         # One tree per worker, cloned before the baseline: the baseline and
         # the null control run in them too, each on an unmutated tree. The
@@ -3289,8 +3455,11 @@ def main(argv: list[str] | None = None) -> int:
         made.extend(trees)
 
         # A driver's timeout scales from its own seconds (R9-F10.12): the
-        # recorded ones until its baseline here measures it.
-        own_s = recorded_seconds()
+        # larger of the committed solo recording and the last measured pool
+        # cost, until its baseline here measures this run's (RCA-1565). The
+        # solo recording alone under-bounds the first baseline of a driver the
+        # 3-worker pool costs more than 3x its band-stale recording.
+        own_s = seed_pool_seconds(recorded_seconds(), prior_pool)
 
         def run_baseline(w: int, s: str) -> ScriptRun:
             extra_args, extra_env = drive_spec(s, ref)
@@ -3298,6 +3467,7 @@ def main(argv: list[str] | None = None) -> int:
             run = run_script(s, trees[w], limit, extra_args, extra_env)
             if not run.timed_out:
                 own_s[s] = run.seconds
+                measured_pool[s] = run.seconds
             # One write per line: the workers print concurrently.
             print(f"  baseline {s}: rc={run.rc} failed={run.failed} "
                   f"{run.seconds:.0f}s\n", end="")
@@ -3424,6 +3594,21 @@ def main(argv: list[str] | None = None) -> int:
                   f"shared driver, so its baseline was never checked here; a "
                   f"red one would have made it INCONCLUSIVE, a killed null REFUSED")
     finally:
+        # Persist the pool cost this lane measured, merged over the prior seed
+        # (fresh per script, prior kept for one not measured here), EVEN on a
+        # refusal: the night the bound tripped is exactly when the next run
+        # needs the measurement that would have covered it (RCA-1565). The
+        # workflow stages this file into the actions/cache entry the next
+        # nightly restores (the `mutation-ledger` artifact carries a copy too).
+        # A write that fails must not mask the run's own verdict, so it is
+        # warned, not raised.
+        if args.drain:
+            try:
+                write_pool_seconds({**prior_pool, **measured_pool},
+                                   Path(args.drain) / POOL_SECONDS_NAME,
+                                   _rev(ROOT, "HEAD") or "")
+            except OSError as exc:
+                print(f"  pool_seconds: not persisted ({exc})", file=sys.stderr)
         for tree in made:
             drop_tree(tree)
         subprocess.run(["git", "worktree", "prune"], cwd=ROOT,

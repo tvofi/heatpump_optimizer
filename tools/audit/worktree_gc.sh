@@ -585,7 +585,9 @@ flush
 
 # --- class C: orphaned seat directories --------------------------------------
 is_registered() { awk -v p="$1" 'BEGIN{f=1} index(p, $0)==1 {f=0} END{exit f}' "$LIVE_FILE"; }
-handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -qx "$1"; }
+# Drained, never `grep -q`: under pipefail a SIGPIPE'd writer reads as "not
+# handled" and the seat is judged a second time (R9-RCA-prepr-tmp).
+handled_seat() { printf '%b' "$HANDLED_SEATS" | grep -x "$1" >/dev/null; }
 
 if [ -d "$SEATS_REAL" ]; then
   for seat in "$SEATS_REAL"/*/; do

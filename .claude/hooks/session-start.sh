@@ -90,7 +90,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # mode here: nobody reads a missing line.
   out=$(report)
   pass=0; fail=0
-  st() { if printf '%s' "$out" | grep -qE "$1"; then pass=$((pass+1)); printf '  ok   %s\n' "$2"
+  st() { if printf '%s' "$out" | grep -E "$1" >/dev/null; then pass=$((pass+1)); printf '  ok   %s\n' "$2"
          else fail=$((fail+1)); printf '  FAIL %s\n' "$2"; fi; }
   st '^shallow clone:  (true|false|unknown)$|^shallow clone:  true  <-' "the shallow state is printed and is one of the three answers"
   st '^branch:         .+$'                                            "the branch is printed"

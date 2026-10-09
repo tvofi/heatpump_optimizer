@@ -5,7 +5,7 @@ integration does rather than how it is built, start with
 [how-it-works.md](how-it-works.md).
 
 The shape is a thin Home Assistant layer wrapped around a much larger core that
-knows nothing about Home Assistant: 74 modules, of which 27 import the
+knows nothing about Home Assistant: 75 modules, of which 27 import the
 `homeassistant` package at module level, one more touches it inside a single
 function, and the rest take numbers in and give numbers back.
 
@@ -106,6 +106,7 @@ custom_components/heatpump_optimizer/
 │
 │   # Learning, evidence and self-checks
 ├── accuracy.py           # Predicted versus realised, recorded per interval
+├── draw_range.py         # The metered running draw, and the range it clamps a plan to
 ├── diagnosis.py          # One-input-at-a-time attribution of the last interval's error
 ├── drift.py              # The CUSUM primitive shared by every drift detector
 ├── snapshots.py          # Weekly learner snapshots and the rollback alarm
@@ -192,7 +193,7 @@ custom_components/heatpump_optimizer/
 
 ## The Home Assistant boundary
 
-27 of the 74 modules import `homeassistant` at module level: `__init__`,
+27 of the 75 modules import `homeassistant` at module level: `__init__`,
 `config_flow`, `coordinator`, `open_meteo`, `frontend`, the six entity
 platforms `sensor`, `binary_sensor`, `button`, `climate`, `switch`, `datetime`,
 and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, `defrost`,
@@ -201,7 +202,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, 
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
 clock function was injected.
 
-The other 46 modules are deliberately free of it, so each can be driven
+The other 47 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters
 because the failure mode of this integration is a *plausible* plan: a detector
 that never fires, or a watchdog that lets a flatline through, produces output
