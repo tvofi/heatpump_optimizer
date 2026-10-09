@@ -314,6 +314,12 @@ jobs:
       - name: Show the App approval refusing its own fixtures
         run: if test -f tools/audit/app_approve.sh; then bash tools/audit/app_approve.sh --self-test; else bash tools/pr/app_approve.sh --self-test; fi
 
+      # The merge-main bot (R9-CI-2b): what it pushes and what it leaves for a
+      # human, over a scratch repository with a stand-in driver -- no network --
+      # and that its commit is the one pr-contract's AUTOFIX_BOT_COMMITS accepts.
+      - name: Show the merge-main bot refusing its own fixtures
+        run: python3 tools/pr/merge_main_bot.py --self-test
+
       # The App verdict poster (decision 0013): its verdict grammar, head
       # reads, identity read-back and token cleanup, over the same stubs.
       - name: Show the App verdict poster refusing its own fixtures

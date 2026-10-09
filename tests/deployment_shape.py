@@ -37,9 +37,9 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 91
+records every read, so this lane's recorded closure is the package: all 92
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
-alike (90 until R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
+alike (90 until R9-UX-9's ``flow_meter.py`` and R9-EG-B11's ``entry_config.py``, 88 until R9-DBG-1's ``debugger.py`` and R9-SW-1's ``quiet_windows.py``, 87 until R9-UX-4's ``notifier.py``, 86 until R9-EG-B3a's ``payload.py``, 85 until R9 EG-B5's ``dhw_planner.py``, 78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images) -- one of the two closures in ``tests/closures.json`` that reach every
 production file; the other is ``tests/arch_score_head.py``'s (R9-EG-A1), which
 measures today's tree with the architecture score and so must read all of it. A diff touching any production file therefore selects this
@@ -56,13 +56,13 @@ tests/boost_drift_replay.py joined, adding 6 pairs at >= 0.80;
 ``tests/debug_collect.py`` joined when the debug-collector pin driver was
 recorded, adding 7 pairs at >= 0.80).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py
-(91 shared production files), entities.py/harness_headers.py,
-doc_claims.py/entities.py and doc_claims.py/harness_headers.py (81 each),
-structure.py/typing_ruler.py (73), finite_boundary.py/structure.py and
-finite_boundary.py/typing_ruler.py (73 each), plan_view.py/solar_alignment.py,
+(92 shared production files), entities.py/harness_headers.py,
+doc_claims.py/entities.py and doc_claims.py/harness_headers.py (82 each),
+structure.py/typing_ruler.py (74), finite_boundary.py/structure.py and
+finite_boundary.py/typing_ruler.py (74 each), plan_view.py/solar_alignment.py,
 boost_drift_replay.py/plan_view.py and boost_drift_replay.py/solar_alignment.py
-(55 each), the optimality.py/validate.py/edge.py/backtest.py four (20, six
-pairs), golden.py/env_drift.py (89), card.mjs/card_drift.mjs (56) -- and which
+(56 each), the optimality.py/validate.py/edge.py/backtest.py four (20, six
+pairs), golden.py/env_drift.py (90), card.mjs/card_drift.mjs (57) -- and which
 mutants each script actually kills
 was never measured, so nothing here says those runs are redundant either:
 the pre-screen stops at the first killer, and where a narrower closure here
