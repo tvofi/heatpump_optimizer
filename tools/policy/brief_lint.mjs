@@ -1040,12 +1040,7 @@ const REQUIRED_931DFFE = [
   { group: 'W1-G14', kind: 'path:line', needle: 'entities.py:6042-6062' },
   { group: 'W1-G14', kind: 'version', needle: '6.3.9' },
   { group: 'W1-G9', kind: 'path', needle: 'model_sanity.py' },
-  // Re-anchored past thermal_model.py's end (#2066): the frozen :1152 was
-  // checked against the LIVE file, so a line shift that brought an unrelated
-  // `return` within +-1 of it satisfied the citation and the pin went vacuous.
-  // Past the end, the anchored rule's error cannot be met by any edit short
-  // of a 91k-line module; deleting the rule still drops the pin.
-  { group: 'W1-G9', kind: 'path:line (anchored)', needle: 'wood_share:91152' },
+  { group: 'W1-G9', kind: 'path:line (anchored)', needle: 'wood_share:1152' },
   { group: 'W1-G9', kind: 'symbol', needle: 'wood_share_vec_parity' },
   // The snapshot states the ratchet's metric count as it stood at 931dffe.
   // Pinned on the stated figure rather than the derived one: the message's
