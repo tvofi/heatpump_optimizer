@@ -207,6 +207,7 @@ from . import away as away_mode
 from . import boost
 from . import battery as battery_view
 from . import comfort_band
+from . import draw_range
 from . import mixing_valve
 from . import topology
 from . import pv as pv_model
@@ -4432,10 +4433,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tank = float(ctx._current_state.dhw_temperature)
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
-    def _learn_measured_cop(self) -> None:
-        """Fold this interval into the COP learner, recording why it refused."""
-        self._measured_cop.refusal = self._fold_measured_cop()
-    def _fold_measured_cop(self) -> str | None:
+    def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)
+    def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
         Without a power entity the COP is a curve fitted to a nameplate figure,
@@ -4497,7 +4498,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # from it and is dropped, while a persistent shift WALKS the EWMA
         # (it updates from every sample) and unlocks folding within a
         # handful of intervals. A draw that does not follow the ask at all
-        # walks it too, so a departure must also be consistent (off_ask).
+        # walks it too, so a departure needs draw_range's evidence (off_ask).
         ratio = float(self._measured_power) / max(commanded, 1e-6)
         # Seeded at 1.0 — the model's own expectation, since ``commanded``
         # already carries the current scale — and gated against the value
@@ -4506,7 +4507,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if refusal := self._measured_cop.judge_ratio(ratio, ewma):
+        if refusal := MeasuredCop.judge_ratio(ratio, ewma, draw):
             _LOGGER.debug(
                 "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
                 "against the running ratio %.2f -- not an efficiency reading",
@@ -6124,7 +6125,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Persisted on the same every-10-samples cadence as the house learner;
         # both share the thermal learning store.
         cop_samples_before = self._cop_samples
-        self._learn_measured_cop()
+        self._learn_measured_cop(self._accuracy.draw)
         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
             await self._async_save_thermal_learning()
 
@@ -9310,42 +9311,40 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if not self._snapshot_ring.alarmed:
             ir.async_delete_issue(self.hass, DOMAIN, "accuracy_drift")
             self._rollback_done_for_alarm = False
-            await self._async_save_snapshots()
-            return
-
-        rolled_back = False
-        if (
-            self._snapshot_ring.auto_rollback_justified
-            and not self._rollback_done_for_alarm
-        ):
-            snap = self._snapshot_ring.best_restore()
-            if snap is not None:
-                self._apply_learner_payloads(snap.get("learners") or {})
-                self._rollback_done_for_alarm = True
-                rolled_back = True
-                _LOGGER.warning(
-                    "Prediction bias out of band for %d days on healthy "
-                    "inputs; learned state rolled back to the snapshot "
-                    "from %s",
-                    BIAS_TRIP_DAYS,
-                    snap.get("taken_at"),
-                )
-                await _async_save_restored(self)
-        _create_issue(
-            self.hass,
-            DOMAIN,
-            "accuracy_drift",
-            is_fixable=False,
-            # Persistent: the alarm state survives a restart in the
-            # store, so its notice must too — a repair issue that
-            # silently vanishes on reboot while the fault stays is worse
-            # than none.
-            is_persistent=True,
-            severity=ir.IssueSeverity.WARNING,
-            translation_key=(
-                "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
-            ),
-        )
+        else:
+            rolled_back = False
+            if (
+                self._snapshot_ring.auto_rollback_justified
+                and not self._rollback_done_for_alarm
+            ):
+                snap = self._snapshot_ring.best_restore()
+                if snap is not None:
+                    self._apply_learner_payloads(snap.get("learners") or {})
+                    self._rollback_done_for_alarm = True
+                    rolled_back = True
+                    _LOGGER.warning(
+                        "Prediction bias out of band for %d days on healthy "
+                        "inputs; learned state rolled back to the snapshot "
+                        "from %s",
+                        BIAS_TRIP_DAYS,
+                        snap.get("taken_at"),
+                    )
+                    await _async_save_restored(self)
+            _create_issue(
+                self.hass,
+                DOMAIN,
+                "accuracy_drift",
+                is_fixable=False,
+                # Persistent: the alarm state survives a restart in the
+                # store, so its notice must too — a repair issue that
+                # silently vanishes on reboot while the fault stays is worse
+                # than none.
+                is_persistent=True,
+                severity=ir.IssueSeverity.WARNING,
+                translation_key=(
+                    "accuracy_drift_rolled_back" if rolled_back else "accuracy_drift"
+                ),
+            )
         await self._async_save_snapshots()
 
     async def async_restore_learned_snapshot(self) -> bool:
@@ -9640,6 +9639,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1067: and one supply-vs-curve residual, on the same cycle and from
         # the same timestamp. Inert until a supply slot is mapped.
         _fold_flow_lift(self, now)
+        draw_range.fold(self._accuracy.draw, self._measured_power, self._commanded_split(), ctx._thermal_params, frozen=(power_frozen := self._learning_frozen(CONF_POWER_ENTITY)) is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9743,7 +9743,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 # can support, while the learners are not frozen for some
                 # other reason — "defrosting" alone is exempted, because
                 # that interval is the derate's own evidence (#944).
-                if self._learning_frozen(CONF_POWER_ENTITY) in (None, "defrosting"):
+                if power_frozen in (None, "defrosting"):
                     self._settle_defrost(sample, defrost_window)
 
         self._pending_prediction = {

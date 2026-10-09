@@ -32,6 +32,7 @@ import numpy as np
 from homeassistant.util import dt as dt_util
 
 from .const import COP_TRACKING_ERROR_GATE, HOUSE_HEAT_LOSS_SCALE_MAX, HOUSE_HEAT_LOSS_SCALE_MIN
+from .draw_range import DrawRange, follows_ask
 from .drift import stored_instant
 from .drift import utc_elapsed_seconds as utc_elapsed_seconds  # re-export: moved to drift so drift itself can use it
 from .payload import Accuracy
@@ -173,6 +174,10 @@ class AccuracyTracker:
     #: restored one -- and an accepted refit's own evidence would be applied
     #: a second time. Persisted, because the samples it fences are.
     evidence_since: datetime | None = None
+    #: The metered running draw beside the level the plan asked for: the
+    #: same predicted-versus-realised power pair, kept over running intervals
+    #: only, and the range it clamps the plan to (``draw_range``).
+    draw: DrawRange = field(default_factory=DrawRange)
 
     def record(self, sample: AccuracySample) -> None:
         self.samples.append(sample)
@@ -381,8 +386,10 @@ class AccuracyTracker:
             if self.evidence_since is not None
             else {}
         )
+        draw = {"draw": self.draw.as_dict()} if self.draw.samples else {}
         return {
             **since,
+            **draw,
             "samples": [s.as_dict() for s in recent],
             # T5 #16, additive keys. The pending promises persist too, or
             # every restart would silently discard up to a day of filed
@@ -464,6 +471,7 @@ class AccuracyTracker:
                 if not np.isfinite(lead) or not np.isfinite(predicted):
                     continue
                 tracker.lead_pending.append((when, lead, predicted))
+        tracker.draw = DrawRange.from_dict(data.get("draw"))
         since = data.get("evidence_since")
         if since:
             tracker.evidence_since = stored_instant(
@@ -634,14 +642,9 @@ COP_REFUSED_MODELLED = "modelled_cop"
 COP_REFUSED_OBSERVED = "observed_cop"
 
 #: How far the metered draw may depart from the plan's ask, as a share of the
-#: ask, before the interval must show that the departure is the pump's
-#: efficiency and not a pump that sets its own power (``MeasuredCop.judge_ratio``).
+#: ask, before the interval needs ``draw_range.follows_ask``'s evidence that
+#: the draw follows the ask (``MeasuredCop.judge_ratio``).
 COP_ASK_TOLERANCE = 0.15
-#: The walking ratio's relative spread at or under which a departure counts as
-#: consistent: an efficiency shift moves every interval's ratio alike, while a
-#: draw that ignores the ask scatters it (measured in
-#: dev/audit/harnesses/cop_duty_floor.py).
-COP_RATIO_SPREAD_MAX = 0.1
 
 
 @dataclass
@@ -660,36 +663,28 @@ class MeasuredCop:
     (:func:`diagnostics_view`): the observed-COP sensor is unavailable exactly
     while it is the explanation, and Home Assistant hides an unavailable
     entity's attributes.
-
-    ``ratio_spread`` is the walking mean of the metered-to-asked ratio's
-    relative distance from its own walking mean. Seeded at 1.0 (unproven), so
-    a departure from the ask folds only once the ratio has shown itself
-    consistent; not persisted, so a restart proves it again.
     """
 
     cop: float | None = None
     curve_dhw: bool = False
     dhw_temp: float | None = None
     refusal: str | None = None
-    ratio_spread: float = 1.0
 
-    def judge_ratio(self, ratio: float, ewma: float) -> str | None:
+    @staticmethod
+    def judge_ratio(ratio: float, ewma: float, draw: DrawRange | None) -> str | None:
         """The ratio gates' refusal for this interval's metered/asked ``ratio``, or None.
 
-        ``ewma`` is the walking ratio BEFORE this interval, and the spread is
-        judged before this interval folds into it, so an interval cannot vouch
-        for itself. ``COP_REFUSED_TRACKING``: a one-off blip off the walking
-        ratio (v4.0.5). ``COP_REFUSED_OFF_ASK``: a departure from the ask while
-        the ratio scatters -- a pump that sets its own power, whose departures
-        would otherwise fold as a COP shortfall. A real efficiency shift is
-        consistent, so it still folds and no error is beyond reach.
+        ``ewma`` is the walking ratio BEFORE this interval, so an interval
+        cannot vouch for itself. ``COP_REFUSED_TRACKING``: a one-off blip off
+        the walking ratio (v4.0.5). ``COP_REFUSED_OFF_ASK``: a departure from
+        the ask unless ``draw_range.follows_ask(draw)`` says the draw
+        follows the ask -- a pump that sets its own power would otherwise fold
+        its departures as a COP shortfall, while an efficiency shift on a draw
+        that follows its ask still folds, so no error is beyond reach.
         """
-        spread = self.ratio_spread
-        relative = abs(ratio - ewma) / max(ewma, 1e-6)
-        self.ratio_spread = 0.9 * spread + 0.1 * relative
-        if relative > COP_TRACKING_ERROR_GATE:
+        if abs(ratio - ewma) / max(ewma, 1e-6) > COP_TRACKING_ERROR_GATE:
             return COP_REFUSED_TRACKING
-        if abs(ratio - 1.0) > COP_ASK_TOLERANCE and spread > COP_RATIO_SPREAD_MAX:
+        if abs(ratio - 1.0) > COP_ASK_TOLERANCE and follows_ask(draw) is not True:
             return COP_REFUSED_OFF_ASK
         return None
 
@@ -732,5 +727,4 @@ def diagnostics_view(record: MeasuredCop, params: Any) -> dict[str, Any]:
         "last_refusal": record.refusal,
         "measured_cop": record.cop,
         "power_floor_kw": round(float(params.flow_lift_power_floor_kw), 3),
-        "ratio_spread": round(record.ratio_spread, 3),
     }
