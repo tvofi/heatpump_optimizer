@@ -1,0 +1,40 @@
+mutation-autofix	completed	skipped
+mutation-pins	completed	skipped
+mutation-pin-plan	completed	skipped
+coverage-ratchet	completed	success
+graders-head-copy	completed	success
+closures-autofix	completed	skipped
+claims-autofix	completed	skipped
+CodeQL	completed	success
+pr-contract	completed	success
+nightly-ha	completed	skipped
+closures	completed	success
+validate-hacs	completed	success
+mutation-ledger-push	completed	skipped
+slow	completed	skipped
+mutation-nightly	completed	skipped
+mutation-ledger	completed	skipped
+record-autofix	completed	skipped
+recheck-gate	completed	skipped
+mutation	completed	success
+record	completed	skipped
+delivery-status-publish	completed	skipped
+fast (3.14)	completed	success
+typing	completed	success
+coverage	completed	success
+briefs	completed	success
+browser	completed	success
+closure-scope	completed	success
+Analyze (actions)	completed	success
+Analyze (javascript-typescript)	completed	success
+nightly-status	completed	success
+Analyze (python)	completed	success
+instrument-self-tests	completed	success
+budget-raise-gate	completed	success
+policy-docs	completed	success
+delivery-status	completed	success
+wave-script	completed	success
+hassfest	completed	success
+env-matrix	completed	success
+pr-contract	completed	success
+budget-raise-gate	completed	success

@@ -1,0 +1,12 @@
+2026-10-09T17:07:59Z poll=1 total=33 pending=5
+2026-10-09T17:13:01Z poll=2 total=33 pending=5
+2026-10-09T17:18:03Z poll=3 total=33 pending=4
+2026-10-09T17:23:04Z poll=4 total=34 pending=3
+2026-10-09T17:28:05Z poll=5 total=34 pending=3
+2026-10-09T17:33:07Z poll=6 total=34 pending=3
+2026-10-09T17:38:08Z poll=7 total=34 pending=3
+2026-10-09T17:43:10Z poll=8 total=34 pending=3
+2026-10-09T17:48:12Z poll=9 total=35 pending=2
+2026-10-09T17:53:13Z poll=10 total=35 pending=2
+2026-10-09T17:58:15Z poll=11 total=40 pending=0
+2026-10-09T17:58:15Z SETTLED names=38

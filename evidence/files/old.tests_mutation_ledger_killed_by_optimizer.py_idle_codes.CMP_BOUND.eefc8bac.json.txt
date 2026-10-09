@@ -1,6 +1,0 @@
-+{
-+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:idle_codes CMP_BOUND eefc8bac",
-+  "killed_by": "tests/features.py",
-+  "old": "        codes[~(sp > 1e-6) & (nxt_sun < nxt_run)] = REASON_IDLE_SOLAR",
-+  "reason": "Recorded by `mutation_table.py --pin-killed` against dcc77dd0c53e363a7c1b20c357a3986db8293d95: CMP_BOUND (`codes[~(sp > 1e-6) & (nxt_sun <= nxt_run)] = REASON_IDLE_SOLAR`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
-+}

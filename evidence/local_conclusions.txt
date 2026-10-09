@@ -1,0 +1,31 @@
+=== features.py conclusion ===
+ALL 131 DST / QUARTER-GRID CHECKS PASSED
+  ok   a pump command that FAILED is not remembered as done
+1 of 3921 FEATURE CHECKS FAILED
+=== entities.py conclusion ===
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+ALL 2238 ENTITY CHECKS PASSED
+=== harness_headers conclusion ===
+12 of 109 HARNESS HEADER CHECKS FAILED
+=== env_drift exit tallies ===
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing origin/main from scratch
+  no committed fixture is stale
+19 MAY-DRIFT SCENARIO(S) MOVED, plan only
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+=== env_drift last 15 lines ===
+  shoulder_two_zone: #1208 polish-every-candidate, third name
+  tariff_plus_two_zone: #1207 keep-gate (2e-2 -> 2e-5),
+  valve_storage: #1207 keep-gate (2e-2 -> 2e-5), widened to
+  valve_storage_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+  valve_upper_direct_slab: machine-sensitive; the DHW plan can reach it, per local optimum
+  winter_two_zone_dhw: #1207 keep-gate (2e-2 -> 2e-5), owner
+  winter_two_zone_no_dhw: #1208 polish-every-candidate, owner
+  wood_coil: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank: machine-sensitive; the DHW plan can reach it, per local optimum
+  wood_two_tank_smart_write: machine-sensitive; the DHW plan can reach it, per local optimum
+Read the leaf diffs above. Never re-record them on a
+machine where golden.py already reports them as DIFF.
+
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes

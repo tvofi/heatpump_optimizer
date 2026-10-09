@@ -1,0 +1,37 @@
+2026-10-09T16:52:45.6249598Z   GOLDEN_MODE: drift
+2026-10-09T16:52:46.1389083Z   MODE: SCOPED -- 28 script(s) run, 5 scoped out.
+2026-10-09T17:17:37.2011037Z   [17:17:37] start  node tests/card_drift.mjs d8a4bd36f6384dde45486fff388f91ed4a3aa6df
+2026-10-09T17:17:41.3690742Z   [17:17:41] ok     node tests/card_drift.mjs d8a4bd36f6384dde45486fff388f91ed4a3aa6df (4s)
+2026-10-09T17:22:56.9054779Z claims hygiene: d8a4bd36f6384dde45486fff388f91ed4a3aa6df ok
+2026-10-09T17:22:57.0971388Z ALL 3921 FEATURE CHECKS PASSED
+2026-10-09T17:22:57.1362822Z   ok   a branch that only merged a claiming main passes claims hygiene
+2026-10-09T17:22:57.1518376Z ALL 2238 ENTITY CHECKS PASSED
+2026-10-09T17:22:57.1947175Z ALL 109 HARNESS HEADER CHECKS PASSED
+2026-10-09T17:22:57.1955425Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
+2026-10-09T17:22:57.1977823Z ALL DEPLOYMENT SHAPE CHECKS PASSED
+2026-10-09T17:22:57.1987198Z   MAY-DRIFT capacity_tariff_15min: 130 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner)
+2026-10-09T17:22:57.1993695Z   MAY-DRIFT cycling_cost: 137 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+2026-10-09T17:22:57.1999065Z   MAY-DRIFT direct_flow_carnot: 106 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened)
+2026-10-09T17:22:57.2001332Z   MAY-DRIFT everything_on: 115 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner)
+2026-10-09T17:22:57.2005232Z   MAY-DRIFT flat_prices: 116 leaves moved (#1208 polish-every-candidate, owner ruling #1208 comment 208bed25)
+2026-10-09T17:22:57.2007286Z   MAY-DRIFT fuse_guard: 116 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+2026-10-09T17:22:57.2014274Z   MAY-DRIFT narrow_band: 101 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+2026-10-09T17:22:57.2017937Z   MAY-DRIFT precip_snow: 154 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to the)
+2026-10-09T17:22:57.2020685Z   MAY-DRIFT shoulder: 134 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner directive)
+2026-10-09T17:22:57.2022643Z   MAY-DRIFT shoulder_two_zone: 153 leaves moved (#1208 polish-every-candidate, third name)
+2026-10-09T17:22:57.2027055Z   MAY-DRIFT tariff_plus_two_zone: 97 leaves moved (#1207 keep-gate (2e-2 -> 2e-5),)
+2026-10-09T17:22:57.2029287Z   MAY-DRIFT valve_storage: 32 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), widened to)
+2026-10-09T17:22:57.2033779Z   MAY-DRIFT valve_storage_smart_write: 32 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+2026-10-09T17:22:57.2036148Z   MAY-DRIFT valve_upper_direct_slab: 35 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+2026-10-09T17:22:57.2040845Z   MAY-DRIFT winter_two_zone_dhw: 103 leaves moved (#1207 keep-gate (2e-2 -> 2e-5), owner)
+2026-10-09T17:22:57.2043138Z   MAY-DRIFT winter_two_zone_no_dhw: 33 leaves moved (#1208 polish-every-candidate, owner)
+2026-10-09T17:22:57.2045367Z   MAY-DRIFT wood_coil: 119 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+2026-10-09T17:22:57.2047438Z   MAY-DRIFT wood_two_tank: 49 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+2026-10-09T17:22:57.2049576Z   MAY-DRIFT wood_two_tank_smart_write: 58 leaves moved (machine-sensitive; the DHW plan can reach it, per local optimum)
+2026-10-09T17:22:57.2051787Z 19 MAY-DRIFT SCENARIO(S) MOVED, plan only
+2026-10-09T17:22:57.2057005Z NO UNCLAIMED DRIFT: 56 scenario(s) checked against d8a4bd36f6384dde45486fff388f91ed4a3aa6df
+2026-10-09T17:22:57.2057253Z NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+2026-10-09T17:22:57.2346635Z ALL CARD CHECKS PASSED
+2026-10-09T17:22:57.2347178Z ########## node tests/card_drift.mjs d8a4bd36f6384dde45486fff388f91ed4a3aa6df ##########
+2026-10-09T17:22:57.2424194Z ALL 106 STRESS CHECKS PASSED
+2026-10-09T17:22:57.2428359Z        4s  node tests/card_drift.mjs d8a4bd36f6384dde45486fff388f91ed4a3aa6df
