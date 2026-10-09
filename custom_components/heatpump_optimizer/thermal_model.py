@@ -1257,6 +1257,16 @@ class InstallCapability:
             )
         )
 
+    def plan_writes_power(self) -> bool:
+        """The plan sets the compressor's draw itself: a frequency write.
+
+        Every other surface leaves the draw to the pump's own controller, so
+        a meter reading there is the pump's choice; here it is the plan's
+        echo, and a learner that clamps or caps the plan to it can only
+        ratchet down (``draw_range``, the capacity envelope).
+        """
+        return "frequency" in self.writes
+
     def fully_metered(self) -> bool:
         """Power, frequency, and a surface that can realize a duty cycle."""
         return (
