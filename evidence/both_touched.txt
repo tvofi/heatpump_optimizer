@@ -1,0 +1,9 @@
+custom_components/heatpump_optimizer/coordinator.py
+custom_components/heatpump_optimizer/thermal_model.py
+dev/audit/rounds/round4/D6/claims.json
+dev/audit/rounds/round4/D6/claims.md
+dev/audit/rounds/round4/D6/claims.py
+docs/architecture.md
+tests/closures.json
+tests/deployment_shape.py
+tests/features.py
