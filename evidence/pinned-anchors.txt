@@ -1,0 +1,4 @@
+custom_components/heatpump_optimizer/coordinator.py:_tail_freeze GUARD_OFF a8321916
+custom_components/heatpump_optimizer/early_cutoff.py:allow_on CMP_BOUND 71c6fd76
+custom_components/heatpump_optimizer/early_cutoff.py:on_room_event GUARD_OFF 0f2e8ba2
+custom_components/heatpump_optimizer/early_cutoff.py:threshold RETURN_DEL 64661163

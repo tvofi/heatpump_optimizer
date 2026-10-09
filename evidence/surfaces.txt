@@ -1,0 +1,4 @@
+CELL switch_slot=switch misrouted=0 calls=2
+CELL switch_slot=input_boolean misrouted=0 calls=2
+CELL switch_slot=climate misrouted=0 calls=2
+RESULT failing_surface_cells=0 cells

@@ -1,0 +1,53 @@
+ .../killed_by/coordinator.py/_tail_freeze.GUARD_OFF.a8321916.json   | 6 ++++++
+ .../killed_by/early_cutoff.py/allow_on.CMP_BOUND.71c6fd76.json      | 6 ++++++
+ .../killed_by/early_cutoff.py/on_room_event.GUARD_OFF.0f2e8ba2.json | 6 ++++++
+ .../killed_by/early_cutoff.py/threshold.RETURN_DEL.64661163.json    | 6 ++++++
+ 4 files changed, 24 insertions(+)
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_tail_freeze.GUARD_OFF.a8321916.json b/tests/mutation_ledger/killed_by/coordinator.py/_tail_freeze.GUARD_OFF.a8321916.json
+new file mode 100644
+index 000000000..dd35673cf
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_tail_freeze.GUARD_OFF.a8321916.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_tail_freeze GUARD_OFF a8321916",
++  "killed_by": "tests/features.py",
++  "old": "    if early_cutoff.state_for(coord).interval_cut:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
++}
+diff --git a/tests/mutation_ledger/killed_by/early_cutoff.py/allow_on.CMP_BOUND.71c6fd76.json b/tests/mutation_ledger/killed_by/early_cutoff.py/allow_on.CMP_BOUND.71c6fd76.json
+new file mode 100644
+index 000000000..a91581b59
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/early_cutoff.py/allow_on.CMP_BOUND.71c6fd76.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:allow_on CMP_BOUND 71c6fd76",
++  "killed_by": "tests/features.py",
++  "old": "    if now - held.cut_at >= MIN_OFF:",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: CMP_BOUND (`if now - held.cut_at > MIN_OFF:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/early_cutoff.py/on_room_event.GUARD_OFF.0f2e8ba2.json b/tests/mutation_ledger/killed_by/early_cutoff.py/on_room_event.GUARD_OFF.0f2e8ba2.json
+new file mode 100644
+index 000000000..733375d46
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/early_cutoff.py/on_room_event.GUARD_OFF.0f2e8ba2.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:on_room_event GUARD_OFF 0f2e8ba2",
++  "killed_by": "tests/structure.py",
++  "old": "    if reason is None and _second_zone_cold(inp, limit):",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
++}
+diff --git a/tests/mutation_ledger/killed_by/early_cutoff.py/threshold.RETURN_DEL.64661163.json b/tests/mutation_ledger/killed_by/early_cutoff.py/threshold.RETURN_DEL.64661163.json
+new file mode 100644
+index 000000000..0af68bb45
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/early_cutoff.py/threshold.RETURN_DEL.64661163.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/early_cutoff.py:threshold RETURN_DEL 64661163",
++  "killed_by": "tests/structure.py",
++  "old": "    return max(base, *_planned_room(inp.plan, now)) + MARGIN_K",
++  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: RETURN_DEL (`pass`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
++}
