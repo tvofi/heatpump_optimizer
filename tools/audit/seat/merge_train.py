@@ -20,7 +20,8 @@ The queue is a JSON list, merged in order:
 PER PULL REQUEST, IN ORDER; THE TRAIN STOPS AT THE FIRST REFUSAL, because every
 later pull request would be graded against a `main` the refused one never joined:
   1. recarry  -- a head that does not contain `origin/main` gets main merged in by
-                 `remerge_main.sh` (an automatic merge, no resolution); a conflict
+                 `remerge_main.sh` (an automatic merge, no resolution), pushed by
+                 `app_push.sh --recarry`, whose prepr skip-or-run line is logged; a conflict
                  or a push that did not land stops the train. The recarry worktree
                  is the pull request's BRANCH checked out at `origin/<branch>`
                  (-B, so an existing local branch is reset), never a detached
@@ -303,7 +304,9 @@ class Train:
                 # die). The last 200 characters were only the die.
                 raise Stop("recarry", "the main merge pushed nothing: " + o.strip()[-2000:])
             h = self.head(pr)
-            self.log(f"#{pr} recarry: main merged, head {h[:8]}")
+            # app_push.sh --recarry's one line: prepr SKIPPED or RUNS, and why.
+            path = next((ln.strip() for ln in o.splitlines() if "RECARRY:" in ln), "no RECARRY line")
+            self.log(f"#{pr} recarry: main merged, head {h[:8]}; {path}")
         red = [n for n in self.wait_ci(h) if n not in self.ignore]
         self.log(f"#{pr} {h[:8]} ci red={red}")
         if red:
@@ -746,6 +749,15 @@ def _self_test() -> int:
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("a head behind main is recarried, then merged at the new head",
           rc == 0 and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    for way in ("SKIPPED: HEAD is the clean merge", "RUNS: HEAD has 3 parent(s)"):
+        rc, lines, calls = go({"contains": [False], "heads": [H0, H1],
+                               "remerge": f"app_push: RECARRY: prepr {way}\napp_push: PUSHED"})
+        check(f"the recarry logs app_push's path line (prepr {way.split(':')[0]})",
+              rc == 0 and any(ln.endswith(f"app_push: RECARRY: prepr {way}") for ln in lines))
+    # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
+    rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
+    check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
+          re.search(r'bash "\$_push" --recarry ', rm) is not None and "RECARRY|" in rm)
     # End-to-end absorbed-branch recarry against a REAL fixture repo (#1943):
     # the train's `git worktree add` runs for real, the remerge stub performs
     # remerge_main.sh's actual merge on that worktree, and then applies
