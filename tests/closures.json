@@ -153,6 +153,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -288,6 +289,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -374,6 +376,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -459,6 +462,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -549,6 +553,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -646,6 +651,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -761,6 +767,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -864,6 +871,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -980,6 +988,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -1175,6 +1184,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -1397,6 +1407,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -1574,6 +1585,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -1706,6 +1718,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -1831,6 +1844,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -2122,6 +2136,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -2475,6 +2490,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -2625,6 +2641,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -2707,6 +2724,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -2839,6 +2857,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -2918,6 +2937,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/frontend.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
@@ -3024,6 +3044,7 @@
    "custom_components/heatpump_optimizer/entry_config.py",
    "custom_components/heatpump_optimizer/external_heat.py",
    "custom_components/heatpump_optimizer/flow_lift.py",
+   "custom_components/heatpump_optimizer/flow_meter.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/grid_fee.py",
    "custom_components/heatpump_optimizer/inputs.py",
@@ -3123,6 +3144,7 @@
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
    "dev/audit/harnesses/throwaway_git_sites.sh",
+   "dev/audit/harnesses/ux9_flow_unit_guard.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
    "dev/audit/rounds/round3/D4/card_states_geometry.mjs",
@@ -3643,11 +3665,11 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 46.4
+   "seconds": 41.8
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 153.9
+   "seconds": 159.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -3687,7 +3709,7 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 48.4
+   "seconds": 53.6
   },
   "tests/entities.py": {
    "rc": 0,
@@ -3703,7 +3725,7 @@
   },
   "tests/finite_boundary.py": {
    "rc": 0,
-   "seconds": 84.6
+   "seconds": 90.4
   },
   "tests/frontend.py": {
    "rc": 0,
@@ -3723,19 +3745,19 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 199.0
+   "seconds": 220.7
   },
   "tests/layout.py": {
    "rc": 0,
-   "seconds": 15.5
+   "seconds": 17.3
   },
   "tests/manual_plan.py": {
    "rc": 0,
-   "seconds": 8.5
+   "seconds": 9.2
   },
   "tests/md_tables.mjs": {
    "rc": 0,
-   "seconds": 0.2
+   "seconds": 0.3
   },
   "tests/open_meteo.py": {
    "rc": 0,
@@ -3743,7 +3765,7 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 171.9
+   "seconds": 186.3
   },
   "tests/plan_view.py": {
    "rc": 0,
@@ -3763,11 +3785,11 @@
   },
   "tests/typing_ruler.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 57.7
+   "seconds": 56.0
   },
   "tests/wood_advisor.py": {
    "rc": 0,

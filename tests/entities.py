@@ -4329,6 +4329,9 @@ _EC_RESIDUAL = {
                    "options at setup and written back through an options update; EntryConfig "
                    "does not declare it",
     "dhw_schedule.py": "day_overrides_enabled also judges the options form's answers",
+    "flow_meter.py": "read_heat_output_kw .gets the flow-meter key off the config mapping it "
+                     "is handed and passes that mapping to probe_install; EntryConfig does "
+                     "not declare the key",
     "grid_fee.py": "GridFeeSchedule.from_config is parsed once per EntryConfig, cached on identity",
     "price_model.py": "pull_prices resolves the price source from the merged mapping each pull",
     "quiet_windows.py": "the window readers also take the simulator's what-if mapping, which "
@@ -11700,6 +11703,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "load_profile_value_per_kwh", "month", "monthly_report",
         "waiting_for"
     }),
+    "CurrentPowerSensor": frozenset({"measured_heat_output_kw"}),
     "CurrentSetpointSensor": frozenset({
         "lower_floor_setpoint", "upper_floor_setpoint"
     }),
@@ -11837,7 +11841,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "stat_kind"
     }),
     "ScheduleSensor": frozenset({"schedule"}),
-    "SensorGapAdvisorSensor": frozenset({"gaps", "top_slot"}),
+    "SensorGapAdvisorSensor": frozenset({"feedback_gaps", "gaps", "top_slot"}),
     "SolarHeatGainSensor": frozenset({
         "orientation_factor", "shgc", "solar_radiation_wm2", "window_area_m2"
     }),

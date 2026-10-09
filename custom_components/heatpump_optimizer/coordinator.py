@@ -282,7 +282,8 @@ from .freq_control import (
     FrequencyWatchdog,
     resolve_reading,
 )
-from .flow_lift import FlowCurveBias, curve_supply_temp, read_water_temps
+from .flow_lift import FlowCurveBias, curve_supply_temp
+from .flow_meter import observe_water
 from .power_guard import GuardState, project_window_mean
 from .snapshots import BIAS_TRIP_DAYS, SnapshotRing
 from . import pump_schedule
@@ -6030,10 +6031,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ctx._current_state.wood_tank_temperature = None
 
         # The pump's own supply and return water (#1067; the reader's rules
-        # are in ``flow_lift.read_water_temps``). Written every cycle
+        # are in ``flow_meter.observe_water``). Written every cycle
         # INCLUDING the unreadable case: ``observe_temps`` clears what it is
         # not given, and a fresh supply reading gates the flow-bias fold.
-        self._flow_bias.observe_temps(*read_water_temps(reader))
+        observe_water(self._flow_bias, reader, self.effective_config)
 
         # The four heat-pump signals (v5.3.0), read through the same reader
         # as everything else, so all four appear in this cycle's health with
@@ -7517,6 +7518,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_house_power": self._measured_house_power,
             "measured_energy": self._measured_energy,
             "measured_power_available": self._measured_power is not None,
+            "measured_heat_output_kw": self._flow_bias.heat_output_kw,
         }
 
     def _grid_view(self) -> GridView:
