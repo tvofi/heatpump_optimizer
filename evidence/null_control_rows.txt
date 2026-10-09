@@ -1,8 +1,0 @@
-RCA doc §6 rows, re-derived from the tree's own recorded_seconds() at this head:
-  ok  tests/features.py: solo(tree)=730.5 doc=730.5 pool=772.0 old=2192 new=2316
-  ok  tests/stress.py: solo(tree)=760.6 doc=760.6 pool=434.0 old=2282 new=2282
-  ok  tests/entities.py: solo(tree)=259.6 doc=259.6 pool=142.0 old=1200 new=1200
-  ok  tests/env_drift.py: solo(tree)=0.9 doc=0.9 pool=524.0 old=1200 new=1572
-  ok  tests/harness_headers.py: solo(tree)=199.0 doc=199.0 pool=211.0 old=1200 new=1200
-RESULT null-control-flat-at-both-ends: solo values match the doc and every bound covers its pool cost
-RESULT seed-raises-only: env_drift new bound = 1572

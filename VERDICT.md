@@ -1,247 +1,287 @@
-Fix review: blocked d7c830c2fa99ee2428f86aa469a7da540f21eeb9 carry-missing: the class search the body names as landed in dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md is not in that file
+Fix review: blocked 96497ffc694302b814eecaeea2710bfdbebf6678 record-stale: RCA §7's arm bullet, rewritten this round, still quotes round 1's five-check/2239 tallies (this head answers seven/2241) and omits the C/D/E arms it added, and four lines this PR adds still state the 1.3-3.3x pool factor that §2 of the same document measures at 0.47-3.27
 
-Round 1.
-seat: review-2074
-bus-nonce: c80e7807aafda8dcaf43b91957f7a61d
-Measured at `d7c830c2fa99ee2428f86aa469a7da540f21eeb9` in a detached worktree at
-`/Users/timmalmstrom/hpo-seats/review-2074/wt`; merge base `b2b6acd64` = `origin/main`
-at review (three-dot and two-dot diffs coincide). Contract read at this head:
+Round 2.
+`record-stale` is outside `web-fix-wave.js`'s `VERDICT_CLASSES`, so the parser routes it
+as `other` with the word kept at the front of the why (#1475's documented degradation);
+no taught word names "the landed record contradicts the measurement this PR corrected",
+and inventing one silently is worse than naming it here.
+seat: review-2074b
+bus-nonce: f4a2f01860c4a11d6dce10da0f6af16a
+Measured at `96497ffc694302b814eecaeea2710bfdbebf6678` in a detached worktree at
+`/Users/timmalmstrom/hpo-seats/review-2074b/wt`; merge base `b2b6acd64` = live
+`origin/main` (confirmed by `git ls-remote`, unmoved since round 1, so three-dot and
+two-dot coincide). Contract read at this head:
 `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is
-empty, so the copy I executed is current.
-Evidence: /Users/timmalmstrom/hpo-seats/review-2074/evidence
+empty. Python 3.14.7 (`$HOME/.local/state/hpo/venv-ci/bin/python3`).
+Evidence: /Users/timmalmstrom/hpo-seats/review-2074b/evidence
 
-## What is blocked, and why it is one edit
+## The mechanism is untouched, and I confirmed that rather than accepting it
 
-The mechanism is sound — every number below re-derives, and the detector fails on the
-defect and passes on the fix. The block is on the **record the PR lands**: the body
-points a later reader at the RCA document for two findings that are not in it, and the
-class's own table contradicts the count the document opens with.
+- `git diff 7e8c5c8e4 96497ffc6 -- tests/mutation_table.py .github/workflows/tests.yml`
+  is **empty**; `git diff --name-only 7e8c5c8e4 96497ffc6` is
+  `dev/programme/delivery/2074.md` **only**; the RCA doc `+333/−68` and
+  `tests/entities.py` `+64` (one hunk, `@@ -31725,6 +31725,70 @@`) are the whole round-2
+  delta. The head is round-2 content plus this PR's row — nothing reviewed moved.
+- Because the mechanism files are byte-identical, round 1's mechanism verdicts are not
+  re-argued here; the two numbers I was told I could rely on I re-derived anyway, at
+  seconds scale: **bounds 1200 / 1576 / 2401 / 4469** with the tree's own
+  `driver_timeout` over `git show <head>:tests/closures.json` (seven heads,
+  `evidence/bounds_rederive_mine.txt`), and **seeded 4719 / 7200 / 7203**
+  (solo 800.2 with pool 1573 / 2400 / 2401). `SECONDS_BAND = 2.0`,
+  `TIMEOUT_SCALE = 3`, `git diff b2b6acd64 HEAD -- tests/closure.py` = 0 lines.
+- The one CI number I did **not** re-take: the `mutation` lane's *empty scope* (green at
+  this head, suite `102813714594` — see step 11). It is empty because the diff writes no
+  source line; that is round 1's read of the lane log (`113815002602` at its head), and it
+  survives because the mechanism files this head holds are the byte-identical ones round 1
+  read. **I relied on round 1 there.**
 
-1. **The class search is not in the landed document** (`carry-missing`, primary).
-   The body's `## Forward-carry` states: "The RCA's other same-shape causes
-   (`record-autofix` has no `if:`; `closures-autofix` is `pull_request`-only so a
-   schedule-run staleness has no repair lane) are **named in the RCA doc**". They are
-   not. `grep -n -i "record-autofix\|closures-autofix\|class" dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`
-   returns nothing (exit 1). The only copy is
-   `/Users/timmalmstrom/hpo-seats/rca-nightly-red/RCA.md` §3 — an out-of-tree scratch
-   file, which is precisely what `defect-root-cause.md`'s "Where it is recorded" exists
-   to prevent ("a pull-request body or comment can be deleted or its author retired"),
-   and `root-cause.md` §3/§6 make the class search part of the deliverable, §6 adding
-   "with the reproduction **and the class search** added". Neither seam has another
-   destination in the tree: `record-autofix`'s live rows (#1957/#1962/#1974) are about
-   its identity and lookup, not its missing job-level `if:` on `schedule`/`push`;
-   `closures-autofix`'s live row (#1868) is about reporting a left-behind failure, not
-   about being `pull_request`-only. `finding-propagation.md`'s Enforcement is the
-   obligation this fails: "The producing PR does not merge until the carry is **in the
-   tree**. Its body names the file and the stage that received it, so a reviewer opens
-   the destination rather than taking the claim." I opened it. Fix: add the diagnosing
-   seat's §3 to the RCA doc (or, if they are to stay the orchestrator's, name a
-   destination that exists and correct the body). One section, no code.
-2. **The opening count is over-attributed, and one table column mixes a measurement with
-   an inference** (`brief-citations.md`/`writing-for-agents`: a stated count the tree
-   answers; this sentence is carried from the diagnosing seat's §1, which says the same,
-   so it is a correction to the record rather than to the seat's work). The doc's line
-   22-24 and the body's line "which reddened four of the six consecutive scheduled runs"
-   attribute four nights to **the bound**; the doc's own §1 table (its lines 37-41) shows
-   the bound tripping and CI printing its number on **two** nights (10-07 1576 s, 10-08
-   2401 s), and for 10-03/04/05 that the bound was only the bare floor with no printed
-   timeout — those two nights reddened on the `EXCLUSIVE` null-control arm, which §5
-   routes to the owner and this PR does **not** fix, and 10-05 reddened on
-   `record-autofix` alone. In the same table the "CI printed" column carries CI's text for
-   the two real timeouts and an inferred "pool cost >= 1573 s" (quoted onward with `"`) for
-   the three floor nights, so a reader cannot tell which rows are measurements. §4 already
-   states the honest family figure ("the bound/**null-control** mechanism fired on 4 of the
-   6"). Fix: say which arm, per night, in §1's sentence, and mark the inferred cells as
-   inferred — the cost test survives it either way (the bound arm alone is 2/6 = 0.33/night
-   against 0 s + seconds of standing cost), so this is accuracy, not justification.
-3. **Two figures without their enumerator** (same rule, fold into the same edit): §4's
-   "the cron's measured 6 h 19 m - 6 h 53 m dispatch delay" names no command or run ids
-   (the diagnosing seat's §2 enumerated four dispatches and the cron string; §7 does not
-   carry this one), and §2's "The honest factors run 0.47-3.27" prints a table whose
-   minimum is 0.70 and whose only 3.27 attribution is to a night not in the table — a
-   reader cannot get 0.47 from anything shown.
+## Round 1's four items, each checked with my own instrument
 
-## Reported, not blocked: the wiring is unpinned, in an idiom this file already owns
+**1. The class search: landed, and its claims resolve.** The grep round 1 ran
+(`grep -n -i "record-autofix\|closures-autofix\|class" dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`)
+now exits 0: §2b, "Class search: where else this shape reaches", six members. Every
+checkable claim in it I verified myself:
+- `closures-autofix` **is** pull_request-only: its `if:` at this head is
+  `!cancelled() && github.event_name == 'pull_request' && needs.closures.result ==
+  'failure' && …head.repo.full_name == github.repository`, and on the 10-08 schedule run
+  `37753990323` job `113252338415` `closures-autofix` concluded **`skipped`** while
+  `113233890832` `closures` concluded **`failure`** — both from my own jobs fetch
+  (`evidence/my_1008_closures.txt`). `dev/governance/rules/ci-autofix.md`'s summary table
+  really does name `closures-autofix` as the repair for `UNDER-SCOPED, INERT READS` (its
+  "Same-repo PRs" line scopes all three repair jobs to PRs), so the member is the shape it
+  claims.
+- The two hand-edit repairs exist and are what the doc says: `b416093e9` "fix:
+  inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051)" and
+  `387128bb3` "closures: list the new harness among harness_headers.py's inert reads" —
+  ancestors of main, both 2026-10-08, and each touches `tests/closures.json` and nothing
+  else ("two hand edits to the committed table" ✓).
+- **The correction to the diagnosing seat is TRUE, and it also corrects round 1.**
+  `record-autofix` has an `if:`, character-for-character what §2b quotes, at this head,
+  at the diagnosing seat's `83f7ca558` and at round 1's `d7c830c2f`. Round 1's own verdict
+  text repeated the stale "missing job-level `if:`" claim; the class member the fixer kept
+  is the narrower one, and its three faults are real — from logs I fetched myself:
+  10-05 `returned HTTP 401`, 10-06 `returned HTTP 422`, 10-07 `Process completed with
+  exit code 128` plus `the record step did not run; a beat owed cannot be distinguished
+  from one skipped`. The three live rows' titles (#1957/#1962/#1974) being about other
+  properties I did not re-read; the body's out-of-scope routing of the lane itself is the
+  orchestrator's.
+- Members 3/5/6: `driver_timeout(1200, 0.0) = 1200` and all three call sites
+  (`3457`/`3470`/`3552`) take the same seeded basis in every scope ✓ (member 3's reach
+  claim); `slow` = `timeout-minutes: 150`, `nightly-ha` = 45, neither job's YAML mentions
+  `driver_timeout` or `mutation_table` ✓; `governance.yml` contains zero `actions/runs`
+  and zero `workflow_runs` ✓; `tests/nightly_status.py` `OWED_WHEN_RED` at line 206 (the
+  owed text names `gh workflow run tests.yml` at 209) and line 547
+  `run.get("head_branch") != default_branch` ✓; the `_gh_if` §7 cites exists at
+  `entities.py:30485` ✓.
 
-The five new `entities.py` checks drive the functions; none pins the carrier that makes
-them matter. `grep -n "pool-seconds\|pool_seconds" tests/entities.py` shows no assertion
-against the YAML for `--pool-seconds`, the `if: always()` save, or the cache key, and no
-`_MUT_BODY` assertion that `main()` calls `seed_pool_seconds`/`write_pool_seconds` — while
-the same file states the reason in its own words two sections earlier: *"The pre-pass is
-wired into the driver's main flow: defined-but-never-called is the silent-green shape this
-repository keeps finding"* (line 29915), and it then supplies the exact instrument —
-`_MUT_BODY = pathlib.Path(_mut.__file__).read_text()`, used at line 30437 for
-`"--drain is wired: its slice from drain_pool, its pins written out, the ledger here
-untouched"`, and `_MUT_BW_MISSING` at line 31800, ~70 lines after the new checks, for
-"Wired, against the YAML: each caller passes a budget under its timeout". So deleting
-`--pool-seconds` from `tests.yml` today, or reverting line 3453 back to
-`own_s = recorded_seconds()`, leaves all 2239 checks green and the nightly back on 3x a
-solo recording — the defect of this PR, restorable without tripping a check.
+**2. The count is corrected, and the correction is what CI shows.** I read the failing
+jobs of all six runs myself: 10-03 `mutation-ledger`; 10-04 `mutation-ledger`; 10-05
+`record-autofix`; 10-06 `record-autofix`; 10-07 `record-autofix` + `mutation-ledger` +
+`mutation-nightly`; 10-08 `nightly-ha` ×2 + `closures` + `mutation-nightly`. In the logs I
+fetched, 10-03 prints `MUTATION TABLE REFUSED -- the null control … NULL_COMMENT was
+killed by tests/harness_headers.py` and **no** bound timeout, while 10-07 prints
+`timed out after 1576s` and 10-08 `timed out after 2401s` — the bound arm is **two**
+nights. §1's table now marks the three floor nights "*Inferred* exposure" and the two
+tripping nights "**printed**", and that marking matches the logs. §4's split — 0.33/night
+(2/6) for the arm this PR fixes, 0.67/night (4/6) for the family including the `EXCLUSIVE`
+sibling — is the arithmetic of that table, and the cost test clears on the arm alone
+(200 min of voided lane work over the two nights against 0 s standing cost).
 
-I did not block on it: no check the PR claims is vacuous, the mechanism works as wired
-(I traced the wiring read-to-write: `3436` read, `3453` seed, `3461` record, `3598`
-persist, argparse flag confirmed by `--help`), and this is a coverage gap rather than a
-moved metric. But it is two pins in the file's existing idiom, in the same round as the
-record fixes, and the class this PR is the countermeasure for *is* "a lane that does not
-call its own instrument".
+**3. Both enumerators reproduce their figures.** The factor range: I fetched the three
+job logs myself (`112708109605`, `112708109541`, `113233890923`) and applied §2's stated
+rule (factor = pool / the committed solo recording at *that run's* head, excluding the
+`env_drift.py` stub and any solo < 1 s). **Kept 16 + 16 + 19 = 51 rows**; min **0.4653**
+(`harness_headers.py` 449.2 → 209) and max **3.2692** (`structure.py` 5.2 → 17) — exactly
+the doc's ends, drivers and inputs; the two `rc=124` boost rows land at 3.0002 / 3.0005,
+which is the doc's "censored, ≥ 3.00"; 10-08's min `block_duty.py` 1.6 → 1 = 0.625.
+`evidence/factor_range_mine.txt`. The delay: over the twelve schedule runs I fetched,
+`created_at` − `02:17Z` (`tests.yml:119` = `- cron: "17 2 * * *"`, line checked) gives
+**5 h 54 m** (`37108891698`, 08:11:57Z) to **6 h 53 m** (`37909555545`, 09:10:23Z) — the
+doc's two ends, both re-taken.
 
-One residual, stated so the record is complete and no seat has to re-derive it: a
-baseline that **times out** contributes no `measured_pool` entry (`if not run.timed_out`),
-so on a cold cache a driver whose pool cost already exceeds 3x its solo recording
-forwards the prior seed unchanged rather than learning the bound it just proved too
-small. Not a regression — the new bound is ≥ the old one for every driver at every head
-(`RESULT seed-never-lowers: PASS`) — and it is the form `RCA` §5 item 2 prescribed, with
-the new refusal text naming the remedy for a human. Worth one line in §5 as a named
-limitation.
+**4. The wiring is pinned, and each pin bites.** `tests/entities.py` at this head answers
+**2241** (round 1: 2239): my own whole-file run prints `ALL 2241 ENTITY CHECKS PASSED`,
+exit 0, with seven checks named `RCA-1565 …` (`evidence/entities_HEAD_green.txt`). I
+re-ran the arms with a targeted block harness (`evidence/review_block2.py`, execs the
+tree's own lines 31585..31792 verbatim, with `_workflow_job` and `_TESTS_YML` lifted from
+`entities.py` by line marker rather than re-implemented): CLEAN **0 of 7**; the merge-base
+`mutation_table.py` **4 of 7** (three defect checks + the driver pin, both null controls
+and the workflow pin green — the body's "4 of 2241" arm); **A** 1 of 7, **B** 1 of 7,
+**C** (`--pool-seconds` out of both lanes) 1 of 7, **D** (seed call site reverted to
+`recorded_seconds()`, round 1's own example) 1 of 7, **E** (`if: always()` off the cache
+save) 1 of 7 — each red check exactly the one the body names, every restore confirmed
+`git diff --quiet HEAD` clean. **E** is the arm the brief asked me to run and it fires
+through the adjacency regex, not the step name.
 
-## What I re-measured, and it is real
+**5. Nothing regressed.** Hygiene all clean at the head: both claim files 0 diff lines vs
+live `origin/main`; **no** `*_budgets.json` in the diff at all; `VERSION`,
+`RELEASE_NOTES.md`, `manifest.json` untouched; `tests/structure.py` → STRUCTURE RATCHET
+PASSED (`seam_cut_total 760 <= 760`, so the +64 lines paid for themselves);
+`fold_ledger.py check` → 28 classes, 549 instances, 39 in-tree judge survivors, **101 rca
+entries / 0 violation(s)**; `bugclasses.json`'s `RCA-1565-mutation-timeouts` → `status:
+done`, `parts_missing: []`, `process_state` "(c) … (d) … arm", countermeasure naming the
+(iv) refusal, `doc` and `in_tree_home` both citing the RCA file (which fold_ledger is what
+validates, and it passes) — and the doc really contains those sections: §3 "(c), with a
+(d) arm", §4 "Cost test (wall-clock, per occurrence, over this release cycle)" with both
+sides in minutes and the P(recurrence) split, §5 the countermeasure.
+`git merge-tree --write-tree b2b6acd64 HEAD` exits 0 with **no** `MERGE-CLAIM` line on
+stderr; `mergeable_state: blocked` is the draft + code-owner review, not a conflict
+(step 13).
 
-The dispatch's claims 1-7, each with my own instrument at this head, not the fixer's:
+## What blocks: the record this PR lands still contradicts the record this PR corrects
 
-- `RESULT bound-arithmetic: ALL-EQUAL` — with the tree's own `driver_timeout` and
-  `seed_pool_seconds` over `git show <head>:tests/closures.json` for the six heads:
-  10-03/04/05 (absent recording) -> **1200**, 10-07 (525.3) -> **1576**, 10-08 (800.2)
-  -> **2401**, this merge base (1489.6) -> **4469**; and with the pool cost seeded,
-  solo 800.2 / pool 1573 -> **4719**, pool 2400 -> **7200**. The bound is exactly
-  `max(floor, ceil(3 x max(solo, pool)))` — the fix's arithmetic, not `3 x solo`.
-  `evidence/bound_rederive.py`.
-- `RESULT seconds-band: UNCHANGED` — `git diff b2b6acd64...HEAD -- tests/closure.py` is
-  **0 lines**; `SECONDS_BAND = 2.0` at both ends, `TIMEOUT_SCALE = 3` at both ends. The
-  fix decouples the bound from the band as §5 required and re-tunes nothing, so no
-  `metric-gamed: seconds band`.
-- `RESULT refusal-path-drive: 17 of 17 assertions hold` — I drove `baseline_refusal`
-  with a fabricated stale recording (rc 124, stderr `timed out after 2401s`, committed
-  `{seconds: 800.2, rc: 0}`): the verdict prints "the baseline TIMED OUT in …", the
-  bound, the recording, `= 3.00x the recording, committed rc 0`, "the recording is
-  STALE, not the suite", and the re-record remedy, and it does **not** contain "Fix the
-  suite first"; a real failing check still says "Fix the suite first" and names the
-  check and never says STALE; a mixed baseline prints both arms; the green baseline
-  returns `None`; `full -> 1`, `changed -> 0` unchanged from the base. The docstring's
-  false claim is qualified ("for a FAILING CHECK"), not deleted, as the RCA prescribed.
-  `evidence/refusal_drive.py`.
-- `RESULT targeted-block[HEAD]: 0 of 5 failed` / `RESULT targeted-block[REVERTED
-  mutation_table]: 3 of 5 failed` — **my step-14 arm**: `tests/mutation_table.py`
-  reverted to `b2b6acd64` in my worktree, the five checks run (their own source region,
-  `entities.py` lines 31585-31728, execed verbatim — not re-implemented), then
-  `git checkout HEAD -- tests/mutation_table.py` and confirmed byte-identical to the copy
-  I saved. The three red are exactly the defect checks; the two null controls stay green
-  **at both ends**, which is the flat-by-design companion `fixer.md` step 3 owes. So no
-  pin is vacuous and no pass is bought by the instrument.
-  `evidence/block_HEAD.txt`, `evidence/block_REVERTED.txt`.
-- `RESULT seed-never-lowers: PASS` — 42 (solo, pool) pairs plus all 34 drivers in the
-  committed table: no seeded bound is below its unseeded bound. `RESULT fail-soft`:
-  `pool_seconds(None)`, a missing path, and 10 malformed bodies (`""`, `{not json`,
-  `[]`, `{"seconds":"x"}`, `null`, negative, bool, string root, wrong container) each
-  return `{}`. `RESULT round-trip: PASS` — `write_pool_seconds` -> `pool_seconds`
-  recovers `{boost_drift_replay: 1573.0, features: 772.0}`, file in the canonical
-  sorted layout with `head`.
-- `RESULT carrier-fires-on-refusal-night: YES` — judged on its merits, and the deviation
-  is right. `mutation-ledger`'s job condition is `!cancelled() && github.ref ==
-  'refs/heads/main' && (schedule || …)`, `needs: [recheck-gate]` — it runs on the
-  schedule whatever its drive concluded, and both the stage step and the
-  `actions/cache/save` are `if: always()`, so the measurement is written and saved on
-  exactly the night `mutation-ledger-push` would not have run (that job's `needs.mutation-ledger.result
-  == 'success'` I re-read at this head: it is the trap the RCA named). The unique-per-run
-  key with `restore-keys: pool-seconds-` is the standard "write a new entry, read the
-  latest prefix" shape, so the save cannot collide and a re-run just fails soft
-  (`continue-on-error: true`). Fail-soft is real at every link: absent restore ->
-  `--pool-seconds` path missing -> `{}`; `cp` of a file the run never wrote falls through
-  to `||` and the restored seed stays and is re-saved; the write is wrapped so an
-  `OSError` warns instead of masking the verdict. And the seed never lowers a bound, so a
-  cache miss is today's behaviour, not a smaller one. `actions/cache` needs no write
-  grant and no secret: workflow `permissions: {contents: read}`, and `git diff` of the
-  workflow adds **no** `secrets.` and no `contents: write` — decision 0011's measuring-job
-  invariant holds, and the deviation is better-founded than the carrier the RCA named,
-  because that carrier would have widened a policy grant a fixer may not widen.
-  I also checked the extra file cannot disturb the writer: `apply_drained` reads only
-  `status`/`head`/`pins.json`, the drain dir lives in `runner.temp` outside the checkout,
-  and `drain_write_set_problems`/`git add` take explicit paths — so `pool_seconds.json`
-  cannot reach `git status`.
-- `RESULT null-control-figures: RE-DERIVED` — the tree's own `recorded_seconds()` at this
-  head gives 730.5 / 760.6 / 259.6 / 0.9 / 199.0 exactly as §6 states, and every seeded
-  bound covers its CI pool cost; `env_drift.py` stays floor-bound at 1200 before the fix
-  and rises to 1572 after, covering its 524 s pool cost either way — the fix reads flat
-  on it, as claimed.
-- `RESULT record: CLEAN-AT-BOTH-ENDS` — `python3 -I tools/audit/fold_ledger.py check`:
-  **both** `b2b6acd64` and this head print "28 classes, 549 instances, 39 in-tree judge
-  survivors, 101 rca entries / 0 violation(s)" — nothing newly refused. `bugclasses.json`
-  moves `RCA-1565-mutation-timeouts` partial->done with `process_state` (c) + the (d)
-  arm, `parts_missing: []`, the cost test present, and `in_tree_home` / `doc` citing the
-  new path (fold_ledger is what validates that citation, and it passes). `RESULT
-  structure: STRUCTURE RATCHET PASSED` at head, and `*_budgets.json`: **0 lines moved** —
-  no raise, correctly, since #2074 was dispatched without the owner's. `RESULT orphans:
-  []` at both ends, so the new tracked `dev/audit/rca/` file is already classified and
-  costs no future full gate.
-- `RESULT claims-and-versions: NONE-MOVED` — `tests/golden/claimed_drift.txt` and
-  `tests/golden/card_claimed_drift.txt` byte-identical to `origin/main` (0 diff lines),
-  `VERSION`, `RELEASE_NOTES.md` and `custom_components/heatpump_optimizer/manifest.json`
-  untouched.
-- `RESULT mutation-lane: empty scope, read from the log not the conclusion` — job
-  `113815002602`: "MUTATION TABLE -- scope changed: no production code line added or
-  modified against the base" / "MUTATION TABLE PASSED (empty scope)", and "4623 unpinned
-  site(s) of 5891 candidate sites, 4623 at the ratchet base b2b6acd64…" — the count is
-  identical at both ends, so the green is "none was evaluated", not "no mutant survived",
-  and no ledger or ratchet number moved (`fix-review.md` step 11's separation).
-- `RESULT merge-state: CLEAN` — `git merge-tree --write-tree origin/main HEAD` exits 0
-  with no driver refusal on stderr; the API's `mergeable_state: blocked` is the draft +
-  code-owner review, not a conflict (step 13).
+Both items are edits to files the PR already touches. No production or pin line is in
+question, and every number above survives.
 
-## Step 11, the checks at the head
+**a) §7's figure index was rewritten this round and left on round 1's head**
+(`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md:403-410`). The new bullet — "Failing arm,
+surgical mutations, green arm" — still reads "**the five checks** named 'RCA-1565 …'" and
+quotes **four `2239` tallies** (`entities_FAILINGARM.txt` = "3 of 2239",
+`entities_MUTA/MUTB` = "1 of 2239", `entities_FINAL.txt` = "ALL 2239 ENTITY CHECKS
+PASSED"). At the head the doc claims to be measured at (lines 9-12: "Base measured:
+`origin/main` at `b2b6acd64` … Where a figure IS that seat's and was not re-taken, the
+line says so") the file answers **seven** checks and **2241**, and the PR's own body says
+so ("4 of 2241", `entities_R2_*`) — so the doc and the body now state two different
+failing-arm tallies for the same described arm, and §7's command,
+`PYTHONPATH=tests/hastub python tests/entities.py`, no longer prints the numbers beside
+it. Two of §7's neighbours were updated in the same edit (the streak-end and the
+per-night attribution bullets), which is what makes this a slip rather than a choice.
+And the **C/D/E arms this round added — the proof that the two new pins bite — are absent
+from the landed record entirely**: `defect-root-cause.md`'s "A detector must be shown to
+detect … Both runs go in the report" lands in the doc, not the body, precisely because
+"the analysis is `dev/audit/rca/<id>.md`" while "a pull-request body or comment can be
+deleted or its author retired". The demonstration exists (I re-ran it: 1 of 7 each, 4 of
+7 on the revert) — the record just does not carry it. Fix: restate the bullet at this head
+(seven checks, `entities_R2_REVERT.txt` 4 of 2241, `entities_MUTC/D/E` 1 of 2241 each,
+`entities_R2_HEAD.txt` ALL 2241), and keep round 1's `2239` lines only if labelled as the
+round-1 head's, by the doc's own disclosure convention.
 
-`nightly-status` is **success** at this head (`113815002358`), as is `delivery-status`,
-so no red needs answering there — and the arm that governs is the **non-exempt** one:
-this diff touches `.github/workflows/tests.yml`, which is what `nightly-status` reads, so
-`defect-root-cause.md`'s exemption for the main-grading reporters does not apply and the
-body owed the answer. It gives one, and correctly identifies the red it anticipated as
-main's stranded nightly conclusion rather than a regression this diff introduces.
-`instrument-self-tests` **success** (`113814674855`) — the lane that pins workflow edits
-is green, as is `budget-raise-gate` (`113814674538`), `pr-contract`, `briefs`,
-`policy-docs`, `env-matrix`, `closure-scope`, `typing`, `hassfest`, `validate-hacs`,
-`browser`, all three CodeQL `Analyze` arms.
+**b) the pool-factor correction reached the document but not the lines this PR adds**
+— so the tree contradicts §2 of its own RCA. Three new comment lines still assert the
+superseded figure *as the measurement*: `tests/mutation_table.py:136` ("the same script
+costs 1.3-3.3x its solo recording there"), `tests/mutation_table.py:2883` — inside
+`seed_pool_seconds`'s docstring, the function this PR installs — "the pool/solo factor
+the lane itself measured **(1.3-3.3x across drivers on 2026-10-07/08)**", and
+`.github/workflows/tests.yml:1085` ("the 3-worker pool exceeds by 1.3-3.3x"). §2 of the
+same document, and my own re-derivation over exactly those drivers, nights and rule,
+measure **0.47–3.27** (51 rows; the low end is `harness_headers.py` on 10-07). "Across
+drivers on 2026-10-07/08" is the same population and the same window, so one of the two
+is false, and the code is the false one. The fourth line is the same mis-attribution the
+round-2 message says was corrected: the new `tests/entities.py:31575-31576` comment calls
+closure.py's `0.3x-3.4x` "a pool factor the tree's own comment states reaches 3.4x", where
+§2/§3 now say that figure is *how much one script's recordings vary run to run* "and is
+not the pool factor". This is the class the RCA is the countermeasure for — a lane that
+does not consult its own instrument — reproducing in the PR that lands the instrument:
+the next seat to touch the bound will read `1.3-3.3x` out of the function's own docstring,
+which is exactly how the inherited figure travelled this far. Fix: the four lines take
+`0.47-3.27 (§2)` (and entities.py names 3.4x as recording variation, not pool factor); or,
+if the correction is deliberately not going into the code this round, §2b says so in one
+line, because nothing at head currently does.
 
-Full step-11 state at the head, latest run per name from the check-runs API (polled every
-300 s to settle; `evidence/checkruns_final.tsv`, `evidence/ci_poll.log`,
-`evidence/ci_required_at_head.txt`, `evidence/fast314_gate_lines.txt`). **CI settled green:
-all 17 required contexts present and `success`, none red, none absent.** Run 37928966135 /
-37928966128 / 37928966187 / 37928966090 at this head, settled 13:06:14Z.
+## Reported, not blocking (three nits, all in the same file)
 
-`fast (3.14)` (job `113815002902`) is the whole-file run I cite rather than repeat: it
-printed `GATE_SCOPE: auto`, `MODE: FULL -- every script runs, nothing is scoped out`
-(`tests.yml` changes the gate itself, as the body says), then **`ALL 2239 ENTITY CHECKS
-PASSED`** and `STRUCTURE RATCHET PASSED`. So the five new checks are green inside the real
-2239-check run at this head, and my targeted block run above is the failing arm, not a
-substitute for the whole file. Other greens: `closures`, `coverage`, `coverage-ratchet`,
-`typing`, `env-matrix`, `briefs`, `policy-docs`, `wave-script`, `pr-contract`,
-`closure-scope`, `browser`, `hassfest`, `validate-hacs`, `mutation`, `budget-raise-gate`,
-the three `Analyze` arms, `CodeQL`, `delivery-status`, `nightly-status`,
-`instrument-self-tests`. Skipped, all expected on a non-main `pull_request`: the four
-`*-autofix` lanes, `record`, `recheck-gate`, `slow`, `nightly-ha`, `mutation-nightly`,
+- §1's per-night bound table covers five of the six-night streak and silently skips
+  **10-06** (head `cff39dad6`), whose recording I read as `{seconds: 765.6, rc: 0}` →
+  bound **2297 s** — the one night of the streak with a *seeded-looking* number that is
+  neither floor nor printed. A row (or a half-line saying why 10-06 is not in it) closes
+  the gap; no figure depends on it, since 10-06's mutation lanes passed.
+- §2b's header ("Each member below was re-measured at this head") and member 3's
+  "Sampled rather than enumerated … not re-sampled here" pull opposite ways; the member's
+  own disclosure is the honest one, so the header is the line to soften.
+- The body's `## Head` names branch `fix/r9-nightly-mutation-bound`; the remote has only
+  `fix/r9-nightly-bound` (`git ls-remote`), and it calls the row commit "an automatic
+  merge of `origin/main`" when `955dd09a3`'s only parent *is* main — the operative claim,
+  that no reviewed line moved, I verified. The opening "five distinct causes" and §2b's
+  "three refusals are three different faults … rather than one cause" cannot both be the
+  count; state which grouping.
+
+## Step 11, the checks at this head
+
+CI settled at this head, polled every 300 s from 14:58:59Z to **15:44:21Z** (`evidence/ci_poll.log`).
+From the check-runs API at `96497ffc6` (`evidence/checkruns_final.tsv`, 40 runs / 38
+names) against the required list read from ruleset 23698884 `main-protect-checks`
+(enforcement active, `evidence/ruleset_raw.json`), compared in
+`evidence/ci_required_at_head.txt`: **all 17 required contexts ran and concluded
+`success`** — `fast (3.14)`, `browser`, `briefs`, `closure-scope`, `closures`, `typing`,
+`hassfest`, `validate-hacs`, `policy-docs`, `wave-script`, `pr-contract` (two arms),
+`env-matrix`, `Analyze (actions)`, `Analyze (javascript-typescript)`, `Analyze (python)`,
+`mutation`, `budget-raise-gate` (two arms). **ABSENT: none. NOT-success: none.** The two
+the brief named are green — `instrument-self-tests` (the lane that owns workflow-edit pins)
+and `fast (3.14)` (the whole-file run) — and `nightly-status`, which round 1 verified at
+the pre-merge head, is **success** here too, as are `delivery-status`, `coverage`,
+`coverage-ratchet`, `graders-head-copy` and `CodeQL`; the remaining 14 names are the
+expected `skipped` PR-only arms (`closures-autofix`, `claims-autofix`, `mutation-autofix`,
+`record-autofix`, `record`, `recheck-gate`, `slow`, `nightly-ha`, `mutation-nightly`,
 `mutation-ledger`, `mutation-ledger-push`, `mutation-pins`, `mutation-pin-plan`,
-`delivery-status-publish`.
+`delivery-status-publish`). Suite ids: `102813714594` (tests.yml: closures, coverage,
+fast (3.14), mutation, nightly-status), `102813714569` (instrument-self-tests),
+`102813715254`/`102813715225` (pr-contract).
+`fast (3.14)` is the whole-file run; rather than repeat it I ran the file myself at this
+head — `ALL 2241 ENTITY CHECKS PASSED` (above) — so the seven `RCA-1565` checks including
+the two new pins are green both in CI's lane and in my own run.
+No red check needs a root-cause answer at this head, and the non-exempt arm of
+`defect-root-cause.md` was already answered by the body in round 1 and unchanged since
+(the diff still touches `.github/workflows/tests.yml`, which `nightly-status` reads, and
+the body names the cheaper detector and its standing cost). `mutation` is green; step 11's
+separation was read at round 1's head as `empty scope`, and I relied on it there rather
+than re-fetching the lane log — see the mechanism-identity argument above.
 
-## Forward-carry
 
-The (iv) arm — honouring `EXCLUSIVE` under `--scope full`, an unpinned-count raise,
-`budget-raise-gate` (0013) — **is** carried where the body says it is: the RCA doc §4
-"(iv) Not built, routed to the owner" and the `bugclasses.json` countermeasure both name
-it and its price (211 s + 430 s x2 lanes, ~21 min/night). That destination exists and I
-read it. The class search in blocked item 1 is the one that does not.
+## Step 12, head discipline
+
+I measured `96497ffc694302b814eecaeea2710bfdbebf6678` — the SHA the PR reports as its head
+and the SHA the body names under `## Head` as the reviewed-and-merged result. Re-read
+before posting: the API still answers `head.sha = 96497ffc694302b814eecaeea2710bfdbebf6678`,
+`state: open`, `draft: true` (`evidence/head_recheck.tsv`), so the head did not move under
+this verdict. If it moves after posting, the mechanism files survive only their byte-
+identity with `7e8c5c8e4`, and the CI paragraph is this head's own.
 
 ## What this round owes
 
-Round 1, so `fixer.md` owes a repair, not a re-cut. All three blocked items are record
-edits to one file this PR already adds (`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md`), plus
-the body's two sentences; nothing in `tests/mutation_table.py`, `tests/entities.py` or
-`.github/workflows/tests.yml` needs to change for them, and every measurement above stands
-unchanged. The wiring pins are offered in the same round, not required by this block.
-Route it back to the fixer that authored `955dd09a3`, not to a fresh seat: no production
-line is in question.
+Round 2, so `fixer.md` still owes a repair, not a re-cut. Both blocking items are text
+edits to files this PR already touches — one bullet in
+`dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md` (§7's arm tally, plus the C/D/E arms and the
+`entities_R2_*` log names), and four comment lines (`tests/mutation_table.py:136` and
+`:2883`, `.github/workflows/tests.yml:1085`, `tests/entities.py:31575-31576`) — with the
+three nits optional in the same round. **No production predicate, no pin, no bound number
+is in question**: the mechanism, the seven checks, the class search, the corrected count
+and both enumerators verify, and every figure in this verdict is mine, taken at this head.
+Route it back to the fixer that authored `7e8c5c8e4`, as round 1 said: the same seat owns
+the file, and the correction to be finished is its own.
 
-The head is still `d7c830c2fa99ee2428f86aa469a7da540f21eeb9` when I post (re-read after CI
-settled, per step 12), `draft: true`, `state: open`.
+## RESULT lines (round 2)
 
-## Head discipline
+Full list with instruments in `evidence/RESULT2.txt`; the load-bearing ones:
 
-I measured `d7c830c2fa99ee2428f86aa469a7da540f21eeb9`, the PR's head at dispatch and the
-SHA its body names under `## Head`. If the head moves under this verdict, the code
-numbers above survive only for the SHA named here; the CI paragraph would not.
+- `RESULT scope-unchanged: PASS` — the round-2 delta is the RCA doc `+333/−68` and
+  `tests/entities.py` `+64` (one hunk); `git diff 7e8c5c8e4 96497ffc6` for
+  `tests/mutation_table.py` and `.github/workflows/tests.yml` is empty, and the head adds
+  only `dev/programme/delivery/2074.md` over `7e8c5c8e4`.
+- `RESULT green-arm-mine: ALL 2241 ENTITY CHECKS PASSED`, exit 0, seven `RCA-1565` checks
+  `ok` (my own whole-file run at the head).
+- `RESULT targeted-block: CLEAN 0 of 7 | REVERT 4 of 7 | A 1 | B 1 | C 1 | D 1 | E 1` —
+  each red check exactly the one the body names; restores confirmed `git diff --quiet HEAD`.
+- `RESULT class-search-carry: LANDED` — round 1's grep now exits 0; §2b has six members;
+  `closures-autofix` is pull_request-only and job `113252338415` was `skipped` beside a
+  `failure` `closures` on run `37753990323`; `b416093e9`/`387128bb3` are ancestors of main
+  with the quoted subjects and touch `tests/closures.json` only.
+- `RESULT record-autofix-correction: TRUE` — the `if:` exists verbatim at this head, at
+  `83f7ca558` and at `d7c830c2f`; the three faults read out of logs I fetched (`HTTP 401`,
+  `HTTP 422`, `exit code 128` + the beat-owed line). Round 1's verdict text carried the
+  stale claim; the record here corrects it.
+- `RESULT per-night-attribution: CORRECT` — bound arm on TWO nights; 10-03/10-04 print the
+  `EXCLUSIVE` null-control refusal and no bound timeout; the Inferred/printed marking
+  matches CI's logs; §4's 0.33 and 0.67 are that table's arithmetic.
+- `RESULT factor-range-mine: 51 rows, 0.4653-3.2692` (`harness_headers.py` 449.2→209,
+  `structure.py` 5.2→17) from three logs I fetched under §2's stated rule; the rule
+  reproduces the doc's number. `RESULT delay-mine: 5h54m–6h53m` over twelve runs.
+- `RESULT bound-arithmetic-mine: 1200/1576/2401/4469, seeded 4719/7200/7203` with the
+  tree's own `driver_timeout` over seven heads — round 1's numbers, re-derived not relied
+  on (except the `mutation` lane's empty-scope reading, above).
+- `RESULT hygiene: PASS` — claims files 0 lines vs live `origin/main`, no budgets file in
+  the diff, VERSION/notes/manifest untouched, STRUCTURE RATCHET PASSED, `fold_ledger` 101
+  rca entries / 0 violations, RCA-1565 `done` with `parts_missing: []` and the (c)+(d)
+  process state, `merge-tree` exit 0 with no `MERGE-CLAIM`.
+- `RESULT FINDING-record-7` and `RESULT FINDING-record-factors` — the two blocks.
+- `RESULT ci-at-head: 17 of 17 required success`, `nightly-status`/`instrument-self-tests`/
+  `fast (3.14)`/`coverage`/`coverage-ratchet`/`delivery-status` success, nothing red.

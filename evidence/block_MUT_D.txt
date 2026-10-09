@@ -1,0 +1,14 @@
+# MUT_D: entities.py lines 31585..31792 (208 source lines)
+# lifted _workflow_job from lines 1625..1632; _TESTS_YML from 19159..19160
+# mutation_table.py seed_pool_seconds present = True
+# tests.yml --pool-seconds occurrences = 3
+
+=== RCA-1565 block (reviewer targeted run: MUT_D) ===
+  ok   RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's margin, not TIMEOUT_SCALE x a band-stale solo recording
+  ok   RCA-1565 null control: a healthy driver's bound still covers its pool cost, the seed never lowers a bound, and env_drift stays floor-bound (not scaled)
+  ok   RCA-1565: the pool measurement round-trips through pool_seconds.json, and an absent/unreadable/malformed file seeds nothing (fail-soft, never a smaller bound)
+  ok   RCA-1565: a baseline that TIMED OUT against a green committed recording names the stale recording and the bound, not 'fix the suite first'
+  ok   RCA-1565 null control: a real red baseline (a failing check, not a timeout) still says 'fix the suite first' and names the check
+  FAIL RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound with it, records each pool baseline, and persists from the finally  [missing=['own_s = seed_pool_seconds(recorded_seconds(), prior_pool)']; finally-persist at 167786, tree cleanup at 168724 -- the persist must be inside the finally and first in it]
+  ok   RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and mutation-ledger persists on an if: always() cache save in the measuring job, never in the success-gated push job
+RESULT targeted-block[MUT_D]: 1 of 7 failed
