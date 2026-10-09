@@ -4926,7 +4926,7 @@
     "R9-EG-B11"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-flight",
     "branch": "handoff/r9-eg-archscore-required",
     "commit": null,
     "last_step": null,
