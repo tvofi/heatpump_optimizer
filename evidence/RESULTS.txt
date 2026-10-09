@@ -1,11 +1,11 @@
-RESULT null      head predictor on unmodified tree: rc=0 (null_head.txt)
-RESULT A-edit    pinned line away.py:574 edited: new rc=1 STALE PIN _parse_return_time RETURN_DEL 17d5e3f1; old(base copy) rc=0 (A.txt, A.base.txt)
-RESULT B-delete  restore_override deleted: new rc=1 STALE PIN restore_override GUARD_OFF 5cc88563; old rc=0 (B.txt, B.base.txt)
-RESULT C-remedy  A + pin file removed: new rc=0, ADDED UNPINNED warning only (C.txt)
-RESULT D-shift   14 comment lines prepended to away.py: rc=0, no STALE PIN (D.txt)
-RESULT E-wedge   base=commit carrying a stale pin, branch edits only tests/README.md: rc=1 STALE PIN (E.txt) -- not diff-scoped
-RESULT cost      completeness_problems 0.0043/0.0074/0.0034 s over 5891 sites, 1250 pins; inventory 2.88/3.12/4.18 s
-RESULT wall      predictor head 5.68/4.39/5.18 s vs base 7.73/5.77/5.72 s (noise; no measurable add)
-RESULT carry     brief_lint, 14-line prepend to thermal_model.py: rc=1 FIXTURE VACUOUS; 1-line prepend: rc=0 FIXTURE ok (bl14.txt, bl1.txt); CI briefs=success at head
-RESULT merge-sim main+2073+2067+2072 clean in 3 orders, identical tree 85031e98; bash -n ok; duplicate '# --- 6d.' label comes from #2072 alone (layout guard); 6e unused; #2073 adds no label
-RESULT ruleset   mutation required in 23698884, strict_required_status_checks_policy=false -> a stale pin can reach main by a two-PR race
+RESULT null     unmodified head: rc=0 (null.txt)
+RESULT edit     pinned line away.py:574 edited: rc=1 PREDICT ledger STALE PIN _parse_return_time RETURN_DEL 17d5e3f1 (A.txt)
+RESULT delete   restore_override deleted: rc=1 PREDICT ledger STALE PIN restore_override GUARD_OFF 5cc88563 (B.txt)
+RESULT remedy   edit + pin file removed: rc=0 (C.txt)
+RESULT wedge    base carries stale pin, branch edits tests/README.md only: rc=0, PREDICT mutation STALE PIN ON MAIN (not this diff's) (E.txt)
+RESULT ledger   base carries stale pin, branch edits only that pin's ledger file: rc=1 STALE PIN (L.txt)
+RESULT perturb  ledger-file arm removed (mine = file_ in changed): same plant rc=0 -> the arm is live (Lmut.txt)
+RESULT ci       instrument-self-tests job 113698515544 success; log lines 975-977 'ok' for STALE PIN refuse, refuse-unlike-unpinned, and the pstaleun null control (instrument-self-tests.log)
+RESULT settle   40 check-runs complete at head; only red nightly-status
+RESULT merge    main+2073+2067(09d2061b)+2072(8766b840) clean in 3 orders, tree 571a0ac7; bash -n ok; 6a 6b 6c 6d 6e unique
+RESULT carry    re-derived at 47b083b0: .github --perturb lines 0, dev/audit 1704, governance.yml:411 codeowners_gap --self-test
