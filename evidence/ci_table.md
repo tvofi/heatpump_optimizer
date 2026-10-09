@@ -1,0 +1,40 @@
+Latest-per-name at `1f9d606dd` (commit check-runs API, 2026-10-09 20:34-20:35Z; the raw rows are in `evidence/ci_final_raw.tsv`):
+
+| check | status | conclusion |
+|---|---|---|
+| Analyze (actions) | completed | success |
+| Analyze (javascript-typescript) | completed | success |
+| Analyze (python) | completed | success |
+| CodeQL | completed | success |
+| briefs | completed | success |
+| browser | completed | success |
+| budget-raise-gate | completed | success |
+| claims-autofix | completed | skipped |
+| closure-scope | completed | success |
+| closures | completed | success |
+| closures-autofix | completed | skipped |
+| coverage | in_progress | - |
+| delivery-status | completed | success |
+| delivery-status-publish | completed | skipped |
+| env-matrix | completed | success |
+| fast (3.14) | completed | success |
+| hassfest | completed | success |
+| instrument-self-tests | completed | success |
+| mutation | completed | success |
+| mutation-autofix | completed | skipped |
+| mutation-ledger | completed | skipped |
+| mutation-ledger-push | completed | skipped |
+| mutation-nightly | completed | skipped |
+| mutation-pin-plan | completed | skipped |
+| mutation-pins | completed | skipped |
+| nightly-ha | completed | skipped |
+| nightly-status | completed | success |
+| policy-docs | completed | success |
+| pr-contract | completed | success |
+| recheck-gate | completed | skipped |
+| record | completed | skipped |
+| record-autofix | completed | skipped |
+| slow | completed | skipped |
+| typing | completed | success |
+| validate-hacs | completed | success |
+| wave-script | completed | success |

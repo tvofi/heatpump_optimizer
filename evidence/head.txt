@@ -1,0 +1,3 @@
+measured head: 1f9d606dd88ac324320772fe66142574823ac1e4
+round 4, resolution delta. nonce c766152af8b8f87a42c3d101a8e26a34
+branch merge 1f9d606dd = clean auto-merge of 7843b7992 x a9baf164c

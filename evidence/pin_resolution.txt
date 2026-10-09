@@ -1,0 +1,9 @@
+branch pins (7), resolved against the inventory at 1f9d606dd:
+  MATCH  custom_components/heatpump_optimizer/notifier.py:<module> CONST fd447209  old='FLOOR_RETURN_SILENT_MINUTES = 60.0'  line=182
+  MATCH  custom_components/heatpump_optimizer/notifier.py:FloorReturnWatch.handle GUARD_OFF 0c2c7df9  old='        if problems is None:'  line=219
+  MATCH  custom_components/heatpump_optimizer/notifier.py:floor_return_silence CMP_BOUND 5597aec9  old='    if now - since < timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):'  line=201
+  MATCH  custom_components/heatpump_optimizer/notifier.py:floor_return_silence GUARD_OFF 5597aec9  old='    if now - since < timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):'  line=201
+  MATCH  custom_components/heatpump_optimizer/notifier.py:floor_return_silence GUARD_OFF ed69fc36  old='    if problem is None:'  line=198
+  MATCH  custom_components/heatpump_optimizer/setpoint_check.py:set_issue GUARD_OFF df23403d  old='    if not raise_it:'  line=176
+  MATCH  custom_components/heatpump_optimizer/setpoint_check.py:set_issue GUARD_OFF e82bd653  old='    if data is not None:'  line=188
+dispositions total: 1269; completeness_problems: 0
