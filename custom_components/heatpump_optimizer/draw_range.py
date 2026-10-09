@@ -61,6 +61,15 @@ DISAGREE_SHARE = 0.25
 #: Each configured end stands while the metered end is within this share of
 #: it: a correctly configured pump keeps its configured figures.
 AGREE_TOLERANCE = 0.15
+#: ``follows_ask``: the asked running levels must span this ratio (90th over
+#: 10th percentile) before the window can say whether the draw follows them;
+#: a flat ask is no test of following.
+FOLLOW_ASK_SPAN = 1.15
+#: ... and the draw follows when the slope of log drawn on log asked is at
+#: least this. A draw proportional to its ask has slope 1, an efficiency shift
+#: included (it scales every draw alike); a draw the pump's own controller
+#: sets has slope 0 whatever its level. Halfway between the two.
+FOLLOW_SLOPE_MIN = 0.5
 
 
 @dataclass
@@ -185,6 +194,31 @@ class DrawRange:
         out.config = (lo, hi)
         out.engaged = data.get("engaged") is True
         return out
+
+
+def follows_ask(draw: DrawRange | None) -> bool | None:
+    """Whether the metered draw follows the running level the plan asks.
+
+    ``None`` without the evidence: fewer than ``MIN_SAMPLES`` running samples
+    asked at or above the configured floor, or asks that never moved
+    (``FOLLOW_ASK_SPAN``). Read by the COP learner, whose ratio of drawn to
+    asked is an efficiency reading only where the draw follows the ask.
+    """
+    if draw is None:
+        return None
+    floor = draw.config[0] if draw.config is not None else 0.0
+    pairs = np.array(
+        [(d, a) for d, a in draw.samples if a >= floor and a > 0.0], dtype=float
+    ).reshape(-1, 2)
+    if len(pairs) < MIN_SAMPLES:
+        return None
+    low, high = np.percentile(pairs[:, 1], (LOW_PERCENTILE, HIGH_PERCENTILE))
+    if high < FOLLOW_ASK_SPAN * low:
+        return None
+    asked, drawn = np.log(pairs[:, 1]), np.log(pairs[:, 0])
+    asked = asked - asked.mean()
+    slope = float(np.dot(asked, drawn - drawn.mean()) / np.dot(asked, asked))
+    return slope >= FOLLOW_SLOPE_MIN
 
 
 def is_running_space(

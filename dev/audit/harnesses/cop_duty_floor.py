@@ -7,7 +7,8 @@ reviewer's probe 3 (hpo-seats/review-2066/ev/reviewer_probe3.py) as a control.
 
 Drives the real coordinator's ``_learn_measured_cop`` with synthetic intervals
 on a 14 kW-nameplate install with a 1.0 kW modulation floor (and an overstated
-3.0 kW one), outside the frost band. Run it from a worktree root, at the base
+3.0 kW one), outside the frost band. Each interval also feeds #2065's
+running-draw window, which the off-ask refusal reads, as the cycle does. Run it from a worktree root, at the base
 and at the head:
 
     PYTHONPATH=tests/hastub:custom_components:tests \
@@ -30,6 +31,13 @@ Rows, each "folded/intervals scale":
     the base could already learn: the head must not lose it.
   * ``fixed3_duty<d>`` -- a fixed-speed pump (min == max == 3 kW) at duty
     ``d``, plan and meter both averaging: the behaviour change on such pumps.
+  * ``selfset_<shape>`` -- round 2's reviewer probe 5: 2.2 kW drawn whatever
+    is asked, asks stepping hourly, three-hourly or flat; right scale 1.000.
+  * ``p4_<shape>`` -- round 2's reviewer probe 4: a correctly modulating 6 kW
+    pump with +-10/20 % meter noise, a one-tick lag, and a 1/0.8 efficiency
+    shift (open loop, so its absolute scale is not the truth).
+  * ``true_0.7_reload150`` -- the draw evidence round-tripped through its
+    store form at tick 150, as a restart does.
   * ``liveness`` -- a 4 kW nameplate whose old floor (1.2 kW) already
     admitted 2.2 kW: a zero at the base is the floor, not a dead learner.
 """
@@ -42,6 +50,7 @@ import sys
 sys.path.insert(0, "tests")
 from harness import FakeEntry, FakeHass, FakeState  # noqa: E402
 
+from heatpump_optimizer import draw_range  # noqa: E402
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator  # noqa: E402
 from heatpump_optimizer.thermal_model import on_threshold_kw  # noqa: E402
 
@@ -80,16 +89,31 @@ def coord(p_max: float = 14.0, p_min: float = 1.0) -> HeatPumpOptimizerCoordinat
     return c
 
 
-def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0) -> str:
-    """Feed (asked, drawn) intervals; ``true`` replaces drawn by a heat-led pump's."""
+def run(pairs, p_max=14.0, p_min=1.0, true=None, noise=0.0, reload_at=None) -> str:
+    """Feed (asked, drawn) intervals as the cycle does: the running-draw fold
+    (#2065's ``draw_range.fold``) and then the COP learner reading its
+    evidence. ``true`` replaces drawn by a heat-led pump's; ``reload_at``
+    round-trips the draw evidence through its store form at that tick (a
+    restart)."""
     rnd = random.Random(1)
     c = coord(p_max, p_min)
-    for asked, drawn in pairs:
+    learn = getattr(c._learn_measured_cop, "__code__", None)
+    takes_draw = learn is not None and learn.co_argcount > 1
+    for tick, (asked, drawn) in enumerate(pairs):
         if true is not None:
             drawn = asked * c._cop_scale / true
         c._current_action = {"power": asked, "dhw_power": 0.0}
         c._measured_power = drawn * (1.0 + rnd.uniform(-noise, noise))
-        c._learn_measured_cop()
+        draw = getattr(c._accuracy, "draw", None)
+        if draw is not None:
+            if tick == reload_at:
+                c._accuracy.draw = draw = type(draw).from_dict(draw.as_dict())
+            draw_range.fold(draw, c._measured_power, c._commanded_split(), c._thermal_params,
+                            frozen=False, distorted=False, defrost=False)
+        if takes_draw:
+            c._learn_measured_cop(draw)
+        else:
+            c._learn_measured_cop()
     return f"{c._cop_samples}/{len(pairs)} {c._cop_scale:.3f}"
 
 
@@ -117,6 +141,33 @@ def main() -> None:
         kw = 3.0 * duty + 0.05 * (1.0 - duty)
         print(f"RESULT fixed3_duty{int(duty * 100)}={run([(kw, kw)] * 5, p_max=3.0, p_min=3.0).replace(' ', '_scale=')}")
     print(f"RESULT liveness_folded={run([(2.2, 2.2)] * 3, p_max=4.0).split()[0]}")
+    # Round 2's reviewer probe 5: a pump drawing 2.2 kW +-3 % whatever is
+    # asked, under asks stepping hourly, three-hourly, or flat.
+    for name, block in (("hourly", 4), ("three_hour", 12), ("flat", 96)):
+        rng = random.Random(7)
+        asks: list[float] = []
+        while len(asks) < 96:
+            level = 1.5 if block == 96 else rng.uniform(1.0, 2.0)
+            asks += [level * rng.uniform(0.98, 1.02) for _ in range(block)]
+        pairs = [(a, 2.2 * rng.uniform(0.97, 1.03)) for a in asks[:96]]
+        print(f"RESULT selfset_{name}={run(pairs).replace(' ', '_scale=')}")
+    # Round 2's reviewer probe 4 shapes: 6 kW, 1.5 kW floor, asks 2-5 kW.
+    def p4(seed, f):
+        rng = random.Random(seed)
+        a = [rng.uniform(2.0, 5.0) for _ in range(96)]
+        return f(rng, a)
+    shapes = {
+        "follow_noise10": p4(1, lambda r, a: [(x, x * r.uniform(0.9, 1.1)) for x in a]),
+        "follow_noise20": p4(2, lambda r, a: [(x, x * r.uniform(0.8, 1.2)) for x in a]),
+        "eff0.8_noise5": p4(3, lambda r, a: [(x, x * 1.25 * r.uniform(0.95, 1.05)) for x in a]),
+        "eff0.8_noise10": p4(4, lambda r, a: [(x, x * 1.25 * r.uniform(0.9, 1.1)) for x in a]),
+        "follow_lag1tick": p4(5, lambda r, a: list(zip(a, [a[0]] + a[:-1]))),
+    }
+    for name, pairs in shapes.items():
+        print(f"RESULT p4_{name}={run(pairs, p_max=6.0, p_min=1.5).replace(' ', '_scale=')}")
+    # Evidence across a restart: the draw window is store state (#2065), so a
+    # reload at tick 150 of a true-0.7 run must keep folding.
+    print(f"RESULT true_0.7_reload150={run(matched * 3, true=0.7, noise=0.05, reload_at=150).replace(' ', '_scale=')}")
 
 
 if __name__ == "__main__":

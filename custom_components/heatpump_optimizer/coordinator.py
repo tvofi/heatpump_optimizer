@@ -4433,10 +4433,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             tank = float(ctx._current_state.dhw_temperature)
             return self._thermal_model.compute_cop_dhw(outdoor, tank), True, tank
         return None, False, None
-    def _learn_measured_cop(self) -> None:
-        """Fold this interval into the COP learner, recording why it refused."""
-        self._measured_cop.refusal = self._fold_measured_cop()
-    def _fold_measured_cop(self) -> str | None:
+    def _learn_measured_cop(self, draw: draw_range.DrawRange | None = None) -> None:
+        """Fold this interval into the COP learner (``draw``: the running-draw evidence)."""
+        self._measured_cop.refusal = self._fold_measured_cop(draw)
+    def _fold_measured_cop(self, draw: draw_range.DrawRange | None) -> str | None:
         """Compare measured electrical input with modelled thermal output.
 
         Without a power entity the COP is a curve fitted to a nameplate figure,
@@ -4498,7 +4498,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # from it and is dropped, while a persistent shift WALKS the EWMA
         # (it updates from every sample) and unlocks folding within a
         # handful of intervals. A draw that does not follow the ask at all
-        # walks it too, so a departure must also be consistent (off_ask).
+        # walks it too, so a departure needs draw_range's evidence (off_ask).
         ratio = float(self._measured_power) / max(commanded, 1e-6)
         # Seeded at 1.0 — the model's own expectation, since ``commanded``
         # already carries the current scale — and gated against the value
@@ -4507,7 +4507,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # not: that is what lets a genuine persistent shift unlock.
         ewma = self._cop_ratio_ewma if self._cop_ratio_ewma is not None else 1.0
         self._cop_ratio_ewma = 0.9 * ewma + 0.1 * ratio
-        if refusal := self._measured_cop.judge_ratio(ratio, ewma):
+        if refusal := MeasuredCop.judge_ratio(ratio, ewma, draw):
             _LOGGER.debug(
                 "Skipping COP sample (%s): commanded %.2f kW vs measured %.2f kW "
                 "against the running ratio %.2f -- not an efficiency reading",
@@ -6125,7 +6125,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Persisted on the same every-10-samples cadence as the house learner;
         # both share the thermal learning store.
         cop_samples_before = self._cop_samples
-        self._learn_measured_cop()
+        self._learn_measured_cop(self._accuracy.draw)
         if self._cop_samples != cop_samples_before and self._cop_samples % 10 == 0:
             await self._async_save_thermal_learning()
 

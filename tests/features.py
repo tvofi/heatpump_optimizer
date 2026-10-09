@@ -60313,28 +60313,33 @@ def _cf_pairs(asked, drawn, n=96):
 
 
 def _cf_feed(pairs, true=None):
+    """The cycle's order: #2065's running-draw fold, then the COP learner on its evidence."""
+    from heatpump_optimizer import draw_range as _cf_dr
     coord = _cf_coord()
     coord._current_state.outdoor_temperature = 8.0
     for asked, drawn in pairs:
         coord._current_action = {"power": asked, "dhw_power": 0.0}
         coord._measured_power = asked * coord._cop_scale / true if true else drawn
-        coord._learn_measured_cop()
+        _cf_dr.fold(coord._accuracy.draw, coord._measured_power, coord._commanded_split(),
+                    coord._thermal_params, frozen=False, distorted=False, defrost=False)
+        coord._learn_measured_cop(coord._accuracy.draw)
     return coord
 
 
 _cf_sm = _cf_feed(_cf_pairs((1.0, 1.25, 1.5, 1.75, 2.0), (1.9, 2.2, 2.55)))
+_cf_fl = _cf_feed(_cf_pairs((1.5,), (2.2,)))
 _cf_mt = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (1.9, 2.2, 2.55)))
 _cf_sh = _cf_feed(_cf_pairs((1.9, 2.2, 2.55), (0, 0, 0), 288), true=0.7)
 R.check(
-    "a draw that ignores the ask is refused as off-ask; a matched draw and a "
-    "consistent 0.7 shift still teach",
-    abs(_cf_sm._cop_scale - 1.0) < 0.05
-    and _cf_last(_cf_sm, "refusal") in ("draw_off_ask", "tracking_gate")
+    "a draw that ignores the ask (varying or flat) is refused as off-ask; a "
+    "matched draw and a 0.7 shift on a draw that follows its ask still teach",
+    abs(_cf_sm._cop_scale - 1.0) < 0.05 and _cf_fl._cop_scale == 1.0
+    and _cf_last(_cf_fl, "refusal") == "draw_off_ask"
     and _cf_mt._cop_samples == 96 and abs(_cf_mt._cop_scale - 1.0) < 1e-9
     and abs(_cf_sh._cop_scale - 0.7) < 0.02,
-    f"independent scale {_cf_sm._cop_scale:.3f} ({_cf_sm._cop_samples}/96, "
-    f"{_cf_last(_cf_sm, 'refusal')}); matched {_cf_mt._cop_samples}/96 "
-    f"{_cf_mt._cop_scale:.3f}; shift {_cf_sh._cop_scale:.3f}",
+    f"independent scale {_cf_sm._cop_scale:.3f} ({_cf_sm._cop_samples}/96); flat "
+    f"{_cf_fl._cop_scale:.3f} ({_cf_last(_cf_fl, 'refusal')}); matched "
+    f"{_cf_mt._cop_samples}/96 {_cf_mt._cop_scale:.3f}; shift {_cf_sh._cop_scale:.3f}",
 )
 
 # The last measured COP survives a restart beside cop_scale, with the curve
