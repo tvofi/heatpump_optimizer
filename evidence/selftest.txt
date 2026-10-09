@@ -78,6 +78,8 @@
   ok   and the refusal names the new path
   ok   the same file at dev/audit/harnesses/ passes (null control)
   ok   and the ok line is the guard's own, so it ran
+  ok   a new file in no category is refused
+  ok   and a refusal with no new path does not say to move it there
   ok   a tree with no tests/layout.py skips, never refuses
   ok   the pr-body step calls body_line, so a predicted raise reaches the body check before the push
   ok   the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push
@@ -224,5 +226,6 @@ AssertionError: queue-base
   ok   the derived inputs name tools/policy/counts.mjs
   ok   the derived inputs name tools/policy/render_md.mjs
 
-216 passed, 0 failed
-bash tools/pr/prepr.sh --self-test  61.53s user 31.90s system 33% cpu 4:37.95 total
+218 passed, 0 failed
+bash tools/pr/prepr.sh --self-test  68.37s user 34.63s system 41% cpu 4:07.47 total
+rc=0
