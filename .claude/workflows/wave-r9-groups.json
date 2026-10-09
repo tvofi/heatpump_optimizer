@@ -7788,7 +7788,7 @@
    "after": [],
    "brief": "Round-9 CI PR CI-1 (lane CI, autofix chain repair). Owner-approved fold 2026-10-07: tvofi asked to repair the autofix chain. The RO-11 pre-study (PR #2030, evidence in its body) found the chain repaired nothing across 20 runs on this round's fix PRs: mutation-autofix ended skip-no-measurement in 8 runs, because a 345 s env_drift.py baseline consumed --budget-minutes before any site was measured, and skip-measure-failed in 2; closures-autofix ended skip-manual-repair-owed in 4 and skip-failed-recording in 6. Re-derive these figures from the job logs first. Then make mutation-autofix measure and pin within its budget (reuse a baseline already measured, a separate budget, or a cheaper baseline) and make closures-autofix repair the under-scoped cases it currently skips. Prove each with a run on a real PR head that previously skipped, plus a null control on a head CI kept green. The workflow file is code-owned: merges on tvofi's approving review.",
    "resume": {
-    "stage": "not-started",
+    "stage": "fixing",
     "branch": null
    }
   },
