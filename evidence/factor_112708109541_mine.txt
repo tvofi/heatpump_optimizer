@@ -1,0 +1,19 @@
+HEAD be0cb8213 (job 112708109541, 10-07 ledger)  parsed rows: 23
+KEPT: 16  EXCLUDED: 7 -> [('tests/env_drift.py', 'stub'), ('tests/guard_pins.py', 'solo 0.9 <1s'), ('tests/open_meteo.py', 'solo 0.3 <1s'), ('tests/plan_view.py', 'solo 0.9 <1s'), ('tests/solar_alignment.py', 'solo 0.9 <1s'), ('tests/typing_ruler.py', 'solo 0.3 <1s'), ('tests/wood_advisor.py', 'solo 0.8 <1s')]
+   tests/harness_headers.py           solo=   449.2 pool=  209 factor=0.4653 rc=0
+   tests/stress.py                    solo=   616.7 pool=  434 factor=0.7037 rc=0
+   tests/entities.py                  solo=   192.9 pool=  141 factor=0.7309 rc=0
+   tests/validate.py                  solo=    36.9 pool=   39 factor=1.0569 rc=0
+   tests/edge.py                      solo=    35.5 pool=   45 factor=1.2676 rc=0
+   tests/deployment_shape.py          solo=     2.1 pool=    3 factor=1.4286 rc=0
+   tests/backtest.py                  solo=   118.0 pool=  186 factor=1.5763 rc=0
+   tests/config_flow_steps.py         solo=    12.5 pool=   22 factor=1.7600 rc=0
+   tests/finite_boundary.py           solo=    47.5 pool=   86 factor=1.8105 rc=0
+   tests/doc_claims.py                solo=     4.2 pool=    8 factor=1.9048 rc=0
+   tests/arch_score_head.py           solo=    18.1 pool=   38 factor=2.0994 rc=0
+   tests/optimality.py                solo=   130.7 pool=  290 factor=2.2188 rc=0
+   tests/manual_plan.py               solo=     5.2 pool=   13 factor=2.5000 rc=0
+   tests/features.py                  solo=   276.5 pool=  768 factor=2.7776 rc=0
+   tests/boost_drift_replay.py        solo=   525.3 pool= 1573 factor=2.9945 rc=0
+   tests/structure.py                 solo=     5.2 pool=   17 factor=3.2692 rc=0
+MIN 0.4653 (tests/harness_headers.py: 449.2 -> 209)   MAX 3.2692 (tests/structure.py: 5.2 -> 17) rc=0

@@ -1,0 +1,20 @@
+ARM C (touched tests.yml)
+  exit=1  7 checks / 1 failures
+  red checks: ['RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and mutation-ledger persists on an if: always() cache save in the measuring job, never in the success-gated push job  [missing=[(\'mutation-nightly\', \'--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"\'), (\'mutation-ledger\', \'--pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json"\')]; save-if-always=False]']
+  restore: clean
+ARM D (touched mutation_table.py)
+  exit=1  7 checks / 1 failures
+  red checks: ["RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound with it, records each pool baseline, and persists from the finally  [missing=['own_s = seed_pool_seconds(recorded_seconds(), prior_pool)']; finally-persist at 168433, tree cleanup at 169371 -- the persist must be inside the finally and first in it]"]
+  restore: clean
+ARM A (touched mutation_table.py)
+  exit=1  7 checks / 1 failures
+  red checks: ["RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's margin, not TIMEOUT_SCALE x a band-stale solo recording  [old bound driver_timeout(1200, 800.2) = 2401 (the bound the 10-08 pool cost reached and exceeded, rc 124); new bound driver_timeout(1200, max(800.2, 2401.0)) = 2401, need >= 3 x 2401.0 = 7203.0]"]
+  restore: clean
+ARM B (touched mutation_table.py)
+  exit=1  7 checks / 1 failures
+  red checks: ["RCA-1565: a baseline that TIMED OUT against a green committed recording names the stale recording and the bound, not 'fix the suite first'  [rc=1 out='MUTATION TABLE INCONCLUSIVE' -- a timeout is the lane's own bound, which no cheaper check measures, so it must not be reported as the suite's red]"]
+  restore: clean
+ARM REVERT (touched mutation_table.py)
+  exit=1  7 checks / 4 failures
+  red checks: ["RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's margin, not TIMEOUT_SCALE x a band-stale solo recording  [old bound driver_timeout(1200, 800.2) = 2401 (the bound the 10-08 pool cost reached and exceeded, rc 124); new bound driver_timeout(1200, max(800.2, 2401.0)) = None, need >= 3 x 2401.0 = 7203.0]", 'RCA-1565: the pool measurement round-trips through pool_seconds.json, and an absent/unreadable/malformed file seeds nothing (fail-soft, never a smaller bound)  [round-trip and fail-soft ok = False]', 'RCA-1565: a baseline that TIMED OUT against a green committed recording names the stale recording and the bound, not \'fix the suite first\'  [rc=1 out="MUTATION TABLE INCONCLUSIVE\\n  - the baseline is already red in tests/boost_drift_replay.py, so no mutant\'s verdict means anything. Fix the suite first. A script the scoped gate also selected carries this red on `fast`; one it scoped out does not, and is covered by the forced `full` run on `main` rather than by any check on this pull request.\\n      tests/boost_drift_replay.py: tests/boost_drift_replay.py: timed out after 2401s" -- a timeout is the lane\'s own bound, which no cheaper check measures, so it must not be reported as the suite\'s red]', 'RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound with it, records each pool baseline, and persists from the finally  [missing=[\'ap.add_argument("--pool-seconds"\', \'prior_pool = pool_seconds(getattr(args, "pool_seconds", None))\', \'own_s = seed_pool_seconds(recorded_seconds(), prior_pool)\', \'measured_pool[s] = run.seconds\', \'write_pool_seconds({**prior_pool, **measured_pool},\']; finally-persist at -1, tree cleanup at 158846 -- the persist must be inside the finally and first in it]']
+  restore: clean

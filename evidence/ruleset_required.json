@@ -1,1 +1,1 @@
-expected an object but got: array ([{"parameters":{"do_not_e ...])
+{"checks":[],"enforcement":"active","name":"main-protect-checks"}

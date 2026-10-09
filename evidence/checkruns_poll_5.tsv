@@ -1,14 +1,10 @@
-graders-head-copy	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113989559553
-coverage-ratchet	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113989559531
-closures-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113987922665
-claims-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113986479265
 CodeQL	completed	success	https://github.com/tvofi/heatpump_optimizer/runs/113966564494
 mutation-autofix	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966485947
 mutation-pins	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966485156
 mutation-pin-plan	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966484312
 pr-contract	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624793/job/113966452108
 nightly-ha	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966371416
-closures	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966369487
+closures	in_progress	-	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966369487
 slow	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966246118
 mutation-ledger-push	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966245695
 mutation-ledger	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966245192
@@ -19,8 +15,8 @@ delivery-status-publish	completed	skipped	https://github.com/tvofi/heatpump_opti
 browser	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966243243
 typing	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966243122
 mutation	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966243112
-fast (3.14)	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966243087
-coverage	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966242989
+fast (3.14)	in_progress	-	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966243087
+coverage	in_progress	-	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966242989
 briefs	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966242907
 record	completed	skipped	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624734/job/113966242852
 nightly-status	completed	success	https://github.com/tvofi/heatpump_optimizer/actions/runs/37973624822/job/113966242609
