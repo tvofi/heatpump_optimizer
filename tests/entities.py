@@ -22270,6 +22270,9 @@ _DIAG_OPTIONS = {
         "longitude": _DIAG_OPT_LON,
     },
     const.CONF_TARGET_TEMP: 21.0,
+    # Saved by the options flow unchanged: an option equal to its setup value
+    # overrides nothing, so it is not named as one (review of #2071).
+    const.CONF_ECL110_STATE_TOPIC: _DIAG_TOPIC,
 }
 
 _diag_hass = FakeHass()
@@ -22412,6 +22415,13 @@ R.check(
     and _diag_at(_diag, "entry", "options_keys") == sorted(_DIAG_OPTIONS),
     repr((_diag_at(_diag, "config_setup", const.CONF_TARGET_TEMP),
           _diag.get("config_overridden_by_options"))),
+)
+R.check(
+    "an option equal to its setup value is not named as overriding it",
+    const.CONF_ECL110_STATE_TOPIC in (_diag_at(_diag, "entry", "options_keys") or [])
+    and const.CONF_ECL110_STATE_TOPIC
+    not in (_diag.get("config_overridden_by_options") or []),
+    repr(_diag.get("config_overridden_by_options")),
 )
 R.check(
     "the setup data is redacted like the live config",

@@ -60210,10 +60210,10 @@ _FRS_T0 = datetime(2026, 10, 8, 3, 0, tzinfo=timezone.utc)
 _FRS_ENTITY = "sensor.floor_return_synthetic"
 
 
-def _frs_coord(state, configured=True):
+def _frs_coord(state, configured=True, indoor="21.0"):
     """A real coordinator over one floor-return state; ``None`` removes the entity."""
     states = {
-        "sensor.indoor": FakeState("21.0", unit="°C"),
+        "sensor.indoor": FakeState(indoor, unit="°C"),
         "sensor.outdoor": FakeState("-5.0", unit="°C"),
     }
     if state is not None:
@@ -60229,9 +60229,9 @@ def _frs_coord(state, configured=True):
     return Coord(FakeHass(states), _frs_Entry(data=cfg))
 
 
-def _frs_payload(state, configured=True):
+def _frs_payload(state, configured=True, indoor="21.0"):
     """What one cycle publishes about its inputs, read by the real reader."""
-    coord = _frs_coord(state, configured)
+    coord = _frs_coord(state, configured, indoor)
     _frs_aio.run(coord._update_current_state())
     return {"input_problems": coord._input_health_view()["input_problems"]}
 
@@ -60255,6 +60255,9 @@ _frs_dead = _frs_payload("unavailable")
 _frs_gone = _frs_payload(None)
 _frs_live = _frs_payload("31.5")
 _frs_unset = _frs_payload(None, configured=False)
+# Another configured input dead beside a live floor-return sensor: the
+# finding must select the floor-return slot, not any problem (review of #2071).
+_frs_other = _frs_payload("31.5", indoor="unavailable")
 _frs_lim = _frs_mod.FLOOR_RETURN_SILENT_MINUTES
 R.check(
     "the coordinator publishes an unreadable floor-return sensor as a problem, "
@@ -60308,6 +60311,12 @@ R.check(
     "a live sensor and an unconfigured slot never raise it, at any age",
     _frs_run([(0, _frs_live), (_frs_lim * 10, _frs_live)])[0] == [0, 0]
     and _frs_run([(0, _frs_unset), (_frs_lim * 10, _frs_unset)])[0] == [0, 0],
+)
+R.check(
+    "another input's failure beside a live floor-return sensor never raises it",
+    [p["input"] for p in _frs_other["input_problems"]] == ["indoor_temp_entity"]
+    and _frs_run([(0, _frs_other), (_frs_lim * 10, _frs_other)])[0] == [0, 0],
+    str(_frs_other),
 )
 R.check(
     "a short gap does not accumulate: a reading in between restarts the period",
