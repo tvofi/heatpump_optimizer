@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:follows_ask GUARD_OFF 695c3a8d",
+  "killed_by": "tests/structure.py",
+  "old": "    if high < FOLLOW_ASK_SPAN * low:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 47b083b03a9dcbfb1e33679dc5f7d3313a5fed49: GUARD_OFF (`if False:`) took tests/structure.py from rc=0 failed=0 to rc=1 failed=1."
+}
