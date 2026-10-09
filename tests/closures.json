@@ -2,19 +2,19 @@
  "_comment": "MEASURED, not written by hand. Regenerate with tests/derive_closures.sh; the post-merge gate on main re-records these and fails if this file misses anything a real run touched. recorded.seconds for the two differential guards (tests/golden.py, tests/env_drift.py) time the deliberately cheap stub invocation derive_closures.sh records with (golden.py --only __no_such_scenario__, env_drift.py --cache-key <ref> --all), not a real differential run: a real one costs minutes, the record says under a second (#934).",
  "recorded": {
   "tests/backtest.py": {
-   "seconds": 159.6,
+   "seconds": 153.9,
    "rc": 0
   },
   "tests/card.mjs": {
-   "seconds": 19.4,
+   "seconds": 18.7,
    "rc": 0
   },
   "tests/card_drift.mjs": {
-   "seconds": 5.4,
+   "seconds": 5.3,
    "rc": 0
   },
   "tests/config_flow_steps.py": {
-   "seconds": 39.3,
+   "seconds": 38.0,
    "rc": 0
   },
   "tests/dst_checks.py": {
@@ -22,19 +22,19 @@
    "rc": 0
   },
   "tests/edge.py": {
-   "seconds": 53.6,
+   "seconds": 48.4,
    "rc": 0
   },
   "tests/entities.py": {
-   "seconds": 354.4,
+   "seconds": 259.6,
    "rc": 0
   },
   "tests/env_drift.py": {
-   "seconds": 1.0,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/features.py": {
-   "seconds": 896.1,
+   "seconds": 730.5,
    "rc": 0
   },
   "tests/frontend.py": {
@@ -42,11 +42,11 @@
    "rc": 0
   },
   "tests/golden.py": {
-   "seconds": 1.0,
+   "seconds": 0.9,
    "rc": 0
   },
   "tests/manual_plan.py": {
-   "seconds": 9.2,
+   "seconds": 8.5,
    "rc": 0
   },
   "tests/open_meteo.py": {
@@ -54,31 +54,31 @@
    "rc": 0
   },
   "tests/optimality.py": {
-   "seconds": 186.3,
+   "seconds": 171.9,
    "rc": 0
   },
   "tests/plan_view.py": {
-   "seconds": 1.6,
+   "seconds": 1.5,
    "rc": 0
   },
   "tests/solar_alignment.py": {
-   "seconds": 1.4,
+   "seconds": 1.3,
    "rc": 0
   },
   "tests/stress.py": {
-   "seconds": 1077.8,
+   "seconds": 760.6,
    "rc": 0
   },
   "tests/structure.py": {
-   "seconds": 19.9,
+   "seconds": 10.4,
    "rc": 0
   },
   "tests/validate.py": {
-   "seconds": 56.0,
+   "seconds": 57.7,
    "rc": 0
   },
   "tests/deployment_shape.py": {
-   "seconds": 3.6,
+   "seconds": 3.3,
    "rc": 0
   },
   "tests/ha_contract.py": {
@@ -86,27 +86,27 @@
    "rc": 0
   },
   "tests/typing_ruler.py": {
-   "seconds": 0.6,
+   "seconds": 0.5,
    "rc": 0
   },
   "tests/guard_pins.py": {
-   "seconds": 1.4,
+   "seconds": 1.2,
    "rc": 0
   },
   "tests/wood_advisor.py": {
-   "seconds": 1.8,
+   "seconds": 1.6,
    "rc": 0
   },
   "tests/harness_headers.py": {
-   "seconds": 220.7,
+   "seconds": 199.0,
    "rc": 0
   },
   "tests/doc_claims.py": {
-   "seconds": 10.3,
+   "seconds": 8.6,
    "rc": 0
   },
   "tests/finite_boundary.py": {
-   "seconds": 90.4,
+   "seconds": 84.6,
    "rc": 0
   },
   "tests/md_tables.mjs": {
@@ -114,27 +114,27 @@
    "rc": 0
   },
   "tests/layout.py": {
-   "seconds": 17.3,
+   "seconds": 15.5,
    "rc": 0
   },
   "tests/arch_score.py": {
-   "seconds": 342.6,
+   "seconds": 306.2,
    "rc": 0
   },
   "tests/arch_score_head.py": {
-   "seconds": 41.8,
+   "seconds": 46.4,
    "rc": 0
   },
   "tests/boost_drift_replay.py": {
-   "seconds": 1804.3,
+   "seconds": 1489.6,
    "rc": 0
   },
   "tests/block_duty.py": {
-   "seconds": 2.8,
+   "seconds": 2.6,
    "rc": 0
   },
   "tests/debug_collect.py": {
-   "seconds": 1.7,
+   "seconds": 1.4,
    "rc": 0
   }
  },
@@ -642,6 +642,7 @@
    "tests/golden/claimed_drift.txt",
    "tests/golden/config_flow.json",
    "tests/golden/winter_single_dhw.json",
+   "tests/ha_contract.py",
    "tests/ha_floor.py",
    "tests/ha_floor_names.json",
    "tests/harness.py",
