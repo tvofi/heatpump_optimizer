@@ -22,7 +22,7 @@ A live v6.7.17 install never produced a COP sample. It has a 14 kW nameplate max
 
 ## Head
 
-`c42863e65c21638025df6036de46f2702303cff4` (code head). Its parents include #2065's round-3 head `1e957282e` and origin/main `bd59a4af1`. Round 5 changes no production logic. It re-merges #2065's moved head, re-keys two mutation-ledger pins, re-anchors one `brief_lint` fixture, and re-takes this body. The harness, probe 6 and probe 7 were re-run at this head, and at #2065's `e408b9a28`. #2065's round-3 head `1e957282e` changes only one ledger file over `e408b9a28`, so its production tree is identical. Every row is identical to round 4's at both ends, and the base column below is #2065's head. The test block passes 18 of 18 at this head.
+`16c06fd3287faddf72470cd2d96cd14bad06de7c` (code head). Its parents include #2065's round-3 head `1e957282e` and origin/main `bd59a4af1`. Round 5 changes no production logic. It re-merges #2065's moved head, re-keys two mutation-ledger pins, re-anchors one `brief_lint` fixture, and re-takes this body. The harness, probe 6 and probe 7 were re-run at this head, and at #2065's `e408b9a28`. #2065's round-3 head `1e957282e` changes only one ledger file over `e408b9a28`, so its production tree is identical. Every row is identical to round 4's at both ends, and the base column below is #2065's head. The test block passes 18 of 18 at this head.
 
 ## Mutation proof
 
@@ -81,16 +81,18 @@ Each mutant is applied in its own worktree at `2808a8a94` (production identical 
 
 Each red seen at round 4's head `9d77a97b1`, and its answer:
 
-- **`briefs`**, also refused in `pr-contract`: `FIXTURE VACUOUS wood_share:1152`. `brief_lint.mjs`'s frozen 931dffe fixture cites `thermal_model.wood_share:1152`, and its pin requires that citation to keep failing. Round 4 added `nameplate_power_floor_kw` (12 lines) to `thermal_model.py`, which brought an unrelated `return` within ±1 of :1152, so the pinned error disappeared.
-  - **Repair, an instrument change with no production line moved:** the fixture citation and its pin are re-anchored to :91152, past the file's end. No ordinary edit to `thermal_model.py` can satisfy that, and deleting the anchored rule still drops the pin.
-  - **Measured:** `node tools/policy/brief_lint.mjs` exits 0 at this head. With the re-anchor stashed it exits 1 with `FIXTURE VACUOUS`.
-  - **Cheaper detector:** `brief_lint.mjs` itself, a seconds-long run that I did not run before the round-4 push. Its standing cost is one run per push that shifts lines in a cited file. A frozen expected error checked against the live tree is the known line-pinned-artifact class, and this round hit it twice, which is the `root-cause.md` trigger. That analysis is the root-cause seat's, not this PR's.
+- **`briefs`**, also refused in `pr-contract`: `FIXTURE VACUOUS wood_share:1152`. `brief_lint.mjs`'s frozen 931dffe fixture cites `thermal_model.wood_share:1152` with the qualifying word `return`, and its pin requires that citation to keep failing. Round 4 added `nameplate_power_floor_kw` (12 lines) to `thermal_model.py`, which brought an unrelated `return` within ±1 of :1152, so the pinned error disappeared.
+  - **Repair, an instrument change with no production line moved:** the fixture keeps its :1152 citation, so main's pin needle still matches, and its qualifying word changes from `return` (148 occurrences in `thermal_model.py`) to `break` (0 occurrences). No line shift can then satisfy the citation, and deleting the anchored rule still drops the pin.
+  - **A first repair failed, and why:** it re-pinned the needle inside `brief_lint.mjs` (`e0d7f2450`). The CI `briefs` job restores `brief_lint.mjs` from the base, so CI never saw that pin, and `briefs` stayed red at `588692957`. That commit is reverted, and only the fixture file changes now.
+  - **Measured with main's `brief_lint.mjs`, as CI runs it:** `node tools/policy/brief_lint.mjs` exits 0 at this head. With the fixture restored it exits 1 with `FIXTURE VACUOUS`.
+  - **Cheaper detector:** `brief_lint.mjs`, a seconds-long run, but only with the base's copy restored, as CI does. Its standing cost is one run per push that shifts lines in a cited file. A frozen expected error checked against the live tree is the known line-pinned-artifact class, and this round hit it twice, which is the `root-cause.md` trigger. That analysis is the root-cause seat's.
 - **`mutation`** and **`fast (3.14)`** (`tests/entities.py`, 1 of 2227): two stale `killed_by` pins, `ThermalParameters.flow_lift_power_floor_kw.{CLAMP_DROP,RETURN_DEL}.c0871d84`. Round 4 moved their line into `nameplate_power_floor_kw`.
   - **Repair:** both re-keyed to `ThermalParameters.nameplate_power_floor_kw`, with the same `old` text and digest, then `python3 tests/mutation_table.py --normalize`.
   - **Measured:** the table's source-only ledger checks (`ledger_form_problems` and `completeness_problems` from `tests/mutation_table.py`) report 3 completeness problems before the re-key. After the re-key 1 remains, and it is #2065's: `draw_range.py:DrawRange.from_dict GUARD_OFF d3b18734`, which #2065's round-3 head `1e957282e` deletes. With that head merged, the checks report 0 problems.
   - **Cheaper detector:** those same ledger checks, which run in seconds. mutation-autofix does not re-key, so no bot commit was coming.
 - **`fast (3.14)`** (`tests/layout.py`): round 4 inherited #2065's retired `tools/audit/harnesses/draw_range_evidence.py`. #2065 has since moved it, and `python3 tests/layout.py` exits 0 at this head.
 - **`nightly-status`**: this reports main's last scheduled run, not this diff.
+- **`nightly-ha (stable)`**: red on a commit in this branch's ancestry that came in through main (`ci/r9-nightly-ha-on-pr`, which changed `tests/nightly_ha.py`). This PR's heads skip that lane, and no file of this diff is in it.
 
 ## Forward-carry
 
