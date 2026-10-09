@@ -5587,7 +5587,7 @@
     "stage": "done",
     "branch": "handoff/r9-ro-9",
     "commit": "c518447eb804c72122a7c4ecd479de2eeda62452",
-    "last_step": null,
+    "last_step": "PR #2061 merged c518447eb by the train (verdict 6070873733, mandate approval); it closed no issue",
     "next_step": "fixer.md step 1 at a fresh merge base once every after-edge has merged: re-read handoff/round9/fix/RO.md, re-derive the move map for this group's units, then write the failing check",
     "note_file": "handoff/round9/fix/resume/RO-9.md on handoff/r9-ro-9",
     "review_branch": "handoff/r9-ro-9-review",
