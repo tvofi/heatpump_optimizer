@@ -1,5 +1,5 @@
 layout: 4301 tracked path(s) enumerated
-  category  114 finding(s)
+  category  113 finding(s)
     outside the allowed categories: .claude/workflows/carry-1921.json
     outside the allowed categories: .claude/workflows/wave-3l-groups.json
     outside the allowed categories: handoff/round9/fix/resume/FR-8.md
@@ -10,13 +10,12 @@ layout: 4301 tracked path(s) enumerated
     outside the allowed categories: tools/audit/archscore/calibration/corpus.tsv
     outside the allowed categories: tools/audit/archscore/calibration/corpus_vectors.json
     outside the allowed categories: tools/audit/archscore/calibration/expected.json
-    ... 104 more (--verbose)
-  retired   4 finding(s)
+    ... 103 more (--verbose)
+  retired   3 finding(s)
     planned move not yet made: .claude/workflows/carry-1921.json -> dev/programme/carries/carry-1921.json
-    reintroduces moved path tools/audit/harnesses/early_cutoff_closed_loop.py; it lives at dev/audit/harnesses/ since 2015
     reintroduces moved path tools/audit/round4/D11/d11lib.py; it lives at dev/audit/rounds/round4/ since 2015
     reintroduces moved path tools/audit/round4/D11/governance_cost.py; it lives at dev/audit/rounds/round4/ since 2015
-  reference 1288 finding(s)
+  reference 1286 finding(s)
     .claude/hooks/stop-selfcheck.sh:53 cites retired path tools/audit/briefs/fixer.md; use dev/governance/roles/fixer.md
     .claude/hooks/stop-selfcheck.sh:55 cites retired path docs/HANDOVER.md; use dev/programme/HANDOVER.md
     .claude/hooks/stop-selfcheck.sh:56 cites retired path docs/plan-2026-09-open-issues.md; use dev/programme/plan-2026-09-open-issues.md
@@ -27,12 +26,11 @@ layout: 4301 tracked path(s) enumerated
     .claude/rules/gate-scoping.md:44 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
     .claude/rules/gate-scoping.md:45 cites retired path tools/audit/round4/; use dev/audit/rounds/round4/
     .claude/rules/ratchet-budgets.md:8 cites retired path tools/audit/README.md; use dev/audit/README.md
-    ... 1278 more (--verbose)
+    ... 1276 more (--verbose)
   dead      1 finding(s)
     category dev/programme: glob matches no tracked file: dev/programme/rosters/*.json
 layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
-    placement: tools/audit/harnesses/early_cutoff_closed_loop.py re-adds a moved path; it lives at dev/audit/harnesses/
-layout: GUARD: 1 refusal(s) against bd59a4af1b26
+layout: GUARD: 0 refusal(s) against bd59a4af1b26
   ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 214 of 214 listed
   ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 215 of 215 listed
   ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 214 of 214 listed
