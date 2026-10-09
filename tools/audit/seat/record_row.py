@@ -901,6 +901,15 @@ def self_test() -> int:
            write_rows([self_row(2107)], root) == []
            and (root / "dev/programme/delivery/2107.md").read_text() == rich
            and write_rows([self_row(2106)], root) == [])
+        # THE DIRECTION, driven. #2100 now records its merge, and the beat
+        # writing its own OPEN self-row at that number must not undo the
+        # record. The grant is one-way -- toward the merge -- and dropping its
+        # `want[0] == "merged"` clause turns this check red, so the property the
+        # docstring claims has a witness rather than a sentence.
+        ok("a merged row is never rewritten back to open",
+           write_rows([self_row(2100)], root) == []
+           and f"**merged `{STALE_SHA[:7]}`**" in (
+               root / "dev/programme/delivery/2100.md").read_text())
         # THE GRANT BOUNDARY. Two row shapes a seat wrote are not the
         # generator's to overwrite: a multi-line disposition, and a status the
         # bold carries past the merge (the pre-2026-10 hand style). Both must
