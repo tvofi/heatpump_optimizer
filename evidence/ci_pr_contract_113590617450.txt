@@ -1,0 +1,2 @@
+778:  ERROR   [pr-body] /tmp/pr-body.md: check `instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+780:PR-BODY: 1 error(s) in /tmp/pr-body.md
