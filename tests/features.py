@@ -18511,9 +18511,17 @@ R.check(
 # the gains learner is an open-loop integrator converging to alpha/ridge
 # times the true correction.
 _hl_src = inspect.getsource(_Coord._async_learn_house_heat_loss)
+_lf_src = inspect.getsource(_Coord._async_learn_lower_floor_loss)
+# R9-UX-10: the replay both learners share is a module-level helper, so the
+# profile is pinned where the call now lives -- and the pin also holds both
+# learners to calling it, or a re-inlined replay would drop the profile with
+# nothing left to notice.
+_replay_src = inspect.getsource(inspect.getmodule(_Coord)._replay_interval)
 R.check(
     "the heat-loss replay predicts with the per-hour profile",
-    "hour_of_day=previous_time.hour" in _hl_src,
+    "hour_of_day=previous_time.hour" in _replay_src
+    and "_replay_interval(" in _hl_src
+    and "_replay_interval(" in _lf_src,
     "an open-loop residual never re-centres: fixed point g0 + 2.5*surplus",
 )
 _run_src2 = inspect.getsource(_Coord._refresh_model_corrections)
@@ -55004,10 +55012,9 @@ _P3_ALLOWED = {
      "state.outdoor_temperature"): "the experiment step running now",
     ("coordinator.py", "_battery_view", "compute_cop",
      "ctx._current_state.outdoor_temperature"): "the battery view of the tank now",
-    ("coordinator.py", "_async_learn_house_heat_loss", "simulate_step",
-     "previous_state"): "replays the interval that just ended, in today's weather",
-    ("coordinator.py", "_async_learn_lower_floor_loss", "simulate_step",
-     "previous_state"): "the same replay, for the lower floor",
+    ("coordinator.py", "_replay_interval", "simulate_step",
+     "previous_state"): "the one replay both interval learners share (R9-UX-10): "
+    "the interval that just ended, in today's weather",
 }
 
 
