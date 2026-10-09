@@ -7962,6 +7962,25 @@
     "stage": "fixing",
     "branch": "handoff/r9-row-stale"
    }
+  },
+  {
+   "group": "R9-RC-BUS-FETCHHEAD",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 record-instrument fix (lane fix), found by #2071's round-4 reviewer 2026-10-09 and hit again by the orchestrator the same hour.\n\nDEFECT. `tools/audit/seat/bus.sh`'s `append_commit` keys the new commit's parent on `FETCH_HEAD`. `git fetch` sets `FETCH_HEAD` globally in the checkout, so when another seat or the orchestrator fetches anything between the ref fetch and the commit build, the parent becomes an unrelated tip and the push is refused non-fast-forward. The reviewer's first `push-verdict` from the shared reference checkout was refused exactly that way (`FETCH_HEAD` was main's tip `23d354970`); the guard held and nothing wrong landed, but a verdict was nearly posted onto main's lineage. The orchestrator hit the sibling form of the same bug minutes later: `git fetch -q origin <ref>` followed by `git -C <other worktree> reset --hard FETCH_HEAD` answered `ambiguous argument FETCH_HEAD`, because `FETCH_HEAD` is per-worktree state and the fetch wrote it in a different one.\n\nFIX OWED. Read the ref tip with `git ls-remote`, which `bus.sh` already calls to test existence, and pass that sha as the parent; never `FETCH_HEAD`, never a shell variable that survives a `cd`. Where the script must resolve a ref, resolve it inside the worktree that will use it.\n\nARMS OWED. The perturbation is the whole point: a planted intervening fetch (`git fetch origin main` after the ref fetch, before the commit build) must NOT change the parent the commit gets -- assert this by reading the built commit's parent against `ls-remote`, not by asserting the push succeeded, because a refused push is already the current behaviour and a check that passes on refusal proves nothing. The second arm: `bus.sh --self-test` gains a case that fetches an unrelated ref between the two steps and still appends onto the verdict ref's tip. A null control: an ordinary append with no intervening fetch behaves exactly as today, byte-for-byte on the ref tree.\n\nBOUNDARY. `bus.sh`'s refusals are the instrument's safety: `push-verdict` refuses a verdict outside `fix-review.md`'s grammar, one missing its dispatch's `bus-nonce:`, or one whose evidence dir does not name the 40-hex head. None of those may loosen to make the fetch fix easier, and `confirm`/`post` keep their existing recorded-before-post and withdrawn-on-refusal behaviour. The fix is the parent sha only. A note for the same lane: `bus.sh` computes `ROOT` as `$(dirname $0)/../../..`, so an out-of-tree copy resolves `ROOT` to `/` and its default poster to a nonexistent path -- `confirm` then signs and pushes the `verdict/<pr>` ref and fails at the post, a half-applied operation (#2074 hit this: verdict commit `7c64dd213` landed, the comment did not). Refuse, or document and pin, that running the script from outside a checkout is unsupported.",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "specified instrument fix with an oracle: the parent sha is readable before the push and the intervening-fetch arm is decidable",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
