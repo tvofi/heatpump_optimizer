@@ -1,3 +1,6 @@
-measured head cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2 (PR #2075, round 2, seat review-2075)
-PR live head at verdict time: see poll-head.log (094f2c0d2696b4bd04cd485b9e7fc3f144620053 through 13 passes)
-Poll stopped by the reviewer after 15 passes (75 min at 300 s); the head never moved.
+PR #2075 round-4 adversarial fix review
+head measured: 250c1564795a187334205f006d7bb055163fb102
+reviewer worktree: /Users/timmalmstrom/hpo-seats/review-2075-r4/head (detached at that sha)
+origin/main at review time: 23d354970fcaababe8e67a5c04c326cc8bc79e49
+merge-base origin/main HEAD: f5fb67077eb1f351a904329cb387a01bbc937f97
+reviewer-built harness (NOT the fixer's): harness/build_fixtures.sh, harness/run_matrix.sh, harness/make_mutants.py, harness/norm2010.sh

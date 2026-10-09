@@ -1,1 +1,0 @@
-python3=Python 3.14.7 bash= node=v20.10.0 git=git version 2.38.1
