@@ -7513,7 +7513,7 @@
     "stage": "done",
     "branch": "handoff/r9-ux9",
     "commit": "bab0aeb8d4aa04a4c36b3bdfcfb2978b69cc9f85",
-    "last_step": null,
+    "last_step": "PR #2024 merged a8ce87571 at 17:29Z after the resolution merge review (round 6 verdict) and tvofi's raise review under mandate 6067089637",
     "next_step": "PR #2024 d916687d has a merge verdict but is DIRTY on a real conflict: dev/audit/rounds/round4/D6/claims.py and tests/deployment_shape.py, both sides having recorded their own new module in the same provenance sentence and count. A fixer seat is re-deriving the merged numbers and unioning the provenance; then the same reviewer judges the delta, then recarry and merge",
     "note_file": "handoff/round9/fix/resume/UX-9.md",
     "review_branch": "handoff/r9-ux9-review",
