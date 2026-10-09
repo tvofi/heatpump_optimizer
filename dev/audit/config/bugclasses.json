@@ -2831,19 +2831,17 @@
       "subject": "CI mutation job 90-minute timeouts",
       "trigger": "recurring (lane)",
       "date": "2026-09-24",
-      "status": "partial",
-      "parts_missing": [
-        "process_state",
-        "cost_test"
-      ],
-      "process_state": null,
-      "countermeasure": "spread over worker trees; mutate touched lines; 160-min job",
+      "status": "done",
+      "parts_missing": [],
+      "process_state": "(c) the lane judged its own bound while the suite was green; (d) the bound arm -- its precondition (solo recording -> 3-worker pool) changed under it",
+      "countermeasure": "bound each driver by max(solo recording, the pool cost the lane persists via actions/cache) so it covers the measured pool factor, decoupled from SECONDS_BAND; a baseline TIMEOUT names the stale recording and the bound, not 'fix the suite first'. The EXCLUSIVE-under---scope-full arm (iv) is routed to the owner as an unpinned-count raise. (2026-09-24 partial: spread over worker trees; mutate touched lines; 160-min job.)",
       "landed": "0974905c (#1565)",
       "doc": [
         "origin/main:docs/delivery/1565.md",
-        "RELEASE_NOTES.md (#1565)"
+        "RELEASE_NOTES.md (#1565)",
+        "dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md"
       ],
-      "in_tree_home": null
+      "in_tree_home": "dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md"
     },
     "RCA-1577-ledger-anchors": {
       "class": null,

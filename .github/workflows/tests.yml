@@ -1080,6 +1080,26 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
+      # The prior nightly's pool measurement (RCA-1565). The lane bounds each
+      # driver's first run by `driver_timeout`, which scales a solo recording the
+      # 3-worker pool can cost several times over -- measured 0.47x-3.27x across
+      # the 51 driver rows of the three 2026-10-07/08 nightly runs, by the rule
+      # in dev/audit/rca/R9-NIGHTLY-MUTATION-BOUND.md §2, so the top of that range
+      # is above the scale's own 3x and a band-stale recording leaves ~1.5x of
+      # headroom. `--pool-seconds` seeds the bound from the cost the lane measured
+      # last run, so it covers the pool cost instead of 3x a number
+      # `SECONDS_BAND` keeps up to 2x stale. The cache needs no write grant and no
+      # secret, so this job keeps both (decision 0011: "the measuring job holds no
+      # secret and no write grant"). A miss (first run, eviction) seeds nothing and
+      # the bound falls back to the solo recording -- today's behaviour, never a
+      # smaller bound.
+      - name: Restore the prior pool measurement
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
+          restore-keys: pool-seconds-
+
       # --budget-minutes (R9-F10.12): the run starts no mutant that would end
       # past 270 of the job's 330 minutes, so the drivers' growth shrinks the
       # night's sample, named as partial, instead of timing the job out. The
@@ -1099,6 +1119,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --max 40 --jobs 3 --budget-minutes 270 \
             --seed "$(date -u +%Y%m%d)" \
+            --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-table-full.txt"
 
       - name: Report the pins the draw did not reproduce
@@ -1159,6 +1180,17 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
+      # The prior nightly's pool measurement (RCA-1565); see mutation-nightly's
+      # restore step. This job is the one that persists the fresh measurement
+      # back (the save step below), because it is the lane with a `--drain`
+      # directory the measurement is written into.
+      - name: Restore the prior pool measurement
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
+          restore-keys: pool-seconds-
+
       # Survivors are listed for a human verdict, never triaged here
       # (ci-autofix.md); the step is green on them, and red only when the
       # run itself refused or crashed, which leaves no status behind.
@@ -1170,6 +1202,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --drain "$out" --max 40 --jobs 3 \
             --seed "$(date -u +%Y%m%d)" --budget-minutes 270 \
+            --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-ledger.txt"
           test -s "$out/status"
           {
@@ -1181,6 +1214,38 @@ jobs:
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           cp "$RUNNER_TEMP/mutation-ledger.txt" "$out/"
+
+      # Persist the pool cost this lane measured, for the next nightly's bound
+      # (RCA-1565). `if: always()`: mutation_table writes pool_seconds.json from
+      # its own `finally`, so the measurement exists even on the night the lane
+      # refused on its bound -- exactly the night the next run needs it. This is
+      # the trap the RCA names: the natural carrier (mutation-ledger-push) is
+      # gated on this job's SUCCESS, so it does not run then; the cache save
+      # rides this job instead, which runs on the schedule whatever the drive
+      # concluded, and needs no write grant and no secret. The file carries the
+      # prior seed merged with this run's measurements, so a refusal night with
+      # no new measurement still forwards the seed it read rather than clobbering
+      # it with an empty one.
+      - name: Save the pool measurement for the next nightly
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/pool-seed"
+          cp "$RUNNER_TEMP/mutation-ledger/pool_seconds.json" \
+             "$RUNNER_TEMP/pool-seed/pool_seconds.json" 2>/dev/null \
+            && echo "staged the pool measurement for the cache" \
+            || echo "no pool_seconds.json measured this run; the prior seed stays"
+
+      - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        if: always()
+        # Fail-soft: a cache key is immutable, so a RE-RUN of this job (same
+        # run_id) would collide on the key. The seed is a bound cover, not a
+        # verdict -- a missed save only means the next nightly restores an older
+        # measurement, never a wrong one -- so a save that cannot happen must not
+        # redden the lane.
+        continue-on-error: true
+        with:
+          path: ${{ runner.temp }}/pool-seed
+          key: pool-seconds-${{ github.run_id }}
 
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
