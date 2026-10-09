@@ -106,7 +106,12 @@ def main(argv: list[str]) -> int:
         return 2
     base = subprocess.run(["git", "-C", str(score.REPO), "merge-base", arg["--base"], arg["--head"]],
                           capture_output=True, text=True, check=True).stdout.strip()
-    b, h = vector_at(base), vector_at(arg["--head"])
+    try:
+        b, h = vector_at(base), vector_at(arg["--head"])
+    except score.UnsupportedEntry as e:
+        print(f"FAIL: refused, {e}. The score reads regular files only, and a link under custom_components/ "
+              "can hide a module Python still imports")
+        return 1
     d = score.delta(b, h)
     print(f"merge base {base[:12]}, head {arg['--head'][:12]}")
     print(score.report(b, h))

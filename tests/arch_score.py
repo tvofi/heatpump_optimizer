@@ -86,6 +86,22 @@ def attributes_do_not_hide_code() -> None:
                 "archive kept it")
         R.check("score.tree_of extracts the module the head's .gitattributes marks export-ignore",
                 got == [".gitattributes", "a.py", "hidden.py"], f"{got}")
+        # Plant 5 (#2068 round 3): a .py symlink to a .txt blob is imported by Python and unseen by a scorer
+        # that skips links. A link is refused by name.
+        (pkg / "linked.py").symlink_to("notes.txt")
+        (pkg / "notes.txt").write_text("X = 1\n")
+        for cmd in (["add", "-A"], ["commit", "-qm", "plant5"]):
+            subprocess.run(["git", "-C", str(repo), *cmd], check=True, env=env)
+        score.REPO = repo
+        try:
+            score.tree_of("HEAD", Path(tmp) / "out5")
+            refused = ""
+        except score.UnsupportedEntry as e:
+            refused = str(e)
+        finally:
+            score.REPO = saved
+        R.check("a symlink under custom_components/ is refused by name, not skipped (plant 5)",
+                "linked.py is a symlink" in refused, f"{refused!r}")
 
 
 def base_runs_the_gate() -> None:
