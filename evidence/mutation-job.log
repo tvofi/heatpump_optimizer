@@ -1,0 +1,817 @@
+﻿2026-10-08T23:25:47.9575305Z Current runner version: '2.337.0'
+2026-10-08T23:25:47.9604010Z ##[group]Runner Image Provisioner
+2026-10-08T23:25:47.9605274Z Hosted Compute Agent
+2026-10-08T23:25:47.9606034Z Version: 20261002.596
+2026-10-08T23:25:47.9606914Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+2026-10-08T23:25:47.9607869Z Build Date: 2026-10-02T22:28:27Z
+2026-10-08T23:25:47.9608869Z Worker ID: {8aecd75c-4a25-41bc-a8d7-842de61d4072}
+2026-10-08T23:25:47.9609917Z Region: eastus
+2026-10-08T23:25:47.9610591Z Cloud: Azure
+2026-10-08T23:25:47.9611301Z ##[endgroup]
+2026-10-08T23:25:47.9613047Z ##[group]Operating System
+2026-10-08T23:25:47.9613786Z Ubuntu
+2026-10-08T23:25:47.9614537Z 24.04.5
+2026-10-08T23:25:47.9615204Z LTS
+2026-10-08T23:25:47.9615991Z ##[endgroup]
+2026-10-08T23:25:47.9616685Z ##[group]Runner Image
+2026-10-08T23:25:47.9617642Z Image: ubuntu-24.04
+2026-10-08T23:25:47.9618584Z Version: 20261004.327.1
+2026-10-08T23:25:47.9620211Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+2026-10-08T23:25:47.9622162Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+2026-10-08T23:25:47.9623497Z ##[endgroup]
+2026-10-08T23:25:47.9624833Z ##[group]GITHUB_TOKEN Permissions
+2026-10-08T23:25:47.9627193Z Contents: read
+2026-10-08T23:25:47.9627938Z Metadata: read
+2026-10-08T23:25:47.9628886Z ##[endgroup]
+2026-10-08T23:25:47.9631306Z Secret source: Actions
+2026-10-08T23:25:47.9632631Z Cache mode: write
+2026-10-08T23:25:47.9633454Z Prepare workflow directory
+2026-10-08T23:25:47.9998870Z Prepare all required actions
+2026-10-08T23:25:48.0055141Z Getting action download info
+2026-10-08T23:25:48.1561071Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+2026-10-08T23:25:48.4490333Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+2026-10-08T23:25:48.7787839Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+2026-10-08T23:25:49.4913450Z Complete job name: mutation
+2026-10-08T23:25:49.5643992Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+2026-10-08T23:25:49.5645416Z with:
+2026-10-08T23:25:49.5646091Z   fetch-depth: 0
+2026-10-08T23:25:49.5646861Z   repository: tvofi/heatpump_optimizer
+2026-10-08T23:25:49.5653637Z   token: ***
+2026-10-08T23:25:49.5654364Z   ssh-strict: true
+2026-10-08T23:25:49.5655096Z   ssh-user: git
+2026-10-08T23:25:49.5655836Z   persist-credentials: true
+2026-10-08T23:25:49.5656638Z   clean: true
+2026-10-08T23:25:49.5657371Z   sparse-checkout-cone-mode: true
+2026-10-08T23:25:49.5658316Z   fetch-tags: false
+2026-10-08T23:25:49.5659056Z   show-progress: true
+2026-10-08T23:25:49.5659805Z   lfs: false
+2026-10-08T23:25:49.5660540Z   submodules: false
+2026-10-08T23:25:49.5661279Z   set-safe-directory: true
+2026-10-08T23:25:49.5662176Z   allow-unsafe-pr-checkout: false
+2026-10-08T23:25:49.5663288Z ##[endgroup]
+2026-10-08T23:25:49.6473584Z Syncing repository: tvofi/heatpump_optimizer
+2026-10-08T23:25:49.6476823Z ##[group]Getting Git version info
+2026-10-08T23:25:49.6478930Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T23:25:49.6481751Z [command]/usr/bin/git version
+2026-10-08T23:25:49.8205436Z git version 2.55.0
+2026-10-08T23:25:49.8221420Z ##[endgroup]
+2026-10-08T23:25:49.8233454Z Temporarily overriding HOME='/home/runner/work/_temp/8d9e7b05-450c-4bde-a8ec-1af77ce9b796' before making global git config changes
+2026-10-08T23:25:49.8235680Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T23:25:49.8238050Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:25:49.8808030Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-10-08T23:25:49.8811772Z ##[group]Initializing the repository
+2026-10-08T23:25:49.8815267Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:25:50.0078882Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-10-08T23:25:50.0081208Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-10-08T23:25:50.0083535Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-10-08T23:25:50.0085302Z hint: call:
+2026-10-08T23:25:50.0086294Z hint:
+2026-10-08T23:25:50.0087473Z hint: 	git config --global init.defaultBranch <name>
+2026-10-08T23:25:50.0089077Z hint:
+2026-10-08T23:25:50.0090531Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-10-08T23:25:50.0092885Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-10-08T23:25:50.0094623Z hint:
+2026-10-08T23:25:50.0095548Z hint: 	git branch -m <name>
+2026-10-08T23:25:50.0096658Z hint:
+2026-10-08T23:25:50.0098292Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-10-08T23:25:50.0101234Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-10-08T23:25:50.0104172Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-10-08T23:25:50.0315894Z ##[endgroup]
+2026-10-08T23:25:50.0319741Z ##[group]Disabling automatic garbage collection
+2026-10-08T23:25:50.0320977Z [command]/usr/bin/git config --local gc.auto 0
+2026-10-08T23:25:50.0350041Z ##[endgroup]
+2026-10-08T23:25:50.0351255Z ##[group]Setting up auth
+2026-10-08T23:25:50.0355657Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T23:25:50.0386817Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T23:25:50.0811128Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T23:25:50.0843884Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T23:25:50.1032875Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T23:25:50.1064516Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T23:25:50.1252159Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-10-08T23:25:50.1429939Z ##[endgroup]
+2026-10-08T23:25:50.1431221Z ##[group]Fetching the repository
+2026-10-08T23:25:50.1438616Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +e5f708e89adf651d7030fd2e741ff5cc480e3c4e:refs/remotes/pull/2070/merge
+2026-10-08T23:25:56.8644501Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-08T23:25:56.8645205Z  * [new branch]        bus/approvals           -> origin/bus/approvals
+2026-10-08T23:25:56.8645870Z  * [new branch]        cursor/r9-eg-entry-config-9aac -> origin/cursor/r9-eg-entry-config-9aac
+2026-10-08T23:25:56.8646639Z  * [new branch]        cursor/r9-sw-1-resume-826f -> origin/cursor/r9-sw-1-resume-826f
+2026-10-08T23:25:56.8647355Z  * [new branch]        cursor/r9-sw-2-actuation-6d19 -> origin/cursor/r9-sw-2-actuation-6d19
+2026-10-08T23:25:56.8648000Z  * [new branch]        fix/cop-duty-floor      -> origin/fix/cop-duty-floor
+2026-10-08T23:25:56.8648741Z  * [new branch]        fix/early-cutoff-pr     -> origin/fix/early-cutoff-pr
+2026-10-08T23:25:56.8649489Z  * [new branch]        fix/live-power-clamp-foundation-pr -> origin/fix/live-power-clamp-foundation-pr
+2026-10-08T23:25:56.8650187Z  * [new branch]        fix/r9-ci-2b            -> origin/fix/r9-ci-2b
+2026-10-08T23:25:56.8651033Z  * [new branch]        fix/r9-ci-2b-carry      -> origin/fix/r9-ci-2b-carry
+2026-10-08T23:25:56.8651570Z  * [new branch]        fix/r9-eg-a4            -> origin/fix/r9-eg-a4
+2026-10-08T23:25:56.8652139Z  * [new branch]        fix/r9-nightly-ha-on-pr -> origin/fix/r9-nightly-ha-on-pr
+2026-10-08T23:25:56.8652682Z  * [new branch]        fix/r9-rca-2028         -> origin/fix/r9-rca-2028
+2026-10-08T23:25:56.8653231Z  * [new branch]        fix/r9-rca-prepr-tmp    -> origin/fix/r9-rca-prepr-tmp
+2026-10-08T23:25:56.8653877Z  * [new branch]        fix/r9-review-timing    -> origin/fix/r9-review-timing
+2026-10-08T23:25:56.8654473Z  * [new branch]        fix/r9-ro-9a-pr         -> origin/fix/r9-ro-9a-pr
+2026-10-08T23:25:56.8655016Z  * [new branch]        fix/r9-ux-actions       -> origin/fix/r9-ux-actions
+2026-10-08T23:25:56.8655540Z  * [new branch]        fix/r9-ux9              -> origin/fix/r9-ux9
+2026-10-08T23:25:56.8656114Z  * [new branch]        fix/recarry-skip-prepr  -> origin/fix/recarry-skip-prepr
+2026-10-08T23:25:56.8656830Z  * [new branch]        handoff-body/arch-sound-fixes -> origin/handoff-body/arch-sound-fixes
+2026-10-08T23:25:56.8657518Z  * [new branch]        handoff-body/cop-duty-floor -> origin/handoff-body/cop-duty-floor
+2026-10-08T23:25:56.8658046Z  * [new branch]        handoff-body/early-cutoff -> origin/handoff-body/early-cutoff
+2026-10-08T23:25:56.8658909Z  * [new branch]        handoff-body/live-power-clamp-foundation -> origin/handoff-body/live-power-clamp-foundation
+2026-10-08T23:25:56.8659605Z  * [new branch]        handoff-body/r9-ci-1    -> origin/handoff-body/r9-ci-1
+2026-10-08T23:25:56.8660039Z  * [new branch]        handoff-body/r9-ci-1-autofix-skip -> origin/handoff-body/r9-ci-1-autofix-skip
+2026-10-08T23:25:56.8660488Z  * [new branch]        handoff-body/r9-ci-2a   -> origin/handoff-body/r9-ci-2a
+2026-10-08T23:25:56.8661061Z  * [new branch]        handoff-body/r9-ci-2b   -> origin/handoff-body/r9-ci-2b
+2026-10-08T23:25:56.8661632Z  * [new branch]        handoff-body/r9-ci-2b-carry -> origin/handoff-body/r9-ci-2b-carry
+2026-10-08T23:25:56.8662110Z  * [new branch]        handoff-body/r9-closures-eg-b7 -> origin/handoff-body/r9-closures-eg-b7
+2026-10-08T23:25:56.8662800Z  * [new branch]        handoff-body/r9-dbg-1   -> origin/handoff-body/r9-dbg-1
+2026-10-08T23:25:56.8663292Z  * [new branch]        handoff-body/r9-dbg-2   -> origin/handoff-body/r9-dbg-2
+2026-10-08T23:25:56.8663868Z  * [new branch]        handoff-body/r9-eg-a4   -> origin/handoff-body/r9-eg-a4
+2026-10-08T23:25:56.8664732Z  * [new branch]        handoff-body/r9-eg-b7-harness -> origin/handoff-body/r9-eg-b7-harness
+2026-10-08T23:25:56.8665480Z  * [new branch]        handoff-body/r9-eg-coordinator-seams -> origin/handoff-body/r9-eg-coordinator-seams
+2026-10-08T23:25:56.8666045Z  * [new branch]        handoff-body/r9-eg-entry-config -> origin/handoff-body/r9-eg-entry-config
+2026-10-08T23:25:56.8666506Z  * [new branch]        handoff-body/r9-eg-solve-inputs -> origin/handoff-body/r9-eg-solve-inputs
+2026-10-08T23:25:56.8666937Z  * [new branch]        handoff-body/r9-fixer-cap -> origin/handoff-body/r9-fixer-cap
+2026-10-08T23:25:56.8667340Z  * [new branch]        handoff-body/r9-gittmp  -> origin/handoff-body/r9-gittmp
+2026-10-08T23:25:56.8667755Z  * [new branch]        handoff-body/r9-main-closures -> origin/handoff-body/r9-main-closures
+2026-10-08T23:25:56.8668340Z  * [new branch]        handoff-body/r9-nightly-bdr -> origin/handoff-body/r9-nightly-bdr
+2026-10-08T23:25:56.8668795Z  * [new branch]        handoff-body/r9-nightly-ha -> origin/handoff-body/r9-nightly-ha
+2026-10-08T23:25:56.8669417Z  * [new branch]        handoff-body/r9-nightly-ha-on-pr -> origin/handoff-body/r9-nightly-ha-on-pr
+2026-10-08T23:25:56.8670103Z  * [new branch]        handoff-body/r9-prepr-selftest -> origin/handoff-body/r9-prepr-selftest
+2026-10-08T23:25:56.8670535Z  * [new branch]        handoff-body/r9-rca-1985 -> origin/handoff-body/r9-rca-1985
+2026-10-08T23:25:56.8670909Z  * [new branch]        handoff-body/r9-rca-1990 -> origin/handoff-body/r9-rca-1990
+2026-10-08T23:25:56.8671412Z  * [new branch]        handoff-body/r9-rca-2004 -> origin/handoff-body/r9-rca-2004
+2026-10-08T23:25:56.8671786Z  * [new branch]        handoff-body/r9-rca-2028 -> origin/handoff-body/r9-rca-2028
+2026-10-08T23:25:56.8672194Z  * [new branch]        handoff-body/r9-rca-bugclasses -> origin/handoff-body/r9-rca-bugclasses
+2026-10-08T23:25:56.8731501Z  * [new branch]        handoff-body/r9-rca-prepr-tmp -> origin/handoff-body/r9-rca-prepr-tmp
+2026-10-08T23:25:56.8732184Z  * [new branch]        handoff-body/r9-rca-stamp-race -> origin/handoff-body/r9-rca-stamp-race
+2026-10-08T23:25:56.8732802Z  * [new branch]        handoff-body/r9-rca-stress-recording -> origin/handoff-body/r9-rca-stress-recording
+2026-10-08T23:25:56.8733393Z  * [new branch]        handoff-body/r9-record-automerge -> origin/handoff-body/r9-record-automerge
+2026-10-08T23:25:56.8733950Z  * [new branch]        handoff-body/r9-record-path -> origin/handoff-body/r9-record-path
+2026-10-08T23:25:56.8734461Z  * [new branch]        handoff-body/r9-review-timing -> origin/handoff-body/r9-review-timing
+2026-10-08T23:25:56.8734929Z  * [new branch]        handoff-body/r9-ro-10   -> origin/handoff-body/r9-ro-10
+2026-10-08T23:25:56.8735325Z  * [new branch]        handoff-body/r9-ro-11   -> origin/handoff-body/r9-ro-11
+2026-10-08T23:25:56.8735705Z  * [new branch]        handoff-body/r9-ro-12   -> origin/handoff-body/r9-ro-12
+2026-10-08T23:25:56.8736100Z  * [new branch]        handoff-body/r9-ro-8    -> origin/handoff-body/r9-ro-8
+2026-10-08T23:25:56.8736495Z  * [new branch]        handoff-body/r9-ro-9a   -> origin/handoff-body/r9-ro-9a
+2026-10-08T23:25:56.8736902Z  * [new branch]        handoff-body/r9-sw-5    -> origin/handoff-body/r9-sw-5
+2026-10-08T23:25:56.8737335Z  * [new branch]        handoff-body/r9-sw-actuation -> origin/handoff-body/r9-sw-actuation
+2026-10-08T23:25:56.8737756Z  * [new branch]        handoff-body/r9-sw6     -> origin/handoff-body/r9-sw6
+2026-10-08T23:25:56.8738310Z  * [new branch]        handoff-body/r9-ux-10   -> origin/handoff-body/r9-ux-10
+2026-10-08T23:25:56.8738878Z  * [new branch]        handoff-body/r9-ux-6    -> origin/handoff-body/r9-ux-6
+2026-10-08T23:25:56.8739503Z  * [new branch]        handoff-body/r9-ux-7    -> origin/handoff-body/r9-ux-7
+2026-10-08T23:25:56.8739929Z  * [new branch]        handoff-body/r9-ux-actions -> origin/handoff-body/r9-ux-actions
+2026-10-08T23:25:56.8740343Z  * [new branch]        handoff-body/r9-ux9     -> origin/handoff-body/r9-ux9
+2026-10-08T23:25:56.8740752Z  * [new branch]        handoff/arch-sound-fixes -> origin/handoff/arch-sound-fixes
+2026-10-08T23:25:56.8741160Z  * [new branch]        handoff/audit-r9-alt    -> origin/handoff/audit-r9-alt
+2026-10-08T23:25:56.8741572Z  * [new branch]        handoff/audit-r9-evidence -> origin/handoff/audit-r9-evidence
+2026-10-08T23:25:56.8741995Z  * [new branch]        handoff/audit-r9-find-B1 -> origin/handoff/audit-r9-find-B1
+2026-10-08T23:25:56.8742429Z  * [new branch]        handoff/audit-r9-find-B10 -> origin/handoff/audit-r9-find-B10
+2026-10-08T23:25:56.8742870Z  * [new branch]        handoff/audit-r9-find-B2 -> origin/handoff/audit-r9-find-B2
+2026-10-08T23:25:56.8743305Z  * [new branch]        handoff/audit-r9-find-B3 -> origin/handoff/audit-r9-find-B3
+2026-10-08T23:25:56.8743733Z  * [new branch]        handoff/audit-r9-find-B4 -> origin/handoff/audit-r9-find-B4
+2026-10-08T23:25:56.8744162Z  * [new branch]        handoff/audit-r9-find-B5 -> origin/handoff/audit-r9-find-B5
+2026-10-08T23:25:56.8744602Z  * [new branch]        handoff/audit-r9-find-B6 -> origin/handoff/audit-r9-find-B6
+2026-10-08T23:25:56.8745006Z  * [new branch]        handoff/audit-r9-find-B7 -> origin/handoff/audit-r9-find-B7
+2026-10-08T23:25:56.8745408Z  * [new branch]        handoff/audit-r9-find-B8 -> origin/handoff/audit-r9-find-B8
+2026-10-08T23:25:56.8745825Z  * [new branch]        handoff/audit-r9-find-B9 -> origin/handoff/audit-r9-find-B9
+2026-10-08T23:25:56.8746227Z  * [new branch]        handoff/audit-r9-fixplan -> origin/handoff/audit-r9-fixplan
+2026-10-08T23:25:56.8746758Z  * [new branch]        handoff/audit-r9-issues -> origin/handoff/audit-r9-issues
+2026-10-08T23:25:56.8747179Z  * [new branch]        handoff/audit-r9-judge  -> origin/handoff/audit-r9-judge
+2026-10-08T23:25:56.8747585Z  * [new branch]        handoff/audit-r9-leads  -> origin/handoff/audit-r9-leads
+2026-10-08T23:25:56.8748000Z  * [new branch]        handoff/audit-r9-leads-l2 -> origin/handoff/audit-r9-leads-l2
+2026-10-08T23:25:56.8748668Z  * [new branch]        handoff/audit-r9-leads-l3 -> origin/handoff/audit-r9-leads-l3
+2026-10-08T23:25:56.8749087Z  * [new branch]        handoff/audit-r9-leads-l4 -> origin/handoff/audit-r9-leads-l4
+2026-10-08T23:25:56.8749511Z  * [new branch]        handoff/audit-r9-leads-lc -> origin/handoff/audit-r9-leads-lc
+2026-10-08T23:25:56.8749917Z  * [new branch]        handoff/audit-r9-plan   -> origin/handoff/audit-r9-plan
+2026-10-08T23:25:56.8750320Z  * [new branch]        handoff/audit-r9-register -> origin/handoff/audit-r9-register
+2026-10-08T23:25:56.8750752Z  * [new branch]        handoff/audit-r9-runner-1 -> origin/handoff/audit-r9-runner-1
+2026-10-08T23:25:56.8751179Z  * [new branch]        handoff/audit-r9-sweep-s1 -> origin/handoff/audit-r9-sweep-s1
+2026-10-08T23:25:56.8751596Z  * [new branch]        handoff/audit-r9-sweep-s2 -> origin/handoff/audit-r9-sweep-s2
+2026-10-08T23:25:56.8752011Z  * [new branch]        handoff/audit-r9-sweep-s3 -> origin/handoff/audit-r9-sweep-s3
+2026-10-08T23:25:56.8752443Z  * [new branch]        handoff/audit-r9-sweep-s4 -> origin/handoff/audit-r9-sweep-s4
+2026-10-08T23:25:56.8752881Z  * [new branch]        handoff/audit-r9-sweep-s5 -> origin/handoff/audit-r9-sweep-s5
+2026-10-08T23:25:56.8753301Z  * [new branch]        handoff/audit-r9-sweep-s6 -> origin/handoff/audit-r9-sweep-s6
+2026-10-08T23:25:56.8753731Z  * [new branch]        handoff/audit-r9-sweep-s7 -> origin/handoff/audit-r9-sweep-s7
+2026-10-08T23:25:56.8754187Z  * [new branch]        handoff/audit-r9-verify-g1-v1 -> origin/handoff/audit-r9-verify-g1-v1
+2026-10-08T23:25:56.8754660Z  * [new branch]        handoff/audit-r9-verify-g1-v2 -> origin/handoff/audit-r9-verify-g1-v2
+2026-10-08T23:25:56.8755250Z  * [new branch]        handoff/audit-r9-verify-g1-v3 -> origin/handoff/audit-r9-verify-g1-v3
+2026-10-08T23:25:56.8755731Z  * [new branch]        handoff/audit-r9-verify-g2-v1 -> origin/handoff/audit-r9-verify-g2-v1
+2026-10-08T23:25:56.8756195Z  * [new branch]        handoff/audit-r9-verify-g2-v2 -> origin/handoff/audit-r9-verify-g2-v2
+2026-10-08T23:25:56.8756653Z  * [new branch]        handoff/audit-r9-verify-g2-v3 -> origin/handoff/audit-r9-verify-g2-v3
+2026-10-08T23:25:56.8757100Z  * [new branch]        handoff/audit-r9-verify-g3-v1 -> origin/handoff/audit-r9-verify-g3-v1
+2026-10-08T23:25:56.8757564Z  * [new branch]        handoff/audit-r9-verify-g3-v2 -> origin/handoff/audit-r9-verify-g3-v2
+2026-10-08T23:25:56.8758013Z  * [new branch]        handoff/audit-r9-verify-g3-v3 -> origin/handoff/audit-r9-verify-g3-v3
+2026-10-08T23:25:56.8758838Z  * [new branch]        handoff/audit-r9-verify-g4-v1 -> origin/handoff/audit-r9-verify-g4-v1
+2026-10-08T23:25:56.8759318Z  * [new branch]        handoff/audit-r9-verify-g4-v2 -> origin/handoff/audit-r9-verify-g4-v2
+2026-10-08T23:25:56.8759776Z  * [new branch]        handoff/audit-r9-verify-g4-v3 -> origin/handoff/audit-r9-verify-g4-v3
+2026-10-08T23:25:56.8760210Z  * [new branch]        handoff/cop-duty-floor  -> origin/handoff/cop-duty-floor
+2026-10-08T23:25:56.8760606Z  * [new branch]        handoff/early-cutoff    -> origin/handoff/early-cutoff
+2026-10-08T23:25:56.8761112Z  * [new branch]        handoff/live-power-clamp-foundation -> origin/handoff/live-power-clamp-foundation
+2026-10-08T23:25:56.8761577Z  * [new branch]        handoff/r9-ci-1         -> origin/handoff/r9-ci-1
+2026-10-08T23:25:56.8761999Z  * [new branch]        handoff/r9-ci-1-autofix-skip -> origin/handoff/r9-ci-1-autofix-skip
+2026-10-08T23:25:56.8762414Z  * [new branch]        handoff/r9-ci-2a        -> origin/handoff/r9-ci-2a
+2026-10-08T23:25:56.8762771Z  * [new branch]        handoff/r9-ci-2b        -> origin/handoff/r9-ci-2b
+2026-10-08T23:25:56.8763262Z  * [new branch]        handoff/r9-ci-2b-carry  -> origin/handoff/r9-ci-2b-carry
+2026-10-08T23:25:56.8763680Z  * [new branch]        handoff/r9-closures-eg-b7 -> origin/handoff/r9-closures-eg-b7
+2026-10-08T23:25:56.8764067Z  * [new branch]        handoff/r9-dbg-0        -> origin/handoff/r9-dbg-0
+2026-10-08T23:25:56.8764412Z  * [new branch]        handoff/r9-dbg-1        -> origin/handoff/r9-dbg-1
+2026-10-08T23:25:56.8764752Z  * [new branch]        handoff/r9-dbg-2        -> origin/handoff/r9-dbg-2
+2026-10-08T23:25:56.8765106Z  * [new branch]        handoff/r9-dbg-3        -> origin/handoff/r9-dbg-3
+2026-10-08T23:25:56.8765451Z  * [new branch]        handoff/r9-diag-1       -> origin/handoff/r9-diag-1
+2026-10-08T23:25:56.8765817Z  * [new branch]        handoff/r9-diag-2s      -> origin/handoff/r9-diag-2s
+2026-10-08T23:25:56.8766176Z  * [new branch]        handoff/r9-eg-a4        -> origin/handoff/r9-eg-a4
+2026-10-08T23:25:56.8766556Z  * [new branch]        handoff/r9-eg-archscore -> origin/handoff/r9-eg-archscore
+2026-10-08T23:25:56.8766931Z  * [new branch]        handoff/r9-eg-b0        -> origin/handoff/r9-eg-b0
+2026-10-08T23:25:56.8767310Z  * [new branch]        handoff/r9-eg-b7-harness -> origin/handoff/r9-eg-b7-harness
+2026-10-08T23:25:56.8767811Z  * [new branch]        handoff/r9-eg-collaborator-interfaces -> origin/handoff/r9-eg-collaborator-interfaces
+2026-10-08T23:25:56.8768465Z  * [new branch]        handoff/r9-eg-coordinator-seams -> origin/handoff/r9-eg-coordinator-seams
+2026-10-08T23:25:56.8769006Z  * [new branch]        handoff/r9-eg-dhw-closure-dedupe-v2 -> origin/handoff/r9-eg-dhw-closure-dedupe-v2
+2026-10-08T23:25:56.8769481Z  * [new branch]        handoff/r9-eg-dhw-planner -> origin/handoff/r9-eg-dhw-planner
+2026-10-08T23:25:56.8769901Z  * [new branch]        handoff/r9-eg-entry-config -> origin/handoff/r9-eg-entry-config
+2026-10-08T23:25:56.8770309Z  * [new branch]        handoff/r9-eg-one-copy  -> origin/handoff/r9-eg-one-copy
+2026-10-08T23:25:56.8770727Z  * [new branch]        handoff/r9-eg-param-objects -> origin/handoff/r9-eg-param-objects
+2026-10-08T23:25:56.8771270Z  * [new branch]        handoff/r9-eg-register-fold -> origin/handoff/r9-eg-register-fold
+2026-10-08T23:25:56.8771717Z  * [new branch]        handoff/r9-eg-solve-inputs -> origin/handoff/r9-eg-solve-inputs
+2026-10-08T23:25:56.8772149Z  * [new branch]        handoff/r9-eg-store-version -> origin/handoff/r9-eg-store-version
+2026-10-08T23:25:56.8772618Z  * [new branch]        handoff/r9-eg-surface-identity -> origin/handoff/r9-eg-surface-identity
+2026-10-08T23:25:56.8773073Z  * [new branch]        handoff/r9-eg-typed-payload -> origin/handoff/r9-eg-typed-payload
+2026-10-08T23:25:56.8773529Z  * [new branch]        handoff/r9-eg-typed-payload-b -> origin/handoff/r9-eg-typed-payload-b
+2026-10-08T23:25:56.8773994Z  * [new branch]        handoff/r9-f1-coordinator-10 -> origin/handoff/r9-f1-coordinator-10
+2026-10-08T23:25:56.8774442Z  * [new branch]        handoff/r9-f1-coordinator-2 -> origin/handoff/r9-f1-coordinator-2
+2026-10-08T23:25:56.8774880Z  * [new branch]        handoff/r9-f1-coordinator-3 -> origin/handoff/r9-f1-coordinator-3
+2026-10-08T23:25:56.8775307Z  * [new branch]        handoff/r9-f1-coordinator-4 -> origin/handoff/r9-f1-coordinator-4
+2026-10-08T23:25:56.8775727Z  * [new branch]        handoff/r9-f1-coordinator-5 -> origin/handoff/r9-f1-coordinator-5
+2026-10-08T23:25:56.8776141Z  * [new branch]        handoff/r9-f1-coordinator-7 -> origin/handoff/r9-f1-coordinator-7
+2026-10-08T23:25:56.8776616Z  * [new branch]        handoff/r9-f1-coordinator-7-review -> origin/handoff/r9-f1-coordinator-7-review
+2026-10-08T23:25:56.8777053Z  * [new branch]        handoff/r9-f10-12       -> origin/handoff/r9-f10-12
+2026-10-08T23:25:56.8777408Z  * [new branch]        handoff/r9-f10-13       -> origin/handoff/r9-f10-13
+2026-10-08T23:25:56.8777750Z  * [new branch]        handoff/r9-f10-14       -> origin/handoff/r9-f10-14
+2026-10-08T23:25:56.8778099Z  * [new branch]        handoff/r9-f10-15       -> origin/handoff/r9-f10-15
+2026-10-08T23:25:56.8778646Z  * [new branch]        handoff/r9-f10-16       -> origin/handoff/r9-f10-16
+2026-10-08T23:25:56.8779050Z  * [new branch]        handoff/r9-f10-ci-efficiency -> origin/handoff/r9-f10-ci-efficiency
+2026-10-08T23:25:56.8779543Z  * [new branch]        handoff/r9-f10-claims-baseline-rca -> origin/handoff/r9-f10-claims-baseline-rca
+2026-10-08T23:25:56.8780049Z  * [new branch]        handoff/r9-f10-closure-runalways -> origin/handoff/r9-f10-closure-runalways
+2026-10-08T23:25:56.8780504Z  * [new branch]        handoff/r9-f10-gate-infra-1 -> origin/handoff/r9-f10-gate-infra-1
+2026-10-08T23:25:56.8780936Z  * [new branch]        handoff/r9-f10-gate-infra-1d -> origin/handoff/r9-f10-gate-infra-1d
+2026-10-08T23:25:56.8781379Z  * [new branch]        handoff/r9-f10-gate-infra-4 -> origin/handoff/r9-f10-gate-infra-4
+2026-10-08T23:25:56.8781796Z  * [new branch]        handoff/r9-f10-gate-infra-5 -> origin/handoff/r9-f10-gate-infra-5
+2026-10-08T23:25:56.8782208Z  * [new branch]        handoff/r9-f10-gate-infra-6 -> origin/handoff/r9-f10-gate-infra-6
+2026-10-08T23:25:56.8782657Z  * [new branch]        handoff/r9-f10-harness-timeout -> origin/handoff/r9-f10-harness-timeout
+2026-10-08T23:25:56.8783119Z  * [new branch]        handoff/r9-f10-loop-heartbeat -> origin/handoff/r9-f10-loop-heartbeat
+2026-10-08T23:25:56.8783567Z  * [new branch]        handoff/r9-f10-merge-queue -> origin/handoff/r9-f10-merge-queue
+2026-10-08T23:25:56.8783997Z  * [new branch]        handoff/r9-f11-governance-1 -> origin/handoff/r9-f11-governance-1
+2026-10-08T23:25:56.8784418Z  * [new branch]        handoff/r9-f11-governance-3 -> origin/handoff/r9-f11-governance-3
+2026-10-08T23:25:56.8784831Z  * [new branch]        handoff/r9-f11-governance-4 -> origin/handoff/r9-f11-governance-4
+2026-10-08T23:25:56.8785302Z  * [new branch]        handoff/r9-f11-governance-4-review -> origin/handoff/r9-f11-governance-4-review
+2026-10-08T23:25:56.8785769Z  * [new branch]        handoff/r9-f11-governance-5 -> origin/handoff/r9-f11-governance-5
+2026-10-08T23:25:56.8786185Z  * [new branch]        handoff/r9-f11-governance-6 -> origin/handoff/r9-f11-governance-6
+2026-10-08T23:25:56.8786708Z  * [new branch]        handoff/r9-f11-governance-7 -> origin/handoff/r9-f11-governance-7
+2026-10-08T23:25:56.8787121Z  * [new branch]        handoff/r9-f2-solver-1  -> origin/handoff/r9-f2-solver-1
+2026-10-08T23:25:56.8787518Z  * [new branch]        handoff/r9-f2-solver-3  -> origin/handoff/r9-f2-solver-3
+2026-10-08T23:25:56.8787893Z  * [new branch]        handoff/r9-f2-solver-4  -> origin/handoff/r9-f2-solver-4
+2026-10-08T23:25:56.8788356Z  * [new branch]        handoff/r9-f2-solver-5  -> origin/handoff/r9-f2-solver-5
+2026-10-08T23:25:56.8788740Z  * [new branch]        handoff/r9-f3-stores-1  -> origin/handoff/r9-f3-stores-1
+2026-10-08T23:25:56.8789120Z  * [new branch]        handoff/r9-f3-stores-3  -> origin/handoff/r9-f3-stores-3
+2026-10-08T23:25:56.8789545Z  * [new branch]        handoff/r9-f4-inputs-sysid-1 -> origin/handoff/r9-f4-inputs-sysid-1
+2026-10-08T23:25:56.8789991Z  * [new branch]        handoff/r9-f4-inputs-sysid-2 -> origin/handoff/r9-f4-inputs-sysid-2
+2026-10-08T23:25:56.8790428Z  * [new branch]        handoff/r9-f5-config-text-1 -> origin/handoff/r9-f5-config-text-1
+2026-10-08T23:25:56.8790837Z  * [new branch]        handoff/r9-f6-card-1    -> origin/handoff/r9-f6-card-1
+2026-10-08T23:25:56.8791211Z  * [new branch]        handoff/r9-f6-card-2    -> origin/handoff/r9-f6-card-2
+2026-10-08T23:25:56.8791571Z  * [new branch]        handoff/r9-f6-card-4    -> origin/handoff/r9-f6-card-4
+2026-10-08T23:25:56.8791951Z  * [new branch]        handoff/r9-f7-entities-1 -> origin/handoff/r9-f7-entities-1
+2026-10-08T23:25:56.8792349Z  * [new branch]        handoff/r9-f7-entities-2 -> origin/handoff/r9-f7-entities-2
+2026-10-08T23:25:56.8792760Z  * [new branch]        handoff/r9-f7-family-splits -> origin/handoff/r9-f7-family-splits
+2026-10-08T23:25:56.8793166Z  * [new branch]        handoff/r9-f8-docs-1    -> origin/handoff/r9-f8-docs-1
+2026-10-08T23:25:56.8793676Z  * [new branch]        handoff/r9-f8-docs-2    -> origin/handoff/r9-f8-docs-2
+2026-10-08T23:25:56.8794060Z  * [new branch]        handoff/r9-f8-docs-3    -> origin/handoff/r9-f8-docs-3
+2026-10-08T23:25:56.8794453Z  * [new branch]        handoff/r9-f9-test-pins-2 -> origin/handoff/r9-f9-test-pins-2
+2026-10-08T23:25:56.8794864Z  * [new branch]        handoff/r9-f9-test-pins-3 -> origin/handoff/r9-f9-test-pins-3
+2026-10-08T23:25:56.8795259Z  * [new branch]        handoff/r9-fixer-cap    -> origin/handoff/r9-fixer-cap
+2026-10-08T23:25:56.8795630Z  * [new branch]        handoff/r9-fr-10        -> origin/handoff/r9-fr-10
+2026-10-08T23:25:56.8796015Z  * [new branch]        handoff/r9-friction-study -> origin/handoff/r9-friction-study
+2026-10-08T23:25:56.8796401Z  * [new branch]        handoff/r9-gittmp       -> origin/handoff/r9-gittmp
+2026-10-08T23:25:56.8796796Z  * [new branch]        handoff/r9-main-closures -> origin/handoff/r9-main-closures
+2026-10-08T23:25:56.8797206Z  * [new branch]        handoff/r9-nightly-bdr  -> origin/handoff/r9-nightly-bdr
+2026-10-08T23:25:56.8797597Z  * [new branch]        handoff/r9-nightly-ha   -> origin/handoff/r9-nightly-ha
+2026-10-08T23:25:56.8798026Z  * [new branch]        handoff/r9-nightly-ha-measure -> origin/handoff/r9-nightly-ha-measure
+2026-10-08T23:25:56.8798704Z  * [new branch]        handoff/r9-nightly-ha-on-pr -> origin/handoff/r9-nightly-ha-on-pr
+2026-10-08T23:25:56.8799183Z  * [new branch]        handoff/r9-nightly-status-k5uati -> origin/handoff/r9-nightly-status-k5uati
+2026-10-08T23:25:56.8799632Z  * [new branch]        handoff/r9-prepr-selftest -> origin/handoff/r9-prepr-selftest
+2026-10-08T23:25:56.8800020Z  * [new branch]        handoff/r9-proc-1       -> origin/handoff/r9-proc-1
+2026-10-08T23:25:56.8800356Z  * [new branch]        handoff/r9-proc-3       -> origin/handoff/r9-proc-3
+2026-10-08T23:25:56.8800704Z  * [new branch]        handoff/r9-proc-4       -> origin/handoff/r9-proc-4
+2026-10-08T23:25:56.8801047Z  * [new branch]        handoff/r9-proc-5       -> origin/handoff/r9-proc-5
+2026-10-08T23:25:56.8801558Z  * [new branch]        handoff/r9-rc-prcontract-fix -> origin/handoff/r9-rc-prcontract-fix
+2026-10-08T23:25:56.8801985Z  * [new branch]        handoff/r9-rca-1985     -> origin/handoff/r9-rca-1985
+2026-10-08T23:25:56.8802381Z  * [new branch]        handoff/r9-rca-1990     -> origin/handoff/r9-rca-1990
+2026-10-08T23:25:56.8802738Z  * [new branch]        handoff/r9-rca-2004     -> origin/handoff/r9-rca-2004
+2026-10-08T23:25:56.8803087Z  * [new branch]        handoff/r9-rca-2028     -> origin/handoff/r9-rca-2028
+2026-10-08T23:25:56.8803708Z  * [new branch]        handoff/r9-rca-avoidable-interpreter-bound-recomputation -> origin/handoff/r9-rca-avoidable-interpreter-bound-recomputation
+2026-10-08T23:25:56.8804323Z  * [new branch]        handoff/r9-rca-bugclasses -> origin/handoff/r9-rca-bugclasses
+2026-10-08T23:25:56.8804760Z  * [new branch]        handoff/r9-rca-cpu-gate-blind -> origin/handoff/r9-rca-cpu-gate-blind
+2026-10-08T23:25:56.8805164Z  * [new branch]        handoff/r9-rca-i1       -> origin/handoff/r9-rca-i1
+2026-10-08T23:25:56.8805513Z  * [new branch]        handoff/r9-rca-i3       -> origin/handoff/r9-rca-i3
+2026-10-08T23:25:56.8805845Z  * [new branch]        handoff/r9-rca-i4       -> origin/handoff/r9-rca-i4
+2026-10-08T23:25:56.8806172Z  * [new branch]        handoff/r9-rca-i5       -> origin/handoff/r9-rca-i5
+2026-10-08T23:25:56.8806514Z  * [new branch]        handoff/r9-rca-p1       -> origin/handoff/r9-rca-p1
+2026-10-08T23:25:56.8806866Z  * [new branch]        handoff/r9-rca-p11      -> origin/handoff/r9-rca-p11
+2026-10-08T23:25:56.8807217Z  * [new branch]        handoff/r9-rca-p2       -> origin/handoff/r9-rca-p2
+2026-10-08T23:25:56.8807553Z  * [new branch]        handoff/r9-rca-p3       -> origin/handoff/r9-rca-p3
+2026-10-08T23:25:56.8807900Z  * [new branch]        handoff/r9-rca-p5       -> origin/handoff/r9-rca-p5
+2026-10-08T23:25:56.8808342Z  * [new branch]        handoff/r9-rca-p6       -> origin/handoff/r9-rca-p6
+2026-10-08T23:25:56.8808804Z  * [new branch]        handoff/r9-rca-p9       -> origin/handoff/r9-rca-p9
+2026-10-08T23:25:56.8809431Z  * [new branch]        handoff/r9-rca-persisted-future-instant-trusted-without-bound -> origin/handoff/r9-rca-persisted-future-instant-trusted-without-bound
+2026-10-08T23:25:56.8810081Z  * [new branch]        handoff/r9-rca-prepr-tmp -> origin/handoff/r9-rca-prepr-tmp
+2026-10-08T23:25:56.8810492Z  * [new branch]        handoff/r9-rca-stamp-race -> origin/handoff/r9-rca-stamp-race
+2026-10-08T23:25:56.8810945Z  * [new branch]        handoff/r9-rca-stress-recording -> origin/handoff/r9-rca-stress-recording
+2026-10-08T23:25:56.8811402Z  * [new branch]        handoff/r9-record-automerge -> origin/handoff/r9-record-automerge
+2026-10-08T23:25:56.8811822Z  * [new branch]        handoff/r9-record-path  -> origin/handoff/r9-record-path
+2026-10-08T23:25:56.8812230Z  * [new branch]        handoff/r9-review-timing -> origin/handoff/r9-review-timing
+2026-10-08T23:25:56.8812606Z  * [new branch]        handoff/r9-ro-1         -> origin/handoff/r9-ro-1
+2026-10-08T23:25:56.8812952Z  * [new branch]        handoff/r9-ro-10        -> origin/handoff/r9-ro-10
+2026-10-08T23:25:56.8813300Z  * [new branch]        handoff/r9-ro-11        -> origin/handoff/r9-ro-11
+2026-10-08T23:25:56.8813642Z  * [new branch]        handoff/r9-ro-12        -> origin/handoff/r9-ro-12
+2026-10-08T23:25:56.8813982Z  * [new branch]        handoff/r9-ro-2         -> origin/handoff/r9-ro-2
+2026-10-08T23:25:56.8814318Z  * [new branch]        handoff/r9-ro-3         -> origin/handoff/r9-ro-3
+2026-10-08T23:25:56.8814651Z  * [new branch]        handoff/r9-ro-4         -> origin/handoff/r9-ro-4
+2026-10-08T23:25:56.8814980Z  * [new branch]        handoff/r9-ro-5         -> origin/handoff/r9-ro-5
+2026-10-08T23:25:56.8815310Z  * [new branch]        handoff/r9-ro-6         -> origin/handoff/r9-ro-6
+2026-10-08T23:25:56.8815640Z  * [new branch]        handoff/r9-ro-7         -> origin/handoff/r9-ro-7
+2026-10-08T23:25:56.8815976Z  * [new branch]        handoff/r9-ro-8         -> origin/handoff/r9-ro-8
+2026-10-08T23:25:56.8816308Z  * [new branch]        handoff/r9-ro-9a        -> origin/handoff/r9-ro-9a
+2026-10-08T23:25:56.8816739Z  * [new branch]        handoff/r9-sw-5         -> origin/handoff/r9-sw-5
+2026-10-08T23:25:56.8817107Z  * [new branch]        handoff/r9-sw-actuation -> origin/handoff/r9-sw-actuation
+2026-10-08T23:25:56.8817487Z  * [new branch]        handoff/r9-sw-card      -> origin/handoff/r9-sw-card
+2026-10-08T23:25:56.8817846Z  * [new branch]        handoff/r9-sw-gchv      -> origin/handoff/r9-sw-gchv
+2026-10-08T23:25:56.8818304Z  * [new branch]        handoff/r9-sw-model     -> origin/handoff/r9-sw-model
+2026-10-08T23:25:56.8818659Z  * [new branch]        handoff/r9-sw6          -> origin/handoff/r9-sw6
+2026-10-08T23:25:56.8818996Z  * [new branch]        handoff/r9-ux-10        -> origin/handoff/r9-ux-10
+2026-10-08T23:25:56.8819329Z  * [new branch]        handoff/r9-ux-6         -> origin/handoff/r9-ux-6
+2026-10-08T23:25:56.8819663Z  * [new branch]        handoff/r9-ux-7         -> origin/handoff/r9-ux-7
+2026-10-08T23:25:56.8820016Z  * [new branch]        handoff/r9-ux-actions   -> origin/handoff/r9-ux-actions
+2026-10-08T23:25:56.8820390Z  * [new branch]        handoff/r9-ux-events    -> origin/handoff/r9-ux-events
+2026-10-08T23:25:56.8820750Z  * [new branch]        handoff/r9-ux-health    -> origin/handoff/r9-ux-health
+2026-10-08T23:25:56.8821140Z  * [new branch]        handoff/r9-ux-insight-text -> origin/handoff/r9-ux-insight-text
+2026-10-08T23:25:56.8821513Z  * [new branch]        handoff/r9-ux9          -> origin/handoff/r9-ux9
+2026-10-08T23:25:56.8821849Z  * [new branch]        handoff/r9-web-3        -> origin/handoff/r9-web-3
+2026-10-08T23:25:56.8822179Z  * [new branch]        handoff/r9-web-4        -> origin/handoff/r9-web-4
+2026-10-08T23:25:56.8822512Z  * [new branch]        handoff/r9-web-5        -> origin/handoff/r9-web-5
+2026-10-08T23:25:56.8822854Z  * [new branch]        handoff/r9-web-page     -> origin/handoff/r9-web-page
+2026-10-08T23:25:56.8823330Z  * [new branch]        handoff/rca-1747        -> origin/handoff/rca-1747
+2026-10-08T23:25:56.8823706Z  * [new branch]        handoff/repo-reorg-plan -> origin/handoff/repo-reorg-plan
+2026-10-08T23:25:56.8824145Z  * [new branch]        handoff/silent-windows-plan -> origin/handoff/silent-windows-plan
+2026-10-08T23:25:56.8824521Z  * [new branch]        main                    -> origin/main
+2026-10-08T23:25:56.8824860Z  * [new branch]        proof/r9-ci-1-pr2010    -> origin/proof/r9-ci-1-pr2010
+2026-10-08T23:25:56.8825223Z  * [new branch]        proof/r9-ci-1-pr2025    -> origin/proof/r9-ci-1-pr2025
+2026-10-08T23:25:56.8825579Z  * [new branch]        proof/r9-ci-1-sw1       -> origin/proof/r9-ci-1-sw1
+2026-10-08T23:25:56.8825919Z  * [new branch]        review/1987             -> origin/review/1987
+2026-10-08T23:25:56.8826246Z  * [new branch]        review/1997             -> origin/review/1997
+2026-10-08T23:25:56.8826562Z  * [new branch]        review/2002             -> origin/review/2002
+2026-10-08T23:25:56.8826877Z  * [new branch]        review/2006             -> origin/review/2006
+2026-10-08T23:25:56.8827185Z  * [new branch]        review/2007             -> origin/review/2007
+2026-10-08T23:25:56.8827488Z  * [new branch]        review/2010             -> origin/review/2010
+2026-10-08T23:25:56.8827791Z  * [new branch]        review/2011             -> origin/review/2011
+2026-10-08T23:25:56.8828090Z  * [new branch]        review/2012             -> origin/review/2012
+2026-10-08T23:25:56.8828526Z  * [new branch]        review/2013             -> origin/review/2013
+2026-10-08T23:25:56.8828837Z  * [new branch]        review/2014             -> origin/review/2014
+2026-10-08T23:25:56.8829148Z  * [new branch]        review/2015             -> origin/review/2015
+2026-10-08T23:25:56.8829452Z  * [new branch]        review/2017             -> origin/review/2017
+2026-10-08T23:25:56.8829759Z  * [new branch]        review/2018             -> origin/review/2018
+2026-10-08T23:25:56.8830093Z  * [new branch]        review/2021             -> origin/review/2021
+2026-10-08T23:25:56.8830410Z  * [new branch]        review/2022             -> origin/review/2022
+2026-10-08T23:25:56.8830867Z  * [new branch]        review/2024             -> origin/review/2024
+2026-10-08T23:25:56.8831185Z  * [new branch]        review/2025             -> origin/review/2025
+2026-10-08T23:25:56.8831512Z  * [new branch]        review/2026             -> origin/review/2026
+2026-10-08T23:25:56.8831851Z  * [new branch]        review/2027             -> origin/review/2027
+2026-10-08T23:25:56.8832165Z  * [new branch]        review/2029             -> origin/review/2029
+2026-10-08T23:25:56.8832479Z  * [new branch]        review/2030             -> origin/review/2030
+2026-10-08T23:25:56.8832791Z  * [new branch]        review/2040             -> origin/review/2040
+2026-10-08T23:25:56.8833100Z  * [new branch]        review/2041             -> origin/review/2041
+2026-10-08T23:25:56.8833406Z  * [new branch]        review/2042             -> origin/review/2042
+2026-10-08T23:25:56.8833714Z  * [new branch]        review/2044             -> origin/review/2044
+2026-10-08T23:25:56.8834041Z  * [new branch]        review/2049             -> origin/review/2049
+2026-10-08T23:25:56.8834345Z  * [new branch]        review/2051             -> origin/review/2051
+2026-10-08T23:25:56.8834647Z  * [new branch]        review/2053             -> origin/review/2053
+2026-10-08T23:25:56.8834958Z  * [new branch]        review/2054             -> origin/review/2054
+2026-10-08T23:25:56.8835267Z  * [new branch]        review/2055             -> origin/review/2055
+2026-10-08T23:25:56.8835577Z  * [new branch]        review/2056             -> origin/review/2056
+2026-10-08T23:25:56.8835884Z  * [new branch]        review/2057             -> origin/review/2057
+2026-10-08T23:25:56.8836188Z  * [new branch]        review/2058             -> origin/review/2058
+2026-10-08T23:25:56.8836493Z  * [new branch]        review/2059             -> origin/review/2059
+2026-10-08T23:25:56.8836933Z  * [new branch]        review/2060             -> origin/review/2060
+2026-10-08T23:25:56.8837254Z  * [new branch]        review/2061             -> origin/review/2061
+2026-10-08T23:25:56.8837569Z  * [new branch]        review/2062             -> origin/review/2062
+2026-10-08T23:25:56.8837877Z  * [new branch]        review/2063             -> origin/review/2063
+2026-10-08T23:25:56.8838407Z  * [new branch]        review/2064             -> origin/review/2064
+2026-10-08T23:25:56.8838855Z  * [new branch]        review/2068             -> origin/review/2068
+2026-10-08T23:25:56.8839168Z  * [new branch]        review/2069             -> origin/review/2069
+2026-10-08T23:25:56.8839484Z  * [new branch]        verdict/1987            -> origin/verdict/1987
+2026-10-08T23:25:56.8839826Z  * [new branch]        verdict/1997            -> origin/verdict/1997
+2026-10-08T23:25:56.8840138Z  * [new branch]        verdict/2002            -> origin/verdict/2002
+2026-10-08T23:25:56.8840451Z  * [new branch]        verdict/2006            -> origin/verdict/2006
+2026-10-08T23:25:56.8840774Z  * [new branch]        verdict/2007            -> origin/verdict/2007
+2026-10-08T23:25:56.8841088Z  * [new branch]        verdict/2010            -> origin/verdict/2010
+2026-10-08T23:25:56.8841402Z  * [new branch]        verdict/2011            -> origin/verdict/2011
+2026-10-08T23:25:56.8841716Z  * [new branch]        verdict/2012            -> origin/verdict/2012
+2026-10-08T23:25:56.8842030Z  * [new branch]        verdict/2013            -> origin/verdict/2013
+2026-10-08T23:25:56.8842353Z  * [new branch]        verdict/2014            -> origin/verdict/2014
+2026-10-08T23:25:56.8842677Z  * [new branch]        verdict/2015            -> origin/verdict/2015
+2026-10-08T23:25:56.8842984Z  * [new branch]        verdict/2017            -> origin/verdict/2017
+2026-10-08T23:25:56.8843301Z  * [new branch]        verdict/2018            -> origin/verdict/2018
+2026-10-08T23:25:56.8843614Z  * [new branch]        verdict/2021            -> origin/verdict/2021
+2026-10-08T23:25:56.8843929Z  * [new branch]        verdict/2022            -> origin/verdict/2022
+2026-10-08T23:25:56.8844358Z  * [new branch]        verdict/2024            -> origin/verdict/2024
+2026-10-08T23:25:56.8844681Z  * [new branch]        verdict/2025            -> origin/verdict/2025
+2026-10-08T23:25:56.8845012Z  * [new branch]        verdict/2026            -> origin/verdict/2026
+2026-10-08T23:25:56.8845329Z  * [new branch]        verdict/2027            -> origin/verdict/2027
+2026-10-08T23:25:56.8845640Z  * [new branch]        verdict/2029            -> origin/verdict/2029
+2026-10-08T23:25:56.8845950Z  * [new branch]        verdict/2030            -> origin/verdict/2030
+2026-10-08T23:25:56.8846263Z  * [new branch]        verdict/2040            -> origin/verdict/2040
+2026-10-08T23:25:56.8846572Z  * [new branch]        verdict/2041            -> origin/verdict/2041
+2026-10-08T23:25:56.8846889Z  * [new branch]        verdict/2042            -> origin/verdict/2042
+2026-10-08T23:25:56.8847205Z  * [new branch]        verdict/2044            -> origin/verdict/2044
+2026-10-08T23:25:56.8847532Z  * [new branch]        verdict/2049            -> origin/verdict/2049
+2026-10-08T23:25:56.8847844Z  * [new branch]        verdict/2051            -> origin/verdict/2051
+2026-10-08T23:25:56.8848271Z  * [new branch]        verdict/2053            -> origin/verdict/2053
+2026-10-08T23:25:56.8848601Z  * [new branch]        verdict/2054            -> origin/verdict/2054
+2026-10-08T23:25:56.8848918Z  * [new branch]        verdict/2055            -> origin/verdict/2055
+2026-10-08T23:25:56.8849229Z  * [new branch]        verdict/2056            -> origin/verdict/2056
+2026-10-08T23:25:56.8849539Z  * [new branch]        verdict/2057            -> origin/verdict/2057
+2026-10-08T23:25:56.8849852Z  * [new branch]        verdict/2058            -> origin/verdict/2058
+2026-10-08T23:25:56.8850168Z  * [new branch]        verdict/2059            -> origin/verdict/2059
+2026-10-08T23:25:56.8850478Z  * [new branch]        verdict/2060            -> origin/verdict/2060
+2026-10-08T23:25:56.8850898Z  * [new branch]        verdict/2061            -> origin/verdict/2061
+2026-10-08T23:25:56.8851220Z  * [new branch]        verdict/2062            -> origin/verdict/2062
+2026-10-08T23:25:56.8851537Z  * [new branch]        verdict/2063            -> origin/verdict/2063
+2026-10-08T23:25:56.8851850Z  * [new branch]        verdict/2064            -> origin/verdict/2064
+2026-10-08T23:25:56.8852158Z  * [new branch]        verdict/2069            -> origin/verdict/2069
+2026-10-08T23:25:56.8852560Z  * [new branch]        wip-sync/orchestrator-scratch -> origin/wip-sync/orchestrator-scratch
+2026-10-08T23:25:56.8852980Z  * [new tag]           audit-round2-evidence   -> audit-round2-evidence
+2026-10-08T23:25:56.8853299Z  * [new tag]           v2.3.0-beta.1           -> v2.3.0-beta.1
+2026-10-08T23:25:56.8853591Z  * [new tag]           v2.4.0                  -> v2.4.0
+2026-10-08T23:25:56.8853869Z  * [new tag]           v2.4.1                  -> v2.4.1
+2026-10-08T23:25:56.8854131Z  * [new tag]           v2.5.0                  -> v2.5.0
+2026-10-08T23:25:56.8854386Z  * [new tag]           v2.6.0                  -> v2.6.0
+2026-10-08T23:25:56.8854641Z  * [new tag]           v2.6.1                  -> v2.6.1
+2026-10-08T23:25:56.8854891Z  * [new tag]           v2.7.0                  -> v2.7.0
+2026-10-08T23:25:56.8855142Z  * [new tag]           v2.8.0                  -> v2.8.0
+2026-10-08T23:25:56.8855405Z  * [new tag]           v3.0.0                  -> v3.0.0
+2026-10-08T23:25:56.8855666Z  * [new tag]           v3.1.0                  -> v3.1.0
+2026-10-08T23:25:56.8855921Z  * [new tag]           v3.1.1                  -> v3.1.1
+2026-10-08T23:25:56.8856174Z  * [new tag]           v3.1.2                  -> v3.1.2
+2026-10-08T23:25:56.8856434Z  * [new tag]           v3.14.0                 -> v3.14.0
+2026-10-08T23:25:56.8856698Z  * [new tag]           v3.16.0                 -> v3.16.0
+2026-10-08T23:25:56.8856953Z  * [new tag]           v3.2.0                  -> v3.2.0
+2026-10-08T23:25:56.8857211Z  * [new tag]           v3.3.0                  -> v3.3.0
+2026-10-08T23:25:56.8857571Z  * [new tag]           v3.3.1                  -> v3.3.1
+2026-10-08T23:25:56.8857825Z  * [new tag]           v3.4.0                  -> v3.4.0
+2026-10-08T23:25:56.8858079Z  * [new tag]           v3.4.1                  -> v3.4.1
+2026-10-08T23:25:56.8858451Z  * [new tag]           v3.5.0                  -> v3.5.0
+2026-10-08T23:25:56.8858708Z  * [new tag]           v3.6.0                  -> v3.6.0
+2026-10-08T23:25:56.8858963Z  * [new tag]           v3.6.1                  -> v3.6.1
+2026-10-08T23:25:56.8859222Z  * [new tag]           v3.7.0                  -> v3.7.0
+2026-10-08T23:25:56.8859474Z  * [new tag]           v3.7.1                  -> v3.7.1
+2026-10-08T23:25:56.8859721Z  * [new tag]           v3.8.0                  -> v3.8.0
+2026-10-08T23:25:56.8859969Z  * [new tag]           v4.0.0                  -> v4.0.0
+2026-10-08T23:25:56.8860214Z  * [new tag]           v4.0.1                  -> v4.0.1
+2026-10-08T23:25:56.8860463Z  * [new tag]           v4.0.2                  -> v4.0.2
+2026-10-08T23:25:56.8860719Z  * [new tag]           v4.0.3                  -> v4.0.3
+2026-10-08T23:25:56.8860968Z  * [new tag]           v4.0.4                  -> v4.0.4
+2026-10-08T23:25:56.8861224Z  * [new tag]           v4.0.5                  -> v4.0.5
+2026-10-08T23:25:56.8861474Z  * [new tag]           v4.0.6                  -> v4.0.6
+2026-10-08T23:25:56.8861716Z  * [new tag]           v4.0.7                  -> v4.0.7
+2026-10-08T23:25:56.8861961Z  * [new tag]           v4.1.0                  -> v4.1.0
+2026-10-08T23:25:56.8862206Z  * [new tag]           v4.2.0                  -> v4.2.0
+2026-10-08T23:25:56.8862451Z  * [new tag]           v4.3.0                  -> v4.3.0
+2026-10-08T23:25:56.8862698Z  * [new tag]           v5.0.0                  -> v5.0.0
+2026-10-08T23:25:56.8862952Z  * [new tag]           v5.1.0                  -> v5.1.0
+2026-10-08T23:25:56.8863197Z  * [new tag]           v5.1.1                  -> v5.1.1
+2026-10-08T23:25:56.8863556Z  * [new tag]           v5.1.10                 -> v5.1.10
+2026-10-08T23:25:56.8863825Z  * [new tag]           v5.1.2                  -> v5.1.2
+2026-10-08T23:25:56.8864076Z  * [new tag]           v5.1.3                  -> v5.1.3
+2026-10-08T23:25:56.8864330Z  * [new tag]           v5.1.4                  -> v5.1.4
+2026-10-08T23:25:56.8864589Z  * [new tag]           v5.1.5                  -> v5.1.5
+2026-10-08T23:25:56.8864841Z  * [new tag]           v5.1.6                  -> v5.1.6
+2026-10-08T23:25:56.8865095Z  * [new tag]           v5.1.7                  -> v5.1.7
+2026-10-08T23:25:56.8865346Z  * [new tag]           v5.1.9                  -> v5.1.9
+2026-10-08T23:25:56.8865600Z  * [new tag]           v5.2.0                  -> v5.2.0
+2026-10-08T23:25:56.8865858Z  * [new tag]           v5.3.0                  -> v5.3.0
+2026-10-08T23:25:56.8866123Z  * [new tag]           v5.4.0                  -> v5.4.0
+2026-10-08T23:25:56.8866373Z  * [new tag]           v5.4.1                  -> v5.4.1
+2026-10-08T23:25:56.8866633Z  * [new tag]           v5.5.0                  -> v5.5.0
+2026-10-08T23:25:56.8866888Z  * [new tag]           v5.6.0                  -> v5.6.0
+2026-10-08T23:25:56.8867137Z  * [new tag]           v5.6.1                  -> v5.6.1
+2026-10-08T23:25:56.8867389Z  * [new tag]           v5.6.2                  -> v5.6.2
+2026-10-08T23:25:56.8867637Z  * [new tag]           v5.7.0                  -> v5.7.0
+2026-10-08T23:25:56.8867885Z  * [new tag]           v5.7.1                  -> v5.7.1
+2026-10-08T23:25:56.8868231Z  * [new tag]           v6.0.0                  -> v6.0.0
+2026-10-08T23:25:56.8868479Z  * [new tag]           v6.0.1                  -> v6.0.1
+2026-10-08T23:25:56.8868729Z  * [new tag]           v6.0.2                  -> v6.0.2
+2026-10-08T23:25:56.8868984Z  * [new tag]           v6.0.3                  -> v6.0.3
+2026-10-08T23:25:56.8869235Z  * [new tag]           v6.0.4                  -> v6.0.4
+2026-10-08T23:25:56.8869491Z  * [new tag]           v6.0.5                  -> v6.0.5
+2026-10-08T23:25:56.8869741Z  * [new tag]           v6.0.6                  -> v6.0.6
+2026-10-08T23:25:56.8870098Z  * [new tag]           v6.0.7                  -> v6.0.7
+2026-10-08T23:25:56.8870360Z  * [new tag]           v6.0.8                  -> v6.0.8
+2026-10-08T23:25:56.8870626Z  * [new tag]           v6.0.9                  -> v6.0.9
+2026-10-08T23:25:56.8870879Z  * [new tag]           v6.1.0                  -> v6.1.0
+2026-10-08T23:25:56.8871131Z  * [new tag]           v6.1.1                  -> v6.1.1
+2026-10-08T23:25:56.8871386Z  * [new tag]           v6.1.2                  -> v6.1.2
+2026-10-08T23:25:56.8871641Z  * [new tag]           v6.2.0                  -> v6.2.0
+2026-10-08T23:25:56.8871894Z  * [new tag]           v6.2.1                  -> v6.2.1
+2026-10-08T23:25:56.8872152Z  * [new tag]           v6.2.10                 -> v6.2.10
+2026-10-08T23:25:56.8872410Z  * [new tag]           v6.2.11                 -> v6.2.11
+2026-10-08T23:25:56.8872672Z  * [new tag]           v6.2.12                 -> v6.2.12
+2026-10-08T23:25:56.8872928Z  * [new tag]           v6.2.13                 -> v6.2.13
+2026-10-08T23:25:56.8873205Z  * [new tag]           v6.2.14                 -> v6.2.14
+2026-10-08T23:25:56.8873458Z  * [new tag]           v6.2.15                 -> v6.2.15
+2026-10-08T23:25:56.8873714Z  * [new tag]           v6.2.16                 -> v6.2.16
+2026-10-08T23:25:56.8873977Z  * [new tag]           v6.2.17                 -> v6.2.17
+2026-10-08T23:25:56.8874241Z  * [new tag]           v6.2.2                  -> v6.2.2
+2026-10-08T23:25:56.8874506Z  * [new tag]           v6.2.3                  -> v6.2.3
+2026-10-08T23:25:56.8874763Z  * [new tag]           v6.2.4                  -> v6.2.4
+2026-10-08T23:25:56.8875019Z  * [new tag]           v6.2.5                  -> v6.2.5
+2026-10-08T23:25:56.8875277Z  * [new tag]           v6.2.6                  -> v6.2.6
+2026-10-08T23:25:56.8875527Z  * [new tag]           v6.2.7                  -> v6.2.7
+2026-10-08T23:25:56.8875900Z  * [new tag]           v6.2.8                  -> v6.2.8
+2026-10-08T23:25:56.8876158Z  * [new tag]           v6.2.9                  -> v6.2.9
+2026-10-08T23:25:56.8876417Z  * [new tag]           v6.3.0                  -> v6.3.0
+2026-10-08T23:25:56.8876671Z  * [new tag]           v6.3.1                  -> v6.3.1
+2026-10-08T23:25:56.8876926Z  * [new tag]           v6.3.10                 -> v6.3.10
+2026-10-08T23:25:56.8877185Z  * [new tag]           v6.3.11                 -> v6.3.11
+2026-10-08T23:25:56.8877444Z  * [new tag]           v6.3.12                 -> v6.3.12
+2026-10-08T23:25:56.8877704Z  * [new tag]           v6.3.13                 -> v6.3.13
+2026-10-08T23:25:56.8877956Z  * [new tag]           v6.3.14                 -> v6.3.14
+2026-10-08T23:25:56.8878291Z  * [new tag]           v6.3.15                 -> v6.3.15
+2026-10-08T23:25:56.8878548Z  * [new tag]           v6.3.16                 -> v6.3.16
+2026-10-08T23:25:56.8878799Z  * [new tag]           v6.3.17                 -> v6.3.17
+2026-10-08T23:25:56.8879057Z  * [new tag]           v6.3.18                 -> v6.3.18
+2026-10-08T23:25:56.8879311Z  * [new tag]           v6.3.19                 -> v6.3.19
+2026-10-08T23:25:56.8879564Z  * [new tag]           v6.3.2                  -> v6.3.2
+2026-10-08T23:25:56.8879822Z  * [new tag]           v6.3.20                 -> v6.3.20
+2026-10-08T23:25:56.8880071Z  * [new tag]           v6.3.3                  -> v6.3.3
+2026-10-08T23:25:56.8880318Z  * [new tag]           v6.3.4                  -> v6.3.4
+2026-10-08T23:25:56.8880566Z  * [new tag]           v6.3.5                  -> v6.3.5
+2026-10-08T23:25:56.8880816Z  * [new tag]           v6.3.6                  -> v6.3.6
+2026-10-08T23:25:56.8881065Z  * [new tag]           v6.3.7                  -> v6.3.7
+2026-10-08T23:25:56.8881315Z  * [new tag]           v6.3.8                  -> v6.3.8
+2026-10-08T23:25:56.8881562Z  * [new tag]           v6.3.9                  -> v6.3.9
+2026-10-08T23:25:56.8881812Z  * [new tag]           v6.4.0                  -> v6.4.0
+2026-10-08T23:25:56.8882067Z  * [new tag]           v6.4.1                  -> v6.4.1
+2026-10-08T23:25:56.8882416Z  * [new tag]           v6.4.2                  -> v6.4.2
+2026-10-08T23:25:56.8882671Z  * [new tag]           v6.4.3                  -> v6.4.3
+2026-10-08T23:25:56.8882928Z  * [new tag]           v6.4.4                  -> v6.4.4
+2026-10-08T23:25:56.8883182Z  * [new tag]           v6.5.0                  -> v6.5.0
+2026-10-08T23:25:56.8883431Z  * [new tag]           v6.5.1                  -> v6.5.1
+2026-10-08T23:25:56.8883686Z  * [new tag]           v6.6.0                  -> v6.6.0
+2026-10-08T23:25:56.8883935Z  * [new tag]           v6.6.1                  -> v6.6.1
+2026-10-08T23:25:56.8884190Z  * [new tag]           v6.6.10                 -> v6.6.10
+2026-10-08T23:25:56.8884445Z  * [new tag]           v6.6.11                 -> v6.6.11
+2026-10-08T23:25:56.8884710Z  * [new tag]           v6.6.12                 -> v6.6.12
+2026-10-08T23:25:56.8884960Z  * [new tag]           v6.6.2                  -> v6.6.2
+2026-10-08T23:25:56.8885217Z  * [new tag]           v6.6.3                  -> v6.6.3
+2026-10-08T23:25:56.8885474Z  * [new tag]           v6.6.4                  -> v6.6.4
+2026-10-08T23:25:56.8885724Z  * [new tag]           v6.6.5                  -> v6.6.5
+2026-10-08T23:25:56.8885974Z  * [new tag]           v6.6.6                  -> v6.6.6
+2026-10-08T23:25:56.8886220Z  * [new tag]           v6.6.7                  -> v6.6.7
+2026-10-08T23:25:56.8886473Z  * [new tag]           v6.6.8                  -> v6.6.8
+2026-10-08T23:25:56.8886746Z  * [new tag]           v6.6.9                  -> v6.6.9
+2026-10-08T23:25:56.8886996Z  * [new tag]           v6.7.0                  -> v6.7.0
+2026-10-08T23:25:56.8887241Z  * [new tag]           v6.7.1                  -> v6.7.1
+2026-10-08T23:25:56.8887492Z  * [new tag]           v6.7.10                 -> v6.7.10
+2026-10-08T23:25:56.8887739Z  * [new tag]           v6.7.11                 -> v6.7.11
+2026-10-08T23:25:56.8887984Z  * [new tag]           v6.7.12                 -> v6.7.12
+2026-10-08T23:25:56.8888450Z  * [new tag]           v6.7.13                 -> v6.7.13
+2026-10-08T23:25:56.8888706Z  * [new tag]           v6.7.14                 -> v6.7.14
+2026-10-08T23:25:56.8888962Z  * [new tag]           v6.7.15                 -> v6.7.15
+2026-10-08T23:25:56.8889210Z  * [new tag]           v6.7.16                 -> v6.7.16
+2026-10-08T23:25:56.8889452Z  * [new tag]           v6.7.17                 -> v6.7.17
+2026-10-08T23:25:56.8889699Z  * [new tag]           v6.7.2                  -> v6.7.2
+2026-10-08T23:25:56.8889942Z  * [new tag]           v6.7.3                  -> v6.7.3
+2026-10-08T23:25:56.8890190Z  * [new tag]           v6.7.4                  -> v6.7.4
+2026-10-08T23:25:56.8890436Z  * [new tag]           v6.7.5                  -> v6.7.5
+2026-10-08T23:25:56.8890682Z  * [new tag]           v6.7.6                  -> v6.7.6
+2026-10-08T23:25:56.8890927Z  * [new tag]           v6.7.7                  -> v6.7.7
+2026-10-08T23:25:56.8891184Z  * [new tag]           v6.7.8                  -> v6.7.8
+2026-10-08T23:25:56.8891434Z  * [new tag]           v6.7.9                  -> v6.7.9
+2026-10-08T23:25:56.8891766Z  * [new ref]           e5f708e89adf651d7030fd2e741ff5cc480e3c4e -> pull/2070/merge
+2026-10-08T23:25:56.8892938Z ##[endgroup]
+2026-10-08T23:25:56.8893246Z ##[group]Determining the checkout info
+2026-10-08T23:25:56.8893576Z ##[endgroup]
+2026-10-08T23:25:56.8893846Z [command]/usr/bin/git sparse-checkout disable
+2026-10-08T23:25:56.9139601Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-10-08T23:25:56.9234892Z ##[group]Checking out the ref
+2026-10-08T23:25:56.9237978Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/2070/merge
+2026-10-08T23:25:57.3217736Z Note: switching to 'refs/remotes/pull/2070/merge'.
+2026-10-08T23:25:57.3218006Z 
+2026-10-08T23:25:57.3218310Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-10-08T23:25:57.3218799Z changes and commit them, and you can discard any commits you make in this
+2026-10-08T23:25:57.3219404Z state without impacting any branches by switching back to a branch.
+2026-10-08T23:25:57.3219742Z 
+2026-10-08T23:25:57.3220377Z If you want to create a new branch to retain commits you create, you may
+2026-10-08T23:25:57.3220938Z do so (now or later) by using -c with the switch command. Example:
+2026-10-08T23:25:57.3221257Z 
+2026-10-08T23:25:57.3221376Z   git switch -c <new-branch-name>
+2026-10-08T23:25:57.3221586Z 
+2026-10-08T23:25:57.3221710Z Or undo this operation with:
+2026-10-08T23:25:57.3221897Z 
+2026-10-08T23:25:57.3222018Z   git switch -
+2026-10-08T23:25:57.3222159Z 
+2026-10-08T23:25:57.3222441Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-10-08T23:25:57.3222778Z 
+2026-10-08T23:25:57.3223177Z HEAD is now at e5f708e8 Merge 007d44db34206df59e62b97d373b2369c5a64d94 into bd59a4af1b2616a7f00761a3769d22a335e4df7c
+2026-10-08T23:25:57.3246686Z ##[endgroup]
+2026-10-08T23:25:57.3286499Z [command]/usr/bin/git log -1 --format=%H
+2026-10-08T23:25:57.3309889Z e5f708e89adf651d7030fd2e741ff5cc480e3c4e
+2026-10-08T23:25:57.3684799Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+2026-10-08T23:25:57.3685120Z with:
+2026-10-08T23:25:57.3685292Z   python-version: 3.13
+2026-10-08T23:25:57.3685476Z   check-latest: false
+2026-10-08T23:25:57.3687324Z   token: ***
+2026-10-08T23:25:57.3687501Z   update-environment: true
+2026-10-08T23:25:57.3687703Z   allow-prereleases: false
+2026-10-08T23:25:57.3687909Z   freethreaded: false
+2026-10-08T23:25:57.3688091Z ##[endgroup]
+2026-10-08T23:25:57.4714592Z ##[group]Installed versions
+2026-10-08T23:25:57.4965926Z Successfully set up CPython (3.13.16)
+2026-10-08T23:25:57.4966497Z ##[endgroup]
+2026-10-08T23:25:57.5108956Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+2026-10-08T23:25:57.5109675Z [36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt[0m
+2026-10-08T23:25:57.5474068Z shell: /usr/bin/bash -e {0}
+2026-10-08T23:25:57.5474311Z env:
+2026-10-08T23:25:57.5474551Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:25:57.5474917Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+2026-10-08T23:25:57.5475261Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:25:57.5475562Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:25:57.5475852Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:25:57.5476151Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+2026-10-08T23:25:57.5476405Z ##[endgroup]
+2026-10-08T23:26:01.0881824Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+2026-10-08T23:26:01.1451905Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-10-08T23:26:01.7207191Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+2026-10-08T23:26:01.7305288Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+2026-10-08T23:26:01.8265812Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 22.3 MB/s  0:00:00
+2026-10-08T23:26:01.8400079Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+2026-10-08T23:26:01.8492321Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-10-08T23:26:01.8623116Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+2026-10-08T23:26:01.8736071Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-10-08T23:26:01.9164028Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+2026-10-08T23:26:01.9262949Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+2026-10-08T23:26:01.9384377Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+2026-10-08T23:26:01.9476876Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-10-08T23:26:02.1160311Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+2026-10-08T23:26:02.1259109Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+2026-10-08T23:26:02.2630533Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+2026-10-08T23:26:02.2725056Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+2026-10-08T23:26:02.4686797Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 84.3 MB/s  0:00:00
+2026-10-08T23:26:02.5514163Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+2026-10-08T23:26:02.5612378Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+2026-10-08T23:26:02.6622933Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+2026-10-08T23:26:02.6721551Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+2026-10-08T23:26:02.7710579Z   Installing build dependencies: started
+2026-10-08T23:26:03.8743133Z   Installing build dependencies: finished with status 'done'
+2026-10-08T23:26:03.8747832Z   Getting requirements to build wheel: started
+2026-10-08T23:26:05.7449828Z   Getting requirements to build wheel: finished with status 'done'
+2026-10-08T23:26:05.7456969Z   Preparing metadata (pyproject.toml): started
+2026-10-08T23:26:05.9533273Z   Preparing metadata (pyproject.toml): finished with status 'done'
+2026-10-08T23:26:06.0971081Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+2026-10-08T23:26:06.1065278Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+2026-10-08T23:26:06.4359293Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 106.8 MB/s  0:00:00
+2026-10-08T23:26:06.5428899Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+2026-10-08T23:26:06.5523462Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+2026-10-08T23:26:07.1317951Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+2026-10-08T23:26:07.1418686Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+2026-10-08T23:26:07.5411218Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+2026-10-08T23:26:07.5509297Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+2026-10-08T23:26:07.8845439Z Building wheels for collected packages: pyyaml
+2026-10-08T23:26:07.8852434Z   Building wheel for pyyaml (pyproject.toml): started
+2026-10-08T23:26:10.2611652Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+2026-10-08T23:26:10.2616286Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=2d7024bd1768d19b7303286c2d37cff43e0ca851d182271b5567f1e6c386855c
+2026-10-08T23:26:10.2617357Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+2026-10-08T23:26:10.2632530Z Successfully built pyyaml
+2026-10-08T23:26:10.3094414Z Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+2026-10-08T23:26:17.9179017Z 
+2026-10-08T23:26:17.9191745Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+2026-10-08T23:26:18.4764496Z ##[group]Run git fetch --no-tags origin main
+2026-10-08T23:26:18.4764808Z [36;1mgit fetch --no-tags origin main[0m
+2026-10-08T23:26:18.4765039Z [36;1mset -o pipefail[0m
+2026-10-08T23:26:18.4765248Z [36;1mpython3 tests/mutation_table.py \[0m
+2026-10-08T23:26:18.4765538Z [36;1m  --scope changed --base origin/main --max 10 --jobs 3 \[0m
+2026-10-08T23:26:18.4765865Z [36;1m  | tee "$RUNNER_TEMP/mutation-table.txt"[0m
+2026-10-08T23:26:18.4825283Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-10-08T23:26:18.4825557Z env:
+2026-10-08T23:26:18.4825780Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:18.4826114Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+2026-10-08T23:26:18.4826441Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:18.4826736Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:18.4827095Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:18.4827399Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+2026-10-08T23:26:18.4827656Z ##[endgroup]
+2026-10-08T23:26:18.6511270Z From https://github.com/tvofi/heatpump_optimizer
+2026-10-08T23:26:18.6511623Z  * branch              main       -> FETCH_HEAD
+2026-10-08T23:26:20.4989691Z     ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:2427 GUARD_OFF: if early_cutoff.state_for(coord).interval_cut:
+2026-10-08T23:26:20.4990706Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:91 CONST: MARGIN_K = 0.5
+2026-10-08T23:26:20.4991571Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:124 RETURN_DEL: return self.cut_this_cycle or self.cut_last_cycle
+2026-10-08T23:26:20.4992424Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:142 GUARD_OFF: if held is None:
+2026-10-08T23:26:20.4993202Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:145 RETURN_DEL: return held
+2026-10-08T23:26:20.4994250Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:167 GUARD_OFF: if inp.entry_released or not room or not inp.config.get(CONF_HEAT_PUMP_S
+2026-10-08T23:26:20.4995280Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:170 GUARD_OFF: if held.unsub is None:
+2026-10-08T23:26:20.4996134Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:185 GUARD_OFF: if unsub is not None:
+2026-10-08T23:26:20.4997360Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:191 GUARD_OFF: if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
+2026-10-08T23:26:20.4998773Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:193 GUARD_OFF: if inp.plan_stale or not inp.action or not inp.action.get("heat_pump_on"
+2026-10-08T23:26:20.4999980Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:195 GUARD_OFF: if inp.plan is None or step_duty(inp.plan, now) != "space":
+2026-10-08T23:26:20.5001190Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:197 GUARD_OFF: if boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now):
+2026-10-08T23:26:20.5002325Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:199 GUARD_OFF: if inp.disinfecting:
+2026-10-08T23:26:20.5003259Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:201 RETURN_DEL: return _plant_exempt(inp)
+2026-10-08T23:26:20.5004233Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:208 BOOLOP: if flag is not None and parse_bool(getattr(flag, "state", None)):
+2026-10-08T23:26:20.5005285Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:208 GUARD_OFF: if flag is not None and parse_bool(getattr(flag, "state", None)):
+2026-10-08T23:26:20.5006168Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:215 RETURN_DEL: return None
+2026-10-08T23:26:20.5007272Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:222 CLAMP_DROP: return max(base, *_planned_room(inp.plan, now)) + MARGIN_K
+2026-10-08T23:26:20.5008444Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:222 RETURN_DEL: return max(base, *_planned_room(inp.plan, now)) + MARGIN_K
+2026-10-08T23:26:20.5009620Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:234 CMP_BOUND: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+2026-10-08T23:26:20.5010788Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:234 CMP_BOUND: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+2026-10-08T23:26:20.5011947Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:234 RETURN_DEL: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+2026-10-08T23:26:20.5012974Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:239 GUARD_OFF: if held.cut_this_cycle:
+2026-10-08T23:26:20.5013928Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:242 GUARD_OFF: if getattr(switch, "state", None) != "on":
+2026-10-08T23:26:20.5015046Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:247 CMP_BOUND: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+2026-10-08T23:26:20.5016244Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:247 CMP_BOUND: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+2026-10-08T23:26:20.5017454Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:247 GUARD_OFF: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+2026-10-08T23:26:20.5018747Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:249 CMP_BOUND: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+2026-10-08T23:26:20.5019846Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:249 GUARD_OFF: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+2026-10-08T23:26:20.5020759Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:251 RETURN_DEL: return None
+2026-10-08T23:26:20.5021654Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:256 GUARD_OFF: if not getattr(inp.params, "two_zone_enabled", False):
+2026-10-08T23:26:20.5022808Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:258 CMP_BOUND: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+2026-10-08T23:26:20.5024179Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:258 RETURN_DEL: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+2026-10-08T23:26:20.5025363Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:267 BOOLOP: return room if room is not None and low <= room <= high else None
+2026-10-08T23:26:20.5026534Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:267 CMP_BOUND: return room if room is not None and low <= room <= high else None
+2026-10-08T23:26:20.5027720Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:267 CMP_BOUND: return room if room is not None and low <= room <= high else None
+2026-10-08T23:26:20.5029049Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:267 RETURN_DEL: return room if room is not None and low <= room <= high else None
+2026-10-08T23:26:20.5030159Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF: if (room := _reading(event)) is None:
+2026-10-08T23:26:20.5031044Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:276 GUARD_OFF: if inp.entry_released:
+2026-10-08T23:26:20.5031989Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:279 GUARD_OFF: if _exempt(inp, wiring.boosts, now) is not None:
+2026-10-08T23:26:20.5032902Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:282 CMP_BOUND: if room <= limit:
+2026-10-08T23:26:20.5033862Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:282 GUARD_OFF: if room <= limit:
+2026-10-08T23:26:20.5034844Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:285 BOOLOP: if reason is None and _second_zone_cold(inp, limit):
+2026-10-08T23:26:20.5035926Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:285 GUARD_OFF: if reason is None and _second_zone_cold(inp, limit):
+2026-10-08T23:26:20.5036901Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:287 GUARD_OFF: if reason is not None:
+2026-10-08T23:26:20.5039218Z MUTATION TABLE REFUSED -- 4669 unpinned site(s) against 4624 at the ratchet base bd59a4af1b2616a7f00761a3769d22a335e4df7c, 45 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+2026-10-08T23:26:20.5041281Z     custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:
+2026-10-08T23:26:20.5042047Z     custom_components/heatpump_optimizer/__init__.py:90 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+2026-10-08T23:26:20.5042805Z     custom_components/heatpump_optimizer/__init__.py:116 GUARD_OFF: if module is None:
+2026-10-08T23:26:20.5043413Z     custom_components/heatpump_optimizer/__init__.py:122 RETURN_DEL: return value
+2026-10-08T23:26:20.5044012Z     custom_components/heatpump_optimizer/__init__.py:162 RETURN_DEL: return handovers
+2026-10-08T23:26:20.5044637Z     custom_components/heatpump_optimizer/__init__.py:168 RETURN_DEL: return stamps
+2026-10-08T23:26:20.5045336Z     custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if payload is None or stamped_at is None:
+2026-10-08T23:26:20.5046075Z     custom_components/heatpump_optimizer/__init__.py:197 CMP_BOUND: if age_min > interval_minutes:
+2026-10-08T23:26:20.5046762Z     custom_components/heatpump_optimizer/__init__.py:197 GUARD_OFF: if age_min > interval_minutes:
+2026-10-08T23:26:20.5047405Z     custom_components/heatpump_optimizer/__init__.py:199 RETURN_DEL: return payload
+2026-10-08T23:26:20.5048061Z     custom_components/heatpump_optimizer/__init__.py:210 CMP_BOUND: if entry.version > CONFIG_ENTRY_VERSION:
+2026-10-08T23:26:20.5048948Z     custom_components/heatpump_optimizer/__init__.py:210 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+2026-10-08T23:26:20.5049781Z     custom_components/heatpump_optimizer/__init__.py:218 RETURN_DEL: return False
+2026-10-08T23:26:20.5050427Z     custom_components/heatpump_optimizer/__init__.py:220 CMP_BOUND: if entry.version < CONFIG_ENTRY_VERSION:
+2026-10-08T23:26:20.5051170Z     custom_components/heatpump_optimizer/__init__.py:220 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+2026-10-08T23:26:20.5051811Z     custom_components/heatpump_optimizer/__init__.py:228 RETURN_DEL: return True
+2026-10-08T23:26:20.5052515Z     custom_components/heatpump_optimizer/__init__.py:253 GUARD_OFF: if (reg_entry.domain, reg_entry.unique_id) in retired:
+2026-10-08T23:26:20.5053201Z     custom_components/heatpump_optimizer/__init__.py:274 RETURN_DEL: return True
+2026-10-08T23:26:20.5053781Z     custom_components/heatpump_optimizer/__init__.py:359 RETURN_DEL: return True
+2026-10-08T23:26:20.5054597Z     custom_components/heatpump_optimizer/__init__.py:392 BOOLOP: if coordinator is not None and coordinator.effective_config == new_confi
+2026-10-08T23:26:20.5160810Z ##[error]Process completed with exit code 1.
+2026-10-08T23:26:20.5241966Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+2026-10-08T23:26:20.5242286Z with:
+2026-10-08T23:26:20.5242452Z   name: mutation-table
+2026-10-08T23:26:20.5242667Z   path: /home/runner/work/_temp/mutation-table.txt
+2026-10-08T23:26:20.5242927Z   if-no-files-found: ignore
+2026-10-08T23:26:20.5243122Z   compression-level: 6
+2026-10-08T23:26:20.5243297Z   overwrite: false
+2026-10-08T23:26:20.5243466Z   include-hidden-files: false
+2026-10-08T23:26:20.5243656Z env:
+2026-10-08T23:26:20.5243859Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:20.5244193Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+2026-10-08T23:26:20.5244516Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:20.5244810Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:20.5245100Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+2026-10-08T23:26:20.5245444Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+2026-10-08T23:26:20.5245697Z ##[endgroup]
+2026-10-08T23:26:20.6471804Z With the provided path, there will be 1 file uploaded
+2026-10-08T23:26:20.6478789Z Artifact name is valid!
+2026-10-08T23:26:20.6486812Z Root directory input is valid!
+2026-10-08T23:26:20.8439152Z Beginning upload of artifact content to blob storage
+2026-10-08T23:26:20.8928862Z Uploaded bytes 1748
+2026-10-08T23:26:20.9046592Z Finished uploading artifact content to blob storage!
+2026-10-08T23:26:20.9059222Z SHA256 digest of uploaded artifact zip is 2432c2dd0b2d59ec5d416c7fdfe46a315ffbbe9c8ffb911abda228abd98f986f
+2026-10-08T23:26:20.9059930Z Finalizing artifact upload
+2026-10-08T23:26:21.1059642Z Artifact mutation-table.zip successfully finalized. Artifact ID 11585286940
+2026-10-08T23:26:21.1060532Z Artifact mutation-table has been successfully uploaded! Final size is 1748 bytes. Artifact ID is 11585286940
+2026-10-08T23:26:21.1064144Z Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/37859284578/artifacts/11585286940
+2026-10-08T23:26:21.1232539Z Post job cleanup.
+2026-10-08T23:26:21.1918877Z [command]/usr/bin/git version
+2026-10-08T23:26:21.1953382Z git version 2.55.0
+2026-10-08T23:26:21.1981646Z Temporarily overriding HOME='/home/runner/work/_temp/30e85d61-6f11-40c8-a9ba-2c38d4784006' before making global git config changes
+2026-10-08T23:26:21.1982681Z Adding repository directory to the temporary git global config as a safe directory
+2026-10-08T23:26:21.1986003Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-10-08T23:26:21.2016268Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-10-08T23:26:21.2044138Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-10-08T23:26:21.2259626Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-10-08T23:26:21.2279821Z http.https://github.com/.extraheader
+2026-10-08T23:26:21.2289328Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-10-08T23:26:21.2317875Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-10-08T23:26:21.2535787Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-10-08T23:26:21.2577008Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-10-08T23:26:21.2900591Z Cleaning up orphan processes

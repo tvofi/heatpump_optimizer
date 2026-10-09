@@ -1,0 +1,3320 @@
+name: Tests
+
+# The suite that guards every change. Two jobs:
+#
+# * fast — every push and PR. Runs the whole of tests/run.sh except the
+#   SLOW-gated closed-loop simulation. Golden fixtures are checked in
+#   drift mode: solver output is not bit-stable across BLAS builds, so
+#   comparing this runner's floats against fixtures recorded on another
+#   machine would cry wolf. Instead tests/env_drift.py --all captures
+#   every scenario twice IN THIS runner — once from the tree under test,
+#   once from a worktree of the comparison ref — and requires the two to
+#   be byte-identical. Solver noise cancels; what remains is the
+#   change's own behavioural footprint, which must be empty or claimed
+#   in tests/golden/claimed_drift.txt.
+#
+#   That comparison is computed-against-computed, so neither side of it is
+#   the committed file, and until #347 no CI job compared a committed
+#   fixture at all -- run.sh skips golden.py entirely in drift mode. The
+#   same env_drift run now also judges its own capture against the
+#   committed files, in two machine-independent levels that fail this job:
+#   exact for the fixtures with no float in them (config_flow), and
+#   structural -- key paths and JSON type classes, no scalar values, no list
+#   lengths -- for all 55. The value differences that ARE the machine are
+#   counted and printed, never failed; the nightly below prints them per
+#   fixture so a human can decide what to re-record.
+#
+#   The env_drift baseline is cached between runs
+#   under a key covering the baseline commit and tree, tests/env_drift.py
+#   itself, the interpreter, the installed distributions and a bit-exact
+#   fingerprint of this runner's floating-point arithmetic. On a push to
+#   main the comparison ref is HEAD^1 and differs every run, so nothing is
+#   restored and the uncached path is what runs; on a pull request the
+#   merge-base is stable, so a second push to the same PR reuses the
+#   baseline it already captured. env_drift re-checks the key inside the
+#   restored entry before using it, so a wrong restore is a miss rather
+#   than a stale baseline.
+#
+#   run.sh spreads the suite over lanes and runs tests/stress.py alone at
+#   the end; every script still runs with the same arguments and every
+#   failure still counts.
+#
+#   SCOPING, and the reason it is safe. On a PULL REQUEST the suite runs
+#   with GATE_SCOPE=auto: only the scripts the diff can actually reach
+#   are run, decided from the measured dependency closures in
+#   tests/closures.json. On a PUSH TO MAIN -- and on the nightly, and on
+#   any manual dispatch -- GATE_SCOPE is forced to full and every script
+#   runs regardless of what changed. That asymmetry is the whole safety
+#   argument: if a closure is ever wrong, the scoped PR gate may miss it,
+#   but the very next gate, the unscoped one on main, does not. main goes
+#   red within one merge instead of never. Every scoped-out script is
+#   printed with its reason in the run log, twice.
+#
+# * closures — push to main, nightly, and on any pull request that can
+#   move a closure. Re-records closures by running the suite under
+#   instrumentation and fails if tests/closures.json misses anything a
+#   real run touched. It runs beside `fast`, so it costs a runner and no
+#   wall clock. This is what stops the closures rotting the way a
+#   hand-written dependency table would.
+#
+#   On a push, nightly or dispatch it re-records EVERYTHING. On a pull
+#   request `closure-scope` decides, from the diff and the same table:
+#   full when a gate file or a file in no recorded closure is touched,
+#   and otherwise re-derive only the closures the diff intersects. The
+#   old third case -- skip when every changed file is INERT -- is now the
+#   docs-only FAST ARM inside the job rather than a skip (#201 item 8):
+#   `closures` is a required context on `main-protect`, which SUCCESS
+#   satisfies without doubt. (The three `--admin` merges once cited as
+#   proof a skip blocks also lacked `hassfest`/`validate-hacs`; #1101.)
+#   Before `closure-scope` existed the job ran
+#   on a pull request only when one ADDED a file under
+#   custom_components/, so a change to what a test reads was checked one
+#   merge too late -- five times (#354).
+#
+# * slow — nightly and on demand. Only what a push to main's `fast` job
+#   does not already run: tests/rolling.py (SLOW-gated in run.sh, closed-loop
+#   ~15 minutes), tests/replay.py (recorded days), and env_drift.py's
+#   DRIFT_VALUE_REPORT (level 3, report-only). The rest of the suite is the
+#   last push's GATE_SCOPE=full `fast` run (#1930 (c)).
+#
+# * nightly-ha — nightly and on demand. The only lane that runs the
+#   integration inside a real Home Assistant instead of tests/hastub, in
+#   the container and at the /config path an installation actually uses.
+#   Asserts that a PLAN CAME OUT, which is what #511 broke and what every
+#   other lane structurally could not see. Never gates a pull request.
+#
+# * nightly-status — every pull request, seconds, stdlib only. Reads the
+#   last CONCLUDED scheduled run of this workflow and goes RED if any of
+#   its jobs failed, if none concluded recently, or if it could not look.
+#   The schedule-only lanes above are `skipped` on every push and pull
+#   request and are not required contexts, so their conclusions land on a
+#   commit nobody re-reads and the next merge strands them: #533's lane
+#   was red on both arms for two nights and nothing said so. This is the
+#   telling. It is deliberately NOT a required context either.
+#
+# * closures-autofix / claims-autofix / mutation-autofix — same-repo PRs
+#   only. Merge UNDER-SCOPED recordings, empty an inherited claim list, or
+#   pin measured kills, then retrigger Tests. Do not re-implement; see .cursor/rules/ci-autofix.mdc.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  # The merge queue (round-9 process review item 2): every job that writes a
+  # required context runs on the queue's merge commit as it does on a pull
+  # request. The PR-only lanes (autofix, `graders-head-copy`, `nightly-status`)
+  # and the non-required coverage pair stay off it; the coverage pair ran on
+  # the pull request's head and runs again on the push the merge makes.
+  merge_group:
+    types: [checks_requested]
+  workflow_dispatch:
+    inputs:
+      recheck:
+        description: "PR-like checks after an autofix push (skip slow)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 2 * * *"
+
+# The suite needs the code it tests and the cache it reuses, nothing
+# more; every job inherits this read-only floor.
+permissions:
+  contents: read
+
+# A newer push to a pull request cancels that pull request's run at the head it
+# superseded (round-9 process review item 3): nobody reads a verdict on a head
+# that is gone, and it holds runners the new head waits for. Only
+# `pull_request` runs share a group; every other event -- above all the push to
+# main, whose FULL gate is the backstop for every scoped one -- gets a group of
+# its own by run id, so it is never cancelled and never queued behind another.
+# So does an autofix push (GITHUB_TOKEN, `github-actions[bot]`): the run it
+# would cancel is still running the other autofix jobs, and the next run's
+# `ci:` subject is their loop guard, so a repair cancelled there never comes.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' && github.event.sender.login != 'github-actions[bot]' }}
+
+jobs:
+  # workflow_dispatch inputs exist only on the default branch. An autofix
+  # push from this PR must retrigger before that lands, so recheck is also
+  # true when HEAD's subject is `ci: …` (the autofix commit messages).
+  recheck-gate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      recheck: ${{ steps.decide.outputs.recheck }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - id: decide
+        run: |
+          if [ "${{ github.event.inputs.recheck }}" = "true" ]; then
+            echo "recheck=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SUBJECT=$(git log -1 --pretty=%s)
+          case "$SUBJECT" in
+            ci:*) echo "recheck=true" >> "$GITHUB_OUTPUT" ;;
+            *)    echo "recheck=false" >> "$GITHUB_OUTPUT" ;;
+          esac
+
+  fast:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    # The only job that runs the production suite. It was matrixed over both
+    # interpreters from #514 until the 3.13 leg was retired: 3.14 is what
+    # reported installations actually run, and two legs of a 100-minute
+    # instrumented suite is most of this workflow's wall clock for a second
+    # answer that had never differed from the first.
+    #
+    # WHAT THAT GIVES UP, said plainly rather than left to be discovered.
+    # 3.13 is still the floor the README and hacs.json declare -- it follows
+    # from the Home Assistant 2025.2.0 floor, whose own requires-python is
+    # >=3.13.0 -- and it is still the interpreter every other job in this
+    # workflow pins. What no longer runs on it is the SUITE. So a 3.13-only
+    # break in production code now reaches a user rather than this gate, which
+    # is a narrower version of the hole #514 was filed for. `tests/entities.py`
+    # keeps the README honest about it: the "suite is tested on" sentence is
+    # derived from this matrix alone, so retiring a leg without saying so in
+    # the README fails there.
+    #
+    # fail-fast is now on, which costs nothing while the matrix is one entry
+    # and is the right default if a second is ever added back: the reason it
+    # was off -- a 3.14 break must not cancel the 3.13 leg, because knowing
+    # which of the two broke was the whole signal -- is a reason that only
+    # exists while there are two.
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.14"]
+    # Drift mode captures all 53 scenarios twice (tree + merge-base); the
+    # first main run proved 45 min is not enough on GitHub's runners — the
+    # step was cancelled mid-suite by its own timeout.
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # env_drift needs the comparison ref's history to build its
+          # baseline worktree.
+          fetch-depth: 0
+
+      # The drift baseline cache needs no matrix-specific key: env_drift's
+      # cache_key_inputs already hashes the interpreter (`sys.version`,
+      # `api_version`) and the installed package inventory, so the two legs
+      # compute different keys and cannot restore each other's baseline.
+      # A cross-interpreter baseline is exactly the false drift that would
+      # otherwise make this matrix unreadable.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # Every install in this workflow is hash-pinned (#1548), and
+      # tests/entities.py refuses one that is not: `--require-hashes` over a
+      # committed lock, `--build-constraint` for what an sdist build installs,
+      # `npm ci` over a committed package-lock.json. Why each flag is there is
+      # in the header of tests/requirements-ci.txt and requirements-build.txt.
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Resolve the golden comparison ref
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            # The PR's merge-base with its target: exactly the code this
+            # PR forked from, so the drift comparison isolates the PR.
+            REF=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+            # The branch's OWN claim list is read from the PR head, not the
+            # synthetic merge tree this checkout is (env_drift's CLAIM_HEAD).
+            echo "CLAIM_HEAD=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_ENV"
+          elif [ "${{ github.event_name }}" = "merge_group" ]; then
+            # A queue entry is a merge commit (merge method MERGE): its first
+            # parent is the main tip or the entry ahead of it, its second the
+            # pull request's head. That is the shape of a pull request's
+            # synthetic merge, whose merge-base with its target is the same
+            # first parent, so the drift comparison and the claim list are
+            # read exactly as on the pull request. No second parent means the
+            # queue's merge method changed; fail rather than guess.
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+            PR_TIP=$(git rev-parse --verify --quiet 'HEAD^2^{commit}') || {
+              echo "This merge_group commit has no second parent; the queue must merge with merge method MERGE."
+              exit 1
+            }
+            echo "CLAIM_HEAD=${PR_TIP}" >> "$GITHUB_ENV"
+          elif [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
+            # Autofix dispatch is not a pull_request event. Compare against
+            # main the same way a PR would, not HEAD^1 (the autofix commit's
+            # parent), so leftover drift vs main cannot hide.
+            git fetch --no-tags origin main
+            REF=$(git merge-base origin/main HEAD)
+          else
+            # Push to main: compare against the state before this push.
+            REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=""
+          fi
+          if [ -z "${REF}" ]; then
+            # An empty GOLDEN_REF is not "no preference": run.sh and
+            # env_drift.py both fall back to origin/main, which on a push to
+            # main IS this commit -- the tree would be compared against
+            # itself and pass no matter what it did. Fail here instead, where
+            # the reason is visible.
+            echo "Could not resolve a comparison ref for this ${{ github.event_name }}."
+            echo "The drift gate needs a baseline that is not this commit;"
+            echo "an empty ref silently becomes origin/main == HEAD."
+            exit 1
+          fi
+          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
+
+      # The key is computed by the same function the run itself uses, so
+      # the two can never disagree, and it needs the dependencies above to
+      # fingerprint them. Pull requests only: a push to main compares
+      # against HEAD^1, a different commit every run, so an entry could
+      # never be hit and would only take up room.
+      - name: Key the drift baseline cache
+        id: driftkey
+        if: >-
+          github.event_name == 'pull_request'
+          || github.event_name == 'merge_group'
+          || needs.recheck-gate.outputs.recheck == 'true'
+        env:
+          PYTHONPATH: tests/hastub
+        run: echo "key=$(python tests/env_drift.py --cache-key "$GOLDEN_REF" --all)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the drift baseline
+        if: >-
+          github.event_name == 'pull_request'
+          || github.event_name == 'merge_group'
+          || needs.recheck-gate.outputs.recheck == 'true'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/heatpump_optimizer/drift-baseline
+          key: drift-baseline-${{ steps.driftkey.outputs.key }}
+
+      # Warm the cache for the PRs that fork from this main commit
+      # (issue #94). A merge moves every open PR's merge-base at once, so
+      # they all miss the cache and each pays a ~25-minute cold capture.
+      # This run already captures the new main tree for its own
+      # comparison; DRIFT_WARM_CACHE tells env_drift to store it under
+      # the key those PRs will compute -- same cache_store, so the entry
+      # keeps its built-in key re-check: a wrong restore is a miss, never
+      # a stale baseline. The nightly warms too, keeping the entry fresh
+      # for the fork point even on quiet days.
+      - name: Key the warmed drift baseline
+        id: warmkey
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'schedule'
+        env:
+          PYTHONPATH: tests/hastub
+        run: |
+          echo "key=$(python tests/env_drift.py --cache-key "$GITHUB_SHA" --all)" >> "$GITHUB_OUTPUT"
+          echo "DRIFT_WARM_CACHE=1" >> "$GITHUB_ENV"
+
+      # Pull requests and merge-queue entries get the scoped gate;
+      # everything else -- pushes to main above all -- gets the whole suite.
+      # Written as an explicit equality on the event name so an event this
+      # file has not thought about lands on `full`, not on `auto`.
+      - name: Decide the gate scope
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ] \
+             || [ "${{ github.event_name }}" = "merge_group" ] \
+             || [ "${{ needs.recheck-gate.outputs.recheck }}" = "true" ]; then
+            echo "GATE_SCOPE=auto" >> "$GITHUB_ENV"
+            echo "GATE_SCOPE_BASE=$GOLDEN_REF" >> "$GITHUB_ENV"
+          else
+            echo "GATE_SCOPE=full" >> "$GITHUB_ENV"
+          fi
+
+      - name: Run the suite
+        env:
+          GOLDEN_MODE: drift
+          # No STRESS_SOLVE_BUDGET_MS here any more. An absolute wall-clock
+          # budget cannot tell a slower solver from a busier runner, and on
+          # shared runners it answered the second question. tests/stress.py
+          # now budgets the solve's CPU time against a reference solve timed
+          # beside it, which does not move when the runner is busy.
+          # STRESS_SOLVE_RATIO, STRESS_SWEEP_RATIO and
+          # STRESS_SOLVE_CEILING_MS are the knobs if it ever needs one.
+          #
+          # Threads are pinned because process CPU time sums over all of
+          # them: a runner whose core count differs from the machine the
+          # ratios were calibrated on would otherwise record a different
+          # thread factor for the same work. stress.py checks this and fails
+          # if the reference and the scenarios disagree, but pinning means
+          # the question never arises.
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: ./tests/run.sh
+
+      # The save half of the warm cache: the entry env_drift wrote under
+      # the key from the step above, persisted where the PRs' restore
+      # looks. save@v4 (not the post-step of a restore) because this key
+      # is computed for a different ref than anything restored here.
+      - name: Save the warmed drift baseline
+        if: >-
+          (github.event_name == 'push' && github.ref == 'refs/heads/main')
+          || github.event_name == 'schedule'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/heatpump_optimizer/drift-baseline
+          key: drift-baseline-${{ steps.warmkey.outputs.key }}
+
+  # The real-browser layout lane (issue #96): positions, sizes and
+  # visibility, the three things the DOM-stub lanes cannot see. Own job
+  # because it needs Chromium, which nothing else installs; it consumes
+  # the same plan payload card.mjs does. The scoped gate does not decide
+  # anything for this lane (it is in NOT_A_TEST) -- the card source is
+  # in every closure that matters, and the lane runs on every PR.
+  browser:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Cache the lane's Chromium
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ~/.cache/pw-browsers
+          key: pw-chromium-1.56.1
+
+      - name: Install playwright and Chromium
+        run: |
+          mkdir -p "$RUNNER_TEMP/pwlane"
+          cp tests/pwlane/package.json tests/pwlane/package-lock.json \
+            "$RUNNER_TEMP/pwlane/"
+          npm ci --prefix "$RUNNER_TEMP/pwlane"
+          PLAYWRIGHT_BROWSERS_PATH=~/.cache/pw-browsers \
+            "$RUNNER_TEMP/pwlane/node_modules/.bin/playwright" install chromium
+
+      - name: Write the plan payload
+        env:
+          PYTHONPATH: tests/hastub
+        run: python tests/plan_view.py
+
+      - name: Run the layout lane
+        # PLAYWRIGHT_BROWSERS_PATH in the run command, not the step env:
+        # a `~` in a workflow env var is a literal tilde, which Playwright
+        # resolves relative to the repository -- the shell expands $HOME.
+        run: >
+          PLAYWRIGHT_BROWSERS_PATH="$HOME/.cache/pw-browsers"
+          NODE_PATH="${{ runner.temp }}/pwlane/node_modules"
+          node tests/card_browser.mjs
+
+  # The brief-citation linter (#411). `.claude/` is on tests/closure.py's
+  # INERT list -- closure.py's own merge check FAILS if an INERT file turns
+  # up in a recorded closure -- so the scoped gate structurally cannot see
+  # this directory. Same shape as `browser` above (also driving an INERT
+  # script, tests/card_browser.mjs): its own never-scoped job, `if:` copied
+  # verbatim, so `closure-scope`'s case output cannot skip it. `node
+  # tools/policy/check-wave-script.mjs` is the other file in this
+  # position and still runs by hand only, which leaves the wave resume control
+  # flow as the one piece of orchestration no CI job runs; a job of this shape
+  # for it is owed.
+  #
+  # Live wave-*-groups.json must lint clean (0 errors) so this job can
+  # stay green on main. The 931dffe acceptance fixture is the rot pin:
+  # brief_lint.mjs's no-arg path requires those ten errors, so gutting
+  # lintBrief cannot green the job.
+  briefs:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Tags are not fetched by a plain checkout. Fetched here (rather
+          # than skipped) so a tag-scoped citation gets verified for real in
+          # CI instead of only warned about; the linter still degrades to a
+          # warning on its own if a cited tag is ever unresolvable.
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+
+      # Pinned as governance.yml's `policy-docs` is (decision 0013): the
+      # rosters are the pull request's, the linter the base's.
+      - name: Restore the check source from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          rm -rf .claude/workflows/vendor
+          # Each program at its path before and after the reorganisation (R9-RO-2):
+          # the diff lists what PINNED holds of them, skipping the half it lacks,
+          # which a checkout of a pathspec would refuse. R9-RO-9 drops the old half.
+          git diff --name-only -z "$(git hash-object -t tree /dev/null)" "$PINNED" -- \
+            '.claude/workflows/*.mjs' \
+            '.claude/workflows/*.py' \
+            '.claude/workflows/vendor' \
+            'tools/audit/*.sh' \
+            'tools/audit/record-predicate' \
+            'tools/audit/round6/D11/fix/codeowners_gap.py' \
+            'tools/policy/*.mjs' \
+            'tools/policy/*.py' \
+            'tools/pr/*.py' \
+            'tools/policy/vendor' \
+            'tools/pr/*.sh' \
+            'tools/seat/*.sh' \
+            'tools/coverage/*.sh' \
+            'dev/audit/*.sh' \
+            'tools/policy/record-predicate' \
+            'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+            'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
+          test -s "$RUNNER_TEMP/pinned.list"
+          git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
+          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
+
+      - name: Lint every wave roster's citations
+        run: if test -f .claude/workflows/brief_lint.mjs; then node .claude/workflows/brief_lint.mjs; else node tools/policy/brief_lint.mjs; fi
+
+  # The pinned, stub-free typing ruler (#303). Three numbers -- the error
+  # count, its per-code split, and the `# type: ignore` count -- and none of
+  # them may grow. It is a job of its own rather than a lane of `fast`
+  # because it needs a toolchain no gate lane has: mypy plus real Home
+  # Assistant type information, in a virtualenv built for the purpose. That
+  # is the `browser` and `nightly-ha` shape.
+  #
+  # The ruler's dependency-free half runs in `fast` too (tests/typing_ruler.py
+  # in the units lane), and deliberately: the ignore count is the guard
+  # `--warn-unused-ignores` does not provide, and it must not be the metric
+  # that goes unchecked on the day this install fails.
+  typing:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      # Not matrixed over the interpreters `fast` uses. The pin is a PAIR and
+      # the two halves constrain each other: homeassistant-stubs 2026.9.3
+      # refuses to install below Python 3.14.2, so exactly one interpreter
+      # line satisfies the pin this ruler is defined by (#504). A second leg
+      # would either fail to install or measure something else and call it
+      # the same number.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.14"
+
+      # The versions are recorded in tests/typing_budgets.json and installed
+      # from tests/requirements-typing.txt, the hash-pinned resolution of
+      # exactly what `typing_ruler.py --print-requirements` names (#1548).
+      # The two cannot drift apart unseen: the source-only ruler in `fast`
+      # refuses a lock whose mypy or homeassistant-stubs pin is not the
+      # recorded pair, and guard 2 below refuses an installed pair that is not.
+      # --no-deps: the lock overrides homeassistant's cryptography pin (see
+      # its header), and it is already the complete resolution.
+      - name: Install the pinned toolchain
+        run: |
+          python3 -m venv .venv-typing
+          .venv-typing/bin/python -m pip install --require-hashes --no-deps \
+            --build-constraint tests/requirements-build.txt \
+            -r tests/requirements-typing.txt
+
+      # Run BY the pinned interpreter, so the ruler introspects the
+      # environment it is measuring in rather than being told about it.
+      - name: Run the ruler and ratchet its three numbers
+        run: |
+          .venv-typing/bin/python tests/typing_ruler.py --mypy \
+            --emit "$RUNNER_TEMP/typing-census.json"
+
+      # Kept on a failure too: the run that refuses because the census is not
+      # yet recorded is exactly the run whose numbers are wanted.
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: typing-census
+          path: ${{ runner.temp }}/typing-census.json
+          if-no-files-found: ignore
+
+  # Two numbers `fast` cannot produce, both running beside it rather than
+  # inside it: how much of the package the suite EXECUTES, and how much of it
+  # the suite would NOTICE being wrong. They are different questions and the
+  # second is the one that decides whether a check is worth its line -- five
+  # W5-G7 tranches found twenty-two checks that executed the line they were
+  # named for and pinned nothing, all of them green coverage.
+  #
+  # Neither is matrixed. Coverage of a statement does not depend on the
+  # interpreter that ran it, and a second leg would pay a whole instrumented
+  # suite to print the same floor.
+  coverage:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    # The instrumented `fast` stage is the whole default gate minus the four
+    # end-to-end scripts, run under a tracer that costs roughly a third again.
+    timeout-minutes: 90
+    steps:
+      # Full history: the scope below diffs against the merge base and reads
+      # that base's tests/closures.json, as `fast`'s does.
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # Per-script coverage is reused from the push run at the diff's base
+      # (R9-F10.9b, #1812). The key is that base commit plus everything that
+      # decides what a script's data means: the instrument, the tracer and
+      # dependency locks, and the interpreter. A change to any of them is a
+      # different key, so a miss, so every script is measured. A push keys its
+      # own commit and saves. The runner's OS is in the key as well, since the
+      # tracer's data is the platform's (#1822 review, R9-F10.9c).
+      - name: Key the per-script coverage
+        id: covkey
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BASE=$(git rev-parse HEAD)
+          else
+            BASE=$(git merge-base origin/main HEAD)
+          fi
+          PY=$(python -c 'import sys; print(sys.version.split()[0])')
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          echo "key=coverage-per-v1-${{ runner.os }}-$BASE-py$PY-${{ hashFiles('tools/audit/w5-partition/coverage_tree.sh', 'tools/coverage/coverage_tree.sh', 'tests/requirements-coverage.txt', 'tests/requirements-ci.txt', 'tests/requirements-build.txt') }}" >> "$GITHUB_OUTPUT"
+
+      # An exact key and no restore-keys: data from any other commit is a miss.
+      - name: Restore the base's per-script coverage
+        id: covbase
+        if: github.event_name != 'push'
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/coverage-base
+          key: ${{ steps.covkey.outputs.key }}
+
+      # THE ENTRY MUST BE MAIN'S PUSH RUN'S (#1822 review, R9-F10.9c). A
+      # restore searches this pull request's own cache scope before main's, so
+      # an earlier head of the same pull request whose tests.yml saved under
+      # this key would be restored here in place of the push run's data. The
+      # push run writes a marker naming its event, ref and commit; an entry
+      # whose marker is not a push to main at this key's base is discarded and
+      # every script is measured, as on a miss. A head that forges the marker
+      # too is not caught here: the push to main measures every script
+      # unscoped, as it does behind every scoped lane.
+      - name: Check the restored coverage is main's push run's
+        id: covtrust
+        if: steps.covbase.outputs.cache-hit == 'true'
+        env:
+          BASE: ${{ steps.covkey.outputs.base }}
+        run: |
+          MARK="$RUNNER_TEMP/coverage-base/.measured-by"
+          if [ -f "$MARK" ] && [ "$(cat "$MARK")" = "push refs/heads/main $BASE" ]; then
+            echo "trusted=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "The restored coverage is not a push to main at $BASE (marker: $(cat "$MARK" 2>/dev/null || echo none)); measuring every script."
+            rm -rf "$RUNNER_TEMP/coverage-base"
+          fi
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
+      # key fingerprints the installed distribution set, so a package added
+      # there invalidates the drift baseline for every `fast` run in the
+      # repository -- a whole-repo cache miss to give one job a tracer. The pin
+      # is exact for the same reason the rest are: coverage.py's default pragma
+      # pattern is what decides whether an exempted line leaves the
+      # denominator, and tests/coverage_ratchet.py counts against that pattern.
+      - name: Install the tracer
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-coverage.txt
+
+      # Writes nothing inside the worktree: W5P_OUT defaults under W5P_WORK, so
+      # the measurement leaves no untracked evidence tree behind.
+      #
+      # The exit status of the stage is NOT this job's verdict and is not read
+      # here. tests/features.py fails its #525 heartbeat pair under any tracer
+      # -- both arms read zero ticks, the null control included, because the
+      # tracer removes the stall the check exists to see -- and that pair is
+      # `fast`'s to judge, on an uninstrumented run, where it is honest. What
+      # this job judges is the JSON.
+      - name: Measure the tree
+        run: |
+          # EXPORTED, not merely set: coverage_tree.sh reads W5P_WORK from the
+          # environment and refuses without it, and the refusal is a one-line
+          # message the `|| true` below would otherwise swallow into an empty
+          # `out/` and a confusing "produced no coverage.json".
+          export W5P_WORK
+          W5P_WORK=$(mktemp -d)
+          echo "W5P_WORK=$W5P_WORK" >> "$GITHUB_ENV"
+          # The gate's own scope for this diff decides which scripts can
+          # reuse the base's data: a script the plan skips has no changed file
+          # in its measured closure. Only on a hit the marker check trusted; a
+          # miss or a discarded entry measures everything.
+          if [ "${{ steps.covtrust.outputs.trusted }}" = "true" ]; then
+            PYTHONPATH=tests/hastub python tests/closure.py select \
+              --diff "${{ steps.covkey.outputs.base }}" \
+              --workdir "$RUNNER_TEMP/coverage-scope"
+            export W5P_SCOPE="$RUNNER_TEMP/coverage-scope/scope.json"
+            export W5P_REUSE="$RUNNER_TEMP/coverage-base"
+          else
+            echo "No per-script coverage for ${{ steps.covkey.outputs.base }}: measuring every script."
+          fi
+          if test -f tools/audit/w5-partition/coverage_tree.sh; then
+            tools/audit/w5-partition/coverage_tree.sh fast || true
+          else
+            tools/coverage/coverage_tree.sh fast || true
+          fi
+          test -s "$W5P_WORK/out/coverage.json" || {
+            echo "The instrument produced no coverage.json. That is this job"
+            echo "failing, not the ratchet: there is no measurement to judge."
+            exit 1
+          }
+
+      # Kept on a failure too: the run that refuses because the floor moved is
+      # exactly the run whose per-module numbers are wanted.
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: coverage-json
+          path: ${{ env.W5P_WORK }}/out/coverage.json
+          if-no-files-found: ignore
+
+      # The next pull requests' base: every script measured, on main. Copied
+      # to the path the restore names, because a cache entry's version hashes
+      # its path: saved from the mktemp directory, no restore would ever hit.
+      - name: Stage this commit's per-script coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cp -R "$W5P_WORK/out/per" "$RUNNER_TEMP/coverage-base"
+          printf '%s %s %s\n' "$GITHUB_EVENT_NAME" "$GITHUB_REF" "$(git rev-parse HEAD)" \
+            > "$RUNNER_TEMP/coverage-base/.measured-by"
+
+      - name: Save this commit's per-script coverage
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          path: ${{ runner.temp }}/coverage-base
+          key: ${{ steps.covkey.outputs.key }}
+
+  # The coverage ratchet, in a job of its own (decision 0013, amended).
+  # `coverage` above runs the pull request's suite, so nothing after that in
+  # the same job is the base's any more. This job runs no program the pull
+  # request carries before its grader, and grades the JSON `coverage`
+  # measured. That measurement is still the output of the pull request's code:
+  # the pin closes an edit to the grader, not a suite that misreports.
+  coverage-ratchet:
+    needs: [recheck-gate, coverage]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # A missing artifact fails this step, so a measurement that never
+      # happened is a red here, never a green.
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: coverage-json
+          path: ${{ runner.temp }}/coverage
+
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Nothing before it in this job runs the pull request's code: after
+      # anything that did, the job would be the pull request's (it could
+      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+      # a lint that refuses the forms known to break it. The pull
+      # request's own copy runs in `graders-head-copy`, which is not required.
+      - name: Ratchet the floor and the pragma count with the base's grader
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/coverage_ratchet.py'
+          test "$(git hash-object tests/coverage_ratchet.py)" = "$(git rev-parse "$PINNED:tests/coverage_ratchet.py")"
+          python3 -I -S tests/coverage_ratchet.py \
+            --coverage "$RUNNER_TEMP/coverage/coverage.json"
+
+  # The mutation table. Scope is the files that were actually tested: the
+  # production files a pull request changes, or -- for a test-only diff -- the
+  # production files in the MEASURED closure of each changed script, the same
+  # recording tests/closures.json gives the scoped gate.
+  #
+  # It does not mutate the checkout. Every worker copies the working tree
+  # first, so a cancelled job cannot leave a production file edited for a
+  # later step to read, which an in-place `try/finally` still can: a SIGKILL
+  # does not run `finally`.
+  mutation:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'push'
+        || github.event_name == 'pull_request'
+        || github.event_name == 'merge_group'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck == 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # --scope changed diffs three-dot against the merge base, which a
+          # shallow clone does not have.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # `--jobs` is sized to the runner, not to taste: the drivers are
+      # single-threaded, so more workers than cores only lengthens every
+      # mutant's wall clock. The pool is small on purpose -- its job is to
+      # catch a change that stops being noticed, not to estimate a rate, which
+      # is what the nightly below is for.
+      - name: Drive the table over what this diff tested
+        shell: bash
+        run: |
+          git fetch --no-tags origin main
+          set -o pipefail
+          python3 tests/mutation_table.py \
+            --scope changed --base origin/main --max 10 --jobs 3 \
+            | tee "$RUNNER_TEMP/mutation-table.txt"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}/mutation-table.txt
+          if-no-files-found: ignore
+
+  # The measuring half of `mutation-autofix`: no write grant, because the
+  # drivers are the pull request's code and never run beside a token that can
+  # push. Only a ratchet refusal ("N unpinned site(s) against M") is measured
+  # -- a breached survivor cap is a finding, not a missing pin. The measuring
+  # PROGRAM is the base's copy of mutation_table.py -- the pull request's base
+  # commit, as mutation-autofix restores it, so a stacked pull request
+  # measures with the program its base carries -- and a pull request that
+  # edits the tool cannot change how its own kills are measured; the status
+  # and the apply step are this head's code, the trust every autofix job
+  # already extends. The copy is kept out of the worker overlay
+  # (`.git/info/exclude`): an untracked script there reddens entities.py's
+  # closure checks at baseline and no kill could ever be measured (#1599's
+  # review). The status is `measurement()`'s, read from the program's own
+  # summary line, so a run that did not measure reddens the autofix job.
+  #
+  # SHARDED (R9-CI-1). One runner pinned 10 of #2025's 56 sites in its budget
+  # and left 46 for later pushes, each paying the baselines again. The shards
+  # split the sites by anchor (`pin_shard`) and run at once, each with the
+  # whole budget; mutation-autofix merges their artifacts (`merge_pin_shards`)
+  # into one commit. `mutation-pin-plan` sizes the matrix from the refusal's
+  # site count (`pin_shard_count`: six sites a shard, at most ten), so a big
+  # diff costs runners rather than wall clock. A base program without --shard
+  # runs whole on shard 1 and the other shards stand down.
+  mutation-pin-plan:
+    needs: [mutation]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      shards: ${{ steps.plan.outputs.shards }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - name: Download the lane's table
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}
+
+      - name: Size the shard matrix from the sites the diff added
+        id: plan
+        run: |
+          touch "$RUNNER_TEMP/mutation-table.txt"
+          python3 -I - "$RUNNER_TEMP/mutation-table.txt" <<'PY' >> "$GITHUB_OUTPUT"
+          import json, sys
+          sys.path.insert(0, "tests")
+          import mutation_table
+          n = mutation_table.pin_shard_count(open(sys.argv[1]).read())
+          print(f"count={n}")
+          print(f"shards={json.dumps(list(range(1, n + 1)))}")
+          PY
+          cat "$GITHUB_OUTPUT"
+
+  mutation-pins:
+    needs: [mutation, mutation-pin-plan]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        shard: ${{ fromJSON(needs.mutation-pin-plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Download the lane's table
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-table
+          path: ${{ runner.temp }}
+
+      - name: Measure pins for the sites this diff added unpinned
+        id: pins
+        timeout-minutes: 170
+        shell: bash
+        env:
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          SHARD: ${{ matrix.shard }}
+          SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}
+        run: |
+          set -uo pipefail
+          git fetch --no-tags origin main
+          out="$RUNNER_TEMP/mutation-pins"
+          mkdir -p "$out"
+          printf '%s\n' "$PR_HEAD" > "$out/head"
+          touch "$RUNNER_TEMP/mutation-table.txt"
+          python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
+            > "$RUNNER_TEMP/ledger-before.json"
+          rm -f "$RUNNER_TEMP/pin-run.txt"
+          # Under the 170-minute step timeout with room for the runs in flight
+          # (R9-F10.12): admission charges a lazy driver its run alone, so a
+          # red run's baseline and null control are paid past the deadline --
+          # boost_drift_replay.py's three runs are ~26 minutes at its recorded
+          # seconds. At 90 minutes four shards of 14 pinned 19 of #2025's 56
+          # sites, each site ~2000 s of driver work; six sites a shard fit 120
+          # (R9-CI-1). Only a base program that has a flag gets it.
+          budget=()
+          shard=()
+          run=1
+          if grep -qE '^MUTATION TABLE REFUSED -- [0-9]+ unpinned site\(s\) against' \
+               "$RUNNER_TEMP/mutation-table.txt" \
+             && git show "$PR_BASE":tests/mutation_table.py > tests/_mutation_table_base.py \
+             && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
+            echo tests/_mutation_table_base.py >> .git/info/exclude
+            grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
+              && budget=(--budget-minutes 120)
+            if grep -q -- '--shard' tests/_mutation_table_base.py; then
+              shard=(--shard "$SHARD/$SHARDS")
+            elif [ "$SHARD" != 1 ]; then
+              run=0
+              echo "base program has no --shard: shard 1 measures the whole pool"
+            fi
+            # A refusal exits non-zero; the runner's `bash -e` would end the
+            # step there, before measurement() wrote any status, and
+            # mutation-autofix then read a missing file as skip-no-measurement
+            # (#2025, run 37663843895). measurement() grades the run instead.
+            [ "$run" = 1 ] && { python3 tests/_mutation_table_base.py --pin-killed --base origin/main --jobs 3 \
+              "${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt" \
+              || echo "pin run exited non-zero; measurement() grades it"; }
+          fi
+          rm -f tests/_mutation_table_base.py
+          [ "$run" = 1 ] || exit 0
+          python3 - "$RUNNER_TEMP" "$out" <<'PY'
+          import json, sys
+          from pathlib import Path
+          sys.path.insert(0, "tests")
+          import mutation_table
+          tmp, out = Path(sys.argv[1]), Path(sys.argv[2])
+          run = tmp / "pin-run.txt"
+          status, added = mutation_table.measurement(
+              (tmp / "mutation-table.txt").read_text(),
+              run.read_text() if run.exists() else None,
+              json.loads((tmp / "ledger-before.json").read_text()),
+              mutation_table.load_budgets())
+          (out / "pins.json").write_text(json.dumps(added, indent=2))
+          (out / "status").write_text(status + "\n")
+          print(f"measure: {status}, {len(added)} anchor(s)")
+          PY
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always() && steps.pins.outcome != 'skipped'
+        with:
+          name: mutation-pins-${{ matrix.shard }}
+          path: ${{ runner.temp }}/mutation-pins/
+          if-no-files-found: ignore
+
+  # The same instrument over the whole package, which only the nightly can
+  # afford. A pull request cannot see this lane at all, so it is registered in
+  # `tests/nightly_status.py`'s REQUIRED_LANES and `tests/entities.py` derives
+  # that coupling from this job's own `if:` -- an unregistered schedule-only
+  # lane fails there rather than going dark the way #533's did.
+  #
+  # Deliberately one job and not split across several: the cap is a fraction
+  # of one pool, so two half-runs would each judge their own half against a
+  # cap measured over the whole.
+  mutation-nightly:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          # Its driver set includes tests/entities.py, whose handover checks ask
+          # git whether `updated-for:` is an ancestor -- unanswerable at depth 1.
+          # The driver then fails at the BASELINE, mutation_table.py refuses with
+          # "the baseline is already red", and the nightly is red having run no
+          # mutant at all. Its sibling `mutation` above already carries this for
+          # the same reason; this job was the one that never got it.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # --budget-minutes (R9-F10.12): the run starts no mutant that would end
+      # past 270 of the job's 330 minutes, so the drivers' growth shrinks the
+      # night's sample, named as partial, instead of timing the job out. The
+      # 60 minutes left cover the runs in flight, each under its scaled
+      # timeout. mutation-ledger below is sized the same way.
+      # The seed rotates by date, as mutation-ledger's does (R9-F10.13): the
+      # constant default drew the same sample every night, so the tail the
+      # budget cuts would stay unevaluated for good. The draw is the same
+      # size; a killed_by pin it happens to draw is re-driven with its own
+      # killer first, and the report below names each one that was not
+      # reproduced, for a human to re-pin, triage or cover with a test. The
+      # job never edits a pin, and stays green on one (ci-autofix.md).
+      - name: Drive the table over the whole package
+        shell: bash
+        run: |
+          set -o pipefail
+          python3 tests/mutation_table.py \
+            --scope full --max 40 --jobs 3 --budget-minutes 270 \
+            --seed "$(date -u +%Y%m%d)" \
+            | tee "$RUNNER_TEMP/mutation-table-full.txt"
+
+      - name: Report the pins the draw did not reproduce
+        if: always()
+        shell: bash
+        run: |
+          f="$RUNNER_TEMP/mutation-table-full.txt"
+          test -s "$f" || exit 0
+          {
+            echo "### mutation-nightly: pin re-verification"
+            echo '```'
+            grep -E 'PIN NOT REPRODUCED|pin not re-verified|PIN RE-VERIFICATION' "$f" || echo "no pinned site drawn"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -E 'PIN NOT REPRODUCED' "$f" | while IFS= read -r line; do
+            echo "::warning title=pin not reproduced::${line}"
+          done || true
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: mutation-table-full
+          path: ${{ runner.temp }}/mutation-table-full.txt
+          if-no-files-found: ignore
+
+  # The pre-ratchet stock's path to a disposition (R9 RCA I1, residual (a)).
+  # `mutation-nightly` samples the whole package and records nothing, and
+  # `--pin-killed` reaches only the sites a diff adds, so the unpinned sites
+  # that predate the ratchet had no way out. This job drives a slice of that
+  # stock -- whole anchors, walked by a date seed -- with the same kill rule,
+  # baseline and null control, and hands what it killed to the next job. It
+  # holds no write grant; the job that pushes runs no driver (D11-s1-03).
+  # Main only (#1848): a dispatch on any other ref would drive that ref's
+  # tree and kill rule, and its kills would be pushed to main.
+  mutation-ledger:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main' && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      # Survivors are listed for a human verdict, never triaged here
+      # (ci-autofix.md); the step is green on them, and red only when the
+      # run itself refused or crashed, which leaves no status behind.
+      - name: Drive a slice of the unpinned stock
+        shell: bash
+        run: |
+          set -o pipefail
+          out="$RUNNER_TEMP/mutation-ledger"
+          python3 tests/mutation_table.py \
+            --scope full --drain "$out" --max 40 --jobs 3 \
+            --seed "$(date -u +%Y%m%d)" --budget-minutes 270 \
+            | tee "$RUNNER_TEMP/mutation-ledger.txt"
+          test -s "$out/status"
+          {
+            echo "### mutation-ledger: $(cat "$out/status")"
+            echo
+            echo "Sites left for a human verdict (killing check or survivor_triage):"
+            echo '```'
+            cat "$out/survivors.txt" 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cp "$RUNNER_TEMP/mutation-ledger.txt" "$out/"
+
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        if: always()
+        with:
+          name: mutation-ledger
+          path: ${{ runner.temp }}/mutation-ledger
+          if-no-files-found: ignore
+
+  # Commits what `mutation-ledger` killed to main, as the ledger-writer App
+  # through its own installation token -- so this job keeps the workflow's
+  # read-only floor; GITHUB_TOKEN writes nothing here
+  # (decision 0011's amendment): only NEW rows under
+  # tests/mutation_ledger/killed_by/, under the subject `ci: record nightly
+  # kills`. No driver runs here. A main that moved since the measurement
+  # keeps only the pins whose killing script's closure still holds the
+  # mutated module (`stale_pins`), and every pin is re-checked against main's
+  # own inventory (`apply_drained`): a changed line is dropped, and a second
+  # apply of one slice writes nothing. The
+  # credential lives in the `ledger` environment, whose deployment branches
+  # are main alone, so no other ref's job can mint it; absent, the job is red.
+  # The commits sent are checked before the push (`drain_push_problems`).
+  mutation-ledger-push:
+    needs: [mutation-ledger]
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main'
+      && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && needs.mutation-ledger.result == 'success'
+    environment: ledger
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Download the slice mutation-ledger measured
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          name: mutation-ledger
+          path: ${{ runner.temp }}/mutation-ledger
+
+      - name: Mint the ledger-writer App token
+        id: mint
+        env:
+          REPO: ${{ github.repository }}
+          LEDGER_PEM: ${{ secrets.HPO_LEDGER_PEM }}
+          LEDGER_APPID: ${{ secrets.HPO_LEDGER_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$LEDGER_PEM" ] || [ -z "$LEDGER_APPID" ]; then
+            echo "::error::HPO_LEDGER_PEM or HPO_LEDGER_APPID is not set in the ledger environment; the slice is not recorded (fail-closed: the report step reddens skip-no-writer)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-ledger.pem"
+          jwt_h="$RUNNER_TEMP/hpo-ledger-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$LEDGER_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$LEDGER_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the ledger-writer App JWT failed"
+            exit 1
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the ledger-writer App has no installation on $REPO, or its JWT was refused"
+            exit 1
+          }
+          tok=$(curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" \
+            -d '{"permissions":{"contents":"write"}}' \
+            "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])') && [ -n "$tok" ] || {
+            echo "::warning::minting the ledger-writer App installation token failed"
+            exit 1
+          }
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
+      # Apply, check the write set, commit and push, re-applied onto a main
+      # that moved under the push (three tries; never a force). Every status
+      # reaches the report below, which reddens one a slice was owed.
+      - name: Record the killed sites on main
+        id: record
+        env:
+          PINS: ${{ runner.temp }}/mutation-ledger
+          TOKEN: ${{ steps.mint.outputs.token }}
+        run: |
+          set -uo pipefail
+          status=""
+          if [ -z "$TOKEN" ]; then
+            status="skip-no-writer"
+          else
+            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+            echo "::add-mask::$AUTH"
+            git config user.name "hpo-ledger[bot]"
+            git config user.email "hpo-ledger[bot]@users.noreply.github.com"
+            for try in 1 2 3; do
+              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              status=$(python3 -I - <<'PY'
+          import os, subprocess, sys
+          sys.path.append("tests")
+          import mutation_table as m
+          pins = os.environ["PINS"]
+          head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                text=True).stdout.strip()
+          try:
+              at = open(os.path.join(pins, "head")).read().strip()
+          except OSError:
+              at = ""
+          changed = m.drain_changed(at, head)
+          status = m.apply_drained(pins, head, changed)
+          if status == "changed":
+              st = subprocess.run(["git", "status", "--porcelain",
+                                   "--untracked-files=all"],
+                                  capture_output=True, text=True).stdout
+              bad = m.drain_write_set_problems(st)
+              for b in bad:
+                  print(f"outside the writer's grant: {b}", file=sys.stderr)
+              status = "skip-write-set" if bad else status
+          print(status)
+          PY
+              ) || status="skip-apply-crashed"
+              [ "$status" = "changed" ] || break
+              git add tests/mutation_ledger/killed_by/
+              git commit -q -m "ci: record nightly kills"
+              if ! python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; bad = m.drain_push_problems(); print("\n".join(bad), file=sys.stderr); sys.exit(1 if bad else 0)'; then
+                status="skip-commit-set"
+                break
+              fi
+              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                   push origin HEAD:refs/heads/main; then
+                break
+              fi
+              status="skip-push-refused"
+            done
+          fi
+          echo "MUTATION LEDGER: $status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Report whether the slice reached main
+        if: always()
+        run: |
+          python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; sys.exit(m.drain_report(sys.argv[1]))' \
+            "${{ steps.record.outputs.status }}"
+
+  slow:
+    needs: [recheck-gate]
+    if: >-
+      !cancelled() && (
+        github.event_name == 'schedule'
+        || (github.event_name == 'workflow_dispatch'
+            && needs.recheck-gate.outputs.recheck != 'true')
+      )
+    runs-on: ubuntu-latest
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Resolve the golden comparison ref
+        run: |
+          # Nightly runs sit on main; comparing against the commit before
+          # the latest lets the drift gate re-verify the newest merge.
+          # There is no fallback on purpose: `|| git rev-parse HEAD` used to
+          # sit here, and a ref that resolves to HEAD compares the tree
+          # against itself -- byte-identical by construction, so no drift can
+          # ever be reported and every claim is stale. env_drift.py now
+          # refuses that state; failing here instead says which step is at
+          # fault. A root commit (no HEAD^1) is the only way to get here.
+          REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || {
+            echo "HEAD has no first parent, so there is nothing to compare"
+            echo "this tree against. The drift gate needs a real baseline;"
+            echo "check out main with history (fetch-depth: 0) and re-run."
+            exit 1
+          }
+          echo "GOLDEN_REF=${REF}" >> "$GITHUB_ENV"
+
+      # Unique to this job vs a push-to-main `fast` run: the committed-fixture
+      # value report (#347, level 3), per fixture rather than as a count.
+      # `fast` already ran the rest of the suite on the last merge. Levels 1
+      # and 2 gate there; this never fails anything: the numbers are the
+      # runner's own.
+      - name: Report committed-fixture drift values
+        env:
+          GOLDEN_MODE: drift
+          DRIFT_VALUE_REPORT: "1"
+          PYTHONPATH: tests/hastub
+        run: python3 tests/env_drift.py --all "$GOLDEN_REF"
+
+      - name: Closed-loop simulation
+        env:
+          PYTHONPATH: tests/hastub
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: python3 tests/rolling.py
+
+      # Recorded days (tests/replay/*.json, written by tools/replay/export.py)
+      # fed through the real coordinator cycle by cycle, every published
+      # entity judged -- the lane #1499 argued for: a defect found in use
+      # after seven synthetic audit rounds. Its own step, run whatever the
+      # suite above concluded, so its red is its own. Nightly rather than per
+      # pull request until a week of real data has been timed.
+      - name: Replay recorded days through the real coordinator
+        if: success() || failure()
+        env:
+          PYTHONPATH: tests/hastub
+        run: python3 tests/replay.py
+
+  # Real Home Assistant, in the container an installation actually runs
+  # (#521). Every other lane -- tests/deployment_shape.py included -- gets
+  # `homeassistant` from tests/hastub, so none of them has ever observed real
+  # import or setup semantics; that is the third divergence of #513, and it
+  # is how #511 shipped a total loss of function in v6.3.15 behind a green
+  # suite. The check that carries the value is that a PLAN CAME OUT: setup
+  # succeeded throughout #511, so a lane asserting only "it loaded" would
+  # have been green for the whole release.
+  #
+  # Nightly and on demand, never on a pull request. It costs minutes, needs
+  # Docker, and is the first lane here that can go red for a reason outside
+  # this repository -- a registry outage, or a Home Assistant release
+  # changing setup behaviour. It blocks nothing, and it is not one of the
+  # required contexts on the main-protect ruleset.
+  #
+  # "It reports loudly" is what this comment used to say next, and it was
+  # measured false. What it does is attach its conclusion to whatever commit
+  # was main's head when the schedule fired, as a check run beside that
+  # commit's own `nightly-ha skipped` from the push event. Nothing notifies,
+  # and the NEXT merge moves the head and strands the red on a commit no one
+  # re-reads: two consecutive nights of both matrix arms failing in `_stage`
+  # were found by a seat sent looking, not by the lane telling anyone. That is
+  # a known and accepted property -- the whole reason it is unrequired is that
+  # it can go red for the outside-this-repository reasons above, and a lane
+  # that files an issue for a registry outage is worse than a quiet one. What
+  # follows from it is that a defect reaching THIS lane is expensive to
+  # notice, so the cheap checks that keep it runnable belong in the PR gate
+  # instead: `tests/entities.py` pins the wiring of the step below.
+  nightly-ha:
+    if: >-
+      github.event_name == 'schedule'
+      || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      # Both images report. A floor that breaks while stable does not is the
+      # most informative outcome this lane has, and fail-fast would hide it.
+      fail-fast: false
+      matrix:
+        # The floor the integration supports (#514), and whatever is current.
+        image: ["2025.2.0", "stable"]
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # The driver has a HOST half as well as a container half, and the host
+      # half imports the production package: `_seed_unique_id` calls
+      # `config_flow.entry_identity` for the seed's unique_id, and
+      # `load_committed_roster` imports every platform module for the A3
+      # roster. That import resolves `homeassistant` from tests/hastub, which
+      # imports voluptuous, and the package imports aiohttp -- so a bare
+      # `setup-python` runner dies inside `_stage`, before Docker is reached
+      # at all. It did, on both matrix arms, on two consecutive nights.
+      # The same pinned set `fast`, `slow`, `browser` and `closures` install --
+      # four of the eleven jobs here, not all of them; `typing`, `closure-scope`
+      # and the three autofix jobs run Python and install nothing, because what
+      # they run imports neither the package nor the stub. The host only stages
+      # files, so nothing about these versions reaches the container, which
+      # uses Home Assistant's own.
+      # Plus py-spy (#1758), which the driver stages into the A15 heartbeat
+      # container: the Home Assistant image ships none.
+      - name: Install pinned test dependencies
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+          -r tests/requirements-nightly-ha.txt
+
+      # Its own step so a registry failure is an unmistakable red here,
+      # rather than a timeout somewhere inside the lane.
+      - name: Pull the Home Assistant image
+        run: docker pull "homeassistant/home-assistant:${{ matrix.image }}"
+
+      - name: Run the integration inside Home Assistant
+        run: |
+          python tests/nightly_ha.py \
+            --image "homeassistant/home-assistant:${{ matrix.image }}"
+
+      # The PR gate checks every Home Assistant name production reaches
+      # against a snapshot recorded from upstream source at the floor
+      # (tests/entities.py, the P11 floor arm). Here the floor itself answers
+      # every recorded question again, so a wrong recording or a hand edit is
+      # red within a night. After the lane, and whatever it concluded, so
+      # neither hides the other.
+      - name: Verify the floor-names snapshot in Home Assistant itself
+        if: ${{ !cancelled() && matrix.image == '2025.2.0' }}
+        run: >-
+          python tests/ha_floor.py verify
+          --image "homeassistant/home-assistant:${{ matrix.image }}"
+
+  # The telling. `nightly-ha` and `slow` run on `schedule` alone, are `skipped`
+  # on every push and pull request, and are not required contexts -- so a
+  # scheduled run's conclusion attaches to whatever commit was main's head when
+  # the cron fired, beside that same commit's own `skipped` from the push, and
+  # the next merge moves the head and strands it. Nothing notifies. Both
+  # `nightly-ha` arms failed on the 2026-09-09 and 2026-09-10 schedules and a
+  # seat sent looking found it two nights later (#533).
+  #
+  # It is its own RED CHECK and not a warning printed inside one of the green
+  # jobs above, deliberately. `.cursor/rules/ci-autofix.mdc` says read the
+  # summary line and not the tick, and `.cursor/rules/brief-citations.mdc`
+  # names `FIXTURE ok: N error(s)` as the shape "designed to print beside a
+  # clean exit, which is exactly the shape that lets a real error be waved
+  # through". A warning inside a passing job IS that shape, and the defect
+  # being fixed is that nobody looked.
+  #
+  # It must NOT be added to the required contexts on `main-protect`. The
+  # property that makes `nightly-ha` unrequired is real -- a registry outage or
+  # a Home Assistant release can redden it, and neither is a reason to refuse
+  # an unrelated merge -- and requiring this would transfer that to every pull
+  # request in the repository. The report itself says so on every run.
+  #
+  # Pull requests only, not pushes to main: a lane that can go red for reasons
+  # outside this repository must not be able to turn `main` red, which is the
+  # signal the forced-full gate above exists to keep meaningful.
+  nightly-status:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Actions metadata -- which runs exist and how they concluded -- is not
+    # repository content, and the workflow's `contents: read` floor cannot see
+    # it. This is a widening of that floor and is written down as one. It is
+    # read-only, and it is far narrower than the `issues: write` the auto-filing
+    # countermeasure would have needed, which is why that one was rejected and
+    # this one is not. Declared at JOB level: a job-level `permissions:` block
+    # REPLACES the workflow default for this job alone and is inherited by no
+    # other job, so every other job in this file still runs on `contents: read`.
+    # `tests/entities.py` pins the whole set of jobs that override the floor --
+    # this one and the three autofix jobs, which push a commit and retrigger this
+    # workflow and so carry `contents: write` and `actions: write` -- and that
+    # this one's block carries no `write` at all. A fifth override then has to
+    # be argued for rather than land.
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # No `pip install` step, unlike the jobs that install
+      # `tests/requirements-ci.txt`: the reporter is stdlib-only on purpose. A
+      # check whose job is to notice that a lane went dark must not be
+      # breakable by the same dependency set that darkened it -- which is
+      # exactly how #533's lane went dark -- and it costs seconds this way.
+      # PINNED (decision 0013): restored from the base, checked byte-identical
+      # to the base's object, and run under `-I -S`, all in this one step.
+      # Nothing before it in this job runs the pull request's code: after
+      # anything that did, the job would be the pull request's (it could
+      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+      # a lint that refuses the forms known to break it. The pull
+      # request's own copy runs in `graders-head-copy`, which is not required.
+      - name: Report the last scheduled run's conclusion
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- \
+            'tests/nightly_status.py'
+          test "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"
+          python -I -S tests/nightly_status.py
+
+  # THE PULL REQUEST'S OWN COPY OF EACH PINNED GRADER (decision 0013, amended
+  # 2026-09-24). `coverage-ratchet`, `nightly-status` and governance.yml's
+  # `delivery-status` restore their grader from the base, so a pull request
+  # that changes one is graded by the old copy there. This job runs the new
+  # copy the way that job does, so a changed grader still shows red or green
+  # on the pull request that changes it. It is not a required context, and
+  # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. Its
+  # red blocks nothing by itself: `pr-contract` makes the body answer every
+  # red check run under `## Red checks`, and the fix review returns `blocked`
+  # on one the body left unanswered. Each step runs only when the three-dot
+  # diff touches its grader.
+  # `nightly_status.py` is not here: it needs `actions: read`, and `fast`
+  # already drives the pull request's copy through `tests/entities.py`.
+  #
+  # THE GOVERNANCE ARM (#1757, the #1721 RCA). `policy-docs` restores every
+  # `.claude/workflows/*.mjs` from the base, so a changed governance grader
+  # first ran under the Actions GITHUB_TOKEN on the push to main: #1715's
+  # comparator read a ruleset field that token cannot see, and main was red
+  # for 2 h 21 m. A seat's local run cannot see it either, since it reads as
+  # the seat. So when the diff touches what `policy-docs` restores, the pull
+  # request's own `policy_lint.mjs` and `field_coverage.mjs` run here with
+  # this job's read-only token. `tests/entities.py` derives the token-bearing
+  # pinned graders from the workflows and refuses one with neither a step
+  # here nor a recorded reason.
+  graders-head-copy:
+    needs: [coverage]
+    if: ${{ !cancelled() && github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      HPO_JOB_GRADES: nothing
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+          # policy_lint.mjs's citation resolvers ask git about cited tags.
+          fetch-tags: true
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Name the pinned graders this pull request changes
+        id: changed
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          for g in coverage_ratchet delivery_status; do
+            if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
+              echo "$g=true" >> "$GITHUB_OUTPUT"
+              echo "tests/$g.py changed: its own copy runs below"
+            else
+              echo "$g=false" >> "$GITHUB_OUTPUT"
+            fi
+          done
+          # The pathspec governance.yml's `policy-docs` restores from the base.
+          if git diff --quiet "$BASE"..."$HEAD" -- \
+              '.claude/workflows/*.mjs' \
+              '.claude/workflows/*.py' \
+              '.claude/workflows/vendor' \
+              'tools/audit/*.sh' \
+              'tools/audit/record-predicate' \
+              'tools/audit/round6/D11/fix/codeowners_gap.py' \
+              'tools/policy/*.mjs' \
+              'tools/policy/*.py' \
+              'tools/pr/*.py' \
+              'tools/policy/vendor' \
+              'tools/pr/*.sh' \
+              'tools/seat/*.sh' \
+              'tools/coverage/*.sh' \
+              'dev/audit/*.sh' \
+              'tools/policy/record-predicate' \
+              'dev/audit/rounds/round6/D11/fix/codeowners_gap.py' \
+              'tests/layout.py'; then
+            echo "governance=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "governance=true" >> "$GITHUB_OUTPUT"
+            echo "a pinned governance grader changed: its own copy runs below"
+          fi
+
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        if: steps.changed.outputs.coverage_ratchet == 'true'
+        with:
+          name: coverage-json
+          path: ${{ runner.temp }}/coverage
+
+      - name: The pull request's coverage_ratchet.py, as `coverage-ratchet` runs it
+        if: steps.changed.outputs.coverage_ratchet == 'true'
+        run: |
+          python3 tests/coverage_ratchet.py \
+            --coverage "$RUNNER_TEMP/coverage/coverage.json"
+
+      - name: The pull request's delivery_status.py, as `delivery-status` runs it
+        if: always() && steps.changed.outputs.delivery_status == 'true'
+        run: |
+          git fetch --no-tags --quiet origin main
+          # A non-zero exit shared with the base copy on this tree is that
+          # copy's own. Exit with the pull request's code only when the two
+          # differ, and exit 1 when this copy prints OVERDUE and the base
+          # copy does not: both of those exits are 1, so the codes alone
+          # cannot separate them.
+          head_copy="$RUNNER_TEMP/delivery_status.head.py"
+          cp tests/delivery_status.py "$head_copy"
+          git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+          set +e
+          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+          base_rc=$?
+          set -e
+          cp "$head_copy" tests/delivery_status.py
+          set +e
+          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+          head_rc=$?
+          set -e
+          cat "$RUNNER_TEMP/delivery_status.base.out"
+          echo "----- head copy -----"
+          cat "$RUNNER_TEMP/delivery_status.head.out"
+          echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+          head_overdue=0
+          base_overdue=0
+          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+            head_overdue=1
+          fi
+          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+            base_overdue=1
+          fi
+          if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+            exit 1
+          fi
+          if [ "$head_rc" -ne "$base_rc" ]; then
+            exit "$head_rc"
+          fi
+          exit 0
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        with:
+          node-version: "22"
+
+      - name: The pull request's policy_lint.mjs, under the Actions token
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/policy/policy_lint.mjs
+
+      - name: The pull request's field_coverage.mjs, under the Actions token
+        if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node tools/policy/field_coverage.mjs
+
+  # The closures the scoped PR gate trusts, re-derived from real runs and
+  # compared against what is committed. A closure that MISSES a file a run
+  # really touched is the dangerous direction -- that is what would make the
+  # gate skip a script it should have run -- and it fails here. A closure
+  # that lists more than a run touched only costs time, and is reported.
+  #
+  # WHEN it runs on a pull request is decided here, by the same table it
+  # checks. The first version of this job asked "does the pull request ADD a
+  # file under custom_components/?" (#332), which is a different question from
+  # the one that matters: a change to what a test READS was checked only after
+  # it merged. Five incidents -- #214, #320, #332, #340, #349 -- each one a
+  # green pull request, a red main, and a second pull request to repair it.
+  # #353 is the sharpest: it exists solely to fix a closure error, and its own
+  # `closures` check says `skipping`.
+  #
+  # `closure.py affected` answers the right question instead, in three cases:
+  # skip (every changed file is INERT), full (a gate file, or a file in no
+  # recorded closure), scoped (re-derive only the closures the diff
+  # intersects, ~40 s an entry against 12-22 minutes for the table).
+  closure-scope:
+    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      case: ${{ steps.decide.outputs.case }}
+      scripts: ${{ steps.decide.outputs.scripts }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+      - id: decide
+        run: |
+          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
+          # --files-from, not `--files $(...)`: a path list off the command
+          # line is split on whitespace and capped by ARG_MAX.
+          # Three dots, not two. base.sha is the base BRANCH TIP at the time
+          # the event fired, not the merge base, so a two-dot diff charges this
+          # pull request with every file anyone else merged while it was open.
+          # Measured on this PR: base.sha was the v6.3.9 stamp, and the two-dot
+          # form attributed VERSION, manifest.json, RELEASE_NOTES.md and both
+          # claim files to it -- 11 files against the real 6. That only ever
+          # over-scopes, so it is safe, but it defeats the `skip` case this job
+          # exists to keep cheap, and main moved four times today while a single
+          # PR was open. fetch-depth: 0 above is what makes ... resolvable.
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py affected \
+            --files-from "$RUNNER_TEMP/changed.txt" \
+            --workdir "$RUNNER_TEMP/affected"
+          {
+            echo "case=$(cat "$RUNNER_TEMP/affected/affected.case")"
+            echo "scripts<<CLOSURE_SCRIPTS_EOF"
+            cat "$RUNNER_TEMP/affected/affected.scripts"
+            echo "CLOSURE_SCRIPTS_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+  closures:
+    needs: [closure-scope]
+    # `!cancelled()` is load-bearing, not decoration. `closure-scope` only runs
+    # on a pull request, so on a push to main it is SKIPPED -- and a job whose
+    # `needs` was skipped is skipped too, whatever its own `if` says. Without
+    # it (`always()` also works, but keeps a superseded run's job running and
+    # the newer run pending in the group) this line would switch off the check on
+    # main, which is the one place it has always run: a far worse bug than the
+    # one it is here to prevent.
+    #
+    # THE DOCS-ONLY FAST LANE (#201 item 8, ledger finding (c)). This job no
+    # longer has a skip case at all, so its `if` is bare `!cancelled()`: the only
+    # diff that ever skipped here is the one `closure-scope` derives as
+    # `skip` -- every changed file INERT and absent from every recorded
+    # closure -- which is exactly the diff the bot's ci/delivery-ledger cycle
+    # pull requests carry. `closures` is one of the `main-protect` ruleset's
+    # required contexts, which SUCCESS satisfies without doubt. #1022, #1025
+    # and #1027 merged `--admin`, but their heads also lacked the required
+    # `hassfest`/`validate-hacs` (#1101): no proof a skip blocks. The ruleset
+    # carve-out was refused (not expressible without weakening everyone), so
+    # the lane reports SUCCESS instead: on the `skip` case the job runs the
+    # cheap arm below -- it re-derives the case itself, from the same
+    # `tests/closure.py affected` the gate's own scoping uses, and fails
+    # unless the answer is `skip` again -- while every code-touching diff
+    # takes the full arm, whose steps are unchanged. The old condition's
+    # fail-closed reading survives the move: an empty case (a failed
+    # `closure-scope`), an unknown event, a dispatch, the nightly and every
+    # push all take the full arm, exactly as they did when `!= 'skip'` was
+    # the last line of the `if`.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    # 'true' exactly when this run is a `pull_request` whose diff the gate's
+    # own closure scoping derives as touching nothing measured. That is
+    # `closure-scope`'s output, computed by `tests/closure.py affected` -- the
+    # same rule `GATE_SCOPE=auto` uses in `fast` -- and NOT a paths filter of
+    # this workflow's own: a second rule for "docs-only" would drift from the
+    # gate's the first time either learned a new inert prefix.
+    env:
+      DOCS_ONLY_FAST: ${{ (github.event_name == 'pull_request'
+                           || github.event_name == 'merge_group')
+                         && needs.closure-scope.outputs.case == 'skip' }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          fetch-depth: 0
+
+      # Single-version deliberately, unlike `fast` (#514). tests/closures.json
+      # is ONE committed artifact and this job uploads ONE `closure-recordings`
+      # for `closures-autofix` to merge; a second interpreter would upload a
+      # second artifact under the same name and hand autofix two recordings of
+      # the same script with no rule for choosing between them. The closure
+      # table records which files a script reads, which is a property of the
+      # code, not of the interpreter running it.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # Everything from here to the under-approximation check is the full arm
+      # and is gated off the docs-only fast lane: the fast arm derives its
+      # answer with stdlib-only `tests/closure.py` calls and needs neither
+      # node, the pinned dependencies, nor strace. On any diff the gate can
+      # scope -- full or scoped -- every one of these steps runs exactly as it
+      # did before the fast lane existed.
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        if: env.DOCS_ONLY_FAST != 'true'
+        with:
+          node-version: "22"
+
+      - name: Install pinned test dependencies
+        if: env.DOCS_ONLY_FAST != 'true'
+        run: >-
+          pip install --require-hashes
+          --build-constraint tests/requirements-build.txt
+          -r tests/requirements-ci.txt
+
+      - name: Install strace
+        # node has no audit hook, so tests/card.mjs is recorded by tracing
+        # its opens instead.
+        if: env.DOCS_ONLY_FAST != 'true'
+        run: sudo apt-get update && sudo apt-get install -y strace
+
+      # THE FAST ARM. `closure-scope` already derived `skip` for this diff;
+      # this step re-derives it HERE, from the same table and the same
+      # three-dot diff, so the job's success is its own measurement rather
+      # than a parrot of an upstream job's output -- and it FAILS CLOSED if
+      # the two derivations ever disagree: a diff this job cannot derive as
+      # `skip` is a diff the full arm must judge, on the next event if not
+      # this one. Seconds, stdlib only, and it is the whole difference
+      # between this check reporting `success` and reporting `skipped` on a
+      # docs-only pull request.
+      - name: Fast arm -- re-derive the skip case and refuse anything else
+        if: env.DOCS_ONLY_FAST == 'true'
+        timeout-minutes: 5
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}"
+          HEAD="${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}"
+          # The same three-dot, --files-from derivation closure-scope ran:
+          # base.sha is the base branch tip, not the merge base, so two dots
+          # would charge this job with files merged elsewhere while it was
+          # open. A disagreement here is not retried or waved through; the
+          # step fails and the full arm runs on the next event.
+          git diff --name-only "$BASE"..."$HEAD" > "$RUNNER_TEMP/changed.txt"
+          echo "changed files (three-dot $BASE...$HEAD):"
+          cat "$RUNNER_TEMP/changed.txt"
+          python tests/closure.py affected \
+            --files-from "$RUNNER_TEMP/changed.txt" \
+            --workdir "$RUNNER_TEMP/affected"
+          CASE=$(cat "$RUNNER_TEMP/affected/affected.case")
+          echo "re-derived case: $CASE (closure-scope said: ${{ needs.closure-scope.outputs.case }})"
+          if [ "$CASE" != "skip" ]; then
+            echo "::error::closure-scope derived 'skip' but this job's own"
+            echo "re-derivation says '$CASE'. The fast arm may not pass a diff"
+            echo "it cannot scope; failing closed so the full arm judges it."
+            exit 1
+          fi
+
+      - name: Re-record the closures
+        # Full arm only: the fast arm has no recording to make. Unchanged
+        # from before the fast lane on every diff that reaches it.
+        if: env.DOCS_ONLY_FAST != 'true'
+        env:
+          OMP_NUM_THREADS: "1"
+          OPENBLAS_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+          # Through the environment, not string-interpolated into the script:
+          # the value is a job output, and `${{ }}` inside `run:` is textual
+          # substitution.
+          SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
+          SCOPE_SCRIPTS: ${{ needs.closure-scope.outputs.scripts }}
+        run: |
+          REF=$(git rev-parse --verify --quiet 'HEAD^1^{commit}') || REF=HEAD
+          # --record-only, on both paths: merging here would overwrite the
+          # committed tests/closures.json with what this run just measured, and
+          # the check below would then compare the file against itself.
+          if [ "$SCOPE_CASE" = "scoped" ]; then
+            printf '%s\n' "$SCOPE_SCRIPTS" > "$RUNNER_TEMP/rederive.txt"
+            echo "Scoped re-derive; every other closure is left as committed:"
+            cat "$RUNNER_TEMP/rederive.txt"
+            while read -r s; do
+              [ -n "$s" ] || continue
+              GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+                --single "$s" --out-dir "$RUNNER_TEMP/closures" --record-only
+            done < "$RUNNER_TEMP/rederive.txt"
+          else
+            GOLDEN_REF="$REF" ./tests/derive_closures.sh \
+              --out-dir "$RUNNER_TEMP/closures" --record-only
+          fi
+
+      - name: Fail if tests/closures.json under-approximates
+        # Full arm only, with the recordings the re-record step above made.
+        if: env.DOCS_ONLY_FAST != 'true'
+        env:
+          PYTHONPATH: tests/hastub
+          SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
+        run: |
+          # --partial drops one check and one only: "a selectable script with
+          # no recording at all", which a scoped re-derive fails by
+          # construction. The under-approximation comparison -- the thing this
+          # job exists for -- is identical on both paths. The output goes to
+          # check.txt in the uploaded recordings: closures-autofix runs the
+          # base's closure.py, and reddens where this one printed UNDER-SCOPED
+          # and that one did not (#1846).
+          set -o pipefail
+          if [ "$SCOPE_CASE" = "scoped" ]; then
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+          else
+            python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"
+          fi
+
+      - name: Fail if a test file re-implements a production symbol
+        # The rule tests/README.md states, enforced (issue #91): a test
+        # defining its own copy of a production constant or helper asserts
+        # against its own arithmetic, and its mutation proofs prove the
+        # copy. Cheap by design -- a name collision -- but the accident
+        # this exists for was a name collision. Runs on BOTH arms: it is a
+        # pure AST scan with no dependencies, so the fast arm carries it
+        # and the full arm keeps it.
+        env:
+          PYTHONPATH: tests/hastub
+        run: python tests/closure.py no-copies
+
+      - name: Upload closure recordings
+        # Autofix needs the recordings even when the check above failed.
+        # Full arm only: the fast arm makes no recordings, and a failure it
+        # could report is one no recording exists to repair.
+        if: >-
+          always() && github.event_name == 'pull_request'
+          && env.DOCS_ONLY_FAST != 'true'
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: closure-recordings
+          path: ${{ runner.temp }}/closures
+          if-no-files-found: ignore
+          retention-days: 3
+
+  # Same-repo PR only: the closures job already re-recorded under strace.
+  # If check printed UNDER-SCOPED or INERT READS UNDER-APPROXIMATED, merge
+  # those recordings and push (R9-CI-1: the second is the same merge). Not a
+  # coding agent -- Linux CI already paid the derive. Does not push on
+  # no-copies, a failed recording of a script the check named, an INERT
+  # contradiction, or its own follow-up commit (`ci: re-record closures`).
+  #
+  # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
+  # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the
+  # new SHA; not Governance (why: tests/entities.py). CLOSURES_PUSH_TOKEN, if
+  # set, retriggers via synchronize and the dispatch is skipped.
+  closures-autofix:
+    needs: [closures]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.closures.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py
+          git reset -q -- tests/closure.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Download closure recordings
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        with:
+          name: closure-recordings
+          path: ${{ runner.temp }}/closures
+
+      - name: Merge UNDER-SCOPED recordings
+        id: autofix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CLOSURES_RESULT: ${{ needs.closures.result }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          export SUBJECT=$(git log -1 --pretty=%s)
+          python3 -I - <<'PY'
+          import os, sys
+          sys.path.append("tests")
+          import closure
+          allowed = closure.autofix_allowed(
+              event_name=os.environ["EVENT_NAME"],
+              closures_result=os.environ["CLOSURES_RESULT"],
+              head_repo=os.environ["HEAD_REPO"],
+              repo=os.environ["REPO"],
+              commit_subject=os.environ["SUBJECT"],
+          )
+          print(f"allowed={allowed}")
+          if not allowed:
+              status = "skip-not-allowed"
+          else:
+              status = closure.apply_under_scoped_recordings(
+                  os.environ["RUNNER_TEMP"] + "/closures", partial=True)
+          print(f"AUTOFIX: {status}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"status={status}\n")
+          PY
+
+      - name: Push the merged closures
+        id: push
+        if: steps.autofix.outputs.status == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+        run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/closures.json
+          git diff --cached --quiet && {
+            echo "closures.json unchanged after apply; not pushing"
+            exit 0
+          }
+          git commit -m "ci: re-record closures"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
+          fi
+          # The pull_request runs this GITHUB_TOKEN push leaves holding
+          # action_required are the next step's to approve (#1276); the
+          # pushed SHA is that step's poll key (#1283).
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
+          echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          # No -f recheck=: that input is only on default-branch YAML.
+          # The dispatched run uses this ref's workflow; recheck-gate
+          # treats a `ci:` subject as recheck.
+          gh workflow run tests.yml --ref "$HEAD_REF"
+          gh workflow run hassfest.yml --ref "$HEAD_REF"
+          gh workflow run validate.yml --ref "$HEAD_REF"
+          # Only a ref older than codeql.yml's trigger is excused; any
+          # other dispatch failure fails the step like the three above.
+          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
+            gh workflow run codeql.yml --ref "$HEAD_REF"
+          else
+            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
+          fi
+
+      # The dispatches above run at once, but the pull_request runs a
+      # GITHUB_TOKEN push triggers wait action_required for a human, and a
+      # pending required check shadows the dispatched green on the PR (#1276).
+      # The listing is preceded by a bounded poll: GitHub creates the pushed
+      # SHA's runs asynchronously, and a one-shot listing was measured
+      # approving nothing while all five runs appeared moments later (#1283).
+      # Approve them as a dedicated Actions-only App -- HPO_RUNS_PEM /
+      # HPO_RUNS_APPID, Actions: write alone, a smaller blast radius than
+      # hpo-approver's -- minting the token with the same RS256 flow
+      # tools/pr/app_approve.sh uses, ported inline because a workflow
+      # cannot read the orchestrator box's key files. Fail-soft throughout:
+      # absent secrets print one notice and approve nothing (until the owner
+      # sets them, behavior is unchanged), and a later mint or approve error
+      # warns rather than reddening a job whose push already happened -- red
+      # means "no bot commit" (#523), and the commit exists.
+      - name: Approve the runs the push left holding
+        if: steps.push.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          PUSH_SHA: ${{ steps.push.outputs.pushed_sha }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ]; then
+            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          if [ -z "$RUNS_APPID" ]; then
+            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json
+          t = json.load(sys.stdin)["token"]
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          # The pushed SHA's pull_request runs are created asynchronously,
+          # so a listing fired the instant the push step ends can precede
+          # every run and approve nothing while they appear moments later
+          # (#1283). Bounded poll first: re-list every 5s for up to 60s
+          # until one action_required run sits at the pushed SHA the push
+          # step exported. An expired window stays fail-soft -- the flow
+          # below prints the after-state it always printed, plus one
+          # notice naming the timeout, because a genuinely run-less push
+          # is legitimate (nothing-staged paths exit before token_push).
+          sha_held() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$PUSH_SHA"
+          }
+          waited=0
+          hits=$(sha_held)
+          while [ -z "$hits" ] && [ "$waited" -lt 60 ]; do
+            sleep 5
+            waited=$((waited + 5))
+            hits=$(sha_held)
+          done
+          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+          held_ids() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              print(r["id"], r["name"])'
+          }
+          held=$(held_ids) || {
+            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          approved=0
+          while read -r id name; do
+            [ -n "$id" ] || continue
+            if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+              echo "approved run $id ($name)"
+              approved=$((approved + 1))
+            else
+              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+            fi
+          done <<< "$held"
+          {
+            echo "### closures-autofix: approve held runs"
+            echo
+            echo '```'
+            echo "$approved run(s) on $HEAD_REF approved by the Actions-only App"
+            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+            held_ids | sed 's/^/  still held: /'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The push above runs only on `changed`; the other statuses fell through
+      # to job success, so a skipped repair was invisible and the documented
+      # wait never ended (#523). Last, and always(): a status the step above
+      # skipped on is exactly the status worth reporting, and reporting before
+      # the push would let this step's own exit throw the repair away.
+      - name: Report whether the repair happened
+        if: always()
+        run: |
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \
+            --status "${{ steps.autofix.outputs.status }}"
+
+  # Same-repo PR only. fast fails INHERITED CLAIMS when a branch copies
+  # main's non-empty list (#493/#494/#496). Empty both files, keep
+  # claims-for and may-drift, push `ci: drop inherited claims`.
+  claims-autofix:
+    needs: [fast]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.fast.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py tests/env_drift.py
+          git reset -q -- tests/closure.py tests/env_drift.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Drop inherited claim lists
+        id: autofix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          FAST_RESULT: ${{ needs.fast.result }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          git fetch --no-tags origin main
+          export SUBJECT=$(git log -1 --pretty=%s)
+          python3 -I - <<'PY'
+          import os, sys
+          sys.path.append("tests")
+          import closure
+          import env_drift
+          allowed = closure.autofix_allowed(
+              event_name=os.environ["EVENT_NAME"],
+              closures_result=os.environ["FAST_RESULT"],
+              head_repo=os.environ["HEAD_REPO"],
+              repo=os.environ["REPO"],
+              commit_subject=os.environ["SUBJECT"],
+              loop_subject="ci: drop inherited claims",
+          )
+          print(f"allowed={allowed}")
+          if not allowed:
+              status = "skip-not-allowed"
+          else:
+              status = env_drift.apply_inherited_claims(
+                  ".", ref="origin/main")
+          print(f"AUTOFIX: {status}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"status={status}\n")
+          PY
+
+      - name: Push emptied claim files
+        id: push
+        if: steps.autofix.outputs.status == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+        run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt
+          git diff --cached --quiet && {
+            echo "claim files unchanged after apply; not pushing"
+            exit 0
+          }
+          git commit -m "ci: drop inherited claims"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
+          fi
+          # The pull_request runs this GITHUB_TOKEN push leaves holding
+          # action_required are the next step's to approve (#1276); the
+          # pushed SHA is that step's poll key (#1283).
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
+          echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          gh workflow run tests.yml --ref "$HEAD_REF"
+          gh workflow run hassfest.yml --ref "$HEAD_REF"
+          gh workflow run validate.yml --ref "$HEAD_REF"
+          # Only a ref older than codeql.yml's trigger is excused; any
+          # other dispatch failure fails the step like the three above.
+          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
+            gh workflow run codeql.yml --ref "$HEAD_REF"
+          else
+            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
+          fi
+
+      # As in closures-autofix (#1276): the dispatches run at once, the
+      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
+      # for a human, and the approve step clears them as the Actions-only
+      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
+      # inline -- after the same bounded poll for the pushed SHA's runs
+      # (#1283). Fail-soft throughout: absent secrets print one notice and
+      # approve nothing, and a later error warns rather than reddening a
+      # job whose push already happened (red means "no bot commit", #523).
+      - name: Approve the runs the push left holding
+        if: steps.push.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          PUSH_SHA: ${{ steps.push.outputs.pushed_sha }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ]; then
+            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          if [ -z "$RUNS_APPID" ]; then
+            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json
+          t = json.load(sys.stdin)["token"]
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          # The pushed SHA's pull_request runs are created asynchronously,
+          # so a listing fired the instant the push step ends can precede
+          # every run and approve nothing while they appear moments later
+          # (#1283). Bounded poll first: re-list every 5s for up to 60s
+          # until one action_required run sits at the pushed SHA the push
+          # step exported. An expired window stays fail-soft -- the flow
+          # below prints the after-state it always printed, plus one
+          # notice naming the timeout, because a genuinely run-less push
+          # is legitimate (nothing-staged paths exit before token_push).
+          sha_held() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$PUSH_SHA"
+          }
+          waited=0
+          hits=$(sha_held)
+          while [ -z "$hits" ] && [ "$waited" -lt 60 ]; do
+            sleep 5
+            waited=$((waited + 5))
+            hits=$(sha_held)
+          done
+          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+          held_ids() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              print(r["id"], r["name"])'
+          }
+          held=$(held_ids) || {
+            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          approved=0
+          while read -r id name; do
+            [ -n "$id" ] || continue
+            if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+              echo "approved run $id ($name)"
+              approved=$((approved + 1))
+            else
+              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+            fi
+          done <<< "$held"
+          {
+            echo "### claims-autofix: approve held runs"
+            echo
+            echo '```'
+            echo "$approved run(s) on $HEAD_REF approved by the Actions-only App"
+            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+            held_ids | sed 's/^/  still held: /'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # As in closures-autofix (#523). This job's apply function has no
+      # attempted-and-failed status, so today only an unrecognised or empty
+      # one reddens; the step exists so the status reaches the job summary,
+      # and so a status added later cannot fall through to green.
+      - name: Report whether the repair happened
+        if: always()
+        run: |
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job claims-autofix \
+            --status "${{ steps.autofix.outputs.status }}"
+
+  # The ledger half of the mutation ratchet. `mutation` refuses a diff that
+  # adds a candidate site with no disposition and, on a pull request, measures
+  # every such site with the base's `mutation_table.py --pin-killed`. A kill is
+  # a measurement, so this job pushes the `killed_by` entries that run wrote,
+  # as `ci: pin killed mutants`. A survivor is never written: it stays
+  # unpinned and `mutation` stays red on it for a human.
+  mutation-autofix:
+    needs: [mutation, mutation-pins]
+    if: >-
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: write
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+          token: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+          persist-credentials: false
+
+      # D11-s1-03: this job holds `contents: write`, so it runs the BASE's copy
+      # of every program it executes, never the pull request's (the pinned-
+      # grader rule of decision 0013), and every Python under `-I`, so no
+      # `PYTHONPATH`, `sitecustomize` or module in the working tree runs
+      # instead. The copies are unstaged at once: only the repaired file is
+      # committed, and `--autostash` below carries them across the pull.
+      - name: Restore the programs this job runs from the base commit
+        env:
+          PINNED: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git cat-file -e "$PINNED^{commit}" 2>/dev/null \
+            || git fetch --no-tags --depth=1 origin "$PINNED"
+          git checkout "$PINNED" -- tests/closure.py tests/mutation_table.py
+          git reset -q -- tests/closure.py tests/mutation_table.py
+          # The report runs after `pull --rebase --autostash`, which can leave
+          # the pull request's copy in the tree; it runs this copy instead.
+          install -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      # One artifact per shard (mutation-pins-1..4), each in its own
+      # subdirectory; `merge_pin_shards` folds them into the one directory
+      # `apply_pins` reads.
+      - name: Download the pins the mutation-pins shards measured
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+        continue-on-error: true
+        with:
+          pattern: mutation-pins*
+          path: ${{ runner.temp }}/mutation-pins-shards
+
+      # No driver runs here: the pins were measured in `mutation`, which holds
+      # no write grant, and this job only merges the entries it measured into
+      # the head's ledger, each checked against the head's own inventory.
+      - name: Take the pinned ledger
+        id: autofix
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MUTATION_RESULT: ${{ needs.mutation.result }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          REPO: ${{ github.repository }}
+          PINS: ${{ runner.temp }}/mutation-pins
+          SHARDS_DIR: ${{ runner.temp }}/mutation-pins-shards
+        run: |
+          export SUBJECT=$(git log -1 --pretty=%s)
+          python3 -I - <<'PY'
+          import os, sys
+          sys.path.append("tests")
+          import closure
+          allowed = closure.autofix_allowed(
+              event_name=os.environ["EVENT_NAME"],
+              closures_result=os.environ["MUTATION_RESULT"],
+              head_repo=os.environ["HEAD_REPO"],
+              repo=os.environ["REPO"],
+              commit_subject=os.environ["SUBJECT"],
+              loop_subject="ci: pin killed mutants",
+          )
+          print(f"allowed={allowed}")
+          if not allowed:
+              status = "skip-not-allowed"
+          else:
+              import subprocess, mutation_table
+              head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True,
+                                    text=True).stdout.strip()
+              pins = os.environ["PINS"]
+              if hasattr(mutation_table, "merge_pin_shards"):
+                  merged = mutation_table.merge_pin_shards(
+                      os.environ["SHARDS_DIR"], pins)
+                  print(f"shards merged: {merged}")
+              else:
+                  # A base older than the shards: whole on shard 1.
+                  pins = os.environ["SHARDS_DIR"] + "/mutation-pins-1"
+              status = mutation_table.apply_pins(pins, head)
+          print(f"AUTOFIX: {status}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"status={status}\n")
+          PY
+
+      - name: Push the pinned ledger
+        id: push
+        if: steps.autofix.outputs.status == 'changed'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.head_ref }}
+          USED_PAT: ${{ secrets.CLOSURES_PUSH_TOKEN != '' }}
+          PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN || github.token }}
+        run: |
+          # The checkout left no token on disk (D11-s1-03); git gets it here,
+          # for this pull and push only, the header actions/checkout would
+          # have written.
+          AUTH=$(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)
+          echo "::add-mask::$AUTH"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add tests/mutation_budgets.json tests/mutation_ledger/
+          git diff --cached --quiet && {
+            echo "ledger unchanged after the merge; not pushing"
+            exit 0
+          }
+          git commit -m "ci: pin killed mutants"
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+            pull --rebase --autostash origin "$HEAD_REF" || true
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" push
+          if [ "$USED_PAT" = "true" ]; then
+            echo "PAT push retriggers pull_request; not dispatching"
+            exit 0
+          fi
+          # The pull_request runs this GITHUB_TOKEN push leaves holding
+          # action_required are the next step's to approve (#1276); the
+          # pushed SHA is that step's poll key (#1283).
+          echo "token_push=true" >> "$GITHUB_OUTPUT"
+          echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          gh workflow run tests.yml --ref "$HEAD_REF"
+          gh workflow run hassfest.yml --ref "$HEAD_REF"
+          gh workflow run validate.yml --ref "$HEAD_REF"
+          # Only a ref older than codeql.yml's trigger is excused; any
+          # other dispatch failure fails the step like the three above.
+          if grep -q '^  workflow_dispatch:' .github/workflows/codeql.yml; then
+            gh workflow run codeql.yml --ref "$HEAD_REF"
+          else
+            echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
+          fi
+
+      # As in closures-autofix (#1276): the dispatches run at once, the
+      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
+      # for a human, and the approve step clears them as the Actions-only
+      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
+      # inline -- after the same bounded poll for the pushed SHA's runs
+      # (#1283). Fail-soft throughout: absent secrets print one notice and
+      # approve nothing, and a later error warns rather than reddening a
+      # job whose push already happened (red means "no bot commit", #523).
+      - name: Approve the runs the push left holding
+        if: steps.push.outputs.token_push == 'true'
+        env:
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.head_ref }}
+          PUSH_SHA: ${{ steps.push.outputs.pushed_sha }}
+          RUNS_PEM: ${{ secrets.HPO_RUNS_PEM }}
+          RUNS_APPID: ${{ secrets.HPO_RUNS_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEM, JWT and token are never traced
+          if [ -z "$RUNS_PEM" ]; then
+            echo "::notice::HPO_RUNS_PEM is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          if [ -z "$RUNS_APPID" ]; then
+            echo "::warning::HPO_RUNS_APPID is not set; leaving action_required runs for a human (fail-soft)"
+            exit 0
+          fi
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-runs.pem"
+          jwt_h="$RUNNER_TEMP/hpo-runs-jwt.h"
+          tok_h="$RUNNER_TEMP/hpo-runs-token.h"
+          cleanup() {
+            if [ -s "$tok_h" ]; then
+              curl -fsS -X DELETE -H @"$tok_h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+                || echo "::warning::revoking the run-approver App token failed; it expires within the hour"
+            fi
+            rm -f "$key" "$jwt_h" "$tok_h"
+          }
+          trap cleanup EXIT
+          # So the EXIT trap (token revoke + file removal) also fires when the
+          # job is cancelled -- app_approve.sh's bounded-gap line.
+          trap 'exit 130' INT TERM HUP
+          printf '%s\n' "$RUNS_PEM" > "$key"
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          now=$(date +%s)
+          h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+          p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$RUNS_APPID" | b64)
+          s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+            echo "::warning::signing the run-approver App JWT failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+          inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+            | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+            echo "::warning::the run-approver App has no installation on $REPO, or its JWT was refused; nothing approved (fail-soft)"
+            exit 0
+          }
+          curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+            | python3 -I -c 'import sys,json
+          t = json.load(sys.stdin)["token"]
+          open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$tok_h" && [ -s "$tok_h" ] || {
+            echo "::warning::minting the run-approver App installation token failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          # The pushed SHA's pull_request runs are created asynchronously,
+          # so a listing fired the instant the push step ends can precede
+          # every run and approve nothing while they appear moments later
+          # (#1283). Bounded poll first: re-list every 5s for up to 60s
+          # until one action_required run sits at the pushed SHA the push
+          # step exported. An expired window stays fail-soft -- the flow
+          # below prints the after-state it always printed, plus one
+          # notice naming the timeout, because a genuinely run-less push
+          # is legitimate (nothing-staged paths exit before token_push).
+          sha_held() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              if r["head_sha"] == sys.argv[1]:
+                  print(r["id"])' "$PUSH_SHA"
+          }
+          waited=0
+          hits=$(sha_held)
+          while [ -z "$hits" ] && [ "$waited" -lt 60 ]; do
+            sleep 5
+            waited=$((waited + 5))
+            hits=$(sha_held)
+          done
+          [ -n "$hits" ] || echo "::notice::no action_required run at $PUSH_SHA appeared within ${waited}s of the push; printing the after-state (fail-soft)"
+          held_ids() {
+            curl -fsS -H @"$tok_h" -H "$ACCEPT" \
+              "$API/repos/$REPO/actions/runs?branch=$HEAD_REF&status=action_required&per_page=100" \
+              | python3 -I -c 'import sys,json
+          for r in json.load(sys.stdin).get("workflow_runs", []):
+              print(r["id"], r["name"])'
+          }
+          held=$(held_ids) || {
+            echo "::warning::listing action_required runs on $HEAD_REF failed; nothing approved (fail-soft)"
+            exit 0
+          }
+          approved=0
+          while read -r id name; do
+            [ -n "$id" ] || continue
+            if curl -fsS -X POST -H @"$tok_h" -H "$ACCEPT" "$API/repos/$REPO/actions/runs/$id/approve"; then
+              echo "approved run $id ($name)"
+              approved=$((approved + 1))
+            else
+              echo "::warning::approving run $id ($name) was refused; it stays action_required (fail-soft)"
+            fi
+          done <<< "$held"
+          {
+            echo "### mutation-autofix: approve held runs"
+            echo
+            echo '```'
+            echo "$approved run(s) on $HEAD_REF approved by the Actions-only App"
+            echo "after-state: $(held_ids | wc -l | tr -d ' ') run(s) still action_required"
+            held_ids | sed 's/^/  still held: /'
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # As in closures-autofix (#523): the status reaches the job summary, and
+      # a measurement that was owed and did not happen reddens this job.
+      - name: Report whether the repair happened
+        if: always()
+        run: |
+          python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job mutation-autofix \
+            --status "${{ steps.autofix.outputs.status }}"
+
+  # record-autofix — the record beat for rowless merges, mechanical (R9-FR-10,
+  # issue #1952, owner-approved 2026-10-04). `record` (governance.yml) reddens
+  # on main after every rowless merge, and clearing it was fully manual: a seat
+  # wrote dev/programme/delivery/<N>.md from API facts and opened the record pull
+  # request by hand — five such rows were owed in one day (2026-10-04). This
+  # job is that beat: it enumerates the window's merges through the REST API
+  # (the commit-to-pull-request map `record` itself reads), plans the rows the
+  # checked-out tree still lacks, writes them behind the generator's guarded
+  # write set (dev/programme/delivery/<N>.md and NOTHING else — the plan's
+  # Delivery-status table and the handover are a seat's dispositions, never
+  # this job's), commits under the `ci:` subject the loop guard keys on, pushes
+  # the record branch, and opens or updates the record pull request as the
+  # hpo-author App with a generated body, then posts its #201 coordination
+  # comment. The pull request number exists only after that open or lookup.
+  # The same write set then gains dev/programme/delivery/<that number>.md. The line
+  # anchors the number and carries no merge SHA: the SHA does not exist until
+  # the merge. The next run finds the row and stops at nothing-owed. A real
+  # unrowed merge is still a row; skipping the beat is not.
+  #
+  # THE REVIEW IS A PREDICATE (tvofi, 2026-10-07, superseding the manual
+  # review #1952 kept): a record pull request the automerge guard passes is
+  # approved by the approver App and merged by the author App, pinned to the
+  # head the guard judged, once its required checks pass there; while one is
+  # open and passing the beat holds it rather than rebuilding it -- the
+  # rebuild on every main merge is what staled each review and left
+  # delivery-status OVERDUE on main. One the guard refuses has the approver
+  # App's approvals dismissed and keeps the manual review. KEPT MANUAL, deliberately: the living handover's updated-for line
+  # -- tied to merges that change owed work, not every beat, which this job
+  # would over-write; the job never touches that file. tests/entities.py pins
+  # both: the review only behind the guard, and the handover untouched.
+  #
+  # TRIGGERS. Push to main and the nightly — the events `record` runs on. The
+  # job asks the same question `record` does (which merges in the window still
+  # lack a disposition), so "the record check is red on main" is answered by
+  # the job's own enumeration rather than by a second workflow's conclusion:
+  # nothing owed is the ordinary green, and a beat owed and not landed reddens
+  # the report below.
+  #
+  # IDENTITY AND SECRETS. The pull request must be authored by the hpo-author
+  # App (decision 0011; pr-contract refuses any other author), so the token is
+  # an installation token of the hpo-author App, minted per run exactly as
+  # mutation-ledger-push mints its ledger-writer: the PEM and App ID come from
+  # the main-only `record-writer` environment as HPO_RECORD_PEM and
+  # HPO_RECORD_APPID — the hpo-author App's own credentials, which the
+  # orchestrator box otherwise alone holds (~/.zcode/hpo-author.*). Absent
+  # secrets are fail-closed only when a beat was owed: skip-no-writer reddens
+  # the report, the mutation-ledger-push precedent, because a red here means
+  # "no bot commit" while a rowless merge stands on main.
+  record-autofix:
+    if: >-
+      !cancelled() && github.ref == 'refs/heads/main'
+      && (github.event_name == 'push'
+          || github.event_name == 'schedule'
+          || github.event_name == 'workflow_dispatch')
+    environment: record-writer
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # No permissions block, deliberately, so the workflow's read-only floor is
+    # what GITHUB_TOKEN holds: the enumeration reads public-repo pull-request
+    # data, and every write -- branch push, pull request, #201 comment --
+    # rides the App installation token minted below, never GITHUB_TOKEN. The
+    # four-jobs floor pin in tests/entities.py stays at four, where a fifth
+    # override has to be argued for rather than land.
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          ref: main
+          fetch-depth: 0
+          # The window is `<last v* tag>..main`; the record job's own checkout
+          # says why the tags must come along (a non-release tag otherwise
+          # answers `git describe` and yields an empty window).
+          fetch-tags: true
+          # D11-s1-03: the write is the App token's, below; the checkout left
+          # no credential on disk.
+          persist-credentials: false
+
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+
+      - name: Enumerate the window's merges
+        id: enumerate
+        env:
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # --match 'v*': the record job's "Choose the window" step carries the
+          # same flag for the same reason (archive-rosters-2026-09).
+          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+          # Fail-closed: an enumeration that could not read the window reddens
+          # this job; it must never read as an empty one.
+          python3 -I tools/audit/seat/record_row.py \
+            --enumerate --repo "$REPO" --since "$SINCE" \
+            > "$RUNNER_TEMP/merges.json"
+
+      # Two installation tokens from one minting routine. The author App's
+      # writes the rows, the pull request and the #201 comment, and merges
+      # its own pull request, so the merge is the App's and its push to main
+      # fires main's workflows (a GITHUB_TOKEN merge would not).
+      # The approver App's, minted only when HPO_APPROVER_PEM/APPID are set in
+      # this main-only environment, is the one non-author identity decision
+      # 0011 lets approve a pull request no code owner owns; it posts at most
+      # one review, and the job's last token step revokes both.
+      - name: Mint the record-writer App token
+        id: mint
+        env:
+          REPO: ${{ github.repository }}
+          RECORD_PEM: ${{ secrets.HPO_RECORD_PEM }}
+          RECORD_APPID: ${{ secrets.HPO_RECORD_APPID }}
+          APPROVER_PEM: ${{ secrets.HPO_APPROVER_PEM }}
+          APPROVER_APPID: ${{ secrets.HPO_APPROVER_APPID }}
+        run: |
+          { set +x; } 2>/dev/null  # the PEMs, JWTs and tokens are never traced
+          umask 077
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          key="$RUNNER_TEMP/hpo-app.pem"
+          jwt_h="$RUNNER_TEMP/hpo-app-jwt.h"
+          trap 'rm -f "$key" "$jwt_h"' EXIT
+          trap 'exit 130' INT TERM HUP
+          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+          mint() { # mint LABEL PEM APPID PERMISSIONS-JSON; prints the token
+            printf '%s\n' "$2" > "$key"
+            now=$(date +%s)
+            h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+            p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$3" | b64)
+            s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+              echo "::warning::signing the $1 App JWT failed" >&2; return 1; }
+            printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+            inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+              | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+              echo "::warning::the $1 App has no installation on $REPO, or its JWT was refused" >&2; return 1; }
+            curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" -d "{\"permissions\":$4}" \
+              "$API/app/installations/$inst/access_tokens" \
+              | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])'
+          }
+          if [ -z "$RECORD_PEM" ] || [ -z "$RECORD_APPID" ]; then
+            echo "::notice::HPO_RECORD_PEM or HPO_RECORD_APPID is not set in the record-writer environment; the beat, if owed, cannot land (fail-closed: the report step reddens skip-no-writer)"
+            exit 0
+          fi
+          tok=$(mint record-writer "$RECORD_PEM" "$RECORD_APPID" \
+            '{"contents":"write","pull_requests":"write","issues":"write"}') && [ -n "$tok" ] || {
+            echo "::warning::minting the record-writer App installation token failed"
+            exit 1
+          }
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+          if [ -z "$APPROVER_PEM" ] || [ -z "$APPROVER_APPID" ]; then
+            echo "::notice::HPO_APPROVER_PEM or HPO_APPROVER_APPID is not set in the record-writer environment; the record pull request is not approved here (skip-no-approver) and keeps the manual path"
+            exit 0
+          fi
+          atok=$(mint approver "$APPROVER_PEM" "$APPROVER_APPID" '{"pull_requests":"write"}') && [ -n "$atok" ] || {
+            echo "::warning::minting the approver App installation token failed; the record pull request keeps the manual path"
+            exit 0
+          }
+          echo "::add-mask::$atok"
+          echo "approver_token=$atok" >> "$GITHUB_OUTPUT"
+
+      # Apply, check the write set, commit and push, re-applied onto a main
+      # that moved under the push (three tries). Every try re-plans against
+      # the freshly fetched tree, so a row that landed on main between
+      # enumeration and apply drops out of the plan instead of conflicting.
+      # The one force on this branch is a LEASE, never a bare --force: the
+      # record branch is job-owned (generated rows and nothing else), and a
+      # re-run after a later step failed re-plans the same main into a
+      # SIBLING commit -- same parent, fresh committer timestamp -- which a
+      # fast-forward-only push refuses forever (run 37261904851, attempt
+      # 06:14: three `! [rejected] ... (non-fast-forward)`). The push
+      # anchors --force-with-lease on the tip this very try fetched, so the
+      # only tip it ever replaces is the one it observed -- the job's own
+      # stale sibling -- while a remote that moved after that fetch, to a
+      # job commit or a foreign one alike, refuses as stale info; an
+      # unreadable fetch leaves the expectation empty, which refuses
+      # anywhere the branch already exists. The roster is fail-soft: a ref
+      # it cannot be read from rows every merge in the neutral phrasing a
+      # seat edits at approval.
+      - name: Write the rows and push the record branch
+        id: record
+        env:
+          TOKEN: ${{ steps.mint.outputs.token }}
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          ROSTER_REF: ${{ vars.RECORD_ROSTER_REF || 'handoff/audit-r9-fixplan' }}
+        run: |
+          set -uo pipefail
+          status="skip-unknown"
+          if [ -z "$TOKEN" ]; then
+            status="skip-no-writer"
+          else
+            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+            echo "::add-mask::$AUTH"
+            # Contrast for the PR step's length line: the SAME attempt's
+            # token drives this basic-auth push successfully, so a length
+            # that agrees here and there pins the value as live in both
+            # steps. A length, never a value.
+            echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+            git config user.name "hpo-author[bot]"
+            git config user.email "hpo-author[bot]@users.noreply.github.com"
+            # The explicit refspec, so the roster is readable at
+            # origin/<ROSTER_REF> below (a bare fetch lands it on FETCH_HEAD
+            # only). Fail-soft: an unreadable roster rows in the neutral
+            # phrasing a seat edits at approval.
+            git fetch -q origin "+refs/heads/$ROSTER_REF:refs/remotes/origin/$ROSTER_REF" || \
+              echo "::warning::the roster ref $ROSTER_REF is unreadable; rows land in the neutral phrasing"
+            # THE HOLD (tvofi, 2026-10-07). Rebuilding the record branch on
+            # every main merge restarted its checks and staled its review,
+            # so it never merged and delivery-status went OVERDUE on main.
+            # An open record pull request the automerge guard passes at its
+            # live head -- row-only, generated from API facts, no conflict,
+            # no required check failed -- is left alone: it merges, and the
+            # beat its merge fires rows what landed meanwhile. One the guard
+            # refuses is rebuilt as before.
+            OPEN_PR=$(GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+              --find-open --repo "$REPO" --owner "$OWNER") || OPEN_PR=0
+            if [ "$OPEN_PR" != 0 ] && GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+                 --automerge-check --hold --repo "$REPO" --pr "$OPEN_PR"; then
+              status="held"
+              echo "pr=$OPEN_PR" >> "$GITHUB_OUTPUT"
+            fi
+            for try in 1 2 3; do
+              [ "$status" = held ] && break
+              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+              # The job's own previous run may have left its rows commit on
+              # record/autofix; fetch that tip, per try, so the lease below
+              # is anchored on the freshest observation. Fail-soft with no
+              # annotation: absent (the ordinary state between beats) and
+              # unreadable both leave the expectation empty, and the empty
+              # lease then requires the branch not to exist -- so a branch
+              # that is present but was not observed refuses, fail-closed.
+              git fetch -q origin "+refs/heads/record/autofix:refs/remotes/origin/record/autofix" || true
+              python3 -I tools/audit/seat/record_row.py \
+                --plan --merges-file "$RUNNER_TEMP/merges.json" \
+                --roster-ref "origin/$ROSTER_REF" \
+                > "$RUNNER_TEMP/plan.json" || { status="skip-plan"; break; }
+              if [ -z "$(python3 -I tools/audit/seat/record_row.py --row-numbers --plan-file "$RUNNER_TEMP/plan.json")" ]; then
+                status="nothing-owed"
+                break
+              fi
+              python3 -I tools/audit/seat/record_row.py \
+                --apply --plan-file "$RUNNER_TEMP/plan.json" || { status="skip-apply"; break; }
+              git add dev/programme/delivery
+              if git diff --cached --quiet; then status="nothing-owed"; break; fi
+              git commit -q -m "ci: record delivery rows" || { status="nothing-owed"; break; }
+              expect=$(git rev-parse -q --verify refs/remotes/origin/record/autofix || :)
+              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+                   push --force-with-lease=refs/heads/record/autofix:"$expect" \
+                   origin HEAD:refs/heads/record/autofix; then
+                status="pushed"
+                break
+              fi
+              status="skip-push-refused"  # main or the record tip moved under the push; loop re-derives
+            done
+          fi
+          echo "RECORD AUTOFIX: $status"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+
+      - name: Open or update the record pull request
+        id: pr
+        if: steps.record.outputs.status == 'pushed'
+        env:
+          REPO: ${{ github.repository }}
+          OWNER: ${{ github.repository_owner }}
+          TOKEN: ${{ steps.mint.outputs.token }}
+          BASE_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          # The header carries its NAME, not just its value: run 37281783211
+          # self-reported the 401 as `{"message": "Requires authentication"}`
+          # -- GitHub saw no Authorization header at all -- because curl
+          # SILENTLY DROPS an -H argument without a colon (measured:
+          # `curl -H "Bearer <token>"` sends no header, `curl -H
+          # "Authorization: Bearer <token>"` sends it), and every 401 before
+          # it, run 37261904851 included, was the same nameless header. The
+          # lengths below pin this in the log without ever printing a value:
+          # TOKEN and AUTH are both non-empty here, and the request still
+          # carried no header -- an empty-variable explanation is refuted by
+          # the same run that prints them.
+          AUTH=$(printf 'Authorization: Bearer %s' "$TOKEN")
+          echo "::add-mask::$TOKEN"
+          echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          # The self-row push leases on the rows commit this step's parent
+          # already pushed. AUTH is the bearer header; BASIC is the push.
+          BASIC=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+          echo "::add-mask::$BASIC"
+          # Every write below reports its own evidence: URL, HTTP status and,
+          # on any non-2xx, the response body -- deliberately without curl's
+          # -f, which discarded all three. This is what turned the 401s from
+          # run 37261904851 (attempts 06:08 and 06:17, `curl: (22) ... 401`
+          # and nothing else) into run 37281783211's self-describing refusal
+          # and so into the header fix above. The token stays masked and the
+          # Authorization header value is never printed, so a future red
+          # self-explains without leaking the credential. The body file is
+          # shared, so no call runs inside a command substitution (a subshell
+          # would swallow the diagnostics).
+          curl_json() { # curl_json LABEL METHOD DATA_FILE URL; body lands in $RUNNER_TEMP/resp.json
+            label=$1 method=$2 data=$3 url=$4
+            code=$(curl -sS -o "$RUNNER_TEMP/resp.json" -w '%{http_code}' \
+              -X "$method" -H "$AUTH" -H "$ACCEPT" -d @"$data" "$url") || {
+              echo "::error::$label: transport failure against $url"
+              return 1
+            }
+            case "$code" in
+              2*) echo "$label: $method $url -> HTTP $code" ;;
+              *)
+                echo "::error::$label: $method $url returned HTTP $code; response body follows"
+                cat "$RUNNER_TEMP/resp.json"
+                return 1
+                ;;
+            esac
+          }
+          # The payload the pull request carries: title, body. The generator
+          # refuses a body with a closing keyword before an issue number, so
+          # the generation is the guard, not this step's prose. POST /pulls
+          # also REQUIRES head and base -- a title-and-body payload is
+          # refused 422 "Invalid request ... weren't supplied" (verified
+          # from the orchestrator's box; the CI 401s masked it) -- so the
+          # create payload adds them: head is the branch the lookup below
+          # keys on, base is main. PATCH takes title and body only.
+          # The python is indented with the run block: YAML strips that
+          # common indent, and a further indent would be a Python error.
+          write_payload() {
+            python3 -I - "$1" "$BASE_SHA" <<'PY' > /dev/null
+          import json, os, subprocess, sys
+          head, base = sys.argv[1], sys.argv[2]
+          plan = os.environ["RUNNER_TEMP"] + "/plan.json"
+          row = "tools/audit/seat/record_row.py"
+          def gen(*flags):
+              return subprocess.run(["python3", "-I", row, *flags], check=True,
+                                    capture_output=True, text=True).stdout
+          title = gen("--print-title", "--plan-file", plan).strip()
+          body = gen("--print-body", "--plan-file", plan,
+                     "--head", head, "--base", base)
+          json.dump({"title": title, "body": body},
+                    open(os.environ["RUNNER_TEMP"] + "/payload.json", "w"))
+          json.dump({"title": title, "body": body,
+                     "head": "record/autofix", "base": "main"},
+                    open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
+          PY
+          }
+          # Open or update: the beat's own open pull request from a previous
+          # unmerged beat is updated in place (fresh rows commit, regenerated
+          # body naming the new head), never duplicated. The head filter is
+          # `<owner>:<branch>`: `<owner>/<repo>:<branch>` answers [] and sent
+          # run 37343172583 to a create the API refused 422.
+          NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
+            "$API/repos/$REPO/pulls?head=${OWNER}:record/autofix&state=open" \
+            | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
+          if [ -z "$NUM" ]; then
+            write_payload "$(git rev-parse HEAD)"
+            curl_json "record-pr open" POST \
+              "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
+            NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
+          fi
+          # NUM exists only now. The rows commit does not contain this pull
+          # request's row. The merge SHA does not exist yet, so the line
+          # anchors the number and says open. The lease is the rows commit
+          # the previous step pushed, which is HEAD until this commit.
+          PARENT=$(git rev-parse HEAD)
+          python3 -I tools/audit/seat/record_row.py \
+            --write-self-row --pr "$NUM" --root .
+          git add dev/programme/delivery
+          if ! git diff --cached --quiet; then
+            git commit -q -m "ci: record delivery rows"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $BASIC" \
+              push --force-with-lease=refs/heads/record/autofix:"$PARENT" \
+              origin HEAD:refs/heads/record/autofix
+          fi
+          write_payload "$(git rev-parse HEAD)"
+          curl_json "record-pr update" PATCH \
+            "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
+          # The beat's #201 coordination comment, naming the pull request it
+          # opened (delivery-status-tracking item 3); one per beat.
+          python3 -I tools/audit/seat/record_row.py \
+            --print-comment --plan-file "$RUNNER_TEMP/plan.json" --pr "$NUM" \
+            > "$RUNNER_TEMP/comment.md"
+          python3 -I -c 'import json,os; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/comment.md").read()}))' \
+            > "$RUNNER_TEMP/comment.json"
+          curl_json "record-pr comment" POST \
+            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
+          echo "pr=$NUM" >> "$GITHUB_OUTPUT"
+
+      # THE MERGE IS A PREDICATE (tvofi, 2026-10-07). A record pull request
+      # the guard passes merges with no review seat: `record_row.py
+      # --automerge-check` re-generates every row from the API's facts at the
+      # live head and refuses anything else -- another file, a non-canonical
+      # path, an edited or deleted row, an unmerged or mis-cited pull
+      # request, another author. On a pass the approver App reviews that
+      # exact commit; once every required context has passed AT that commit,
+      # the author App merges it with `sha` set to it, so a head that moved
+      # after the guard read it makes the merge fail closed (#2029 review,
+      # round 1: no auto-merge, which merged later on a head nobody judged).
+      # While checks run, the next beat (a main push, or the nightly) retries.
+      # On a refusal the approver App's approvals are dismissed, so a refused
+      # head cannot be hand-merged on the bot's word. Every outcome here is
+      # green; the report step reddens a beat that did not land.
+      - name: Approve and merge a row-only record pull request
+        id: automerge
+        if: steps.record.outputs.status == 'pushed' || steps.record.outputs.status == 'held'
+        env:
+          REPO: ${{ github.repository }}
+          TOKEN: ${{ steps.mint.outputs.token }}
+          APPROVER: ${{ steps.mint.outputs.approver_token }}
+          NUM: ${{ steps.pr.outputs.pr || steps.record.outputs.pr }}
+        run: |
+          set -uo pipefail
+          { set +x; } 2>/dev/null
+          echo "::add-mask::$TOKEN"
+          [ -z "$APPROVER" ] || echo "::add-mask::$APPROVER"
+          API=https://api.github.com
+          ACCEPT='Accept: application/vnd.github+json'
+          AUTH="Authorization: Bearer $TOKEN"
+          say() { echo "AUTOMERGE: $1"; echo "status=$1" >> "$GITHUB_OUTPUT"; }
+          pr_field() {
+            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM" \
+              | python3 -I -c "import sys,json; d=json.load(sys.stdin); print($1)"
+          }
+          guard() {
+            GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+              --automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD" "$@"
+          }
+          dismiss_bot() {
+            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; [print(r["id"]) for r in json.load(sys.stdin) if r.get("state") == "APPROVED" and (r.get("user") or {}).get("login") == "hpo-approver[bot]"]' \
+              | while read -r rid; do
+                  curl -fsS -o /dev/null -X PUT -H "$AUTH" -H "$ACCEPT" \
+                    -d '{"message":"The automerge guard refused this head; its review is manual.","event":"DISMISS"}' \
+                    "$API/repos/$REPO/pulls/$NUM/reviews/$rid/dismissals" \
+                    || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
+                done
+          }
+          HEAD=$(pr_field 'd["head"]["sha"]') || {
+            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
+          if ! guard; then
+            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
+            dismiss_bot; say refused; exit 0
+          fi
+          if [ -n "$APPROVER" ]; then
+            # One approving review per head: a held beat sees the same head again.
+            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
+              || { say skip-unread; exit 0; }
+            if [ "$have" != True ]; then
+              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
+                > "$RUNNER_TEMP/review.json"
+              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
+                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+            fi
+          fi
+          guard --require-green; rc=$?
+          case "$rc" in
+            0) ;;
+            3) say approved-pending; exit 0 ;;
+            *) dismiss_bot; say refused; exit 0 ;;
+          esac
+          python3 -I -c 'import json,sys; print(json.dumps({"sha": sys.argv[1], "merge_method": "merge"}))' "$HEAD" \
+            > "$RUNNER_TEMP/merge.json"
+          code=$(curl -sS -o "$RUNNER_TEMP/merge-resp.json" -w '%{http_code}' -X PUT -H "$AUTH" -H "$ACCEPT" \
+            -d @"$RUNNER_TEMP/merge.json" "$API/repos/$REPO/pulls/$NUM/merge") || code=000
+          if [ "$code" = 200 ]; then
+            say merged
+          else
+            echo "::warning::merging #$NUM at $HEAD returned HTTP $code; response follows"
+            cat "$RUNNER_TEMP/merge-resp.json" || true
+            say skip-merge-refused
+          fi
+
+      # Both installation tokens die with the beat, on every path through it:
+      # the approver's is minted whenever its secrets exist, including beats
+      # where the step above never runs (#2029 review, round 1).
+      - name: Revoke the App installation tokens
+        if: always()
+        env:
+          TOKEN: ${{ steps.mint.outputs.token }}
+          APPROVER: ${{ steps.mint.outputs.approver_token }}
+        run: |
+          { set +x; } 2>/dev/null
+          for t in "$APPROVER" "$TOKEN"; do
+            [ -z "$t" ] || curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $t" \
+              -H 'Accept: application/vnd.github+json' https://api.github.com/installation/token \
+              || echo "::warning::revoking an installation token failed; it expires within the hour"
+          done
+
+      # As in mutation-ledger-push and the other autofix lanes (#523): the
+      # status reaches the run, and a beat owed and not landed reddens this
+      # job — a red here means "no bot commit" while a rowless merge stands
+      # on main. nothing-owed is the protocol's ordinary green.
+      - name: Report whether the beat landed
+        if: always()
+        env:
+          STATUS: ${{ steps.record.outputs.status }}
+        run: |
+          echo "### record-autofix" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          case "$STATUS" in
+            pushed|nothing-owed|held) exit 0 ;;
+            "")
+              echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
+              exit 1 ;;
+            *)
+              echo "::error::a record beat was owed (or the window could not be read) and did not land: $STATUS"
+              exit 1 ;;
+          esac

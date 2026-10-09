@@ -1,0 +1,822 @@
+mutation	UNKNOWN STEP	﻿2026-10-09T06:53:30.8798392Z Current runner version: '2.337.0'
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8822242Z ##[group]Runner Image Provisioner
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8823031Z Hosted Compute Agent
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8823840Z Version: 20261002.596
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8824682Z Commit: c3d12f3313a95f25162a1503be624f3b0617f8c0
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8825366Z Build Date: 2026-10-02T22:28:27Z
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8825995Z Worker ID: {54c2014e-c68c-45ca-a42d-d14f46379dd1}
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8826635Z Region: westus3
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8827132Z Cloud: Azure
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8827667Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8829266Z ##[group]Operating System
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8829872Z Ubuntu
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8830365Z 24.04.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8830828Z LTS
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8831313Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8831832Z ##[group]Runner Image
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8832374Z Image: ubuntu-24.04
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8832920Z Version: 20261004.327.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8834243Z Included Software: https://github.com/actions/runner-images/blob/ubuntu24/20261004.327/images/ubuntu/Ubuntu2404-Readme.md
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8835682Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu24%2F20261004.327
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8836532Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8837592Z ##[group]GITHUB_TOKEN Permissions
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8839450Z Contents: read
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8840118Z Metadata: read
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8840626Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8843069Z Secret source: Actions
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8844039Z Cache mode: write
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.8844697Z Prepare workflow directory
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.9164825Z Prepare all required actions
+mutation	UNKNOWN STEP	2026-10-09T06:53:30.9214072Z Getting action download info
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.2271556Z Download action repository 'actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09' (SHA:fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09)
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.3772199Z Download action repository 'actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1' (SHA:ece7cb06caefa5fff74198d8649806c4678c61a1)
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.5346768Z Download action repository 'actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f' (SHA:b7c566a772e6b6bfb58ed0dc250532a479d7789f)
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.7718217Z Complete job name: mutation
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8562858Z ##[group]Run actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8564287Z with:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8564692Z   fetch-depth: 0
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8565117Z   repository: tvofi/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8569034Z   token: ***
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8569415Z   ssh-strict: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8569803Z   ssh-user: git
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8570199Z   persist-credentials: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8570626Z   clean: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8571023Z   sparse-checkout-cone-mode: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8571484Z   fetch-tags: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8571879Z   show-progress: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8572271Z   lfs: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8572631Z   submodules: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8573035Z   set-safe-directory: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8573825Z   allow-unsafe-pr-checkout: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.8574692Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9588600Z Syncing repository: tvofi/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9591442Z ##[group]Getting Git version info
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9592778Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9594838Z [command]/usr/bin/git version
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9646215Z git version 2.55.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9694923Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9702434Z Temporarily overriding HOME='/home/runner/work/_temp/522c2c0b-a281-4a2e-892e-f70ec16237ff' before making global git config changes
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9704954Z Adding repository directory to the temporary git global config as a safe directory
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9715180Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9770117Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9778977Z ##[group]Initializing the repository
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9784936Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9887603Z hint: Using 'master' as the name for the initial branch. This default branch name
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9889524Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9891227Z hint: to use in all of your new repositories, which will suppress this warning,
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9892610Z hint: call:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9893594Z hint:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9894599Z hint: 	git config --global init.defaultBranch <name>
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9895754Z hint:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9896942Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9898707Z hint: 'development'. The just-created branch can be renamed via this command:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9900103Z hint:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9900926Z hint: 	git branch -m <name>
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9901830Z hint:
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9903042Z hint: Disable this message with "git config set advice.defaultBranchName false"
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9905469Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9909393Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9968859Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9970385Z ##[group]Disabling automatic garbage collection
+mutation	UNKNOWN STEP	2026-10-09T06:53:31.9973536Z [command]/usr/bin/git config --local gc.auto 0
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0011493Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0012976Z ##[group]Setting up auth
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0021398Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0057357Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0395667Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0428654Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0632834Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0664473Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0856956Z [command]/usr/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0891025Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0893034Z ##[group]Fetching the repository
+mutation	UNKNOWN STEP	2026-10-09T06:53:32.0902299Z [command]/usr/bin/git -c protocol.version=2 fetch --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0718768Z From https://github.com/tvofi/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0720032Z  * [new branch]        bus/approvals           -> origin/bus/approvals
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0721009Z  * [new branch]        cursor/r9-eg-entry-config-9aac -> origin/cursor/r9-eg-entry-config-9aac
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0722065Z  * [new branch]        cursor/r9-sw-1-resume-826f -> origin/cursor/r9-sw-1-resume-826f
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0722984Z  * [new branch]        cursor/r9-sw-2-actuation-6d19 -> origin/cursor/r9-sw-2-actuation-6d19
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0723939Z  * [new branch]        fix/cop-duty-floor      -> origin/fix/cop-duty-floor
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0724839Z  * [new branch]        fix/early-cutoff-pr     -> origin/fix/early-cutoff-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0725657Z  * [new branch]        fix/live-diag           -> origin/fix/live-diag
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0726695Z  * [new branch]        fix/live-power-clamp-foundation-pr -> origin/fix/live-power-clamp-foundation-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0727724Z  * [new branch]        fix/r9-ci-2b-carry      -> origin/fix/r9-ci-2b-carry
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0728864Z  * [new branch]        fix/r9-eg-a4            -> origin/fix/r9-eg-a4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0729613Z  * [new branch]        fix/r9-rca-2028         -> origin/fix/r9-rca-2028
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0730478Z  * [new branch]        fix/r9-rca-prepr-tmp    -> origin/fix/r9-rca-prepr-tmp
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0731353Z  * [new branch]        fix/r9-review-timing    -> origin/fix/r9-review-timing
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0732211Z  * [new branch]        fix/r9-ro-9a-pr         -> origin/fix/r9-ro-9a-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0732955Z  * [new branch]        fix/r9-ux-actions       -> origin/fix/r9-ux-actions
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0733796Z  * [new branch]        fix/r9-ux9              -> origin/fix/r9-ux9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0734484Z  * [new branch]        fix/rca-harness-path    -> origin/fix/rca-harness-path
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0735420Z  * [new branch]        fix/rca-stale-ledger-pins -> origin/fix/rca-stale-ledger-pins
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0736364Z  * [new branch]        fix/recarry-skip-prepr  -> origin/fix/recarry-skip-prepr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0737358Z  * [new branch]        handoff-body/arch-sound-fixes -> origin/handoff-body/arch-sound-fixes
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0738389Z  * [new branch]        handoff-body/cop-duty-floor -> origin/handoff-body/cop-duty-floor
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0739454Z  * [new branch]        handoff-body/early-cutoff -> origin/handoff-body/early-cutoff
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0740434Z  * [new branch]        handoff-body/live-diag  -> origin/handoff-body/live-diag
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0741676Z  * [new branch]        handoff-body/live-power-clamp-foundation -> origin/handoff-body/live-power-clamp-foundation
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0742801Z  * [new branch]        handoff-body/r9-ci-1    -> origin/handoff-body/r9-ci-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0744209Z  * [new branch]        handoff-body/r9-ci-1-autofix-skip -> origin/handoff-body/r9-ci-1-autofix-skip
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0745287Z  * [new branch]        handoff-body/r9-ci-2a   -> origin/handoff-body/r9-ci-2a
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0746170Z  * [new branch]        handoff-body/r9-ci-2b   -> origin/handoff-body/r9-ci-2b
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0747729Z  * [new branch]        handoff-body/r9-ci-2b-carry -> origin/handoff-body/r9-ci-2b-carry
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0748910Z  * [new branch]        handoff-body/r9-closures-eg-b7 -> origin/handoff-body/r9-closures-eg-b7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0749800Z  * [new branch]        handoff-body/r9-dbg-1   -> origin/handoff-body/r9-dbg-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0750605Z  * [new branch]        handoff-body/r9-dbg-2   -> origin/handoff-body/r9-dbg-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0751519Z  * [new branch]        handoff-body/r9-eg-a4   -> origin/handoff-body/r9-eg-a4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0752964Z  * [new branch]        handoff-body/r9-eg-b7-harness -> origin/handoff-body/r9-eg-b7-harness
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0754247Z  * [new branch]        handoff-body/r9-eg-coordinator-seams -> origin/handoff-body/r9-eg-coordinator-seams
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0755537Z  * [new branch]        handoff-body/r9-eg-entry-config -> origin/handoff-body/r9-eg-entry-config
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0756204Z  * [new branch]        handoff-body/r9-eg-solve-inputs -> origin/handoff-body/r9-eg-solve-inputs
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0756808Z  * [new branch]        handoff-body/r9-fixer-cap -> origin/handoff-body/r9-fixer-cap
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0757330Z  * [new branch]        handoff-body/r9-gittmp  -> origin/handoff-body/r9-gittmp
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0757866Z  * [new branch]        handoff-body/r9-main-closures -> origin/handoff-body/r9-main-closures
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0758443Z  * [new branch]        handoff-body/r9-nightly-bdr -> origin/handoff-body/r9-nightly-bdr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0759008Z  * [new branch]        handoff-body/r9-nightly-ha -> origin/handoff-body/r9-nightly-ha
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0759602Z  * [new branch]        handoff-body/r9-nightly-ha-on-pr -> origin/handoff-body/r9-nightly-ha-on-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0760213Z  * [new branch]        handoff-body/r9-prepr-selftest -> origin/handoff-body/r9-prepr-selftest
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0760770Z  * [new branch]        handoff-body/r9-rca-1985 -> origin/handoff-body/r9-rca-1985
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0761913Z  * [new branch]        handoff-body/r9-rca-1990 -> origin/handoff-body/r9-rca-1990
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0762856Z  * [new branch]        handoff-body/r9-rca-2004 -> origin/handoff-body/r9-rca-2004
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0763762Z  * [new branch]        handoff-body/r9-rca-2028 -> origin/handoff-body/r9-rca-2028
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0764317Z  * [new branch]        handoff-body/r9-rca-bugclasses -> origin/handoff-body/r9-rca-bugclasses
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0764918Z  * [new branch]        handoff-body/r9-rca-prepr-tmp -> origin/handoff-body/r9-rca-prepr-tmp
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0765513Z  * [new branch]        handoff-body/r9-rca-stamp-race -> origin/handoff-body/r9-rca-stamp-race
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0766168Z  * [new branch]        handoff-body/r9-rca-stress-recording -> origin/handoff-body/r9-rca-stress-recording
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0766830Z  * [new branch]        handoff-body/r9-record-automerge -> origin/handoff-body/r9-record-automerge
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0767435Z  * [new branch]        handoff-body/r9-record-path -> origin/handoff-body/r9-record-path
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0768015Z  * [new branch]        handoff-body/r9-review-timing -> origin/handoff-body/r9-review-timing
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0768550Z  * [new branch]        handoff-body/r9-ro-10   -> origin/handoff-body/r9-ro-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0769050Z  * [new branch]        handoff-body/r9-ro-11   -> origin/handoff-body/r9-ro-11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0769532Z  * [new branch]        handoff-body/r9-ro-12   -> origin/handoff-body/r9-ro-12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0770026Z  * [new branch]        handoff-body/r9-ro-8    -> origin/handoff-body/r9-ro-8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0770511Z  * [new branch]        handoff-body/r9-ro-9a   -> origin/handoff-body/r9-ro-9a
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0770996Z  * [new branch]        handoff-body/r9-sw-5    -> origin/handoff-body/r9-sw-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0771523Z  * [new branch]        handoff-body/r9-sw-actuation -> origin/handoff-body/r9-sw-actuation
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0772068Z  * [new branch]        handoff-body/r9-sw6     -> origin/handoff-body/r9-sw6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0772552Z  * [new branch]        handoff-body/r9-ux-10   -> origin/handoff-body/r9-ux-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0773504Z  * [new branch]        handoff-body/r9-ux-6    -> origin/handoff-body/r9-ux-6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0774063Z  * [new branch]        handoff-body/r9-ux-7    -> origin/handoff-body/r9-ux-7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0774586Z  * [new branch]        handoff-body/r9-ux-actions -> origin/handoff-body/r9-ux-actions
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0775110Z  * [new branch]        handoff-body/r9-ux9     -> origin/handoff-body/r9-ux9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0775617Z  * [new branch]        handoff/arch-sound-fixes -> origin/handoff/arch-sound-fixes
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0776136Z  * [new branch]        handoff/audit-r9-alt    -> origin/handoff/audit-r9-alt
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0776649Z  * [new branch]        handoff/audit-r9-evidence -> origin/handoff/audit-r9-evidence
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0777182Z  * [new branch]        handoff/audit-r9-find-B1 -> origin/handoff/audit-r9-find-B1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0777707Z  * [new branch]        handoff/audit-r9-find-B10 -> origin/handoff/audit-r9-find-B10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0778227Z  * [new branch]        handoff/audit-r9-find-B2 -> origin/handoff/audit-r9-find-B2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0778746Z  * [new branch]        handoff/audit-r9-find-B3 -> origin/handoff/audit-r9-find-B3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0779251Z  * [new branch]        handoff/audit-r9-find-B4 -> origin/handoff/audit-r9-find-B4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0779767Z  * [new branch]        handoff/audit-r9-find-B5 -> origin/handoff/audit-r9-find-B5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0780276Z  * [new branch]        handoff/audit-r9-find-B6 -> origin/handoff/audit-r9-find-B6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0780783Z  * [new branch]        handoff/audit-r9-find-B7 -> origin/handoff/audit-r9-find-B7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0781297Z  * [new branch]        handoff/audit-r9-find-B8 -> origin/handoff/audit-r9-find-B8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0781803Z  * [new branch]        handoff/audit-r9-find-B9 -> origin/handoff/audit-r9-find-B9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0782393Z  * [new branch]        handoff/audit-r9-fixplan -> origin/handoff/audit-r9-fixplan
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0782916Z  * [new branch]        handoff/audit-r9-issues -> origin/handoff/audit-r9-issues
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0783577Z  * [new branch]        handoff/audit-r9-judge  -> origin/handoff/audit-r9-judge
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0784091Z  * [new branch]        handoff/audit-r9-leads  -> origin/handoff/audit-r9-leads
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0784607Z  * [new branch]        handoff/audit-r9-leads-l2 -> origin/handoff/audit-r9-leads-l2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0785146Z  * [new branch]        handoff/audit-r9-leads-l3 -> origin/handoff/audit-r9-leads-l3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0785678Z  * [new branch]        handoff/audit-r9-leads-l4 -> origin/handoff/audit-r9-leads-l4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0786200Z  * [new branch]        handoff/audit-r9-leads-lc -> origin/handoff/audit-r9-leads-lc
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0786720Z  * [new branch]        handoff/audit-r9-plan   -> origin/handoff/audit-r9-plan
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0787247Z  * [new branch]        handoff/audit-r9-register -> origin/handoff/audit-r9-register
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0787787Z  * [new branch]        handoff/audit-r9-runner-1 -> origin/handoff/audit-r9-runner-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0788317Z  * [new branch]        handoff/audit-r9-sweep-s1 -> origin/handoff/audit-r9-sweep-s1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0788837Z  * [new branch]        handoff/audit-r9-sweep-s2 -> origin/handoff/audit-r9-sweep-s2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0789356Z  * [new branch]        handoff/audit-r9-sweep-s3 -> origin/handoff/audit-r9-sweep-s3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0789886Z  * [new branch]        handoff/audit-r9-sweep-s4 -> origin/handoff/audit-r9-sweep-s4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0790408Z  * [new branch]        handoff/audit-r9-sweep-s5 -> origin/handoff/audit-r9-sweep-s5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0790935Z  * [new branch]        handoff/audit-r9-sweep-s6 -> origin/handoff/audit-r9-sweep-s6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0791460Z  * [new branch]        handoff/audit-r9-sweep-s7 -> origin/handoff/audit-r9-sweep-s7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0792026Z  * [new branch]        handoff/audit-r9-verify-g1-v1 -> origin/handoff/audit-r9-verify-g1-v1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0792702Z  * [new branch]        handoff/audit-r9-verify-g1-v2 -> origin/handoff/audit-r9-verify-g1-v2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0793424Z  * [new branch]        handoff/audit-r9-verify-g1-v3 -> origin/handoff/audit-r9-verify-g1-v3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0794011Z  * [new branch]        handoff/audit-r9-verify-g2-v1 -> origin/handoff/audit-r9-verify-g2-v1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0794600Z  * [new branch]        handoff/audit-r9-verify-g2-v2 -> origin/handoff/audit-r9-verify-g2-v2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0795185Z  * [new branch]        handoff/audit-r9-verify-g2-v3 -> origin/handoff/audit-r9-verify-g2-v3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0795762Z  * [new branch]        handoff/audit-r9-verify-g3-v1 -> origin/handoff/audit-r9-verify-g3-v1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0796439Z  * [new branch]        handoff/audit-r9-verify-g3-v2 -> origin/handoff/audit-r9-verify-g3-v2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0797311Z  * [new branch]        handoff/audit-r9-verify-g3-v3 -> origin/handoff/audit-r9-verify-g3-v3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0798343Z  * [new branch]        handoff/audit-r9-verify-g4-v1 -> origin/handoff/audit-r9-verify-g4-v1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0799367Z  * [new branch]        handoff/audit-r9-verify-g4-v2 -> origin/handoff/audit-r9-verify-g4-v2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0800310Z  * [new branch]        handoff/audit-r9-verify-g4-v3 -> origin/handoff/audit-r9-verify-g4-v3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0801164Z  * [new branch]        handoff/cop-duty-floor  -> origin/handoff/cop-duty-floor
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0801929Z  * [new branch]        handoff/early-cutoff    -> origin/handoff/early-cutoff
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0802666Z  * [new branch]        handoff/live-diag       -> origin/handoff/live-diag
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0803741Z  * [new branch]        handoff/live-power-clamp-foundation -> origin/handoff/live-power-clamp-foundation
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0804842Z  * [new branch]        handoff/r9-ci-1         -> origin/handoff/r9-ci-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0806042Z  * [new branch]        handoff/r9-ci-1-autofix-skip -> origin/handoff/r9-ci-1-autofix-skip
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0807080Z  * [new branch]        handoff/r9-ci-2a        -> origin/handoff/r9-ci-2a
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0807925Z  * [new branch]        handoff/r9-ci-2b        -> origin/handoff/r9-ci-2b
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0808734Z  * [new branch]        handoff/r9-ci-2b-carry  -> origin/handoff/r9-ci-2b-carry
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0809623Z  * [new branch]        handoff/r9-closures-eg-b7 -> origin/handoff/r9-closures-eg-b7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0810536Z  * [new branch]        handoff/r9-dbg-0        -> origin/handoff/r9-dbg-0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0811367Z  * [new branch]        handoff/r9-dbg-1        -> origin/handoff/r9-dbg-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0812273Z  * [new branch]        handoff/r9-dbg-2        -> origin/handoff/r9-dbg-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0813093Z  * [new branch]        handoff/r9-dbg-3        -> origin/handoff/r9-dbg-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0813980Z  * [new branch]        handoff/r9-diag-1       -> origin/handoff/r9-diag-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0814767Z  * [new branch]        handoff/r9-diag-2s      -> origin/handoff/r9-diag-2s
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0815562Z  * [new branch]        handoff/r9-eg-a4        -> origin/handoff/r9-eg-a4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0816487Z  * [new branch]        handoff/r9-eg-archscore -> origin/handoff/r9-eg-archscore
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0817430Z  * [new branch]        handoff/r9-eg-b0        -> origin/handoff/r9-eg-b0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0818283Z  * [new branch]        handoff/r9-eg-b7-harness -> origin/handoff/r9-eg-b7-harness
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0819379Z  * [new branch]        handoff/r9-eg-collaborator-interfaces -> origin/handoff/r9-eg-collaborator-interfaces
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0820603Z  * [new branch]        handoff/r9-eg-coordinator-seams -> origin/handoff/r9-eg-coordinator-seams
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0821270Z  * [new branch]        handoff/r9-eg-dhw-closure-dedupe-v2 -> origin/handoff/r9-eg-dhw-closure-dedupe-v2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0821884Z  * [new branch]        handoff/r9-eg-dhw-planner -> origin/handoff/r9-eg-dhw-planner
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0822446Z  * [new branch]        handoff/r9-eg-entry-config -> origin/handoff/r9-eg-entry-config
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0823168Z  * [new branch]        handoff/r9-eg-one-copy  -> origin/handoff/r9-eg-one-copy
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0823939Z  * [new branch]        handoff/r9-eg-param-objects -> origin/handoff/r9-eg-param-objects
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0824497Z  * [new branch]        handoff/r9-eg-register-fold -> origin/handoff/r9-eg-register-fold
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0825050Z  * [new branch]        handoff/r9-eg-solve-inputs -> origin/handoff/r9-eg-solve-inputs
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0825593Z  * [new branch]        handoff/r9-eg-store-version -> origin/handoff/r9-eg-store-version
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0826422Z  * [new branch]        handoff/r9-eg-surface-identity -> origin/handoff/r9-eg-surface-identity
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0827448Z  * [new branch]        handoff/r9-eg-typed-payload -> origin/handoff/r9-eg-typed-payload
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0828462Z  * [new branch]        handoff/r9-eg-typed-payload-b -> origin/handoff/r9-eg-typed-payload-b
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0829526Z  * [new branch]        handoff/r9-f1-coordinator-10 -> origin/handoff/r9-f1-coordinator-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0830520Z  * [new branch]        handoff/r9-f1-coordinator-2 -> origin/handoff/r9-f1-coordinator-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0831437Z  * [new branch]        handoff/r9-f1-coordinator-3 -> origin/handoff/r9-f1-coordinator-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0832279Z  * [new branch]        handoff/r9-f1-coordinator-4 -> origin/handoff/r9-f1-coordinator-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0833158Z  * [new branch]        handoff/r9-f1-coordinator-5 -> origin/handoff/r9-f1-coordinator-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0834251Z  * [new branch]        handoff/r9-f1-coordinator-7 -> origin/handoff/r9-f1-coordinator-7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0835339Z  * [new branch]        handoff/r9-f1-coordinator-7-review -> origin/handoff/r9-f1-coordinator-7-review
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0836409Z  * [new branch]        handoff/r9-f10-12       -> origin/handoff/r9-f10-12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0837408Z  * [new branch]        handoff/r9-f10-13       -> origin/handoff/r9-f10-13
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0838209Z  * [new branch]        handoff/r9-f10-14       -> origin/handoff/r9-f10-14
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0838933Z  * [new branch]        handoff/r9-f10-15       -> origin/handoff/r9-f10-15
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0839621Z  * [new branch]        handoff/r9-f10-16       -> origin/handoff/r9-f10-16
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0840413Z  * [new branch]        handoff/r9-f10-ci-efficiency -> origin/handoff/r9-f10-ci-efficiency
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0841438Z  * [new branch]        handoff/r9-f10-claims-baseline-rca -> origin/handoff/r9-f10-claims-baseline-rca
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0842511Z  * [new branch]        handoff/r9-f10-closure-runalways -> origin/handoff/r9-f10-closure-runalways
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0843715Z  * [new branch]        handoff/r9-f10-gate-infra-1 -> origin/handoff/r9-f10-gate-infra-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0844640Z  * [new branch]        handoff/r9-f10-gate-infra-1d -> origin/handoff/r9-f10-gate-infra-1d
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0845559Z  * [new branch]        handoff/r9-f10-gate-infra-4 -> origin/handoff/r9-f10-gate-infra-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0846458Z  * [new branch]        handoff/r9-f10-gate-infra-5 -> origin/handoff/r9-f10-gate-infra-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0847467Z  * [new branch]        handoff/r9-f10-gate-infra-6 -> origin/handoff/r9-f10-gate-infra-6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0848458Z  * [new branch]        handoff/r9-f10-harness-timeout -> origin/handoff/r9-f10-harness-timeout
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0849541Z  * [new branch]        handoff/r9-f10-loop-heartbeat -> origin/handoff/r9-f10-loop-heartbeat
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0850538Z  * [new branch]        handoff/r9-f10-merge-queue -> origin/handoff/r9-f10-merge-queue
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0851469Z  * [new branch]        handoff/r9-f11-governance-1 -> origin/handoff/r9-f11-governance-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0852307Z  * [new branch]        handoff/r9-f11-governance-3 -> origin/handoff/r9-f11-governance-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0853157Z  * [new branch]        handoff/r9-f11-governance-4 -> origin/handoff/r9-f11-governance-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0854561Z  * [new branch]        handoff/r9-f11-governance-4-review -> origin/handoff/r9-f11-governance-4-review
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0855677Z  * [new branch]        handoff/r9-f11-governance-5 -> origin/handoff/r9-f11-governance-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0856598Z  * [new branch]        handoff/r9-f11-governance-6 -> origin/handoff/r9-f11-governance-6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0857490Z  * [new branch]        handoff/r9-f11-governance-7 -> origin/handoff/r9-f11-governance-7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0858417Z  * [new branch]        handoff/r9-f2-solver-1  -> origin/handoff/r9-f2-solver-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0859384Z  * [new branch]        handoff/r9-f2-solver-3  -> origin/handoff/r9-f2-solver-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0860307Z  * [new branch]        handoff/r9-f2-solver-4  -> origin/handoff/r9-f2-solver-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0861179Z  * [new branch]        handoff/r9-f2-solver-5  -> origin/handoff/r9-f2-solver-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0862154Z  * [new branch]        handoff/r9-f3-stores-1  -> origin/handoff/r9-f3-stores-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0862953Z  * [new branch]        handoff/r9-f3-stores-3  -> origin/handoff/r9-f3-stores-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0863698Z  * [new branch]        handoff/r9-f4-inputs-sysid-1 -> origin/handoff/r9-f4-inputs-sysid-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0864282Z  * [new branch]        handoff/r9-f4-inputs-sysid-2 -> origin/handoff/r9-f4-inputs-sysid-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0864860Z  * [new branch]        handoff/r9-f5-config-text-1 -> origin/handoff/r9-f5-config-text-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0865397Z  * [new branch]        handoff/r9-f6-card-1    -> origin/handoff/r9-f6-card-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0865886Z  * [new branch]        handoff/r9-f6-card-2    -> origin/handoff/r9-f6-card-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0866357Z  * [new branch]        handoff/r9-f6-card-4    -> origin/handoff/r9-f6-card-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0866859Z  * [new branch]        handoff/r9-f7-entities-1 -> origin/handoff/r9-f7-entities-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0867379Z  * [new branch]        handoff/r9-f7-entities-2 -> origin/handoff/r9-f7-entities-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0868268Z  * [new branch]        handoff/r9-f7-family-splits -> origin/handoff/r9-f7-family-splits
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0869140Z  * [new branch]        handoff/r9-f8-docs-1    -> origin/handoff/r9-f8-docs-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0869987Z  * [new branch]        handoff/r9-f8-docs-2    -> origin/handoff/r9-f8-docs-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0870641Z  * [new branch]        handoff/r9-f8-docs-3    -> origin/handoff/r9-f8-docs-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0871187Z  * [new branch]        handoff/r9-f9-test-pins-2 -> origin/handoff/r9-f9-test-pins-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0871718Z  * [new branch]        handoff/r9-f9-test-pins-3 -> origin/handoff/r9-f9-test-pins-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0872222Z  * [new branch]        handoff/r9-fixer-cap    -> origin/handoff/r9-fixer-cap
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0872693Z  * [new branch]        handoff/r9-fr-10        -> origin/handoff/r9-fr-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0873193Z  * [new branch]        handoff/r9-friction-study -> origin/handoff/r9-friction-study
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0873933Z  * [new branch]        handoff/r9-gittmp       -> origin/handoff/r9-gittmp
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0874438Z  * [new branch]        handoff/r9-main-closures -> origin/handoff/r9-main-closures
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0874969Z  * [new branch]        handoff/r9-nightly-bdr  -> origin/handoff/r9-nightly-bdr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0875467Z  * [new branch]        handoff/r9-nightly-ha   -> origin/handoff/r9-nightly-ha
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0876014Z  * [new branch]        handoff/r9-nightly-ha-measure -> origin/handoff/r9-nightly-ha-measure
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0876592Z  * [new branch]        handoff/r9-nightly-ha-on-pr -> origin/handoff/r9-nightly-ha-on-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0877203Z  * [new branch]        handoff/r9-nightly-status-k5uati -> origin/handoff/r9-nightly-status-k5uati
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0877788Z  * [new branch]        handoff/r9-prepr-selftest -> origin/handoff/r9-prepr-selftest
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0878283Z  * [new branch]        handoff/r9-proc-1       -> origin/handoff/r9-proc-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0878765Z  * [new branch]        handoff/r9-proc-3       -> origin/handoff/r9-proc-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0879375Z  * [new branch]        handoff/r9-proc-4       -> origin/handoff/r9-proc-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0879843Z  * [new branch]        handoff/r9-proc-5       -> origin/handoff/r9-proc-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0880367Z  * [new branch]        handoff/r9-rc-prcontract-fix -> origin/handoff/r9-rc-prcontract-fix
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0880898Z  * [new branch]        handoff/r9-rca-1985     -> origin/handoff/r9-rca-1985
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0881390Z  * [new branch]        handoff/r9-rca-1990     -> origin/handoff/r9-rca-1990
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0881870Z  * [new branch]        handoff/r9-rca-2004     -> origin/handoff/r9-rca-2004
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0882335Z  * [new branch]        handoff/r9-rca-2028     -> origin/handoff/r9-rca-2028
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0883118Z  * [new branch]        handoff/r9-rca-avoidable-interpreter-bound-recomputation -> origin/handoff/r9-rca-avoidable-interpreter-bound-recomputation
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0884101Z  * [new branch]        handoff/r9-rca-bugclasses -> origin/handoff/r9-rca-bugclasses
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0884672Z  * [new branch]        handoff/r9-rca-cpu-gate-blind -> origin/handoff/r9-rca-cpu-gate-blind
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0885202Z  * [new branch]        handoff/r9-rca-i1       -> origin/handoff/r9-rca-i1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0885665Z  * [new branch]        handoff/r9-rca-i3       -> origin/handoff/r9-rca-i3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0886129Z  * [new branch]        handoff/r9-rca-i4       -> origin/handoff/r9-rca-i4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0886582Z  * [new branch]        handoff/r9-rca-i5       -> origin/handoff/r9-rca-i5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0887055Z  * [new branch]        handoff/r9-rca-p1       -> origin/handoff/r9-rca-p1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0887519Z  * [new branch]        handoff/r9-rca-p11      -> origin/handoff/r9-rca-p11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0887978Z  * [new branch]        handoff/r9-rca-p2       -> origin/handoff/r9-rca-p2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0888430Z  * [new branch]        handoff/r9-rca-p3       -> origin/handoff/r9-rca-p3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0888971Z  * [new branch]        handoff/r9-rca-p5       -> origin/handoff/r9-rca-p5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0889435Z  * [new branch]        handoff/r9-rca-p6       -> origin/handoff/r9-rca-p6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0889898Z  * [new branch]        handoff/r9-rca-p9       -> origin/handoff/r9-rca-p9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0890694Z  * [new branch]        handoff/r9-rca-persisted-future-instant-trusted-without-bound -> origin/handoff/r9-rca-persisted-future-instant-trusted-without-bound
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0891524Z  * [new branch]        handoff/r9-rca-prepr-tmp -> origin/handoff/r9-rca-prepr-tmp
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0892058Z  * [new branch]        handoff/r9-rca-stamp-race -> origin/handoff/r9-rca-stamp-race
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0892641Z  * [new branch]        handoff/r9-rca-stress-recording -> origin/handoff/r9-rca-stress-recording
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0893335Z  * [new branch]        handoff/r9-record-automerge -> origin/handoff/r9-record-automerge
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0893965Z  * [new branch]        handoff/r9-record-path  -> origin/handoff/r9-record-path
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0894477Z  * [new branch]        handoff/r9-review-timing -> origin/handoff/r9-review-timing
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0894964Z  * [new branch]        handoff/r9-ro-1         -> origin/handoff/r9-ro-1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0895433Z  * [new branch]        handoff/r9-ro-10        -> origin/handoff/r9-ro-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0896142Z  * [new branch]        handoff/r9-ro-11        -> origin/handoff/r9-ro-11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0896876Z  * [new branch]        handoff/r9-ro-12        -> origin/handoff/r9-ro-12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0897639Z  * [new branch]        handoff/r9-ro-2         -> origin/handoff/r9-ro-2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0898380Z  * [new branch]        handoff/r9-ro-3         -> origin/handoff/r9-ro-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0899097Z  * [new branch]        handoff/r9-ro-4         -> origin/handoff/r9-ro-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0899748Z  * [new branch]        handoff/r9-ro-5         -> origin/handoff/r9-ro-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0900462Z  * [new branch]        handoff/r9-ro-6         -> origin/handoff/r9-ro-6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0901395Z  * [new branch]        handoff/r9-ro-7         -> origin/handoff/r9-ro-7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0902208Z  * [new branch]        handoff/r9-ro-8         -> origin/handoff/r9-ro-8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0902991Z  * [new branch]        handoff/r9-ro-9a        -> origin/handoff/r9-ro-9a
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0903954Z  * [new branch]        handoff/r9-sw-5         -> origin/handoff/r9-sw-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0904747Z  * [new branch]        handoff/r9-sw-actuation -> origin/handoff/r9-sw-actuation
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0905536Z  * [new branch]        handoff/r9-sw-card      -> origin/handoff/r9-sw-card
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0906355Z  * [new branch]        handoff/r9-sw-gchv      -> origin/handoff/r9-sw-gchv
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0907287Z  * [new branch]        handoff/r9-sw-model     -> origin/handoff/r9-sw-model
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0908076Z  * [new branch]        handoff/r9-sw6          -> origin/handoff/r9-sw6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0908839Z  * [new branch]        handoff/r9-ux-10        -> origin/handoff/r9-ux-10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0909591Z  * [new branch]        handoff/r9-ux-6         -> origin/handoff/r9-ux-6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0910374Z  * [new branch]        handoff/r9-ux-7         -> origin/handoff/r9-ux-7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0911272Z  * [new branch]        handoff/r9-ux-actions   -> origin/handoff/r9-ux-actions
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0912234Z  * [new branch]        handoff/r9-ux-events    -> origin/handoff/r9-ux-events
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0913097Z  * [new branch]        handoff/r9-ux-health    -> origin/handoff/r9-ux-health
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0914123Z  * [new branch]        handoff/r9-ux-insight-text -> origin/handoff/r9-ux-insight-text
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0915217Z  * [new branch]        handoff/r9-ux9          -> origin/handoff/r9-ux9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0915774Z  * [new branch]        handoff/r9-web-3        -> origin/handoff/r9-web-3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0916242Z  * [new branch]        handoff/r9-web-4        -> origin/handoff/r9-web-4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0916886Z  * [new branch]        handoff/r9-web-5        -> origin/handoff/r9-web-5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0917376Z  * [new branch]        handoff/r9-web-page     -> origin/handoff/r9-web-page
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0917855Z  * [new branch]        handoff/rca-1747        -> origin/handoff/rca-1747
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0918347Z  * [new branch]        handoff/repo-reorg-plan -> origin/handoff/repo-reorg-plan
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0918899Z  * [new branch]        handoff/silent-windows-plan -> origin/handoff/silent-windows-plan
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0919397Z  * [new branch]        main                    -> origin/main
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0919847Z  * [new branch]        proof/r9-ci-1-pr2010    -> origin/proof/r9-ci-1-pr2010
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0920433Z  * [new branch]        proof/r9-ci-1-pr2025    -> origin/proof/r9-ci-1-pr2025
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0921219Z  * [new branch]        proof/r9-ci-1-sw1       -> origin/proof/r9-ci-1-sw1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0921962Z  * [new branch]        review/1987             -> origin/review/1987
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0922689Z  * [new branch]        review/1997             -> origin/review/1997
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0923589Z  * [new branch]        review/2002             -> origin/review/2002
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0924039Z  * [new branch]        review/2006             -> origin/review/2006
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0924464Z  * [new branch]        review/2007             -> origin/review/2007
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0924892Z  * [new branch]        review/2010             -> origin/review/2010
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0925313Z  * [new branch]        review/2011             -> origin/review/2011
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0925737Z  * [new branch]        review/2012             -> origin/review/2012
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0926156Z  * [new branch]        review/2013             -> origin/review/2013
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0926575Z  * [new branch]        review/2014             -> origin/review/2014
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0926990Z  * [new branch]        review/2015             -> origin/review/2015
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0927420Z  * [new branch]        review/2017             -> origin/review/2017
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0927992Z  * [new branch]        review/2018             -> origin/review/2018
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0928415Z  * [new branch]        review/2021             -> origin/review/2021
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0928841Z  * [new branch]        review/2022             -> origin/review/2022
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0929269Z  * [new branch]        review/2024             -> origin/review/2024
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0929702Z  * [new branch]        review/2025             -> origin/review/2025
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0930131Z  * [new branch]        review/2026             -> origin/review/2026
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0930557Z  * [new branch]        review/2027             -> origin/review/2027
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0930987Z  * [new branch]        review/2029             -> origin/review/2029
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0931415Z  * [new branch]        review/2030             -> origin/review/2030
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0931846Z  * [new branch]        review/2040             -> origin/review/2040
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0932413Z  * [new branch]        review/2041             -> origin/review/2041
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0933087Z  * [new branch]        review/2042             -> origin/review/2042
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0933934Z  * [new branch]        review/2044             -> origin/review/2044
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0934690Z  * [new branch]        review/2049             -> origin/review/2049
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0935381Z  * [new branch]        review/2051             -> origin/review/2051
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0936041Z  * [new branch]        review/2053             -> origin/review/2053
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0936709Z  * [new branch]        review/2054             -> origin/review/2054
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0937403Z  * [new branch]        review/2055             -> origin/review/2055
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0938205Z  * [new branch]        review/2056             -> origin/review/2056
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0938926Z  * [new branch]        review/2057             -> origin/review/2057
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0939912Z  * [new branch]        review/2058             -> origin/review/2058
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0940664Z  * [new branch]        review/2059             -> origin/review/2059
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0941339Z  * [new branch]        review/2060             -> origin/review/2060
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0942069Z  * [new branch]        review/2061             -> origin/review/2061
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0942824Z  * [new branch]        review/2062             -> origin/review/2062
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0943730Z  * [new branch]        review/2063             -> origin/review/2063
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0944464Z  * [new branch]        review/2064             -> origin/review/2064
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0945155Z  * [new branch]        review/2065             -> origin/review/2065
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0945877Z  * [new branch]        review/2066             -> origin/review/2066
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0946813Z  * [new branch]        review/2067             -> origin/review/2067
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0947679Z  * [new branch]        review/2068             -> origin/review/2068
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0948485Z  * [new branch]        review/2069             -> origin/review/2069
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0949267Z  * [new branch]        review/2070             -> origin/review/2070
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0950012Z  * [new branch]        review/2071             -> origin/review/2071
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0950857Z  * [new branch]        review/2072             -> origin/review/2072
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0951291Z  * [new branch]        review/2073             -> origin/review/2073
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0951719Z  * [new branch]        verdict/1987            -> origin/verdict/1987
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0952153Z  * [new branch]        verdict/1997            -> origin/verdict/1997
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0952582Z  * [new branch]        verdict/2002            -> origin/verdict/2002
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0953007Z  * [new branch]        verdict/2006            -> origin/verdict/2006
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0953640Z  * [new branch]        verdict/2007            -> origin/verdict/2007
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0954067Z  * [new branch]        verdict/2010            -> origin/verdict/2010
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0954649Z  * [new branch]        verdict/2011            -> origin/verdict/2011
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0955086Z  * [new branch]        verdict/2012            -> origin/verdict/2012
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0955515Z  * [new branch]        verdict/2013            -> origin/verdict/2013
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0955989Z  * [new branch]        verdict/2014            -> origin/verdict/2014
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0956701Z  * [new branch]        verdict/2015            -> origin/verdict/2015
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0957423Z  * [new branch]        verdict/2017            -> origin/verdict/2017
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0958179Z  * [new branch]        verdict/2018            -> origin/verdict/2018
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0958633Z  * [new branch]        verdict/2021            -> origin/verdict/2021
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0959067Z  * [new branch]        verdict/2022            -> origin/verdict/2022
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0959506Z  * [new branch]        verdict/2024            -> origin/verdict/2024
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0959941Z  * [new branch]        verdict/2025            -> origin/verdict/2025
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0960367Z  * [new branch]        verdict/2026            -> origin/verdict/2026
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0960793Z  * [new branch]        verdict/2027            -> origin/verdict/2027
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0961216Z  * [new branch]        verdict/2029            -> origin/verdict/2029
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0961641Z  * [new branch]        verdict/2030            -> origin/verdict/2030
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0962080Z  * [new branch]        verdict/2040            -> origin/verdict/2040
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0962503Z  * [new branch]        verdict/2041            -> origin/verdict/2041
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0962926Z  * [new branch]        verdict/2042            -> origin/verdict/2042
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0963581Z  * [new branch]        verdict/2044            -> origin/verdict/2044
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0964230Z  * [new branch]        verdict/2049            -> origin/verdict/2049
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0964684Z  * [new branch]        verdict/2051            -> origin/verdict/2051
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0965127Z  * [new branch]        verdict/2053            -> origin/verdict/2053
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0965571Z  * [new branch]        verdict/2054            -> origin/verdict/2054
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0966014Z  * [new branch]        verdict/2055            -> origin/verdict/2055
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0966440Z  * [new branch]        verdict/2056            -> origin/verdict/2056
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0966867Z  * [new branch]        verdict/2057            -> origin/verdict/2057
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0967412Z  * [new branch]        verdict/2058            -> origin/verdict/2058
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0967867Z  * [new branch]        verdict/2059            -> origin/verdict/2059
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0968296Z  * [new branch]        verdict/2060            -> origin/verdict/2060
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0968729Z  * [new branch]        verdict/2061            -> origin/verdict/2061
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0969157Z  * [new branch]        verdict/2062            -> origin/verdict/2062
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0969594Z  * [new branch]        verdict/2063            -> origin/verdict/2063
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0970018Z  * [new branch]        verdict/2064            -> origin/verdict/2064
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0970438Z  * [new branch]        verdict/2065            -> origin/verdict/2065
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0970858Z  * [new branch]        verdict/2066            -> origin/verdict/2066
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0971278Z  * [new branch]        verdict/2067            -> origin/verdict/2067
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0971700Z  * [new branch]        verdict/2068            -> origin/verdict/2068
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0972118Z  * [new branch]        verdict/2069            -> origin/verdict/2069
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0972546Z  * [new branch]        verdict/2070            -> origin/verdict/2070
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0972977Z  * [new branch]        verdict/2071            -> origin/verdict/2071
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0973597Z  * [new branch]        verdict/2072            -> origin/verdict/2072
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0974123Z  * [new branch]        verdict/2073            -> origin/verdict/2073
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0974661Z  * [new branch]        wip-sync/orchestrator-scratch -> origin/wip-sync/orchestrator-scratch
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0975207Z  * [new tag]           audit-round2-evidence   -> audit-round2-evidence
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0975638Z  * [new tag]           v2.3.0-beta.1           -> v2.3.0-beta.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0976038Z  * [new tag]           v2.4.0                  -> v2.4.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0976404Z  * [new tag]           v2.4.1                  -> v2.4.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0976779Z  * [new tag]           v2.5.0                  -> v2.5.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0977133Z  * [new tag]           v2.6.0                  -> v2.6.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0977489Z  * [new tag]           v2.6.1                  -> v2.6.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0977844Z  * [new tag]           v2.7.0                  -> v2.7.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0978203Z  * [new tag]           v2.8.0                  -> v2.8.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0978564Z  * [new tag]           v3.0.0                  -> v3.0.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0978923Z  * [new tag]           v3.1.0                  -> v3.1.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0979282Z  * [new tag]           v3.1.1                  -> v3.1.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0979636Z  * [new tag]           v3.1.2                  -> v3.1.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0980003Z  * [new tag]           v3.14.0                 -> v3.14.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0980367Z  * [new tag]           v3.16.0                 -> v3.16.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0980724Z  * [new tag]           v3.2.0                  -> v3.2.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0981079Z  * [new tag]           v3.3.0                  -> v3.3.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0981435Z  * [new tag]           v3.3.1                  -> v3.3.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0981789Z  * [new tag]           v3.4.0                  -> v3.4.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0982141Z  * [new tag]           v3.4.1                  -> v3.4.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0982568Z  * [new tag]           v3.5.0                  -> v3.5.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0982932Z  * [new tag]           v3.6.0                  -> v3.6.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0983495Z  * [new tag]           v3.6.1                  -> v3.6.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0983875Z  * [new tag]           v3.7.0                  -> v3.7.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0984231Z  * [new tag]           v3.7.1                  -> v3.7.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0984588Z  * [new tag]           v3.8.0                  -> v3.8.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0984942Z  * [new tag]           v4.0.0                  -> v4.0.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0985293Z  * [new tag]           v4.0.1                  -> v4.0.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0985650Z  * [new tag]           v4.0.2                  -> v4.0.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0986008Z  * [new tag]           v4.0.3                  -> v4.0.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0986367Z  * [new tag]           v4.0.4                  -> v4.0.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0986720Z  * [new tag]           v4.0.5                  -> v4.0.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0987076Z  * [new tag]           v4.0.6                  -> v4.0.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0987433Z  * [new tag]           v4.0.7                  -> v4.0.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0987781Z  * [new tag]           v4.1.0                  -> v4.1.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0988129Z  * [new tag]           v4.2.0                  -> v4.2.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0988477Z  * [new tag]           v4.3.0                  -> v4.3.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0988829Z  * [new tag]           v5.0.0                  -> v5.0.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0989177Z  * [new tag]           v5.1.0                  -> v5.1.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0989534Z  * [new tag]           v5.1.1                  -> v5.1.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0989891Z  * [new tag]           v5.1.10                 -> v5.1.10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0990245Z  * [new tag]           v5.1.2                  -> v5.1.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0990598Z  * [new tag]           v5.1.3                  -> v5.1.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0990964Z  * [new tag]           v5.1.4                  -> v5.1.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0991316Z  * [new tag]           v5.1.5                  -> v5.1.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0991756Z  * [new tag]           v5.1.6                  -> v5.1.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0992120Z  * [new tag]           v5.1.7                  -> v5.1.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0992479Z  * [new tag]           v5.1.9                  -> v5.1.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0992854Z  * [new tag]           v5.2.0                  -> v5.2.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0993217Z  * [new tag]           v5.3.0                  -> v5.3.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0993724Z  * [new tag]           v5.4.0                  -> v5.4.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0994090Z  * [new tag]           v5.4.1                  -> v5.4.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0994453Z  * [new tag]           v5.5.0                  -> v5.5.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0994813Z  * [new tag]           v5.6.0                  -> v5.6.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0995175Z  * [new tag]           v5.6.1                  -> v5.6.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0995542Z  * [new tag]           v5.6.2                  -> v5.6.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0995911Z  * [new tag]           v5.7.0                  -> v5.7.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0996296Z  * [new tag]           v5.7.1                  -> v5.7.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0996654Z  * [new tag]           v6.0.0                  -> v6.0.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0997013Z  * [new tag]           v6.0.1                  -> v6.0.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0997370Z  * [new tag]           v6.0.2                  -> v6.0.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0997723Z  * [new tag]           v6.0.3                  -> v6.0.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0998079Z  * [new tag]           v6.0.4                  -> v6.0.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0998433Z  * [new tag]           v6.0.5                  -> v6.0.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0998790Z  * [new tag]           v6.0.6                  -> v6.0.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0999148Z  * [new tag]           v6.0.7                  -> v6.0.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0999512Z  * [new tag]           v6.0.8                  -> v6.0.8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.0999955Z  * [new tag]           v6.0.9                  -> v6.0.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1000312Z  * [new tag]           v6.1.0                  -> v6.1.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1000666Z  * [new tag]           v6.1.1                  -> v6.1.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1001022Z  * [new tag]           v6.1.2                  -> v6.1.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1001380Z  * [new tag]           v6.2.0                  -> v6.2.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1001734Z  * [new tag]           v6.2.1                  -> v6.2.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1002090Z  * [new tag]           v6.2.10                 -> v6.2.10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1002457Z  * [new tag]           v6.2.11                 -> v6.2.11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1002823Z  * [new tag]           v6.2.12                 -> v6.2.12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1003178Z  * [new tag]           v6.2.13                 -> v6.2.13
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1003782Z  * [new tag]           v6.2.14                 -> v6.2.14
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1004150Z  * [new tag]           v6.2.15                 -> v6.2.15
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1004542Z  * [new tag]           v6.2.16                 -> v6.2.16
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1004910Z  * [new tag]           v6.2.17                 -> v6.2.17
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1005277Z  * [new tag]           v6.2.2                  -> v6.2.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1005633Z  * [new tag]           v6.2.3                  -> v6.2.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1005998Z  * [new tag]           v6.2.4                  -> v6.2.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1006360Z  * [new tag]           v6.2.5                  -> v6.2.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1006748Z  * [new tag]           v6.2.6                  -> v6.2.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1007103Z  * [new tag]           v6.2.7                  -> v6.2.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1007459Z  * [new tag]           v6.2.8                  -> v6.2.8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1007813Z  * [new tag]           v6.2.9                  -> v6.2.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1008178Z  * [new tag]           v6.3.0                  -> v6.3.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1008537Z  * [new tag]           v6.3.1                  -> v6.3.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1008900Z  * [new tag]           v6.3.10                 -> v6.3.10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1009413Z  * [new tag]           v6.3.11                 -> v6.3.11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1009788Z  * [new tag]           v6.3.12                 -> v6.3.12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1010152Z  * [new tag]           v6.3.13                 -> v6.3.13
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1010514Z  * [new tag]           v6.3.14                 -> v6.3.14
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1010877Z  * [new tag]           v6.3.15                 -> v6.3.15
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1011244Z  * [new tag]           v6.3.16                 -> v6.3.16
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1011606Z  * [new tag]           v6.3.17                 -> v6.3.17
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1011981Z  * [new tag]           v6.3.18                 -> v6.3.18
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1012356Z  * [new tag]           v6.3.19                 -> v6.3.19
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1012716Z  * [new tag]           v6.3.2                  -> v6.3.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1013076Z  * [new tag]           v6.3.20                 -> v6.3.20
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1013618Z  * [new tag]           v6.3.3                  -> v6.3.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1013988Z  * [new tag]           v6.3.4                  -> v6.3.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1014358Z  * [new tag]           v6.3.5                  -> v6.3.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1014716Z  * [new tag]           v6.3.6                  -> v6.3.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1015073Z  * [new tag]           v6.3.7                  -> v6.3.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1015430Z  * [new tag]           v6.3.8                  -> v6.3.8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1015794Z  * [new tag]           v6.3.9                  -> v6.3.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1016151Z  * [new tag]           v6.4.0                  -> v6.4.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1016500Z  * [new tag]           v6.4.1                  -> v6.4.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1016852Z  * [new tag]           v6.4.2                  -> v6.4.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1017207Z  * [new tag]           v6.4.3                  -> v6.4.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1017559Z  * [new tag]           v6.4.4                  -> v6.4.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1018004Z  * [new tag]           v6.5.0                  -> v6.5.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1018361Z  * [new tag]           v6.5.1                  -> v6.5.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1018717Z  * [new tag]           v6.6.0                  -> v6.6.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1019083Z  * [new tag]           v6.6.1                  -> v6.6.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1019448Z  * [new tag]           v6.6.10                 -> v6.6.10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1019818Z  * [new tag]           v6.6.11                 -> v6.6.11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1020180Z  * [new tag]           v6.6.12                 -> v6.6.12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1020582Z  * [new tag]           v6.6.2                  -> v6.6.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1020945Z  * [new tag]           v6.6.3                  -> v6.6.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1021297Z  * [new tag]           v6.6.4                  -> v6.6.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1021653Z  * [new tag]           v6.6.5                  -> v6.6.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1022016Z  * [new tag]           v6.6.6                  -> v6.6.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1022377Z  * [new tag]           v6.6.7                  -> v6.6.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1022736Z  * [new tag]           v6.6.8                  -> v6.6.8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1023096Z  * [new tag]           v6.6.9                  -> v6.6.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1023600Z  * [new tag]           v6.7.0                  -> v6.7.0
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1023960Z  * [new tag]           v6.7.1                  -> v6.7.1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1024324Z  * [new tag]           v6.7.10                 -> v6.7.10
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1024687Z  * [new tag]           v6.7.11                 -> v6.7.11
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1025057Z  * [new tag]           v6.7.12                 -> v6.7.12
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1025429Z  * [new tag]           v6.7.13                 -> v6.7.13
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1025799Z  * [new tag]           v6.7.14                 -> v6.7.14
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1026161Z  * [new tag]           v6.7.15                 -> v6.7.15
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1026526Z  * [new tag]           v6.7.16                 -> v6.7.16
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1026887Z  * [new tag]           v6.7.17                 -> v6.7.17
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1027327Z  * [new tag]           v6.7.2                  -> v6.7.2
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1027692Z  * [new tag]           v6.7.3                  -> v6.7.3
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1028064Z  * [new tag]           v6.7.4                  -> v6.7.4
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1028437Z  * [new tag]           v6.7.5                  -> v6.7.5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1028807Z  * [new tag]           v6.7.6                  -> v6.7.6
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1029168Z  * [new tag]           v6.7.7                  -> v6.7.7
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1029531Z  * [new tag]           v6.7.8                  -> v6.7.8
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1029890Z  * [new tag]           v6.7.9                  -> v6.7.9
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1030985Z [command]/usr/bin/git branch --list --remote origin/fix/early-cutoff-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1031558Z   origin/fix/early-cutoff-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1032333Z [command]/usr/bin/git rev-parse refs/remotes/origin/fix/early-cutoff-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1032761Z a9ba0b8874092db8780f93fa290b282b5ce200b5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1033788Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1034247Z ##[group]Determining the checkout info
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1034714Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1034994Z [command]/usr/bin/git sparse-checkout disable
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1035800Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1036721Z ##[group]Checking out the ref
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.1037265Z [command]/usr/bin/git checkout --progress --force -B fix/early-cutoff-pr refs/remotes/origin/fix/early-cutoff-pr
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5089875Z Switched to a new branch 'fix/early-cutoff-pr'
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5094140Z branch 'fix/early-cutoff-pr' set up to track 'origin/fix/early-cutoff-pr'.
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5117408Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5167254Z [command]/usr/bin/git log -1 --format=%H
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5190588Z a9ba0b8874092db8780f93fa290b282b5ce200b5
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5431732Z ##[group]Run actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5432185Z with:
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5432431Z   python-version: 3.13
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5432692Z   check-latest: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5435706Z   token: ***
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5435963Z   update-environment: true
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5436251Z   allow-prereleases: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5436536Z   freethreaded: false
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.5436798Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.6702661Z ##[group]Installed versions
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.6784749Z Successfully set up CPython (3.13.16)
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.6785827Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.6891836Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.6892793Z ^[[36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7306663Z shell: /usr/bin/bash -e {0}
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7307075Z env:
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7307412Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7307894Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7308360Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7308794Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7309228Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7309643Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+mutation	UNKNOWN STEP	2026-10-09T06:53:42.7310003Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.1651603Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 27))
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.2343114Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.7329413Z Collecting aiohttp==3.14.3 (from -r tests/requirements-ci.txt (line 30))
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.7434109Z   Downloading aiohttp-3.14.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.8 MB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.8927201Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.8/1.8 MB 13.7 MB/s  0:00:00
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.9119582Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 150))
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.9221127Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.9417279Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 153))
+mutation	UNKNOWN STEP	2026-10-09T06:53:47.9519345Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.0152001Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 156))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.0254950Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.0586001Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 287))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.0687190Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.2922138Z Collecting multidict==6.9.1 (from -r tests/requirements-ci.txt (line 290))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.3025157Z   Downloading multidict-6.9.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (336 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.4873697Z Collecting numpy==2.4.6 (from -r tests/requirements-ci.txt (line 462))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.4979452Z   Downloading numpy-2.4.6-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.6 MB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.8034216Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.6/16.6 MB 55.7 MB/s  0:00:00
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.8858860Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 535))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.8961463Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.9353643Z Collecting pyyaml==6.0.1 (from -r tests/requirements-ci.txt (line 674))
+mutation	UNKNOWN STEP	2026-10-09T06:53:48.9460371Z   Downloading PyYAML-6.0.1.tar.gz (125 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:49.0468523Z   Installing build dependencies: started
+mutation	UNKNOWN STEP	2026-10-09T06:53:50.1945326Z   Installing build dependencies: finished with status 'done'
+mutation	UNKNOWN STEP	2026-10-09T06:53:50.1954499Z   Getting requirements to build wheel: started
+mutation	UNKNOWN STEP	2026-10-09T06:53:51.9238048Z   Getting requirements to build wheel: finished with status 'done'
+mutation	UNKNOWN STEP	2026-10-09T06:53:51.9247393Z   Preparing metadata (pyproject.toml): started
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.1405453Z   Preparing metadata (pyproject.toml): finished with status 'done'
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.2522117Z Collecting scipy==1.17.1 (from -r tests/requirements-ci.txt (line 726))
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.2628297Z   Downloading scipy-1.17.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.2 MB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.4659130Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.2/35.2 MB 174.3 MB/s  0:00:00
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.5281771Z Collecting threadpoolctl==3.6.0 (from -r tests/requirements-ci.txt (line 788))
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.5383494Z   Downloading threadpoolctl-3.6.0-py3-none-any.whl (18 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.5579125Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 791))
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.5683642Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.8102444Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 794))
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.8204083Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.8407508Z Building wheels for collected packages: pyyaml
+mutation	UNKNOWN STEP	2026-10-09T06:53:52.8413617Z   Building wheel for pyyaml (pyproject.toml): started
+mutation	UNKNOWN STEP	2026-10-09T06:53:55.1889268Z   Building wheel for pyyaml (pyproject.toml): finished with status 'done'
+mutation	UNKNOWN STEP	2026-10-09T06:53:55.1896353Z   Created wheel for pyyaml: filename=pyyaml-6.0.1-cp313-cp313-linux_x86_64.whl size=45459 sha256=88afdd01d72a462c6058a8cfd6a6635db79eff46285693af5af7c76dc1fa7dab
+mutation	UNKNOWN STEP	2026-10-09T06:53:55.1898489Z   Stored in directory: /home/runner/.cache/pip/wheels/9c/9e/34/1e1548811b63a9d001469f21797e8b7d5c216d8eb928e7d6ad
+mutation	UNKNOWN STEP	2026-10-09T06:53:55.1924462Z Successfully built pyyaml
+mutation	UNKNOWN STEP	2026-10-09T06:53:55.2462063Z Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.3095555Z 
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.3117204Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.3 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-6.9.1 numpy-2.4.6 propcache-0.5.4 pyyaml-6.0.1 scipy-1.17.1 threadpoolctl-3.6.0 voluptuous-0.16.0 yarl-1.25.1
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4310122Z ##[group]Run git fetch --no-tags origin main
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4310545Z ^[[36;1mgit fetch --no-tags origin main^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4310878Z ^[[36;1mset -o pipefail^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4311178Z ^[[36;1mpython3 tests/mutation_table.py \^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4311600Z ^[[36;1m  --scope changed --base origin/main --max 10 --jobs 3 \^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4312057Z ^[[36;1m  | tee "$RUNNER_TEMP/mutation-table.txt"^[[0m
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4360990Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4361356Z env:
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4361634Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4362054Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4362463Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4362828Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4363376Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4363804Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.4364118Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.8789361Z From https://github.com/tvofi/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:54:01.8789986Z  * branch              main       -> FETCH_HEAD
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0923480Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:85 CONST: MARGIN_K = 0.5
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0924626Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:122 RETURN_DEL: return self.cut_this_cycle or self.cut_last_cycle
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0925672Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:139 RETURN_DEL: return _STATES.setdefault(coord, CutoffState())
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0926564Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:164 GUARD_OFF: if inp.entry_released or not room or not cfg.heat_pump_switch_entity:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0927392Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:167 GUARD_OFF: if held.unsub is None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0928078Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:171 GUARD_OFF: if held.wiring is not None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0928848Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:190 GUARD_OFF: if not on or held.cut_at is None or held.wiring is None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0929646Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:193 GUARD_OFF: if now - held.cut_at >= MIN_OFF:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0930514Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:195 RETURN_DEL: return _exempt(held.wiring.inputs(), held.wiring.boosts, now) is not Non
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0931326Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:201 GUARD_OFF: if unsub is not None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0932056Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:207 GUARD_OFF: if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0932922Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:209 GUARD_OFF: if inp.plan_stale or not inp.action or not inp.action.get("heat_pump_on"
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0934054Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:211 GUARD_OFF: if inp.plan is None or step_duty(inp.plan, now) != "space":
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0934963Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:213 GUARD_OFF: if boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0935781Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:215 GUARD_OFF: if inp.disinfecting:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0936485Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:217 RETURN_DEL: return _plant_exempt(inp)
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0937275Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:224 BOOLOP: if flag is not None and parse_bool(getattr(flag, "state", None)):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0938701Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:224 GUARD_OFF: if flag is not None and parse_bool(getattr(flag, "state", None)):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0939610Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:231 RETURN_DEL: return None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0940360Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:238 CLAMP_DROP: return max(base, *_planned_room(inp.plan, now)) + MARGIN_K
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0941295Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:250 CMP_BOUND: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0942239Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:250 CMP_BOUND: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0943170Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:250 RETURN_DEL: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0944050Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:255 GUARD_OFF: if held.cut_this_cycle:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0944774Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:258 GUARD_OFF: if getattr(switch, "state", None) != "on":
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0945626Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:263 CMP_BOUND: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0946539Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:263 CMP_BOUND: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0947533Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:263 GUARD_OFF: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0948431Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:265 CMP_BOUND: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0949293Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:265 GUARD_OFF: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0950024Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:267 RETURN_DEL: return None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0950824Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:272 GUARD_OFF: if not getattr(inp.params, "two_zone_enabled", False):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0951711Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:274 CMP_BOUND: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0952632Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:274 RETURN_DEL: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0953603Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:283 BOOLOP: return room if room is not None and low <= room <= high else None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0954487Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:283 CMP_BOUND: return room if room is not None and low <= room <= high else None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0955407Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:283 CMP_BOUND: return room if room is not None and low <= room <= high else None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0956347Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:283 RETURN_DEL: return room if room is not None and low <= room <= high else None
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0957203Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:288 GUARD_OFF: if (room := _reading(event)) is None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0957936Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:292 GUARD_OFF: if inp.entry_released:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0958762Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:295 GUARD_OFF: if _exempt(inp, wiring.boosts, now) is not None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0959488Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:298 CMP_BOUND: if room <= limit:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0960117Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:298 GUARD_OFF: if room <= limit:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0960832Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:301 BOOLOP: if reason is None and _second_zone_cold(inp, limit):
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0961561Z     ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:303 GUARD_OFF: if reason is not None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0963402Z MUTATION TABLE REFUSED -- 4669 unpinned site(s) against 4624 at the ratchet base bd59a4af1b2616a7f00761a3769d22a335e4df7c, 45 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0965038Z     custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0965688Z     custom_components/heatpump_optimizer/__init__.py:90 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0966326Z     custom_components/heatpump_optimizer/__init__.py:116 GUARD_OFF: if module is None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0966845Z     custom_components/heatpump_optimizer/__init__.py:122 RETURN_DEL: return value
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0967410Z     custom_components/heatpump_optimizer/__init__.py:162 RETURN_DEL: return handovers
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0967920Z     custom_components/heatpump_optimizer/__init__.py:168 RETURN_DEL: return stamps
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0968490Z     custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if payload is None or stamped_at is None:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0969108Z     custom_components/heatpump_optimizer/__init__.py:197 CMP_BOUND: if age_min > interval_minutes:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0969692Z     custom_components/heatpump_optimizer/__init__.py:197 GUARD_OFF: if age_min > interval_minutes:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0970232Z     custom_components/heatpump_optimizer/__init__.py:199 RETURN_DEL: return payload
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0970800Z     custom_components/heatpump_optimizer/__init__.py:210 CMP_BOUND: if entry.version > CONFIG_ENTRY_VERSION:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0971439Z     custom_components/heatpump_optimizer/__init__.py:210 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0972000Z     custom_components/heatpump_optimizer/__init__.py:218 RETURN_DEL: return False
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0972554Z     custom_components/heatpump_optimizer/__init__.py:220 CMP_BOUND: if entry.version < CONFIG_ENTRY_VERSION:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0973180Z     custom_components/heatpump_optimizer/__init__.py:220 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0973842Z     custom_components/heatpump_optimizer/__init__.py:228 RETURN_DEL: return True
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0974449Z     custom_components/heatpump_optimizer/__init__.py:253 GUARD_OFF: if (reg_entry.domain, reg_entry.unique_id) in retired:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0975050Z     custom_components/heatpump_optimizer/__init__.py:274 RETURN_DEL: return True
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0975531Z     custom_components/heatpump_optimizer/__init__.py:359 RETURN_DEL: return True
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.0976173Z     custom_components/heatpump_optimizer/__init__.py:392 BOOLOP: if coordinator is not None and coordinator.effective_config == new_confi
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1095735Z ##[error]Process completed with exit code 1.
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1192190Z ##[group]Run actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1192576Z with:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1192773Z   name: mutation-table
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1193031Z   path: /home/runner/work/_temp/mutation-table.txt
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1193495Z   if-no-files-found: ignore
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1193732Z   compression-level: 6
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1193953Z   overwrite: false
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1194165Z   include-hidden-files: false
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1194396Z env:
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1194640Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1195045Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib/pkgconfig
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1195451Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1195818Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1196181Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.16/x64
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1196597Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.16/x64/lib
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.1196914Z ##[endgroup]
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.2740896Z With the provided path, there will be 1 file uploaded
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.2747799Z Artifact name is valid!
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.2748973Z Root directory input is valid!
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.6350751Z Beginning upload of artifact content to blob storage
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.8732824Z Uploaded bytes 1783
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.9294562Z Finished uploading artifact content to blob storage!
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.9295800Z SHA256 digest of uploaded artifact zip is e3dcc11a4fb4930462912e13b85b5b03f20d8e19ea2040a4d8f392c447bca5b3
+mutation	UNKNOWN STEP	2026-10-09T06:54:04.9304251Z Finalizing artifact upload
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.3064937Z Artifact mutation-table.zip successfully finalized. Artifact ID 11600760814
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.3066480Z Artifact mutation-table has been successfully uploaded! Final size is 1783 bytes. Artifact ID is 11600760814
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.3068787Z Artifact download URL: https://github.com/tvofi/heatpump_optimizer/actions/runs/37895798439/artifacts/11600760814
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.3248746Z Post job cleanup.
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4096763Z [command]/usr/bin/git version
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4144368Z git version 2.55.0
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4190459Z Temporarily overriding HOME='/home/runner/work/_temp/cdb4d68d-938b-4c6f-9e39-1f7c33eff8e5' before making global git config changes
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4191532Z Adding repository directory to the temporary git global config as a safe directory
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4198049Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4241696Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4275954Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4494500Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4558046Z http.https://github.com/.extraheader
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4574722Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4619472Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4840014Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.4871287Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+mutation	UNKNOWN STEP	2026-10-09T06:54:05.5231610Z Cleaning up orphan processes

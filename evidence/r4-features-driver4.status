@@ -1,0 +1,8 @@
+D applied:     if False:
+D4 rc=1
+D4: FAIL R9-F2.1 P3: the shipped storage plan is no worse on its own objective than the half-price floor's plan refined under it  [shipped 110.4366, seeded with the half-price plan 110.1297]
+D4: FAIL the cut reason outranks the unmetered tail freeze, which this install trips  [tail 'unmetered_power' free 'unmetered_power' cut 'unmetered_power']
+D4: FAIL a cut interval freezes the learners under the one early_cutoff reason  [free 'unmetered_power' cut 'unmetered_power' next 'unmetered_power']
+D4: 3 of 3899 FEATURE CHECKS FAILED
+leftover: ?? .review-2070-seat-claim
+driver4 done

@@ -1,0 +1,18 @@
+CELL switch_slot=switch misrouted=0 calls=2
+CELL switch_slot=input_boolean misrouted=0 calls=2
+CELL switch_slot=climate misrouted=0 calls=2
+CELL ecl110_configured=False unconfigured_publishes=0 mqtt_calls=0
+CELL ecl110_configured=True unconfigured_publishes=0 mqtt_calls=2
+CELL freq_entity=none mode=observe effective=unconfigured unallowed_writes=0 writes=0
+CELL freq_entity=none mode=control effective=unconfigured unallowed_writes=0 writes=0
+CELL freq_entity=sensor mode=observe effective=observe unallowed_writes=0 writes=0
+CELL freq_entity=sensor mode=control effective=observe unallowed_writes=0 writes=0
+CELL freq_entity=number mode=observe effective=observe unallowed_writes=0 writes=0
+CELL freq_entity=number mode=control effective=control unallowed_writes=0 writes=1
+CELL freq_entity=both mode=observe effective=observe unallowed_writes=0 writes=0
+CELL freq_entity=both mode=control effective=control unallowed_writes=0 writes=1
+RESULT surface_cells=13 cells
+RESULT failing_surface_cells=0 cells
+RESULT thread_factor=1.000
+RESULT load1=27.19
+RESULT swapins=0

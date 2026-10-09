@@ -1,0 +1,79 @@
+Required status checks at PR #2070's live head a9ba0b8874092db8780f93fa290b282b5ce200b5.
+
+Source of the list: ruleset 23698884 "main-protect-checks", enforcement active,
+conditions.ref_name.include = ["~DEFAULT_BRANCH"] (so it binds this PR's branch),
+rules[0].parameters.required_status_checks -- 17 contexts.
+Evidence file: myrs2.json (fetched 2026-10-09, this seat).
+
+Source of the states: the commit's own check-runs API, latest run per name
+(checkruns-a9ba0b88.json -> r4-checkrun-summary.txt).
+
+context                          required  state at this head
+fast (3.14)                        yes      success   id 113706784720
+browser                            yes      success   id 113706784746
+briefs                             yes      success   id 113706784749
+closure-scope                      yes      skipped   id 113706748651
+closures                           yes      success   id 113706747908
+typing                             yes      success   id 113706784724
+hassfest                           yes      success   id 113706755162
+validate-hacs                      yes      success   id 113706762563
+policy-docs                        yes      ABSENT (no run at this head)
+wave-script                        yes      ABSENT (no run at this head)
+pr-contract                        yes      ABSENT (no run at this head)
+env-matrix                         yes      ABSENT (no run at this head)
+Analyze (actions)                  yes      success   id 113706769517
+Analyze (javascript-typescript)    yes      success   id 113706769303
+Analyze (python)                   yes      success   id 113706769704
+mutation                           yes      FAILURE   id 113706784751
+budget-raise-gate                  yes      ABSENT (no run at this head)
+
+Why four required contexts are absent AND why no autofix can come at this head --
+one cause. Every workflow run at a9ba0b8874092db8780f93fa290b282b5ce200b5 is
+event=workflow_dispatch: Tests 37895798439, Hassfest 37895800934,
+Validate 37895803207, CodeQL 37895805427 (actions/runs?head_sha=...). There is no
+pull_request run at this head at all, and none holds:
+`actions/runs?branch=fix/early-cutoff-pr&status=action_required` and `status=queued`
+both return empty, and the push step printed
+"##[notice]no action_required run at a9ba0b8874092db8780f93fa290b282b5ce200b5
+appeared within 60s of the push; printing the after-state (fail-soft)"
+(mutation-autofix-3ecb86ada.log line 964). The head IS github-actions[bot]'s
+"ci: pin killed mutants" commit, pushed with GITHUB_TOKEN; the dispatches are the
+push step's own (tests.yml's `gh workflow run tests.yml --ref "$HEAD_REF"`).
+
+The dispatched Tests run's autofix chain is gated off by its own `if:`:
+mutation-pin-plan (id 113707329520), mutation-pins (113707330060) and
+mutation-autofix (113707330488) are each `completed / skipped`, and every one of
+them requires `github.event_name == 'pull_request'` (tests.yml at the head,
+evidence/tests.yml.head). Independent of that, the loop guard would refuse a
+second pass anyway: the job calls
+`closure.autofix_allowed(event_name=..., commit_subject=$(git log -1 --pretty=%s),
+loop_subject="ci: pin killed mutants")`, and tests/closure.py:2011-2020 returns
+True only when `event_name == "pull_request" AND closures_result == "failure" AND
+head_repo == repo AND commit_subject != loop_subject`. At this head
+commit_subject == loop_subject, so a pull_request run here would print
+`allowed=False / AUTOFIX: skip-not-allowed` and push nothing.
+
+`orchestrator.md` section 11's first bullet -- "Every gate lane ran. Absent is not
+green" -- is not satisfied at this head: five required contexts never ran here.
+Which of them can still be made to run at this head, and which cannot:
+
+  policy-docs, env-matrix, wave-script  .github/workflows/governance.yml, which
+      lists `workflow_dispatch:` (line 44), so a dispatch at this ref produces them.
+  pr-contract      .github/workflows/pr-contract.yml -- `on: pull_request` only,
+      no workflow_dispatch anywhere in the file.
+  budget-raise-gate .github/workflows/budget-raise-gate.yml -- `on: pull_request`,
+      `pull_request_review`, `merge_group`; no workflow_dispatch.
+
+So `pr-contract` and `budget-raise-gate`, both required, cannot run at this head
+at all: no `pull_request` event exists at it, and a bot head writes none until a
+human commit lands on the branch. That is the same fact that closes the mutation
+autofix, and it is why the branch needs a push of its own regardless.
+(`pr-contract-rerun.yml` re-runs the newest `pr-contract` run at a head, and its
+own runs "attach to the default branch's commit, so nothing here can be
+re-reported as a required context" -- it cannot create the missing context at a
+bot head either.) The absent lanes are not by themselves a defect of the fix:
+`orchestrator.md` section 11's third bullet is what produces them, the merge
+train landing the branch onto a green main. What is decisive here is the red
+`mutation` at the head, and that no mechanism can close it -- see
+r4-pinkilled-hand-path.txt, r4-shard1-pin-report.txt and
+r4-nullcontrol.txt.

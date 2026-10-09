@@ -1,4 +1,3 @@
-3ecb86adaf247f182679a175bd619fd363a5e35c
 A room-temperature listener, modelled on the peak guard, switches a space-heating pump off once inside a plan interval when the room passes its threshold. The next cycle's own switch write resumes it. Decision on #201 (comment 6067353918, mandate 6067089637); the rule choice was recorded on #201 after the comparison below. This is the last PR of the live-fix wave. Its learner-freeze order (amendment A2 of the wave's design note) is already carried to fix 5.
 
 **Shipped rule: plan-aware.** Threshold = max(active comfort target, the plan's predicted room at the end of the current step) + 0.5 K. **It was inert in every measured case and ships as a guard.** In each scenario below the 30-minute re-solve already had the pump off before the room passed the threshold. The measured overshoot goes into the floor store, which is fix 5's (the slab observer), not this one's.

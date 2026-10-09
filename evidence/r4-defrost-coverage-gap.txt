@@ -1,0 +1,39 @@
+# Defrost-flag coverage in the early cut-off section of tests/features.py
+
+Section starts at `R.section("early cut-off — a warm room stops a space-heating pump
+inside the interval")`, tests/features.py line 60193.
+
+Every defrost-entity fixture in that section (grep -n heat_pump_defrost_entity over
+lines 60193-60620):
+
+    60389: _ec_defrost._config["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+    60390: _ec_defrost.hass.states.set("binary_sensor.defrost", FakeState("on"))
+    60391: _ec_defrost.arm()
+    60392: _ec_defrost.room(25.0)
+    60393: R.check("a running defrost is never cut", _ec_defrost.offs() == [])
+
+One install in the whole section configures a defrost entity, and its state is "on".
+No check sets the entity and lets it read "off" while still expecting the cut.
+
+That is exactly the arm `early_cutoff.py:224` guards:
+
+    224:    if flag is not None and parse_bool(getattr(flag, "state", None)):
+    225:        return "defrost"
+
+`mutation_table`'s BOOLOP mutant at that line is `and` -> `or`, which with this
+fixture set is NOT equivalent: for an entity that exists and reads "off",
+`flag is not None` is True, so the `or` short-circuits and `_plant_exempt` returns
+"defrost" -- the step is exempted and the pump is never cut, where the clean code
+cuts it. No driver can see the difference because no install in the section ever
+puts a defrost entity in the "off" state.
+
+Measured, not argued: this seat applied that mutant itself at the live head and ran
+the full features.py (3899 checks, /usr/local/bin/python3 3.11.5). Baseline at the
+clean head fails one check, R9-F2.1 P3 (the macOS BLAS solver float round 3 measured
+and attributed to the environment). With the `224 BOOLOP` mutant applied: 1 of 3899,
+the same set, no new failure -- evidence/r4-features-C.txt vs r4-features-A.txt.
+CI's shard 1 measured the same verdict at the parent head ("UNPINNED ...:224 BOOLOP
+-- lives", job 113691831133, 06:51:42Z).
+
+So the site owes a killing check -- "a defrost entity reading off does not exempt the
+step" -- not a pin the bot will record.
