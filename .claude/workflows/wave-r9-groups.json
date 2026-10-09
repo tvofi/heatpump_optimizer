@@ -7943,6 +7943,25 @@
     "next_step": "dispatch after the current resolution wave; the interim beat loop lives in the orchestrator's scratch until this lands"
    },
    "fixes": []
+  },
+  {
+   "group": "R9-RC-ROW-STALE",
+   "lane": "fix",
+   "issues": [],
+   "fixes": [],
+   "after": [],
+   "brief": "Round-9 record-instrument fix (lane fix, found by the R9-DBG-2 seat 2026-10-09 and measured by the orchestrator the same hour).\n\nDEFECT. `tools/audit/seat/record_row.py --plan` skips a merged pull request whose delivery row already exists, so a row written before the merge \u2014 `\u2014 **open**, <title>` by `open_row_line()` \u2014 is never rewritten to the merged form `row_line()` produces (`\u2014 **merged `<sha>`**, \u2026`). The skip is line 179 `if has_row(n, root): continue`, and `has_row()` (line 146) answers on the **anchor** (`rowed_line(number, line)`) plus prose mentions, never on the row's **status**. `record-autofix` runs on every push to main, so it has had many chances and cannot see this.\n\nMEASURED 2026-10-09T20:45Z: **24 rows under `dev/programme/delivery/` read `**open**` for a pull request GitHub reports MERGED** \u2014 2040 2041 2042 2044 2049 2050 2051 2053 2054 2055 2056 2057 2058 2059 2060 2061 2062 2064 2065 2067 2068 2069 2074 2078 \u2014 merge times from 2026-10-07T21:53:00Z to 2026-10-09T20:13:13Z, each read from `gh pr view --json state,mergedAt`. Two of them (#2074, #2078) merged within the previous ten minutes, so this is not a lag.\n\nWHY IT MATTERS BEYOND TIDINESS. `tools/audit/seat/plan_table.py` and `state_docs.py` generate the round's PLAN-TABLE and RESUME-CURRENT from these rows, and `tools/merge/stamp.py`'s `--require-rows` bar asks only that a row EXISTS \u2014 so the stale rows pass the bar while the generated documents tell every later seat that 24 lanes are still open. The orchestrator repeated that falsehood to the owner in status answers on 2026-10-09.\n\nFIX OWED. (1) A status-aware predicate: a row that exists but does not match the merge state must be planned for rewrite \u2014 the natural shape is a second predicate beside `has_row`, taking the merge sha as an argument (the fixer names it) because `has_row` is also the \"does this PR need any row at all\" question the self-merge row asks. (2) The rewrite must be idempotent: a row already reading `**merged `<sha>`**` must not be rewritten, and a row whose recorded sha differs from the API's merge sha must be corrected to the API's. (3) The generated row must keep `row_line()`'s exact grammar (anchor, `|`-to-`/` title sanitising, no closing keyword, group suffix) so `policy_lint --record` and `delivery_status.mentions()` keep reading it.\n\nARMS OWED, each with its perturbation shown. Failing first at a tree with one stale `open` row for a merged PR: `--plan` must list it, and must not list it once rewritten. A planted control that the fix must NOT trip: a genuinely open pull request with an `open` row stays untouched, and a PR with no row at all still gets `open_row_line()` (that is what `self_row()` and the pre-merge beat rely on). Re-take the 24 measured PRs as the live corpus: after `--apply` at the current main, `grep -l '\\*\\*open\\*\\*' dev/programme/delivery/*.md` for numbers >= 2040 must answer only rows whose PR is genuinely open, and the count must be printed beside the claim.\n\nBOUNDARY. The write set stays `dev/programme/delivery/<N>.md` only \u2014 the tool must not gain the ability to edit the plan of record's Delivery-status table or `dev/programme/HANDOVER.md` (that is deliberate per issue #1952, owner-approved 2026-10-04). `tools/audit/seat/record_row.py`'s `--self-test` must gain the arms above; a fix to a check that leaves it undrivable is refused by `pr-contract`.\n",
+   "model": {
+    "fixer": "sonnet",
+    "fixer_why": "specified repair with an oracle: the 24 measured stale rows are the answer key and the write set is one path pattern",
+    "reviewer": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "resume": {
+    "stage": "fixing",
+    "branch": "handoff/r9-row-stale"
+   }
   }
  ]
 }
