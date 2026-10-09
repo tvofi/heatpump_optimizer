@@ -3182,7 +3182,7 @@ def selftest() -> int:
         td_path = Path(td)
         out = td_path / "closures.json"
         out.write_text(json.dumps({
-            "closures": {caller: [caller, phantom, kept_real]},
+            "closures": {caller: [caller, phantom, kept_real], "all-dead": [phantom]},
             "recorded": {},
             "inert_reads": {caller: [phantom, kept_real], "only-dead": [phantom]},
         }))
@@ -3199,6 +3199,13 @@ def selftest() -> int:
                 "prune drops committed phantom entries (#1310)",
                 prc == 0 and phantom not in after and kept_real in after,
                 f"rc={prc} after={sorted(after)!r}",
+            )
+            dead = json.loads(out.read_text())["closures"].get("all-dead")
+            pin(
+                "prune keeps a closures key whose every entry was a phantom, "
+                "empty: select reads a missing key as no closure recorded (R9-RO-9a)",
+                dead == [],
+                f"closures['all-dead'] after={dead!r}",
             )
             ir = json.loads(out.read_text())["inert_reads"]
             pin(
