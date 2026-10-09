@@ -1,0 +1,16 @@
+git log --first-parent 5bcf9d2b..63e4eba35
+  63e4eba35 record: the delivery row for #2073
+  rev-list count = 1; origin/main is NOT an ancestor of this head
+
+delta stat:
+   dev/programme/delivery/2073.md | 1 +
+   1 file changed, 1 insertion(+)
+
+row commit:
+63e4eba35 tvofi record: the delivery row for #2073
+
+ dev/programme/delivery/2073.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+row content (1 line, anchors #2073):
+- [#2073](https://github.com/tvofi/heatpump_optimizer/pull/2073) — **open**, prepr: step 6d predicts a stale mutation-ledger pin
