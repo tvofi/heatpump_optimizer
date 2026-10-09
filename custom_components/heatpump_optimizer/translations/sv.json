@@ -1167,10 +1167,11 @@
             }
           },
           "compressor": {
-            "name": "Kompressorfrekvens",
+            "name": "Kompressorfrekvens och flöde",
             "data": {
               "compressor_freq_entity": "Entitet för kompressorfrekvens",
               "compressor_freq_sensor": "Sensor för faktisk frekvens (rekommenderas för styrning)",
+              "flow_meter_entity": "Givare för vattenflöde (valfri)",
               "freq_control_mode": "Frekvensläge",
               "compressor_freq_min_hz": "Lägsta kompressorfrekvens",
               "compressor_freq_max_hz": "Högsta kompressorfrekvens"
@@ -1178,6 +1179,7 @@
             "data_description": {
               "compressor_freq_entity": "En number-entitet som exponerar kompressorfrekvensen, oftast från en Modbus- eller ESPHome-integration. Med den konfigurerad lär sig optimeraren en kW-per-Hz-karta och rekommenderar en frekvens — enbart observation tills du uttryckligen byter läget nedan till styrning.",
               "compressor_freq_sensor": "En sensor som bär kompressorns FAKTISKA frekvens, om din integration exponerar en separat. Många number-entiteter är börvärdesregister som bara ekar det senast skrivna värdet — läst från ett eko kan väktaren aldrig se någon avvikelse och den inlärda kartan följer börvärdet i stället för maskinen. Lämna tomt bara om number-entitetens tillstånd verkligen följer den riktiga frekvensen. Utan en number-entitet räcker den här sensorn ensam för att observera; styrning kräver number-entiteten.",
+              "flow_meter_entity": "En givare för värmekretsens vattenflöde, i L/min, L/s, m³/h eller kg/s. Tillsammans med framlednings- och returtemperaturen kan integrationen då läsa värmen pumpen levererar på en anläggning utan effekt- eller frekvenssignal. Ignoreras när någon av dem finns; en energigivare stänger inte av den.",
               "freq_control_mode": "Observera lär sig och rekommenderar men skriver aldrig. Byt till styrning först när du har validerat entiteten mot din verkliga hårdvara: skrivningar går via number.set_value, högst en per fem minuter, begränsade till entitetens eget intervall, och en rapporterad frekvens som avviker från den kommenderade i tre cykler ställer ner styrningen till observation igen. Styrning kräver number-entiteten.",
               "compressor_freq_min_hz": "Kompressorns frekvensintervall, som används när bara sensorn är konfigurerad eller när number-entiteten inte publicerar sitt eget minimum och maximum. Den inlärda kartan delas upp över det här intervallet.",
               "compressor_freq_max_hz": "Intervallets övre gräns. En number-entitets eget maximum går alltid före det här."

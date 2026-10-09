@@ -28,7 +28,9 @@ set -uo pipefail
 POLICY_PREFIXES='^(CLAUDE\.md|\.claude/|\.cursor/|tools/audit/|tests/README\.md|docs/HANDOVER\.md|\.github/|dev/governance/|dev/programme/)'
 
 touches_policy() { # $1 the newline-separated changed-file list
-  printf '%s\n' "$1" | grep -qE "$POLICY_PREFIXES"
+  # Drained, never `grep -q`: under pipefail an early exit can SIGPIPE the
+  # writer and read as "touches no policy" (R9-RCA-prepr-tmp).
+  printf '%s\n' "$1" | grep -E "$POLICY_PREFIXES" >/dev/null
 }
 
 active() { # $1 the raw payload -- true when a Stop hook already continued this turn
