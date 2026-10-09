@@ -1,0 +1,10 @@
+  FAIL a policy head whose owner approval at this exact head cites a mandate in force lands
+  FAIL a policy head with NO mandate is refused as before -- the approval is at the head, so the refusal names the mandate, not the review (the fallback is the point)
+  FAIL a policy head with a mandate but no owner approval at its head is refused, named as the review
+  FAIL a mandate whose window has passed behaves as no mandate (expiry arm)
+  FAIL a revoked mandate refuses the policy head, named as revoked
+  FAIL a mandate scoped budget-raise does not cover policy merging
+  FAIL policy content that moved after the owner's review is refused and named as that change
+  FAIL an approval not at this exact head is refused as that, when the policy blobs did not move
+  FAIL batch fallback: a policy head with no owner approval at its head stops admission before any proof is spent (the no-mandate fallback, on the batch side)
+  FAIL batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the merge itself (admission reads, land reads again)

@@ -1,0 +1,3 @@
+judged at 2026-10-09T18:45:25Z, scope MANDATE_COVERS_POLICY=('all',)
+mandate 6067089637: IN FORCE -- mandate 6067089637 (scope all, from 2026-10-08T19:30Z until 2026-10-11T12:00Z) (thread: 30 comment(s) since)
+mandate 5951564627: REFUSED -- mandate 5951564627 expired at 2026-10-09T12:00Z, before the merge at 2026-10-09T18:45:25Z (thread: 167 comment(s) since)

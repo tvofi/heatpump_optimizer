@@ -1,0 +1,107 @@
+diff --git a/tools/policy/budget_raise_gate.py b/tools/policy/budget_raise_gate.py
+index fa2c0f3bc..70464e035 100644
+--- a/tools/policy/budget_raise_gate.py
++++ b/tools/policy/budget_raise_gate.py
+@@ -113,6 +113,13 @@ MANDATE_GRAMMAR = re.compile(
+ MANDATE_REVOKED = re.compile(r"revok", re.I)
+ MANDATE_CITE = re.compile(r"\bmandate(?: comment)?:? #?(\d{6,})\b|issuecomment-(\d{6,})\b", re.I)
+ MANDATE_COVERS_RAISE = ("budget-raise", "all")
++# What covers the merge train landing a POLICY head (merge_train.py's step 5,
++# tvofi's ruling of 2026-10-09 on #201): only `all`. A `code-owned` scope
++# licenses an approval of a code-owned path, and a `budget-raise` scope a
++# raise; neither is the owner's written authority for the train to land their
++# written record. The strictest reading is the safe one: a scope that does not
++# name this act does not license it.
++MANDATE_COVERS_POLICY = ("all",)
+ SUFFIX = "_budgets.json"
+ 
+ FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
+@@ -306,10 +313,24 @@ def _when(text):
+     return t if t.tzinfo is not None else None
+ 
+ 
+-def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[bool, str]:
+-    """(in force, why) for the mandate comment `cid` that `review` cites.
+-    `comment` is that comment as the API returns it (None: it does not exist);
+-    `thread` is the tracking issue's comments, where a revocation would be."""
++def mandate_state(cid, comment, thread, at, at_repr, when="review",
++                  covers=MANDATE_COVERS_RAISE, what="budget raises"):
++    """(in force, why) for the mandate comment `cid`, judged at the instant
++    `at` (None: the caller has none and says so in its own refusal), for a
++    reader whose act needs the scope in `covers` (`what` names that act in
++    the refusal) and calls its moment `when`.
++
++    THE one reading of a mandate, shared by its two readers (fixer.md step
++    17): this gate's review check (mandate_check, judged at the review's
++    submission and scoped for a raise) and merge_train.py's policy stop
++    (judged at the merge itself, scoped for policy merging -- when the
++    window has passed, the train falls back to refusing without further
++    code). The rules are tvofi's 2026-10-02 amendment to decision 0013:
++    the pinned owner's comment on the tracking issue, its first line the
++    recorded grammar, the window open at the instant asked for, never
++    edited, and no later comment by the same owner account naming the id
++    beside any form of "revoke" (loose on purpose: the grant is strict and
++    the kill switch is lenient, because over-revoking fails safe)."""
+     name = f"mandate {cid}"
+     if comment is None:
+         return False, f"{name} is not a comment that exists"
+@@ -326,15 +347,14 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
+     created, updated = _when(comment.get("created_at")), _when(comment.get("updated_at"))
+     if start is None or created is None or updated is None or (end is None and until != "programme-end"):
+         return False, f"{name} carries a time that is not an ISO 8601 instant with a zone"
+-    if scope not in MANDATE_COVERS_RAISE:
+-        return False, f"{name} has scope {scope}, which does not cover budget raises"
+-    at = _when(review.get("submitted_at"))
++    if scope not in covers:
++        return False, f"{name} has scope {scope}, which does not cover {what}"
+     if at is None:
+-        return False, f"the review citing {name} carries no submission time"
++        return False, f"the {when} citing {name} carries no submission time"
+     if at < max(start, created):
+-        return False, f"{name} was not yet in force at {review.get('submitted_at')}"
++        return False, f"{name} was not yet in force at {at_repr}"
+     if end is not None and at >= end:
+-        return False, f"{name} expired at {until}, before the review at {review.get('submitted_at')}"
++        return False, f"{name} expired at {until}, before the {when} at {at_repr}"
+     if updated != created:
+         return False, f"{name} was edited, so the text tvofi gave it under is unknown"
+     for c in thread:
+@@ -345,12 +365,27 @@ def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[
+     return True, f"{name} (scope {scope}, from {m.group(2)} until {until})"
+ 
+ 
+-def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str]:
++def mandate_check(review: dict, cid: int, comment, thread: list[dict]) -> tuple[bool, str]:
++    """(in force, why) for the mandate comment `cid` that `review` cites.
++    `comment` is that comment as the API returns it (None: it does not exist);
++    `thread` is the tracking issue's comments, where a revocation would be.
++    The reading itself is mandate_state's, judged at the review's submission
++    and scoped for a budget raise; this is the gate's own reader."""
++    return mandate_state(cid, comment, thread, _when(review.get("submitted_at")),
++                         str(review.get("submitted_at")))
++
++
++def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=None) -> tuple[bool, str]:
+     """(approved, why): the owner's latest decisive review is an APPROVED one
+     submitted on `head`. A review under the owner's account whose body says an
+     agent gave it is not the owner's (AGENT_DECLARED), unless it is an approval
+     that cites one mandate `mandate_fn(id)` -> (comment, thread) shows in force
+-    (mandate_check). An agent's other reviews decide nothing, as before."""
++    (mandate_check). An agent's other reviews decide nothing, as before.
++    `mandate_validator(review, cid, comment, thread) -> (bool, str)` replaces
++    that reading for the gate's second reader -- merge_train.py, which judges
++    the same mandate_state rules at the merge moment and scoped for policy
++    merging (R9-RO-13); omitted, the gate's own raise reading stands."""
++    check_mandate = mandate_validator or mandate_check
+     own = [r for r in reviews if _is_owner(r.get("user"))]
+     decisive, under, notes = [], {}, []
+     for r in own:
+@@ -365,7 +400,7 @@ def approval(reviews: list[dict], head: str, mandate_fn=None) -> tuple[bool, str
+             notes.append(f"review {r.get('id')} cites {len(cited)} mandates, and one decides")
+             continue
+         cid = cited.pop()
+-        ok, why = (False, "no mandate could be read") if mandate_fn is None else mandate_check(r, cid, *mandate_fn(cid))
++        ok, why = (False, "no mandate could be read") if mandate_fn is None else check_mandate(r, cid, *mandate_fn(cid))
+         if ok:
+             decisive.append(r)
+             under[id(r)] = why
