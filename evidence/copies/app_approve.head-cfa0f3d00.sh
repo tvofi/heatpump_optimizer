@@ -1,0 +1,1087 @@
+#!/bin/bash
+{ set +x; } 2>/dev/null # before anything: a caller's `bash -x` would trace the JWT
+# Approve a pull request as the App `hpo-approver`, at one exact head SHA, and
+# only on a `merge` verdict for that SHA from an allowlisted account.
+#
+#   tools/pr/app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>
+#   tools/pr/app_approve.sh --carry <verdict sha> <head sha> [<main ref>]
+#   tools/pr/app_approve.sh --self-test
+#
+# WHY THIS EXISTS. Since decision 0009 step 6, the `main-protect-checks`
+# ruleset requires one approving review, and GitHub never lets an author
+# approve their own pull request. An ordinary pull request's review comes from
+# the App after a `merge` verdict (`dev/governance/roles/orchestrator.md`
+# section 11); a policy pull request's comes from the owner, on GitHub, and
+# this script refuses one.
+#
+# IT REFUSES, AND POSTS NOTHING, UNLESS ALL OF THESE HOLD:
+#   - the App id file holds digits only and the private key file exists
+#     (fail closed, before any call);
+#   - the pull request is open, and its live head is exactly <sha>;
+#   - among comments whose author is the approver App -- login in
+#     VERDICT_AUTHORS, user type `Bot` AND user id VERDICT_AUTHOR_ID -- the
+#     NEWEST whose first line starts `Fix review:` is exactly
+#     `Fix review: merge <sha>`, the grammar `fix-review.md` sends reviewers
+#     to -- or `Fix review: merge <V>` for an earlier head V that CARRIES to
+#     <sha> (below, #1667), read against `origin`'s main and the pull
+#     request's head fetched into this checkout. Every other comment is ignored, so an outsider's later line neither
+#     approves nor displaces one. Verdicts post only as `hpo-approver[bot]`
+#     (decision 0013, amending 0011: the orchestrator posts the reviewer
+#     seat's text with `tools/pr/app_comment.sh`; never as the author App,
+#     #1233's defect, and no longer as `tvofi`). The id pin replaces the
+#     author_association guard this line carried while verdicts were
+#     `tvofi`'s: an App's association reads NONE (measured on the ten
+#     `hpo-approver[bot]` reviews of #1489-#1557 read 2026-09-24), so that
+#     guard would refuse every App verdict, while a `[bot]` login cannot be
+#     registered by a user and the numeric id cannot be renamed. The id was read off
+#     `GET /users/hpo-approver%5Bbot%5D` on 2026-09-24.
+#     WHAT THIS CANNOT TELL: the allowlist still cannot prove WHICH seat's
+#     word an App verdict carries. It keeps out every other account,
+#     nothing more;
+#   - that verdict CITES ITS EVIDENCE: at least one absolute path in the
+#     verdict comment's body is a directory that exists ON THIS MACHINE (the
+#     box is shared, `COMMON.md`), is non-empty, and has at least one file
+#     naming the exact 40-hex head <sha>. A fabricated `merge` line must now
+#     fabricate artifacts too. WHAT THIS IS NOT: proof of reviewer
+#     independence -- this script runs on the orchestrator's machine over
+#     text a seat wrote, and `judge.md`'s void rule names that shape: a
+#     check run by the same party on that party's text proves nothing. The
+#     independent reviewer under `fix-review.md` stays the load-bearing
+#     control; this gate raises the cost of a forged verdict, it does not
+#     replace the seat;
+#   - no changed file (or a rename's old path) matches an owned pattern of
+#     `.github/CODEOWNERS` read at ref=main, never at the head; an unreadable
+#     or empty CODEOWNERS refuses. Matching errs toward owning, which refuses;
+#   - the head is still <sha> when re-read after minting, just before the POST.
+#
+# THE CARRY (#1667, D13-s1-02). A verdict at V carries to a later head H only
+# when (1) V is an ancestor of H; (2) every first-parent commit V..H is a
+# two-parent merge of a main commit whose tree is git's automatic merge of its
+# parents (`merge-tree`, outside the driver files below), or a single-parent
+# `ci:` commit that changes only those driver files; and
+# (3) the branch's own diff against its merge base with main is byte-identical
+# at V and at H, read with two relaxations measured over round 9's window
+# (the literal byte rule carried 0 of its 22 re-verification rounds): each
+# hunk header (line numbers, and the function line git reads from above the
+# hunk) and each `index` line are dropped, so a hunk main's merge only shifted
+# still compares equal; and the files main's
+# `.gitattributes` gives a merge driver are left out, because stamps and CI
+# bots rewrite those on main and required checks grade them at every head.
+# Anything else -- a rewrite, a commit of the branch's own, one changed byte
+# in a hunk or its context -- keeps today's re-review. Condition (3) is the
+# guard; (1) and (2) name the moves it applies to, and a `ci:` subject buys
+# nothing on its own. The evidence gate then reads V, the head the reviewer
+# measured.
+#
+# THE SECRETS. The key files are `$HPO_IDENTITY_DIR/identity-approver.appid`
+# and `identity-approver.pem` (default directory `~/.zcode`). The JWT and the
+# installation token are written only as curl header files inside a private
+# mode-700 directory, never onto a command line and never printed. An EXIT trap
+# revokes the installation token (DELETE /installation/token) and removes that
+# directory on every path, the refusals and a failed POST included. Reads go
+# through `gh` as whatever GH_TOKEN the seat set; only the App calls carry the
+# JWT or the token.
+#
+# --dry-run runs every refusal, then stops before signing or minting anything.
+set -uo pipefail
+
+API=https://api.github.com
+ACCEPT='Accept: application/vnd.github+json'
+VERDICT_AUTHORS="hpo-approver[bot]"
+VERDICT_AUTHOR_ID=330097732
+die() { printf 'app_approve: REFUSE: %s\n' "$*" >&2; exit 1; }
+
+# A JSON document per page from `gh api --paginate`, flattened to one list.
+PAGES_PY='import sys,json
+raw=sys.stdin.read(); dec=json.JSONDecoder(); i=0; out=[]
+while True:
+    while i < len(raw) and raw[i].isspace(): i += 1
+    if i >= len(raw): break
+    v, i = dec.raw_decode(raw, i); out.extend(v)'
+
+check_pr() { # repo pr sha -> refuses unless open at exactly sha
+  local js info state merged head
+  js=$(gh api "repos/$1/pulls/$2") || die "could not read pull request #$2 on $1"
+  info=$(printf '%s' "$js" | python3 -c 'import sys,json
+d=json.load(sys.stdin); print(d["state"], str(d.get("merged")).lower(), d["head"]["sha"])') \
+    || die "pull request #$2's JSON has no state or head"
+  read -r state merged head <<<"$info"
+  [ "$state" = "open" ] || die "pull request #$2 is $state (merged=$merged); only an open one is approved"
+  [ "$head" = "$3" ] || die "head moved: asked to approve $3, the live head of #$2 is $head"
+}
+
+# Each bot's own paths, by the subject it commits under (R9-CI-2b; tvofi,
+# 2026-10-08). A commit under one of these subjects may change main's
+# merge-driver files and these paths and nothing else; any other `ci:`
+# commit, the driver files alone. The subject is free text anyone who can
+# push may write, so the paths are the guard, as they are for `ci:`.
+# remerge_main.sh's claims commit is here so merge_train's own main merges
+# carry whole (Q3).
+# Each subject also names its author (#2059 round 1): git metadata anyone can
+# write, as policy_lint.mjs's AUTOFIX_BOT_COMMITS says, so it narrows the
+# surface without closing it; a claim-file subject may only REMOVE lines, so a
+# forged one cannot add a claim that excuses drift.
+bot_author() { # subject -> the author email its writer commits as
+  case "$1" in
+    "ci: pin killed mutants"|"ci: re-record closures"|"ci: drop inherited claims")
+      echo "41898282+github-actions[bot]@users.noreply.github.com" ;;
+    "claims: drop the claims main already carries after the main merge")
+      echo "70032254+tvofi@users.noreply.github.com" ;;
+  esac
+}
+bot_paths() { # subject -> one pathspec per line, nothing for an unknown subject
+  case "$1" in
+    "ci: pin killed mutants") printf '%s\n' tests/mutation_budgets.json tests/mutation_ledger ;;
+    "ci: re-record closures") printf '%s\n' tests/closures.json ;;
+    "ci: drop inherited claims"|"claims: drop the claims main already carries after the main merge")
+      printf '%s\n' tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt ;;
+  esac
+}
+
+# carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
+carry() {
+  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e
+  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
+  # Read at main, never at a head: a branch that gave a file a driver would
+  # otherwise take it out of the comparisons itself.
+  # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
+  # which has no mapfile and calls an empty array unbound under -u, so on the
+  # Mac this aborted where it should have named its refusal (2026-10-03).
+  t=$(git show "$main:.gitattributes" 2>/dev/null | awk '!/^#/ && / merge=/ {print ":(exclude)" $1}')
+  x=()
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=$p; done <<<"$t"
+  local bots=""
+  while IFS=$'\t' read -r c ps ae subj; do
+    set -- $ps
+    if [ $# -ge 2 ]; then
+      [ $# -eq 2 ] || { echo "$c merges more than one branch"; return 1; }
+      git merge-base --is-ancestor "$2" "$main" || { echo "$c merges $2, which is not on $main"; return 1; }
+      # A hand-resolved merge can move the branch's change to another place
+      # with the same context, which the header-free comparison below cannot
+      # see: the merge must be git's own automatic result.
+      t=$(git merge-tree --write-tree --no-messages "$1" "$2" | head -1)
+      git diff --quiet "$t" "$c" -- . ${x[@]+"${x[@]}"} \
+        || { echo "$c is not the automatic merge of its parents"; return 1; }
+    elif [[ $subj != ci:* ]] && [ -z "$(bot_paths "$subj")" ]; then
+      echo "$c is a commit of the branch's own ($subj)"; return 1
+    else
+      # Anyone who can push can write the subject, and the header-free
+      # comparison below cannot see a change moved to other code with the
+      # same context: a `ci:` commit may touch only the driver files, and
+      # a bot's subject its own paths besides.
+      b=$(bot_paths "$subj")
+      if [ -z "$b" ]; then
+        git diff --quiet "$c^" "$c" -- . ${x[@]+"${x[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files"; return 1; }
+      else
+        # A bot's subject: main's driver files and its own paths, as its
+        # writer, and a claim-file subject only removing lines (#2059 round 1).
+        y=(${x[@]+"${x[@]}"})
+        while IFS= read -r p; do [ -z "$p" ] || y[${#y[@]}]=":(exclude)$p"; done <<<"$b"
+        git diff --quiet "$c^" "$c" -- . ${y[@]+"${y[@]}"} \
+          || { echo "$c is a ci: commit that changes files outside main's merge-driver files and the paths of its subject"; return 1; }
+        [ "$ae" = "$(bot_author "$subj")" ] \
+          || { echo "$c is authored by $ae, not the writer of its subject ($subj)"; return 1; }
+        case "$subj" in *claims*)
+          [ "$(git diff --numstat "$c^" "$c" | awk '{s+=$1} END {print s+0}')" = 0 ] \
+            || { echo "$c adds claim lines, and its subject only drops them"; return 1; } ;;
+        esac
+        # What a carried bot commit may hide from the branch's own diff below
+        # depends on the shape of each path `bot_paths` gives it. An entry that
+        # IS a file this commit changed (its exact path appears in the diff):
+        # one reviewed file, excluded whole, as before. An entry that is a
+        # DIRECTORY (a subtree, like the mutation ledger's one-file-per-row
+        # layout, so no single entry names a file the writer touched): exclude
+        # only the rows this very commit ADDED under it, never one it REWROTE or
+        # DELETED -- a rewrite or deletion of a row the branch already carried is
+        # reviewed content, and hiding it would let a bot's edit of an
+        # already-reviewed row pass unseen.
+        ba=$(git diff --no-renames --diff-filter=A --name-only "$c^" "$c")
+        bt=$(git diff --no-renames --name-only "$c^" "$c")
+        while IFS= read -r e; do
+          [ -z "$e" ] && continue
+          if printf '%s\n' "$bt" | grep -qxF "$e"; then
+            bots="$bots$e"$'\n'
+          else
+            while IFS= read -r p; do
+              case "$p" in "$e"/*) bots="$bots$p"$'\n' ;; esac
+            done <<<"$ba"
+          fi
+        done <<<"$b"
+      fi
+    fi
+  done < <(git log --first-parent --format='%H%x09%P%x09%ae%x09%s' "$v..$h")
+  # What a carried bot commit wrote is no part of the branch's own diff.
+  # Each path a bot commit added is excluded as a literal, not a pattern: a
+  # pathspec is a glob, and git's default `*` matches across `/`, so one added
+  # file named `*` would otherwise widen this one file's exclusion to the whole
+  # `tests/mutation_ledger` subtree, and the branch's-own-diff comparison would
+  # stop seeing anything under it. `:(exclude,literal)` fixes that: a filename
+  # is a filename. (`x` itself, read from `.gitattributes` at `$main` (never
+  # at a head), and the `y`/`b` confinement check above, take their paths from
+  # main's tracked files or `bot_paths`' own hand-written list, so they were
+  # never exposed to a forged commit choosing its own filenames this way.)
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=":(exclude,literal)$p"; done <<<"$(printf '%s' "$bots" | sort -u)"
+  mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1; }
+  local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
+    --diff-algorithm=myers -U3)
+  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }
+  cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
+    || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
+  echo "only automatic merges from $main, ci: commits and the autofix bot's own, and the branch's own diff compares equal"
+}
+
+cleanup() {
+  if [ -s "$PRIV/token.h" ]; then
+    curl -fsS -X DELETE -H @"$PRIV/token.h" -H "$ACCEPT" "$API/installation/token" >/dev/null 2>&1 \
+      || printf 'app_approve: warning: revoking the installation token failed; it expires within the hour\n' >&2
+  fi
+  rm -rf "$PRIV"
+}
+
+approve() {
+  local dry=0
+  [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
+  [ $# -eq 3 ] || die "usage: app_approve.sh [--dry-run] <owner/repo> <pr> <40-hex head sha>"
+  local repo=$1 pr=$2 sha=$3
+  [[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "repo '$repo' is not owner/repo"
+  [[ $pr =~ ^[0-9]+$ ]] || die "pull request '$pr' is not a number"
+  [[ $sha =~ ^[0-9a-f]{40}$ ]] || die "the head must be the full 40-hex SHA, got '$sha'"
+  local idir="${HPO_IDENTITY_DIR:-$HOME/.zcode}"
+  local appid_f="$idir/identity-approver.appid" key="$idir/identity-approver.pem"
+  [ -s "$appid_f" ] || die "App id file missing or empty: $appid_f (fail closed)"
+  [ -s "$key" ] || die "App private key missing or empty: $key (fail closed)"
+  local appid; appid=$(cat "$appid_f")
+  [[ $appid =~ ^[0-9]+$ ]] || die "App id file must hold digits only: $appid_f (fail closed)"
+
+  check_pr "$repo" "$pr" "$sha"
+  local verdict vid vurl vline vbody
+  # The body rides as a fourth line with newlines folded to \x01, so a body
+  # with spaces survives the shell round trip whole -- the evidence gate
+  # below reads it, not only the first line.
+  verdict=$(gh api --paginate "repos/$repo/issues/$pr/comments?per_page=100" | python3 -c "$PAGES_PY"'
+authors = set(sys.argv[1].split()); uid = int(sys.argv[2])
+vs = [c for c in out
+      if (c.get("user") or {}).get("login") in authors and (c.get("user") or {}).get("type") == "Bot"
+      and (c.get("user") or {}).get("id") == uid
+      and (c.get("body") or "").split("\n", 1)[0].strip().lower().startswith("fix review:")]
+vs.sort(key=lambda c: (c["created_at"], c["id"]))
+if not vs: print("NONE")
+else:
+    c = vs[-1]
+    print(c["id"]); print(c["html_url"])
+    print(c["body"].split("\n", 1)[0].strip())
+    print((c.get("body") or "").replace("\n", "\x01"))' "$VERDICT_AUTHORS" "$VERDICT_AUTHOR_ID") \
+    || die "could not read the comments on #$pr"
+  [ "$verdict" != "NONE" ] \
+    || die "no 'Fix review:' verdict on #$pr from the approver App ($VERDICT_AUTHORS, id $VERDICT_AUTHOR_ID); an approval needs 'Fix review: merge $sha'"
+  vid=$(printf '%s\n'   "$verdict" | sed -n 1p)
+  vurl=$(printf '%s\n'  "$verdict" | sed -n 2p)
+  vline=$(printf '%s\n' "$verdict" | sed -n 3p)
+  vbody=$(printf '%s\n' "$verdict" | sed -n 4p)
+  vbody=${vbody//$'\x01'/$'\n'}
+  local evsha=$sha carried="" vsha why
+  if [ "$vline" != "Fix review: merge $sha" ]; then
+    why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+    vsha=$(printf '%s' "$vline" | sed -n 's/^Fix review: merge \([0-9a-f]\{40\}\)$/\1/p')
+    [ -n "$vsha" ] || die "$why"
+    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+      || die "$why, and fetching main and the head to test a carry failed"
+    [ "$(git rev-parse refs/hpo-carry/head)" = "$sha" ] || die "$why, and the fetched head is not $sha"
+    carried=$(carry "$vsha" "$sha" refs/hpo-carry/main) || die "$why, and it does not carry: $carried"
+    evsha=$vsha
+    printf 'app_approve: CARRY %s -> %s: %s\n' "$vsha" "$sha" "$carried"
+  fi
+
+  # The verdict's evidence gate, before minting. At least one absolute path
+  # the body names must be a directory that exists here, is non-empty, and
+  # holds a file naming the exact head sha. Fail closed on every miss; the
+  # header says what this is not.
+  #
+  # A token only starts at a word boundary -- line start, whitespace, or an
+  # opening bracket or quote -- never mid-word. `grep -oE "/[^space]+"` used
+  # to start a token at ANY slash, so prose like "(review-1591/)." stripped
+  # down to a bare "/", an existing non-empty directory, and the follow-on
+  # `grep -rqF -- <sha> /` hung the orchestrator's merge queue for 86 minutes
+  # on #1591 until it was killed by hand. POSIX ERE (`grep -E`) has no
+  # lookbehind, so the boundary is enforced in Python instead. A closing
+  # bracket right after the path (`[$dir]`) is stripped the same way a
+  # closing paren already was, so a bracketed citation round-trips.
+  #
+  # A COMPONENT-COUNT GUARD ON THE RAW TOKEN IS NOT ENOUGH: dot segments and
+  # a double slash let a token with two or more slashes IN TEXT still
+  # resolve to the root, or near it, once the filesystem interprets `..`
+  # and `.` -- `/tmp/../`, `<dir>/../../` and `/tmp//../` all read as
+  # multi-component strings but chdir(2) collapses them to one component or
+  # fewer. So every candidate is canonicalised with `cd ... && pwd -P`
+  # before it is judged: that requires the directory to already exist
+  # (folding the existence check in), and resolves `..`, `.`, symlinks and
+  # doubled slashes the same way the kernel would. The component-count
+  # guard then re-runs on the RESOLVED path, which is the one that can
+  # actually collapse to the root. The same resolution closes an unrelated
+  # hole: a verdict citing `/proc/self` (or `/dev/fd`) is two components and
+  # a real, non-empty directory, but `grep -rqF -- <sha> /proc/self`
+  # inspects the grep PROCESS'S OWN open files -- including its own argv,
+  # which contains the sha it is searching for -- so it always "finds" it.
+  # `/proc`, `/dev` and `/sys` are refused outright after resolution,
+  # whether or not this machine even has them.
+  #
+  # `pwd -P` KEEPS EXACTLY TWO LEADING SLASHES: POSIX carves out `//foo` as
+  # implementation-defined (unlike three or more, which always collapse to
+  # one), and this shell's `pwd -P` exercises that carve-out -- a token
+  # like `//tmp/..` or `//usr/../` resolves to `//`, not `/`. Left alone,
+  # `//` still passes the "at least two path components" glob (`/*/*`
+  # matches it -- both `*`s match empty) and `//proc/self` /  `//dev/fd`
+  # don't match a `/proc/*` / `/dev/*` pattern at all, since that pattern
+  # requires a SINGLE leading slash. So the leading run of slashes is
+  # collapsed to exactly one right after resolution, before any guard reads
+  # it -- one normalisation point instead of teaching every guard about
+  # `//`.
+  #
+  # `pwd -P` of `/` is `/` on macOS 26.6, so a comparison with that path
+  # does not see `/System/Volumes/Data`. That mount is a different
+  # directory, and `grep -rqF` of a head sha over it walked the data
+  # volume for 17 minutes, then again for 9 hours, both killed by hand.
+  # A resolved path that is its own mount point is a volume root. Evidence
+  # is a directory on a volume, not the volume itself.
+  local evdir="" evwhy="the verdict names no absolute path at all" tok rootphys
+  rootphys=$(cd / && pwd -P)
+  rootphys=$(printf '%s' "$rootphys" | sed -E 's#^/+#/#')
+  while read -r tok; do
+    tok=$(printf '%s' "$tok" | sed -e "s/^[([{\`\"']*//" -e "s/[]).,;:}\`\"']*\$//" -e 's:/*$::')
+    [ -n "$tok" ] || continue
+    case "$tok" in
+      /*/*) ;;   # at least two path components -- refuses the bare root too
+      *) evwhy="$tok has fewer than two path components"; continue ;;
+    esac
+    local resolved
+    if ! resolved=$(cd "$tok" 2>/dev/null && pwd -P); then
+      evwhy="$tok is not a directory that exists"; continue
+    fi
+    resolved=$(printf '%s' "$resolved" | sed -E 's#^/+#/#')
+    case "$resolved" in
+      /*/*) ;;   # authoritative: the RESOLVED, SLASH-COLLAPSED path
+      *) evwhy="$tok resolves to $resolved, fewer than two path components"; continue ;;
+    esac
+    case "$resolved" in
+      /proc|/proc/*|/dev|/dev/*|/sys|/sys/*)
+        evwhy="$tok resolves to $resolved, under /proc, /dev or /sys -- refused as evidence"
+        continue ;;
+    esac
+    local mount
+    mount=$(df -P "$resolved" 2>/dev/null | awk 'NR==2 { print $NF }')
+    if [ "$resolved" = "/" ] || [ "$resolved" = "$rootphys" ] \
+       || { [ -n "$mount" ] && [ "$resolved" = "$mount" ]; }; then
+      evwhy="$tok resolves to $resolved, the filesystem root -- refused as evidence"
+      continue
+    fi
+    if [ -z "$(ls -A "$resolved" 2>/dev/null)" ]; then evwhy="$tok ($resolved) is empty"; continue; fi
+    if grep -rqF -- "$evsha" "$resolved" 2>/dev/null; then evdir=$resolved; break; fi
+    evwhy="no file under $tok ($resolved) names the head $evsha"
+  done < <(printf '%s\n' "$vbody" | python3 -c '
+import re, sys
+text = sys.stdin.read()
+# A path token starts only at line start, or right after whitespace or an
+# opening bracket/quote -- never mid-word (see the comment above this call).
+boundary = r"(?:(?<=[\s([{\x22\x27\x60])|^)"
+for m in re.finditer(boundary + r"(/[^\s\x60\x22]+)", text, re.MULTILINE):
+    print(m.group(1))
+')
+  [ -n "$evdir" ] \
+    || die "the verdict ($vurl) cites no qualifying evidence: $evwhy. An approval needs a directory the verdict names that exists on this machine, is non-empty, and holds a file naming the exact head $evsha"
+
+  local owners files owned
+  owners=$(gh api "repos/$repo/contents/.github/CODEOWNERS?ref=main") \
+    || die "could not read .github/CODEOWNERS at ref=main (fail closed)"
+  files=$(gh api --paginate "repos/$repo/pulls/$pr/files?per_page=100") \
+    || die "could not list the files of #$pr (fail closed)"
+  owned=$(printf '%s' "$files" | python3 -c "$PAGES_PY"'
+import base64, fnmatch
+text = base64.b64decode(json.loads(sys.argv[1])["content"]).decode()
+rules = []
+for line in text.splitlines():
+    line = line.split("#", 1)[0].split()
+    if line: rules.append((line[0], line[1:]))
+if not rules: sys.exit("CODEOWNERS at ref=main holds no rules")
+def hit(pat, path):
+    anchored = pat.startswith("/"); p = pat.strip("/")
+    if p in ("", "*", "**"): return True
+    if pat.endswith("/") or not any(ch in p for ch in "*?["):
+        if anchored or "/" in p: return path == p or path.startswith(p + "/")
+        return p in path.split("/")
+    if anchored or "/" in p: return fnmatch.fnmatch(path, p) or fnmatch.fnmatch(path, p + "/*")
+    return any(fnmatch.fnmatch(seg, p) for seg in path.split("/")) or fnmatch.fnmatch(path, p)
+paths = set()
+for f in out:
+    paths.add(f["filename"])
+    if f.get("previous_filename"): paths.add(f["previous_filename"])
+for path in sorted(paths):
+    last = None
+    for pat, who in rules:
+        if hit(pat, path): last = who
+    if last: print(path)' "$owners") || die "could not match #$pr's files against CODEOWNERS (fail closed)"
+  [ -z "$owned" ] || die "#$pr touches code-owned paths ($(printf '%s' "$owned" | tr '\n' ' ')); the owner's GitHub review approves it, not the App"
+
+  if [ "$dry" = 1 ]; then
+    printf 'app_approve: DRY-RUN: every refusal passed; would mint a token and APPROVE #%s at %s on %s; signed, minted and posted nothing\n' "$pr" "$sha" "$vurl"
+    exit 0
+  fi
+
+  umask 077
+  PRIV=$(mktemp -d "${TMPDIR:-/tmp}/app_approve.XXXXXX") || die "could not create a private directory"
+  trap cleanup EXIT
+  trap 'exit 130' INT TERM HUP
+  chmod 700 "$PRIV"
+  b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+  local now h p s inst
+  now=$(date +%s)
+  h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+  p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$appid" | b64)
+  s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] \
+    || die "signing the App JWT with $key failed"
+  printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$PRIV/jwt.h"
+  inst=$(curl -fsS -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/repos/$repo/installation" \
+    | python3 -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') \
+    || die "the App has no installation on $repo, or its JWT was refused"
+  curl -fsS -X POST -H @"$PRIV/jwt.h" -H "$ACCEPT" "$API/app/installations/$inst/access_tokens" \
+    | python3 -c 'import sys,json
+t = json.load(sys.stdin)["token"]
+open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" && [ -s "$PRIV/token.h" ] \
+    || die "minting the installation token failed"
+  chmod 600 "$PRIV/token.h"
+
+  check_pr "$repo" "$pr" "$sha"
+  python3 -c 'import sys,json
+sha, url, f, v = sys.argv[1:5]
+json.dump({"commit_id": sha, "event": "APPROVE",
+  "body": "Approved by `hpo-approver` at `%s` on the verdict %s (`Fix review: merge %s`)%s, via `tools/pr/app_approve.sh`." % (sha, url, v, "" if v == sha else ", carried to this head (#1667)")},
+  open(f, "w"))' "$sha" "$vurl" "$PRIV/review.json" "$evsha" || die "could not write the review payload"
+  local resp
+  resp=$(curl -fsS -X POST -H @"$PRIV/token.h" -H "$ACCEPT" "$API/repos/$repo/pulls/$pr/reviews" \
+    --data-binary @"$PRIV/review.json") || die "the review POST was refused; nothing approved"
+  printf '%s' "$resp" | python3 -c 'import sys,json
+d = json.load(sys.stdin); sha = sys.argv[1]
+line = "review id=%s state=%s commit_id=%s user=%s" % (d.get("id"), d.get("state"), d.get("commit_id"), (d.get("user") or {}).get("login"))
+if d.get("state") != "APPROVED" or d.get("commit_id") != sha:
+    sys.exit("app_approve: REFUSE: the posted review does not read back as APPROVED at %s: %s" % (sha, line))
+print("app_approve: APPROVED " + line)' "$sha"
+}
+
+if [ "${1:-}" = "--carry" ]; then
+  [ $# -ge 3 ] && [ $# -le 4 ] && [[ $2 =~ ^[0-9a-f]{40}$ && $3 =~ ^[0-9a-f]{40}$ ]] \
+    || die "usage: app_approve.sh --carry <40-hex verdict sha> <40-hex head sha> [<main ref>]"
+  why=$(carry "$2" "$3" "${4:-origin/main}") && { echo "CARRY: yes $2 -> $3: $why"; exit 0; }
+  echo "CARRY: no $2 -> $3: $why"; exit 1
+fi
+if [ "${1:-}" != "--self-test" ]; then
+  approve "$@"
+  exit $?
+fi
+
+# ---------------------------------------------------------------------------
+# --self-test: `gh`, `curl` and `openssl` are stubs on PATH; no network, no key.
+# Every refusal is paired with the healthy run it must NOT refuse, and every run
+# gets its own TMPDIR, so "the private directory is gone" is read off the tree.
+SELF="$(cd "$(dirname -- "$0")" && pwd)/$(basename -- "$0")"
+W=$(mktemp -d) || exit 2
+trap 'rm -rf "$W"' EXIT
+FAILS=0; N=0
+st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
+SHA=1111111111111111111111111111111111111111
+OTHER=2222222222222222222222222222222222222222
+# The autofix bot's identity, the same two constants `tools/policy/policy_lint.mjs`
+# holds in `AUTOFIX_BOT_COMMITS` and `tests/entities.py` pins against the
+# autofix jobs' own `git config` lines -- a `ci: pin killed mutants` commit must
+# be authored AND committed as this, or it is a branch's own commit under a
+# borrowed subject, and `carry` must not mistake the two.
+BOT_NAME='github-actions[bot]'
+BOT_EMAIL='41898282+github-actions[bot]@users.noreply.github.com'
+TOKEN=ghs_STUBTOKEN_must_never_print
+JWTHEAD=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9   # base64url of the JWT header
+SIGB64=U1RVQlNJR05BVFVSRQ                      # base64url of STUBSIGNATURE
+mkdir -p "$W/bin" "$W/id" "$W/nokey" "$W/badid"
+printf '424242\n' > "$W/id/identity-approver.appid"; cp "$W/id/identity-approver.appid" "$W/nokey/"
+printf -- '-----BEGIN STUB KEY-----\nSTUBKEYMATERIAL\n-----END STUB KEY-----\n' > "$W/id/identity-approver.pem"
+cp "$W/id/identity-approver.pem" "$W/badid/"; printf '4242a\n' > "$W/badid/identity-approver.appid"
+# The evidence directory a healthy verdict cites: real files, real grep, so
+# the gate's own commands run in the self-test rather than only its inputs.
+EV="$W/evidence"; mkdir -p "$EV"
+printf 'fix review at head %s\nRESULT: merge clean\n' "$SHA" > "$EV/verdict.md"
+CODEOWNERS_TEXT='# owned
+/CLAUDE.md @tvofi
+/tools/audit/briefs/ @tvofi
+/tools/audit/briefs/COMMON.md
+'
+python3 -c 'import sys,json,base64; print(json.dumps({"encoding": "base64", "content": base64.b64encode(sys.argv[1].encode()).decode()}))' \
+  "$CODEOWNERS_TEXT" > "$W/codeowners.json"
+
+cat > "$W/bin/gh" <<'STUB'
+#!/bin/bash
+printf 'gh %s\n' "$*" >> "$STUB/log"
+case "$*" in
+  "api repos/o/r/pulls/7")
+    n=$(grep -c '^gh api repos/o/r/pulls/7$' "$STUB/log")
+    if [ "$n" -gt 1 ] && [ -f "$STUB/pr2.json" ]; then cat "$STUB/pr2.json"; else cat "$STUB/pr.json"; fi ;;
+  "api --paginate repos/o/r/issues/7/comments?per_page=100")
+    cat "$STUB/c1.json"; [ -f "$STUB/c2.json" ] && cat "$STUB/c2.json"; true ;;
+  "api repos/o/r/contents/.github/CODEOWNERS?ref=main")
+    [ -f "$STUB/no-codeowners" ] && { echo "HTTP 404" >&2; exit 1; }
+    if [ -f "$STUB/codeowners.json" ]; then cat "$STUB/codeowners.json"; else cat "$STUB/../codeowners.json"; fi ;;
+  "api --paginate repos/o/r/pulls/7/files?per_page=100")
+    cat "$STUB/files.json" ;;
+  *) exit 9 ;;
+esac
+STUB
+cat > "$W/bin/openssl" <<'STUB'
+#!/bin/bash
+printf 'openssl %s\n' "$*" >> "$STUB/log"
+case "$1" in
+  base64) base64 | tr -d '\n' ;;
+  dgst) [ -s "$4" ] || exit 1; cat >/dev/null; printf 'STUBSIGNATURE' ;;
+  *) exit 9 ;;
+esac
+STUB
+cat > "$W/bin/curl" <<'STUB'
+#!/bin/bash
+url=""; data=""; hdr=""
+for a in "$@"; do
+  case "$a" in https://*) url="$a" ;; @*.json) data="${a#@}" ;; @*.h) hdr="${a#@}" ;; esac
+done
+printf 'curl %s\n' "${url#https://api.github.com/}" >> "$STUB/log"
+case "$url" in
+  */repos/o/r/installation) cp "$hdr" "$STUB/jwtcopy"; printf '{"id": 99}' ;;
+  */app/installations/99/access_tokens)
+    printf '{"token": "ghs_STUBTOKEN_must_never_print", "permissions": {"pull_requests": "write"}}' ;;
+  */installation/token) grep -q 'ghs_STUBTOKEN' "$hdr" || exit 22 ;;
+  */repos/o/r/pulls/7/reviews)
+    ls -l "$hdr" | cut -c1-10 > "$STUB/tokenmode"; cp "$hdr" "$STUB/tokencopy"; cp "$data" "$STUB/posted.json"
+    if [ -f "$STUB/refuse-post" ]; then echo "curl: (22) The requested URL returned error: 422" >&2; exit 22; fi
+    python3 -c 'import sys,json; d=json.load(open(sys.argv[1])); print(json.dumps({"id": 5, "state": "APPROVED", "commit_id": d["commit_id"], "user": {"login": "hpo-approver[bot]"}}))' "$data" ;;
+  *) exit 9 ;;
+esac
+STUB
+chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
+
+# The carry's fixture: a real repository whose `origin` is a local bare one,
+# so `git fetch` and the carry run for real and no case reaches the network.
+. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
+g() { git -C "$W/clone" -c push.negotiate=false "$@"; }
+throwaway_git_init "$W/remote.git" -q --bare && throwaway_git_init "$W/clone" -q -b main && g remote add origin "$W/remote.git"
+ed1() { sed -i.bak "$1" "$W/clone/$2" && rm "$W/clone/$2.bak"; }
+seq 1 40 > "$W/clone/a.txt"; echo b > "$W/clone/b.txt"; seq -f 'l%g' 1 10 > "$W/clone/led.json"
+echo 'led.json merge=ledgermerge' > "$W/clone/.gitattributes"; g add -A; g commit -qm m0
+g checkout -qb fixa; ed1 's/^5$/five/' a.txt; echo 'a.txt merge=ledgermerge' >> "$W/clone/.gitattributes"
+g commit -qam "fix: own, with a driver for its own file"; V_A=$(g rev-parse HEAD)
+g checkout -q main; g checkout -qb fix; ed1 's/^5$/five/' a.txt; ed1 's/^l1$/L1/' led.json; g commit -qam "fix: own"
+V=$(g rev-parse HEAD)
+g checkout -q main; echo b2 > "$W/clone/b.txt"; g commit -qam m1; M1=$(g rev-parse HEAD)
+mkmerge() { # base mainref subject [one-byte edit to a.txt] -> merge sha
+  g checkout -q --detach "$1"; g merge -q --no-ff --no-edit -m "$3" "$2" >/dev/null
+  if [ -n "${4:-}" ]; then sed -i.bak 's/^five$/fivE/' "$W/clone/a.txt"; rm "$W/clone/a.txt.bak"; g commit -q --amend -a --no-edit; fi
+  g rev-parse HEAD
+}
+H_MERGE=$(mkmerge "$V" "$M1" "Merge origin/main into fix")
+H_EVIL=$(mkmerge "$V" "$M1" "Merge origin/main into fix" evil)
+g checkout -q --detach "$V"; echo x >> "$W/clone/b.txt"; g commit -qam "fix: more"; H_OWN=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; echo rec > "$W/clone/c.json"; g add c.json; g commit -qm "ci: re-record closures"; H_CI=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; g commit -q --allow-empty -m "ci: empty"; H_CIEMPTY=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; ed1 's/^l9$/L9/' led.json; GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" g commit -qam "ci: re-record closures"; H_CILED=$(g rev-parse HEAD)
+g checkout -q --detach "$V"; g commit -q --allow-empty -m "fix: nothing"; H_OWNEMPTY=$(g rev-parse HEAD)
+# R9-CI-2b: each bot's own paths. mutation-autofix writes the ledger, which
+# is no merge-driver file; remerge_main.sh drops inherited claims under a
+# `claims:` subject. Each beside the same subject reaching one byte further.
+pin_commit() { # base subject path... -> sha, authored as AUTHOR_EMAIL (default: the subject's writer)
+  local b=$1 sub=$2 ae; shift 2; g checkout -q --detach "$b"
+  ae=${AUTHOR_EMAIL:-$(bot_author "$sub")}; ae=${ae:-t@t}
+  for f in "$@"; do mkdir -p "$W/clone/$(dirname "$f")"; echo k >> "$W/clone/$f"; g add "$f"; done
+  GIT_AUTHOR_EMAIL=$ae g commit -qm "$sub"; g rev-parse HEAD
+}
+H_PIN=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
+H_PINOUT=$(pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json b.txt)
+H_PINELSE=$(pin_commit "$V" "ci: re-record closures" tests/mutation_ledger/killed_by/a.json)
+H_CLAIMSOUT=$(pin_commit "$V" "claims: drop the claims main already carries after the main merge" b.txt)
+H_PINSEAT=$(AUTHOR_EMAIL=seat@e pin_commit "$V" "ci: pin killed mutants" tests/mutation_ledger/killed_by/a.json)
+g checkout -q --detach "$V"; mkdir -p "$W/clone/tests/golden"; printf 'c1\nc2\n' > "$W/clone/tests/golden/claimed_drift.txt"
+g add tests/golden/claimed_drift.txt; g commit -qm "fix: claims"; V_CL=$(g rev-parse HEAD)
+H_CLAIMSDROP=$(g checkout -q --detach "$V_CL"; printf 'c1\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
+H_CLAIMSADD=$(g checkout -q --detach "$V_CL"; printf 'c1\nc2\nc3\n' > "$W/clone/tests/golden/claimed_drift.txt"
+  GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com g commit -qam "claims: drop the claims main already carries after the main merge"; g rev-parse HEAD)
+# The next two leave the branch's diff byte-identical, so only the rule's
+# first two conditions can refuse them: a rewrite under a `ci:` subject, and
+# a merge of an empty commit that is not on main.
+g checkout -q --detach "$V"; g commit -q --amend -m "ci: reworded"; H_REWRITE=$(g rev-parse HEAD)
+g checkout -q -b side "$V"; g commit -q --allow-empty -m side; SIDE=$(g rev-parse HEAD)
+H_SIDE=$(mkmerge "$V" "$SIDE" "Merge side into fix")
+# m2 shifts the branch's hunk, changes its file far from the hunk, and edits
+# the driver file inside the branch's hunk context; m3 edits a context line.
+g checkout -q main; ed1 '1i\
+top
+' a.txt; ed1 's/^35$/thirty-five/' a.txt; ed1 's/^l3$/L3/' led.json; g commit -qam m2
+H_TOUCH=$(mkmerge "$V" main "Merge origin/main into fix")
+g checkout -q main; ed1 's/^7$/seven/' a.txt; g commit -qam m3
+H_CTX=$(mkmerge "$V" main "Merge origin/main into fix")
+H_A=$(mkmerge "$V_A" main "Merge origin/main into fixa")
+# main's own arms (H_PIN/H_PINOUT/H_PINELSE/H_PINSEAT, built with `pin_commit`
+# above) already cover: a confined ledger commit carries, one reaching past its
+# subject's paths refuses, and a forged author refuses. What they do not cover
+# is what this line's narrowing is for: `bot_paths` names a whole SUBTREE
+# (`tests/mutation_ledger`, one file per pinned row), and the accumulation must
+# hide only what this very commit ADDED under it -- never a row that already
+# existed at the verdicted head and this commit rewrote or deleted, which is
+# still reviewed content. `pinrow`/`as_bot` build those cases, beside the
+# confinement check they already pass: same subject, same writer, confined
+# paths -- the difference is only what the commit did to each path.
+pinrow() { # relpath -> one ledger row file, in a directory created on demand
+  mkdir -p "$(dirname -- "$W/clone/$1")"
+  printf '{"anchor":"%s","killed_by":"t.py","old":"o","reason":"r"}\n' "$1" > "$W/clone/$1"
+}
+as_bot() { # commit message... -> the env that makes it the autofix bot's own
+  GIT_AUTHOR_NAME="$BOT_NAME" GIT_AUTHOR_EMAIL="$BOT_EMAIL" \
+  GIT_COMMITTER_NAME="$BOT_NAME" GIT_COMMITTER_EMAIL="$BOT_EMAIL" \
+    g commit -q "$@"
+}
+# A row the branch's own commit already added, then the bot's rewrite of it.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+g commit -q -m "fix: own row"; V_PINMOD=$(g rev-parse HEAD)
+g checkout -q --detach "$V_PINMOD"
+printf '{"anchor":"other","killed_by":"t.py","old":"o","reason":"bot rewrite"}\n' > "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; H_PINMOD=$(g rev-parse HEAD)
+# The same, deleting the reviewed row instead of rewriting it.
+g checkout -q --detach "$V_PINMOD"; rm "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; H_PINDEL=$(g rev-parse HEAD)
+# The bot's confined additions, under a `ci:` subject no writer uses -- the
+# path set is right, the subject is not, and the generic `ci:` guard stands.
+g checkout -q --detach "$V"; pinrow tests/mutation_ledger/killed_by/row.json; g add -A
+as_bot -m "ci: not the bot's own message"; H_PIN_BADMSG=$(g rev-parse HEAD)
+# A pathspec is a glob: an added file whose name is the metacharacter `*` must
+# not become an exclusion that hides every OTHER row the same commit rewrote.
+# Without `:(exclude,literal)` this head carries; with it, the rewrite stays
+# visible and refuses -- the planted regression for that one token.
+g checkout -q --detach "$V_PINMOD"; pinrow "tests/mutation_ledger/*"
+printf '{"anchor":"other","killed_by":"t.py","old":"o","reason":"glob rewrite"}\n' > "$W/clone/tests/mutation_ledger/killed_by/row.json"
+g add -A; as_bot -m "ci: pin killed mutants"; H_PINGLOB=$(g rev-parse HEAD)
+g checkout -q main; g push -q origin main
+setpr() { g push -q -f origin "$1:refs/pull/7/head"; }
+
+pr_json() { printf '{"state": "%s", "merged": %s, "head": {"sha": "%s"}}' "$1" "$2" "$3"; }
+comment() { # id first-line [login [association [extra-body-line [type [user-id]]]]]
+  local login="${3:-seat-retired-login}" type="${6:-}" uid="${7:-}"
+  [ -n "$type" ] || case "$login" in *'[bot]') type=Bot ;; *) type=User ;; esac
+  [ -n "$uid" ] || { [ "$login" = "$APPR" ] && uid=$APPR_ID || uid=$((1000 + $1)); }
+  printf '{"id": %s, "created_at": "2026-09-17T0%s:00:00Z", "html_url": "https://example.test/c%s", "user": {"login": "%s", "type": "%s", "id": %s}, "author_association": "%s", "body": "%s\\nRESULT x%s"}' \
+    "$1" "$1" "$1" "$login" "$type" "$uid" "${4:-NONE}" "$2" "${5:+\\n$5}"
+}
+files_json() { # path... -> a pulls/N/files page
+  python3 -c 'import sys,json; print(json.dumps([{"filename": p, "status": "modified"} for p in sys.argv[1:]]))' "$@"
+}
+mkcase() { # name state merged head comments-json
+  local d="$W/$1"; mkdir -p "$d/tmp"; : > "$d/log"
+  pr_json "$2" "$3" "$4" > "$d/pr.json"; printf '%s' "$5" > "$d/c1.json"
+  files_json tools/audit/app_approve.sh docs/delivery/7.md > "$d/files.json"
+}
+# A reverted evidence-gate guard doesn't just refuse wrongly -- it can hang
+# on `grep -rqF` over the root or a huge real directory (#1591, and twice
+# more in this file's own review history). `timeout(1)` isn't guaranteed
+# present (this shell's macOS has no `timeout` on PATH by default), so the
+# deadline is enforced in Python: it kills the WHOLE process group on
+# expiry, not just the direct child, since the hang is in a grandchild
+# `grep`, not in `bash` itself.
+RUN_TIMEOUT_S="${RUN_TIMEOUT_S:-10}"
+RUN_TIMEOUT_PY='import os, signal, subprocess, sys
+argv, outf, errf, secs = sys.argv[1:-3], sys.argv[-3], sys.argv[-2], float(sys.argv[-1])
+with open(outf, "wb") as o, open(errf, "wb") as e:
+    p = subprocess.Popen(argv, stdout=o, stderr=e, start_new_session=True)
+    try:
+        rc = p.wait(timeout=secs)
+    except subprocess.TimeoutExpired:
+        try: os.killpg(os.getpgid(p.pid), signal.SIGKILL)
+        except ProcessLookupError: pass
+        p.wait()
+        e.write(("\napp_approve self-test: TIMEOUT after %gs -- killed, a revert probably reintroduced a hang\n" % secs).encode())
+        rc = 124
+sys.exit(rc)'
+run() { # name args... -> rc; out/err captured. BASHX=1 runs the tool under bash -x
+  local d="$W/$1"; shift
+  ( cd "$W/clone" || exit 2; export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp" HPO_IDENTITY_DIR="${IDDIR:-$W/id}"
+    if [ "${BASHX:-}" = 1 ]; then
+      python3 -c "$RUN_TIMEOUT_PY" bash -x "$SELF" "$@" "$d/out" "$d/err" "$RUN_TIMEOUT_S"
+    else
+      python3 -c "$RUN_TIMEOUT_PY" bash "$SELF" "$@" "$d/out" "$d/err" "$RUN_TIMEOUT_S"
+    fi )
+}
+calls() { grep -c "^$2" "$W/$1/log"; }
+leftover() { find "$W/$1/tmp" -mindepth 1 | wc -l | tr -d ' '; }
+leaks() { cat "$W/$1/out" "$W/$1/err" | grep -c -e "$TOKEN" -e STUBKEYMATERIAL -e STUBSIGNATURE -e "$JWTHEAD" -e "$SIGB64"; }
+APPR='hpo-approver[bot]'; APPR_ID=330097732   # the live login and id, read 2026-09-24
+st "$(sed -n 's/^VERDICT_AUTHORS="\(.*\)"$/\1/p;s/^VERDICT_AUTHOR_ID=\([0-9]*\)$/\1/p' "$SELF" | tr '\n' ' ')" \
+   "$APPR $APPR_ID " "the allowlist is exactly the approver App's login and id"
+GOOD="[$(comment 1 'An ordinary comment'),$(comment 2 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV")]"
+
+mkcase ok open false "$SHA" "$GOOD"
+run ok o/r 7 "$SHA"; st $? 0 "a merge verdict at the live head of an open, unowned pull request is approved"
+st "$(calls ok 'curl repos/o/r/pulls/7/reviews')" 1 "with exactly one review POST"
+st "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["event"], d["commit_id"])' "$W/ok/posted.json")" \
+   "APPROVE $SHA" "whose event is APPROVE and whose commit_id is the asked-for SHA"
+st "$(grep -c 'https://example.test/c2' "$W/ok/posted.json")" 1 "and whose body cites the verdict comment"
+st "$(grep -c "Bearer $TOKEN" "$W/ok/tokencopy")" 1 "the POST carried the installation token, from a header file"
+st "$(cat "$W/ok/tokenmode")" "-rw-------" "and that header file was mode 600 while it existed"
+st "$(calls ok 'gh api repos/o/r/pulls/7$')" 2 "the head was read twice: before the mint and again before the POST"
+st "$(calls ok 'curl installation/token')" 1 "the installation token is revoked on exit"
+st "$(leftover ok)" 0 "the private directory is gone after a success"
+st "$(leaks ok)" 0 "no token, JWT, key or signature text in stdout or stderr after a success"
+st "$(grep -c "$TOKEN" "$W/ok/tokencopy")" 1 "(null control: the leak grep does find the token where it really is)"
+st "$(grep -c -e "$JWTHEAD" "$W/ok/jwtcopy")" 1 "(null control: and the JWT header, where it really is)"
+st "$(grep -c '^app_approve: APPROVED review id=5 state=APPROVED' "$W/ok/out")" 1 "and the read-back line is printed"
+st "$(grep -c "$SHA" "$EV/verdict.md")" 1 "(fixture: the evidence dir names the head, so the approval above passed the gate honestly)"
+
+mkcase xtrace open false "$SHA" "$GOOD"
+BASHX=1 run xtrace o/r 7 "$SHA"; st $? 0 "under bash -x the approval still runs"
+st "$(leaks xtrace)" 0 "and no token, JWT, key or signature text reaches the trace"
+st "$(grep -c "$JWTHEAD" "$W/xtrace/jwtcopy")" 1 "(null control: a JWT was signed on that run)"
+
+mkcase moved open false "$OTHER" "$GOOD"
+run moved o/r 7 "$SHA"; st $? 1 "REFUSE: the live head moved off the asked-for SHA"
+st "$(grep -c 'head moved' "$W/moved/err")" 1 "naming the moved head"
+st "$(calls moved curl)" 0 "and nothing was minted or posted"
+
+mkcase late open false "$SHA" "$GOOD"; pr_json open false "$OTHER" > "$W/late/pr2.json"
+run late o/r 7 "$SHA"; st $? 1 "REFUSE: the head moved between the mint and the POST"
+st "$(calls late 'curl repos/o/r/pulls/7/reviews')" 0 "and no review was posted"
+st "$(calls late 'curl installation/token')" 1 "the minted token is revoked after that refusal"
+st "$(leftover late)" 0 "and the private directory is gone, token and all"
+
+mkcase merged closed true "$SHA" "$GOOD"
+run merged o/r 7 "$SHA"; st $? 1 "REFUSE: a merged pull request, even at its own head with a merge verdict"
+st "$(calls merged curl)" 0 "and nothing was minted or posted"
+
+mkcase none open false "$SHA" "[$(comment 1 'An ordinary comment')]"
+run none o/r 7 "$SHA"; st $? 1 "REFUSE: no Fix review verdict at all"
+st "$(grep -c "no 'Fix review:' verdict" "$W/none/err")" 1 "saying so, not falling through to the SHA comparison"
+st "$(calls none curl)" 0 "and nothing was minted or posted"
+
+mkcase stale open false "$SHA" "[$(comment 1 "Fix review: merge $OTHER" "$APPR")]"
+run stale o/r 7 "$SHA"; st $? 1 "REFUSE: the merge verdict is for another SHA"
+st "$(grep -c "is 'Fix review: merge $OTHER'" "$W/stale/err")" 1 "naming the SHA the verdict is for"
+
+mkcase blocked open false "$SHA" "$GOOD"
+printf '[%s]' "$(comment 3 "Fix review: blocked $SHA claims: moved" "$APPR")" > "$W/blocked/c2.json"
+run blocked o/r 7 "$SHA"; st $? 1 "REFUSE: a newer blocked verdict, on a later page, overrides an older merge"
+
+mkcase outsider open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory NONE)]"
+run outsider o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from an outsider (association NONE)"
+st "$(calls outsider curl)" 0 "and nothing was minted or posted"
+mkcase contrib open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" mallory CONTRIBUTOR)]"
+run contrib o/r 7 "$SHA"; st $? 1 "REFUSE: a merge verdict from a CONTRIBUTOR outside the allowlist"
+mkcase owner open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" tvofi OWNER "evidence: $EV")]"
+run owner o/r 7 "$SHA"; st $? 1 "REFUSE: a tvofi verdict, the identity decision 0013 retired from verdicts"
+st "$(grep -c "no 'Fix review:' verdict" "$W/owner/err")" 1 "read as no App verdict, its OWNER association and evidence notwithstanding"
+st "$(calls owner curl)" 0 "and nothing was minted or posted"
+mkcase author open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" 'hpo-author[bot]' NONE "evidence: $EV" Bot 331381602)]"
+run author o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict as the author App (#1233's defect)"
+mkcase usertype open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" COLLABORATOR "evidence: $EV" User)]"
+run usertype o/r 7 "$SHA"; st $? 1 "REFUSE: the App's login on a non-Bot user record"
+mkcase wrongid open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV" Bot 424242)]"
+run wrongid o/r 7 "$SHA"; st $? 1 "REFUSE: the App's login and type under another numeric id"
+st "$(calls wrongid curl)" 0 "and nothing was minted or posted"
+mkcase retired open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" seat-retired-login COLLABORATOR "evidence: $EV")]"
+run retired o/r 7 "$SHA"; st $? 1 "REFUSE: a verdict from the retired seat account is outside the allowlist"
+st "$(grep -c "no 'Fix review:' verdict" "$W/retired/err")" 1 "read as no allowlisted verdict, its evidence dir notwithstanding"
+st "$(calls retired curl)" 0 "and nothing was minted or posted"
+mkcase evmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: /tmp/hpo-orch/fixer-identity/no-such-review-dir")]"
+run evmissing o/r 7 "$SHA"; st $? 1 "REFUSE: the verdict cites an evidence directory that does not exist"
+st "$(grep -c 'is not a directory that exists' "$W/evmissing/err")" 1 "naming the missing directory"
+st "$(calls evmissing curl)" 0 "and nothing was minted or posted"
+mkdir -p "$W/evnosha-dir"; printf 'a review that names no head at all\n' > "$W/evnosha-dir/notes.md"
+mkcase evnosha open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $W/evnosha-dir")]"
+run evnosha o/r 7 "$SHA"; st $? 1 "REFUSE: the evidence directory holds no file naming the head"
+st "$(grep -c 'names the head' "$W/evnosha/err")" 1 "naming the exact-sha rule it failed"
+st "$(calls evnosha curl)" 0 "and nothing was minted or posted"
+
+# The #1591 hang: a mid-word slash must never start a token, and a token
+# that would collapse to the root, or to one path component, is refused
+# outright as a second, independent guard. The mutation-proof for this
+# whole block is done by REVERTING the fix and re-running this very
+# --self-test (see the pull request's Mutation proof / Null control): every
+# assertion below runs the real `approve()` codepath through the script
+# itself, so it goes red on the revert rather than on a hand-copied
+# pipeline that can't.
+mkcase midword open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE '(review-1591/). see a/b/')]"
+run midword o/r 7 "$SHA"; st $? 1 "REFUSE: '(review-1591/).' and 'a/b/' start no token -- no mid-word slash"
+st "$(grep -c 'names no absolute path at all' "$W/midword/err")" 1 "read as citing no path at all, not as citing '/'"
+st "$(calls midword curl)" 0 "and nothing was minted or posted"
+mkcase bareroot open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'see / for the review')]"
+run bareroot o/r 7 "$SHA"; st $? 1 "REFUSE: a bare root surrounded by spaces starts no token either"
+st "$(calls bareroot curl)" 0 "and nothing was minted or posted"
+mkcase onecomponent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp')]"
+run onecomponent o/r 7 "$SHA"; st $? 1 "REFUSE: a single path component, even one that exists, is refused outright"
+st "$(grep -c 'fewer than two path components' "$W/onecomponent/err")" 1 "naming the component-count rule it failed"
+st "$(calls onecomponent curl)" 0 "and nothing was minted or posted"
+mkcase evtrail open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV/")]"
+run evtrail o/r 7 "$SHA"; st $? 0 "a trailing slash on an otherwise-good evidence path is stripped, not refused"
+
+# Kill: the trailing-slash strip specifically (`s:/*$::`), by checking the
+# exact text of the "not a directory" message on a MISSING directory --
+# canonicalisation never runs (cd fails first), so this is the one place a
+# missing strip is externally visible.
+EVGONE="$W/no-such-evtrail-dir"
+mkcase evtrailmissing open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EVGONE/")]"
+run evtrailmissing o/r 7 "$SHA"; st $? 1 "REFUSE: a missing directory cited with a trailing slash"
+st "$(grep -cF "$EVGONE is not a directory that exists" "$W/evtrailmissing/err")" 1 \
+   "(kills the trailing-slash-strip mutant) the cited path in the message has no trailing slash"
+st "$(grep -cF "$EVGONE/ is not a directory that exists" "$W/evtrailmissing/err")" 0 \
+   "(null control) that same message never carries a trailing slash either"
+
+# Kill: the opening-paren word-boundary specifically (M3: dropping "(" from
+# the boundary class). A source pin backs this up, since a behavioral test
+# alone can't distinguish "'(' was removed" from "some other boundary char
+# also covers this case by accident".
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'boundary = r"(?:(?<=[\s([{')" 1 \
+   "pin M3: the boundary class still includes '(' -- the common '(evidence: ...)' citation shape needs it"
+mkcase parenboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof(${EV}) end")]"
+run parenboundary o/r 7 "$SHA"; st $? 0 "(kills the paren-boundary mutant, M3) '(' starts a token, ')' is stripped off it"
+
+# Kill: the opening-bracket word-boundary. "[" immediately before "/" must
+# start a token (and the matching "]" strips off the end), same as "(" .
+mkcase brboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "proof[${EV}] end")]"
+run brboundary o/r 7 "$SHA"; st $? 0 "(kills the bracket-boundary mutant) '[' starts a token, ']' is stripped off it"
+
+# Kill: the opening-backtick word-boundary AND the character class that
+# excludes backtick from a token's body (so it also terminates one).
+BT='`'
+mkcase btboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "cite ${BT}${EV}${BT} now")]"
+run btboundary o/r 7 "$SHA"; st $? 0 "(kills the backtick-boundary mutant) a backtick starts a token, and ends it"
+
+# Kill: the character class in isolation -- a backtick stuck directly onto
+# the end of a real path, no whitespace, must still terminate the token
+# there rather than swallow what follows.
+mkcase charclass open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: ${EV}${BT}bogus${BT}")]"
+run charclass o/r 7 "$SHA"; st $? 0 "(kills the token-character-class mutant) the token stops at the backtick, not after it"
+
+# Kill: the opening-quote word-boundary (a single quote is the "quote"
+# case; the trailing one is cleaned up the same way a trailing ')' is).
+mkcase qtboundary open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "cite '${EV}' now")]"
+run qtboundary o/r 7 "$SHA"; st $? 0 "(kills the quote-boundary mutant) a single quote starts a token too"
+
+# Dot segments and a doubled slash: a token can carry two or more slashes
+# IN TEXT and still resolve to the root, or to one component, once `..`,
+# `.` and symlinks are interpreted -- the raw-token component count alone
+# cannot see that. All three are refused, and none may reach `grep -r`.
+# All three raw strings below have two or more "/" characters -- enough to
+# pass a component count taken on the TEXT -- but chdir(2) collapses every
+# one of them to the filesystem root on a real machine (verified directly,
+# not just asserted: `bash -c "cd '<tok>' && pwd -P"` prints `/` for each,
+# independent of this self-test). A component-count guard that runs before
+# resolution cannot see that; the one in the fix runs after.
+mkcase dotparent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp/../')]"
+run dotparent o/r 7 "$SHA"; st $? 1 "REFUSE: /tmp/../ resolves to the root, however many slashes it typed"
+st "$(calls dotparent curl)" 0 "and nothing was minted or posted"
+DOTX=$(mktemp -d /tmp/hpo-dotseg.XXXXXX) || exit 2
+mkcase dotcomponent open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $DOTX/../../")]"
+run dotcomponent o/r 7 "$SHA"; st $? 1 "REFUSE: <a real component>/../../ collapses to the root too"
+st "$(calls dotcomponent curl)" 0 "and nothing was minted or posted"
+rm -rf "$DOTX"
+mkcase doubleslash open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /tmp//../')]"
+run doubleslash o/r 7 "$SHA"; st $? 1 "REFUSE: a doubled slash alongside a dot-segment still resolves to the root"
+st "$(calls doubleslash curl)" 0 "and nothing was minted or posted"
+
+# pin M18: dropping "-P" from the resolution's `pwd -P`. A behavioral test
+# is not reliable here (plain `pwd`'s logical name and `pwd -P`'s physical
+# one coincide for most inputs -- only a bare symlink citation with no dot
+# segment tells them apart, and that's not otherwise part of this suite),
+# so this is a straight source pin, same technique as the VERDICT_AUTHORS
+# pin above.
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'cd "$tok" 2>/dev/null && pwd -P')" 1 \
+   "pin M18: resolution reads the PHYSICAL directory; \`pwd\` alone can report a symlink's logical name instead"
+st "$(sed '/^if \[ "${1:-}" = "--carry" \]; then$/q' "$SELF" | grep -cF 'the filesystem root -- refused as evidence')" 1 \
+   "pin: a resolved path that is its own mount point is refused"
+if [ -d /System/Volumes/Data ]; then
+  mkcase datavol open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /System/Volumes/Data')]"
+  run datavol o/r 7 "$SHA"; st $? 1 "REFUSE: /System/Volumes/Data is a mount point, not evidence"
+  st "$(grep -c 'the filesystem root -- refused as evidence' "$W/datavol/err")" 1 \
+    "naming the mount-point refusal, not a missing directory"
+  st "$(calls datavol curl)" 0 "and nothing was minted or posted"
+fi
+
+# `pwd -P` on this shell keeps EXACTLY TWO leading slashes: POSIX carves
+# `//foo` out as implementation-defined (unlike three-or-more, which always
+# collapse to one), and this shell's `pwd -P` exercises that carve-out --
+# `//tmp/../` resolves to `//`, not `/`. Left alone, `//` still passes the
+# "at least two path components" glob (`/*/*` matches it, since both `*`s
+# can match empty), and `//proc/self` / `//dev/fd` don't match a
+# `/proc/*` / `/dev/*` pattern that requires a single leading slash. The
+# leading-slash collapse closes all three.
+mkcase doubleslashroot open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //tmp/../')]"
+run doubleslashroot o/r 7 "$SHA"; st $? 1 "REFUSE: //tmp/../ resolves to // (not /), and still must be refused"
+st "$(calls doubleslashroot curl)" 0 "and nothing was minted or posted"
+mkcase doubleslashdev open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //dev/fd')]"
+run doubleslashdev o/r 7 "$SHA"; st $? 1 "REFUSE: //dev/fd must not slip past the /dev refusal and reopen the forgery hole"
+st "$(grep -c 'proc, /dev or /sys' "$W/doubleslashdev/err")" 1 "naming the devfs refusal specifically, not just a missing directory"
+if [ -d /proc/self ]; then
+  mkcase doubleslashproc open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: //proc/self')]"
+  run doubleslashproc o/r 7 "$SHA"; st $? 1 "REFUSE: //proc/self must not slip past the /proc refusal either"
+  st "$(grep -c 'proc, /dev or /sys' "$W/doubleslashproc/err")" 1 "naming the procfs refusal specifically, where /proc exists"
+fi
+
+# procfs/devfs/sysfs: a real, non-empty, two-component directory that
+# `grep -r` cannot honestly search, because the grep PROCESS'S OWN open
+# files (including its argv) live there and always "contain" the sha.
+mkcase procfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /proc/self')]"
+run procfs o/r 7 "$SHA"; st $? 1 "REFUSE: /proc/self is never qualifying evidence"
+if [ -d /proc/self ]; then
+  st "$(grep -c 'proc, /dev or /sys' "$W/procfs/err")" 1 "naming the procfs refusal specifically, where /proc exists"
+fi
+mkcase devfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /dev/fd')]"
+run devfs o/r 7 "$SHA"; st $? 1 "REFUSE: /dev/fd is the same hole under devfs"
+st "$(grep -c 'proc, /dev or /sys' "$W/devfs/err")" 1 "naming the devfs refusal specifically"
+if [ -d /sys/kernel ]; then
+  mkcase sysfs open false "$SHA" "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE 'evidence: /sys/kernel')]"
+  run sysfs o/r 7 "$SHA"; st $? 1 "REFUSE: /sys/kernel is the same hole under sysfs"
+  st "$(grep -c 'proc, /dev or /sys' "$W/sysfs/err")" 1 "naming the sysfs refusal specifically"
+fi
+
+mkcase displace open false "$SHA" \
+  "[$(comment 1 "Fix review: blocked $SHA other: bad" "$APPR"),$(comment 2 "Fix review: merge $SHA" mallory NONE)]"
+run displace o/r 7 "$SHA"; st $? 1 "REFUSE: an outsider's later merge does not displace an allowlisted blocked"
+st "$(grep -c "is 'Fix review: blocked $SHA" "$W/displace/err")" 1 "the allowlisted blocked verdict is the one read"
+mkcase notdisplace open false "$SHA" \
+  "[$(comment 1 "Fix review: merge $SHA" "$APPR" NONE "evidence: $EV"),$(comment 2 "Fix review: blocked $SHA other: x" mallory NONE)]"
+run notdisplace o/r 7 "$SHA"; st $? 0 "an outsider's later blocked does not displace an allowlisted merge either"
+
+mkcase policy open false "$SHA" "$GOOD"; files_json docs/x.md tools/audit/briefs/fixer.md > "$W/policy/files.json"
+run policy o/r 7 "$SHA"; st $? 1 "REFUSE: a pull request touching a CODEOWNERS path"
+st "$(grep -c 'code-owned paths (tools/audit/briefs/fixer.md)' "$W/policy/err")" 1 "naming the owned path"
+st "$(calls policy curl)" 0 "and nothing was minted or posted"
+mkcase rootpolicy open false "$SHA" "$GOOD"; files_json CLAUDE.md > "$W/rootpolicy/files.json"
+run rootpolicy o/r 7 "$SHA"; st $? 1 "REFUSE: an exact owned file at the root"
+mkcase renamed open false "$SHA" "$GOOD"
+printf '[{"filename": "docs/moved.md", "status": "renamed", "previous_filename": "CLAUDE.md"}]' > "$W/renamed/files.json"
+run renamed o/r 7 "$SHA"; st $? 1 "REFUSE: a rename whose OLD path is owned"
+mkcase unowned open false "$SHA" "$GOOD"; files_json tools/audit/briefs/COMMON.md tools/audit/push.sh > "$W/unowned/files.json"
+run unowned o/r 7 "$SHA"; st $? 0 "a later owner-less line un-owns: COMMON.md is approvable (last match wins)"
+mkcase nocodeowners open false "$SHA" "$GOOD"; : > "$W/nocodeowners/no-codeowners"
+run nocodeowners o/r 7 "$SHA"; st $? 1 "REFUSE: CODEOWNERS unreadable at ref=main, failing closed"
+st "$(grep -c 'ref=main' "$W/nocodeowners/log")" 1 "and it was asked for at ref=main"
+mkcase emptycodeowners open false "$SHA" "$GOOD"
+printf '{"encoding": "base64", "content": "%s"}' "$(printf '# comments only\n' | base64 | tr -d '\n')" > "$W/emptycodeowners/codeowners.json"
+run emptycodeowners o/r 7 "$SHA"; st $? 1 "REFUSE: a CODEOWNERS holding no rules, failing closed"
+
+mkcase nokey open false "$SHA" "$GOOD"
+IDDIR="$W/nokey" run nokey o/r 7 "$SHA"; st $? 1 "REFUSE: the App private key is missing"
+st "$(grep -c 'private key missing' "$W/nokey/err")" 1 "failing closed with a clear message"
+st "$(wc -l < "$W/nokey/log" | tr -d ' ')" 0 "before any gh, openssl or curl call"
+
+mkcase badid open false "$SHA" "$GOOD"
+IDDIR="$W/badid" run badid o/r 7 "$SHA"; st $? 1 "REFUSE: an App id with a non-digit in it"
+st "$(grep -c 'digits only' "$W/badid/err")" 1 "refused as malformed, not stripped to digits"
+st "$(wc -l < "$W/badid/log" | tr -d ' ')" 0 "before any gh, openssl or curl call"
+
+mkcase shortsha open false "$SHA" "$GOOD"
+run shortsha o/r 7 "${SHA:0:7}"; st $? 1 "REFUSE: an abbreviated SHA is not an exact head"
+st "$(grep -c 'full 40-hex SHA' "$W/shortsha/err")" 1 "refused as a malformed argument, before any call"
+
+mkcase postfail open false "$SHA" "$GOOD"; : > "$W/postfail/refuse-post"
+run postfail o/r 7 "$SHA"; st $? 1 "a refused POST exits non-zero"
+st "$(calls postfail 'curl installation/token')" 1 "the token is revoked after the failed POST"
+st "$(leftover postfail)" 0 "the private directory is gone after the failed POST"
+st "$(grep -c "$TOKEN" "$W/postfail/tokencopy")" 1 "(the token header file did exist during that POST)"
+st "$(leaks postfail)" 0 "and no token, JWT, key or signature text reached stdout or stderr"
+
+mkcase dry open false "$SHA" "$GOOD"
+run dry --dry-run o/r 7 "$SHA"; st $? 0 "--dry-run passes every refusal"
+st "$(calls dry curl)" 0 "and makes no curl call: nothing minted, nothing posted"
+st "$(calls dry openssl)" 0 "and signs nothing"
+st "$(grep -c '^app_approve: DRY-RUN' "$W/dry/out")" 1 "reporting what it would do"
+mkcase drypolicy open false "$SHA" "$GOOD"; files_json CLAUDE.md > "$W/drypolicy/files.json"
+run drypolicy --dry-run o/r 7 "$SHA"; st $? 1 "--dry-run still refuses what a real run would"
+
+# The carry (#1667). Each refusal is a head the rule must not carry, beside
+# the one move it must: a merge from main that left the branch's diff alone.
+carried() { ( cd "$W/clone" && bash "$SELF" --carry "$V" "$1" origin/main ) > "$W/carry.out" 2>&1; }
+carried "$H_MERGE"; st $? 0 "CARRY: a merge from main that leaves the branch's own diff byte-identical"
+carried "$H_CIEMPTY"; st $? 0 "CARRY: a ci: commit that changes nothing"
+carried "$H_EVIL"; st $? 1 "NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)"
+st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge"
+carried "$H_OWN"; st $? 1 "NO CARRY: a commit of the branch's own"
+carried "$H_OWNEMPTY"; st $? 1 "NO CARRY: an empty commit of the branch's own, which the byte comparison alone would pass"
+carried "$H_CI"; st $? 1 "NO CARRY: a ci: commit that changes the branch's diff"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused as a ci: commit outside the driver files"
+carried "$H_CILED"; st $? 0 "CARRY: a ci: commit that rewrites only a merge-driver file"
+carried "$H_PIN_BADMSG"; st $? 1 "NO CARRY: the bot's confined additions, under a ci: subject no writer uses"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the generic ci: guard, not the bot one"
+# The narrowing that `bot_paths`' whole-subtree exclusion alone does not give:
+# a bot commit may confine itself to the ledger subtree and still be a forged
+# rewrite of a row the verdict already reviewed. `carried` runs from `$V`;
+# these heads sit on `$V_PINMOD`, which already carries the row being rewritten.
+for arm in "$H_PINMOD" "$H_PINDEL"; do
+  ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$arm" origin/main ) > "$W/carry.out" 2>&1
+  st $? 1 "NO CARRY: the bot's pin commit over a row the branch's own diff already carried"
+  st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, not the confinement check"
+done
+# The planted metacharacter arm: without `:(exclude,literal)` this head would
+# carry, its glob-named addition silently hiding the rewrite beside it.
+( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a path named `*` is not a wildcard, it is one added file"
+st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
+# The relocation (fix review of 97df6851): a hand resolution moves the
+# branch's change from charge() to discharge(), whose three lines of context
+# are the same, and the header-free comparison alone reads the two as equal.
+( R="$W/reloc"; throwaway_git_init "$R" -q -b main && cd "$R" || exit 2
+  body='    a = 1\n    b = 2\n    c = 3\n    return limit(a)\n    d = 4\n    e = 5\n    f = 6\n'
+  printf "def charge():\n$body\ndef discharge():\n$body" > f.py; git add f.py; git commit -qm m0
+  git checkout -qb fix; sed -i.bak '5s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak; git commit -qam "fix: guard charge"
+  git rev-parse HEAD > ../reloc.v
+  git checkout -q main; sed -i.bak '1i\
+# header
+' f.py; rm f.py.bak; git commit -qam m1
+  git checkout -q --detach "$(cat ../reloc.v)"; git merge -q --no-ff --no-edit main >/dev/null
+  git show main:f.py > f.py; sed -i.bak '15s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
+  git commit -q --amend -a --no-edit; git rev-parse HEAD > ../reloc.h
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(cat ../reloc.h)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a hand resolution that moves the branch's change to another function with the same context"
+st "$(grep -c "not the automatic merge" "$W/carry.out")" 1 "refused as a hand-resolved merge, whatever the diffs compare"
+# The same move as a plain `ci:` commit (fix review of 8bcce59d): no merge,
+# so only the ci: guard can refuse it.
+( cd "$W/reloc" || exit 2; git checkout -q --detach "$(cat ../reloc.v)"
+  git show main~1:f.py > f.py; sed -i.bak '14s/limit(a)/limit(a, safe=True)/' f.py; rm f.py.bak
+  git commit -qam "ci: re-record closures"
+  bash "$SELF" --carry "$(cat ../reloc.v)" "$(git rev-parse HEAD)" main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a ci: commit that moves the branch's change to another function with the same context"
+st "$(grep -c "outside main's merge-driver files" "$W/carry.out")" 1 "refused by the ci: guard"
+carried "$H_PIN"; st $? 0 "CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)"
+carried "$H_PINOUT"; st $? 1 "NO CARRY: the same subject touching one more file outside its paths"
+carried "$H_PINELSE"; st $? 1 "NO CARRY: the ledger under another bot's subject, whose paths do not hold it"
+carried "$H_CLAIMSOUT"; st $? 1 "NO CARRY: that subject touching a file outside the claim files"
+carried "$H_PINSEAT"; st $? 1 "NO CARRY: the ledger commit under the bot's subject but a seat's author (#2059 round 1)"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSDROP" origin/main ) >/dev/null 2>&1
+st $? 0 "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line"
+( cd "$W/clone" && bash "$SELF" --carry "$V_CL" "$H_CLAIMSADD" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: the same subject adding a claim line"
+H_MERGEPIN=$(pin_commit "$H_MERGE" "ci: pin killed mutants" tests/mutation_ledger/killed_by/b.json)
+carried "$H_MERGEPIN"; st $? 0 "CARRY: a merge from main, then the ledger commit it set off (#2024's shape)"
+carried "$H_SIDE"; st $? 1 "NO CARRY: a merge of a branch that is not main"
+g checkout -q --detach "$V"; g merge -q --no-ff --no-edit -m "octopus" "$M1" "$SIDE" >/dev/null; H_OCTO=$(g rev-parse HEAD)
+carried "$H_OCTO"; st $? 1 "NO CARRY: one merge of main and another branch at once"
+carried "$H_REWRITE"; st $? 1 "NO CARRY: a rewritten head, not a descendant of the verdict's"
+( cd "$W/clone" && bash "$SELF" --carry "$H_CIEMPTY" "$V" origin/main ) > "$W/carry.out" 2>&1
+st $? 1 "NO CARRY: a head behind the verdict's, the same tree (only the ancestor check refuses it)"
+carried "$H_TOUCH"; st $? 0 "CARRY: a merge from main that shifted the branch's hunk and rewrote a merge-driver file"
+carried "$H_CTX"; st $? 1 "NO CARRY: a merge from main that changed a context line of the branch's hunk"
+( cd "$W/clone" && bash "$SELF" --carry "$V_A" "$H_A" origin/main ) >/dev/null 2>&1
+st $? 1 "NO CARRY: a driver the branch gave its own file, since drivers are read at main"
+EVV="$W/ev-v"; mkdir -p "$EVV"; printf 'fix review at head %s\n' "$V" > "$EVV/verdict.md"
+CARRYV="[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $EVV")]"
+setpr "$H_MERGE"; mkcase carry open false "$H_MERGE" "$CARRYV"
+run carry o/r 7 "$H_MERGE"; st $? 0 "a merge verdict at V is approved at a head it carries to"
+st "$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print(d["commit_id"], "(#1667)" in d["body"])' "$W/carry/posted.json")" \
+   "$H_MERGE True" "at the live head, and the review says it was carried"
+st "$(grep -c "^app_approve: CARRY $V -> $H_MERGE" "$W/carry/out")" 1 "printing the carry it relied on"
+setpr "$H_EVIL"; mkcase nocarry open false "$H_EVIL" "$CARRYV"
+run nocarry o/r 7 "$H_EVIL"; st $? 1 "REFUSE: the verdict at V does not carry to a head one byte away (null control)"
+st "$(grep -c "does not carry" "$W/nocarry/err")" 1 "saying why"
+st "$(calls nocarry curl)" 0 "and nothing was minted or posted"
+setpr "$H_MERGE"; mkcase carryev open false "$H_MERGE" "[$(comment 2 "Fix review: merge $V" "$APPR" NONE "evidence: $W/evnosha-dir")]"
+run carryev o/r 7 "$H_MERGE"; st $? 1 "REFUSE: a carried verdict whose evidence names neither head"
+
+echo "app_approve self-test: $N checks, $FAILS failed"
+[ "$FAILS" -eq 0 ]

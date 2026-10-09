@@ -1,0 +1,1 @@
+tools/pr/app_approve.sh: line 1024: AGENTS.md: command not found

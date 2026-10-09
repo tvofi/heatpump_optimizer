@@ -1,343 +1,607 @@
-Fix review: blocked 094f2c0d2696b4bd04cd485b9e7fc3f144620053 architecture-unsound: main landed #2059's bot-subject carry on this same seam while this branch sat at its base, so this is now a second mechanism for one concern and it conflicts with origin/main on tools/pr/app_approve.sh
-bus-nonce: 4e63f91d61505e76b2dbe3a9728e1d11
-round: 1
+Fix review: blocked cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2 head-moved: measured cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2, the pull request carries 094f2c0d2696b4bd04cd485b9e7fc3f144620053 -- the re-cut is pushed to origin/handoff/rc-carry-pins only, 0 of the 17 required contexts have ever run at the head I measured, and the body is still round 1's, describing a different fix
+bus-nonce: 517d6f09b163209ad111de22532bbd42
+round: 2
 seat: review-2075
-Evidence: /Users/timmalmstrom/hpo-seats/review-2075/evidence/
+Evidence: /Users/timmalmstrom/hpo-seats/review-2075/evidence2/
 
-Measured head `094f2c0d2696b4bd04cd485b9e7fc3f144620053`, re-read before this
-verdict was written and still the live head of #2075 (`state=OPEN draft=true
-mergeState=DIRTY`). Branch base `b2b6acd64cde652676a568e93c05f021571ebe5e`.
-`origin/main` moved twice while I measured: `a8ce87571` at the start, then
-`d8a4bd36f6384dde45486fff388f91ed4a3aa6df` (the merge of #2059) part way
-through. The head never moved; main did, and that is grounds 1 and 3 below.
+**The code is sound. All four of round 1's grounds are fixed on the branch, and
+I say so with my own arms below.** What blocks is that the re-cut is not yet a
+reviewable pull request: the branch the PR carries is still round 1's head, no
+check has ever run at the head I measured, and the body describes a fix that is
+no longer in the diff. Nothing here needs a new design. It needs the push to
+land, the body re-taken whole against `cfa0f3d00`, and two one-line repairs in
+the new lines.
 
-Four grounds. Ground 2 is a hard rule and is settled by CI; grounds 1 and 3 are
-one measurement; ground 4 is a defect in the new lines with a one-token remedy.
+This is **round 2**. Per `fixer.md`, round 4 owes a re-cut rather than a repair;
+this round does not.
 
-## Ground 1 — a conflict on a path that is not a claim file (step 13)
+`head-moved` is the taught class whose grammar fits and it routes to a repair
+round, which is what is owed. I do **not** use `root-cause-unanswered`, though
+ground C below is literally its step-11 trigger: `web-fix-wave.js:494` returns
+that class to a root-cause seat **without** dispatching a repair, and the debt
+here is a body and a push, not a cause. And I am not alleging a freeze
+violation — the dispatch anticipated this push as the orchestrator's ("if my
+push has not landed yet, wait"), so the head never arrived rather than moving
+under me.
 
-```
-$ git merge-tree --write-tree origin/main 094f2c0d2696b4bd04cd485b9e7fc3f144620053
-159f08dc29ffbbf5557a32a058e568af8605037c
-100755 d818e8e5a... 1  tools/pr/app_approve.sh
-100755 a07be5570... 2  tools/pr/app_approve.sh
-100755 75986eb14... 3  tools/pr/app_approve.sh
-CONFLICT (content): Merge conflict in tools/pr/app_approve.sh
-exit=1
-```
+## What I measured, and against what
 
-stderr is empty and there are **0 `MERGE-CLAIM:` markers** in either stream, so
-this is not the claim-file driver refusing and not a `DIRTY` I can dismiss as
-GitHub's status field: it is a content conflict on `tools/pr/app_approve.sh`,
-the file this PR is mostly made of. Step 13 makes a conflict on any path other
-than the two claim files mine to block on, because I cannot know the merged
-result is correct. Against the earlier `origin/main` (`a8ce87571`) and against
-the branch base, the same command exits 0 — the conflict arrived with
-`d8a4bd36f`, i.e. with #2059. Evidence: `mergetree2.txt`, `mergetree2.err`,
-`conflict.txt`.
+Head measured `cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2`, from a fresh detached
+worktree (`wt2`), re-read before this verdict was written. Merge base with main
+`d8a4bd36f6384dde45486fff388f91ed4a3aa6df`. **`origin/main` moved three times
+while I measured** — `d0f085ffb`, then `a9baf164c`, then
+`9224833839c4db5221471a04b6558b65102542f2` — so every main comparison below is
+pinned to a SHA, and I re-ran `merge-tree` against the newest. Main's
+`tools/pr/app_approve.sh` blob is `a07be55707b25185f65d2d89aac120ad498c5e5f` at
+all three, so main's copy never moved under these measurements.
 
-## Ground 2 — `fast (3.14)` went red at the head and the body answers nothing (step 11)
+The re-cut's chain from round 1's head: `b95753f07` (call the canonical
+policy_lint path) → `1c458409b` (merge `origin/main` `d8a4bd36f`) → `5238604de`
+(the carry file) → `cfa0f3d00` (drop the closures.json fixture scaffolding).
 
-All 17 required contexts of ruleset 23698884 (`main-protect-checks`, active)
-**RAN** at the head; the head is authored and committed by `tvofi`, not
-bot-pushed, so this is settled rather than absent. 15 succeeded. Two are red:
+The diff is **2 files, +127/-4**: `tools/pr/app_approve.sh` +100/-4 and a new
+`dev/programme/carries/carry-2075.json` +31.
 
-```
-fast (3.14)    status=completed  conclusion=failure   id=113892203905
-pr-contract    status=completed  conclusion=failure   id=113894588362
-```
+**The shape changed, and the dispatch's description of it is now stale.**
+`tools/policy/policy_lint.mjs` is **byte-identical at the head and on main**
+(`e5824f8dac92121f43b23736fe2d68c35b040231` at both). The re-cut dropped the
+`autofixCommit` `root` parameter entirely, so **mutant `ME` is moot** — there is
+no second half of the diff to mutate. The whole fix now lives in `carry()`.
 
-`## Red checks` says `none` — "at the branch head as of this writing, before CI
-first runs at it." CI has now run at it. Neither check is named, so by step 11
-this is `root-cause-unanswered` on both, and it is not `UNDER-SCOPED` or
-`INHERITED CLAIMS`, the two `ci-autofix.md` answers by naming.
+## Ground 1 — re-based onto main, and a tightening of main's mechanism, not a parallel one
 
-The cause is this PR's own added line, and I measured it at both ends with the
-same instrument rather than reading CI's word for it:
-
-```
-$ PYTHONPATH=tests:tests/hastub python3 tests/layout.py     # at the head
-    new-reference: tools/pr/app_approve.sh cites retired path .claude/workflows/policy_lint.mjs:
-      [ -f "$lint" ] || lint="$SELF_DIR/../../.claude/workflows/policy_lint.mjs"
-layout: GUARD: 1 refusal(s) against b2b6acd64cde
-RESULT layout.py (PYTHONPATH honoured): head rc=1  base rc=0
-```
-
-`tests/layout.py`'s guard refuses a NEW citation of a retired path, and
-`bot_commit`'s second-choice lookup cites `.claude/workflows/policy_lint.mjs`,
-which `tests/layout.json` records as retired in favour of
-`tools/policy/policy_lint.mjs`. CI agrees exactly:
-`layout self-test: ok`, then `layout: GUARD: 1 refusal(s)`, then
-`>>> FAILED: python3 tests/layout.py`. `pr-contract` is red for the same
-silence and says so itself:
+`git diff origin/main...HEAD -- tools/pr/app_approve.sh` is in
+`diff-app_approve.txt`. There is **no `bot_commit()` function** and no second
+bot-commit path. What the diff does to main's landed `carry()` is replace one
+accumulation line inside main's own `else` branch:
 
 ```
-record   red-history   1 commit(s) between origin/main and this head, every
-                       failure conclusion across them: fast (3.14)
-ERROR [pr-body] check `fast (3.14)` is red and `## Red checks` does not name it.
+-        bots="$bots$b"$'\n'
++        ba=$(git diff --no-renames --diff-filter=A --name-only "$c^" "$c")
++        bt=$(git diff --no-renames --name-only "$c^" "$c")
++        while IFS= read -r e; do ... done <<<"$b"
 ```
 
-One root cause, two reds. The fallback is also **dead in this tree**:
-`.claude/workflows/policy_lint.mjs` does not exist at the head or at the base
-(`git ls-tree HEAD .claude/workflows/` holds no `policy_lint.mjs`), and the
-first-choice path `tools/policy/policy_lint.mjs` always resolves. Deleting the
-line clears the red and removes dead code; nothing else needs to move.
-`fast (3.14)` was **success** at `b2b6acd64`, so this is not main's red.
-Evidence: `layout-head4.txt`, `layout-base4.txt`, `job-113892203905.log`,
-`job-113894588362.log`, `checks.txt`.
+It reads main's own `bot_paths` and main's own `bots` accumulator, and narrows
+what each entry may hide: an entry that **is** a file this commit changed is
+excluded whole as before; an entry that is a **directory** excludes only the
+rows this very commit ADDED under it. That is additions-only narrowing of the
+mechanism #2059 landed, which is what `fixer.md` step 17's "the existing
+mechanism, never a parallel one" asks for. **One owner per concern holds**:
+`bot_paths`/`bot_author` remain the single table of which subject writes which
+paths as which identity, and the new code consults it rather than restating it.
 
-## Ground 3 — #2059 landed on this seam, so the premise and the null control are both stale (step 17)
-
-While this branch sat at `b2b6acd64`, main merged **#2059
-`fix/r9-ci-2b-carry`** (`d8a4bd36f`), whose commits are
-`3adb02cd4 fix(R9-CI-2b): verdicts carry over the bots' own commits; a
-merge-main bot un-DIRTYs driver-only conflicts` and
-`0ac45f641 fix(R9-CI-2b): #2059 round 1 -- bot merge on main only; bot
-subjects need their writer`. It touches the same two files
-(`tools/pr/app_approve.sh` +91/-11, `tools/policy/policy_lint.mjs`) and adds
-`bot_paths`/`bot_author` plus a `bots` exclusion list in `carry` — the same
-concern, a second mechanism.
-
-Main's current copy already carries every head this PR exists to fix. Measured
-read-only from `/private/tmp/r9-main`, `main ref = origin/main = d8a4bd36f`:
+**The round-1 conflict is gone.** Pinned to the newest main:
 
 ```
-RESULT base-copy-b2b6acd64  #2071 6aaba97f->7843b799  REFUSE
-RESULT main-copy-d8a4bd36f  #2071 6aaba97f->7843b799  CARRY
-RESULT head-copy-094f2c0d2  #2071 6aaba97f->7843b799  CARRY
-RESULT base-copy-b2b6acd64  #2070 3ecb86ad->a9ba0b88  REFUSE
-RESULT main-copy-d8a4bd36f  #2070 3ecb86ad->a9ba0b88  CARRY
-RESULT base-copy-b2b6acd64  #2066 b511f9dc->d1538a73  REFUSE
-RESULT main-copy-d8a4bd36f  #2066 b511f9dc->d1538a73  CARRY
+$ git merge-tree --write-tree 9224833839c4db5221471a04b6558b65102542f2 cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2
+exit=0   tree=9b88069cc537e8d269adefdcdef5bedf8ec9ece0   stderr bytes=0
+MERGE-CLAIM markers: 0
 ```
 
-So the body's null control ("refuses at main's copy, carries at the fixed copy")
-holds only against `b2b6acd64`, which is no longer main. Step 8: the body
-quotes `main's copy (unmodified)` as its baseline and that baseline moved under
-it. Main's own self-test at `d8a4bd36f` reports `153 checks, 0 failed` here, so
-#2059 brought arms of its own for this seam.
+I read the driver's verdict from stderr rather than inferring it from paths
+(step 13): stderr is empty and there are no markers, so nothing refused and
+nothing conflicted. For contrast, round 1's head against the same main still
+exits 1 with `CONFLICT (content): Merge conflict in tools/pr/app_approve.sh`
+(`mergetree-r1head.out`). Evidence: `mergetree-final.out`, `mergetree-final.err`.
 
-**But #2075 is not worthless — main's landed mechanism is looser on exactly the
-axis this PR tightened, and that is worth carrying into the re-cut.** Same
-fixture, main's current copy:
+## Ground 2 — the pathspec hole is closed, and an arm now plants exactly that filename
 
-```
-RESULT main-now A2-modifies-reviewed-row   expect=REFUSE got=CARRY
-RESULT main-now A3-modifies-main-row       expect=REFUSE got=CARRY
-RESULT main-now A9-deletes-reviewed-row    expect=REFUSE got=CARRY
-RESULT main-now A7-reaches-prod-code       expect=REFUSE got=REFUSE
-RESULT main-now A6-forged-identity         expect=REFUSE got=REFUSE
-```
-
-Main's `bot_paths` excludes the whole `tests/mutation_ledger` subtree for any
-accepted pin commit and checks only `%ae`, so a bot-identity `ci: pin killed
-mutants` commit that **rewrites or deletes a row the branch's own diff already
-carried** now carries to approval with no reviewer turn. This PR's copy refuses
-all three (below). That is a live hole on main today and this PR's
-additions-only narrowing is its fix — so the honest re-cut is a **tightening of
-main's `bot_paths`/`bot_author`**, not a parallel `bot_commit` beside it
-(`fixer.md` step 17: "the existing mechanism, never a parallel one"). Reading
-`autofixCommit` rather than a second hand-written table is the right instinct
-and survives the re-cut; the shell-side duplication of the exclusion idea does
-not. Evidence: `mainnow.txt`, `mainnow-attacks.txt`, `main-carry-d8a4bd3.txt`,
-`main-botpaths.txt`.
-
-## Ground 4 — `metric-gamed: carry:` the new exclusion pathspecs are not literal, so one added file named `*` excludes a whole subtree
-
-`bot_commit` ends with `git diff --no-renames --diff-filter=A --name-only
-"$parent" "$sha"`, and `carry` turns each line into `bx[..]=":(exclude)$p"`.
-`$p` comes out of **the commit's own diff** — the branch side of the comparison
-— and is used as a **pattern**, not a literal. git wildmatches `*` across `/`
-in a default pathspec, so one added file whose name contains a metacharacter
-widens the exclusion from one file to a subtree, and the branch's-own-diff
-comparison then cannot see anything under it. The existing `x` list has no such
-exposure because `carry` reads `.gitattributes` at `$main` and never at a head,
-exactly as its own comment says; `bx` is the first exclusion list taken from the
-side being checked.
-
-Demonstrated with a one-name-difference null control on my own fixture (built
-by me, not the fixer's, and using main's **real** `.gitattributes` so the
-driver set is production's). Both heads sit on the same merge of main, whose
-rewrite of a ledger context line shifts the `-U3` context of a hunk the branch
-owns — the #2010 class in miniature. Their trees hold the same row content; the
-added file is named differently:
+`:(exclude,literal)$p` landed, in place of `:(exclude)$p`, with the reason in a
+comment beside it. I re-ran **my own** round-1 `N1`/`N2` pair — the fixture built
+by me, not the fixer's, using main's real `.gitattributes` (identical at
+`b2b6acd64` and `d0f085ffb`, verified) so the driver set is production's:
 
 ```
-RESULT N1-ordinary-pin-over-same-merge main-copy=REFUSE fixed-copy=REFUSE
-       (fixed-copy: the branch's own diff differs: 42bd7175..6a1bceb8 against 2bfc4bde..65800af4)
-RESULT N2-glob-pin-over-same-merge     main-copy=REFUSE fixed-copy=CARRY
+RESULT N1-ordinary-pin-over-same-merge main-copy=CARRY fixed-copy=REFUSE
+RESULT N2-glob-pin-over-same-merge     main-copy=CARRY fixed-copy=REFUSE
   N1 added tests/mutation_ledger/killed_by/n1.json
-  N2 added tests/mutation_ledger/*          <- same content, name differs
+  N2 added tests/mutation_ledger/*        <- same content, name differs
   git diff N1 N2 = A tests/mutation_ledger/* , D tests/mutation_ledger/killed_by/n1.json
-
-RESULT literal-pathspec: plain hides 2 -> 0; literal hides 2 -> 1
-  changed paths, no exclusion                     : [tests/mutation_ledger/* tests/mutation_ledger/ctx.json]
-  with :(exclude)tests/mutation_ledger/*          : []
-  with :(exclude,literal)tests/mutation_ledger/*  : [tests/mutation_ledger/ctx.json]
 ```
 
-So the same head that must refuse for "the branch's own diff differs" carries
-once a pin commit adds a file named `*`, and the remedy is one token:
-`":(exclude,literal)$p"`, verified working on this git (2.38.1) and leaving the
-intended single-file exclusion intact. This is also the answer to the boundary
-the body deliberately left out: the body says the context-shift case is filed as
-a separate owner question and that "this PR touches neither the docstring nor
-that arm" — true as far as it goes, but **one new code path does admit that
-class for `tests/mutation_ledger/**`**, and #2010 itself still refuses
-(`RESULT fixed-copy-#2010 ... REFUSE`, identical reason to main's copy, at both
-main refs). Threat model is the code's own, not mine: the comment above
-`bot_commit` says "Anyone who can push can write the subject", so identity and
-subject are assumed forgeable and the path set carries the weight — here the
-path set does not, because its paths are patterns. Evidence: `globctl.txt`,
-`attacks.txt`.
+**The file named `*` no longer carries.** At round 1 this pair was
+`N1 fixed-copy=REFUSE / N2 fixed-copy=CARRY` — the metacharacter alone flipped
+the verdict. Now both arms refuse identically, on `the branch's own diff
+differs`, so the perturbation no longer moves the outcome. That is the null
+control passing.
+
+My independent `A5c` (merge main, then a glob-named pin commit) agrees:
+`main-copy=CARRY / fixed-copy=REFUSE`. The remedy probe still separates the two
+pathspec forms on this git (2.38.1):
+
+```
+plain   :(exclude)tests/mutation_ledger/*          -> visible: []
+literal :(exclude,literal)tests/mutation_ledger/*  -> visible: [tests/mutation_ledger/ctx.json]
+```
+
+The fixer's own self-test also plants the filename (`H_PINGLOB`, added by this
+diff). Evidence: `globctl2.txt`, `attacks2.txt`.
+
+*One correction to round 1's numbers, so the record is not read backwards:*
+round 1 reported `N1/N2 main-copy=REFUSE`. That was my error of provenance, not
+a change in main — round 1's `MAINCOPY` was `/private/tmp/r9-main`'s working
+tree, which at that moment predated #2059, so `bot_paths` was absent and the
+generic `ci:` guard refused (its printed reason was `is a ci: commit that
+changes files outside main's merge-driver files`). Against **main's actual
+current copy** both N1 and N2 carry, which is the coarse-subtree behaviour this
+PR narrows. Round 2 pins the copy by blob (`a07be5570`) instead of by directory.
+
+## Ground 3 — the retired path is gone, and the guard prints 0
+
+```
+$ PYTHONPATH-free python3 tests/layout.py       # at the head
+layout: GUARD: 0 refusal(s) against d8a4bd36f638
+layout self-test: ok                            # rc=0
+
+$ git grep -n '\.claude/workflows/policy_lint' tools/pr/app_approve.sh
+(no output; rc=1)
+```
+
+That is the exact string the dispatch asked for. At round 1's head the same
+command printed `GUARD: 1 refusal(s)` naming the fallback, and that one refusal
+was why `fast (3.14)` and `pr-contract` were red. `.claude/workflows/policy_lint.mjs`
+is absent at the head **and** on `origin/main` (`git ls-tree` count 0), so the
+deleted fallback was dead at both ends, as round 1 found.
+
+**For R9-RO-10's record, since you asked me to say what I can see:** the line
+you name in `merge_train.py` is **not there at this head** — `git grep
+'\.claude/workflows/policy_lint' -- tools/pr/merge_train.py` returns nothing.
+The surviving citations of the retired path are `.claude/hooks/stop-selfcheck.sh`
+(3, all inside `test -f` guards), `.claude/rules/defect-root-cause.md:145` and
+its generated `.cursor` twin (prose), `.github/CODEOWNERS` (2 comments) and
+`.github/workflows/governance.yml` (3, all `if test -f A; then node A; else node
+B; fi`). None is in `merge_train.py`, and none is a bare unconditional
+reference, so I cannot call any of them dead code from here — the guard form
+always takes the `tools/policy/` arm, which is live-but-unreachable-first-arm
+rather than dead. `layout.py`'s guard refuses only NEW citations, and it prints
+0, so none of these is this PR's debt.
+
+**Not a coverage loss, which I checked rather than assumed.** Round 1's head
+carried three positional source pins under `sed -n '1,472p'`; the re-cut has
+none, at *every* commit of its chain. That is not deleted coverage: **main
+itself removed them in #2059** — window pins count 3 at `b2b6acd64`, **0 at
+`d0f085ffb`**, 0 at the head. The re-cut rebased and correctly inherits main's
+removal. The pinned strings still exist as production code (`pwd -P` 12×,
+`the filesystem root -- refused as evidence` 3×, identical counts at main and
+head).
+
+## Ground 4 — the destination exists in the tree, but the body does not name it
+
+`dev/programme/carries/carry-2075.json` is real, in the diff, and linted clean:
+
+```
+$ node tools/policy/brief_lint.mjs
+== dev/programme/carries/carry-2075.json ==
+  -- 0 error(s), 0 warning(s)
+CARRY: 44 carry file(s)     TOTAL: 0 error(s) across 45 file(s)     rc=0
+```
+
+It is also the **correct instrument**, which I verified rather than accepted.
+`finding-propagation.md` routes to a carry file only where "the stage has no
+live roster group", and `brief_lint.mjs` "refuses a carry at an issue a live
+group covers". At this head the only roster file in the tree is
+`.claude/workflows/wave-3l-groups.json`, which names neither `R9-RO-13` nor
+`2075` — so there is no live group to carry to and the file is right, exactly as
+its own `_comment` says ("The roster is not on main, so this file is the in-tree
+destination"). I confirmed `brief_lint` really does examine it (line 122 of its
+output) rather than passing it by.
+
+I re-read the comment id before trusting it, as instructed:
+`gh api repos/tvofi/heatpump_optimizer/issues/comments/6083743563` **returns
+it** — id 6083743563, issue #201, author `tvofi`, created 2026-10-09T15:15:00Z,
+1929 bytes, first line `## New exceptional mandate: batch merging of policy
+changes is allowed (until 2026-10-12)`, and it names R9-RO-13 as the instrument
+catch-up. So the id is not fabricated. Note that by `finding-propagation.md`
+that comment **cannot itself be the destination** ("A comment is not
+propagation"), and neither can #2078; the tree file is what survives, and the
+carry's `stage` field points a reader at R9-RO-13.
+
+I re-derived the figure the carry quotes, at the **re-cut's** merge base rather
+than round 1's, since it says "At your merge base":
+
+```
+mv=af79f2114  mh=b2b6acd64   (origin/main at the time of the run)
+wc -l A=16965  B=16965      diff output lines: 4      payload (+/-) lines differing: 0
+16269c16269
+<      coord._config[_r9egb1_const.CONF_PRICE_TILES_ENABLED] = True
+>      with_config(coord, {_r9egb1_const.CONF_PRICE_TILES_ENABLED: True})
+```
+
+**"one line of 16,965 differs and it is pure context" reproduces exactly**, both
+differing lines leading-space context. Step 8 satisfied. And `#2010` still
+refuses at the head:
+
+```
+RESULT base-copy-#2010 origin/main REFUSE
+RESULT head-copy-#2010 origin/main REFUSE
+```
+
+## A — the pull request does not carry the head I measured
+
+15 polls at 300 s over 75 minutes (`poll-head.log`), every one answering:
+
+```
+head=094f2c0d2696b4bd04cd485b9e7fc3f144620053  mergeable=CONFLICTING  updatedAt=2026-10-09T16:43:31Z
+state=OPEN  draft=true  mergeState=DIRTY
+```
+
+`cfa0f3d00` is reachable only from `refs/remotes/origin/handoff/rc-carry-pins`;
+`git for-each-ref --contains` names no other ref, and the fixer's local
+`fix/rc-carry-pins` (`82e9fb963`) has diverged from it rather than containing
+it. Step 7 fails and I measured it rather than assumed it — the amended step 7
+allows a valid `--carry`, and this one is not valid:
+
+```
+$ bash <head-copy> --carry 094f2c0d2696b4bd04cd485b9e7fc3f144620053 cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2 origin/main
+rc=1
+CARRY: no ...: cfa0f3d00... is a commit of the branch's own (chore(R9-RC-Carry-Pins): drop the closures.json fixture scaffolding)
+```
+
+So the body's head does not carry to the head I measured. This is the ordinary
+consequence of a re-cut, not an accusation — but it is why no verdict I write
+can act: `app_approve.sh` requires a `merge` verdict's SHA to equal the head
+exactly (#1106, and the parser comment at `web-fix-wave.js:207` says the same),
+so a `merge cfa0f3d00…` verdict posted against a PR carrying `094f2c0d2…` would
+be inert at the gate.
+
+## B — 0 of the 17 required contexts have run at the measured head
+
+```
+$ gh api repos/tvofi/heatpump_optimizer/commits/cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2/check-runs
+total_count=0
+```
+
+Step 11 requires all 17 required contexts of ruleset 23698884 to have RUN at the
+live head. None has, at `cfa0f3d00`. And per `claim-files.md` the PR cannot start
+them while it is `DIRTY` at its live head: "such a pull request does not go red,
+it **cannot run**." Its `mergeable: CONFLICTING` is GitHub's own field, computed
+where the `claimnotes` driver cannot run — and here it is honest, because
+`094f2c0d2` genuinely content-conflicts with main on `app_approve.sh`
+(`mergetree-r1head.out`, exit 1). The re-cut does not. So CI begins only once the
+branch moves.
+
+I did not re-run the gate or the mutation table (step 11 cites CI's heavy runs),
+and I cannot substitute a local run for the 17 contexts.
+
+## C — the body is round 1's and describes a different fix
+
+`## Red checks` still says `none` "at the branch head as of this writing, before
+CI first runs at it." CI has run. At `094f2c0d2` — a first-parent ancestor of
+the measured head, so inside the range — 40 check-runs over 38 distinct names,
+latest-per-name, are non-green:
+
+```
+fast (3.14)    conclusion=failure   id=113892203905
+pr-contract    conclusion=failure   id=113894588362
+```
+
+Step 11 is explicit that "the head's runs are not the range's" and that silence
+is the block; `pr-contract` itself prints `record red-history` across the range,
+so it will name `fast (3.14)` again at the re-cut. The **cause** is fixed
+(ground 3: `GUARD: 0 refusal(s)`), which is the substantive half — but the body
+still answers nothing, and a re-take must name both and answer them.
+
+Every figure in the body is stale against the head I measured. Each line below
+is a measurement, not a reading:
+
+| the body says | measured at `cfa0f3d00` |
+|---|---|
+| `## Head` = `094f2c0d2…`, branched from `b2b6acd64…` | head `cfa0f3d00…`, merge base `d8a4bd36f…` |
+| "judged by the same `autofixCommit` in `tools/policy/policy_lint.mjs`" | that file is **byte-identical to main** (`e5824f8da` both); the diff never touches it |
+| "2 files changed, 201 insertions(+), 17 deletions(-); `app_approve.sh` +192/-12, `policy_lint.mjs` +26/-5" | **2 files, +127/-4**; `app_approve.sh` +100/-4, `carry-2075.json` +31/-0 — a file the body never mentions |
+| "`--self-test` — 157 checks, 0 failed" | **161 checks, 0 failed** (main's copy 153/0) |
+| "The 12 new checks are the 6 fixture pairs added under `## Mutation proof`'s four mutant names" | **+8 checks from 4 fixtures**; the four named mutants `no_bx`/`no_botcheck`/`no_msg_narrow`/`no_afilter` do not exist at this head, and two of their anchors (`bot_commit()`, the `root` parameter) are gone from the tree |
+| `## Forward-carry` = `none` | the diff **adds** `dev/programme/carries/carry-2075.json`; `finding-propagation.md` requires "its body names the file and the stage that received it, so a reviewer opens the destination rather than taking the claim" |
+| friction: "The bound moved `1,340p` -> `1,472p` here … it is not new debt this PR creates, only inherits" | neither bound exists at this head; #2059 removed all three window pins on main, and this diff contains no `sed -n '1,Np'` line at all (0 occurrences in `diff-app_approve.txt`) |
+| `## Figures`: `MODE: SCOPED -- 1 script(s) run` naming `tests/entities.py`, and "ALL 2234 ENTITY CHECKS PASSED" | not re-derivable here — the diff now also adds a tracked file, and `entities.py` needs `homeassistant`, which this machine cannot install (my notes: the container lane is CI-only since 2026-10-04). See below for what I could verify instead. |
+
+The body's `## Friction` first item is also stale in a way that matters: it
+argues the fix reads `AUTOFIX_BOT_COMMITS`/`autofixCommit` rather than
+`DRAIN_ROWS`. The re-cut reads neither — it reads `bot_paths`, main's own table.
+The argument is now about code that is not in the diff.
+
+Per my notes on body staleness (17 of 31 blocks in one window were stale body
+figures), the remedy is to **re-take the whole body** against `cfa0f3d00`, not
+to patch the named subset.
+
+## D — two defects in the new lines, for the same re-take
+
+**D1. An unintended command substitution in a new self-test arm, at line 1024.**
+
+```
+st $? 1 "NO CARRY: a path named `*` is not a wildcard, it is one added file"
+```
+
+Backticks inside a double-quoted string are command substitution, so bash
+expands the glob `*` in the current directory and **tries to execute the
+alphabetically-first entry**. Measured from the repo root, on every run:
+
+```
+$ bash tools/pr/app_approve.sh --self-test
+tools/pr/app_approve.sh: line 1024: AGENTS.md: command not found     <- stderr, 65 bytes, 1 line
+app_approve self-test: 161 checks, 0 failed                          <- rc=0
+ok   NO CARRY: a path named  is not a wildcard, it is one added file <- the '*' is GONE
+```
+
+Three effects. (a) The arm's printed name loses the one character the arm is
+about, in the CI log a later seat reads to find it — and the carry file points a
+re-measurer at "the glob-named arm". (b) Every self-test run writes a spurious
+`command not found` naming an unrelated file into `instrument-self-tests`.
+(c) It is an execution primitive gated only by `.` not being on `PATH`: I proved
+the attempt in an isolated directory (`/tmp/btick.*/probe`), where bash reported
+`aaa_proof.sh: command not found` for an executable I planted as the first glob
+entry. Single-quoting the label fixes all three, and I confirmed the quoted form
+prints the name intact.
+
+The **assertion itself is unaffected** — bash expands `$?` before the label's
+substitution, so `st` still receives the true rc. That is why my `MNL` mutant
+still reddens this arm (below) and why the self-test still reports 0 failed. So
+this is a defect in an added line, not a weakened gate. No instrument pins these
+labels (`git grep` finds the string only in `app_approve.sh` itself).
+
+**D2. The carry file's `control` overstates its own null control, and names a
+mutation that does not exist.**
+
+It says: "Against main's coarse whole-subtree exclusion **all four** carry (the
+planted regression, **6 failed arms** …)". I planted exactly that reversion
+(`MCO`: the whole additions-only block replaced by main's `bots="$bots$b"`) and
+read the arms one by one:
+
+```
+128:ok   NO CARRY: the bot's confined additions, under a ci: subject no writer uses
+129:ok   refused by the generic ci: guard, not the bot one
+130:FAIL NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+131:FAIL refused by the branch's own comparison, not the confinement check
+132:FAIL (same, H_PINDEL)     133:FAIL (same)
+135:FAIL NO CARRY: a path named  is not a wildcard, it is one added file
+136:FAIL refused by the branch's own comparison, literal pathspec holding
+```
+
+**6 failed checks — that number is right and I reproduced it** — but from
+**three** of the four fixtures, not four. `H_PIN_BADMSG` stays green under the
+reversion because it refuses through the *generic* `ci:` guard, which the
+narrowing never touches (and its own second check says so: "refused by the
+generic ci: guard, not the bot one"). A re-measurer following the control as
+written looks for four moving arms and finds three. `finding-propagation.md`
+exists for precisely this: "Carry the control, not only the claim … A
+conclusion without its control cannot be checked."
+
+The same field names "the mutation `no_literal`". **No such mutation exists in
+the tree** — the only `no_literal` anywhere is an unrelated local variable at
+`tests/structure.py:2399`. The description is precise enough to plant, so I
+planted it, and **its substance reproduces exactly**:
+
+```
+RESULT mutant MNL: 2 red arm(s)
+  FAIL NO CARRY: a path named  is not a wildcard, it is one added file
+  FAIL refused by the branch's own comparison, literal pathspec holding
+```
+
+Exactly the glob arm and nothing else, as claimed. So the control is sound and
+its name is unresolvable — a reader who greps for `no_literal` finds a false
+friend in `structure.py`. Name the plant instead of a mutation id, or land the
+mutation.
+
+## What still holds — re-measured, not inherited
+
+Round 1's live hole on main, which is this PR's reason to exist. My own fixture,
+main's real `.gitattributes`, main's copy pinned by blob:
+
+```
+RESULT A1-adds-fresh-row            expect=CARRY  main-copy=CARRY  fixed-copy=CARRY
+RESULT A2-modifies-reviewed-row     expect=REFUSE main-copy=CARRY  fixed-copy=REFUSE
+RESULT A3-modifies-main-row         expect=REFUSE main-copy=CARRY  fixed-copy=REFUSE
+RESULT A9-deletes-reviewed-row      expect=REFUSE main-copy=CARRY  fixed-copy=REFUSE
+RESULT A6-forged-identity           expect=REFUSE main-copy=REFUSE fixed-copy=REFUSE
+RESULT A7-reaches-prod-code         expect=REFUSE main-copy=REFUSE fixed-copy=REFUSE
+RESULT A11-two-chained-pins         expect=CARRY  main-copy=CARRY  fixed-copy=CARRY
+RESULT A5c-merge-then-glob-pin      expect=MEASURE main-copy=CARRY fixed-copy=REFUSE
+RESULT A10-pin-commit-as-merge      expect=MEASURE main-copy=CARRY fixed-copy=REFUSE
+RESULT A8-other-autofix-message     expect=REFUSE main-copy=CARRY  fixed-copy=CARRY
+RESULT A4-adds-row-bogus-killed_by  expect=MEASURE main-copy=CARRY fixed-copy=CARRY
+RESULT A12-adds-nonrow-content      expect=MEASURE main-copy=CARRY fixed-copy=CARRY
+```
+
+**Main still carries A2, A3 and A9** — a bot-identity `ci: pin killed mutants`
+commit that rewrites or deletes a row the branch's own diff already carried
+reaches approval on main today with no reviewer turn. Each refusal at the fixed
+copy is on the right reason, `the branch's own diff differs`, not the
+confinement check. So the record shows the hole is real on current main and this
+PR closes it. Round 1 measured the same three as `main-copy REFUSE` only
+because its main copy predated #2059; see ground 2's correction.
+
+`A10` deserves a note since it moves against round 1: the fixture's
+`--amend --reset-author` collapses it to a single-parent commit whose diff is
+`M tests/mutation_ledger/ctx.json`, so it is the A2 class (a modification of an
+existing ledger file), not a merge. Its refusal is correct, not a regression.
+
+`A8` is unchanged from round 1 and still tests less than it looks like: a
+`ci: re-record closures` commit touches only merge-driver files, so it passes
+`carry`'s pre-existing `git diff --quiet` check and never reaches the narrowed
+branch. `A4`/`A12` are the carried findings I deliberately did not block on in
+round 1 — a bot pin commit may add arbitrary content under the ledger subtree;
+that is `autofixCommit`'s documented rule, not new semantics here, and it is
+already live on main through #2059 with a wider path set.
+
+Live pairs and the negative control, three copies of the instrument (base
+`d818e8e5a` at `b2b6acd64`, main `a07be5570` at `d0f085ffb`, head `e4d264407` at
+`cfa0f3d00`), run read-only from `/private/tmp/r9-main`:
+
+```
+RESULT base-copy-#2071 origin/main REFUSE      RESULT main-copy-#2071 origin/main CARRY   RESULT head-copy-#2071 origin/main CARRY
+RESULT base-copy-#2070 origin/main REFUSE      RESULT main-copy-#2070 origin/main CARRY   RESULT head-copy-#2070 origin/main CARRY
+RESULT base-copy-#2066 origin/main REFUSE      RESULT main-copy-#2066 origin/main CARRY   RESULT head-copy-#2066 origin/main CARRY
+RESULT base-copy-#2065 origin/main REFUSE      RESULT main-copy-#2065 origin/main REFUSE  RESULT head-copy-#2065 origin/main REFUSE
+```
+
+**All three live pairs CARRY under the fixed code, including #2066
+(`b511f9dc5`→`d1538a73b`), and #2065's range still REFUSEs at all three copies.**
+One correction to the dispatch's expectation, measured rather than assumed: the
+pairs do **not** refuse "under main's copy" — main's current copy **carries** all
+three, because #2059 landed `bot_paths` there. The REFUSE baseline is the
+**pre-#2059 base copy**. Round 1 established exactly this (its
+`base-copy REFUSE / main-copy CARRY / head-copy CARRY`), and round 2 reproduces
+it with the copies pinned by blob. Raw output with each run's reason line is in
+`nullctl3.txt`; the same pairs against `d8a4bd36f` as the main ref are in
+`nullctl2.txt`.
+
+#2065's range re-derived at the new main: 74 commits, 4 first-parent, refusing
+on `merges a456c5ed…, which is not on origin/main` — its own unrelated reason,
+identical at all three copies.
+
+## Mutation proof, re-run against the new production lines
+
+Round 1's `MA`/`MB`/`MC`/`ME` anchored on `bot_commit()` and the `root`
+parameter; neither exists at this head, so I wrote four new mutants for the two
+production changes that do. Each is a one-file, production-only plant, verified
+by diff before running, restored between plants, worktree clean after
+(`mutants2.sh`, `mutant-*.txt`):
+
+```
+RESULT mutant MNL: 2 red arm(s)   drop `literal` from :(exclude,literal)$p     -- exactly the glob arm pair, nothing else
+RESULT mutant MAF: 6 red arm(s)   drop --diff-filter=A from the ba= read       -- PINMOD x2, PINDEL x2, PINGLOB x2
+RESULT mutant MCO: 6 red arm(s)   revert the block to main's bots="$bots$b"    -- the coarse regression, matches the carry's "6"
+RESULT mutant MEX: 1 red arm(s)   force the exact-file branch false            -- "CARRY: remerge_main.sh's inherited-claims commit, only dropping a claim line"
+RESULT worktree clean after all mutants: []
+```
+
+All four die, and each dies on the arms its own mechanism owns — so both halves
+of the new conditional are load-bearing, not only the `else`. `MEX` is the one
+worth naming: it shows the exact-file arm matters for `bot_paths`' FILE entries
+(the claim files), which a reader of the diff might assume was dead weight.
+`ME` is moot and I say so rather than reporting it as run.
+
+The `MCO` count is also this PR's failing-test-first proof, and it substitutes
+for a red-first splice: reverting the narrowing reddens 6 arms with no other
+change, so the arms are not vacuous.
+
+## Steps 14 and 15 — no metric moved, nothing to raise
+
+```
+RESULT structure.py: main rc=0, head rc=0, outputs byte-identical -- no metric moved (STRUCTURE RATCHET PASSED)
+RESULT archscore score.py --diff <merge-base>: dS +0.0000 NULL -- not regressed
+RESULT policy_lint.mjs --budgets: head rc=0, main rc=0, outputs byte-identical -- no cap moved, so no raise is the owner's here
+RESULT policy_lint.mjs plain: head rc=0, main rc=0, byte-identical -- TOTAL 0 errors across 40 policy files; FIXTURE ok 92 errors / 243 pins / 12 classes
+RESULT brief_lint.mjs: rc=0, TOTAL 0 errors across 45 files, CARRY 44 files, ROSTER ok, carry-2075.json 0 errors 0 warnings
+RESULT rule 4: VERSION, manifest.json and RELEASE_NOTES.md absent from the diff
+RESULT budgets: no *_budgets.json in the diff, so budget-raise-gate has no raise to grade
+RESULT claim files: claimed_drift.txt eda8856b9 and card_claimed_drift.txt c683379da -- identical at head, merge base AND current main, so this branch claims nothing and neither file can conflict
+RESULT diff file list: A dev/programme/carries/carry-2075.json, M tools/pr/app_approve.sh -- 2 files
+RESULT self-test at head in its own worktree: 161 checks, 0 failed, rc=0
+RESULT self-test at main d0f085ffb in its own worktree: 153 checks, 0 failed -- delta +8 checks from 4 new fixtures
+```
+
+The new tracked file **is** deliberately classified, which `CLAUDE.md` requires
+of any new tracked file: `tests/closure.py`'s `INERT` list carries the prefix
+`"dev/programme/"` (line 250, added by R9-RO-5), and its four siblings
+(`carry-1645/1774/1795/1922/201.json`) are already tracked under it. **I could
+not run `tests/entities.py` to confirm this** — it imports `harness`, which
+imports `homeassistant`, absent from the 3.14.7 venv and not installable here.
+So that one is verified by reading the INERT prefix and the precedent, not by
+the instrument; CI's `fast` lane is what actually runs it, and it has not run at
+this head. Flagging it as unverified rather than reporting it as confirmed
+(step 8).
+
+**Self-test honesty, which the dispatch asked about specifically.** The body
+quotes 157 and does not name the instrument that printed it; the true pair at
+the re-cut is **161 (macOS, this machine, `bash tools/pr/app_approve.sh
+--self-test` in its worktree)** against **153** for main's copy. Round 1's
+platform split still applies and I could not re-measure CI's side, because
+`instrument-self-tests` has never run at `cfa0f3d00` (`total_count=0`); at round
+1's head CI printed 159 where macOS printed 157. So the body must state, per
+`writing-for-agents`, which instrument printed which number — and at this head
+the CI number does not yet exist. One trap I hit and discarded rather than
+reporting: running an extracted *copy* of the script outside its tree prints
+`145/100 failed`, `153/17`, `161/21`. Those are artefacts of the extraction, not
+measurements; every count above comes from a script run inside its own worktree.
+
+Step 17 on added lines: one owner per concern holds (ground 1); no concept is
+duplicated — the new `BOT_NAME`/`BOT_EMAIL` constants sit in the self-test
+section and *consolidate* a hardcode main already had inline at line 588, and
+hardcoding them independently of production `bot_author()` is what lets the
+forged-identity arms detect `bot_author` changing wrongly. The bot email now
+appears at 9 sites tree-wide, 8 of them pre-existing on main; `entities.py:25968`
+pins the workflows' copies and pins neither `app_approve.sh` copy — true at main
+too, so not new debt, but worth a line in the record if anyone later relies on
+that pin.
+
+## What I did not re-run, and why
+
+The gate and the mutation table (step 11 cites CI's heavy runs, and nothing here
+turns on them: my four mutants are planted and read directly). `env_drift.py
+--all` (step 4): the diff moves no fixture and both claim files are
+byte-identical at head, base and main, so there is no drift to declare and
+neither file may be touched. `card_drift.mjs`: no card change. The
+`delivery-status` row: `docs/delivery/2075.md` is correctly absent from the
+diff, since `delivery-status-tracking.md` makes the row the orchestrator's.
+`nightly-status`: its non-exempt arm does not apply — the diff touches neither
+the mutation ledger nor a workflow file.
 
 ## RESULT lines
 
 ```
-RESULT self-test head 094f2c0d  157 checks, 0 failed (macOS, bash 3.2.57, node v20.10.0)
-RESULT self-test base b2b6acd64 145 checks, 0 failed
-RESULT self-test CI Ubuntu head 159 checks, 0 failed (instrument-self-tests id=113892207189)
-RESULT self-test CI Ubuntu base 147 checks, 0 failed (instrument-self-tests id=113754752946)
-RESULT new-arms delta = 12 on both platforms; the absolute counts are platform-dependent and the body quotes only the macOS pair
-RESULT twelve new arms present and consecutive at output lines 128-139, the six pairs claimed
-RESULT red-first 157 checks, 6 failed -- test-only hunks spliced onto main's copy, 83 insertions 0 deletions, no production change
-RESULT red-first failing arms are exactly the six claimed (positive CARRY arm, its null control, and the identity/subject/message/branch-diff reason greps)
-RESULT mutant MA any-autofix-message      1 red arm  (matches the body's no_msg_narrow)
-RESULT mutant MB exclusion-covers-mods    2 red arms (matches the body's no_afilter)
-RESULT mutant MC skip-autofixCommit       10 red arms, two of them pre-existing ci: arms -- the new predicate is strongly guarded
-RESULT mutant ME drop policy_lint root=   5 red arms -- the body's four mutants never touch this half of the diff; it is load-bearing and now proven
-RESULT nullctl #2071 6aaba97f->7843b799 base-copy REFUSE / head-copy CARRY at both main refs
-RESULT nullctl #2070 3ecb86ad->a9ba0b88 base-copy REFUSE / head-copy CARRY at both main refs
-RESULT nullctl #2066 b511f9dc->d1538a73 base-copy REFUSE / head-copy CARRY at both main refs
-RESULT nullctl #2065 3c9fe53f->90b9e87f REFUSE at both copies, same reason (merges a456c5ed, not on main)
-RESULT figure #2065 range re-derived: 74 commits, 4 first-parent, two human test()/ledger() commits and a merge of a commit not on main -- as the body says
-RESULT figure #2010 re-derived with carry's own norm(): 16965 and 16965 lines, diff 4 output lines, 2 payload lines both leading-space context, 0 branch-own +/- lines -- as the body says
-RESULT attack A1 adds-fresh-row            main-copy REFUSE / fixed-copy CARRY   (the fix, working)
-RESULT attack A2 modifies-reviewed-row     main-copy REFUSE / fixed-copy REFUSE  (the narrowing holds)
-RESULT attack A3 modifies-main-row         main-copy REFUSE / fixed-copy REFUSE
-RESULT attack A13 adds-one-and-rewrites-one main-copy REFUSE / fixed-copy REFUSE (holds in the composite too)
-RESULT attack A6 forged-identity           fixed-copy REFUSE (not authored and committed as github-actions[bot])
-RESULT attack A7 reaches-prod-code         fixed-copy REFUSE (changes custom_components/..., outside what "ci: pin killed mutants" stages)
-RESULT attack A9 deletes-reviewed-row      fixed-copy REFUSE (does not only modify its files)
-RESULT attack A11 two-chained-pins         fixed-copy CARRY
-RESULT attack A8 other-autofix-message     main-copy CARRY / fixed-copy CARRY -- see the note below, this does not test the narrowing
-RESULT attack A4 adds-row-bogus-killed_by  fixed-copy CARRY  (carried finding, not a block; see below)
-RESULT attack A12 adds-nonrow-content      fixed-copy CARRY  (same)
-RESULT attack A5/A5c glob-named added file fixed-copy CARRY where it must REFUSE -- ground 4
-RESULT main-now A2/A3/A9 CARRY -- main's landed #2059 mechanism is looser than this PR on the reviewed-row axis
-RESULT required-contexts 17 of 17 RAN at the head; 15 success; fast (3.14) failure; pr-contract failure
-RESULT merge-tree origin/main(d8a4bd36f) head -> exit 1, CONFLICT (content) tools/pr/app_approve.sh, 0 MERGE-CLAIM markers
-RESULT merge-tree origin/main(a8ce87571) head -> exit 0; merge-tree base head -> exit 0
-RESULT claim files IDENTICAL to the branch base b2b6acd64 (both); they differ from current origin/main only by main's own 13-line movement
-RESULT VERSION untouched; manifest.json untouched; RELEASE_NOTES.md untouched; files changed = 2
-RESULT structure.py head rc=0 base rc=0, outputs byte-identical -- no metric moved
-RESULT policy_lint --budgets head rc=0 base rc=0, outputs byte-identical -- no cap moved, so no raise is the owner's here
-RESULT policy_lint plain head rc=0 base rc=0: TOTAL 0 errors across 40 policy files, FIXTURE ok 92 errors / 243 pins / 12 classes, KNOWN-BAD 7 of 7 in 15 -- identical at both ends
-RESULT archscore --diff b2b6acd64: dS +0.0000 NULL -- not regressed
-RESULT bot_commit cost: one node import of policy_lint.mjs 0.42-0.47s; a full --carry 1.20s at the head vs 0.19s at the base -- no merge-queue hazard
-RESULT delivery row docs/delivery/2075.md absent from the diff, correctly: delivery-status-tracking.md makes the row the orchestrator's, "a fixer writes none"
+RESULT round 2, measured head cfa0f3d00a6fa8bd3604f02a066088fc3f07aba2, PR live head 094f2c0d2696b4bd04cd485b9e7fc3f144620053
+RESULT poll 15 passes / 75 min at 300 s: head never moved off 094f2c0d2; mergeable=CONFLICTING, mergeState=DIRTY, draft=true throughout
+RESULT ground1 diff is additions-only narrowing of main's own carry(); no bot_commit, no second bot path; one owner per concern holds
+RESULT ground1 merge-tree 92248338 cfa0f3d00 -> exit 0, tree 9b88069cc, stderr empty, 0 MERGE-CLAIM markers (round-1 head: exit 1, CONFLICT tools/pr/app_approve.sh)
+RESULT ground2 :(exclude,literal)$p landed; N1 fixed-copy=REFUSE and N2 fixed-copy=REFUSE -- the file named '*' no longer carries
+RESULT ground2 remedy probe: plain exclude hides 2 -> 0 visible; literal hides 2 -> 1
+RESULT ground3 layout.py PYTHONPATH-free at head: layout: GUARD: 0 refusal(s) against d8a4bd36f638, rc=0 (round-1 head: 1)
+RESULT ground3 git grep '.claude/workflows/policy_lint' tools/pr/app_approve.sh -> empty, rc=1
+RESULT ground3 merge_train.py holds NO such line at this head; .claude/workflows/policy_lint.mjs absent at head and on origin/main, so the deleted fallback was dead at both ends
+RESULT ground3 window pins 3 at b2b6acd64, 0 at d0f085ffb, 0 at head -- main removed them in #2059, so the re-cut loses no coverage
+RESULT ground4 carry-2075.json linted by brief_lint: 0 errors 0 warnings; CARRY 44 files; TOTAL 0 errors across 45 files
+RESULT ground4 R9-RO-13 is not a live roster group in this tree (only wave-3l-groups.json, naming neither R9-RO-13 nor 2075), so the carry file is the correct instrument
+RESULT ground4 comment 6083743563 re-read from the API and exists: issue #201, author tvofi, 2026-10-09T15:15:00Z, 1929 bytes, names R9-RO-13
+RESULT ground4 #2010 figure re-derived at the re-cut's merge base: 16965/16965, 4 diff output lines, 0 payload lines differing -- "one line of 16,965, pure context" reproduces
+RESULT A step7 --carry 094f2c0d2 cfa0f3d00 origin/main -> rc=1, "cfa0f3d00 is a commit of the branch's own"; the body's head does not carry to the measured head
+RESULT B check-runs at cfa0f3d00: total_count=0 -- 0 of the 17 required contexts of ruleset 23698884 have RUN at the measured head
+RESULT C check-runs at 094f2c0d2: 40 runs / 38 names; latest-per-name non-green = fast (3.14) id 113892203905, pr-contract id 113894588362; ## Red checks says none
+RESULT C body stale on 8 measured points: head sha, merge base, autofixCommit narrative, diffstat, self-test count, new-check count, four mutant names, Forward-carry, and the 1,472p friction item
+RESULT D1 line 1024 backtick is command substitution: stderr "line 1024: AGENTS.md: command not found" on every run; the arm's printed name loses its '*'; isolated probe confirms bash attempts the first glob entry
+RESULT D1 the assertion is unaffected ($? expands before the label); MNL still reddens the arm; no instrument pins these labels
+RESULT D2 carry control says "all four carry"; planted reversion MCO reddens 6 checks from THREE fixtures -- H_PIN_BADMSG stays green via the generic ci: guard
+RESULT D2 the mutation 'no_literal' does not exist in the tree (only an unrelated local at tests/structure.py:2399); planted from its description it reproduces exactly, 2 red arms
+RESULT attacks A2/A3/A9 main-copy=CARRY fixed-copy=REFUSE -- the live hole on current main, and this PR closes it; each refusal on "the branch's own diff differs"
+RESULT attacks A1/A11 CARRY at both copies; A6/A7 REFUSE at both; A10 REFUSE at fixed (the A2 class, not a merge); A5c main CARRY / fixed REFUSE
+RESULT attacks A8 main CARRY / fixed CARRY -- unchanged from round 1, never reaches the narrowed branch; A4/A12 CARRY, the carried findings round 1 did not block on
+RESULT nullctl #2071 6aaba97f->7843b799 base-copy REFUSE / main-copy CARRY / head-copy CARRY
+RESULT nullctl #2070 3ecb86ad->a9ba0b88 base-copy REFUSE / main-copy CARRY / head-copy CARRY
+RESULT nullctl #2066 b511f9dc->d1538a73 base-copy REFUSE / main-copy CARRY / head-copy CARRY
+RESULT nullctl correction: the live pairs CARRY under main's current copy (#2059 landed bot_paths there); the REFUSE baseline is the pre-#2059 base copy, as round 1 established
+RESULT nullctl #2065 3c9fe53f->90b9e87f REFUSE at all three copies -- 74 commits, 4 first-parent, "merges a456c5ed, which is not on origin/main"
+RESULT nullctl #2010 d67d8a44->87849cd2 REFUSE at base-copy and head-copy
+RESULT mutants MNL 2 red / MAF 6 red / MCO 6 red / MEX 1 red; every plant one file, production-only, verified by diff, restored; worktree clean after
+RESULT mutant ME is moot: policy_lint.mjs is byte-identical at head and main (e5824f8da), the root parameter is not in the diff
+RESULT self-test head cfa0f3d00: 161 checks 0 failed rc=0, in its own worktree; main d0f085ffb: 153 checks 0 failed; delta +8 checks from 4 fixtures
+RESULT self-test trap discarded: extracted script copies outside their tree print 145/100, 153/17, 161/21 failed -- artefacts of extraction, not measurements
+RESULT structure.py main rc=0 head rc=0 outputs byte-identical -- no metric moved
+RESULT archscore --diff: dS +0.0000 NULL -- not regressed
+RESULT policy_lint --budgets head vs main byte-identical -- no cap moved, no raise is the owner's
+RESULT policy_lint plain head vs main byte-identical -- TOTAL 0 errors across 40 policy files
+RESULT VERSION, manifest.json, RELEASE_NOTES.md and every *_budgets.json absent from the diff
+RESULT claim files eda8856b9 / c683379da identical at head, merge base and current main -- the branch claims nothing
+RESULT new tracked file classified: dev/programme/ is on tests/closure.py's INERT list (line 250), with four tracked siblings; entities.py NOT run locally (needs homeassistant), so this one is read, not measured
+RESULT origin/main moved three times while I measured: d0f085ffb -> a9baf164c -> 92248338; main's app_approve.sh blob a07be5570 at all three, so no main-copy measurement shifted
 ```
 
-## What I confirmed of the body's claims, and what I could not
+## What the repair owes
 
-**Confirmed by my own commands:** the 157/0 vs 145/0 pair and the twelve new
-arms; the red-first at exactly 6 failed with the test-only splice (83
-insertions, 0 deletions — no production change, so the arms are not vacuous);
-both quoted figures re-derived to the digit (#2065's 74 commits and #2010's
-16965/16965 with 2 pure-context payload lines); `structure.py` PASSED with no
-metric moved; `VERSION`/manifest/notes untouched; the claim files byte-identical
-to the branch base; `autofixCommit`'s only pre-existing call site
-(`autofixChain`, line 5981) still passes one argument, so the new `root`
-parameter defaults and every existing caller is unchanged, and the plain and
-`--budgets` runs are byte-identical at both ends.
+1. Land the push so the PR carries `cfa0f3d00`, and let CI run — all 17 required
+   contexts must RUN at it, since `total_count=0` today.
+2. Re-take the **whole** body against `cfa0f3d00`, not the named subset: head
+   and merge base, the `autofixCommit` narrative (that file is untouched now),
+   the diffstat, 161 not 157 and which instrument prints it, the four mutant
+   names that no longer exist, `## Forward-carry` naming
+   `dev/programme/carries/carry-2075.json` and R9-RO-13, the `1,472p` friction
+   item, and `## Red checks` naming `fast (3.14)` and `pr-contract` with their
+   answer (ground 3's fix is the answer; step 11 still requires it written).
+3. Single-quote the arm label at line 1024.
+4. Correct the carry file's `control`: three of the four fixtures re-carry under
+   the coarse reversion (6 checks), and either name the `no_literal` plant
+   descriptively or land it as a mutation a reader can find.
 
-**Not confirmed, and I say so rather than reporting it as verified:**
-
-- The body's `157 checks` is the **macOS** count. CI's `instrument-self-tests`,
-  which is the required context, prints **159** at this head and **147** at the
-  base. The delta is 12 on both platforms, so "12 new arms" is sound; the
-  absolute number the body offers as re-runnable is not the number the lane
-  prints, and the body does not say it is platform-dependent.
-- The body says the #2010 context-shift question "is filed as a separate owner
-  question". It names no issue number and no destination, and `##
-  Forward-carry` says `none`, so there is nothing I can open. Step 8: not
-  verified. Since ground 4 shows a new path here *does* admit that class for one
-  subtree, this needs a real destination before the re-cut merges.
-- I did not re-run the mutation table or the gate: step 11 cites CI's heavy
-  runs, and `mutation` is green at the head. Per step 11 a green `mutation` does
-  not establish a green baseline, but the body's mutation proof is the script's
-  own `--self-test` mutants, which I re-planted myself (MA/MB/MC/ME above), so
-  nothing here turns on that lane's log. `tests/arch_score.py` and
-  `tests/structure.py` were both scoped out of CI's gate at this head; I ran
-  `structure.py` at both ends anyway (identical) and `score.py --diff` (NULL).
-- The fixer's disclosed ~2-minute wait on `tests/gate_lock.py`'s lease: I never
-  held the lease by hand and cannot corroborate the wait from here. What I can
-  say is that `tests/entities.py` — the one script CI's scoped gate ran — is
-  green in CI's own `fast (3.14)` log at 84s, so the lease wait cost nothing
-  that landed red.
-- The body's third friction item (the positional `sed -n '1,340p'` window) is
-  real and I verified the new bound is sound rather than merely larger: at the
-  head the three pinned strings sit at lines 370, 387 and 398, the `--self-test`
-  guard at 488 and `SELF=` at 497, so `1,472p` still stops before the self-test
-  section and no pin can be satisfied by a copy of itself in the fixtures. At
-  the base they sit at 279, 296 and 307 under `1,340p`. Not a metric moved: the
-  window is a bound the diff had to pay for, and the self-test count is the only
-  figure it moves.
-
-**One arm that tests less than it looks like.** `A8`/`H_OTHERBOT` — "the bot's
-identity and a real autofix shape, but not the ledger's pin message" — refuses
-in the self-test only because that fixture's `.gitattributes` names a single
-driver (`led.json`). Against main's **real** `.gitattributes`, `tests/closures.json`
-and both claim files are merge-driver files, so a `ci: re-record closures`
-commit passes `carry`'s pre-existing `git diff --quiet` check and never reaches
-`bot_commit` at all: `RESULT attack A8 main-copy CARRY / fixed-copy CARRY`. That
-is what the body itself says ("the other two autofix jobs stage merge-driver
-files already, so their commits pass `carry`'s existing `git diff` check and
-never reach here"), and my mutant `MA` shows the narrowing is load-bearing given
-the fixture. So the arm is a legitimate isolation of the gate, not a false
-claim — but the message narrowing is defence in depth that production does not
-currently reach, and a later seat should not read it as the thing standing
-between `carry` and the other two autofix jobs.
-
-**A carried finding, deliberately not a block.** A bot-identity `ci: pin killed
-mutants` commit may add a file under `tests/mutation_ledger/` with arbitrary
-content and `carry` accepts it: `A4` adds a row whose `killed_by` names
-`tests/THIS_SCRIPT_DOES_NOT_EXIST.py`, `A12` adds a non-JSON `exec.sh`. I did
-not block on this because it is not new semantics this PR invented: it is
-`autofixCommit`'s documented rule, which `checkPrBody` already trusts on the
-head a body names, and `policy_lint.mjs` states the residual risk and its
-reason in terms ("A forged pin commit is not re-checked: it can add a
-`killed_by` entry no run measured... every other required context still runs at
-the real head"). I read the downstream bound rather than assuming it:
-`completeness_problems` refuses a disposition whose `(anchor, old)` names no
-site the deterministic inventory generates, so a wholly invented row reddens
-`mutation` at the head; a row naming a REAL site with a bogus script does not —
-`pinned_script` only reorders drivers that exist, and `pin_reverification` is
-report-only on the nightly. So the surviving exposure is "a well-formed pin for
-a real site, unreviewed". That is worth a destination in the re-cut's body, not
-a fourth ground here, and ground 3's measurement says the same exposure is
-already live on main through #2059 with a wider path set.
-
-## What the re-cut owes
-
-1. Rebase onto `d8a4bd36f` and resolve `tools/pr/app_approve.sh` by
-   **tightening main's `bot_paths`/`bot_author` mechanism**, not by landing a
-   second `bot_commit` beside it. The measured value to carry over is
-   additions-only: main's copy currently CARRIES a bot pin commit that rewrites
-   or deletes an already-reviewed row (`A2`, `A3`, `A9` above), and this PR's
-   copy refuses all three.
-2. Delete the `.claude/workflows/policy_lint.mjs` fallback line. It is dead and
-   it is the whole of the `fast (3.14)` red.
-3. `":(exclude,literal)$p"` in the new exclusion list, with an arm that plants a
-   metacharacter in an added path — the arm my `N1`/`N2` pair above is, already
-   written and reproducible from `scripts/globctl.sh`.
-4. Name `fast (3.14)` and `pr-contract` in `## Red checks` with their answer,
-   and give the #2010 context-shift question a real destination, since a path in
-   this diff admits that class for one subtree.
-5. Re-take every figure in the body at the new head — including the self-test
-   counts, which are platform-dependent and should be quoted as CI's (147 -> 159)
-   rather than this seat's (145 -> 157). Steps 2-8 of `fixer.md` re-execute
-   after a rebase; ground 3 is exactly the case that rule exists for.
-
-Nothing here is a defect I could fix inside this review: grounds 1, 3 and 5 need
-the fixer's branch to move, and ground 2 needs the body to answer its own red.
+Items 3 and 4 are one line each. Nothing in this verdict asks for a different
+design — the narrowing is the right fix and my mutants show it is load-bearing
+on both of its branches.

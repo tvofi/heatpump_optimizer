@@ -1,0 +1,104 @@
+V = 6b77cd235bb9dfa0789c3cde4385a5dfb741166b
+M1 = a5097ec7e44bb33268605fefe6256a07c673390e (origin/main now here)
+########## A1-adds-fresh-row  (expect: CARRY)
+  head a7c7c5e09e233dad0bf82ee92745913bc39d1780  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/killed_by/newrow.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> a7c7c5e09e233dad0bf82ee92745913bc39d1780: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> a7c7c5e09e233dad0bf82ee92745913bc39d1780: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A1-adds-fresh-row expect=CARRY main-copy=CARRY fixed-copy=CARRY
+########## A2-modifies-reviewed-row  (expect: REFUSE)
+  head d905da397b0e211660ef162348e14b2d1dcf65f7  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff M	tests/mutation_ledger/killed_by/branchrow.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> d905da397b0e211660ef162348e14b2d1dcf65f7: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> d905da397b0e211660ef162348e14b2d1dcf65f7: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against 873e33173adbfa55bb2924e7ae2a00e0163423fb..d905da397b0e211660ef162348e14b2d1dcf65f7
+RESULT A2-modifies-reviewed-row expect=REFUSE main-copy=CARRY fixed-copy=REFUSE
+########## A3-modifies-main-row  (expect: REFUSE)
+  head 9f0a1347d6db059ea4165ffc3ca1cfcaa97e100b  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff M	tests/mutation_ledger/killed_by/mainrow.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 9f0a1347d6db059ea4165ffc3ca1cfcaa97e100b: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 9f0a1347d6db059ea4165ffc3ca1cfcaa97e100b: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against 873e33173adbfa55bb2924e7ae2a00e0163423fb..9f0a1347d6db059ea4165ffc3ca1cfcaa97e100b
+RESULT A3-modifies-main-row expect=REFUSE main-copy=CARRY fixed-copy=REFUSE
+########## A4-adds-row-bogus-killed_by  (expect: MEASURE)
+  head 5ba941601280522ad524151131e7c70033ba52fb  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/killed_by/bogus.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 5ba941601280522ad524151131e7c70033ba52fb: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 5ba941601280522ad524151131e7c70033ba52fb: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A4-adds-row-bogus-killed_by expect=MEASURE main-copy=CARRY fixed-copy=CARRY
+########## A5-adds-glob-named-file  (expect: MEASURE)
+  head b738a3ecdaefaefee2cb5a86c60e3febb580d797  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/*
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> b738a3ecdaefaefee2cb5a86c60e3febb580d797: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> b738a3ecdaefaefee2cb5a86c60e3febb580d797: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A5-adds-glob-named-file expect=MEASURE main-copy=CARRY fixed-copy=CARRY
+Auto-merging tests/mutation_ledger/ctx.json
+########## A5b-merge-then-no-glob  (expect: MEASURE)
+  head 1d78d768098142d3f92e6ced1fbe0fe45a12d36d  rev <rev@example.invalid> | Merge origin/main into fix
+    commit-diff M	tests/mutation_ledger/ctx.json
+  [main-copy]  rc=1  CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 1d78d768098142d3f92e6ced1fbe0fe45a12d36d: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..1d78d768098142d3f92e6ced1fbe0fe45a12d36d
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 1d78d768098142d3f92e6ced1fbe0fe45a12d36d: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..1d78d768098142d3f92e6ced1fbe0fe45a12d36d
+RESULT A5b-merge-then-no-glob expect=MEASURE main-copy=REFUSE fixed-copy=REFUSE
+########## A5c-merge-then-glob-pin  (expect: MEASURE)
+  head 200afdd66dc303ce423b67d49e0c44ce72555ae8  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/*
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 200afdd66dc303ce423b67d49e0c44ce72555ae8: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 200afdd66dc303ce423b67d49e0c44ce72555ae8: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..200afdd66dc303ce423b67d49e0c44ce72555ae8
+RESULT A5c-merge-then-glob-pin expect=MEASURE main-copy=CARRY fixed-copy=REFUSE
+########## A6-forged-identity  (expect: REFUSE)
+  head 296cdcc7f2e89d04f6fb3c1f1ddc9a81b2c69001  rev <rev@example.invalid> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/killed_by/newrow.json
+  [main-copy]  rc=1  CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 296cdcc7f2e89d04f6fb3c1f1ddc9a81b2c69001: 296cdcc7f2e89d04f6fb3c1f1ddc9a81b2c69001 is authored by rev@example.invalid, not the writer of its subject (ci: pin killed mutants)
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 296cdcc7f2e89d04f6fb3c1f1ddc9a81b2c69001: 296cdcc7f2e89d04f6fb3c1f1ddc9a81b2c69001 is authored by rev@example.invalid, not the writer of its subject (ci: pin killed mutants)
+RESULT A6-forged-identity expect=REFUSE main-copy=REFUSE fixed-copy=REFUSE
+########## A7-reaches-prod-code  (expect: REFUSE)
+  head feb4a8acc282f3739b5ad73453e84a431ec2aa48  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff M	custom_components/hpo/coordinator.py
+    commit-diff A	tests/mutation_ledger/killed_by/newrow.json
+  [main-copy]  rc=1  CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> feb4a8acc282f3739b5ad73453e84a431ec2aa48: feb4a8acc282f3739b5ad73453e84a431ec2aa48 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> feb4a8acc282f3739b5ad73453e84a431ec2aa48: feb4a8acc282f3739b5ad73453e84a431ec2aa48 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT A7-reaches-prod-code expect=REFUSE main-copy=REFUSE fixed-copy=REFUSE
+########## A8-other-autofix-message  (expect: REFUSE)
+  head f11047b9fc3563e134bcdf46913c30b0f20bf171  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: re-record closures
+    commit-diff M	tests/closures.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> f11047b9fc3563e134bcdf46913c30b0f20bf171: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> f11047b9fc3563e134bcdf46913c30b0f20bf171: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A8-other-autofix-message expect=REFUSE main-copy=CARRY fixed-copy=CARRY
+########## A9-deletes-reviewed-row  (expect: REFUSE)
+  head 6c8b22cee2515786c8dfacf63fe53871445d249a  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff D	tests/mutation_ledger/killed_by/branchrow.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 6c8b22cee2515786c8dfacf63fe53871445d249a: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> 6c8b22cee2515786c8dfacf63fe53871445d249a: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against 873e33173adbfa55bb2924e7ae2a00e0163423fb..6c8b22cee2515786c8dfacf63fe53871445d249a
+RESULT A9-deletes-reviewed-row expect=REFUSE main-copy=CARRY fixed-copy=REFUSE
+Auto-merging tests/mutation_ledger/ctx.json
+########## A10-pin-commit-as-merge  (expect: MEASURE)
+  head f22d580d2e7b1aebb9aeb5a9a0afcb7ec2446c10  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff M	tests/mutation_ledger/ctx.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> f22d580d2e7b1aebb9aeb5a9a0afcb7ec2446c10: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=1 CARRY: no 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> f22d580d2e7b1aebb9aeb5a9a0afcb7ec2446c10: the branch's own diff differs: 873e33173adbfa55bb2924e7ae2a00e0163423fb..6b77cd235bb9dfa0789c3cde4385a5dfb741166b against a5097ec7e44bb33268605fefe6256a07c673390e..f22d580d2e7b1aebb9aeb5a9a0afcb7ec2446c10
+RESULT A10-pin-commit-as-merge expect=MEASURE main-copy=CARRY fixed-copy=REFUSE
+########## A11-two-chained-pins  (expect: CARRY)
+  head d38baed41ed3e37f23dfb9aa99faa4492e335a38  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/killed_by/r2.json
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> d38baed41ed3e37f23dfb9aa99faa4492e335a38: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> d38baed41ed3e37f23dfb9aa99faa4492e335a38: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A11-two-chained-pins expect=CARRY main-copy=CARRY fixed-copy=CARRY
+########## A12-adds-nonrow-content  (expect: MEASURE)
+  head e51b286a4d2902bcf280abd0fff31ca129295749  github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> | ci: pin killed mutants
+    commit-diff A	tests/mutation_ledger/killed_by/exec.sh
+  [main-copy]  rc=0  CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> e51b286a4d2902bcf280abd0fff31ca129295749: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+  [fixed-copy] rc=0 CARRY: yes 6b77cd235bb9dfa0789c3cde4385a5dfb741166b -> e51b286a4d2902bcf280abd0fff31ca129295749: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT A12-adds-nonrow-content expect=MEASURE main-copy=CARRY fixed-copy=CARRY
+
+=== is a literal file named '*' accepted as a ledger row, and does its
+    pathspec exclude the WHOLE subtree? (measured, not assumed) ===
+  paths the glob pin commit ADDED (this is exactly what bx collects):
+    tests/mutation_ledger/*
+  files present under tests/mutation_ledger/ at 6b77cd235bb9dfa0789c3cde4385a5dfb741166b:
+    tests/mutation_ledger/ctx.json
+    tests/mutation_ledger/killed_by/branchrow.json
+    tests/mutation_ledger/killed_by/mainrow.json
+  of those, how many survive the pathspec ':(exclude)tests/mutation_ledger/*'?
+    (answered by the direct probe below, which is the measurement that matters)
+  direct probe -- a change to a DEEP ledger path, with and without the glob:
+    no glob   -> visible paths: tests/mutation_ledger/ctx.json tests/mutation_ledger/killed_by/branchrow.json 
+    with glob -> visible paths: 
+RESULT glob-pathspec: an exclude of 'tests/mutation_ledger/*' hides 2 -> 0 visible ledger path(s)
