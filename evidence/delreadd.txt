@@ -1,0 +1,45 @@
+# THE BLOCK GROUND: delete-then-readd of a reviewed ledger row across two bot commits
+# fixture repo: /tmp/r4-fx/clone (reviewer-built, harness/build_fixtures.sh)
+# verdict head V = 46811fe11132c7b607922840659be4004b2040a9
+
+## V's own reviewed content at tests/mutation_ledger/killed_by/row.json
+    {"anchor":"tests/mutation_ledger/killed_by/row.json","killed_by":"t.py","old":"o","reason":"reviewed"}
+
+## DELREADD = 85e16f0563e3a824db3ec4002aee95c42c7cf070 : the range V..DELREADD, first-parent
+    85e16f0563e3a824db3ec4002aee95c42c7cf070 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> ci: pin killed mutants
+    18e42dad541ac4c72e858dbec658bcfb034b9c97 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> ci: pin killed mutants
+
+## what that range did to the reviewed row (net)
+    M	tests/mutation_ledger/killed_by/row.json
+    content at DELREADD: {"anchor":"tests/mutation_ledger/killed_by/row.json","killed_by":"t.py","old":"o","reason":"delete then readd"}
+
+## each commit's own view (what carry's per-commit accumulation sees)
+    commit 18e42dad541ac4c72e858dbec658bcfb034b9c97
+        D	tests/mutation_ledger/killed_by/row.json
+    commit 85e16f0563e3a824db3ec4002aee95c42c7cf070
+        A	tests/mutation_ledger/killed_by/row.json
+
+## carry's answer at the PR head, with the reason (a zsh `$V:t` modifier ate the path in the first take; re-taken with git show <rev>:<path>)
+    CARRY: yes 46811fe11132c7b607922840659be4004b2040a9 -> 85e16f0563e3a824db3ec4002aee95c42c7cf070: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+    rc=0
+
+## the control that isolates it: DELADD = 8665ba1a7be203d7969013dd7bcf6a0d443d1183 (delete the reviewed row, then add a DIFFERENT row)
+    8665ba1 ci: pin killed mutants
+    5288426 ci: pin killed mutants
+    A	tests/mutation_ledger/killed_by/other.json
+    D	tests/mutation_ledger/killed_by/row.json
+    CARRY: no 46811fe11132c7b607922840659be4004b2040a9 -> 8665ba1a7be203d7969013dd7bcf6a0d443d1183: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..8665ba1a7be203d7969013dd7bcf6a0d443d1183
+
+## the perturbation that closes it: vbase (one added line inside the same mechanism)
+    207c207,209
+    <               case "$p" in "$e"/*) bots="$bots$p"$'\n' ;; esac
+    ---
+    >               case "$p" in "$e"/*) ;; *) continue ;; esac
+    >               git cat-file -e "$v:$p" 2>/dev/null && continue
+    >               bots="$bots$p"$'\n'
+
+## vbase's answer on the same pair
+    CARRY: no 46811fe11132c7b607922840659be4004b2040a9 -> 85e16f0563e3a824db3ec4002aee95c42c7cf070: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..85e16f0563e3a824db3ec4002aee95c42c7cf070
+
+## and vbase passes the fixer's OWN full self-test unchanged:
+    app_approve self-test: 161 checks, 0 failed

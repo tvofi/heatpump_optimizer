@@ -1,0 +1,74 @@
+# carry matrix, reviewer-built fixtures at /tmp/r4-fx (heads.env below)
+# copies/main_app_approve.sh = git show origin/main:tools/pr/app_approve.sh (23d354970; its carry() is byte-identical to f5fb67077's)
+# copies/head_app_approve.sh = the head's own tools/pr/app_approve.sh at 250c1564795a187334205f006d7bb055163fb102
+# copies/mut_no_literal.sh, mut_no_narrow.sh = the body's two named mutants (harness/make_mutants.py)
+# copies/mut_vbase.sh = the REVIEWER's sound variant: an added path is excluded only if it did not exist at the verdict head
+
+V=46811fe11132c7b607922840659be4004b2040a9
+A2=1d962e279b3f4ae6ed161acda4a0850b659da83e
+A3=18e42dad541ac4c72e858dbec658bcfb034b9c97
+A9=743286dc6eefa991afc0991dd9d62038bac0ab36
+OKADD=87f66830da4fc38f40fa8417cfbb3d313ce88a90
+OKGLOB=7b2e01c3a840a47bee1c518a4b1d524642c10622
+DELREADD=85e16f0563e3a824db3ec4002aee95c42c7cf070
+BUDGET=1c3d844637e8eaf6372de71612f406d78d1719c7
+OUTSIDE=e471f4a9e43ab870661e187bab13a8daa9cc5fe4
+FORGE=5b546cf31940628845b463853281c617ac51f708
+CLONE=/tmp/r4-fx/clone
+DELADD=8665ba1a7be203d7969013dd7bcf6a0d443d1183
+
+RESULT MAIN       A2        CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       A3        CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       A9        CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       DELREADD  CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       DELADD    CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       BUDGET    CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       OUTSIDE   REFUSE rc=1 :: e471f4a9e43ab870661e187bab13a8daa9cc5fe4 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT MAIN       FORGE     REFUSE rc=1 :: 5b546cf31940628845b463853281c617ac51f708 is authored by seat@e, not the writer of its subject (ci: pin killed mutants)
+RESULT MAIN       OKADD     CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+RESULT MAIN       OKGLOB    CARRY  rc=0 :: only automatic merges from origin/main or ci: commits, and the branch's own diff compares equal
+
+RESULT HEAD       A2        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..1d962e279b3f4ae6ed161acda4a0850b659da83e
+RESULT HEAD       A3        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..18e42dad541ac4c72e858dbec658bcfb034b9c97
+RESULT HEAD       A9        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..743286dc6eefa991afc0991dd9d62038bac0ab36
+RESULT HEAD       DELREADD  CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT HEAD       DELADD    REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..8665ba1a7be203d7969013dd7bcf6a0d443d1183
+RESULT HEAD       BUDGET    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT HEAD       OUTSIDE   REFUSE rc=1 :: e471f4a9e43ab870661e187bab13a8daa9cc5fe4 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT HEAD       FORGE     REFUSE rc=1 :: 5b546cf31940628845b463853281c617ac51f708 is authored by seat@e, not the writer of its subject (ci: pin killed mutants)
+RESULT HEAD       OKADD     CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT HEAD       OKGLOB    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+
+RESULT no_literal A2        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..1d962e279b3f4ae6ed161acda4a0850b659da83e
+RESULT no_literal A3        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..18e42dad541ac4c72e858dbec658bcfb034b9c97
+RESULT no_literal A9        CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_literal DELREADD  CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_literal DELADD    REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..8665ba1a7be203d7969013dd7bcf6a0d443d1183
+RESULT no_literal BUDGET    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_literal OUTSIDE   REFUSE rc=1 :: e471f4a9e43ab870661e187bab13a8daa9cc5fe4 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT no_literal FORGE     REFUSE rc=1 :: 5b546cf31940628845b463853281c617ac51f708 is authored by seat@e, not the writer of its subject (ci: pin killed mutants)
+RESULT no_literal OKADD     CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_literal OKGLOB    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+
+RESULT no_narrow  A2        CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  A3        CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  A9        CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  DELREADD  CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  DELADD    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  BUDGET    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  OUTSIDE   REFUSE rc=1 :: e471f4a9e43ab870661e187bab13a8daa9cc5fe4 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT no_narrow  FORGE     REFUSE rc=1 :: 5b546cf31940628845b463853281c617ac51f708 is authored by seat@e, not the writer of its subject (ci: pin killed mutants)
+RESULT no_narrow  OKADD     CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT no_narrow  OKGLOB    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+
+RESULT vbase      A2        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..1d962e279b3f4ae6ed161acda4a0850b659da83e
+RESULT vbase      A3        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..18e42dad541ac4c72e858dbec658bcfb034b9c97
+RESULT vbase      A9        REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..743286dc6eefa991afc0991dd9d62038bac0ab36
+RESULT vbase      DELREADD  REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..85e16f0563e3a824db3ec4002aee95c42c7cf070
+RESULT vbase      DELADD    REFUSE rc=1 :: the branch's own diff differs: 879a5a67747bbd9ddb13a20774b2670c0b06be7b..46811fe11132c7b607922840659be4004b2040a9 against 879a5a67747bbd9ddb13a20774b2670c0b06be7b..8665ba1a7be203d7969013dd7bcf6a0d443d1183
+RESULT vbase      BUDGET    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT vbase      OUTSIDE   REFUSE rc=1 :: e471f4a9e43ab870661e187bab13a8daa9cc5fe4 is a ci: commit that changes files outside main's merge-driver files and the paths of its subject
+RESULT vbase      FORGE     REFUSE rc=1 :: 5b546cf31940628845b463853281c617ac51f708 is authored by seat@e, not the writer of its subject (ci: pin killed mutants)
+RESULT vbase      OKADD     CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+RESULT vbase      OKGLOB    CARRY  rc=0 :: only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+
