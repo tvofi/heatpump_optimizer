@@ -53,7 +53,7 @@
 # records which lines ran whatever the fixture comparison decides.
 #
 # Usage (from the worktree root):
-#   W5P_WORK=$(mktemp -d) tools/audit/w5-partition/coverage_tree.sh [stage]
+#   W5P_WORK=$(mktemp -d) tools/coverage/coverage_tree.sh [stage]
 # Nothing is written inside the worktree: W5P_OUT defaults under W5P_WORK, so a
 # measurement leaves no untracked evidence tree behind to go stale in the repo.
 #     stage=fast   every default-gate script except the four end-to-end ones and stress
