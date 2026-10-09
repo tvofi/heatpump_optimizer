@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.from_dict GUARD_OFF ec8fe83f",
+  "killed_by": "tests/features.py",
+  "old": "            if np.isfinite(drawn) and np.isfinite(asked) and drawn > RUNNING_FLOOR_KW and asked >= 0.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed` against 4dbe5aace7440d0a7d43a249892fc63da890338c: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
