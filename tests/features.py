@@ -61315,4 +61315,379 @@ for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"
 
 
 
+R.section("early cut-off — a warm room stops a space-heating pump inside the interval")
+
+from harness import EagerHass as _EcEager, FakeEntry as FakeEntry_ec  # noqa: E402
+from heatpump_optimizer import early_cutoff as _ec  # noqa: E402
+from heatpump_optimizer import boost as _ec_boost_mod  # noqa: E402
+from heatpump_optimizer import diagnostics as _ec_diag  # noqa: E402
+from heatpump_optimizer.const import MODE_COMFORT as _EC_COMFORT  # noqa: E402
+from homeassistant.util import dt as _ec_dt  # noqa: E402
+
+_EC_SW = "switch.heat_pump"
+_EC_ROOM = "sensor.indoor"
+
+
+class _EcHass(_EcEager, FakeHass):
+    """Runs the spawned switch write to completion, so the call is observable."""
+
+
+def _ec_plan(duties, room=21.0, measured=None):
+    now = _ec_dt.now()
+    t0 = now.replace(minute=(now.minute // 15) * 15, second=0, microsecond=0)
+    plan = _PaNS(
+        timestamps=[t0 + timedelta(minutes=15 * i) for i in range(len(duties))],
+        power_schedule=[1.5 if c in "sb" else 0.0 for c in duties],
+        dhw_power_schedule=[2.0 if c in "db" else 0.0 for c in duties],
+        room_temp_trajectory=[room] * (len(duties) + 1),
+    )
+    if measured is not None:  # the solve's own starting point
+        plan.room_temp_trajectory[0] = measured
+    return plan
+
+
+class _EcCoord(_PaCoord):
+    def __init__(self, duties="ss", planned=21.0, switch=_EC_SW, on_minutes=30.0):
+        super().__init__(_PA_TUYA, duties=duties)
+        self.hass = _EcHass({
+            switch or _EC_SW: FakeState(
+                "on", last_updated=_ec_dt.now() - timedelta(minutes=on_minutes)),
+            _EC_ROOM: FakeState("21.0", unit="°C"),
+        })
+        self._config = {
+            "indoor_temp_entity": _EC_ROOM,
+            "optimization_interval": 30,
+        }
+        if switch:
+            self._config["heat_pump_switch_entity"] = switch
+        self._optimization_result = _ec_plan(duties, planned)
+        self._current_action = {"heat_pump_on": True}
+        self._thermal_params = _PaNS(
+            dhw_enabled=True, dhw_min_temp=40.0, two_zone_enabled=False, dhw_setpoint=48.0)
+        self._current_state = _PaNS(
+            dhw_temperature=50.0, lower_floor_temperature=21.0, outdoor_temperature=2.0)
+        self.entry = FakeEntry_ec(entry_id=f"ec{next(_PA_IDS)}")
+        self.opt = _PaNS(get_comfort_temp=lambda hour, when=None: 21.0)
+
+    def arm(self, at=None):
+        _pa_aio.run(_ec.arm(_ec.state_for(self), self.arbiter_inputs,
+                            _ec_boost_mod.held_for(self), self.opt, self.entry.async_on_unload, at))
+
+    def room(self, value):
+        ev = _PaNS(data={"new_state": FakeState(str(value), unit="°C")})
+        for ids, action in getattr(self.hass, "state_listeners", []):
+            if _EC_ROOM in ids:
+                action(ev)
+
+    def offs(self):
+        return [c for c in self.hass.services.calls if c[1] == "turn_off"]
+
+
+def _ec_fire(value, **kw):
+    c = _EcCoord(**kw)
+    c.arm()
+    c.room(value)
+    return c
+
+
+# The trigger: past target + margin on a space-only step, one turn_off.
+_ec_hot = _ec_fire(22.0)
+R.check(
+    "a room past target + margin on a space step switches the pump off once",
+    _ec_hot.offs() == [("switch", "turn_off", {"entity_id": _EC_SW})],
+    f"{_ec_hot.hass.services.calls}",
+)
+_ec_view = _ec.diagnostics_view(_ec.state_for(_ec_hot))
+_ec_last = _ec_view["last"] or {}
+R.check(
+    "the cut-off is recorded with its reading and threshold",
+    _ec_last.get("room_c") == 22.0 and _ec_last.get("threshold_c") == 21.5
+    and _ec_view["count"] == 1 and _ec_view["interval_cut"],
+    f"{_ec_view}",
+)
+
+# The margin, both sides of the line: 21.5 holds, 21.6 cuts.
+R.check(
+    "a room exactly at target + 0.5 K does not cut (the margin is inclusive)",
+    _ec_fire(21.5).offs() == [],
+)
+R.check(
+    "a room 0.1 K past target + 0.5 K cuts",
+    len(_ec_fire(21.6).offs()) == 1,
+)
+R.check("the margin is 0.5 K", _ec.MARGIN_K == 0.5)
+
+# Null control: below target never cuts, whatever else holds.
+_ec_cold = [_ec_fire(v).offs() for v in (18.0, 20.9, 21.0, 21.4)]
+R.check(
+    "null control: a room at or below target never cuts the pump",
+    _ec_cold == [[], [], [], []],
+    f"{_ec_cold}",
+)
+
+# The plan's own pre-heat raises the threshold: 22.8 against a planned 22.5.
+R.check(
+    "a room under the plan's own pre-heat + margin is not cut",
+    _ec_fire(22.8, planned=22.5).offs() == [],
+)
+R.check(
+    "past the plan's own pre-heat + margin it is cut",
+    len(_ec_fire(23.1, planned=22.5).offs()) == 1,
+)
+# The trajectory's first point is the room the solve measured, not a plan:
+# a room already warm at the solve must not lift its own threshold.
+_ec_warm0 = _EcCoord()
+_ec_warm0._optimization_result = _ec_plan("ss", 21.0, measured=22.5)
+_ec_warm0.arm()
+_ec_warm0.room(22.4)
+R.check(
+    "a room warm at the solve is judged against the plan's predicted end, not itself",
+    len(_ec_warm0.offs()) == 1,
+    f"{_ec_warm0.hass.services.calls}",
+)
+
+# Short cycles: minimum on-time, minimum off-time, once per cycle.
+_ec_young = _ec_fire(22.0, on_minutes=5.0)
+R.check(
+    "a pump on for less than MIN_ON is not cut",
+    _ec_young.offs() == [] and _ec.state_for(_ec_young).last_held == "min_on",
+    f"{_ec.state_for(_ec_young).last_held}",
+)
+_ec_late = _EcCoord()
+_ec_late.arm(_ec_dt.now() - timedelta(minutes=25))
+_ec_late.room(22.0)
+R.check(
+    "with less than MIN_OFF to the next cycle the pump is not cut",
+    _ec_late.offs() == [] and _ec.state_for(_ec_late).last_held == "min_off",
+    f"{_ec.state_for(_ec_late).last_held}",
+)
+_ec_twice = _ec_fire(22.0)
+_ec_twice.room(22.4)
+R.check(
+    "a second warm reading in the same cycle writes nothing more",
+    len(_ec_twice.offs()) == 1,
+    f"{_ec_twice.offs()}",
+)
+_ec_twice.arm()
+_ec_twice.room(22.4)
+R.check(
+    "the next cycle resumes: its arm clears the cut and a warm room may cut again",
+    len(_ec_twice.offs()) == 2,
+    f"{_ec_twice.offs()}",
+)
+_ec_unknown = _EcCoord()
+_ec_unknown.hass.states.get(_EC_SW).last_changed = None
+_ec_unknown.arm()
+_ec_unknown.room(22.0)
+R.check(
+    "a switch with no change stamp is an unknown run and is not cut",
+    _ec_unknown.offs() == [],
+)
+
+# Hot water and the other controllers are exempt.
+for _ec_label, _ec_duties in (("hot-water-only", "dd"), ("both", "bb"), ("idle", "--")):
+    R.check(
+        f"a {_ec_label} step is never cut, however warm the room",
+        _ec_fire(25.0, duties=_ec_duties).offs() == [],
+    )
+_ec_tank = _EcCoord()
+_ec_tank._current_state.dhw_temperature = 35.0
+_ec_tank.arm()
+_ec_tank.room(25.0)
+R.check("a tank below its minimum exempts the step", _ec_tank.offs() == [])
+_ec_comfort = _EcCoord()
+_ec_comfort._mode = _EC_COMFORT
+_ec_comfort.arm()
+_ec_comfort.room(25.0)
+R.check("a non-plan mode (comfort) is never cut", _ec_comfort.offs() == [])
+_ec_stale = _EcCoord()
+_ec_stale.stale = True
+_ec_stale.arm()
+_ec_stale.room(25.0)
+R.check("a stale plan is never cut", _ec_stale.offs() == [])
+_ec_off = _EcCoord()
+_ec_off._current_action = {"heat_pump_on": False}
+_ec_off.arm()
+_ec_off.room(25.0)
+R.check("a step the plan has off is never cut", _ec_off.offs() == [])
+_ec_defrost = _EcCoord()
+_ec_defrost._config["heat_pump_defrost_entity"] = "binary_sensor.defrost"
+_ec_defrost.hass.states.set("binary_sensor.defrost", FakeState("on"))
+_ec_defrost.arm()
+_ec_defrost.room(25.0)
+R.check("a running defrost is never cut", _ec_defrost.offs() == [])
+_ec_boost = _EcCoord()
+_ec_boost_mod.held_for(_ec_boost).until[_ec_boost_mod.CHANNEL_DHW] = (
+    _ec_dt.now() + timedelta(hours=1))
+_ec_boost.arm()
+_ec_boost.room(25.0)
+R.check("a hot-water boost is never cut", _ec_boost.offs() == [])
+
+# An early refresh (a mode change, a manual plan, a button) re-arms and would
+# write the plan's "on" a minute after the cut: allow_on holds it off for
+# MIN_OFF, and lets it through after, or on a step the cut-off would not touch.
+_ec_hold = _ec_fire(22.0)
+_ec_cut_t = _ec.state_for(_ec_hold).cut_at
+_ec_hold.arm()
+R.check(
+    "an early refresh inside MIN_OFF of a cut keeps the pump off",
+    _ec_cut_t is not None
+    and _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + timedelta(minutes=1)) is False,
+    f"cut_at {_ec_cut_t}",
+)
+R.check(
+    "past MIN_OFF the plan's on goes through, and an off is never turned on",
+    _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + _ec.MIN_OFF) is True
+    and _ec.allow_on(_ec.state_for(_ec_hold), False, _ec_cut_t + timedelta(minutes=1)) is False,
+)
+_ec_boost_mod.held_for(_ec_hold).until[_ec_boost_mod.CHANNEL_SPACE] = (
+    _ec_dt.now() + timedelta(hours=1))
+R.check(
+    "a boost set by that refresh is let through at once",
+    _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + timedelta(minutes=1)) is True,
+)
+R.check(
+    "null control: with no cut on record allow_on returns the plan's own value",
+    _ec.allow_on(_ec.CutoffState(), True) is True and _ec.allow_on(_ec.CutoffState(), False) is False,
+)
+# The cut goes through the switch's one writer, routed by the entity's domain.
+_ec_ib = _ec_fire(22.0, switch="input_boolean.heat_pump")
+R.check(
+    "the cut-off routes by the target's domain through pump_arbiter.switch_supply",
+    _ec_ib.offs() == [("input_boolean", "turn_off", {"entity_id": "input_boolean.heat_pump"})],
+    f"{_ec_ib.hass.services.calls}",
+)
+
+# The same hold through the real cycle: a cut on record, then the coordinator's
+# own _apply_action inside MIN_OFF (an early refresh) must not turn the switch
+# on; past MIN_OFF the same cycle does. Reverting the coordinator's allow_on
+# line to the plan's raw value turns the first check red.
+def _ec_cycle_writes(minutes_since_cut):
+    hass = FakeHass({"switch.hp": FakeState("off"), "sensor.indoor": FakeState("22.0")})
+    coord = _Coord(hass, _FakeEntry(data={
+        "tibber_token": "x", "heat_pump_switch_entity": "switch.hp",
+        "indoor_temp_entity": "sensor.indoor"}))
+    now = _ec_dt.now()
+    coord._optimization_result = _ec_plan("ss")
+    coord._current_action = {"heat_pump_on": True, "displace_value": 0.0}
+    _asyncio.run(coord._apply_action())  # the scheduled cycle that armed
+    held = _ec.state_for(coord)
+    held.cut_at = _ec_dt.as_utc(now) - timedelta(minutes=minutes_since_cut)
+    hass.services.calls.clear()
+    _asyncio.run(coord._apply_action())  # the early refresh
+    return [c[:2] for c in hass.services.calls if (c[2] or {}).get("entity_id") == "switch.hp"]
+
+
+_ec_cyc_in = _ec_cycle_writes(1)
+_ec_cyc_out = _ec_cycle_writes(11)
+R.check(
+    "the coordinator's cycle inside MIN_OFF of a cut does not turn the switch on",
+    ("switch", "turn_on") not in _ec_cyc_in,
+    f"{_ec_cyc_in}",
+)
+R.check(
+    "null control: the same cycle past MIN_OFF turns it on as the plan says",
+    _ec_cyc_out == [("switch", "turn_on")],
+    f"{_ec_cyc_out}",
+)
+
+# The arbiter does not switch the pump back on inside the cycle: with the
+# supply reading off after the cut, its next tick writes nothing at all.
+_ec_arb = _ec_fire(22.0)
+_ec_arb._config.update({
+    "pump_duty_mode": "control",
+    "heat_pump_mode_entity": "select.pump_mode",
+    "dhw_setpoint_entity": "number.dhw_set",
+    "space_setpoint_entity": "number.water_set",
+})
+_ec_arb.hass.states.set("select.pump_mode", FakeState(
+    "Heating + DHW", attributes={"options": list(_PA_TUYA)}))
+_ec_arb.hass.states.set("number.dhw_set", FakeState("53", attributes={"min": 40, "max": 63}))
+_ec_arb.hass.states.set("number.water_set", FakeState("53", attributes={"min": 25, "max": 63}))
+_ec_arb.hass.states.set(_EC_SW, FakeState("off"))
+_ec_arb.hass.services.calls.clear()
+_pa_aio.run(_pa.apply(_ec_arb, _ec_dt.now()))
+R.check(
+    "after a cut the arbiter's next tick writes nothing, the switch least of all",
+    _ec_arb.hass.services.calls == [],
+    f"{_ec_arb.hass.services.calls}",
+)
+# Control for that check: the same tick with the supply on does write.
+_ec_arb.hass.states.set(_EC_SW, FakeState("on"))
+_pa_aio.run(_pa.apply(_ec_arb, _ec_dt.now()))
+R.check(
+    "control: with the supply on, the same arbiter tick writes its slots",
+    _ec_arb.hass.services.calls != []
+    and all(c[1] != "turn_on" for c in _ec_arb.hass.services.calls),
+    f"{_ec_arb.hass.services.calls}",
+)
+
+# Wiring: listens only where a switch and a thermometer exist; drops on unload.
+_ec_none = _EcCoord(switch=None)
+_ec_none.arm()
+R.check(
+    "no switch configured: no listener is registered",
+    not getattr(_ec_none.hass, "state_listeners", []),
+)
+_ec_wired = _EcCoord()
+_ec_wired.arm()
+_ec_wired.arm()
+R.check(
+    "the room listener is registered once on the room thermometer",
+    [ids for ids, _a in _ec_wired.hass.state_listeners] == [[_EC_ROOM]],
+    f"{_ec_wired.hass.state_listeners}",
+)
+for _ec_fn in list(_ec_wired.entry._on_unload):
+    _ec_fn()
+R.check(
+    "unloading the entry drops the listener",
+    _ec.state_for(_ec_wired).unsub is None,
+)
+
+# The learners: a cut interval is one _learning_frozen reason, held for the
+# cycle that was cut and the one after it, then released.
+# Switch plus set-point and no meter: the unmetered tail freeze applies here.
+_ec_learn = _Coord(_FakeHass({}), _FakeEntry(data={
+    "tibber_token": "x", "heat_pump_switch_entity": "switch.hp",
+    "space_setpoint_entity": "number.flow"}))
+_ec_lstate = _ec.state_for(_ec_learn)
+_ec_free = _ec_learn._learning_frozen()
+_ec_lstate.cut_this_cycle = True
+_ec_cut_reason = _ec_learn._learning_frozen()
+_ec_lstate.cut_last_cycle, _ec_lstate.cut_this_cycle = True, False
+_ec_next_reason = _ec_learn._learning_frozen()
+_ec_lstate.cut_last_cycle = False
+# Order (slab-observer seat's finding): the cut reason ranks ahead of the
+# unmetered tail freeze. This install has no meter, so the tail fires; the
+# slab observer ignores that one reason and would otherwise correct across a cut.
+from heatpump_optimizer.coordinator import _tail_freeze as _ec_tail  # noqa: E402
+R.check(
+    "the cut reason outranks the unmetered tail freeze, which this install trips",
+    _ec_tail(_ec_learn) is not None and _ec_free == _ec_tail(_ec_learn)
+    and _ec_cut_reason == _ec.FREEZE_CUT,
+    f"tail {_ec_tail(_ec_learn)!r} free {_ec_free!r} cut {_ec_cut_reason!r}",
+)
+R.check(
+    "a cut interval freezes the learners under the one early_cutoff reason",
+    _ec_free != _ec.FREEZE_CUT and _ec_cut_reason == _ec.FREEZE_CUT
+    and _ec_next_reason == _ec.FREEZE_CUT
+    and _ec_learn._learning_frozen() == _ec_free,
+    f"free {_ec_free!r} cut {_ec_cut_reason!r} next {_ec_next_reason!r}",
+)
+
+# The real cycle arms the cut-off, and diagnostics carry its view.
+_ec_real = _Coord(_FakeHass({}), _FakeEntry(data={"tibber_token": "x"}))
+_ec_real._current_action = {"heat_pump_on": True}
+_asyncio.run(_ec_real._apply_action())
+R.check(
+    "the coordinator's cycle arms the cut-off (a new cycle end is set)",
+    _ec.state_for(_ec_real).cycle_end is not None,
+)
+R.check(
+    "diagnostics expose the cut-off view",
+    _ec_diag._coordinator_snapshot(_ec_real).get("early_cutoff", {}).get("margin_k") == 0.5,
+    f"{_ec_diag._coordinator_snapshot(_ec_real).get('early_cutoff')}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

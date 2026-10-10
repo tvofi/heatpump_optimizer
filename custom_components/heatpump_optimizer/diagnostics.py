@@ -17,28 +17,20 @@ useless for the support it exists for: the entity ids, which say which
 sensors the install was reading; the MQTT topics, which are the usual cause
 of an ECL110 control fault; and the building and tariff parameters, which are
 the thermal model a "my plan is wrong" report is about. None of those is
-pre-filled from anything private.
-
-``config`` is the live configuration -- ``entry.options`` laid over
-``entry.data``, exactly what the coordinator runs on -- under the same
-redaction. It used to be ``entry.data`` alone, so a live install's dump showed
-setup-time limits where the running ones had been changed through options.
-The setup data stays beside it as ``config_setup``, and
-``config_overridden_by_options`` names the keys whose live value is not the
-setup one.
+pre-filled from anything private. ``entry.options`` is still emitted as key
+names only.
 """
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components.diagnostics import REDACTED, async_redact_data
 from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 
-from . import debugger, draw_range, pump_arbiter
+from . import debugger, early_cutoff, pump_arbiter
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN
-from .thermal_model import probe_install
 from .coordinator import (
     CoordinatorDiagnostics,
     HeatPumpOptimizerConfigEntry,
@@ -90,19 +82,6 @@ def _coarsen(value: Any) -> Any:
     return value
 
 
-def config_view(
-    data: Mapping[str, Any], options: Mapping[str, Any]
-) -> dict[str, Any]:
-    """The live config, the setup data under it, and what options changed."""
-    return {
-        "config": {**data, **options},
-        "config_setup": dict(data),
-        "config_overridden_by_options": sorted(
-            k for k in options if k not in data or options[k] != data[k]
-        ),
-    }
-
-
 def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]:
     """The runtime state a bug report actually needs.
 
@@ -137,26 +116,15 @@ def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]
     }
     if state:
         snap.update(state.learner_summaries)
-    snap.update({key: _never_breaks(view, coord) for key, view in _VIEWS})
+    for key, view in (
+        ("pump_duty", pump_arbiter.diagnostics_view),
+        ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
+    ):
+        try:
+            snap[key] = view(coord)
+        except Exception:  # noqa: BLE001 -- diagnostics never breaks
+            snap[key] = "unavailable"
     return snap
-
-
-def _never_breaks(view: Callable[[Any], Any], coord: Any) -> Any:
-    """One module's view, or ``"unavailable"``: diagnostics never breaks."""
-    try:
-        return view(coord)
-    except Exception:  # noqa: BLE001 -- diagnostics never breaks
-        return "unavailable"
-
-
-#: Each module's own ``diagnostics_view``, one ``(key, view)`` row per module.
-#: A row reads the coordinator's public views and hands its module values.
-_VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
-    ("pump_duty", pump_arbiter.diagnostics_view),
-    ("draw_range", lambda c: draw_range.diagnostics_view(
-        c.accuracy.draw, c.thermal_params,
-        probe_install(c.arbiter_inputs().config))),
-)
 
 
 async def async_get_config_entry_diagnostics(
@@ -177,7 +145,7 @@ async def async_get_config_entry_diagnostics(
                     "version": entry.version,
                     "options_keys": sorted(entry.options.keys()),
                 },
-                **config_view(entry.data, entry.options),
+                "config": dict(entry.data),
                 "coordinator": snapshot,
                 "domain": DOMAIN,
                 # #1940: capped, so a week too large to inline is its summary.

@@ -28,7 +28,8 @@ Driven through a real ``HeatPumpOptimizerCoordinator`` over ``tests/harness``.
 Perturbation (--perturb): a one-line production edit applied in memory: in
 ``pump_arbiter._write`` the literal ``"select",`` service domain becomes
 ``entity.split(".", 1)[0],`` (route by the target's own domain, as
-``coordinator._on_off_service`` already does for the switch slot, #1526).
+``pump_arbiter.on_off_service`` -- ``coordinator._on_off_service`` until #2070 -- already
+does for the switch slot, #1526).
 Expected: input_select misrouted_mode_writes 5 -> 0 and ticks_mode_wrong 9 -> 0 (DOWN); the sensor cell keeps ticks_mode_wrong=9 (a read-only slot is not fixed by routing: its property half is "control must not write a read-only slot").
 
 Run:   PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D12/s2/mode_domain.py [--perturb]
