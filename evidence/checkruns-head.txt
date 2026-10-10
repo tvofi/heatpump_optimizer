@@ -1,0 +1,42 @@
+Analyze (actions)	success	completed
+Analyze (javascript-typescript)	success	completed
+Analyze (python)	success	completed
+CodeQL	success	completed
+arch-score	success	completed
+arch-score	success	completed
+briefs	success	completed
+browser	success	completed
+budget-raise-gate	success	completed
+budget-raise-gate	success	completed
+claims-autofix	skipped	completed
+closure-scope	success	completed
+closures	success	completed
+closures-autofix	skipped	completed
+coverage	success	completed
+coverage-ratchet	success	completed
+delivery-status	success	completed
+delivery-status-publish	skipped	completed
+env-matrix	success	completed
+fast (3.14)	success	completed
+graders-head-copy	success	completed
+hassfest	success	completed
+instrument-self-tests	success	completed
+mutation	success	completed
+mutation-autofix	skipped	completed
+mutation-ledger	skipped	completed
+mutation-ledger-push	skipped	completed
+mutation-nightly	skipped	completed
+mutation-pin-plan	skipped	completed
+mutation-pins	skipped	completed
+nightly-ha	skipped	completed
+nightly-status	success	completed
+policy-docs	success	completed
+pr-contract	success	completed
+pr-contract	success	completed
+recheck-gate	skipped	completed
+record	skipped	completed
+record-autofix	skipped	completed
+slow	skipped	completed
+typing	success	completed
+validate-hacs	success	completed
+wave-script	success	completed

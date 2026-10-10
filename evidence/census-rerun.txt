@@ -1,0 +1,5 @@
+window: the newest 60 pull requests on tvofi/heatpump_optimizer
+   39  row-before-verdict
+   20  no-merge-verdict
+    1  no-row-in-head
+row-AFTER-verdict: []
