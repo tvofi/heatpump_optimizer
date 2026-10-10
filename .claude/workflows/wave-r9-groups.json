@@ -6053,7 +6053,8 @@
    "group": "R9-UX-6",
    "lane": "UX",
    "issues": [
-    1795
+    1795,
+    2104
    ],
    "fixes": [],
    "findings": [],
