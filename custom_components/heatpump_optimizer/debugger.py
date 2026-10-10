@@ -283,16 +283,6 @@ def feed_health(
     }
 
 
-def _ending_streak(coordinator: Any) -> int | None:
-    """The price feed's outage streak, through the view the coordinator
-    publishes: this module names no private member, as ``diagnostics.py`` does
-    not. A coordinator with no view (a duck-typed harness) has no streak here.
-    """
-    if not hasattr(coordinator, "diagnostics_state"):
-        return None
-    return coordinator.diagnostics_state().tibber_outage_cycles
-
-
 async def _solver_smoke(coordinator: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
     """One what-if solve with no override, which the live plan should equal."""
     began = time.monotonic()
@@ -442,6 +432,12 @@ class DebugCollector:
         rows = list(self.rows)
         stores: dict[str, tuple[Any, Any]] = {}
         accuracy_key = store_keys(self._entry_id)["accuracy"]
+        # The feed's outage streak, through the view the coordinator publishes
+        # (#1739): this module names no private member, as ``diagnostics.py``
+        # does not. A coordinator publishing no view -- a duck-typed harness --
+        # has no streak to report.
+        state = getattr(coordinator, "diagnostics_state", None)
+        streak = state().tibber_outage_cycles if state is not None else None
 
         async def read_stores() -> dict[str, Any]:
             stores.update(await self._read())
@@ -453,7 +449,7 @@ class DebugCollector:
                 stores.get(accuracy_key, (None, None))[1], coordinator.accuracy)),
             ("solver", lambda: _solver_smoke(coordinator, rows)),
             ("sensors", lambda: sensor_sanity(rows, coordinator.data)),
-            ("feeds", lambda: feed_health(rows, _ending_streak(coordinator))),
+            ("feeds", lambda: feed_health(rows, streak)),
         ], SELF_TEST_BUDGET.total_seconds())
         # Unless the collection restarted meanwhile:
         if self.final and self.started_at == started_at:
