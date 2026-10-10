@@ -100,21 +100,22 @@ were never exposed to a commit choosing its own filenames.)
   because this branch reviewed it, or because main owns it and a bot rewriting
   main's row is interference; both should refuse, and only a path new at `$v` (a
   genuine fresh add) is excluded, which `H_OKADD` still carries.
-- Two seams are deliberately NOT closed here, each carried to `R9-RO-13` in
-  `dev/programme/carries/carry-2075.json`: the #2010 pure-context-shift refusal
-  (a policy question, unchanged) and the BUDGET residual (a bot rewrite of
+- One seam is deliberately NOT closed here, carried to `R9-RO-13` in
+  `dev/programme/carries/carry-2075.json`: the BUDGET residual (a bot rewrite of
   `tests/mutation_budgets.json`, the exact-file entry, still a carry -- main's
   existing behaviour, its only backstop `budget-raise-gate` re-running at the
-  pushed head).
+  pushed head). The #2010 context-shift question that earlier rounds carried is
+  no longer live: #2010 merged (`1b72ca19f`), so its pair is moot, and the carry
+  file now records the rule to re-measure rather than a live instance.
 
 ## Head
 
-Measured at `acdb53f03c07ddd3903deebb1e79112fe79136ed` -- the fix, its arms, and
+Measured at `addd6f45758ff90ab862bcbe62357c1373ed7786` -- the fix, its arms, and
 the round-1..4 review's closures, with `origin/main` merged in. `origin/main` ran
 forward several times while this sat (`#2067`, `#2069`, then the `#2072`/`#2073`/
 `#2063`/`#2010` batch through `7cd5a588c`); each was a clean automatic `git merge`
 (merge-tree exit 0, no conflict, no reviewed line of `tools/pr/app_approve.sh` or
-the carry file moved), so the fix, its arms and `carry`'s bytes are identical
+the carry file moved), so the fix, its arms and `carry`'s mechanism are identical
 under the round-4 head and under this one -- only the head SHA and its merge base
 moved. The merge base is `git merge-base origin/main HEAD` =
 `7cd5a588cbbbef354c00148040da2d720b8a888c`, and the figures below are re-taken at
@@ -178,19 +179,25 @@ refuses, at this head and at main's, for an unrelated reason
 round-3 body quoted, `merges a456c5ed..., which is not on origin/main`, has
 drifted as main advanced past `a456c5ed`; the conclusion is unchanged).
 
-The #2010 case this branch does NOT fix, and the null control that proves it
-still refuses exactly as designed: `--carry d67d8a44... 87849cd2...
-origin/main` refuses at `origin/main` and at this head for the same reason
-(`the branch's own diff differs`); the narrowed subtree exclusion changed
-nothing there, because that pair has no added row at all, only a shifted context
-line in a hunk the branch never touched -- see `## Forward-carry`.
+The #2010 case this branch does NOT fix: `--carry d67d8a44... 87849cd2...
+origin/main` REFUSED at `origin/main` and at this head while #2010 was a live
+pull request (the branch's own diff differed, one pure-context line of 16,965,
+a hunk the branch never touched), and both round-1 and round-4 measured that.
+But **#2010 has since merged** (`1b72ca19f Merge pull request #2010`), so both
+its heads are now ancestors of `origin/main`, `carry`'s two diffs are empty at
+both ends, and the pair trivially carries -- the live instance is gone and the
+refusal is no longer reproducible against an advanced main. The strict
+context-equal rule in `carry` is unchanged by this PR either way; the class
+question (should a pure context shift carry?) is carried for R9-RO-13 without a
+live instance, and re-measuring it means planting the shape fresh, not replaying
+this now-merged pair -- see `## Forward-carry`.
 
 ## Figures
 
 Every command re-runnable at the head above; the count each prints is named with
 its instrument, since two of them are platform-dependent.
 
-- `bash tools/pr/app_approve.sh --self-test` at `acdb53f03` -- 166 checks, 0
+- `bash tools/pr/app_approve.sh --self-test` at `addd6f457` -- 166 checks, 0
   failed (macOS, this seat's own `--self-test`). At `origin/main`
   (`7cd5a588c`, the merge base) the same command reports 153 checks, 0 failed;
   the 13-check difference is the new arms and their paired reason-greps. CI's
@@ -230,22 +237,23 @@ its instrument, since two of them are platform-dependent.
   closure, so the scoped gate runs nothing for this diff; CI's required
   `instrument-self-tests` job runs `--self-test` directly regardless.
 - `git diff --stat $(git merge-base origin/main HEAD) HEAD` -- 2 files changed,
-  171 insertions(+), 4 deletions(-). `git diff --numstat` of the same range
+  169 insertions(+), 4 deletions(-). `git diff --numstat` of the same range
   splits it: `tools/pr/app_approve.sh` +138/-4, `dev/programme/carries/carry-2075.json`
-  +33/-0. Two-dot against `origin/main` is the wrong frame (main advanced to
+  +31/-0. Two-dot against `origin/main` is the wrong frame (main advanced to
   `7cd5a588c` through the `#2072`/`#2073`/`#2063`/`#2010` batch since the first
   cut's base `b2b6acd64`, and the merge-base is `7cd5a588c` too now, so both
   agree -- `CLAUDE.md` rule 3's three-dot discipline still names the merge-base
   as the frame, and `tests/layout.py`'s guard reports against it).
-- The #2010 measurement, run from `/private/tmp/r9-main` with `carry`'s own
-  `norm()` pipeline for `mv=git merge-base origin/main d67d8a44` and
-  `mh=git merge-base origin/main 87849cd2`: each side `wc -l` is 16965, and
-  `diff` prints exactly two output lines, one `<` and one `>`, both leading-space
-  context (main's own history rewrote the text between the two merge bases),
-  with zero added-or-removed lines of the branch's own. The #2065 range
-  re-derives at 74 commits, 4 first-parent (two human `test(...)`/`ledger(...)`
-  commits and two merges) -- as the round-1 review
-  re-derived it too.
+- The #2010 measurement is now moot and is recorded, not re-quoted: while #2010
+  was live, `carry`'s own `norm()` pipeline for `mv=git merge-base origin/main
+  d67d8a44` and `mh=git merge-base origin/main 87849cd2` gave 16965 lines a side
+  with a two-line diff (one `<`, one `>`, both leading-space context, zero
+  added-or-removed), the round-1 and round-4 reviews both measured it. #2010 has
+  since merged (`1b72ca19f`), so both heads are ancestors of `origin/main` and
+  the pipeline is now empty at both ends; the figure is a function of main's tip
+  and is not restated as current. The #2065 range still re-derives at 74 commits,
+  4 first-parent (two human `test(...)`/`ledger(...)` commits and two merges) --
+  the two shas are fixed, so this one does not move with main.
 
 ## Red checks
 
@@ -266,20 +274,17 @@ No red is left unanswered at the current head.
 
 ## Forward-carry
 
-`dev/programme/carries/carry-2075.json`, with two entries. (1) The #2010
-pure-context-shift question: this branch's narrowed subtree exclusion admits,
-for `tests/mutation_ledger/**`, the class the body elsewhere refuses to fix -- a
-rewrite, deletion or delete-then-readd is now visible and refuses, but a context
-line that only MOVED, as in #2010, still refuses on `the branch's own diff
-differs` by design. Whether `carry` should tolerate that shift is a question for
-the round-9 roster group R9-RO-13 (mandate-gated batch policy). (2) The BUDGET
-residual the round-4 review raised: a bot rewrite of `tests/mutation_budgets.json`
--- the single FILE entry `bot_paths` names -- still carries, at this head and at
-main, because the file branch excludes that exact path whole; it is main's
-existing behaviour, unchanged by this diff, and `budget-raise-gate` re-runs at
-the pushed head as its backstop, so it is recorded rather than closed here. The
-round-9 roster is not on main, so the carry file named here is its in-tree
-destination, per `dev/governance/rules/finding-propagation.md`.
+`dev/programme/carries/carry-2075.json`. The live entry is the BUDGET residual
+the round-4 review raised: a bot rewrite of `tests/mutation_budgets.json` -- the
+single FILE entry `bot_paths` names -- still carries, at this head and at main,
+because the file branch excludes that exact path whole. It is main's existing
+behaviour, unchanged by this diff, and `budget-raise-gate` re-runs at the pushed
+head as its backstop, so it is recorded rather than closed here. The other entry
+is the #2010 context-shift rule, now MOOT: #2010 merged (`1b72ca19f`), so its
+pair trivially carries and the record is a rule to re-measure (plant the shape
+fresh) rather than a live instance. The round-9 roster is not on main, so the
+carry file named here is its in-tree destination, per
+`dev/governance/rules/finding-propagation.md`.
 
 ## Friction
 
