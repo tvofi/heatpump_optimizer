@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/debugger.py:_ending_streak RETURN_DEL 9e6cd1b7",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    return coordinator.diagnostics_state().tibber_outage_cycles",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against d8a4bd36f6384dde45486fff388f91ed4a3aa6df: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=1."
-}
