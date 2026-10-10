@@ -22275,7 +22275,7 @@ import json as _json
 # the data-level one so a payload that ever starts emitting option values is
 # measured too.
 _DIAG_LAT, _DIAG_LON = 59.331234, 18.071234
-_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.335555, 18.075555
+_DIAG_OPT_LAT, _DIAG_OPT_LON = 59.385555, 18.175555
 _DIAG_NAME = "Villa Solbacken Storgatan 5"
 _DIAG_TOPIC = "home/storgatan5/ecl110/state"
 _DIAG_DEEP = {
@@ -22294,6 +22294,9 @@ _DIAG_DATA = {
     },
     const.CONF_ECL110_STATE_TOPIC: _DIAG_TOPIC,
     "_deep": _DIAG_DEEP,
+    # The setup-time value the options below override: the live v6.7.17
+    # dump showed this one instead of the value the install was running on.
+    const.CONF_TARGET_TEMP: 20.0,
 }
 _DIAG_OPTIONS = {
     const.CONF_SOLAR_LOCATION: {
@@ -22301,6 +22304,9 @@ _DIAG_OPTIONS = {
         "longitude": _DIAG_OPT_LON,
     },
     const.CONF_TARGET_TEMP: 21.0,
+    # Saved by the options flow unchanged: an option equal to its setup value
+    # overrides nothing, so it is not named as one (review of #2071).
+    const.CONF_ECL110_STATE_TOPIC: _DIAG_TOPIC,
 }
 
 _diag_hass = FakeHass()
@@ -22335,7 +22341,9 @@ def _diag_at(node, *path):
     return node
 
 
-_diag_location = _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)
+# The setup data's own location: ``config`` is the live merge, where the
+# options' location replaces this one whole.
+_diag_location = _diag_at(_diag, "config_setup", const.CONF_SOLAR_LOCATION)
 _diag_location = _diag_location if isinstance(_diag_location, dict) else {}
 
 R.check(
@@ -22379,6 +22387,14 @@ R.check(
     "a coordinate two levels down, inside a list, came back as "
     f"{_diag_at(_diag, 'config', '_deep', 'sites', 0, 'station', 'latitude')!r}",
 )
+R.check(
+    "the live config's coordinate, from options, is coarsened too",
+    _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "latitude")
+    == round(_DIAG_OPT_LAT, 1)
+    and _diag_at(_diag, "config", const.CONF_SOLAR_LOCATION, "longitude")
+    == round(_DIAG_OPT_LON, 1),
+    repr(_diag_at(_diag, "config", const.CONF_SOLAR_LOCATION)),
+)
 _diag_typed = _diag_at(_diag, "config", "_deep", "typed")
 _diag_typed = _diag_typed if isinstance(_diag_typed, dict) else {}
 R.check(
@@ -22409,6 +22425,43 @@ R.check(
     and _diag_at(_diag, "config", const.CONF_ECL110_STATE_TOPIC) == _DIAG_TOPIC,
     "redaction removed what a diagnostics file is read for: weather_entity is "
     f"{_diag_at(_diag, 'config', 'weather_entity')!r}",
+)
+# Live v6.7.17 install: ``config`` was ``entry.data`` alone, so a dump showed
+# the setup-time values while the coordinator ran on the options laid over
+# them. The live merge is what the coordinator reads; the setup data stays
+# beside it, with the keys options override named.
+_diag_live = {**_DIAG_DATA, **_DIAG_OPTIONS}
+R.check(
+    "the diagnostics config is the live config, with options laid over setup data",
+    _diag_at(_diag, "config", const.CONF_TARGET_TEMP)
+    == _diag_live[const.CONF_TARGET_TEMP]
+    == _diag_entry.runtime_data._ctx._config[const.CONF_TARGET_TEMP]
+    and _diag_at(_diag, "config", "indoor_temp_entity")
+    == _CRED_DATA["indoor_temp_entity"],
+    f"config target is {_diag_at(_diag, 'config', const.CONF_TARGET_TEMP)!r}, "
+    f"the coordinator runs on {_diag_live[const.CONF_TARGET_TEMP]!r}",
+)
+R.check(
+    "the setup data is kept beside it, with the keys options override named",
+    _diag_at(_diag, "config_setup", const.CONF_TARGET_TEMP) == 20.0
+    and _diag.get("config_overridden_by_options")
+    == sorted([const.CONF_SOLAR_LOCATION, const.CONF_TARGET_TEMP])
+    and _diag_at(_diag, "entry", "options_keys") == sorted(_DIAG_OPTIONS),
+    repr((_diag_at(_diag, "config_setup", const.CONF_TARGET_TEMP),
+          _diag.get("config_overridden_by_options"))),
+)
+R.check(
+    "an option equal to its setup value is not named as overriding it",
+    const.CONF_ECL110_STATE_TOPIC in (_diag_at(_diag, "entry", "options_keys") or [])
+    and const.CONF_ECL110_STATE_TOPIC
+    not in (_diag.get("config_overridden_by_options") or []),
+    repr(_diag.get("config_overridden_by_options")),
+)
+R.check(
+    "the setup data is redacted like the live config",
+    _diag_at(_diag, "config_setup", "name") == _HA_REDACTED
+    and _diag_at(_diag, "config_setup", _CONF_TOKEN) == _HA_REDACTED,
+    repr(_diag_at(_diag, "config_setup", "name")),
 )
 R.check(
     "the payload is plain JSON and names the coordinator's state",
