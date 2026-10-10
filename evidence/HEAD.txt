@@ -1,0 +1,6 @@
+head measured: 99edcf9f59cefa159594d18b8bbb5dbf8ae3eb95
+re-published at the record-commit move from c32e90ddd730ae1a2fc85a44a52cdbe159fff08f
+branch fix/r9-autofix-governance
+merge-base origin/main: 7cd5a588cbbbef354c00148040da2d720b8a888c
+worktree: /Users/timmalmstrom/hpo-seats/r9-review-2083/wt (detached at c32e90ddd730ae1a2fc85a44a52cdbe159fff08f)
+reviewer seat: r9-review-2083  bus-nonce: ea29f5498642e3e3f5685e95e776a28c
