@@ -1,0 +1,20 @@
+{
+ "errors": 1,
+ "by_code": {
+  "no-any-return": 1
+ },
+ "by_module": {
+  "coordinator.py": 1
+ },
+ "type_ignores": 0,
+ "environment": {
+  "python": "3.14.8",
+  "mypy": "2.3.1",
+  "homeassistant-stubs": "2026.9.3",
+  "aiohttp": "3.14.3",
+  "numpy": "2.5.3",
+  "scipy-stubs": "1.18.1.1",
+  "threadpoolctl": "3.7.0",
+  "voluptuous": "0.16.0"
+ }
+}

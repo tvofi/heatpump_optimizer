@@ -1,0 +1,1 @@
+Review of PR #2118, head measured bc048801823eb4f77cfa42f54083214c154336a5 (branch fix/r9-ux-10-v2), merge base 7cd5a588cbbbef354c00148040da2d720b8a888c, measured 2026-10-10 in detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2118/wt

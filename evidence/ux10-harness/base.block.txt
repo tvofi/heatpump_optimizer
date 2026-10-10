@@ -1,0 +1,24 @@
+
+=== ux10 flow meter into the model ===
+  FAIL the model spends a measured heat output instead of inferring one from the draw, and None is byte-identical to omitting it  [err "TypeError: ThermalModel.simulate_step() got an unexpected keyword argument 'measured_heat_kw'"; slab at the measured None, at the same heat as a draw 27.0422035 and at that number taken for a draw 27.799398575]
+  FAIL the two-zone step spends it too, on the same rule (null control: None byte-identical to omitting it)  [err "TypeError: ThermalModel.simulate_step() got an unexpected keyword argument 'measured_heat_kw'"; upper at the measured None, at the same heat as a draw 20.943135666666667 and at that number taken for a draw 21.447932383333335]
+  FAIL a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as 5.222035 kW  [measured_heat_kw None of ['dt_hours', 'hour_of_day', 'precipitation', 'solar_radiation', 'wind_speed']; samples 1; escaped None]
+  FAIL and the lower-floor replay, which is the two-zone step's own learner  [measured_heat_kw None of ['dt_hours', 'hour_of_day', 'precipitation', 'solar_radiation', 'wind_speed']; escaped None]
+  FAIL an outranked, stale, negative, unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no learner input (null controls: 20 min old, and the same interval with the hot water at zero, both reach one)  [{'a power entity': None, 'a frequency sensor': None, "stale (45 min against the key's 30)": None, 'negative (-3.0 L/min)': None, 'unreadable (unavailable)': None, 'an unknown unit (gal/min)': None, 'an interval the plan split with hot water': None, 'an interval the plan gave nothing': None} samples [1, 1, 1, 1, 1, 1, 1, 1] fresh None space-only None]
+  ok   null control: with the key unset the replay is handed no measured heat and the prediction is byte-identical to a meter that read nothing
+  ok   a replay that raises costs the sample and nothing else, through the helper both learners now share
+  FAIL the two-zone house replay predicts a different upper floor on the measurement than on the commanded draw it replaces  [planted upper 20.921666666666667 unset upper 20.921666666666667]
+SCALE_UNSET 1.01
+SCALE_PLANTED 1.01
+ROOM_UNSET 21.06
+ROOM_PLANTED 21.06
+SLAB_UNSET 27.01
+SLAB_PLANTED 27.01
+UPPER_UNSET 20.921666666666667
+UPPER_PLANTED 20.921666666666667
+LOWER_UNSET 20.28125
+RESIDUAL_UNSET -0.021666666666668277
+RESIDUAL_PLANTED -0.021666666666668277
+
+6 of 8 UX-10 EXTRACT FAILED
+RC 1

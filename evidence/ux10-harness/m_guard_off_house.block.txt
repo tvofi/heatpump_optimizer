@@ -1,0 +1,24 @@
+
+=== ux10 flow meter into the model ===
+  ok   the model spends a measured heat output instead of inferring one from the draw, and None is byte-identical to omitting it
+  ok   the two-zone step spends it too, on the same rule (null control: None byte-identical to omitting it)
+  ok   a planted 15 L/min over a 5 K drop reaches the house heat-loss replay as 5.222035 kW
+  ok   and the lower-floor replay, which is the two-zone step's own learner
+  ok   an outranked, stale, negative, unreadable, unknown-unit, hot-water or nothing-commanded interval reaches no learner input (null controls: 20 min old, and the same interval with the hot water at zero, both reach one)
+  ok   null control: with the key unset the replay is handed no measured heat and the prediction is byte-identical to a meter that read nothing
+  FAIL a replay that raises costs the sample and nothing else, through the helper both learners now share  [house escaped AttributeError("'NoneType' object has no attribute 'room_temperature'") samples 0; lower escaped None samples 0]
+  ok   the two-zone house replay predicts a different upper floor on the measurement than on the commanded draw it replaces
+SCALE_UNSET 1.01
+SCALE_PLANTED 1.01
+ROOM_UNSET 21.06
+ROOM_PLANTED 21.06
+SLAB_UNSET 27.01
+SLAB_PLANTED 27.0422035
+UPPER_UNSET 20.921666666666667
+UPPER_PLANTED 20.943135666666667
+LOWER_UNSET 20.28125
+RESIDUAL_UNSET -0.021666666666668277
+RESIDUAL_PLANTED -0.043135666666668016
+
+1 of 8 UX-10 EXTRACT FAILED
+RC 1
