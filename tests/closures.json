@@ -3659,6 +3659,7 @@
    "dev/audit/rounds/round9/fixplan/build.sh",
    "dev/audit/rounds/round9/fixplan/data.py",
    "dev/audit/rounds/round9/fixplan/gen.py",
+   "dev/audit/rounds/round9/prestudy/boost_drift_refit.py",
    "dev/audit/rounds/round9/rca/1747/b8_replan_blocked.py",
    "dev/audit/rounds/round9/rca/1747/kwarg_seams.py",
    "dev/audit/rounds/round9/rca/1747/rca_census_reach.py",
