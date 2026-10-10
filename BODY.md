@@ -1,18 +1,25 @@
 # R9-RC-POSTREVIEW-MERGE — class RCA (root-cause seat, issue #2096)
 
-Group **R9-RC-POSTREVIEW-MERGE**. This handoff carries the analysis document and
-the class entry only: no production, workflow or policy file is changed, no
+Group **R9-RC-POSTREVIEW-MERGE**. This handoff carries the analysis document, the
+class entry, and the class id's registration in the other two readers of
+`finding-class-id`: no production logic and no policy file is changed, no
 pull request is opened, no countermeasure is landed. `dev/governance/roles/root-cause.md`
 and `dev/governance/rules/defect-root-cause.md` are the contract; every part is
 in `dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md`.
 
 ## Head
 
-`0cb14166117fc00acdd60f10f11a6edf24b9bf2a` — one commit on `origin/main`, two
-files: `dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md` (new) and
+`9a901e7abab9d2bdd2792a1b0208614659922333` — two commits on `origin/main` (base
+`c729bb32e`), four files: `dev/audit/rca/R9-RC-POSTREVIEW-MERGE.md` (new),
 `dev/audit/config/bugclasses.json` (class `N-postreview-merge-red` + its `_rca`
 entry, one commit with the document: `fold_ledger.py check` refuses either half
-alone, and it passes at this head — 29 classes, 0 violations).
+alone, and it passes at this head — 29 classes, 0 violations), and the
+registration commit: `dev/audit/config/finding.schema.json` (the `class_guess`
+enum) and `.claude/workflows/audit-find.js` (`CLASS_GUESS`), each +1 id. The
+schema's own description states the invariant — the enum is exactly
+`bugclasses.json`'s ids plus `new`, "so a class the judge adds lands in both in
+one pull request" — and the intake's `CLASS_GUESS` is the same list as a regex,
+the third reader `agreement.mjs` drives on the concept.
 
 ## Findings
 
@@ -71,8 +78,29 @@ merged.
 
 ## Red checks
 
-none — this branch changes two inert files (`closure.py select`: MODE SCOPED, 0
-scripts run); `tests/structure.py` passed; `fold_ledger.py check` passed.
+**`prepr.sh` agreement lane (fixed at this head).** The RCA seat's handoff
+`0cb141661` was refused by prepr's agreement lane:
+
+    DIVERGENT finding-class-id "N-postreview-merge-red":
+    bugclasses.json ids + "new"=true  finding.schema.json enum=false
+    audit-find.js CLASS_GUESS (intake)=false
+    AGREEMENT REFUSED: one concept, readers that disagree or a grammar written
+    twice and unregistered
+
+The class id had landed in one of the concept's three readers only. The
+registration commit is the fix; the lane is the detector (it refused at the
+parent and passes at this head: `finding-class-id: 3 readers, 38 items, 0
+divergent`). No cheaper detector exists: the lane is itself the comparison.
+
+Otherwise none — the diff reaches no selectable script (`closure.py select`:
+MODE SCOPED, 0 scripts run); `tests/structure.py` passed; `fold_ledger.py
+check` passed (29 classes, 0 violations). The `run_always` scripts:
+`env_drift.py --claims-only c729bb32e` ok, `closure.py selftest` ok (57 pins),
+`layout.py` ok; `harness_headers.py` prints 13 of 109 failed **at main too** —
+its whole input set (`dev/audit/rounds/`, `dev/audit/harnesses/`,
+`dev/audit/waves/w5-g5-195-coverage`, `tools/audit/judge_batch.py`) is
+byte-identical between the merge base and this head, so the red is main's and
+CI's `harness-headers` check is authoritative for it, not this branch.
 
 ## Forward-carry
 
@@ -82,8 +110,13 @@ budget-raise sentence) and names what issue #2096's Root cause section owes.
 
 ## Mutation proof
 
-none owed — no production or check code is changed; the document's claims are
-API figures and command runs, each with its enumerator.
+none owed for the document — its claims are API figures and command runs, each
+with its enumerator. For the registration commit the failing-first arm is the
+agreement lane itself: it turns red on exactly the defect (delete the enum
+member and the alternation branch — i.e. the parent `0cb141661` — and it
+prints the DIVERGENT row above, rc 1, 0.5 s) and green at this head (rc 0,
+0.8 s); the row names the concept, the corpus item and all three readers'
+answers.
 
 ## Null control
 
