@@ -1,3 +1,4 @@
+<!-- ccr-projects-attribution: {"github_login":"tvofi"} -->
 The required `closures` check's re-record step is 98.9% of the push-to-main
 job (53 m 35 s of 54 m 10 s, job 114258919874), lane 3 serialises 53 minutes
 while lanes 1-2 idle after 15 and 21, the batch dispatch pays the full arm for
@@ -72,6 +73,13 @@ the next `batch/<tag>` dispatch's `closures` run, scoped by its own diff. The
 orchestrator observes both.
 
 ## Head
+
+`156fe40a1d88894be299ed543c53d49f6fc834ef` is the head this body was re-taken
+at (against `origin/main` tip `6918cb4b2`, `date -u` 2026-10-10T21:29:54Z):
+one commit atop `64f168d2cea942cdba6a79050116988b4b90c4c9`, the harness
+repair the fix review's block named and nothing else. The history below it:
+`64f168d2c` adds the PR's own delivery row `dev/programme/delivery/2129.md`;
+the authored code head is `1ec5ce9675aa712968b0d562c61340a573dcfcae`.
 
 `1ec5ce9675aa712968b0d562c61340a573dcfcae` (merge base `origin/main` =
 `6be88834e8`, the #2125 merge). Measured 2026-10-10 with the seat venv
@@ -200,6 +208,14 @@ BASE (6be88834e8):
   `: > <tmp>/empty.txt; python tests/closure.py affected --files-from
   <tmp>/empty.txt --workdir <tmp>`).
 
+  Re-taken at the new head `156fe40a1` after the harness-construction fix
+  below (same invocation, `HPO_A1_PYTHON=<seat python> bash
+  tools/audit/seat/a1_dispatch_arms.sh HEAD 6be88834e8c4658b3e4832cd24c00aa97b3da2d3`;
+  `origin/main` tip `6918cb4b2`, `date -u` 2026-10-10T21:29:54Z): the output
+  is byte-identical to the run above and to the run at `64f168d2c` before the
+  fix (`diff` of the two saved outputs: empty) -- the repair moved only how
+  the fixture repositories are built, not what the arms derive.
+
 - (e) recording-set identity, old vs new (rule: the `rec tests/...` targets,
   sorted; identical means same recordings, scheduling only):
 
@@ -248,11 +264,55 @@ OLD lane3 (serial) 2728.8 s -> new critical path 1489.6 s
 
 ## Red checks
 
-none at the head. Every locally runnable check named above is green at
-`1ec5ce96`; the FULL gate this diff forces (three gate files:
-`closure.py`, `derive_closures.sh`, `tests.yml`) runs in CI, and the
-closures job itself is the acceptance instrument for (e)/(a1) as stated. No
-`*_budgets.json` is touched (`python tests/structure.py` green at head).
+Two, both at the reviewed head `64f168d2c`, both answered by the commit this
+body re-takes at (`156fe40a1`):
+
+- `instrument-self-tests` (run 38086785285 / job 114314855120):
+  `tests/throwaway_git.py --check` refused the two raw `git init` / `git
+  clone` sites this PR's own new harness used to build its fixture
+  repository -- the R9-RCA-stamp-race class: git >= 2.54 can detach an
+  auto-maintenance repack after a commit, which outlives the `mktemp`
+  directory and reddens the removal. Before, verbatim:
+
+  ```
+  REFUSE tools/audit/seat/a1_dispatch_arms.sh:80: git init -q -b main . && git add -A
+  REFUSE tools/audit/seat/a1_dispatch_arms.sh:82: cd "$WORK" && git clone -q remote-tree repo && cd repo
+  throwaway_git: 2 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  ```
+
+  Repaired by routing both sites through the shared helper
+  `tests/throwaway_git.sh` (the shell twin of `tests/throwaway_git.py`):
+  `throwaway_git_init` builds the fixture repo, `throwaway_git_clone` the
+  origin-standin, and the harness's own fixture commits run under
+  `throwaway_git_env` -- auto-maintenance is now off in each repository's
+  own config, which also covers the decide step's own git calls in the
+  clone, exactly the two layers the helper exists to set. After, at
+  `156fe40a1`, verbatim:
+
+  ```
+  throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  ```
+
+  (`python3 -I tests/throwaway_git.py --check`, exit 0; `--self-test` 44
+  checks, 0 failed.) The arms did not move: harness output byte-identical
+  at `64f168d2c` and at `156fe40a1` (figure above). The cheaper detector
+  is the check itself, already standing in CI at zero added cost; no
+  further countermeasure is owed. The root-cause seat's analysis is not
+  pre-empted: the cause is named (a new instrument that had not adopted
+  the shared helper the round-9 stamp-race decision introduced), the
+  class detector exists and fired, and the fix routes through it.
+
+- `pr-contract` (run 38086785265 / job 114315311587): refused this body's
+  earlier `## Red checks: none at the head`, which predated the
+  `instrument-self-tests` failure (PR updated 21:13:22Z, failure 21:13:28Z).
+  Discharged by this section naming and answering the check above.
+
+Everything else locally runnable is green at `156fe40a1`:
+`python tests/structure.py` -> `STRUCTURE RATCHET PASSED`; no
+`*_budgets.json` is touched. The FULL gate this diff forces (three gate
+files: `closure.py`, `derive_closures.sh`, `tests.yml`) runs in CI, and the
+closures job itself remains the acceptance instrument for (e)/(a1) as
+stated.
 
 ## Unpinned sites
 
@@ -288,3 +348,4 @@ closures job itself is the acceptance instrument for (e)/(a1) as stated. No
 ## Friction
 
 none
+
