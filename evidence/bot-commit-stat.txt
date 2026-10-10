@@ -1,0 +1,8 @@
+commit cce999733e1a64bd2820bcc2c7f66ab6af969e6c
+Author: github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>
+Date:   Sat Oct 10 17:44:57 2026 +0000
+
+    ci: re-record closures
+
+ tests/closures.json | 1 +
+ 1 file changed, 1 insertion(+)
