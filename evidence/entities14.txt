@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2111/wt/tests/entities.py", line 39, in <module>
+    from layout import canon as _layout_canon, locate as _layout_locate
+ModuleNotFoundError: No module named 'layout'

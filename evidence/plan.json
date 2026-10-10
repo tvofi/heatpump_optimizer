@@ -1,0 +1,842 @@
+[
+  {
+    "number": 1845,
+    "path": "dev/programme/delivery/1845.md",
+    "line": "- [#1845](https://github.com/tvofi/heatpump_optimizer/pull/1845) \u2014 **merged `4e2582e`**, R9-EG-B5a: one builder for the two solve paths' objective closures.",
+    "title": "R9-EG-B5a: one builder for the two solve paths' objective closures",
+    "merge_sha": "4e2582e79a4d788fee44c8eb82502cbf46f53af7",
+    "group": null
+  },
+  {
+    "number": 1846,
+    "path": "dev/programme/delivery/1846.md",
+    "line": "- [#1846](https://github.com/tvofi/heatpump_optimizer/pull/1846) \u2014 **merged `95960e7`**, R9-WEB-1: the product page, docs/index.html, with its doc_claims arm.",
+    "title": "R9-WEB-1: the product page, docs/index.html, with its doc_claims arm",
+    "merge_sha": "95960e724d14608d90fc5548398cdfa2e0d66c37",
+    "group": null
+  },
+  {
+    "number": 1847,
+    "path": "dev/programme/delivery/1847.md",
+    "line": "- [#1847](https://github.com/tvofi/heatpump_optimizer/pull/1847) \u2014 **merged `948671a`**, R9-F11.4: the agreement lane \u2014 six governance pairs checked for divergence, Python readers pinned.",
+    "title": "R9-F11.4: the agreement lane \u2014 six governance pairs checked for divergence, Python readers pinned",
+    "merge_sha": "948671af1dcb63b1e3ceebb0154ba5c5b9c2911e",
+    "group": null
+  },
+  {
+    "number": 1848,
+    "path": "dev/programme/delivery/1848.md",
+    "line": "- [#1848](https://github.com/tvofi/heatpump_optimizer/pull/1848) \u2014 **merged `8fa0666`**, R9-F10.5: drain killed mutants into the ledger nightly via the hpo-ledger App.",
+    "title": "R9-F10.5: drain killed mutants into the ledger nightly via the hpo-ledger App",
+    "merge_sha": "8fa06663cf64a32cf19a3a2f2742ce3225f06e3a",
+    "group": null
+  },
+  {
+    "number": 1850,
+    "path": "dev/programme/delivery/1850.md",
+    "line": "- [#1850](https://github.com/tvofi/heatpump_optimizer/pull/1850) \u2014 **merged `bf37bd3`**, R9-F11.4 precursor: resolvePrFromCommit reads both merge-subject shapes; policy_lint exports rulePaths.",
+    "title": "R9-F11.4 precursor: resolvePrFromCommit reads both merge-subject shapes; policy_lint exports rulePaths",
+    "merge_sha": "bf37bd3a0fc815c518b47a96b81c01512f222d0e",
+    "group": null
+  },
+  {
+    "number": 1851,
+    "path": "dev/programme/delivery/1851.md",
+    "line": "- [#1851](https://github.com/tvofi/heatpump_optimizer/pull/1851) \u2014 **merged `1655100`**, R9-EG-A1: the architecture score in-tree, reading structure.py's censuses, with its calibration check.",
+    "title": "R9-EG-A1: the architecture score in-tree, reading structure.py's censuses, with its calibration check",
+    "merge_sha": "1655100779c1c920bfa4890134d05f9ac74c5727",
+    "group": null
+  },
+  {
+    "number": 1852,
+    "path": "dev/programme/delivery/1852.md",
+    "line": "- [#1852](https://github.com/tvofi/heatpump_optimizer/pull/1852) \u2014 **merged `03ba7f7`**, R9-EG-B3a: a typed coordinator payload (Payload TypedDict) wired through DataUpdateCoordinator.",
+    "title": "R9-EG-B3a: a typed coordinator payload (Payload TypedDict) wired through DataUpdateCoordinator",
+    "merge_sha": "03ba7f70f007147bda32ac0fc5dd83b11499bbaf",
+    "group": null
+  },
+  {
+    "number": 1853,
+    "path": "dev/programme/delivery/1853.md",
+    "line": "- [#1853](https://github.com/tvofi/heatpump_optimizer/pull/1853) \u2014 **merged `2e7422e`**, record: truth the delivery rows of #1838, #1842, #1843, #1844 and #1849.",
+    "title": "record: truth the delivery rows of #1838, #1842, #1843, #1844 and #1849",
+    "merge_sha": "2e7422e59aad538d043d544df356721c9d4264aa",
+    "group": null
+  },
+  {
+    "number": 1854,
+    "path": "dev/programme/delivery/1854.md",
+    "line": "- [#1854](https://github.com/tvofi/heatpump_optimizer/pull/1854) \u2014 **merged `5f87e25`**, ci: superseded Tests runs cancel for real (!cancelled() instead of always() on 14 jobs).",
+    "title": "ci: superseded Tests runs cancel for real (!cancelled() instead of always() on 14 jobs)",
+    "merge_sha": "5f87e25a110ff0a6fad179283b21f3823d0cd1f1",
+    "group": null
+  },
+  {
+    "number": 1856,
+    "path": "dev/programme/delivery/1856.md",
+    "line": "- [#1856](https://github.com/tvofi/heatpump_optimizer/pull/1856) \u2014 **merged `e5b3fe1`**, policy: round-9 RCA policy text (R9-F11.5).",
+    "title": "policy: round-9 RCA policy text (R9-F11.5)",
+    "merge_sha": "e5b3fe162839ad0da1ea4e4fbbf1571b9a65e25b",
+    "group": null
+  },
+  {
+    "number": 1857,
+    "path": "dev/programme/delivery/1857.md",
+    "line": "- [#1857](https://github.com/tvofi/heatpump_optimizer/pull/1857) \u2014 **merged `51ce8f2`**, ci: closures-autofix goes red when its pinned classifier disagrees with closures.",
+    "title": "ci: closures-autofix goes red when its pinned classifier disagrees with closures",
+    "merge_sha": "51ce8f2a7379ac4a63f8efd4ab2be9415fdfee6a",
+    "group": null
+  },
+  {
+    "number": 1858,
+    "path": "dev/programme/delivery/1858.md",
+    "line": "- [#1858](https://github.com/tvofi/heatpump_optimizer/pull/1858) \u2014 **merged `68b8cb9`**, refactor: extract the DHW planner, a verbatim move (R9-EG-B5).",
+    "title": "refactor: extract the DHW planner, a verbatim move (R9-EG-B5)",
+    "merge_sha": "68b8cb97d911339a206fde141ecfdf0f57c6ccc4",
+    "group": null
+  },
+  {
+    "number": 1859,
+    "path": "dev/programme/delivery/1859.md",
+    "line": "- [#1859](https://github.com/tvofi/heatpump_optimizer/pull/1859) \u2014 **merged `aa7a811`**, fix(ci): the two ledger jobs lead with !cancelled(), main's red after #1854 x #1848.",
+    "title": "fix(ci): the two ledger jobs lead with !cancelled(), main's red after #1854 x #1848",
+    "merge_sha": "aa7a81192325614999803e40e3cedc024e22ce2b",
+    "group": null
+  },
+  {
+    "number": 1861,
+    "path": "dev/programme/delivery/1861.md",
+    "line": "- [#1861](https://github.com/tvofi/heatpump_optimizer/pull/1861) \u2014 **merged `687e15b`**, test(mutation): comparison-bound operator CMP_BOUND, ratcheted (R9-F10.6).",
+    "title": "test(mutation): comparison-bound operator CMP_BOUND, ratcheted (R9-F10.6)",
+    "merge_sha": "687e15b6fcf20d23f4afc201e269e217e4414ca1",
+    "group": null
+  },
+  {
+    "number": 1862,
+    "path": "dev/programme/delivery/1862.md",
+    "line": "- [#1862](https://github.com/tvofi/heatpump_optimizer/pull/1862) \u2014 **merged `1abfef5`**, feat(audit): deterministic register fold and check (R9-EG-R1).",
+    "title": "feat(audit): deterministic register fold and check (R9-EG-R1)",
+    "merge_sha": "1abfef56d081146d7a38828047d790a23ffcac27",
+    "group": null
+  },
+  {
+    "number": 1863,
+    "path": "dev/programme/delivery/1863.md",
+    "line": "- [#1863](https://github.com/tvofi/heatpump_optimizer/pull/1863) \u2014 **merged `243990a`**, ci(governance): graders-head-copy runs the PR's own pinned graders (R9-F11.7).",
+    "title": "ci(governance): graders-head-copy runs the PR's own pinned graders (R9-F11.7)",
+    "merge_sha": "243990abf3f598656756074f46c01430f323de40",
+    "group": null
+  },
+  {
+    "number": 1864,
+    "path": "dev/programme/delivery/1864.md",
+    "line": "- [#1864](https://github.com/tvofi/heatpump_optimizer/pull/1864) \u2014 **merged `b8fa39f`**, feat(site): documentation sub-pages rendered over the vendored markdown-it (R9-WEB-3).",
+    "title": "feat(site): documentation sub-pages rendered over the vendored markdown-it (R9-WEB-3)",
+    "merge_sha": "b8fa39f8c4df25bf68d1b3ce914e7b910ac45a2b",
+    "group": null
+  },
+  {
+    "number": 1865,
+    "path": "dev/programme/delivery/1865.md",
+    "line": "- [#1865](https://github.com/tvofi/heatpump_optimizer/pull/1865) \u2014 **merged `0d8f2bb`**, feat(events): notifier module, five events and a notifications blueprint (R9-UX-4).",
+    "title": "feat(events): notifier module, five events and a notifications blueprint (R9-UX-4)",
+    "merge_sha": "0d8f2bb42fcd3ac94ca3bb36db956ac6676e1046",
+    "group": null
+  },
+  {
+    "number": 1867,
+    "path": "dev/programme/delivery/1867.md",
+    "line": "- [#1867](https://github.com/tvofi/heatpump_optimizer/pull/1867) \u2014 **merged `12dbd3a`**, refactor(payload): remove the cast; the producers are typed (R9-EG-B3b).",
+    "title": "refactor(payload): remove the cast; the producers are typed (R9-EG-B3b)",
+    "merge_sha": "12dbd3a5d01f48f44e6c6344bff22d3d015baf9d",
+    "group": null
+  },
+  {
+    "number": 1868,
+    "path": "dev/programme/delivery/1868.md",
+    "line": "- [#1868](https://github.com/tvofi/heatpump_optimizer/pull/1868) \u2014 **merged `8c6e9a7`**, ci: closures-autofix goes red when any closures failure is left for a human (RCA instance 4).",
+    "title": "ci: closures-autofix goes red when any closures failure is left for a human (RCA instance 4)",
+    "merge_sha": "8c6e9a7efec7d671bbd27b21cf3fbc3c75253f45",
+    "group": null
+  },
+  {
+    "number": 1869,
+    "path": "dev/programme/delivery/1869.md",
+    "line": "- [#1869](https://github.com/tvofi/heatpump_optimizer/pull/1869) \u2014 **merged `1ccd0b1`**, fix(stores): one version constant per store and a migration hook (R9-EG-B4).",
+    "title": "fix(stores): one version constant per store and a migration hook (R9-EG-B4)",
+    "merge_sha": "1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f",
+    "group": null
+  },
+  {
+    "number": 1870,
+    "path": "dev/programme/delivery/1870.md",
+    "line": "- [#1870](https://github.com/tvofi/heatpump_optimizer/pull/1870) \u2014 **merged `2622b31`**, test(nightly-ha): loop-stall heartbeat with an in-stall dump (R9-F10.7).",
+    "title": "test(nightly-ha): loop-stall heartbeat with an in-stall dump (R9-F10.7)",
+    "merge_sha": "2622b31c82d61c7d217e05c41dd0b90bf6384c5a",
+    "group": null
+  },
+  {
+    "number": 1871,
+    "path": "dev/programme/delivery/1871.md",
+    "line": "- [#1871](https://github.com/tvofi/heatpump_optimizer/pull/1871) \u2014 **merged `66d9dc6`**, fix(mutation): the ledger drain lands pins still valid at main's head (#1848 follow-up).",
+    "title": "fix(mutation): the ledger drain lands pins still valid at main's head (#1848 follow-up)",
+    "merge_sha": "66d9dc63a78208344a22e7f3534c164c1180d61b",
+    "group": null
+  },
+  {
+    "number": 1872,
+    "path": "dev/programme/delivery/1872.md",
+    "line": "- [#1872](https://github.com/tvofi/heatpump_optimizer/pull/1872) \u2014 **merged `2e56974`**, fix(tests): harness children run with BLAS pools pinned to one thread (#1819 follow-up).",
+    "title": "fix(tests): harness children run with BLAS pools pinned to one thread (#1819 follow-up)",
+    "merge_sha": "2e569748aedf0d974420cac3689da487523ebba9",
+    "group": null
+  },
+  {
+    "number": 1874,
+    "path": "dev/programme/delivery/1874.md",
+    "line": "- [#1874](https://github.com/tvofi/heatpump_optimizer/pull/1874) \u2014 **merged `697b8c6`**, R9-EG-A2: one definition per formula and helper, close the interleaved-junk class in the clone counter.",
+    "title": "R9-EG-A2: one definition per formula and helper, close the interleaved-junk class in the clone counter",
+    "merge_sha": "697b8c68e7fa9d696ffe298b8f413ab9c503bb79",
+    "group": null
+  },
+  {
+    "number": 1875,
+    "path": "dev/programme/delivery/1875.md",
+    "line": "- [#1875](https://github.com/tvofi/heatpump_optimizer/pull/1875) \u2014 **merged `20f597c`**, test(entities): P11 barrier, every Home Assistant name production reaches exists at the 2025.2.0 floor (R9-RCA-1869).",
+    "title": "test(entities): P11 barrier, every Home Assistant name production reaches exists at the 2025.2.0 floor (R9-RCA-1869)",
+    "merge_sha": "20f597c6615b10a5d225497cb13b6d1f2e5cce35",
+    "group": null
+  },
+  {
+    "number": 1876,
+    "path": "dev/programme/delivery/1876.md",
+    "line": "- [#1876](https://github.com/tvofi/heatpump_optimizer/pull/1876) \u2014 **merged `b09e0b9`**, ci(pages): GitHub Pages deploy of the product page and documentation, armed on merge; a v* deploy needs the github-pages tag rule (R9-WEB-2).",
+    "title": "ci(pages): GitHub Pages deploy of the product page and documentation, armed on merge; a v* deploy needs the github-pages tag rule (R9-WEB-2)",
+    "merge_sha": "b09e0b912284250bfa4b38db0bbf56608565a5a4",
+    "group": null
+  },
+  {
+    "number": 1877,
+    "path": "dev/programme/delivery/1877.md",
+    "line": "- [#1877](https://github.com/tvofi/heatpump_optimizer/pull/1877) \u2014 **merged `4ead5c9`**, policy: reviewers check that a moved metric is earned (metric-gamed), fixers take the better fix and pay budget caps with real improvements.",
+    "title": "policy: reviewers check that a moved metric is earned (metric-gamed), fixers take the better fix and pay budget caps with real improvements",
+    "merge_sha": "4ead5c97aa3cd96a08cc6c55fe386751b1c9b0e0",
+    "group": null
+  },
+  {
+    "number": 1878,
+    "path": "dev/programme/delivery/1878.md",
+    "line": "- [#1878](https://github.com/tvofi/heatpump_optimizer/pull/1878) \u2014 **merged `f4e8d91`**, tests(harness_headers): report each child's CPU and size the CPU bound from runner measurements (nightly mutation-ledger SIGXCPU).",
+    "title": "tests(harness_headers): report each child's CPU and size the CPU bound from runner measurements (nightly mutation-ledger SIGXCPU)",
+    "merge_sha": "f4e8d911ba105e6f447bb26e01127f9950219d56",
+    "group": null
+  },
+  {
+    "number": 1879,
+    "path": "dev/programme/delivery/1879.md",
+    "line": "- [#1879](https://github.com/tvofi/heatpump_optimizer/pull/1879) \u2014 **merged `0ea7c92`**, tools: programme instruments and reusable harnesses live in the tree (merge train, seat venv recipe, parity harness, tmp-path detector); fixer/review/orchestrator obligation.",
+    "title": "tools: programme instruments and reusable harnesses live in the tree (merge train, seat venv recipe, parity harness, tmp-path detector); fixer/review/orchestrator obligation",
+    "merge_sha": "0ea7c92b698d541118c0fd6abcd2d38e2a55ed94",
+    "group": null
+  },
+  {
+    "number": 1880,
+    "path": "dev/programme/delivery/1880.md",
+    "line": "- [#1880](https://github.com/tvofi/heatpump_optimizer/pull/1880) \u2014 **merged `7f57273`**, tests(mutation): a wall-clock budget for the mutant phase, and a driver timeout is never a kill (R9-F10.12).",
+    "title": "tests(mutation): a wall-clock budget for the mutant phase, and a driver timeout is never a kill (R9-F10.12)",
+    "merge_sha": "7f5727393faa13f72dd3488c28b7d6ced28a2e06",
+    "group": null
+  },
+  {
+    "number": 1885,
+    "path": "dev/programme/delivery/1885.md",
+    "line": "- [#1885](https://github.com/tvofi/heatpump_optimizer/pull/1885) \u2014 **merged `c2e84df`**, ledger: cite only the runs read for the legionella pin's reason.",
+    "title": "ledger: cite only the runs read for the legionella pin's reason",
+    "merge_sha": "c2e84dface0f4dd0fe55e95a92d683347a7ac920",
+    "group": null
+  },
+  {
+    "number": 1890,
+    "path": "dev/programme/delivery/1890.md",
+    "line": "- [#1890](https://github.com/tvofi/heatpump_optimizer/pull/1890) \u2014 **merged `9a51f6d`**, ci: closures record in three lanes (R9-F10.15 c).",
+    "title": "ci: closures record in three lanes (R9-F10.15 c)",
+    "merge_sha": "9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec",
+    "group": null
+  },
+  {
+    "number": 1953,
+    "path": "dev/programme/delivery/1953.md",
+    "line": "- [#1953](https://github.com/tvofi/heatpump_optimizer/pull/1953) \u2014 **merged `97bcefd`**, record: delivery rows for the 2026-10-04 batch (1893-1950) + two stale re-takes.",
+    "title": "record: delivery rows for the 2026-10-04 batch (1893-1950) + two stale re-takes",
+    "merge_sha": "97bcefd430567dffe5224ba7288ef81b0cb90a6d",
+    "group": null
+  },
+  {
+    "number": 1954,
+    "path": "dev/programme/delivery/1954.md",
+    "line": "- [#1954](https://github.com/tvofi/heatpump_optimizer/pull/1954) \u2014 **merged `9f468ac`**, test(R9-FR-9): re-measure over-budget solves beside fresh samples; medians decide.",
+    "title": "test(R9-FR-9): re-measure over-budget solves beside fresh samples; medians decide",
+    "merge_sha": "9f468ac842d02a948c16927ae1ff47ac2dda3ad3",
+    "group": null
+  },
+  {
+    "number": 1957,
+    "path": "dev/programme/delivery/1957.md",
+    "line": "- [#1957](https://github.com/tvofi/heatpump_optimizer/pull/1957) \u2014 **merged `31567b7`**, ci(R9-FR-10): record-autofix writes the delivery-row beat as the hpo-author App.",
+    "title": "ci(R9-FR-10): record-autofix writes the delivery-row beat as the hpo-author App",
+    "merge_sha": "31567b71820fe8e3380be30a19b7342360c3b6b8",
+    "group": null
+  },
+  {
+    "number": 1958,
+    "path": "dev/programme/delivery/1958.md",
+    "line": "- [#1958](https://github.com/tvofi/heatpump_optimizer/pull/1958) \u2014 **merged `b4287c5`**, refactor(R9-EG-A3): parameter objects for the solver and planner signatures - params_over_10 27 -> 12.",
+    "title": "refactor(R9-EG-A3): parameter objects for the solver and planner signatures - params_over_10 27 -> 12",
+    "merge_sha": "b4287c517b910ffe2bca507c76ecf9e7196e00e1",
+    "group": null
+  },
+  {
+    "number": 1960,
+    "path": "dev/programme/delivery/1960.md",
+    "line": "- [#1960](https://github.com/tvofi/heatpump_optimizer/pull/1960) \u2014 **merged `00da22d`**, feat(R9-SW-1): silent windows - per-step off mask, quiet actions, plan enforcement and card surfaces.",
+    "title": "feat(R9-SW-1): silent windows - per-step off mask, quiet actions, plan enforcement and card surfaces",
+    "merge_sha": "00da22db537a688efe6a7a9518a9fc91767c3a5a",
+    "group": null
+  },
+  {
+    "number": 1962,
+    "path": "dev/programme/delivery/1962.md",
+    "line": "- [#1962](https://github.com/tvofi/heatpump_optimizer/pull/1962) \u2014 **merged `e282261`**, ci(R9-FR-10b): record-autofix sends head/base, pushes its own branch under lease, self-reports API failures.",
+    "title": "ci(R9-FR-10b): record-autofix sends head/base, pushes its own branch under lease, self-reports API failures",
+    "merge_sha": "e2822615b3d5b1dd519eb66813400f81720bb672",
+    "group": null
+  },
+  {
+    "number": 1965,
+    "path": "dev/programme/delivery/1965.md",
+    "line": "- [#1965](https://github.com/tvofi/heatpump_optimizer/pull/1965) \u2014 **merged `dd91d25`**, ci(R9-FR-10b r2): name the Authorization header - curl drops a colonless -H, which was the 401.",
+    "title": "ci(R9-FR-10b r2): name the Authorization header - curl drops a colonless -H, which was the 401",
+    "merge_sha": "dd91d25b21a656d2be46ad3d1ddefe708af48c10",
+    "group": null
+  },
+  {
+    "number": 1966,
+    "path": "dev/programme/delivery/1966.md",
+    "line": "- [#1966](https://github.com/tvofi/heatpump_optimizer/pull/1966) \u2014 **merged `0aa61e7`**, refactor(R9-EG-B6): collaborator interfaces - the eight collaborators off the coordinator's privates.",
+    "title": "refactor(R9-EG-B6): collaborator interfaces - the eight collaborators off the coordinator's privates",
+    "merge_sha": "0aa61e7b72bc6f39fc43a1e74eed5e038d78d9f8",
+    "group": null
+  },
+  {
+    "number": 1971,
+    "path": "dev/programme/delivery/1971.md",
+    "line": "- [#1971](https://github.com/tvofi/heatpump_optimizer/pull/1971) \u2014 **merged `130c780`**, fix(R9-FR-10c): roster set-resume verb, state_docs pusher, INSTRUMENTS.md guide.",
+    "title": "fix(R9-FR-10c): roster set-resume verb, state_docs pusher, INSTRUMENTS.md guide",
+    "merge_sha": "130c78089d63d381e388b6a3c29a723921efee34",
+    "group": null
+  },
+  {
+    "number": 1972,
+    "path": "dev/programme/delivery/1972.md",
+    "line": "- [#1972](https://github.com/tvofi/heatpump_optimizer/pull/1972) \u2014 **merged `86dbf0c`**, docs(rca): R9-RC-PRCONTRACT \u2014 cancelled pr-contract at a live head.",
+    "title": "docs(rca): R9-RC-PRCONTRACT \u2014 cancelled pr-contract at a live head",
+    "merge_sha": "86dbf0ca1d5e1bed903ec83b676a147f2eee8e49",
+    "group": null
+  },
+  {
+    "number": 1974,
+    "path": "dev/programme/delivery/1974.md",
+    "line": "- [#1974](https://github.com/tvofi/heatpump_optimizer/pull/1974) \u2014 **merged `b52adb6`**, record-autofix: look the open record PR up by head=<owner>:record/autofix.",
+    "title": "record-autofix: look the open record PR up by head=<owner>:record/autofix",
+    "merge_sha": "b52adb67dc75234fef60428bf1c1bf89f0ffaac3",
+    "group": null
+  },
+  {
+    "number": 1975,
+    "path": "dev/programme/delivery/1975.md",
+    "line": "- [#1975](https://github.com/tvofi/heatpump_optimizer/pull/1975) \u2014 **merged `e606538`**, fix(R9-F10.16): mutation driver hygiene - slow job scope, one nightly cron, merge_train row stop.",
+    "title": "fix(R9-F10.16): mutation driver hygiene - slow job scope, one nightly cron, merge_train row stop",
+    "merge_sha": "e606538597c7797af73e329d5ccb40bc8d15b0ff",
+    "group": null
+  },
+  {
+    "number": 1977,
+    "path": "dev/programme/delivery/1977.md",
+    "line": "- [#1977](https://github.com/tvofi/heatpump_optimizer/pull/1977) \u2014 **merged `cff39da`**, fix(R9-RC-PRCONTRACT-FIX): pr-contract no longer cancels same-SHA twin runs.",
+    "title": "fix(R9-RC-PRCONTRACT-FIX): pr-contract no longer cancels same-SHA twin runs",
+    "merge_sha": "cff39dad61c4cc15dbaabd03c3a2e3746bca1fab",
+    "group": null
+  },
+  {
+    "number": 1979,
+    "path": "dev/programme/delivery/1979.md",
+    "line": "- [#1979](https://github.com/tvofi/heatpump_optimizer/pull/1979) \u2014 **merged `f6ac991`**, fix(R9-STAMP-UNBLOCK): number a title-subject merge from its body Merge line.",
+    "title": "fix(R9-STAMP-UNBLOCK): number a title-subject merge from its body Merge line",
+    "merge_sha": "f6ac9912d75c5ff145f486a74f19c1689c5079dd",
+    "group": null
+  },
+  {
+    "number": 1980,
+    "path": "dev/programme/delivery/1980.md",
+    "line": "- [#1980](https://github.com/tvofi/heatpump_optimizer/pull/1980) \u2014 **merged `5a0d4f1`**, fix(R9-RO-2b): list both restore paths, then check them out.",
+    "title": "fix(R9-RO-2b): list both restore paths, then check them out",
+    "merge_sha": "5a0d4f1fbe066cfc573a9e963aa6e28704f35ab4",
+    "group": null
+  },
+  {
+    "number": 1981,
+    "path": "dev/programme/delivery/1981.md",
+    "line": "- [#1981](https://github.com/tvofi/heatpump_optimizer/pull/1981) \u2014 **merged `0e8e22c`**, fix(R9-FR-12): prepr names a budget raise and runs no-copies.",
+    "title": "fix(R9-FR-12): prepr names a budget raise and runs no-copies",
+    "merge_sha": "0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e",
+    "group": null
+  },
+  {
+    "number": 1982,
+    "path": "dev/programme/delivery/1982.md",
+    "line": "- [#1982](https://github.com/tvofi/heatpump_optimizer/pull/1982) \u2014 **merged `445bc33`**, fix(R9-FR-11): Mac seat recipe builds the pinned typing interpreter.",
+    "title": "fix(R9-FR-11): Mac seat recipe builds the pinned typing interpreter",
+    "merge_sha": "445bc33d31fa847df7e24b58300559fe872684ee",
+    "group": null
+  },
+  {
+    "number": 1983,
+    "path": "dev/programme/delivery/1983.md",
+    "line": "- [#1983](https://github.com/tvofi/heatpump_optimizer/pull/1983) \u2014 **merged `f07cd25`**, fix(R9-DIAG-2S): recommend a heat-loss refit, apply it only on accept.",
+    "title": "fix(R9-DIAG-2S): recommend a heat-loss refit, apply it only on accept",
+    "merge_sha": "f07cd253c52f1012427d9869a808f1df39dafb93",
+    "group": null
+  },
+  {
+    "number": 1986,
+    "path": "dev/programme/delivery/1986.md",
+    "line": "- [#1986](https://github.com/tvofi/heatpump_optimizer/pull/1986) \u2014 **merged `6568f70`**, fix(train): keep every prepr refusal and refuse a search of the volume root.",
+    "title": "fix(train): keep every prepr refusal and refuse a search of the volume root",
+    "merge_sha": "6568f70aed61f3197beed2ff4822fda473a5a785",
+    "group": null
+  },
+  {
+    "number": 1987,
+    "path": "dev/programme/delivery/1987.md",
+    "line": "- [#1987](https://github.com/tvofi/heatpump_optimizer/pull/1987) \u2014 **merged `8d7903e`**, fix(debugger): close the debug store's boundary seams and truth the catalogues (#1939).",
+    "title": "fix(debugger): close the debug store's boundary seams and truth the catalogues (#1939)",
+    "merge_sha": "8d7903e69cfebb3db279b7a17a0ca066f04c40e0",
+    "group": null
+  },
+  {
+    "number": 1993,
+    "path": "dev/programme/delivery/1993.md",
+    "line": "- [#1993](https://github.com/tvofi/heatpump_optimizer/pull/1993) \u2014 **merged `bcea748`**, fix(R9-RO-7): find audit harness roots by walking up to the manifest (#1920).",
+    "title": "fix(R9-RO-7): find audit harness roots by walking up to the manifest (#1920)",
+    "merge_sha": "bcea74883bec1e3395377ff70d8640737c97fc3e",
+    "group": null
+  },
+  {
+    "number": 1994,
+    "path": "dev/programme/delivery/1994.md",
+    "line": "- [#1994](https://github.com/tvofi/heatpump_optimizer/pull/1994) \u2014 **merged `bab7228`**, fix(R9-RO-3): move product figures and feature designs (#1916).",
+    "title": "fix(R9-RO-3): move product figures and feature designs (#1916)",
+    "merge_sha": "bab72287a6460a6f4246a7c5857792f248dc9d9f",
+    "group": null
+  },
+  {
+    "number": 1996,
+    "path": "dev/programme/delivery/1996.md",
+    "line": "- [#1996](https://github.com/tvofi/heatpump_optimizer/pull/1996) \u2014 **merged `618d014`**, Count dimension briefs without a second copy of the dimension-file grammar..",
+    "title": "Count dimension briefs without a second copy of the dimension-file grammar.",
+    "merge_sha": "618d014f0b91ac39d77250bf887618002f628307",
+    "group": null
+  },
+  {
+    "number": 1997,
+    "path": "dev/programme/delivery/1997.md",
+    "line": "- [#1997](https://github.com/tvofi/heatpump_optimizer/pull/1997) \u2014 **merged `c494f5f`**, feat(R9-SW-5): add two-hour Block DHW and Block Space Heating switches.",
+    "title": "feat(R9-SW-5): add two-hour Block DHW and Block Space Heating switches",
+    "merge_sha": "c494f5f5d42ce1015cac393439fb770681160134",
+    "group": null
+  },
+  {
+    "number": 1999,
+    "path": "dev/programme/delivery/1999.md",
+    "line": "- [#1999](https://github.com/tvofi/heatpump_optimizer/pull/1999) \u2014 **merged `6001b09`**, fix(R9-RO-6): move the instruments into tools/policy, tools/pr, tools/coverage and tools/devices (#1919).",
+    "title": "fix(R9-RO-6): move the instruments into tools/policy, tools/pr, tools/coverage and tools/devices (#1919)",
+    "merge_sha": "6001b09a557259f37319b400d219cf83e02c563f",
+    "group": null
+  },
+  {
+    "number": 2002,
+    "path": "dev/programme/delivery/2002.md",
+    "line": "- [#2002](https://github.com/tvofi/heatpump_optimizer/pull/2002) \u2014 **merged `c327da7`**, record: delivery rows for #1995, #2001, #2003 (autofix).",
+    "title": "record: delivery rows for #1995, #2001, #2003 (autofix)",
+    "merge_sha": "c327da7f176afa3d07acd5562b91f6042bb32809",
+    "group": null
+  },
+  {
+    "number": 2005,
+    "path": "dev/programme/delivery/2005.md",
+    "line": "- [#2005](https://github.com/tvofi/heatpump_optimizer/pull/2005) \u2014 **merged `3910026`**, policy: the orchestrator turn is tools/audit/briefs/nudge.md.",
+    "title": "policy: the orchestrator turn is tools/audit/briefs/nudge.md",
+    "merge_sha": "3910026eed3059201875f159e9bd4a2244d59281",
+    "group": null
+  },
+  {
+    "number": 2006,
+    "path": "dev/programme/delivery/2006.md",
+    "line": "- [#2006](https://github.com/tvofi/heatpump_optimizer/pull/2006) \u2014 **merged `59b5ac6`**, fix(R9-SW-6): keep duty-cycle bounds when a switch install has no frequency entity (#1955).",
+    "title": "fix(R9-SW-6): keep duty-cycle bounds when a switch install has no frequency entity (#1955)",
+    "merge_sha": "59b5ac6e4594b42cd5579cca182a743c25f4c48d",
+    "group": null
+  },
+  {
+    "number": 2007,
+    "path": "dev/programme/delivery/2007.md",
+    "line": "- [#2007](https://github.com/tvofi/heatpump_optimizer/pull/2007) \u2014 **merged `71abfe4`**, fix(R9-SW-2): actuate a capacity-limited switch through the silent slot (#1911).",
+    "title": "fix(R9-SW-2): actuate a capacity-limited switch through the silent slot (#1911)",
+    "merge_sha": "71abfe4f7fbc9853f20be9c21e7f63e6d0b9e74e",
+    "group": null
+  },
+  {
+    "number": 2008,
+    "path": "dev/programme/delivery/2008.md",
+    "line": "- [#2008](https://github.com/tvofi/heatpump_optimizer/pull/2008) \u2014 **merged `421c77f`**, feat(R9-SW-4): hold GCHV night-mode start/end for silent windows (#1913).",
+    "title": "feat(R9-SW-4): hold GCHV night-mode start/end for silent windows (#1913)",
+    "merge_sha": "421c77f950072f218d856dcf60f753e5f80ef10b",
+    "group": null
+  },
+  {
+    "number": 2009,
+    "path": "dev/programme/delivery/2009.md",
+    "line": "- [#2009](https://github.com/tvofi/heatpump_optimizer/pull/2009) \u2014 **merged `be0cb82`**, feat(R9-SW-3): silent windows on the dashboard card and in the docs (#1912).",
+    "title": "feat(R9-SW-3): silent windows on the dashboard card and in the docs (#1912)",
+    "merge_sha": "be0cb82134bd3a008e59127da6f2b67fb1c77e98",
+    "group": null
+  },
+  {
+    "number": 2010,
+    "path": "dev/programme/delivery/2010.md",
+    "line": "- [#2010](https://github.com/tvofi/heatpump_optimizer/pull/2010) \u2014 **merged `1b72ca1`**, feat(R9-UX-5): exact idle reasons and a persistent advisor apply (#1795).",
+    "title": "feat(R9-UX-5): exact idle reasons and a persistent advisor apply (#1795)",
+    "merge_sha": "1b72ca19fc4057999d3e079b11e7c05b4ecd52b7",
+    "group": null
+  },
+  {
+    "number": 2011,
+    "path": "dev/programme/delivery/2011.md",
+    "line": "- [#2011](https://github.com/tvofi/heatpump_optimizer/pull/2011) \u2014 **merged `f060cb4`**, fix(record): stage dev/programme/delivery and spawn the moved policy_lint.",
+    "title": "fix(record): stage dev/programme/delivery and spawn the moved policy_lint",
+    "merge_sha": "f060cb4cf8eabaad98ee7b04947c1edda6599c32",
+    "group": null
+  },
+  {
+    "number": 2012,
+    "path": "dev/programme/delivery/2012.md",
+    "line": "- [#2012](https://github.com/tvofi/heatpump_optimizer/pull/2012) \u2014 **merged `45142cc`**, fix(R9-RCA-1990): re-point the seat instruments after the reorg; head-moved root cause.",
+    "title": "fix(R9-RCA-1990): re-point the seat instruments after the reorg; head-moved root cause",
+    "merge_sha": "45142cc3b2302b646ebd2d5b45e2d7664152a7bb",
+    "group": null
+  },
+  {
+    "number": 2013,
+    "path": "dev/programme/delivery/2013.md",
+    "line": "- [#2013](https://github.com/tvofi/heatpump_optimizer/pull/2013) \u2014 **merged `38c03d9`**, docs(R9-RCA-1985): root-cause-unanswered friction, analysed and the split declined.",
+    "title": "docs(R9-RCA-1985): root-cause-unanswered friction, analysed and the split declined",
+    "merge_sha": "38c03d9419248322079dc3ba2fad9edcc931e961",
+    "group": null
+  },
+  {
+    "number": 2014,
+    "path": "dev/programme/delivery/2014.md",
+    "line": "- [#2014](https://github.com/tvofi/heatpump_optimizer/pull/2014) \u2014 **merged `f6a962e`**, fix(R9-RCA-2004): harness friction root cause; preflight and friction filer find the moved policy tools.",
+    "title": "fix(R9-RCA-2004): harness friction root cause; preflight and friction filer find the moved policy tools",
+    "merge_sha": "f6a962e2a3c435f9c7924a7f80063c94bd2d64ae",
+    "group": null
+  },
+  {
+    "number": 2015,
+    "path": "dev/programme/delivery/2015.md",
+    "line": "- [#2015](https://github.com/tvofi/heatpump_optimizer/pull/2015) \u2014 **merged `09ba95d`**, refactor(R9-RO-8): audit evidence one segment deeper under dev/audit (#1921).",
+    "title": "refactor(R9-RO-8): audit evidence one segment deeper under dev/audit (#1921)",
+    "merge_sha": "09ba95d08157e40950104d28a34c94dc899d4be1",
+    "group": null
+  },
+  {
+    "number": 2017,
+    "path": "dev/programme/delivery/2017.md",
+    "line": "- [#2017](https://github.com/tvofi/heatpump_optimizer/pull/2017) \u2014 **merged `b281a4c`**, tools(R9-EG-B7): land the coordinator seam-hub enumerator (#1744).",
+    "title": "tools(R9-EG-B7): land the coordinator seam-hub enumerator (#1744)",
+    "merge_sha": "b281a4c37e7cf91c79f205906418b2c6696d0e93",
+    "group": null
+  },
+  {
+    "number": 2018,
+    "path": "dev/programme/delivery/2018.md",
+    "line": "- [#2018](https://github.com/tvofi/heatpump_optimizer/pull/2018) \u2014 **merged `e7479ad`**, fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit.",
+    "title": "fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit",
+    "merge_sha": "e7479ad19f9643a59dd61cfaca5e871c75bc1a6d",
+    "group": null
+  },
+  {
+    "number": 2021,
+    "path": "dev/programme/delivery/2021.md",
+    "line": "- [#2021](https://github.com/tvofi/heatpump_optimizer/pull/2021) \u2014 **merged `17f30f9`**, fix(prepr): pin the ancestry-reds fixture author so an exported GIT_AUTHOR_NAME cannot move its SHAs.",
+    "title": "fix(prepr): pin the ancestry-reds fixture author so an exported GIT_AUTHOR_NAME cannot move its SHAs",
+    "merge_sha": "17f30f9cedf2a442592d3db01d1d2e708a55425b",
+    "group": null
+  },
+  {
+    "number": 2022,
+    "path": "dev/programme/delivery/2022.md",
+    "line": "- [#2022](https://github.com/tvofi/heatpump_optimizer/pull/2022) \u2014 **merged `e0f0b6f`**, fix(closures): record harness_headers.py reading the EG-B7 harness as inert.",
+    "title": "fix(closures): record harness_headers.py reading the EG-B7 harness as inert",
+    "merge_sha": "e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf",
+    "group": null
+  },
+  {
+    "number": 2024,
+    "path": "dev/programme/delivery/2024.md",
+    "line": "- [#2024](https://github.com/tvofi/heatpump_optimizer/pull/2024) \u2014 **merged `a8ce875`**, feat(R9-UX-9): recommend a feedback sensor; configurable water flow meter (#1956).",
+    "title": "feat(R9-UX-9): recommend a feedback sensor; configurable water flow meter (#1956)",
+    "merge_sha": "a8ce87571e6b1c093e57036207828c74c70644f4",
+    "group": null
+  },
+  {
+    "number": 2025,
+    "path": "dev/programme/delivery/2025.md",
+    "line": "- [#2025](https://github.com/tvofi/heatpump_optimizer/pull/2025) \u2014 **merged `4dbe5aa`**, refactor(R9-EG-B11): typed entry configuration (#1745).",
+    "title": "refactor(R9-EG-B11): typed entry configuration (#1745)",
+    "merge_sha": "4dbe5aace7440d0a7d43a249892fc63da890338c",
+    "group": null
+  },
+  {
+    "number": 2026,
+    "path": "dev/programme/delivery/2026.md",
+    "line": "- [#2026](https://github.com/tvofi/heatpump_optimizer/pull/2026) \u2014 **merged `f637d24`**, fix(tests): boost_drift_replay runs the shared pre-boost stretch once (nightly mutation timeout).",
+    "title": "fix(tests): boost_drift_replay runs the shared pre-boost stretch once (nightly mutation timeout)",
+    "merge_sha": "f637d24ab5d17e93cdabba092cd9245f440741f6",
+    "group": null
+  },
+  {
+    "number": 2027,
+    "path": "dev/programme/delivery/2027.md",
+    "line": "- [#2027](https://github.com/tvofi/heatpump_optimizer/pull/2027) \u2014 **merged `e22ee25`**, fix(R9-RO-10): sweep stale retired-path references; layout guard refuses new ones and misplaced files.",
+    "title": "fix(R9-RO-10): sweep stale retired-path references; layout guard refuses new ones and misplaced files",
+    "merge_sha": "e22ee2538700176772c53c4595c9877274b3decc",
+    "group": null
+  },
+  {
+    "number": 2030,
+    "path": "dev/programme/delivery/2030.md",
+    "line": "- [#2030](https://github.com/tvofi/heatpump_optimizer/pull/2030) \u2014 **merged `143e2d0`**, R9-RO-11: prepr step 6d predicts closures' and mutation's reds before the handoff.",
+    "title": "R9-RO-11: prepr step 6d predicts closures' and mutation's reds before the handoff",
+    "merge_sha": "143e2d0ac70a04e11a690d90b96947ab743356c2",
+    "group": null
+  },
+  {
+    "number": 2040,
+    "path": "dev/programme/delivery/2040.md",
+    "line": "- [#2040](https://github.com/tvofi/heatpump_optimizer/pull/2040) \u2014 **merged `93e2048`**, rca(R9-RCA-bugclasses): route the bug-class register to the ledger merge driver.",
+    "title": "rca(R9-RCA-bugclasses): route the bug-class register to the ledger merge driver",
+    "merge_sha": "93e2048238292e1586bec6a2e64c27c1ecd3e41c",
+    "group": null
+  },
+  {
+    "number": 2041,
+    "path": "dev/programme/delivery/2041.md",
+    "line": "- [#2041](https://github.com/tvofi/heatpump_optimizer/pull/2041) \u2014 **merged `816547e`**, R9-DBG-2: debugger self-tests on finalize, the 8 MiB inline bundle cap, and the nightly size check.",
+    "title": "R9-DBG-2: debugger self-tests on finalize, the 8 MiB inline bundle cap, and the nightly size check",
+    "merge_sha": "816547efe270a08e18e3b92f52185fe8c1fee2ef",
+    "group": null
+  },
+  {
+    "number": 2042,
+    "path": "dev/programme/delivery/2042.md",
+    "line": "- [#2042](https://github.com/tvofi/heatpump_optimizer/pull/2042) \u2014 **merged `2d8cab3`**, fix(policy): fixer.md back under its token cap after #2027 and #2030.",
+    "title": "fix(policy): fixer.md back under its token cap after #2027 and #2030",
+    "merge_sha": "2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38",
+    "group": null
+  },
+  {
+    "number": 2044,
+    "path": "dev/programme/delivery/2044.md",
+    "line": "- [#2044](https://github.com/tvofi/heatpump_optimizer/pull/2044) \u2014 **merged `e2a4f7c`**, R9-RO-12: merge_train batch -- proved batch merges (B), a lone merge unproved (D).",
+    "title": "R9-RO-12: merge_train batch -- proved batch merges (B), a lone merge unproved (D)",
+    "merge_sha": "e2a4f7c67b28622206016b4eb1032abe0fbe4621",
+    "group": null
+  },
+  {
+    "number": 2049,
+    "path": "dev/programme/delivery/2049.md",
+    "line": "- [#2049](https://github.com/tvofi/heatpump_optimizer/pull/2049) \u2014 **merged `0c25836`**, ci(R9-CI-1): mutation-autofix and closures-autofix repair what they skipped.",
+    "title": "ci(R9-CI-1): mutation-autofix and closures-autofix repair what they skipped",
+    "merge_sha": "0c25836e5a847d39f7a023e9f567ac2525741ebe",
+    "group": null
+  },
+  {
+    "number": 2050,
+    "path": "dev/programme/delivery/2050.md",
+    "line": "- [#2050](https://github.com/tvofi/heatpump_optimizer/pull/2050) \u2014 **merged `ef3ca65`**, record: delivery rows for #2029 (autofix).",
+    "title": "record: delivery rows for #2029 (autofix)",
+    "merge_sha": "ef3ca6571f5f6ef6b3cc0360b7ce4835f56eb702",
+    "group": null
+  },
+  {
+    "number": 2051,
+    "path": "dev/programme/delivery/2051.md",
+    "line": "- [#2051](https://github.com/tvofi/heatpump_optimizer/pull/2051) \u2014 **merged `470bbd6`**, stamp self-test: throwaway repos run no auto-maintenance (R9-RCA-stamp-race).",
+    "title": "stamp self-test: throwaway repos run no auto-maintenance (R9-RCA-stamp-race)",
+    "merge_sha": "470bbd6087e5978eae594e616a76e207336b289c",
+    "group": null
+  },
+  {
+    "number": 2053,
+    "path": "dev/programme/delivery/2053.md",
+    "line": "- [#2053](https://github.com/tvofi/heatpump_optimizer/pull/2053) \u2014 **merged `dcc77dd`**, fix(R9-CI-2a): budget-raise-gate never cancels its same-SHA twin.",
+    "title": "fix(R9-CI-2a): budget-raise-gate never cancels its same-SHA twin",
+    "merge_sha": "dcc77dd0c53e363a7c1b20c357a3986db8293d95",
+    "group": null
+  },
+  {
+    "number": 2054,
+    "path": "dev/programme/delivery/2054.md",
+    "line": "- [#2054](https://github.com/tvofi/heatpump_optimizer/pull/2054) \u2014 **merged `0b89f78`**, throwaway git repositories: one shared helper at every init and clone site.",
+    "title": "throwaway git repositories: one shared helper at every init and clone site",
+    "merge_sha": "0b89f781f340d56a8202f7a2fbe69b8f87e4b2ff",
+    "group": null
+  },
+  {
+    "number": 2055,
+    "path": "dev/programme/delivery/2055.md",
+    "line": "- [#2055](https://github.com/tvofi/heatpump_optimizer/pull/2055) \u2014 **merged `9cac194`**, fix: inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051).",
+    "title": "fix: inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051)",
+    "merge_sha": "9cac1947e7c5dd465e3f83e6216d3e25d79511d2",
+    "group": null
+  },
+  {
+    "number": 2056,
+    "path": "dev/programme/delivery/2056.md",
+    "line": "- [#2056](https://github.com/tvofi/heatpump_optimizer/pull/2056) \u2014 **merged `4647321`**, nightly-ha A16: bind HA's download writer by name and read its payload body (fix-forward of #2041).",
+    "title": "nightly-ha A16: bind HA's download writer by name and read its payload body (fix-forward of #2041)",
+    "merge_sha": "4647321d8b33711aeba1f1d1bb6a3a10224c0e46",
+    "group": null
+  },
+  {
+    "number": 2057,
+    "path": "dev/programme/delivery/2057.md",
+    "line": "- [#2057](https://github.com/tvofi/heatpump_optimizer/pull/2057) \u2014 **merged `f84d891`**, fix(R9-CI-2b): tests/closures.json in a layout GitHub merges without a driver.",
+    "title": "fix(R9-CI-2b): tests/closures.json in a layout GitHub merges without a driver",
+    "merge_sha": "f84d891e1fdf6d09c7e5cbe4b16b39205c4db14c",
+    "group": null
+  },
+  {
+    "number": 2058,
+    "path": "dev/programme/delivery/2058.md",
+    "line": "- [#2058](https://github.com/tvofi/heatpump_optimizer/pull/2058) \u2014 **merged `47b083b`**, ci: run nightly-ha (unrequired) on a pull request that touches its driver's reads (#2056 RCA).",
+    "title": "ci: run nightly-ha (unrequired) on a pull request that touches its driver's reads (#2056 RCA)",
+    "merge_sha": "47b083b03a9dcbfb1e33679dc5f7d3313a5fed49",
+    "group": null
+  },
+  {
+    "number": 2059,
+    "path": "dev/programme/delivery/2059.md",
+    "line": "- [#2059](https://github.com/tvofi/heatpump_optimizer/pull/2059) \u2014 **merged `d8a4bd3`**, fix(R9-CI-2b): verdicts carry over bot commits; a merge-main bot un-DIRTYs driver-only conflicts.",
+    "title": "fix(R9-CI-2b): verdicts carry over bot commits; a merge-main bot un-DIRTYs driver-only conflicts",
+    "merge_sha": "d8a4bd36f6384dde45486fff388f91ed4a3aa6df",
+    "group": null
+  },
+  {
+    "number": 2060,
+    "path": "dev/programme/delivery/2060.md",
+    "line": "- [#2060](https://github.com/tvofi/heatpump_optimizer/pull/2060) \u2014 **merged `af79f21`**, fix(R9-CI-2): mutation-autofix reads a lone pin shard at the download root.",
+    "title": "fix(R9-CI-2): mutation-autofix reads a lone pin shard at the download root",
+    "merge_sha": "af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee",
+    "group": null
+  },
+  {
+    "number": 2061,
+    "path": "dev/programme/delivery/2061.md",
+    "line": "- [#2061](https://github.com/tvofi/heatpump_optimizer/pull/2061) \u2014 **merged `c518447`**, fix(R9-RO-9a): instrument carries -- added_unpinned twins, 7d whole-key match, batch delete, ledger machine paths.",
+    "title": "fix(R9-RO-9a): instrument carries -- added_unpinned twins, 7d whole-key match, batch delete, ledger machine paths",
+    "merge_sha": "c518447eb804c72122a7c4ecd479de2eeda62452",
+    "group": null
+  },
+  {
+    "number": 2062,
+    "path": "dev/programme/delivery/2062.md",
+    "line": "- [#2062](https://github.com/tvofi/heatpump_optimizer/pull/2062) \u2014 **merged `83f7ca5`**, fix(#2028): the contract's red history reads with a token instead of skipping.",
+    "title": "fix(#2028): the contract's red history reads with a token instead of skipping",
+    "merge_sha": "83f7ca55879097258b971d483345459f18629491",
+    "group": null
+  },
+  {
+    "number": 2064,
+    "path": "dev/programme/delivery/2064.md",
+    "line": "- [#2064](https://github.com/tvofi/heatpump_optimizer/pull/2064) \u2014 **merged `bd59a4a`**, policy: fixes are architecturally sound.",
+    "title": "policy: fixes are architecturally sound",
+    "merge_sha": "bd59a4af1b2616a7f00761a3769d22a335e4df7c",
+    "group": null
+  },
+  {
+    "number": 2065,
+    "path": "dev/programme/delivery/2065.md",
+    "line": "- [#2065](https://github.com/tvofi/heatpump_optimizer/pull/2065) \u2014 **merged `90b9b73`**, fix(live-power-clamp 7a): the metered running draw, its evidence latch and effective range.",
+    "title": "fix(live-power-clamp 7a): the metered running draw, its evidence latch and effective range",
+    "merge_sha": "90b9b7316f1268aadfb8556ce4f0c42ba7039ec4",
+    "group": null
+  },
+  {
+    "number": 2067,
+    "path": "dev/programme/delivery/2067.md",
+    "line": "- [#2067](https://github.com/tvofi/heatpump_optimizer/pull/2067) \u2014 **merged `d0f085f`**, fix(R9-RCA-prepr-tmp): the prepr self-test survives a full, loaded box.",
+    "title": "fix(R9-RCA-prepr-tmp): the prepr self-test survives a full, loaded box",
+    "merge_sha": "d0f085ffbc3a8c38c5a36df4f2a4ca0ea3505d0a",
+    "group": null
+  },
+  {
+    "number": 2068,
+    "path": "dev/programme/delivery/2068.md",
+    "line": "- [#2068](https://github.com/tvofi/heatpump_optimizer/pull/2068) \u2014 **merged `9224833`**, ci(R9-EG-A4): the architecture score is a required check, with the wave comparison and two counters (#1774).",
+    "title": "ci(R9-EG-A4): the architecture score is a required check, with the wave comparison and two counters (#1774)",
+    "merge_sha": "9224833839c4db5221471a04b6558b65102542f2",
+    "group": null
+  },
+  {
+    "number": 2069,
+    "path": "dev/programme/delivery/2069.md",
+    "line": "- [#2069](https://github.com/tvofi/heatpump_optimizer/pull/2069) \u2014 **merged `a9baf16`**, tools: app_push.sh --recarry skips prepr on a clean main merge; the merge train's recarry uses it.",
+    "title": "tools: app_push.sh --recarry skips prepr on a clean main merge; the merge train's recarry uses it",
+    "merge_sha": "a9baf164c9386ad2973bea129c9aaf4f73e4b433",
+    "group": null
+  },
+  {
+    "number": 2071,
+    "path": "dev/programme/delivery/2071.md",
+    "line": "- [#2071](https://github.com/tvofi/heatpump_optimizer/pull/2071) \u2014 **merged `7cd5a58`**, fix(live-diag): diagnostics export the live config; repair a silent floor-return sensor.",
+    "title": "fix(live-diag): diagnostics export the live config; repair a silent floor-return sensor",
+    "merge_sha": "7cd5a588cbbbef354c00148040da2d720b8a888c",
+    "group": null
+  },
+  {
+    "number": 2073,
+    "path": "dev/programme/delivery/2073.md",
+    "line": "- [#2073](https://github.com/tvofi/heatpump_optimizer/pull/2073) \u2014 **merged `a3b83b8`**, prepr: step 6d predicts a stale mutation-ledger pin.",
+    "title": "prepr: step 6d predicts a stale mutation-ledger pin",
+    "merge_sha": "a3b83b8ea45571dfa669b145f88f31d44fa58458",
+    "group": null
+  },
+  {
+    "number": 2074,
+    "path": "dev/programme/delivery/2074.md",
+    "line": "- [#2074](https://github.com/tvofi/heatpump_optimizer/pull/2074) \u2014 **merged `f5fb670`**, fix(R9-RC-NIGHTLY-BOUND): the nightly mutation bound covers the measured pool factor.",
+    "title": "fix(R9-RC-NIGHTLY-BOUND): the nightly mutation bound covers the measured pool factor",
+    "merge_sha": "f5fb67077eb1f351a904329cb387a01bbc937f97",
+    "group": null
+  },
+  {
+    "number": 2078,
+    "path": "dev/programme/delivery/2078.md",
+    "line": "- [#2078](https://github.com/tvofi/heatpump_optimizer/pull/2078) \u2014 **merged `23d3549`**, fix(R9-RO-13): the train may land policy under a valid mandate, and falls back without one.",
+    "title": "fix(R9-RO-13): the train may land policy under a valid mandate, and falls back without one",
+    "merge_sha": "23d354970fcaababe8e67a5c04c326cc8bc79e49",
+    "group": null
+  }
+]

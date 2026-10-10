@@ -1,0 +1,842 @@
+[
+ {
+  "number": 1845,
+  "title": "R9-EG-B5a: one builder for the two solve paths' objective closures",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-dhw-closure-dedupe",
+  "merge_sha": "4e2582e79a4d788fee44c8eb82502cbf46f53af7",
+  "merged": true
+ },
+ {
+  "number": 1846,
+  "title": "R9-WEB-1: the product page, docs/index.html, with its doc_claims arm",
+  "state": "MERGED",
+  "head_ref": "fix/r9-web-page",
+  "merge_sha": "95960e724d14608d90fc5548398cdfa2e0d66c37",
+  "merged": true
+ },
+ {
+  "number": 1847,
+  "title": "R9-F11.4: the agreement lane \u2014 six governance pairs checked for divergence, Python readers pinned",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f11-governance-4",
+  "merge_sha": "948671af1dcb63b1e3ceebb0154ba5c5b9c2911e",
+  "merged": true
+ },
+ {
+  "number": 1848,
+  "title": "R9-F10.5: drain killed mutants into the ledger nightly via the hpo-ledger App",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-gate-infra-5",
+  "merge_sha": "8fa06663cf64a32cf19a3a2f2742ce3225f06e3a",
+  "merged": true
+ },
+ {
+  "number": 1850,
+  "title": "R9-F11.4 precursor: resolvePrFromCommit reads both merge-subject shapes; policy_lint exports rulePaths",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f11-governance-4-pre",
+  "merge_sha": "bf37bd3a0fc815c518b47a96b81c01512f222d0e",
+  "merged": true
+ },
+ {
+  "number": 1851,
+  "title": "R9-EG-A1: the architecture score in-tree, reading structure.py's censuses, with its calibration check",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-archscore",
+  "merge_sha": "1655100779c1c920bfa4890134d05f9ac74c5727",
+  "merged": true
+ },
+ {
+  "number": 1852,
+  "title": "R9-EG-B3a: a typed coordinator payload (Payload TypedDict) wired through DataUpdateCoordinator",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-typed-payload",
+  "merge_sha": "03ba7f70f007147bda32ac0fc5dd83b11499bbaf",
+  "merged": true
+ },
+ {
+  "number": 1853,
+  "title": "record: truth the delivery rows of #1838, #1842, #1843, #1844 and #1849",
+  "state": "MERGED",
+  "head_ref": "fix/r9-record-1002b",
+  "merge_sha": "2e7422e59aad538d043d544df356721c9d4264aa",
+  "merged": true
+ },
+ {
+  "number": 1854,
+  "title": "ci: superseded Tests runs cancel for real (!cancelled() instead of always() on 14 jobs)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-cancellable",
+  "merge_sha": "5f87e25a110ff0a6fad179283b21f3823d0cd1f1",
+  "merged": true
+ },
+ {
+  "number": 1856,
+  "title": "policy: round-9 RCA policy text (R9-F11.5)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f11-governance-5",
+  "merge_sha": "e5b3fe162839ad0da1ea4e4fbbf1571b9a65e25b",
+  "merged": true
+ },
+ {
+  "number": 1857,
+  "title": "ci: closures-autofix goes red when its pinned classifier disagrees with closures",
+  "state": "MERGED",
+  "head_ref": "fix/r9-closures-autofix-disagree-v2",
+  "merge_sha": "51ce8f2a7379ac4a63f8efd4ab2be9415fdfee6a",
+  "merged": true
+ },
+ {
+  "number": 1858,
+  "title": "refactor: extract the DHW planner, a verbatim move (R9-EG-B5)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-dhw-planner",
+  "merge_sha": "68b8cb97d911339a206fde141ecfdf0f57c6ccc4",
+  "merged": true
+ },
+ {
+  "number": 1859,
+  "title": "fix(ci): the two ledger jobs lead with !cancelled(), main's red after #1854 x #1848",
+  "state": "MERGED",
+  "head_ref": "fix/r9-hotfix-ledger-cancel",
+  "merge_sha": "aa7a81192325614999803e40e3cedc024e22ce2b",
+  "merged": true
+ },
+ {
+  "number": 1861,
+  "title": "test(mutation): comparison-bound operator CMP_BOUND, ratcheted (R9-F10.6)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-gate-infra-6",
+  "merge_sha": "687e15b6fcf20d23f4afc201e269e217e4414ca1",
+  "merged": true
+ },
+ {
+  "number": 1862,
+  "title": "feat(audit): deterministic register fold and check (R9-EG-R1)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-register-fold",
+  "merge_sha": "1abfef56d081146d7a38828047d790a23ffcac27",
+  "merged": true
+ },
+ {
+  "number": 1863,
+  "title": "ci(governance): graders-head-copy runs the PR's own pinned graders (R9-F11.7)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f11-governance-7",
+  "merge_sha": "243990abf3f598656756074f46c01430f323de40",
+  "merged": true
+ },
+ {
+  "number": 1864,
+  "title": "feat(site): documentation sub-pages rendered over the vendored markdown-it (R9-WEB-3)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-web-3",
+  "merge_sha": "b8fa39f8c4df25bf68d1b3ce914e7b910ac45a2b",
+  "merged": true
+ },
+ {
+  "number": 1865,
+  "title": "feat(events): notifier module, five events and a notifications blueprint (R9-UX-4)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ux-events",
+  "merge_sha": "0d8f2bb42fcd3ac94ca3bb36db956ac6676e1046",
+  "merged": true
+ },
+ {
+  "number": 1867,
+  "title": "refactor(payload): remove the cast; the producers are typed (R9-EG-B3b)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-typed-payload-b",
+  "merge_sha": "12dbd3a5d01f48f44e6c6344bff22d3d015baf9d",
+  "merged": true
+ },
+ {
+  "number": 1868,
+  "title": "ci: closures-autofix goes red when any closures failure is left for a human (RCA instance 4)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-autofix-inert-reads",
+  "merge_sha": "8c6e9a7efec7d671bbd27b21cf3fbc3c75253f45",
+  "merged": true
+ },
+ {
+  "number": 1869,
+  "title": "fix(stores): one version constant per store and a migration hook (R9-EG-B4)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-store-version",
+  "merge_sha": "1ccd0b1d5e2e2f21260d1b685271ac97fc7cb28f",
+  "merged": true
+ },
+ {
+  "number": 1870,
+  "title": "test(nightly-ha): loop-stall heartbeat with an in-stall dump (R9-F10.7)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-heartbeat",
+  "merge_sha": "2622b31c82d61c7d217e05c41dd0b90bf6384c5a",
+  "merged": true
+ },
+ {
+  "number": 1871,
+  "title": "fix(mutation): the ledger drain lands pins still valid at main's head (#1848 follow-up)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ledger-head-moved",
+  "merge_sha": "66d9dc63a78208344a22e7f3534c164c1180d61b",
+  "merged": true
+ },
+ {
+  "number": 1872,
+  "title": "fix(tests): harness children run with BLAS pools pinned to one thread (#1819 follow-up)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-blas-pin-pr",
+  "merge_sha": "2e569748aedf0d974420cac3689da487523ebba9",
+  "merged": true
+ },
+ {
+  "number": 1874,
+  "title": "R9-EG-A2: one definition per formula and helper, close the interleaved-junk class in the clone counter",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-one-copy",
+  "merge_sha": "697b8c68e7fa9d696ffe298b8f413ab9c503bb79",
+  "merged": true
+ },
+ {
+  "number": 1875,
+  "title": "test(entities): P11 barrier, every Home Assistant name production reaches exists at the 2025.2.0 floor (R9-RCA-1869)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-p11-floor-barrier",
+  "merge_sha": "20f597c6615b10a5d225497cb13b6d1f2e5cce35",
+  "merged": true
+ },
+ {
+  "number": 1876,
+  "title": "ci(pages): GitHub Pages deploy of the product page and documentation, armed on merge; a v* deploy needs the github-pages tag rule (R9-WEB-2)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-web-2",
+  "merge_sha": "b09e0b912284250bfa4b38db0bbf56608565a5a4",
+  "merged": true
+ },
+ {
+  "number": 1877,
+  "title": "policy: reviewers check that a moved metric is earned (metric-gamed), fixers take the better fix and pay budget caps with real improvements",
+  "state": "MERGED",
+  "head_ref": "fix/r9-policy-metric-gaming",
+  "merge_sha": "4ead5c97aa3cd96a08cc6c55fe386751b1c9b0e0",
+  "merged": true
+ },
+ {
+  "number": 1878,
+  "title": "tests(harness_headers): report each child's CPU and size the CPU bound from runner measurements (nightly mutation-ledger SIGXCPU)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-ledger-cpu",
+  "merge_sha": "f4e8d911ba105e6f447bb26e01127f9950219d56",
+  "merged": true
+ },
+ {
+  "number": 1879,
+  "title": "tools: programme instruments and reusable harnesses live in the tree (merge train, seat venv recipe, parity harness, tmp-path detector); fixer/review/orchestrator obligation",
+  "state": "MERGED",
+  "head_ref": "fix/r9-tools-home",
+  "merge_sha": "0ea7c92b698d541118c0fd6abcd2d38e2a55ed94",
+  "merged": true
+ },
+ {
+  "number": 1880,
+  "title": "tests(mutation): a wall-clock budget for the mutant phase, and a driver timeout is never a kill (R9-F10.12)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-12",
+  "merge_sha": "7f5727393faa13f72dd3488c28b7d6ced28a2e06",
+  "merged": true
+ },
+ {
+  "number": 1885,
+  "title": "ledger: cite only the runs read for the legionella pin's reason",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-13",
+  "merge_sha": "c2e84dface0f4dd0fe55e95a92d683347a7ac920",
+  "merged": true
+ },
+ {
+  "number": 1890,
+  "title": "ci: closures record in three lanes (R9-F10.15 c)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-15",
+  "merge_sha": "9a51f6d7295e1b5bf57f723485ae5dc9da7c0bec",
+  "merged": true
+ },
+ {
+  "number": 1953,
+  "title": "record: delivery rows for the 2026-10-04 batch (1893-1950) + two stale re-takes",
+  "state": "MERGED",
+  "head_ref": "fix/r9-record-1893-1949",
+  "merge_sha": "97bcefd430567dffe5224ba7288ef81b0cb90a6d",
+  "merged": true
+ },
+ {
+  "number": 1954,
+  "title": "test(R9-FR-9): re-measure over-budget solves beside fresh samples; medians decide",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-9-pr",
+  "merge_sha": "9f468ac842d02a948c16927ae1ff47ac2dda3ad3",
+  "merged": true
+ },
+ {
+  "number": 1957,
+  "title": "ci(R9-FR-10): record-autofix writes the delivery-row beat as the hpo-author App",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-10-pr",
+  "merge_sha": "31567b71820fe8e3380be30a19b7342360c3b6b8",
+  "merged": true
+ },
+ {
+  "number": 1958,
+  "title": "refactor(R9-EG-A3): parameter objects for the solver and planner signatures - params_over_10 27 -> 12",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-a3-pr",
+  "merge_sha": "b4287c517b910ffe2bca507c76ecf9e7196e00e1",
+  "merged": true
+ },
+ {
+  "number": 1960,
+  "title": "feat(R9-SW-1): silent windows - per-step off mask, quiet actions, plan enforcement and card surfaces",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw-model-pr",
+  "merge_sha": "00da22db537a688efe6a7a9518a9fc91767c3a5a",
+  "merged": true
+ },
+ {
+  "number": 1962,
+  "title": "ci(R9-FR-10b): record-autofix sends head/base, pushes its own branch under lease, self-reports API failures",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-10-record-autofix-fixes",
+  "merge_sha": "e2822615b3d5b1dd519eb66813400f81720bb672",
+  "merged": true
+ },
+ {
+  "number": 1965,
+  "title": "ci(R9-FR-10b r2): name the Authorization header - curl drops a colonless -H, which was the 401",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-10-record-autofix-fixes",
+  "merge_sha": "dd91d25b21a656d2be46ad3d1ddefe708af48c10",
+  "merged": true
+ },
+ {
+  "number": 1966,
+  "title": "refactor(R9-EG-B6): collaborator interfaces - the eight collaborators off the coordinator's privates",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-collaborator-interfaces",
+  "merge_sha": "0aa61e7b72bc6f39fc43a1e74eed5e038d78d9f8",
+  "merged": true
+ },
+ {
+  "number": 1971,
+  "title": "fix(R9-FR-10c): roster set-resume verb, state_docs pusher, INSTRUMENTS.md guide",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr10c-state-tools",
+  "merge_sha": "130c78089d63d381e388b6a3c29a723921efee34",
+  "merged": true
+ },
+ {
+  "number": 1972,
+  "title": "docs(rca): R9-RC-PRCONTRACT \u2014 cancelled pr-contract at a live head",
+  "state": "MERGED",
+  "head_ref": "handoff/r9-rc-prcontract",
+  "merge_sha": "86dbf0ca1d5e1bed903ec83b676a147f2eee8e49",
+  "merged": true
+ },
+ {
+  "number": 1974,
+  "title": "record-autofix: look the open record PR up by head=<owner>:record/autofix",
+  "state": "MERGED",
+  "head_ref": "fix/main-red",
+  "merge_sha": "b52adb67dc75234fef60428bf1c1bf89f0ffaac3",
+  "merged": true
+ },
+ {
+  "number": 1975,
+  "title": "fix(R9-F10.16): mutation driver hygiene - slow job scope, one nightly cron, merge_train row stop",
+  "state": "MERGED",
+  "head_ref": "fix/r9-f10-16",
+  "merge_sha": "e606538597c7797af73e329d5ccb40bc8d15b0ff",
+  "merged": true
+ },
+ {
+  "number": 1977,
+  "title": "fix(R9-RC-PRCONTRACT-FIX): pr-contract no longer cancels same-SHA twin runs",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rc-prcontract-fix",
+  "merge_sha": "cff39dad61c4cc15dbaabd03c3a2e3746bca1fab",
+  "merged": true
+ },
+ {
+  "number": 1979,
+  "title": "fix(R9-STAMP-UNBLOCK): number a title-subject merge from its body Merge line",
+  "state": "MERGED",
+  "head_ref": "fix/r9-stamp-unblock",
+  "merge_sha": "f6ac9912d75c5ff145f486a74f19c1689c5079dd",
+  "merged": true
+ },
+ {
+  "number": 1980,
+  "title": "fix(R9-RO-2b): list both restore paths, then check them out",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-2b-pr",
+  "merge_sha": "5a0d4f1fbe066cfc573a9e963aa6e28704f35ab4",
+  "merged": true
+ },
+ {
+  "number": 1981,
+  "title": "fix(R9-FR-12): prepr names a budget raise and runs no-copies",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-12-pr",
+  "merge_sha": "0e8e22c69fef5a54bf2a4b2b7aee9df724dac88e",
+  "merged": true
+ },
+ {
+  "number": 1982,
+  "title": "fix(R9-FR-11): Mac seat recipe builds the pinned typing interpreter",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fr-11",
+  "merge_sha": "445bc33d31fa847df7e24b58300559fe872684ee",
+  "merged": true
+ },
+ {
+  "number": 1983,
+  "title": "fix(R9-DIAG-2S): recommend a heat-loss refit, apply it only on accept",
+  "state": "MERGED",
+  "head_ref": "fix/r9-diag-2s-pr",
+  "merge_sha": "f07cd253c52f1012427d9869a808f1df39dafb93",
+  "merged": true
+ },
+ {
+  "number": 1986,
+  "title": "fix(train): keep every prepr refusal and refuse a search of the volume root",
+  "state": "MERGED",
+  "head_ref": "fix/train-instrument-log",
+  "merge_sha": "6568f70aed61f3197beed2ff4822fda473a5a785",
+  "merged": true
+ },
+ {
+  "number": 1987,
+  "title": "fix(debugger): close the debug store's boundary seams and truth the catalogues (#1939)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-dbg-1",
+  "merge_sha": "8d7903e69cfebb3db279b7a17a0ca066f04c40e0",
+  "merged": true
+ },
+ {
+  "number": 1993,
+  "title": "fix(R9-RO-7): find audit harness roots by walking up to the manifest (#1920)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-7-pr",
+  "merge_sha": "bcea74883bec1e3395377ff70d8640737c97fc3e",
+  "merged": true
+ },
+ {
+  "number": 1994,
+  "title": "fix(R9-RO-3): move product figures and feature designs (#1916)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-3-pr",
+  "merge_sha": "bab72287a6460a6f4246a7c5857792f248dc9d9f",
+  "merged": true
+ },
+ {
+  "number": 1996,
+  "title": "Count dimension briefs without a second copy of the dimension-file grammar.",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-5-pr",
+  "merge_sha": "618d014f0b91ac39d77250bf887618002f628307",
+  "merged": true
+ },
+ {
+  "number": 1997,
+  "title": "feat(R9-SW-5): add two-hour Block DHW and Block Space Heating switches",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw-5",
+  "merge_sha": "c494f5f5d42ce1015cac393439fb770681160134",
+  "merged": true
+ },
+ {
+  "number": 1999,
+  "title": "fix(R9-RO-6): move the instruments into tools/policy, tools/pr, tools/coverage and tools/devices (#1919)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-6-pr",
+  "merge_sha": "6001b09a557259f37319b400d219cf83e02c563f",
+  "merged": true
+ },
+ {
+  "number": 2002,
+  "title": "record: delivery rows for #1995, #2001, #2003 (autofix)",
+  "state": "MERGED",
+  "head_ref": "record/autofix",
+  "merge_sha": "c327da7f176afa3d07acd5562b91f6042bb32809",
+  "merged": true
+ },
+ {
+  "number": 2005,
+  "title": "policy: the orchestrator turn is tools/audit/briefs/nudge.md",
+  "state": "MERGED",
+  "head_ref": "fix/orchestrator-nudge",
+  "merge_sha": "3910026eed3059201875f159e9bd4a2244d59281",
+  "merged": true
+ },
+ {
+  "number": 2006,
+  "title": "fix(R9-SW-6): keep duty-cycle bounds when a switch install has no frequency entity (#1955)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw6",
+  "merge_sha": "59b5ac6e4594b42cd5579cca182a743c25f4c48d",
+  "merged": true
+ },
+ {
+  "number": 2007,
+  "title": "fix(R9-SW-2): actuate a capacity-limited switch through the silent slot (#1911)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw-actuation",
+  "merge_sha": "71abfe4f7fbc9853f20be9c21e7f63e6d0b9e74e",
+  "merged": true
+ },
+ {
+  "number": 2008,
+  "title": "feat(R9-SW-4): hold GCHV night-mode start/end for silent windows (#1913)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw-gchv",
+  "merge_sha": "421c77f950072f218d856dcf60f753e5f80ef10b",
+  "merged": true
+ },
+ {
+  "number": 2009,
+  "title": "feat(R9-SW-3): silent windows on the dashboard card and in the docs (#1912)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-sw-card",
+  "merge_sha": "be0cb82134bd3a008e59127da6f2b67fb1c77e98",
+  "merged": true
+ },
+ {
+  "number": 2010,
+  "title": "feat(R9-UX-5): exact idle reasons and a persistent advisor apply (#1795)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ux-actions",
+  "merge_sha": "1b72ca19fc4057999d3e079b11e7c05b4ecd52b7",
+  "merged": true
+ },
+ {
+  "number": 2011,
+  "title": "fix(record): stage dev/programme/delivery and spawn the moved policy_lint",
+  "state": "MERGED",
+  "head_ref": "fix/r9-record-path",
+  "merge_sha": "f060cb4cf8eabaad98ee7b04947c1edda6599c32",
+  "merged": true
+ },
+ {
+  "number": 2012,
+  "title": "fix(R9-RCA-1990): re-point the seat instruments after the reorg; head-moved root cause",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-1990",
+  "merge_sha": "45142cc3b2302b646ebd2d5b45e2d7664152a7bb",
+  "merged": true
+ },
+ {
+  "number": 2013,
+  "title": "docs(R9-RCA-1985): root-cause-unanswered friction, analysed and the split declined",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-1985",
+  "merge_sha": "38c03d9419248322079dc3ba2fad9edcc931e961",
+  "merged": true
+ },
+ {
+  "number": 2014,
+  "title": "fix(R9-RCA-2004): harness friction root cause; preflight and friction filer find the moved policy tools",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-2004",
+  "merge_sha": "f6a962e2a3c435f9c7924a7f80063c94bd2d64ae",
+  "merged": true
+ },
+ {
+  "number": 2015,
+  "title": "refactor(R9-RO-8): audit evidence one segment deeper under dev/audit (#1921)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-8",
+  "merge_sha": "09ba95d08157e40950104d28a34c94dc899d4be1",
+  "merged": true
+ },
+ {
+  "number": 2017,
+  "title": "tools(R9-EG-B7): land the coordinator seam-hub enumerator (#1744)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-b7-harness",
+  "merge_sha": "b281a4c37e7cf91c79f205906418b2c6696d0e93",
+  "merged": true
+ },
+ {
+  "number": 2018,
+  "title": "fix(rca): stress.py timing verdicts exempt while recording closures; derive_closures reports real exit",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-stress-recording",
+  "merge_sha": "e7479ad19f9643a59dd61cfaca5e871c75bc1a6d",
+  "merged": true
+ },
+ {
+  "number": 2021,
+  "title": "fix(prepr): pin the ancestry-reds fixture author so an exported GIT_AUTHOR_NAME cannot move its SHAs",
+  "state": "MERGED",
+  "head_ref": "fix/r9-prepr-selftest",
+  "merge_sha": "17f30f9cedf2a442592d3db01d1d2e708a55425b",
+  "merged": true
+ },
+ {
+  "number": 2022,
+  "title": "fix(closures): record harness_headers.py reading the EG-B7 harness as inert",
+  "state": "MERGED",
+  "head_ref": "fix/r9-closures-eg-b7",
+  "merge_sha": "e0f0b6fb397bf42a3cd379e0c74f1f295eeebdaf",
+  "merged": true
+ },
+ {
+  "number": 2024,
+  "title": "feat(R9-UX-9): recommend a feedback sensor; configurable water flow meter (#1956)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ux9",
+  "merge_sha": "a8ce87571e6b1c093e57036207828c74c70644f4",
+  "merged": true
+ },
+ {
+  "number": 2025,
+  "title": "refactor(R9-EG-B11): typed entry configuration (#1745)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-entry-config",
+  "merge_sha": "4dbe5aace7440d0a7d43a249892fc63da890338c",
+  "merged": true
+ },
+ {
+  "number": 2026,
+  "title": "fix(tests): boost_drift_replay runs the shared pre-boost stretch once (nightly mutation timeout)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-bdr",
+  "merge_sha": "f637d24ab5d17e93cdabba092cd9245f440741f6",
+  "merged": true
+ },
+ {
+  "number": 2027,
+  "title": "fix(R9-RO-10): sweep stale retired-path references; layout guard refuses new ones and misplaced files",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-10",
+  "merge_sha": "e22ee2538700176772c53c4595c9877274b3decc",
+  "merged": true
+ },
+ {
+  "number": 2030,
+  "title": "R9-RO-11: prepr step 6d predicts closures' and mutation's reds before the handoff",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-11-pr",
+  "merge_sha": "143e2d0ac70a04e11a690d90b96947ab743356c2",
+  "merged": true
+ },
+ {
+  "number": 2040,
+  "title": "rca(R9-RCA-bugclasses): route the bug-class register to the ledger merge driver",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-bugclasses-pr",
+  "merge_sha": "93e2048238292e1586bec6a2e64c27c1ecd3e41c",
+  "merged": true
+ },
+ {
+  "number": 2041,
+  "title": "R9-DBG-2: debugger self-tests on finalize, the 8 MiB inline bundle cap, and the nightly size check",
+  "state": "MERGED",
+  "head_ref": "fix/r9-dbg-2-pr",
+  "merge_sha": "816547efe270a08e18e3b92f52185fe8c1fee2ef",
+  "merged": true
+ },
+ {
+  "number": 2042,
+  "title": "fix(policy): fixer.md back under its token cap after #2027 and #2030",
+  "state": "MERGED",
+  "head_ref": "fix/r9-fixer-cap",
+  "merge_sha": "2d8cab3f75ddc8c2e42877092cd14bd1ffb01d38",
+  "merged": true
+ },
+ {
+  "number": 2044,
+  "title": "R9-RO-12: merge_train batch -- proved batch merges (B), a lone merge unproved (D)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-12-pr",
+  "merge_sha": "e2a4f7c67b28622206016b4eb1032abe0fbe4621",
+  "merged": true
+ },
+ {
+  "number": 2049,
+  "title": "ci(R9-CI-1): mutation-autofix and closures-autofix repair what they skipped",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-1-pr",
+  "merge_sha": "0c25836e5a847d39f7a023e9f567ac2525741ebe",
+  "merged": true
+ },
+ {
+  "number": 2050,
+  "title": "record: delivery rows for #2029 (autofix)",
+  "state": "MERGED",
+  "head_ref": "record/autofix",
+  "merge_sha": "ef3ca6571f5f6ef6b3cc0360b7ce4835f56eb702",
+  "merged": true
+ },
+ {
+  "number": 2051,
+  "title": "stamp self-test: throwaway repos run no auto-maintenance (R9-RCA-stamp-race)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-stamp-race-pr",
+  "merge_sha": "470bbd6087e5978eae594e616a76e207336b289c",
+  "merged": true
+ },
+ {
+  "number": 2053,
+  "title": "fix(R9-CI-2a): budget-raise-gate never cancels its same-SHA twin",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-2a-pr",
+  "merge_sha": "dcc77dd0c53e363a7c1b20c357a3986db8293d95",
+  "merged": true
+ },
+ {
+  "number": 2054,
+  "title": "throwaway git repositories: one shared helper at every init and clone site",
+  "state": "MERGED",
+  "head_ref": "fix/r9-gittmp-pr",
+  "merge_sha": "0b89f781f340d56a8202f7a2fbe69b8f87e4b2ff",
+  "merged": true
+ },
+ {
+  "number": 2055,
+  "title": "fix: inert_reads entry for git_auto_maintenance_race.sh (main closures red after #2051)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-main-closures-pr",
+  "merge_sha": "9cac1947e7c5dd465e3f83e6216d3e25d79511d2",
+  "merged": true
+ },
+ {
+  "number": 2056,
+  "title": "nightly-ha A16: bind HA's download writer by name and read its payload body (fix-forward of #2041)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-ha-pr",
+  "merge_sha": "4647321d8b33711aeba1f1d1bb6a3a10224c0e46",
+  "merged": true
+ },
+ {
+  "number": 2057,
+  "title": "fix(R9-CI-2b): tests/closures.json in a layout GitHub merges without a driver",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-2b",
+  "merge_sha": "f84d891e1fdf6d09c7e5cbe4b16b39205c4db14c",
+  "merged": true
+ },
+ {
+  "number": 2058,
+  "title": "ci: run nightly-ha (unrequired) on a pull request that touches its driver's reads (#2056 RCA)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-ha-on-pr",
+  "merge_sha": "47b083b03a9dcbfb1e33679dc5f7d3313a5fed49",
+  "merged": true
+ },
+ {
+  "number": 2059,
+  "title": "fix(R9-CI-2b): verdicts carry over bot commits; a merge-main bot un-DIRTYs driver-only conflicts",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-2b-carry",
+  "merge_sha": "d8a4bd36f6384dde45486fff388f91ed4a3aa6df",
+  "merged": true
+ },
+ {
+  "number": 2060,
+  "title": "fix(R9-CI-2): mutation-autofix reads a lone pin shard at the download root",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ci-1-autofix-skip",
+  "merge_sha": "af79f2114b5dcd2cf0fef6b06f939ff1f7c406ee",
+  "merged": true
+ },
+ {
+  "number": 2061,
+  "title": "fix(R9-RO-9a): instrument carries -- added_unpinned twins, 7d whole-key match, batch delete, ledger machine paths",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-9a-pr",
+  "merge_sha": "c518447eb804c72122a7c4ecd479de2eeda62452",
+  "merged": true
+ },
+ {
+  "number": 2062,
+  "title": "fix(#2028): the contract's red history reads with a token instead of skipping",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-2028",
+  "merge_sha": "83f7ca55879097258b971d483345459f18629491",
+  "merged": true
+ },
+ {
+  "number": 2064,
+  "title": "policy: fixes are architecturally sound",
+  "state": "MERGED",
+  "head_ref": "fix/arch-sound-fixes-pr",
+  "merge_sha": "bd59a4af1b2616a7f00761a3769d22a335e4df7c",
+  "merged": true
+ },
+ {
+  "number": 2065,
+  "title": "fix(live-power-clamp 7a): the metered running draw, its evidence latch and effective range",
+  "state": "MERGED",
+  "head_ref": "fix/live-power-clamp-foundation-pr",
+  "merge_sha": "90b9b7316f1268aadfb8556ce4f0c42ba7039ec4",
+  "merged": true
+ },
+ {
+  "number": 2067,
+  "title": "fix(R9-RCA-prepr-tmp): the prepr self-test survives a full, loaded box",
+  "state": "MERGED",
+  "head_ref": "fix/r9-rca-prepr-tmp",
+  "merge_sha": "d0f085ffbc3a8c38c5a36df4f2a4ca0ea3505d0a",
+  "merged": true
+ },
+ {
+  "number": 2068,
+  "title": "ci(R9-EG-A4): the architecture score is a required check, with the wave comparison and two counters (#1774)",
+  "state": "MERGED",
+  "head_ref": "fix/r9-eg-a4",
+  "merge_sha": "9224833839c4db5221471a04b6558b65102542f2",
+  "merged": true
+ },
+ {
+  "number": 2069,
+  "title": "tools: app_push.sh --recarry skips prepr on a clean main merge; the merge train's recarry uses it",
+  "state": "MERGED",
+  "head_ref": "fix/recarry-skip-prepr",
+  "merge_sha": "a9baf164c9386ad2973bea129c9aaf4f73e4b433",
+  "merged": true
+ },
+ {
+  "number": 2071,
+  "title": "fix(live-diag): diagnostics export the live config; repair a silent floor-return sensor",
+  "state": "MERGED",
+  "head_ref": "fix/live-diag",
+  "merge_sha": "7cd5a588cbbbef354c00148040da2d720b8a888c",
+  "merged": true
+ },
+ {
+  "number": 2073,
+  "title": "prepr: step 6d predicts a stale mutation-ledger pin",
+  "state": "MERGED",
+  "head_ref": "fix/rca-stale-ledger-pins",
+  "merge_sha": "a3b83b8ea45571dfa669b145f88f31d44fa58458",
+  "merged": true
+ },
+ {
+  "number": 2074,
+  "title": "fix(R9-RC-NIGHTLY-BOUND): the nightly mutation bound covers the measured pool factor",
+  "state": "MERGED",
+  "head_ref": "fix/r9-nightly-bound",
+  "merge_sha": "f5fb67077eb1f351a904329cb387a01bbc937f97",
+  "merged": true
+ },
+ {
+  "number": 2078,
+  "title": "fix(R9-RO-13): the train may land policy under a valid mandate, and falls back without one",
+  "state": "MERGED",
+  "head_ref": "fix/r9-ro-13",
+  "merge_sha": "23d354970fcaababe8e67a5c04c326cc8bc79e49",
+  "merged": true
+ }
+]
