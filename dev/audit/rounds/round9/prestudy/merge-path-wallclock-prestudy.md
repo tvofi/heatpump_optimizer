@@ -92,8 +92,12 @@ is the scoped scripts' run time, serially, because `closures_line` loops
 On a diff that reaches `boost_drift_replay.py` — 57 of the package's ~60
 production modules are in its 83-file closure (`tests/closures.json`), so
 essentially every production diff does — the loop pays that script's local
-recording too: **[BOOST-LOCAL]** measured for the identical `--single
---record-only` invocation prepr and CI both use.
+recording too: **18 m 12.4 s** (timed: `--single tests/boost_drift_replay.py
+--record-only`, 20:56:28→21:14:40Z, rc 0, under the same contention), for the
+identical invocation prepr and CI both use — inside CI's 876–1766 s recorded
+band, so this box is not the outlier. A reach-diff's local `prepr` is
+therefore ≈ 4 m + 18 m + the other scoped recordings ≈ **25–50 m**, of which
+every minute is the serial loop.
 
 ## 2. Duplication audit — the core question
 
@@ -169,7 +173,7 @@ did not: the exact key restored ("Cache restored from key:
 coverage-per-v1-Linux-23d354970…" at 21:18:56Z), main's push run at that base
 had completed green 4 m 35 s earlier (`37985506586`, coverage job finished
 21:14:21Z), and the job still measured every script ("No per-script coverage
-for 23d354970…: measuring every script") — the third observed instance of the
+for 23d354970…: measuring every script") — a second observed instance of the
 class the covfast pre-study flagged (§7, run `38069955370`). The fallback is
 fail-closed and the property held (the job measured more, not less), so this
 is a bounded cost, not a hole: for a reach-PR the miss costs the non-reached
@@ -299,7 +303,7 @@ obligation to the closures read set.**
   fast but leaves the PR gate's critical lane (closures scoped, 52 m) and
   prepr's local cost untouched.
 - (vi-b) — speed the ~288-solve replay itself — remains the only lever that
-  helps `fast`'s verdict lane (1725 s PR / 1174 s push). Neither planned PR
+  helps `fast`'s verdict lane (1725 s PR / 2241 s push, the same arm's two runner classes). Neither planned PR
   covers it; commission it as the prioritised fixer PR after (vi-a), as the
   covfast study ordered.
 
@@ -369,10 +373,11 @@ cost-test table's last row.
   seats' recordings during timing (one recording `boost_drift_replay.py`
   into its own out-dir, one running a `--short-replay` arm); every local
   figure is an upper bound under contention and is marked as such.
-- **The local `boost_drift_replay.py` recording's uncontended wall** — same
-  reason; CI's 1236–1766 s recorded bounds are the authority.
+- **The local `boost_drift_replay.py` recording's uncontended wall** — the
+  18 m 12.4 s figure was taken with sibling seats recording on the same box;
+  CI's 876–1766 s recorded band is the authority for the script itself.
 - **The coverage marker-miss mechanism** (§3 r2): the refusal's output line
-  never reached the log, so the third instance is observed but not
+  never reached the log, so a second instance is observed but not
   attributed; the diagnostic countermeasure is the fix, not a re-derivation
   here.
 - **Batch-amortised per-merge cost**: only one batch's proof jobs were read
