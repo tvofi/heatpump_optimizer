@@ -1,0 +1,1 @@
+RESULT total_sek=709.5 basis=None

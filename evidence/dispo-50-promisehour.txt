@@ -1,0 +1,26 @@
+
+=== features block ===
+  ok   UX-6: a receipt's total is the money the month cost, not its splits again
+  ok   UX-6 null control: a month with only billed lines totals 194.5 either way
+  ok   UX-6: ledger.freeze_month_report totals the billed lines and names them
+  ok   UX-6: a receipt frozen by the old sum is restated from its own lines on load
+  ok   UX-6: the store admits the receipt's basis and refuses a line it does not bill
+  ok   UX-6: the capacity line is the billed peak times the tariff while the month is open
+  ok   UX-6: March's receipt names the capacity charge after the tracker reset
+  ok   UX-6 null control: without a capacity tariff no capacity line is booked
+  ok   UX-6: the grid view publishes every receipt kept, oldest first
+  ok   UX-6: the monthly-savings sensor carries the receipts and the replay, unrecorded
+  ok   UX-6: a plan solved after the midnight hour is not the day's promise
+  FAIL UX-6: the promise is the first midnight plan's: 24 h of room and cumulative cost  [{}]
+  ok   UX-6: a plan with an unpriced step makes no promise rather than a wrong one
+  FAIL UX-6: the next day replays the promise against the 24 h it covered  [None]
+  ok   UX-6 null control: on the promise's own day there is no yesterday to replay
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/tools/audit/seat/features_block.py", line 55, in <module>
+    sys.exit(run("tests/features.py", *sys.argv[1:3]))
+             ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/timmalmstrom/hpo-seats/r9rev-2119b/wt/tools/audit/seat/features_block.py", line 39, in run
+    exec(compile(block(source, start, end), f"{path}[block]", "exec"), ns)
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "tests/features.py[block]", line 214, in <module>
+TypeError: 'NoneType' object is not subscriptable

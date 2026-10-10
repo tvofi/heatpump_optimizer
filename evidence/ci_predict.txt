@@ -1,0 +1,14 @@
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:153 GUARD_OFF: if not month or not (math.isfinite(peak_kw) and math.isfinit
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:320 RETURN_DEL: return round(sum(float(lines[name]["sek"]) for name in basis
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:330 GUARD_OFF: if not isinstance(lines, dict):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:333 RETURN_DEL: return {**report, "total_sek": total, "basis": basis}
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:384 CMP_BOUND: abs(reason_kwh - raw_spot["kwh"]) <= 0.05
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:385 CMP_BOUND: and abs(reason_sek - raw_spot["sek"]) <= 0.05
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:394 GUARD_OFF: if mean is not None:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:396 RETURN_DEL: return report
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:420 BOOLOP: closed = sorted(k for k in ledger.months if k < current and 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:420 CMP_BOUND: closed = sorted(k for k in ledger.months if k < current and 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:440 CLAMP_DROP: for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:442 RETURN_DEL: return kept, bool(closed)
+CI PREDICT: 39 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures or fast red predicted against 6be88834e8c4 (a data-file read is not seen)

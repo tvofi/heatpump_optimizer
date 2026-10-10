@@ -1,0 +1,5 @@
+merge base 7cd5a588cbbb, head HEAD
+Architecture score: dS -0.9549 WORSENS (inadmissible: shared_inplace_writes 22->25)
+  shared_inplace_writes 22 -> 25  -0.9627
+  coord_footprint 2586 -> 2572  +0.0078
+FAIL: dS -0.9549 WORSENS; unexplained: shared_inplace_writes 22->25. Add a '## Architecture score' section with one line per metric: its name and why it rises

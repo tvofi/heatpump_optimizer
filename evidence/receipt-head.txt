@@ -1,0 +1,1 @@
+RESULT total_sek=194.5 basis=['spot', 'grid_fee', 'immersion', 'wear']

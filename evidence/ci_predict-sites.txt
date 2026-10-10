@@ -1,0 +1,39 @@
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:50 CONST: PROMISE_HOUR = 0
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:51 CONST: PROMISE_SPAN_H = 24.0
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:53 CONST: PROMISE_DAYS = 2
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:218 GUARD_OFF: if local.hour != PROMISE_HOUR or day in self.promises:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:221 GUARD_OFF: if promise is None:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:231 GUARD_OFF: if promise is None:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:550 BOOLOP: if not (np.isfinite(dt_h) and dt_h > 0):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:550 CMP_BOUND: if not (np.isfinite(dt_h) and dt_h > 0):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:550 GUARD_OFF: if not (np.isfinite(dt_h) and dt_h > 0):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:552 CLAMP_DROP: steps = min(int(round(PROMISE_SPAN_H / dt_h)), len(room) - 1
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:553 BOOLOP: if steps < 1 or (dhw and len(dhw) < steps):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:553 CMP_BOUND*2: if steps < 1 or (dhw and len(dhw) < steps):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:553 GUARD_OFF: if steps < 1 or (dhw and len(dhw) < steps):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:557 GUARD_OFF: if dhw:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:563 BOOLOP: if not (np.all(np.isfinite(cost)) and np.all(np.isfinite(tem
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:563 GUARD_OFF: if not (np.all(np.isfinite(cost)) and np.all(np.isfinite(tem
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:584 CMP_BOUND*2: span = [s for s in samples if start < s.when <= end]
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:588 GUARD_OFF: if any(c is not None for c in costs):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:599 GUARD_OFF: if not isinstance(raw, dict):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:603 RETURN_DEL: return {day: kept[day] for day in sorted(kept)[-PROMISE_DAYS
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:608 GUARD_OFF: if not isinstance(value, dict):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:617 BOOLOP: if (start.tzinfo is None or not (np.isfinite(step) and step 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:617 CMP_BOUND: if (start.tzinfo is None or not (np.isfinite(step) and step 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:618 CMP_BOUND: or len(room) != len(cost) or len(room) < 2
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/accuracy.py:621 RETURN_DEL: return {"start": start.isoformat(), "step_minutes": step, "r
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:10234 GUARD_OFF: if tariff.enabled:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:153 BOOLOP: if not month or not (math.isfinite(peak_kw) and math.isfinit
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:153 GUARD_OFF: if not month or not (math.isfinite(peak_kw) and math.isfinit
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:320 RETURN_DEL: return round(sum(float(lines[name]["sek"]) for name in basis
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:330 GUARD_OFF: if not isinstance(lines, dict):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:333 RETURN_DEL: return {**report, "total_sek": total, "basis": basis}
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:384 CMP_BOUND: abs(reason_kwh - raw_spot["kwh"]) <= 0.05
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:385 CMP_BOUND: and abs(reason_sek - raw_spot["sek"]) <= 0.05
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:394 GUARD_OFF: if mean is not None:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:396 RETURN_DEL: return report
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:420 BOOLOP: closed = sorted(k for k in ledger.months if k < current and 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:420 CMP_BOUND: closed = sorted(k for k in ledger.months if k < current and 
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:440 CLAMP_DROP: for old in sorted(kept)[: max(0, len(kept) - KEEP_MONTHS)]:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:442 RETURN_DEL: return kept, bool(closed)
