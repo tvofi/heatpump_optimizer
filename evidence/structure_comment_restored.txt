@@ -1,0 +1,3 @@
+########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
+RESULT max_class_loc=8818 count
+FAIL max_class_loc 8818 > 8814 (+4)

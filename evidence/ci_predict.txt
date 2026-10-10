@@ -1,0 +1,13 @@
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:931 RETURN_DEL: return predict() if callable(predict) else None
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/diagnostics.py:99 GUARD_OFF: if isinstance(value, str):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/diagnostics.py:101 GUARD_OFF: if isinstance(value, Mapping):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/diagnostics.py:103 GUARD_OFF: if isinstance(value, list):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/diagnostics.py:105 RETURN_DEL: return value
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2028 GUARD_OFF: if self.native_value is not None:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2032 RETURN_DEL: return "plan_not_in_control" if plan.get("forecast") else "f
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2037 RETURN_DEL: return None if value is None else round(value, 2)
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2081 GUARD_OFF: if not self.coordinator.data:
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2084 GUARD_OFF: if _mapping(data.get("cop_health")).get("alarm"):
+PREDICT mutation ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:2086 RETURN_DEL: return "learned" if data.get("house_heat_loss_learned") else
+CI PREDICT: 11 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures or fast red predicted against 70b50c5730d7 (a data-file read is not seen)
