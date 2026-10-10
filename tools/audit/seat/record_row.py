@@ -28,7 +28,14 @@ beat's own `self_row` and every pre-merge row are answered by it.
 THE REVIEW IS A PREDICATE (tvofi, 2026-10-07): `--automerge-check` is the
 guard under which the job approves the record pull request as the approver
 App and merges it at the judged head once its required checks pass, with no
-review seat; `automerge_refusals` states what it requires. WHAT STAYS MANUAL, by design (issue #1952,
+review seat; `automerge_refusals` states what it requires. A STATUS REWRITE IS
+A MODIFIED FILE, so the guard refuses the beat that carries one -- measured:
+the same generated line answers `[]` as `status: added` and
+`['not a new file adding exactly one line (status modified, -1)']` as
+`status: modified` -- and that beat is reviewed and merged by hand, which is
+the path this paragraph already describes for a guard refusal. Widening the
+guard to auto-merge a content change to the record is an owner's decision,
+not this generator's. WHAT STAYS MANUAL, by design (issue #1952,
 owner-approved 2026-10-04): the review of a record pull request the guard
 refuses, and the `dev/programme/HANDOVER.md` `updated-for:` line -- tied to
 merges that change owed work, not every beat, which a job would over-write.
