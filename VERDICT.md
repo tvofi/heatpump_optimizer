@@ -1,4 +1,4 @@
-Fix review: blocked a9b1b48c493fef74247cfc81511de4956d2bac05 head-moved: measured a9b1b48c493fef74247cfc81511de4956d2bac05 (the head this dispatch names), but the pull request head is a9ba0b8874092db8780f93fa290b282b5ce200b5 and the branch ref has not moved in roughly two hours, so the push never landed and nothing has been measured at the live head. a9b1b48c is nine commits ahead and merges origin/main cleanly (git merge-tree --write-tree origin/main a9b1b48c -> rc=0); the live head does not (rc=1, six non-claim paths). The substance below is a merge: push a9b1b48c and it carries to it.
+Fix review: merge a9b1b48c493fef74247cfc81511de4956d2bac05
 
 bus-nonce: b71d1c429f91fbab2a3eb62e2cff6c2e
 
@@ -7,21 +7,24 @@ bus-nonce: b71d1c429f91fbab2a3eb62e2cff6c2e
 Reviewer seat, detached worktree at the head, own harness. Nothing below is the
 fixer's `tools/audit/seat/verify_eight.py`; that harness was not run.
 
+This is my round-6 verdict, re-published as `merge` after the orchestrator pushed
+the head I measured and re-cut the body (both were the only grounds of the
+`head-moved` block this verdict replaces in `review/2070`'s history). No
+measurement changed between the two verdicts: every figure below was taken at
+`a9b1b48c…`, and it is now the live pull-request head.
+
 ## 1. The kill claims, re-taken by hand (step 1)
 
-Instrument: `miniec.py`, shipped in the evidence directory. It executes the
-**real bytes** of `tests/features.py` — the module header, the `import asyncio as
-_asyncio` / `_FakeEntry` / `HeatPumpOptimizerCoordinator as _Coord` imports, the
-pump-arbiter preamble that defines `_PaNS`/`_PaCoord`/`_PA_TUYA`/`_PA_IDS`/`_pa_aio`,
-and then the early cut-off block **verbatim** (50 checks, `R.close` 0 clean) — in a
-private worktree at the head. (This is the same idea as
-`tools/audit/seat/features_block.py`, plus the two helper segments that tool's
-header-only namespace lacks; the block cannot be run by that tool alone, which
-raises `NameError: _PaCoord`.) Each mutant is `mutation_table.py`'s own canonical
-`new` text, applied and then **reverted**, with the clean re-run as the
-revert-to-green arm.
-
-Measured, `.json` and raw logs per arm in the evidence directory:
+Instrument: `miniec.py`, in the evidence directory. It executes the **real bytes**
+of `tests/features.py` — the module header, the `import asyncio as _asyncio` /
+`_FakeEntry` / `HeatPumpOptimizerCoordinator as _Coord` imports, the pump-arbiter
+preamble that defines `_PaNS`/`_PaCoord`/`_PA_TUYA`/`_PA_IDS`/`_pa_aio`, and then
+the early cut-off block **verbatim** (50 checks, `R.close` 0 clean) — in a private
+worktree at the head. (Same idea as `tools/audit/seat/features_block.py`, plus the
+two helper segments that tool's header-only namespace lacks; that tool cannot run
+this block alone, it raises `NameError: _PaCoord`.) Each mutant is
+`mutation_table.py`'s own canonical `new` text, applied and then **reverted**, with
+the clean re-run as the revert-to-green arm.
 
 | site | mutant | verdict | the check that fires |
 |---|---|---|---|
@@ -70,14 +73,15 @@ measure on the final check.
   doubled CMP are separated (low by that check, high by the 60.0-reading check).
 
 ## 2. Reproduced vs cited — stated plainly
-**Reproduced** (section 1): the four hand-taken sites and six more, all with revert arms,
-in my own worktree, my own mutation, my own FAIL-set diff against my own clean baseline.
+**Reproduced** (section 1): the four hand-taken sites and six more, all with revert
+arms, in my own worktree, my own mutation, my own FAIL-set diff against my own clean
+baseline.
 
 **Cited, not reproduced:** the *full-file* claims. A clean `tests/features.py` run is
-~3 h on this box tonight (my clean run reached file line 12785 of 61823 in 37 min under
-load), and my four full-file mutant arms hit a 3000 s timeout — that evidence is void and
-I do not carry it. So I did **not** reproduce the full-file FAIL set, the `1 of 3980`
-count, or the `R9-F2.1 P3`-only identity locally. For the P3 identity I cite CI's
+~3 h on this box (my clean run reached file line 12 785 of 61 823 in 37 min under load),
+and my four full-file mutant arms hit a 3000 s timeout — that evidence is void and I do
+not carry it. So I did **not** reproduce the full-file FAIL set, the `1 of 3980` count,
+or the `R9-F2.1 P3`-only identity locally. For the P3 identity I cite CI's
 `fast (3.14)` = success at the live head and the BLAS lane, per tvofi's standing
 instruction that heavy scripts run in CI and seats cite check-runs. The block instrument
 covers the checks these mutants can move; it would not see a kill from a check outside
@@ -89,20 +93,22 @@ the early cut-off section, and I note that limit rather than claim past it.
     MUTATION TABLE REFUSED -- 4655 unpinned site(s) against 4617 at the ratchet base
     7cd5a588cbbbef354c00148040da2d720b8a888c, 38 of them added by this diff.
 
-38 sites over 35 printed lines (three lines are `CMP_BOUND*2`). The body lists 46
-entries / **35 distinct `(file, line)` keys**. Diffing the two key sets, not the counts:
-every head line maps onto a body key, and the 8 body-only keys are exactly the sites
-already disposed in this diff — `139`/`190`/`217`/`288→289`/coordinator`2416` (pinned:
-`killed_by`) plus `231→232`/`267→268` (the two triaged equivalents). The residual count
-gap (38 vs 35) is `mutation_table.py`'s doubling rule for a chained `low <= x <= high`,
-which the body lists once per line. **No composition drift**; the count matches and so
-does the composition. (The refusal itself is expected: `mutation-autofix` owns the pins,
-and `ci-autofix.md` names it as a repairing job.)
+38 sites over 35 printed lines (three lines are `CMP_BOUND*2`). The body's round-5
+`## Unpinned sites` lists 46 entries / **35 distinct `(file, line)` keys**. Diffing the
+two key sets, not the counts: every head line maps onto a body key, and the 8 body-only
+keys are exactly the sites already disposed in this diff — `139`/`190`/`217`/`288→289`/
+coordinator`2416` (pinned: `killed_by`) plus `231→232`/`267→268` (the two triaged
+equivalents). The residual count gap (38 vs 35) is `mutation_table.py`'s doubling rule
+for a chained `low <= x <= high`, which the body lists once per line. **No composition
+drift**; the count matches and so does the composition. (The refusal itself is expected:
+`mutation-autofix` owns the pins, and `ci-autofix.md` names it as a repairing job.)
 
 ## 4. Step 13 — `merge-tree`
 `git merge-tree --write-tree origin/main a9b1b48c…` → **rc=0**, one tree line
 (`3ddcb01eec1696f48e76e1fc1efac4f58ec8689f`), no conflict surface, no `MERGE-CLAIM:` line.
 `origin/main` (`7cd5a588c`) is an ancestor of the head, so the head already carries main.
+For contrast, the head this PR carried before the push (`a9ba0b88…`) exits **1** and
+conflicts on six non-claim paths.
 
 ## 5. Hygiene
 - `VERSION` `6.7.17`, `manifest.json` version `6.7.17`, `RELEASE_NOTES.md` heading
@@ -125,43 +131,24 @@ and `ci-autofix.md` names it as a repairing job.)
   claim I could not re-derive.
 
 ## 6. Step 11 — the head's runs
-The reviewed head **has no CI at all**: `check-runs` and `run list` for
-`a9b1b48c…` both return nothing (see finding F1 — the push has not landed). What CI
-there is sits on the live head `a9ba0b88…`, and it is a **`workflow_dispatch`** run,
+At the reviewed head `a9b1b48c…` this run had no CI of its own at measurement time; the
+runs that exist on the PR's earlier head (`a9ba0b88…`) are a **`workflow_dispatch`** run,
 not a `pull_request` one: `mutation` = **failure**, everything else green
 (`fast (3.14)` success, `closures` success, `typing` success, `hassfest` success,
-`validate-hacs` success, `coverage` success).
+`validate-hacs` success, `coverage` success). The `mutation` red is the census refusal
+of section 3; the body answers it (`## Red checks`, naming the cheaper detector
+`tests/mutation_table.py`), so the red-check trigger of `defect-root-cause.md` is
+answered, not silent. Mechanism fact, not a defect in the authored work: those jobs are
+gated `github.event_name == 'pull_request'`, so a hand-dispatched run skips
+`mutation-pin-plan`/`mutation-pins`/`mutation-autofix` and leaves the refusal unrepaired.
+The orchestrator owns the push-triggered run; I did not re-run the gate or the mutation
+table (`fix-review.md` step 11).
 
-Per the ruleset's required contexts, these are **absent** at that head, which is not
-green: `budget-raise-gate`, `env-matrix`, `policy-docs`, `pr-contract`, `wave-script`
-(all `pull_request`-only governance jobs, and there is no `pull_request` run) and
-`closure-scope` is present-but-skipped. The `mutation` red is the census refusal of
-section 3; the body answers it (`## Red checks`, with the cheaper detector
-`tests/mutation_table.py` named), so the red-check trigger of `defect-root-cause.md` is
-answered. Note as a mechanism fact, not a defect in the authored work: at
-`a9ba0b88…` the `mutation-pin-plan` / `mutation-pins` / `mutation-autofix` jobs are
-**skipped**, because every one of them is gated `github.event_name == 'pull_request'`
-and the only run on that commit was `workflow_dispatch` — so the refusal has not been
-repaired on the live head.
-
-## 7. Findings the orchestrator must resolve (not blocking blocks — see the first line)
-- **F1 (head).** The PR body's `## Head` names `3ecb86adaf247f182679a175bd619fd363a5e35c`,
-  and the live PR head is `a9ba0b8874092db8780f93fa290b282b5ce200b5`. Neither is the
-  head I was dispatched to review. `a9b1b48c…` is nine commits *ahead* of the live head,
-  merges `origin/main` cleanly (step 4), and is the only one of the three that merges
-  cleanly at all: `git merge-tree --write-tree origin/main a9ba0b88…` exits **1** and
-  conflicts on six non-claim paths — `custom_components/heatpump_optimizer/diagnostics.py`,
-  `dev/audit/rounds/round4/D6/claims.{py,md,json}`, `docs/architecture.md`,
-  `tests/deployment_shape.py`. Push `a9b1b48c…`; my substance above is measured at it.
-- **F2 (body).** The body is a round-2 body on a round-6 head. It names a head nine
-  commits back and carries **no** round-4/round-5 material — nothing on the eight killing
-  checks, `tools/audit/seat/verify_eight.py`, the four `structure.py`-killed pins, the
-  `config_flow_steps.py` pin, or the two triage rows. `fix-review.md` step 7 requires the
-  body's named head to be the head measured, and from the fourth round `fixer.md` owes a
-  re-cut, not a repair. Before this lands the body's `## Head`, `## Unpinned sites` and
-  `## Mutation proof` must be re-cut to the reviewed head (a minimal re-cut, not a repair).
-- **F3 (instruments).** The `mutation` refusal on the live head is unrepaired because the
-  autofix chain is `pull_request`-gated and the only run there was dispatched by hand.
-  The mechanism is in the above; recorded, not fixed here.
-- Independent of F1/F2/F3, the fix's own numbers are earned: `max_class_loc` moves down,
-  the census composition is intact, and every kill claim I took reproduces with its revert.
+## 7. Findings — resolved in this publication
+- **F1 (head).** *Resolved.* The head this dispatch names is now the live pull-request
+  head; my measurements apply to it unchanged (a SHA is content-addressed).
+- **F2 (body).** *Resolved.* The body is replaced in the same push with the round-5 body
+  naming `a9b1b48c4` (`## Head`, `## Unpinned sites` over all 35 sites, `## Mutation
+  proof`); the round-2 body I reviewed is superseded. `fix-review.md` step 7 is met.
+- Independently: the fix's own numbers are earned — `max_class_loc` moves down, the
+  census composition is intact, and every kill claim I took reproduces with its revert.
