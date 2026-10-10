@@ -54,6 +54,11 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "legionella": "the anti-legionella cycle takes {kwh} kWh ({cost} {currency})",
         "manual_plan": "{kwh} kWh you scheduled yourself ({cost} {currency})",
         "idle": "idle for {hours} h",
+        "idle_other_channel": "idle for {hours} h because the other channel has the capacity",
+        "idle_fuse": "idle for {hours} h, capped by the fuse",
+        "idle_solar": "idle for {hours} h, waiting for solar",
+        "idle_dearer": "idle for {hours} h, dearer than the hours used",
+        "idle_coasting": "idle for {hours} h, above the floor and coasting",
         "pump_mode": "blocked by the heat pump's operating mode for {hours} h",
         "untagged": "{kwh} kWh outside the plan ({cost} {currency})",
     },
@@ -70,6 +75,11 @@ TEMPLATES: dict[str, dict[str, str]] = {
         "legionella": "legionellacykeln tar {kwh} kWh ({cost} {currency})",
         "manual_plan": "{kwh} kWh som du själv schemalagt ({cost} {currency})",
         "idle": "viloläge i {hours} h",
+        "idle_other_channel": "viloläge i {hours} h för att den andra kanalen har kapaciteten",
+        "idle_fuse": "viloläge i {hours} h, begränsat av säkringen",
+        "idle_solar": "viloläge i {hours} h, väntar på sol",
+        "idle_dearer": "viloläge i {hours} h, dyrare än de timmar som används",
+        "idle_coasting": "viloläge i {hours} h, över golvet och i medgång",
         "pump_mode": "blockerat av värmepumpens driftläge i {hours} h",
         "untagged": "{kwh} kWh utanför planen ({cost} {currency})",
     },
@@ -78,7 +88,10 @@ TEMPLATES: dict[str, dict[str, str]] = {
 
 #: Reasons whose whole meaning is that no energy was spent. Kept in the
 #: narrative even at zero kWh, where every other reason at zero kWh is noise.
-ZERO_ENERGY_REASONS = frozenset({"idle", "pump_mode"})
+ZERO_ENERGY_REASONS = frozenset({
+    "idle", "idle_other_channel", "idle_fuse", "idle_solar",
+    "idle_dearer", "idle_coasting", "pump_mode",
+})
 
 
 def group_by_reason(
