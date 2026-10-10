@@ -1011,7 +1011,7 @@ def check_multistart_starting_points() -> None:
 # enters the check the moment it lands, wherever it lands.
 #
 # The rows the shapes deliberately do NOT claim, and what reads them:
-# `tools/audit/harnesses/prose_counts_census.py` enumerates every count shape
+# `tools/audit/prose_counts_census.py` enumerates every count shape
 # in the corpus and names its reader, and the PR that landed this arm carries
 # that enumeration against a disposition for each. The two limits worth
 # naming here: a count spelled as a word ("five pages", "twelve files") is
