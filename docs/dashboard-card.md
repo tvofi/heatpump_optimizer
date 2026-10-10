@@ -623,7 +623,7 @@ The pill appears once the **Input Problem** sensor has a state.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/health-dark.png">
-  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
+  <img alt="The Health tab: an Inputs column with a stale outdoor temperature row (its age and limit) and fresh indoor and hot-water rows, a Plan column with when the plan was solved, the next solve, its steps and the solve time, and a Still learning block with savings and COP waiting; under them a What the model has learned block whose rows each carry a value, its samples in words and an evidence bar, the house heat loss reading 142 W/K and 8 % faster than the settings estimate, solar gain at a window scale of 1.15 and still learning, hot-water tank cooling at 0.9 °C per hour, heat pump efficiency normal at a COP scale of 0.97 and a 24-bar internal-gains strip peaking around 18:00; then a Something looks wrong? row with a Download diagnostics button and a first-plan checklist with Assign and Show buttons" src="img/card/health-light.png">
 </picture>
 
 *Everything here is read from the integration's sensors; the card computes no
