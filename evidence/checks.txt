@@ -1,0 +1,30 @@
+head measured: a01d262cf500331b4a0a50138855afaff8357ccc
+
+=== python3.13 tests/structure.py (body: STRUCTURE RATCHET PASSED, no metric moved) ===
+
+STRUCTURE RATCHET PASSED
+
+=== python3.13 tests/entities.py (body: ALL 2234) ===
+ALL 2234 ENTITY CHECKS PASSED   (clean re-run; see entities-full.txt)
+note: a first run under CPU contention reported 1 of 2234 FAILED; a clean re-run and the base-main run (ALL 2250 PASSED) show it was a transient timing flake, not the diff.
+
+=== VERSION / manifest / RELEASE_NOTES touched? ===
+(not touched)
+
+=== claim files diff vs merge base ===
+(empty above = byte-identical)
+
+=== budgets/closure/layout files touched? ===
+(none)
+
+=== body figure checks ===
+git show --stat b24adb766 ->  23 files changed, 31164 insertions(+)
+a01d262cf over b24adb766 -> A	dev/programme/delivery/2109.md
+bundle sizes -> 22658
+132629
+runs file count -> 17 (12 diag + 5 debugger)
+
+=== forward-carry: body says none (docs land) ===
+=== every diff path classified ===
+  23 dev/audit/rounds/round9/prestudy/
+   1 dev/programme/delivery/

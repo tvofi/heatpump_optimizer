@@ -1,0 +1,17 @@
+head measured: a01d262cf500331b4a0a50138855afaff8357ccc
+merge-base(origin/main,HEAD): d22172b6e504943f3b4878fb0a59b951cd75e50e
+origin/main at review: c729bb32edf0cf0e777d3154dcb86654b1fbc096
+
+=== byte-identity: landed blob vs handoff-ref source blob ===
+debugger-prestudy.md <- eae236d66 : DIFFERS
+boost-drift-prestudy.md <- 3c90f86a3 : DIFFERS
+friction-prestudy.md <- c8a6be1cf : DIFFERS
+friction-prestudy-r2.md <- c8a6be1cf : DIFFERS
+friction-prestudy-r2-groups.json <- c8a6be1cf : IDENTICAL
+boost_drift_refit.py <- 3c90f86a3 : IDENTICAL
+
+=== docs: content beyond the one provenance line ===
+debugger-prestudy.md (eae236d66): diff(tail -n +2 landed, source) =        0 lines (0 = only the provenance line differs)
+boost-drift-prestudy.md (3c90f86a3): diff(tail -n +2 landed, source) =        0 lines (0 = only the provenance line differs)
+friction-prestudy.md (c8a6be1cf): diff(tail -n +2 landed, source) =        0 lines (0 = only the provenance line differs)
+friction-prestudy-r2.md (c8a6be1cf): diff(tail -n +2 landed, source) =        0 lines (0 = only the provenance line differs)
