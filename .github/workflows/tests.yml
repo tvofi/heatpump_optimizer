@@ -1012,7 +1012,7 @@ jobs:
              && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
             echo tests/_mutation_table_base.py >> .git/info/exclude
             grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
-              && budget=(--budget-minutes 260)
+              && budget=(--budget-minutes 120)
             if grep -q -- '--shard' tests/_mutation_table_base.py; then
               shard=(--shard "$SHARD/$SHARDS")
             elif [ "$SHARD" != 1 ]; then
