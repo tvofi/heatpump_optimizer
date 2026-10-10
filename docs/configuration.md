@@ -231,7 +231,7 @@ single field takes the same grammar, including day selectors such as
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
 Saving this page moves to the read-only review screen — confirming there is
-what creates the entry. All 79 entities appear at once and the first plan is
+what creates the entry. All 81 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ---

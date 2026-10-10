@@ -438,7 +438,7 @@ Every field and its range is documented in
 
 ### Your first week
 
-- **Immediately.** All 79 entities appear and the first plan is solved within one
+- **Immediately.** All 81 entities appear and the first plan is solved within one
   optimization interval (30 minutes by default). Add the dashboard card and you
   can see what it intends to do.
 - **Day one.** If you want the commissioning step test, first switch on *Allow a
@@ -470,7 +470,7 @@ Since v5.0.0 the display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
-### Sensors (60 total)
+### Sensors (62 total)
 
 `CUR` is your Home Assistant instance currency. The code's own fallback is SEK,
 used only where no currency is readable — a normal Home Assistant instance always
@@ -525,6 +525,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Indoor Temperature (Optimizer) | °C | Indoor temperature as the optimizer sees it | |
+| Indoor Temperature (Predicted) | °C | What the running plan predicts the room will be at the next interval — the figure Prediction Accuracy later scores | Diagnostic; recorded, so history holds the prediction beside the measurement; unavailable while no plan governs the room (comfort, boost or off mode) |
 | Outdoor Temperature (Optimizer) | °C | Outdoor temperature as the optimizer sees it | Falls back to the forecast step the plan is solved on when no outdoor thermometer is configured; the `source` attribute says which |
 | Upper Floor Temperature | °C | The radiator zone | Compatibility duplicate of Indoor Temperature — the stated two-zone convention makes the indoor thermometer the upper floor, so this ships disabled by default; enable it only to keep an existing card, and its `source` attribute names what it reads |
 | Lower Floor Temperature | °C | The slab zone | Disabled by default unless the lower-floor probe is configured at setup; unavailable without it |
@@ -538,6 +539,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | Learning Estimated COP | — | Modelled COP at the current outdoor temperature | Follows the Outdoor Temperature sensor below, forecast fallback included |
+| Learning Model Status | — | Learning, Learned or Needs attention: whether the heat-loss learner has evidence, or the COP health watch has raised an alarm | Diagnostic; the attributes hold each learner's value, sample count and learned flag — heat loss in W/K, lower floor, solar aperture, tank cooling, COP — and, kept out of the recorder, the hourly internal gains, the capacity envelope and system identification; the card's Health tab draws them |
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
 | Lifetime Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |

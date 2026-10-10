@@ -37,11 +37,13 @@ from .const import (
     HEAT_PUMP_ACTION_STATES,
     MANUAL_PLAN_WINDOW_HOURS,
     OPTIMIZATION_MODE_STATES,
+    SOLAR_APERTURE_MIN_SAMPLES,
 )
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
     model_restart_advice,
+    predicted_next_room_temp,
 )
 from .entity import ConfiguredInputMixin as _ConfiguredInputMixin
 from .entity import DHWEntityMixin as _DHWEntityMixin
@@ -272,6 +274,9 @@ async def async_setup_entry(
         TotalCostSensor(coordinator, entry),
         # Closed-loop accuracy (item 11)
         PredictionAccuracySensor(coordinator, entry),
+        # Model status and the plan's next-interval prediction (R9-UX-7)
+        ModelStatusSensor(coordinator, entry),
+        PredictedIndoorTempSensor(coordinator, entry),
         # Capacity tariff (item 8)
         MonthlyPeakSensor(coordinator, entry),
         # PV self-consumption (item 9)
@@ -1994,6 +1999,125 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
         if report:
             attrs["last_diagnosis"] = report
         return attrs
+
+
+class PredictedIndoorTempSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
+    """The room temperature the plan predicts for the next interval (R9-UX-7).
+
+    The figure the accuracy tracker files and scores an interval later, so
+    the recorder keeps what was predicted beside what the indoor sensor read.
+    Unavailable while no plan governs the room -- before the first plan, or
+    in comfort, boost or off mode -- which is when the tracker files nothing
+    either, so history breaks the line instead of drawing a prediction
+    nothing acts on; ``waiting_for`` says which.
+    """
+
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_native_unit_of_measurement = UnitOfTemperature.CELSIUS
+    _attr_device_class = SensorDeviceClass.TEMPERATURE
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _attr_suggested_display_precision = 1
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(
+            coordinator, entry, "indoor_temp_predicted", "indoor_temperature_predicted"
+        )
+
+    @property
+    def _waiting_for(self) -> str | None:
+        if self.native_value is not None:
+            return None
+        # No plan yet, or a plan that is not what runs the room this interval.
+        plan = _mapping(self._data().get("space_plan"))
+        return "plan_not_in_control" if plan.get("forecast") else "first_plan"
+
+    @property
+    def native_value(self) -> float | None:
+        value = _as_float(predicted_next_room_temp(self.coordinator))
+        return None if value is None else round(value, 2)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"waiting_for": self._waiting_for}
+
+
+#: The model status sensor's states, the enum Home Assistant enforces.
+MODEL_STATUS_STATES = ("learning", "learned", "attention")
+
+
+def _learner_row(data: Mapping[str, Any], value_key: str, field: str, stem: str) -> dict[str, Any]:
+    """One learner's published value, its sample count and its learned flag."""
+    return {
+        field: data.get(value_key),
+        "samples": data.get(f"{stem}_samples"),
+        "learned": bool(data.get(f"{stem}_learned")),
+    }
+
+
+class ModelStatusSensor(HeatPumpOptimizerSensorBase):
+    """What the self-learning estimators believe (R9-UX-7, #1795).
+
+    Reads the learning view the coordinator already publishes. The state
+    says whether the heat-loss learner -- the one every plan rests on -- has
+    evidence yet, or that the COP health watch has raised an alarm. The
+    attributes are one compact row per learner (value, samples, learned),
+    recorded; the per-hour gains, the capacity envelope and the system
+    identification state are bulky and change every cycle, so they stay out
+    of the recorder and the card reads them live.
+    """
+
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = list(MODEL_STATUS_STATES)
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _unrecorded_attributes = frozenset(
+        {"internal_gains_kw", "capacity_envelope", "system_identification"}
+    )
+
+    def __init__(self, coordinator: HeatPumpOptimizerCoordinator, entry: HeatPumpOptimizerConfigEntry) -> None:
+        super().__init__(coordinator, entry, "model_status", "learning_model_status")
+
+    @property
+    def native_value(self) -> str | None:
+        if not self.coordinator.data:
+            return None
+        data = self._data()
+        if _mapping(data.get("cop_health")).get("alarm"):
+            return "attention"
+        return "learned" if data.get("house_heat_loss_learned") else "learning"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        data = self._data()
+        effective = _as_float(data.get("house_heat_loss_effective"))
+        cop_health = _mapping(data.get("cop_health"))
+        return {
+            # The view publishes kW/°C; W/K is the unit a house is described in.
+            "heat_loss_w_per_k": None if effective is None else round(effective * 1000.0, 1),
+            "heat_loss": _learner_row(data, "house_heat_loss_scale", "scale", "house_heat_loss"),
+            "lower_floor": _learner_row(data, "lower_floor_loss_ratio", "ratio", "lower_floor_loss"),
+            "solar_aperture": {
+                **_mapping(data.get("solar_aperture")),
+                "needed": SOLAR_APERTURE_MIN_SAMPLES,
+            },
+            "tank_cooling": (
+                {
+                    "rate_c_per_h": data.get("dhw_cooling_rate"),
+                    "samples": data.get("dhw_cooling_samples"),
+                    "learned": bool(data.get("dhw_cooling_rate_learned")),
+                }
+                if data.get("dhw_enabled")
+                else None
+            ),
+            "cop": {
+                "scale": data.get("cop_scale"),
+                "samples": data.get("cop_samples"),
+                "alarm": bool(cop_health.get("alarm")),
+                "watched_buckets": cop_health.get("watched_buckets"),
+            },
+            "internal_gains_kw": data.get("internal_gains_profile"),
+            "capacity_envelope": _mapping(data.get("capacity_envelope")).get("buckets"),
+            "system_identification": data.get("system_identification"),
+        }
 
 
 # ---------------------------------------------------------------------------

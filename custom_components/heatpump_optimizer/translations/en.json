@@ -1997,6 +1997,17 @@
       },
       "model_restart_advisor": {
         "name": "Model Restart Advisor"
+      },
+      "learning_model_status": {
+        "name": "Learning Model Status",
+        "state": {
+          "learning": "Learning",
+          "learned": "Learned",
+          "attention": "Needs attention"
+        }
+      },
+      "indoor_temperature_predicted": {
+        "name": "Indoor Temperature (Predicted)"
       }
     },
     "binary_sensor": {

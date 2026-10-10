@@ -10930,6 +10930,75 @@ check("without an indoor reading the corner now label is absent",
   c.hass = { states: s3, callService: async () => {} };
   check("and the waiting sensors", c._signature() !== sig1 && c._signature() !== undefined);
 
+  // R9-UX-7 (#1795): "What the model has learned", read from the model-status
+  // sensor's attributes. A learner with evidence says how much and what it
+  // means against the settings' estimate; one without says it is still the
+  // estimate; the tank row exists only with a tank, the lower floor only once
+  // learned, and the internal-gains strip only with a 24-hour profile.
+  const MODEL = `${PFX}_learning_model_status`;
+  const modelStates = (over = {}) => {
+    const s = healthStates();
+    s[MODEL] = { state: "learned", last_updated: "t1", attributes: {
+      heat_loss_w_per_k: 142.0,
+      heat_loss: { scale: 1.08, samples: 21, learned: true },
+      lower_floor: { ratio: 1.0, samples: 0, learned: false },
+      solar_aperture: { scale: 1.15, samples: 6, needed: 30 },
+      tank_cooling: { rate_c_per_h: 0.9, samples: 30, learned: true },
+      cop: { scale: 0.97, samples: 12, alarm: false, watched_buckets: 2 },
+      internal_gains_kw: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.4, 0.4, 0.3, 0.3, 0.3, 0.3,
+        0.3, 0.3, 0.3, 0.3, 0.4, 0.5, 0.6, 0.5, 0.4, 0.3, 0.2, 0.2],
+      ...over } };
+    return s;
+  };
+  const modelOf = (states, lang) => {
+    const p = pageOf(mkHealth(states, lang).html());
+    const at = p.indexOf("health-model");
+    return at < 0 ? "" : p.slice(at, p.indexOf("health-support", at) < 0 ? undefined : p.indexOf("health-support", at));
+  };
+  const rowOf = (m, id) => (new RegExp(`data-model-row="${id}"[\\s\\S]*?</div>`).exec(m) || [""])[0];
+  const mp = modelOf(modelStates());
+  check("UX-7: the Health page has a 'What the model has learned' block from the model status sensor",
+    /What the model has learned/.test(mp), mp.slice(0, 300));
+  check("UX-7: heat loss shows W/K, its evidence and the comparison with the settings' estimate",
+    /142 W\/K/.test(rowOf(mp, "heat_loss")) && /21 samples/.test(rowOf(mp, "heat_loss"))
+    && /8 % faster than the settings estimated/.test(rowOf(mp, "heat_loss")), rowOf(mp, "heat_loss"));
+  check("UX-7: solar gain still learning says how far along, against the learner's own need",
+    /6 of about 30 samples/.test(rowOf(mp, "solar")), rowOf(mp, "solar"));
+  check("UX-7: tank cooling and heat pump efficiency have their rows",
+    /0\.9 °C per hour/.test(rowOf(mp, "tank")) && /Normal/.test(rowOf(mp, "cop"))
+    && /No sign of degradation/.test(rowOf(mp, "cop")), rowOf(mp, "tank") + rowOf(mp, "cop"));
+  check("UX-7: an unlearned lower floor has no row; a learned one does",
+    !/data-model-row="lower"/.test(mp)
+    && /20 % slower than the settings estimated/.test(rowOf(modelOf(modelStates({
+      lower_floor: { ratio: 0.8, samples: 14, learned: true } })), "lower")));
+  const strip = (mp.match(/class="gains-bar"/g) || []).length;
+  check("UX-7: the internal-gains strip draws 24 hourly bars and names the peak hour",
+    strip === 24 && /0\.6 kW around 18:00/.test(rowOf(mp, "gains")), `${strip} bars; ${rowOf(mp, "gains")}`);
+  check("UX-7: no tank row without a tank, and no strip without a profile",
+    !/data-model-row="tank"/.test(modelOf(modelStates({ tank_cooling: null })))
+    && !/gains-bar/.test(modelOf(modelStates({ internal_gains_kw: null }))));
+  const fresh7 = modelOf(modelStates({ heat_loss: { scale: 1.0, samples: 0, learned: false } }));
+  check("UX-7: a heat loss with no evidence says it is still the settings' estimate",
+    /still the settings' estimate/i.test(rowOf(fresh7, "heat_loss")), rowOf(fresh7, "heat_loss"));
+  check("UX-7: a COP alarm is said in words, with a warn tone",
+    /data-model-row="cop"[^>]*data-tone="warn"/.test(modelOf(modelStates({
+      cop: { scale: 0.8, samples: 40, alarm: true, watched_buckets: 3 } }))));
+  const noModel = healthStates();
+  check("UX-7: without the model status sensor the block is absent",
+    !/health-model/.test(pageOf(mkHealth(noModel).html())));
+  const un7 = modelStates();
+  un7[MODEL] = { state: "unavailable", attributes: {} };
+  check("UX-7: and absent while it is unavailable", !/health-model/.test(pageOf(mkHealth(un7).html())));
+  check("UX-7: the block speaks Swedish", /Vad modellen har lärt sig/.test(modelOf(modelStates(), "sv-SE")));
+  {
+    const hm = mkHealth(modelStates());
+    const sigA = hm.c._signature();
+    const moved = modelStates({ heat_loss_w_per_k: 150.0 });
+    moved[MODEL].last_updated = "t9";
+    hm.c.hass = { states: moved, callService: async () => {} };
+    check("UX-7: the render signature follows the model status sensor", hm.c._signature() !== sigA);
+  }
+
   const sv = mkHealth(healthStates(), "sv-SE").html();
   check("the Health page and pill speak Swedish",
     /Indata/.test(sv) && /1 indata inaktuell/.test(sv) && /Hälsa/.test(sv) && /Ladda ner diagnostik/.test(sv));

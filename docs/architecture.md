@@ -34,7 +34,7 @@ flowchart LR
     end
 
     subgraph out["Outputs"]
-        ent["79 entities<br/>60 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
+        ent["81 entities<br/>62 sensors, 6 binary sensors,<br/>5 buttons, 6 switches,<br/>1 climate, 1 datetime"]
         card["Dashboard card<br/>plan chart, editor, setup page"]
         ctl["Actuation<br/>heat pump switch,<br/>ECL110 displace,<br/>compressor frequency"]
     end
@@ -162,7 +162,7 @@ custom_components/heatpump_optimizer/
 │
 │   # Home Assistant entities and frontend
 ├── entity.py             # The shared entity base every platform builds on
-├── sensor.py             # 60 sensors
+├── sensor.py             # 62 sensors
 ├── binary_sensor.py      # Away Mode, External Heat Source, Input Problem,
 │                         #   Mold Floor Breach, Open Window Detected,
 │                         #   Wood Cheaper Than Heat Pump
