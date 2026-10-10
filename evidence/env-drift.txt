@@ -1,0 +1,1 @@
+env_drift.py --all run at head 19ffbcbfbd43b36492bc594fb86df307eb34f6b7 — exited 0 with no drift report; the diff changes no test/golden or claim file (git diff --name-only names none under tests/golden or a claim file).

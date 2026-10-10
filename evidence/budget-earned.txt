@@ -1,0 +1,18 @@
+=== head: policy_lint --budgets (measured vs cap) ===
+AGENTS.md                                         12   13      166   183 
+
+always-loaded: ~3588 tokens, cap 3349 +band 500 = 3849
+corpus:        ~60449 tokens, cap 60449 +band 500 = 60949
+role fixer     ~6219 tokens, cap 5852 +band 500 = 6352
+role record    ~7405 tokens, cap 7405 +band 500 = 7905
+role policy    ~9975 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+
+=== same, with the four changed policy-prose files reverted to merge-base (mechanism removed) ===
+corpus:        ~59898 tokens, cap 60449 +band 500 = 60949
+role fixer     ~6219 tokens, cap 5852 +band 500 = 6352
+role record    ~7226 tokens, cap 7405 +band 500 = 7905
+role policy    ~9975 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
