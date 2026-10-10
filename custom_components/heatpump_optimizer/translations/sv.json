@@ -1677,6 +1677,10 @@
       "title": "Planeringen föll tillbaka på den långsamma lösaren i samma process",
       "description": "Den separata lösarprocessen kunde inte användas, så optimeringen kördes i Home Assistants egen tolk i stället. Planen är korrekt, men lösningen håller tolklåset medan den körs, så Home Assistant kan kännas kortvarigt trögt vid varje optimering. Orsaken som rapporterades var: {cause}. Bifoga gärna den raden och loggen i en rapport. Meddelandet försvinner när en lösning åter slutförs i den separata processen."
     },
+    "floor_return_silent": {
+      "title": "Givaren för golvvärmens returtemperatur rapporterar inte",
+      "description": "Enheten du valt för golvvärmens returtemperatur, {entity_id}, har inte gett någon användbar avläsning på över {minutes} minuter. Utan den mäts inte längre golvplattans temperatur: den förs vidare från planens egen prognos, som glider ifrån det verkliga golvet ju längre detta pågår. Kontrollera att enheten fortfarande finns, är tillgänglig och rapporterar en temperatur, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart givaren rapporterar igen."
+    },
     "pump_mode_unreadable": {
       "title": "Värmepumpens driftlägesenhet rapporterar inte",
       "description": "Enheten du valt för värmepumpens driftläge har inte gått att läsa på över {hours} timmar. Det senaste läget den rapporterade var ”{mode}”, och fram tills nu har planen fortfarande hållits till vad det läget klarar. Så är det inte längre: ett driftläge som ingen kunnat läsa på timmar säger inget om vad pumpen gör, och att fortsätta stänga av värme eller varmvatten utifrån det vore att låta dig frysa på en död givares ord. Planen utgår återigen från att pumpen klarar allt, precis som innan du konfigurerade enheten. Kontrollera att enheten fortfarande finns och är tillgänglig, eller töm fältet om du inte vill använda den. Meddelandet försvinner så snart enheten rapporterar igen."
@@ -1916,6 +1920,11 @@
           "dhw_ready": "Gör tanken redo",
           "dhw_window": "Varmvatten behövs nu",
           "idle": "Viloläge",
+          "idle_coasting": "Över golvet, i medgång",
+          "idle_dearer": "Dyrare än de timmar som används",
+          "idle_fuse": "Begränsat av säkringen",
+          "idle_other_channel": "Den andra kanalen har kapaciteten",
+          "idle_solar": "Väntar på sol",
           "legionella": "Legionellacykel",
           "manual_plan": "Ditt eget schema",
           "preheat_weather": "Förvärmning inför kallare väder",
@@ -2381,6 +2390,14 @@
         "silent_mode_power_fraction": {
           "name": "Tyst effektfaktor",
           "description": "Andelen av märkeffekten som värmepumpen behåller inom ett tyst fönster, 0,6 till 1,0. 1,0 visar raderna men begränsar inget."
+        },
+        "dhw_setpoint": {
+          "name": "Varmvattenbörvärde",
+          "description": "Tanktemperaturen planen värmer mot. Skrivs in i konfigurationen, så den finns kvar efter en omladdning."
+        },
+        "target_temperature": {
+          "name": "Komfortmål",
+          "description": "Innetemperaturen planen håller. Skrivs in i konfigurationen, så den finns kvar efter en omladdning."
         }
       }
     },

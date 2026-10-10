@@ -17,17 +17,27 @@ sent is written to a store after each change and read back at setup, so a
 restart does not announce a standing condition again. A receipt already held
 when the store is first created is adopted silently: an upgrade must not
 announce last month's receipt as news.
+
+One payload signal is a repair rather than an event: a configured
+floor-return sensor that has given no usable value for
+``FLOOR_RETURN_SILENT_MINUTES``. Without it the slab is advanced open-loop
+from the plan's own trajectory, which a live install ran on unannounced.
+:func:`floor_return_silence` is the pure finding; :class:`FloorReturnWatch`
+holds its clock and writes it through ``setpoint_check.set_issue``.
 """
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable, Coroutine
+from datetime import datetime, timedelta
 from typing import Any, NamedTuple
 
 from homeassistant.core import HomeAssistant
+from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
-from .payload import Payload
+from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
+from .payload import InputProblem, Payload
+from .setpoint_check import set_issue
 from .store import QuarantiningStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -46,7 +56,8 @@ EVENT_DATA: dict[str, tuple[str, ...]] = {
         "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
     ),
     EVENT_COMFORT_AT_RISK: (
-        "entry_id", "predicted_min_c", "at", "floor_c", "peak_guard_suppressing",
+        "entry_id", "predicted_min_c", "at", "floor_c",
+        "peak_guard_suppressing", "cause",
     ),
     EVENT_INPUT_STALE: ("entry_id", "input", "age_minutes", "max_age_minutes"),
     EVENT_PLAN_STALE: ("entry_id", "age_minutes"),
@@ -87,6 +98,18 @@ def _monthly_receipt(data: Payload) -> Detected:
     })}
 
 
+def _comfort_cause(data: Payload, when: Any) -> str | None:
+    """The coldest step's published reason, when the plan carries one."""
+    plan = data.get("space_plan")
+    if not isinstance(plan, dict):
+        return None
+    for step in plan.get("forecast") or []:
+        if isinstance(step, dict) and step.get("t") == when:
+            reason = step.get("reason")
+            return reason if isinstance(reason, str) and reason else None
+    return None
+
+
 def _comfort(data: Payload) -> Detected:
     floor = data.get("min_temperature")
     steps = data.get("schedule")
@@ -106,6 +129,7 @@ def _comfort(data: Payload) -> Detected:
         "at": when,
         "floor_c": floor,
         "peak_guard_suppressing": bool(data.get("peak_guard_suppressing")),
+        "cause": _comfort_cause(data, when),
     })}
 
 
@@ -163,6 +187,58 @@ _DETECTORS: tuple[tuple[str, Callable[[Payload], Detected]], ...] = (
     ("plan_stale", _plan),
     ("manual_plan", _manual),
 )
+
+
+ISSUE_FLOOR_RETURN_SILENT = "floor_return_silent"
+#: How long a configured floor-return sensor may give nothing before the
+#: repair: past a restart's or a brief outage's gap, short of a day of slab
+#: estimate the owner never heard about.
+FLOOR_RETURN_SILENT_MINUTES = 60.0
+
+
+def floor_return_silence(
+    problems: list[InputProblem], since: datetime | None, now: datetime
+) -> tuple[datetime | None, dict[str, str] | None]:
+    """When the silence began, and the repair's placeholders once it has lasted.
+
+    ``problems`` lists only configured inputs that gave no usable value, so
+    an unconfigured slot and a live sensor both read as no silence, and any
+    usable reading restarts the period.
+    """
+    problem = next(
+        (p for p in problems if p.get("input") == CONF_FLOOR_RETURN_TEMP_ENTITY),
+        None,
+    )
+    if problem is None:
+        return None, None
+    since = since or now
+    if now - since < timedelta(minutes=FLOOR_RETURN_SILENT_MINUTES):
+        return since, None
+    return since, {
+        "entity_id": str(problem.get("entity_id") or ""),
+        "minutes": f"{FLOOR_RETURN_SILENT_MINUTES:.0f}",
+    }
+
+
+class FloorReturnWatch:
+    """Keeps :func:`floor_return_silence`'s clock and writes its repair."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
+        self._since: datetime | None = None
+
+    def handle(self, data: Payload, now: datetime | None = None) -> None:
+        """One payload, read at ``now`` (the wall clock unless a test passes one)."""
+        problems = data.get("input_problems")
+        if problems is None:
+            return
+        self._since, found = floor_return_silence(
+            problems, self._since, now or dt_util.utcnow()
+        )
+        set_issue(
+            self._hass, ISSUE_FLOOR_RETURN_SILENT, found is not None,
+            placeholders=found,
+        )
 
 
 class Notifier:
@@ -247,9 +323,11 @@ async def async_setup_notifier(
         ),
     )
     await notifier.async_load()
+    floor_return = FloorReturnWatch(hass)
 
     def _on_update() -> None:
         if coordinator.data is not None:
             notifier.handle(coordinator.data)
+            floor_return.handle(coordinator.data)
 
     entry.async_on_unload(coordinator.async_add_listener(_on_update))
