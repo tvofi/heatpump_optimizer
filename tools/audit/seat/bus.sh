@@ -726,13 +726,13 @@ B
   mkc() { # <parent> <file> -> a commit adding one top-level file
     local p=$1 f=$2 b
     b=$(printf '%s content\n' "$f" | git -C "$W/seat" hash-object -w --stdin)
-    git -C "$W/seat" commit-tree "$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)" -p "$p"
+    printf 'add %s\n' "$f" | git -C "$W/seat" commit-tree "$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)" -p "$p"
   }
   mkd() { # <parent> <dir> <file> -> a commit adding <dir>/<file>
     local p=$1 d=$2 f=$3 b sub
     b=$(printf '%s content\n' "$f" | git -C "$W/seat" hash-object -w --stdin)
     sub=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)
-    git -C "$W/seat" commit-tree "$(printf '040000 tree %s\t%s\n' "$sub" "$d" | git -C "$W/seat" mktree)" -p "$p"
+    printf 'add %s/%s\n' "$d" "$f" | git -C "$W/seat" commit-tree "$(printf '040000 tree %s\t%s\n' "$sub" "$d" | git -C "$W/seat" mktree)" -p "$p"
   }
   mb=$(git -C "$W/seat" rev-parse HEAD)
   # A stranded opener: owed, no pull request, no ancestor of main -> exit 1.
