@@ -5537,7 +5537,7 @@
     "review_note_file": "handoff/round9/fix/resume/RO-8-review.md on handoff/r9-ro-8-review",
     "plan": "handoff/repo-reorg-plan: handoff/round9/fix/RO.md, this roster",
     "log": "/mnt/project-files/audit-r9/RESUME.md (cloud), mirrored append-only at handoff/audit-r9-plan:handoff/round9/RESUME.md (Mac and any seat without /mnt)",
-    "note": "2026-10-07: fixer r9c-ro8 working from origin/main; carry from #2004 in brief"
+    "note": "issue #1921 closed-completed 2026-10-07T17:04:17Z but I did not verify the work is in main: roster stage unverified"
    },
    "brief": " Carried 2026-10-07 from the #2004 root-cause seat (re-measure at your merge base): (a) landed moves in tests/layout.json still marked since null \u2014 set since for every unit this group moves and add none with null; (b) a program launched by its old path skips the layout's old-to-new mapping, so for every moved unit grep the tree for the old path (spawn, exec and subprocess strings, workflows, rules globs) and rewrite or pin each, the grep command and its hits in Figures; null control: the same grep at the merge base returns the hits the diff removes."
   },
