@@ -8,6 +8,7 @@
 #   bus.sh dispatch <pr> <head> <reviewer>                      (orchestrator)
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
+#   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] (orchestrator)
 #   bus.sh --self-test
 #
 # THE REFS. `handoff/<topic>` is a fixer's code head; `handoff-body/<topic>` its
@@ -17,6 +18,19 @@
 # whose tree is VERDICT.md plus the evidence directory under `evidence/`, its
 # parent the previous tip, so a later round never needs a force-push. A
 # crossed-out verdict stays in the ref's history; only the tip is posted.
+#
+# `orphans` is the handoff family's level-triggered obligation, which `watch`
+# only ever reports once. A `handoff/<t>` whose `handoff-body/<t>` ref exists
+# owed a pull request -- `open_pr.sh` fetches both and fails without the body --
+# and is an ORPHAN when no pull request sits at `fix/<t>` or `fix/<t>-pr`, its
+# tip is no ancestor of `main` or a live `fix/*` head, and its tip is at least
+# --min-age-h hours old (default 2: a lane's own in-flight ref is not an
+# orphan). It fetches the three ref families over the git protocol -- no token,
+# no REST -- and prints one line per orphan naming the repair it needs, never
+# the repair: `opener` (no pull request: `open_pr.sh`), `update` (its pull
+# request's head is behind the ref: `update_pr.sh`) or `review` (a pull request
+# that diverged from the ref, a commit only one side has, which no pattern may
+# choose between). It writes no ref, opens no pull request and edits no roster.
 #
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
 # `fix-review.md`'s grammar (the regex is `app_comment.sh`'s), the verdict
@@ -324,6 +338,96 @@ watch() {
   done
 }
 
+orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any
+  local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 excl=$'\n'
+  local t ref tip main fix_nl fix_heads bodies_nl h hit reported=0 nb=0 named=0 anc=0 young=0
+  local ct now age_s age_t word dn H bt
+  while [ $# -gt 0 ]; do
+    case $1 in
+      --min-age-h) shift; numeric "${1:-}" || die "orphans: --min-age-h takes whole hours"; min_age=$1 ;;
+      --no-body) no_body=1 ;;
+      --no-ancestry) no_ancestry=1 ;;
+      --exclude-topic) shift; [ -n "${1:-}" ] || die "orphans: --exclude-topic needs a topic"; excl="$excl$1$LF" ;;
+      *) die "orphans: unknown argument '$1'" ;;
+    esac
+    shift
+  done
+  # One fetch of the three families into a private namespace: the ancestry and
+  # age tests need the objects, and a fetch that fails must not read as a clean
+  # zero. --prune drops a ref the remote deleted, so the topic list is current.
+  git fetch -q --prune "$REMOTE" \
+    "refs/heads/main:$ns/main" \
+    "refs/heads/handoff/*:$ns/handoff/*" \
+    "refs/heads/handoff-body/*:$ns/handoff-body/*" \
+    "refs/heads/fix/*:$ns/fix/*" \
+    || die "orphans: could not fetch the refs of $REMOTE (a shut fetch is not a clean zero)"
+  main=$(git rev-parse --verify "$ns/main") || die "orphans: $REMOTE has no main to compare against"
+  fix_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/fix/")"$LF
+  fix_heads=$(git for-each-ref --format='%(objectname)' "$ns/fix/")
+  bodies_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/handoff-body/")"$LF
+  now=$(date +%s)
+  # A while-read over a heredoc, not a pipe: the counters survive the loop.
+  while read -r ref tip; do
+    [ -n "$ref" ] || continue
+    t=${ref#"$ns/handoff/"}
+    case $excl in *"$LF$t$LF"*) continue ;; esac
+    # OWED: the protocol's own statement that this ref owed a pull request,
+    # `open_pr.sh`'s precondition.
+    if [ "$no_body" != 1 ]; then
+      case $bodies_nl in *"$LF$ns/handoff-body/$t$LF"*) ;; *) nb=$((nb + 1)); continue ;; esac
+    fi
+    # DISCHARGED, name half: the exact branch names (`fix/<t>` or `fix/<t>-pr`).
+    # A de-prefixed name is NOT a discharge -- see the repair word -- or a pull
+    # request left behind by its own later work would read as delivered.
+    case $fix_nl in
+      *"$LF$ns/fix/$t$LF"*|*"$LF$ns/fix/$t-pr$LF"*) named=$((named + 1)); continue ;;
+    esac
+    # DISCHARGED, ancestry half: the tip is inside `main` or a live `fix/*`
+    # head already. Both halves are required; each alone over-reports.
+    if [ "$no_ancestry" != 1 ]; then
+      hit=0
+      for h in "$main" $fix_heads; do
+        git merge-base --is-ancestor "$tip" "$h" && { hit=1; break; }
+      done
+      if [ "$hit" = 1 ]; then anc=$((anc + 1)); continue; fi
+    fi
+    # AGED: a ref pushed moments ago is a lane's own in-flight handoff, not an
+    # orphan. A stamp ahead of the clock reads as young, never as aged.
+    ct=$(git log -1 --format=%ct "$tip" 2>/dev/null) || ct=""
+    if [ -z "$ct" ]; then
+      printf 'ORPHAN %s %s unknown-age uncovered=? repair=review\n' "$t" "$tip"
+      reported=$((reported + 1)); continue
+    fi
+    age_s=$((now - ct)); [ "$age_s" -lt 0 ] && age_s=0
+    if [ "$((age_s / 3600))" -lt "$min_age" ]; then young=$((young + 1)); continue; fi
+    age_t=$((age_s / 360))
+    # The repair word, from the topic's own branch names (exact and de-prefixed,
+    # `open_pr.sh`'s two spellings): a head strictly behind the ref needs
+    # `update_pr.sh`; a head neither containing nor contained needs a human.
+    word=opener
+    bt=${t#r[0-9]*-}
+    for dn in "$t" "$t-pr" "$bt" "$bt-pr"; do
+      case $fix_nl in
+        *"$LF$ns/fix/$dn$LF"*)
+          H=$(git rev-parse "$ns/fix/$dn")
+          if [ "$H" != "$tip" ]; then
+            if git merge-base --is-ancestor "$H" "$tip"; then word=update; else word=review; fi
+          fi
+          break ;;
+      esac
+    done
+    printf 'ORPHAN %s %s %s.%sh uncovered=%s repair=%s\n' \
+      "$t" "$tip" "$((age_t / 10))" "$((age_t % 10))" \
+      "$(git rev-list --count "$tip" --not "$main" $fix_heads)" "$word"
+    reported=$((reported + 1))
+  done <<EOF
+$(git for-each-ref --format='%(refname) %(objectname)' "$ns/handoff/")
+EOF
+  printf 'orphans: %s orphan(s); skipped no-body=%s named=%s ancestor=%s young=%s; %s main %s\n' \
+    "$reported" "$nb" "$named" "$anc" "$young" "$REMOTE" "${main:0:7}"
+  [ "$reported" = 0 ]
+}
+
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
@@ -576,6 +680,7 @@ case ${1:-} in
   dispatch) shift; dispatch "$@" ;;
   confirm) shift; confirm "$@" ;;
   post) shift; numeric "${1:-}" || die "post: give a pull-request number"; mkdir -p "$S"; post_verdict "$1" ;;
+  orphans) shift; orphans "$@" ;;
   --self-test) self_test ;;
   *) sed -n '2,8p' "$0" >&2; exit 2 ;;
 esac
