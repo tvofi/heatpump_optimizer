@@ -7961,7 +7961,8 @@
    },
    "resume": {
     "stage": "handoff",
-    "branch": "handoff/r9-row-stale"
+    "branch": "handoff/r9-row-stale",
+    "note": "handoff/r9-row-stale @ 76b867b94 (pushed by the orchestrator after the seat died)"
    }
   },
   {
