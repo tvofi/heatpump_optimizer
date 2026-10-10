@@ -1,0 +1,6 @@
+measured head: d240ff73d16e39f113b0527ee077076cc7e9a201
+branch: claude/strange-driscoll-5f2158
+reviewer: r9rev-2115 (fix reviewer seat)
+instrument: my own arm harness, /Users/timmalmstrom/hpo-seats/r9rev-2115/arms.sh + a9.sh
+bus.sh at head sha256: fb7fff780cbd40469b5977607945b8009cd468b4867f958c91a319eb05b974aa
+bus.sh at merge-base c729bb32e sha256: f8706db3819711af6d909d208940d3c3f912a4eef19b8174f681683be298344a

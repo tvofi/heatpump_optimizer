@@ -1,0 +1,12 @@
+### HEAD  (/Users/timmalmstrom/hpo-seats/r9rev-2115/bus-head.sh)
+### sha256 fb7fff780cbd40469b5977607945b8009cd468b4867f958c91a319eb05b974aa
+RESULT HEAD | A1 correctly bound nonce                       | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT HEAD | A2 nonce no dispatch minted                    | expected REFUSE   observed refused-no-ref | rc=1
+RESULT HEAD | A3 another pr's nonce, ref must not move       | expected REFUSE   observed refused-ref-unchanged | rc=1
+RESULT HEAD | A4 nonce from the old head (the #2075 case)    | expected REFUSE   observed refused-ref-unchanged | rc=1
+RESULT HEAD | A5 fresh dispatch at the new head              | expected ACCEPT   observed rc0+newref | rc=0
+RESULT HEAD | A6 second nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT HEAD | A6b first nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT HEAD | A7 no dispatched record exists                 | expected REFUSE   observed refused-no-ref | rc=1
+RESULT HEAD | A8 reviewer state != dispatcher state          | expected see note observed refused  | rc=1
+

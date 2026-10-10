@@ -1,0 +1,12 @@
+### BASE  (/Users/timmalmstrom/hpo-seats/r9rev-2115/bus-base.sh)
+### sha256 f8706db3819711af6d909d208940d3c3f912a4eef19b8174f681683be298344a
+RESULT BASE | A1 correctly bound nonce                       | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT BASE | A2 nonce no dispatch minted                    | expected REFUSE   observed OTHER(review/8 81aa9e470e14ea6472470f944a8c60e170f4254f) | rc=0
+RESULT BASE | A3 another pr's nonce, ref must not move       | expected REFUSE   observed OTHER(review/7 c0f75117fd08432e0971d46a7746c2a2ae999c8f) | rc=0
+RESULT BASE | A4 nonce from the old head (the #2075 case)    | expected REFUSE   observed OTHER(review/7 97cef54c140a128635264b695c681aaa2dc2057d) | rc=0
+RESULT BASE | A5 fresh dispatch at the new head              | expected ACCEPT   observed rc0+newref | rc=0
+RESULT BASE | A6 second nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT BASE | A6b first nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT BASE | A7 no dispatched record exists                 | expected REFUSE   observed OTHER(review/10 264463ca8e09eafdbbeb264ede48c3c1f14e5c96) | rc=0
+RESULT BASE | A8 reviewer state != dispatcher state          | expected see note observed ACCEPTED | rc=0
+
