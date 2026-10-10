@@ -213,7 +213,10 @@ while true; do
       if [ -n "$CR" ]; then
         total=$(printf '%s\n' "$CR" | wc -l | tr -d ' ')
         # Latest run per name, red when its conclusion is failure (v2's rule).
-        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{bad[$1] = ($3 == "failure")} END {for (x in bad) if (bad[x]) print x}' | tr '\n' ' ')
+        # Sorted: the signature file dedups on this string, and awk's END-loop
+        # order is arbitrary -- an unsorted list would re-alert the same reds
+        # as a NEW state every cycle (v2's jq group_by was name-sorted).
+        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{bad[$1] = ($3 == "failure")} END {for (x in bad) if (bad[x]) print x}' | sort | tr '\n' ' ')
         [ -n "$reds" ] && issue="$issue | RED: $reds"
         # ABSENT, judged only at a settled head: every run it has completed.
         pending=$(printf '%s\n' "$CR" | awk -F "$TAB" '$2 != "completed"' | wc -l | tr -d ' ')
