@@ -887,9 +887,11 @@ jobs:
   # split the sites by anchor (`pin_shard`) and run at once, each with the
   # whole budget; mutation-autofix merges their artifacts (`merge_pin_shards`)
   # into one commit. `mutation-pin-plan` sizes the matrix from the refusal's
-  # site count (`pin_shard_count`: six sites a shard, at most ten), so a big
-  # diff costs runners rather than wall clock. A base program without --shard
-  # runs whole on shard 1 and the other shards stand down.
+  # site count (`pin_shard_count`: five sites a shard, at most twelve -- the
+  # sizes the 260-minute budget and this job's concurrency were derived
+  # from), so a big diff costs runners rather than wall clock. A base
+  # program without --shard runs whole on shard 1 and the other shards stand
+  # down.
   mutation-pin-plan:
     needs: [mutation]
     if: >-
@@ -936,10 +938,12 @@ jobs:
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
-    timeout-minutes: 180
+    # The step's 340 plus this runner's checkout, pip install and upload
+    # (R9-CI-1 round 2: the budget the step hands the base program is 260).
+    timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 10
+      max-parallel: 12
       matrix:
         shard: ${{ fromJSON(needs.mutation-pin-plan.outputs.shards) }}
     steps:
@@ -966,7 +970,7 @@ jobs:
 
       - name: Measure pins for the sites this diff added unpinned
         id: pins
-        timeout-minutes: 170
+        timeout-minutes: 340
         shell: bash
         env:
           PR_HEAD: ${{ github.event.pull_request.head.sha }}
@@ -983,13 +987,22 @@ jobs:
           python3 -c 'import json, sys; sys.path.insert(0, "tests"); import mutation_table as m; print(json.dumps(m.load_budgets()))' \
             > "$RUNNER_TEMP/ledger-before.json"
           rm -f "$RUNNER_TEMP/pin-run.txt"
-          # Under the 170-minute step timeout with room for the runs in flight
-          # (R9-F10.12): admission charges a lazy driver its run alone, so a
-          # red run's baseline and null control are paid past the deadline --
-          # boost_drift_replay.py's three runs are ~26 minutes at its recorded
-          # seconds. At 90 minutes four shards of 14 pinned 19 of #2025's 56
-          # sites, each site ~2000 s of driver work; six sites a shard fit 120
-          # (R9-CI-1). Only a base program that has a flag gets it.
+          # 260 minutes under a 340-minute step and a 350-minute job, sized
+          # from the run that measured the pool instead of estimating it
+          # (R9-CI-1 round 2, run 37925123437 shard 3, base b2b6acd64: 5
+          # draw_range.py sites). Its shared drivers are ~3160 s of recorded
+          # seconds a site; the 3-worker pool cost 1.46x that, so five sites
+          # took ~128 min of shared work, and each survivor's EXCLUSIVE tail
+          # (stress.py and harness_headers.py, a settle and a run each, ~980 s)
+          # would have added ~114 min more -- ~248 min against the 120-minute
+          # budget the run had, so every tail was cut and the shard refused
+          # having completed nothing. 260 covers it. The step adds the worst
+          # run that can still be in flight at the deadline --
+          # driver_timeout is TIMEOUT_SCALE (3) x the driver's own seconds, so
+          # boost_drift_replay.py's recorded 1489.6 s is ~75 min -- and the
+          # job adds this runner's checkout, pip install and upload. A base
+          # program that has the flag gets it; pin_shard_count sizes the
+          # matrix so a shard holds five sites.
           budget=()
           shard=()
           run=1
@@ -999,7 +1012,7 @@ jobs:
              && grep -q -- '--pin-killed' tests/_mutation_table_base.py; then
             echo tests/_mutation_table_base.py >> .git/info/exclude
             grep -q -- '--budget-minutes' tests/_mutation_table_base.py \
-              && budget=(--budget-minutes 120)
+              && budget=(--budget-minutes 260)
             if grep -q -- '--shard' tests/_mutation_table_base.py; then
               shard=(--shard "$SHARD/$SHARDS")
             elif [ "$SHARD" != 1 ]; then
@@ -2108,10 +2121,13 @@ jobs:
   # no-copies, a failed recording of a script the check named, an INERT
   # contradiction, or its own follow-up commit (`ci: re-record closures`).
   #
-  # A GITHUB_TOKEN push's pull_request runs wait action_required, so this
-  # job dispatches Tests (recheck=true), Hassfest, Validate and CodeQL on the
-  # new SHA; not Governance (why: tests/entities.py). CLOSURES_PUSH_TOKEN, if
-  # set, retriggers via synchronize and the dispatch is skipped.
+  # A GITHUB_TOKEN push triggers no pull_request run of its own (#2070 at
+  # a9ba0b88 and #2066 at 63084989, 2026-10-09: the only runs at such a head
+  # are the four dispatched below, and the approve step's 60 s poll found
+  # nothing held), so this job dispatches Tests (recheck=true), Hassfest,
+  # Validate and CodeQL on the new SHA; not Governance (why:
+  # tests/entities.py). CLOSURES_PUSH_TOKEN, if set, retriggers via
+  # synchronize and the dispatch is skipped.
   closures-autofix:
     needs: [closures]
     if: >-
@@ -2220,9 +2236,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           # No -f recheck=: that input is only on default-branch YAML.
@@ -2239,9 +2257,13 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # The dispatches above run at once, but the pull_request runs a
-      # GITHUB_TOKEN push triggers wait action_required for a human, and a
-      # pending required check shadows the dispatched green on the PR (#1276).
+      # The dispatches above run at once. #1276 added this step because a
+      # GITHUB_TOKEN push's pull_request runs were held action_required for a
+      # human, and a pending required check shadowed the dispatched green on
+      # the PR. Measured 2026-10-09, at two bot heads: no such run is created
+      # at all, so this step normally finds nothing to approve and the four
+      # dispatched runs stand alone (the five pull_request-only required
+      # contexts are absent there; an App push or a body edit writes them).
       # The listing is preceded by a bounded poll: GitHub creates the pushed
       # SHA's runs asynchronously, and a one-shot listing was measured
       # approving nothing while all five runs appeared moments later (#1283).
@@ -2487,9 +2509,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
@@ -2503,14 +2527,17 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # As in closures-autofix (#1276): the dispatches run at once, the
-      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
-      # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
-      # inline -- after the same bounded poll for the pushed SHA's runs
-      # (#1283). Fail-soft throughout: absent secrets print one notice and
-      # approve nothing, and a later error warns rather than reddening a
-      # job whose push already happened (red means "no bot commit", #523).
+      # As in closures-autofix (#1276): the dispatches run at once. That
+      # step exists because a GITHUB_TOKEN push's pull_request runs were held
+      # action_required for a human; measured 2026-10-09 at two bot heads, no
+      # such run is created at all, so the poll below normally finds nothing
+      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # the approve step clears it as the Actions-only App -- the RS256 mint
+      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
+      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
+      # secrets print one notice and approve nothing, and a later error warns
+      # rather than reddening a job whose push already happened (red means
+      # "no bot commit", #523).
       - name: Approve the runs the push left holding
         if: steps.push.outputs.token_push == 'true'
         env:
@@ -2683,9 +2710,11 @@ jobs:
         with:
           python-version: "3.13"
 
-      # One artifact per shard (mutation-pins-1..4), each in its own
-      # subdirectory; `merge_pin_shards` folds them into the one directory
-      # `apply_pins` reads.
+      # One artifact per shard (mutation-pins-1..N), each in its own
+      # subdirectory -- except a lone match, which actions/download-artifact
+      # extracts into `path` itself and `merge_pin_shards` reads there
+      # (#2060, R9-CI-2); `merge_pin_shards` folds them into the one
+      # directory `apply_pins` reads.
       - name: Download the pins the mutation-pins shards measured
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         continue-on-error: true
@@ -2769,9 +2798,11 @@ jobs:
             echo "PAT push retriggers pull_request; not dispatching"
             exit 0
           fi
-          # The pull_request runs this GITHUB_TOKEN push leaves holding
-          # action_required are the next step's to approve (#1276); the
-          # pushed SHA is that step's poll key (#1283).
+          # A GITHUB_TOKEN push leaves no pull_request run at this head for
+          # the next step to approve (measured 2026-10-09 on two bot heads:
+          # four dispatched runs, none held). The poll stays, as #1276 added
+          # it -- it is the fail-soft insurance for a run that IS held --
+          # with the pushed SHA as its key (#1283).
           echo "token_push=true" >> "$GITHUB_OUTPUT"
           echo "pushed_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           gh workflow run tests.yml --ref "$HEAD_REF"
@@ -2785,14 +2816,17 @@ jobs:
             echo "::warning::codeql.yml on this ref has no workflow_dispatch; Analyze contexts wait for run approval"
           fi
 
-      # As in closures-autofix (#1276): the dispatches run at once, the
-      # pull_request runs a GITHUB_TOKEN push triggers wait action_required
-      # for a human, and the approve step clears them as the Actions-only
-      # App -- the RS256 mint tools/pr/app_approve.sh uses, ported
-      # inline -- after the same bounded poll for the pushed SHA's runs
-      # (#1283). Fail-soft throughout: absent secrets print one notice and
-      # approve nothing, and a later error warns rather than reddening a
-      # job whose push already happened (red means "no bot commit", #523).
+      # As in closures-autofix (#1276): the dispatches run at once. That
+      # step exists because a GITHUB_TOKEN push's pull_request runs were held
+      # action_required for a human; measured 2026-10-09 at two bot heads, no
+      # such run is created at all, so the poll below normally finds nothing
+      # and the four dispatched runs stand alone. Where GitHub does hold one,
+      # the approve step clears it as the Actions-only App -- the RS256 mint
+      # tools/pr/app_approve.sh uses, ported inline -- after the same bounded
+      # poll for the pushed SHA's runs (#1283). Fail-soft throughout: absent
+      # secrets print one notice and approve nothing, and a later error warns
+      # rather than reddening a job whose push already happened (red means
+      # "no bot commit", #523).
       - name: Approve the runs the push left holding
         if: steps.push.outputs.token_push == 'true'
         env:

@@ -74,10 +74,11 @@ failure — so its summary line is its only signal.
 | `INHERITED CLAIMS` | `claims-autofix` | `ci: drop inherited claims` | `env_drift.apply_inherited_claims` |
 | unpinned sites | `mutation-autofix` | `ci: pin killed mutants` | `mutation_table.apply_pins` |
 
-Those subjects are loop guards. A `GITHUB_TOKEN` push's `pull_request` runs wait `action_required` for a
-human; the job dispatches Tests/Hassfest/Validate and CodeQL, which run at once. Governance's contexts come
-from the held run once approved (#1514). `recheck-gate` treats `ci:` as PR-like (not `slow`). All
-three approve those held runs as a dedicated Actions-only App, fail-soft while its secrets are absent.
+Those subjects are loop guards. The job dispatches Tests/Hassfest/Validate and CodeQL at once; a
+`GITHUB_TOKEN` push creates no `pull_request` run (measured 2026-10-09), so the contexts only that event
+writes are ABSENT at a bot head until an App push or a body edit. Absent is not green (`orchestrator.md`
+section 11). `recheck-gate` treats `ci:` as PR-like (not `slow`). All three approve any held run there
+is, fail-soft while its secrets are absent.
 
 When `mutation-autofix` goes red, run `--pin-killed` yourself. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
