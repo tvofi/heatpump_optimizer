@@ -8,7 +8,7 @@
 #   bus.sh dispatch <pr> <head> <reviewer>                      (orchestrator)
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
-#   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] (orchestrator)
+#   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] [--no-content]
 #   bus.sh --self-test
 #
 # THE REFS. `handoff/<topic>` is a fixer's code head; `handoff-body/<topic>` its
@@ -22,15 +22,22 @@
 # `orphans` is the handoff family's level-triggered obligation, which `watch`
 # only ever reports once. A `handoff/<t>` whose `handoff-body/<t>` ref exists
 # owed a pull request -- `open_pr.sh` fetches both and fails without the body --
-# and is an ORPHAN when no pull request sits at `fix/<t>` or `fix/<t>-pr`, its
-# tip is no ancestor of `main` or a live `fix/*` head, and its tip is at least
-# --min-age-h hours old (default 2: a lane's own in-flight ref is not an
-# orphan). It fetches the three ref families over the git protocol -- no token,
-# no REST -- and prints one line per orphan naming the repair it needs, never
-# the repair: `opener` (no pull request: `open_pr.sh`), `update` (its pull
-# request's head is behind the ref: `update_pr.sh`) or `review` (a pull request
-# that diverged from the ref, a commit only one side has, which no pattern may
-# choose between). It writes no ref, opens no pull request and edits no roster.
+# and is reported in one of three states. IN FLIGHT: its tip is younger than
+# --min-age-h hours (default 2), a lane's own push, silently counted, never a
+# line. STRANDED: no pull request sits at `fix/<t>` or `fix/<t>-pr`, the tip is
+# no ancestor of `main` or a live `fix/*` head, and the change is not already on
+# main. SUPERSEDED: flagged by that ancestry test, but a content-equivalence
+# arm (`content_superseded`) finds main already carries every path the ref's
+# uncovered commits touch -- a recovery rewrote the commit and landed the
+# change under another, so the ref needs pruning, not an opener. Each STRANDED
+# line names the repair it needs, never works it: `opener` (no pull request:
+# `open_pr.sh`), `update` (its pull request's head is behind the ref:
+# `update_pr.sh`) or `review` (a pull request that diverged from the ref, a
+# commit only one side has, which no pattern may choose between). --no-content
+# drops the superseded arm, so a ref it would spare reads as stranded. It
+# fetches the three ref families over the git protocol -- no token, no REST --
+# and writes no ref, opens no pull request and edits no roster; the run is red
+# (rc 1) only for a STRANDED ref, never a superseded one.
 #
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
 # `fix-review.md`'s grammar (the regex is `app_comment.sh`'s), the verdict
@@ -338,15 +345,48 @@ watch() {
   done
 }
 
-orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any
-  local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 excl=$'\n'
-  local t ref tip main fix_nl fix_heads bodies_nl h hit reported=0 nb=0 named=0 anc=0 young=0
+# content_superseded TIP -> rc 0 when main already carries every path the ref's
+# uncovered commits touch, so the ref is SUPERSEDED rather than stranded: a
+# modification byte-identical on main, an addition whose basename main holds (a
+# recovery that moved or renamed the file, e.g. the tools/ -> dev/ restructure),
+# a deletion main already made, a rename to a basename main holds. The ancestry
+# arm asks "is this work inside main"; this one asks "is it on main under
+# another commit" -- a recovery that rewrote the commit leaves a non-ancestral
+# ref whose content main has. Reads the caller's `main`, `main_basenames`, `LF`.
+content_superseded() { # tip -> 0 superseded, 1 stranded
+  local tip=$1 mb st a b base b1 b2
+  mb=$(git merge-base "$main" "$tip") || return 1
+  while IFS=$'\t' read -r st a b; do
+    [ -n "$st" ] || continue
+    case $st in
+      A) base=${a##*/}
+         case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac ;;
+      M) b1=$(git rev-parse "$tip:$a" 2>/dev/null) || return 1
+         b2=$(git rev-parse "$main:$a" 2>/dev/null) || return 1
+         [ "$b1" = "$b2" ] || return 1 ;;
+      D) git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
+      R*) base=${b##*/}
+          case $main_basenames in *"$LF$base$LF"*) ;; *) return 1 ;; esac
+          git rev-parse "$main:$a" >/dev/null 2>&1 && return 1 ;;
+      *) return 1 ;;
+    esac
+  done <<EOF
+$(git diff --name-status "$mb" "$tip")
+EOF
+  return 0
+}
+
+orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any stranded
+  local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 no_content=0 excl=$'\n'
+  local t ref tip main fix_nl fix_heads bodies_nl main_basenames h hit
+  local reported=0 superseded=0 nb=0 named=0 anc=0 young=0
   local ct now age_s age_t word dn H bt
   while [ $# -gt 0 ]; do
     case $1 in
       --min-age-h) shift; numeric "${1:-}" || die "orphans: --min-age-h takes whole hours"; min_age=$1 ;;
       --no-body) no_body=1 ;;
       --no-ancestry) no_ancestry=1 ;;
+      --no-content) no_content=1 ;;
       --exclude-topic) shift; [ -n "${1:-}" ] || die "orphans: --exclude-topic needs a topic"; excl="$excl$1$LF" ;;
       *) die "orphans: unknown argument '$1'" ;;
     esac
@@ -365,6 +405,7 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--exclude-topic T]...
   fix_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/fix/")"$LF
   fix_heads=$(git for-each-ref --format='%(objectname)' "$ns/fix/")
   bodies_nl=$LF"$(git for-each-ref --format='%(refname)' "$ns/handoff-body/")"$LF
+  main_basenames=$LF"$(git ls-tree -r --name-only "$main" | sed 's#.*/##')"$LF
   now=$(date +%s)
   # A while-read over a heredoc, not a pipe: the counters survive the loop.
   while read -r ref tip; do
@@ -401,6 +442,13 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--exclude-topic T]...
     age_s=$((now - ct)); [ "$age_s" -lt 0 ] && age_s=0
     if [ "$((age_s / 3600))" -lt "$min_age" ]; then young=$((young + 1)); continue; fi
     age_t=$((age_s / 360))
+    # SUPERSEDED: not ancestral to main, but main already carries the change
+    # (the recovery rewrote the commit). Report it so the ref can be pruned
+    # deliberately; it is not stranded and does not fail the run.
+    if [ "$no_content" != 1 ] && content_superseded "$tip"; then
+      printf 'SUPERSEDED %s %s %s.%sh\n' "$t" "$tip" "$((age_t / 10))" "$((age_t % 10))"
+      superseded=$((superseded + 1)); continue
+    fi
     # The repair word, from the topic's own branch names (exact and de-prefixed,
     # `open_pr.sh`'s two spellings): a head strictly behind the ref needs
     # `update_pr.sh`; a head neither containing nor contained needs a human.
@@ -423,13 +471,14 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--exclude-topic T]...
   done <<EOF
 $(git for-each-ref --format='%(refname) %(objectname)' "$ns/handoff/")
 EOF
-  printf 'orphans: %s orphan(s); skipped no-body=%s named=%s ancestor=%s young=%s; %s main %s\n' \
-    "$reported" "$nb" "$named" "$anc" "$young" "$REMOTE" "${main:0:7}"
+  printf 'orphans: %s stranded, %s superseded; skipped no-body=%s named=%s ancestor=%s young=%s; %s main %s\n' \
+    "$reported" "$superseded" "$nb" "$named" "$anc" "$young" "$REMOTE" "${main:0:7}"
   [ "$reported" = 0 ]
 }
 
 self_test() {
   local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
+  local o1 o2 u1 u2 c1 c2 s1 m1 mb
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -668,6 +717,77 @@ B
   kill -0 "$t" 2>/dev/null; rc=$?
   kill "$t" 2>/dev/null; wait "$t" 2>/dev/null
   [ $rc = 0 ] && [ ! -s "$W/wait.out" ]; expect "watch without --once keeps waiting while nothing changes" $?
+
+  # --- orphans: the obligation a handoff-body ref mints, its three repairs and
+  # the two null controls. --min-age-h 0 drops the age window so a fresh ref is
+  # testable; the green arm is a repaired remote (the carrying pull requests
+  # pushed), never an exclusion. The helpers add one file off a parent without
+  # touching the work tree, so the arms stay independent; HEAD is main's tip.
+  mkc() { # <parent> <file> -> a commit adding one top-level file
+    local p=$1 f=$2 b
+    b=$(printf '%s content\n' "$f" | git -C "$W/seat" hash-object -w --stdin)
+    git -C "$W/seat" commit-tree "$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)" -p "$p"
+  }
+  mkd() { # <parent> <dir> <file> -> a commit adding <dir>/<file>
+    local p=$1 d=$2 f=$3 b sub
+    b=$(printf '%s content\n' "$f" | git -C "$W/seat" hash-object -w --stdin)
+    sub=$(printf '100644 blob %s\t%s\n' "$b" "$f" | git -C "$W/seat" mktree)
+    git -C "$W/seat" commit-tree "$(printf '040000 tree %s\t%s\n' "$sub" "$d" | git -C "$W/seat" mktree)" -p "$p"
+  }
+  mb=$(git -C "$W/seat" rev-parse HEAD)
+  # A stranded opener: owed, no pull request, no ancestor of main -> exit 1.
+  o1=$(mkc "$mb" orph1)
+  git -C "$W/seat" push -q origin "$o1:refs/heads/handoff/orph1" "$o1:refs/heads/handoff-body/orph1"
+  out=$(run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ]
+  expect "orphans reports an owed handoff with no pull request as repair=opener, exit 1" $?
+  # Null control 1: the same ref inside the age window is in flight, not an orphan.
+  out=$(run orphans); rc=$?
+  ! echo "$out" | grep -q "^ORPHAN orph1 " && [ $rc = 0 ] && echo "$out" | grep -q "young="
+  expect "null control: a ref inside the two-hour window is in flight, not an orphan" $?
+  # Null control 2: a handoff ref with no body ref never owed a pull request.
+  o2=$(mkc "$mb" nobody1)
+  git -C "$W/seat" push -q origin "$o2:refs/heads/handoff/nb1"
+  out=$(run orphans --min-age-h 0)
+  ! echo "$out" | grep -q "^ORPHAN nb1 " && echo "$out" | grep -q "no-body="
+  expect "null control: a handoff ref with no body ref is never owed" $?
+  # An update: the pull request is behind the ref, at a de-prefixed name so the
+  # exact-name arm does not discharge it.
+  u1=$(mkc "$mb" orph-upd-pr)
+  u2=$(mkc "$u1" orph-upd-ref)
+  git -C "$W/seat" push -q origin "$u1:refs/heads/fix/orp-upd-pr" \
+    "$u2:refs/heads/handoff/r9-orp-upd" "$u2:refs/heads/handoff-body/r9-orp-upd"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "ORPHAN r9-orp-upd $u2 .* repair=update"
+  expect "a pull request whose head is behind its ref is repair=update" $?
+  # A divergence: the ref and its pull request are siblings off main.
+  c1=$(mkc "$mb" orph-rev-pr)
+  c2=$(mkc "$mb" orph-rev-ref)
+  git -C "$W/seat" push -q origin "$c1:refs/heads/fix/orp-rev" \
+    "$c2:refs/heads/handoff/r9-orp-rev" "$c2:refs/heads/handoff-body/r9-orp-rev"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "ORPHAN r9-orp-rev $c2 .* repair=review"
+  expect "a ref diverged from its pull request is repair=review, a human decision" $?
+  # The content arm. Off the old main a ref adds tools/super.py; main then gains
+  # the same basename under dev (EG-B7's moved-file, one-add shape), so the ref
+  # is non-ancestral yet fully carried: SUPERSEDED on, stranded with --no-content.
+  s1=$(mkd "$mb" tools super.py)
+  git -C "$W/seat" push -q origin "$s1:refs/heads/handoff/orp-super" "$s1:refs/heads/handoff-body/orp-super"
+  m1=$(mkd "$mb" dev super.py)
+  git -C "$W/seat" push -q origin "$m1:refs/heads/main"
+  out=$(run orphans --min-age-h 0)
+  echo "$out" | grep -qx "SUPERSEDED orp-super $s1 .*"
+  expect "a ref whose file main already carries under a moved path is SUPERSEDED" $?
+  out=$(run orphans --min-age-h 0 --no-content)
+  echo "$out" | grep -qx "ORPHAN orp-super $s1 .* repair=opener"
+  expect "the content arm is load-bearing: --no-content reads the same ref as stranded" $?
+  # Green: every stranded ref carries a pull request at its tip now; the
+  # superseded ref stays, and neither is stranded -> exit 0.
+  git -C "$W/seat" push -q origin "$o1:refs/heads/fix/orph1" \
+    "$u2:refs/heads/fix/r9-orp-upd" "$c2:refs/heads/fix/r9-orp-rev"
+  out=$(run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -q "^orphans: 0 stranded" && [ $rc = 0 ]
+  expect "green: with the pull requests pushed nothing is stranded and the run is 0" $?
 
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
