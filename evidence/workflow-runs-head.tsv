@@ -1,9 +1,12 @@
-8
-Hassfest	pull_request	success
-Budget raise gate	pull_request	success
-PR contract	pull_request	success
-Validate	pull_request	success
-Architecture score	pull_request	success
-Governance	pull_request	success
-Tests	pull_request	success
-CodeQL	pull_request	success
+11
+Budget raise gate	pull_request	completed	success
+Tests	pull_request	in_progress	-
+Budget raise gate	pull_request	completed	success
+Architecture score	pull_request	completed	success
+Architecture score	pull_request	completed	success
+PR contract	pull_request	completed	success
+Validate	pull_request	completed	success
+CodeQL	pull_request	in_progress	-
+PR contract	pull_request	completed	success
+Hassfest	pull_request	completed	success
+Governance	pull_request	completed	success

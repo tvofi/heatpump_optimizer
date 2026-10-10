@@ -1,0 +1,28 @@
+## The move, verified
+
+git diff --name-only c32e90ddd730ae1a2fc85a44a52cdbe159fff08f 99edcf9f59cefa159594d18b8bbb5dbf8ae3eb95
+dev/programme/delivery/2083.md
+
+git diff --stat c32e90ddd..99edcf9f
+ dev/programme/delivery/2083.md | 1 +
+ 1 file changed, 1 insertion(+)
+
+git log --format="%h %p %s" c32e90ddd..99edcf9f
+99edcf9f5 c32e90ddd record(#2083): the pull request's own delivery row, per delivery-status-tracking
+
+## The three reviewed files, blob hash at each head and in the reviewed worktree
+tools/audit/seat/INSTRUMENTS.md        old=1276f4944a58aace33e11d1959af62af6ec28597 new=1276f4944a58aace33e11d1959af62af6ec28597 worktree=1276f4944a58aace33e11d1959af62af6ec28597 SAME
+tools/audit/seat/ci-watch.sh           old=3f9a224fecf81472254868bf19e14d15bfad7164 new=3f9a224fecf81472254868bf19e14d15bfad7164 worktree=3f9a224fecf81472254868bf19e14d15bfad7164 SAME
+tools/audit/seat/merge_train.py        old=c1c728215ac6841d973141de226fedcf9114d38c new=c1c728215ac6841d973141de226fedcf9114d38c worktree=c1c728215ac6841d973141de226fedcf9114d38c SAME
+
+## git diff of the three between the heads (empty = none)
+(nothing above)
+
+## The delta itself
+diff --git a/dev/programme/delivery/2083.md b/dev/programme/delivery/2083.md
+new file mode 100644
+index 000000000..d3a242d19
+--- /dev/null
++++ b/dev/programme/delivery/2083.md
+@@ -0,0 +1 @@
++- [#2083](https://github.com/tvofi/heatpump_optimizer/pull/2083) — **open**, test(R9-RC-AUTOFIX-GOVERNANCE): pin the watcher's name-sorted red list (R9-RC-AUTOFIX-GOVERNANCE)

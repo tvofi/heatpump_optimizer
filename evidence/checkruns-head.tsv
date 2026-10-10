@@ -1,39 +1,40 @@
 claims-autofix	completed	skipped
-CodeQL	completed	success
-coverage-ratchet	completed	success
-graders-head-copy	completed	success
-closures-autofix	completed	skipped
+CodeQL	completed	neutral
 mutation-autofix	completed	skipped
-mutation-pins	completed	skipped
 mutation-pin-plan	completed	skipped
+mutation-pins	completed	skipped
+closures-autofix	completed	skipped
+pr-contract	completed	success
 nightly-ha	completed	skipped
 closures	completed	success
-mutation-ledger-push	completed	skipped
-slow	completed	skipped
-mutation-ledger	completed	skipped
-record-autofix	completed	skipped
-recheck-gate	completed	skipped
-mutation-nightly	completed	skipped
-coverage	completed	success
-typing	completed	success
-record	completed	skipped
-browser	completed	success
-mutation	completed	success
-fast (3.14)	completed	success
-briefs	completed	success
-delivery-status-publish	completed	skipped
-closure-scope	completed	success
-nightly-status	completed	success
 arch-score	completed	success
-wave-script	completed	success
+budget-raise-gate	completed	success
+mutation-ledger-push	completed	skipped
+mutation-nightly	completed	skipped
+record	completed	skipped
+mutation-ledger	completed	skipped
+slow	completed	skipped
+recheck-gate	completed	skipped
+delivery-status-publish	completed	skipped
+record-autofix	completed	skipped
+hassfest	completed	success
 env-matrix	completed	success
 instrument-self-tests	completed	success
-delivery-status	completed	success
-pr-contract	completed	success
-policy-docs	completed	success
-hassfest	completed	success
-Analyze (actions)	completed	success
-Analyze (python)	completed	success
-Analyze (javascript-typescript)	completed	success
 budget-raise-gate	completed	success
+wave-script	completed	success
+browser	completed	success
+fast (3.14)	completed	success
+nightly-status	completed	success
+briefs	completed	success
+policy-docs	completed	success
+coverage	in_progress	-
+typing	completed	success
+mutation	completed	success
+Analyze (actions)	completed	success
+arch-score	completed	success
+delivery-status	completed	success
+Analyze (python)	in_progress	-
+pr-contract	completed	success
+closure-scope	completed	success
 validate-hacs	completed	success
+Analyze (javascript-typescript)	completed	success

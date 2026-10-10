@@ -1,4 +1,9 @@
-# Reviewer reproduction — PR #2083 at c32e90ddd730ae1a2fc85a44a52cdbe159fff08f
+# Reviewer reproduction — carried forward to 99edcf9f59cefa159594d18b8bbb5dbf8ae3eb95
+
+Every artifact below was taken at `c32e90ddd730ae1a2fc85a44a52cdbe159fff08f` and carries forward unchanged: the
+three reviewed files have identical blob hashes at both heads and in this worktree (`delta.txt`). The new head's
+own run state is `checkruns-head.tsv` / `workflow-runs-head.tsv`; the move is in `delta.txt`.
+
 
 Worktree: `git worktree add --detach /Users/timmalmstrom/hpo-seats/r9-review-2083/wt c32e90ddd`
 `PATH=$HOME/.local/state/hpo/venv-ci/bin:$PATH` (python 3.11 venv-ci).

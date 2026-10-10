@@ -17,7 +17,12 @@ typing
 validate-hacs
 wave-script
 
-# absent at head:
-(none above = all present)
+# ABSENT at the new head:
+(none above = all 17 present)
 
-# non-green at head:
+# non-green:
+(none above = none red)
+
+# not completed:
+coverage	in_progress	-
+Analyze (python)	in_progress	-
