@@ -12,7 +12,8 @@ this module's own `self_row` all write, anchors its number, so the merged form
 `dev/programme/delivery/<N>.md` whose single line is anchored on `<N>` and
 carries `**open**`; each then confirmed against the REST API
 (`gh api repos/tvofi/heatpump_optimizer/pulls/<N>`, `.merged`). At this head's
-merge base (`7cd5a588c`, `origin/main`'s tip): **103 rows read `open` for
+merge base (`7cd5a588c`, `origin/main`'s tip when this lane merged it; `main`
+has since advanced): **103 rows read `open` for
 pulled requests GitHub reports MERGED -- 103 queried, 0 errors, 0 genuinely
 open, 0 closed-unmerged, all into `main`**; 26 of them at `N >= 2040`, 77
 below; merge times `2026-10-02T14:49:58Z` to `2026-10-10T06:38:11Z`. The figure
@@ -55,9 +56,12 @@ things decide whether a row may be rewritten, and each has an arm:
   and the pre-2026-10 style that carries facts *inside* the bold
   (`**merged `e602e65`, 2026-09-16 13:09Z, by `tvofi`; roster owed**`), read
   `None` and are left alone -- the plan was stale, the tree won, exactly as
-  before this change. Census over the 502 numeric row files at this head: 248
-  in-grant `**merged `sha`**`, 103 in-grant `**open**`, 151 outside the grant
-  (15 multi-line, 136 prose-status).
+  before this change. Census over the 503 numeric row files at this head: 248
+  in-grant `**merged `sha`**`, 104 in-grant `**open**` -- the 103 stale rows
+  above plus this pull request's own row, which is correctly open -- and 151
+  outside the grant (15 multi-line, 136 prose-status). The same rule at the
+  authored code head `ce70213ae` reads 502 = 248 + 103 + 151; the whole
+  difference is this lane's own row.
 - **The merge, not merely the pull request.** A pull request the API still
   reports OPEN attests no merge **whatever sha its entry carries** -- GitHub
   fills `merge_commit_sha` for an open request too, as the test-merge commit --
@@ -77,10 +81,16 @@ status rewrite at a row it does not describe.
 
 ## Head
 
-`ce70213ae` -- `origin/main` (`7cd5a588c`) merged into the lane, and every
-figure below re-taken at that merge. History: failing arms first at `a3b7cee9f`
-(7 checks red, production unchanged), the fix at `916fa99df`, the grant's
-direction arm at `76b867b94`, the carry note at `ec03a7c26`.
+`d57cd1e3da7f48fe8b606e86c01f810af6893065` is the head this body is written at:
+the reviewed head `3f82aba337d65d897440923a2503ca3ca467c91b` (which added only
+this lane's own row, `dev/programme/delivery/2111.md`) plus one commit that adds
+no production line -- the carry entry answering the review's one blocker, whose
+destination is named under `## Forward-carry`. The authored code head is
+`ce70213ae0a51f489f326c99310b06c2ae06510d`: `origin/main` (`7cd5a588c`) merged
+into the lane, and every figure below re-taken at that merge, then re-taken
+again at this head wherever this commit moves one. History: failing arms first
+at `a3b7cee9f` (7 checks red, production unchanged), the fix at `916fa99df`, the
+grant's direction arm at `76b867b94`, the carry note at `ec03a7c26`.
 
 ## Mutation proof
 
@@ -119,8 +129,24 @@ would print `!! SURVIVED`).
 - **M9 `has_row` dropped from the guard**: `rc=1`, 9 failed, including
   `control B: a merge with no row still plans and writes a row`. This is control
   B's perturbation.
-- **M10 the grant keyed on text, not status**: `rc=1`, 4 failed, including
+- **M10 the grant keyed on text, not status**: `rc=1`, 5 failed, including
   `an open row is never rewritten toward another open row's title`.
+
+**The tallies re-taken, and the two the review could not match.** Every count
+above is the driver's own output, re-run on the seat interpreter into
+`/Users/timmalmstrom/hpo-seats/r9fix-2111/mutants-recheck.txt`. The tool it
+mutates is byte-identical to this head's -- `git rev-parse
+ce70213ae:tools/audit/seat/record_row.py` and the same command for `d57cd1e3d`
+both answer `585b51f264e6e7892e4864f991705f9dddb37e0c`, so the driver's worktree
+and this one hold the same `record_row.py` -- and the driver restores the tree
+clean (`restored: git checkout rc=0, status=''`, `restored self-test: rc=0`).
+Ten of the eleven reproduce the tallies this body first carried; **M10 is
+corrected 4 -> 5 here.** The review seat recorded two caveats about its own
+mutants: its reconstruction of M4's clause reddened 2 arms against this driver's
+3, and its first M7 was mis-built and survived until it was rebuilt against the
+bold's closing `**`. Both are statements about that seat's own mutants, not
+about this driver: here M4 (3) and M7 (1) reproduce, so this re-take neither
+contradicts the review nor leans on it.
 
 ## Null control
 
@@ -181,8 +207,9 @@ diff, from the corpus run, is the whole change:
     +[#2078](.../pull/2078) — **merged `23d3549`**, fix(R9-RO-13): the train may land policy ...
 
 The corpus worktree was removed with `git worktree remove`; **no row is written
-by this branch**. This pull request is the tool and its arms, which is also why
-its own diff is one file.
+by this branch**. This pull request is the tool and its arms -- the authored
+code head `ce70213ae` is one file -- and the head adds only this lane's own row
+and the carry entry named under `## Forward-carry`.
 
 ## Figures
 
@@ -193,7 +220,9 @@ its own diff is one file.
   count).
 - `failing-first a3b7cee9f: 7 self-test check(s) failed`, the seven new arms --
   same command at that commit (`git show a3b7cee9f:tools/audit/seat/record_row.py`).
-- mutation tallies `M0 rc=0` and `M1..M10 rc=1`, no survivor -- `python3 -I
+- mutation tallies `M0 rc=0` and `M1..M10 rc=1`, no survivor, re-taken at this
+  head with the seat interpreter (`M10` corrected 4 -> 5, the other ten
+  reproduced) -- `python3 -I
   /Users/timmalmstrom/hpo-seats/row-stale/mutants.py`.
 - `103` rows read `open` for merged pull requests at `7cd5a588c`, `100` at
   `23d354970` -- single-line anchored row files carrying `**open**` under
@@ -210,33 +239,44 @@ its own diff is one file.
   request(s)` -- `node tools/policy/policy_lint.mjs --record --since v6.7.13`;
   `DELIVERY STATUS OK — 18 rowed, 0 pending, 0 overdue` -- `python3 -I
   tests/delivery_status.py`.
-- grant-boundary census at this head: `502` numeric row files -- `248` in-grant
-  `**merged `sha`**`, `103` in-grant `**open**`, `151` outside the grant (`15`
-  multi-line, `136` prose-status) -- the production `record_row.line_status`
-  read over `dev/programme/delivery/*.md`.
-- scoped gate: `MODE: SCOPED -- 1 script(s) run, 32 scoped out; changed files
-  (1): tools/audit/seat/record_row.py; RUN tests/entities.py` -- `D=$(mktemp -d);
-  python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
-  --workdir $D; cat $D/scope.txt`.
+- grant-boundary census at this head: `503` numeric row files -- `248` in-grant
+  `**merged `sha`**`, `104` in-grant `**open**`, `151` outside the grant (`15`
+  multi-line, `136` prose-status); at the authored code head `ce70213ae` the
+  same rule reads `502 = 248 + 103 + 151`, the difference being this lane's own
+  row -- the production `record_row.line_status` read over
+  `dev/programme/delivery/*.md` through `recorded_row_status`.
+- scoped gate at this head: `MODE: SCOPED -- 1 script(s) run, 32 scoped out;
+  changed files (3): dev/programme/carries/carry-201.json,
+  dev/programme/delivery/2111.md, tools/audit/seat/record_row.py; RUN
+  tests/entities.py` -- `D=$(mktemp -d); python3 tests/closure.py select --diff
+  $(git merge-base origin/main HEAD) --workdir $D; cat $D/scope.txt`.
 - `PYTHONPATH=tests/hastub GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base
-  origin/main HEAD) python3 tests/entities.py` -- the scoped gate's one script,
-  `ALL 2250 ENTITY CHECKS PASSED` at the merged head `ce70213ae`, its check
+  origin/main HEAD) python3 tests/entities.py` on the seat interpreter
+  (`~/.local/state/hpo/venv-ci/bin/python3`, 3.14.7 -- this workstation's
+  `python3` default is 3.11, which cannot parse the suite's PEP 701 f-strings,
+  so the interpreter is named rather than left to PATH) -- the scoped gate's one
+  script, `ALL 2250 ENTITY CHECKS PASSED` at this head `d57cd1e3d`, its check
   `tools/audit/seat/record_row.py --self-test passes` among them.
 - run_always lines: `claims hygiene: 7cd5a588cbbbef354c00148040da2d720b8a888c
   ok` -- `PYTHONPATH=tests/hastub python3 tests/env_drift.py --claims-only
   $(git merge-base origin/main HEAD)`; `ALL 57 closure shrink pins PASSED` --
   `python3 tests/closure.py selftest`; `layout self-test: ok` -- `python3
-  tests/layout.py`; `tests/harness_headers.py` reports `12 of 109 HARNESS
-  HEADER CHECKS FAILED` at the merged head `ce70213ae`, and its scope is
-  `dev/audit/rounds/round*/D*/*.py` and `dev/audit/harnesses/**`, none of which
-  this one-file diff touches, so no head of this branch can move it.
+  tests/layout.py`; `tests/harness_headers.py` reports `ALL 109 HARNESS HEADER
+  CHECKS PASSED` at this head on the seat interpreter -- and `13 of 109 HARNESS
+  HEADER CHECKS FAILED` under this workstation's default `python3` (3.11), where
+  every one of the 13 is `dev/audit/rounds/round4/D6/claims.py` failing to
+  compile. The count is the interpreter's, not this diff's: the failures sit
+  wholly under `dev/audit/rounds/round*/D*/*.py`, which this diff does not
+  touch, and the suite is green on the 3.14 every other figure here uses.
 - `STRUCTURE RATCHET PASSED`, no metric moved -- `python3 tests/structure.py`.
-- `Architecture score: +0.0000` -- `python3 tools/audit/archscore/score.py
+- `Architecture score: dS +0.0000 NULL` -- `python3 tools/audit/archscore/score.py
   --diff $(git merge-base origin/main HEAD)`.
 - both claim files byte-identical to the merge base (this branch claims no
   drift) -- `git diff --name-only $(git merge-base origin/main HEAD)...HEAD`
-  lists exactly `tools/audit/seat/record_row.py`, and the same three-dot diff
-  carries no `VERSION`, manifest, `RELEASE_NOTES.md` or budget file.
+  lists exactly `dev/programme/carries/carry-201.json`,
+  `dev/programme/delivery/2111.md` and `tools/audit/seat/record_row.py`, and the
+  same three-dot diff carries no `VERSION`, manifest, `RELEASE_NOTES.md` or
+  budget file.
 - `tools/audit/seat/record_row.py` is not in the policy corpus -- `printf
   'tools/audit/seat/record_row.py\n' | node tools/policy/policy_lint.mjs
   --corpus-filter` prints nothing; and `.github/CODEOWNERS` names
@@ -246,35 +286,44 @@ its own diff is one file.
   `record_row.automerge_refusals` at this head: the same generated line answers
   `[]` as `status: added` and `['dev/programme/delivery/2078.md: not a new file
   adding exactly one line (status modified, -1)']` as `status: modified`.
-- `PREPR2 rc=0` at this head -- `closures: scoped recordings are covered`,
-  `PR-BODY: 0 error(s)`, `FIGURES: 17 resolved, 5 not verified, 0 refused`,
-  `unpinned sites: the diff adds no unpinned mutation site` -- `bash
-  tools/pr/prepr.sh BODY.md`.
+- `PRE-PR: d57cd1e3da7f48fe8b606e86c01f810af6893065 00000000000000000000000`
+  at this head, `clean no refusal` -- `closures: scoped recordings are covered`,
+  `PR-BODY: 0 error(s)`, `unpinned sites: the diff adds no unpinned mutation
+  site` -- `bash tools/pr/prepr.sh BODY.md`. The `FIGURES:` line prepr prints is
+  a function of this section's own text, so it is the instrument's own output
+  and is not restated here: it answered `0 refused` on every run at this head.
 
 ## Red checks
 
 none. No check went red on this branch: the self-test is green at every commit
 except the deliberate failing-first `a3b7cee9f` (arms only), the mutants are
 named as restored probes rather than branch state, and the scoped gate's one
-script, the structure ratchet and the `run_always` lines are green at the head,
-except `harness_headers`, which reports 12 of 109 red at the merged head and
-whose scope (`dev/audit/rounds/round*/D*/*.py`, `dev/audit/harnesses/**`) this
-one-file diff does not reach -- so it is `main`'s red, not this branch's, and
-no commit here can move it.
+script, the structure ratchet and the `run_always` lines are green at this head
+on the seat interpreter -- `harness_headers` included, at `ALL 109 HARNESS
+HEADER CHECKS PASSED`; its `13 of 109 FAILED` under this workstation's 3.11
+default is one harness failing to compile,
+`dev/audit/rounds/round4/D6/claims.py`, in a tree this diff does not touch. At
+the reviewed head `3f82aba33` the review seat measured 40 check-runs, **zero
+failed**.
 
-`prepr.sh` returned **rc=0** at this head. Its closures step refused on the
-first attempt -- it re-records `tests/entities.py` by executing it, and that
-recording run exited 1 (`REFUSE closures -- failed while being recorded:
-tests/entities.py (exit 1)`); the recorded script is green at the same head
-(`ALL 2250 ENTITY CHECKS PASSED`, rc=0, run plainly with
-`PYTHONPATH=tests/hastub`), the same recording step passed at this lane's
-pre-merge head `ec03a7c26` with the identical `record_row.py`, and machine load
-was 182 with ~15 sibling seats on the box -- so that exit was the recording
-execution under load, not a red check, and the second run cleared it
-(`closures: scoped recordings are covered`). **Cheaper detector: none** -- the
-recording is the gate itself, and CI runs it on the PR head. No check was
-weakened: nothing in this diff touches `tests/entities.py`, the closures or the
-recordings.
+`prepr.sh` returned **rc=0** at this head -- `PRE-PR:
+d57cd1e3da7f48fe8b606e86c01f810af6893065 00000000000000000000000`, `clean no
+refusal` -- and its closures step passed on this run (`closures: scoped
+recordings are covered`). The earlier handoff of this lane hit a `REFUSE
+closures` on its first attempt, when the recording execution of
+`tests/entities.py` exited 1 under the load of ~15 sibling seats while the
+recorded script was green at the same head; the re-run cleared it. **Cheaper
+detector: none** -- the recording is the gate itself, and CI runs it on the PR
+head. No check was weakened: nothing in this diff touches `tests/entities.py`,
+the closures or the recordings.
+
+`prepr.sh`'s **policy corpus** check is not a red and is answered here: it names
+`CLAUDE.md` and `dev/governance/roles/fixer.md` as the two files `origin/main`
+moved since this lane's merge base. Both changes are one-line path corrections,
+`tools/audit/harnesses/` to `dev/audit/harnesses/`; both were re-read at
+`origin/main` before this body was written, and this branch touches neither, so
+no obligation this body follows is read from a stale copy. Updating the branch
+is the orchestrator's at merge, not a repair the carry needs.
 
 The root-cause trigger the brief asks me to name, though the rule attaches it to
 a released defect or a red check and neither holds here: the **process state is
@@ -321,12 +370,19 @@ Two findings change what a later stage must do, both measured.
    `v6.7.13` plans all 103. The other 85 are corrected by no automatic run --
    the tag has already moved past them, and the beat always starts at the tag --
    so they need a seat to run `--since` back to `v6.7.13` (or a future window
-   that reaches them). No live roster group receives this -- every `R9-FR*`
-   group on `handoff/audit-r9-fixplan` is `resume.stage: done`, and a carry file
-   needs a destination issue a fixer does not file -- so it is recorded for
-   whichever seat next does record upkeep (`delivery-status-tracking.md` item 1):
-   the fix converges the record inside the window it is run over, and nothing
-   widens that window on its own.
+   that reaches them). **Destination**: `dev/programme/carries/carry-201.json`,
+   the standing carry file for record findings at issue #201 (round 9 extended
+   it twice, by #2073). This commit adds one entry to its `carries` array --
+   `from` the R9-ROW-STALE lane, `effect: narrows` -- with the owed action stated
+   concretely (a seat runs the correction `--since` back to v6.7.13, because no
+   automatic run's window reaches the 85), the measurement that establishes it
+   together with its null control, and a re-measurement instruction for a stage
+   judged at its own merge base. No live roster group receives this: every
+   `R9-FR*` group on `handoff/audit-r9-fixplan` is `resume.stage: done`, and
+   `finding-propagation.md` sends a stage with no live group to
+   `dev/programme/carries/`, one file per destination issue. The destination is
+   in this branch's diff rather than named as owed, so the reviewer opens the
+   entry instead of taking this claim.
 
 ## Friction
 
