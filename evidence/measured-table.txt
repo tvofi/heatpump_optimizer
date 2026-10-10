@@ -1,0 +1,39 @@
+#2075 R9-RC-CARRY-PINS round 5 -- reviewer measurements at addd6f457
+head addd6f45758ff90ab862bcbe62357c1373ed7786
+merge-base(origin/main, head) = 7cd5a588cbbbef354c00148040da2d720b8a888c (live main head)
+
+MEASURED (by this reviewer)
+  app_approve.sh --self-test @head ................. 166 checks, 0 failed
+  mutant: guard line removed ....................... 164 ok / 2 FAIL, only the DELREADD pair
+     FAIL NO CARRY: the bot's pin commit over a row the branch's own diff already carried
+     FAIL refused by the branch's own comparison, not the confinement check
+  restored (byte-identical to head) ................ 166 checks, 0 failed
+  spliced main-mechanism + branch tests ............ 166 checks, 10 failed (PINMOD,PINDEL,DELADD,DELREADD,PINGLOB x2)
+  my 7 own fixtures @head .......................... 7/7 hold (5 refuse, OKADD/FRESH carries)
+  my fixtures vs no-guard copy ..................... SEAM + MAIN-OWN flip to CARRY (2), 5 unchanged
+  my fixtures vs no-literal copy ................... GLOB flips to CARRY (1), 6 unchanged
+  BUDGET residual @head ............................ bot rewrite of tests/mutation_budgets.json CARRY
+  BUDGET residual @origin/main copy ................ same CARRY
+  control: reviewed row rewrite @head / @main ...... refuse / CARRY (main's live hole)
+  #2010 d67d8a44->87849cd2 @head and @main ......... CARRY both; both heads ancestors of live main
+  #2065 3c9fe53f->90b9e87f @head and @main .......... refuse both: "90b9e87f... is not the automatic merge of its parents"
+  merge-tree --write-tree origin/main head ......... rc 0 (no conflict)
+  structure.py ..................................... STRUCTURE RATCHET PASSED rc 0
+  layout.py ........................................ layout: GUARD: 0 refusal(s) against 7cd5a588cbbb
+  closure.py select ................................ MODE: SCOPED -- 0 script(s) run, 33 scoped out
+  brief_lint carry-2075.json ....................... 0 errors, 0 warnings
+  merge_train.py --self-test ....................... 95 checks, 0 failed
+  hygiene: diff = 2 files; claim files byte-identical to main; no *_budgets.json moved
+           VERSION/manifest/RELEASE_NOTES untouched; claims-for: 6.7.17 == VERSION
+
+REFUSED TO CARRY: the live PR head is STILL 250c1564; body still round-4 (161/127/250c15647).
+
+EXTRA (measured)
+  #2071 6aaba97f->7843b799 carry.................. CARRY yes (head copy, live origin/main)
+  #2070 3ecb86ad->a9ba0b88 carry.................. CARRY yes (head copy, live origin/main)
+  origin/main app_approve.sh --self-test ......... 153 checks, 0 failed
+  prepr.sh --self-test .......................... 237 passed, 0 failed
+  fold_ledger.py --self-test .................... rc 0, no failures
+  bus.sh --self-test ............................ 45 checks, 0 failed
+  numstat ....................................... app_approve.sh +138/-4, carry-2075.json +31/-0
+  CI instrument-self-tests (cited) .............. app_approve self-test: 168 checks, 0 failed

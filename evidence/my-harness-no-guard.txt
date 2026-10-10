@@ -1,0 +1,9 @@
+=== my harness: #2075 head addd6f457 ===
+ok   reviewed-row REWRITE               refuse  the branch's own diff differs: 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..424bad43b86c2f6f590ce92d641621c138ba8d19 against 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..03dbc13e6b95d21f992d54439814c1f84b7c332e
+ok   reviewed-row DELETE                refuse  the branch's own diff differs: 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..424bad43b86c2f6f590ce92d641621c138ba8d19 against 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..4daf1fa22851fd2c126aaa5ecec59e1bec10e1c9
+FAIL SEAM delete+readd (same)           carry  (want rc=1 got rc=0)  only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+FAIL MAIN-OWN delete+readd              carry  (want rc=1 got rc=0)  only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+ok   delete+add DIFFERENT path          refuse  the branch's own diff differs: 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..424bad43b86c2f6f590ce92d641621c138ba8d19 against 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..a590d20ec54477b2a70639aa5d3d595909959eb7
+ok   FRESH row only (control)           carry   only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+ok   glob-named * + rewrite             refuse  the branch's own diff differs: 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..424bad43b86c2f6f590ce92d641621c138ba8d19 against 9eb6fdeb6a08a45cc96c5f61f444f8ebac825a52..8722d9814e2d1d5b8eb37194a9d3f61f755ff76d
+--- 5 ok, 2 failed ---
