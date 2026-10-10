@@ -1,0 +1,256 @@
+  ok   a body with missing-section is refused
+  ok   a body with no-figures is refused
+  ok   a body with empty-section is refused
+  ok   a body with wrong-head is refused
+  ok   a body with dead-carry is refused
+  ok   a body with bad-friction is refused
+  ok   a body with backtick-bad-event is refused
+  ok   a body with bare-na is refused
+  ok   a body with folded-entry is refused
+  ok   a body with bullet-after-entry is refused
+  ok   a body that does not name its red check is refused
+  ok   a healthy body with a well-formed friction line is silent (null control)
+  ok   a healthy body answering every section with a word is silent (null control)
+  ok   a settings file whose hook is missing is refused
+  ok   a settings file whose hook is empty is refused
+  ok   a settings file whose hook is unreadable is refused
+  ok   a settings file whose hook is broken is refused
+  ok   a settings file whose hook is self-test-fails is refused
+  ok   a settings file whose hook is bad-matcher is refused
+  ok   a settings file whose hook is bad-type is refused
+  ok   this repository's own three wired hooks pass (null control)
+  ok   a settings file whose PreToolUse matcher is star-matcher passes (null control)
+  ok   a settings file whose PreToolUse matcher is no-matcher passes (null control)
+  ok   a settings file whose PreToolUse matcher is empty-matcher passes (null control)
+  ok   a detached HEAD has no branch and so nothing to compare -- compared against -
+  ok   a detached HEAD has no branch and so nothing to compare
+  ok   a branch with no remote branch yet reports that it cannot compare -- compared against origin/never-pushed
+  ok   a branch with no remote branch yet reports that it cannot compare
+  ok   a remote branch already at this head is silent (null control) -- compared against origin/own-branch
+  ok   a remote branch already at this head is silent (null control)
+  ok   an unpushed head warns rather than refusing -- compared against origin/own-branch
+  ok   an unpushed head warns rather than refusing
+  ok   a remote branch ahead of this head is refused -- compared against origin/own-branch
+  ok   a remote branch ahead of this head is refused
+  ok   a diverged branch is refused -- compared against origin/own-branch
+  ok   a diverged branch is refused
+  ok   a branch tracking main is compared against its own remote branch, not @{u} -- compared against origin/w5-g3-tail
+  ok   a branch tracking main is compared against its own remote branch, not @{u}
+  ok   a body whose figure command cannot resolve is refused
+  ok   and the step's own output names the flag, so the step runs the figure check
+  ok   a body whose figure command resolves is silent (null control)
+  ok   and it reached a verdict rather than examining nothing (null control)
+  ok   a body with no `## Approval` is refused when the diff touches a policy path
+  ok   and the refusal is the approval gate's own, so the paths reached the check
+  ok   the same body is silent when the diff touches no policy path (null control)
+  ok   a path list that derived nothing is refused, not read as "touches no policy file"
+  ok   a red an earlier pushed commit carried and the body does not name is refused
+  ok   and the refusal is the red gate's own, naming the check
+  ok   the same ancestry with a body that names the red passes (null control)
+  ok   and the ok line names what was answered
+  ok   an ancestry whose only failure is pr-contract's own run passes (the exclusion key)
+  ok   and the ok line says no red stands, so green was measured, not assumed
+  ok   an ancestry no commit of which carries any check run skips, never refuses
+  ok   and the skip line names the boundary
+  ok   a branch nothing of which is pushed past the merge base skips
+  ok   a remote head ref that does not resolve skips
+  ok   no credential gh can use skips the arm (never refuses)
+  ok   and the skip line says why
+  ok   an absent gh skips the arm (never refuses)
+  ok   and the skip line says why
+  ok   a diff raising a budget leaf with a body silent on budget-raise-gate is refused before the push
+  ok   and the refusal is the red gate's own, naming budget-raise-gate
+  ok   the same raise with a body naming budget-raise-gate passes (null control)
+  ok   and the ok line names the raise it fed
+  ok   a budget re-recorded down owes no answer
+  ok   and the ok line says no raise was found, so the gate ran
+  ok   a diff touching no budget file passes
+  ok   a merge base with no gate skips the arm and says so
+  ok   and the body check still runs, fed nothing (skip, never refuse)
+  ok   a test file defining a production top-level name is refused
+  ok   and the refusal is no-copies' own line
+  ok   the same test with the name renamed passes (null control)
+  ok   and the ok line is no-copies' own, so it ran
+  ok   a diff touching no .py under tests/ or custom_components/ skips, even over a copy
+  ok   and the skip line names the boundary
+  ok   a tree with no tests/closure.py skips, never refuses
+  ok   a new file under a landed-retired directory is refused
+  ok   and the refusal names the new path
+  ok   the same file at dev/audit/harnesses/ passes (null control)
+  ok   and the ok line is the guard's own, so it ran
+  ok   a new line citing a retired path is refused
+  ok   and the hint says to re-point the citation, not to place a file
+  ok   a new file in no category is refused
+  ok   and a refusal with no new path does not say to move it there
+  ok   a tree with no tests/layout.py skips, never refuses
+  ok   the pr-body step calls body_line, so a predicted raise reaches the body check before the push
+  ok   the no-copies step calls copies_line, so a python diff runs closure.py no-copies before the push
+  ok   the layout step calls moved_line, so a re-added moved path is refused before the push
+  ok   a base that does not resolve makes the path derivation fail
+  ok   and leaves no list behind, not even an empty one, so the file key fails closed too
+  ok   a base that resolves makes the path derivation succeed (null control)
+  ok   and leaves no `.part` behind either, so the temp file is the function's own
+  ok   a derivation whose rename fails is refused
+  ok   and cleans up after itself, so a failing `mv` leaks no `.part`
+  ok   a manifest edit that is not the version field passes (over-fire control)
+  ok   a manifest version bump is refused, and named by field
+  ok   a VERSION edit is refused
+  ok   a stamp-shaped diff is refused on both, and the added key does not mask it
+  ok   a release-notes heading is refused, and named
+  ok   a notes subsection or bullet passes (over-fire control)
+  ok   a pull request editing VERSION is refused
+  ok   a pull request editing the manifest version is refused
+  ok   a pull request adding a notes heading is refused
+  ok   a manifest version edit hidden by a .gitattributes -diff line is still refused
+  ok   a notes heading hidden by a .gitattributes -diff line is still refused
+  ok   a .gitattributes-only pull request passes (over-fire control for the two arms above)
+  ok   a manifest version edit hidden by a diff=<driver> textconv is still refused
+  ok   a notes heading hidden by a diff=<driver> textconv is still refused
+  ok   a diff=<driver> line with no version edit under it passes (over-fire control for the two arms above)
+  ok   a docs-only pull request passes (null control)
+  ok   a pull request whose main has stamped since it forked passes (the arm two dots fail)
+  ok   a pull request that merged a stamped main passes (null control)
+  ok   a main ref that does not resolve is refused, not read as no edit
+  ok   --version-edit exits non-zero on a VERSION edit
+  ok   and names what it refused
+  ok   --version-edit exits zero on a merged, stamped main (null control)
+  ok   a body directly in a scratchpad is refused
+  ok   a body directly in /tmp is refused
+  ok   a body directly in $TMPDIR is refused
+  ok   a plain mktemp file is refused (the stated choice)
+  ok   a body directly in $HOME is refused
+  ok   a body directly in a claude-<uid> root is refused
+  ok   a link in a seat directory to a root file is refused
+  ok   a link to a seat-directory file passes (null control)
+  ok   a body in the seat's own subdirectory passes (null control)
+  ok   a body in a mktemp -d directory passes (null control)
+  ok   prepr.sh refuses a root body at its call site
+  ok   and names the step
+  ok   and passes a seat body there (null control)
+  ok   printing an ok line, so a skipped step is visible
+  ok   a node script is not recorded without strace
+  ok   and is recorded with it (null control)
+  ok   a Python script is recorded without strace
+  ok   stress.py is left to CI: a push takes no gate lease
+  ok   an override that cannot parse the tree is refused, never skipped past
+  ok   and that refusal names the override, so it is not read as a missing venv
+  ok   an override that parses the tree wins over every candidate behind it
+  ok   a parsing seat venv outranks a parsing ambient
+  ok   a venv that cannot parse is skipped for a parsing ambient: the guard is the parse, not the path
+  ok   a parsing ambient is used as-is, so a recording under it is byte-unchanged (null control)
+  ok   no candidate parsing the tree is refused before anything is recorded
+  ok   and that refusal names the venv build command, not the recording
+  ok   6a refuses a branch that edited the claim file and kept main's list, naming --drop-inherited
+  ok   6a passes a branch that never edited the claim file it inherited (R9-F10.8)
+  ok   6a passes a row-only branch forked before main claimed (the fork point, not the tip)
+  ok   6a passes a branch that writes its own claim (null control)
+  ok   pr-body exempts a main-graded red when the diff only ADDS its own delivery row
+  ok   and still owes it when the diff edits a row the base had (null control)
+  ok   6b passes a scoped script its committed closure covers (null control)
+  ok   6b refuses a scoped script that reads an unlisted file as UNDER-SCOPED
+  ok   6b refuses a recording that exited non-zero as failed, not UNDER-SCOPED
+  ok   6b skips a diff that reaches no selectable script, recording nothing
+  ok   6b records under the interpreter the resolution chose (the R9-FR-3/R9-WEB-5 arm)
+  ok   and the recorder received that interpreter as $PYTHON
+  ok   6b refuses an override that cannot parse the tree instead of recording under it
+  ok   and the step's refusal names the venv build command
+  ok   and nothing recorded under the refused interpreter
+  ok   6d stays quiet on a comment in a selectable script (null control)
+  ok   6d predicts entities' refusal of a new file in no closure and not on INERT
+  ok   6d predicts UNDER-SCOPED for a new import from a file a closure lists
+  ok   6d predicts no UNDER-SCOPED for an import inside a function, which runs only when called (null control)
+  ok   6d predicts INERT READS for a new harness beside the ones a glob-reading script lists
+  ok   6d predicts NO RECORDING for a selectable script no derive lane records
+  ok   6d predicts ADDED UNPINNED for a guard the diff adds with no pin
+  ok   and an unpinned site warns, never refuses: mutation-autofix may pin it after the push
+  ok   6d charges no branch with an unrecorded script main already carries (null control)
+  ok   and so the unrelated branch passes 6d
+  ok   6d charges no branch that only edits the lane file with a script main already left unrecorded
+  ok   6d still predicts NO RECORDING for a recording the lane edit drops (null control)
+  ok   6d writes the three planted site keys for step 7d
+  ok   and a line holding two comparison mutants is one key carrying its multiplicity
+  ok   7d refuses a body with no ## Unpinned sites when sites are owed
+  ok   7d refuses a section that omits a listed site
+  ok   and names the omitted site
+  ok   7d passes a section naming every listed site (null control)
+  ok   7d reads the keys under ## Unpinned sites only, not anywhere in the body
+  ok   7d refuses a section whose heading is not exactly ## Unpinned sites
+  ok   and its refusal names the heading it found and the one it expects
+  ok   7d passes keys written in backticks (null control)
+  ok   7d matches a key whole, never inside a longer key
+  ok   and passes the same key named whole (null control)
+  ok   7d owes nothing when the diff adds no site
+  ok   the pin reader finds codeowners_gap.py in a pinned job that grades main
+  ok   this script and these workflows pass the verdict (null control)
+  ok   a pin that never grades main is not counted, and is not a problem (null control)
+  ok   a reader that finds no pinned grader at all is refused
+  ok   a pinned grader with its local run deleted is named
+  ok   a pinned grader whose local run is commented out is named
+  ok   a pinned grader called only above rc=0 is named
+  ok   governance.yml perturbed (unquoted), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (braced), with step 3e's run deleted, is refused
+Traceback (most recent call last):
+  File "<stdin>", line 19, in <module>
+AssertionError: no-pinned-line
+  ok   governance.yml perturbed (no-pinned-line), with step 3e's run deleted, is refused
+Traceback (most recent call last):
+  File "<stdin>", line 19, in <module>
+AssertionError: env-indirect
+  ok   governance.yml perturbed (env-indirect), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (x-flag), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (x-flag), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (bare-python), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (bare-python), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (uv-run), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (uv-run), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (continuation), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (continuation), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (indent4), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (indent4), with step 3e's run present, passes (null control)
+  ok   governance.yml perturbed (renamed), with step 3e's run deleted, is refused
+Traceback (most recent call last):
+  File "<stdin>", line 19, in <module>
+AssertionError: queue-base
+  ok   governance.yml perturbed (queue-base), with step 3e's run deleted, is refused
+  ok   governance.yml perturbed (queue-base), with step 3e's run present, passes (null control)
+  ok   a problem names the file its job is in, not the file read next
+  ok   a pin named outside every job is refused
+  ok   a change to a pinned .mjs touches a pin
+  ok   a change under a pinned directory touches a pin
+  ok   a change to no pinned path touches none (null control)
+  ok   preflight refuses an unintended closing keyword
+  ok   preflight accepts an intended one (null control)
+  ok   transport: a code head over a base that carries a transport file passes (null control)
+  ok   transport: a code commit above a body transport commit is refused
+  ok   transport: a body added and deleted again is still refused
+  ok   transport: a resume note hidden behind a tree-identical merge is refused
+  ok   transport: deleting a transport file main carries passes (null control)
+  ok   transport: merging a main that carries a transport file passes (null control)
+  ok   transport: a body written in a merge's own resolution is refused
+  ok   transport: an unreadable range is refused, never passed
+  ok   a change to prepr.sh owes the self-test
+  ok   a change to a program a step runs owes the self-test
+  ok   a change to a fixture owes the self-test
+  ok   a change to none of them owes nothing (null control)
+  ok   the derived inputs name tools/pr/preflight.sh
+  ok   the derived inputs name tools/policy/figure_lint.mjs
+  ok   the derived inputs name tests/env_drift.py
+  ok   the derived inputs name tools/policy/counts.mjs
+  ok   the derived inputs name tools/policy/render_md.mjs
+  ok   stamp_paths names a manifest version line followed by 2 MB of diff
+  ok   stamp_paths names a notes heading followed by 2 MB of diff
+  ok   and names nothing in 2 MB with no version line or heading (null control)
+  ok   a mktemp file or directory inside the self-test lands under its root
+  ok   and the root is gone after a normal exit
+  ok   and after the run is killed with TERM
+  ok   a temp dir under the floor refuses with rc 3
+  ok   and says ENVIRONMENT, not a test failure
+  ok   a temp dir with room passes the floor (null control)
+  ok   an unmeasurable temp dir runs anyway, never refuses
+  FAIL no early-exit grep reads a pipe under pipefail in the drained scripts (got 1, wanted 0)
+       | tools/pr/prepr.sh:1398:  printf '%s\n' "$flow" | grep -q 'moved_line "'
+  ok   and a planted early-exit grep site is found (null control)
+  ok   the hooks step prints the failing hook's row, not only the count
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+
+243 passed, 1 failed
