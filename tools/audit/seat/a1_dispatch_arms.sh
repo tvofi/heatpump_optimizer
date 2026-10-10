@@ -74,12 +74,24 @@ PY
 
 # A fixture repo carrying the real tests/ tree of the base ref, plus a
 # standalone clone playing origin, so refs/remotes/origin/main exists for
-# the decide step's merge-base.
-mkdir -p "$WORK/remote-tree" && cd "$WORK/remote-tree"
-git -C "$SRC" archive "$BASE_REF" tests | tar -x -C .
-git init -q -b main . && git add -A
-git -c user.name=w -c user.email=w@w commit -qm base
-cd "$WORK" && git clone -q remote-tree repo && cd repo
+# the decide step's merge-base. Both repositories are built through the
+# shared throwaway_git helper (tests/throwaway_git.sh, the shell twin of
+# tests/throwaway_git.py), which writes auto-maintenance off into each
+# repository's own config -- so the decide step's own git calls in the
+# clone, which run without this harness's environment, are covered too --
+# and this harness's own fixture calls run under throwaway_git_env.
+. "$SRC/tests/throwaway_git.sh"
+mkdir -p "$WORK/remote-tree"
+git -C "$SRC" archive "$BASE_REF" tests | tar -x -C "$WORK/remote-tree"
+(
+  cd "$WORK/remote-tree"
+  throwaway_git_init . -q -b main
+  throwaway_git_env
+  git add -A
+  git -c user.name=w -c user.email=w@w commit -qm base
+)
+throwaway_git_clone -q "$WORK/remote-tree" "$WORK/repo"
+cd "$WORK/repo"
 
 run_decide() { # $1 label, $2 ref whose decide step runs
   local label="$1" ref="$2" rt case
@@ -94,16 +106,18 @@ run_decide() { # $1 label, $2 ref whose decide step runs
 }
 
 arm() { # $1 label, $2 ref, $3.. spec files ("path=content")
-  local label="$1" ref="$2"; shift 2
-  git checkout -q -B "batch/test-$label" main
-  local spec f
-  for spec in "$@"; do
-    f="${spec%%=*}"
-    mkdir -p "$(dirname "$f")"; printf '%s\n' "${spec#*=}" > "$f"; git add -A
-  done
-  git -c user.name=w -c user.email=w@w commit -qm "batch: $label"
+  local label="$1" ref="$2" spec f; shift 2
+  (
+    throwaway_git_env
+    git checkout -q -B "batch/test-$label" main
+    for spec in "$@"; do
+      f="${spec%%=*}"
+      mkdir -p "$(dirname "$f")"; printf '%s\n' "${spec#*=}" > "$f"; git add -A
+    done
+    git -c user.name=w -c user.email=w@w commit -qm "batch: $label"
+  )
   run_decide "$label" "$ref"
-  git checkout -q main
+  ( throwaway_git_env; git checkout -q main )
 }
 
 echo "decide step at HEAD ($HEAD_REF):"
