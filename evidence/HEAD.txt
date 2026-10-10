@@ -1,2 +1,1 @@
-head: a9b1b48c493fef74247cfc81511de4956d2bac05
-bus-nonce: b71d1c429f91fbab2a3eb62e2cff6c2e
+Head measured: 466b1be77156734304aad7f991aed193cbe11d38 (PR #2070 fix-review, r9rev-2070b). Six-arm verify_eight: total 6 killed 5 survivors 1.
