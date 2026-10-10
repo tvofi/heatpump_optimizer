@@ -1,5 +1,5 @@
 Fix review: merge 271373ad592134828d25ed6bd080d9f48d34b177
-bus-nonce: 5c9ef8686afa441a536d88bef6c8dc99
+bus-nonce: f52fba0ebe1ce1e8bcc3532af3a22fd1
 
 Round: the repair round after `root-cause-unanswered` at 72b696d96 (a repair, not a
 re-cut; the fix's substance was established at bc0488018/72b696d96 and is
