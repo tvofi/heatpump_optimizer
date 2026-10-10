@@ -4,7 +4,7 @@ The dispatch arm is deliberately **not** built: the sibling lane `R9-RC-AUTOFIX-
 
 ## Head
 
-`a5005008d77254ceeca7ed65bdfbdf92e3ef4afa` on `handoff/r9-ci-1` — the fix's commit, on top of the merge of `origin/main` `7cd5a588c`; the arms came first at `5ae1c1608` (red at `23d354970`). Every figure below was taken at that head, or names the head it was taken at.
+`7f40401c7` on `handoff/r9-ci-1` — the merge of `origin/main` `70b50c573` (#2072) into the fix, whose own commit is `a5005008d` (its arms came first at `5ae1c1608`, red at `23d354970`). The merge brought five files, none of them one this diff or the pin lane reads: `CLAUDE.md`, `dev/governance/roles/fixer.md`, `dev/programme/carries/carry-1922.json`, `dev/programme/delivery/2072.md`, `tools/pr/prepr.sh`. The three CI proof runs below were taken at `a5005008d`'s tree, which the merge does not change in any file the lane reads.
 
 ## Pre-study, re-derived
 
