@@ -148,9 +148,12 @@ fi
 # parent, tree or message shows up as a different sha, and nothing else here
 # depends on the working directory.
 if [ "$MODE" = append ]; then
-  N=$(bus dispatch 30 "$H1" cmsg_null | sed -n 's/^bus-nonce: //p')
+  # A fixed nonce, not one `dispatch` mints: the verdict file's bytes are part
+  # of the commit, so a random nonce would change every sha below and the two
+  # runs would differ for a reason that has nothing to do with the fix.
+  N=0123456789abcdef0123456789abcdef
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/n1.md"
-  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$H2" "$N" > "$W/n2.md"
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$H1" "$N" > "$W/n2.md"
   out=$(bus push-verdict 30 "$W/n1.md" "$W/ev1") || { echo "round 1 failed: $out" >&2; exit 2; }
   A=$(tip refs/heads/review/30)
   out=$(bus push-verdict 30 "$W/n2.md" "$W/ev2") || { echo "round 2 failed: $out" >&2; exit 2; }
