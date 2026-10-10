@@ -18657,6 +18657,12 @@ _c16._mode = "auto"
 _fake_plan = _NS(
     room_temp_trajectory=[21.0 + 0.01 * i for i in range(97)],
     upper_temp_trajectory=[],
+    # R9-UX-6: _file_lead_predictions also hands the day-ahead promise the
+    # plan's power schedules and prices. _T5 is 06:00 UTC, outside the
+    # midnight promise hour, so no promise is kept from this fake either way.
+    power_schedule=[0.5] * 96,
+    dhw_power_schedule=[0.0] * 96,
+    prices=[2.0] * 96,
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
