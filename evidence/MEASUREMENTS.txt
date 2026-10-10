@@ -1,0 +1,125 @@
+Fix review measurements -- PR #2063, fresh review after the head moved one commit
+measured head: a2576fcb2f0928d0a0fc467bc0ba66d5d629f511
+merge base:    7cd5a588cbbbef354c00148040da2d720b8a888c
+branch:        fix/r9-review-timing
+worktree:      /Users/timmalmstrom/hpo-seats/r9rev-2063/wt  (detached at the head)
+reviewer:      r9rev-2063, no write access to the branch
+
+WHAT CHANGED SINCE THE EARLIER CONFIRMED `merge` AT 7c1d3b1b7
+  three-dot diff `git diff <merge-base>...HEAD` name-status (5 files, all expected):
+    M .claude/workflows/web-fix-wave.js          (review-timing, earlier review passed)
+    M dev/governance/roles/fix-review.md         (review-timing step 11, earlier review passed)
+    M dev/governance/roles/orchestrator.md       (section 11 pointer, earlier review passed)
+    M dev/governance/config/policy_budgets.json  (the ONE leaf -- this review)
+    A dev/programme/delivery/2063.md             (the required delivery row)
+  no VERSION / manifest / RELEASE_NOTES heading in the range.
+  no claim file in the range (step 5).
+
+THE LEAF -- the only budget movement in the diff
+  dev/governance/config/policy_budgets.json
+    - "tools/audit/briefs/fix-review.md": 2393,
+    + "tools/audit/briefs/fix-review.md": 2451,
+  That is `files_tokens` (a per-file TOKEN cap), not `files` (the line cap).
+  `budget_raise_gate.py` run by me, base=merge-base head=HEAD:
+    RAISE .claude/workflows/policy_budgets.json: files_tokens.tools/audit/briefs/fix-review.md: 2393 -> 2451
+    RESULT budget_raises=1 count
+  exactly one raise, in exactly one file.
+
+IS 2451 THE TRUE MEASURE, BY THE TREE'S OWN INSTRUMENT (not arithmetic)
+  The budget key `tools/audit/briefs/fix-review.md` is the canon (pre-move)
+  spelling; `tools/policy/counts.mjs`'s `moves()`/`locate()` resolve it to the
+  on-disk `dev/governance/roles/fix-review.md` (tests/layout.json retired map).
+  The tree's measure is `Math.round(Buffer.byteLength(raw) / 4)`
+  (tools/policy/policy_lint.mjs, checkBudgets).
+  `node tools/policy/policy_lint.mjs --budgets`, line for the file:
+    tools/audit/briefs/fix-review.md   140  140   2451  2451
+  lines 140 / cap 140; tokens 2451 / cap 2451. Measured 9805 bytes -> 2451.
+  merge base, same instrument: 9555 bytes -> 2389 tokens, cap then 2393.
+  So the raise is +58 tokens on the cap; the file grew +62 (2389 -> 2451).
+  Every one of the 2451 is text in the file; the raise is the merged file's own
+  measure.
+
+MINIMALITY -- cap one lower must redden, and it does
+  I re-ran policy_lint with the leaf set to each value (restored after each):
+    cap 2450 -> rc=1  "about 2451 tokens ... exceeds its cap of 2450 tokens"
+    cap 2446 -> rc=1  "about 2451 tokens ... exceeds its cap of 2446 tokens"  (the body's mutant)
+    cap 2393 -> rc=1  (a full revert of the diff's line)
+    cap 2451 -> rc=0  "TOTAL: 0 error(s) across 40 policy file(s)"
+  Exit codes captured on the node process itself (a `| tee` pipeline reports
+  tee's rc under zsh). So 2451 is the least passing value: minimal, not padded.
+
+HARNESS -- the finder's, re-run, not the fixer's
+  `node tools/policy/policy_lint.mjs` at the head: rc=0, TOTAL 0 errors,
+  FIXTURE ok: 92 error(s) hold 243 pins across 12 check classes.
+  The D11-05 `tests/entities.py` arm runs `layout.locate('.claude/workflows/policy_lint.mjs')`,
+  which resolves to `tools/policy/policy_lint.mjs` -- the same program I ran,
+  so its rc_live is my rc_live. It is green at the cap of 2451 and red at 2446.
+  (The body quotes the arm's two-arm result; the string it quotes,
+  `rc_broken=1 (must be 1); rc_live=0 (must be 0)`, is a paraphrase of the arm's
+  message, not the arm's verbatim output -- the numbers 1 and 0 re-derive.)
+
+CLAIM FILES -- byte-identical to origin/main, and nothing moved
+  tests/golden/claimed_drift.txt        head c30b94a9c5f467e8455c7d7b18b694e81449e8a9 == origin/main
+  tests/golden/card_claimed_drift.txt   head 816d1eac221481ed81dba2ec9565a8ac2a14e425 == origin/main
+  `python3 tests/env_drift.py --all` -> "NO UNCLAIMED DRIFT: 56 scenario(s)
+  checked against origin/main" and "NO STALE FIXTURE: 56 committed fixture(s)
+  still match what this tree computes", rc=0.
+
+OTHER INSTRUMENTS THE DIFF COULD HAVE MOVED
+  `python3 tests/structure.py` -> rc=0, STRUCTURE RATCHET PASSED, every metric
+  ok at its budget (no code lines added; the diff is prose, a JSON leaf, one
+  JS prompt string and a delivery row).
+  Budget aggregates at the head, from the same `--budgets` run:
+    always-loaded ~3588, cap 3349 +band 500 = 3849   (unchanged: no always-loaded file touched)
+    corpus        ~59960, cap 59591 +band 500 = 60091
+    role fixer    ~6219, cap 5852 +band 500
+    role record   ~7226, cap 6904 +band 500
+    role policy   ~9975, cap 9958 +band 500
+  The only aggregate this diff moves is `corpus_tokens`, by the added prose:
+  fix-review.md +62, orchestrator.md +0 (16361 -> 16360 bytes, same 4090
+  tokens). So corpus was 59898 at the merge base -- already over its 59591 cap
+  and inside the band before this branch. The band absorbs the whole movement
+  and the corpus cap is not raised. The body's "the corpus total moves into its
+  tolerance band" is slightly off (it was already in it); the substance is
+  right.
+
+STEP 11 -- the head's own runs, read not from the body
+  `commits/a2576fcb2.../check-runs`, every run completed. Red at the head:
+    budget-raise-gate (failure, x2, runs 38052535871 / 38052536643)
+  Every other gate context is success or skipped: policy-docs, env-matrix,
+  instrument-self-tests, fast (3.14), closures, closure-scope, pr-contract (x2),
+  delivery-status, wave-script, briefs, arch-score, coverage, coverage-ratchet,
+  mutation, typing, hassfest, validate-hacs, browser, CodeQL, graders-head-copy,
+  nightly-status. The four recarry reds the body answers are green here.
+  budget-raise-gate is the owner-approval gate, not the branch's: local
+  `budget_raise_gate.py` says "REFUSED: tvofi's approval is on ae6fbdd5eed2,
+  not this head". That is the orchestrator's to clear (decision 0013); I do not
+  block on it, and I saw it.
+
+STEP 13 -- conflict is a measurement
+  `git merge-tree --write-tree origin/main <head>` -> rc=0, no conflicting path
+  and no MERGE-CLAIM line. mergeStateStatus is BLOCKED (the approval gate),
+  mergeable MERGEABLE.
+
+STEP 10 -- forward-carry, opened at the named destination
+  The body names `.claude/workflows/web-fix-wave.js`'s reviewer prompt. It is
+  in the diff and states the settle condition as a precondition ("Post it only
+  once the head's workflows all concluded and a pr-contract run started after
+  the last to conclude red, else the push-time run, checked the body ... while
+  it refuses, wait or hand back unverdicted, saying so"). Same condition is in
+  fix-review.md step 11 and pointed at from orchestrator.md section 11.
+
+STEP 8 -- the quoted numbers, re-derived, not taken
+  RCA-2028 IS in this head's tree (dev/audit/rca/R9-RCA-2028.md), so its figures
+  are checkable here. Body vs the document:
+    "19 root-cause-unanswered"        -> RCA section 1 table: 19, on 12 PRs.   OK
+    "A (7 blocks), B (5 blocks)"      -> RCA section 2 table: A 7, B 5.         OK
+    "12 of its 19 in two classes"     -> 7 + 5 = 12.                           OK
+    "3 of 7 rounds and 341 of 574 min"-> RCA section 6: "3 body-only rounds,
+                                          341 min"; total "574 min".            OK
+    "A is 2 rounds and 249 min (#2007, #2049); B is 1 round and 92 min (#2018)"
+                                      -> RCA section 6: "A 2 (#2007, #2049;
+                                          249 min), B 1 (#2018; 92 min)".       OK
+  One stale parenthetical: the body calls the RCA "on PR #2062's branch (not on
+  main yet)". #2062 is MERGED and the document is at origin/main and at this
+  head. This makes the evidence easier to check, not harder; it is not a block.

@@ -1,2 +1,0 @@
--    "tools/audit/briefs/fix-review.md": 2393,
-+    "tools/audit/briefs/fix-review.md": 2446,
