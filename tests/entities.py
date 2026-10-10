@@ -32000,13 +32000,56 @@ R.check(
     and "verdict = budget_refusal(results)" in _MUT_MAIN_DEFER,
     f"out={_MUT_BR_OUT!r}",
 )
+# R9-CI-1 round 2: the tail cut told the never-started lie. live-power-clamp's
+# shard 3 (run 37925123437, base b2b6acd64) ran its 5 draw_range.py sites
+# through every shared driver for 128 minutes, all green, and then their
+# EXCLUSIVE tails no longer fit --budget-minutes; the report printed each as
+# "not started: it would have overrun", which reads as the 345-s-baseline
+# story RO-11 diagnosed from exactly this text and #2049 refuted. A tail cut
+# is its own fact: the site survived every shared driver and only the
+# EXCLUSIVE verdict is missing, so the line, the headline and the summary
+# count it apart.
+_MUT_BRT_RES = [({"file": "x.py", "line": 1, "kind": "CONST"}, "SKIP-BUDGET"),
+                ({'file': "x.py", "line": 3, "kind": "CONST"},
+                 "SKIP-BUDGET-TAIL")]
+import contextlib as _mut_brt_ctx  # noqa: E402
+import io as _mut_brt_io  # noqa: E402
+_MUT_BRT_OUT = []
+for _res in (_MUT_BRT_RES, _MUT_BRT_RES[1:]):
+    _buf = _mut_brt_io.StringIO()
+    with _mut_brt_ctx.redirect_stdout(_buf):
+        _rc = _mut.budget_refusal(_res)
+    _MUT_BRT_OUT.append((_rc, _buf.getvalue()))
+R.check(
+    "a budget refusal names a tail-cut site as one that survived every "
+    "shared driver, a never-started one as not started, and a tail-cut-only "
+    "run as no verdict measured -- all refused, none PASSED",
+    _MUT_BRT_OUT[0][0] == 1 and _MUT_BRT_OUT[1][0] == 1
+    and "not started: it would have overrun" in _MUT_BRT_OUT[0][1]
+    and "survived every shared driver" in _MUT_BRT_OUT[0][1]
+    and "survived every shared driver" in _MUT_BRT_OUT[1][1]
+    and "not started: it would have overrun" not in _MUT_BRT_OUT[1][1]
+    and "nothing was measured" not in _MUT_BRT_OUT[1][1]
+    and "no mutant was measured to a verdict" in _MUT_BRT_OUT[1][1],
+    f"out={[(rc, txt.strip().splitlines()[-3:]) for rc, txt in _MUT_BRT_OUT]!r}",
+)
 # Wired, against the YAML: each caller passes a budget under its timeout, the
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
     ("mutation-ledger", "--budget-minutes 270"),
-    ("mutation-pins", "&& budget=(--budget-minutes 120)"),
+    ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
+    # The budget's ceilings, derived 2026-10-09 from the draw_range-class
+    # measurement (run 37925123437 shard 3): a 5-site all-survivor shard cost
+    # ~128 min of shared work at the 1.46x pool contention that run measured,
+    # and its EXCLUSIVE tail ~114 min more -- ~248 min against a 120-min
+    # budget, so the tail was cut and the shard refused. 260 covers it; the
+    # step adds the worst in-flight run at the deadline (TIMEOUT_SCALE 3 x
+    # boost_drift_replay.py's recorded 1489.6 s ~ 75 min) and the job the
+    # checkout, pip install and upload.
+    ("mutation-pins", "timeout-minutes: 340"),
+    ("mutation-pins", "timeout-minutes: 350"),
 ) if w not in _workflow_job(_TESTS_YML, j)]
 R.check(
     "mutation-nightly, mutation-ledger and the pin step each pass a budget",
@@ -32361,7 +32404,7 @@ R.check(
     "the split admits a mutant on its shared work and charges the EXCLUSIVE "
     "tail only to a survivor that reaches it; a lazy driver costs one run",
     _MUT_CI_OUT == (
-        (["killed by tests/a.py", "SKIP-BUDGET"],
+        (["killed by tests/a.py", "SKIP-BUDGET-TAIL"],
          [(0, "tests/a.py"), (1, "tests/a.py")]),
         (["killed by tests/a.py", "LIVES"],
          [(0, "tests/a.py"), (1, "tests/a.py"), (1, "tests/stress.py")]))
@@ -32419,37 +32462,87 @@ R.check(
     f"shards={_MUT_SH_ANCH!r} merged={_sh_st},{sorted(_sh_pins)} "
     f"quiet={_sh_q} failed={_sh_f} one-artifact={_sh_1},{_sh_1p}",
 )
+# R9-CI-1 round 2: #2070's pin run (head 3ecb86adaf, run 37890872462) split
+# 49 sites into 9 shards and 8 REFUSED in under a minute -- "no full-line
+# comment in any file in the pool" -- because null_for() read the SHARD's
+# pool: the anchor deal landed shards whose files hold no whole-line comment,
+# so 43 of 49 sites were never measured and that head's fix review was
+# blocked on them. The null control is the RUN's artifact, one per refusal,
+# driven under every driver in play on unmutated trees -- so it is drawn from
+# the WHOLE pool before the split, and every shard drives the same one.
+_MSN_DIR = Path(_tempfile.mkdtemp(prefix="mutation-shard-null-"))
+_MSN_A = _MSN_DIR / "a_mod.py"
+_MSN_B = _MSN_DIR / "b_mod.py"
+_MSN_A.write_text("# fixture comment\nX = 1\n")
+_MSN_B.write_text("Y = 2  # trailing only\nZ = Y + 1\n")
+_MSN_POOL = [
+    {"file": str(_MSN_A), "line": 2, "kind": "CONST", "anchor": "a_mod.py:x",
+     "old": "X = 1", "new": "X = 2"},
+    {"file": str(_MSN_B), "line": 2, "kind": "CONST", "anchor": "b_mod.py:y",
+     "old": "Z = Y + 1", "new": "Z = Y + 2"},
+]
+_MSN_SH2 = _mut.pin_shard(_MSN_POOL, 2, 2)
+_MSN_SH_NULL = _mut.null_for(_MSN_SH2)
+_MSN_WHOLE_NULL = _mut.null_for(_MSN_POOL)
+R.check(
+    "a shard whose files hold no whole-line comment inherits the whole "
+    "pool's null control: null_for reads the pre-split pool, and main() "
+    "wires it that way",
+    # The preconditions: file A holds a whole-line comment, file B does not,
+    # and the split leaves B alone in shard 2 -- the shape #2070's eight
+    # shards refused on. A fixture that drifts out of this shape fails here,
+    # not silently in the wiring.
+    {m["anchor"] for m in _MSN_SH2} == {"b_mod.py:y"}
+    and _mut.null_control(_MSN_A) is not None
+    and _mut.null_control(_MSN_B) is None
+    and _MSN_SH_NULL is None and _MSN_WHOLE_NULL is not None
+    and _MSN_WHOLE_NULL["file"] == str(_MSN_A)
+    # The wiring: main() takes the whole pool before the split and null_for
+    # reads that copy, not the shard's.
+    and "whole = list(pool)" in _MUT_MAIN_DEFER
+    and "null = null_for(whole)" in _MUT_MAIN_DEFER
+    and _MUT_MAIN_DEFER.index("whole = list(pool)")
+    < _MUT_MAIN_DEFER.index("pool = pin_shard(pool, k, n)"),
+    f"shard null={_MSN_SH_NULL!r} whole null="
+    f"{_MSN_WHOLE_NULL and _MSN_WHOLE_NULL['file'][-8:]!r} "
+    f"wiring={'whole = list(pool' in _MUT_MAIN_DEFER}",
+)
+_mut_shutil.rmtree(_MSN_DIR, ignore_errors=True)
 # The shard count scales with the sites the diff added: six a shard, at most
 # ten, one when the table names none -- read off the refusal line the lane
 # prints, and wired into the matrix the pin job runs.
 _MUT_SC = [_mut.pin_shard_count(f"MUTATION TABLE REFUSED -- 9 unpinned site(s) "
                                 f"against 3 at the ratchet base x, {n} of them "
-                                f"added by this diff.") for n in (1, 6, 7, 56, 200)]
+                                f"added by this diff.") for n in (1, 5, 6, 10, 56, 200)]
 _MUT_SC0 = _mut.pin_shard_count("MUTATION TABLE PASSED")
 _MUT_PLAN = _workflow_job(_TESTS_YML, "mutation-pin-plan")
 R.check(
-    "the pin shard count scales with the diff's new sites, six a shard, "
-    "capped at ten, and sizes the matrix the shards run",
-    _MUT_SC == [1, 1, 2, 10, 10] and _MUT_SC0 == 1
+    "the pin shard count scales with the diff's new sites, five a shard, "
+    "capped at twelve, and sizes the matrix the shards run",
+    _MUT_SC == [1, 1, 2, 2, 12, 12] and _MUT_SC0 == 1
     and "mutation_table.pin_shard_count(" in _MUT_PLAN
     and "fromJSON(needs.mutation-pin-plan.outputs.shards)" in _ma_pins
-    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins,
+    and "SHARDS: ${{ needs.mutation-pin-plan.outputs.count }}" in _ma_pins
+    and f"max-parallel: {_mut.MAX_SHARDS}" in _ma_pins,
     f"counts={_MUT_SC} none={_MUT_SC0}",
 )
 # The summary line names budget cuts apart from survivors (R9-CI-1): #2025's
 # "46 left unpinned -- a survivor needs a killing check" was 46 sites the
 # budget never started and no survivor. The head stays PIN_SUMMARY's.
 _MUT_PS = [(dict(anchor=f"s:{i}"), v) for i, v in enumerate(
-    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET", "LIVES", "SKIP-TIMED-OUT in t"])]
+    ["killed by t", "SKIP-BUDGET", "SKIP-BUDGET-TAIL", "LIVES",
+     "SKIP-TIMED-OUT in t"])]
 _MUT_PS_CUT = _mut.pin_summary(1, 3, [r for r in _MUT_PS if r[1] != "LIVES"],
                                {"s:0": {}})
 _MUT_PS_LIVE = _mut.pin_summary(1, 4, _MUT_PS, {"s:0": {}})
 R.check(
-    "the pin summary counts budget cuts and timeouts apart from survivors, "
-    "and names a survivor's remedy only when one survived",
-    "(0 survived, 2 not started for the budget, 1 timed out, 0 skipped)" in _MUT_PS_CUT
+    "the pin summary counts budget cuts, exclusive-tail cuts and timeouts "
+    "apart from survivors, and names a survivor's remedy only when one "
+    "survived",
+    "(0 survived, 1 not started for the budget, 1 exclusive tails cut, "
+    "1 timed out, 0 skipped)" in _MUT_PS_CUT
     and "survivor needs" not in _MUT_PS_CUT
-    and "(1 survived, 2 not started" in _MUT_PS_LIVE
+    and "(1 survived, 1 not started" in _MUT_PS_LIVE
     and "survivor needs" in _MUT_PS_LIVE
     and _mut.PIN_SUMMARY.search(_MUT_PS_CUT.strip()) is not None,
     f"cut={_MUT_PS_CUT.strip()!r} live={_MUT_PS_LIVE.strip()!r}",
@@ -32772,9 +32865,9 @@ _MUT_MAIN = pathlib.Path(_mut.__file__).read_text()
 _MUT_MAIN = _MUT_MAIN[_MUT_MAIN.index("def main("):]
 R.check(
     "and an empty pool passes before a null control is sought",
-    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(pool)" in _MUT_MAIN
+    "PASSED (empty pool)" in _MUT_MAIN and "null = null_for(whole)" in _MUT_MAIN
     and _MUT_MAIN.index("PASSED (empty pool)")
-    < _MUT_MAIN.index("null = null_for(pool)"),
+    < _MUT_MAIN.index("null = null_for(whole)"),
     "main() must return on an empty pool before null_for, or a comment-only "
     "diff would be refused for having no null control",
 )
