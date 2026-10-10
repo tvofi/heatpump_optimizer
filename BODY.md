@@ -35,6 +35,26 @@ Every measured figure in this body, with the command that produced it (all run 2
 - 33 selectable scripts, 34 recorded entries, 4480 s = 74.7 min recorded work, 220.7 s harness_headers.py, 540 inert_reads files: `python3 -c` over `tests/closures.json` keys `recorded`/`inert_reads` at 969c3a5c84 (commands in the document, section 8).
 - ~30-33 min projected lane-rebalance wall, ~40-45% saving: derived from the per-script measurements above; the derivation is in the document (section 4e); acceptance re-measures it on CI.
 
+## Mutation proof
+
+n/a: study-only seat, no production file changes; the diff adds one document under dev/audit/rounds/round9/prestudy/ (INERT, no .py/.mjs/.js/.sh sibling, so no discovery glob reads it).
+
+## Null control
+
+n/a: no behavioural claim made by code; every figure is a read-back from a cited CI job log or a committed data file, and the document's section 8 gives each figure's command.
+
+## Red checks
+
+n/a: no branch pushed for CI; the code head handoff/r9-closures-scoping-prestudy (177bb01c30) is one commit over origin/main 969c3a5c84 adding only the document.
+
+## Forward-carry
+
+The finding that the workflow's own comment prices the full table at "12-22 minutes" while it now measures 30-55 min belongs to whoever lands the follow-up PRs, as does the stale "~40 s an entry" line in .github/workflows/tests.yml's closure-scope comment (both named in the document, section 1.3).
+
+## Friction
+
+none
+
 ## Head
 
 - Code head: `177bb01c30` on `handoff/r9-closures-scoping-prestudy` (one commit over origin/main `969c3a5c84`; adds only the pre-study document).
