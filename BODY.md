@@ -22,6 +22,19 @@ Pre-study (R9, seat `r9-closures-scoping-prestudy`): measured decomposition of t
 
 The full document, with the cost test, per-script table, provenance for every figure and an explicit unmeasured-box, is `dev/audit/rounds/round9/prestudy/closures-scoping-prestudy.md`.
 
+## Figures
+
+Every measured figure in this body, with the command that produced it (all run 2026-10-10 against job/run ids cited in the document):
+
+- 98.9% re-record share of the 54 m 10 s job (53 m 35 s re-record; setup 33 s; check 0.2 s; no-copies 0.1 s): `gh api repos/tvofi/heatpump_optimizer/actions/jobs/114258919874/logs --allow-escape-sequences` (run 38067806307, push to main, 16:28:36Z-17:22:46Z).
+- 54 m 45 s batch-proof closures job: `gh api repos/tvofi/heatpump_optimizer/actions/runs/38064024146/jobs` (job 114247906174, 15:32:29Z-16:27:14Z).
+- 29 m 26 s boost_drift_replay.py recording, 53 m 35 s lane-3 critical path, lanes 1-2 done at 14 m 53 s / 21 m 22 s: the `[HH:MM:SS] record/done` lines of job 114258919874's logs (same fetch as above).
+- 30 m 22 s on the 14:25Z push (full-arm range 30-55 min): `gh api repos/tvofi/heatpump_optimizer/actions/runs/38059574126/jobs`.
+- 16 s PR #2109 fast arm (skip case): `gh api repos/tvofi/heatpump_optimizer/actions/runs/38058204083/jobs` (closures job 14:05:48Z-14:06:04Z).
+- 7 push-to-main Tests runs on 2026-10-10; 12 merge commits; 686 commits since 2026-10-07: `gh api "repos/tvofi/heatpump_optimizer/actions/runs?branch=main&event=push&per_page=100"` filtered `name=="Tests"`; `git log --merges --since=2026-10-10T00:00:00Z origin/main | wc -l`; `git log --since=2026-10-07T00:00:00Z origin/main --oneline | wc -l`.
+- 33 selectable scripts, 34 recorded entries, 4480 s = 74.7 min recorded work, 220.7 s harness_headers.py, 540 inert_reads files: `python3 -c` over `tests/closures.json` keys `recorded`/`inert_reads` at 969c3a5c84 (commands in the document, section 8).
+- ~30-33 min projected lane-rebalance wall, ~40-45% saving: derived from the per-script measurements above; the derivation is in the document (section 4e); acceptance re-measures it on CI.
+
 ## Head
 
 - Code head: `177bb01c30` on `handoff/r9-closures-scoping-prestudy` (one commit over origin/main `969c3a5c84`; adds only the pre-study document).
