@@ -1,0 +1,3 @@
+RESULT selfset_hourly_steps_folded=0/96 cop_scale=1.000
+RESULT selfset_three_hour_steps_folded=0/96 cop_scale=1.000
+RESULT selfset_flat_day_folded=0/96 cop_scale=1.000

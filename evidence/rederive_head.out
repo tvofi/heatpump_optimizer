@@ -1,0 +1,20 @@
+head              7706b39a16e782236b61e5d6de5cb8e6f691cd8b
+ratchet base      1301d7e45
+candidate sites   6020
+unpinned here     4593
+unpinned at base  4608
+added by this diff 0
+added_keys         0
+pass pool (new_unpinned) 2
+ratchet_refusal   None
+pin_shard_count   1
+
+-- validators, all must be [] --
+triage_problems: []
+ledger_form_problems: []
+layout_problems: []
+completeness_problems: []
+
+in pool not charged (2): ['custom_components/heatpump_optimizer/coordinator.py:4562 CMP_BOUND', 'custom_components/heatpump_optimizer/coordinator.py:4562 GUARD_OFF']
+charged not in pool (0): []
+dispositions total: 1406

@@ -1,0 +1,8 @@
+Compressor efficiency has drifted 12% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 18% below its own baseline (~0 SEK/month at current usage)
+RESULT follow_noise10_folded=96/96 first_fold_tick=0 cop_scale=1.028 refusals[]
+RESULT follow_noise20_folded=96/96 first_fold_tick=0 cop_scale=1.123 refusals[]
+RESULT eff0.8_noise5_folded=96/96 first_fold_tick=0 cop_scale=0.563 refusals[]
+RESULT eff0.8_noise10_folded=96/96 first_fold_tick=0 cop_scale=0.563 refusals[]
+RESULT follow_lag1tick_folded=50/96 first_fold_tick=0 cop_scale=0.998 refusals[tracking_gate:46]
+RESULT selfmod_steady_folded=0/96 first_fold_tick=None cop_scale=1.000 refusals[awaiting_draw_evidence:92,tracking_gate:4]

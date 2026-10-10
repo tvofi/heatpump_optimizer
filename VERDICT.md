@@ -1,48 +1,136 @@
-Fix review: blocked 386b7e2ff79821a91ae5c4bc95afca9b150b7b9d conflict: `git merge-tree --write-tree origin/main 386b7e2ff` at PUBLISH TIME returns rc=1 over LIVE main `f5fb67077` with EIGHT real conflicts -- `tests/features.py` (3-stage content: base+ours+theirs) and seven add/add duplicates `tests/mutation_ledger/killed_by/draw_range.py/{@module.CONST.6526d7f7, @module.CONST.a4b4e684, DrawRange._metered_range.CLAMP_DROP.2aa4786a, DrawRange._metered_range.CMP_BOUND.ac5977ac, DrawRange._metered_range.CMP_BOUND.bae80808, DrawRange.from_dict.GUARD_OFF.58d599ba}.json` and `killed_by/thermal_model.py/InstallCapability.plan_writes_power.RETURN_DEL.4ef1ee1f.json` -- none of them a claim file (`MERGE-CLAIM:` never printed; both claim files are byte-identical to live main and are not in the conflict set), and `LEDGER-MERGE: resolved tests/closures.json` did its job. GitHub agrees: `mergeStateStatus: DIRTY`. This is NOT the resolution delta's doing and not a rejection of it: the same command against the main that existed 40 minutes earlier (`d0f085ffb`) returned rc=0 with EMPTY stderr, and what changed is main -- `#2065` itself merged at `90b9b7316`, plus `#2067/#2068/#2069/#2074`. Per step 13 a conflict on any path other than the two claim files is mine to block on, because I cannot know the merged result is correct. Every task this round set is measured and clean below; the delta's own resolution is sound for the main it merged.
+Fix review: merge 7706b39a16e782236b61e5d6de5cb8e6f691cd8b
 
-RESULT scope: round 9 only -- the resolution delta. Rounds 1-8's code review is not re-opened. Head measured `386b7e2ff79821a91ae5c4bc95afca9b150b7b9d` = merge of `origin/main d8a4bd36f` over `499f4b4df`, whose line is `d1538a73b` (round 8's head) -> `50696e9fb` (merge of main `a8ce87571`) -> `e562866e5` (triage-sentence correction) -> `499f4b4df` (architecture.md count correction) -> `386b7e2ff`. Instruments I built are named as mine (step 9); everything else is the lane's own code. Evidence dir carries every run.
+bus-nonce: 424c9844dba7da9f0d9c328407906262
 
-RESULT TASK 1a (claims.py; claimed `arch_modules_on_disk=75 arch_map_listed=75 claims_true=123 claims_false=0` where each side recorded 74): MEASURED BY ME with the harness itself at the merged tree (`PYTHONPATH=tests/hastub venv-ci/python3 dev/audit/rounds/round4/D6/claims.py`, rc=0): `claims_extracted=125 claims_checked=125 claims_true=123 claims_false=0 claims_stale=0 claims_unverifiable=2 arch_modules_on_disk=75 arch_map_listed=75 arch_map_missing=0 ha_module_level_importers=27`. Claim CONFIRMED, every figure. (The 2 unverifiable rows are C109/C111, the link-HEAD checks that need `--links`; pre-existing.) The script writes `claims.json`/`claims.md` (its lines 1380/1390), and after my run `git status --porcelain` was EMPTY -- the committed evidence files are byte-identical to a fresh run at this head, which independently confirms the body's harness_headers claim about those files.
+Independent adversarial review of the CURRENT head (round 10 re-cut). I wrote no
+production code and pushed nothing to the branch. All numbers below are my own
+re-runs at the head; my evidence directory is
+/Users/timmalmstrom/hpo-seats/r9rev-2066/ev/.
 
-RESULT TASK 1b (deployment_shape.py; claimed 93 package files, 123 of 528 pairs >= 0.80, 406 comparable, 18 at exactly 1.00, per-pair 93/83/75/57/21/91/58, three debug_collect pairs crossing 0.797 -> 0.800): the LANE is green at this head (`ALL DEPLOYMENT SHAPE CHECKS PASSED`, rc=0) but it does not PRINT the census -- those are the docstring's recorded numbers, so I wrote my own instrument (`census.py`) and calibrated its fraction rule against the BASE's recorded numbers instead of trusting a side: `min` and `mean` do not reproduce the base, `max` and Jaccard both do exactly (120 pairs, 18 identical). MEASURED with the calibrated rule at the merged tree: 33 scripts, 528 pairs, 29 scripts with a production closure, 406 comparable, 123 at >= 0.80, 18 at 1.00, sizes 93 / 91 / 83x3 / 75x3 / 58 / 57x3 / 21x6 -- the docstring's seven distinct values, and the same eighteen pair MEMBERSHIPS as main's. The +3 are set-difference-verified against BOTH parents: added = exactly `debug_collect.py/{structure,typing_ruler,finite_boundary}`, removed = none, and those three read 0.7973 (59 shared) at each parent and 0.8000 (60) merged. Claim CONFIRMED. `git diff --name-only` of the four scripts with no production closure returns exactly the four the docstring names. 93 package files and 75 py modules confirmed by `git ls-tree`.
+RESULT head_measured=7706b39a16e782236b61e5d6de5cb8e6f691cd8b
+RESULT merge_base=1301d7e45df08bc224d420db4508195050b88972
+RESULT origin_main_is_ancestor_of_head=NO (live main c729bb32e is 16 commits past the merge base; the body's "both the pull request's live tip and live origin/main are ancestors" was true when written, not now -- drift, not a defect)
+RESULT production_delta_over_main=239 added / 53 removed over 6 files (two-dot and three-dot agree)
 
-RESULT TASK 1c (features.py; claimed both tails kept verbatim, `1 of 3948 FEATURE CHECKS FAILED` = the disclosed macOS Accelerate `R9-F2.1 P3` arm only, 3948-3929 = main's 19 + this PR's 12 inside the 3929): the executed count was NOT re-taken by me -- my brief says cite CI, and CI's `fast (3.14)` (check-run 113980378707 in run 37977804238) COMPLETED SUCCESS at exactly this head, which is the canonical Linux arm owning features.py, entities.py and harness_headers. What I verified mechanically is the resolution's shape: `R.check(` occurrences 3488 at `b2b6acd64`, 3542 at `d1538a73b` (+54 this branch), 3507 at `d8a4bd36f` (+19 main), 3561 at HEAD = 3488+54+19 EXACTLY -- both tails present, neither dropped; and the +19 is the same 19 the body's arithmetic counts. No conflict marker anywhere in the tracked tree.
+## 1. Mutation proof -- RE-RUN, and not vacuous
 
-RESULT TASK 2 (four-tree control; claimed three conflicts resolved by measurement, not by picking): reproduced with my own instrument at FIVE trees, not two -- a pick of either side would print 120/92/74:
-  tree                scripts  comparable  ge80  1.00  pkg files  py modules  claims.py
-  b2b6acd64 (base)       33       406      120    18      91         73          --
-  d1538a73b (branch)     33       406      120    18      92         74          --
-  a8ce87571 (main)       33       406      120    18      92         74          --
-  d8a4bd36f (main)       33       406      120    18      92         74     74/74, 123 true, 0 false
-  386b7e2ff (merged)     33       406      123    18      93         75     75/75, 123 true, 0 false
-claims.py was RUN at two of the four trees (main `d8a4bd36f` and the merged head): it prints 74/74 there and 75/75 here, so 75 is the merged tree's measurement and not a union of two 74s. Blob test: HEAD's copy of each formerly-conflicted path equals neither parent's blob -- it is a third object. CONFIRMED as measurement.
+I applied the three mutants the body names to the head tree (accuracy.py
+MeasuredCop.judge_ratio) and drove the real tests/features.py at each:
 
-RESULT TASK 3 (silent-agreement sweep): BOTH corrected numbers verify against the merged tree by two routes. 75 = my `git ls-tree` count, claims.py's run, and entities.py's opening-count check. 47 = my own AST reproduction of entities.py's rule (`ha_rule.py`): 75 modules, 27 module-level `homeassistant` importers, 28 touching it anywhere, 75-28 = 47, function-level-only exactly `['inputs']`; `docs/architecture.md` at HEAD reads 75 / 27 / `inputs` / 47 -- all four true. `PYTHONPATH=tests/hastub tests/entities.py` at this head -> `ALL 2236 ENTITY CHECKS PASSED`, rc=0 (my run; it queued behind another seat's stress lease first, then completed -- 2236 is the body's number exactly).
-OTHER COUNTS -- reported, not fixed, per my brief. Every count-bearing sentence I could enumerate in `docs/architecture.md` and `README.md` is read by an instrument and true at this head, measured independently where cheap: `services.yaml` = 13 keys (all three `13 services` sites), `config_flow._OPTION_PAGES` = 23 (architecture.md's `plus 23 option pages`, README's `menu of 23 pages`), 60 sensors, 79 entities, 6 binary sensors, 31 fields, module map lists BOTH sides' new modules (`draw_range.py`, `flow_meter.py`, `entry_config.py`; `arch_map_missing=0 phantom=0`). Coverage is named, not assumed: claims.py's C1-C54 over README.md and docs/*.md, and entities.py's architecture block (`tests/entities.py`:1111-1266) owning the opening counts, the module map, the boundary set, the single function-level toucher, the HA-free count, the option-page count, all three service sites and the sensor census. The class NO instrument reads, and it is not merge-induced: version-history and upstream-release prose -- architecture.md's "Why the version floor is where it is" claims about upstream `pyproject.toml` `requires-python` values (2024.12.0 / 2025.1.0 `>=3.12.0`, 2025.2.0 `>=3.13.0`, 2025.8.0 `>=3.13.2`), and README's `Versions 2.3.0 onward`, `Since v5.0.0`, `Quick setup arrived in v6.6.5`, `Since v4.1.0`. Handed to the `rca-prose-counts` seat (`/Users/timmalmstrom/hpo-seats/rca-prose-counts/`) as a finding.
+RESULT mutant_M11 no_evidence_branch_folds_always = 4 FAILED (control 1); the named check "with no draw evidence a departure folds only past the nameplate third: it waits for evidence on 14 kW and folds on 4 kW, as base" FAILED [1 (None) / 1], and the named off-ask check FAILED
+RESULT mutant_M12 no_evidence_branch_refuses_always = 9 FAILED (control 1); the same named check FAILED [0 (awaiting_draw_evidence)]
+RESULT mutant_M13 draw_does_not_follow_made_to_fold = 2 FAILED (control 1); the named check "a draw that ignores the ask (varying or flat) is refused as off-ask; a matched draw and a 0.7 shift on a draw that follows its ask still teach" FAILED
+RESULT mutation_control_features_at_head = 1 of 4014 FAILED, the single known macOS BLAS float R9-F2.1 P3 [shipped 110.4366, seeded 110.1297]
 
-RESULT TASK 4 (normalize + validators): ran `tests/mutation_table.py --normalize` MYSELF at the head in a throwaway detached worktree (never in the tree under review): `NORMALIZED mutation_budgets.json and mutation_ledger/: 1346 disposition(s), 0 retired key(s) naming no site`, rc=0, `git status --porcelain` EMPTY afterwards, and the aggregate sha1 over every ledger file identical before and after (`0aa8023a5c3c5a826e854d126b5edf6f70ee2967`) -- the claim of "changed no bytes" is CONFIRMED byte-for-byte, 1346 included. Validators at the head, my own probe (`r9_rederive.py`, the lane's functions): `triage_problems []`, `ledger_form_problems []`, `layout_problems []`, `completeness_problems []`. Independently the lane's own control flow proves the same: `--scope changed --base origin/main` at this head reached the `ADDED UNPINNED` refusal, which is downstream of all four validators, each of which would have refused earlier with its own message.
+Every mutant kills a check that names the line it mutated; nothing survives.
+The named checks are not vacuous. (The body said the head's features.py run was
+killed by the box and never measured; I measured it: 1 of 4014, the BLAS float.)
 
-RESULT TASK 5 (nothing reverted; drivers, not hand): for every file BOTH sides touched since `b2b6acd64` (10: `coordinator.py`, `thermal_model.py`, `claims.json/.md/.py`, `docs/architecture.md`, `tests/closures.json`, `tests/deployment_shape.py`, `tests/features.py`, `tests/structure_budgets.json`) I compared each side's added lines against HEAD's copy with multiplicity (`revert_sweep.py`, mine). No production, closure, ledger or features line is lost; the only lines that do not survive are the prose/evidence numbers that had gone false and were re-derived (74 -> 75, 92 -> 93, `82 each` -> `83 each`) plus ONE deliberate correction, the `a3cd4cc3` triage row. Residual test of the two merges against their own pure `git merge-tree`: `386b7e2ff` has an EMPTY residual -- it is exactly the auto-merge -- and `50696e9fb`'s residual is only those six prose/evidence files, so `tests/closures.json` and `tests/structure_budgets.json` were taken as the `ledgermerge` driver produced them (`LEDGER-MERGE: resolved`, `max_class_loc: 8817 + both deltas = 8808`, `seam_cut_total: 760 + both deltas = 760`; no refusal anywhere). Driver arithmetic cross-checked against the instrument: structure.py MEASURES 8808 and 760 here, equal to what it summed. `git diff origin/main...HEAD -- tests/closures.json` = 29 insertions, 0 deletions (27 `draw_range.py` + `dev/audit/harnesses/draw_range_evidence.py` + `dev/audit/harnesses/cop_duty_floor.py`); `tests/closure.py selftest` -> `ALL 57 closure shrink pins PASSED`, rc=0. Production identity: `git diff d1538a73b HEAD -- custom_components/` has the SAME stable patch-id as `git diff b2b6acd64 d8a4bd36f -- custom_components/` (`e730b628b7d5946dd3e9751872c4acbd14ccf29f`, exactly the hash the body prints) and a line-by-line symmetric difference of those two patches is EMPTY; `accuracy.py` and `draw_range.py` byte-identical across the merge.
+## 2. The finder's harness -- the finding committed none; I re-ran what exists
 
-RESULT TASK 6 (step 11 at the live head): polled the head's check-runs every 300 s, one API call per poll (`settle.log` and `settle_poll_1..13.tsv`, 13 polls). All 17 required contexts from ruleset 23698884 RAN at this head -- NONE absent: 16 completed success (`fast (3.14)` 113980378707, `closures` 113980496644, `briefs`, `browser`, `closure-scope`, `typing`, `hassfest`, `validate-hacs`, `policy-docs`, `wave-script`, `pr-contract`, `env-matrix`, `Analyze (actions)`, `Analyze (javascript-typescript)`, `Analyze (python)`, `budget-raise-gate`); `mutation` completed FAILURE, the live ratchet refusal, named and answered in `## Red checks`. `coverage` (113980379068) and `coverage-ratchet` completed success; only `mutation-pins (1)`/`(2)` were still running at my final read (poll 13), and they are reported as running, never as green. Range redness: `origin/handoff/r9-cop-duty-floor` IS `386b7e2ff` and `git rev-list origin/main..it` = 44 commits, both confirmed. I did not re-pull 44 commits; I checked the tables arithmetically (40 rows = 17 mutation + 12 nightly-status + 7 fast (3.14) + 2 nightly-ha (stable) + 2 briefs over exactly 5 names, zero `pr-contract` rows as the stated method requires) and confirmed all 15 red commits are ancestors of the head and not of main, then SPOT-CHECKED three at their own check-runs API: `b511f9dc5` -> exactly one red, `mutation` 113834051169; `d1538a73b` -> exactly two, `mutation` 113887668160 and 113887657458; `630849897` -> `mutation` 113738072853 and `nightly-ha (stable)` 113738022964. Three of three match the table and the body's numbers. All five names are answered with a cheaper detector and its standing cost; the two disclosed self-corrections are in place.
+The in-tree harness dev/audit/harnesses/cop_duty_floor.py says in its own header
+"Written by the #2066 fixer, not by the finder: the live-install finding
+committed no harness", and the body calls it "the fixer's harness". That is the
+disclosure fix-review.md step 9 requires, in the file and in the body, so this
+is soundness-by-disclosure and not a defect. I re-ran it anyway, plus every
+out-of-tree instrument the body quotes.
 
-RESULT TASK 7 (body figures, re-derived): against the ratchet base the lane itself resolves (`d8a4bd36f`): `candidate sites 5980`, `unpinned here 4615`, `at base 4622`, `added 10`, `added_keys 9`, `pass pool 12`, `ratchet_refusal None`, `pin_shard_count 2`, `dispositions 1346`, `in pool not charged 2` = `coordinator.py:4526 _fold_measured_cop CMP_BOUND` + `GUARD_OFF`. Every one EQUAL to the body, and 4615/4622/10 also printed by the lane's own refusal line; `pin_shard_count` verified twice (from the printed `10 of them added by this diff` through the lane's function, and through `new_unpinned`). `tools/pr/ci_predict.py --base d8a4bd36f` and `--base origin/main` both print the same 9 keys, `CI PREDICT: 9 unpinned site(s) the diff adds`, `no closures or fast red predicted against d8a4bd36f638`, rc=0. Not re-taken by me: the executed `3948 / one FAIL` features count (cited from CI above) and round 6's out-of-tree `verify_kills.py` condition table; the acceptance-row harness numbers were not re-driven either (production identity says they cannot have moved: the harness's sha1 `9587bead80b5f4b103c510a9f46a4c70e3ea2a91` is confirmed on the file and `accuracy.py`/`draw_range.py` are byte-identical to round 8's head).
+RESULT finder_harness=absent (fixer's, disclosed); my re-run at head rc=0, 31 RESULT lines, `diff` of RESULT lines vs the fixer's ev/r9/harness_final.out and ev/r10/harness2.out is EMPTY
+RESULT harness_min1_running=0/15 base -> 15/15 head
+RESULT harness_min3_running=0/15 -> 3/15
+RESULT harness_selfmod_matched=0/96 -> 96/96 at 1.000
+RESULT harness_selfmod_independent=1.000 -> 0.976
+RESULT harness_selfmod_independent_4kw=0.636 -> 0.780 (orchestrator-accepted residual; carried)
+RESULT harness_true_cops_head=0.604 / 0.704 / 0.805 / 1.307, true_0.7_4kw=0.704 at both ends
+RESULT harness_fixed3_duty50_duty70=5/5 -> 0/5 (the disclosed behaviour change)
+RESULT probe5_selfset 1.000/1.000/1.000 -> 0.978/1.000/1.000 (round-2 reviewer's probe, re-run by me)
+RESULT probe6_matched 356/400 -> 400/400 at 1.000; selfset_hourly 1.600 -> 1.170; partial_b0.3 1.600 -> 1.375; heat-led 0.7 rows within 0.002
+RESULT probe7 0.751 -> 0.751, 0.750 -> 0.750, 0.750 -> 0.749
+RESULT probe3b_pmax4 0.636 -> 0.590 (the disclosed in-tolerance regression direction)
+RESULT probe3_independent 1.000 -> 0.976; probe4 p4 rows 1.028 / 1.123 / 0.563 / 0.998
 
-RESULT TASK 8 (hygiene, re-taken against LIVE main `f5fb67077`, which moved mid-review): `tests/golden/claimed_drift.txt` blob `eda8856b9653...` and `tests/golden/card_claimed_drift.txt` `c683379dafc2...` IDENTICAL at HEAD and at live main; the branch's three-dot diff of `tests/golden/` is empty. `VERSION` 6.7.17, `hacs.json` (`homeassistant: 2025.2.0`), `manifest.json` version 6.7.17, `RELEASE_NOTES.md` heading `## v6.7.17`: three-dot diff EMPTY for all four (rule 4 respected). Budgets: exactly one budgets file in the branch's three-dot diff, `tests/structure_budgets.json` (4/4 lines), and all four caps DOWN against the live base -- 153 -> 151, 120 -> 118, 8818 -> 8808, 762 -> 760 -- measured by me at every ref; nothing moved up and `tests/mutation_budgets.json` is untouched (its count is derived). `tests/structure.py` rc=0 `STRUCTURE RATCHET PASSED` with every metric equal to its cap (`coordinator_attrs 151 <= 151`, `max_class_loc 8808 <= 8808`, `seam_cut_total 760 <= 760`) -- step 14: the moves are earned, measured == budget, no cap loosened. Zero machine paths in the branch's added lines (`grep -cE '/Users/|/private/tmp/|/tmp/'` = 0). `git merge-tree` read by marker AND exit, never exit alone.
+Every base->head figure the body quotes reproduces at my own two baselines
+(#2065's head 9b39bb7c6 and the merge base 1301d7e45 -- the harness reads
+identically at both, so the fix is what moves the numbers, not the base).
 
-RESULT FINDING 3 (round 8's), CLOSED and TRUE: the `a3cd4cc3 CMP_BOUND` triage reason now ends "Its GUARD_OFF twin on the same line is pinned by a row this branch's own mutation-pin pass wrote at head `d1538a73b` against ratchet base `b2b6acd64` -- not by the round-5 pass, which never reached it." Both halves measured: `killed_by/coordinator.py/..._fold_measured_cop.GUARD_OFF.a3cd4cc3.json` exists and `git log --diff-filter=A` names `d1538a73b ci: pin killed mutants`, whose reason field names base `b2b6acd64cde...`; `triage_problems` still `[]` after the edit.
+## 3. Null controls and both-ends
 
-RESULT FINDING 1 (round 8's), SUPERSEDED BY MAIN -- and this is the useful part for round 10: #2065 MERGED (`90b9b7316`), so the 10 sites this diff left undispositioned are now disposed ON MAIN. I verified all nine digests of those sites exist at `f5fb67077`, one row each: `443a79fc`, `ff698611`, `c5323864`, `a5d6d1be`, `142ccd7f`, `a10fdc16`, `4987f22d`, `6a6c4f30`, `173a928b`. That is precisely why those seven ledger paths now conflict as add/add: main's row and this branch's bot row carry the SAME `anchor`, `killed_by` and `old`, and differ only in `reason` -- main's is #2065's seat-measured record (`7a pin drive, seat-measured at acba8517d ...`), the branch's is the terse `Recorded by mutation_table.py --pin-killed against b2b6acd64cde...`. The next resolution should keep main's row and drop the branch's duplicate for the same anchor (measure, do not pick: after it, re-run the lane -- `added_unpinned` should fall to 0 and the `mutation` refusal may clear entirely, which would also retire `## Red checks`' first bullet's live cause), and `tests/features.py` should take main's newer #2065 block plus this branch's own COP checks (main's tail differs from HEAD's by 137 insertions / 409 deletions -- #2065's final head, not the `1e957282e` this branch carries). Then the census and the docstring must be re-derived again: main and the merged tree both read 75 modules / 93 package files / 33 scripts, so 75 and 93 hold, but the driver merged 21 closure sets as unions and `ge80` (123) must be recomputed, not carried.
+RESULT null_harness_matched_draw=0/96 -> 96/96 at 1.000 (the row that must hold, holds)
+RESULT null_probe6_matched=356/400 -> 400/400; null_probe6_selfset_flat folded=0/400 both ends
+RESULT null_probe6_heatled0.7_unchanged=0.707/0.706 -> 0.707/0.705, 0.686 -> 0.688, 0.700 -> 0.700 (within 0.002)
+RESULT null_harness_own_liveness=liveness_folded=3/3 at both ends
 
-RESULT step 12: head re-read at publish time -- `headRefOid` still `386b7e2ff79821a91ae5c4bc95afca9b150b7b9d`, `state OPEN`, `isDraft true`, author `hpo-author`; what moved under the review is `origin/main` (`d0f085ffb` -> `f5fb67077`). Which numbers survive: ALL of them -- every measurement above is of this head and none was taken against main's newest commits except the hygiene re-take (TASK 8, re-run against `f5fb67077`) and the merge-tree. Which were re-taken because main moved: the claim-file comparison, the three-dot budgets and version diffs, and FINDING 1, whose disposition changed from "#2065's to make" to "already on main". This is not a `head-moved` condition (the handoff head is the one I measured), and the two in-progress `mutation-pins` shards had not pushed anything at this read.
+## 4. Claim files, VERSION, drift
 
-RESULT disclosed incidents in my own seat (not the branch's): (1) I ran `pkill -9 -f gate_lock` to release my own queued `entities.py` waiter -- a broad pattern against a lease other seats share. The only matching process was my own waiter and `entities.py` then ran to rc=0, but issuing it was wrong; I am reporting it because a seat that absorbs its own lease interference silently costs the next one nothing. (2) My scratch holds two detached worktrees: `wt` at the head (read, clean) and `wt-main`, used for the `--normalize` and claims-at-main runs, dirty by design after them and mine to discard. (3) Two of my instruments were first written with an out-of-scope path in the tool call; all landed in `/Users/timmalmstrom/hpo-seats/review-2066-r9/` and `/Users/timmalmstrom/hpo-seats/live-cop-floor/ev/r9/` (the fixer's scratch) contains no file of mine, confirmed by listing it after.
+RESULT claimed_drift_sha1=10169742b92c06960fbcd3987ccc46f970104415 (head = origin/main)
+RESULT card_claimed_drift_sha1=7b50a0c5d73d435fd719abb853fba4418351f183 (head = origin/main)
+RESULT golden_diff_origin_main_to_head=empty (this branch claims nothing)
+RESULT env_drift_all=NO UNCLAIMED DRIFT: 56 scenario(s) checked against origin/main; NO STALE FIXTURE: 56 committed fixture(s) still match
+RESULT VERSION=6.7.17 at head and at main; manifest version=6.7.17 at both; RELEASE_NOTES heading="## v6.7.17" at both; branch touches none of them
 
-RESULT forward-carry: nothing that changes how a later stage must work, beyond FINDING 1's reversal stated above -- which is a fact about this PR's own next round, not another stage's precondition. The `rca-prose-counts` seat's open question stands as I found it (TASK 3): the two docs' counts are instrument-owned; the class no instrument reads is version-history and upstream-release prose.
+## 5. Class-open, forward-carry, red checks, merge state
 
-RESULT class word: `conflict`, in `web-fix-wave.js`'s VERDICT_CLASSES (line 175-179) -- used verbatim, not `other`.
+RESULT rederive_added_unpinned=0 added_keys=0, unpinned 4593 <= base 4608, ratchet_refusal None, pin_shard_count 1, validators all [] (reproduced with the round-9 reviewer's own probe, WT repointed at my tree)
+RESULT rederive_pool_not_charged=2: coordinator.py:4562 CMP_BOUND + GUARD_OFF, anchor 6deb0603 -- both inside the diff's hunk region and both dispositioned in the body (## Unpinned sites / ## Forward-carry); no returned seam is neither in the diff nor dispositioned
+RESULT carry_2066_and_2065=brief_lint 0 error(s) / 0 warning(s) on each; carry-2066 states the precondition and carries the control (probe6 selfset_hourly 1.170, harness selfmod_independent_4kw 0.780) with nulls selfmod_matched and true_0.7_4kw; carry-2065 to 7b likewise with min3_running_folded 3/15
+RESULT range_reds_enumerated_by_me=28 rows over exactly 6 names in 35 commits, 0 read failures: mutation 13, nightly-status 7, fast (3.14) 3, nightly-ha (stable) 2, briefs 2, nightly-ha (2025.2.0) 1 -- exactly the body's enumeration; the body names and answers all six (cheaper detector + standing cost, or the stated grades-outside-this-diff refusal)
+RESULT head_check_runs_now=35; fast (3.14) completed SUCCESS at this head; coverage SUCCESS; closures SUCCESS; mutation IN PROGRESS at publish (job timeout 160 min); no gate check red at this head
+RESULT merge_tree_write_tree_origin_main_head=rc=0, no conflict; no MERGE-CLAIM/LEDGER-MERGE marker needed. The round-9 `conflict` block is genuinely resolved, and the head also merges clean against the NEWER live main
 
-RESULT round: 9, head measured 386b7e2ff79821a91ae5c4bc95afca9b150b7b9d.
-bus-nonce: 6e5648af9c5a3f1182d1b15e88df2a6f
-seat: review-2066-r9
-Evidence: /Users/timmalmstrom/hpo-seats/review-2066-r9/evidence
+## 6. Metric-gamed, architecture
+
+RESULT structure_ratchet=PASSED rc=0, every metric at measured
+RESULT structure_budget_moves=all DOWN vs main (coordinator_attrs 153->151, coordinator_multiassigned 120->118, max_class_loc 8818->8808, seam_cut_total 762->760); no raise sought, budget-raise-gate green
+RESULT budget_move_null_control=the PRE-fix tree (merge base) measures 153/120/8818/762 -- so the decrease is caused by this change, not by the instrument
+RESULT arch_added_lines=sound: one owner per concern (MeasuredCop and the COP_REFUSED_* codes in accuracy.py, follows_ask in draw_range.py, the floor in thermal_model.py), no homeassistant import added to any learner/model module, judge_* are pure functions with the evidence passed in, missing input refuses or returns None rather than guessing, and it extends the existing store-domain, diagnostics-_VIEWS and _fold_measured_cop mechanisms rather than adding a parallel one
+
+## 7. Numbers I could NOT re-derive -- recorded, not confirmed
+
+Per fix-review.md step 8, these are body figures that do not reproduce at this
+head. They do not change any conclusion, so the verdict is not blocked on them,
+but they are not verified either:
+
+- "**14 hunks, 349 added lines, 30 removed**" for `diff -u <(git show origin/main:tests/features.py) tests/features.py`. At the head it is **14 hunks, 384 added, 30 removed** (`git diff --numstat` reads 384/30 against origin/main, against the merge base, and against 7cd5a588c alike; no ref in the range gives 349). The body's own breakdown -- the 351-line COP hunk plus "13 small ones" (which sum to 33) -- is the 384 figure, so 349 is a slip in one number, not a wrong measurement.
+- The same sentence's "its hunk 359 with context": hunk 14 is `@@ -60477,6 +60480,357 @@`, i.e. 357 new-file lines.
+- "`CI PREDICT: no closures or fast red predicted against 7cd5a588cbbb`": at this head the same command prints `against 1301d7e45df0`, the head's merge base. The substance (rc=0, one line, no "unpinned sites the diff adds" warning) reproduces exactly.
+- "`tools/pr/ci_predict.py` ... **6.1 s**": on this (loaded) box the same command is 12.9 s wall / 4.2 s user. The standing cost is "seconds" either way; the quoted figure is a capture from an earlier base.
+- "No check has run at this head yet": false now -- the head carries 35 check runs, and `fast (3.14)` is green at it.
+
+Everything else the body quantifies that I could reach, I reproduced: the 239/53
+production delta; the union proof (R.check( 3625 = main's 3602 + 23; 0 main names
+lost); the census (33 scripts / 528 pairs / 29 / 406 comparable / 123 at >= 0.80 /
+18 at exactly 1.00 / 93 files / 75 modules, and 120/18 at d8a4bd36f); the
+four-tree debug_collect control (59/74 = 0.7973 -> 60/75 = 0.8000); the HA-boundary
+rule (75 / 27 / 28 / 47); claims.py 125 / 123 / 0-false / 2-unverifiable and
+75 / 75 / 0 / 27; entities.py ALL 2250 PASSED; structure PASSED; closure selftest
+57; guard_pins 50; layout ok; deployment_shape PASSED; brief_lint rc=0 with 0
+findings on both carry files; the corpus `--normalize` identity (1406
+dispositions); and that every one of the 30 lines the features.py merge removed
+names a symbol this fix renames (`grep -vc` = 0).
+
+The docstring-provenance correction at 025b779c4 is real and the four-tree control
+for it reproduces: the "+3 debug_collect pairs" clause moving from #2066's merge
+to #2065's is a corrected cause, and the numbers beside it are unchanged.
+
+## Residuals the body discloses and I confirm
+
+- The self-setting-pump departure folds before follows_ask has evidence: probe6
+  selfset_hourly 1.170 (right 1.000), harness selfmod_independent_4kw 0.780
+  (right 1.000), probe3b 0.590 at 4 kW. Carried as a precondition to fix 3 in
+  dev/programme/carries/carry-2066.json, with its control and nulls.
+- Fixed-speed pumps with min > 0.375 x max lose their 50 %/70 % duty-averaged
+  intervals (harness fixed3_duty50/duty70 5/5 -> 0/5). Disclosed in the body.
+- The two-site drive pool at coordinator.py:4562 is the branch's own disposition
+  and is stated as such, not deferred to mutation-autofix.
+- The `briefs` recurrence (twice in round 4) is answered in the body with its
+  cheaper detector and standing cost; the root-cause seat it owes (dev/audit/rca/)
+  is recorded as owed, not written. fix-review.md step 11 asks whether the trigger
+  was answered, not whether the answer is complete, so this does not block.
+
+## Verdict
+
+merge. The proof is non-vacuous, every quoted figure I could reach re-derives,
+the claim files are main's own bytes, no budget moved up, the merge is clean
+against live main, and the head's heavy lane that has finished (`fast (3.14)`)
+is green. The four stale figures in section 7 are recorded above rather than
+confirmed, and none of them carries the soundness argument.
