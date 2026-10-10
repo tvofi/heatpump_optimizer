@@ -2019,6 +2019,7 @@
    "custom_components/heatpump_optimizer/flow_lift.py",
    "custom_components/heatpump_optimizer/freq_control.py",
    "custom_components/heatpump_optimizer/inputs.py",
+   "custom_components/heatpump_optimizer/ledger.py",
    "custom_components/heatpump_optimizer/legionella.py",
    "custom_components/heatpump_optimizer/manual_plan.py",
    "custom_components/heatpump_optimizer/mixing_valve.py",
@@ -3681,7 +3682,7 @@
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 159.6
+   "seconds": 67.4
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -3721,7 +3722,7 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 53.6
+   "seconds": 22.6
   },
   "tests/entities.py": {
    "rc": 0,
@@ -3801,7 +3802,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 56.0
+   "seconds": 20.9
   },
   "tests/wood_advisor.py": {
    "rc": 0,
