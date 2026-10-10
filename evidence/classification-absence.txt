@@ -1,0 +1,31 @@
+head measured: a01d262cf500331b4a0a50138855afaff8357ccc
+
+=== classification by the tree's own checks ===
+-- tests/closure.py INERT prefix line --
+297:    "dev/audit/",
+-- tests/layout.json category --
+79:    "dev/audit/rounds/**",
+-- tests/layout.json delivery category --
+67:    "dev/programme/delivery/*.md",
+
+-- python3.13 tests/layout.py --guard --base origin/main --
+layout: GUARD: 0 refusal(s) against d22172b6e504
+
+=== body claim: deliverables absent from main under any name (three-dot) ===
+merge-base = d22172b6e504943f3b4878fb0a59b951cd75e50e ; origin/main = c729bb32edf0cf0e777d3154dcb86654b1fbc096
+-- files matching the three names anywhere on origin/main --
+(no file by those names on origin/main)
+-- where the strings occur on origin/main (citations only) --
+origin/main:handoff/round9/plan-table-live.md
+origin/main:tools/replay/debug_replay.py
+
+=== cited reference on origin/main ===
+# The pre-study's single agreement offender: first-day 23:00 UTC on the
+# synthetic week (debugger-prestudy.md section 5).
+OFFENDER_INSTANT = "2026-01-15T23:00:00+00:00"
+
+=== merge-tree (step 13) ===
+merge-tree rc=0 (0 = no conflict)
+
+=== head-moved check ===
+a01d262cf500331b4a0a50138855afaff8357ccc	refs/heads/fix/r9-prestudy
