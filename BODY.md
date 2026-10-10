@@ -100,6 +100,7 @@ line, quoted, at the head named above.
 | `0 refused, 0 stale allow entries` | `python3 tools/audit/seat/tmp_paths.py --check` |
 | `TOTAL: 0 error(s) across 40 policy file(s)`; corpus `~59899`, unmoved | `node tools/policy/policy_lint.mjs --budgets` |
 | `109 HARNESS HEADER CHECKS PASSED`, `57 closure shrink pins PASSED`, `layout self-test: ok` | the `run_always` lines of `tests/run.sh` |
+| `0` matches, in the orchestrator's own contract | `grep -ci 'state\.docs' dev/governance/roles/orchestrator.md` |
 
 `MODE: FULL` is the gate scoping this diff, not a failure: it touches
 `tests/closure.py` and `tests/closures.json`, both GATE_FILES.
@@ -140,10 +141,13 @@ declared intended; it is the wrong invocation, not a defect, and `prepr.sh
 
 ## Forward-carry
 
-`none`. The beat's own instructions are in the instrument it lives in
+`none`. The beat's instructions are in the instrument it lives in
 (`state_docs.py`'s docstring, its `--help`) and in the tree's inventory,
-`tools/audit/seat/INSTRUMENTS.md`, in this same diff; no later stage's brief
-owes a change for it.
+`tools/audit/seat/INSTRUMENTS.md`, in this same diff. Nothing else owes a
+change: `dev/governance/roles/orchestrator.md` names no state-doc command (see
+## Figures), and the by-hand invocation `dev/governance/roles/nudge.md`
+prescribes stays valid — the beat is a second way to run the same instrument,
+not a replacement, and `nudge.md` is policy, which this branch does not touch.
 
 ## Friction
 
