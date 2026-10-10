@@ -1,0 +1,5 @@
+rc=2 elapsed=134s
+  ok   the hooks step prints the failing hook's row, not only the count
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+
+243 passed, 1 failed

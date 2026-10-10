@@ -1,0 +1,10 @@
+  pair rule-frontmatter-paths: 2 readers, 17 items, 0 divergent
+  pair finding-class-id: 3 readers, 38 items, 1 divergent
+  pair merge-subject-pr: 4 readers, 596 items, 0 divergent
+  pair dead-member-liveness: 2 readers, 151 items, 0 divergent
+  pair governance-workflow-jobs: 2 readers, 42 items, 0 divergent
+  pair entity-names: 2 readers, 116 items, 0 divergent
+  discovery: 251 governance code files, 1354 distinct grammars, 27 shared by two or more files
+  DIVERGENT     finding-class-id "N-postreview-merge-red": bugclasses.json ids + "new"=true  finding.schema.json enum=false  audit-find.js CLASS_GUESS (intake)=false
+RESULT divergent=1 unregistered=0 dead=0 refused=0 seconds=0.4
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
