@@ -18,6 +18,15 @@
 # parent the previous tip, so a later round never needs a force-push. A
 # crossed-out verdict stays in the ref's history; only the tip is posted.
 #
+# THE ORDERING. `dispatch` refuses a head that carries no
+# `dev/programme/delivery/<pr>.md`, the pull request's own delivery row
+# (delivery-status-tracking.md). The row is the orchestrator's and lands
+# before the review: a row written after the verdict moves the head off the
+# one the reviewer measured, which `app_approve.sh --carry` refuses as a
+# commit of the branch's own, so it costs a re-review (R9-RCA-1990 class E).
+# A verdict posts only against a dispatch's nonce, so this is the one place
+# that can keep the row from landing late.
+#
 # push-verdict REFUSES, AND PUSHES NOTHING, unless the first line is in
 # `fix-review.md`'s grammar (the regex is `app_comment.sh`'s), the verdict
 # carries its dispatch's `bus-nonce:` line, and a file under the evidence
@@ -81,6 +90,9 @@ set -uo pipefail
 ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
 REMOTE=${HPO_BUS_REMOTE:-origin}
 REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
+#: A pull request's own delivery row (`dev/programme/delivery/<N>.md`,
+#: delivery-status-tracking.md). `dispatch` reads it off the head.
+ROW_DIR=dev/programme/delivery
 POSTER=${HPO_BUS_POSTER:-}
 if [ -z "$POSTER" ]; then
   if [ -f "$ROOT/tools/audit/app_comment.sh" ]; then POSTER=$ROOT/tools/audit/app_comment.sh; else POSTER=$ROOT/tools/pr/app_comment.sh; fi
@@ -247,10 +259,23 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
 }
 
 dispatch() { # pr head reviewer -> records the dispatch, prints the nonce line for the brief
-  local pr=${1:-} h=${2:-} r=${3:-} n
+  local pr=${1:-} h=${2:-} r=${3:-} n row
   numeric "$pr" || die "dispatch: the pull request '$pr' is not a number"
   [[ $h =~ ^[0-9a-f]{40}$ ]] || die "dispatch: '$h' is not a 40-hex head"
   [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch: name the reviewer's thread or session as one token"
+  # THE ORDERING (#1990 class E). The row is the orchestrator's
+  # (delivery-status-tracking.md) and lands before the review. A row written
+  # after the verdict moves the head off the one the reviewer measured, and the
+  # carry refuses a commit of the branch's own, so it costs a re-review. This
+  # dispatch is the only way to start that review (a verdict posts only against
+  # a dispatch's nonce, below), so the head must carry its own row here. Fetch
+  # the head first when it is not local.
+  row=$ROW_DIR/$pr.md
+  git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
+  git cat-file -e "$h^{commit}" 2>/dev/null \
+    || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
+  git cat-file -e "$h:$row" 2>/dev/null \
+    || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
   n=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')
   [[ $n =~ ^[0-9a-f]{32}$ ]] || die "dispatch: could not mint a nonce"
   mkdir -p "$S" && printf '%s %s %s %s\n' "$pr" "$h" "$r" "$n" >> "$S/dispatched" || die "dispatch: cannot record in $S"
@@ -325,7 +350,7 @@ watch() {
 }
 
 self_test() {
-  local W pass=0 fail=0 out rc h1 h2 r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
+  local W pass=0 fail=0 out rc h1 h2 norow r1 r2 r9 v1 v2 ra rs rf t tt ev n N0 N1 N1b N2 N9
   W=$(mktemp -d) || { echo "self-test: no temporary directory"; return 1; }
   ok() { pass=$((pass + 1)); printf '  ok   %s\n' "$1"; }
   bad() { fail=$((fail + 1)); printf '  FAIL %s\n' "$1"; }
@@ -339,8 +364,20 @@ self_test() {
   throwaway_git_init "$W/seat" -q && git -C "$W/seat" remote add origin "$W/origin.git"
   git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m base
   git -C "$W/seat" push -q origin HEAD:refs/heads/main
-  h1=1111111111111111111111111111111111111111
-  h2=2222222222222222222222222222222222222222
+  # Real heads carrying a delivery row per pull request (#1990 class E): a
+  # `dispatch` now refuses a head without its own $ROW_DIR/<N>.md, so the heads
+  # the dispatch cases name must exist and carry them. h1 carries the rows for
+  # 7, 9 and 12; h2 (a child) inherits them; norow is the base, with none.
+  mkdir -p "$W/seat/$ROW_DIR"
+  for n in 7 9 12; do
+    printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
+  done
+  git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
+  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q -m "rows for 7, 9, 12"
+  h1=$(git -C "$W/seat" rev-parse HEAD)
+  git -C "$W/seat" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "a second head, rows inherited"
+  h2=$(git -C "$W/seat" rev-parse HEAD)
+  norow=$(git -C "$W/seat" rev-parse HEAD~2)
   mkdir -p "$W/ev1" "$W/ev2" "$W/evnone"
   printf 'measured at %s\n' "$h1" > "$W/ev1/run.log"
   printf 'measured at %s\n' "$h2" > "$W/ev2/run.log"
@@ -436,6 +473,17 @@ P
   expect "dispatch records pr, head and reviewer and prints a fresh nonce" $?
   N1b=$(run dispatch 12 "$h1" cmsg_Q | sed -n 's/^bus-nonce: //p')
   [ "$N1" != "$N1b" ]; expect "two dispatches mint two nonces" $?
+  # #1990 class E, the ordering. A row written after the verdict moves the head
+  # off the one the reviewer measured and costs a re-review (the carry refuses a
+  # branch-own commit). dispatch reads the head's own delivery row, so a head
+  # without one is refused and the row cannot land late. `norow` is the base,
+  # with no rows; h1 is the null control, the same pull request with its row.
+  out=$(run dispatch 7 "$norow" cmsg_Z); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/7.md"
+  expect "dispatch refuses a head with no delivery row (the ordering, #1990 class E)" $?
+  out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+  expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1" > "$W/merge.md"
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N1b" > "$W/othernonce.md"
   out=$(seat push-verdict 7 "$W/othernonce.md" "$W/ev1")
