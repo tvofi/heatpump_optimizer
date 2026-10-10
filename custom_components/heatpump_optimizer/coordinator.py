@@ -823,7 +823,7 @@ def _interval_measured_heat_kw(coord: Any) -> float | None:
     about what the elapsed interval delivered. One predicate rather than a
     guard per question, so the rule reads as the single sentence it is.
     """
-    heat_kw = coord._flow_bias.heat_output_kw
+    heat_kw: float | None = coord._flow_bias.heat_output_kw
     space_kw, dhw_kw = coord._commanded_split()
     if heat_kw is None or dhw_kw > 0.0 or space_kw <= 0.0:
         return None
