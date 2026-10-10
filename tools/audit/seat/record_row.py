@@ -18,10 +18,24 @@ like the other seat tools: every input is a flag, the roster through
 `--roster-ref` (a git ref whose `.claude/workflows/wave-r9-groups.json` is
 read with `git show`) or `--roster-file`, nothing about a session hardcoded.
 
+A row records the MERGE, not merely the pull request, so a row the tree already
+carries is not automatically done: `--plan` drops a merge whose row exists AND
+already tells it (`row_matches_merge`), and plans a rewrite for one that reads
+`**open**` for a merged request, or `**merged**` at a sha the API does not
+report. `has_row` stays the "is there any row at all" question, because the
+beat's own `self_row` and every pre-merge row are answered by it.
+
 THE REVIEW IS A PREDICATE (tvofi, 2026-10-07): `--automerge-check` is the
 guard under which the job approves the record pull request as the approver
 App and merges it at the judged head once its required checks pass, with no
-review seat; `automerge_refusals` states what it requires. WHAT STAYS MANUAL, by design (issue #1952,
+review seat; `automerge_refusals` states what it requires. A STATUS REWRITE IS
+A MODIFIED FILE, so the guard refuses the beat that carries one -- measured:
+the same generated line answers `[]` as `status: added` and
+`['not a new file adding exactly one line (status modified, -1)']` as
+`status: modified` -- and that beat is reviewed and merged by hand, which is
+the path this paragraph already describes for a guard refusal. Widening the
+guard to auto-merge a content change to the record is an owner's decision,
+not this generator's. WHAT STAYS MANUAL, by design (issue #1952,
 owner-approved 2026-10-04): the review of a record pull request the guard
 refuses, and the `dev/programme/HANDOVER.md` `updated-for:` line -- tied to
 merges that change owed work, not every beat, which a job would over-write.
@@ -161,32 +175,97 @@ def has_row(number: int, root: Path) -> bool:
     return bool(texts) and delivery_status.mentions(number, texts)
 
 
+#: The status a row records, read back from the one line a row writer emits.
+#: This is not a second row grammar: `rowed_line` still decides WHOSE row a
+#: line is, and what is matched here is only the status run -- `**open**` or
+#: `**merged `sha`**` -- between the em-dash and the title. Anything else
+#: reads None, deliberately: a seat's multi-line disposition, and the pre-
+#: 2026-10 hand style that carries extra facts INSIDE the bold
+#: (`**merged `e602e65`, 2026-09-16 13:09Z, by `tvofi`; roster owed**`), are
+#: records a seat wrote and a generator does not overwrite.
+_ROW_STATUS = re.compile(
+    r"^- \[#\d+\]\([^()\s]*/pull/\d+\) — \*\*(open|merged `([0-9a-f]+)`)\*\*"
+    r"(?:,.*)?$")
+
+
+def line_status(line: str) -> tuple[str, str] | None:
+    """`("open", "")`, `("merged", <recorded sha>)`, or None for a line no row
+    writer emits. Ownership is `rowed_line`'s question, not this one."""
+    m = _ROW_STATUS.match(line)
+    if not m:
+        return None
+    return ("open", "") if m.group(1) == "open" else ("merged", m.group(2))
+
+
+def recorded_row_status(number: int, root: Path) -> tuple[str, str] | None:
+    """What `dev/programme/delivery/<N>.md` says about its merge, or None when
+    the file is outside the rewrite grant: absent, more than one line, not
+    anchored on <N>, or carrying a status no row writer emits."""
+    path = root / row_path(number)
+    if not path.exists():
+        return None
+    lines = path.read_text(encoding="utf-8").splitlines()
+    if len(lines) != 1 or not rowed_line(number, lines[0]):
+        return None
+    return line_status(lines[0])
+
+
+def row_matches_merge(number: int, merge_sha: str, root: Path) -> bool:
+    """Whether the row that exists already tells THIS merge the truth.
+
+    Beside `has_row`, never inside it: `has_row` is the question the beat's own
+    `self_row` and every pre-merge row need -- is there a row at all -- and a
+    row can exist while saying the wrong thing about a merge that has since
+    landed. False is what plans a rewrite, and it is only ever returned for a
+    row this generator wrote: `**open**` for a pull request that has merged, or
+    `**merged**` at a sha the API does not report. True when there is no merge
+    sha to record, when the file is outside the grant, and when the row already
+    carries this merge's own sha -- which is what makes the rewrite idempotent.
+    """
+    if not merge_sha:
+        return True
+    rec = recorded_row_status(number, root)
+    if rec is None:
+        return True
+    status, sha = rec
+    return status == "merged" and merge_sha.startswith(sha)
+
+
 def plan_merges(merges: list[dict], root: Path,
                 roster: dict | None = None) -> list[dict]:
     """The rows `merges` still owe in `root`, oldest number first.
 
     Each merge carries the API facts `--enumerate` printed: `number`, `title`,
-    `state`, `head_ref`, `merge_sha`. A merge whose row exists -- because it
-    landed on main between enumeration and this call, or because a seat wrote
-    it -- is dropped, so a plan is recomputed against the tree it is applied
-    to and a main that moved re-derives rather than conflicts. A branch no
-    roster group claims rows in the neutral phrasing (no group suffix); a
-    seat edits it at approval.
+    `state`, `head_ref`, `merge_sha`. A merge whose row exists AND already
+    records it -- because it landed on main between enumeration and this call,
+    or because a seat wrote it, or because a previous beat rewrote it -- is
+    dropped, so a plan is recomputed against the tree it is applied to and a
+    main that moved re-derives rather than conflicts. A merge whose
+    row exists but reads `**open**`, or `**merged**` at a sha the API does not
+    report, is PLANNED: a row is a record of the MERGE, not merely of the pull
+    request, and `has_row` alone cannot see the difference (R9-ROW-STALE). A
+    branch no roster group claims rows in the neutral phrasing (no group
+    suffix); a seat edits it at approval.
     """
     rows = []
     for m in sorted(merges, key=lambda x: int(x["number"])):
         n = int(m["number"])
-        if has_row(n, root):
+        merge_sha = m.get("merge_sha") or ""
+        # A pull request the API still reports OPEN attests no merge, whatever
+        # sha its entry carries: `merge_commit_sha` is filled for an open
+        # request too, as the test-merge commit. That is the difference between
+        # a stale row and a row that is simply early.
+        if has_row(n, root) and (str(m.get("state") or "") == "open"
+                                 or row_matches_merge(n, merge_sha, root)):
             continue
         group = roster_lib.group_for_branch(roster, m.get("head_ref") or "") \
             if roster else None
         rows.append({
             "number": n,
             "path": row_path(n),
-            "line": row_line(n, m.get("title") or "", m.get("merge_sha") or "",
-                             group),
+            "line": row_line(n, m.get("title") or "", merge_sha, group),
             "title": m.get("title") or "",
-            "merge_sha": m.get("merge_sha") or "",
+            "merge_sha": merge_sha,
             "group": group,
         })
     return rows
@@ -194,29 +273,56 @@ def plan_merges(merges: list[dict], root: Path,
 
 # ---------------------------------------------------------------- write side
 
+def _rewrite_granted(number: int, line: str, root: Path) -> bool:
+    """Whether an EXISTING row file may be overwritten by `line`.
+
+    The grant is the STATUS and nothing else: the file must be a single row
+    this generator recognizes (`recorded_row_status`), the plan's line must
+    record a merge, and the two statuses must differ. So a rewrite moves a row
+    toward the merge -- `**open**` to `**merged `sha`**`, or a recorded sha the
+    API does not report to the one it does -- and never spends a seat's title
+    on a row that already says what the plan says, never downgrades a merged
+    row to an open one. A file outside the shapes -- a seat's multi-line
+    disposition, a status the bold carries past the merge -- is left alone
+    exactly as before: the plan was stale, the tree won.
+    """
+    now = recorded_row_status(number, root)
+    want = line_status(line)
+    return (now is not None and want is not None and want[0] == "merged"
+            and now != want)
+
+
 def write_rows(rows: list[dict], root: Path) -> list[str]:
     """Write row files behind the guarded write set; returns what was written.
 
     Every path must match `dev/programme/delivery/<N>.md` -- the plan table, the
     handover, and any other path are refused, not skipped -- and a row file
-    that already exists is left alone (the plan was stale, the tree won).
+    that already exists is rewritten only on `_rewrite_granted`'s terms: a
+    status that contradicts the merge the plan attests. Anything else that
+    already exists is left alone (the plan was stale, the tree won).
     Each file is exactly one line and a trailing newline: one line can
     neither split a table nor trail one.
     """
     written = []
     for r in rows:
         path = str(r.get("path") or "")
-        if not ROW_PATH.match(path):
+        m = ROW_PATH.match(path)
+        if not m:
             raise Refuse(
                 f"outside the row writer's grant: {path!r} -- the write set "
                 f"is {ROW_PATH.pattern} only ({PLAN_FILE} and {HANDOVER_FILE} "
                 "are a seat's dispositions, never this generator's)")
-        if not rowed_line(int(r.get("number") or 0), str(r.get("line") or "")):
+        # The FILE's number, the same key `automerge_refusals` reads the diff
+        # by: a plan that names one number and paths another cannot aim a
+        # rewrite at a row it does not describe.
+        number = int(m.group(1))
+        if not rowed_line(number, str(r.get("line") or "")):
             raise Refuse(
-                f"row for #{r.get('number')} does not anchor its own number: "
+                f"the row written to {path} does not anchor #{number}: "
                 f"{str(r.get('line'))[:60]!r}")
         target = root / path
-        if target.exists():
+        if target.exists() and not _rewrite_granted(number, str(r["line"]),
+                                                    root):
             continue
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(str(r["line"]) + "\n", encoding="utf-8")
@@ -682,6 +788,188 @@ def self_test() -> int:
                [{"number": 2060, "title": "t", "state": "merged",
                  "head_ref": "", "merge_sha": "c" * 40}], root,
                roster=None)] == [2060])
+        # ------------------------------------------------ R9-ROW-STALE ----
+        # A row's STATUS is part of what it records. A pre-merge row -- the
+        # shape `open_pr.sh`, `handoff_push.sh` and `self_row` all write --
+        # anchors its number, so `has_row` answers for it forever, and a merge
+        # that landed after it is never recorded. These arms are the tree the
+        # next beat actually meets; the two controls at the end are what the
+        # rewrite must never touch.
+        STALE_SHA, OTHER_SHA = "f" * 40, "b" * 40
+        pre_row = (f"- [#2100](https://github.com/{DEFAULT_REPO}/pull/2100)"
+                   " — **open**, fix(R9-ROW-STALE): a row written before the "
+                   "merge (R9-ROW-STALE)")
+        (root / "dev/programme/delivery/2100.md").write_text(pre_row + "\n")
+        stale_merge = {"number": 2100,
+                       "title": "fix(R9-ROW-STALE): a row written before the "
+                                "merge",
+                       "state": "closed", "head_ref": "fix/r9-row-stale",
+                       "merge_sha": STALE_SHA}
+        stale_plan = plan_merges([stale_merge], root, roster=None)
+        ok("a stale open row for a merged PR is planned for rewrite",
+           [r["number"] for r in stale_plan] == [2100])
+        ok("the rewrite is row_line's own line, byte for byte",
+           len(stale_plan) == 1
+           and stale_plan[0]["line"] == row_line(2100, stale_merge["title"],
+                                                 STALE_SHA, None))
+        ok("apply rewrites the row",
+           write_rows(stale_plan, root) == ["dev/programme/delivery/2100.md"]
+           and (root / "dev/programme/delivery/2100.md").read_text()
+           == row_line(2100, stale_merge["title"], STALE_SHA, None) + "\n")
+        ok("the rewritten row reads merged at the API's sha",
+           f"**merged `{STALE_SHA[:7]}`**"
+           in (root / "dev/programme/delivery/2100.md").read_text())
+        ok("a row that already records this merge is not planned again",
+           plan_merges([stale_merge], root, roster=None) == []
+           and write_rows(stale_plan, root) == [])
+        # A row at a SHA the API does not report is corrected to the API's.
+        (root / "dev/programme/delivery/2101.md").write_text(
+            row_line(2101, "fix: misrowed", "a" * 40, None) + "\n")
+        wrong_sha = {"number": 2101, "title": "fix: misrowed",
+                     "state": "closed", "head_ref": "", "merge_sha": OTHER_SHA}
+        ok("a row at the wrong merge sha is corrected",
+           [r["number"] for r in plan_merges([wrong_sha], root, roster=None)]
+           == [2101])
+        _wrote_2101 = write_rows(plan_merges([wrong_sha], root, roster=None),
+                                 root)
+        ok("the correction lands, and the row stays a one-line row",
+           _wrote_2101 == ["dev/programme/delivery/2101.md"]
+           and (root / "dev/programme/delivery/2101.md").read_text()
+           == row_line(2101, "fix: misrowed", OTHER_SHA, None) + "\n"
+           and rowed_line(2101, (root / "dev/programme/delivery/2101.md")
+                          .read_text().rstrip("\n")))
+        # A rewrite keeps the group suffix and the neutral tail, so the readers
+        # of the row see the same shape they saw before the status moved.
+        _rr_roster = {"groups": [{"group": "R9-ROW-STALE",
+                                  "resume": {"branch": "fix/r9-row-stale"}}]}
+        (root / "dev/programme/delivery/2102.md").write_text(
+            f"- [#2102](https://github.com/{DEFAULT_REPO}/pull/2102)"
+            " — **open**, fix: grouped (R9-ROW-STALE)\n")
+        _grouped_rewrite = plan_merges(
+            [{"number": 2102, "title": "fix: grouped", "state": "closed",
+              "head_ref": "fix/r9-row-stale", "merge_sha": OTHER_SHA}],
+            root, roster=_rr_roster)
+        ok("a rewrite keeps the group suffix",
+           len(_grouped_rewrite) == 1 and _grouped_rewrite[0]["line"].endswith(
+               "(R9-ROW-STALE).") and _grouped_rewrite[0]["group"]
+           == "R9-ROW-STALE")
+        # CONTROL A, and the reason it is a control: the API fills
+        # `merge_commit_sha` for an OPEN pull request too (the test-merge
+        # commit), so a status-only predicate would call a legitimately open
+        # row stale. The plan's own attestation -- a PR the API still reports
+        # open is not a merge -- is what keeps it untouched.
+        (root / "dev/programme/delivery/2104.md").write_text(
+            f"- [#2104](https://github.com/{DEFAULT_REPO}/pull/2104)"
+            " — **open**, fix(R9-ROW-STALE): still in review (R9-ROW-STALE)\n")
+        _open_before = (root / "dev/programme/delivery/2104.md").read_text()
+        _still_open = {"number": 2104, "title": "fix(R9-ROW-STALE): still in "
+                       "review", "state": "open",
+                       "head_ref": "fix/r9-row-stale", "merge_sha": OTHER_SHA}
+        ok("control A: an open pull request with an open row is untouched",
+           plan_merges([_still_open], root, roster=_rr_roster) == []
+           and (root / "dev/programme/delivery/2104.md").read_text()
+           == _open_before)
+        # The arm that makes CONTROL A an arm of the STATE test rather than of
+        # the sha: read on status alone the row IS stale, so a predicate on the
+        # row cannot be what holds this entry. `plan_merges`'s `open` clause is,
+        # and mutating that clause turns this check red -- which clause a
+        # control is watching has to be said in the fixture, not the prose.
+        ok("control A: the row alone does read stale, so it is the state that "
+           "holds the plan",
+           row_matches_merge(2104, OTHER_SHA, root) is False
+           and row_matches_merge(2100, STALE_SHA, root) is True
+           and row_matches_merge(2102, OTHER_SHA, root) is False
+           and row_matches_merge(2104, "", root) is True)
+        # CONTROL B: a merge with no row at all still gets the new-row path,
+        # and the pre-merge beat still gets its `open` row from `self_row`.
+        _no_row = {"number": 2105, "title": "fix: unrowed", "state": "closed",
+                   "head_ref": "", "merge_sha": OTHER_SHA}
+        _plan_2105 = plan_merges([_no_row], root, roster=None)
+        ok("control B: a merge with no row still plans and writes a row",
+           [r["number"] for r in _plan_2105] == [2105]
+           and write_rows(_plan_2105, root)
+           == ["dev/programme/delivery/2105.md"]
+           and f"**merged `{OTHER_SHA[:7]}`**" in (
+               root / "dev/programme/delivery/2105.md").read_text())
+        ok("control B: the pre-merge self-row still writes an open row",
+           write_rows([self_row(2106)], root)
+           == ["dev/programme/delivery/2106.md"]
+           and "**open**" in (root / "dev/programme/delivery/2106.md")
+           .read_text() and "**merged `"
+           not in (root / "dev/programme/delivery/2106.md").read_text())
+        # A rewrite moves a row TOWARD the merge, never away from it: writing
+        # the beat's own open self-row over a row that already reads merged
+        # would be a downgrade, and re-writing it over an open row a sibling
+        # instrument titled more richly would spend that title for nothing.
+        rich = (f"- [#2107](https://github.com/{DEFAULT_REPO}/pull/2107)"
+                " — **open**, record: delivery rows for #1992 (autofix)\n")
+        (root / "dev/programme/delivery/2107.md").write_text(rich)
+        ok("an open row is never rewritten toward another open row's title",
+           write_rows([self_row(2107)], root) == []
+           and (root / "dev/programme/delivery/2107.md").read_text() == rich
+           and write_rows([self_row(2106)], root) == [])
+        # THE DIRECTION, driven. #2100 now records its merge, and the beat
+        # writing its own OPEN self-row at that number must not undo the
+        # record. The grant is one-way -- toward the merge -- and dropping its
+        # `want[0] == "merged"` clause turns this check red, so the property the
+        # docstring claims has a witness rather than a sentence.
+        ok("a merged row is never rewritten back to open",
+           write_rows([self_row(2100)], root) == []
+           and f"**merged `{STALE_SHA[:7]}`**" in (
+               root / "dev/programme/delivery/2100.md").read_text())
+        # THE GRANT BOUNDARY. Two row shapes a seat wrote are not the
+        # generator's to overwrite: a multi-line disposition, and a status the
+        # bold carries past the merge (the pre-2026-10 hand style). Both must
+        # stay byte-identical, planned or not.
+        seat_row = (f"- [#2108](https://github.com/{DEFAULT_REPO}/pull/2108)"
+                    " — **open**, fix: owed a root cause\n"
+                    "A D1 finding is owed before this merges.\n")
+        (root / "dev/programme/delivery/2108.md").write_text(seat_row)
+        prose_row = (f"- [#2109](https://github.com/{DEFAULT_REPO}/pull/2109)"
+                     " — **merged `e602e65`, 2026-09-16 13:09Z, by `tvofi`;"
+                     " roster owed**\n")
+        (root / "dev/programme/delivery/2109.md").write_text(prose_row)
+        _seat_merge = {"number": 2108, "title": "fix: owed a root cause",
+                       "state": "closed", "head_ref": "",
+                       "merge_sha": STALE_SHA}
+        _prose_merge = {"number": 2109, "title": "fix: hand rowed",
+                        "state": "closed", "head_ref": "",
+                        "merge_sha": OTHER_SHA}
+        ok("a seat's multi-line disposition is neither planned nor rewritten",
+           recorded_row_status(2108, root) is None
+           and plan_merges([_seat_merge], root, roster=None) == []
+           and write_rows([{"number": 2108,
+                            "path": row_path(2108),
+                            "line": row_line(2108, "fix: owed a root cause",
+                                             STALE_SHA, None)}], root) == []
+           and (root / "dev/programme/delivery/2108.md").read_text()
+           == seat_row)
+        ok("a status a row writer never emits is outside the grant",
+           recorded_row_status(2109, root) is None
+           and plan_merges([_prose_merge], root, roster=None) == []
+           and write_rows([{"number": 2109,
+                            "path": row_path(2109),
+                            "line": row_line(2109, "fix: hand rowed",
+                                             OTHER_SHA, None)}], root) == []
+           and (root / "dev/programme/delivery/2109.md").read_text()
+           == prose_row)
+        # The generator adds no closing keyword of its own: the row it writes
+        # carries the API's title untouched, and a title that closes nothing
+        # rows a merge that closes nothing.
+        ok("the rewrite adds no closing keyword",
+           not CLOSING_KEYWORD.search(row_line(2110, "fix: a plain title",
+                                               STALE_SHA, "R9-ROW-STALE")))
+        # A rewrite is aimed at a FILE, so the file's number is the key -- the
+        # same key `automerge_refusals` reads a diff by. An entry whose `number`
+        # names one pull request while its path names another would otherwise
+        # point a status rewrite at a row it does not describe.
+        try:
+            write_rows([{"number": 2100, "path": row_path(2101),
+                         "line": row_line(2100, "fix: misrowed", STALE_SHA,
+                                          None)}], root)
+            ok("a rewrite aimed at another row's file is refused", False)
+        except Refuse:
+            ok("a rewrite aimed at another row's file is refused", True)
         # the roster lookup rides roster_lib, one derivation only
         roster = {"groups": [
             {"group": "R9-FR-4", "resume": {"branch": "handoff/r9-fr-4"}},

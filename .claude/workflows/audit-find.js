@@ -273,7 +273,7 @@ const REPORTED = SEATS.map((s) => s.id).filter((id) => reports[id])
 // reason, never repaired.
 // The ledger's ids (tools/audit/bugclasses.json) spelled out: agreement.mjs's
 // finding-class-id pair refuses this list the moment it parts from the ledger.
-const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
+const CLASS_GUESS = /^(I1|I2|I3|I4|I5|N-approval-rebuy|N-finally-return|N-future-instant|N-name-sort|N-postreview-merge-red|N-reap-lock|N-restart|N-shared-config|N-silent-zero|N-solve-recompute|N-staleness|N-step-grid|N-structure-blind|P1|P10|P11|P2|P3|P4|P5|P6|P7|P8|P9|new)$/
 const rejected = []
 const accepted = []
 for (const id of REPORTED) {
