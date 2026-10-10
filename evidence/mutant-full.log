@@ -1,3 +1,38 @@
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Price entity is empty
+Unknown DSO catalog product not_a_swedish_dso_2026; not writing
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
+Failed to publish ECL110 displace command: mqtt unreachable
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
+Config entry version 8 is newer than the supported version 7; downgrade is not supported
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+/Users/timmalmstrom/hpo-seats/r9rev-2120b/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  callback()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+gate_lock: waiting for the lease held by other until 2026-10-10 21:35:04.601351+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-10 21:35:05.236623+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-10 21:35:05.236623+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-10 21:35:05.236623+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-10 21:35:06.821881+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-10-10 21:35:07.565523+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-10-10 21:35:21.245019+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
+gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
+closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
 
 === Entities and platforms ===
 
@@ -1516,7 +1551,7 @@
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [13 registered after two entries; catalog 13; extra=[]; missing=[]]
-  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_topology__dup', 'debug_collect__dup', 'set_away__dup']; missing=[]]
+  FAIL a8:register_once  [16 registered after two entries; catalog 13; extra=['apply_schedule__dup', 'apply_topology__dup', 'set_thermal_parameters__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [13 registered after unload; catalog 13; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 13; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1645,7 +1680,7 @@
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3icpezuc/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/tmp3bkcd9d9/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1663,7 +1698,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   and no non-gate workflow forces the FULL suite, whatever else it does
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-ucbm5d5c/closures.json
+closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/T/closure-inert-2lgcvwmz/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -1760,7 +1795,10 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   the fail-fast message names the class, the judge of record, the decision tree and the retry loop it forbids
   ok   the fail-fast message says the third recorded instance re-opens the grammar decision
   ok   the fail-fast message shows the instance marker only inside prose, never at column 0
-  ok   main() wires the fail-fast arm: it asks the discriminator and prints the named signature
+  ok   main() wires the fail-fast arm: it asks the discriminator and prints the named signatureTibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+
   ok   the counter reads a fixture thread: two recorded instances, and quotes, indented pastes or mid-line mentions record none
   ok   the re-open verdict is silent below the threshold and fires the owner's line at three and beyond
   ok   the counter's CLI reads a fixture thread: exit 0 with the count at two, exit 2 and the re-open line at three
@@ -1824,7 +1862,7 @@ closure: updated 1 closure(s) in /var/folders/47/470ps6zs6vs07m86bz9sczs00000gn/
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs 641408c510de98da4c55e13b5b9a9a7cb3604d33
+  DRIFT wood_coil: 1 leaves moved vs 0d12989b21f7ae011ce4a302fbec59adf419afc7
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2364,7 +2402,7 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   the nightly reports a pin its script did not kill, and never reads a site the budget, a timeout or another driver left unrun as re-verified (R9-F10.13)
   ok   a triage-marked site is driven by every driver but the one that judges the marks, and left out when that is its only driver; an unmarked site keeps it (R9-F10.13)
   ok   a pinned site's killer is driven first however dear it is; an unpinned site and a stale pin keep the cost order (R9-F10.13)
-  ok   --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)
+  FAIL --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)  [has pin=True real=(1, 'MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/sensor.py:ModelStatusSensor.native_value GUARD_OFF 49f1f2ee: disposition names no site the inventory generates (old pin \'        if _mapping(data.get("cop_health")).get("alarm"):\')\n') wrong=(1, 'MUTATION TABLE REFUSED -- the ledger disagrees with the deterministic inventory:\n    - custom_components/heatpump_optimizer/sensor.py:ModelStatusSensor.native_value GUARD_OFF 49f1f2ee: disposition names no site the inventory generates (old pin \'        if _mapping(data.get("cop_health")).get("alarm"):\')\n')]
   ok   mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)
   ok   a changed-scope pool draws only sites on lines the diff modified
   ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
@@ -2508,42 +2546,4 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
   ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
   ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
 
-1 of 2267 ENTITY CHECKS FAILED
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Price entity is empty
-Unknown DSO catalog product not_a_swedish_dso_2026; not writing
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 52 °C charge limit, so the tank is taken above that limit every 7 days
-Failed to publish ECL110 displace command: mqtt unreachable
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 55 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
-Hot water: the anti-legionella cycle at 60 °C is above the 50 °C charge limit, so the tank is taken above that limit every 7 days
-Config entry version 8 is newer than the supported version 7; downgrade is not supported
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-/Users/timmalmstrom/hpo-seats/r9rev-2120/wt/tests/harness.py:561: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
-  callback()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
-gate_lock: waiting for the lease held by other until 2026-10-10 15:49:53.359972+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-10 15:49:53.999978+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-10 15:49:53.999978+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-10 15:49:53.999978+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-10 15:49:55.566610+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-10-10 15:49:56.289199+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by seat until 2026-10-10 15:50:10.528965+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
-gate_lock: waiting for the lease held by w, queued first (yours? export HPO_GATE_LOCK_LABEL with that label)
-closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
-closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
-Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+2 of 2267 ENTITY CHECKS FAILED

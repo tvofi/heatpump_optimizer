@@ -1,0 +1,20 @@
+closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
+-- A failed refresh reaches every entity
+  ok   and none of them is available after a failed coordinator refresh
+  ok   an empty price entity is a failed fetch, not a guess
+  ok   a failed ECL110 publish is caught, not propagated, and the mode change still lands
+  ok   the nightly A4 check lets an in-flight CancelledError propagate past a failed recovery
+  ok   the nightly A4 check lets an in-flight KeyboardInterrupt propagate past a failed recovery
+  ok   and it demands the roster on a run that already failed
+  ok   a3:orjson  [0 failed HA json_bytes]
+  FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+  ok   a3:orjson  [0 failed HA json_bytes]
+  ok   a4:failed  [last_update_success=False]
+  FAIL a4:failed  [last_update_success=True]
+  ok   a4:failed fails when last_update_success stayed True
+  ok   a4:recovered fails a stuck entity and a coordinator that stayed failed
+  ok   a failed same-repo PR closures job may autofix
+  ok   a failed recording OF the under-scoped script reddens, not skips
+  ok   a failed recording of an UNRELATED script no longer blocks the repair; its own truncated trace is left out of the merge
+  ok   a failed recording of a driven child refuses its driver's repair; the same pair recorded cleanly repairs
+  ok   an INERT READS under-approximation is merged by the bot; its script's own failed recording still refuses

@@ -1,0 +1,15 @@
+             2071 m
+             2 of 2267
+             1 of 2267
+             3 of 2267
+             6 of 2227
+  ok       policy corpus -- current with origin/main (0 file(s) authored here, not stale)
+  clean    no refusal (the 'check' lines above are yours to answer)
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /Users/timmalmstrom/hpo-seats/r9rev-2120b/ev/body.md -- no budget leaf raised over 6918cb4b2...4e1c290e0
+  ok       figures                FIGURES: 30 resolved, 1 not verified, 0 refused
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  skip     push order             HEAD is detached, so no branch of this repository is the pull request's head
+  skip     ancestry reds          HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head
+
+PRE-PR: 4e1c290e0138b4c145b338030b557a62f58950f7 00000000000000000000000000

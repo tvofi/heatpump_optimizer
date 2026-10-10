@@ -1,4 +1,0 @@
-########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
-RESULT max_class_loc=8814 count
-  ok   max_class_loc 8814 <= 8814
-STRUCTURE RATCHET PASSED

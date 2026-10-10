@@ -1,0 +1,4 @@
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+
+2 of 2267 ENTITY CHECKS FAILED

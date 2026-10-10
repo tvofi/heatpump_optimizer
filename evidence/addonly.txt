@@ -1,0 +1,11 @@
+tests/golden/coord_all_features.json: base-leaves=2076 head-leaves=2109 CHANGED=0 REMOVED=0 ADDED=33 -> ADD-ONLY OK
+   added top-level groups: {'sensors': 33}
+tests/golden/coord_dhw.json: base-leaves=1973 head-leaves=2006 CHANGED=0 REMOVED=0 ADDED=33 -> ADD-ONLY OK
+   added top-level groups: {'sensors': 33}
+tests/golden/coord_grid_fee.json: base-leaves=1850 head-leaves=1881 CHANGED=0 REMOVED=0 ADDED=31 -> ADD-ONLY OK
+   added top-level groups: {'sensors': 31}
+tests/golden/coord_minimal.json: base-leaves=1850 head-leaves=1881 CHANGED=0 REMOVED=0 ADDED=31 -> ADD-ONLY OK
+   added top-level groups: {'sensors': 31}
+tests/golden/coord_two_zone.json: base-leaves=1911 head-leaves=1942 CHANGED=0 REMOVED=0 ADDED=31 -> ADD-ONLY OK
+   added top-level groups: {'sensors': 31}
+RESULT add-only: ALL FIVE ADD-ONLY

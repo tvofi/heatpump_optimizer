@@ -1,146 +1,85 @@
-Fix review: blocked b5c9e5bbae47eb464c081be3202a09ea156ab606 root-cause-unanswered: mutation, fast (3.14) and pr-contract went red, unanswered
+Fix review: merge 4e1c290e0138b4c145b338030b557a62f58950f7
 
-bus-nonce: 3f7ad37fa8012a616e533491325954f5
+bus-nonce: 13dd7e898abd9677e174315a459234ee
 
-Measured head: b5c9e5bbae47eb464c081be3202a09ea156ab606 (PR #2120, `fix/r9-ux-7`),
-merge base 70b50c5730d7, in a detached worktree at that head. `git ls-remote
-origin refs/heads/fix/r9-ux-7` was still b5c9e5bba… when this verdict was posted.
-Merge conflict measured clean: `git merge-tree --write-tree origin/main <head>`
-exits 0, no driver marker.
+Round 2 (repair round). Round 1 established the substance at b5c9e5bba and
+blocked on root-cause-unanswered; this round verifies the repair at the pushed
+head 4e1c290e0, a merge that adds only this PR's delivery row to the repair
+head 27ad9640e.
 
-WHY BLOCKED (contract step 11)
-==============================
+## 1. The five fixture re-recordings are add-only (measured)
 
-The body's `## Red checks` opens: "Nothing has been pushed to CI yet, so there
-is no pushed-head red." At the measured head that is false. The check-runs API
-(read directly, not `gh pr checks`) reports, against b5c9e5bba…:
+Recursive leaf-by-leaf comparison of every tests/golden/coord_*.json between
+the merge base d3dbf2c3fc42 and the head, over 1850-2076 base leaves per file:
 
-- `mutation` — completed, FAILURE (job 114248575047, run 38064236516).
-- `fast (3.14)` — completed, FAILURE (job 114248575023), after this review's
-  local run predicted it (below); the body names neither.
-- `pr-contract` — completed, FAILURE, twice (114248586474, 114248516839).
-- `mutation-autofix` — completed, FAILURE (114250148730).
+RESULT coord_all_features: CHANGED=0 REMOVED=0 ADDED=33 (all under `sensors`)
+RESULT coord_dhw: CHANGED=0 REMOVED=0 ADDED=33
+RESULT coord_grid_fee: CHANGED=0 REMOVED=0 ADDED=31
+RESULT coord_minimal: CHANGED=0 REMOVED=0 ADDED=31
+RESULT coord_two_zone: CHANGED=0 REMOVED=0 ADDED=31
+RESULT add-only: ALL FIVE ADD-ONLY
 
-Both `mutation` and `pr-contract` are required checks (ruleset 23698884). The
-body names neither. `pr-contract`'s own failing step 9 prints the rule:
+No existing value moved anywhere: no solver float was re-recorded off-canonical
+(rule 3 honoured; the "keys added, no value moved" direction is literal).
 
-  ERROR [pr-body] check `mutation` is red and `## Red checks` does not name it.
-  Name the failure and answer it: the cheaper detector and its standing cost,
-  or the finding that none exists.
+## 2. The claims are honest (re-run by me)
 
-`mutation-autofix` failing settles that this is not a "wait for the bot" case:
-per ci-autofix.md a red autofix job means there will be no bot commit. Its push
-step was SKIPPED and its report step failed — the quiet statuses are `changed`,
-`skip-not-allowed`, `skip-not-unpinned`, `skip-nothing-killed`, `skip-head-moved`
-(tests/closure.py AUTOFIX_QUIET), so the measured status was one of the
-reddening ones (`skip-unchanged`, `skip-measure-failed`, `skip-nothing-drivable`,
-`skip-no-measurement`). The branch's own `## Unpinned sites` disposal of the 11
-sites is not the answer the contract asks for, and the head did not move, so
-`skip-head-moved` is not it.
+tests/env_drift.py --all d3dbf2c3f at the head (venv-ci 3.14.7):
+RESULT env_drift: NO UNCLAIMED DRIFT: 56 scenario(s) checked against d3dbf2c3f
+RESULT env_drift: NO STALE FIXTURE: 56 committed fixture(s) still match
+claims-for: 6.7.17 in both claim files; VERSION=6.7.17; manifest 6.7.17; notes
+heading v6.7.17; none of the three touched by the diff. Each of the five new
+claimed_drift lines states its direction ("keys added, no value moved"); none
+of the five also appears in the may-drift list. tests/card_drift.mjs (after
+plan_view) at the head:
+RESULT card_drift: 39 state(s) moved and claimed, 1 identical
+The card claim file's rewrite of the two inert #2010 lines subsumes them: both
+states are re-claimed with this diff's own reason, so no excuse was lost and
+card_drift is green both ways.
 
-`fast (3.14)` completed FAILURE while this review ran. My own `env_drift.py
---all` at this head — the command the `fast` job runs, per tests.yml's header
-comment — reports, and predicted the red before it landed (evidence/env_drift.txt):
+## 3. The pins are real (re-driven by me)
 
-  5 UNCLAIMED DRIFT(S) vs origin/main
-    DRIFT coord_all_features/coord_dhw/coord_grid_fee/coord_minimal/
-         coord_two_zone: sensors.indoor_temp_predicted and sensors.model_status
-         "present on one side only"
-  5 COMMITTED FIXTURE(S) ARE STALE — the committed tests/golden/coord_*.json
-  carry no model_status / indoor_temp_predicted sensor (verified by reading
-  tests/golden/coord_minimal.json's `sensors` dict).
+11 killed_by entries added (10 by tests/entities.py, 1 by tests/debug_collect.py
+-- counted from the diff), each naming anchor, driver and before/after. Sampled
+four; anchors match the head's code (sensor.py:2081-2086 verified). Targeted
+mutant re-run at this head: COP-alarm guard -> if False: took entities.py from
+ALL 2267 PASSED (baseline re-taken by me, clean) to rc=1 with
+"FAIL UX-7: the status is learned, still learning, or needs attention on a COP
+alarm". The tally read 2, not the ledger's 1: the second failing check is
+entities.py's own R9-F10.13 pin self-test, which re-drives pin 49f1f2ee and
+fails because the mutation removed its anchor -- a second detector of the same
+line, not an independent red. The pins are additionally enforced live: that
+self-test verifies pin reproduction against the real tree on every run.
+tools/pr/ci_predict.py --base origin/main at the head prints no ADDED UNPINNED
+line.
 
-The diff touches neither tests/golden/claimed_drift.txt nor tests/golden/
-coord_*.json. `fast` is therefore red on work the branch itself introduced. The tree's own precedent is that this is owed in the same PR:
-412b671ba "fix(#1936): claim the advisor's coordinator-capture drift",
-63414e06a "fix(R9-UX-9): record the structural keys the code now publishes;
-claim them", 965860aa0 "claim the coordinator captures' new horizon_hours key".
-The body instead quotes the weaker `env_drift.py` (no `--all`), which printed
-"NO STALE FIXTURE" over the 5 sensitive scenarios only. If `fast` lands red on
-this, it joins the unanswered list above.
+## 4. Production tree unchanged from the reviewed code head
 
-WHAT I VERIFIED GREEN (so the repair round does not re-litigate it)
-===================================================================
+git diff 574345d95..4e1c290e -- custom_components/ names one file,
+debugger.py, whose three commits (5ad913305, 8cfc35591, 1e60f1861, R9-DBG-2)
+are all ancestors of origin/main -- main's own change, merged in. No
+branch-authored commit after 574345d95 touches custom_components/ (verified by
+git log --no-merges over the range). Resolution delta of that main merge judged:
+the branch does not touch debugger.py, and entities/env_drift/card_drift are
+green at the merged head.
 
-- RESULT entities head: `PYTHONPATH=tests/hastub python3.13 tests/entities.py`
-  at b5c9e5bba… — ALL 2267 ENTITY CHECKS PASSED (matches the body's figure).
-  Note the tree needs Python >= 3.12 (pre-existing f-string at entities.py:3935).
-- RESULT mutation proof re-run (contract step 1), three mutants, each
-  ast.parse-checked, tree restored clean after (evidence/mutants.txt):
-  M1 diagnostics `_without_private_ids` str arm -> `2 of 2267 ENTITY CHECKS
-  FAILED`, naming both leak checks; M2 sensor COP-alarm guard -> `1 of 2267`,
-  naming the status check; M3 coordinator `predicted_next_room_temp` return ->
-  `3 of 2267`, naming the three the body names. Not vacuous; figures match the
-  body exactly.
-- RESULT card_drift: `node tests/card_drift.mjs origin/main` (after
-  tests/plan_view.py) — "39 state(s) moved and claimed, 1 identical". Matches.
-- RESULT unpinned enumeration: `python3 tools/pr/ci_predict.py --base
-  origin/main` prints exactly 11 ADDED UNPINNED sites, the same 11 the body
-  dispositions. No seam the rule returns is undispositioned (step 6).
-- RESULT learning view: `class LearningView` (payload.py:652) and
-  `_learning_view()` (coordinator.py:7454) exist at the merge base and
-  `Payload` inherits `LearningView`, so every key the new sensors read
-  (cop_health, house_heat_loss_*, lower_floor_loss_*, solar_aperture,
-  capacity_envelope, system_identification, internal_gains_profile) is already
-  published at the base. All 8 INPUT_KEYS are declared in InputHealthView at
-  the base. `last_diagnosis` is absent from main's diagnostics.py as claimed.
-- RESULT duplicate check: `learning_model_status`, `indoor_temperature_predicted`,
-  `_without_private_ids`, `_published_sections`, `PRIVATE_ENTITY_ID`,
-  `def predicted_next_room_temp` each answer 0 files at the merge base; the
-  roster/uniqueness checks in entities.py pass at the head. One body figure I
-  could NOT re-derive as stated (step 8): the literal
-  `git grep -l predicted_next_room_temp <base>` returns 5 files (the private
-  method is a substring); the 0-file claim holds only for `def
-  predicted_next_room_temp`.
-- RESULT enum: `MODEL_STATUS_STATES = (learning, learned, attention)` covers
-  every reachable combination; the never-updated case returns None (unknown,
-  tested) and the never-learned case maps to `learning` with `samples: 0` in
-  the attributes, which the card words as "Still the settings' estimate".
-  No missing initial state. State names translated in strings.json/en.json/sv.json.
-- RESULT carry (step 10): forward-carry is "none"; the honoured claim verified —
-  HEALTH_WAITING is unchanged, the new Health block reads only the
-  enabled-by-default `_learning_model_status` sensor and is absent while that
-  sensor is unavailable, so it never expects `waiting_for` from an unavailable
-  sensor (carry-1795.json third entry).
-- RESULT closes-nothing verified: #1795 is closed (2026-10-10T06:37:59Z, by
-  #2010's merge); the only closing keyword in the body sits inside a code span
-  (does not fire); delivery/2010.md does read `**open**` as the Friction says.
-- RESULT version: pr-contract's own prepr step printed "no version edit".
-- RESULT structure: `STRUCTURE RATCHET PASSED` at the head, max_class_loc
-  8814 <= 8814.
+## 5. ## Red checks is truthful in both directions
 
-SECONDARY FINDINGS (recorded, not the blocking class)
-=====================================================
+Check-runs API at b5c9e5bba: exactly four failures -- fast (3.14), mutation,
+pr-contract, mutation-autofix. The body names all four and answers each; no
+red it fails to name, no name that is not red. At the pushed head every
+concluded check is green or skipped (pr-contract success); fast (3.14),
+mutation, closures and coverage were in_progress at 21:17Z when measured --
+the merge train gates them. The reworded Friction bullet carries no closing
+keyword; prepr on the body (PREPR_SKIP_CLOSURES=1, as disclosed) is clean:
+PRE-PR 4e1c290e, PR-BODY 0 errors, figures 30 resolved.
 
-1. The max_class_loc "payment of 4" is entirely a comment shave. Restoring the
-   4-line `# Reports learned=True ... See dev/archive/backlog.md, "Open"`
-   comment in HeatPumpOptimizerCoordinator makes structure.py print
-   `FAIL max_class_loc 8818 > 8814 (+4)` (evidence/structure_comment_restored.txt).
-   The budget edit was not required — at 8818 the old budget 8818 still passes —
-   so the -4 is a voluntary tightening bought by deleting a comment in the
-   largest class. The comment was stale (the backlog item it cites is marked
-   "Status: closed (#110, cca2b115)"), which is why I do not class this
-   metric-gamed, but the orchestrator should know the payment buys no
-   architecture. The deletion is also the only change in coordinator.py's class
-   body, and it removes a caveat about `house_heat_loss_learned` — the very
-   flag the new sensor's state rests on.
+## Other contract steps
 
-2. The design of record (handoff/round9/state/alt/design/ux/DESIGN-UX.md, UX-7,
-   on origin/handoff/audit-r9-alt — not on main) asks each row for "days of
-   evidence against what the learner needs". The implementation publishes
-   samples (only solar has a published need, SOLAR_APERTURE_MIN_SAMPLES=30) and
-   the heat-loss evidence bar is binary (learned ? 1 : 0). docs/dashboard-card.md
-   discloses "The counts are samples, not days", so I read this as a disclosed
-   deviation rather than a missing design trace.
-
-Repair path: name and answer `mutation`, `fast (3.14)` and `pr-contract`
-under `## Red checks`; the coordinator-capture
-drift the two new sensors cause must be claimed in tests/golden/
-claimed_drift.txt and the structural keys recorded in the coord_*.json fixtures
-on the canonical environment, as 412b671ba / 63414e06a did.
-
-Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2120/ev/ — checkruns.txt,
-env_drift.txt, entities_head.log, mutants.txt, card_drift.txt, ci_predict.txt,
-structure_head.txt, structure_comment_restored.txt. Each names the head
-b5c9e5bbae47eb464c081be3202a09ea156ab606 or was produced in the detached
-worktree at it.
+- merge-tree --write-tree origin/main 4e1c290e: clean, exit 0 (no claim-file
+  conflict against main's current tip 6918cb4b2).
+- Forward-carry: none owed (body states none; carry-1795 honoured, round 1).
+- Head was 4e1c290e at publication (ls-remote re-checked).
+- Evidence: /Users/timmalmstrom/hpo-seats/r9rev-2120b/ev/ (addonly.txt,
+  envdrift.txt, carddrift.txt, cipredict.txt, pins.txt, mutant-full.log,
+  baseline-tally.txt, prepr.txt, checkruns-head.txt; head named herein).
