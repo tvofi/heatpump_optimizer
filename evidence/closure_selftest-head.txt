@@ -1,0 +1,67 @@
+
+=== closure shrink guard (#527) ===
+  ok   card_drift.mjs's committed closure covers plan_view.py
+  ok   the 6-file raw trace is a strict subset of that claim
+  ok   a full merge does not drop files from card_drift.mjs
+  ok   a full merge writes the _comment's stub-seconds disclosure
+  ok   a shrinking script does not abort an unrelated grow
+  ok   the shrink path does not tell you to run a full derive
+  ok   a grow-only partial merge still grows (null control)
+  ok   a partial merge refreshes a stale _comment
+  ok   card_drift.mjs inherits plan_view.py's closure the way card.mjs does
+  ok   a broken-recording refusal names the command that takes the flag
+  ok   a stale-closure refusal names --single, not a bare full derive
+  ok   a refused merge surfaces merge()'s reason, not just skip-merge-failed
+  ok   and a merge that succeeds carries no merge reason (null control)
+  ok   a warm __pycache__ .pyc open attributes the source it was compiled from
+  ok   the #1309 instance maps: governance_cost's cache attributes its source
+  ok   a cache whose source is gone attributes nothing (null control)
+  ok   the cold path is unchanged (control)
+  ok   the header corpus is the six-part path under dev/audit/rounds
+  ok   merge drops a committed entry whose path does not exist (#1310)
+  ok   merge still keeps a committed REAL file the run did not touch (#527 null control)
+  ok   check fails on a phantom in the COMMITTED table (#1310)
+  ok   check passes on the same table once the phantom is gone (#1310 null control)
+  ok   check fails on a phantom in the committed inert_reads (R9-RO-10)
+  ok   prune drops committed phantom entries (#1310)
+  ok   prune keeps a closures key whose every entry was a phantom, empty: select reads a missing key as no closure recorded (R9-RO-9a)
+  ok   prune drops dead inert_reads entries, and a key left with none (R9-RO-10)
+  ok   prune is idempotent (#1310 null control)
+  ok   a partial merge keeps committed inert_reads the run cannot see (#1886)
+  ok   a recording that saw other inert reads grows, never swaps (#1886 grow arm)
+  ok   a full merge keeps committed inert_reads the run cannot see (#1886)
+  ok   the #1886 sequence stays green: Darwin merge, then Linux check
+
+=== coverage reuses only what the scoped gate skips (#1812) ===
+  ok   a FULL plan measures every script, base data or not
+  ok   a plan of no known mode measures every script
+  ok   scoped: only a skipped script with base data is reused
+  ok   scoped, cache miss: nothing is reused
+  ok   coverage-split reads .coverage.<n> and <n>.nodata as base data
+
+=== a recording's rc says whether it ended, and the log says it (#1987) ===
+  ok   record() runs the script with HPO_CLOSURE_RECORDING=1, the flag stress.py keys its timing verdicts on
+  ok   stress.py reads the same variable name
+  ok   derive_closures.sh's done line reports a recording's exit 3
+  ok   derive_closures.sh's done line reports a recording's exit 0
+
+=== a layout git merges without a driver (R9-CI-2b) ===
+  ok   within-band: the partial merge succeeds
+  ok   a timing re-recorded within 2x keeps the committed seconds
+  ok   outside-band: the partial merge succeeds
+  ok   a timing re-recorded outside 2x takes the new seconds
+  ok   ours: the partial merge succeeds
+  ok   theirs: the partial merge succeeds
+  ok   two branches re-timing one script merge with no driver
+  ok   legacy: the partial merge succeeds
+  ok   a merge writes sorted keys and sorted lists
+  ok   layout_errors names an unsorted list and unsorted keys
+  ok   check passes a sorted table
+  ok   check refuses an unsorted table
+  ok   check passes write_closures' own text (null control)
+  ok   check refuses a recorded entry as {seconds, rc}
+  ok   check refuses top-level keys unsorted
+  ok   check refuses indent 2
+  ok   the committed tests/closures.json is in the layout
+
+ALL 57 closure shrink pins PASSED

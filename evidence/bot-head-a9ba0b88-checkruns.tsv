@@ -1,0 +1,30 @@
+graders-head-copy	completed	skipped
+coverage-ratchet	completed	success
+closures-autofix	completed	skipped
+claims-autofix	completed	skipped
+mutation-autofix	completed	skipped
+mutation-pins	completed	skipped
+mutation-pin-plan	completed	skipped
+CodeQL	completed	success
+mutation-ledger-push	completed	skipped
+slow	completed	skipped
+mutation-ledger	completed	skipped
+mutation-nightly	completed	skipped
+coverage	completed	success
+mutation	completed	failure
+briefs	completed	success
+browser	completed	success
+typing	completed	success
+fast (3.14)	completed	success
+Analyze (python)	completed	success
+Analyze (actions)	completed	success
+Analyze (javascript-typescript)	completed	success
+validate-hacs	completed	success
+hassfest	completed	success
+record-autofix	completed	skipped
+closure-scope	completed	skipped
+nightly-status	completed	skipped
+closures	completed	success
+nightly-ha (stable)	completed	success
+nightly-ha (2025.2.0)	completed	success
+recheck-gate	completed	success
