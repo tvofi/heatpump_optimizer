@@ -1,0 +1,9 @@
+=== my harness: #2075 head addd6f457 ===
+ok   reviewed-row REWRITE               refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..ce6a1d3d278a6f10ef7ea1b1c3de9b55da2b6499
+ok   reviewed-row DELETE                refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..6eb6069da2f45c9fcceb32fbd26a35fce5e57555
+ok   SEAM delete+readd (same)           refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..5ad198b47b9435e3f2eb7f3e5538e67cc33cc8e8
+ok   MAIN-OWN delete+readd              refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..ead608fa21b13bb0b14cecb06f034a44aa3227c7
+ok   delete+add DIFFERENT path          refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..5a49f70075a39503734dbc656cb0b29b0956c0f2
+ok   FRESH row only (control)           carry   only automatic merges from origin/main, ci: commits and the autofix bot's own, and the branch's own diff compares equal
+ok   glob-named * + rewrite             refuse  the branch's own diff differs: c25402a9ef692c75f32100916b4fd308fdcb5e20..7d208173192951b6da4ddc2af1f7a93a088955f9 against c25402a9ef692c75f32100916b4fd308fdcb5e20..a8bd56c3c6ed9041ad383239a3ed4b464d494cb5
+--- 7 ok, 0 failed ---

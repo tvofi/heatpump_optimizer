@@ -1,0 +1,11 @@
+Step 11, head addd6f45758ff90ab862bcbe62357c1373ed7786  (final)
+42 check-runs, NONE pending, no non-success conclusions.
+Required contexts of ruleset 23698884 (17), all COMPLETED success:
+  fast (3.14), browser, briefs, closure-scope, closures, typing, hassfest,
+  validate-hacs, policy-docs, wave-script, pr-contract, env-matrix,
+  Analyze (actions), Analyze (javascript-typescript), Analyze (python),
+  mutation, budget-raise-gate
+ABSENT required contexts: NONE (tip commit authored by tvofi; pull_request runs exist).
+instrument-self-tests (CI, cited not run): "app_approve self-test: 168 checks, 0 failed"
+  == the body's DERIVED 168 (body labels it "derived, not measured").
+Cited from check-runs, NOT run here: mutation, fast (3.14), browser, closures.

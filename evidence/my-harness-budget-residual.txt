@@ -1,0 +1,7 @@
+=== BUDGET residual, #2075 head copy vs origin/main copy ===
+  [#2075 head]
+  bot rewrites mutation_budgets.json       carry 
+  bot rewrites a reviewed ledger row       refuse
+  [origin/main copy]
+  bot rewrites mutation_budgets.json       carry 
+  bot rewrites a reviewed ledger row       carry 
