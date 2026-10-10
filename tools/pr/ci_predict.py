@@ -239,19 +239,49 @@ def orphans(changed, closure):
             for f in closure.orphan_files() if f in changed]
 
 
+def stale_pin_preds(problems, base):
+    """`completeness_problems` lines as ledger predictions, scoped to the diff.
+
+    A problem line starts `FILE:SCOPE KIND DIGEST[#N]: ...`. It refuses when
+    FILE or the pin's own file under tests/mutation_ledger/ is in the diff;
+    otherwise it is main's, and prints as a warning job (`mutation`).
+    """
+    names = git(Path.cwd(), "diff", "--name-only", "--no-renames", f"{base}...HEAD") or ""
+    changed = set(names.split())
+    ledger = [c.rsplit("/", 1)[-1] for c in changed if c.startswith("tests/mutation_ledger/")]
+    out = []
+    for p in problems:
+        key = p.split(": ", 1)[0]
+        file_, _, rest = key.partition(":")
+        parts = rest.split(" ")
+        stem = ""
+        if len(parts) == 3:
+            stem = f"{parts[0]}.{parts[1]}.{parts[2].split('#')[0]}"
+        mine = file_ in changed or (stem and any(n.startswith(stem) for n in ledger))
+        out.append(("ledger", f"STALE PIN {p}") if mine else
+                   ("mutation", f"STALE PIN ON MAIN (not this diff's) {p}"))
+    return out
+
+
 def unpinned(base):
     """`mutation`'s source-only ratchet, CI's own functions, no mutant run."""
     import mutation_table as m
     budgets = m.load_budgets()
     sites = m.inventory()
     pinned_out = m.unpinned_sites(budgets, sites)
+    # The other direction (RCA stale-pins): a pin whose site the diff edited,
+    # moved or deleted. `mutation` refuses it from the same `inventory()` this
+    # already ran, and `mutation-autofix` only adds pins, never drops one.
+    # Diff-scoped like every other refusing arm: a stale pin main already
+    # carries is the orchestrator's, so it warns and names main.
+    stale = stale_pin_preds(m.completeness_problems(budgets, sites), base)
     base_sites = m.base_unpinned_sites(base, sites)
     if base_sites is None:
-        return [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
+        return stale + [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
                  f"to compare against, and CI refuses that too")]
     added = m.added_unpinned(pinned_out, base_sites, m.diff_sides(base))
-    return [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}")
-            for k, s in m.added_keys(added)]
+    return stale + [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}")
+                    for k, s in m.added_keys(added)]
 
 
 def predict(root: Path, base_ref: str) -> tuple[int, list[tuple[str, str]], str]:
@@ -290,8 +320,12 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     for job, line in preds:
         print(f"PREDICT {job:<8} {line}")
+    if any(j == "ledger" for j, _ in preds):
+        print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
+              "deleted by hand; `mutation-autofix` never drops one, and pins "
+              "the edited line afresh once it is gone")
     jobs = sorted({j for j, _ in preds if j != "mutation"})
-    sites = sum(1 for j, _ in preds if j == "mutation")
+    sites = sum(1 for j, l in preds if j == "mutation" and l.startswith("ADDED"))
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
               f"warning; the body owes each a line under ## Unpinned sites")

@@ -17,8 +17,15 @@ useless for the support it exists for: the entity ids, which say which
 sensors the install was reading; the MQTT topics, which are the usual cause
 of an ECL110 control fault; and the building and tariff parameters, which are
 the thermal model a "my plan is wrong" report is about. None of those is
-pre-filled from anything private. ``entry.options`` is still emitted as key
-names only.
+pre-filled from anything private.
+
+``config`` is the live configuration -- ``entry.options`` laid over
+``entry.data``, exactly what the coordinator runs on -- under the same
+redaction. It used to be ``entry.data`` alone, so a live install's dump showed
+setup-time limits where the running ones had been changed through options.
+The setup data stays beside it as ``config_setup``, and
+``config_overridden_by_options`` names the keys whose live value is not the
+setup one.
 """
 from __future__ import annotations
 
@@ -81,6 +88,19 @@ def _coarsen(value: Any) -> Any:
     if isinstance(value, list):
         return [_coarsen(item) for item in value]
     return value
+
+
+def config_view(
+    data: Mapping[str, Any], options: Mapping[str, Any]
+) -> dict[str, Any]:
+    """The live config, the setup data under it, and what options changed."""
+    return {
+        "config": {**data, **options},
+        "config_setup": dict(data),
+        "config_overridden_by_options": sorted(
+            k for k in options if k not in data or options[k] != data[k]
+        ),
+    }
 
 
 def _coordinator_snapshot(coord: HeatPumpOptimizerCoordinator) -> dict[str, Any]:
@@ -160,7 +180,7 @@ async def async_get_config_entry_diagnostics(
                     "version": entry.version,
                     "options_keys": sorted(entry.options.keys()),
                 },
-                "config": dict(entry.data),
+                **config_view(entry.data, entry.options),
                 "coordinator": snapshot,
                 "domain": DOMAIN,
                 # #1940: capped, so a week too large to inline is its summary.

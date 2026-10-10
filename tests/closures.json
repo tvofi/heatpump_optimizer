@@ -3155,6 +3155,8 @@
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/thermal_parity.py",
    "dev/audit/harnesses/throwaway_git_sites.sh",
+   "dev/audit/harnesses/ux5_idle_codes.py",
+   "dev/audit/harnesses/ux5_idle_codes_sites.py",
    "dev/audit/harnesses/ux9_flow_unit_guard.py",
    "dev/audit/rounds/round3/D10/coverage_rule.sh",
    "dev/audit/rounds/round3/D10/strict_typing_rule.sh",
@@ -3684,7 +3686,7 @@
   },
   "tests/block_duty.py": {
    "rc": 0,
-   "seconds": 2.6
+   "seconds": 2.8
   },
   "tests/boost_drift_replay.py": {
    "rc": 0,

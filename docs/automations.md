@@ -144,7 +144,7 @@ temperature and back on successive refreshes, which fires at each crossing.
 | Event | Fires when | Data |
 |---|---|---|
 | `heatpump_optimizer_monthly_receipt` | a month has closed and its receipt is published | `entry_id`, `month` (`YYYY-MM`), `total_sek`, `saving_sek` and `saving_pct` (against a plain thermostat, `null` when the month has no savings row), `currency` |
-| `heatpump_optimizer_comfort_at_risk` | the coldest step of the plan is below your minimum temperature | `entry_id`, `predicted_min_c`, `at` (the step's time), `floor_c`, `peak_guard_suppressing` (the peak guard is holding heating back) |
+| `heatpump_optimizer_comfort_at_risk` | the coldest step of the plan is below your minimum temperature | `entry_id`, `predicted_min_c`, `at` (the step's time), `floor_c`, `peak_guard_suppressing` (the peak guard is holding heating back), `cause` (the coldest step's published reason, for example `idle_fuse`, or null when the plan has none) |
 | `heatpump_optimizer_input_stale` | a required input has not updated within its limit; once per input | `entry_id`, `input`, `age_minutes`, `max_age_minutes` |
 | `heatpump_optimizer_plan_stale` | the plan is older than three solve cycles (at least 90 minutes) | `entry_id`, `age_minutes` |
 | `heatpump_optimizer_manual_plan_released` | safety released slots of a manual plan; once per channel for each release | `entry_id`, `channel` (`space` or `dhw`), `steps` (the released step numbers when it fired), `reason`, `expires_at` |
