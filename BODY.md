@@ -41,12 +41,7 @@ none
 
 ## Forward-carry
 
-`dev/audit/rounds/round9/prestudy/closures-scoping-prestudy.md` and
-`.../coverage-fast-scoping-prestudy.md` — §6 of this document resolves the two
-planned pull requests against it (keep all three closures parts with (e)
-rescoped to the scoped arm and (a1) coupled to that; keep both coverage/fast
-parts with (vi-a)'s proof widened to the closure read set); the orchestrator
-should hand those seats this document's §6 before they land.
+none — the two planned pull requests' specifications sit on unmerged handoff refs (closures at 177bb01c3, coverage/fast at 69e374393), so no tree path can carry to them yet; section 6 of the document is the resolution, and the orchestrator hands it to those seats' briefs before they land.
 
 ## Friction
 
