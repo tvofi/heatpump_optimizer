@@ -1,0 +1,25 @@
+HEAD 44b5c3e53295d5875c20d5582f9575398fd391d7 ; date -u 2026-10-10T14:47:33Z
+control: ALL 2254 ENTITY CHECKS PASSED
+
+########## M1: the drop loop deleted from main() ##########
+mutated: the drop loop is gone; SCOPE_DEFERRED and scope_deferred stand
+entities rc=1
+  FAIL the full scope drops the EXCLUSIVE pair out of its net, the changed scope drops nothing, and main() takes the drop from that rule  [scope_deferred(full/changed)=(('tests/harness_headers.py', 'tests/stress.py'), ()), EXCLUSIVE=('tests/harness_headers.py', 'tests/stress.py') -- a drop that reached the changed scope would take the pair out of the pull-request gate that still pins new sites with them, which is where the unpinned count is repaid]
+1 of 2254 ENTITY CHECKS FAILED
+restored: 0 diff line(s)
+
+########## M2: SCOPE_DEFERRED emptied ##########
+mutated: no scope drops any driver
+entities rc=1
+  FAIL the full scope drops the EXCLUSIVE pair out of its net, the changed scope drops nothing, and main() takes the drop from that rule  [scope_deferred(full/changed)=((), ()), EXCLUSIVE=('tests/harness_headers.py', 'tests/stress.py') -- a drop that reached the changed scope would take the pair out of the pull-request gate that still pins new sites with them, which is where the unpinned count is repaid]
+  FAIL a healthy full-scope run still drives every other driver on every file it reached, and the drop costs the pair alone  [75 production file(s) walked; files losing a driver OUTSIDE EXCLUSIVE=[] (must stay empty); files losing one at all=0 (must be non-zero, or the drop is a no-op and this check passed vacuously); drivers unioned over the tree 26 -> 26]
+  FAIL the census names every disposition the drop leaves unverified, and nothing it does not  [fixture=([], [], []) want=['a.py:f BOOLOP 00000000', 'c.py:f GUARD_OFF 22222222']; the real ledger names 0 row(s) the full scope no longer drives, want 4 -- an empty clause here would mean the census prints a deferral of nothing]
+  FAIL and the clause names each deferred driver, its reason and the count, where a scope that defers nothing prints nothing  [full=''; changed='']
+  FAIL a healthy full-scope run still drives every other driver on every file it reached, and the drop costs the pair alone  [75 production file(s) walked; files losing a driver OUTSIDE EXCLUSIVE=[] (must stay empty); files losing one at all=0 (must be non-zero, or the drop is a no-op and this check passed vacuously); drivers unioned over the tree 26 -> 26]
+4 of 2254 ENTITY CHECKS FAILED
+restored: 0 diff line(s)
+=== tree clean? 0 line(s) ===
+date: illegal time format
+usage: date [-jnRu] [-I[date|hours|minutes|seconds|ns]] [-f input_fmt]
+            [ -z output_zone ] [-r filename|seconds] [-v[+|-]val[y|m|w|d|H|M|S]]
+            [[[[mm]dd]HH]MM[[cc]yy][.SS] | new_date] [+output_fmt]

@@ -1,0 +1,3 @@
+# merge base 7cd5a588cbbb, head 44b5c3e53295: 6 budget file(s): .claude/workflows/policy_budgets.json, tests/coverage_budgets.json, tests/mutation_budgets.json, tests/stress_budgets.json, tests/structure_budgets.json, tests/typing_budgets.json
+RESULT budget_raises=0 count
+PASS: no budget raise; no owner review is owed

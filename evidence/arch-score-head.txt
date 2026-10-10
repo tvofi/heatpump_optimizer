@@ -1,0 +1,2 @@
+Architecture score: dS +0.0000 NULL
+PASS: dS +0.0000 NULL, no gate metric rose
