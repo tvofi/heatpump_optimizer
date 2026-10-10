@@ -1,0 +1,13 @@
+head: e1210e0993c9c0a3a3dc7e0a13cbd3d012d2bf49
+merge-base: d3dbf2c3fc42b87e6aad71d3de0c0885a10c750e
+date: 2026-10-10T16:07Z
+
+== lane if (worktree at head)
+      !cancelled()
+      && github.event_name == 'pull_request'
+      && needs.mutation.result == 'failure'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+
+== mutant self-test
+seat_venv self-test: 20 checks, 4 failed (shims restored to merge base; transcript in verdict)
