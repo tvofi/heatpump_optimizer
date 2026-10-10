@@ -1,0 +1,86 @@
+**R9-RC-BLAS-KERNEL-RED.** `tests/features.py`'s `R9-F2.1 P3` storage check keyed its verdict on a knife-edge race between two independent optimizer solves, so the verdict was a property of the runner's BLAS kernel: one tree reads `+0.1000/+0.0905/+0.0904` on Sandybridge/Haswell/Nehalem and `-0.2070` on Apple Accelerate (issue #1725; PR #1726's own null control). Because `tools/pr/prepr.sh` step 6b records a change's closure by RUNNING the scripts a diff reaches, every macOS seat's push refused with `REFUSE closures -- failed while being recorded: tests/features.py (exit 1)` and `tools/pr/app_push.sh` minted nothing, so a lane whose head and body were complete could not be opened at all. The verdict now keys on the quantity that does not move -- the continuation's own gain, both arms solved in the run -- and the seeded race stays measured and printed without gating. The refusal is untouched and still refuses a script that dies.
+
+## Head
+
+`be7dc8be1` -- `bf3bc0b5e` (the re-keyed check and its harness), `230d7130f` (the `origin/main` merge, `7cd5a588c`), and `be7dc8be1` (the closure-table repair, `tests/closures.json` alone, for which `## Mutation proof`'s second arm and `## Figures` are re-taken here). The check's own numbers were separately re-read and are identical at `23d354970` (pre-merge), `230d7130f` and `be7dc8be1`; the only delta between the last two is one path added to a data file no solver opens.
+
+`bash tools/pr/prepr.sh <this body>` reads `PRE-PR: be7dc8be1...` with `PREPR_RC=0`. Its closure step reads differently at the two heads, and both readings are correct: at `230d7130f` the diff is still scopable and step 6b **records**, printing `ok closures scoped recordings are covered`; at `be7dc8be1` the diff reaches `tests/closures.json` itself, so `closure.py affected` answers `CASE: FULL` and the step **skips** -- `a full derive here is forbidden` -- leaving every closure to CI's own full derivation, exactly as on a push to `main`. The recording this branch owes is the `230d7130f` line; the repair that makes the head clean is the `be7dc8be1` one.
+
+## Mutation proof
+
+Break the continuation this check exists for -- delete it -- and the check goes red at the exact arm, on the block that pins it:
+
+```
+python3 tools/audit/seat/features_block.py "# -- R9-F2.1: the solver's published action and its two priced floors" "_f21_probe = ("
+```
+
+The mutation is one inserted line at the head of `_optimize_space_only`'s `move_starts` (`custom_components/heatpump_optimizer/optimizer.py`, the `934dcb1fc` production body): `return cands  # MUTATION`. It is the *predicate*, not the tail -- the continuation's whole body becomes unreachable, so the solve is `934dcb1fc^`'s, reached the same way this check reaches it.
+
+- mutant: `rc=1`, `1 of 14 FEATURES BLOCK FAILED`, `FAIL R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it  [shipped 111.2671 against 111.2671 with the multi-start's continuation removed -- a gain of +0.0000, against a bound of 0 ...]`, with `RESULT f21_p3_two_zone=1 j_plain=111.267093 j_continuation_off=111.267093 continuation_gain=+0.000000`.
+- at `be7dc8be1`, same block, same command: `rc=0`, `ALL 14 FEATURES BLOCK PASSED`.
+- restored with `git checkout -- custom_components/heatpump_optimizer/optimizer.py`; the script's own closing lines read `restored; planted lines remaining: 0` and `git status --porcelain lines: 0`.
+
+The mutant's own value corroborates the arm: `111.267093` is what commit `934dcb1fc` records for the pre-continuation shipped plan, measured on the Linux container -- whose half-price plan scores `110.437` where Accelerate's scores `110.1297`, and those two numbers cannot both be Accelerate's, which is how that commit's platform reads off its own message.
+
+**What the old arm would have done under the same mutation**, so this is not a weaker check traded in: the deleted-continuation plan scores `111.267093`, so the old predicate `j_plain <= j_seeded + 0.1` reads `110.129674 + 0.1 - 111.267093 = -1.037`, red by a wider margin. The re-key is not slack; it exchanges a kernel-dependent tolerance for a zero bound on a quantity 0.83 wide.
+
+## Null control
+
+- **The platform the red does not appear on**, from the tree, same head, both sides: `dev/archive/handoff/r9-f2-solver-4/ev/features_head_container.log` (hpo-ci container: Linux amd64, DYNAMIC_ARCH, `OPENBLAS_CORETYPE=Sandybridge`) reads `ok   R9-F2.1 P3: the shipped storage plan is no worse...` and `ALL 3587 FEATURE CHECKS PASSED`; `dev/archive/handoff/r9-f2-solver-4/ev/features_head_host.log`, the host at the same head, reads `FAIL ... [shipped 110.4366, seeded with the half-price plan 110.1297]`, `1 of 3588 FEATURE CHECKS FAILED`. Same figures as tonight's two independent readings (`/Users/timmalmstrom/hpo-seats/dbg2/evidence/features_head.log` at `c901f8f34` and `features_main_control.log` at `d8a4bd36f`): the red is the platform's, no branch's.
+- **The single-zone arm, exact by construction**: `move_starts` returns its candidates untouched unless `two_zone_enabled`, so with the continuation removed a single-zone solve ships the SAME plan bit-identically -- `RESULT f21_p3_two_zone=0 j_plain=67.730056 j_continuation_off=67.730056 continuation_gain=+0.000000`, schedules array-equal. No tolerance and no kernel enters this arm. Its `ok` under the mutation is the control that the one red above is the two-zone arm and not a broken instrument.
+- **The kernel axis cannot be exercised here, and the harness says so rather than assuming it**: this box is an Apple M1 whose numpy (2.4.6) is Accelerate-backed, so `OPENBLAS_CORETYPE` selects nothing -- the harness's environment line reads `core=(unset) -- no OpenBLAS Core: line (numpy is not OpenBLAS) blas=accelerate`. There is exactly one locally reachable kernel class; the Linux rows are cited, never re-taken (the container lane was retired 2026-10-04, and `gate-scoping.md` forbids re-deriving closures off Linux).
+- **A lane that is not this defect now records, and its old refusal is the control.** `handoff/r9-dbg-2` at `c901f8f34` is one of the heads whose own `prepr` printed `REFUSE closures -- failed while being recorded: tests/features.py (exit 1)`. With `be7dc8be1` merged in it is `eff233219`; step 6b's own recording command there -- `GOLDEN_REF=origin/main PYTHON=$HOME/.local/state/hpo/venv-ci/bin/python3 ./tests/derive_closures.sh --single tests/features.py --record-only --out-dir <dir>` -- reads `done   tests/features.py (exit 0)` and the recording's own `rc=0`, with the script's own last line `ALL 3986 FEATURE CHECKS PASSED`. Nothing on that lane changed; the fix did.
+- **The refusal is still live, and on a genuine failure.** A tree carrying this fix, at `230d7130f`, with one planted failing check in `tests/features.py` -- `R.check("PLANTED R9-RC-BLAS-KERNEL-RED refusal arm: this script must exit 1", False, "planted")` inserted immediately after the file's own `R = Results("Feature modules")`, so the script runs to completion and `R.close` returns 1, the exact shape the kernel red had -- driven through the real step reads `REFUSE closures  failed while being recorded: tests/features.py (exit 1) -- fix the script first; a re-derive would record the same truncation` with `PREPR_RC=1`: the same message and the same exit status this branch removes from every macOS lane, and no flag, env var or exemption anywhere in the diff disables it. The plant is one line removed by `git checkout -- tests/features.py`. That run also reproduces the `ci predict` `INERT READS` refusal in the same pass -- it runs one commit before this branch's closure-table repair, which is that repair's own control.
+- **Threads are not the mover**: the two-zone arms re-solved with the BLAS thread variables pinned to 1 read `j_plain=110.436632`, `continuation_gain=+0.830461`, `f21_p3_threads_identical=1` -- identical to the unpinned run.
+- **The green at CI's kernel class is owed as a check-run, never asserted here.** CI's class today is Haswell (PR #1726: AMD EPYC 7763, `DYNAMIC_ARCH` selecting Haswell on Zen 3, no AVX-512 in the pool), where the old arm reads `+0.0905`; the new arm's Linux value is one the check prints on every run, so the pull request's own Tests `fast` log carries it. This hardware cannot run CI's environment -- the container lane was retired 2026-10-04 and `gate-scoping.md` forbids rebuilding it -- so this body names that run and does not claim its verdict.
+
+## Figures
+
+Instrument: `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r9_rc_blas_kernel_red_f21_p3.py` (new, this PR) -- Apple M1, numpy 2.4.6/Accelerate, python 3.14.7, at `be7dc8be1`.
+
+| arm | two-zone | single-zone (null) |
+|---|---|---|
+| `j_plain` (production, continuation live) | 110.436632 | 67.730056 |
+| `j_continuation_off` (the `934dcb1fc^` route) | 111.267093 | 67.730056 |
+| **`continuation_gain`** (what the verdict reads) | **+0.830461** | **+0.000000** |
+| `j_seeded_half_price` (figure only, no longer the verdict) | 110.129674 | 67.729557 |
+| old arm's margin `j_seeded + 0.1 - j_plain` | -0.2070 | +0.0995 |
+
+Per kernel, the old arm against the new one. The Linux rows are cited, not re-taken (PR #1726's null control for the margins; commit `934dcb1fc` for the container's pre-continuation shipped plan); the Accelerate row is measured here.
+
+| kernel class | old arm `j_seeded + 0.1 - j_plain` | new arm `continuation_gain` |
+|---|---|---|
+| Sandybridge (Linux amd64 container, DYNAMIC_ARCH) | +0.1000 | >= +0.820 (derived: `j_continuation_off` 111.267 recorded in the commit; `j_plain` 110.437-110.447 derived from that commit's half-price plan and #1726's margin; the archived container log is green) |
+| Haswell (Linux; today's CI class, AMD EPYC 7763) | +0.0905 | not measurable off this box -- printed by the check, so the PR's own log carries it |
+| Nehalem (Linux, Rosetta default) | +0.0904 | not measurable off this box |
+| Accelerate (Apple M1) | -0.2070 | **+0.830461 measured** |
+
+The old arm flips sign across the table; the new one does not, and its bound is 0.
+
+The gain is a **cliff, not a slope**, which is why no tolerance is worth carrying: the continuation's own 0.5 price scale perturbed to `0.25/0.50/0.75/1.00` reads `+0.840025/+0.830461/+0.000000/+0.000000` -- a continuation that does not reach the basin ships the no-continuation plan bit-identically. The four ladder rows and `f21_p3_threads_identical=1` are the harness's own output at `be7dc8be1` (14 solves, 99.7 s wall, `thread_factor=1.000`, `load1=77.21`, `swapins=0`); the same rows were taken twice more, at `23d354970` and `230d7130f`, identical.
+
+## Root cause
+
+**Cause.** The check's verdict was `j_plain <= j_seeded + 0.1`, a comparison between two optimizations that take different routes to the same basin. Which basin the half-price refine lands in is decided by the BLAS kernel's summation order, and the bound `0.1` was the *measuring platform's own margin* (`+0.0904`..`+0.1000`) rather than a number below it -- so the check had roughly zero headroom on Linux and a negative margin on Accelerate. #1725's own rule names the repair: "measure each arm per kernel and key the verdict on what does not move".
+
+**Process state: (d) the process was sound and its preconditions changed underneath it** -- with a **(c)** element named rather than folded in. #1725 and PR #1726 *did* measure this check per kernel and recorded the result: `-0.2070 on Accelerate only`, in the harness docstring and in that PR's null control, and dispositioned it "the fix leaves it untouched", because it was green on every Linux kernel and CI was green. That was a correct reading of the gate it was protecting. What changed underneath it is the **local mask**: seats ran the suite in the `hpo-ci` container, pinned to `OPENBLAS_CORETYPE=Sandybridge` -- exactly the class where the margin is `+0.1000` -- and that lane was retired on 2026-10-04. From then on a macOS seat runs Accelerate natively, and the precondition that had made "green on every Linux kernel" equivalent to "green for every seat" was gone, with nothing re-measuring the lane it protected. The (c) element: the standing instruction was followed and did produce the result it was written to produce for CI, while the cost landed on the one path it did not describe.
+
+**Cost test** (wall-clock per occurrence, over a release cycle). `cost(countermeasure, recurring)` = one extra solve per zone arm = 2 solves, measured at 4.6 s mean per solve on this box, so about **9 s added to every full `tests/features.py` run**. `cost(defect)` = a stranded lane: `prepr` refuses at step 6b *after* the scoped scripts have been run, so the push is refused once the cost is already paid, and the lane then waits on a seat to diagnose it -- two complete lanes tonight (`R9-DBG-2` at `c901f8f34`, `R9-UX-10`) plus three independent rediscoveries, and the orchestrator now reports four heads parked on it. `P(recurrence)` is not an estimate: the check is red at `main` on this box right now, so it fires on **every** push from every macOS seat whose closure reaches `tests/features.py`. 9 s against a stranded lane, times near-certain recurrence, is not close; the countermeasure pays.
+
+**Countermeasure.** The re-key itself, plus the printed `RESULT f21_p3_*` line: `tests/run.sh` already prints the kernel class each run, so a red coinciding with a kernel-class change now reads off the log instead of costing a root-cause seat -- issue #1725's own countermeasure 2, applied to this check. The cheaper detector the second trigger asks about is `prepr` step 6b itself, and it *did* fire locally and cheaply; the defect is not that detection was late but that its message ("fix the script first") pointed at the script rather than at the platform, which is what three seats each spent time rediscovering. The class-eliminating arm is that message's premise -- a check whose verdict is a property of the environment is refused by `tests/README.md`'s rule, now followed for this check.
+
+`dev/audit/rca/R9-RC-BLAS-KERNEL-RED.md` is the root-cause seat's artifact, not this fixer's (`root-cause.md` runs beside a fix and never inside it); whether one is dispatched is the orchestrator's call and is not claimed here.
+
+## Red checks
+
+none on this head.
+
+## Forward-carry
+
+- **D0 (`dev/governance/dimensions/D0.md`)** -- price optimality: on Accelerate this platform's multi-start ships `110.436632` where a warm start from the half-price plan reaches `110.129674`, i.e. **0.307 left on the table** that the Linux kernels did not show (they measured the two within `0.0096`). The check now prints both numbers on every run, so the finding is measurable from any future log. It is *not* gated here: no bound on that race holds across kernels, which is the defect being fixed, and the repair would be in the solver, outside this group's partition. Named for the destination rather than filed.
+- **`tests/README.md`** carries a stale path for the kernel-gap instrument: it cites `tools/audit/harnesses/k1725_blas_kernel_gap.py`; the file is `dev/audit/harnesses/k1725_blas_kernel_gap.py`, and `tools/audit/harnesses/` does not exist. `fixer.md` step 18 carries the same stale path. Both are prose, `tests/README.md` is outside this group's file partition, and this PR adds its harness under `dev/audit/harnesses/` -- the directory the round's own harnesses live in (`r9_dbg2_*`, `r9_ci2b_*`). Flagged to the orchestrator for whoever owns the doc; no `.md` edited here.
+
+## Friction
+
+- fixer.md: stale: step 18 directs a new harness to `tools/audit/harnesses/`, a directory that does not exist; the tree's harnesses live in `dev/audit/harnesses/`.
+- tests/README.md: stale: the kernel-gap instrument is cited at `tools/audit/harnesses/k1725_blas_kernel_gap.py` while the file is `dev/audit/harnesses/k1725_blas_kernel_gap.py`; this group's brief repeated it, so a seat's first `ls` of that directory refused.
