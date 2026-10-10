@@ -1,0 +1,4 @@
+Reviewed head (this review): 00e31e8a364e2657d8db32e97d1853895c476170
+PR: tvofi/heatpump_optimizer#2072  branch fix/rca-harness-path  group R9-RCA-HARNESS-PATH
+Merge base (origin/main at review): 7cd5a588cbbbef354c00148040da2d720b8a888c
+Reviewer worktree: /Users/timmalmstrom/hpo-seats/r9-review-2072/head2 (detached)
