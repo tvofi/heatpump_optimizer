@@ -1,0 +1,7 @@
+# Fix review: #2066, round 10 (re-cut)
+
+head measured: 7706b39a16e782236b61e5d6de5cb8e6f691cd8b
+branch: fix/cop-duty-floor  (detached worktree /Users/timmalmstrom/hpo-seats/r9rev-2066/wt)
+merge base: 1301d7e45df08bc224d420db4508195050b88972   (live origin/main has since moved to c729bb32e; origin/main is NOT an ancestor of the head, 16 commits ahead)
+bases used: #2065's head 9b39bb7c6 (wt-base2065) and the merge base 1301d7e45 (wt-basemb); both read identically
+contract read from origin/main: dev/governance/roles/fix-review.md (tools/audit/briefs/fix-review.md does not exist in the tree)

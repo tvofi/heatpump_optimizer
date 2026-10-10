@@ -1,0 +1,29 @@
+Compressor efficiency has drifted 20% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 25% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 26% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 10% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 31% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 45% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 29% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 35% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 28% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 21% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 11% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 17% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 25% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 23% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 11% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 17% below its own baseline (~0 SEK/month at current usage)
+RESULT matched_folded=356/400 first_offask_fold=None scale=1.000 follows_ask=n/a
+RESULT heat_led_0.7_noise5_folded=358/400 first_offask_fold=2 scale=0.707 follows_ask=n/a
+RESULT heat_led_0.7_noise20_folded=355/400 first_offask_fold=2 scale=0.706 follows_ask=n/a
+RESULT heat_led_0.7_lag1_folded=259/400 first_offask_fold=3 scale=0.686 follows_ask=n/a
+RESULT heat_led_0.7_outliers_folded=346/400 first_offask_fold=2 scale=0.700 follows_ask=n/a
+RESULT heat_led_1.3_folded=360/400 first_offask_fold=0 scale=1.304 follows_ask=n/a
+RESULT selfset_hourly_folded=231/400 first_offask_fold=0 scale=1.600 follows_ask=n/a
+RESULT selfset_flat_folded=0/400 first_offask_fold=None scale=1.000 follows_ask=n/a
+RESULT partial_b0.3_folded=317/400 first_offask_fold=2 scale=1.600 follows_ask=n/a
+RESULT partial_b0.5_folded=356/400 first_offask_fold=0 scale=1.600 follows_ask=n/a
+RESULT partial_b0.6_folded=358/400 first_offask_fold=10 scale=1.600 follows_ask=n/a
+RESULT partial_b0.8_folded=376/400 first_offask_fold=356 scale=1.600 follows_ask=n/a
+RESULT heat_led_0.7_narrow_ask_folded=397/400 first_offask_fold=3 scale=0.700 follows_ask=n/a

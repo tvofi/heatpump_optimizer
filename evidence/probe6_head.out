@@ -1,0 +1,23 @@
+Compressor efficiency has drifted 20% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 15% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 25% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 14% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 20% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 19% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 10% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 7% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 16% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 22% below its own baseline (~0 SEK/month at current usage)
+RESULT matched_folded=400/400 first_offask_fold=None scale=1.000 follows_ask=True
+RESULT heat_led_0.7_noise5_folded=390/400 first_offask_fold=2 scale=0.707 follows_ask=True
+RESULT heat_led_0.7_noise20_folded=391/400 first_offask_fold=2 scale=0.705 follows_ask=True
+RESULT heat_led_0.7_lag1_folded=288/400 first_offask_fold=3 scale=0.688 follows_ask=True
+RESULT heat_led_0.7_outliers_folded=374/400 first_offask_fold=2 scale=0.700 follows_ask=True
+RESULT heat_led_1.3_folded=398/400 first_offask_fold=0 scale=1.304 follows_ask=True
+RESULT selfset_hourly_folded=70/400 first_offask_fold=0 scale=1.170 follows_ask=False
+RESULT selfset_flat_folded=0/400 first_offask_fold=None scale=1.000 follows_ask=None
+RESULT partial_b0.3_folded=152/400 first_offask_fold=2 scale=1.375 follows_ask=False
+RESULT partial_b0.5_folded=329/400 first_offask_fold=0 scale=1.600 follows_ask=True
+RESULT partial_b0.6_folded=388/400 first_offask_fold=10 scale=1.600 follows_ask=True
+RESULT partial_b0.8_folded=400/400 first_offask_fold=356 scale=1.600 follows_ask=True
+RESULT heat_led_0.7_narrow_ask_folded=397/400 first_offask_fold=3 scale=0.700 follows_ask=None

@@ -1,6 +1,0 @@
-modules on disk        75   (doc says 75)  -> True
-module-level importers 27   (doc says 27)  -> True
-touch it anywhere      28
-HA-free                47   (doc says 47)  -> True
-function-level only    ['inputs']
-doc sentences: ['75 modules, of which 27 import the', '75 modules import `homeassistant` at module level: `__init__`,', 'The other 47 modules are deliberately free of it, so each can be driven']

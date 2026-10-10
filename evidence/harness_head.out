@@ -1,0 +1,34 @@
+Compressor efficiency has drifted 41% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 12% below its own baseline (~0 SEK/month at current usage)
+Compressor efficiency has drifted 18% below its own baseline (~0 SEK/month at current usage)
+RESULT duty_floor_kw=0.800
+RESULT on_threshold_kw=0.500
+RESULT min1_idle_folded=0/9
+RESULT min1_standby_folded=0/9
+RESULT min1_duty_cycled_folded=0/6
+RESULT min1_running_folded=15/15
+RESULT min3_idle_folded=0/9
+RESULT min3_standby_folded=0/9
+RESULT min3_duty_cycled_folded=0/6
+RESULT min3_running_folded=3/15
+RESULT selfmod_independent=9/96_scale=0.976
+RESULT selfmod_independent_4kw=33/96_scale=0.780
+RESULT selfmod_matched=96/96_scale=1.000
+RESULT true_0.6=241/288_scale=0.604
+RESULT true_0.7=241/288_scale=0.704
+RESULT true_0.8=241/288_scale=0.805
+RESULT true_1.3=241/288_scale=1.307
+RESULT true_0.7_4kw=285/288_scale=0.704
+RESULT fixed3_duty50=0/5_scale=1.000
+RESULT fixed3_duty70=0/5_scale=1.000
+RESULT fixed3_duty85=5/5_scale=1.000
+RESULT liveness_folded=3/3
+RESULT selfset_hourly=7/96_scale=0.978
+RESULT selfset_three_hour=0/96_scale=1.000
+RESULT selfset_flat=0/96_scale=1.000
+RESULT p4_follow_noise10=96/96_scale=1.028
+RESULT p4_follow_noise20=96/96_scale=1.123
+RESULT p4_eff0.8_noise5=96/96_scale=0.563
+RESULT p4_eff0.8_noise10=96/96_scale=0.563
+RESULT p4_follow_lag1tick=37/96_scale=1.002
+RESULT true_0.7_reload150=241/288_scale=0.704

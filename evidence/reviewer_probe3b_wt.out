@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/timmalmstrom/hpo-seats/review-2066/ev/reviewer_probe3b.py", line 20, in <module>
+    PMAX = float(sys.argv[1])
+                 ~~~~~~~~^^^
+IndexError: list index out of range
