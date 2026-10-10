@@ -1,0 +1,12 @@
+### MUTANT  (/Users/timmalmstrom/hpo-seats/r9rev-2115/bus-mutant.sh)
+### sha256 ca6344d8239da87f45745c8ca7075f1781c77e77ec4579ac5c67cea68cba3cb7
+RESULT MUTANT | A1 correctly bound nonce                       | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT MUTANT | A2 nonce no dispatch minted                    | expected REFUSE   observed OTHER(review/8 0c380687538eb898c61ee949b5ec2bc4a72e60fe) | rc=0
+RESULT MUTANT | A3 another pr's nonce, ref must not move       | expected REFUSE   observed OTHER(review/7 7b8cf67eb68d337410bd4de56ff52466db336234) | rc=0
+RESULT MUTANT | A4 nonce from the old head (the #2075 case)    | expected REFUSE   observed OTHER(review/7 8fc4c0d8acfe7100326cdbf58e672a8bb888d202) | rc=0
+RESULT MUTANT | A5 fresh dispatch at the new head              | expected ACCEPT   observed rc0+newref | rc=0
+RESULT MUTANT | A6 second nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT MUTANT | A6b first nonce, same pr+head                  | expected ACCEPT   observed rc0+ref  | rc=0
+RESULT MUTANT | A7 no dispatched record exists                 | expected REFUSE   observed OTHER(review/10 37df93646ea6c7f055d825418e9b69b45cb75600) | rc=0
+RESULT MUTANT | A8 reviewer state != dispatcher state          | expected see note observed ACCEPTED | rc=0
+

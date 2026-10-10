@@ -1,0 +1,6 @@
+  dispatched with HPO_BUS_STATE=/Users/timmalmstrom/hpo-seats/r9rev-2115/w-a9-HEAD/orch -> nonce=e3aff3210d52f3f036d75cc8d0444d65
+RESULT HEAD | orchestrator exported HPO_BUS_STATE, reviewer did not | rc=1
+  bus: REFUSE: push-verdict: unknown nonce e3aff3210d52f3f036d75cc8d0444d65: no dispatch in /Users/timmalmstrom/hpo-seats/r9rev-2115/w-a9-HEAD/fakehome/.zcode/bus/dispatched minted it; mint one at this head with bus.sh dispatch 5 1111111111111111111111111111111111111111 <reviewer>
+  dispatched with HPO_BUS_STATE=/Users/timmalmstrom/hpo-seats/r9rev-2115/w-a9-BASE/orch -> nonce=b6d561472ef51f36830e60d8245a2252
+RESULT BASE | orchestrator exported HPO_BUS_STATE, reviewer did not | rc=0
+  review/5 47ed49a1d80cbf5b2c9f50aa8ab07a9c1873910f
