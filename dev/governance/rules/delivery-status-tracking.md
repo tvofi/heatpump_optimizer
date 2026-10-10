@@ -19,6 +19,16 @@ After each programme merge — wave group, tooling the plan tracks, or a closed 
 ## Status stays true, not just present
 
 - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
+- A row's **status word is reconciled by nothing**: `record_row.py`'s `has_row`
+  and `write_rows` skip a row that already exists, so the `**open**` line
+  written when a pull request opened is never upgraded, and
+  `tests/delivery_status.py` classifies on the row's *presence*, not its word.
+  Measured 2026-10-10 at main `23d354970`: 100 rows in
+  `dev/programme/delivery/` read `**open**` for a pull request GitHub reports
+  MERGED, and 15 of 15 merges in the ledger's own window were among them while
+  `--check` printed OK and exited 0. So a row is a claim, not a reading: until a
+  row's word is graded, read the API, not the word -- and the repository, not
+  the record, which is what `bus.sh orphans` reads.
 - A PR's **body describes its current head**, not the head it was opened at.
 - **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `dev/programme/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed. The `record-autofix` beat's own merges with no review seat where `record_row.py --automerge-check` passes at its head; else it is reviewed.
 
