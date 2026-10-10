@@ -1,2 +1,1 @@
-head cfa9fb9aa6846b8707df45808a9c266f042d8e4d (re-dispatch head; branch tip verified 2026-10-10T19:03Z)
-previous measured head beb97ea691f95f20de19f512460ee7ad361c35ba
+head cfa9fb9aa6846b8707df45808a9c266f042d8e4d (merge verdict; branch tip verified 2026-10-10T19:12Z)
