@@ -1,0 +1,29 @@
+
+=== Feature modules ===
+
+-- early cut-off — a warm room stops a space-heating pump inside the interval
+  FAIL a room past target + margin on a space step switches the pump off once  [[]]
+  FAIL the cut-off is recorded with its reading and threshold  [{'listening': True, 'margin_k': 1.0, 'min_on_minutes': 10.0, 'min_off_minutes': 10.0, 'cut_this_cycle': False, 'interval_cut': False, 'count': 0, 'last': None, 'last_held': None}]
+  ok   a room exactly at target + 0.5 K does not cut (the margin is inclusive)
+  FAIL a room 0.1 K past target + 0.5 K cuts
+  FAIL the margin is 0.5 K
+  ok   null control: a room at or below target never cuts the pump
+  ok   a room under the plan's own pre-heat + margin is not cut
+  FAIL past the plan's own pre-heat + margin it is cut
+  ok   a room warm at the solve is judged against the plan's predicted end, not itself
+  FAIL a pump on for less than MIN_ON is not cut  [None]
+  FAIL with less than MIN_OFF to the next cycle the pump is not cut  [None]
+  ok   a second warm reading in the same cycle writes nothing more
+  ok   the next cycle resumes: its arm clears the cut and a warm room may cut again
+  ok   a switch with no change stamp is an unknown run and is not cut
+  ok   a hot-water-only step is never cut, however warm the room
+  ok   a both step is never cut, however warm the room
+  ok   a idle step is never cut, however warm the room
+  ok   a tank below its minimum exempts the step
+  ok   a non-plan mode (comfort) is never cut
+  ok   a stale plan is never cut
+  ok   a step the plan has off is never cut
+  ok   a running defrost is never cut
+  ok   a defrost entity that exists but reads off does not exempt the step
+  ok   a hot-water boost is never cut
+  FAIL an early refresh inside MIN_OFF of a cut keeps the pump off  [cut_at None]

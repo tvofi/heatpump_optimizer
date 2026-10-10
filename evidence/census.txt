@@ -1,0 +1,56 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:85 CONST: MARGIN_K = 0.5
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:122 RETURN_DEL: return self.cut_this_cycle or self.cut_last_cycle
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:164 GUARD_OFF: if inp.entry_released or not room or not cfg.heat_pump_switch_entity:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:167 GUARD_OFF: if held.unsub is None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:171 GUARD_OFF: if held.wiring is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:193 GUARD_OFF: if now - held.cut_at >= MIN_OFF:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:195 RETURN_DEL: return _exempt(held.wiring.inputs(), held.wiring.boosts, now) is not Non
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:201 GUARD_OFF: if unsub is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:207 GUARD_OFF: if inp.mode not in (MODE_AUTO, MODE_ECONOMY):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:209 GUARD_OFF: if inp.plan_stale or not inp.action or not inp.action.get("heat_pump_on"
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:211 GUARD_OFF: if inp.plan is None or step_duty(inp.plan, now) != "space":
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:213 GUARD_OFF: if boosts.active(CHANNEL_SPACE, now) or boosts.active(CHANNEL_DHW, now):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:215 GUARD_OFF: if inp.disinfecting:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:225 BOOLOP: if flag is not None and parse_bool(getattr(flag, "state", None)):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:225 GUARD_OFF: if flag is not None and parse_bool(getattr(flag, "state", None)):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:251 CMP_BOUND*2: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:251 RETURN_DEL: return [float(trajectory[i + 1])] if 0 <= i < len(trajectory) - 1 else [
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:256 GUARD_OFF: if held.cut_this_cycle:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:259 GUARD_OFF: if getattr(switch, "state", None) != "on":
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:264 CMP_BOUND*2: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:264 GUARD_OFF: if since is None or dt_util.as_utc(since) > utc or utc - dt_util.as_utc(
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:266 CMP_BOUND: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:266 GUARD_OFF: if held.cycle_end is None or held.cycle_end - utc < MIN_OFF:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:273 GUARD_OFF: if not getattr(inp.params, "two_zone_enabled", False):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:275 CMP_BOUND: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:275 RETURN_DEL: return float(inp.state.lower_floor_temperature) < limit - MARGIN_K
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:284 BOOLOP: return room if room is not None and low <= room <= high else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:284 CMP_BOUND*2: return room if room is not None and low <= room <= high else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:284 RETURN_DEL: return room if room is not None and low <= room <= high else None
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:293 GUARD_OFF: if inp.entry_released:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:296 GUARD_OFF: if _exempt(inp, wiring.boosts, now) is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:299 CMP_BOUND: if room <= limit:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:299 GUARD_OFF: if room <= limit:
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:302 BOOLOP: if reason is None and _second_zone_cold(inp, limit):
+    ADDED UNPINNED custom_components/heatpump_optimizer/early_cutoff.py:304 GUARD_OFF: if reason is not None:
+MUTATION TABLE REFUSED -- 4655 unpinned site(s) against 4617 at the ratchet base 7cd5a588cbbbef354c00148040da2d720b8a888c, 38 of them added by this diff. A new guard, clamp, removable return, doubled constant or comparison bound left the tree without a recorded disposition; record it under killed_by or survivor_triage and the count falls back. `python3 tests/mutation_table.py --pin-killed --base origin/main` records every one a driver kills.
+    custom_components/heatpump_optimizer/__init__.py:55 GUARD_OFF: if TYPE_CHECKING:
+    custom_components/heatpump_optimizer/__init__.py:90 RETURN_DEL: return importlib.import_module(f".{module}", __package__)
+    custom_components/heatpump_optimizer/__init__.py:116 GUARD_OFF: if module is None:
+    custom_components/heatpump_optimizer/__init__.py:122 RETURN_DEL: return value
+    custom_components/heatpump_optimizer/__init__.py:162 RETURN_DEL: return handovers
+    custom_components/heatpump_optimizer/__init__.py:168 RETURN_DEL: return stamps
+    custom_components/heatpump_optimizer/__init__.py:188 GUARD_OFF: if payload is None or stamped_at is None:
+    custom_components/heatpump_optimizer/__init__.py:197 CMP_BOUND: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:197 GUARD_OFF: if age_min > interval_minutes:
+    custom_components/heatpump_optimizer/__init__.py:199 RETURN_DEL: return payload
+    custom_components/heatpump_optimizer/__init__.py:210 CMP_BOUND: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:210 GUARD_OFF: if entry.version > CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:218 RETURN_DEL: return False
+    custom_components/heatpump_optimizer/__init__.py:220 CMP_BOUND: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:220 GUARD_OFF: if entry.version < CONFIG_ENTRY_VERSION:
+    custom_components/heatpump_optimizer/__init__.py:228 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:253 GUARD_OFF: if (reg_entry.domain, reg_entry.unique_id) in retired:
+    custom_components/heatpump_optimizer/__init__.py:274 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:359 RETURN_DEL: return True
+    custom_components/heatpump_optimizer/__init__.py:392 BOOLOP: if coordinator is not None and coordinator.effective_config == new_confi
