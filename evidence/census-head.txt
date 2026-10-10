@@ -1,0 +1,8 @@
+RESULT: numeric=506 merged=248 open=107 outside=17 multiline=15 prose_status=136
+RESULT: total=372 (expect 503=248+104+151)
+== census (my own script, production line_status/rowed_line) ==
+6b21ba530 (PR head): numeric=506 merged=248 open=107 outside=151 (15 multiline + 136 prose)
+d57cd1e3d (body's stated head): numeric=503 merged=248 open=104 outside=151 -- reproduces body
+ce70213ae (authored code head): 502 = 248+103+151 -- reproduces body
+3f82aba33 (prior review head): 503 = 248+104+151
+delta d57cd1e3d..6b21ba530 delivery dir: exactly rows 2072.md 2075.md 2083.md (+1 each, main's own merges)
