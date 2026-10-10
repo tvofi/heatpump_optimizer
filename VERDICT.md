@@ -1,103 +1,86 @@
-Fix review: blocked 4e5181094ec1c84b7d2552cfd3f184972be9c687 root-cause-unanswered: arch-score and typing went red on this head and the body names neither
+Fix review: blocked 170ac598748d4cf54e21a56a294eb747464b4f6d head-moved: measured 170ac598748d4cf54e21a56a294eb747464b4f6d, head is fa851d7ea2768c25a89a4a9820864d4a1b5fc458 (closures-autofix bot commit "ci: re-record closures", tests/closures.json only)
 
-bus-nonce: 6f56e1f2ca8cc93a1351b259f5770efc
+head: 170ac598748d4cf54e21a56a294eb747464b4f6d (branch head when this review began; measured throughout)
+bus-nonce: 1bef0af3a3b8737d7e32d0bc82688e27
 
-Measured head: `4e5181094ec1c84b7d2552cfd3f184972be9c687` (detached worktree
-`/Users/timmalmstrom/hpo-seats/r9rev-2110/wt`; confirmed still the head of
-`refs/heads/fix/r9-dbg-2` by `git ls-remote` immediately before this file was written).
-Baseline: the merge base `23d354970fcaababe8e67a5c04c326cc8bc79e49`. Evidence:
-`/Users/timmalmstrom/hpo-seats/r9rev-2110/evidence/`.
 
-## Why blocked — two red gate checks the body does not name
+Round 3 (delta). Every claim this pass made was verified at 170ac5987; the
+head then moved under the review, which is the block.
 
-The body's `## Red checks` reads: *"None has been read, because this head has no pull
-request: the seat hands off the head and does not open or drive a PR, so no check-run
-exists to read."* That was true when written and is false at the head as pushed. From the
-check-runs API for this head:
+## What was verified at 170ac5987 (all reproduced by this reviewer, own runs)
 
-- **`arch-score` — failure** (job `114230934131`). Its log:
-  `Architecture score: dS -0.0017 WORSENS (inadmissible: coord_footprint 2586->2589)` then
-  `FAIL: dS -0.0017 WORSENS; unexplained: coord_footprint 2586->2589. Add a '## Architecture
-  score' section with one line per metric: its name and why it rises`. The body has no
-  `## Architecture score` section.
-- **`typing` — failure** (job `114230992265`). Its uploaded `typing-census.json` artifact
-  (id `11672230519`) reads `{"errors": 1, "by_code": {"no-any-return": 1}, "by_module":
-  {"debugger.py": 1}}`, against `tests/typing_budgets.json`'s census budget of `errors: 0`.
+1. Arch-score gate, the check's own command, base 23d354970 -> head
+   170ac5987:
+       Architecture score: dS +0.0000 NULL
+       PASS: dS +0.0000 NULL, no gate metric rose
+   footprint.measure at the head reads coord_footprint 2586 (flat at the
+   merge base) and its charged list holds no _ending_streak entry.
+   CI agrees: arch-score success at 170ac5987.
+2. Typing ruler, pinned pair (mypy 2.3.1, homeassistant-stubs 2026.9.3,
+   verified against tests/typing_ruler.py --print-requirements before the
+   run), run from this reviewer's worktree at 170ac5987:
+       ALL 9 typing-ruler checks PASSED
+   CI agrees: typing success at 170ac5987.
+3. Sound-fix arms re-run at 170ac5987:
+   - Revert arm: debugger.py checked out from 23d354970, then
+     PYTHONPATH=tests/hastub python3 tests/debug_collect.py exits 1 with
+     KeyError: 'row_gaps_h' at tests/debug_collect.py:473; restored clean;
+     the unmutated head prints ALL 70 DEBUG COLLECT CHECKS PASSED.
+   - Finder's harness (dev/audit/harnesses/r9_dbg2_selftest_price.py, the
+     pre-study's oracle, bundle sha1 cb6e9e3357648afc41adcadaff218f135908cc3d
+     from origin/handoff/r9-dbg-0), run by this reviewer at both ends:
+     five ok rows at 23d354970 and five ok rows at 170ac5987, inline=1 at
+     both, bundle 588243 B -> 588446 B (+203 B), far under the 8 MiB cap.
+   The moved read changes nothing a probe sees.
+4. The two deleted killed_by rows are genuinely stale: with 4e5181094's tree
+   and only the accessor deleted (rows kept), completeness_problems = 2,
+   both naming debugger.py:_ending_streak (GUARD_OFF 7b428e6a, RETURN_DEL
+   9e6cd1b7). At 1e60f1861 and at 23d354970, driven in isolation from
+   tests/mutation_table.py: candidate sites 5943, unpinned 4620,
+   completeness problems 0 at both ends -- the body's figures reproduce
+   exactly. grep finds no _ending_streak anywhere at the head. At the merge
+   head 170ac5987 the counts are 5983/4608/0 (main's own newer pins arrived
+   with the merge; completeness still 0). The branch's net three-dot diff
+   carries no ledger file.
+5. Claims and versions: against the current merge base 969c3a5c8 (main moved;
+   170ac5987 merged it), claimed_drift.txt and card_claimed_drift.txt are
+   byte-identical to the base, as are VERSION, the manifest and
+   RELEASE_NOTES.md. The authored three-dot diff is the four named files.
+   git merge-tree --write-tree origin/main 170ac5987 exits 0, no conflicts.
+6. Red checks: scanning every commit's check-runs in 23d354970..170ac5987 and
+   keeping only the branch's own commits, the only reds are pr-contract,
+   arch-score, typing (at c901f8f34 and 4e5181094) -- all three named and
+   answered in the body's ## Red checks. All other red SHAs are main's own
+   commits pulled in by the merges.
 
-Both are this diff's, not inherited: `origin/main`'s tip (`c729bb32e`) carries no
-`arch-score`/`typing` run at all (both jobs are pull-request-only), and each red is
-traceable to the added code — the new module-level `_ending_streak(coordinator)` is a
-function whose parameter carries the coordinator, which is what `coord_footprint` charges
-(+3 logic statements = the 2586->2589), and
-`return coordinator.diagnostics_state().tibber_outage_cycles` from a `coordinator: Any`
-parameter under a `-> int | None` annotation is the one new mypy `--strict` `no-any-return`,
-in `debugger.py`.
+## The dispatch's item 4, answered honestly: closures was NOT green on CI
 
-The repository's own contract check reaches the same conclusion and refuses the body for
-it — the `pr-contract` job (failure, job `114231116735`) prints:
+At 170ac5987 the CI closures check FAILED (exit 1):
 
-```
-  record   red-history           8 commit(s) between origin/main and this head, every failure conclusion across them: arch-score, typing
-  ERROR   [pr-body] /tmp/pr-body.md: check `arch-score` is red and `## Red checks` does not name it.
-  ERROR   [pr-body] /tmp/pr-body.md: check `typing` is red and `## Red checks` does not name it.
-PR-BODY: 2 error(s) in /tmp/pr-body.md
-```
+    INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+    committed `inert_reads` does not list for it; the merge fast path
+    would treat a change to it as unread (R9-F10.9d).
+      tests/harness_headers.py: dev/audit/rounds/round9/prestudy/boost_drift_refit.py
 
-So this is not a reviewer's judgement call: two independent gate checks and the body
-linter all say the same thing. Per `fix-review.md` step 11 the trigger is unanswered.
+The named file landed on main via #2109 (b24adb766), not by this branch's
+authored diff; the branch inherited the gap by merging main. Per
+ci-autofix.md the closures-autofix lane then repaired it: at 16:52:56Z
+closures-autofix completed and the bot pushed fa851d7ea "ci: re-record
+closures" (tests/closures.json +3/-2, nothing else), which is the head move
+this verdict blocks on. The body, which names 170ac5987 as its head, is now
+one bot commit behind and does not answer the closures red. The closures run
+at fa851d7e was still in progress when this verdict was published.
 
-## The fix itself is sound — which is why the class is `root-cause-unanswered`
+## Why blocked rather than re-measured
 
-I looked for a defect in the change and did not find one. `web-fix-wave.js` teaches this
-class for exactly this shape: *"the fix itself is sound but the branch turned a check red
-and the body does not name the cheaper detector or record that none exists."*
+The handoff froze the branch at 170ac5987; it moved. Re-measuring is offered,
+not owed: the bot commit touches only tests/closures.json, so the fixer's
+re-take should be a body/head update plus whatever figures prepr re-derives,
+not a repair. Cheapest next step: fixer re-cuts the body at fa851d7e naming
+the closures red and the bot repair, then re-dispatches this review; all six
+verified blocks above survive a closures.json-only move except where a
+re-derivation says otherwise.
 
-- **The failing-first arm really goes red when the fix is reverted.** Reverting
-  `custom_components/heatpump_optimizer/debugger.py` to the merge base and re-running
-  `PYTHONPATH=tests/hastub python3 tests/debug_collect.py` exits 1 with
-  `KeyError: 'row_gaps_h'` at `tests/debug_collect.py:473`; restored, `git status` clean,
-  and the unmutated head prints `ALL 70 DEBUG COLLECT CHECKS PASSED`, rc 0. The test pins
-  added behaviour, it is not vacuous.
-- **The finder's harness, both ends** (`dev/audit/harnesses/r9_dbg2_selftest_price.py`,
-  identical at base and head, over the pre-study's own bundle, sha1
-  `cb6e9e3357648afc41adcadaff218f135908cc3d`): five `ok` at both ends, the four untouched
-  self-tests flat, `bundle_inline=1` at both, budget 900000 ms against ~93 ms. The
-  companion `--repeat 40` crosses the cap as the body says (`bundle_inline=0`).
-- **The demonstration re-derives at both ends** with the fixer's own seat probe
-  (disclosed as such in the body, not the finder's instrument): base
-  `fields_naming_the_silence=0`; head `row_gaps_h {'n': 35, 'min': 0.5, 'median': 0.5,
-  'max': 6.5}` and `tibber_outage_cycles 0`, `fields_naming_the_silence=2 # reported`.
-  The body's figures reproduce.
-- **Spec trace.** Pre-study section 4 row 5 names three feed facts for "was a bad plan
-  caused by a starved feed"; the row the body says was missing (`_tibber_outage_cycles`)
-  now lands, read through `CoordinatorDiagnostics.diagnostics_state()` (coordinator.py:3090)
-  rather than the private member, matching section 7's DBG-2 file set (`debugger.py`).
-  Class enumeration: the row states one seam, and the body's rule is the mutation engine's
-  (`both sites in the reader`); I found no seam the rule returns that the diff leaves
-  undispositioned and the two owed rows of section 4 are named rather than dropped.
-- Claim files byte-identical (`git diff --name-only <merge-base>...HEAD -- tests/golden/`
-  empty; `env_drift.py --claims-only <merge-base>` -> `ok`). `VERSION`, the manifest
-  version and the notes heading are untouched (pr-contract: `no version edit`).
-  `git merge-tree --write-tree origin/main <head>` exits 0, no conflict.
-
-## What I did not block on
-
-- The macOS-local `tests/features.py` red the dispatch names: not this diff's, and I did
-  not block on it. I could not yet confirm it green from check-runs — CI's `closures` job
-  was still `pending` at every pass I made — so I record `closures` as *not concluded*
-  rather than green. The diff touches no solver path.
-- `nightly-status` and `delivery-status`: both green at this head.
-- One figure I could not re-derive: the body's `bundle_bytes=588446` / +202 B. I measured
-  588245 (base) -> 588448 (head), +203 B. Direction and magnitude agree; the exact byte
-  figure did not reproduce on this box.
-- Two dispatch notes, neither a block: the brief path `tools/audit/briefs/fix-review.md`
-  no longer exists at `origin/main` (its content was lifted to
-  `dev/governance/roles/fix-review.md` by `bc0f17ddb`), which I read; and the debugger
-  pre-study itself is not in the tree at this head (it lives at
-  `tools/audit/round9/prestudy/debugger-prestudy.md` on `handoff/r9-dbg-0` = `eae236d66`),
-  so "re-read at this head" resolves to the handoff ref, whose blob matches what the body
-  cites.
-
-## Round
-
-This is the second pass of R9-DBG-2, below `fixer.md`'s three-round re-cut threshold.
+Evidence: evidence/ in this verdict's directory (pr-body.md, typing-head.txt,
+revert-arm.txt, oracle-head.txt, oracle-base.txt, closures-ci.log,
+mergetree.txt, gate-and-ledger.txt).
